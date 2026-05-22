@@ -105,7 +105,7 @@ async function confirmLogout() {
     @close="logoutConfirmOpen = false"
   >
     <p class="logout-confirm__message">{{ t('auth.logoutConfirmMessage') }}</p>
-    <div class="logout-confirm__actions">
+    <template #footer>
       <button class="btn btn-outline-secondary" @click="logoutConfirmOpen = false">
         {{ t('common.cancel') }}
       </button>
@@ -113,6 +113,6 @@ async function confirmLogout() {
         <font-awesome-icon icon="arrow-right-from-bracket" />
         {{ t('auth.logout') }}
       </button>
-    </div>
+    </template>
   </DetailModal>
 </template>

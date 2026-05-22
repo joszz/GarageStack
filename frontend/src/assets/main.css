@@ -1588,12 +1588,6 @@ html, body, #app {
   color: var(--color-text-muted);
 }
 
-.logout-confirm__actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.75rem;
-}
-
 /* ── Session loading overlay ──────────────────────────────── */
 
 .session-loading {
