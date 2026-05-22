@@ -50,15 +50,15 @@ public static class VehicleEndpoints
             string vin,
             ITelemetryRepository telemetry,
             IVehicleRepository vehicles,
-            DateTime? from,
-            DateTime? to,
+            DateTimeOffset? from,
+            DateTimeOffset? to,
             CancellationToken ct) =>
         {
             var vehicle = await vehicles.GetByVinAsync(vin, ct);
             if (vehicle is null) return Results.NotFound();
 
-            var start = from ?? DateTime.UtcNow.AddDays(-7);
-            var end = to ?? DateTime.UtcNow;
+            var start = from?.UtcDateTime ?? DateTime.UtcNow.AddDays(-7);
+            var end = to?.UtcDateTime ?? DateTime.UtcNow;
             var history = await telemetry.GetHistoryAsync(vehicle.Id, start, end, ct);
             return Results.Ok(history);
         })
@@ -68,15 +68,15 @@ public static class VehicleEndpoints
             string vin,
             ITelemetryRepository telemetry,
             IVehicleRepository vehicles,
-            DateTime? from,
-            DateTime? to,
+            DateTimeOffset? from,
+            DateTimeOffset? to,
             CancellationToken ct) =>
         {
             var vehicle = await vehicles.GetByVinAsync(vin, ct);
             if (vehicle is null) return Results.NotFound();
 
-            var start = from ?? DateTime.UtcNow.AddDays(-30);
-            var end = to ?? DateTime.UtcNow;
+            var start = from?.UtcDateTime ?? DateTime.UtcNow.AddDays(-30);
+            var end = to?.UtcDateTime ?? DateTime.UtcNow;
             var trips = await telemetry.GetTripsAsync(vehicle.Id, start, end, ct);
             return Results.Ok(trips);
         })

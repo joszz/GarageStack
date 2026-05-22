@@ -139,25 +139,47 @@ public class TelemetryRepository(AppDbContext db) : ITelemetryRepository
         {
             if (current.Count > 0 && p.RecordedAt - current[^1].RecordedAt > gapThreshold)
             {
-                if (current.Count >= 2)
-                    trips.Add(BuildTrip(trips.Count, current));
+                TryAddTrip(trips, current);
                 current.Clear();
             }
-            current.Add(new TripPoint(p.RecordedAt, p.Latitude!.Value, p.Longitude!.Value, p.Speed));
+            // Skip consecutive duplicate positions (GPS cached/not updating while driving)
+            var pt = new TripPoint(p.RecordedAt, p.Latitude!.Value, p.Longitude!.Value, p.Speed);
+            if (current.Count == 0 || !SamePosition(current[^1], pt))
+                current.Add(pt);
         }
 
-        if (current.Count >= 2)
-            trips.Add(BuildTrip(trips.Count, current));
+        TryAddTrip(trips, current);
 
         // Discard segments that never went anywhere (GPS drift, brief polling bursts while stationary)
         return trips.Where(t => t.DistanceKm >= 0.1).ToList();
     }
 
-    private static TripDto BuildTrip(int index, List<TripPoint> points)
+    private static void TryAddTrip(List<TripDto> trips, List<TripPoint> current)
+    {
+        if (current.Count < 2) return;
+        var trip = BuildTrip(trips.Count, current);
+        if (trip is not null) trips.Add(trip);
+    }
+
+    // Two positions are considered identical when within ~1 metre of each other.
+    private static bool SamePosition(TripPoint a, TripPoint b) =>
+        Math.Abs(a.Latitude - b.Latitude) < 0.00001 &&
+        Math.Abs(a.Longitude - b.Longitude) < 0.00001;
+
+    private static TripDto? BuildTrip(int index, List<TripPoint> points)
     {
         var distance = 0.0;
         for (var i = 1; i < points.Count; i++)
             distance += Haversine(points[i - 1].Latitude, points[i - 1].Longitude, points[i].Latitude, points[i].Longitude);
+
+        // Reject GPS-teleportation: consecutive points implying > 250 km/h are not real trips
+        for (var i = 1; i < points.Count; i++)
+        {
+            var segKm = Haversine(points[i - 1].Latitude, points[i - 1].Longitude, points[i].Latitude, points[i].Longitude);
+            var segHours = (points[i].RecordedAt - points[i - 1].RecordedAt).TotalHours;
+            if (segHours > 0 && segKm / segHours > 250)
+                return null;
+        }
 
         return new TripDto(index, points[0].RecordedAt, points[^1].RecordedAt, Math.Round(distance, 2), points.Count, points);
     }

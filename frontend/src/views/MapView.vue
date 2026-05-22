@@ -2,7 +2,7 @@
 import { onMounted, computed, ref, shallowRef, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useVehicleStore } from '@/stores/vehicle'
-import { LMap, LTileLayer, LMarker, LPopup, LPolyline } from '@vue-leaflet/vue-leaflet'
+import { LMap, LTileLayer, LMarker, LPopup } from '@vue-leaflet/vue-leaflet'
 import L, { type Map as LeafletMap } from 'leaflet'
 import 'leaflet.heat'
 import type { Trip } from '@/services/api'
@@ -16,13 +16,18 @@ const selectedTripIndex = ref<number | null>(null)
 
 const mapInstance = shallowRef<LeafletMap | null>(null)
 let heatLayer: L.Layer | null = null
+let routeLines: L.Polyline[] = []
 
-// Centre falls back to Amsterdam when no position known
-const center = computed<[number, number]>(() =>
-  status.value?.latitude && status.value?.longitude
-    ? [status.value.latitude, status.value.longitude]
-    : [52.3676, 4.9041],
-)
+const tripColors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899']
+
+function tripColor(index: number): string {
+  return tripColors[index % tripColors.length] ?? '#3b82f6'
+}
+
+// Static initial centre — map position is controlled by fitAll/fitTrip after data loads.
+// Using a computed here would cause @vue-leaflet/vue-leaflet to call panTo() whenever
+// status updates, overriding the fitBounds we set for trip routes.
+const center: [number, number] = [52.3676, 4.9041]
 
 const selectedTrip = computed<Trip | null>(() =>
   selectedTripIndex.value !== null ? (store.trips[selectedTripIndex.value] ?? null) : null,
@@ -33,23 +38,16 @@ const allPoints = computed<[number, number][]>(() =>
   store.trips.flatMap((trip) => trip.points.map((p) => [p.latitude, p.longitude] as [number, number])),
 )
 
-const tripPolylines = computed(() =>
-  store.trips.map((trip) =>
-    trip.points.map((p) => [p.latitude, p.longitude] as [number, number]),
-  ),
-)
-
-const tripColors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899']
-
-function tripColor(index: number): string {
-  return tripColors[index % tripColors.length] ?? '#3b82f6'
-}
-
 function formatDuration(startedAt: string, endedAt: string): string {
   const ms = new Date(endedAt).getTime() - new Date(startedAt).getTime()
   const mins = Math.round(ms / 60_000)
   if (mins < 60) return `${mins} min`
   return `${Math.floor(mins / 60)}h ${mins % 60}m`
+}
+
+function clearRouteLines() {
+  routeLines.forEach(l => l.remove())
+  routeLines = []
 }
 
 function buildHeatLayer() {
@@ -64,35 +62,72 @@ function buildHeatLayer() {
   }).addTo(map)
 }
 
+function buildRouteLines() {
+  const map = mapInstance.value
+  if (!map) return
+  clearRouteLines()
+  store.trips.forEach((trip, i) => {
+    const pts = trip.points.map(p => [p.latitude, p.longitude] as [number, number])
+    if (pts.length < 2) return
+    const line = L.polyline(pts, { color: tripColor(i), weight: 3, opacity: 0.75 })
+    line.on('click', () => selectTrip(i))
+    line.addTo(map)
+    routeLines.push(line)
+  })
+}
+
+function buildSelectedLine() {
+  const map = mapInstance.value
+  const idx = selectedTripIndex.value
+  if (!map || idx === null) return
+  clearRouteLines()
+  const trip = store.trips[idx]
+  if (!trip) return
+  const pts = trip.points.map(p => [p.latitude, p.longitude] as [number, number])
+  if (pts.length < 2) return
+  const line = L.polyline(pts, { color: tripColor(idx), weight: 5, opacity: 1 })
+  line.addTo(map)
+  routeLines.push(line)
+}
+
 function removeHeatLayer() {
   if (heatLayer) { heatLayer.remove(); heatLayer = null }
 }
 
+function fitBoundsSafe(pts: [number, number][]) {
+  const map = mapInstance.value
+  if (!map || pts.length === 0) return
+  const bounds = L.latLngBounds(pts)
+  if (bounds.getNorthEast().equals(bounds.getSouthWest())) {
+    map.setView(bounds.getCenter(), 15)
+  } else {
+    map.fitBounds(bounds, { padding: [32, 32] })
+  }
+}
+
 function fitAll() {
-  if (!mapInstance.value || allPoints.value.length === 0) return
-  mapInstance.value.fitBounds(L.latLngBounds(allPoints.value), { padding: [32, 32] })
+  fitBoundsSafe(allPoints.value)
 }
 
 function fitTrip(trip: Trip) {
-  if (!mapInstance.value) return
-  const pts = trip.points.map((p) => [p.latitude, p.longitude] as [number, number])
-  if (pts.length === 0) return
-  mapInstance.value.fitBounds(L.latLngBounds(pts), { padding: [32, 32] })
+  fitBoundsSafe(trip.points.map((p) => [p.latitude, p.longitude] as [number, number]))
 }
 
 function onMapReady(map: LeafletMap) {
   mapInstance.value = map
   if (allPoints.value.length > 0) {
     buildHeatLayer()
+    buildRouteLines()
     fitAll()
   }
 }
 
-// When trips load after map is ready, build the heatmap and fit
+// When trips load after map is ready, draw heatmap + route lines and fit
 watch(allPoints, async (pts) => {
   if (pts.length === 0 || !mapInstance.value) return
   await nextTick()
   buildHeatLayer()
+  buildRouteLines()
   fitAll()
 })
 
@@ -100,9 +135,11 @@ watch(allPoints, async (pts) => {
 watch(selectedTripIndex, (idx) => {
   if (idx === null) {
     buildHeatLayer()
+    buildRouteLines()
     fitAll()
   } else {
     removeHeatLayer()
+    buildSelectedLine()
     const trip = store.trips[idx]
     if (trip) fitTrip(trip)
   }
@@ -189,28 +226,6 @@ onMounted(async () => {
           <LMarker v-if="status?.latitude && status?.longitude" :lat-lng="[status.latitude, status.longitude]">
             <LPopup>{{ store.vehicles[0]?.model ?? store.vehicles[0]?.vin }}</LPopup>
           </LMarker>
-
-          <!-- When no trip selected: show all polylines -->
-          <template v-if="selectedTripIndex === null">
-            <LPolyline
-              v-for="(points, i) in tripPolylines"
-              :key="i"
-              :lat-lngs="points"
-              :color="tripColor(i)"
-              :weight="3"
-              :opacity="0.7"
-              @click="selectTrip(i)"
-            />
-          </template>
-
-          <!-- When a trip is selected: show only that one, highlighted -->
-          <LPolyline
-            v-else-if="selectedTripIndex !== null && tripPolylines[selectedTripIndex]"
-            :lat-lngs="tripPolylines[selectedTripIndex]!"
-            :color="tripColor(selectedTripIndex)"
-            :weight="5"
-            :opacity="1"
-          />
         </LMap>
       </div>
     </div>

@@ -52,8 +52,11 @@ export const useVehicleStore = defineStore('vehicle', () => {
     loading.value = true
     error.value = null
     try {
-      history.value = await vehicleApi.history(vin, from, to)
+      const result = await vehicleApi.history(vin, from, to)
+      console.log('[vehicle] fetchHistory result:', result?.length, 'items', 'from=', from)
+      history.value = result
     } catch (e) {
+      console.error('[vehicle] fetchHistory error:', e)
       error.value = String(e)
     } finally {
       loading.value = false

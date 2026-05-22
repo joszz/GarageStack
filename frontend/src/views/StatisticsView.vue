@@ -189,7 +189,8 @@ const pressureOptions = {
         </div>
       </div>
 
-      <div v-if="!store.history.length" class="empty-state">{{ t('dashboard.noData') }}</div>
+      <div v-if="store.error" class="empty-state text-danger">{{ store.error }}</div>
+      <div v-else-if="!store.history.length" class="empty-state">{{ t('dashboard.noData') }}</div>
 
       <template v-else>
         <div class="chart-container">
