@@ -97,11 +97,22 @@ async function handleSubmit() {
           </div>
         </div>
 
-        <label class="login-checkbox">
-          <input v-model="rememberMe" type="checkbox" class="login-checkbox__input" />
-          <span class="login-checkbox__box"></span>
-          <span class="login-checkbox__label">{{ t('auth.rememberMe') }}</span>
-        </label>
+        <div class="settings-toggle login-remember">
+          <div class="settings-toggle__info">
+            <label class="settings-toggle__label" for="login-remember-me">{{ t('auth.rememberMe') }}</label>
+          </div>
+          <div class="settings-toggle__control">
+            <div class="form-check form-switch mb-0">
+              <input
+                id="login-remember-me"
+                v-model="rememberMe"
+                class="form-check-input"
+                type="checkbox"
+                role="switch"
+              />
+            </div>
+          </div>
+        </div>
 
         <div v-if="error" class="login-error" role="alert">
           <font-awesome-icon icon="triangle-exclamation" />

@@ -1501,53 +1501,14 @@ html, body, #app {
   background: var(--color-border);
 }
 
-/* ── Login checkbox ───────────────────────────────────────── */
+/* ── Login remember toggle ────────────────────────────────── */
 
-.login-checkbox {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  cursor: pointer;
-  user-select: none;
+.login-remember {
+  padding: 0.25rem 0;
+  border-bottom: none;
 }
 
-.login-checkbox__input {
-  position: absolute;
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-
-.login-checkbox__box {
-  width: 16px;
-  height: 16px;
-  border-radius: 4px;
-  border: 1.5px solid var(--color-border);
-  background: var(--color-surface-2);
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background 0.15s, border-color 0.15s;
-}
-
-.login-checkbox__input:checked + .login-checkbox__box {
-  background: var(--color-primary);
-  border-color: var(--color-primary);
-}
-
-.login-checkbox__input:checked + .login-checkbox__box::after {
-  content: '';
-  width: 9px;
-  height: 5px;
-  border-left: 2px solid #fff;
-  border-bottom: 2px solid #fff;
-  transform: translateY(-1px) rotate(-45deg);
-  display: block;
-}
-
-.login-checkbox__label {
-  font-size: 0.83rem;
+.login-remember .settings-toggle__label {
   color: var(--color-text-muted);
 }
 
