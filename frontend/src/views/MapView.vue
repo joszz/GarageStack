@@ -41,6 +41,10 @@ function tripColor(index: number): string {
   return tripColors[index % tripColors.length] ?? '#3b82f6'
 }
 
+function tripColorClass(index: number): string {
+  return `trip-list__dot--${index % tripColors.length}`
+}
+
 // Static initial centre — map position is controlled by fitAll/fitTrip after data loads.
 // Using a computed here would cause @vue-leaflet/vue-leaflet to call panTo() whenever
 // status updates, overriding the fitBounds we set for trip routes.
@@ -204,7 +208,7 @@ onMounted(async () => {
             :class="{ 'trip-list__item--active': selectedTripIndex === i }"
             @click="selectTrip(i)"
           >
-            <span class="trip-list__dot" :style="{ background: tripColor(i) }" />
+            <span class="trip-list__dot" :class="tripColorClass(i)" />
             <div class="trip-list__info">
               <span class="trip-list__name">{{ t('trips.trip') }} {{ i + 1 }}</span>
               <span class="trip-list__meta">
@@ -233,7 +237,7 @@ onMounted(async () => {
 
       <!-- Map -->
       <div class="map-wrapper">
-        <LMap :zoom="13" :center="center" style="height: 100%" @ready="onMapReady">
+        <LMap :zoom="13" :center="center" class="map-canvas" @ready="onMapReady">
           <LTileLayer
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             attribution="© OpenStreetMap contributors"

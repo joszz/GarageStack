@@ -40,8 +40,11 @@ try
     builder.Services.ConfigureHttpJsonOptions(opts =>
         opts.SerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles);
 
-    var jwtSecret = builder.Configuration["Jwt:Secret"]
-        ?? throw new InvalidOperationException("Jwt:Secret is not configured.");
+    var jwtSecret = builder.Configuration["Jwt:Secret"];
+    if (string.IsNullOrWhiteSpace(jwtSecret))
+        throw new InvalidOperationException("Jwt:Secret is not configured.");
+    if (jwtSecret.StartsWith("change_me_", StringComparison.OrdinalIgnoreCase) || jwtSecret.Length < 32)
+        throw new InvalidOperationException("Jwt:Secret must be at least 32 characters and must not use the default placeholder.");
     var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "GarageStack";
     var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "GarageStack";
 
@@ -64,11 +67,14 @@ try
     builder.Services.AddAuthorization();
 
     builder.Services.AddRateLimiter(opts =>
+    {
+        opts.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
         opts.AddFixedWindowLimiter("fixed", o =>
         {
             o.Window = TimeSpan.FromMinutes(1);
             o.PermitLimit = 120;
-        }));
+        });
+    });
 
     builder.Services.AddCors(opts =>
         opts.AddDefaultPolicy(p =>

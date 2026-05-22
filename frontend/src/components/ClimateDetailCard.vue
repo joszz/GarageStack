@@ -95,7 +95,7 @@ function applyTemperature() {
       <!-- AC temperature slider -->
       <div v-if="climateOn !== null || remoteTemperature !== null" class="detail-list__item detail-list__item--range">
         <font-awesome-icon icon="temperature-half" class="detail-list__item-icon" />
-        <div class="range-control" style="flex:1;">
+        <div class="range-control range-control--grow">
           <div class="range-control__header">
             <span class="range-control__label">{{ t('control.temperature') }}</span>
             <span class="range-control__value">{{ sliderTemp }}°C</span>
@@ -175,7 +175,7 @@ function applyTemperature() {
       <!-- Driver seat slider -->
       <div v-if="heatedSeatFrontLeft !== null" class="detail-list__item detail-list__item--range">
         <font-awesome-icon icon="couch" class="detail-list__item-icon" />
-        <div class="range-control" style="flex:1;">
+        <div class="range-control range-control--grow">
           <div class="range-control__header">
             <span class="range-control__label">{{ t('vehicle.climateDetail.seatLeft') }}</span>
             <span class="range-control__value">{{ seatLabels[seatLeftLocal] }}</span>
@@ -198,7 +198,7 @@ function applyTemperature() {
       <!-- Passenger seat slider -->
       <div v-if="heatedSeatFrontRight !== null" class="detail-list__item detail-list__item--range">
         <font-awesome-icon icon="couch" class="detail-list__item-icon" />
-        <div class="range-control" style="flex:1;">
+        <div class="range-control range-control--grow">
           <div class="range-control__header">
             <span class="range-control__label">{{ t('vehicle.climateDetail.seatRight') }}</span>
             <span class="range-control__value">{{ seatLabels[seatRightLocal] }}</span>
@@ -224,3 +224,9 @@ function applyTemperature() {
     </div>
   </DetailModal>
 </template>
+
+<style scoped>
+.range-control--grow {
+  flex: 1;
+}
+</style>

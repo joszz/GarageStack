@@ -274,7 +274,7 @@ const pressureOptions = {
     <div class="view-header">
       <h1>{{ t('nav.statistics') }}</h1>
       <div class="view-header__actions">
-        <select v-model="days" class="form-select form-select-sm" style="width:auto" @change="watchDays">
+        <select v-model="days" class="form-select form-select-sm stats-days-select" @change="watchDays">
           <option :value="1">24h</option>
           <option :value="7">7 days</option>
           <option :value="30">30 days</option>
@@ -404,6 +404,10 @@ const pressureOptions = {
 </template>
 
 <style scoped>
+.stats-days-select {
+  width: auto;
+}
+
 .stats-insights {
   margin-bottom: 1rem;
 }

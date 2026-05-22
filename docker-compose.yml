@@ -80,7 +80,7 @@ services:
     environment:
       ConnectionStrings__DefaultConnection: "Host=${POSTGRES_HOST:-postgres};Port=${POSTGRES_PORT:-5432};Database=${POSTGRES_DB:-garagestack};Username=${POSTGRES_USER:-garagestack};Password=${POSTGRES_PASSWORD}"
       Cors__Origins__0: "${CORS_ORIGIN:-http://localhost}"
-      Jwt__Secret: "${JWT_SECRET:-change_me_set_JWT_SECRET_in_env_file}"
+      Jwt__Secret: "${JWT_SECRET}"
       Mqtt__Host: "${MQTT_HOST:-mosquitto}"
       Mqtt__Port: "${MQTT_PORT:-1883}"
       Vapid__PublicKey: "${VAPID_PUBLIC_KEY}"

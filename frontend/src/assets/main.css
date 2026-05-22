@@ -695,6 +695,17 @@ html, body, #app {
   margin-top: 4px;
 }
 
+.trip-list__dot--0 { background: #3b82f6; }
+.trip-list__dot--1 { background: #10b981; }
+.trip-list__dot--2 { background: #f59e0b; }
+.trip-list__dot--3 { background: #ef4444; }
+.trip-list__dot--4 { background: #8b5cf6; }
+.trip-list__dot--5 { background: #ec4899; }
+
+.map-canvas {
+  height: 100%;
+}
+
 .trip-list__info {
   display: flex;
   flex-direction: column;

@@ -3,6 +3,7 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 using GarageStack.Core.Models;
 using GarageStack.Data;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -15,7 +16,9 @@ public static class AuthEndpoints
 
     public static IEndpointRouteBuilder MapAuthEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/api/auth").WithTags("Auth");
+        var group = app.MapGroup("/api/auth")
+            .WithTags("Auth")
+            .RequireRateLimiting("fixed");
 
         group.MapPost("/login", async (
             LoginRequest req,

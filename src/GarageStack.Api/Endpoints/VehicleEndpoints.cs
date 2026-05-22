@@ -2,6 +2,7 @@ using System.Security.Claims;
 using GarageStack.Core.Interfaces;
 using GarageStack.Core.Models;
 using GarageStack.Data;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 
@@ -11,7 +12,10 @@ public static class VehicleEndpoints
 {
     public static IEndpointRouteBuilder MapVehicleEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/api/vehicles").WithTags("Vehicles").RequireAuthorization();
+        var group = app.MapGroup("/api/vehicles")
+            .WithTags("Vehicles")
+            .RequireAuthorization()
+            .RequireRateLimiting("fixed");
 
         group.MapGet("/", async (AppDbContext db, CancellationToken ct) =>
         {
@@ -144,7 +148,10 @@ public static class VehicleEndpoints
         .WithSummary("Distinct raw MQTT topics seen for a vehicle");
 
         // Push notifications (require auth so subscriptions are tied to a session)
-        var push = app.MapGroup("/api/push").WithTags("Push Notifications").RequireAuthorization();
+        var push = app.MapGroup("/api/push")
+            .WithTags("Push Notifications")
+            .RequireAuthorization()
+            .RequireRateLimiting("fixed");
 
         push.MapGet("/vapid-public-key", (IConfiguration config) =>
         {
