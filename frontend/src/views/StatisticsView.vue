@@ -165,7 +165,7 @@ const tyreChartData = computed(() => ({
 
 const percentOptions = {
   responsive: true,
-  maintainAspectRatio: false,
+  maintainAspectRatio: true,
   plugins: { legend: { display: false } },
   scales: {
     x: {
@@ -181,7 +181,7 @@ const percentOptions = {
 
 const pressureOptions = {
   responsive: true,
-  maintainAspectRatio: false,
+  maintainAspectRatio: true,
   plugins: { legend: { display: true } },
   scales: {
     x: {
