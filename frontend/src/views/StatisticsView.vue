@@ -2,6 +2,7 @@
 import { onMounted, computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useVehicleStore } from '@/stores/vehicle'
+import type { TelemetrySnapshot } from '@/services/api'
 import { Line } from 'vue-chartjs'
 import {
   Chart as ChartJS,
@@ -47,9 +48,43 @@ const efficiencyWh = computed(() => {
   return Math.round(s.powerUsageOfDay / s.mileageOfTheDay)
 })
 
-// Chart helpers
+// Group history by local date to avoid overcrowded datetime labels on charts.
+function toDateKey(isoTimestamp: string) {
+  const d = new Date(isoTimestamp)
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
+function avg(values: Array<number | null>) {
+  const valid = values.filter((v): v is number => v !== null)
+  if (!valid.length) return null
+  return valid.reduce((sum, v) => sum + v, 0) / valid.length
+}
+
+const groupedHistory = computed(() => {
+  const buckets = new Map<string, TelemetrySnapshot[]>()
+
+  for (const snapshot of store.history) {
+    const key = toDateKey(snapshot.recordedAt)
+    const existing = buckets.get(key)
+    if (existing) {
+      existing.push(snapshot)
+    } else {
+      buckets.set(key, [snapshot])
+    }
+  }
+
+  return Array.from(buckets.entries()).map(([key, snapshots]) => ({
+    key,
+    label: new Date(`${key}T00:00:00`).toLocaleDateString(),
+    snapshots,
+  }))
+})
+
 function chartLabels() {
-  return store.history.map((s) => new Date(s.recordedAt).toLocaleString())
+  return groupedHistory.value.map((d) => d.label)
 }
 
 const fuelChartData = computed(() => ({
@@ -57,11 +92,14 @@ const fuelChartData = computed(() => ({
   datasets: [
     {
       label: `${t('vehicle.fuel')} (%)`,
-      data: store.history.map((s) => s.fuelLevelPercent),
+      data: groupedHistory.value.map((d) => avg(d.snapshots.map((s) => s.fuelLevelPercent))),
       borderColor: '#3b82f6',
       backgroundColor: 'rgba(59,130,246,0.1)',
       fill: true,
       tension: 0.3,
+      spanGaps: true,
+      pointRadius: 2,
+      pointHoverRadius: 4,
     },
   ],
 }))
@@ -71,11 +109,14 @@ const evChartData = computed(() => ({
   datasets: [
     {
       label: `${t('vehicle.evSoc')} (%)`,
-      data: store.history.map((s) => s.evSocPercent),
+      data: groupedHistory.value.map((d) => avg(d.snapshots.map((s) => s.evSocPercent))),
       borderColor: '#10b981',
       backgroundColor: 'rgba(16,185,129,0.1)',
       fill: true,
       tension: 0.3,
+      spanGaps: true,
+      pointRadius: 2,
+      pointHoverRadius: 4,
     },
   ],
 }))
@@ -85,41 +126,73 @@ const tyreChartData = computed(() => ({
   datasets: [
     {
       label: `FL (${t('common.bar')})`,
-      data: store.history.map((s) => s.tyrePressureFrontLeft),
+      data: groupedHistory.value.map((d) => avg(d.snapshots.map((s) => s.tyrePressureFrontLeft))),
       borderColor: '#f59e0b',
       tension: 0.3,
+      spanGaps: true,
+      pointRadius: 2,
+      pointHoverRadius: 4,
     },
     {
       label: `FR (${t('common.bar')})`,
-      data: store.history.map((s) => s.tyrePressureFrontRight),
+      data: groupedHistory.value.map((d) => avg(d.snapshots.map((s) => s.tyrePressureFrontRight))),
       borderColor: '#ef4444',
       tension: 0.3,
+      spanGaps: true,
+      pointRadius: 2,
+      pointHoverRadius: 4,
     },
     {
       label: `RL (${t('common.bar')})`,
-      data: store.history.map((s) => s.tyrePressureRearLeft),
+      data: groupedHistory.value.map((d) => avg(d.snapshots.map((s) => s.tyrePressureRearLeft))),
       borderColor: '#8b5cf6',
       tension: 0.3,
+      spanGaps: true,
+      pointRadius: 2,
+      pointHoverRadius: 4,
     },
     {
       label: `RR (${t('common.bar')})`,
-      data: store.history.map((s) => s.tyrePressureRearRight),
+      data: groupedHistory.value.map((d) => avg(d.snapshots.map((s) => s.tyrePressureRearRight))),
       borderColor: '#ec4899',
       tension: 0.3,
+      spanGaps: true,
+      pointRadius: 2,
+      pointHoverRadius: 4,
     },
   ],
 }))
 
 const percentOptions = {
   responsive: true,
+  maintainAspectRatio: false,
   plugins: { legend: { display: false } },
-  scales: { y: { min: 0, max: 100 } },
+  scales: {
+    x: {
+      ticks: {
+        maxRotation: 0,
+        autoSkip: true,
+        maxTicksLimit: 8,
+      },
+    },
+    y: { min: 0, max: 100 },
+  },
 }
 
 const pressureOptions = {
   responsive: true,
+  maintainAspectRatio: false,
   plugins: { legend: { display: true } },
-  scales: { y: { min: 1.5, max: 3.5 } },
+  scales: {
+    x: {
+      ticks: {
+        maxRotation: 0,
+        autoSkip: true,
+        maxTicksLimit: 8,
+      },
+    },
+    y: { min: 1.5, max: 3.5 },
+  },
 }
 </script>
 
