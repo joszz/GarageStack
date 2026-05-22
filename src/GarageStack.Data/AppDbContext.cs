@@ -24,6 +24,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         {
             e.HasKey(s => s.Id);
             e.HasIndex(s => new { s.VehicleId, s.RecordedAt });
+            e.HasIndex(s => new { s.VehicleId, s.RawTopic })
+             .HasFilter("\"RawTopic\" IS NOT NULL");
+            e.HasIndex(s => new { s.VehicleId, s.Latitude, s.Longitude, s.RecordedAt })
+             .HasDatabaseName("IX_TelemetrySnapshots_VehicleId_LatLon_RecordedAt")
+             .HasFilter("\"Latitude\" IS NOT NULL AND \"Longitude\" IS NOT NULL");
             e.HasOne(s => s.Vehicle)
              .WithMany(v => v.TelemetrySnapshots)
              .HasForeignKey(s => s.VehicleId)
@@ -47,6 +52,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         modelBuilder.Entity<UserRefreshToken>(e =>
         {
             e.HasKey(t => t.Id);
+            e.HasIndex(t => t.Token).IsUnique();
+            e.HasIndex(t => new { t.Revoked, t.ExpiresAt });
             e.HasOne(t => t.User)
              .WithMany(u => u.RefreshTokens)
              .HasForeignKey(t => t.UserId)
