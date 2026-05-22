@@ -111,12 +111,31 @@ public class TelemetryRepository(AppDbContext db) : ITelemetryRepository
         return merged;
     }
 
-    public async Task<IReadOnlyList<TelemetrySnapshot>> GetHistoryAsync(int vehicleId, DateTime from, DateTime to, CancellationToken ct = default) =>
-        await db.TelemetrySnapshots
-                .Where(s => s.VehicleId == vehicleId && s.RecordedAt >= from && s.RecordedAt <= to)
-                .Where(HasData)
-                .OrderBy(s => s.RecordedAt)
-                .ToListAsync(ct);
+    public async Task<IReadOnlyList<TelemetrySnapshot>> GetHistoryAsync(int vehicleId, DateTime from, DateTime to, CancellationToken ct = default)
+    {
+        var rows = await db.TelemetrySnapshots
+            .Where(s => s.VehicleId == vehicleId && s.RecordedAt >= from && s.RecordedAt <= to)
+            .Where(HasData)
+            .OrderBy(s => s.RecordedAt)
+            .ToListAsync(ct);
+
+        if (rows.Count == 0) return rows;
+
+        var maxPoints = (to - from).TotalDays switch
+        {
+            <= 1  => 288,  // ~5-min resolution
+            <= 7  => 336,  // ~30-min resolution
+            _     => 360,  // ~2-hour resolution
+        };
+
+        if (rows.Count <= maxPoints) return rows;
+
+        var step = rows.Count / maxPoints;
+        var result = new List<TelemetrySnapshot>(maxPoints + 1);
+        for (var i = 0; i < rows.Count; i += step)
+            result.Add(rows[i]);
+        return result;
+    }
 
     public async Task<IReadOnlyList<TripDto>> GetTripsAsync(int vehicleId, DateTime from, DateTime to, CancellationToken ct = default)
     {

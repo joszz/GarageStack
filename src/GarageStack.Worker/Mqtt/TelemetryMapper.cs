@@ -12,6 +12,8 @@ public static class TelemetryMapper
                 System.Globalization.CultureInfo.InvariantCulture, out var numeric))
             numeric = double.NaN;
 
+        static double? N(double v) => double.IsFinite(v) ? v : null;
+
         bool? asBool = payload switch
         {
             "true" or "True" or "1" or "on" or "open" or "unlocked" or "front" or "blowingonly" => true,
@@ -25,17 +27,17 @@ public static class TelemetryMapper
             case "drivetrain/fossilFuel/percentage":
             case "drivetrain/fuelLevel":
             case "drivetrain/fuelLevelPercent":
-                snapshot.FuelLevelPercent = double.IsNaN(numeric) ? null : numeric;
+                snapshot.FuelLevelPercent = N(numeric);
                 break;
 
             case "drivetrain/fossilFuel/range":
             case "drivetrain/fuelRange":
-                snapshot.FuelRangeKm = double.IsNaN(numeric) ? null : numeric;
+                snapshot.FuelRangeKm = N(numeric);
                 break;
 
             case "drivetrain/mileage":
             case "drivetrain/odometer":
-                snapshot.OdometerKm = double.IsNaN(numeric) ? null : numeric;
+                snapshot.OdometerKm = N(numeric);
                 break;
 
             case "drivetrain/running":
@@ -44,18 +46,18 @@ public static class TelemetryMapper
 
             case "drivetrain/speed":
             case "location/speed":
-                snapshot.Speed = double.IsNaN(numeric) ? null : numeric;
+                snapshot.Speed = N(numeric);
                 break;
 
             case "drivetrain/auxiliaryBatteryVoltage":
             case "12v/batteryVoltage":
             case "battery/voltage":
-                snapshot.BatteryVoltage = double.IsNaN(numeric) ? null : numeric;
+                snapshot.BatteryVoltage = N(numeric);
                 break;
 
             // EV / PHEV
             case "drivetrain/soc":
-                snapshot.EvSocPercent = double.IsNaN(numeric) ? null : numeric;
+                snapshot.EvSocPercent = N(numeric);
                 break;
 
             case "drivetrain/charging":
@@ -110,10 +112,10 @@ public static class TelemetryMapper
                 {
                     using var doc = JsonDocument.Parse(payload);
                     var root = doc.RootElement;
-                    if (root.TryGetProperty("latitude", out var lat))
-                        snapshot.Latitude = lat.GetDouble();
-                    if (root.TryGetProperty("longitude", out var lon))
-                        snapshot.Longitude = lon.GetDouble();
+                    if (root.TryGetProperty("latitude", out var lat) && lat.TryGetDouble(out var latVal))
+                        snapshot.Latitude = N(latVal);
+                    if (root.TryGetProperty("longitude", out var lon) && lon.TryGetDouble(out var lonVal))
+                        snapshot.Longitude = N(lonVal);
                 }
                 catch
                 {
@@ -122,13 +124,13 @@ public static class TelemetryMapper
                 break;
 
             case "location/latitude":
-                snapshot.Latitude = double.IsNaN(numeric) ? null : numeric;
+                snapshot.Latitude = N(numeric);
                 break;
             case "location/longitude":
-                snapshot.Longitude = double.IsNaN(numeric) ? null : numeric;
+                snapshot.Longitude = N(numeric);
                 break;
             case "location/heading":
-                snapshot.Heading = double.IsNaN(numeric) ? null : numeric;
+                snapshot.Heading = N(numeric);
                 break;
 
             // Climate
@@ -138,58 +140,58 @@ public static class TelemetryMapper
                 snapshot.ClimateOn = asBool;
                 break;
             case "climate/interiorTemperature":
-                snapshot.InteriorTemperature = double.IsNaN(numeric) ? null : numeric;
+                snapshot.InteriorTemperature = N(numeric);
                 break;
             case "climate/remoteTemperature":
-                snapshot.RemoteTemperature = double.IsNaN(numeric) ? null : numeric;
+                snapshot.RemoteTemperature = N(numeric);
                 break;
             case "climate/exteriorTemperature":
-                snapshot.ExteriorTemperature = double.IsNaN(numeric) ? null : numeric;
+                snapshot.ExteriorTemperature = N(numeric);
                 break;
 
             // Tyres
             case "tyres/frontLeftPressure":
-                snapshot.TyrePressureFrontLeft = double.IsNaN(numeric) ? null : numeric;
+                snapshot.TyrePressureFrontLeft = N(numeric);
                 break;
             case "tyres/frontRightPressure":
-                snapshot.TyrePressureFrontRight = double.IsNaN(numeric) ? null : numeric;
+                snapshot.TyrePressureFrontRight = N(numeric);
                 break;
             case "tyres/rearLeftPressure":
-                snapshot.TyrePressureRearLeft = double.IsNaN(numeric) ? null : numeric;
+                snapshot.TyrePressureRearLeft = N(numeric);
                 break;
             case "tyres/rearRightPressure":
-                snapshot.TyrePressureRearRight = double.IsNaN(numeric) ? null : numeric;
+                snapshot.TyrePressureRearRight = N(numeric);
                 break;
 
             // Daily efficiency stats
             case "drivetrain/mileageOfTheDay":
-                snapshot.MileageOfTheDay = double.IsNaN(numeric) ? null : numeric;
+                snapshot.MileageOfTheDay = N(numeric);
                 break;
             case "drivetrain/powerUsageOfDay":
-                snapshot.PowerUsageOfDay = double.IsNaN(numeric) ? null : numeric;
+                snapshot.PowerUsageOfDay = N(numeric);
                 break;
             case "drivetrain/mileageSinceLastCharge":
-                snapshot.MileageSinceLastCharge = double.IsNaN(numeric) ? null : numeric;
+                snapshot.MileageSinceLastCharge = N(numeric);
                 break;
 
             // HV drivetrain
             case "drivetrain/voltage":
-                snapshot.HvVoltage = double.IsNaN(numeric) ? null : numeric;
+                snapshot.HvVoltage = N(numeric);
                 break;
             case "drivetrain/current":
-                snapshot.HvCurrent = double.IsNaN(numeric) ? null : numeric;
+                snapshot.HvCurrent = N(numeric);
                 break;
             case "drivetrain/power":
-                snapshot.HvPower = double.IsNaN(numeric) ? null : numeric;
+                snapshot.HvPower = N(numeric);
                 break;
             case "drivetrain/soc_kwh":
-                snapshot.HvSocKwh = double.IsNaN(numeric) ? null : numeric;
+                snapshot.HvSocKwh = N(numeric);
                 break;
             case "drivetrain/totalBatteryCapacity":
-                snapshot.HvTotalCapacityKwh = double.IsNaN(numeric) ? null : numeric;
+                snapshot.HvTotalCapacityKwh = N(numeric);
                 break;
             case "drivetrain/powerUsageSinceLastCharge":
-                snapshot.PowerUsageSinceLastCharge = double.IsNaN(numeric) ? null : numeric;
+                snapshot.PowerUsageSinceLastCharge = N(numeric);
                 break;
             case "drivetrain/chargerConnected":
                 snapshot.ChargerConnected = asBool;
@@ -211,10 +213,10 @@ public static class TelemetryMapper
 
             // Climate extras
             case "climate/heatedSeatsFrontLeftLevel":
-                snapshot.HeatedSeatFrontLeft = double.IsNaN(numeric) ? null : (int)numeric;
+                snapshot.HeatedSeatFrontLeft = double.IsFinite(numeric) ? (int)numeric : (int?)null;
                 break;
             case "climate/heatedSeatsFrontRightLevel":
-                snapshot.HeatedSeatFrontRight = double.IsNaN(numeric) ? null : (int)numeric;
+                snapshot.HeatedSeatFrontRight = double.IsFinite(numeric) ? (int)numeric : (int?)null;
                 break;
             case "climate/rearWindowDefrosterHeating":
                 snapshot.RearWindowDefroster = asBool;

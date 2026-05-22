@@ -38,7 +38,10 @@ try
     builder.Services.AddHostedService(sp => sp.GetRequiredService<MqttPublisher>());
     builder.Services.AddOpenApi();
     builder.Services.ConfigureHttpJsonOptions(opts =>
-        opts.SerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles);
+    {
+        opts.SerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+        opts.SerializerOptions.Converters.Add(new FiniteDoubleConverter());
+    });
 
     var jwtSecret = builder.Configuration["Jwt:Secret"];
     if (string.IsNullOrWhiteSpace(jwtSecret))
@@ -95,6 +98,13 @@ try
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         await db.Database.MigrateAsync();
     }
+
+    app.UseExceptionHandler(errorApp => errorApp.Run(async ctx =>
+    {
+        ctx.Response.StatusCode = 500;
+        ctx.Response.ContentType = "application/json";
+        await ctx.Response.WriteAsync("{\"error\":\"Internal server error\"}");
+    }));
 
     app.UseForwardedHeaders(new ForwardedHeadersOptions
     {
