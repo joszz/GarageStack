@@ -20,7 +20,7 @@ import {
   faPlugCircleCheck, faChevronRight, faLightbulb, faCircle,
   faUser, faEye, faEyeSlash, faArrowRightFromBracket,
   faPlus, faPenToSquare, faBatteryHalf,
-  faSun, faMoon,
+  faSun, faMoon, faCarSide,
 } from '@fortawesome/free-solid-svg-icons'
 
 import App from './App.vue'
@@ -42,7 +42,7 @@ library.add(
   faPlugCircleCheck, faChevronRight, faLightbulb, faCircle,
   faUser, faEye, faEyeSlash, faArrowRightFromBracket,
   faPlus, faPenToSquare, faBatteryHalf,
-  faSun, faMoon,
+  faSun, faMoon, faCarSide,
 )
 
 const i18n = createI18n({

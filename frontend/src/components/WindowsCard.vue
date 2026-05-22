@@ -11,8 +11,6 @@ const props = defineProps<{
   passengerWindowOpen: boolean | null
   rearLeftWindowOpen: boolean | null
   rearRightWindowOpen: boolean | null
-  sunRoofOpen: boolean | null
-  showSunRoof?: boolean
 }>()
 
 const modalOpen = ref(false)
@@ -25,9 +23,6 @@ const windowList = computed((): WinItem[] =>
     { key: 'passenger', label: t('vehicle.doors_detail.passenger'), open: props.passengerWindowOpen },
     { key: 'rearLeft',  label: t('vehicle.doors_detail.rearLeft'),  open: props.rearLeftWindowOpen },
     { key: 'rearRight', label: t('vehicle.doors_detail.rearRight'), open: props.rearRightWindowOpen },
-    ...(props.showSunRoof
-      ? [{ key: 'sunRoof', label: t('vehicle.doors_detail.sunRoof'), open: props.sunRoofOpen }]
-      : []),
   ] as { key: string; label: string; open: boolean | null }[])
     .filter((w): w is WinItem => w.open !== null),
 )
@@ -50,7 +45,7 @@ const variant = computed(() => {
 <template>
   <StatusCard
     v-if="summary !== null"
-    icon="window-maximize"
+    icon="car-side"
     :label="t('vehicle.windows')"
     :value="summary"
     :variant="variant"
@@ -70,7 +65,7 @@ const variant = computed(() => {
         class="detail-list__item"
         :class="win.open ? 'detail-list__item--alert' : ''"
       >
-        <font-awesome-icon icon="window-maximize" class="detail-list__item-icon" />
+        <font-awesome-icon icon="car-side" class="detail-list__item-icon" />
         <span class="detail-list__item-value">{{ win.open ? t('common.open') : t('common.closed') }}</span>
         <span class="detail-list__item-sep">-</span>
         <span class="detail-list__item-label">{{ win.label }}</span>

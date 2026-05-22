@@ -111,8 +111,15 @@ const supportsExternalCharge = computed(() => vehicleType.value === 'phev' || ve
       :passenger-window-open="status.passengerWindowOpen"
       :rear-left-window-open="status.rearLeftWindowOpen"
       :rear-right-window-open="status.rearRightWindowOpen"
-      :sun-roof-open="status.sunRoofOpen"
-      :show-sun-roof="settings.showSunRoof"
+    />
+
+    <!-- sunRoof -->
+    <StatusCard
+      v-else-if="cardId === 'sunRoof' && status.sunRoofOpen !== null"
+      icon="sun"
+      :label="t('settings.cards.sunRoof')"
+      :value="status.sunRoofOpen ? t('common.open') : t('common.closed')"
+      :variant="status.sunRoofOpen ? 'warning' : 'success'"
     />
 
     <!-- climate -->

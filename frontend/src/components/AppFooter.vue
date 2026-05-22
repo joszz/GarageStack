@@ -161,22 +161,6 @@ async function refresh() {
             <option v-for="opt in typeOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
           </select>
         </div>
-        <!-- Sunroof toggle -->
-        <div class="settings-toggle mt-3">
-          <div class="settings-toggle__info">
-            <span class="settings-toggle__label">{{ t('settings.sunRoof.show') }}</span>
-            <span class="settings-toggle__desc text-muted">{{ t('settings.sunRoof.showDesc') }}</span>
-          </div>
-          <div class="form-check form-switch">
-            <input
-              id="footer-toggle-sunroof"
-              v-model="settings.showSunRoof"
-              class="form-check-input"
-              type="checkbox"
-              role="switch"
-            />
-          </div>
-        </div>
       </div>
     </div>
 

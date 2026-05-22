@@ -10,13 +10,13 @@ export type CardId =
   | 'fuelLevel' | 'fuelRange'
   | 'evBattery' | 'charging'
   | 'odometer' | 'battery12v'
-  | 'doors' | 'windows'
+  | 'doors' | 'windows' | 'sunRoof'
   | 'climate' | 'hvBattery' | 'findMyCar' | 'lights'
   | 'efficiencyDistance' | 'efficiencyEnergy' | 'efficiencyCharge' | 'efficiencyRatio'
 
 const ALL_CARD_IDS: CardId[] = [
   'fuelLevel', 'fuelRange', 'evBattery', 'charging', 'odometer', 'battery12v',
-  'doors', 'windows', 'climate', 'hvBattery', 'findMyCar', 'lights',
+  'doors', 'windows', 'sunRoof', 'climate', 'hvBattery', 'findMyCar', 'lights',
   'efficiencyDistance', 'efficiencyEnergy', 'efficiencyCharge', 'efficiencyRatio',
 ]
 
@@ -29,7 +29,6 @@ export interface AppSettings {
   cards: CardConfig[]
   vehicleTypeOverride: VehicleTypeOverride
   theme: Theme
-  showSunRoof: boolean
   locale: Locale
 }
 
@@ -52,6 +51,7 @@ export function defaultCards(type: VehicleType | 'unknown' = 'unknown'): CardCon
     { id: 'battery12v',         visible: true },
     { id: 'doors',              visible: true },
     { id: 'windows',            visible: true },
+    { id: 'sunRoof',            visible: false },
     { id: 'climate',            visible: true },
     { id: 'hvBattery',          visible: true },
     { id: 'findMyCar',          visible: true },
@@ -70,7 +70,6 @@ const defaults: AppSettings = {
   cards: defaultCards('unknown'),
   vehicleTypeOverride: 'auto',
   theme: osPreferredTheme(),
-  showSunRoof: false,
   locale: browserLocale(),
 }
 
@@ -78,6 +77,7 @@ function migrateCards(raw: { id: string; visible: boolean }[]): CardConfig[] {
   const expanded: CardConfig[] = []
   const usedNewIds = new Set<CardId>()
   const rawIds = new Set(raw.map(c => c.id))
+  const defaultVisibility = new Map(defaultCards('unknown').map(c => [c.id, c.visible]))
 
   for (const c of raw) {
     switch (c.id) {
@@ -127,7 +127,7 @@ function migrateCards(raw: { id: string; visible: boolean }[]): CardConfig[] {
 
   for (const id of ALL_CARD_IDS) {
     if (!usedNewIds.has(id)) {
-      expanded.push({ id, visible: true })
+      expanded.push({ id, visible: defaultVisibility.get(id) ?? true })
     }
   }
 
@@ -147,6 +147,7 @@ function loadFromKey(key: string): AppSettings {
           fuelRange:          p.showFuel,
           evBattery:          p.showEvBattery,
           charging:           p.showCharging,
+          sunRoof:            p.showSunRoof,
           hvBattery:          p.showHvPower,
           lights:             p.showLights,
           efficiencyDistance: p.showEfficiency,
@@ -158,7 +159,6 @@ function loadFromKey(key: string): AppSettings {
           cards: defaultCards('unknown').map(c => ({ id: c.id, visible: visMap[c.id] ?? c.visible })),
           vehicleTypeOverride: parsed.vehicleTypeOverride ?? defaults.vehicleTypeOverride,
           theme: parsed.theme ?? defaults.theme,
-          showSunRoof: p.showSunRoof ?? defaults.showSunRoof,
           locale: parsed.locale ?? defaults.locale,
         }
       }
@@ -168,7 +168,6 @@ function loadFromKey(key: string): AppSettings {
           cards: migrateCards(parsed.cards),
           vehicleTypeOverride: parsed.vehicleTypeOverride ?? defaults.vehicleTypeOverride,
           theme: parsed.theme ?? defaults.theme,
-          showSunRoof: parsed.showSunRoof ?? defaults.showSunRoof,
           locale: parsed.locale ?? defaults.locale,
         }
       }
@@ -196,7 +195,6 @@ export const useSettingsStore = defineStore('settings', () => {
   const cards = ref<CardConfig[]>(loaded.cards)
   const vehicleTypeOverride = ref<VehicleTypeOverride>(loaded.vehicleTypeOverride)
   const theme = ref<Theme>(loaded.theme)
-  const showSunRoof = ref<boolean>(loaded.showSunRoof)
   const locale = ref<Locale>(loaded.locale)
 
   document.documentElement.dataset.theme = theme.value
@@ -209,14 +207,12 @@ export const useSettingsStore = defineStore('settings', () => {
       cards: cards.value,
       vehicleTypeOverride: vehicleTypeOverride.value,
       theme: theme.value,
-      showSunRoof: showSunRoof.value,
       locale: locale.value,
     }))
   }
 
   watch(cards, save, { deep: true })
   watch(vehicleTypeOverride, save)
-  watch(showSunRoof, save)
   watch(locale, save)
   watch(theme, (val) => {
     document.documentElement.dataset.theme = val
@@ -231,7 +227,6 @@ export const useSettingsStore = defineStore('settings', () => {
     vehicleTypeOverride.value = userSettings.vehicleTypeOverride
     theme.value = userSettings.theme
     document.documentElement.dataset.theme = userSettings.theme
-    showSunRoof.value = userSettings.showSunRoof
     locale.value = userSettings.locale
     suppressSave = false
     save()
@@ -245,7 +240,6 @@ export const useSettingsStore = defineStore('settings', () => {
     vehicleTypeOverride.value = guestSettings.vehicleTypeOverride
     theme.value = guestSettings.theme
     document.documentElement.dataset.theme = guestSettings.theme
-    showSunRoof.value = guestSettings.showSunRoof
     locale.value = guestSettings.locale
     suppressSave = false
   }
@@ -254,5 +248,5 @@ export const useSettingsStore = defineStore('settings', () => {
     cards.value = defaultCards(type)
   }
 
-  return { cards, vehicleTypeOverride, theme, showSunRoof, locale, resetCards, loadForUser, resetToGuest }
+  return { cards, vehicleTypeOverride, theme, locale, resetCards, loadForUser, resetToGuest }
 })

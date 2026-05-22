@@ -6,8 +6,8 @@ import { defaultCards, useSettingsStore } from '@/stores/settings'
 const BASE_KEY = 'garagestack-settings'
 
 describe('defaultCards', () => {
-  it('includes all 16 card ids', () => {
-    expect(defaultCards()).toHaveLength(16)
+  it('includes all 17 card ids', () => {
+    expect(defaultCards()).toHaveLength(17)
   })
 
   it('places visible cards before hidden ones', () => {
@@ -92,21 +92,19 @@ describe('useSettingsStore', () => {
       cards: defaultCards('bev'),
       vehicleTypeOverride: 'bev',
       theme: 'light',
-      showSunRoof: true,
       locale: 'nl',
     }))
     const store = useSettingsStore()
     expect(store.theme).toBe('light')
     expect(store.locale).toBe('nl')
     expect(store.vehicleTypeOverride).toBe('bev')
-    expect(store.showSunRoof).toBe(true)
   })
 
   it('falls back to defaults when localStorage is empty', () => {
     const store = useSettingsStore()
     expect(store.vehicleTypeOverride).toBe('auto')
-    expect(store.showSunRoof).toBe(false)
-    expect(store.cards).toHaveLength(16)
+    expect(store.cards).toHaveLength(17)
+    expect(store.cards.find(c => c.id === 'sunRoof')!.visible).toBe(false)
   })
 
   describe('card migration', () => {
@@ -160,19 +158,20 @@ describe('useSettingsStore', () => {
       expect(store.cards.find(c => c.id === 'fuelLevel')!.visible).toBe(false)
       expect(store.cards.find(c => c.id === 'fuelRange')!.visible).toBe(false)
       expect(store.cards.find(c => c.id === 'efficiencyDistance')!.visible).toBe(true)
-      expect(store.showSunRoof).toBe(true)
+      expect(store.cards.find(c => c.id === 'sunRoof')!.visible).toBe(true)
       expect(store.theme).toBe('light')
     })
 
-    it('appends newly introduced cards as visible when migrating old data', () => {
+    it('appends newly introduced cards using their default visibility when migrating old data', () => {
       // A saved list that only has known-new ids but is missing some
       localStorage.setItem(BASE_KEY, JSON.stringify({
         cards: [{ id: 'odometer', visible: true }],
         theme: 'dark',
       }))
       const store = useSettingsStore()
-      // All 16 card ids should be present after migration fills in the gaps
-      expect(store.cards).toHaveLength(16)
+      // All 17 card ids should be present after migration fills in the gaps
+      expect(store.cards).toHaveLength(17)
+      expect(store.cards.find(c => c.id === 'sunRoof')!.visible).toBe(false)
     })
   })
 
@@ -200,7 +199,6 @@ describe('useSettingsStore', () => {
         cards: defaultCards(),
         vehicleTypeOverride: 'auto',
         theme: 'dark',
-        showSunRoof: false,
         locale: 'en',
       }))
       const store = useSettingsStore()

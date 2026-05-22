@@ -34,6 +34,7 @@ function cardHasData(id: CardId): boolean {
     case 'fuelRange':          return s.fuelRangeKm !== null
     case 'evBattery':          return s.evSocPercent !== null
     case 'charging':           return s.isCharging !== null
+    case 'sunRoof':            return s.sunRoofOpen !== null
     case 'efficiencyDistance': return s.mileageOfTheDay !== null
     case 'efficiencyEnergy':   return s.powerUsageOfDay !== null
     case 'efficiencyCharge':   return s.mileageSinceLastCharge !== null && !isHev.value
@@ -50,7 +51,8 @@ const CARD_ICONS: Record<CardId, string> = {
   odometer:           'gauge',
   battery12v:         'battery-three-quarters',
   doors:              'lock',
-  windows:            'window-maximize',
+  windows:            'car-side',
+  sunRoof:            'sun',
   climate:            'wind',
   hvBattery:          'battery-half',
   findMyCar:          'car-burst',
