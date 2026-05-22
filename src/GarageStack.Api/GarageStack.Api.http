@@ -1,0 +1,60 @@
+@GarageStack.Api_HostAddress = http://localhost:5202
+@VIN = YOUR_VIN_HERE
+
+### List all vehicles
+GET {{GarageStack.Api_HostAddress}}/api/vehicles
+Accept: application/json
+
+###
+
+### Get vehicle capability config
+GET {{GarageStack.Api_HostAddress}}/api/vehicles/{{VIN}}/config
+Accept: application/json
+
+###
+
+### Get latest telemetry snapshot
+GET {{GarageStack.Api_HostAddress}}/api/vehicles/{{VIN}}/status
+Accept: application/json
+
+###
+
+### Get telemetry history (last 7 days by default)
+GET {{GarageStack.Api_HostAddress}}/api/vehicles/{{VIN}}/history
+Accept: application/json
+
+###
+
+### Get trip history (last 30 days by default)
+GET {{GarageStack.Api_HostAddress}}/api/vehicles/{{VIN}}/trips
+Accept: application/json
+
+###
+
+### Get distinct MQTT topics seen for a vehicle (diagnostic)
+GET {{GarageStack.Api_HostAddress}}/api/vehicles/{{VIN}}/topics
+Accept: application/json
+
+###
+
+### Send a command -- lock the vehicle
+POST {{GarageStack.Api_HostAddress}}/api/vehicles/{{VIN}}/commands/lock
+Content-Type: application/json
+
+{ "value": "1" }
+
+###
+
+### Send a command -- start climate control
+POST {{GarageStack.Api_HostAddress}}/api/vehicles/{{VIN}}/commands/climate
+Content-Type: application/json
+
+{ "value": "on" }
+
+###
+
+### Get VAPID public key for push notifications
+GET {{GarageStack.Api_HostAddress}}/api/push/vapid-public-key
+Accept: application/json
+
+###

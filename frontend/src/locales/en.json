@@ -1,0 +1,226 @@
+{
+  "nav": {
+    "dashboard": "Dashboard",
+    "statistics": "Statistics",
+    "map": "Map",
+    "control": "Control",
+    "settings": "Settings"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "lastUpdated": "Last updated",
+    "noData": "No data available",
+    "editLayout": "Edit layout",
+    "doneEditing": "Done",
+    "editLayoutDesc": "Drag cards to reorder. Toggle the eye icon to show or hide a card.",
+    "resetLayout": "Reset to defaults",
+    "dragToReorder": "Drag to reorder",
+    "hideCard": "Hide card",
+    "showCard": "Show card"
+  },
+  "vehicle": {
+    "fuel": "Fuel",
+    "range": "Range",
+    "odometer": "Odometer",
+    "locked": "Locked",
+    "unlocked": "Unlocked",
+    "engineOn": "Engine on",
+    "engineOff": "Engine off",
+    "climateOn": "On",
+    "climateOff": "Off",
+    "doors": "Doors",
+    "windows": "Windows",
+    "battery": "12V",
+    "evSoc": "EV Battery",
+    "charging": "Charging",
+    "chargingYes": "Charging",
+    "chargingNo": "Not charging",
+    "sunRoofOpen": "Sunroof open",
+    "sunRoofClosed": "Sunroof closed",
+    "tyres": "Tyre Pressures",
+    "temperature": {
+      "interior": "Interior temp",
+      "exterior": "Exterior temp"
+    },
+    "doors_detail": {
+      "driver": "Driver",
+      "passenger": "Passenger",
+      "rearLeft": "Rear left",
+      "rearRight": "Rear right",
+      "bonnet": "Bonnet",
+      "boot": "Boot",
+      "sunRoof": "Sunroof"
+    },
+    "efficiency": {
+      "todayDistance": "Dist. today",
+      "todayEnergy": "Energy today",
+      "sinceCharge": "Since charge",
+      "efficiency": "Efficiency"
+    },
+    "hvBattery": {
+      "title": "HV Battery",
+      "active": "Active",
+      "idle": "Idle",
+      "socKwh": "State of charge",
+      "capacity": "Total capacity",
+      "soc": "SOC",
+      "voltage": "Voltage",
+      "current": "Current",
+      "power": "Power",
+      "usedSinceCharge": "Used since charge",
+      "charger": "Charger",
+      "pluggedIn": "Plugged in",
+      "unplugged": "Unplugged"
+    },
+    "lights": {
+      "title": "Lights",
+      "mainBeam": "High beam",
+      "dippedBeam": "Low beam",
+      "side": "Sidelights"
+    },
+    "climateDetail": {
+      "title": "Climate details",
+      "seatLeft": "Driver seat heat",
+      "seatRight": "Passenger seat heat",
+      "rearDefroster": "Rear defroster"
+    }
+  },
+  "control": {
+    "title": "Control",
+    "climate": "Climate control",
+    "climateOn": "Turn on",
+    "climateOff": "Turn off",
+    "heatedSeats": "Heated seats",
+    "seat": {
+      "off": "Off",
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High"
+    },
+    "lockDoors": "Lock doors",
+    "lock": "Lock",
+    "unlock": "Unlock",
+    "temperature": "AC temperature",
+    "rearDefroster": "Rear defroster",
+    "findMyCar": "Find my car",
+    "findMyCarActivate": "Activate",
+    "findMyCarStop": "Stop",
+    "findMyCarConfirm": "This will activate the horn and lights to help locate your car. Continue?",
+    "chargeLimit": "Charge current limit",
+    "refresh": "Refresh",
+    "sending": "Sending...",
+    "sent": "Command sent",
+    "error": "Command failed"
+  },
+  "trips": {
+    "title": "Trip history",
+    "noTrips": "No trips recorded",
+    "trip": "Trip",
+    "distance": "Distance",
+    "duration": "Duration",
+    "started": "Started",
+    "points": "Points"
+  },
+  "push": {
+    "enable": "Enable notifications",
+    "enabled": "Notifications on",
+    "disabled": "Notifications off",
+    "permissionDenied": "Permission denied"
+  },
+  "settings": {
+    "title": "Settings",
+    "resetDefaults": "Reset to defaults",
+    "theme": {
+      "title": "Appearance",
+      "light": "Light mode",
+      "dark": "Dark mode",
+      "lightDesc": "Switch between dark and light theme"
+    },
+    "language": {
+      "title": "Language"
+    },
+    "sunRoof": {
+      "show": "Show sunroof in windows panel",
+      "showDesc": "The gateway reports sunroof data for all cars. Disable this if your car has no sunroof."
+    },
+    "cards": {
+      "fuelLevel": "Fuel Level",
+      "fuelRange": "Fuel Range",
+      "evBattery": "EV Battery",
+      "charging": "Charging",
+      "odometer": "Odometer",
+      "battery12v": "12V Battery",
+      "doors": "Doors",
+      "windows": "Windows",
+      "climate": "Climate",
+      "hvBattery": "HV Battery",
+      "findMyCar": "Find My Car",
+      "lights": "Lights",
+      "efficiencyDistance": "Daily Distance",
+      "efficiencyEnergy": "Daily Energy",
+      "efficiencyCharge": "Since Charge",
+      "efficiencyRatio": "Efficiency"
+    },
+    "vehicleType": {
+      "title": "Vehicle type",
+      "description": "Determines which features are relevant (e.g. charging stats). Auto-detected from the gateway when available.",
+      "detected": "Detected",
+      "notDetected": "Not detected yet -start the gateway to auto-detect",
+      "override": "Override",
+      "auto": "Auto (use detected)",
+      "hev": "HEV (Hybrid -no plug)",
+      "phev": "PHEV (Plug-in Hybrid)",
+      "bev": "BEV (Full Electric)"
+    },
+    "panels": {
+      "title": "Dashboard panels",
+      "description": "Choose which panels are visible on the dashboard.",
+      "fuel": "Fuel",
+      "fuelDesc": "Fuel level and range cards",
+      "evBattery": "EV battery",
+      "evBatteryDesc": "EV state of charge percentage",
+      "hvPower": "HV battery",
+      "hvPowerDesc": "High-voltage battery details (kWh, voltage, current)",
+      "charging": "Charging status",
+      "chargingDesc": "Charging indicator (mainly relevant for PHEV/EV)",
+      "lights": "Lights",
+      "lightsDesc": "High beam, low beam and sidelights status",
+      "climateDetail": "Climate details",
+      "climateDetailDesc": "Heated seats and rear defroster",
+      "efficiency": "Efficiency",
+      "efficiencyDesc": "Daily distance, energy usage and since-last-charge stats",
+      "sunRoof": "Sunroof",
+      "sunRoofDesc": "Show sunroof in the windows panel (off by default -gateway reports it for all cars)",
+      "heatedSeats": "Heated seats",
+      "heatedSeatsDesc": "Heated seat level controls on the dashboard"
+    }
+  },
+  "auth": {
+    "login": "Sign in",
+    "logout": "Sign out",
+    "logoutConfirmTitle": "Sign out",
+    "logoutConfirmMessage": "Are you sure you want to sign out?",
+    "email": "SAIC email",
+    "emailPlaceholder": "you{'@'}example.com",
+    "password": "Password",
+    "passwordPlaceholder": "Your SAIC password",
+    "rememberMe": "Remember me (30 days)",
+    "togglePassword": "Toggle password visibility",
+    "errorRequired": "Email and password are required",
+    "errorInvalid": "Invalid credentials, please try again",
+    "hint": "Use your MG / SAIC iSmart account credentials"
+  },
+  "common": {
+    "km": "km",
+    "bar": "bar",
+    "wh": "Wh",
+    "on": "On",
+    "off": "Off",
+    "loading": "Loading...",
+    "error": "Something went wrong",
+    "open": "Open",
+    "closed": "Closed",
+    "noData": "No data available",
+    "cancel": "Cancel"
+  }
+}

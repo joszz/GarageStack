@@ -1,0 +1,226 @@
+{
+  "nav": {
+    "dashboard": "Dashboard",
+    "statistics": "Statistieken",
+    "map": "Kaart",
+    "control": "Bediening",
+    "settings": "Instellingen"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "lastUpdated": "Laatst bijgewerkt",
+    "noData": "Geen gegevens beschikbaar",
+    "editLayout": "Indeling bewerken",
+    "doneEditing": "Klaar",
+    "editLayoutDesc": "Sleep kaarten om te herordenen. Gebruik het oogpictogram om een kaart te tonen of verbergen.",
+    "resetLayout": "Standaard herstellen",
+    "dragToReorder": "Slepen om te herordenen",
+    "hideCard": "Kaart verbergen",
+    "showCard": "Kaart tonen"
+  },
+  "vehicle": {
+    "fuel": "Brandstof",
+    "range": "Bereik",
+    "odometer": "Kilometerteller",
+    "locked": "Vergrendeld",
+    "unlocked": "Ontgrendeld",
+    "engineOn": "Motor aan",
+    "engineOff": "Motor uit",
+    "climateOn": "Aan",
+    "climateOff": "Uit",
+    "doors": "Deuren",
+    "windows": "Ramen",
+    "battery": "12V",
+    "evSoc": "EV Accu",
+    "charging": "Laden",
+    "chargingYes": "Aan het laden",
+    "chargingNo": "Niet aan het laden",
+    "sunRoofOpen": "Open",
+    "sunRoofClosed": "Gesloten",
+    "tyres": "Bandenspanning",
+    "temperature": {
+      "interior": "Interieurtemperatuur",
+      "exterior": "Buitentemperatuur"
+    },
+    "doors_detail": {
+      "driver": "Bestuurder",
+      "passenger": "Passagier",
+      "rearLeft": "Achter links",
+      "rearRight": "Achter rechts",
+      "bonnet": "Motorkap",
+      "boot": "Kofferruimte",
+      "sunRoof": "Dakraam"
+    },
+    "efficiency": {
+      "todayDistance": "Afst. vandaag",
+      "todayEnergy": "Energie vandaag",
+      "sinceCharge": "Sinds lading",
+      "efficiency": "Verbruik"
+    },
+    "hvBattery": {
+      "title": "HV Accu",
+      "active": "Actief",
+      "idle": "Inactief",
+      "socKwh": "Laadstatus",
+      "capacity": "Totale capaciteit",
+      "soc": "SOC",
+      "voltage": "Spanning",
+      "current": "Stroom",
+      "power": "Vermogen",
+      "usedSinceCharge": "Verbruikt sinds lading",
+      "charger": "Oplader",
+      "pluggedIn": "Aangesloten",
+      "unplugged": "Losgekoppeld"
+    },
+    "lights": {
+      "title": "Verlichting",
+      "mainBeam": "Grootlicht",
+      "dippedBeam": "Dimlicht",
+      "side": "Stadslicht"
+    },
+    "climateDetail": {
+      "title": "Klimaatdetails",
+      "seatLeft": "Bestuurdersstoel verwarming",
+      "seatRight": "Passagiersstoel verwarming",
+      "rearDefroster": "Achterruitsverwarming"
+    }
+  },
+  "control": {
+    "title": "Bediening",
+    "climate": "Klimaatbeheersing",
+    "climateOn": "Aanzetten",
+    "climateOff": "Uitzetten",
+    "heatedSeats": "Verwarmd zitten",
+    "seat": {
+      "off": "Uit",
+      "low": "Laag",
+      "medium": "Middel",
+      "high": "Hoog"
+    },
+    "lockDoors": "Deuren vergrendelen",
+    "lock": "Vergrendelen",
+    "unlock": "Ontgrendelen",
+    "temperature": "AC temperatuur",
+    "rearDefroster": "Achterruitsverwarming",
+    "findMyCar": "Zoek mijn auto",
+    "findMyCarActivate": "Activeren",
+    "findMyCarStop": "Stoppen",
+    "findMyCarConfirm": "Hiermee activeer je de claxon en verlichting om je auto te vinden. Doorgaan?",
+    "chargeLimit": "Laadstroomlimiet",
+    "refresh": "Vernieuwen",
+    "sending": "Versturen...",
+    "sent": "Commando verzonden",
+    "error": "Commando mislukt"
+  },
+  "trips": {
+    "title": "Ritgeschiedenis",
+    "noTrips": "Geen ritten opgeslagen",
+    "trip": "Rit",
+    "distance": "Afstand",
+    "duration": "Duur",
+    "started": "Gestart",
+    "points": "Punten"
+  },
+  "push": {
+    "enable": "Meldingen inschakelen",
+    "enabled": "Meldingen aan",
+    "disabled": "Meldingen uit",
+    "permissionDenied": "Toestemming geweigerd"
+  },
+  "settings": {
+    "title": "Instellingen",
+    "resetDefaults": "Standaardinstellingen herstellen",
+    "theme": {
+      "title": "Weergave",
+      "light": "Lichte modus",
+      "dark": "Donkere modus",
+      "lightDesc": "Schakel tussen donker en licht thema"
+    },
+    "language": {
+      "title": "Taal"
+    },
+    "sunRoof": {
+      "show": "Dakraam tonen in ramenvenster",
+      "showDesc": "De gateway meldt dakraamgegevens voor alle auto's. Schakel dit uit als uw auto geen dakraam heeft."
+    },
+    "cards": {
+      "fuelLevel": "Brandstofniveau",
+      "fuelRange": "Rijbereik",
+      "evBattery": "EV-accu",
+      "charging": "Laden",
+      "odometer": "Kilometerteller",
+      "battery12v": "12V-accu",
+      "doors": "Deuren",
+      "windows": "Ramen",
+      "climate": "Klimaat",
+      "hvBattery": "HV-accu",
+      "findMyCar": "Zoek mijn auto",
+      "lights": "Verlichting",
+      "efficiencyDistance": "Dagafstand",
+      "efficiencyEnergy": "Dagenergie",
+      "efficiencyCharge": "Sinds lading",
+      "efficiencyRatio": "Verbruik"
+    },
+    "vehicleType": {
+      "title": "Voertuigtype",
+      "description": "Bepaalt welke functies relevant zijn (bijv. laadstatistieken). Automatisch gedetecteerd via de gateway.",
+      "detected": "Gedetecteerd",
+      "notDetected": "Nog niet gedetecteerd -start de gateway voor automatische detectie",
+      "override": "Handmatig instellen",
+      "auto": "Automatisch (gebruik gedetecteerd type)",
+      "hev": "HEV (Hybride -geen stekker)",
+      "phev": "PHEV (Plug-in hybride)",
+      "bev": "BEV (Volledig elektrisch)"
+    },
+    "panels": {
+      "title": "Dashboardpanelen",
+      "description": "Kies welke panelen zichtbaar zijn op het dashboard.",
+      "fuel": "Brandstof",
+      "fuelDesc": "Brandstofpeil en bereik",
+      "evBattery": "EV-accu",
+      "evBatteryDesc": "Laadstatus EV-accu in procent",
+      "hvPower": "HV-accu",
+      "hvPowerDesc": "Hoogspanningsaccu details (kWh, spanning, stroom)",
+      "charging": "Laadstatus",
+      "chargingDesc": "Laadindicator (vooral relevant voor PHEV/EV)",
+      "lights": "Verlichting",
+      "lightsDesc": "Groot-, dim- en stadslicht status",
+      "climateDetail": "Klimaatdetails",
+      "climateDetailDesc": "Stoelverwarming en achterruitsverwarming",
+      "efficiency": "Efficiëntie",
+      "efficiencyDesc": "Dagelijks verbruik, energie en stats sinds laatste laadbeurt",
+      "sunRoof": "Dakraam",
+      "sunRoofDesc": "Dakraam tonen in het ramenvenster (standaard uit -gateway meldt het voor alle auto's)",
+      "heatedSeats": "Stoelverwarming",
+      "heatedSeatsDesc": "Bediening stoelverwarming op het dashboard"
+    }
+  },
+  "auth": {
+    "login": "Inloggen",
+    "logout": "Uitloggen",
+    "logoutConfirmTitle": "Uitloggen",
+    "logoutConfirmMessage": "Weet je zeker dat je wilt uitloggen?",
+    "email": "SAIC e-mail",
+    "emailPlaceholder": "jij{'@'}voorbeeld.com",
+    "password": "Wachtwoord",
+    "passwordPlaceholder": "Je SAIC wachtwoord",
+    "rememberMe": "Onthoud mij (30 dagen)",
+    "togglePassword": "Wachtwoord zichtbaarheid",
+    "errorRequired": "E-mail en wachtwoord zijn vereist",
+    "errorInvalid": "Ongeldige inloggegevens, probeer opnieuw",
+    "hint": "Gebruik je MG / SAIC iSmart accountgegevens"
+  },
+  "common": {
+    "km": "km",
+    "bar": "bar",
+    "wh": "Wh",
+    "on": "Aan",
+    "off": "Uit",
+    "loading": "Laden...",
+    "error": "Er is iets misgegaan",
+    "open": "Open",
+    "closed": "Gesloten",
+    "noData": "Geen gegevens beschikbaar",
+    "cancel": "Annuleren"
+  }
+}

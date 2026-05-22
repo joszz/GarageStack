@@ -1,0 +1,109 @@
+services:
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: mosquitto
+    restart: unless-stopped
+    ports:
+      - "${MQTT_EXTERNAL_PORT:-1883}:1883"
+    volumes:
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf
+      - mosquitto_data:/mosquitto/data/
+
+  saic-mqtt-gateway:
+    image: saicismartapi/saic-python-mqtt-gateway:latest
+    container_name: saic-mqtt
+    restart: unless-stopped
+    depends_on:
+      - mosquitto
+    environment:
+      SAIC_USER: "${SAIC_USER}"
+      SAIC_PASSWORD: "${SAIC_PASSWORD}"
+      MQTT_URI: "tcp://mosquitto:1883"
+      SAIC_REGION: "${SAIC_REGION:-eu}"
+
+  # Bundled Postgres — only starts when you pass --profile bundled-postgres.
+  # Skip this and set POSTGRES_HOST to your own server to reuse an existing instance.
+  postgres:
+    profiles:
+      - bundled-postgres
+    image: postgres:17-alpine
+    container_name: garagestack-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: "${POSTGRES_DB:-garagestack}"
+      POSTGRES_USER: "${POSTGRES_USER:-garagestack}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-garagestack} -d ${POSTGRES_DB:-garagestack}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  worker:
+    build:
+      context: .
+      dockerfile: src/GarageStack.Worker/Dockerfile
+    container_name: garagestack-worker
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+        required: false
+      mosquitto:
+        condition: service_started
+    environment:
+      ConnectionStrings__DefaultConnection: "Host=${POSTGRES_HOST:-postgres};Port=${POSTGRES_PORT:-5432};Database=${POSTGRES_DB:-garagestack};Username=${POSTGRES_USER:-garagestack};Password=${POSTGRES_PASSWORD}"
+      Mqtt__Host: "${MQTT_HOST:-mosquitto}"
+      Mqtt__Port: "${MQTT_PORT:-1883}"
+      Vapid__PublicKey: "${VAPID_PUBLIC_KEY}"
+      Vapid__PrivateKey: "${VAPID_PRIVATE_KEY}"
+      Vapid__Subject: "mailto:${SAIC_USER}"
+    volumes:
+      - worker_logs:/app/logs
+
+  api:
+    build:
+      context: .
+      dockerfile: src/GarageStack.Api/Dockerfile
+    container_name: garagestack-api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+        required: false
+      mosquitto:
+        condition: service_started
+    environment:
+      ConnectionStrings__DefaultConnection: "Host=${POSTGRES_HOST:-postgres};Port=${POSTGRES_PORT:-5432};Database=${POSTGRES_DB:-garagestack};Username=${POSTGRES_USER:-garagestack};Password=${POSTGRES_PASSWORD}"
+      Cors__Origins__0: "${CORS_ORIGIN:-http://localhost}"
+      Jwt__Secret: "${JWT_SECRET:-change_me_set_JWT_SECRET_in_env_file}"
+      Mqtt__Host: "${MQTT_HOST:-mosquitto}"
+      Mqtt__Port: "${MQTT_PORT:-1883}"
+      Vapid__PublicKey: "${VAPID_PUBLIC_KEY}"
+      Vapid__PrivateKey: "${VAPID_PRIVATE_KEY}"
+      Vapid__Subject: "mailto:${SAIC_USER}"
+    ports:
+      - "${API_PORT:-5000}:8080"
+    volumes:
+      - api_logs:/app/logs
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: garagestack-frontend
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "${FRONTEND_PORT:-80}:80"
+
+volumes:
+  postgres_data:
+  mosquitto_data:
+  worker_logs:
+  api_logs:

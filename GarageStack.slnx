@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/GarageStack.Api/GarageStack.Api.csproj" />
+    <Project Path="src/GarageStack.Core/GarageStack.Core.csproj" />
+    <Project Path="src/GarageStack.Data/GarageStack.Data.csproj" />
+    <Project Path="src/GarageStack.Tests/GarageStack.Tests.csproj" />
+    <Project Path="src/GarageStack.Worker/GarageStack.Worker.csproj" />
+  </Folder>
+</Solution>

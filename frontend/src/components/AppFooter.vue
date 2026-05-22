@@ -1,0 +1,198 @@
+<script setup lang="ts">
+import { ref, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { useSettingsStore } from '@/stores/settings'
+import gbFlag from 'flag-icons/flags/4x3/gb.svg'
+import nlFlag from 'flag-icons/flags/4x3/nl.svg'
+import { useVehicleStore } from '@/stores/vehicle'
+import { useVehicleCommand } from '@/composables/useVehicleCommand'
+import { usePush } from '@/composables/usePush'
+import DetailModal from './DetailModal.vue'
+import type { VehicleTypeOverride } from '@/stores/settings'
+
+const { t } = useI18n()
+const settings = useSettingsStore()
+const vehicleStore = useVehicleStore()
+const { sending, send } = useVehicleCommand()
+const { pushSupported, pushState, togglePush } = usePush()
+
+const modalOpen = ref(false)
+
+const vin = computed(() => vehicleStore.vehicles[0]?.vin ?? null)
+
+const lastUpdated = computed(() => {
+  const ts = vehicleStore.currentStatus?.recordedAt
+  return ts ? new Date(ts).toLocaleString() : null
+})
+
+const detectedLabel = computed(() => {
+  const type = vehicleStore.detectedVehicleType
+  if (type === 'unknown') return null
+  return type.toUpperCase()
+})
+
+const hwVersion = computed(() => vehicleStore.vehicleConfig['hw_version'] ?? null)
+
+const typeOptions: { value: VehicleTypeOverride; label: string }[] = [
+  { value: 'auto', label: t('settings.vehicleType.auto') },
+  { value: 'hev',  label: t('settings.vehicleType.hev') },
+  { value: 'phev', label: t('settings.vehicleType.phev') },
+  { value: 'bev',  label: t('settings.vehicleType.bev') },
+]
+
+const isLightTheme = computed({
+  get: () => settings.theme === 'light',
+  set: (val: boolean) => { settings.theme = val ? 'light' : 'dark' },
+})
+
+const isNL = computed({
+  get: () => settings.locale === 'nl',
+  set: (val: boolean) => { settings.locale = val ? 'nl' : 'en' },
+})
+
+async function refresh() {
+  if (!vin.value) return
+  send(vin.value, 'refresh', 'force')
+  await vehicleStore.fetchStatus(vin.value)
+  setTimeout(() => vehicleStore.fetchStatus(vin.value!), 4000)
+}
+</script>
+
+<template>
+  <footer class="app-footer">
+    <span class="app-footer__copyright">&copy; 2026 GarageStack</span>
+    <span v-if="lastUpdated" class="app-footer__last-updated">
+      {{ t('dashboard.lastUpdated') }}: {{ lastUpdated }}
+    </span>
+    <div class="app-footer__actions">
+      <button
+        class="app-footer__btn"
+        :aria-label="t('control.refresh')"
+        :disabled="vehicleStore.loading || sending === 'refresh' || !vin"
+        @click="refresh"
+      >
+        <font-awesome-icon icon="rotate" :spin="vehicleStore.loading || sending === 'refresh'" />
+        {{ t('control.refresh') }}
+      </button>
+      <button class="app-footer__btn" :aria-label="t('settings.title')" @click="modalOpen = true">
+        <font-awesome-icon icon="gear" />
+        {{ t('settings.title') }}
+      </button>
+    </div>
+  </footer>
+
+  <DetailModal
+    :open="modalOpen"
+    :title="t('settings.title')"
+    @close="modalOpen = false"
+  >
+    <!-- Appearance -->
+    <div class="detail-modal__section">
+      <div class="detail-modal__section-title">{{ t('settings.theme.title') }}</div>
+      <div class="settings-toggles">
+        <div class="settings-toggle">
+          <div class="settings-toggle__info">
+            <span class="settings-toggle__label">{{ isLightTheme ? t('settings.theme.light') : t('settings.theme.dark') }}</span>
+            <span class="settings-toggle__desc text-muted">{{ t('settings.theme.lightDesc') }}</span>
+          </div>
+          <div class="settings-toggle__control">
+            <span class="settings-toggle__side-icon" :class="{ 'settings-toggle__side-icon--active': !isLightTheme }">
+              <font-awesome-icon icon="moon" />
+            </span>
+            <div class="form-check form-switch mb-0">
+              <input
+                id="footer-toggle-theme"
+                v-model="isLightTheme"
+                class="form-check-input"
+                type="checkbox"
+                role="switch"
+              />
+            </div>
+            <span class="settings-toggle__side-icon" :class="{ 'settings-toggle__side-icon--active': isLightTheme }">
+              <font-awesome-icon icon="sun" />
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Language -->
+    <div class="detail-modal__section">
+      <div class="detail-modal__section-title">{{ t('settings.language.title') }}</div>
+      <div class="settings-toggles">
+        <div class="settings-toggle">
+          <div class="settings-toggle__info">
+            <span class="settings-toggle__label">{{ isNL ? 'Nederlands' : 'English' }}</span>
+          </div>
+          <div class="settings-toggle__control">
+            <span class="settings-toggle__side-icon settings-toggle__side-icon--flag" :class="{ 'settings-toggle__side-icon--active': !isNL }">
+              <img :src="gbFlag" alt="English" class="settings-toggle__flag" />
+            </span>
+            <div class="form-check form-switch mb-0">
+              <input
+                id="footer-toggle-lang"
+                v-model="isNL"
+                class="form-check-input"
+                type="checkbox"
+                role="switch"
+              />
+            </div>
+            <span class="settings-toggle__side-icon settings-toggle__side-icon--flag" :class="{ 'settings-toggle__side-icon--active': isNL }">
+              <img :src="nlFlag" alt="Nederlands" class="settings-toggle__flag" />
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Vehicle type -->
+    <div class="detail-modal__section">
+      <div class="detail-modal__section-title">{{ t('settings.vehicleType.title') }}</div>
+      <div class="vehicle-type-row">
+        <div class="vehicle-type-detected">
+          <span class="text-muted">{{ t('settings.vehicleType.detected') }}:</span>
+          <span v-if="detectedLabel" class="badge badge-info ms-2">{{ detectedLabel }}</span>
+          <span v-if="hwVersion" class="text-muted ms-2 text-xs">({{ hwVersion }})</span>
+          <span v-if="!detectedLabel" class="text-muted ms-2">{{ t('settings.vehicleType.notDetected') }}</span>
+        </div>
+        <div class="vehicle-type-override">
+          <label class="text-muted">{{ t('settings.vehicleType.override') }}</label>
+          <select v-model="settings.vehicleTypeOverride" class="form-select form-select-sm">
+            <option v-for="opt in typeOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+          </select>
+        </div>
+        <!-- Sunroof toggle -->
+        <div class="settings-toggle mt-3">
+          <div class="settings-toggle__info">
+            <span class="settings-toggle__label">{{ t('settings.sunRoof.show') }}</span>
+            <span class="settings-toggle__desc text-muted">{{ t('settings.sunRoof.showDesc') }}</span>
+          </div>
+          <div class="form-check form-switch">
+            <input
+              id="footer-toggle-sunroof"
+              v-model="settings.showSunRoof"
+              class="form-check-input"
+              type="checkbox"
+              role="switch"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Push notifications -->
+    <div v-if="pushSupported" class="detail-modal__section">
+      <div class="detail-modal__section-title">{{ t('push.enable') }}</div>
+      <button
+        v-if="pushState !== 'denied'"
+        class="btn"
+        :class="pushState === 'subscribed' ? 'btn-success' : 'btn-outline-secondary'"
+        @click="togglePush"
+      >
+        <font-awesome-icon :icon="pushState === 'subscribed' ? 'bell' : 'bell-slash'" />
+        {{ pushState === 'subscribed' ? t('push.enabled') : t('push.enable') }}
+      </button>
+      <span v-else class="text-danger">{{ t('push.permissionDenied') }}</span>
+    </div>
+  </DetailModal>
+</template>
