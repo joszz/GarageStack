@@ -31,6 +31,7 @@ async function load() {
   const from = new Date(Date.now() - days.value * 86_400_000).toISOString()
   await Promise.all([
     store.fetchHistory(vin.value, from),
+    store.fetchTrips(vin.value, from),
     store.fetchStatus(vin.value),
   ])
 }
@@ -63,6 +64,10 @@ function avg(values: Array<number | null>) {
   return valid.reduce((sum, v) => sum + v, 0) / valid.length
 }
 
+function round2(value: number) {
+  return Math.round(value * 100) / 100
+}
+
 const groupedHistory = computed(() => {
   const buckets = new Map<string, TelemetrySnapshot[]>()
 
@@ -86,6 +91,68 @@ const groupedHistory = computed(() => {
 function chartLabels() {
   return groupedHistory.value.map((d) => d.label)
 }
+
+const periodDistanceKm = computed(() => {
+  if (!store.trips.length) return null
+  const total = store.trips.reduce((sum, trip) => sum + trip.distanceKm, 0)
+  return round2(total)
+})
+
+const averageTripKm = computed(() => {
+  if (!store.trips.length) return null
+  const total = store.trips.reduce((sum, trip) => sum + trip.distanceKm, 0)
+  return round2(total / store.trips.length)
+})
+
+const climateUsagePct = computed(() => {
+  const known = store.history.filter((s) => s.climateOn !== null)
+  if (!known.length) return null
+  const onCount = known.filter((s) => s.climateOn === true).length
+  return Math.round((onCount / known.length) * 100)
+})
+
+const peakDriveHour = computed(() => {
+  if (!store.trips.length) return null
+  const counts = new Map<number, number>()
+  for (const trip of store.trips) {
+    const hour = new Date(trip.startedAt).getHours()
+    counts.set(hour, (counts.get(hour) ?? 0) + 1)
+  }
+  let bestHour = 0
+  let bestCount = 0
+  for (const [hour, count] of counts.entries()) {
+    if (count > bestCount) {
+      bestHour = hour
+      bestCount = count
+    }
+  }
+  return `${String(bestHour).padStart(2, '0')}:00`
+})
+
+const parkingLocations = computed(() => {
+  if (!store.trips.length) return null
+  const spots = new Set<string>()
+  for (const trip of store.trips) {
+    const lastPoint = trip.points[trip.points.length - 1]
+    if (!lastPoint) continue
+    const lat = lastPoint.latitude.toFixed(3)
+    const lon = lastPoint.longitude.toFixed(3)
+    spots.add(`${lat},${lon}`)
+  }
+  return spots.size
+})
+
+const batteryVoltageTrend = computed(() => {
+  const dailyAvg = groupedHistory.value
+    .map((d) => avg(d.snapshots.map((s) => s.batteryVoltage)))
+    .filter((v): v is number => v !== null)
+
+  if (dailyAvg.length < 2) return null
+
+  const delta = round2(dailyAvg[dailyAvg.length - 1] - dailyAvg[0])
+  const sign = delta > 0 ? '+' : ''
+  return `${sign}${delta} V`
+})
 
 const fuelChartData = computed(() => ({
   labels: chartLabels(),
@@ -268,6 +335,49 @@ const pressureOptions = {
       <div v-else-if="!store.history.length" class="empty-state">{{ t('dashboard.noData') }}</div>
 
       <template v-else>
+        <section class="stats-insights" aria-label="Statistics insights">
+          <h2 class="stats-insights__title">{{ t('statistics.insights.title') }}</h2>
+          <div class="stats-insights__grid">
+            <div class="stats-insight-card">
+              <div class="stats-insight-card__label">
+                {{ days === 30 ? t('statistics.insights.monthlyMileage') : t('statistics.insights.distanceInRange') }}
+              </div>
+              <div class="stats-insight-card__value">
+                {{ periodDistanceKm ?? '-' }}
+                <span v-if="periodDistanceKm !== null" class="stats-insight-card__unit">{{ t('common.km') }}</span>
+              </div>
+            </div>
+
+            <div class="stats-insight-card">
+              <div class="stats-insight-card__label">{{ t('statistics.insights.avgTripLength') }}</div>
+              <div class="stats-insight-card__value">
+                {{ averageTripKm ?? '-' }}
+                <span v-if="averageTripKm !== null" class="stats-insight-card__unit">{{ t('common.km') }}</span>
+              </div>
+            </div>
+
+            <div class="stats-insight-card">
+              <div class="stats-insight-card__label">{{ t('statistics.insights.climateUsage') }}</div>
+              <div class="stats-insight-card__value">{{ climateUsagePct !== null ? `${climateUsagePct}%` : '-' }}</div>
+            </div>
+
+            <div class="stats-insight-card">
+              <div class="stats-insight-card__label">{{ t('statistics.insights.commutePattern') }}</div>
+              <div class="stats-insight-card__value">{{ peakDriveHour ?? '-' }}</div>
+            </div>
+
+            <div class="stats-insight-card">
+              <div class="stats-insight-card__label">{{ t('statistics.insights.batteryVoltageTrend') }}</div>
+              <div class="stats-insight-card__value">{{ batteryVoltageTrend ?? '-' }}</div>
+            </div>
+
+            <div class="stats-insight-card">
+              <div class="stats-insight-card__label">{{ t('statistics.insights.parkingLocations') }}</div>
+              <div class="stats-insight-card__value">{{ parkingLocations ?? '-' }}</div>
+            </div>
+          </div>
+        </section>
+
         <div class="stats-chart-grid">
           <div class="chart-container">
             <h2>{{ t('vehicle.fuel') }}</h2>
@@ -290,6 +400,48 @@ const pressureOptions = {
 </template>
 
 <style scoped>
+.stats-insights {
+  margin-bottom: 1rem;
+}
+
+.stats-insights__title {
+  font-size: 0.95rem;
+  color: var(--color-text-muted);
+  margin: 0 0 0.75rem;
+}
+
+.stats-insights__grid {
+  display: grid;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+
+.stats-insight-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 0.75rem 0.85rem;
+}
+
+.stats-insight-card__label {
+  font-size: 0.74rem;
+  color: var(--color-text-muted);
+  margin-bottom: 0.35rem;
+}
+
+.stats-insight-card__value {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.stats-insight-card__unit {
+  font-size: 0.8rem;
+  font-weight: 500;
+  margin-left: 0.25rem;
+  color: var(--color-text-muted);
+}
+
 .stats-chart-grid {
   display: grid;
   width: 100%;
@@ -308,6 +460,11 @@ const pressureOptions = {
 }
 
 @media (min-width: 992px) {
+  .stats-insights__grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.75rem;
+  }
+
   .stats-chart-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 1.25rem;

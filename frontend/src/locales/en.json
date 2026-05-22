@@ -18,6 +18,18 @@
     "hideCard": "Hide card",
     "showCard": "Show card"
   },
+  "statistics": {
+    "insights": {
+      "title": "Quick insights",
+      "distanceInRange": "Distance in period",
+      "monthlyMileage": "Monthly mileage",
+      "avgTripLength": "Avg trip length",
+      "climateUsage": "Climate usage",
+      "commutePattern": "Peak drive time",
+      "batteryVoltageTrend": "12V trend",
+      "parkingLocations": "Parking locations"
+    }
+  },
   "vehicle": {
     "fuel": "Fuel",
     "range": "Range",

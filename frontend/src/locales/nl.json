@@ -18,6 +18,18 @@
     "hideCard": "Kaart verbergen",
     "showCard": "Kaart tonen"
   },
+  "statistics": {
+    "insights": {
+      "title": "Snelle inzichten",
+      "distanceInRange": "Afstand in periode",
+      "monthlyMileage": "Maandkilometrage",
+      "avgTripLength": "Gem. ritlengte",
+      "climateUsage": "Klimaatgebruik",
+      "commutePattern": "Piek rijtijd",
+      "batteryVoltageTrend": "12V-trend",
+      "parkingLocations": "Parkeerlocaties"
+    }
+  },
   "vehicle": {
     "fuel": "Brandstof",
     "range": "Bereik",
