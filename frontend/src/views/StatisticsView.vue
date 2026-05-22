@@ -149,7 +149,11 @@ const batteryVoltageTrend = computed(() => {
 
   if (dailyAvg.length < 2) return null
 
-  const delta = round2(dailyAvg[dailyAvg.length - 1] - dailyAvg[0])
+  const first = dailyAvg[0]
+  const last = dailyAvg[dailyAvg.length - 1]
+  if (first === undefined || last === undefined) return null
+
+  const delta = round2(last - first)
   const sign = delta > 0 ? '+' : ''
   return `${sign}${delta} V`
 })
