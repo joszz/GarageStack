@@ -279,7 +279,7 @@ const pressureOptions = {
             <Line :data="evChartData" :options="percentOptions" />
           </div>
 
-          <div class="chart-container stats-chart--wide">
+          <div class="chart-container">
             <h2>{{ t('vehicle.tyres') }}</h2>
             <Line :data="tyreChartData" :options="pressureOptions" />
           </div>
@@ -292,8 +292,19 @@ const pressureOptions = {
 <style scoped>
 .stats-chart-grid {
   display: grid;
+  width: 100%;
   grid-template-columns: 1fr;
   gap: 1rem;
+}
+
+.stats-chart-grid .chart-container {
+  min-width: 0;
+  width: 100%;
+  overflow: hidden;
+}
+
+.stats-chart-grid :deep(canvas) {
+  max-width: 100% !important;
 }
 
 @media (min-width: 992px) {
@@ -301,9 +312,11 @@ const pressureOptions = {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 1.25rem;
   }
+}
 
-  .stats-chart--wide {
-    grid-column: 1 / -1;
+@media (min-width: 1500px) {
+  .stats-chart-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 </style>
