@@ -166,6 +166,7 @@ const tyreChartData = computed(() => ({
 const percentOptions = {
   responsive: true,
   maintainAspectRatio: true,
+  aspectRatio: 2.6,
   plugins: { legend: { display: false } },
   scales: {
     x: {
@@ -182,6 +183,7 @@ const percentOptions = {
 const pressureOptions = {
   responsive: true,
   maintainAspectRatio: true,
+  aspectRatio: 2.3,
   plugins: { legend: { display: true } },
   scales: {
     x: {
@@ -266,21 +268,42 @@ const pressureOptions = {
       <div v-else-if="!store.history.length" class="empty-state">{{ t('dashboard.noData') }}</div>
 
       <template v-else>
-        <div class="chart-container">
-          <h2>{{ t('vehicle.fuel') }}</h2>
-          <Line :data="fuelChartData" :options="percentOptions" />
-        </div>
+        <div class="stats-chart-grid">
+          <div class="chart-container">
+            <h2>{{ t('vehicle.fuel') }}</h2>
+            <Line :data="fuelChartData" :options="percentOptions" />
+          </div>
 
-        <div class="chart-container">
-          <h2>{{ t('vehicle.evSoc') }}</h2>
-          <Line :data="evChartData" :options="percentOptions" />
-        </div>
+          <div class="chart-container">
+            <h2>{{ t('vehicle.evSoc') }}</h2>
+            <Line :data="evChartData" :options="percentOptions" />
+          </div>
 
-        <div class="chart-container">
-          <h2>{{ t('vehicle.tyres') }}</h2>
-          <Line :data="tyreChartData" :options="pressureOptions" />
+          <div class="chart-container stats-chart--wide">
+            <h2>{{ t('vehicle.tyres') }}</h2>
+            <Line :data="tyreChartData" :options="pressureOptions" />
+          </div>
         </div>
       </template>
     </template>
   </div>
 </template>
+
+<style scoped>
+.stats-chart-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+@media (min-width: 992px) {
+  .stats-chart-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.25rem;
+  }
+
+  .stats-chart--wide {
+    grid-column: 1 / -1;
+  }
+}
+</style>
