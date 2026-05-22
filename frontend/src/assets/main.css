@@ -70,7 +70,6 @@ html, body, #app {
   height: var(--topbar-height);
   background: var(--color-frosted-bg);
   backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--color-border);
   align-items: center;
   gap: 0.75rem;
@@ -104,6 +103,7 @@ html, body, #app {
   font-size: 1rem;
   font-weight: 700;
   color: var(--color-primary);
+  text-decoration: none;
 }
 
 /* ── Backdrop ─────────────────────────────────────────────── */
@@ -122,7 +122,6 @@ html, body, #app {
   width: var(--sidebar-width);
   background: var(--color-frosted-bg);
   backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
   border-right: 1px solid var(--color-border);
   display: flex;
   flex-direction: column;
@@ -1180,7 +1179,6 @@ html, body, #app {
   flex-shrink: 0;
   background: var(--color-frosted-bg);
   backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
   border-top: 1px solid var(--color-border);
   display: flex;
   align-items: center;
@@ -1292,10 +1290,8 @@ html, body, #app {
     transform: translateX(0);
   }
 
-  /* Push content below the fixed topbar */
   .main-content {
     padding: 0.75rem;
-    padding-top: calc(var(--topbar-height) + 0.75rem);
     overflow-x: hidden;
   }
 
@@ -1351,7 +1347,6 @@ html, body, #app {
 @media (max-width: 399px) {
   .main-content {
     padding: 0.5rem;
-    padding-top: calc(var(--topbar-height) + 0.5rem);
   }
 
   .status-grid {

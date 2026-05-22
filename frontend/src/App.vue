@@ -42,10 +42,10 @@ async function confirmLogout() {
       <button class="hamburger" :aria-expanded="menuOpen" aria-label="Menu" @click="menuOpen = !menuOpen">
         <font-awesome-icon :icon="menuOpen ? 'xmark' : 'bars'" />
       </button>
-      <span class="mobile-brand">
+      <RouterLink to="/" class="mobile-brand">
         <font-awesome-icon icon="car" />
         GarageStack
-      </span>
+      </RouterLink>
     </header>
 
     <!-- Backdrop (mobile only) -->
