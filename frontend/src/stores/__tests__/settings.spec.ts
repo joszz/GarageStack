@@ -75,10 +75,16 @@ describe('useSettingsStore', () => {
 
   it('persists card visibility changes to localStorage', async () => {
     const store = useSettingsStore()
-    store.cards[0].visible = !store.cards[0].visible
+    const firstCard = store.cards[0]
+    expect(firstCard).toBeDefined()
+    if (!firstCard) throw new Error('Expected a first card to exist')
+    firstCard.visible = !firstCard.visible
     await nextTick()
     const saved = JSON.parse(localStorage.getItem(BASE_KEY)!)
-    expect(saved.cards[0].visible).toBe(store.cards[0].visible)
+    const savedFirstCard = saved.cards[0]
+    expect(savedFirstCard).toBeDefined()
+    if (!savedFirstCard) throw new Error('Expected a saved first card to exist')
+    expect(savedFirstCard.visible).toBe(firstCard.visible)
   })
 
   it('loads all settings from localStorage on init', () => {

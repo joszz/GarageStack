@@ -3,7 +3,8 @@ import { onMounted, computed, ref, shallowRef, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useVehicleStore } from '@/stores/vehicle'
 import { LMap, LTileLayer, LMarker, LPopup } from '@vue-leaflet/vue-leaflet'
-import L, { type Map as LeafletMap } from 'leaflet'
+import * as L from 'leaflet'
+import type { Map as LeafletMap } from 'leaflet'
 import 'leaflet.heat'
 import type { Trip } from '@/services/api'
 
@@ -17,6 +18,22 @@ const selectedTripIndex = ref<number | null>(null)
 const mapInstance = shallowRef<LeafletMap | null>(null)
 let heatLayer: L.Layer | null = null
 let routeLines: L.Polyline[] = []
+
+type HeatLayerFactory = {
+  heatLayer: (
+    latlngs: Array<[number, number] | [number, number, number]>,
+    options?: {
+      minOpacity?: number
+      maxZoom?: number
+      max?: number
+      radius?: number
+      blur?: number
+      gradient?: Record<number, string>
+    },
+  ) => L.Layer
+}
+
+const leafWithHeat = L as typeof L & HeatLayerFactory
 
 const tripColors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899']
 
@@ -54,7 +71,7 @@ function buildHeatLayer() {
   const map = mapInstance.value
   if (!map || allPoints.value.length === 0) return
   if (heatLayer) { heatLayer.remove(); heatLayer = null }
-  heatLayer = L.heatLayer(allPoints.value, {
+  heatLayer = leafWithHeat.heatLayer(allPoints.value, {
     radius: 18,
     blur: 22,
     maxZoom: 17,

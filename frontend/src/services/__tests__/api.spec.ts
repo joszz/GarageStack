@@ -47,7 +47,10 @@ describe('vehicleApi', () => {
     const fetchSpy = vi.fn().mockResolvedValue(makeResponse(200, []))
     vi.stubGlobal('fetch', fetchSpy)
     await vehicleApi.list()
-    const [, options] = fetchSpy.mock.calls[0]
+    const firstCall = fetchSpy.mock.calls[0]
+    expect(firstCall).toBeDefined()
+    if (!firstCall) throw new Error('Expected first fetch call to exist')
+    const [, options] = firstCall
     expect(options.credentials).toBe('include')
     expect(options.headers).toMatchObject({ Authorization: 'Bearer test-token' })
   })
@@ -84,7 +87,10 @@ describe('vehicleApi', () => {
     const fetchSpy = vi.fn().mockResolvedValue(makeResponse(200, []))
     vi.stubGlobal('fetch', fetchSpy)
     await vehicleApi.history('VIN1', '2024-01-01', '2024-01-31')
-    const [url] = fetchSpy.mock.calls[0]
+    const firstCall = fetchSpy.mock.calls[0]
+    expect(firstCall).toBeDefined()
+    if (!firstCall) throw new Error('Expected first fetch call to exist')
+    const [url] = firstCall
     expect(url).toContain('from=2024-01-01')
     expect(url).toContain('to=2024-01-31')
   })
@@ -93,7 +99,10 @@ describe('vehicleApi', () => {
     const fetchSpy = vi.fn().mockResolvedValue(makeResponse(200, []))
     vi.stubGlobal('fetch', fetchSpy)
     await vehicleApi.history('VIN1')
-    const [url] = fetchSpy.mock.calls[0]
+    const firstCall = fetchSpy.mock.calls[0]
+    expect(firstCall).toBeDefined()
+    if (!firstCall) throw new Error('Expected first fetch call to exist')
+    const [url] = firstCall
     expect(url).not.toContain('from=')
     expect(url).not.toContain('to=')
   })
@@ -102,7 +111,10 @@ describe('vehicleApi', () => {
     const fetchSpy = vi.fn().mockResolvedValue(makeResponse(200))
     vi.stubGlobal('fetch', fetchSpy)
     await vehicleApi.sendCommand('VIN1', 'lock', 'lock')
-    const [url, options] = fetchSpy.mock.calls[0]
+    const firstCall = fetchSpy.mock.calls[0]
+    expect(firstCall).toBeDefined()
+    if (!firstCall) throw new Error('Expected first fetch call to exist')
+    const [url, options] = firstCall
     expect(url).toContain('/api/vehicles/VIN1/commands/lock')
     expect(options.method).toBe('POST')
     expect(JSON.parse(options.body)).toEqual({ value: 'lock' })

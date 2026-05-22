@@ -10,7 +10,7 @@ declare module 'leaflet' {
     gradient?: Record<number, string>
   }
 
-  function heatLayer(
+  export function heatLayer(
     latlngs: Array<[number, number] | [number, number, number]>,
     options?: HeatMapOptions,
   ): Layer

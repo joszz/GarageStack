@@ -90,6 +90,7 @@ services:
       - "${API_PORT:-5000}:8080"
     volumes:
       - api_logs:/app/logs
+      - api_dataprotection:/root/.aspnet/DataProtection-Keys
 
   frontend:
     build:
@@ -100,10 +101,11 @@ services:
     depends_on:
       - api
     ports:
-      - "${FRONTEND_PORT:-80}:80"
+      - "${FRONTEND_PORT:-8080}:80"
 
 volumes:
   postgres_data:
   mosquitto_data:
   worker_logs:
   api_logs:
+  api_dataprotection:

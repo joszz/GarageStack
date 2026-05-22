@@ -80,7 +80,10 @@ describe('useVehicleStore - fetchVehicles', () => {
     const store = useVehicleStore()
     await store.fetchVehicles()
     expect(store.vehicles).toHaveLength(1)
-    expect(store.vehicles[0].vin).toBe('ABC123')
+    const firstVehicle = store.vehicles[0]
+    expect(firstVehicle).toBeDefined()
+    if (!firstVehicle) throw new Error('Expected first vehicle to exist')
+    expect(firstVehicle.vin).toBe('ABC123')
   })
 
   it('sets error on failure', async () => {
