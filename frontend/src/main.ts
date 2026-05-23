@@ -3,8 +3,6 @@ import 'leaflet/dist/leaflet.css'
 
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
-import PrimeVue from 'primevue/config'
-import Aura from '@primeuix/themes/aura'
 import { createI18n } from 'vue-i18n'
 import { library } from '@fortawesome/fontawesome-svg-core'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
@@ -17,10 +15,11 @@ import {
   faCarRear, faThermometerHalf, faTemperatureLow, faCouch,
   faCarBurst, faBullhorn, faLockOpen, faLock, faWindowMaximize,
   faDoorOpen, faDatabase, faPercent, faWaveSquare, faBoltLightning,
-  faPlugCircleCheck, faChevronRight, faLightbulb, faCircle,
+  faPlugCircleCheck, faChevronRight, faChevronLeft, faLightbulb, faCircle,
   faUser, faEye, faEyeSlash, faArrowRightFromBracket,
   faPlus, faPenToSquare, faBatteryHalf,
   faSun, faMoon, faCarSide,
+  faFire, faLocationDot,
 } from '@fortawesome/free-solid-svg-icons'
 
 import App from './App.vue'
@@ -39,10 +38,11 @@ library.add(
   faCarRear, faThermometerHalf, faTemperatureLow, faCouch,
   faCarBurst, faBullhorn, faLockOpen, faLock, faWindowMaximize,
   faDoorOpen, faDatabase, faPercent, faWaveSquare, faBoltLightning,
-  faPlugCircleCheck, faChevronRight, faLightbulb, faCircle,
+  faPlugCircleCheck, faChevronRight, faChevronLeft, faLightbulb, faCircle,
   faUser, faEye, faEyeSlash, faArrowRightFromBracket,
   faPlus, faPenToSquare, faBatteryHalf,
   faSun, faMoon, faCarSide,
+  faFire, faLocationDot,
 )
 
 const i18n = createI18n({
@@ -70,12 +70,6 @@ auth.restoreSession().then(() => {
 })
 
 app.use(router)
-app.use(PrimeVue, {
-  theme: {
-    preset: Aura,
-    options: { darkModeSelector: '[data-theme="dark"]' },
-  },
-})
 app.use(i18n)
 app.component('FontAwesomeIcon', FontAwesomeIcon)
 

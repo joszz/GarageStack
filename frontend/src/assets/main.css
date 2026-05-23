@@ -12,7 +12,6 @@
   --color-danger: #ef4444;
   --color-danger-text: #f87171;
   --color-info: #06b6d4;
-  --color-frosted-bg: rgba(26, 29, 39, 0.75);
   --sidebar-width: 220px;
   --topbar-height: 56px;
   --footer-height: 48px;
@@ -26,7 +25,6 @@
   --color-border: #cdd5df;
   --color-text: #1a202c;
   --color-text-muted: #5a6a7e;
-  --color-frosted-bg: rgba(255, 255, 255, 0.85);
   --color-primary-light: #1d4ed8;
   --color-danger-text: #dc2626;
 }
@@ -68,8 +66,7 @@ html, body, #app {
   left: 0;
   right: 0;
   height: var(--topbar-height);
-  background: var(--color-frosted-bg);
-  backdrop-filter: blur(12px);
+  background: var(--color-surface);
   border-bottom: 1px solid var(--color-border);
   align-items: center;
   gap: 0.75rem;
@@ -120,8 +117,7 @@ html, body, #app {
 
 .sidebar {
   width: var(--sidebar-width);
-  background: var(--color-frosted-bg);
-  backdrop-filter: blur(12px);
+  background: var(--color-surface);
   border-right: 1px solid var(--color-border);
   display: flex;
   flex-direction: column;
@@ -739,6 +735,41 @@ html, body, #app {
   font-weight: 600;
 }
 
+.trip-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding-top: 0.25rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.trip-pagination__btn {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  justify-content: center;
+}
+
+.trip-pagination__info {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  min-width: 3rem;
+  text-align: center;
+}
+
+.map-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.map-controls__label {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
 .trip-detail__dl {
   display: grid;
   grid-template-columns: auto 1fr;
@@ -821,6 +852,16 @@ html, body, #app {
 }
 
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+@keyframes pulse-pending {
+  0%, 100% { opacity: 0.55; }
+  50%       { opacity: 0.9; }
+}
+
+.btn--pending {
+  animation: pulse-pending 1.8s ease-in-out infinite;
+  cursor: not-allowed;
+}
 .btn:not(:disabled):hover { filter: brightness(1.15); }
 
 .btn-sm {
@@ -1177,8 +1218,7 @@ html, body, #app {
 .app-footer {
   height: var(--footer-height);
   flex-shrink: 0;
-  background: var(--color-frosted-bg);
-  backdrop-filter: blur(12px);
+  background: var(--color-surface);
   border-top: 1px solid var(--color-border);
   display: flex;
   align-items: center;
@@ -1332,12 +1372,17 @@ html, body, #app {
 
   .trip-sidebar {
     width: 100%;
-    max-height: 220px;
+    max-height: 240px;
   }
 
   .map-wrapper {
-    height: 55vw;
-    min-height: 280px;
+    height: 50vh;
+    min-height: 300px;
+  }
+
+  .map-controls {
+    flex-wrap: wrap;
+    gap: 0.4rem;
   }
 
 }

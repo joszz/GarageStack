@@ -238,6 +238,7 @@ const percentOptions = {
   responsive: true,
   maintainAspectRatio: true,
   aspectRatio: 2.6,
+  animation: false as const,
   plugins: { legend: { display: false } },
   scales: {
     x: {
@@ -255,6 +256,7 @@ const pressureOptions = {
   responsive: true,
   maintainAspectRatio: true,
   aspectRatio: 2.3,
+  animation: false as const,
   plugins: { legend: { display: true } },
   scales: {
     x: {

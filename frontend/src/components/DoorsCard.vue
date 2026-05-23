@@ -19,12 +19,15 @@ const props = defineProps<{
 }>()
 
 const modalOpen = ref(false)
-const { sending, lastResult, send } = useVehicleCommand()
+const { sending, lastResult, isPending, clearPending, send } = useVehicleCommand()
 
 const localLocked = ref<boolean | null>(null)
 const effectiveLocked = computed(() => localLocked.value ?? props.isLocked)
 
-watch(() => props.isLocked, () => { localLocked.value = null })
+watch(() => props.isLocked, () => {
+  localLocked.value = null
+  clearPending('lock')
+})
 
 type DoorItem = { key: string; label: string; icon: string; open: boolean }
 
@@ -60,6 +63,7 @@ const variant = computed(() => {
 })
 
 async function handleLockToggle() {
+  if (isPending('lock')) return
   const newLocked = !effectiveLocked.value
   await send(props.vin, 'lock', newLocked ? 'True' : 'False')
   if (lastResult.value?.ok) localLocked.value = newLocked
@@ -88,16 +92,17 @@ async function handleLockToggle() {
         <span class="detail-list__item-label">{{ t('control.lockDoors') }}</span>
         <button
           class="btn btn-sm"
-          :class="effectiveLocked ? 'btn-outline-warning' : 'btn-success'"
-          :disabled="sending === 'lock' || !vin"
+          :class="isPending('lock') ? 'btn--pending btn-outline-secondary' : (effectiveLocked ? 'btn-outline-warning' : 'btn-success')"
+          :disabled="sending === 'lock' || isPending('lock') || !vin"
           @click="handleLockToggle"
         >
           <font-awesome-icon v-if="sending === 'lock'" icon="spinner" spin />
+          <font-awesome-icon v-else-if="isPending('lock')" icon="clock" />
           <font-awesome-icon v-else :icon="effectiveLocked ? 'lock-open' : 'lock'" />
-          {{ effectiveLocked ? t('control.unlock') : t('control.lock') }}
+          {{ isPending('lock') ? t('control.pending') : (effectiveLocked ? t('control.unlock') : t('control.lock')) }}
         </button>
       </div>
-      <div v-if="lastResult?.key === 'lock' && !lastResult.ok" class="detail-list__feedback text-danger">
+      <div v-if="lastResult?.key === 'lock' && !lastResult.ok && !isPending('lock')" class="detail-list__feedback text-danger">
         {{ t('control.error') }}
       </div>
     </div>

@@ -10,7 +10,7 @@ const props = defineProps<{
   vin: string | null
 }>()
 
-const { sending, send } = useVehicleCommand()
+const { sending, isPending, send } = useVehicleCommand()
 const active = ref(false)
 const confirmOpen = ref(false)
 
@@ -36,22 +36,26 @@ function stop() {
       <button
         v-if="!active"
         class="btn btn-warning btn-sm find-my-car__btn"
-        :disabled="sending === 'find-my-car' || !vin"
+        :class="isPending('find-my-car') ? 'btn--pending' : ''"
+        :disabled="sending === 'find-my-car' || isPending('find-my-car') || !vin"
         @click="confirmOpen = true"
       >
         <font-awesome-icon v-if="sending === 'find-my-car'" icon="spinner" spin />
+        <font-awesome-icon v-else-if="isPending('find-my-car')" icon="clock" />
         <font-awesome-icon v-else icon="bullhorn" />
-        {{ t('control.findMyCarActivate') }}
+        {{ isPending('find-my-car') ? t('control.pending') : t('control.findMyCarActivate') }}
       </button>
       <button
         v-else
         class="btn btn-danger btn-sm find-my-car__btn"
-        :disabled="sending === 'find-my-car'"
+        :class="isPending('find-my-car') ? 'btn--pending' : ''"
+        :disabled="sending === 'find-my-car' || isPending('find-my-car')"
         @click="stop"
       >
         <font-awesome-icon v-if="sending === 'find-my-car'" icon="spinner" spin />
+        <font-awesome-icon v-else-if="isPending('find-my-car')" icon="clock" />
         <font-awesome-icon v-else icon="xmark" />
-        {{ t('control.findMyCarStop') }}
+        {{ isPending('find-my-car') ? t('control.pending') : t('control.findMyCarStop') }}
       </button>
     </div>
   </div>

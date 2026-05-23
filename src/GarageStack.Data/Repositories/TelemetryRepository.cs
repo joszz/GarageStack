@@ -114,6 +114,7 @@ public class TelemetryRepository(AppDbContext db) : ITelemetryRepository
     public async Task<IReadOnlyList<TelemetrySnapshot>> GetHistoryAsync(int vehicleId, DateTime from, DateTime to, CancellationToken ct = default)
     {
         var rows = await db.TelemetrySnapshots
+            .AsNoTracking()
             .Where(s => s.VehicleId == vehicleId && s.RecordedAt >= from && s.RecordedAt <= to)
             .Where(HasData)
             .OrderBy(s => s.RecordedAt)
@@ -130,7 +131,9 @@ public class TelemetryRepository(AppDbContext db) : ITelemetryRepository
 
         if (rows.Count <= maxPoints) return rows;
 
-        var step = rows.Count / maxPoints;
+        // Ceiling division ensures step >= 2 whenever rows.Count > maxPoints,
+        // so the result never exceeds maxPoints.
+        var step = (rows.Count + maxPoints - 1) / maxPoints;
         var result = new List<TelemetrySnapshot>(maxPoints + 1);
         for (var i = 0; i < rows.Count; i += step)
             result.Add(rows[i]);

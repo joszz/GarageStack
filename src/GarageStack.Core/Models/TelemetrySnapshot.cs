@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace GarageStack.Core.Models;
 
 public class TelemetrySnapshot
@@ -70,6 +72,8 @@ public class TelemetrySnapshot
     public int? HeatedSeatFrontRight { get; set; }
     public bool? RearWindowDefroster { get; set; }
 
+    [JsonIgnore]
     public string? RawTopic { get; set; }
+    [JsonIgnore]
     public string? RawPayload { get; set; }
 }

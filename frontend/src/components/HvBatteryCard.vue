@@ -21,7 +21,7 @@ const props = defineProps<{
 }>()
 
 const modalOpen = ref(false)
-const { sending, lastResult, send } = useVehicleCommand()
+const { sending, lastResult, isPending, send } = useVehicleCommand()
 
 const socPercent = computed(() => {
   if (props.hvSocKwh === null || props.hvTotalCapacityKwh === null || props.hvTotalCapacityKwh === 0)
@@ -127,13 +127,17 @@ function setChargeLimit(value: string) {
     <div v-if="canSetChargeLimit" class="detail-modal__section">
       <div class="detail-modal__section-title">{{ t('control.chargeLimit') }}</div>
       <div class="modal-btn-group">
-        <button class="btn btn-outline-secondary" :disabled="sending === 'charge-limit'" @click="setChargeLimit('6A')">6 A</button>
-        <button class="btn btn-outline-secondary" :disabled="sending === 'charge-limit'" @click="setChargeLimit('8A')">8 A</button>
-        <button class="btn btn-outline-secondary" :disabled="sending === 'charge-limit'" @click="setChargeLimit('16A')">16 A</button>
-        <button class="btn btn-success" :disabled="sending === 'charge-limit'" @click="setChargeLimit('Max')">Max</button>
+        <button class="btn btn-outline-secondary" :class="isPending('charge-limit') ? 'btn--pending' : ''" :disabled="sending === 'charge-limit' || isPending('charge-limit')" @click="setChargeLimit('6A')">6 A</button>
+        <button class="btn btn-outline-secondary" :class="isPending('charge-limit') ? 'btn--pending' : ''" :disabled="sending === 'charge-limit' || isPending('charge-limit')" @click="setChargeLimit('8A')">8 A</button>
+        <button class="btn btn-outline-secondary" :class="isPending('charge-limit') ? 'btn--pending' : ''" :disabled="sending === 'charge-limit' || isPending('charge-limit')" @click="setChargeLimit('16A')">16 A</button>
+        <button class="btn btn-success" :class="isPending('charge-limit') ? 'btn--pending' : ''" :disabled="sending === 'charge-limit' || isPending('charge-limit')" @click="setChargeLimit('Max')">Max</button>
       </div>
-      <div v-if="lastResult?.key === 'charge-limit'" class="detail-list__feedback" :class="lastResult.ok ? 'text-success' : 'text-danger'">
-        {{ lastResult.ok ? t('control.sent') : t('control.error') }}
+      <div v-if="isPending('charge-limit')" class="detail-list__feedback text-info">
+        <font-awesome-icon icon="clock" />
+        {{ t('control.pending') }}
+      </div>
+      <div v-else-if="lastResult?.key === 'charge-limit' && !lastResult.ok" class="detail-list__feedback text-danger">
+        {{ t('control.error') }}
       </div>
     </div>
   </DetailModal>

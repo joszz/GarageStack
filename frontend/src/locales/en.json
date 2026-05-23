@@ -122,6 +122,7 @@
     "refresh": "Refresh",
     "sending": "Sending...",
     "sent": "Command sent",
+    "pending": "Sent - waiting for car...",
     "error": "Command failed"
   },
   "trips": {
@@ -131,7 +132,13 @@
     "distance": "Distance",
     "duration": "Duration",
     "started": "Started",
-    "points": "Points"
+    "points": "Points",
+    "dateRange": "Period",
+    "last7days": "Last 7 days",
+    "last30days": "Last 30 days",
+    "last90days": "Last 90 days",
+    "heatmap": "Heatmap",
+    "findCar": "Find car"
   },
   "push": {
     "enable": "Enable notifications",

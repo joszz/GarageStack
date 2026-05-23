@@ -122,6 +122,7 @@
     "refresh": "Vernieuwen",
     "sending": "Versturen...",
     "sent": "Commando verzonden",
+    "pending": "Verstuurd - wachten op auto...",
     "error": "Commando mislukt"
   },
   "trips": {
@@ -131,7 +132,13 @@
     "distance": "Afstand",
     "duration": "Duur",
     "started": "Gestart",
-    "points": "Punten"
+    "points": "Punten",
+    "dateRange": "Periode",
+    "last7days": "Afgelopen 7 dagen",
+    "last30days": "Afgelopen 30 dagen",
+    "last90days": "Afgelopen 90 dagen",
+    "heatmap": "Heatmap",
+    "findCar": "Vind auto"
   },
   "push": {
     "enable": "Meldingen inschakelen",

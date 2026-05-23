@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
 import { vehicleApi } from '@/services/api'
 import { useVehicleCommand } from '@/composables/useVehicleCommand'
 
@@ -12,6 +12,11 @@ const sendCommandMock = vi.mocked(vehicleApi.sendCommand)
 describe('useVehicleCommand', () => {
   beforeEach(() => {
     sendCommandMock.mockReset()
+    vi.useFakeTimers()
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
   })
 
   it('does nothing when vin is null', async () => {
@@ -85,5 +90,54 @@ describe('useVehicleCommand', () => {
     const { send } = useVehicleCommand()
     await send('MYVIN', 'charge-limit', '80')
     expect(sendCommandMock).toHaveBeenCalledWith('MYVIN', 'charge-limit', '80')
+  })
+
+  it('marks a command as pending after success', async () => {
+    sendCommandMock.mockResolvedValue(undefined)
+    const { send, isPending } = useVehicleCommand()
+    await send('VIN1', 'lock', 'True')
+    expect(isPending('lock')).toBe(true)
+  })
+
+  it('does not mark a command as pending after failure', async () => {
+    sendCommandMock.mockRejectedValue(new Error('API error'))
+    const { send, isPending } = useVehicleCommand()
+    await send('VIN1', 'lock', 'True')
+    expect(isPending('lock')).toBe(false)
+  })
+
+  it('blocks re-sending a command while it is pending', async () => {
+    sendCommandMock.mockResolvedValue(undefined)
+    const { send } = useVehicleCommand()
+    await send('VIN1', 'lock', 'True')
+    await send('VIN1', 'lock', 'False')
+    expect(sendCommandMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('clears pending state after the 30s timeout', async () => {
+    sendCommandMock.mockResolvedValue(undefined)
+    const { send, isPending } = useVehicleCommand()
+    await send('VIN1', 'lock', 'True')
+    expect(isPending('lock')).toBe(true)
+    vi.advanceTimersByTime(30_000)
+    expect(isPending('lock')).toBe(false)
+  })
+
+  it('clears pending state manually via clearPending', async () => {
+    sendCommandMock.mockResolvedValue(undefined)
+    const { send, isPending, clearPending } = useVehicleCommand()
+    await send('VIN1', 'lock', 'True')
+    expect(isPending('lock')).toBe(true)
+    clearPending('lock')
+    expect(isPending('lock')).toBe(false)
+  })
+
+  it('allows resending after pending is cleared', async () => {
+    sendCommandMock.mockResolvedValue(undefined)
+    const { send, clearPending } = useVehicleCommand()
+    await send('VIN1', 'lock', 'True')
+    clearPending('lock')
+    await send('VIN1', 'lock', 'False')
+    expect(sendCommandMock).toHaveBeenCalledTimes(2)
   })
 })
