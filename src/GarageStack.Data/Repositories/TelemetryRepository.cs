@@ -179,7 +179,10 @@ public class TelemetryRepository(AppDbContext db) : ITelemetryRepository
     private static void TryAddTrip(List<TripDto> trips, List<TripPoint> current)
     {
         if (current.Count < 2) return;
-        var trip = BuildTrip(trips.Count, current);
+        // Pass a snapshot of current — the caller clears the list after this call, and
+        // TripDto stores a reference, so without a copy all trips would end up sharing
+        // the final segment's points.
+        var trip = BuildTrip(trips.Count, new List<TripPoint>(current));
         if (trip is not null) trips.Add(trip);
     }
 

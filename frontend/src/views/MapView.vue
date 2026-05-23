@@ -108,7 +108,7 @@ function buildRouteLines() {
     const pts = trip.points.map(p => [p.latitude, p.longitude] as [number, number])
     if (pts.length < 2) return
     const line = L.polyline(pts, { color: tripColor(i), weight: 3, opacity: 0.75 })
-    line.on('click', () => selectTrip(i, true))
+    line.on('click', () => selectTrip(i))
     line.addTo(map)
     routeLines.push(line)
   })
@@ -144,11 +144,11 @@ function fitBoundsSafe(pts: [number, number][]) {
 }
 
 function fitAll() {
-  const pts = [...allPoints.value]
-  if (status.value?.latitude && status.value?.longitude) {
-    pts.push([status.value.latitude, status.value.longitude])
+  if (allPoints.value.length > 0) {
+    fitBoundsSafe(allPoints.value)
+  } else if (status.value?.latitude && status.value?.longitude) {
+    mapInstance.value?.setView([status.value.latitude, status.value.longitude], 14)
   }
-  fitBoundsSafe(pts)
 }
 
 function fitTrip(trip: Trip) {
@@ -237,18 +237,8 @@ watch(tripsPage, () => {
   selectedTripIndex.value = null
 })
 
-// Select a trip by its real store index; if called from the map line, also jump the sidebar page
-function selectTrip(realIdx: number, fromMap = false) {
-  if (selectedTripIndex.value === realIdx) {
-    selectedTripIndex.value = null
-    return
-  }
-  selectedTripIndex.value = realIdx
-  if (fromMap) {
-    // Scroll sidebar to show this trip in newest-first order
-    const newestFirstIdx = store.trips.length - 1 - realIdx
-    tripsPage.value = Math.floor(newestFirstIdx / PAGE_SIZE) + 1
-  }
+function selectTrip(realIdx: number) {
+  selectedTripIndex.value = selectedTripIndex.value === realIdx ? null : realIdx
 }
 
 onMounted(async () => {
