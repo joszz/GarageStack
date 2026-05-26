@@ -29,37 +29,46 @@ RUN dotnet publish GarageStack.Api/GarageStack.Api.csproj -c Release -o /publish
 FROM saicismartapi/saic-python-mqtt-gateway:latest AS saic-source
 
 # ── Stage 4: Final all-in-one runtime image ───────────────────────────────────
-# python:3.14-slim = debian:bookworm-slim + Python 3.14, which matches the saic
-# gateway image base. Using it means the copied venv's Python symlinks resolve
-# correctly without any extra installation steps.
+# python:3.14-slim is Debian trixie (13) -- the same base the saic gateway uses,
+# so the copied venv's Python symlinks resolve correctly.
+#
+# Trixie replaced gnupg with sqv for apt signature verification. sqv rejects
+# SHA1-signed keys (policy change since 2026-02-01), which breaks the Microsoft
+# apt repo. We install .NET via the official install script instead, which needs
+# no apt repo at all.
 FROM python:3.14-slim
 
-# Base packages (Python 3.14 already present from the base image)
+# bash  -- required by entrypoint.sh and dotnet-install.sh (slim images ship dash only)
+# libgssapi-krb5-2 -- required by the .NET runtime
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        curl gnupg ca-certificates gosu supervisor \
+        bash curl gnupg ca-certificates gosu supervisor \
         nginx mosquitto mosquitto-clients \
+        libgssapi-krb5-2 \
     && rm -rf /var/lib/apt/lists/*
 
-# Microsoft packages repo for .NET 10
-RUN curl -sSL https://packages.microsoft.com/config/debian/12/packages-microsoft-prod.deb \
-        -o /tmp/ms.deb \
-    && dpkg -i /tmp/ms.deb \
-    && rm /tmp/ms.deb
+# .NET 10 ASP.NET Core runtime -- installed via the official script, no apt repo needed.
+RUN curl -sSL https://dot.net/v1/dotnet-install.sh -o /tmp/dotnet-install.sh \
+    && chmod +x /tmp/dotnet-install.sh \
+    && /tmp/dotnet-install.sh --runtime aspnetcore --channel 10.0 --install-dir /usr/local/dotnet \
+    && rm /tmp/dotnet-install.sh
 
-# PostgreSQL 17 official repo
+ENV PATH="/usr/local/dotnet:$PATH"
+# Removes the libicu dependency; fine for a telemetry API that uses invariant formatting.
+ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=true
+
+# PostgreSQL 17 -- official apt repo. bookworm-pgdg packages run fine on trixie
+# (glibc is backward-compatible upward: trixie 2.41 runs bookworm-compiled binaries).
 RUN curl -sSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
         | gpg --dearmor > /usr/share/keyrings/postgresql.gpg \
     && echo "deb [signed-by=/usr/share/keyrings/postgresql.gpg] http://apt.postgresql.org/pub/repos/apt bookworm-pgdg main" \
-        > /etc/apt/sources.list.d/pgdg.list
-
-RUN apt-get update && apt-get install -y --no-install-recommends \
-        aspnetcore-runtime-10.0 \
+        > /etc/apt/sources.list.d/pgdg.list \
+    && apt-get update && apt-get install -y --no-install-recommends \
         postgresql-17 \
     && rm -rf /var/lib/apt/lists/*
 
 # SAIC MQTT Gateway: copy the pre-built venv and source from the official image.
 # Layout in the saic image: WORKDIR=/usr/src/app, venv at /usr/src/app/.venv,
-# main.py at /usr/src/app/main.py  (CMD is: python ./main.py)
+# entry point: python ./main.py
 COPY --from=saic-source /usr/src/app /opt/saic/app
 
 # Frontend SPA
