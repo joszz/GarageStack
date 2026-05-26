@@ -166,23 +166,27 @@ function flyToStatus() {
 function onMapReady(map: LeafletMap) {
   mapInstance.value = map
 
-  // Fix mobile blank map: wait for layout to settle so Leaflet gets the real container size
-  nextTick(() => {
-    map.invalidateSize()
-    if (allPoints.value.length > 0) {
-      buildHeatLayer()
-      buildRouteLines()
-      fitAll()
-    } else if (status.value?.latitude && status.value?.longitude) {
-      map.setView([status.value.latitude, status.value.longitude], 14)
-    }
-  })
-
-  // Keep map in sync when the flex container resizes (e.g. orientation change on mobile)
+  // Keep map in sync when the flex container resizes (orientation change, sidebar toggle, etc.)
   if (mapWrapperRef.value) {
     resizeObserver = new ResizeObserver(() => map.invalidateSize())
     resizeObserver.observe(mapWrapperRef.value)
   }
+
+  // nextTick: wait for Vue DOM → requestAnimationFrame: wait for browser layout pass.
+  // Without rAF, clientHeight is still 0 on mobile because the flex heights haven't been
+  // computed by the browser yet even though the DOM is ready.
+  nextTick(() => {
+    requestAnimationFrame(() => {
+      map.invalidateSize()
+      if (allPoints.value.length > 0) {
+        buildHeatLayer()
+        buildRouteLines()
+        fitAll()
+      } else if (status.value?.latitude && status.value?.longitude) {
+        map.setView([status.value.latitude, status.value.longitude], 14)
+      }
+    })
+  })
 }
 
 // When status loads and there are no trip points yet, fly to the car's position
