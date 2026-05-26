@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { computed, watch, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import StatusCard from './StatusCard.vue'
 import DetailModal from './DetailModal.vue'
+import { useModal } from '@/composables/useModal'
 import { useVehicleCommand } from '@/composables/useVehicleCommand'
 
 const { t } = useI18n()
@@ -18,7 +19,7 @@ const props = defineProps<{
   rearWindowDefroster: boolean | null
 }>()
 
-const modalOpen = ref(false)
+const { isOpen: modalOpen, open: openModal, close: closeModal } = useModal()
 const { sending, lastResult, isPending, clearPending, send } = useVehicleCommand()
 
 const TEMP_MIN = 16
@@ -78,6 +79,14 @@ function handleDefrostToggle() {
 function applyTemperature() {
   send(props.vin, 'climate-temperature', String(sliderTemp.value))
 }
+
+function onSeatLeftChange(e: Event) {
+  onSeatChange('seat-left', e)
+}
+
+function onSeatRightChange(e: Event) {
+  onSeatChange('seat-right', e)
+}
 </script>
 
 <template>
@@ -88,13 +97,13 @@ function applyTemperature() {
     :value="summaryValue"
     :variant="climateOn ? 'info' : undefined"
     clickable
-    @click="modalOpen = true"
+    @click="openModal"
   />
 
   <DetailModal
     :open="modalOpen"
     :title="t('control.climate')"
-    @close="modalOpen = false"
+    @close="closeModal"
   >
     <div class="detail-list">
       <!-- AC temperature slider -->
@@ -206,7 +215,7 @@ function applyTemperature() {
               min="0" max="3" step="1"
               :value="seatLeftLocal"
               :disabled="sending === 'seat-left' || isPending('seat-left') || !vin"
-              @change="(e) => onSeatChange('seat-left', e)"
+              @change="onSeatLeftChange"
             />
           </div>
           <div class="range-control__labels">
@@ -229,7 +238,7 @@ function applyTemperature() {
               min="0" max="3" step="1"
               :value="seatRightLocal"
               :disabled="sending === 'seat-right' || isPending('seat-right') || !vin"
-              @change="(e) => onSeatChange('seat-right', e)"
+              @change="onSeatRightChange"
             />
           </div>
           <div class="range-control__labels">

@@ -82,7 +82,7 @@ public class MqttConsumerService(
         if (subtopic.StartsWith("info/configuration/", StringComparison.OrdinalIgnoreCase))
         {
             var configKey = subtopic["info/configuration/".Length..];
-            logger.LogInformation("MQTT config — VIN={Vin} key={Key} value={Payload}", vin, configKey, payload);
+            logger.LogInformation("MQTT config — VIN={Vin} key={Key} payloadBytes={PayloadBytes}", vin, configKey, payload.Length);
             using var cfgScope = scopeFactory.CreateScope();
             var vehicleRepo = cfgScope.ServiceProvider.GetRequiredService<IVehicleRepository>();
             try
@@ -104,11 +104,11 @@ public class MqttConsumerService(
             if (ns is "info" or "refresh" or "_internal" or "available")
                 logger.LogInformation("MQTT metadata (skipped) — VIN={Vin} subtopic={Subtopic}", vin, subtopic);
             else
-                logger.LogWarning("Unmapped telemetry topic — VIN={Vin} subtopic={Subtopic} value={Payload}", vin, subtopic, payload);
+                logger.LogWarning("Unmapped telemetry topic — VIN={Vin} subtopic={Subtopic} payloadBytes={PayloadBytes}", vin, subtopic, payload.Length);
             return;
         }
 
-        logger.LogInformation("MQTT mapped — VIN={Vin} subtopic={Subtopic} value={Payload}", vin, subtopic, payload);
+        logger.LogInformation("MQTT mapped — VIN={Vin} subtopic={Subtopic} payloadBytes={PayloadBytes}", vin, subtopic, payload.Length);
 
         using var scope = scopeFactory.CreateScope();
         var vehicleRepoMain = scope.ServiceProvider.GetRequiredService<IVehicleRepository>();

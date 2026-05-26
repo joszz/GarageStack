@@ -26,8 +26,6 @@ export interface Vehicle {
   vin: string
   model: string | null
   series: string | null
-  saicUser: string | null
-  configJson: string | null
   createdAt: string
 }
 

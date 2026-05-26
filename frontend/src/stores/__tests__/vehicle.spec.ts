@@ -75,7 +75,7 @@ describe('useVehicleStore - fetchVehicles', () => {
   it('populates vehicles on success', async () => {
     const { vehicleApi } = await import('@/services/api')
     vi.mocked(vehicleApi.list).mockResolvedValue([
-      { id: 1, vin: 'ABC123', model: 'MG ZS EV', series: null, saicUser: null, configJson: null, createdAt: '' },
+      { id: 1, vin: 'ABC123', model: 'MG ZS EV', series: null, createdAt: '' },
     ])
     const store = useVehicleStore()
     await store.fetchVehicles()

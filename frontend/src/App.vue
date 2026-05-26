@@ -10,6 +10,14 @@ const route = useRoute()
 const settings = useSettingsStore()
 const menuOpen = ref(false)
 
+function toggleMenu() {
+  menuOpen.value = !menuOpen.value
+}
+
+function closeMenu() {
+  menuOpen.value = false
+}
+
 watch(() => route.path, () => { menuOpen.value = false })
 watch(() => settings.locale, (val) => { locale.value = val })
 </script>
@@ -18,7 +26,7 @@ watch(() => settings.locale, (val) => { locale.value = val })
   <div class="app-layout">
     <!-- Mobile topbar -->
     <header class="mobile-topbar">
-      <button class="hamburger" :aria-expanded="menuOpen" aria-label="Menu" @click="menuOpen = !menuOpen">
+      <button class="hamburger" :aria-expanded="menuOpen" aria-label="Menu" @click="toggleMenu">
         <font-awesome-icon :icon="menuOpen ? 'xmark' : 'bars'" />
       </button>
       <RouterLink to="/" class="mobile-brand">
@@ -28,7 +36,7 @@ watch(() => settings.locale, (val) => { locale.value = val })
     </header>
 
     <!-- Backdrop (mobile only) -->
-    <div v-if="menuOpen" class="sidebar-backdrop" @click="menuOpen = false" />
+    <div v-if="menuOpen" class="sidebar-backdrop" @click="closeMenu" />
 
     <!-- Sidebar + main body (fills space between topbar and footer) -->
     <div class="app-body">

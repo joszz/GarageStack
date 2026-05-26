@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
 using Serilog;
+using System.Threading.RateLimiting;
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
@@ -43,10 +44,18 @@ try
     builder.Services.AddRateLimiter(opts =>
     {
         opts.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-        opts.AddFixedWindowLimiter("fixed", o =>
+        opts.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
         {
-            o.Window = TimeSpan.FromMinutes(1);
-            o.PermitLimit = 120;
+            var ip = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+            return RateLimitPartition.GetFixedWindowLimiter(
+                partitionKey: ip,
+                factory: _ => new FixedWindowRateLimiterOptions
+                {
+                    Window = TimeSpan.FromMinutes(1),
+                    PermitLimit = 120,
+                    QueueLimit = 0,
+                    AutoReplenishment = true,
+                });
         });
     });
 

@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import StatusCard from './StatusCard.vue'
 import DetailModal from './DetailModal.vue'
+import { useModal } from '@/composables/useModal'
 import { useVehicleCommand } from '@/composables/useVehicleCommand'
 
 const { t } = useI18n()
@@ -20,7 +21,7 @@ const props = defineProps<{
   canSetChargeLimit: boolean
 }>()
 
-const modalOpen = ref(false)
+const { isOpen: modalOpen, open: openModal, close: closeModal } = useModal()
 const { sending, lastResult, isPending, send } = useVehicleCommand()
 
 const socPercent = computed(() => {
@@ -52,6 +53,7 @@ const hasAnyData = computed(() =>
 function setChargeLimit(value: string) {
   send(props.vin, 'charge-limit', value)
 }
+
 </script>
 
 <template>
@@ -62,13 +64,13 @@ function setChargeLimit(value: string) {
     :value="summaryValue"
     :variant="summaryVariant"
     clickable
-    @click="modalOpen = true"
+    @click="openModal"
   />
 
   <DetailModal
     :open="modalOpen"
     :title="t('vehicle.hvBattery.title')"
-    @close="modalOpen = false"
+    @close="closeModal"
   >
     <div class="detail-list">
       <div v-if="hvSocKwh !== null" class="detail-list__item">

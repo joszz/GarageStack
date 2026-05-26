@@ -3,6 +3,7 @@ import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import StatusCard from './StatusCard.vue'
 import DetailModal from './DetailModal.vue'
+import { useModal } from '@/composables/useModal'
 import { useVehicleCommand } from '@/composables/useVehicleCommand'
 
 const { t } = useI18n()
@@ -18,7 +19,7 @@ const props = defineProps<{
   trunkOpen: boolean | null
 }>()
 
-const modalOpen = ref(false)
+const { isOpen: modalOpen, open: openModal, close: closeModal } = useModal()
 const { sending, lastResult, isPending, clearPending, send } = useVehicleCommand()
 
 const localLocked = ref<boolean | null>(null)
@@ -68,6 +69,7 @@ async function handleLockToggle() {
   await send(props.vin, 'lock', newLocked ? 'True' : 'False')
   if (lastResult.value?.ok) localLocked.value = newLocked
 }
+
 </script>
 
 <template>
@@ -78,13 +80,13 @@ async function handleLockToggle() {
     :value="summary"
     :variant="variant"
     clickable
-    @click="modalOpen = true"
+    @click="openModal"
   />
 
   <DetailModal
     :open="modalOpen"
     :title="t('vehicle.doors')"
-    @close="modalOpen = false"
+    @close="closeModal"
   >
     <div v-if="isLocked !== null" class="detail-list">
       <div class="detail-list__item detail-list__item--control">

@@ -23,6 +23,7 @@ jobs:
 
     strategy:
       fail-fast: false
+      max-parallel: 2
       matrix:
         include:
           # All-in-one image (frontend + API + worker + postgres + mosquitto + saic gateway)
@@ -83,8 +84,10 @@ jobs:
           context: ${{ matrix.context }}
           file: ${{ matrix.dockerfile }}
           push: ${{ github.event_name != 'pull_request' }}
+          provenance: false
+          sbom: false
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           # Each image gets its own GHA cache scope
           cache-from: type=gha,scope=${{ matrix.label }}
-          cache-to: type=gha,scope=${{ matrix.label }},mode=max
+          cache-to: type=gha,scope=${{ matrix.label }},mode=min

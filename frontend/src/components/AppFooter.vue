@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useSettingsStore } from '@/stores/settings'
 import gbFlag from 'flag-icons/flags/4x3/gb.svg'
@@ -7,6 +7,7 @@ import nlFlag from 'flag-icons/flags/4x3/nl.svg'
 import { useVehicleStore } from '@/stores/vehicle'
 import { useVehicleCommand } from '@/composables/useVehicleCommand'
 import { usePush } from '@/composables/usePush'
+import { useModal } from '@/composables/useModal'
 import DetailModal from './DetailModal.vue'
 import type { VehicleTypeOverride } from '@/stores/settings'
 
@@ -15,8 +16,7 @@ const settings = useSettingsStore()
 const vehicleStore = useVehicleStore()
 const { sending, send } = useVehicleCommand()
 const { pushSupported, pushState, togglePush } = usePush()
-
-const modalOpen = ref(false)
+const { isOpen: modalOpen, open: openModal, close: closeModal } = useModal()
 
 const vin = computed(() => vehicleStore.vehicles[0]?.vin ?? null)
 
@@ -74,7 +74,7 @@ async function refresh() {
         <font-awesome-icon icon="rotate" :spin="vehicleStore.loading || sending === 'refresh'" />
         {{ t('control.refresh') }}
       </button>
-      <button class="app-footer__btn" :aria-label="t('settings.title')" @click="modalOpen = true">
+      <button class="app-footer__btn" :aria-label="t('settings.title')" @click="openModal">
         <font-awesome-icon icon="gear" />
         {{ t('settings.title') }}
       </button>
@@ -84,7 +84,7 @@ async function refresh() {
   <DetailModal
     :open="modalOpen"
     :title="t('settings.title')"
-    @close="modalOpen = false"
+    @close="closeModal"
   >
     <!-- Appearance -->
     <div class="detail-modal__section">

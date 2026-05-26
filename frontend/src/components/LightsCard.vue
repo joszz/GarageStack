@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import StatusCard from './StatusCard.vue'
 import DetailModal from './DetailModal.vue'
+import { useModal } from '@/composables/useModal'
 
 const { t } = useI18n()
 
@@ -12,7 +13,7 @@ const props = defineProps<{
   side: boolean | null
 }>()
 
-const modalOpen = ref(false)
+const { isOpen: modalOpen, open: openModal, close: closeModal } = useModal()
 
 type LightItem = { key: string; label: string; on: boolean }
 
@@ -32,6 +33,7 @@ const summary = computed((): string | null => {
   if (activeLights.value.length === 0) return t('common.off')
   return activeLights.value.map(l => l.label).join(' · ')
 })
+
 </script>
 
 <template>
@@ -42,13 +44,13 @@ const summary = computed((): string | null => {
     :value="summary"
     :variant="activeLights.length > 0 ? 'success' : 'danger'"
     clickable
-    @click="modalOpen = true"
+    @click="openModal"
   />
 
   <DetailModal
     :open="modalOpen"
     :title="t('vehicle.lights.title')"
-    @close="modalOpen = false"
+    @close="closeModal"
   >
     <div class="detail-list">
       <div

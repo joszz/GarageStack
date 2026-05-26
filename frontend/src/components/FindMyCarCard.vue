@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import DetailModal from './DetailModal.vue'
 import { useVehicleCommand } from '@/composables/useVehicleCommand'
+import { useModal } from '@/composables/useModal'
 
 const { t } = useI18n()
 
@@ -12,10 +13,10 @@ const props = defineProps<{
 
 const { sending, isPending, send } = useVehicleCommand()
 const active = ref(false)
-const confirmOpen = ref(false)
+const { isOpen: confirmOpen, open: openConfirm, close: closeConfirm } = useModal()
 
 function confirm() {
-  confirmOpen.value = false
+  closeConfirm()
   active.value = true
   send(props.vin, 'find-my-car', 'activate')
 }
@@ -38,7 +39,7 @@ function stop() {
         class="btn btn-warning btn-sm find-my-car__btn"
         :class="isPending('find-my-car') ? 'btn--pending' : ''"
         :disabled="sending === 'find-my-car' || isPending('find-my-car') || !vin"
-        @click="confirmOpen = true"
+        @click="openConfirm"
       >
         <font-awesome-icon v-if="sending === 'find-my-car'" icon="spinner" spin />
         <font-awesome-icon v-else-if="isPending('find-my-car')" icon="clock" />
@@ -63,11 +64,11 @@ function stop() {
   <DetailModal
     :open="confirmOpen"
     :title="t('control.findMyCar')"
-    @close="confirmOpen = false"
+    @close="closeConfirm"
   >
     <p>{{ t('control.findMyCarConfirm') }}</p>
     <template #footer>
-      <button class="btn btn-outline-secondary" @click="confirmOpen = false">
+      <button class="btn btn-outline-secondary" @click="closeConfirm">
         {{ t('common.cancel') }}
       </button>
       <button class="btn btn-warning" @click="confirm">

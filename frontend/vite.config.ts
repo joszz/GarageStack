@@ -24,6 +24,20 @@ export default defineConfig({
           { src: 'pwa-512x512.png',           sizes: '512x512', type: 'image/png' },
           { src: 'maskable-icon-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
+        screenshots: [
+          {
+            src: 'screenshot-mobile-home.webp',
+            sizes: '400x690',
+            type: 'image/webp',
+            form_factor: 'narrow',
+          },
+          {
+            src: 'screenshot-desktop-home.webp',
+            sizes: '1385x563',
+            type: 'image/webp',
+            form_factor: 'wide',
+          }
+        ],
       },
       injectManifest: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg}'],

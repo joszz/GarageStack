@@ -1,9 +1,13 @@
+# syntax=docker/dockerfile:1.7
+
 # ── Stage 1: Build frontend ───────────────────────────────────────────────────
 FROM node:24-alpine AS frontend-build
 WORKDIR /app
 RUN corepack enable && corepack prepare pnpm@latest --activate
 COPY frontend/package.json frontend/pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile
+RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
+    pnpm config set store-dir /pnpm/store \
+    && pnpm install --frozen-lockfile
 COPY frontend/ .
 RUN pnpm run build
 
@@ -14,8 +18,9 @@ COPY src/GarageStack.Core/GarageStack.Core.csproj GarageStack.Core/
 COPY src/GarageStack.Data/GarageStack.Data.csproj GarageStack.Data/
 COPY src/GarageStack.Api/GarageStack.Api.csproj GarageStack.Api/
 COPY src/GarageStack.Worker/GarageStack.Worker.csproj GarageStack.Worker/
-RUN dotnet restore GarageStack.Api/GarageStack.Api.csproj \
- && dotnet restore GarageStack.Worker/GarageStack.Worker.csproj
+RUN --mount=type=cache,id=nuget-packages,target=/root/.nuget/packages \
+    dotnet restore GarageStack.Api/GarageStack.Api.csproj \
+    && dotnet restore GarageStack.Worker/GarageStack.Worker.csproj
 COPY src/GarageStack.Core/ GarageStack.Core/
 COPY src/GarageStack.Data/ GarageStack.Data/
 COPY src/GarageStack.Api/ GarageStack.Api/
@@ -38,9 +43,14 @@ FROM saicismartapi/saic-python-mqtt-gateway:latest AS saic-source
 # no apt repo at all.
 FROM python:3.14-slim
 
+ARG DEBIAN_FRONTEND=noninteractive
+
 # bash  -- required by entrypoint.sh and dotnet-install.sh (slim images ship dash only)
 # libgssapi-krb5-2 -- required by the .NET runtime
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
+    apt-get update \
+    && apt-get install -y --no-install-recommends \
         bash curl gnupg ca-certificates gosu supervisor \
         nginx mosquitto mosquitto-clients \
         libgssapi-krb5-2 \
@@ -56,13 +66,17 @@ ENV PATH="/usr/local/dotnet:$PATH"
 # Removes the libicu dependency; fine for a telemetry API that uses invariant formatting.
 ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=true
 
-# PostgreSQL 17 -- official apt repo, trixie suite.
+# PostgreSQL 18 -- official apt repo, trixie suite.
 RUN curl -sSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
         | gpg --dearmor > /usr/share/keyrings/postgresql.gpg \
     && echo "deb [signed-by=/usr/share/keyrings/postgresql.gpg] http://apt.postgresql.org/pub/repos/apt trixie-pgdg main" \
         > /etc/apt/sources.list.d/pgdg.list \
-    && apt-get update && apt-get install -y --no-install-recommends \
-        postgresql-18 \
+    && printf "create_main_cluster = false\n" > /etc/postgresql-common/createcluster.conf
+
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
+    apt-get update \
+    && apt-get install -y --no-install-recommends postgresql-18 \
     && rm -rf /var/lib/apt/lists/*
 
 # SAIC MQTT Gateway: copy the pre-built venv and source from the official image.

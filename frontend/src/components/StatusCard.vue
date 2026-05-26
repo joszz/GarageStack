@@ -9,6 +9,10 @@ defineProps<{
 }>()
 
 const emit = defineEmits<{ (e: 'click'): void }>()
+
+function emitClickIfClickable(clickable?: boolean) {
+  if (clickable) emit('click')
+}
 </script>
 
 <template>
@@ -17,9 +21,9 @@ const emit = defineEmits<{ (e: 'click'): void }>()
     :class="[variant ? `status-card--${variant}` : '', clickable ? 'status-card--clickable' : '']"
     :role="clickable ? 'button' : undefined"
     :tabindex="clickable ? 0 : undefined"
-    @click="clickable && emit('click')"
-    @keydown.enter="clickable && emit('click')"
-    @keydown.space.prevent="clickable && emit('click')"
+    @click="emitClickIfClickable(clickable)"
+    @keydown.enter="emitClickIfClickable(clickable)"
+    @keydown.space.prevent="emitClickIfClickable(clickable)"
   >
     <div class="status-card__icon">
       <font-awesome-icon :icon="icon" />

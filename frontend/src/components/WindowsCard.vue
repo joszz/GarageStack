@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import StatusCard from './StatusCard.vue'
 import DetailModal from './DetailModal.vue'
+import { useModal } from '@/composables/useModal'
 
 const { t } = useI18n()
 
@@ -13,7 +14,7 @@ const props = defineProps<{
   rearRightWindowOpen: boolean | null
 }>()
 
-const modalOpen = ref(false)
+const { isOpen: modalOpen, open: openModal, close: closeModal } = useModal()
 
 type WinItem = { key: string; label: string; open: boolean }
 
@@ -40,6 +41,7 @@ const variant = computed(() => {
   if (windowList.value.length === 0) return undefined
   return openWindows.value.length > 0 ? 'warning' as const : 'success' as const
 })
+
 </script>
 
 <template>
@@ -50,13 +52,13 @@ const variant = computed(() => {
     :value="summary"
     :variant="variant"
     clickable
-    @click="modalOpen = true"
+    @click="openModal"
   />
 
   <DetailModal
     :open="modalOpen"
     :title="t('vehicle.windows')"
-    @close="modalOpen = false"
+    @close="closeModal"
   >
     <div class="detail-list">
       <div

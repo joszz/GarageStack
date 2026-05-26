@@ -1,7 +1,6 @@
 using GarageStack.Core.Interfaces;
 using GarageStack.Core.Models;
 using GarageStack.Data;
-using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 
@@ -12,12 +11,14 @@ public static class VehicleEndpoints
     public static IEndpointRouteBuilder MapVehicleEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/vehicles")
-            .WithTags("Vehicles")
-            .RequireRateLimiting("fixed");
+            .WithTags("Vehicles");
 
         group.MapGet("/", async (AppDbContext db, CancellationToken ct) =>
         {
-            var vehicles = await db.Vehicles.AsNoTracking().ToListAsync(ct);
+            var vehicles = await db.Vehicles
+                .AsNoTracking()
+                .Select(v => new VehicleListItemDto(v.Id, v.Vin, v.Model, v.Series, v.CreatedAt))
+                .ToListAsync(ct);
             return Results.Ok(vehicles);
         })
         .WithSummary("List all vehicles");
@@ -146,8 +147,7 @@ public static class VehicleEndpoints
         .WithSummary("Distinct raw MQTT topics seen for a vehicle");
 
         var push = app.MapGroup("/api/push")
-            .WithTags("Push Notifications")
-            .RequireRateLimiting("fixed");
+            .WithTags("Push Notifications");
 
         push.MapGet("/vapid-public-key", (IConfiguration config) =>
         {
@@ -195,3 +195,4 @@ public static class VehicleEndpoints
 }
 
 public record PushSubscribeRequest(string Endpoint, string P256DhKey, string AuthKey);
+public record VehicleListItemDto(int Id, string Vin, string? Model, string? Series, DateTime CreatedAt);

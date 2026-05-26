@@ -118,6 +118,15 @@ const selectedTrip = computed<Trip | null>(() =>
   selectedTripIndex.value !== null ? (store.trips[selectedTripIndex.value] ?? null) : null,
 )
 
+const popoverStyle = computed<Record<string, string> | undefined>(() => {
+  if (!popoverPos.value) return undefined
+  return {
+    top: `${popoverPos.value.top}px`,
+    left: `${popoverPos.value.left}px`,
+    '--arrow-top': `${popoverPos.value.arrowTop}px`,
+  }
+})
+
 const allPoints = computed<[number, number][]>(() =>
   store.trips.flatMap((trip) => trip.points.map((p) => [p.latitude, p.longitude] as [number, number])),
 )
@@ -211,6 +220,18 @@ function flyToStatus() {
   if (map && s?.latitude && s?.longitude) {
     map.setView([s.latitude, s.longitude], 14)
   }
+}
+
+function toggleHeatmap() {
+  heatmapEnabled.value = !heatmapEnabled.value
+}
+
+function goToPreviousTripsPage() {
+  if (tripsPage.value > 1) tripsPage.value -= 1
+}
+
+function goToNextTripsPage() {
+  if (tripsPage.value < totalPages.value) tripsPage.value += 1
 }
 
 function onMapReady(map: LeafletMap) {
@@ -327,7 +348,7 @@ onUnmounted(() => {
         <button
           class="btn btn-sm"
           :class="heatmapEnabled ? 'btn-primary' : 'btn-outline-secondary'"
-          @click="heatmapEnabled = !heatmapEnabled"
+          @click="toggleHeatmap"
         >
           <font-awesome-icon icon="fire" />
           {{ t('trips.heatmap') }}
@@ -381,7 +402,7 @@ onUnmounted(() => {
             <button
               class="btn btn-sm btn-outline-secondary trip-pagination__btn"
               :disabled="tripsPage === 1"
-              @click="tripsPage--"
+              @click="goToPreviousTripsPage"
             >
               <font-awesome-icon icon="chevron-left" />
             </button>
@@ -389,7 +410,7 @@ onUnmounted(() => {
             <button
               class="btn btn-sm btn-outline-secondary trip-pagination__btn"
               :disabled="tripsPage === totalPages"
-              @click="tripsPage++"
+              @click="goToNextTripsPage"
             >
               <font-awesome-icon icon="chevron-right" />
             </button>
@@ -421,11 +442,7 @@ onUnmounted(() => {
           v-if="selectedTrip && popoverPos"
           class="trip-popover"
           :class="{ 'trip-popover--mobile': popoverPos.mobile }"
-          :style="{
-            top: `${popoverPos.top}px`,
-            left: `${popoverPos.left}px`,
-            '--arrow-top': `${popoverPos.arrowTop}px`,
-          }"
+          :style="popoverStyle"
         >
           <div class="trip-popover__header">
             <span class="trip-popover__title">{{ new Date(selectedTrip.startedAt).toLocaleDateString() }}</span>

@@ -26,6 +26,14 @@ const vehicleType = computed((): VehicleType | 'unknown' => {
 
 const isHev = computed(() => vehicleType.value === 'hev')
 
+function toggleEditMode() {
+  editMode.value = !editMode.value
+}
+
+function toggleCardVisibility(card: { visible: boolean }) {
+  card.visible = !card.visible
+}
+
 function cardHasData(id: CardId): boolean {
   const s = status.value
   if (!s) return false
@@ -105,7 +113,7 @@ onUnmounted(() => clearInterval(interval))
         <button
           class="btn btn-sm"
           :class="editMode ? 'btn-primary' : 'btn-outline-secondary'"
-          @click="editMode = !editMode"
+          @click="toggleEditMode"
         >
           <font-awesome-icon :icon="editMode ? 'check' : 'pen-to-square'" />
           {{ editMode ? t('dashboard.doneEditing') : t('dashboard.editLayout') }}
@@ -139,7 +147,7 @@ onUnmounted(() => clearInterval(interval))
             class="card-slot__badge"
             :class="card.visible ? 'card-slot__badge--hide' : 'card-slot__badge--show'"
             :aria-label="card.visible ? t('dashboard.hideCard') : t('dashboard.showCard')"
-            @click.stop="card.visible = !card.visible"
+            @click.stop="toggleCardVisibility(card)"
           >
             <font-awesome-icon :icon="card.visible ? 'xmark' : 'plus'" />
           </button>
