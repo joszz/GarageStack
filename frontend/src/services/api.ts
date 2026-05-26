@@ -1,12 +1,40 @@
 const BASE_URL = import.meta.env.VITE_API_URL ?? ''
+const AUTH_TOKEN_KEY = 'garagestack-auth-token'
+
+export class ApiError extends Error {
+  status: number
+  path: string
+
+  constructor(status: number, path: string) {
+    super(`API error ${status}: ${path}`)
+    this.status = status
+    this.path = path
+  }
+}
+
+export function getAuthToken(): string | null {
+  return localStorage.getItem(AUTH_TOKEN_KEY)
+}
+
+export function setAuthToken(token: string | null) {
+  if (token) localStorage.setItem(AUTH_TOKEN_KEY, token)
+  else localStorage.removeItem(AUTH_TOKEN_KEY)
+}
+
+function buildHeaders(options?: RequestInit): HeadersInit {
+  const baseHeaders = { ...(options?.headers ?? {}) } as Record<string, string>
+  const token = getAuthToken()
+  if (token) baseHeaders.Authorization = `Bearer ${token}`
+  return baseHeaders
+}
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE_URL}${path}`, {
     ...options,
-    headers: { ...(options?.headers ?? {}) },
+    headers: buildHeaders(options),
   })
 
-  if (!res.ok) throw new Error(`API error ${res.status}: ${path}`)
+  if (!res.ok) throw new ApiError(res.status, path)
   if (res.status === 204) return undefined as T
   return res.json() as Promise<T>
 }
@@ -14,11 +42,20 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 async function send(path: string, method: string, body?: unknown): Promise<void> {
   const res = await fetch(`${BASE_URL}${path}`, {
     method,
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      ...buildHeaders(),
+      'Content-Type': 'application/json',
+    },
     body: body !== undefined ? JSON.stringify(body) : undefined,
   })
 
-  if (!res.ok) throw new Error(`API error ${res.status}: ${path}`)
+  if (!res.ok) throw new ApiError(res.status, path)
+}
+
+export interface LoginResponse {
+  token: string
+  username: string
+  expiresAtUtc: string
 }
 
 export interface Vehicle {
@@ -125,4 +162,13 @@ export const pushApi = {
     send('/api/push/subscribe', 'POST', { endpoint, p256DhKey, authKey }),
   unsubscribe: (endpoint: string) =>
     send(`/api/push/unsubscribe?endpoint=${encodeURIComponent(endpoint)}`, 'DELETE'),
+}
+
+export const authApi = {
+  login: (username: string, password: string) =>
+    request<LoginResponse>('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password }),
+    }),
 }

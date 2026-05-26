@@ -146,6 +146,16 @@
     "disabled": "Notifications off",
     "permissionDenied": "Permission denied"
   },
+  "auth": {
+    "subtitle": "Sign in with your MG account credentials",
+    "username": "Username",
+    "password": "Password",
+    "login": "Log in",
+    "loggingIn": "Logging in...",
+    "logout": "Log out",
+    "invalidCredentials": "Invalid username or password",
+    "loginFailed": "Login failed, please try again"
+  },
   "settings": {
     "title": "Settings",
     "resetDefaults": "Reset to defaults",

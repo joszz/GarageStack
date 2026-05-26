@@ -14,12 +14,18 @@ public class MqttPublisher(IConfiguration config, ILogger<MqttPublisher> logger)
     {
         var host = config["Mqtt:Host"] ?? "localhost";
         var port = int.Parse(config["Mqtt:Port"] ?? "1883");
+        var username = config["Mqtt:Username"];
+        var password = config["Mqtt:Password"];
 
-        _options = new MqttClientOptionsBuilder()
+        var optionsBuilder = new MqttClientOptionsBuilder()
             .WithTcpServer(host, port)
             .WithClientId("garagestack-api")
-            .WithCleanSession()
-            .Build();
+            .WithCleanSession();
+
+        if (!string.IsNullOrWhiteSpace(username))
+            optionsBuilder.WithCredentials(username, password);
+
+        _options = optionsBuilder.Build();
 
         var factory = new MqttClientFactory();
         _client = factory.CreateMqttClient();

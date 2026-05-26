@@ -3,8 +3,18 @@ services:
     image: eclipse-mosquitto:2
     container_name: mosquitto
     restart: unless-stopped
+    entrypoint: /bin/sh
+    command: >
+      -c "
+      set -eu;
+      mosquitto_passwd -b -c /mosquitto/data/passwd \"${SAIC_USER}\" \"${SAIC_PASSWORD}\";
+      printf 'user %s\\ntopic readwrite #\\n' \"${SAIC_USER}\" > /mosquitto/data/acl;
+      chown mosquitto:mosquitto /mosquitto/data/passwd /mosquitto/data/acl;
+      chmod 600 /mosquitto/data/passwd /mosquitto/data/acl;
+      exec /docker-entrypoint.sh /usr/sbin/mosquitto -c /mosquitto/config/mosquitto.conf
+      "
     ports:
-      - "${MQTT_EXTERNAL_PORT:-1883}:1883"
+      - "${MQTT_BIND_ADDRESS:-127.0.0.1}:${MQTT_EXTERNAL_PORT:-1883}:1883"
     volumes:
       - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf
       - mosquitto_data:/mosquitto/data/
@@ -19,6 +29,8 @@ services:
       SAIC_USER: "${SAIC_USER}"
       SAIC_PASSWORD: "${SAIC_PASSWORD}"
       MQTT_URI: "tcp://mosquitto:1883"
+      MQTT_USER: "${SAIC_USER}"
+      MQTT_PASSWORD: "${SAIC_PASSWORD}"
       SAIC_REGION: "${SAIC_REGION:-eu}"
 
   # Bundled Postgres — only starts when you pass --profile bundled-postgres.
@@ -55,10 +67,14 @@ services:
         required: false
       mosquitto:
         condition: service_started
+    env_file:
+      - .env
     environment:
       ConnectionStrings__DefaultConnection: "Host=${POSTGRES_HOST:-postgres};Port=${POSTGRES_PORT:-5432};Database=${POSTGRES_DB:-garagestack};Username=${POSTGRES_USER:-garagestack};Password=${POSTGRES_PASSWORD}"
       Mqtt__Host: "${MQTT_HOST:-mosquitto}"
       Mqtt__Port: "${MQTT_PORT:-1883}"
+      Mqtt__Username: "${SAIC_USER}"
+      Mqtt__Password: "${SAIC_PASSWORD}"
       Vapid__PublicKey: "${VAPID_PUBLIC_KEY}"
       Vapid__PrivateKey: "${VAPID_PRIVATE_KEY}"
       Vapid__Subject: "mailto:${SAIC_USER}"
@@ -77,12 +93,20 @@ services:
         required: false
       mosquitto:
         condition: service_started
+    env_file:
+      - .env
     environment:
       ConnectionStrings__DefaultConnection: "Host=${POSTGRES_HOST:-postgres};Port=${POSTGRES_PORT:-5432};Database=${POSTGRES_DB:-garagestack};Username=${POSTGRES_USER:-garagestack};Password=${POSTGRES_PASSWORD}"
       Cors__Origins__0: "${CORS_ORIGIN:-http://localhost}"
       Jwt__Secret: "${JWT_SECRET}"
+      SAIC_USER: "${SAIC_USER}"
+      SAIC_PASSWORD: "${SAIC_PASSWORD}"
+      Auth__Username: "${SAIC_USER}"
+      Auth__Password: "${SAIC_PASSWORD}"
       Mqtt__Host: "${MQTT_HOST:-mosquitto}"
       Mqtt__Port: "${MQTT_PORT:-1883}"
+      Mqtt__Username: "${SAIC_USER}"
+      Mqtt__Password: "${SAIC_PASSWORD}"
       Vapid__PublicKey: "${VAPID_PUBLIC_KEY}"
       Vapid__PrivateKey: "${VAPID_PRIVATE_KEY}"
       Vapid__Subject: "mailto:${SAIC_USER}"

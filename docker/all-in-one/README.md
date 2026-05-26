@@ -10,7 +10,7 @@ Single container that bundles every GarageStack service. Designed for Unraid and
 | **GarageStack.Api** | ASP.NET Core REST API (localhost:9000, not directly exposed) |
 | **GarageStack.Worker** | .NET background service -- MQTT consumer, push notifications |
 | **PostgreSQL 17** | Embedded database (localhost:5432, not directly exposed) |
-| **Mosquitto** | MQTT broker on port 1883 |
+| **Mosquitto** | MQTT broker on port 1883 with username/password auth and ACL |
 | **SAIC MQTT Gateway** | Python 3.14 service that polls the MG iSmart cloud and publishes telemetry to Mosquitto. Copied directly from the official `saicismartapi/saic-python-mqtt-gateway` image. |
 
 All processes are managed by **supervisord**. Startup order is enforced via priority and startup delays so PostgreSQL is ready before the .NET services try to connect.
@@ -20,7 +20,7 @@ All processes are managed by **supervisord**. Startup order is enforced via prio
 | Container port | Purpose | Expose? |
 |---------------|---------|---------|
 | **80** | Web UI (nginx) | Yes -- map to your chosen host port (default 8080) |
-| **1883** | MQTT broker | Optional -- only needed for external MQTT clients |
+| **1883** | MQTT broker | Optional -- only needed for external MQTT clients; keep closed unless needed |
 
 ## Persistent data
 
@@ -48,6 +48,8 @@ Mount a single volume at `/data`. The container creates the following layout ins
 | `JWT_SECRET` | Token signing key, minimum 32 characters. Generate: `openssl rand -base64 32` |
 | `CORS_ORIGIN` | Exact URL you use to open the app, e.g. `http://192.168.1.100:8080` |
 
+The web login uses the same `SAIC_USER` and `SAIC_PASSWORD` credentials. There is no separate signup flow.
+
 ### Optional
 
 | Variable | Description |
@@ -74,7 +76,6 @@ docker build \
 docker run -d \
   --name garagestack \
   -p 8080:80 \
-  -p 1883:1883 \
   -v ./garagestack-data:/data \
   -e SAIC_USER=your@email.com \
   -e SAIC_PASSWORD=yourpassword \

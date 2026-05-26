@@ -146,6 +146,16 @@
     "disabled": "Meldingen uit",
     "permissionDenied": "Toestemming geweigerd"
   },
+  "auth": {
+    "subtitle": "Log in met je MG-accountgegevens",
+    "username": "Gebruikersnaam",
+    "password": "Wachtwoord",
+    "login": "Inloggen",
+    "loggingIn": "Bezig met inloggen...",
+    "logout": "Uitloggen",
+    "invalidCredentials": "Ongeldige gebruikersnaam of wachtwoord",
+    "loginFailed": "Inloggen mislukt, probeer het opnieuw"
+  },
   "settings": {
     "title": "Instellingen",
     "resetDefaults": "Standaardinstellingen herstellen",

@@ -4,11 +4,14 @@ using GarageStack.Api.Services;
 using GarageStack.Core.Interfaces;
 using GarageStack.Data;
 using GarageStack.Data.Extensions;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using Scalar.AspNetCore;
 using Serilog;
+using System.Text;
 using System.Threading.RateLimiting;
 
 Log.Logger = new LoggerConfiguration()
@@ -40,6 +43,27 @@ try
         opts.SerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
         opts.SerializerOptions.Converters.Add(new FiniteDoubleConverter());
     });
+
+    var jwtSecret = builder.Configuration["Jwt:Secret"]
+        ?? throw new InvalidOperationException("Jwt:Secret is not configured.");
+    var jwtSecretBytes = Encoding.UTF8.GetBytes(jwtSecret);
+    if (jwtSecretBytes.Length < 32)
+        throw new InvalidOperationException("Jwt:Secret must be at least 32 bytes.");
+
+    builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+        .AddJwtBearer(options =>
+        {
+            options.TokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuer = false,
+                ValidateAudience = false,
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = new SymmetricSecurityKey(jwtSecretBytes),
+                ValidateLifetime = true,
+                ClockSkew = TimeSpan.FromMinutes(1),
+            };
+        });
+    builder.Services.AddAuthorization();
 
     builder.Services.AddRateLimiter(opts =>
     {
@@ -92,10 +116,13 @@ try
     app.UseSerilogRequestLogging();
     app.UseCors();
     app.UseRateLimiter();
+    app.UseAuthentication();
+    app.UseAuthorization();
 
     app.MapOpenApi();
     app.MapScalarApiReference(opts => opts.WithTitle("GarageStack API"));
 
+    app.MapAuthEndpoints();
     app.MapVehicleEndpoints();
 
     app.Run();

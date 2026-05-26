@@ -675,6 +675,7 @@ html, body, #app {
 }
 
 .trip-list__item {
+  position: relative;
   display: flex;
   align-items: flex-start;
   gap: 0.5rem;
@@ -732,7 +733,10 @@ html, body, #app {
 /* ── Trip detail popover ─────────────────────────────────────── */
 
 .trip-popover {
-  position: fixed;
+  position: absolute;
+  left: calc(100% + 10px);
+  top: 50%;
+  transform: translateY(-50%);
   z-index: 1001;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
@@ -747,28 +751,13 @@ html, body, #app {
   content: '';
   position: absolute;
   left: -6px;
-  top: var(--arrow-top, 50%);
+  top: 50%;
   transform: translateY(-50%) rotate(45deg);
   width: 10px;
   height: 10px;
   background: var(--color-surface);
   border-left: 1px solid var(--color-border);
   border-bottom: 1px solid var(--color-border);
-}
-
-/* Mobile: popover floats below the selected item, centered on screen */
-.trip-popover--mobile {
-  transform: translateX(-50%);
-}
-
-/* Top-pointing arrow (mobile) */
-.trip-popover--mobile::before {
-  left: 50%;
-  top: -6px;
-  transform: translateX(-50%) rotate(45deg);
-  border-top: 1px solid var(--color-border);
-  border-left: 1px solid var(--color-border);
-  border-bottom: none;
 }
 
 .trip-popover__header {
@@ -818,10 +807,29 @@ html, body, #app {
   transform: translateX(-4px);
 }
 
-.trip-popover--mobile.trip-popover-enter-from,
-.trip-popover--mobile.trip-popover-leave-to {
-  opacity: 0;
-  transform: translateX(-50%) translateY(-4px);
+@media (max-width: 767px) {
+  .trip-popover {
+    left: 0;
+    right: 0;
+    top: calc(100% + 8px);
+    width: auto;
+    transform: none;
+  }
+
+  .trip-popover::before {
+    left: 24px;
+    top: -6px;
+    transform: rotate(45deg);
+    border-top: 1px solid var(--color-border);
+    border-left: 1px solid var(--color-border);
+    border-bottom: none;
+  }
+
+  .trip-popover-enter-from,
+  .trip-popover-leave-to {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
 }
 
 .trip-pagination {

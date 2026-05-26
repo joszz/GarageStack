@@ -23,10 +23,14 @@ public class MqttConsumerService(
 
         client.ApplicationMessageReceivedAsync += msg => HandleMessageAsync(msg, stoppingToken);
 
-        var mqttOptions = new MqttClientOptionsBuilder()
+        var mqttOptionsBuilder = new MqttClientOptionsBuilder()
             .WithTcpServer(_options.Host, _options.Port)
-            .WithCleanSession()
-            .Build();
+            .WithCleanSession();
+
+        if (!string.IsNullOrWhiteSpace(_options.Username))
+            mqttOptionsBuilder.WithCredentials(_options.Username, _options.Password);
+
+        var mqttOptions = mqttOptionsBuilder.Build();
 
         while (!stoppingToken.IsCancellationRequested)
         {

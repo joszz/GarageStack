@@ -20,7 +20,8 @@ public static class VehicleEndpoints
         }
 
         var group = app.MapGroup("/api/vehicles")
-            .WithTags("Vehicles");
+            .WithTags("Vehicles")
+            .RequireAuthorization();
 
         group.MapGet("/", async (AppDbContext db, CancellationToken ct) =>
         {
@@ -34,8 +35,9 @@ public static class VehicleEndpoints
 
         group.MapGet("/{vin}/config", async (string vin, IVehicleRepository vehicles, CancellationToken ct) =>
         {
-            var (vehicle, notFound) = await ResolveVehicleAsync(vin, vehicles, ct);
-            if (notFound is not null) return notFound;
+            var resolved = await ResolveVehicleAsync(vin, vehicles, ct);
+            if (resolved.NotFound is not null) return resolved.NotFound;
+            var vehicle = resolved.Vehicle!;
             if (vehicle.ConfigJson is null) return Results.Ok(new Dictionary<string, string>());
             try
             {
@@ -51,8 +53,9 @@ public static class VehicleEndpoints
 
         group.MapGet("/{vin}/status", async (string vin, ITelemetryRepository telemetry, IVehicleRepository vehicles, CancellationToken ct) =>
         {
-            var (vehicle, notFound) = await ResolveVehicleAsync(vin, vehicles, ct);
-            if (notFound is not null) return notFound;
+            var resolved = await ResolveVehicleAsync(vin, vehicles, ct);
+            if (resolved.NotFound is not null) return resolved.NotFound;
+            var vehicle = resolved.Vehicle!;
             var snapshot = await telemetry.GetMergedLatestAsync(vehicle.Id, ct);
             return snapshot is null ? Results.NoContent() : Results.Ok(snapshot);
         })
@@ -66,8 +69,9 @@ public static class VehicleEndpoints
             DateTimeOffset? to,
             CancellationToken ct) =>
         {
-            var (vehicle, notFound) = await ResolveVehicleAsync(vin, vehicles, ct);
-            if (notFound is not null) return notFound;
+            var resolved = await ResolveVehicleAsync(vin, vehicles, ct);
+            if (resolved.NotFound is not null) return resolved.NotFound;
+            var vehicle = resolved.Vehicle!;
 
             var start = from?.UtcDateTime ?? DateTime.UtcNow.AddDays(-7);
             var end = to?.UtcDateTime ?? DateTime.UtcNow;
@@ -84,8 +88,9 @@ public static class VehicleEndpoints
             DateTimeOffset? to,
             CancellationToken ct) =>
         {
-            var (vehicle, notFound) = await ResolveVehicleAsync(vin, vehicles, ct);
-            if (notFound is not null) return notFound;
+            var resolved = await ResolveVehicleAsync(vin, vehicles, ct);
+            if (resolved.NotFound is not null) return resolved.NotFound;
+            var vehicle = resolved.Vehicle!;
 
             var start = from?.UtcDateTime ?? DateTime.UtcNow.AddDays(-30);
             var end = to?.UtcDateTime ?? DateTime.UtcNow;
@@ -102,8 +107,9 @@ public static class VehicleEndpoints
             IVehicleRepository vehicles,
             CancellationToken ct) =>
         {
-            var (vehicle, notFound) = await ResolveVehicleAsync(vin, vehicles, ct);
-            if (notFound is not null) return notFound;
+            var resolved = await ResolveVehicleAsync(vin, vehicles, ct);
+            if (resolved.NotFound is not null) return resolved.NotFound;
+            var vehicle = resolved.Vehicle!;
             if (vehicle.SaicUser is null)
                 return Results.Problem("SAIC username not yet known for this vehicle");
 
@@ -141,8 +147,9 @@ public static class VehicleEndpoints
 
         group.MapGet("/{vin}/topics", async (string vin, IVehicleRepository vehicles, AppDbContext db, CancellationToken ct) =>
         {
-            var (vehicle, notFound) = await ResolveVehicleAsync(vin, vehicles, ct);
-            if (notFound is not null) return notFound;
+            var resolved = await ResolveVehicleAsync(vin, vehicles, ct);
+            if (resolved.NotFound is not null) return resolved.NotFound;
+            var vehicle = resolved.Vehicle!;
 
             var topics = await db.TelemetrySnapshots
                 .Where(s => s.VehicleId == vehicle.Id && s.RawTopic != null)
@@ -156,7 +163,8 @@ public static class VehicleEndpoints
         .WithSummary("Distinct raw MQTT topics seen for a vehicle");
 
         var push = app.MapGroup("/api/push")
-            .WithTags("Push Notifications");
+            .WithTags("Push Notifications")
+            .RequireAuthorization();
 
         push.MapGet("/vapid-public-key", (IConfiguration config) =>
         {

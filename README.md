@@ -4,6 +4,12 @@ GarageStack is a free, open-source vehicle monitoring dashboard for MG / SAIC ca
 
 Features include a live dashboard, trip history with map and heatmap visualisation, energy statistics, and remote commands (climate, lock/unlock, find-my-car). The app is a PWA, so it can be installed on your phone or desktop and receives push notifications.
 
+Security defaults:
+
+- API routes require login.
+- Login reuses the configured MG account credentials (`SAIC_USER`/`SAIC_PASSWORD`) and issues short-lived JWT tokens.
+- MQTT now requires credentials and ACLs, and broker exposure defaults to localhost-only in Docker Compose.
+
 ---
 
 ## Dashboard cards explained
