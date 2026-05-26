@@ -3,9 +3,14 @@ import { onMounted, onUnmounted, computed, ref, shallowRef, watch, nextTick } fr
 import { useI18n } from 'vue-i18n'
 import { useVehicleStore } from '@/stores/vehicle'
 import { LMap, LTileLayer, LMarker, LPopup } from '@vue-leaflet/vue-leaflet'
-import * as L from 'leaflet'
+import * as LModule from 'leaflet'
 import type { Map as LeafletMap } from 'leaflet'
 import 'leaflet.heat'
+
+// Vite wraps CJS modules in a frozen ESM namespace — `import * as LModule` gives that frozen
+// namespace. leaflet.heat patches the actual mutable CJS export (LModule.default), so we must
+// use that reference to reach heatLayer at runtime.
+const L = ((LModule as any).default ?? LModule) as typeof LModule
 import type { Trip } from '@/services/api'
 
 const { t } = useI18n()

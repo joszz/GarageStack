@@ -1,0 +1,182 @@
+<?xml version="1.0"?>
+<Container version="2">
+  <Name>GarageStack</Name>
+  <Repository>ghcr.io/YOUR_GITHUB_USERNAME/garagestack:latest</Repository>
+  <Registry>https://ghcr.io/</Registry>
+  <Network>bridge</Network>
+  <MyIP/>
+  <Shell>bash</Shell>
+  <Privileged>false</Privileged>
+  <Support>https://github.com/YOUR_GITHUB_USERNAME/garagestack/issues</Support>
+  <Project>https://github.com/YOUR_GITHUB_USERNAME/garagestack</Project>
+  <Overview>
+    GarageStack is an open-source vehicle monitoring dashboard for MG / SAIC electric and plug-in hybrid vehicles.
+    It connects to the MG iSmart cloud via the SAIC MQTT Gateway and stores all data locally in an embedded
+    PostgreSQL database. Features include a live dashboard, charging and efficiency statistics, trip history
+    with heatmap visualisation, and Web Push notifications. Everything runs in a single container -- no
+    external database or MQTT broker required.
+  </Overview>
+  <Category>Tools: HomeAutomation:</Category>
+  <WebUI>http://[IP]:[PORT:8080]/</WebUI>
+  <TemplateURL>https://raw.githubusercontent.com/YOUR_GITHUB_USERNAME/garagestack/main/unraid/garagestack.xml</TemplateURL>
+  <Icon>https://raw.githubusercontent.com/YOUR_GITHUB_USERNAME/garagestack/main/assets/icon.png</Icon>
+  <ExtraParams/>
+  <PostArgs/>
+  <CPUset/>
+  <DateInstalled/>
+  <DonateText/>
+  <DonateLink/>
+  <Requires/>
+
+  <!-- ── Ports ──────────────────────────────────────────────────────────────── -->
+
+  <Config
+    Name="Web UI Port"
+    Target="80"
+    Default="8080"
+    Mode="tcp"
+    Description="Host port for the GarageStack web interface. Open this in your browser."
+    Type="Port"
+    Display="always"
+    Required="true"
+    Mask="false">8080</Config>
+
+  <Config
+    Name="MQTT Port"
+    Target="1883"
+    Default="1883"
+    Mode="tcp"
+    Description="Host port for the internal Mosquitto MQTT broker. Only expose if you need direct MQTT access from other devices."
+    Type="Port"
+    Display="advanced"
+    Required="false"
+    Mask="false">1883</Config>
+
+  <!-- ── Volumes ────────────────────────────────────────────────────────────── -->
+
+  <Config
+    Name="Data Directory"
+    Target="/data"
+    Default="/mnt/user/appdata/garagestack"
+    Mode="rw"
+    Description="Persistent storage for the PostgreSQL database, MQTT data, application logs, and ASP.NET Data Protection keys. Back this up regularly."
+    Type="Path"
+    Display="always"
+    Required="true"
+    Mask="false">/mnt/user/appdata/garagestack</Config>
+
+  <!-- ── Required variables ─────────────────────────────────────────────────── -->
+
+  <Config
+    Name="MG iSmart Email"
+    Target="SAIC_USER"
+    Default=""
+    Mode=""
+    Description="Your MG iSmart account email address. Must be the vehicle OWNER account -- shared or secondary accounts lack the write permissions needed to register alarm switches and will result in API error 1100003. Use a separate account on the MG phone app to avoid session conflicts."
+    Type="Variable"
+    Display="always"
+    Required="true"
+    Mask="false"/>
+
+  <Config
+    Name="MG iSmart Password"
+    Target="SAIC_PASSWORD"
+    Default=""
+    Mode=""
+    Description="Your MG iSmart account password."
+    Type="Variable"
+    Display="always"
+    Required="true"
+    Mask="true"/>
+
+  <Config
+    Name="MG Region"
+    Target="SAIC_REGION"
+    Default="eu"
+    Mode=""
+    Description="Region your vehicle is registered in: eu (Europe), cn (China), or row (Rest of World)."
+    Type="Variable"
+    Display="always"
+    Required="true"
+    Mask="false">eu</Config>
+
+  <Config
+    Name="Database Password"
+    Target="POSTGRES_PASSWORD"
+    Default=""
+    Mode=""
+    Description="Password for the embedded PostgreSQL database. Set a strong random value -- you will not need to enter this again. Generate one with: openssl rand -base64 24"
+    Type="Variable"
+    Display="always"
+    Required="true"
+    Mask="true"/>
+
+  <Config
+    Name="JWT Secret"
+    Target="JWT_SECRET"
+    Default=""
+    Mode=""
+    Description="Secret used to sign login tokens. Must be at least 32 characters. Generate with: openssl rand -base64 32"
+    Type="Variable"
+    Display="always"
+    Required="true"
+    Mask="true"/>
+
+  <Config
+    Name="App URL"
+    Target="CORS_ORIGIN"
+    Default="http://localhost:8080"
+    Mode=""
+    Description="The exact URL you use to open GarageStack in your browser, e.g. http://192.168.1.100:8080. Must match exactly -- wrong value causes login to fail."
+    Type="Variable"
+    Display="always"
+    Required="true"
+    Mask="false">http://localhost:8080</Config>
+
+  <!-- ── Optional variables ─────────────────────────────────────────────────── -->
+
+  <Config
+    Name="VAPID Public Key"
+    Target="VAPID_PUBLIC_KEY"
+    Default=""
+    Mode=""
+    Description="VAPID public key for Web Push notifications. Leave empty to disable push notifications (the rest of the app works fine without them). Generate a key pair with: npx web-push generate-vapid-keys"
+    Type="Variable"
+    Display="advanced"
+    Required="false"
+    Mask="false"/>
+
+  <Config
+    Name="VAPID Private Key"
+    Target="VAPID_PRIVATE_KEY"
+    Default=""
+    Mode=""
+    Description="VAPID private key for Web Push notifications. Keep this secret."
+    Type="Variable"
+    Display="advanced"
+    Required="false"
+    Mask="true"/>
+
+  <Config
+    Name="Database Name"
+    Target="POSTGRES_DB"
+    Default="garagestack"
+    Mode=""
+    Description="PostgreSQL database name. Only change this if you know what you are doing."
+    Type="Variable"
+    Display="advanced"
+    Required="false"
+    Mask="false">garagestack</Config>
+
+  <Config
+    Name="Database User"
+    Target="POSTGRES_USER"
+    Default="garagestack"
+    Mode=""
+    Description="PostgreSQL database user. Only change this if you know what you are doing."
+    Type="Variable"
+    Display="advanced"
+    Required="false"
+    Mask="false">garagestack</Config>
+
+</Container>

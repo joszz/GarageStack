@@ -35,6 +35,9 @@ export default defineConfig({
       '/api': 'http://127.0.0.1:5000',
     },
   },
+  optimizeDeps: {
+    include: ['leaflet', 'leaflet.heat'],
+  },
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
