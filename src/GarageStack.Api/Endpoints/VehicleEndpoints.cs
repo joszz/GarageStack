@@ -10,6 +10,15 @@ public static class VehicleEndpoints
 {
     public static IEndpointRouteBuilder MapVehicleEndpoints(this IEndpointRouteBuilder app)
     {
+        static async Task<(Vehicle? Vehicle, IResult? NotFound)> ResolveVehicleAsync(
+            string vin,
+            IVehicleRepository vehicles,
+            CancellationToken ct)
+        {
+            var vehicle = await vehicles.GetByVinAsync(vin, ct);
+            return vehicle is null ? (null, Results.NotFound()) : (vehicle, null);
+        }
+
         var group = app.MapGroup("/api/vehicles")
             .WithTags("Vehicles");
 
@@ -25,8 +34,8 @@ public static class VehicleEndpoints
 
         group.MapGet("/{vin}/config", async (string vin, IVehicleRepository vehicles, CancellationToken ct) =>
         {
-            var vehicle = await vehicles.GetByVinAsync(vin, ct);
-            if (vehicle is null) return Results.NotFound();
+            var (vehicle, notFound) = await ResolveVehicleAsync(vin, vehicles, ct);
+            if (notFound is not null) return notFound;
             if (vehicle.ConfigJson is null) return Results.Ok(new Dictionary<string, string>());
             try
             {
@@ -42,8 +51,8 @@ public static class VehicleEndpoints
 
         group.MapGet("/{vin}/status", async (string vin, ITelemetryRepository telemetry, IVehicleRepository vehicles, CancellationToken ct) =>
         {
-            var vehicle = await vehicles.GetByVinAsync(vin, ct);
-            if (vehicle is null) return Results.NotFound();
+            var (vehicle, notFound) = await ResolveVehicleAsync(vin, vehicles, ct);
+            if (notFound is not null) return notFound;
             var snapshot = await telemetry.GetMergedLatestAsync(vehicle.Id, ct);
             return snapshot is null ? Results.NoContent() : Results.Ok(snapshot);
         })
@@ -57,8 +66,8 @@ public static class VehicleEndpoints
             DateTimeOffset? to,
             CancellationToken ct) =>
         {
-            var vehicle = await vehicles.GetByVinAsync(vin, ct);
-            if (vehicle is null) return Results.NotFound();
+            var (vehicle, notFound) = await ResolveVehicleAsync(vin, vehicles, ct);
+            if (notFound is not null) return notFound;
 
             var start = from?.UtcDateTime ?? DateTime.UtcNow.AddDays(-7);
             var end = to?.UtcDateTime ?? DateTime.UtcNow;
@@ -75,8 +84,8 @@ public static class VehicleEndpoints
             DateTimeOffset? to,
             CancellationToken ct) =>
         {
-            var vehicle = await vehicles.GetByVinAsync(vin, ct);
-            if (vehicle is null) return Results.NotFound();
+            var (vehicle, notFound) = await ResolveVehicleAsync(vin, vehicles, ct);
+            if (notFound is not null) return notFound;
 
             var start = from?.UtcDateTime ?? DateTime.UtcNow.AddDays(-30);
             var end = to?.UtcDateTime ?? DateTime.UtcNow;
@@ -93,8 +102,8 @@ public static class VehicleEndpoints
             IVehicleRepository vehicles,
             CancellationToken ct) =>
         {
-            var vehicle = await vehicles.GetByVinAsync(vin, ct);
-            if (vehicle is null) return Results.NotFound();
+            var (vehicle, notFound) = await ResolveVehicleAsync(vin, vehicles, ct);
+            if (notFound is not null) return notFound;
             if (vehicle.SaicUser is null)
                 return Results.Problem("SAIC username not yet known for this vehicle");
 
@@ -132,8 +141,8 @@ public static class VehicleEndpoints
 
         group.MapGet("/{vin}/topics", async (string vin, IVehicleRepository vehicles, AppDbContext db, CancellationToken ct) =>
         {
-            var vehicle = await vehicles.GetByVinAsync(vin, ct);
-            if (vehicle is null) return Results.NotFound();
+            var (vehicle, notFound) = await ResolveVehicleAsync(vin, vehicles, ct);
+            if (notFound is not null) return notFound;
 
             var topics = await db.TelemetrySnapshots
                 .Where(s => s.VehicleId == vehicle.Id && s.RawTopic != null)

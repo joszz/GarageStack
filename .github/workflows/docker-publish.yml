@@ -56,13 +56,11 @@ jobs:
 
       - name: Log in to GitHub Container Registry
         if: github.event_name != 'pull_request'
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          # Use GHCR_PAT when provided (recommended fallback for stricter org/package policies),
-          # otherwise default to the workflow token.
-          password: ${{ secrets.GHCR_PAT != '' && secrets.GHCR_PAT || github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          TOKEN="${{ secrets.GHCR_PAT != '' && secrets.GHCR_PAT || github.token }}"
+          echo "$TOKEN" | docker login ${{ env.REGISTRY }} -u "${{ github.actor }}" --password-stdin
 
       - name: GHCR auth preflight
         if: github.event_name != 'pull_request'
