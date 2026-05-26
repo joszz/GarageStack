@@ -1,4 +1,4 @@
-# GarageStack Frontend
+# GarageStack
 
 GarageStack is a free, open-source vehicle monitoring dashboard for MG / SAIC cars. It connects to the SAIC iSmart API (the same backend as the official MG iSmart app) and presents your car's live telemetry in a clean, self-hosted web app. The project is designed to work across HEV, PHEV, and BEV variants of the MG lineup — cards that are not relevant to your vehicle type are automatically hidden or adapted.
 
@@ -19,7 +19,7 @@ These two cards both relate to the high-voltage battery in the drivetrain, but a
 
 **On a PHEV or BEV** the EV Battery percentage is the most immediately useful number -- it tells you how much electric range you have left, much like a fuel gauge. The HV Battery card drills into the same pack with engineering detail (exact kWh, live charging current, etc.) and adds the charge-current-limit control for PHEV/BEV owners.
 
-**On an HEV (like the MG HS Hybrid)** there is no plug, so the EV Battery percentage is less meaningful day-to-day: the hybrid battery is small (typically 1-2 kWh) and the car manages its charge level automatically through regenerative braking and the engine. The HV Battery card is more useful here because it shows the actual kWh value and live power flow, letting you see regeneration and motor-assist happening in real time. The charge-current controls and the "Since Charge" efficiency card are hidden automatically for HEV.
+**On an HEV** there is no plug, so the EV Battery percentage is less meaningful day-to-day: the hybrid battery is small (typically 1-2 kWh) and the car manages its charge level automatically through regenerative braking and the engine. The HV Battery card is more useful here because it shows the actual kWh value and live power flow, letting you see regeneration and motor-assist. The charge-current controls and the "Since Charge" efficiency card are hidden automatically for HEV.
 
 ### Energy today
 
