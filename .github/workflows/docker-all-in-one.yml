@@ -1,0 +1,10 @@
+# This workflow was superseded by docker-publish.yml which builds all images.
+# It is kept here as a disabled stub so existing bookmark links still resolve.
+on:
+  workflow_dispatch:
+
+jobs:
+  notice:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Use the docker-publish workflow instead."

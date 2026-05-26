@@ -6,12 +6,12 @@ import { LMap, LTileLayer, LMarker, LPopup } from '@vue-leaflet/vue-leaflet'
 import * as LModule from 'leaflet'
 import type { Map as LeafletMap } from 'leaflet'
 import 'leaflet.heat'
+import type { Trip } from '@/services/api'
 
 // Vite wraps CJS modules in a frozen ESM namespace — `import * as LModule` gives that frozen
 // namespace. leaflet.heat patches the actual mutable CJS export (LModule.default), so we must
 // use that reference to reach heatLayer at runtime.
 const L = ((LModule as any).default ?? LModule) as typeof LModule
-import type { Trip } from '@/services/api'
 
 const { t } = useI18n()
 const store = useVehicleStore()
@@ -25,10 +25,55 @@ const tripsPage = ref(1)
 const PAGE_SIZE = 10
 
 const mapWrapperRef = ref<HTMLElement | null>(null)
+const sidebarRef = ref<HTMLElement | null>(null)
 const mapInstance = shallowRef<LeafletMap | null>(null)
 let heatLayer: L.Layer | null = null
 let routeLines: L.Polyline[] = []
 let resizeObserver: ResizeObserver | null = null
+
+// arrowTop: px offset from popover top edge where the arrow should point.
+// Needed when the popover is clamped to the viewport so the arrow tracks the anchor.
+interface PopoverPos { top: number; left: number; arrowTop: number; mobile: boolean }
+const popoverPos = ref<PopoverPos | null>(null)
+let tripItemRefs: (HTMLElement | null)[] = []
+
+const POPOVER_H = 148 // estimated popover height; used for clamping
+const FOOTER_H = 48   // --footer-height
+const POP_MARGIN = 8  // min gap from viewport edges
+
+function setTripRef(el: Element | object | null, idx: number) {
+  tripItemRefs[idx] = el instanceof HTMLElement ? el : null
+}
+
+async function updatePopoverPos() {
+  await nextTick()
+  if (selectedTripIndex.value === null) { popoverPos.value = null; return }
+  const newestFirstIdx = store.trips.length - 1 - selectedTripIndex.value
+  const pageDisplayIdx = newestFirstIdx - pageOffset.value
+  if (pageDisplayIdx < 0 || pageDisplayIdx >= PAGE_SIZE) { popoverPos.value = null; return }
+  const el = tripItemRefs[pageDisplayIdx]
+  if (!el) { popoverPos.value = null; return }
+  const rect = el.getBoundingClientRect()
+  if (window.innerWidth < 768) {
+    // Below the selected item, centered on screen
+    popoverPos.value = { top: rect.bottom + POP_MARGIN, left: window.innerWidth / 2, arrowTop: 0, mobile: true }
+  } else {
+    // Use the sidebar's outer right edge so the popover never overlaps the sidebar
+    const sidebarRight = sidebarRef.value?.getBoundingClientRect().right ?? rect.right
+    const left = sidebarRight + POP_MARGIN
+    // Clamp vertically so the popover stays within the viewport above the footer
+    const anchorY = rect.top + rect.height / 2
+    const minTop = POP_MARGIN
+    const maxTop = window.innerHeight - FOOTER_H - POPOVER_H - POP_MARGIN
+    const top = Math.max(minTop, Math.min(maxTop, anchorY - POPOVER_H / 2))
+    const arrowTop = anchorY - top  // how far down the arrow sits within the popover
+    popoverPos.value = { top, left, arrowTop, mobile: false }
+  }
+}
+
+function closePopover() {
+  if (selectedTripIndex.value !== null) selectTrip(selectedTripIndex.value)
+}
 
 type HeatLayerFactory = {
   heatLayer: (
@@ -211,8 +256,9 @@ watch(allPoints, async (pts) => {
   fitAll()
 })
 
-// Trip selection drives map display
+// Trip selection drives map display and popover position
 watch(selectedTripIndex, (idx) => {
+  updatePopoverPos()
   if (idx === null) {
     if (heatmapEnabled.value) buildHeatLayer()
     buildRouteLines()
@@ -251,6 +297,7 @@ function selectTrip(realIdx: number) {
 }
 
 onMounted(async () => {
+  window.addEventListener('resize', updatePopoverPos)
   await store.fetchVehicles()
   if (vin.value) {
     await Promise.all([
@@ -261,6 +308,7 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
+  window.removeEventListener('resize', updatePopoverPos)
   resizeObserver?.disconnect()
 })
 </script>
@@ -297,7 +345,7 @@ onUnmounted(() => {
 
     <div class="map-layout">
       <!-- Trip sidebar -->
-      <aside class="trip-sidebar">
+      <aside ref="sidebarRef" class="trip-sidebar">
         <h3 class="trip-sidebar__title">{{ t('trips.title') }}</h3>
 
         <div v-if="store.loading" class="loading-state">
@@ -313,6 +361,7 @@ onUnmounted(() => {
             <li
               v-for="(trip, displayIdx) in displayTrips"
               :key="pageOffset + displayIdx"
+              :ref="(el) => setTripRef(el, displayIdx)"
               class="trip-list__item"
               :class="{ 'trip-list__item--active': selectedTripIndex === realIndex(pageOffset + displayIdx) }"
               @click="selectTrip(realIndex(pageOffset + displayIdx))"
@@ -346,19 +395,6 @@ onUnmounted(() => {
             </button>
           </div>
 
-          <!-- Selected trip detail -->
-          <div v-if="selectedTrip" class="trip-detail">
-            <dl class="trip-detail__dl">
-              <dt>{{ t('trips.started') }}</dt>
-              <dd>{{ new Date(selectedTrip.startedAt).toLocaleString() }}</dd>
-              <dt>{{ t('trips.distance') }}</dt>
-              <dd>{{ selectedTrip.distanceKm }} {{ t('common.km') }}</dd>
-              <dt>{{ t('trips.duration') }}</dt>
-              <dd>{{ formatDuration(selectedTrip.startedAt, selectedTrip.endedAt) }}</dd>
-              <dt>{{ t('trips.points') }}</dt>
-              <dd>{{ selectedTrip.pointCount }}</dd>
-            </dl>
-          </div>
         </template>
       </aside>
 
@@ -377,5 +413,38 @@ onUnmounted(() => {
         </LMap>
       </div>
     </div>
+
+    <!-- Trip detail popover (teleported to body so it escapes sidebar overflow clipping) -->
+    <Teleport to="body">
+      <Transition name="trip-popover">
+        <div
+          v-if="selectedTrip && popoverPos"
+          class="trip-popover"
+          :class="{ 'trip-popover--mobile': popoverPos.mobile }"
+          :style="{
+            top: `${popoverPos.top}px`,
+            left: `${popoverPos.left}px`,
+            '--arrow-top': `${popoverPos.arrowTop}px`,
+          }"
+        >
+          <div class="trip-popover__header">
+            <span class="trip-popover__title">{{ new Date(selectedTrip.startedAt).toLocaleDateString() }}</span>
+            <button class="trip-popover__close" @click="closePopover">
+              <font-awesome-icon icon="xmark" />
+            </button>
+          </div>
+          <dl class="trip-detail__dl">
+            <dt>{{ t('trips.started') }}</dt>
+            <dd>{{ new Date(selectedTrip.startedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }}</dd>
+            <dt>{{ t('trips.distance') }}</dt>
+            <dd>{{ selectedTrip.distanceKm }} {{ t('common.km') }}</dd>
+            <dt>{{ t('trips.duration') }}</dt>
+            <dd>{{ formatDuration(selectedTrip.startedAt, selectedTrip.endedAt) }}</dd>
+            <dt>{{ t('trips.points') }}</dt>
+            <dd>{{ selectedTrip.pointCount }}</dd>
+          </dl>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>

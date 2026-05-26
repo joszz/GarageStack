@@ -16,6 +16,7 @@ frontend/.env.local
 CLAUDE.md
 dev.ps1
 example_data.txt
+RELEASING.md
 appsettings.Development.json
 .env.development
 .stfolder

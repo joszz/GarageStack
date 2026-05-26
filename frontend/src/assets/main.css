@@ -729,17 +729,99 @@ html, body, #app {
   color: var(--color-text-muted);
 }
 
-.trip-detail {
-  margin-top: 0.5rem;
-  background: var(--color-surface-2);
+/* ── Trip detail popover ─────────────────────────────────────── */
+
+.trip-popover {
+  position: fixed;
+  z-index: 400;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius);
-  padding: 0.75rem;
+  padding: 0.875rem 1rem;
+  width: 220px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
 }
 
-.trip-detail h4 {
+/* Left-pointing arrow (desktop: popover sits to the right of sidebar) */
+.trip-popover::before {
+  content: '';
+  position: absolute;
+  left: -6px;
+  top: var(--arrow-top, 50%);
+  transform: translateY(-50%) rotate(45deg);
+  width: 10px;
+  height: 10px;
+  background: var(--color-surface);
+  border-left: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+}
+
+/* Mobile: popover floats below the selected item, centered on screen */
+.trip-popover--mobile {
+  transform: translateX(-50%);
+}
+
+/* Top-pointing arrow (mobile) */
+.trip-popover--mobile::before {
+  left: 50%;
+  top: -6px;
+  transform: translateX(-50%) rotate(45deg);
+  border-top: 1px solid var(--color-border);
+  border-left: 1px solid var(--color-border);
+  border-bottom: none;
+}
+
+.trip-popover__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.625rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.trip-popover__title {
   font-size: 0.85rem;
-  margin-bottom: 0.5rem;
   font-weight: 600;
+}
+
+.trip-popover__close {
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  padding: 0;
+}
+
+.trip-popover__close:hover {
+  background: var(--color-surface-2);
+  color: var(--color-text);
+}
+
+/* ── Trip popover transition ─────────────────────────────────── */
+
+.trip-popover-enter-active,
+.trip-popover-leave-active {
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.trip-popover-enter-from,
+.trip-popover-leave-to {
+  opacity: 0;
+  transform: translateX(-4px);
+}
+
+.trip-popover--mobile.trip-popover-enter-from,
+.trip-popover--mobile.trip-popover-leave-to {
+  opacity: 0;
+  transform: translateX(-50%) translateY(-4px);
 }
 
 .trip-pagination {
