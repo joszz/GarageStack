@@ -3,11 +3,11 @@
 # ── Stage 1: Build frontend ───────────────────────────────────────────────────
 FROM node:24-alpine AS frontend-build
 WORKDIR /app
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN corepack enable && corepack prepare pnpm@11.1.3 --activate
 COPY frontend/package.json frontend/pnpm-lock.yaml ./
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
     pnpm config set store-dir /pnpm/store \
-    && pnpm install --frozen-lockfile
+    && NODE_ENV=development NPM_CONFIG_PRODUCTION=false pnpm install --frozen-lockfile --prod=false --config.production=false
 COPY frontend/ .
 RUN pnpm run build
 
@@ -71,6 +71,7 @@ RUN curl -sSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
         | gpg --dearmor > /usr/share/keyrings/postgresql.gpg \
     && echo "deb [signed-by=/usr/share/keyrings/postgresql.gpg] http://apt.postgresql.org/pub/repos/apt trixie-pgdg main" \
         > /etc/apt/sources.list.d/pgdg.list \
+    && mkdir -p /etc/postgresql-common \
     && printf "create_main_cluster = false\n" > /etc/postgresql-common/createcluster.conf
 
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
