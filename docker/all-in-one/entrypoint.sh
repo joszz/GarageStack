@@ -39,11 +39,11 @@ ln -sfn /data/dataprotection /root/.aspnet/DataProtection-Keys
 if [ ! -f "$PGDATA/PG_VERSION" ]; then
     echo "[garagestack] Initialising PostgreSQL data directory..."
     chown -R postgres:postgres /data/db
-    gosu postgres /usr/lib/postgresql/17/bin/initdb \
+    gosu postgres /usr/lib/postgresql/18/bin/initdb \
         -D "$PGDATA" --auth-host=md5 --auth-local=trust -E UTF8 --locale=C
 
     # Start temporarily to create the role and database
-    gosu postgres /usr/lib/postgresql/17/bin/pg_ctl -D "$PGDATA" \
+    gosu postgres /usr/lib/postgresql/18/bin/pg_ctl -D "$PGDATA" \
         -l /data/logs/postgres-init.log start -w
 
     gosu postgres psql -v ON_ERROR_STOP=1 <<-EOSQL
@@ -52,7 +52,7 @@ if [ ! -f "$PGDATA/PG_VERSION" ]; then
         GRANT ALL PRIVILEGES ON DATABASE "${POSTGRES_DB}" TO "${POSTGRES_USER}";
 EOSQL
 
-    gosu postgres /usr/lib/postgresql/17/bin/pg_ctl -D "$PGDATA" stop -w
+    gosu postgres /usr/lib/postgresql/18/bin/pg_ctl -D "$PGDATA" stop -w
     echo "[garagestack] PostgreSQL initialised."
 fi
 

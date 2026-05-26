@@ -56,14 +56,13 @@ ENV PATH="/usr/local/dotnet:$PATH"
 # Removes the libicu dependency; fine for a telemetry API that uses invariant formatting.
 ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=true
 
-# PostgreSQL 17 -- official apt repo. bookworm-pgdg packages run fine on trixie
-# (glibc is backward-compatible upward: trixie 2.41 runs bookworm-compiled binaries).
+# PostgreSQL 17 -- official apt repo, trixie suite.
 RUN curl -sSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
         | gpg --dearmor > /usr/share/keyrings/postgresql.gpg \
-    && echo "deb [signed-by=/usr/share/keyrings/postgresql.gpg] http://apt.postgresql.org/pub/repos/apt bookworm-pgdg main" \
+    && echo "deb [signed-by=/usr/share/keyrings/postgresql.gpg] http://apt.postgresql.org/pub/repos/apt trixie-pgdg main" \
         > /etc/apt/sources.list.d/pgdg.list \
     && apt-get update && apt-get install -y --no-install-recommends \
-        postgresql-17 \
+        postgresql-18 \
     && rm -rf /var/lib/apt/lists/*
 
 # SAIC MQTT Gateway: copy the pre-built venv and source from the official image.
