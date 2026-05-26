@@ -14,6 +14,7 @@ RUN pnpm run build
 # ── Stage 2: Build .NET API and Worker ────────────────────────────────────────
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS dotnet-build
 WORKDIR /src
+ARG APP_VERSION=0.0.0-local
 COPY src/GarageStack.Core/GarageStack.Core.csproj GarageStack.Core/
 COPY src/GarageStack.Data/GarageStack.Data.csproj GarageStack.Data/
 COPY src/GarageStack.Api/GarageStack.Api.csproj GarageStack.Api/
@@ -25,8 +26,8 @@ COPY src/GarageStack.Core/ GarageStack.Core/
 COPY src/GarageStack.Data/ GarageStack.Data/
 COPY src/GarageStack.Api/ GarageStack.Api/
 COPY src/GarageStack.Worker/ GarageStack.Worker/
-RUN dotnet publish GarageStack.Api/GarageStack.Api.csproj -c Release -o /publish/api \
- && dotnet publish GarageStack.Worker/GarageStack.Worker.csproj -c Release -o /publish/worker
+RUN dotnet publish GarageStack.Api/GarageStack.Api.csproj -c Release -o /publish/api /p:MinVerVersionOverride=${APP_VERSION} \
+ && dotnet publish GarageStack.Worker/GarageStack.Worker.csproj -c Release -o /publish/worker /p:MinVerVersionOverride=${APP_VERSION}
 
 # ── Stage 3: Pull SAIC MQTT Gateway (source of truth for the gateway app) ────
 # The gateway is not on PyPI. We copy its pre-built venv + source directly from

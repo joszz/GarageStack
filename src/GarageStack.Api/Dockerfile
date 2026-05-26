@@ -1,5 +1,6 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
+ARG APP_VERSION=0.0.0-local
 COPY ["src/GarageStack.Core/GarageStack.Core.csproj", "GarageStack.Core/"]
 COPY ["src/GarageStack.Data/GarageStack.Data.csproj", "GarageStack.Data/"]
 COPY ["src/GarageStack.Api/GarageStack.Api.csproj", "GarageStack.Api/"]
@@ -8,7 +9,7 @@ COPY src/GarageStack.Core/ GarageStack.Core/
 COPY src/GarageStack.Data/ GarageStack.Data/
 COPY src/GarageStack.Api/ GarageStack.Api/
 WORKDIR /src/GarageStack.Api
-RUN dotnet publish -c Release -o /app
+RUN dotnet publish -c Release -o /app /p:MinVerVersionOverride=${APP_VERSION}
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app

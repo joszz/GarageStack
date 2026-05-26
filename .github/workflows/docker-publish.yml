@@ -51,9 +51,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        with:
+          fetch-depth: 0
 
       - name: Log in to GitHub Container Registry
         if: github.event_name != 'pull_request'
@@ -61,7 +60,48 @@ jobs:
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          # Use GHCR_PAT when provided (recommended fallback for stricter org/package policies),
+          # otherwise default to the workflow token.
+          password: ${{ secrets.GHCR_PAT != '' && secrets.GHCR_PAT || github.token }}
+
+      - name: GHCR auth preflight
+        if: github.event_name != 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          IMAGE="${{ matrix.image }}"
+          SCOPE="repository:${{ github.repository_owner }}/${IMAGE}:pull,push"
+          STATUS=$(curl -sS -o /tmp/ghcr-token.json -w "%{http_code}" \
+            -u "${{ github.actor }}:${{ secrets.GHCR_PAT != '' && secrets.GHCR_PAT || github.token }}" \
+            "https://ghcr.io/token?service=ghcr.io&scope=${SCOPE}")
+
+          if [ "$STATUS" -ge 400 ] || ! grep -q '"token"' /tmp/ghcr-token.json; then
+            echo "::error::GHCR auth preflight failed. Token does not have ghcr pull/push for ${{ github.repository_owner }}/${IMAGE}."
+            echo "::error::Check repo Actions permissions (Read and write), package access, or configure GHCR_PAT with write:packages/read:packages."
+            cat /tmp/ghcr-token.json
+            exit 1
+          fi
+
+      - name: Set up .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Compute MinVer version
+        id: minver
+        shell: bash
+        run: |
+          dotnet tool install --global minver-cli --version 7.0.0
+          VERSION=$(minver . -t v -p preview.0 | tail -n 1 | tr -d '\r')
+          if [ -z "$VERSION" ]; then
+            echo "MinVer produced an empty version" >&2
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Resolved MinVer version: $VERSION"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
       - name: Extract image metadata
         id: meta
@@ -88,6 +128,8 @@ jobs:
           sbom: false
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            APP_VERSION=${{ steps.minver.outputs.version }}
           # Each image gets its own GHA cache scope
           cache-from: type=gha,scope=${{ matrix.label }}
           cache-to: type=gha,scope=${{ matrix.label }},mode=min
