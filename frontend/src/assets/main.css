@@ -733,7 +733,7 @@ html, body, #app {
 
 .trip-popover {
   position: fixed;
-  z-index: 400;
+  z-index: 1001;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
