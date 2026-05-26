@@ -622,13 +622,20 @@ html, body, #app {
 
 .view-container--map {
   width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.view-container--map .view-header {
+  flex-shrink: 0;
 }
 
 .map-layout {
   display: flex;
   gap: 1rem;
-  height: calc(100vh - var(--footer-height) - 6rem);
-  min-height: 400px;
+  flex: 1;
+  min-height: 0;
 }
 
 .map-wrapper {
@@ -1364,23 +1371,9 @@ html, body, #app {
     font-size: 0.95rem;
   }
 
-  /* Map page: fill the scrollable content area so Leaflet gets a real pixel height */
-  .view-container--map {
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-  }
-
-  .view-container--map .view-header {
-    flex-shrink: 0;
-  }
-
-  /* Map: column layout, fills remaining space from view-container--map */
+  /* Map: column direction on mobile (base already sets flex: 1 / min-height: 0) */
   .map-layout {
-    flex: 1;
-    min-height: 0;
     flex-direction: column;
-    height: auto;
   }
 
   .trip-sidebar {
