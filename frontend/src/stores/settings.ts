@@ -189,9 +189,7 @@ function loadFromKey(key: string): AppSettings {
 }
 
 export const useSettingsStore = defineStore('settings', () => {
-  const storageKey = ref(BASE_STORAGE_KEY)
-
-  const loaded = loadFromKey(storageKey.value)
+  const loaded = loadFromKey(BASE_STORAGE_KEY)
   const cards = ref<CardConfig[]>(loaded.cards)
   const vehicleTypeOverride = ref<VehicleTypeOverride>(loaded.vehicleTypeOverride)
   const theme = ref<Theme>(loaded.theme)
@@ -199,11 +197,8 @@ export const useSettingsStore = defineStore('settings', () => {
 
   document.documentElement.dataset.theme = theme.value
 
-  let suppressSave = false
-
   function save() {
-    if (suppressSave) return
-    localStorage.setItem(storageKey.value, JSON.stringify({
+    localStorage.setItem(BASE_STORAGE_KEY, JSON.stringify({
       cards: cards.value,
       vehicleTypeOverride: vehicleTypeOverride.value,
       theme: theme.value,
@@ -219,34 +214,9 @@ export const useSettingsStore = defineStore('settings', () => {
     save()
   })
 
-  function loadForUser(userId: number) {
-    suppressSave = true
-    storageKey.value = `${BASE_STORAGE_KEY}-${userId}`
-    const userSettings = loadFromKey(storageKey.value)
-    cards.value = userSettings.cards
-    vehicleTypeOverride.value = userSettings.vehicleTypeOverride
-    theme.value = userSettings.theme
-    document.documentElement.dataset.theme = userSettings.theme
-    locale.value = userSettings.locale
-    suppressSave = false
-    save()
-  }
-
-  function resetToGuest() {
-    suppressSave = true
-    storageKey.value = BASE_STORAGE_KEY
-    const guestSettings = loadFromKey(storageKey.value)
-    cards.value = guestSettings.cards
-    vehicleTypeOverride.value = guestSettings.vehicleTypeOverride
-    theme.value = guestSettings.theme
-    document.documentElement.dataset.theme = guestSettings.theme
-    locale.value = guestSettings.locale
-    suppressSave = false
-  }
-
   function resetCards(type: VehicleType | 'unknown' = 'unknown') {
     cards.value = defaultCards(type)
   }
 
-  return { cards, vehicleTypeOverride, theme, locale, resetCards, loadForUser, resetToGuest }
+  return { cards, vehicleTypeOverride, theme, locale, resetCards }
 })

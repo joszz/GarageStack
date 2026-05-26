@@ -215,21 +215,6 @@
       "heatedSeatsDesc": "Bediening stoelverwarming op het dashboard"
     }
   },
-  "auth": {
-    "login": "Inloggen",
-    "logout": "Uitloggen",
-    "logoutConfirmTitle": "Uitloggen",
-    "logoutConfirmMessage": "Weet je zeker dat je wilt uitloggen?",
-    "email": "SAIC e-mail",
-    "emailPlaceholder": "jij{'@'}voorbeeld.com",
-    "password": "Wachtwoord",
-    "passwordPlaceholder": "Je SAIC wachtwoord",
-    "rememberMe": "Onthoud mij (30 dagen)",
-    "togglePassword": "Wachtwoord zichtbaarheid",
-    "errorRequired": "E-mail en wachtwoord zijn vereist",
-    "errorInvalid": "Ongeldige inloggegevens, probeer opnieuw",
-    "hint": "Gebruik je MG / SAIC iSmart accountgegevens"
-  },
   "common": {
     "km": "km",
     "bar": "bar",

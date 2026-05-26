@@ -215,21 +215,6 @@
       "heatedSeatsDesc": "Heated seat level controls on the dashboard"
     }
   },
-  "auth": {
-    "login": "Sign in",
-    "logout": "Sign out",
-    "logoutConfirmTitle": "Sign out",
-    "logoutConfirmMessage": "Are you sure you want to sign out?",
-    "email": "SAIC email",
-    "emailPlaceholder": "you{'@'}example.com",
-    "password": "Password",
-    "passwordPlaceholder": "Your SAIC password",
-    "rememberMe": "Remember me (30 days)",
-    "togglePassword": "Toggle password visibility",
-    "errorRequired": "Email and password are required",
-    "errorInvalid": "Invalid credentials, please try again",
-    "hint": "Use your MG / SAIC iSmart account credentials"
-  },
   "common": {
     "km": "km",
     "bar": "bar",

@@ -1,37 +1,10 @@
-import { useAuthStore } from '@/stores/auth'
-import router from '@/router'
-
 const BASE_URL = import.meta.env.VITE_API_URL ?? ''
-
-function authHeaders(): Record<string, string> {
-  const auth = useAuthStore()
-  return auth.accessToken ? { Authorization: `Bearer ${auth.accessToken}` } : {}
-}
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE_URL}${path}`, {
     ...options,
-    headers: { ...authHeaders(), ...(options?.headers ?? {}) },
-    credentials: 'include',
+    headers: { ...(options?.headers ?? {}) },
   })
-
-  if (res.status === 401) {
-    const auth = useAuthStore()
-    const refreshed = await auth.refresh()
-    if (!refreshed) {
-      await auth.logout()
-      router.replace({ name: 'login' })
-      throw new Error('Session expired')
-    }
-    const retry = await fetch(`${BASE_URL}${path}`, {
-      ...options,
-      headers: { ...authHeaders(), ...(options?.headers ?? {}) },
-      credentials: 'include',
-    })
-    if (!retry.ok) throw new Error(`API error ${retry.status}: ${path}`)
-    if (retry.status === 204) return undefined as T
-    return retry.json() as Promise<T>
-  }
 
   if (!res.ok) throw new Error(`API error ${res.status}: ${path}`)
   if (res.status === 204) return undefined as T
@@ -41,28 +14,9 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 async function send(path: string, method: string, body?: unknown): Promise<void> {
   const res = await fetch(`${BASE_URL}${path}`, {
     method,
-    headers: { 'Content-Type': 'application/json', ...authHeaders() },
-    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
     body: body !== undefined ? JSON.stringify(body) : undefined,
   })
-
-  if (res.status === 401) {
-    const auth = useAuthStore()
-    const refreshed = await auth.refresh()
-    if (!refreshed) {
-      await auth.logout()
-      router.replace({ name: 'login' })
-      throw new Error('Session expired')
-    }
-    const retry = await fetch(`${BASE_URL}${path}`, {
-      method,
-      headers: { 'Content-Type': 'application/json', ...authHeaders() },
-      credentials: 'include',
-      body: body !== undefined ? JSON.stringify(body) : undefined,
-    })
-    if (!retry.ok) throw new Error(`API error ${retry.status}: ${path}`)
-    return
-  }
 
   if (!res.ok) throw new Error(`API error ${res.status}: ${path}`)
 }

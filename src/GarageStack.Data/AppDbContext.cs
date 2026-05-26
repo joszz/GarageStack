@@ -8,8 +8,6 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<Vehicle> Vehicles => Set<Vehicle>();
     public DbSet<TelemetrySnapshot> TelemetrySnapshots => Set<TelemetrySnapshot>();
     public DbSet<PushSubscription> PushSubscriptions => Set<PushSubscription>();
-    public DbSet<AppUser> AppUsers => Set<AppUser>();
-    public DbSet<UserRefreshToken> UserRefreshTokens => Set<UserRefreshToken>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -41,23 +39,5 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.HasIndex(p => p.Endpoint).IsUnique();
         });
 
-        modelBuilder.Entity<AppUser>(e =>
-        {
-            e.HasKey(u => u.Id);
-            e.HasIndex(u => u.Email).IsUnique();
-            e.Property(u => u.Email).HasMaxLength(256).IsRequired();
-            e.Property(u => u.PasswordHash).IsRequired();
-        });
-
-        modelBuilder.Entity<UserRefreshToken>(e =>
-        {
-            e.HasKey(t => t.Id);
-            e.HasIndex(t => t.Token).IsUnique();
-            e.HasIndex(t => new { t.Revoked, t.ExpiresAt });
-            e.HasOne(t => t.User)
-             .WithMany(u => u.RefreshTokens)
-             .HasForeignKey(t => t.UserId)
-             .OnDelete(DeleteBehavior.Cascade);
-        });
     }
 }

@@ -64,7 +64,7 @@ The Dockerfile must be built from the **repository root**, not from this directo
 ```bash
 docker build \
   -f docker/all-in-one/Dockerfile \
-  -t ghcr.io/YOUR_GITHUB_USERNAME/garagestack:latest \
+  -t ghcr.io/joszz/garagestack:latest \
   .
 ```
 
@@ -82,7 +82,7 @@ docker run -d \
   -e POSTGRES_PASSWORD=changeme \
   -e JWT_SECRET="$(openssl rand -base64 32)" \
   -e CORS_ORIGIN=http://localhost:8080 \
-  ghcr.io/YOUR_GITHUB_USERNAME/garagestack:latest
+  ghcr.io/joszz/garagestack:latest
 ```
 
 ## Unraid Community Apps

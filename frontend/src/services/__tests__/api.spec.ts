@@ -1,20 +1,4 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { setActivePinia, createPinia } from 'pinia'
-
-const refreshMock = vi.fn()
-const logoutMock = vi.fn()
-
-vi.mock('@/stores/auth', () => ({
-  useAuthStore: () => ({
-    accessToken: 'test-token',
-    refresh: refreshMock,
-    logout: logoutMock,
-  }),
-}))
-
-vi.mock('@/router', () => ({
-  default: { replace: vi.fn() },
-}))
 
 import { vehicleApi } from '@/services/api'
 
@@ -28,9 +12,7 @@ function makeResponse(status: number, body?: unknown) {
 
 describe('vehicleApi', () => {
   beforeEach(() => {
-    setActivePinia(createPinia())
-    refreshMock.mockReset().mockResolvedValue(true)
-    logoutMock.mockReset().mockResolvedValue(undefined)
+    vi.resetAllMocks()
   })
 
   afterEach(() => {
@@ -43,42 +25,12 @@ describe('vehicleApi', () => {
     expect(await vehicleApi.list()).toEqual(vehicles)
   })
 
-  it('list() sends credentials and an Authorization header', async () => {
-    const fetchSpy = vi.fn().mockResolvedValue(makeResponse(200, []))
-    vi.stubGlobal('fetch', fetchSpy)
-    await vehicleApi.list()
-    const firstCall = fetchSpy.mock.calls[0]
-    expect(firstCall).toBeDefined()
-    if (!firstCall) throw new Error('Expected first fetch call to exist')
-    const [, options] = firstCall
-    expect(options.credentials).toBe('include')
-    expect(options.headers).toMatchObject({ Authorization: 'Bearer test-token' })
-  })
-
   it('status() returns undefined on 204 No Content', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(makeResponse(204)))
     expect(await vehicleApi.status('VIN1')).toBeUndefined()
   })
 
-  it('retries once with a refreshed token after a 401', async () => {
-    const fetchSpy = vi.fn()
-      .mockResolvedValueOnce(makeResponse(401))
-      .mockResolvedValueOnce(makeResponse(200, []))
-    vi.stubGlobal('fetch', fetchSpy)
-    const result = await vehicleApi.list()
-    expect(fetchSpy).toHaveBeenCalledTimes(2)
-    expect(refreshMock).toHaveBeenCalledOnce()
-    expect(result).toEqual([])
-  })
-
-  it('throws after 401 when token refresh fails', async () => {
-    refreshMock.mockResolvedValue(false)
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(makeResponse(401)))
-    await expect(vehicleApi.list()).rejects.toThrow('Session expired')
-    expect(logoutMock).toHaveBeenCalledOnce()
-  })
-
-  it('throws on a non-401 error status', async () => {
+  it('throws on a non-200 error status', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(makeResponse(500)))
     await expect(vehicleApi.list()).rejects.toThrow('API error 500')
   })

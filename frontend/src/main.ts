@@ -24,7 +24,6 @@ import {
 
 import App from './App.vue'
 import router from './router'
-import { useAuthStore } from './stores/auth'
 import { useSettingsStore } from './stores/settings'
 import en from './locales/en.json'
 import nl from './locales/nl.json'
@@ -56,18 +55,8 @@ const app = createApp(App)
 const pinia = createPinia()
 app.use(pinia)
 
-const auth = useAuthStore()
 const settings = useSettingsStore()
 i18n.global.locale.value = settings.locale
-
-// Kick off session restore in the background; the router guard waits for
-// auth.restoring to become false before making any auth decisions.
-auth.restoreSession().then(() => {
-  if (auth.isAuthenticated && auth.userId !== null) {
-    settings.loadForUser(auth.userId)
-    i18n.global.locale.value = settings.locale
-  }
-})
 
 app.use(router)
 app.use(i18n)

@@ -1,14 +1,14 @@
 <?xml version="1.0"?>
 <Container version="2">
   <Name>GarageStack</Name>
-  <Repository>ghcr.io/YOUR_GITHUB_USERNAME/garagestack:latest</Repository>
+  <Repository>ghcr.io/joszz/garagestack:latest</Repository>
   <Registry>https://ghcr.io/</Registry>
   <Network>bridge</Network>
   <MyIP/>
   <Shell>bash</Shell>
   <Privileged>false</Privileged>
-  <Support>https://github.com/YOUR_GITHUB_USERNAME/garagestack/issues</Support>
-  <Project>https://github.com/YOUR_GITHUB_USERNAME/garagestack</Project>
+  <Support>https://github.com/joszz/garagestack/issues</Support>
+  <Project>https://github.com/joszz/garagestack</Project>
   <Overview>
     GarageStack is an open-source vehicle monitoring dashboard for MG / SAIC electric and plug-in hybrid vehicles.
     It connects to the MG iSmart cloud via the SAIC MQTT Gateway and stores all data locally in an embedded
@@ -18,8 +18,8 @@
   </Overview>
   <Category>Tools: HomeAutomation:</Category>
   <WebUI>http://[IP]:[PORT:8080]/</WebUI>
-  <TemplateURL>https://raw.githubusercontent.com/YOUR_GITHUB_USERNAME/garagestack/main/unraid/garagestack.xml</TemplateURL>
-  <Icon>https://raw.githubusercontent.com/YOUR_GITHUB_USERNAME/garagestack/main/assets/icon.png</Icon>
+  <TemplateURL>https://raw.githubusercontent.com/joszz/garagestack/main/unraid/garagestack.xml</TemplateURL>
+  <Icon>https://raw.githubusercontent.com/joszz/garagestack/main/frontend/public/pwa-192x192.png</Icon>
   <ExtraParams/>
   <PostArgs/>
   <CPUset/>

@@ -175,38 +175,4 @@ describe('useSettingsStore', () => {
     })
   })
 
-  describe('per-user storage', () => {
-    it('writes to a user-scoped key after loadForUser', async () => {
-      const store = useSettingsStore()
-      store.loadForUser(42)
-      store.theme = 'light'
-      await nextTick()
-      const saved = JSON.parse(localStorage.getItem(`${BASE_KEY}-42`)!)
-      expect(saved.theme).toBe('light')
-    })
-
-    it('does not write to the base key while a user is loaded', async () => {
-      const store = useSettingsStore()
-      const before = localStorage.getItem(BASE_KEY)
-      store.loadForUser(42)
-      store.theme = 'light'
-      await nextTick()
-      expect(localStorage.getItem(BASE_KEY)).toBe(before)
-    })
-
-    it('reverts to base key settings after resetToGuest', async () => {
-      localStorage.setItem(BASE_KEY, JSON.stringify({
-        cards: defaultCards(),
-        vehicleTypeOverride: 'auto',
-        theme: 'dark',
-        locale: 'en',
-      }))
-      const store = useSettingsStore()
-      store.loadForUser(42)
-      store.theme = 'light'
-      await nextTick()
-      store.resetToGuest()
-      expect(store.theme).toBe('dark')
-    })
-  })
 })
