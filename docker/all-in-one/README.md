@@ -11,7 +11,7 @@ Single container that bundles every GarageStack service. Designed for Unraid and
 | **GarageStack.Worker** | .NET background service -- MQTT consumer, push notifications |
 | **PostgreSQL 17** | Embedded database (localhost:5432, not directly exposed) |
 | **Mosquitto** | MQTT broker on port 1883 |
-| **SAIC MQTT Gateway** | Python service that polls the MG iSmart cloud and publishes telemetry to Mosquitto |
+| **SAIC MQTT Gateway** | Python 3.14 service that polls the MG iSmart cloud and publishes telemetry to Mosquitto. Copied directly from the official `saicismartapi/saic-python-mqtt-gateway` image. |
 
 All processes are managed by **supervisord**. Startup order is enforced via priority and startup delays so PostgreSQL is ready before the .NET services try to connect.
 

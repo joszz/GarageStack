@@ -23,14 +23,21 @@ COPY src/GarageStack.Worker/ GarageStack.Worker/
 RUN dotnet publish GarageStack.Api/GarageStack.Api.csproj -c Release -o /publish/api \
  && dotnet publish GarageStack.Worker/GarageStack.Worker.csproj -c Release -o /publish/worker
 
-# ── Stage 3: Final all-in-one runtime image ───────────────────────────────────
-FROM debian:bookworm-slim
+# ── Stage 3: Pull SAIC MQTT Gateway (source of truth for the gateway app) ────
+# The gateway is not on PyPI. We copy its pre-built venv + source directly from
+# the official image so we always match the tested Python/dependency versions.
+FROM saicismartapi/saic-python-mqtt-gateway:latest AS saic-source
 
-# Base packages
+# ── Stage 4: Final all-in-one runtime image ───────────────────────────────────
+# python:3.14-slim = debian:bookworm-slim + Python 3.14, which matches the saic
+# gateway image base. Using it means the copied venv's Python symlinks resolve
+# correctly without any extra installation steps.
+FROM python:3.14-slim
+
+# Base packages (Python 3.14 already present from the base image)
 RUN apt-get update && apt-get install -y --no-install-recommends \
         curl gnupg ca-certificates gosu supervisor \
         nginx mosquitto mosquitto-clients \
-        python3 python3-pip python3-venv \
     && rm -rf /var/lib/apt/lists/*
 
 # Microsoft packages repo for .NET 10
@@ -50,9 +57,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         postgresql-17 \
     && rm -rf /var/lib/apt/lists/*
 
-# SAIC MQTT Gateway in an isolated virtualenv
-RUN python3 -m venv /opt/saic-venv \
-    && /opt/saic-venv/bin/pip install --no-cache-dir saic-python-mqtt-gateway
+# SAIC MQTT Gateway: copy the pre-built venv and source from the official image.
+# Layout in the saic image: WORKDIR=/usr/src/app, venv at /usr/src/app/.venv,
+# main.py at /usr/src/app/main.py  (CMD is: python ./main.py)
+COPY --from=saic-source /usr/src/app /opt/saic/app
 
 # Frontend SPA
 COPY --from=frontend-build /app/dist /usr/share/nginx/html
