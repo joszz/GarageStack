@@ -35,6 +35,7 @@ async function load() {
     store.fetchHistory(vin.value, from),
     store.fetchTrips(vin.value, from),
     store.fetchStatus(vin.value),
+    store.fetchConfig(vin.value),
   ])
 }
 

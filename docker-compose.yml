@@ -7,6 +7,7 @@ services:
     command: >
       -c "
       set -eu;
+      rm -f /mosquitto/data/passwd /mosquitto/data/acl;
       mosquitto_passwd -b -c /mosquitto/data/passwd \"${SAIC_USER}\" \"${SAIC_PASSWORD}\";
       printf 'user %s\\ntopic readwrite #\\n' \"${SAIC_USER}\" > /mosquitto/data/acl;
       chown mosquitto:mosquitto /mosquitto/data/passwd /mosquitto/data/acl;

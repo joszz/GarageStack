@@ -135,7 +135,7 @@ onUnmounted(() => clearInterval(interval))
           v-for="card in settings.cards"
           :key="card.id"
           class="card-slot"
-          :class="{ 'card-slot--hidden': !card.visible || (card.visible && !cardHasData(card.id)) }"
+          :class="{ 'card-slot--hidden': !card.visible }"
         >
           <div class="card-slot__content">
             <DashboardCardContent v-if="card.visible && status && cardHasData(card.id)" :card-id="card.id" />
@@ -180,7 +180,7 @@ onUnmounted(() => clearInterval(interval))
       <template v-else>
         <div class="status-grid">
           <template v-for="card in settings.cards" :key="card.id">
-            <template v-if="card.visible">
+            <template v-if="card.visible && cardHasData(card.id)">
               <DashboardCardWrapper :card-id="card.id">
                 <DashboardCardContent :card-id="card.id" />
               </DashboardCardWrapper>

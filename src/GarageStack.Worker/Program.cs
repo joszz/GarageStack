@@ -26,6 +26,7 @@ try
 
     builder.Services.AddGarageStackData(connectionString);
     builder.Services.Configure<MqttOptions>(builder.Configuration.GetSection("Mqtt"));
+    builder.Services.AddSingleton<GarageStack.Core.Interfaces.IPushSender, GarageStack.Worker.Services.PushSenderService>();
     builder.Services.AddHostedService<MqttConsumerService>();
     builder.Services.AddHostedService<PushNotificationCheckService>();
 

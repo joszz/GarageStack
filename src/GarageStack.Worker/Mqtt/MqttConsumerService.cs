@@ -1,6 +1,7 @@
 using System.Text.Json;
 using GarageStack.Core.Interfaces;
 using GarageStack.Core.Models;
+using GarageStack.Worker.Services;
 using MQTTnet;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -12,9 +13,12 @@ namespace GarageStack.Worker.Mqtt;
 public class MqttConsumerService(
     ILogger<MqttConsumerService> logger,
     IOptions<MqttOptions> options,
-    IServiceScopeFactory scopeFactory) : BackgroundService
+    IServiceScopeFactory scopeFactory,
+    IPushSender pushSender) : BackgroundService
 {
     private readonly MqttOptions _options = options.Value;
+    // Tracks last known EngineRunning state per VIN to detect start events
+    private readonly Dictionary<string, bool> _lastEngineRunning = new();
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -132,10 +136,26 @@ public class MqttConsumerService(
 
             TelemetryMapper.ApplyMessage(snapshot, subtopic, payload);
             await telemetryRepo.AddAsync(snapshot, ct);
+
+            await CheckEngineStartAsync(vin, snapshot, ct);
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Failed to persist telemetry for VIN={Vin} topic={Topic}", vin, topic);
+        }
+    }
+
+    private async Task CheckEngineStartAsync(string vin, TelemetrySnapshot snapshot, CancellationToken ct)
+    {
+        if (snapshot.EngineRunning is null) return;
+
+        var wasRunning = _lastEngineRunning.TryGetValue(vin, out var prev) && prev;
+        _lastEngineRunning[vin] = snapshot.EngineRunning.Value;
+
+        if (snapshot.EngineRunning.Value && !wasRunning)
+        {
+            logger.LogInformation("Engine started for VIN={Vin} — sending push notification", vin);
+            await pushSender.SendToAllAsync("Engine started", "Your car has been started.", ct);
         }
     }
 
