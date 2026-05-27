@@ -11,6 +11,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Scalar.AspNetCore;
 using Serilog;
+using Serilog.Events;
 using System.Text;
 using System.Threading.RateLimiting;
 
@@ -22,13 +23,22 @@ try
 {
     var builder = WebApplication.CreateBuilder(args);
 
-    builder.Services.AddSerilog((_, config) => config
-        .ReadFrom.Configuration(builder.Configuration)
-        .WriteTo.Console()
-        .WriteTo.File(
-            "logs/api-.log",
-            rollingInterval: RollingInterval.Day,
-            retainedFileCountLimit: 30));
+    var debugLogs = string.Equals(builder.Configuration["DEBUG_LOGS"], "true", StringComparison.OrdinalIgnoreCase);
+
+    builder.Services.AddSerilog((_, config) =>
+    {
+        config.ReadFrom.Configuration(builder.Configuration)
+              .WriteTo.Console()
+              .WriteTo.File(
+                  "logs/api-.log",
+                  rollingInterval: RollingInterval.Day,
+                  retainedFileCountLimit: 30);
+
+        if (debugLogs)
+            config.MinimumLevel.Debug()
+                  .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
+                  .MinimumLevel.Override("System", LogEventLevel.Warning);
+    });
 
     var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
         ?? throw new InvalidOperationException("DefaultConnection is not configured.");
@@ -53,6 +63,15 @@ try
     builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         .AddJwtBearer(options =>
         {
+            options.Events = new Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerEvents
+            {
+                OnMessageReceived = ctx =>
+                {
+                    if (ctx.Request.Cookies.TryGetValue("garagestack-auth", out var cookie))
+                        ctx.Token = cookie;
+                    return Task.CompletedTask;
+                },
+            };
             options.TokenValidationParameters = new TokenValidationParameters
             {
                 ValidateIssuer = false,
@@ -87,11 +106,12 @@ try
         opts.AddDefaultPolicy(p =>
         {
             if (builder.Environment.IsDevelopment())
-                p.SetIsOriginAllowed(_ => true).AllowAnyHeader().AllowAnyMethod();
+                p.SetIsOriginAllowed(_ => true).AllowAnyHeader().AllowAnyMethod().AllowCredentials();
             else
                 p.WithOrigins(builder.Configuration.GetSection("Cors:Origins").Get<string[]>() ?? [])
                  .AllowAnyHeader()
-                 .AllowAnyMethod();
+                 .AllowAnyMethod()
+                 .AllowCredentials();
         }));
 
     var app = builder.Build();
@@ -119,8 +139,11 @@ try
     app.UseAuthentication();
     app.UseAuthorization();
 
-    app.MapOpenApi();
-    app.MapScalarApiReference(opts => opts.WithTitle("GarageStack API"));
+    if (app.Environment.IsDevelopment())
+    {
+        app.MapOpenApi();
+        app.MapScalarApiReference(opts => opts.WithTitle("GarageStack API"));
+    }
 
     app.MapAuthEndpoints();
     app.MapVehicleEndpoints();

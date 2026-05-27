@@ -4,6 +4,7 @@ using GarageStack.Worker.Mqtt;
 using GarageStack.Worker.Services;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
+using Serilog.Events;
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
@@ -13,13 +14,22 @@ try
 {
     var builder = Host.CreateApplicationBuilder(args);
 
-    builder.Services.AddSerilog((_, config) => config
-        .ReadFrom.Configuration(builder.Configuration)
-        .WriteTo.Console()
-        .WriteTo.File(
-            "logs/worker-.log",
-            rollingInterval: RollingInterval.Day,
-            retainedFileCountLimit: 30));
+    var debugLogs = string.Equals(builder.Configuration["DEBUG_LOGS"], "true", StringComparison.OrdinalIgnoreCase);
+
+    builder.Services.AddSerilog((_, config) =>
+    {
+        config.ReadFrom.Configuration(builder.Configuration)
+              .WriteTo.Console()
+              .WriteTo.File(
+                  "logs/worker-.log",
+                  rollingInterval: RollingInterval.Day,
+                  retainedFileCountLimit: 30);
+
+        if (debugLogs)
+            config.MinimumLevel.Debug()
+                  .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
+                  .MinimumLevel.Override("System", LogEventLevel.Warning);
+    });
 
     var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
         ?? throw new InvalidOperationException("DefaultConnection is not configured.");

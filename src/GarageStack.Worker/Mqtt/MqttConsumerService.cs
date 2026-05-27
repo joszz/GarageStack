@@ -43,8 +43,11 @@ public class MqttConsumerService(
                 await client.ConnectAsync(mqttOptions, stoppingToken);
                 logger.LogInformation("Connected to MQTT broker at {Host}:{Port}", _options.Host, _options.Port);
 
-                await client.SubscribeAsync("#", cancellationToken: stoppingToken);
-                logger.LogInformation("Subscribed to all topics");
+                await client.SubscribeAsync(new MqttClientSubscribeOptionsBuilder()
+                    .WithTopicFilter("saic/#")
+                    .WithTopicFilter("homeassistant/#")
+                    .Build(), stoppingToken);
+                logger.LogInformation("Subscribed to saic/# and homeassistant/#");
 
                 await Task.Delay(Timeout.Infinite, stoppingToken);
             }
@@ -110,13 +113,13 @@ public class MqttConsumerService(
         {
             var ns = subtopic.Split('/')[0];
             if (ns is "info" or "refresh" or "_internal" or "available")
-                logger.LogInformation("MQTT metadata (skipped) — VIN={Vin} subtopic={Subtopic}", vin, subtopic);
+                logger.LogDebug("MQTT metadata (skipped) — VIN={Vin} subtopic={Subtopic}", vin, subtopic);
             else
                 logger.LogWarning("Unmapped telemetry topic — VIN={Vin} subtopic={Subtopic} payloadBytes={PayloadBytes}", vin, subtopic, payload.Length);
             return;
         }
 
-        logger.LogInformation("MQTT mapped — VIN={Vin} subtopic={Subtopic} payloadBytes={PayloadBytes}", vin, subtopic, payload.Length);
+        logger.LogDebug("MQTT mapped — VIN={Vin} subtopic={Subtopic} payloadBytes={PayloadBytes}", vin, subtopic, payload.Length);
 
         using var scope = scopeFactory.CreateScope();
         var vehicleRepoMain = scope.ServiceProvider.GetRequiredService<IVehicleRepository>();

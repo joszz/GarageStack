@@ -13,7 +13,14 @@ public static class AuthEndpoints
         var group = app.MapGroup("/api/auth")
             .WithTags("Authentication");
 
-        group.MapPost("/login", (LoginRequest req, IConfiguration config, ILoggerFactory loggerFactory) =>
+        group.MapPost("/logout", (HttpContext httpContext) =>
+        {
+            httpContext.Response.Cookies.Delete("garagestack-auth", new CookieOptions { Path = "/" });
+            return Results.NoContent();
+        })
+        .WithSummary("Clear the authentication cookie");
+
+        group.MapPost("/login", (LoginRequest req, IConfiguration config, HttpContext httpContext, ILoggerFactory loggerFactory) =>
         {
             var logger = loggerFactory.CreateLogger("AuthLogin");
 
@@ -79,7 +86,17 @@ public static class AuthEndpoints
                     SecurityAlgorithms.HmacSha256));
 
             var tokenString = new JwtSecurityTokenHandler().WriteToken(token);
-            return Results.Ok(new LoginResponse(tokenString, providedUsername, expires));
+
+            httpContext.Response.Cookies.Append("garagestack-auth", tokenString, new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = httpContext.Request.IsHttps,
+                SameSite = SameSiteMode.Strict,
+                Expires = expires,
+                Path = "/",
+            });
+
+            return Results.Ok(new LoginResponse(providedUsername, expires));
         })
         .WithSummary("Authenticate user and issue JWT token");
 
@@ -108,4 +125,4 @@ public static class AuthEndpoints
 }
 
 public sealed record LoginRequest(string Username, string Password);
-public sealed record LoginResponse(string Token, string Username, DateTime ExpiresAtUtc);
+public sealed record LoginResponse(string Username, DateTime ExpiresAtUtc);

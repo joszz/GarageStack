@@ -23,7 +23,7 @@ function closeMenu() {
 }
 
 async function logout() {
-  auth.logout()
+  await auth.logout()
   await router.replace({ name: 'login' })
 }
 

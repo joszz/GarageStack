@@ -1,29 +1,33 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
-import { authApi, getAuthToken, setAuthToken } from '@/services/api'
+import { authApi } from '@/services/api'
 
 const AUTH_USERNAME_KEY = 'garagestack-auth-username'
+const AUTH_EXPIRES_KEY = 'garagestack-auth-expires'
 
 export const useAuthStore = defineStore('auth', () => {
-  const token = ref<string | null>(getAuthToken())
   const username = ref<string>(localStorage.getItem(AUTH_USERNAME_KEY) ?? '')
+  const expiresAtUtc = ref<string>(localStorage.getItem(AUTH_EXPIRES_KEY) ?? '')
 
-  const isAuthenticated = computed(() => Boolean(token.value))
+  const isAuthenticated = computed(
+    () => !!username.value && !!expiresAtUtc.value && new Date(expiresAtUtc.value) > new Date(),
+  )
 
   async function login(usernameInput: string, password: string) {
     const result = await authApi.login(usernameInput, password)
-    token.value = result.token
     username.value = result.username
-    setAuthToken(result.token)
+    expiresAtUtc.value = result.expiresAtUtc
     localStorage.setItem(AUTH_USERNAME_KEY, result.username)
+    localStorage.setItem(AUTH_EXPIRES_KEY, result.expiresAtUtc)
   }
 
-  function logout() {
-    token.value = null
+  async function logout() {
     username.value = ''
-    setAuthToken(null)
+    expiresAtUtc.value = ''
     localStorage.removeItem(AUTH_USERNAME_KEY)
+    localStorage.removeItem(AUTH_EXPIRES_KEY)
+    await authApi.logout()
   }
 
-  return { token, username, isAuthenticated, login, logout }
+  return { username, isAuthenticated, login, logout }
 })
