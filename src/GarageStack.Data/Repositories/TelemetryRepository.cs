@@ -56,6 +56,7 @@ public class TelemetryRepository(AppDbContext db) : ITelemetryRepository
 
         if (rows.Count == 0) return null;
 
+        var todayStart = DateTime.UtcNow.Date;
         var merged = new TelemetrySnapshot { VehicleId = vehicleId, RecordedAt = rows[0].RecordedAt };
         foreach (var row in rows)
         {
@@ -89,8 +90,12 @@ public class TelemetryRepository(AppDbContext db) : ITelemetryRepository
             merged.TyrePressureFrontRight ??= row.TyrePressureFrontRight;
             merged.TyrePressureRearLeft ??= row.TyrePressureRearLeft;
             merged.TyrePressureRearRight ??= row.TyrePressureRearRight;
-            merged.MileageOfTheDay ??= row.MileageOfTheDay;
-            merged.PowerUsageOfDay ??= row.PowerUsageOfDay;
+            // Daily counters are only meaningful from today — don't carry yesterday's values forward
+            if (row.RecordedAt >= todayStart)
+            {
+                merged.MileageOfTheDay ??= row.MileageOfTheDay;
+                merged.PowerUsageOfDay ??= row.PowerUsageOfDay;
+            }
             merged.MileageSinceLastCharge ??= row.MileageSinceLastCharge;
             merged.HvVoltage ??= row.HvVoltage;
             merged.HvCurrent ??= row.HvCurrent;

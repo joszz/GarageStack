@@ -2,6 +2,7 @@
 import { onMounted, computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useVehicleStore } from '@/stores/vehicle'
+import { useSettingsStore } from '@/stores/settings'
 import type { TelemetrySnapshot } from '@/services/api'
 import { Line } from 'vue-chartjs'
 import {
@@ -20,6 +21,7 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, T
 
 const { t } = useI18n()
 const store = useVehicleStore()
+const settingsStore = useSettingsStore()
 const days = ref(7)
 
 const vin = computed(() => store.vehicles[0]?.vin ?? null)
@@ -42,6 +44,24 @@ function watchDays() {
   load()
 }
 
+// Effective vehicle type: manual override wins, then auto-detected
+const effectiveVehicleType = computed(() => {
+  if (settingsStore.vehicleTypeOverride !== 'auto') return settingsStore.vehicleTypeOverride
+  return store.detectedVehicleType
+})
+
+const hasFuel = computed(() => effectiveVehicleType.value !== 'bev')
+const hasLargeEv = computed(() =>
+  effectiveVehicleType.value === 'phev' ||
+  effectiveVehicleType.value === 'bev' ||
+  effectiveVehicleType.value === 'unknown',
+)
+const hasCharging = computed(() =>
+  effectiveVehicleType.value === 'phev' ||
+  effectiveVehicleType.value === 'bev' ||
+  effectiveVehicleType.value === 'unknown',
+)
+
 // Efficiency computed from today's stats
 const efficiencyWh = computed(() => {
   const s = status.value
@@ -49,13 +69,13 @@ const efficiencyWh = computed(() => {
   return Math.round(s.powerUsageOfDay / s.mileageOfTheDay)
 })
 
-// Group history by local date to avoid overcrowded datetime labels on charts.
-function toDateKey(isoTimestamp: string) {
-  const d = new Date(isoTimestamp)
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${y}-${m}-${day}`
+// Group history by local date; pre-fill every day in the range so charts always
+// show the full requested window even when some days have no data.
+function toLocalDateKey(date: Date) {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
 }
 
 function avg(values: Array<number | null>) {
@@ -71,8 +91,20 @@ function round2(value: number) {
 const groupedHistory = computed(() => {
   const buckets = new Map<string, TelemetrySnapshot[]>()
 
+  // Pre-fill all days in the requested range (local calendar days)
+  const startDay = new Date()
+  startDay.setDate(startDay.getDate() - days.value)
+  const endDay = new Date()
+  for (
+    let d = new Date(startDay.getFullYear(), startDay.getMonth(), startDay.getDate());
+    d <= endDay;
+    d.setDate(d.getDate() + 1)
+  ) {
+    buckets.set(toLocalDateKey(d), [])
+  }
+
   for (const snapshot of store.history) {
-    const key = toDateKey(snapshot.recordedAt)
+    const key = toLocalDateKey(new Date(snapshot.recordedAt))
     const existing = buckets.get(key)
     if (existing) {
       existing.push(snapshot)
@@ -156,6 +188,13 @@ const batteryVoltageTrend = computed(() => {
   const delta = round2(last - first)
   const sign = delta > 0 ? '+' : ''
   return `${sign}${delta} V`
+})
+
+// Falls back to current voltage when a trend can't be computed (< 2 days of data)
+const batteryVoltageDisplay = computed(() => {
+  if (batteryVoltageTrend.value !== null) return batteryVoltageTrend.value
+  const v = status.value?.batteryVoltage
+  return v != null ? `${v.toFixed(1)} V` : null
 })
 
 const fuelChartData = computed(() => ({
@@ -325,7 +364,7 @@ const pressureOptions = {
           </div>
         </div>
 
-        <div class="status-card">
+        <div v-if="hasCharging" class="status-card">
           <div class="status-card__icon"><font-awesome-icon icon="plug" /></div>
           <div class="status-card__body">
             <span class="status-card__label">{{ t('vehicle.efficiency.sinceCharge') }}</span>
@@ -374,7 +413,7 @@ const pressureOptions = {
 
             <div class="stats-insight-card">
               <div class="stats-insight-card__label">{{ t('statistics.insights.batteryVoltageTrend') }}</div>
-              <div class="stats-insight-card__value">{{ batteryVoltageTrend ?? '-' }}</div>
+              <div class="stats-insight-card__value">{{ batteryVoltageDisplay ?? '-' }}</div>
             </div>
 
             <div class="stats-insight-card">
@@ -385,12 +424,12 @@ const pressureOptions = {
         </section>
 
         <div class="stats-chart-grid">
-          <div class="chart-container">
+          <div v-if="hasFuel" class="chart-container">
             <h2>{{ t('vehicle.fuel') }}</h2>
             <Line :data="fuelChartData" :options="percentOptions" />
           </div>
 
-          <div class="chart-container">
+          <div v-if="hasLargeEv" class="chart-container">
             <h2>{{ t('vehicle.evSoc') }}</h2>
             <Line :data="evChartData" :options="percentOptions" />
           </div>
