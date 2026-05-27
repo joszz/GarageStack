@@ -16,7 +16,27 @@
     "resetLayout": "Reset to defaults",
     "dragToReorder": "Drag to reorder",
     "hideCard": "Hide card",
-    "showCard": "Show card"
+    "showCard": "Show card",
+    "cardInfoBtn": "Card information",
+    "cardDesc": {
+      "fuelLevel": "Shows the current fuel tank level as a percentage.",
+      "fuelRange": "Estimated remaining driving range based on the current fuel level.",
+      "evBattery": "State of charge as a percentage. On a PHEV or BEV this is your electric range gauge. On an HEV the hybrid battery is small and managed automatically by the car, so the exact value is less meaningful day-to-day.",
+      "charging": "Indicates whether the car is currently charging.",
+      "odometer": "Total distance the car has traveled since manufacture.",
+      "battery12v": "Voltage of the 12V auxiliary battery that powers the car's electronics.",
+      "doors": "Lock status and open or closed state of all doors, bonnet and boot.",
+      "windows": "Open or closed status of all four windows.",
+      "sunRoof": "Whether the sunroof is currently open or closed.",
+      "climate": "Climate control status including temperature and seat heating settings.",
+      "hvBattery": "High-voltage battery details: kWh remaining, total capacity, voltage, current and live power flow. On a PHEV or BEV it also shows the charge-current-limit control. On an HEV it lets you see regeneration and motor-assist activity in real time.",
+      "findMyCar": "Activate the horn and lights to help locate your car in a parking area.",
+      "lights": "On or off status of high beam, low beam and sidelights.",
+      "efficiencyDistance": "Total distance driven so far today.",
+      "efficiencyEnergy": "Total electrical energy that passed through the high-voltage battery since midnight, in watt-hours. On a BEV this equals battery charge consumed. On a PHEV it covers both grid charge and regeneration. On an HEV it reflects the energy cycled through the small hybrid battery.",
+      "efficiencyCharge": "Distance driven since the last charge session.",
+      "efficiencyRatio": "Energy today divided by distance today (Wh/km). Lower is better. On a BEV or PHEV in EV mode this translates directly to electricity cost per km. On an HEV it shows how efficiently the hybrid system ran — motorway driving gives a lower figure than stop-start city traffic."
+    }
   },
   "statistics": {
     "insights": {

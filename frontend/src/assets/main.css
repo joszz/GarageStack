@@ -1230,6 +1230,46 @@ html, body, #app {
   gap: 0.7rem;
 }
 
+/* ── Card info overlay ────────────────────────────────────── */
+
+.card-info-wrap {
+  position: relative;
+}
+
+.card-info-btn {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  border-radius: 50%;
+  font-size: 0.75rem;
+  opacity: 0.35;
+  transition: opacity 0.15s, color 0.15s, background 0.15s;
+  z-index: 1;
+}
+
+.card-info-btn:hover,
+.card-info-btn:focus-visible {
+  opacity: 1;
+  color: var(--color-primary-light);
+  background: var(--color-surface-2);
+  outline: none;
+}
+
+.card-info-desc {
+  font-size: 0.88rem;
+  color: var(--color-text-muted);
+  line-height: 1.55;
+}
+
 /* ── Dashboard edit mode (iOS-style) ─────────────────────── */
 
 @keyframes card-wiggle {

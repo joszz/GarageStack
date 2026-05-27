@@ -8,6 +8,7 @@ import type { VehicleType } from '@/stores/vehicle'
 import type { CardId } from '@/stores/settings'
 import { defaultCards } from '@/stores/settings'
 import DashboardCardContent from '@/components/DashboardCardContent.vue'
+import DashboardCardWrapper from '@/components/DashboardCardWrapper.vue'
 import TyreDiagram from '@/components/TyreDiagram.vue'
 
 const { t } = useI18n()
@@ -180,7 +181,9 @@ onUnmounted(() => clearInterval(interval))
         <div class="status-grid">
           <template v-for="card in settings.cards" :key="card.id">
             <template v-if="card.visible">
-              <DashboardCardContent :card-id="card.id" />
+              <DashboardCardWrapper :card-id="card.id">
+                <DashboardCardContent :card-id="card.id" />
+              </DashboardCardWrapper>
             </template>
           </template>
         </div>

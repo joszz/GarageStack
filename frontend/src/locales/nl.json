@@ -16,7 +16,27 @@
     "resetLayout": "Standaard herstellen",
     "dragToReorder": "Slepen om te herordenen",
     "hideCard": "Kaart verbergen",
-    "showCard": "Kaart tonen"
+    "showCard": "Kaart tonen",
+    "cardInfoBtn": "Kaartinformatie",
+    "cardDesc": {
+      "fuelLevel": "Huidig brandstofniveau van de tank als percentage.",
+      "fuelRange": "Geschatte resterende rijafstand op basis van het huidige brandstofniveau.",
+      "evBattery": "Laadstatus als percentage. Op een PHEV of BEV is dit je elektrisch bereiksmeter. Op een HEV is de hybride accu klein en wordt deze automatisch door de auto beheerd, waardoor de exacte waarde dagelijks minder relevant is.",
+      "charging": "Geeft aan of de auto momenteel oplaadt.",
+      "odometer": "Totale afstand die de auto heeft afgelegd.",
+      "battery12v": "Spanning van de 12V-hulpaccu die de elektronica van de auto voorziet.",
+      "doors": "Vergrendeling en open/dicht-status van alle portieren, motorkap en bagageruimte.",
+      "windows": "Open of gesloten status van alle vier de ramen.",
+      "sunRoof": "Of het schuifdak momenteel open of gesloten is.",
+      "climate": "Klimaatbeheerstatus inclusief temperatuur en stoelverwarmingsinstellingen.",
+      "hvBattery": "Details van de hoogspanningsaccu: resterende kWh, totale capaciteit, spanning, stroom en live vermogensstroom. Op een PHEV of BEV ook de laadstroomlimietbediening. Op een HEV laat het regeneratie en motorondersteuning in realtime zien.",
+      "findMyCar": "Activeer de claxon en verlichting om de auto te vinden op de parkeerplaats.",
+      "lights": "Aan/uit-status van groot licht, dimlicht en stadslichten.",
+      "efficiencyDistance": "Totale afstand gereden vandaag.",
+      "efficiencyEnergy": "Totale elektrische energie die sinds middernacht door de hoogspanningsaccu is gegaan, in wattuur. Op een BEV staat dit gelijk aan verbruikt accuvermogen. Op een PHEV omvat het zowel netlaadvermogen als regeneratie. Op een HEV weerspiegelt het de energie die door de kleine hybride accu is gegaan.",
+      "efficiencyCharge": "Afstand gereden sinds de laatste laadsessie.",
+      "efficiencyRatio": "Energie vandaag gedeeld door afstand vandaag (Wh/km). Lager is beter. Op een BEV of PHEV in EV-modus vertaalt dit zich direct naar elektriciteitskosten per km. Op een HEV toont het hoe efficiënt het hybridesysteem werkte -- snelwegrijden geeft een lagere waarde dan stop-and-go stadsverkeer."
+    }
   },
   "statistics": {
     "insights": {
