@@ -52,7 +52,6 @@ async function submitLogin() {
 
       <form class="login-card__form" @submit.prevent="submitLogin">
         <div class="login-field">
-          <label for="username" class="login-field__label">{{ t('auth.username') }}</label>
           <div class="login-field__input-wrap">
             <span class="login-field__icon"><font-awesome-icon icon="user" /></span>
             <input
@@ -60,6 +59,8 @@ async function submitLogin() {
               v-model="username"
               class="login-field__input"
               type="text"
+              :aria-label="t('auth.username')"
+              :placeholder="t('auth.username')"
               autocomplete="username"
               required
             >
@@ -67,7 +68,6 @@ async function submitLogin() {
         </div>
 
         <div class="login-field">
-          <label for="password" class="login-field__label">{{ t('auth.password') }}</label>
           <div class="login-field__input-wrap">
             <span class="login-field__icon"><font-awesome-icon icon="lock" /></span>
             <input
@@ -75,6 +75,8 @@ async function submitLogin() {
               v-model="password"
               class="login-field__input"
               type="password"
+              :aria-label="t('auth.password')"
+              :placeholder="t('auth.password')"
               autocomplete="current-password"
               required
             >

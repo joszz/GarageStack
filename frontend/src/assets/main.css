@@ -35,6 +35,15 @@
   padding: 0;
 }
 
+/* The browser UA stylesheet gives [popover] { border: solid; padding: 0.25em; margin: auto }.
+   Our html/body { height: 100% } places extension-injected popovers (Bitwarden etc.) at
+   the viewport's bottom edge, making those UA defaults visible as a thin bordered strip.
+   Suppress them here (author styles beat normal UA styles) so they are invisible at rest. */
+[popover] {
+  border: none;
+  padding: 0;
+}
+
 html, body, #app {
   height: 100%;
   font-family: 'Inter', system-ui, sans-serif;
@@ -1579,28 +1588,18 @@ html, body, #app {
 /* ── Login form fields ────────────────────────────────────── */
 
 .login-field {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-}
-
-.login-field__label {
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: var(--color-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  display: block;
 }
 
 .login-field__input-wrap {
   position: relative;
-  display: flex;
-  align-items: center;
 }
 
 .login-field__icon {
   position: absolute;
   left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
   color: var(--color-text-muted);
   font-size: 0.85rem;
   pointer-events: none;
@@ -1613,7 +1612,7 @@ html, body, #app {
   border-radius: 6px;
   color: var(--color-text);
   font-size: 0.9rem;
-  padding: 0.6rem 0.75rem 0.6rem 2.25rem;
+  padding: 0.65rem 0.75rem 0.65rem 2.25rem;
   transition: border-color 0.15s;
   font-family: inherit;
 }
@@ -1621,7 +1620,6 @@ html, body, #app {
 .login-field__input:focus {
   outline: none;
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
 }
 
 .login-field__input::placeholder {
@@ -1629,26 +1627,18 @@ html, body, #app {
   opacity: 0.6;
 }
 
-.login-field__input:has(~ .login-field__toggle) {
-  padding-right: 2.5rem;
+/* Preserve dark theme when the browser auto-fills credentials */
+.login-field__input:-webkit-autofill,
+.login-field__input:-webkit-autofill:hover,
+.login-field__input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px var(--color-surface-2) inset !important;
+  -webkit-text-fill-color: var(--color-text) !important;
+  caret-color: var(--color-text);
+  border-color: var(--color-border) !important;
 }
 
-.login-field__toggle {
-  position: absolute;
-  right: 0.5rem;
-  background: none;
-  border: none;
-  color: var(--color-text-muted);
-  cursor: pointer;
-  padding: 0.25rem 0.35rem;
-  border-radius: 4px;
-  font-size: 0.85rem;
-  transition: color 0.15s, background 0.15s;
-}
-
-.login-field__toggle:hover {
-  color: var(--color-text);
-  background: var(--color-border);
+.login-field__input:-webkit-autofill:focus {
+  border-color: var(--color-primary) !important;
 }
 
 /* ── Login remember toggle ────────────────────────────────── */
