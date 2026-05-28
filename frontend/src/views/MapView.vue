@@ -8,7 +8,7 @@ import type { Map as LeafletMap } from 'leaflet'
 import 'leaflet.heat'
 import type { Trip } from '@/services/api'
 
-// Vite wraps CJS modules in a frozen ESM namespace — `import * as LModule` gives that frozen
+// Vite wraps CJS modules in a frozen ESM namespace - `import * as LModule` gives that frozen
 // namespace. leaflet.heat patches the actual mutable CJS export (LModule.default), so we must
 // use that reference to reach heatLayer at runtime.
 const L = ((LModule as any).default ?? LModule) as typeof LModule
@@ -60,7 +60,7 @@ function tripColorClass(index: number): string {
   return `trip-list__dot--${index % tripColors.length}`
 }
 
-// Static initial centre — controlled by fitAll/flyToStatus after data loads.
+// Static initial centre - controlled by fitAll/flyToStatus after data loads.
 const center: [number, number] = [52.3676, 4.9041]
 
 // Trips displayed newest-first in the sidebar; selectedTripIndex is always the real store.trips index.

@@ -73,7 +73,7 @@ public class MqttConsumerService(
         var topic = e.ApplicationMessage.Topic;
         var payload = e.ApplicationMessage.ConvertPayloadToString() ?? string.Empty;
 
-        // Home Assistant discovery payloads carry hw_version inside device JSON — use it for vehicle-type detection
+        // Home Assistant discovery payloads carry hw_version inside device JSON - use it for vehicle-type detection
         if (topic.StartsWith("homeassistant/", StringComparison.OrdinalIgnoreCase))
         {
             await HandleHaDiscoveryAsync(payload, ct);
@@ -89,11 +89,11 @@ public class MqttConsumerService(
         MqttTopicParser.TryExtractUser(topic, out var saicUser);
         var subtopic = MqttTopicParser.ExtractSubtopic(topic);
 
-        // Capability config messages — store as JSON on the vehicle record
+        // Capability config messages - store as JSON on the vehicle record
         if (subtopic.StartsWith("info/configuration/", StringComparison.OrdinalIgnoreCase))
         {
             var configKey = subtopic["info/configuration/".Length..];
-            logger.LogInformation("MQTT config — VIN={Vin} key={Key} payloadBytes={PayloadBytes}", vin, configKey, payload.Length);
+            logger.LogInformation("MQTT config - VIN={Vin} key={Key} payloadBytes={PayloadBytes}", vin, configKey, payload.Length);
             using var cfgScope = scopeFactory.CreateScope();
             var vehicleRepo = cfgScope.ServiceProvider.GetRequiredService<IVehicleRepository>();
             try
@@ -113,13 +113,13 @@ public class MqttConsumerService(
         {
             var ns = subtopic.Split('/')[0];
             if (ns is "info" or "refresh" or "_internal" or "available")
-                logger.LogDebug("MQTT metadata (skipped) — VIN={Vin} subtopic={Subtopic}", vin, subtopic);
+                logger.LogDebug("MQTT metadata (skipped) - VIN={Vin} subtopic={Subtopic}", vin, subtopic);
             else
-                logger.LogWarning("Unmapped telemetry topic — VIN={Vin} subtopic={Subtopic} payloadBytes={PayloadBytes}", vin, subtopic, payload.Length);
+                logger.LogWarning("Unmapped telemetry topic - VIN={Vin} subtopic={Subtopic} payloadBytes={PayloadBytes}", vin, subtopic, payload.Length);
             return;
         }
 
-        logger.LogDebug("MQTT mapped — VIN={Vin} subtopic={Subtopic} payloadBytes={PayloadBytes}", vin, subtopic, payload.Length);
+        logger.LogDebug("MQTT mapped - VIN={Vin} subtopic={Subtopic} payloadBytes={PayloadBytes}", vin, subtopic, payload.Length);
 
         using var scope = scopeFactory.CreateScope();
         var vehicleRepoMain = scope.ServiceProvider.GetRequiredService<IVehicleRepository>();
@@ -157,7 +157,7 @@ public class MqttConsumerService(
 
         if (snapshot.EngineRunning.Value && !wasRunning)
         {
-            logger.LogInformation("Engine started for VIN={Vin} — sending push notification", vin);
+            logger.LogInformation("Engine started for VIN={Vin} - sending push notification", vin);
             await pushSender.SendToAllAsync("Engine started", "Your car has been started.", ct);
         }
     }
@@ -191,7 +191,7 @@ public class MqttConsumerService(
             }
             if (string.IsNullOrWhiteSpace(vin)) return;
 
-            logger.LogInformation("HA discovery — VIN={Vin} hw_version={HwVersion}", vin, hwVersion);
+            logger.LogInformation("HA discovery - VIN={Vin} hw_version={HwVersion}", vin, hwVersion);
 
             using var scope = scopeFactory.CreateScope();
             var vehicleRepo = scope.ServiceProvider.GetRequiredService<IVehicleRepository>();

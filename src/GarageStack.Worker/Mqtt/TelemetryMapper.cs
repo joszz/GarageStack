@@ -106,7 +106,7 @@ public static class TelemetryMapper
                 snapshot.SunRoofOpen = asBool;
                 break;
 
-            // Location — gateway publishes a compound JSON object, not separate topics
+            // Location - gateway publishes a compound JSON object, not separate topics
             case "location/position":
                 try
                 {

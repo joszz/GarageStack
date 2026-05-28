@@ -125,7 +125,7 @@ function setChargeLimit(value: string) {
       </div>
     </div>
 
-    <!-- Charge current limit — PHEV/BEV only -->
+    <!-- Charge current limit - PHEV/BEV only -->
     <div v-if="canSetChargeLimit" class="detail-modal__section">
       <div class="detail-modal__section-title">{{ t('control.chargeLimit') }}</div>
       <div class="modal-btn-group">
