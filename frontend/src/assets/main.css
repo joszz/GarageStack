@@ -312,12 +312,6 @@ html, body, #app {
   outline: none;
 }
 
-.find-my-car__btn {
-  align-self: flex-start;
-  margin-top: 0.1rem;
-  font-size: 0.82rem;
-  padding: 0.2rem 0.65rem;
-}
 
 .status-card__chevron {
   font-size: 0.65rem;
@@ -438,7 +432,7 @@ html, body, #app {
   color: var(--color-warning);
 }
 
-/* value comes first — bold, no wrapping */
+/* value comes first - bold, no wrapping */
 .detail-list__item-value {
   font-weight: 600;
   white-space: nowrap;
@@ -456,7 +450,7 @@ html, body, #app {
   flex-shrink: 0;
 }
 
-/* label follows value — muted, takes remaining space */
+/* label follows value - muted, takes remaining space */
 .detail-list__item-label {
   flex: 1;
   color: var(--color-text-muted);
@@ -1234,26 +1228,27 @@ html, body, #app {
 
 .card-info-wrap {
   position: relative;
+  overflow: visible;
 }
 
 .card-info-btn {
   position: absolute;
-  top: 4px;
-  right: 4px;
-  width: 32px;
-  height: 32px;
+  top: -7px;
+  right: -7px;
+  width: 26px;
+  height: 26px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: none;
-  border: none;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   color: var(--color-text-muted);
   cursor: pointer;
   border-radius: 50%;
-  font-size: 0.75rem;
-  opacity: 0.35;
-  transition: opacity 0.15s, color 0.15s, background 0.15s;
-  z-index: 1;
+  font-size: 0.7rem;
+  opacity: 0.55;
+  transition: opacity 0.15s, color 0.15s, background 0.15s, border-color 0.15s;
+  z-index: 2;
 }
 
 .card-info-btn:hover,
@@ -1494,6 +1489,14 @@ html, body, #app {
   .status-grid {
     grid-template-columns: repeat(2, 1fr);
     gap: 0.5rem;
+  }
+
+  .card-info-btn {
+    top: -5px;
+    right: -5px;
+    width: 22px;
+    height: 22px;
+    font-size: 0.6rem;
   }
 
   .status-card {

@@ -35,7 +35,7 @@
       "efficiencyDistance": "Total distance driven so far today.",
       "efficiencyEnergy": "Total electrical energy that passed through the high-voltage battery since midnight, in watt-hours. On a BEV this equals battery charge consumed. On a PHEV it covers both grid charge and regeneration. On an HEV it reflects the energy cycled through the small hybrid battery.",
       "efficiencyCharge": "Distance driven since the last charge session.",
-      "efficiencyRatio": "Energy today divided by distance today (Wh/km). Lower is better. On a BEV or PHEV in EV mode this translates directly to electricity cost per km. On an HEV it shows how efficiently the hybrid system ran — motorway driving gives a lower figure than stop-start city traffic."
+      "efficiencyRatio": "Energy today divided by distance today (Wh/km). Lower is better. On a BEV or PHEV in EV mode this translates directly to electricity cost per km. On an HEV it shows how efficiently the hybrid system ran - motorway driving gives a lower figure than stop-start city traffic."
     }
   },
   "statistics": {
@@ -137,6 +137,7 @@
     "findMyCar": "Find my car",
     "findMyCarActivate": "Activate",
     "findMyCarStop": "Stop",
+    "findMyCarActive": "Active",
     "findMyCarConfirm": "This will activate the horn and lights to help locate your car. Continue?",
     "chargeLimit": "Charge current limit",
     "refresh": "Refresh",

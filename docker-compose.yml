@@ -34,7 +34,7 @@ services:
       MQTT_PASSWORD: "${SAIC_PASSWORD}"
       SAIC_REGION: "${SAIC_REGION:-eu}"
 
-  # Bundled Postgres — only starts when you pass --profile bundled-postgres.
+  # Bundled Postgres - only starts when you pass --profile bundled-postgres.
   # Skip this and set POSTGRES_HOST to your own server to reuse an existing instance.
   postgres:
     profiles:

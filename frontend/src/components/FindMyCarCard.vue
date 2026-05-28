@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import StatusCard from './StatusCard.vue'
 import DetailModal from './DetailModal.vue'
 import { useVehicleCommand } from '@/composables/useVehicleCommand'
 import { useModal } from '@/composables/useModal'
@@ -13,10 +14,9 @@ const props = defineProps<{
 
 const { sending, isPending, send } = useVehicleCommand()
 const active = ref(false)
-const { isOpen: confirmOpen, open: openConfirm, close: closeConfirm } = useModal()
+const { isOpen: modalOpen, open: openModal, close: closeModal } = useModal()
 
-function confirm() {
-  closeConfirm()
+function activate() {
   active.value = true
   send(props.vin, 'find-my-car', 'activate')
 }
@@ -28,18 +28,31 @@ function stop() {
 </script>
 
 <template>
-  <div class="status-card" :class="active ? 'status-card--warning' : ''">
-    <div class="status-card__icon">
-      <font-awesome-icon icon="car-burst" />
-    </div>
-    <div class="status-card__body">
-      <span class="status-card__label">{{ t('control.findMyCar') }}</span>
+  <StatusCard
+    icon="car-burst"
+    :label="t('control.findMyCar')"
+    :value="active ? t('control.findMyCarActive') : '-'"
+    :variant="active ? 'warning' : undefined"
+    clickable
+    @click="openModal"
+  />
+
+  <DetailModal
+    :open="modalOpen"
+    :title="t('control.findMyCar')"
+    @close="closeModal"
+  >
+    <p class="card-info-desc">{{ t('control.findMyCarConfirm') }}</p>
+    <template #footer>
+      <button class="btn btn-outline-secondary" @click="closeModal">
+        {{ t('common.cancel') }}
+      </button>
       <button
         v-if="!active"
-        class="btn btn-warning btn-sm find-my-car__btn"
+        class="btn btn-warning"
         :class="isPending('find-my-car') ? 'btn--pending' : ''"
         :disabled="sending === 'find-my-car' || isPending('find-my-car') || !vin"
-        @click="openConfirm"
+        @click="activate"
       >
         <font-awesome-icon v-if="sending === 'find-my-car'" icon="spinner" spin />
         <font-awesome-icon v-else-if="isPending('find-my-car')" icon="clock" />
@@ -48,7 +61,7 @@ function stop() {
       </button>
       <button
         v-else
-        class="btn btn-danger btn-sm find-my-car__btn"
+        class="btn btn-danger"
         :class="isPending('find-my-car') ? 'btn--pending' : ''"
         :disabled="sending === 'find-my-car' || isPending('find-my-car')"
         @click="stop"
@@ -57,23 +70,6 @@ function stop() {
         <font-awesome-icon v-else-if="isPending('find-my-car')" icon="clock" />
         <font-awesome-icon v-else icon="xmark" />
         {{ isPending('find-my-car') ? t('control.pending') : t('control.findMyCarStop') }}
-      </button>
-    </div>
-  </div>
-
-  <DetailModal
-    :open="confirmOpen"
-    :title="t('control.findMyCar')"
-    @close="closeConfirm"
-  >
-    <p>{{ t('control.findMyCarConfirm') }}</p>
-    <template #footer>
-      <button class="btn btn-outline-secondary" @click="closeConfirm">
-        {{ t('common.cancel') }}
-      </button>
-      <button class="btn btn-warning" @click="confirm">
-        <font-awesome-icon icon="bullhorn" />
-        {{ t('control.findMyCarActivate') }}
       </button>
     </template>
   </DetailModal>

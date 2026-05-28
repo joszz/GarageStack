@@ -1,5 +1,11 @@
 const BASE_URL = import.meta.env.VITE_API_URL ?? ''
 
+let unauthorizedHandler: (() => void) | null = null
+
+export function setUnauthorizedHandler(handler: () => void) {
+  unauthorizedHandler = handler
+}
+
 export class ApiError extends Error {
   status: number
   path: string
@@ -11,13 +17,20 @@ export class ApiError extends Error {
   }
 }
 
+function handleResponse(res: Response, path: string) {
+  if (res.status === 401) {
+    unauthorizedHandler?.()
+  }
+  if (!res.ok) throw new ApiError(res.status, path)
+}
+
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE_URL}${path}`, {
     ...options,
     credentials: 'include',
   })
 
-  if (!res.ok) throw new ApiError(res.status, path)
+  handleResponse(res, path)
   if (res.status === 204) return undefined as T
   return res.json() as Promise<T>
 }
@@ -30,7 +43,7 @@ async function send(path: string, method: string, body?: unknown): Promise<void>
     body: body !== undefined ? JSON.stringify(body) : undefined,
   })
 
-  if (!res.ok) throw new ApiError(res.status, path)
+  handleResponse(res, path)
 }
 
 export interface LoginResponse {

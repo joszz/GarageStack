@@ -37,7 +37,7 @@ public class MqttPublisher(IConfiguration config, ILogger<MqttPublisher> logger)
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "MQTT publisher could not connect at startup — commands will fail until connected");
+            logger.LogWarning(ex, "MQTT publisher could not connect at startup - commands will fail until connected");
         }
     }
 

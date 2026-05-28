@@ -90,7 +90,7 @@ public class TelemetryRepository(AppDbContext db) : ITelemetryRepository
             merged.TyrePressureFrontRight ??= row.TyrePressureFrontRight;
             merged.TyrePressureRearLeft ??= row.TyrePressureRearLeft;
             merged.TyrePressureRearRight ??= row.TyrePressureRearRight;
-            // Daily counters are only meaningful from today — don't carry yesterday's values forward
+            // Daily counters are only meaningful from today - don't carry yesterday's values forward
             if (row.RecordedAt >= todayStart)
             {
                 merged.MileageOfTheDay ??= row.MileageOfTheDay;
@@ -147,7 +147,7 @@ public class TelemetryRepository(AppDbContext db) : ITelemetryRepository
 
     public async Task<IReadOnlyList<TripDto>> GetTripsAsync(int vehicleId, DateTime from, DateTime to, CancellationToken ct = default)
     {
-        // Exclude rows where speed is known to be zero — those are parked-car pings, not driving.
+        // Exclude rows where speed is known to be zero - those are parked-car pings, not driving.
         var points = await db.TelemetrySnapshots
             .Where(s => s.VehicleId == vehicleId && s.RecordedAt >= from && s.RecordedAt <= to
                         && s.Latitude != null && s.Longitude != null
@@ -184,7 +184,7 @@ public class TelemetryRepository(AppDbContext db) : ITelemetryRepository
     private static void TryAddTrip(List<TripDto> trips, List<TripPoint> current)
     {
         if (current.Count < 2) return;
-        // Pass a snapshot of current — the caller clears the list after this call, and
+        // Pass a snapshot of current - the caller clears the list after this call, and
         // TripDto stores a reference, so without a copy all trips would end up sharing
         // the final segment's points.
         var trip = BuildTrip(trips.Count, new List<TripPoint>(current));

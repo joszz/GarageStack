@@ -59,7 +59,7 @@ public class PushNotificationCheckService(
 
                 _lastNotified[notifKey] = DateTime.UtcNow;
                 await pushSender.SendToAllAsync(title, body, ct);
-                logger.LogInformation("Push sent: {Key} — {Title}", notifKey, title);
+                logger.LogInformation("Push sent: {Key} - {Title}", notifKey, title);
             }
         }
     }

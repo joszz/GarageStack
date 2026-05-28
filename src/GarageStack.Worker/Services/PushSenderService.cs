@@ -39,7 +39,7 @@ public sealed class PushSenderService : IPushSender, IDisposable
         }
         else
         {
-            _logger.LogWarning("VAPID keys not configured — push notifications disabled");
+            _logger.LogWarning("VAPID keys not configured - push notifications disabled");
         }
     }
 
