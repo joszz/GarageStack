@@ -4,6 +4,7 @@ import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useSettingsStore } from '@/stores/settings'
 import { useAuthStore } from '@/stores/auth'
+import { useVehicleStore } from '@/stores/vehicle'
 import AppFooter from '@/components/AppFooter.vue'
 
 const { t, locale } = useI18n()
@@ -11,6 +12,9 @@ const route = useRoute()
 const router = useRouter()
 const settings = useSettingsStore()
 const auth = useAuthStore()
+const vehicleStore = useVehicleStore()
+
+const carModel = computed(() => vehicleStore.vehicles[0]?.model ?? null)
 const menuOpen = ref(false)
 const isLoginRoute = computed(() => route.name === 'login')
 
@@ -79,6 +83,10 @@ watch(() => settings.locale, (val) => { locale.value = val })
         </ul>
 
         <div class="sidebar-footer">
+          <div v-if="carModel" class="sidebar-car-model">
+            <font-awesome-icon icon="car" />
+            <span>{{ carModel }}</span>
+          </div>
           <div class="sidebar-user">
             <font-awesome-icon icon="user" />
             <span class="sidebar-user__email">{{ auth.username }}</span>

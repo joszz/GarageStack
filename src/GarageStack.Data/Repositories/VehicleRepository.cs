@@ -29,6 +29,14 @@ public class VehicleRepository(AppDbContext db) : IVehicleRepository
         return vehicle;
     }
 
+    public async Task SetModelAsync(int vehicleId, string model, CancellationToken ct = default)
+    {
+        var vehicle = await db.Vehicles.FindAsync([vehicleId], ct);
+        if (vehicle is null || vehicle.Model == model) return;
+        vehicle.Model = model;
+        await db.SaveChangesAsync(ct);
+    }
+
     public async Task SetConfigValueAsync(int vehicleId, string key, string value, CancellationToken ct = default)
     {
         var vehicle = await db.Vehicles.FindAsync([vehicleId], ct);

@@ -1273,7 +1273,7 @@ html, body, #app {
 }
 
 .status-grid--edit {
-  padding: 10px;
+  overflow: visible;
 }
 
 .card-slot {
@@ -1726,6 +1726,19 @@ html, body, #app {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+}
+
+.sidebar-car-model {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  color: var(--color-text);
+  font-size: 0.85rem;
+  font-weight: 600;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .sidebar-user {

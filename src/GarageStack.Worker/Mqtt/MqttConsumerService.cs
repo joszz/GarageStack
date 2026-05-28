@@ -179,6 +179,9 @@ public class MqttConsumerService(
             var hwVersion = hwVersionEl.GetString();
             if (string.IsNullOrWhiteSpace(hwVersion)) return;
 
+            device.TryGetProperty("model", out var modelEl);
+            var model = modelEl.ValueKind == JsonValueKind.String ? modelEl.GetString() : null;
+
             // VIN is the first string in the identifiers array
             string? vin = null;
             foreach (var id in identifiers.EnumerateArray())
@@ -191,12 +194,14 @@ public class MqttConsumerService(
             }
             if (string.IsNullOrWhiteSpace(vin)) return;
 
-            logger.LogInformation("HA discovery - VIN={Vin} hw_version={HwVersion}", vin, hwVersion);
+            logger.LogInformation("HA discovery - VIN={Vin} hw_version={HwVersion} model={Model}", vin, hwVersion, model);
 
             using var scope = scopeFactory.CreateScope();
             var vehicleRepo = scope.ServiceProvider.GetRequiredService<IVehicleRepository>();
             var vehicle = await vehicleRepo.GetOrCreateByVinAsync(vin, null, ct);
             await vehicleRepo.SetConfigValueAsync(vehicle.Id, "hw_version", hwVersion, ct);
+            if (!string.IsNullOrWhiteSpace(model))
+                await vehicleRepo.SetModelAsync(vehicle.Id, model, ct);
         }
         catch (Exception ex)
         {
