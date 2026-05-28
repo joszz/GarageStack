@@ -90,6 +90,18 @@ async function refresh() {
 
 let interval: ReturnType<typeof setInterval>
 
+function resetInterval() {
+  clearInterval(interval)
+  interval = setInterval(refresh, 60_000)
+}
+
+function handleVisibilityChange() {
+  if (document.visibilityState === 'visible') {
+    refresh()
+    resetInterval()
+  }
+}
+
 onMounted(async () => {
   await refresh()
   // On a fresh start (no saved layout), push no-data visible cards to the end
@@ -101,9 +113,13 @@ onMounted(async () => {
     settings.cards = [...active, ...noData, ...hidden]
   }
   interval = setInterval(refresh, 60_000)
+  document.addEventListener('visibilitychange', handleVisibilityChange)
 })
 
-onUnmounted(() => clearInterval(interval))
+onUnmounted(() => {
+  clearInterval(interval)
+  document.removeEventListener('visibilitychange', handleVisibilityChange)
+})
 </script>
 
 <template>
@@ -163,12 +179,12 @@ onUnmounted(() => clearInterval(interval))
 
     <!-- Normal mode -->
     <template v-else>
-      <div v-if="store.loading" class="loading-state">
+      <div v-if="store.loading && !status" class="loading-state">
         <font-awesome-icon icon="spinner" spin />
         {{ t('common.loading') }}
       </div>
 
-      <div v-else-if="store.error" class="error-state">
+      <div v-else-if="store.error && !status" class="error-state">
         <font-awesome-icon icon="triangle-exclamation" />
         {{ t('common.error') }}
       </div>

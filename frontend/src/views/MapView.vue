@@ -25,6 +25,13 @@ const tripsPage = ref(1)
 const PAGE_SIZE = 10
 
 const mapWrapperRef = ref<HTMLElement | null>(null)
+const tripSidebarRef = ref<HTMLElement | null>(null)
+const popoverAnchor = ref<{ top: number; left: number; below: boolean } | null>(null)
+const isMobile = ref(window.innerWidth <= 767)
+
+function onResize() {
+  isMobile.value = window.innerWidth <= 767
+}
 const mapInstance = shallowRef<LeafletMap | null>(null)
 let heatLayer: L.Layer | null = null
 let routeLines: L.Polyline[] = []
@@ -32,6 +39,7 @@ let resizeObserver: ResizeObserver | null = null
 
 function closePopover() {
   selectedTripIndex.value = null
+  popoverAnchor.value = null
 }
 
 type HeatLayerFactory = {
@@ -252,6 +260,7 @@ watch(heatmapEnabled, (enabled) => {
 watch(dateRangeDays, async (days) => {
   tripsPage.value = 1
   selectedTripIndex.value = null
+  popoverAnchor.value = null
   if (vin.value) {
     await store.fetchTrips(vin.value, new Date(Date.now() - days * 86_400_000).toISOString())
   }
@@ -260,13 +269,46 @@ watch(dateRangeDays, async (days) => {
 // Deselect when paginating
 watch(tripsPage, () => {
   selectedTripIndex.value = null
+  popoverAnchor.value = null
 })
 
 function selectTrip(realIdx: number) {
-  selectedTripIndex.value = selectedTripIndex.value === realIdx ? null : realIdx
+  if (selectedTripIndex.value === realIdx) {
+    closePopover()
+    return
+  }
+  selectedTripIndex.value = realIdx
+  popoverAnchor.value = null
+  nextTick(() => {
+    const sidebar = tripSidebarRef.value
+    const active = sidebar?.querySelector('.trip-list__item--active') as HTMLElement | null
+    if (sidebar && active) {
+      const sidebarRect = sidebar.getBoundingClientRect()
+      const itemRect = active.getBoundingClientRect()
+      if (isMobile.value) {
+        // After the scroll the item will sit at the sidebar's top edge,
+        // so compute the expected post-scroll bottom position.
+        const postScrollBottom = sidebarRect.top + itemRect.height
+        popoverAnchor.value = {
+          top: postScrollBottom + 8,
+          left: sidebarRect.left,
+          below: true,
+        }
+      } else {
+        popoverAnchor.value = {
+          top: itemRect.top + itemRect.height / 2,
+          left: sidebarRect.right + 10,
+          below: false,
+        }
+      }
+      const offset = itemRect.top - sidebarRect.top
+      sidebar.scrollBy({ top: offset, behavior: 'smooth' })
+    }
+  })
 }
 
 onMounted(async () => {
+  window.addEventListener('resize', onResize)
   await store.fetchVehicles()
   if (vin.value) {
     await Promise.all([
@@ -278,6 +320,7 @@ onMounted(async () => {
 
 onUnmounted(() => {
   resizeObserver?.disconnect()
+  window.removeEventListener('resize', onResize)
 })
 </script>
 
@@ -313,7 +356,7 @@ onUnmounted(() => {
 
     <div class="map-layout">
       <!-- Trip sidebar -->
-      <aside class="trip-sidebar">
+      <aside ref="tripSidebarRef" class="trip-sidebar">
         <h3 class="trip-sidebar__title">{{ t('trips.title') }}</h3>
 
         <div v-if="store.loading" class="loading-state">
@@ -341,30 +384,6 @@ onUnmounted(() => {
                 </span>
               </div>
 
-              <Transition name="trip-popover">
-                <div
-                  v-if="selectedTripIndex === realIndex(pageOffset + displayIdx)"
-                  class="trip-popover"
-                  @click.stop
-                >
-                  <div class="trip-popover__header">
-                    <span class="trip-popover__title">{{ new Date(trip.startedAt).toLocaleDateString() }}</span>
-                    <button class="trip-popover__close" @click="closePopover">
-                      <font-awesome-icon icon="xmark" />
-                    </button>
-                  </div>
-                  <dl class="trip-detail__dl">
-                    <dt>{{ t('trips.started') }}</dt>
-                    <dd>{{ new Date(trip.startedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }}</dd>
-                    <dt>{{ t('trips.distance') }}</dt>
-                    <dd>{{ trip.distanceKm }} {{ t('common.km') }}</dd>
-                    <dt>{{ t('trips.duration') }}</dt>
-                    <dd>{{ formatDuration(trip.startedAt, trip.endedAt) }}</dd>
-                    <dt>{{ t('trips.points') }}</dt>
-                    <dd>{{ trip.pointCount }}</dd>
-                  </dl>
-                </div>
-              </Transition>
             </li>
           </ul>
 
@@ -407,4 +426,35 @@ onUnmounted(() => {
     </div>
 
   </div>
+
+  <Teleport to="body">
+    <Transition name="trip-popover">
+      <div
+        v-if="selectedTrip && popoverAnchor"
+        class="trip-popover"
+        :class="{ 'trip-popover--below': popoverAnchor.below }"
+        :style="popoverAnchor.below
+          ? { top: popoverAnchor.top + 'px', left: popoverAnchor.left + 'px', width: (tripSidebarRef?.getBoundingClientRect().width ?? 280) + 'px' }
+          : { top: popoverAnchor.top + 'px', left: popoverAnchor.left + 'px' }"
+        @click.stop
+      >
+        <div class="trip-popover__header">
+          <span class="trip-popover__title">{{ new Date(selectedTrip.startedAt).toLocaleDateString() }}</span>
+          <button class="trip-popover__close" @click="closePopover">
+            <font-awesome-icon icon="xmark" />
+          </button>
+        </div>
+        <dl class="trip-detail__dl">
+          <dt>{{ t('trips.started') }}</dt>
+          <dd>{{ new Date(selectedTrip.startedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }}</dd>
+          <dt>{{ t('trips.distance') }}</dt>
+          <dd>{{ selectedTrip.distanceKm }} {{ t('common.km') }}</dd>
+          <dt>{{ t('trips.duration') }}</dt>
+          <dd>{{ formatDuration(selectedTrip.startedAt, selectedTrip.endedAt) }}</dd>
+          <dt>{{ t('trips.points') }}</dt>
+          <dd>{{ selectedTrip.pointCount }}</dd>
+        </dl>
+      </div>
+    </Transition>
+  </Teleport>
 </template>
