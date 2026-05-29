@@ -23,6 +23,86 @@ To use GarageStack alongside the official MG app without interrupting either, se
 
 This way the official app keeps its own session on the owner account and GarageStack runs independently on the secondary account.
 
+## Installation
+
+Choose the method that fits your environment.
+
+---
+
+### Option A: All-in-one container (Unraid / homelab)
+
+A single Docker image that bundles every service -- nginx, the .NET API + worker, PostgreSQL, Mosquitto, and the SAIC gateway. No Compose file or external database needed. Ideal for Unraid and similar NAS environments where running multiple containers is inconvenient.
+
+**Quick start**
+
+```bash
+docker run -d \
+  --name garagestack \
+  -p 8080:80 \
+  -v ./garagestack-data:/data \
+  -e SAIC_USER=your@email.com \
+  -e SAIC_PASSWORD=yourpassword \
+  -e SAIC_REGION=eu \
+  -e POSTGRES_PASSWORD=changeme \
+  -e JWT_SECRET="$(openssl rand -base64 32)" \
+  -e CORS_ORIGIN=http://192.168.1.100:8080 \
+  ghcr.io/joszz/garagestack:latest
+```
+
+**Unraid:** import `unraid/garagestack.xml` from Community Apps and fill in the variables in the template UI.
+
+See [`docker/all-in-one/README.md`](docker/all-in-one/README.md) for the full variable reference, volume layout, and Unraid setup steps.
+
+---
+
+### Option B: Docker Compose
+
+Separate containers for each service. More flexible -- you can swap in your own PostgreSQL or MQTT broker, and containers update independently.
+
+**1. Clone the repository**
+
+```bash
+git clone https://github.com/joszz/garagestack.git
+cd garagestack
+```
+
+**2. Create your `.env` file**
+
+```bash
+cp .env.example .env
+```
+
+Then open `.env` and fill in at minimum:
+
+| Variable | Description |
+|----------|-------------|
+| `SAIC_USER` | MG iSmart account email |
+| `SAIC_PASSWORD` | MG iSmart account password |
+| `SAIC_REGION` | `eu`, `cn`, or `row` |
+| `POSTGRES_PASSWORD` | Pick a strong random password |
+| `JWT_SECRET` | At least 32 random characters -- generate with `openssl rand -base64 32` |
+| `CORS_ORIGIN` | The URL you open in your browser, e.g. `http://192.168.1.100:8080` |
+
+`VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` are optional; leave them empty to disable push notifications.
+
+**3. Start the stack**
+
+With the bundled PostgreSQL container:
+
+```bash
+docker compose --profile bundled-postgres up -d
+```
+
+Using your own existing PostgreSQL server (set `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_USER`, `POSTGRES_DB`, `POSTGRES_PASSWORD` in `.env` to match):
+
+```bash
+docker compose up -d
+```
+
+The frontend is served on port `8080` by default (configurable via `FRONTEND_PORT` in `.env`).
+
+---
+
 ## Security defaults:
 
 - API routes require login.

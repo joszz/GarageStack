@@ -85,6 +85,7 @@ public class TelemetryRepository(AppDbContext db) : ITelemetryRepository
             merged.Heading ??= row.Heading;
             merged.BatteryVoltage ??= row.BatteryVoltage;
             merged.InteriorTemperature ??= row.InteriorTemperature;
+            merged.RemoteTemperature ??= row.RemoteTemperature;
             merged.ExteriorTemperature ??= row.ExteriorTemperature;
             merged.EvSocPercent ??= row.EvSocPercent;
             merged.IsCharging ??= row.IsCharging;
