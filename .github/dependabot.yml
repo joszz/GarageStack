@@ -1,0 +1,139 @@
+version: 2
+updates:
+
+  # ── npm (pnpm) ───────────────────────────────────────────────────────────────
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: weekly
+      day: monday
+      time: "07:00"
+      timezone: "Europe/Amsterdam"
+    open-pull-requests-limit: 8
+    groups:
+      # Vue runtime + all official plugins that ship together
+      vue-ecosystem:
+        patterns:
+          - "vue"
+          - "vue-router"
+          - "vue-i18n"
+          - "vue-chartjs"
+          - "vue-draggable-plus"
+          - "pinia"
+          - "@vue/*"
+          - "@vitejs/plugin-vue"
+          - "vite-plugin-vue-devtools"
+          - "vue-tsc"
+
+      # Vite + PWA plugin (tend to release in step)
+      vite-and-pwa:
+        patterns:
+          - "vite"
+          - "vite-plugin-pwa"
+          - "workbox-*"
+
+      # Leaflet + chart.js move independently but are both visualisation libs
+      map-and-charts:
+        patterns:
+          - "leaflet"
+          - "@vue-leaflet/*"
+          - "chart.js"
+
+      # FontAwesome – all three packages always update together
+      fontawesome:
+        patterns:
+          - "@fortawesome/*"
+
+      # Linters and formatters – safe to bulk-update
+      linting:
+        patterns:
+          - "eslint"
+          - "eslint-*"
+          - "eslint-plugin-*"
+          - "@vue/eslint-config-*"
+          - "@vitest/eslint-plugin"
+          - "oxlint"
+          - "eslint-plugin-oxlint"
+          - "prettier"
+
+      # TypeScript, type stubs and tsconfig helpers
+      typescript-and-types:
+        patterns:
+          - "typescript"
+          - "vue-tsc"
+          - "@types/*"
+          - "@tsconfig/*"
+          - "@vue/tsconfig"
+
+      # Test runner and DOM shim
+      testing:
+        patterns:
+          - "vitest"
+          - "jsdom"
+          - "@types/jsdom"
+          - "@vue/test-utils"
+          - "jiti"
+          - "npm-run-all2"
+
+  # ── NuGet (all projects, Dependabot discovers every .csproj) ─────────────────
+  - package-ecosystem: nuget
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "07:00"
+      timezone: "Europe/Amsterdam"
+    open-pull-requests-limit: 6
+    groups:
+      # The whole Microsoft .NET / ASP.NET / Extensions family ships on the same
+      # cadence (patch Tuesday), so one PR covers all of them.
+      dotnet-platform:
+        patterns:
+          - "Microsoft.AspNetCore.*"
+          - "Microsoft.EntityFrameworkCore*"
+          - "Microsoft.EntityFrameworkCore.*"
+          - "Microsoft.EntityFrameworkCore.Design"
+          - "Microsoft.EntityFrameworkCore.InMemory"
+          - "Microsoft.EntityFrameworkCore.Relational"
+          - "Microsoft.Extensions.*"
+          - "Npgsql.EntityFrameworkCore.*"
+
+      # IdentityModel ships as a single release train separate from .NET
+      identity-model:
+        patterns:
+          - "Microsoft.IdentityModel.*"
+          - "System.IdentityModel.*"
+
+      # All Serilog packages version independently but are low-risk
+      serilog:
+        patterns:
+          - "Serilog"
+          - "Serilog.*"
+
+      # xUnit + test SDK + coverage always need to be in sync
+      test-framework:
+        patterns:
+          - "xunit*"
+          - "xunit.*"
+          - "Microsoft.NET.Test.Sdk"
+          - "coverlet.*"
+
+  # ── GitHub Actions ───────────────────────────────────────────────────────────
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "07:00"
+      timezone: "Europe/Amsterdam"
+    open-pull-requests-limit: 3
+    groups:
+      # Docker build actions ship together; one PR for all of them
+      docker-actions:
+        patterns:
+          - "docker/*"
+
+      # GitHub first-party actions
+      github-actions:
+        patterns:
+          - "actions/*"
