@@ -13,8 +13,8 @@ export const useAuthStore = defineStore('auth', () => {
     () => !!username.value && !!expiresAtUtc.value && new Date(expiresAtUtc.value) > new Date(),
   )
 
-  async function login(usernameInput: string, password: string) {
-    const result = await authApi.login(usernameInput, password)
+  async function login(usernameInput: string, password: string, rememberMe = false) {
+    const result = await authApi.login(usernameInput, password, rememberMe)
     username.value = result.username
     expiresAtUtc.value = result.expiresAtUtc
     localStorage.setItem(AUTH_USERNAME_KEY, result.username)

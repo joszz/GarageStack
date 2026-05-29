@@ -187,7 +187,9 @@
     "loggingIn": "Logging in...",
     "logout": "Log out",
     "invalidCredentials": "Invalid username or password",
-    "loginFailed": "Login failed, please try again"
+    "loginFailed": "Login failed, please try again",
+    "rememberMe": "Remember me",
+    "rememberMeDesc": "Stay logged in for 30 days"
   },
   "settings": {
     "title": "Settings",

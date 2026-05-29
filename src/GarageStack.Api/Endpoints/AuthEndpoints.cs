@@ -68,7 +68,7 @@ public static class AuthEndpoints
             }
 
             var now = DateTime.UtcNow;
-            var expires = now.AddHours(12);
+            var expires = req.RememberMe ? now.AddDays(30) : now.AddHours(12);
 
             var claims = new[]
             {
@@ -124,5 +124,5 @@ public static class AuthEndpoints
     }
 }
 
-public sealed record LoginRequest(string Username, string Password);
+public sealed record LoginRequest(string Username, string Password, bool RememberMe = false);
 public sealed record LoginResponse(string Username, DateTime ExpiresAtUtc);

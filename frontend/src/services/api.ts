@@ -158,11 +158,11 @@ export const pushApi = {
 }
 
 export const authApi = {
-  login: (username: string, password: string) =>
+  login: (username: string, password: string, rememberMe = false) =>
     request<LoginResponse>('/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password }),
+      body: JSON.stringify({ username, password, rememberMe }),
     }),
   logout: () => send('/api/auth/logout', 'POST'),
 }

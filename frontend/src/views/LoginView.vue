@@ -12,6 +12,7 @@ const auth = useAuthStore()
 
 const username = ref('')
 const password = ref('')
+const rememberMe = ref(false)
 const submitting = ref(false)
 const errorText = ref<string | null>(null)
 
@@ -22,7 +23,7 @@ async function submitLogin() {
   errorText.value = null
 
   try {
-    await auth.login(username.value, password.value)
+    await auth.login(username.value, password.value, rememberMe.value)
     const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : '/'
     await router.replace(redirect)
   } catch (err) {
@@ -79,6 +80,21 @@ async function submitLogin() {
               :placeholder="t('auth.password')"
               autocomplete="current-password"
               required
+            >
+          </div>
+        </div>
+
+        <div class="settings-toggle login-remember">
+          <div class="settings-toggle__info">
+            <span class="settings-toggle__label">{{ t('auth.rememberMe') }}</span>
+            <span class="settings-toggle__desc">{{ t('auth.rememberMeDesc') }}</span>
+          </div>
+          <div class="settings-toggle__control form-check form-switch">
+            <input
+              id="remember-me"
+              v-model="rememberMe"
+              type="checkbox"
+              class="form-check-input"
             >
           </div>
         </div>
