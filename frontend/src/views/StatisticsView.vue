@@ -4,7 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useVehicleStore } from '@/stores/vehicle'
 import { useSettingsStore } from '@/stores/settings'
 import type { TelemetrySnapshot } from '@/services/api'
-import { Line } from 'vue-chartjs'
+import { Line, Bar } from 'vue-chartjs'
 import CardInfoWrap from '@/components/CardInfoWrap.vue'
 import FiltersPanel from '@/components/FiltersPanel.vue'
 import {
@@ -13,13 +13,15 @@ import {
   LinearScale,
   PointElement,
   LineElement,
+  BarElement,
+  BarController,
   Title,
   Tooltip,
   Legend,
   Filler,
 } from 'chart.js'
 
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler)
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, BarController, Title, Tooltip, Legend, Filler)
 
 const { t } = useI18n()
 const store = useVehicleStore()
@@ -65,6 +67,10 @@ const hasCharging = computed(() =>
   effectiveVehicleType.value === 'phev' ||
   effectiveVehicleType.value === 'bev' ||
   effectiveVehicleType.value === 'unknown',
+)
+
+const isHybrid = computed(() =>
+  effectiveVehicleType.value === 'hev' || effectiveVehicleType.value === 'phev'
 )
 
 // Efficiency computed from today's stats
@@ -202,6 +208,56 @@ const batteryVoltageDisplay = computed(() => {
   return v != null ? `${v.toFixed(1)} V` : null
 })
 
+const electricShareToday = computed(() => {
+  const s = status.value
+  if (!s?.mileageSinceLastCharge || !s?.mileageOfTheDay || s.mileageOfTheDay === 0) return null
+  return Math.min(100, Math.round((s.mileageSinceLastCharge / s.mileageOfTheDay) * 100))
+})
+
+const hybridSocChartData = computed(() => ({
+  labels: chartLabels(),
+  datasets: [
+    {
+      label: `${t('vehicle.evSoc')} (%)`,
+      data: groupedHistory.value.map((d) => avg(d.snapshots.map((s) => s.evSocPercent))),
+      borderColor: '#10b981',
+      backgroundColor: 'rgba(16,185,129,0)',
+      fill: false,
+      tension: 0.3,
+      spanGaps: true,
+      pointRadius: 2,
+      pointHoverRadius: 4,
+    },
+    {
+      label: `${t('vehicle.fuel')} (%)`,
+      data: groupedHistory.value.map((d) => avg(d.snapshots.map((s) => s.fuelLevelPercent))),
+      borderColor: '#3b82f6',
+      backgroundColor: 'rgba(59,130,246,0)',
+      fill: false,
+      tension: 0.3,
+      spanGaps: true,
+      pointRadius: 2,
+      pointHoverRadius: 4,
+    },
+  ],
+}))
+
+const dailyKwhChartData = computed(() => ({
+  labels: chartLabels(),
+  datasets: [
+    {
+      label: 'kWh',
+      data: groupedHistory.value.map((d) => {
+        const vals = d.snapshots.map((s) => s.powerUsageOfDay).filter((v): v is number => v !== null)
+        if (!vals.length) return null
+        return round2(Math.max(...vals) / 1000)
+      }),
+      borderColor: '#f59e0b',
+      backgroundColor: 'rgba(245,158,11,0.7)',
+    },
+  ],
+}))
+
 const fuelChartData = computed(() => ({
   labels: chartLabels(),
   datasets: [
@@ -311,6 +367,42 @@ const pressureOptions = {
       },
     },
     y: { min: 1.5, max: 3.5 },
+  },
+}
+
+const hybridSocOptions = {
+  responsive: true,
+  maintainAspectRatio: true,
+  aspectRatio: 2.6,
+  animation: false as const,
+  plugins: { legend: { display: true } },
+  scales: {
+    x: {
+      ticks: {
+        maxRotation: 0,
+        autoSkip: true,
+        maxTicksLimit: 8,
+      },
+    },
+    y: { min: 0, max: 100 },
+  },
+}
+
+const kwhOptions = {
+  responsive: true,
+  maintainAspectRatio: true,
+  aspectRatio: 2.6,
+  animation: false as const,
+  plugins: { legend: { display: false } },
+  scales: {
+    x: {
+      ticks: {
+        maxRotation: 0,
+        autoSkip: true,
+        maxTicksLimit: 8,
+      },
+    },
+    y: { min: 0 },
   },
 }
 </script>
@@ -457,6 +549,17 @@ const pressureOptions = {
                 </div>
               </CardInfoWrap>
             </template>
+
+            <CardInfoWrap v-if="status && isHybrid" :title="t('statistics.insights.electricShare')" :description="t('statistics.cardDesc.electricShare')">
+              <div class="status-card">
+                <div class="status-card__body">
+                  <span class="status-card__label">{{ t('statistics.insights.electricShare') }}</span>
+                  <span class="status-card__value">
+                    {{ electricShareToday !== null ? `${electricShareToday}%` : '-' }}
+                  </span>
+                </div>
+              </div>
+            </CardInfoWrap>
           </div>
         </section>
 
@@ -476,6 +579,16 @@ const pressureOptions = {
             <div class="chart-container">
               <h2>{{ t('vehicle.tyres') }}</h2>
               <Line :data="tyreChartData" :options="pressureOptions" />
+            </div>
+
+            <div v-if="isHybrid" class="chart-container">
+              <h2>{{ t('statistics.hybridSocChart') }}</h2>
+              <Line :data="hybridSocChartData" :options="hybridSocOptions" />
+            </div>
+
+            <div v-if="isHybrid" class="chart-container">
+              <h2>{{ t('statistics.dailyKwhChart') }}</h2>
+              <Bar :data="dailyKwhChartData" :options="kwhOptions" />
             </div>
           </div>
         </template>

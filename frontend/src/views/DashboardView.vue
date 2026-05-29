@@ -10,6 +10,7 @@ import { defaultCards } from '@/stores/settings'
 import DashboardCardContent from '@/components/DashboardCardContent.vue'
 import CardInfoWrap from '@/components/CardInfoWrap.vue'
 import TyreDiagram from '@/components/TyreDiagram.vue'
+import { useVehicleAlerts } from '@/composables/useVehicleAlerts'
 
 const { t } = useI18n()
 const store = useVehicleStore()
@@ -26,6 +27,8 @@ const vehicleType = computed((): VehicleType | 'unknown' => {
 })
 
 const isHev = computed(() => vehicleType.value === 'hev')
+
+useVehicleAlerts(status)
 
 function toggleEditMode() {
   editMode.value = !editMode.value

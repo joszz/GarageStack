@@ -47,7 +47,8 @@
       "climateUsage": "Klimaatgebruik",
       "commutePattern": "Piek rijtijd",
       "batteryVoltageTrend": "12V-trend",
-      "parkingLocations": "Parkeerlocaties"
+      "parkingLocations": "Parkeerlocaties",
+      "electricShare": "Elektrisch aandeel vandaag"
     },
     "cardDesc": {
       "todayDistance": "Totale afstand gereden sinds middernacht, zoals gerapporteerd door de auto.",
@@ -59,8 +60,11 @@
       "climateUsage": "Percentage van geregistreerde momenten waarop de klimaatbeheersing actief was.",
       "commutePattern": "Het uur van de dag met de meeste ritstarts in de geselecteerde periode - jouw meest voorkomende rijtijd.",
       "batteryVoltageTrend": "Verandering in gemiddelde 12V-accuspanning van het begin tot het einde van de geselecteerde periode. Toont de huidige spanning als er minder dan twee dagen aan data beschikbaar is.",
-      "parkingLocations": "Aantal unieke parkeerplaatsen gebruikt over alle ritten in de geselecteerde periode, gebaseerd op afgeronde GPS-coordinaten."
-    }
+      "parkingLocations": "Aantal unieke parkeerplaatsen gebruikt over alle ritten in de geselecteerde periode, gebaseerd op afgeronde GPS-coordinaten.",
+      "electricShare": "Geschat aandeel van de ritten vandaag op elektrisch vermogen, afgeleid van km sinds laatste laadbeurt versus totaal km vandaag. Alleen zichtbaar voor HEV en PHEV."
+    },
+    "hybridSocChart": "EV & Brandstofniveaus",
+    "dailyKwhChart": "Dagelijks elektrisch verbruik (kWh)"
   },
   "vehicle": {
     "fuel": "Brandstof",
