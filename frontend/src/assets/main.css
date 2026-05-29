@@ -149,6 +149,10 @@ html, body, #app {
   font-weight: 700;
   color: var(--color-primary);
   text-decoration: none;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
 }
 
 /* ── Backdrop ─────────────────────────────────────────────── */
@@ -1889,7 +1893,7 @@ html, body, #app {
 
 .notif-bell {
   position: relative;
-  margin-left: auto;
+  flex-shrink: 0;
   background: none;
   border: none;
   color: var(--color-text-muted);
