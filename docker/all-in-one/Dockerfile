@@ -6,8 +6,9 @@ WORKDIR /app
 RUN corepack enable && corepack prepare pnpm@11.1.3 --activate
 COPY frontend/package.json frontend/pnpm-lock.yaml ./
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
-    pnpm config set store-dir /pnpm/store \
-    && NODE_ENV=development NPM_CONFIG_PRODUCTION=false pnpm install --frozen-lockfile --prod=false --config.production=false
+    pnpm config set store-dir /pnpm/store && \
+    pnpm config set minimum-release-age 0 && \
+    NODE_ENV=development NPM_CONFIG_PRODUCTION=false pnpm install --frozen-lockfile --ignore-scripts --prod=false --config.production=false
 COPY frontend/ .
 RUN pnpm run build
 
