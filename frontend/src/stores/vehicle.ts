@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, computed, readonly } from 'vue'
 import { vehicleApi, type Vehicle, type TelemetrySnapshot, type Trip } from '@/services/api'
 
 export type VehicleType = 'hev' | 'phev' | 'bev' | 'unknown'
@@ -10,11 +10,12 @@ export const useVehicleStore = defineStore('vehicle', () => {
   const vehicleConfig = ref<Record<string, string>>({})
   const history = ref<TelemetrySnapshot[]>([])
   const trips = ref<Trip[]>([])
-  const loading = ref(false)
+  const loadingCount = ref(0)
+  const loading = computed(() => loadingCount.value > 0)
   const error = ref<string | null>(null)
 
   async function fetchVehicles() {
-    loading.value = true
+    loadingCount.value++
     error.value = null
     try {
       const result = await vehicleApi.list()
@@ -24,19 +25,19 @@ export const useVehicleStore = defineStore('vehicle', () => {
       console.error('[vehicle] fetchVehicles error:', e)
       error.value = String(e)
     } finally {
-      loading.value = false
+      loadingCount.value--
     }
   }
 
   async function fetchStatus(vin: string) {
-    loading.value = true
+    loadingCount.value++
     error.value = null
     try {
       currentStatus.value = await vehicleApi.status(vin)
     } catch (e) {
       error.value = String(e)
     } finally {
-      loading.value = false
+      loadingCount.value--
     }
   }
 
@@ -49,7 +50,7 @@ export const useVehicleStore = defineStore('vehicle', () => {
   }
 
   async function fetchHistory(vin: string, from?: string, to?: string) {
-    loading.value = true
+    loadingCount.value++
     error.value = null
     try {
       const result = await vehicleApi.history(vin, from, to)
@@ -59,19 +60,19 @@ export const useVehicleStore = defineStore('vehicle', () => {
       console.error('[vehicle] fetchHistory error:', e)
       error.value = String(e)
     } finally {
-      loading.value = false
+      loadingCount.value--
     }
   }
 
   async function fetchTrips(vin: string, from?: string, to?: string) {
-    loading.value = true
+    loadingCount.value++
     error.value = null
     try {
       trips.value = await vehicleApi.trips(vin, from, to)
     } catch (e) {
       error.value = String(e)
     } finally {
-      loading.value = false
+      loadingCount.value--
     }
   }
 

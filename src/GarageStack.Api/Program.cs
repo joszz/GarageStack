@@ -129,10 +129,19 @@ try
         await ctx.Response.WriteAsync("{\"error\":\"Internal server error\"}");
     }));
 
-    app.UseForwardedHeaders(new ForwardedHeadersOptions
+    var forwardedOptions = new ForwardedHeadersOptions
     {
         ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
-    });
+    };
+    // Trust RFC 1918 private ranges so nginx running in a Docker network
+    // (typically 172.16-31.x.x) is recognised as a trusted proxy and
+    // X-Forwarded-Proto: https is applied correctly.
+#pragma warning disable ASPDEPR005
+    forwardedOptions.KnownNetworks.Add(new IPNetwork(System.Net.IPAddress.Parse("10.0.0.0"), 8));
+    forwardedOptions.KnownNetworks.Add(new IPNetwork(System.Net.IPAddress.Parse("172.16.0.0"), 12));
+    forwardedOptions.KnownNetworks.Add(new IPNetwork(System.Net.IPAddress.Parse("192.168.0.0"), 16));
+#pragma warning restore ASPDEPR005
+    app.UseForwardedHeaders(forwardedOptions);
     app.UseSerilogRequestLogging();
     app.UseCors();
     app.UseRateLimiter();

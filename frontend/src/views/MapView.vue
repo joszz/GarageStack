@@ -3,6 +3,7 @@ import { onMounted, onUnmounted, computed, ref, shallowRef, watch, nextTick } fr
 import { useI18n } from 'vue-i18n'
 import { useVehicleStore } from '@/stores/vehicle'
 import { LMap, LTileLayer, LMarker, LPopup } from '@vue-leaflet/vue-leaflet'
+import TripPaginator from '@/components/TripPaginator.vue'
 import * as LModule from 'leaflet'
 import type { Map as LeafletMap } from 'leaflet'
 import 'leaflet.heat'
@@ -23,7 +24,6 @@ const heatmapEnabled = ref(true)
 const dateRangeDays = ref(30)
 const tripsPage = ref(1)
 const PAGE_SIZE = 10
-const pageInput = ref(1)
 
 const mapWrapperRef = ref<HTMLElement | null>(null)
 const tripSidebarRef = ref<HTMLElement | null>(null)
@@ -164,7 +164,7 @@ function fitBoundsSafe(pts: [number, number][]) {
 function fitAll() {
   if (allPoints.value.length > 0) {
     fitBoundsSafe(allPoints.value)
-  } else if (status.value?.latitude && status.value?.longitude) {
+  } else if (status.value?.latitude != null && status.value?.longitude != null) {
     mapInstance.value?.setView([status.value.latitude, status.value.longitude], 14)
   }
 }
@@ -176,21 +176,13 @@ function fitTrip(trip: Trip) {
 function flyToStatus() {
   const map = mapInstance.value
   const s = status.value
-  if (map && s?.latitude && s?.longitude) {
+  if (map && s?.latitude != null && s?.longitude != null) {
     map.setView([s.latitude, s.longitude], 14)
   }
 }
 
 function toggleHeatmap() {
   heatmapEnabled.value = !heatmapEnabled.value
-}
-
-function goToPreviousTripsPage() {
-  if (tripsPage.value > 1) tripsPage.value -= 1
-}
-
-function goToNextTripsPage() {
-  if (tripsPage.value < totalPages.value) tripsPage.value += 1
 }
 
 function onMapReady(map: LeafletMap) {
@@ -212,7 +204,7 @@ function onMapReady(map: LeafletMap) {
         buildHeatLayer()
         buildRouteLines()
         fitAll()
-      } else if (status.value?.latitude && status.value?.longitude) {
+      } else if (status.value?.latitude != null && status.value?.longitude != null) {
         map.setView([status.value.latitude, status.value.longitude], 14)
       }
     })
@@ -221,7 +213,7 @@ function onMapReady(map: LeafletMap) {
 
 // When status loads and there are no trip points yet, fly to the car's position
 watch(status, (s) => {
-  if (!mapInstance.value || !s?.latitude || !s?.longitude) return
+  if (!mapInstance.value || s?.latitude == null || s?.longitude == null) return
   if (allPoints.value.length === 0) {
     mapInstance.value.setView([s.latitude, s.longitude], 14)
   }
@@ -267,24 +259,11 @@ watch(dateRangeDays, async (days) => {
   }
 })
 
-// Deselect when paginating; keep input in sync
-watch(tripsPage, (p) => {
+// Deselect when paginating
+watch(tripsPage, () => {
   selectedTripIndex.value = null
   popoverAnchor.value = null
-  pageInput.value = p
 })
-
-function commitPageInput() {
-  const val = isNaN(pageInput.value)
-    ? tripsPage.value
-    : Math.max(1, Math.min(totalPages.value, Math.round(pageInput.value)))
-  tripsPage.value = val
-  pageInput.value = val
-}
-
-function onPageInputFocus(e: FocusEvent) {
-  ;(e.target as HTMLInputElement).select()
-}
 
 function selectTrip(realIdx: number) {
   if (selectedTripIndex.value === realIdx) {
@@ -358,7 +337,7 @@ onUnmounted(() => {
           {{ t('trips.heatmap') }}
         </button>
         <button
-          v-if="status?.latitude && status?.longitude"
+          v-if="status?.latitude != null && status?.longitude != null"
           class="btn btn-sm btn-outline-secondary"
           @click="flyToStatus"
         >
@@ -382,34 +361,7 @@ onUnmounted(() => {
         </div>
 
         <template v-else>
-          <!-- Top pagination -->
-          <div v-if="totalPages > 1" class="trip-pagination trip-pagination--top">
-            <button
-              class="btn btn-sm btn-outline-secondary trip-pagination__btn"
-              :disabled="tripsPage === 1"
-              @click="goToPreviousTripsPage"
-            >
-              <font-awesome-icon icon="chevron-left" />
-            </button>
-            <input
-              v-model.number="pageInput"
-              type="number"
-              min="1"
-              :max="totalPages"
-              class="trip-pagination__input"
-              @blur="commitPageInput"
-              @keydown.enter.prevent="commitPageInput"
-              @focus="onPageInputFocus"
-            >
-            <span class="trip-pagination__sep">/ {{ totalPages }}</span>
-            <button
-              class="btn btn-sm btn-outline-secondary trip-pagination__btn"
-              :disabled="tripsPage === totalPages"
-              @click="goToNextTripsPage"
-            >
-              <font-awesome-icon icon="chevron-right" />
-            </button>
-          </div>
+          <TripPaginator v-if="totalPages > 1" v-model="tripsPage" :total-pages="totalPages" class="trip-pagination--top" />
 
           <ul class="trip-list">
             <li
@@ -429,34 +381,7 @@ onUnmounted(() => {
             </li>
           </ul>
 
-          <!-- Bottom pagination -->
-          <div v-if="totalPages > 1" class="trip-pagination">
-            <button
-              class="btn btn-sm btn-outline-secondary trip-pagination__btn"
-              :disabled="tripsPage === 1"
-              @click="goToPreviousTripsPage"
-            >
-              <font-awesome-icon icon="chevron-left" />
-            </button>
-            <input
-              v-model.number="pageInput"
-              type="number"
-              min="1"
-              :max="totalPages"
-              class="trip-pagination__input"
-              @blur="commitPageInput"
-              @keydown.enter.prevent="commitPageInput"
-              @focus="onPageInputFocus"
-            >
-            <span class="trip-pagination__sep">/ {{ totalPages }}</span>
-            <button
-              class="btn btn-sm btn-outline-secondary trip-pagination__btn"
-              :disabled="tripsPage === totalPages"
-              @click="goToNextTripsPage"
-            >
-              <font-awesome-icon icon="chevron-right" />
-            </button>
-          </div>
+          <TripPaginator v-if="totalPages > 1" v-model="tripsPage" :total-pages="totalPages" />
         </template>
       </aside>
 
@@ -469,7 +394,7 @@ onUnmounted(() => {
           />
 
           <!-- Current position marker -->
-          <LMarker v-if="status?.latitude && status?.longitude" :lat-lng="[status.latitude, status.longitude]">
+          <LMarker v-if="status?.latitude != null && status?.longitude != null" :lat-lng="[status.latitude, status.longitude]">
             <LPopup>{{ store.vehicles[0]?.model ?? store.vehicles[0]?.vin }}</LPopup>
           </LMarker>
         </LMap>

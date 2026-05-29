@@ -17,8 +17,10 @@ public class TelemetryRepository(AppDbContext db) : ITelemetryRepository
              s.DriverWindowOpen != null || s.PassengerWindowOpen != null ||
              s.RearLeftWindowOpen != null || s.RearRightWindowOpen != null ||
              s.SunRoofOpen != null ||
-             s.Latitude != null || s.BatteryVoltage != null ||
+             s.Latitude != null || s.Longitude != null || s.Heading != null ||
+             s.BatteryVoltage != null ||
              s.InteriorTemperature != null || s.ExteriorTemperature != null ||
+             s.RemoteTemperature != null ||
              s.EvSocPercent != null || s.IsCharging != null ||
              s.TyrePressureFrontLeft != null || s.TyrePressureFrontRight != null ||
              s.TyrePressureRearLeft != null || s.TyrePressureRearRight != null ||

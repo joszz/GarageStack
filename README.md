@@ -4,7 +4,26 @@ GarageStack is a free, open-source vehicle monitoring dashboard for MG / SAIC ca
 
 Features include a live dashboard, trip history with map and heatmap visualisation, energy statistics, and remote commands (climate, lock/unlock, find-my-car). The app is a PWA, so it can be installed on your phone or desktop and receives push notifications.
 
-Security defaults:
+## Screenshots
+
+| Desktop | Mobile |
+|---------|--------|
+| ![Desktop dashboard](frontend/public/screenshot-desktop-home.webp) | ![Mobile dashboard](frontend/public/screenshot-mobile-home.webp) |
+
+## MG iSmart account and session limits
+
+> **Important:** The MG iSmart API only allows one active session per account at a time. Logging in anywhere else with the same credentials -- including the official MG app -- will immediately invalidate GarageStack's session, causing telemetry to stop until GarageStack reconnects.
+
+To use GarageStack alongside the official MG app without interrupting either, set up a secondary account:
+
+1. Open the MG app and go to **Settings > Account management > Add secondary account** (exact wording varies by region and app version).
+2. Invite a second email address and accept the invite on that account.
+3. Grant the secondary account access to your vehicle.
+4. Use the secondary account's credentials for `SAIC_USER` / `SAIC_PASSWORD` in GarageStack.
+
+This way the official app keeps its own session on the owner account and GarageStack runs independently on the secondary account.
+
+## Security defaults:
 
 - API routes require login.
 - Login reuses the configured MG account credentials (`SAIC_USER`/`SAIC_PASSWORD`) and issues short-lived JWT tokens.

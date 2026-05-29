@@ -97,4 +97,4 @@ Import the template from `unraid/garagestack.xml`. Fill in at minimum:
 
 VAPID keys are optional; leave them blank to skip push notifications.
 
-> **Note on the MG account:** use the vehicle owner account, not a shared or secondary account. Run a separate account on the MG phone app to avoid session conflicts.
+> **Note on the MG account:** see the [MG iSmart account and session limits](../../README.md#mg-ismart-account-and-session-limits) section in the main README.
