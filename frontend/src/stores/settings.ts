@@ -71,6 +71,7 @@ export interface AppSettings {
   cards: CardConfig[]
   statsInsights: StatsItemConfig<StatsInsightId>[]
   statsCharts: StatsItemConfig<StatsChartId>[]
+  showTyreDiagram: boolean
   vehicleTypeOverride: VehicleTypeOverride
   theme: Theme
   locale: Locale
@@ -115,6 +116,7 @@ const defaults: AppSettings = {
   cards: defaultCards('unknown'),
   statsInsights: defaultStatsInsights(),
   statsCharts: defaultStatsCharts(),
+  showTyreDiagram: true,
   vehicleTypeOverride: 'auto',
   theme: osPreferredTheme(),
   locale: browserLocale(),
@@ -207,6 +209,7 @@ function loadFromKey(key: string): AppSettings {
           cards: defaultCards('unknown').map(c => ({ id: c.id, visible: visMap[c.id] ?? c.visible })),
           statsInsights: defaultStatsInsights(),
           statsCharts: defaultStatsCharts(),
+          showTyreDiagram: true,
           vehicleTypeOverride: parsed.vehicleTypeOverride ?? defaults.vehicleTypeOverride,
           theme: parsed.theme ?? defaults.theme,
           locale: parsed.locale ?? defaults.locale,
@@ -219,6 +222,7 @@ function loadFromKey(key: string): AppSettings {
           cards: migrateCards(parsed.cards),
           statsInsights: loadStatsItems(parsed.statsInsights, ALL_STATS_INSIGHT_IDS),
           statsCharts: loadStatsItems(parsed.statsCharts, ALL_STATS_CHART_IDS),
+          showTyreDiagram: parsed.showTyreDiagram !== false,
           vehicleTypeOverride: parsed.vehicleTypeOverride ?? defaults.vehicleTypeOverride,
           theme: parsed.theme ?? defaults.theme,
           locale: parsed.locale ?? defaults.locale,
@@ -251,6 +255,7 @@ export const useSettingsStore = defineStore('settings', () => {
   const filterDays = ref<number>(loaded.filterDays)
   const statsInsights = ref<StatsItemConfig<StatsInsightId>[]>(loaded.statsInsights)
   const statsCharts = ref<StatsItemConfig<StatsChartId>[]>(loaded.statsCharts)
+  const showTyreDiagram = ref<boolean>(loaded.showTyreDiagram)
 
   document.documentElement.dataset.theme = theme.value
 
@@ -259,6 +264,7 @@ export const useSettingsStore = defineStore('settings', () => {
       cards: cards.value,
       statsInsights: statsInsights.value,
       statsCharts: statsCharts.value,
+      showTyreDiagram: showTyreDiagram.value,
       vehicleTypeOverride: vehicleTypeOverride.value,
       theme: theme.value,
       locale: locale.value,
@@ -269,6 +275,7 @@ export const useSettingsStore = defineStore('settings', () => {
   watch(cards, save, { deep: true })
   watch(statsInsights, save, { deep: true })
   watch(statsCharts, save, { deep: true })
+  watch(showTyreDiagram, save)
   watch(vehicleTypeOverride, save)
   watch(locale, save)
   watch(filterDays, save)
@@ -281,5 +288,5 @@ export const useSettingsStore = defineStore('settings', () => {
     cards.value = defaultCards(type)
   }
 
-  return { cards, statsInsights, statsCharts, vehicleTypeOverride, theme, locale, filterDays, resetCards }
+  return { cards, statsInsights, statsCharts, showTyreDiagram, vehicleTypeOverride, theme, locale, filterDays, resetCards }
 })

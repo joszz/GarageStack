@@ -1384,6 +1384,12 @@ html, body, #app {
 .card-slot:nth-child(4n)  { animation-delay: 0.03s; }
 .card-slot:nth-child(5n)  { animation-delay: 0.09s; }
 
+.card-slot--static {
+  cursor: default;
+  touch-action: auto;
+  animation: none;
+}
+
 .card-slot--chosen {
   animation: none;
   cursor: grabbing;

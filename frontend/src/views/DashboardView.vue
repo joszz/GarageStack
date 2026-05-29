@@ -81,6 +81,7 @@ function resetLayout() {
   const noData = fresh.filter(c => c.visible && !cardHasData(c.id))
   const hidden = fresh.filter(c => !c.visible)
   settings.cards = [...active, ...noData, ...hidden]
+  settings.showTyreDiagram = true
 }
 
 async function refresh() {
@@ -174,6 +175,34 @@ onUnmounted(() => {
         </div>
       </VueDraggable>
 
+      <!-- Tyre diagram toggle -->
+      <div
+        class="card-slot card-slot--static mt-4"
+        :class="{ 'card-slot--hidden': !settings.showTyreDiagram }"
+      >
+        <div class="card-slot__content">
+          <TyreDiagram
+            v-if="settings.showTyreDiagram && status"
+            :front-left="status.tyrePressureFrontLeft"
+            :front-right="status.tyrePressureFrontRight"
+            :rear-left="status.tyrePressureRearLeft"
+            :rear-right="status.tyrePressureRearRight"
+          />
+          <div v-else class="card-slot__placeholder card-slot__placeholder--chart">
+            <font-awesome-icon icon="gauge" />
+            <span>{{ t('vehicle.tyres') }}</span>
+          </div>
+        </div>
+        <button
+          class="card-slot__badge"
+          :class="settings.showTyreDiagram ? 'card-slot__badge--hide' : 'card-slot__badge--show'"
+          :aria-label="settings.showTyreDiagram ? t('dashboard.hideCard') : t('dashboard.showCard')"
+          @click.stop="settings.showTyreDiagram = !settings.showTyreDiagram"
+        >
+          <font-awesome-icon :icon="settings.showTyreDiagram ? 'xmark' : 'plus'" />
+        </button>
+      </div>
+
       <button class="btn btn-outline-secondary mt-3" @click="resetLayout">
         <font-awesome-icon icon="rotate-left" />
         {{ t('dashboard.resetLayout') }}
@@ -211,6 +240,7 @@ onUnmounted(() => {
         </div>
 
         <TyreDiagram
+          v-if="settings.showTyreDiagram"
           :front-left="status.tyrePressureFrontLeft"
           :front-right="status.tyrePressureFrontRight"
           :rear-left="status.tyrePressureRearLeft"
