@@ -116,6 +116,25 @@ public class TelemetryRepository(AppDbContext db) : ITelemetryRepository
             merged.RearWindowDefroster ??= row.RearWindowDefroster;
         }
 
+        // GPS rows are sparse: the 200-row window may be filled with non-location
+        // topics published while the car is parked. Fall back to the most recent
+        // row that has coordinates - the partial index makes this cheap.
+        if (merged.Latitude == null)
+        {
+            var loc = await db.TelemetrySnapshots
+                .Where(s => s.VehicleId == vehicleId && s.Latitude != null && s.Longitude != null)
+                .OrderByDescending(s => s.RecordedAt)
+                .Select(s => new { s.Latitude, s.Longitude, s.Heading })
+                .FirstOrDefaultAsync(ct);
+
+            if (loc != null)
+            {
+                merged.Latitude = loc.Latitude;
+                merged.Longitude = loc.Longitude;
+                merged.Heading ??= loc.Heading;
+            }
+        }
+
         return merged;
     }
 

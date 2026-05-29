@@ -2,8 +2,10 @@
 import { onMounted, onUnmounted, computed, ref, shallowRef, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useVehicleStore } from '@/stores/vehicle'
+import { useSettingsStore } from '@/stores/settings'
 import { LMap, LTileLayer, LMarker, LPopup } from '@vue-leaflet/vue-leaflet'
 import TripPaginator from '@/components/TripPaginator.vue'
+import FiltersPanel from '@/components/FiltersPanel.vue'
 import * as LModule from 'leaflet'
 import type { Map as LeafletMap } from 'leaflet'
 import 'leaflet.heat'
@@ -16,12 +18,17 @@ const L = ((LModule as any).default ?? LModule) as typeof LModule
 
 const { t } = useI18n()
 const store = useVehicleStore()
+const settingsStore = useSettingsStore()
 
 const vin = computed(() => store.vehicles[0]?.vin ?? null)
 const status = computed(() => store.currentStatus)
 const selectedTripIndex = ref<number | null>(null)
 const heatmapEnabled = ref(true)
-const dateRangeDays = ref(30)
+
+const dateRangeDays = computed({
+  get: () => settingsStore.filterDays,
+  set: (v: number) => { settingsStore.filterDays = v },
+})
 const tripsPage = ref(1)
 const PAGE_SIZE = 10
 
@@ -181,10 +188,6 @@ function flyToStatus() {
   }
 }
 
-function toggleHeatmap() {
-  heatmapEnabled.value = !heatmapEnabled.value
-}
-
 function onMapReady(map: LeafletMap) {
   mapInstance.value = map
 
@@ -321,24 +324,32 @@ onUnmounted(() => {
   <div class="view-container view-container--map">
     <div class="view-header">
       <h1>{{ t('nav.map') }}</h1>
-      <div class="view-header__actions map-controls">
-        <label class="map-controls__label">{{ t('trips.dateRange') }}</label>
-        <select v-model="dateRangeDays" class="form-select form-select-sm">
-          <option :value="7">{{ t('trips.last7days') }}</option>
-          <option :value="30">{{ t('trips.last30days') }}</option>
-          <option :value="90">{{ t('trips.last90days') }}</option>
-        </select>
+      <div class="view-header__actions">
+        <FiltersPanel>
+          <div class="settings-toggle">
+            <div class="settings-toggle__info">
+              <span class="settings-toggle__label">{{ t('trips.dateRange') }}</span>
+            </div>
+            <div class="settings-toggle__control">
+              <select v-model="dateRangeDays" class="form-select form-select-sm">
+                <option :value="7">{{ t('trips.last7days') }}</option>
+                <option :value="30">{{ t('trips.last30days') }}</option>
+                <option :value="90">{{ t('trips.last90days') }}</option>
+              </select>
+            </div>
+          </div>
+          <div class="settings-toggle">
+            <div class="settings-toggle__info">
+              <span class="settings-toggle__label">{{ t('trips.heatmap') }}</span>
+            </div>
+            <div class="settings-toggle__control form-check form-switch">
+              <input v-model="heatmapEnabled" type="checkbox" class="form-check-input">
+            </div>
+          </div>
+        </FiltersPanel>
         <button
-          class="btn btn-sm"
-          :class="heatmapEnabled ? 'btn-primary' : 'btn-outline-secondary'"
-          @click="toggleHeatmap"
-        >
-          <font-awesome-icon icon="fire" />
-          {{ t('trips.heatmap') }}
-        </button>
-        <button
-          v-if="status?.latitude != null && status?.longitude != null"
           class="btn btn-sm btn-outline-secondary"
+          :disabled="status?.latitude == null || status?.longitude == null"
           @click="flyToStatus"
         >
           <font-awesome-icon icon="location-dot" />
@@ -394,7 +405,7 @@ onUnmounted(() => {
           />
 
           <!-- Current position marker -->
-          <LMarker v-if="status?.latitude != null && status?.longitude != null" :lat-lng="[status.latitude, status.longitude]">
+          <LMarker v-if="status?.latitude != null && status?.longitude != null" :lat-lng="[status.latitude!, status.longitude!]">
             <LPopup>{{ store.vehicles[0]?.model ?? store.vehicles[0]?.vin }}</LPopup>
           </LMarker>
         </LMap>

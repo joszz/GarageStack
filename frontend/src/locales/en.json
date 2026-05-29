@@ -271,6 +271,7 @@
     "open": "Open",
     "closed": "Closed",
     "noData": "No data available",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "filters": "Filters"
   }
 }

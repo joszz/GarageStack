@@ -262,6 +262,10 @@ html, body, #app {
 
 .view-header__actions {
   margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
 /* ── State indicators ─────────────────────────────────────── */

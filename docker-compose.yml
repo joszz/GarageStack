@@ -60,6 +60,8 @@ services:
       dockerfile: src/GarageStack.Worker/Dockerfile
     container_name: garagestack-worker
     restart: unless-stopped
+    labels:
+      net.unraid.docker.icon: "https://raw.githubusercontent.com/joszz/garagestack/main/frontend/public/pwa-192x192.png"
     depends_on:
       postgres:
         condition: service_healthy
@@ -86,6 +88,8 @@ services:
       dockerfile: src/GarageStack.Api/Dockerfile
     container_name: garagestack-api
     restart: unless-stopped
+    labels:
+      net.unraid.docker.icon: "https://raw.githubusercontent.com/joszz/garagestack/main/frontend/public/pwa-192x192.png"
     depends_on:
       postgres:
         condition: service_healthy
@@ -121,6 +125,9 @@ services:
       dockerfile: Dockerfile
     container_name: garagestack-frontend
     restart: unless-stopped
+    labels:
+      net.unraid.docker.icon: "https://raw.githubusercontent.com/joszz/garagestack/main/frontend/public/pwa-192x192.png"
+      net.unraid.docker.webui: "http://[IP]:[PORT:80]/"
     depends_on:
       - api
     ports:

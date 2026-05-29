@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { onMounted, computed, ref } from 'vue'
+import { onMounted, computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useVehicleStore } from '@/stores/vehicle'
 import { useSettingsStore } from '@/stores/settings'
 import type { TelemetrySnapshot } from '@/services/api'
 import { Line } from 'vue-chartjs'
 import CardInfoWrap from '@/components/CardInfoWrap.vue'
+import FiltersPanel from '@/components/FiltersPanel.vue'
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -23,7 +24,11 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, T
 const { t } = useI18n()
 const store = useVehicleStore()
 const settingsStore = useSettingsStore()
-const days = ref(7)
+
+const days = computed({
+  get: () => settingsStore.filterDays,
+  set: (v: number) => { settingsStore.filterDays = v },
+})
 
 const vin = computed(() => store.vehicles[0]?.vin ?? null)
 const status = computed(() => store.currentStatus)
@@ -42,9 +47,7 @@ async function load() {
 
 onMounted(load)
 
-function watchDays() {
-  load()
-}
+watch(() => settingsStore.filterDays, load)
 
 // Effective vehicle type: manual override wins, then auto-detected
 const effectiveVehicleType = computed(() => {
@@ -317,11 +320,20 @@ const pressureOptions = {
     <div class="view-header">
       <h1>{{ t('nav.statistics') }}</h1>
       <div class="view-header__actions">
-        <select v-model="days" class="form-select form-select-sm stats-days-select" @change="watchDays">
-          <option :value="1">24h</option>
-          <option :value="7">7 days</option>
-          <option :value="30">30 days</option>
-        </select>
+        <FiltersPanel>
+          <div class="settings-toggle">
+            <div class="settings-toggle__info">
+              <span class="settings-toggle__label">{{ t('trips.dateRange') }}</span>
+            </div>
+            <div class="settings-toggle__control">
+              <select v-model="days" class="form-select form-select-sm">
+                <option :value="7">{{ t('trips.last7days') }}</option>
+                <option :value="30">{{ t('trips.last30days') }}</option>
+                <option :value="90">{{ t('trips.last90days') }}</option>
+              </select>
+            </div>
+          </div>
+        </FiltersPanel>
       </div>
     </div>
 
@@ -473,10 +485,6 @@ const pressureOptions = {
 </template>
 
 <style scoped>
-.stats-days-select {
-  width: auto;
-}
-
 .stats-insights {
   margin-bottom: 1rem;
 }

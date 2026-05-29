@@ -271,6 +271,7 @@
     "open": "Open",
     "closed": "Gesloten",
     "noData": "Geen gegevens beschikbaar",
-    "cancel": "Annuleren"
+    "cancel": "Annuleren",
+    "filters": "Filters"
   }
 }

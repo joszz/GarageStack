@@ -30,6 +30,7 @@ export interface AppSettings {
   vehicleTypeOverride: VehicleTypeOverride
   theme: Theme
   locale: Locale
+  filterDays: number
 }
 
 function osPreferredTheme(): Theme {
@@ -71,6 +72,7 @@ const defaults: AppSettings = {
   vehicleTypeOverride: 'auto',
   theme: osPreferredTheme(),
   locale: browserLocale(),
+  filterDays: 7,
 }
 
 function migrateCards(raw: { id: string; visible: boolean }[]): CardConfig[] {
@@ -160,6 +162,7 @@ function loadFromKey(key: string): AppSettings {
           vehicleTypeOverride: parsed.vehicleTypeOverride ?? defaults.vehicleTypeOverride,
           theme: parsed.theme ?? defaults.theme,
           locale: parsed.locale ?? defaults.locale,
+          filterDays: parsed.filterDays ?? defaults.filterDays,
         }
       }
 
@@ -169,6 +172,7 @@ function loadFromKey(key: string): AppSettings {
           vehicleTypeOverride: parsed.vehicleTypeOverride ?? defaults.vehicleTypeOverride,
           theme: parsed.theme ?? defaults.theme,
           locale: parsed.locale ?? defaults.locale,
+          filterDays: parsed.filterDays ?? defaults.filterDays,
         }
       }
     }
@@ -194,6 +198,7 @@ export const useSettingsStore = defineStore('settings', () => {
   const vehicleTypeOverride = ref<VehicleTypeOverride>(loaded.vehicleTypeOverride)
   const theme = ref<Theme>(loaded.theme)
   const locale = ref<Locale>(loaded.locale)
+  const filterDays = ref<number>(loaded.filterDays)
 
   document.documentElement.dataset.theme = theme.value
 
@@ -203,12 +208,14 @@ export const useSettingsStore = defineStore('settings', () => {
       vehicleTypeOverride: vehicleTypeOverride.value,
       theme: theme.value,
       locale: locale.value,
+      filterDays: filterDays.value,
     }))
   }
 
   watch(cards, save, { deep: true })
   watch(vehicleTypeOverride, save)
   watch(locale, save)
+  watch(filterDays, save)
   watch(theme, (val) => {
     document.documentElement.dataset.theme = val
     save()
@@ -218,5 +225,5 @@ export const useSettingsStore = defineStore('settings', () => {
     cards.value = defaultCards(type)
   }
 
-  return { cards, vehicleTypeOverride, theme, locale, resetCards }
+  return { cards, vehicleTypeOverride, theme, locale, filterDays, resetCards }
 })
