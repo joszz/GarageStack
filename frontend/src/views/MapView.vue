@@ -23,6 +23,7 @@ const heatmapEnabled = ref(true)
 const dateRangeDays = ref(30)
 const tripsPage = ref(1)
 const PAGE_SIZE = 10
+const pageInput = ref(1)
 
 const mapWrapperRef = ref<HTMLElement | null>(null)
 const tripSidebarRef = ref<HTMLElement | null>(null)
@@ -266,11 +267,24 @@ watch(dateRangeDays, async (days) => {
   }
 })
 
-// Deselect when paginating
-watch(tripsPage, () => {
+// Deselect when paginating; keep input in sync
+watch(tripsPage, (p) => {
   selectedTripIndex.value = null
   popoverAnchor.value = null
+  pageInput.value = p
 })
+
+function commitPageInput() {
+  const val = isNaN(pageInput.value)
+    ? tripsPage.value
+    : Math.max(1, Math.min(totalPages.value, Math.round(pageInput.value)))
+  tripsPage.value = val
+  pageInput.value = val
+}
+
+function onPageInputFocus(e: FocusEvent) {
+  ;(e.target as HTMLInputElement).select()
+}
 
 function selectTrip(realIdx: number) {
   if (selectedTripIndex.value === realIdx) {
@@ -368,6 +382,35 @@ onUnmounted(() => {
         </div>
 
         <template v-else>
+          <!-- Top pagination -->
+          <div v-if="totalPages > 1" class="trip-pagination trip-pagination--top">
+            <button
+              class="btn btn-sm btn-outline-secondary trip-pagination__btn"
+              :disabled="tripsPage === 1"
+              @click="goToPreviousTripsPage"
+            >
+              <font-awesome-icon icon="chevron-left" />
+            </button>
+            <input
+              v-model.number="pageInput"
+              type="number"
+              min="1"
+              :max="totalPages"
+              class="trip-pagination__input"
+              @blur="commitPageInput"
+              @keydown.enter.prevent="commitPageInput"
+              @focus="onPageInputFocus"
+            >
+            <span class="trip-pagination__sep">/ {{ totalPages }}</span>
+            <button
+              class="btn btn-sm btn-outline-secondary trip-pagination__btn"
+              :disabled="tripsPage === totalPages"
+              @click="goToNextTripsPage"
+            >
+              <font-awesome-icon icon="chevron-right" />
+            </button>
+          </div>
+
           <ul class="trip-list">
             <li
               v-for="(trip, displayIdx) in displayTrips"
@@ -383,11 +426,10 @@ onUnmounted(() => {
                   {{ trip.distanceKm }} {{ t('common.km') }} &middot; {{ formatDuration(trip.startedAt, trip.endedAt) }}
                 </span>
               </div>
-
             </li>
           </ul>
 
-          <!-- Pagination controls -->
+          <!-- Bottom pagination -->
           <div v-if="totalPages > 1" class="trip-pagination">
             <button
               class="btn btn-sm btn-outline-secondary trip-pagination__btn"
@@ -396,7 +438,17 @@ onUnmounted(() => {
             >
               <font-awesome-icon icon="chevron-left" />
             </button>
-            <span class="trip-pagination__info">{{ tripsPage }} / {{ totalPages }}</span>
+            <input
+              v-model.number="pageInput"
+              type="number"
+              min="1"
+              :max="totalPages"
+              class="trip-pagination__input"
+              @blur="commitPageInput"
+              @keydown.enter.prevent="commitPageInput"
+              @focus="onPageInputFocus"
+            >
+            <span class="trip-pagination__sep">/ {{ totalPages }}</span>
             <button
               class="btn btn-sm btn-outline-secondary trip-pagination__btn"
               :disabled="tripsPage === totalPages"
@@ -405,7 +457,6 @@ onUnmounted(() => {
               <font-awesome-icon icon="chevron-right" />
             </button>
           </div>
-
         </template>
       </aside>
 

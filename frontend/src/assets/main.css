@@ -44,6 +44,45 @@
   padding: 0;
 }
 
+/* ── Scrollbars ────────────────────────────────────────────── */
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border) transparent;
+}
+
+/* WebKit/Blink (Chrome, Safari, Edge) */
+*::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 3px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-muted);
+}
+
+/* Mobile: hand back to the native overlay scrollbar (hides until scrolling) */
+@media (hover: none) and (pointer: coarse) {
+  * {
+    scrollbar-width: auto;
+  }
+
+  *::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+  }
+}
+
 html, body, #app {
   height: 100%;
   font-family: 'Inter', system-ui, sans-serif;
@@ -863,6 +902,13 @@ html, body, #app {
   border-top: 1px solid var(--color-border);
 }
 
+.trip-pagination--top {
+  border-top: none;
+  border-bottom: 1px solid var(--color-border);
+  padding-top: 0;
+  padding-bottom: 0.25rem;
+}
+
 .trip-pagination__btn {
   width: 28px;
   height: 28px;
@@ -870,11 +916,33 @@ html, body, #app {
   justify-content: center;
 }
 
-.trip-pagination__info {
+.trip-pagination__input {
+  width: 2.5rem;
+  text-align: center;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  color: var(--color-text);
+  font-size: 0.78rem;
+  padding: 0.15rem 0;
+  -moz-appearance: textfield;
+  font-family: inherit;
+}
+
+.trip-pagination__input::-webkit-inner-spin-button,
+.trip-pagination__input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.trip-pagination__input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.trip-pagination__sep {
   font-size: 0.78rem;
   color: var(--color-text-muted);
-  min-width: 3rem;
-  text-align: center;
 }
 
 .map-controls {
