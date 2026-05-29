@@ -6,6 +6,48 @@ export type VehicleTypeOverride = 'auto' | VehicleType
 export type Theme = 'dark' | 'light'
 export type Locale = 'en' | 'nl'
 
+export type StatsInsightId =
+  | 'periodDistance' | 'avgTripLength' | 'climateUsage'
+  | 'commutePattern' | 'batteryVoltageTrend' | 'parkingLocations' | 'electricShare'
+
+export type StatsChartId = 'fuelChart' | 'evChart' | 'tyreChart' | 'hybridSocChart' | 'dailyKwhChart'
+
+export interface StatsItemConfig<T extends string> { id: T; visible: boolean }
+
+const ALL_STATS_INSIGHT_IDS: StatsInsightId[] = [
+  'periodDistance', 'avgTripLength', 'climateUsage',
+  'commutePattern', 'batteryVoltageTrend', 'parkingLocations', 'electricShare',
+]
+
+const ALL_STATS_CHART_IDS: StatsChartId[] = [
+  'fuelChart', 'evChart', 'tyreChart', 'hybridSocChart', 'dailyKwhChart',
+]
+
+export function defaultStatsInsights(): StatsItemConfig<StatsInsightId>[] {
+  return ALL_STATS_INSIGHT_IDS.map(id => ({ id, visible: true }))
+}
+
+export function defaultStatsCharts(): StatsItemConfig<StatsChartId>[] {
+  return ALL_STATS_CHART_IDS.map(id => ({ id, visible: true }))
+}
+
+function loadStatsItems<T extends string>(raw: unknown, allIds: T[]): StatsItemConfig<T>[] {
+  const result: StatsItemConfig<T>[] = []
+  const seen = new Set<T>()
+  if (Array.isArray(raw)) {
+    for (const item of raw) {
+      if (typeof item?.id === 'string' && (allIds as string[]).includes(item.id) && !seen.has(item.id as T)) {
+        result.push({ id: item.id as T, visible: item.visible !== false })
+        seen.add(item.id as T)
+      }
+    }
+  }
+  for (const id of allIds) {
+    if (!seen.has(id)) result.push({ id, visible: true })
+  }
+  return result
+}
+
 export type CardId =
   | 'fuelLevel' | 'fuelRange'
   | 'evBattery' | 'charging'
@@ -27,6 +69,8 @@ export interface CardConfig {
 
 export interface AppSettings {
   cards: CardConfig[]
+  statsInsights: StatsItemConfig<StatsInsightId>[]
+  statsCharts: StatsItemConfig<StatsChartId>[]
   vehicleTypeOverride: VehicleTypeOverride
   theme: Theme
   locale: Locale
@@ -69,6 +113,8 @@ const BASE_STORAGE_KEY = 'garagestack-settings'
 
 const defaults: AppSettings = {
   cards: defaultCards('unknown'),
+  statsInsights: defaultStatsInsights(),
+  statsCharts: defaultStatsCharts(),
   vehicleTypeOverride: 'auto',
   theme: osPreferredTheme(),
   locale: browserLocale(),
@@ -159,6 +205,8 @@ function loadFromKey(key: string): AppSettings {
         }
         return {
           cards: defaultCards('unknown').map(c => ({ id: c.id, visible: visMap[c.id] ?? c.visible })),
+          statsInsights: defaultStatsInsights(),
+          statsCharts: defaultStatsCharts(),
           vehicleTypeOverride: parsed.vehicleTypeOverride ?? defaults.vehicleTypeOverride,
           theme: parsed.theme ?? defaults.theme,
           locale: parsed.locale ?? defaults.locale,
@@ -169,6 +217,8 @@ function loadFromKey(key: string): AppSettings {
       if (Array.isArray(parsed.cards)) {
         return {
           cards: migrateCards(parsed.cards),
+          statsInsights: loadStatsItems(parsed.statsInsights, ALL_STATS_INSIGHT_IDS),
+          statsCharts: loadStatsItems(parsed.statsCharts, ALL_STATS_CHART_IDS),
           vehicleTypeOverride: parsed.vehicleTypeOverride ?? defaults.vehicleTypeOverride,
           theme: parsed.theme ?? defaults.theme,
           locale: parsed.locale ?? defaults.locale,
@@ -199,12 +249,16 @@ export const useSettingsStore = defineStore('settings', () => {
   const theme = ref<Theme>(loaded.theme)
   const locale = ref<Locale>(loaded.locale)
   const filterDays = ref<number>(loaded.filterDays)
+  const statsInsights = ref<StatsItemConfig<StatsInsightId>[]>(loaded.statsInsights)
+  const statsCharts = ref<StatsItemConfig<StatsChartId>[]>(loaded.statsCharts)
 
   document.documentElement.dataset.theme = theme.value
 
   function save() {
     localStorage.setItem(BASE_STORAGE_KEY, JSON.stringify({
       cards: cards.value,
+      statsInsights: statsInsights.value,
+      statsCharts: statsCharts.value,
       vehicleTypeOverride: vehicleTypeOverride.value,
       theme: theme.value,
       locale: locale.value,
@@ -213,6 +267,8 @@ export const useSettingsStore = defineStore('settings', () => {
   }
 
   watch(cards, save, { deep: true })
+  watch(statsInsights, save, { deep: true })
+  watch(statsCharts, save, { deep: true })
   watch(vehicleTypeOverride, save)
   watch(locale, save)
   watch(filterDays, save)
@@ -225,5 +281,5 @@ export const useSettingsStore = defineStore('settings', () => {
     cards.value = defaultCards(type)
   }
 
-  return { cards, vehicleTypeOverride, theme, locale, filterDays, resetCards }
+  return { cards, statsInsights, statsCharts, vehicleTypeOverride, theme, locale, filterDays, resetCards }
 })
