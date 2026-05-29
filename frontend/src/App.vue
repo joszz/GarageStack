@@ -6,6 +6,8 @@ import { useSettingsStore } from '@/stores/settings'
 import { useAuthStore } from '@/stores/auth'
 import { useVehicleStore } from '@/stores/vehicle'
 import AppFooter from '@/components/AppFooter.vue'
+import NotificationPanel from '@/components/NotificationPanel.vue'
+import { useNotifications } from '@/composables/useNotifications'
 
 const { t, locale } = useI18n()
 const route = useRoute()
@@ -13,6 +15,7 @@ const router = useRouter()
 const settings = useSettingsStore()
 const auth = useAuthStore()
 const vehicleStore = useVehicleStore()
+const { notifications, unreadCount, panelOpen, loading, togglePanel, closePanel, archiveNotification, deleteNotification } = useNotifications()
 
 const carModel = computed(() => vehicleStore.vehicles[0]?.model ?? null)
 const menuOpen = ref(false)
@@ -48,6 +51,10 @@ watch(() => settings.locale, (val) => { locale.value = val })
         <font-awesome-icon icon="car" />
         GarageStack
       </RouterLink>
+      <button class="notif-bell" :aria-label="t('notifications.title')" @click="togglePanel">
+        <font-awesome-icon icon="bell" />
+        <span v-if="unreadCount > 0" class="notif-bell__badge">{{ unreadCount }}</span>
+      </button>
     </header>
 
     <!-- Backdrop (mobile only) -->
@@ -91,6 +98,11 @@ watch(() => settings.locale, (val) => { locale.value = val })
             <font-awesome-icon icon="user" />
             <span class="sidebar-user__email">{{ auth.username }}</span>
           </div>
+          <button class="sidebar-notif-btn" @click="togglePanel">
+            <font-awesome-icon icon="bell" />
+            <span>{{ t('notifications.title') }}</span>
+            <span v-if="unreadCount > 0" class="notif-bell__badge">{{ unreadCount }}</span>
+          </button>
           <button class="sidebar-logout-btn" @click="logout">
             <font-awesome-icon icon="arrow-right-from-bracket" />
             <span>{{ t('auth.logout') }}</span>
@@ -104,5 +116,14 @@ watch(() => settings.locale, (val) => { locale.value = val })
     </div>
 
     <AppFooter />
+
+    <NotificationPanel
+      :open="panelOpen"
+      :notifications="notifications"
+      :loading="loading"
+      @close="closePanel"
+      @archive="archiveNotification"
+      @delete="deleteNotification"
+    />
   </div>
 </template>

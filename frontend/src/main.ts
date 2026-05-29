@@ -20,6 +20,7 @@ import {
   faPlus, faPenToSquare, faBatteryHalf,
   faSun, faMoon, faCarSide,
   faFire, faLocationDot, faCircleInfo, faSliders,
+  faBoxArchive, faTrash,
 } from '@fortawesome/free-solid-svg-icons'
 
 import App from './App.vue'
@@ -44,6 +45,7 @@ library.add(
   faPlus, faPenToSquare, faBatteryHalf,
   faSun, faMoon, faCarSide,
   faFire, faLocationDot, faCircleInfo, faSliders,
+  faBoxArchive, faTrash,
 )
 
 const i18n = createI18n({

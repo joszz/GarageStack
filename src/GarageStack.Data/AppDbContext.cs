@@ -8,6 +8,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<Vehicle> Vehicles => Set<Vehicle>();
     public DbSet<TelemetrySnapshot> TelemetrySnapshots => Set<TelemetrySnapshot>();
     public DbSet<PushSubscription> PushSubscriptions => Set<PushSubscription>();
+    public DbSet<AppNotification> AppNotifications => Set<AppNotification>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -37,6 +38,13 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         {
             e.HasKey(p => p.Id);
             e.HasIndex(p => p.Endpoint).IsUnique();
+        });
+
+        modelBuilder.Entity<AppNotification>(e =>
+        {
+            e.HasKey(n => n.Id);
+            e.HasIndex(n => n.CreatedAt);
+            e.HasIndex(n => new { n.IsDeleted, n.CreatedAt });
         });
 
     }

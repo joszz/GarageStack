@@ -183,6 +183,15 @@
     "disabled": "Meldingen uit",
     "permissionDenied": "Toestemming geweigerd"
   },
+  "notifications": {
+    "title": "Meldingen",
+    "empty": "Geen meldingen",
+    "archive": "Archiveren",
+    "delete": "Verwijderen",
+    "justNow": "Zojuist",
+    "minutesAgo": "{n} min geleden",
+    "hoursAgo": "{n}u geleden"
+  },
   "auth": {
     "subtitle": "Log in met je MG-accountgegevens",
     "username": "Gebruikersnaam",

@@ -157,6 +157,20 @@ export const pushApi = {
     send(`/api/push/unsubscribe?endpoint=${encodeURIComponent(endpoint)}`, 'DELETE'),
 }
 
+export interface AppNotification {
+  id: number
+  title: string
+  body: string
+  createdAt: string
+  isArchived: boolean
+}
+
+export const notificationsApi = {
+  list: () => request<AppNotification[]>('/api/notifications'),
+  archive: (id: number) => send(`/api/notifications/${id}/archive`, 'PATCH'),
+  delete: (id: number) => send(`/api/notifications/${id}`, 'DELETE'),
+}
+
 export const authApi = {
   login: (username: string, password: string, rememberMe = false) =>
     request<LoginResponse>('/api/auth/login', {

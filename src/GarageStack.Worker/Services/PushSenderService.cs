@@ -47,6 +47,16 @@ public sealed class PushSenderService : IPushSender, IDisposable
 
     public async Task SendToAllAsync(string title, string body, CancellationToken ct = default)
     {
+        using var recordScope = _scopeFactory.CreateScope();
+        var recordDb = recordScope.ServiceProvider.GetRequiredService<AppDbContext>();
+        recordDb.AppNotifications.Add(new GarageStack.Core.Models.AppNotification
+        {
+            Title = title,
+            Body = body,
+            CreatedAt = DateTime.UtcNow,
+        });
+        await recordDb.SaveChangesAsync(ct);
+
         if (_pushClient is null) return;
 
         using var scope = _scopeFactory.CreateScope();

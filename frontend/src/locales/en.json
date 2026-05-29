@@ -183,6 +183,15 @@
     "disabled": "Notifications off",
     "permissionDenied": "Permission denied"
   },
+  "notifications": {
+    "title": "Notifications",
+    "empty": "No notifications",
+    "archive": "Archive",
+    "delete": "Delete",
+    "justNow": "Just now",
+    "minutesAgo": "{n} min ago",
+    "hoursAgo": "{n}h ago"
+  },
   "auth": {
     "subtitle": "Sign in with your MG account credentials",
     "username": "Username",

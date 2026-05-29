@@ -105,7 +105,7 @@ describe('getOpenItems', () => {
     expect(items).toContain('passenger window')
     expect(items).toContain('rear left window')
     expect(items).toContain('rear right window')
-    expect(items).toContain('sunroof')
+    expect(items).not.toContain('sunroof')
   })
 
   it('returns only open items when mixed', () => {

@@ -156,6 +156,7 @@ try
 
     app.MapAuthEndpoints();
     app.MapVehicleEndpoints();
+    app.MapNotificationEndpoints();
 
     app.Run();
 }
