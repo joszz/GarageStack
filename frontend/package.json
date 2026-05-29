@@ -21,6 +21,7 @@
     "@fortawesome/vue-fontawesome": "^3.2.0",
     "@vue-leaflet/vue-leaflet": "^0.10.1",
     "chart.js": "^4.5.1",
+    "dev": "^0.1.5",
     "flag-icons": "^7.5.0",
     "leaflet": "^1.9.4",
     "leaflet.heat": "^0.2.0",
