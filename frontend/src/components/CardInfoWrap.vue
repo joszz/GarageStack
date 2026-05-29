@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { CardId } from '@/stores/settings'
 
-const props = defineProps<{ cardId: CardId }>()
+defineProps<{
+  title: string
+  description: string
+}>()
+
 const { t } = useI18n()
-
 const showInfo = ref(false)
 </script>
 
@@ -25,12 +27,12 @@ const showInfo = ref(false)
         <div v-if="showInfo" class="detail-modal-backdrop" @click.self="showInfo = false">
           <div class="detail-modal">
             <div class="detail-modal__header">
-              <span class="detail-modal__title">{{ t(`settings.cards.${props.cardId}`) }}</span>
+              <span class="detail-modal__title">{{ title }}</span>
               <button class="detail-modal__close" @click="showInfo = false">
                 <font-awesome-icon icon="xmark" />
               </button>
             </div>
-            <p class="card-info-desc">{{ t(`dashboard.cardDesc.${props.cardId}`) }}</p>
+            <p class="card-info-desc">{{ description }}</p>
           </div>
         </div>
       </Transition>

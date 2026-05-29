@@ -5,6 +5,7 @@ import { useVehicleStore } from '@/stores/vehicle'
 import { useSettingsStore } from '@/stores/settings'
 import type { TelemetrySnapshot } from '@/services/api'
 import { Line } from 'vue-chartjs'
+import CardInfoWrap from '@/components/CardInfoWrap.vue'
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -332,49 +333,57 @@ const pressureOptions = {
     <template v-else>
       <!-- Today's efficiency summary -->
       <div v-if="status" class="status-grid mb-4">
-        <div class="status-card">
-          <div class="status-card__icon"><font-awesome-icon icon="road" /></div>
-          <div class="status-card__body">
-            <span class="status-card__label">{{ t('vehicle.efficiency.todayDistance') }}</span>
-            <span class="status-card__value">
-              {{ status.mileageOfTheDay !== null ? Math.round(status.mileageOfTheDay) : '-' }}
-              <span v-if="status.mileageOfTheDay !== null" class="status-card__unit"> {{ t('common.km') }}</span>
-            </span>
+        <CardInfoWrap :title="t('vehicle.efficiency.todayDistance')" :description="t('statistics.cardDesc.todayDistance')">
+          <div class="status-card">
+            <div class="status-card__icon"><font-awesome-icon icon="road" /></div>
+            <div class="status-card__body">
+              <span class="status-card__label">{{ t('vehicle.efficiency.todayDistance') }}</span>
+              <span class="status-card__value">
+                {{ status.mileageOfTheDay !== null ? Math.round(status.mileageOfTheDay) : '-' }}
+                <span v-if="status.mileageOfTheDay !== null" class="status-card__unit"> {{ t('common.km') }}</span>
+              </span>
+            </div>
           </div>
-        </div>
+        </CardInfoWrap>
 
-        <div class="status-card">
-          <div class="status-card__icon"><font-awesome-icon icon="bolt" /></div>
-          <div class="status-card__body">
-            <span class="status-card__label">{{ t('vehicle.efficiency.todayEnergy') }}</span>
-            <span class="status-card__value">
-              {{ status.powerUsageOfDay !== null ? Math.round(status.powerUsageOfDay) : '-' }}
-              <span v-if="status.powerUsageOfDay !== null" class="status-card__unit"> {{ t('common.wh') }}</span>
-            </span>
+        <CardInfoWrap :title="t('vehicle.efficiency.todayEnergy')" :description="t('statistics.cardDesc.todayEnergy')">
+          <div class="status-card">
+            <div class="status-card__icon"><font-awesome-icon icon="bolt" /></div>
+            <div class="status-card__body">
+              <span class="status-card__label">{{ t('vehicle.efficiency.todayEnergy') }}</span>
+              <span class="status-card__value">
+                {{ status.powerUsageOfDay !== null ? Math.round(status.powerUsageOfDay) : '-' }}
+                <span v-if="status.powerUsageOfDay !== null" class="status-card__unit"> {{ t('common.wh') }}</span>
+              </span>
+            </div>
           </div>
-        </div>
+        </CardInfoWrap>
 
-        <div class="status-card">
-          <div class="status-card__icon"><font-awesome-icon icon="gauge-high" /></div>
-          <div class="status-card__body">
-            <span class="status-card__label">{{ t('vehicle.efficiency.efficiency') }}</span>
-            <span class="status-card__value">
-              {{ efficiencyWh !== null ? efficiencyWh : '-' }}
-              <span v-if="efficiencyWh !== null" class="status-card__unit"> Wh/km</span>
-            </span>
+        <CardInfoWrap :title="t('vehicle.efficiency.efficiency')" :description="t('statistics.cardDesc.efficiency')">
+          <div class="status-card">
+            <div class="status-card__icon"><font-awesome-icon icon="gauge-high" /></div>
+            <div class="status-card__body">
+              <span class="status-card__label">{{ t('vehicle.efficiency.efficiency') }}</span>
+              <span class="status-card__value">
+                {{ efficiencyWh !== null ? efficiencyWh : '-' }}
+                <span v-if="efficiencyWh !== null" class="status-card__unit"> Wh/km</span>
+              </span>
+            </div>
           </div>
-        </div>
+        </CardInfoWrap>
 
-        <div v-if="hasCharging" class="status-card">
-          <div class="status-card__icon"><font-awesome-icon icon="plug" /></div>
-          <div class="status-card__body">
-            <span class="status-card__label">{{ t('vehicle.efficiency.sinceCharge') }}</span>
-            <span class="status-card__value">
-              {{ status.mileageSinceLastCharge !== null ? Math.round(status.mileageSinceLastCharge) : '-' }}
-              <span v-if="status.mileageSinceLastCharge !== null" class="status-card__unit"> {{ t('common.km') }}</span>
-            </span>
+        <CardInfoWrap v-if="hasCharging" :title="t('vehicle.efficiency.sinceCharge')" :description="t('statistics.cardDesc.sinceCharge')">
+          <div class="status-card">
+            <div class="status-card__icon"><font-awesome-icon icon="plug" /></div>
+            <div class="status-card__body">
+              <span class="status-card__label">{{ t('vehicle.efficiency.sinceCharge') }}</span>
+              <span class="status-card__value">
+                {{ status.mileageSinceLastCharge !== null ? Math.round(status.mileageSinceLastCharge) : '-' }}
+                <span v-if="status.mileageSinceLastCharge !== null" class="status-card__unit"> {{ t('common.km') }}</span>
+              </span>
+            </div>
           </div>
-        </div>
+        </CardInfoWrap>
       </div>
 
       <div v-if="store.error" class="empty-state text-danger">{{ store.error }}</div>
@@ -384,43 +393,58 @@ const pressureOptions = {
         <section class="stats-insights" aria-label="Statistics insights">
           <h2 class="stats-insights__title">{{ t('statistics.insights.title') }}</h2>
           <div class="stats-insights__grid">
-            <div class="stats-insight-card">
-              <div class="stats-insight-card__label">
-                {{ days === 30 ? t('statistics.insights.monthlyMileage') : t('statistics.insights.distanceInRange') }}
+            <CardInfoWrap
+              :title="days === 30 ? t('statistics.insights.monthlyMileage') : t('statistics.insights.distanceInRange')"
+              :description="t('statistics.cardDesc.distanceInRange')"
+            >
+              <div class="stats-insight-card">
+                <div class="stats-insight-card__label">
+                  {{ days === 30 ? t('statistics.insights.monthlyMileage') : t('statistics.insights.distanceInRange') }}
+                </div>
+                <div class="stats-insight-card__value">
+                  {{ periodDistanceKm ?? '-' }}
+                  <span v-if="periodDistanceKm !== null" class="stats-insight-card__unit">{{ t('common.km') }}</span>
+                </div>
               </div>
-              <div class="stats-insight-card__value">
-                {{ periodDistanceKm ?? '-' }}
-                <span v-if="periodDistanceKm !== null" class="stats-insight-card__unit">{{ t('common.km') }}</span>
+            </CardInfoWrap>
+
+            <CardInfoWrap :title="t('statistics.insights.avgTripLength')" :description="t('statistics.cardDesc.avgTripLength')">
+              <div class="stats-insight-card">
+                <div class="stats-insight-card__label">{{ t('statistics.insights.avgTripLength') }}</div>
+                <div class="stats-insight-card__value">
+                  {{ averageTripKm ?? '-' }}
+                  <span v-if="averageTripKm !== null" class="stats-insight-card__unit">{{ t('common.km') }}</span>
+                </div>
               </div>
-            </div>
+            </CardInfoWrap>
 
-            <div class="stats-insight-card">
-              <div class="stats-insight-card__label">{{ t('statistics.insights.avgTripLength') }}</div>
-              <div class="stats-insight-card__value">
-                {{ averageTripKm ?? '-' }}
-                <span v-if="averageTripKm !== null" class="stats-insight-card__unit">{{ t('common.km') }}</span>
+            <CardInfoWrap :title="t('statistics.insights.climateUsage')" :description="t('statistics.cardDesc.climateUsage')">
+              <div class="stats-insight-card">
+                <div class="stats-insight-card__label">{{ t('statistics.insights.climateUsage') }}</div>
+                <div class="stats-insight-card__value">{{ climateUsagePct !== null ? `${climateUsagePct}%` : '-' }}</div>
               </div>
-            </div>
+            </CardInfoWrap>
 
-            <div class="stats-insight-card">
-              <div class="stats-insight-card__label">{{ t('statistics.insights.climateUsage') }}</div>
-              <div class="stats-insight-card__value">{{ climateUsagePct !== null ? `${climateUsagePct}%` : '-' }}</div>
-            </div>
+            <CardInfoWrap :title="t('statistics.insights.commutePattern')" :description="t('statistics.cardDesc.commutePattern')">
+              <div class="stats-insight-card">
+                <div class="stats-insight-card__label">{{ t('statistics.insights.commutePattern') }}</div>
+                <div class="stats-insight-card__value">{{ peakDriveHour ?? '-' }}</div>
+              </div>
+            </CardInfoWrap>
 
-            <div class="stats-insight-card">
-              <div class="stats-insight-card__label">{{ t('statistics.insights.commutePattern') }}</div>
-              <div class="stats-insight-card__value">{{ peakDriveHour ?? '-' }}</div>
-            </div>
+            <CardInfoWrap :title="t('statistics.insights.batteryVoltageTrend')" :description="t('statistics.cardDesc.batteryVoltageTrend')">
+              <div class="stats-insight-card">
+                <div class="stats-insight-card__label">{{ t('statistics.insights.batteryVoltageTrend') }}</div>
+                <div class="stats-insight-card__value">{{ batteryVoltageDisplay ?? '-' }}</div>
+              </div>
+            </CardInfoWrap>
 
-            <div class="stats-insight-card">
-              <div class="stats-insight-card__label">{{ t('statistics.insights.batteryVoltageTrend') }}</div>
-              <div class="stats-insight-card__value">{{ batteryVoltageDisplay ?? '-' }}</div>
-            </div>
-
-            <div class="stats-insight-card">
-              <div class="stats-insight-card__label">{{ t('statistics.insights.parkingLocations') }}</div>
-              <div class="stats-insight-card__value">{{ parkingLocations ?? '-' }}</div>
-            </div>
+            <CardInfoWrap :title="t('statistics.insights.parkingLocations')" :description="t('statistics.cardDesc.parkingLocations')">
+              <div class="stats-insight-card">
+                <div class="stats-insight-card__label">{{ t('statistics.insights.parkingLocations') }}</div>
+                <div class="stats-insight-card__value">{{ parkingLocations ?? '-' }}</div>
+              </div>
+            </CardInfoWrap>
           </div>
         </section>
 

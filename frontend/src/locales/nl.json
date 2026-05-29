@@ -48,6 +48,18 @@
       "commutePattern": "Piek rijtijd",
       "batteryVoltageTrend": "12V-trend",
       "parkingLocations": "Parkeerlocaties"
+    },
+    "cardDesc": {
+      "todayDistance": "Totale afstand gereden sinds middernacht, zoals gerapporteerd door de auto.",
+      "todayEnergy": "Totale elektrische energie verbruikt vandaag, in wattuur.",
+      "efficiency": "Verbruikte energie gedeeld door de gereden afstand vandaag (Wh/km). Lager is beter.",
+      "sinceCharge": "Afstand gereden sinds de laatste laadsessie.",
+      "distanceInRange": "Totale afstand over alle ritten in de geselecteerde periode.",
+      "avgTripLength": "Gemiddelde afstand per rit in de geselecteerde periode.",
+      "climateUsage": "Percentage van geregistreerde momenten waarop de klimaatbeheersing actief was.",
+      "commutePattern": "Het uur van de dag met de meeste ritstarts in de geselecteerde periode - jouw meest voorkomende rijtijd.",
+      "batteryVoltageTrend": "Verandering in gemiddelde 12V-accuspanning van het begin tot het einde van de geselecteerde periode. Toont de huidige spanning als er minder dan twee dagen aan data beschikbaar is.",
+      "parkingLocations": "Aantal unieke parkeerplaatsen gebruikt over alle ritten in de geselecteerde periode, gebaseerd op afgeronde GPS-coordinaten."
     }
   },
   "vehicle": {
