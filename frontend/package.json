@@ -30,7 +30,7 @@
     "vue-chartjs": "^5.3.3",
     "vue-draggable-plus": "^0.6.1",
     "vue-i18n": "^11.4.4",
-    "vue-router": "^5.0.7",
+    "vue-router": "^5.1.0",
     "workbox-precaching": "^7.4.1",
     "workbox-routing": "^7.4.1",
     "workbox-strategies": "^7.4.1",
