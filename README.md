@@ -103,6 +103,19 @@ The frontend is served on port `8080` by default (configurable via `FRONTEND_POR
 
 ---
 
+## GitHub Actions / CI
+
+The Docker build workflow requires two repository secrets to avoid Docker Hub anonymous pull rate limits (GitHub runners share IPs and exhaust the limit quickly):
+
+| Secret | Description |
+|--------|-------------|
+| `DOCKERHUB_USERNAME` | Your Docker Hub username |
+| `DOCKERHUB_TOKEN` | A Docker Hub access token (hub.docker.com > Account Settings > Security > New Access Token) |
+
+Add them under **Settings > Secrets and variables > Actions** in your fork. A free Docker Hub account is sufficient.
+
+---
+
 ## Security defaults:
 
 - API routes require login.
