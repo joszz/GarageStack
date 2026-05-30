@@ -20,10 +20,12 @@ public class MqttConsumerService(
     // Tracks last known EngineRunning state per VIN to detect start events
     internal readonly Dictionary<string, bool> _lastEngineRunning = new();
 
+    protected virtual IMqttClient CreateMqttClient() => new MqttClientFactory().CreateMqttClient();
+    protected virtual TimeSpan RetryDelay => TimeSpan.FromSeconds(5);
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        var factory = new MqttClientFactory();
-        using var client = factory.CreateMqttClient();
+        using var client = CreateMqttClient();
 
         client.ApplicationMessageReceivedAsync += msg => HandleMessageAsync(msg, stoppingToken);
 
@@ -81,7 +83,7 @@ public class MqttConsumerService(
             // on shutdown is handled cleanly without nesting exceptions.
             try
             {
-                await Task.Delay(5_000, stoppingToken);
+                await Task.Delay(RetryDelay, stoppingToken);
             }
             catch (OperationCanceledException)
             {
