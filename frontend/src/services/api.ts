@@ -1,9 +1,14 @@
 const BASE_URL = import.meta.env.VITE_API_URL ?? ''
 
 let unauthorizedHandler: (() => void) | null = null
+let handlingUnauthorized = false
 
-export function setUnauthorizedHandler(handler: () => void) {
+export function setUnauthorizedHandler(handler: (() => void) | null) {
   unauthorizedHandler = handler
+}
+
+export function clearUnauthorizedState() {
+  handlingUnauthorized = false
 }
 
 export class ApiError extends Error {
@@ -18,7 +23,8 @@ export class ApiError extends Error {
 }
 
 function handleResponse(res: Response, path: string) {
-  if (res.status === 401) {
+  if (res.status === 401 && !handlingUnauthorized) {
+    handlingUnauthorized = true
     unauthorizedHandler?.()
   }
   if (!res.ok) throw new ApiError(res.status, path)

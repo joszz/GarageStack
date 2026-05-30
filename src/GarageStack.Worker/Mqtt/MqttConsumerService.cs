@@ -18,7 +18,7 @@ public class MqttConsumerService(
 {
     private readonly MqttOptions _options = options.Value;
     // Tracks last known EngineRunning state per VIN to detect start events
-    private readonly Dictionary<string, bool> _lastEngineRunning = new();
+    internal readonly Dictionary<string, bool> _lastEngineRunning = new();
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -170,7 +170,7 @@ public class MqttConsumerService(
         }
     }
 
-    private async Task CheckEngineStartAsync(string vin, TelemetrySnapshot snapshot, CancellationToken ct)
+    internal async Task CheckEngineStartAsync(string vin, TelemetrySnapshot snapshot, CancellationToken ct)
     {
         if (snapshot.EngineRunning is null) return;
 

@@ -32,4 +32,8 @@
     <ProjectReference Include="..\GarageStack.Data\GarageStack.Data.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="GarageStack.Tests" />
+  </ItemGroup>
+
 </Project>

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 
-import { vehicleApi } from '@/services/api'
+import { vehicleApi, setUnauthorizedHandler, clearUnauthorizedState } from '@/services/api'
 
 function makeResponse(status: number, body?: unknown) {
   return {
@@ -9,6 +9,54 @@ function makeResponse(status: number, body?: unknown) {
     json: () => Promise.resolve(body),
   }
 }
+
+describe('unauthorizedHandler', () => {
+  beforeEach(() => {
+    clearUnauthorizedState()
+    vi.resetAllMocks()
+  })
+
+  afterEach(() => {
+    setUnauthorizedHandler(null)
+    clearUnauthorizedState()
+    vi.unstubAllGlobals()
+  })
+
+  it('calls the handler once on a 401 response', async () => {
+    const handler = vi.fn()
+    setUnauthorizedHandler(handler)
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 401, json: () => Promise.resolve() }))
+    await vehicleApi.list().catch(() => {})
+    expect(handler).toHaveBeenCalledOnce()
+  })
+
+  it('does not call the handler a second time when already handling a 401', async () => {
+    const handler = vi.fn()
+    setUnauthorizedHandler(handler)
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 401, json: () => Promise.resolve() }))
+    await Promise.all([vehicleApi.list().catch(() => {}), vehicleApi.list().catch(() => {})])
+    expect(handler).toHaveBeenCalledOnce()
+  })
+
+  it('calls the handler again after clearUnauthorizedState', async () => {
+    const handler = vi.fn()
+    setUnauthorizedHandler(handler)
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 401, json: () => Promise.resolve() }))
+    await vehicleApi.list().catch(() => {})
+    clearUnauthorizedState()
+    await vehicleApi.list().catch(() => {})
+    expect(handler).toHaveBeenCalledTimes(2)
+  })
+
+  it('does not call a removed handler', async () => {
+    const handler = vi.fn()
+    setUnauthorizedHandler(handler)
+    setUnauthorizedHandler(null)
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 401, json: () => Promise.resolve() }))
+    await vehicleApi.list().catch(() => {})
+    expect(handler).not.toHaveBeenCalled()
+  })
+})
 
 describe('vehicleApi', () => {
   beforeEach(() => {

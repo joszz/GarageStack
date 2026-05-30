@@ -27,7 +27,7 @@ import App from './App.vue'
 import router from './router'
 import { useSettingsStore } from './stores/settings'
 import { useAuthStore } from './stores/auth'
-import { setUnauthorizedHandler } from './services/api'
+import { setUnauthorizedHandler, clearUnauthorizedState } from './services/api'
 import en from './locales/en.json'
 import nl from './locales/nl.json'
 
@@ -68,9 +68,11 @@ app.component('FontAwesomeIcon', FontAwesomeIcon)
 
 setUnauthorizedHandler(() => {
   const auth = useAuthStore()
-  auth.logout().finally(() => {
-    router.replace({ name: 'login' })
-  })
+  auth.logout()
+    .catch(() => {})
+    .finally(() => {
+      router.replace({ name: 'login' }).finally(clearUnauthorizedState)
+    })
 })
 
 router.isReady().then(() => {

@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using GarageStack.Api;
 using GarageStack.Api.Endpoints;
 using GarageStack.Api.Services;
 using GarageStack.Core.Interfaces;
@@ -160,7 +161,7 @@ try
             if (!string.IsNullOrEmpty(origin) && !app.Environment.IsDevelopment())
             {
                 var allowed = app.Configuration.GetSection("Cors:Origins").Get<string[]>() ?? [];
-                if (!allowed.Any(o => string.Equals(o, origin, StringComparison.OrdinalIgnoreCase)))
+                if (!CsrfPolicy.IsOriginAllowed(origin, allowed))
                 {
                     ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
                     return;
