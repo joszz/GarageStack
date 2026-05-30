@@ -14,6 +14,8 @@ public class PushNotificationCheckService(
 {
     private readonly Dictionary<string, DateTime> _lastNotified = new();
     private readonly TimeSpan _cooldown = TimeSpan.FromHours(1);
+    // Tracks the last known engine state per VIN; null = first check (no baseline yet)
+    private readonly Dictionary<string, bool?> _lastEngineRunning = new();
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -50,6 +52,7 @@ public class PushNotificationCheckService(
             var alerts = new List<(string key, string title, string body)>();
             CheckTyrePressure(snapshot, alerts);
             CheckEvSoc(snapshot, alerts);
+            CheckEngineStart(snapshot, vehicle.Vin, alerts);
 
             foreach (var (key, title, body) in alerts)
             {
@@ -80,5 +83,20 @@ public class PushNotificationCheckService(
     {
         if (s.EvSocPercent is not null && s.EvSocPercent < 20)
             alerts.Add(("low-ev", "Low EV Battery", $"EV battery at {s.EvSocPercent:F0}%"));
+    }
+
+    private void CheckEngineStart(Core.Models.TelemetrySnapshot s, string vin, List<(string, string, string)> alerts)
+    {
+        if (s.EngineRunning is null) return;
+
+        var current = s.EngineRunning.Value;
+        var hasPrevious = _lastEngineRunning.TryGetValue(vin, out var previous);
+        _lastEngineRunning[vin] = current;
+
+        // Skip the first check after startup — no baseline to compare against
+        if (!hasPrevious || previous is null) return;
+
+        if (current && previous == false)
+            alerts.Add(("engine-start", "Car Started", "Your car engine has started"));
     }
 }

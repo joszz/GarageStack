@@ -177,6 +177,11 @@ public static class VehicleEndpoints
 
         push.MapPost("/subscribe", async (PushSubscribeRequest req, AppDbContext db, CancellationToken ct) =>
         {
+            if (string.IsNullOrWhiteSpace(req.Endpoint) ||
+                string.IsNullOrWhiteSpace(req.P256DhKey) ||
+                string.IsNullOrWhiteSpace(req.AuthKey))
+                return Results.BadRequest(new { error = "Endpoint, P256DhKey and AuthKey are required" });
+
             var existing = await db.PushSubscriptions
                 .FirstOrDefaultAsync(s => s.Endpoint == req.Endpoint, ct);
 

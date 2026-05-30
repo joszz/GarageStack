@@ -38,6 +38,15 @@ public class MqttConsumerService(
 
         while (!stoppingToken.IsCancellationRequested)
         {
+            // Completed when the broker drops the connection so the loop can re-enter connect logic.
+            var disconnectedTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            Func<MqttClientDisconnectedEventArgs, Task> onDisconnected = _ =>
+            {
+                disconnectedTcs.TrySetResult();
+                return Task.CompletedTask;
+            };
+
+            client.DisconnectedAsync += onDisconnected;
             try
             {
                 await client.ConnectAsync(mqttOptions, stoppingToken);
@@ -49,7 +58,9 @@ public class MqttConsumerService(
                     .Build(), stoppingToken);
                 logger.LogInformation("Subscribed to saic/# and homeassistant/#");
 
-                await Task.Delay(Timeout.Infinite, stoppingToken);
+                // Waits until the broker disconnects or the host is shutting down.
+                await disconnectedTcs.Task.WaitAsync(stoppingToken);
+                logger.LogWarning("MQTT broker disconnected, will reconnect...");
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
@@ -57,13 +68,24 @@ public class MqttConsumerService(
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "MQTT connection lost, reconnecting in 5s...");
-                await Task.Delay(5_000, stoppingToken);
+                logger.LogError(ex, "MQTT connection error, reconnecting in 5s...");
             }
             finally
             {
+                client.DisconnectedAsync -= onDisconnected;
                 if (client.IsConnected)
                     await client.DisconnectAsync(cancellationToken: CancellationToken.None);
+            }
+
+            // Reconnect delay is outside the catch block so OperationCanceledException
+            // on shutdown is handled cleanly without nesting exceptions.
+            try
+            {
+                await Task.Delay(5_000, stoppingToken);
+            }
+            catch (OperationCanceledException)
+            {
+                break;
             }
         }
     }

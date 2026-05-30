@@ -144,6 +144,32 @@ try
     app.UseForwardedHeaders(forwardedOptions);
     app.UseSerilogRequestLogging();
     app.UseCors();
+
+    // Defense-in-depth: when an Origin header is present on a state-changing request,
+    // verify it matches a configured allowed origin. SameSite=Strict is the primary CSRF
+    // protection; this adds an explicit server-side check for deployments where that alone
+    // is not sufficient (e.g., same-site subdomain compromise).
+    app.Use(async (ctx, next) =>
+    {
+        if (HttpMethods.IsPost(ctx.Request.Method) ||
+            HttpMethods.IsPut(ctx.Request.Method) ||
+            HttpMethods.IsPatch(ctx.Request.Method) ||
+            HttpMethods.IsDelete(ctx.Request.Method))
+        {
+            var origin = ctx.Request.Headers.Origin.ToString();
+            if (!string.IsNullOrEmpty(origin) && !app.Environment.IsDevelopment())
+            {
+                var allowed = app.Configuration.GetSection("Cors:Origins").Get<string[]>() ?? [];
+                if (!allowed.Any(o => string.Equals(o, origin, StringComparison.OrdinalIgnoreCase)))
+                {
+                    ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
+                    return;
+                }
+            }
+        }
+        await next(ctx);
+    });
+
     app.UseRateLimiter();
     app.UseAuthentication();
     app.UseAuthorization();

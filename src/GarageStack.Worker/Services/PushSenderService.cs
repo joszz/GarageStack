@@ -47,15 +47,23 @@ public sealed class PushSenderService : IPushSender, IDisposable
 
     public async Task SendToAllAsync(string title, string body, CancellationToken ct = default)
     {
-        using var recordScope = _scopeFactory.CreateScope();
-        var recordDb = recordScope.ServiceProvider.GetRequiredService<AppDbContext>();
-        recordDb.AppNotifications.Add(new GarageStack.Core.Models.AppNotification
+        // Always persist so the in-app bell works regardless of push configuration
+        try
         {
-            Title = title,
-            Body = body,
-            CreatedAt = DateTime.UtcNow,
-        });
-        await recordDb.SaveChangesAsync(ct);
+            using var recordScope = _scopeFactory.CreateScope();
+            var recordDb = recordScope.ServiceProvider.GetRequiredService<AppDbContext>();
+            recordDb.AppNotifications.Add(new GarageStack.Core.Models.AppNotification
+            {
+                Title = title,
+                Body = body,
+                CreatedAt = DateTime.UtcNow,
+            });
+            await recordDb.SaveChangesAsync(ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to persist notification record — push delivery will still proceed");
+        }
 
         if (_pushClient is null) return;
 
