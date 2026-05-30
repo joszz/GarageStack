@@ -169,11 +169,10 @@ public class TelemetryRepository(AppDbContext db) : ITelemetryRepository
 
     public async Task<IReadOnlyList<TripDto>> GetTripsAsync(int vehicleId, DateTime from, DateTime to, CancellationToken ct = default)
     {
-        // Exclude rows where speed is known to be zero - those are parked-car pings, not driving.
+        // Include speed=0 points so we can detect parking gaps between back-to-back trips.
         var points = await db.TelemetrySnapshots
             .Where(s => s.VehicleId == vehicleId && s.RecordedAt >= from && s.RecordedAt <= to
-                        && s.Latitude != null && s.Longitude != null
-                        && (s.Speed == null || s.Speed > 0))
+                        && s.Latitude != null && s.Longitude != null)
             .OrderBy(s => s.RecordedAt)
             .Select(s => new { s.RecordedAt, s.Latitude, s.Longitude, s.Speed })
             .ToListAsync(ct);
@@ -182,16 +181,43 @@ public class TelemetryRepository(AppDbContext db) : ITelemetryRepository
 
         var trips = new List<TripDto>();
         var current = new List<TripPoint>();
+        // Hard gap: no telemetry data at all for 30+ minutes.
         var gapThreshold = TimeSpan.FromMinutes(30);
+        // Soft gap: car was stationary (speed=0) for 5+ minutes = distinct trip.
+        var parkThreshold = TimeSpan.FromMinutes(5);
+        DateTime? lastSeen = null;
+        DateTime? parkingSince = null;
 
         foreach (var p in points)
         {
-            if (current.Count > 0 && p.RecordedAt - current[^1].RecordedAt > gapThreshold)
+            var isParked = p.Speed.HasValue && p.Speed.Value <= 0;
+
+            // Hard gap: no data at all - always start a new trip.
+            if (lastSeen.HasValue && p.RecordedAt - lastSeen.Value > gapThreshold)
+            {
+                TryAddTrip(trips, current);
+                current.Clear();
+                parkingSince = null;
+            }
+
+            lastSeen = p.RecordedAt;
+
+            if (isParked)
+            {
+                // Record when stationary period began; don't add to trip path.
+                parkingSince ??= p.RecordedAt;
+                continue;
+            }
+
+            // Moving point - split if parked long enough to count as a new trip.
+            if (parkingSince.HasValue && p.RecordedAt - parkingSince.Value >= parkThreshold)
             {
                 TryAddTrip(trips, current);
                 current.Clear();
             }
-            // Skip consecutive duplicate positions (GPS cached/not updating while driving)
+            parkingSince = null;
+
+            // Skip consecutive duplicate positions (GPS cached/not updating while driving).
             var pt = new TripPoint(p.RecordedAt, p.Latitude!.Value, p.Longitude!.Value, p.Speed);
             if (current.Count == 0 || !SamePosition(current[^1], pt))
                 current.Add(pt);
@@ -199,7 +225,7 @@ public class TelemetryRepository(AppDbContext db) : ITelemetryRepository
 
         TryAddTrip(trips, current);
 
-        // Discard segments that never went anywhere (GPS drift, brief polling bursts while stationary)
+        // Discard segments that never went anywhere (GPS drift, brief polling bursts while stationary).
         return trips.Where(t => t.DistanceKm >= 0.1).ToList();
     }
 
