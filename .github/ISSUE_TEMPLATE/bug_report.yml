@@ -1,0 +1,98 @@
+name: Bug Report
+description: Report a bug or unexpected behavior in GarageStack
+title: "[Bug]: "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for taking the time to report a bug. Please fill in as much detail as possible so we can reproduce and fix it quickly.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: A clear and concise description of the bug.
+      placeholder: Describe the unexpected behavior...
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: How do we reproduce the issue?
+      placeholder: |
+        1. Go to '...'
+        2. Click on '...'
+        3. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What did you expect to happen?
+    validations:
+      required: true
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots or logs
+      description: If applicable, paste logs or attach screenshots. Backend logs can be found in the configured log directory.
+      render: shell
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Affected component
+      options:
+        - Frontend (Dashboard / UI)
+        - Backend (API)
+        - Map / Routes
+        - Statistics
+        - Push Notifications
+        - Authentication
+        - Docker / Deployment
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: GarageStack version
+      description: Found in the footer or Docker image tag.
+      placeholder: "e.g. v1.2.0 or latest"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: deployment
+    attributes:
+      label: Deployment method
+      options:
+        - Docker Compose
+        - Docker (standalone)
+        - Bare metal / manual
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: browser
+    attributes:
+      label: Browser (for frontend issues)
+      placeholder: "e.g. Chrome 124, Firefox 125, Safari 17"
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: I have searched existing issues to make sure this is not a duplicate.
+          required: true
+        - label: I have included all relevant logs / screenshots.
+          required: false

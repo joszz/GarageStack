@@ -1,0 +1,52 @@
+name: Documentation Issue
+description: Report missing, incorrect, or unclear documentation
+title: "[Docs]: "
+labels: ["documentation"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Good documentation helps everyone. Let us know what's missing or confusing.
+
+  - type: dropdown
+    id: type
+    attributes:
+      label: Type of documentation issue
+      options:
+        - Missing documentation
+        - Incorrect / outdated information
+        - Unclear or hard to follow
+        - Typo or formatting issue
+    validations:
+      required: true
+
+  - type: input
+    id: location
+    attributes:
+      label: Where is the issue?
+      description: Link to the page, section, or file with the problem.
+      placeholder: "e.g. README.md / Setup section, or https://..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What is wrong or missing?
+      description: Describe the problem clearly.
+    validations:
+      required: true
+
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: Suggested improvement
+      description: What should the documentation say instead? (Optional but helpful)
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: I have searched existing issues to make sure this hasn't been reported before.
+          required: true

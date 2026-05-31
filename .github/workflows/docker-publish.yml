@@ -20,6 +20,7 @@ jobs:
     permissions:
       contents: read
       packages: write
+      id-token: write
 
     strategy:
       fail-fast: false
@@ -107,6 +108,10 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
 
+      - name: Install Cosign
+        if: github.event_name != 'pull_request'
+        uses: sigstore/cosign-installer@v3
+
       - name: Extract image metadata
         id: meta
         uses: docker/metadata-action@v6
@@ -123,13 +128,14 @@ jobs:
             type=sha,format=short
 
       - name: Build and push
+        id: build
         uses: docker/build-push-action@v7
         with:
           context: ${{ matrix.context }}
           file: ${{ matrix.dockerfile }}
           push: ${{ github.event_name != 'pull_request' }}
-          provenance: false
-          sbom: false
+          provenance: ${{ github.event_name != 'pull_request' && 'mode=max' || 'false' }}
+          sbom: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
@@ -137,3 +143,9 @@ jobs:
           # Each image gets its own GHA cache scope
           cache-from: type=gha,scope=${{ matrix.label }}
           cache-to: type=gha,scope=${{ matrix.label }},mode=min
+
+      - name: Sign image with Cosign
+        if: github.event_name != 'pull_request'
+        run: |
+          cosign sign --yes \
+            "${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.image }}@${{ steps.build.outputs.digest }}"

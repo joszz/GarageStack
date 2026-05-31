@@ -1,0 +1,76 @@
+name: Feature Request
+description: Suggest a new feature or improvement for GarageStack
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Have an idea to make GarageStack better? We'd love to hear it!
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or motivation
+      description: What problem does this feature solve? What use case does it enable?
+      placeholder: "I often find myself wanting to... / It's frustrating that..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: Describe what you'd like to see. Be as specific as possible.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Any other approaches you've thought of or workarounds you currently use?
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component this relates to
+      options:
+        - Frontend (Dashboard / UI)
+        - Backend (API)
+        - Map / Routes
+        - Statistics
+        - Push Notifications
+        - Authentication
+        - Docker / Deployment
+        - New component
+        - Not sure
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: How important is this to you?
+      options:
+        - Nice to have
+        - Would significantly improve my usage
+        - Blocking my use of GarageStack
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Mockups, links, references to similar implementations in other tools, etc.
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: I have searched existing issues and discussions to make sure this hasn't been requested before.
+          required: true
+        - label: I am willing to help implement or test this feature.
+          required: false
