@@ -179,6 +179,7 @@ export const notificationsApi = {
 
 export interface MeResponse {
   username: string
+  expiresAtUtc: string | null
 }
 
 export const authApi = {
