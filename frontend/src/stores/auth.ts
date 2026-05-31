@@ -13,21 +13,9 @@ export const useAuthStore = defineStore('auth', () => {
     () => !!username.value && !!expiresAtUtc.value && new Date(expiresAtUtc.value) > new Date(),
   )
 
-  async function login(usernameInput: string, password: string, rememberMe = false) {
-    const result = await authApi.login(usernameInput, password, rememberMe)
-    username.value = result.username
-    expiresAtUtc.value = result.expiresAtUtc
-    localStorage.setItem(AUTH_USERNAME_KEY, result.username)
-    localStorage.setItem(AUTH_EXPIRES_KEY, result.expiresAtUtc)
-  }
-
-  async function logout() {
-    username.value = ''
-    expiresAtUtc.value = ''
-    localStorage.removeItem(AUTH_USERNAME_KEY)
-    localStorage.removeItem(AUTH_EXPIRES_KEY)
-    await authApi.logout()
-  }
+  // Cached promise so the server round-trip happens exactly once per page load.
+  // The router guard awaits this before deciding whether to allow or redirect.
+  let _verifyPromise: Promise<void> | null = null
 
   async function verifySession(): Promise<void> {
     try {
@@ -46,5 +34,29 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  return { username, isAuthenticated, login, logout, verifySession }
+  function ensureVerified(): Promise<void> {
+    _verifyPromise ??= verifySession()
+    return _verifyPromise
+  }
+
+  async function login(usernameInput: string, password: string, rememberMe = false) {
+    const result = await authApi.login(usernameInput, password, rememberMe)
+    username.value = result.username
+    expiresAtUtc.value = result.expiresAtUtc
+    localStorage.setItem(AUTH_USERNAME_KEY, result.username)
+    localStorage.setItem(AUTH_EXPIRES_KEY, result.expiresAtUtc)
+    // Fresh login: reset the verify cache so next guard check reflects the new session.
+    _verifyPromise = Promise.resolve()
+  }
+
+  async function logout() {
+    _verifyPromise = null
+    username.value = ''
+    expiresAtUtc.value = ''
+    localStorage.removeItem(AUTH_USERNAME_KEY)
+    localStorage.removeItem(AUTH_EXPIRES_KEY)
+    await authApi.logout()
+  }
+
+  return { username, isAuthenticated, login, logout, verifySession, ensureVerified }
 })

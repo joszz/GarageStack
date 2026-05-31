@@ -166,7 +166,7 @@ body,
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.6);
-  z-index: 299;
+  z-index: 1049;
 }
 
 /* ── Sidebar ──────────────────────────────────────────────── */
@@ -1722,7 +1722,7 @@ body,
     top: 0;
     left: 0;
     bottom: 0;
-    z-index: 300;
+    z-index: 1050;
     transform: translateX(-100%);
     transition: transform 0.25s ease;
     box-shadow: 4px 0 24px rgba(0, 0, 0, 0.5);
