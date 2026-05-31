@@ -43,7 +43,6 @@ let routeLines: L.Polyline[] = []
 let resizeObserver: ResizeObserver | null = null
 let mapUpdateRaf: number | null = null
 
-
 type HeatLayerFactory = {
   heatLayer: (
     latlngs: Array<[number, number] | [number, number, number]>,
@@ -84,7 +83,6 @@ const totalPages = computed(() => Math.max(1, Math.ceil(store.trips.length / PAG
 function realIndex(newestFirstIdx: number): number {
   return store.trips.length - 1 - newestFirstIdx
 }
-
 
 const allPoints = computed<[number, number][]>(() =>
   store.trips.flatMap((trip) =>
@@ -175,7 +173,9 @@ function fitAll() {
   if (allPoints.value.length > 0) {
     fitBoundsSafe(allPoints.value)
   } else if (status.value?.latitude != null && status.value?.longitude != null) {
-    mapInstance.value?.setView([status.value.latitude, status.value.longitude], 14, { animate: false })
+    mapInstance.value?.setView([status.value.latitude, status.value.longitude], 14, {
+      animate: false,
+    })
   }
 }
 
@@ -437,5 +437,4 @@ onUnmounted(() => {
       </div>
     </div>
   </div>
-
 </template>
