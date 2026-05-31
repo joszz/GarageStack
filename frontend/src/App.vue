@@ -26,8 +26,12 @@ const {
   deleteNotification,
 } = useNotifications()
 
-onMounted(() => {
-  auth.verifySession()
+onMounted(async () => {
+  await auth.verifySession()
+  if (auth.isAuthenticated && route.name === 'login') {
+    const redirect = route.query.redirect as string | undefined
+    router.replace(redirect ?? '/')
+  }
 })
 
 const carModel = computed(() => vehicleStore.vehicles[0]?.model ?? null)

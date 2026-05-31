@@ -24,7 +24,14 @@ public static class AuthEndpoints
         {
             var username = httpContext.User.FindFirst(ClaimTypes.Name)?.Value
                 ?? httpContext.User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
-            return string.IsNullOrEmpty(username) ? Results.Unauthorized() : Results.Ok(new { username });
+            if (string.IsNullOrEmpty(username)) return Results.Unauthorized();
+
+            DateTime? expiresAtUtc = null;
+            var expClaim = httpContext.User.FindFirst(JwtRegisteredClaimNames.Exp)?.Value;
+            if (long.TryParse(expClaim, out var expUnix))
+                expiresAtUtc = DateTimeOffset.FromUnixTimeSeconds(expUnix).UtcDateTime;
+
+            return Results.Ok(new MeResponse(username, expiresAtUtc));
         })
         .RequireAuthorization()
         .WithSummary("Get current authenticated user");
@@ -135,3 +142,4 @@ public static class AuthEndpoints
 
 public sealed record LoginRequest(string Username, string Password, bool RememberMe = false);
 public sealed record LoginResponse(string Username, DateTime ExpiresAtUtc);
+public sealed record MeResponse(string Username, DateTime? ExpiresAtUtc);

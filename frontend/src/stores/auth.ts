@@ -33,6 +33,11 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const result = await authApi.me()
       username.value = result.username
+      if (result.expiresAtUtc) {
+        expiresAtUtc.value = result.expiresAtUtc
+        localStorage.setItem(AUTH_USERNAME_KEY, result.username)
+        localStorage.setItem(AUTH_EXPIRES_KEY, result.expiresAtUtc)
+      }
     } catch {
       username.value = ''
       expiresAtUtc.value = ''
