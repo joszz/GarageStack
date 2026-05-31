@@ -4,6 +4,23 @@ GarageStack is a free, open-source vehicle monitoring dashboard for MG / SAIC ca
 
 Features include a live dashboard, trip history with map and heatmap visualisation, energy statistics, and remote commands (climate, lock/unlock, find-my-car). The app is a PWA, so it can be installed on your phone or desktop and receives push notifications.
 
+## Push notifications
+
+GarageStack checks your vehicle's state every 5 minutes and sends both a browser push notification and an in-app notification (bell icon) when any of the following conditions are detected. Each alert has a 1-hour cooldown per vehicle to avoid repeated notifications.
+
+| Alert | Condition |
+|-------|-----------|
+| Engine started | Engine transitions from off to running |
+| Low tyre pressure | Any tyre below 2.2 bar |
+| Low EV battery | EV state-of-charge below 20 % |
+| Car left unlocked | `doors/locked = false` while engine is off |
+| Door left open | Any door, boot, or bonnet open while engine is off |
+| Window left open | Any window or sunroof open while engine is off |
+
+Push notifications require VAPID keys to be configured (`VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY`). Without them, alerts still appear in the in-app notification panel. The "engine started" alert is also triggered in real time when the event arrives over MQTT, independently of the 5-minute polling cycle.
+
+Note: "keys left in the car" is not currently supported because the SAIC MQTT gateway does not expose a key-in-vehicle sensor.
+
 ## Screenshots
 
 | Desktop | Mobile |

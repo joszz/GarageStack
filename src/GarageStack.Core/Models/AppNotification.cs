@@ -8,4 +8,5 @@ public class AppNotification
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public bool IsArchived { get; set; }
     public bool IsDeleted { get; set; }
+    public string? Category { get; set; }
 }

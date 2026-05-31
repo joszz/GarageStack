@@ -68,6 +68,8 @@ services:
         required: false
       mosquitto:
         condition: service_started
+      api:
+        condition: service_started
     env_file:
       - .env
     environment:

@@ -2237,6 +2237,15 @@ body,
   opacity: 0.55;
 }
 
+.notif-item__icon {
+  flex-shrink: 0;
+  width: 1.5rem;
+  text-align: center;
+  padding-top: 0.1rem;
+  color: var(--color-primary);
+  opacity: 0.8;
+}
+
 .notif-item__content {
   flex: 1;
   display: flex;
