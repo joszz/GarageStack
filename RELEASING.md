@@ -255,6 +255,44 @@ Repeat for `frontend` and `worker`. Leave `mosquitto` and `postgres` services un
 
 ---
 
+## Unraid Community Apps
+
+The Unraid template lives at [unraid/garagestack.xml](unraid/garagestack.xml). It tracks the `:latest` tag so Unraid users receive updates automatically -- no template change is needed when cutting a new release.
+
+### One-time submission to Community Apps
+
+The CA system requires a **separate dedicated repository** based on the [unraid-community-apps-starter](https://github.com/unraid/unraid-community-apps-starter) template. The main GarageStack repo is not read directly.
+
+**Steps:**
+
+1. Ensure the GitHub repo is **public** and the MIT `LICENSE` file is committed
+2. Ensure all four GHCR packages are **public** (see [Making GHCR Packages Public](#making-ghcr-packages-public))
+3. Go to [github.com/unraid/unraid-community-apps-starter](https://github.com/unraid/unraid-community-apps-starter) and click **Use this template** to create a new repo (e.g. `joszz/unraid-community-apps`)
+4. In the new repo, fill in `ca_profile.xml` (description, icon, project link, support link)
+5. Copy `unraid/garagestack.xml` from this repo into `templates/garagestack.xml` in the new repo
+6. Update the `<TemplateURL>` inside that copy to point to its new raw URL:
+   `https://raw.githubusercontent.com/joszz/unraid-community-apps/main/templates/garagestack.xml`
+7. Go to [ca.unraid.net/submit/new](https://ca.unraid.net/submit/new) and submit the new repo URL
+8. Once approved, GarageStack appears in the Community Apps search
+
+### Manual install (before CA approval or for testing)
+
+Unraid users can install directly without waiting for CA approval:
+
+> Unraid UI -> Apps -> Install from URL -> `https://raw.githubusercontent.com/joszz/garagestack/main/unraid/garagestack.xml`
+
+### Per-release checklist
+
+The template uses `:latest` so no file changes are needed for normal releases. Only update `unraid/garagestack.xml` (and mirror the change to `templates/garagestack.xml` in the CA repo) if:
+
+- A new required environment variable is added
+- A port or volume mapping changes
+- The container name or description changes
+
+If the template changes, commit it alongside the release so users who refresh their template get the updated fields.
+
+---
+
 ## Rollback
 
 If a release is broken, tag the last good commit with a new patch version:
