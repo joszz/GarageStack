@@ -27,13 +27,13 @@ export default defineConfig({
         screenshots: [
           {
             src: 'screenshot-mobile-home.webp',
-            sizes: '400x690',
+            sizes: '375x667',
             type: 'image/webp',
             form_factor: 'narrow',
           },
           {
             src: 'screenshot-desktop-home.webp',
-            sizes: '1385x563',
+            sizes: '1269x1038',
             type: 'image/webp',
             form_factor: 'wide',
           }
