@@ -17,7 +17,7 @@
     external database or MQTT broker required.
   </Overview>
   <Category>Tools: HomeAutomation:</Category>
-  <WebUI>http://[IP]:[PORT:8080]/</WebUI>
+  <WebUI>http://[IP]:[PORT:80]/</WebUI>
   <TemplateURL>https://raw.githubusercontent.com/joszz/garagestack/main/unraid/garagestack.xml</TemplateURL>
   <Icon>https://raw.githubusercontent.com/joszz/garagestack/main/frontend/public/pwa-192x192.png</Icon>
   <ExtraParams/>
