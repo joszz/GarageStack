@@ -1,0 +1,2 @@
+# Ubuntu's built-in fake test certificate shipped with the ssl-cert package, not a real secret
+ssl-cert-snakeoil.key

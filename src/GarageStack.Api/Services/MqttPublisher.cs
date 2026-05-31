@@ -60,7 +60,7 @@ public class MqttPublisher(IConfiguration config, ILogger<MqttPublisher> logger)
             .Build();
 
         await _client.PublishAsync(message, ct);
-        logger.LogInformation("Published MQTT topic={Topic} payloadBytes={PayloadBytes}", topic, Encoding.UTF8.GetByteCount(payload));
+        logger.LogInformation("Published MQTT topic={Topic} payloadBytes={PayloadBytes}", topic.ReplaceLineEndings(" "), Encoding.UTF8.GetByteCount(payload));
     }
 
     public async Task StopAsync(CancellationToken ct)
