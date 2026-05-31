@@ -177,6 +177,10 @@ export const notificationsApi = {
   delete: (id: number) => send(`/api/notifications/${id}`, 'DELETE'),
 }
 
+export interface MeResponse {
+  username: string
+}
+
 export const authApi = {
   login: (username: string, password: string, rememberMe = false) =>
     request<LoginResponse>('/api/auth/login', {
@@ -185,4 +189,5 @@ export const authApi = {
       body: JSON.stringify({ username, password, rememberMe }),
     }),
   logout: () => send('/api/auth/logout', 'POST'),
+  me: () => request<MeResponse>('/api/auth/me'),
 }

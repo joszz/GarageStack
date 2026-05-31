@@ -75,6 +75,11 @@ public static class VehicleEndpoints
 
             var start = from?.UtcDateTime ?? DateTime.UtcNow.AddDays(-7);
             var end = to?.UtcDateTime ?? DateTime.UtcNow;
+            if (start >= end)
+                return Results.BadRequest(new { error = "from must be before to" });
+            var maxRange = TimeSpan.FromDays(90);
+            if (end - start > maxRange)
+                start = end - maxRange;
             var history = await telemetry.GetHistoryAsync(vehicle.Id, start, end, ct);
             return Results.Ok(history);
         })
@@ -94,6 +99,11 @@ public static class VehicleEndpoints
 
             var start = from?.UtcDateTime ?? DateTime.UtcNow.AddDays(-30);
             var end = to?.UtcDateTime ?? DateTime.UtcNow;
+            if (start >= end)
+                return Results.BadRequest(new { error = "from must be before to" });
+            var maxRange = TimeSpan.FromDays(90);
+            if (end - start > maxRange)
+                start = end - maxRange;
             var trips = await telemetry.GetTripsAsync(vehicle.Id, start, end, ct);
             return Results.Ok(trips);
         })
