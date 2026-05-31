@@ -14,6 +14,8 @@ jobs:
   frontend-lint:
     name: Frontend lint
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v6
 
@@ -44,6 +46,8 @@ jobs:
   frontend-typecheck:
     name: Frontend type-check
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v6
 
@@ -68,6 +72,8 @@ jobs:
   frontend-test:
     name: Frontend tests
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v6
 
@@ -92,6 +98,8 @@ jobs:
   backend-test:
     name: Backend tests
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v6
 
@@ -108,6 +116,8 @@ jobs:
   backend-build:
     name: Backend build
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v6
 
@@ -124,6 +134,8 @@ jobs:
   container-build:
     name: Container build (${{ matrix.label }})
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:
