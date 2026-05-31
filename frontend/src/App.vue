@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useSettingsStore } from '@/stores/settings'
@@ -25,14 +25,6 @@ const {
   archiveNotification,
   deleteNotification,
 } = useNotifications()
-
-onMounted(async () => {
-  await auth.verifySession()
-  if (auth.isAuthenticated && route.name === 'login') {
-    const redirect = route.query.redirect as string | undefined
-    router.replace(redirect ?? '/')
-  }
-})
 
 const carModel = computed(() => vehicleStore.vehicles[0]?.model ?? null)
 const menuOpen = ref(false)

@@ -28,8 +28,10 @@ const router = createRouter({
   ],
 })
 
-router.beforeEach((to) => {
+router.beforeEach(async (to) => {
   const auth = useAuthStore()
+  await auth.ensureVerified()
+
   const isPublic = to.meta.public === true
 
   if (isPublic) {
