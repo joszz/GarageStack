@@ -138,7 +138,6 @@ public class PushNotificationCheckService(
         if (s.PassengerWindowOpen == true) open.Add("passenger");
         if (s.RearLeftWindowOpen == true) open.Add("rear left");
         if (s.RearRightWindowOpen == true) open.Add("rear right");
-        if (s.SunRoofOpen == true) open.Add("sunroof");
 
         if (open.Count > 0)
             alerts.Add(("windows-open-parked", "Window Left Open", $"Window(s) open while parked: {string.Join(", ", open)}"));
