@@ -1,4 +1,4 @@
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { notificationsApi, type AppNotification } from '@/services/api'
 
 const notifications = ref<AppNotification[]>([])
@@ -16,6 +16,21 @@ export function useNotifications() {
       loading.value = false
     }
   }
+
+  function onSwMessage(event: MessageEvent) {
+    if (event.data?.type === 'NOTIFICATION_RECEIVED') {
+      fetchNotifications()
+    }
+  }
+
+  onMounted(() => {
+    fetchNotifications()
+    navigator.serviceWorker?.addEventListener('message', onSwMessage)
+  })
+
+  onUnmounted(() => {
+    navigator.serviceWorker?.removeEventListener('message', onSwMessage)
+  })
 
   async function archiveNotification(id: number) {
     await notificationsApi.archive(id)
