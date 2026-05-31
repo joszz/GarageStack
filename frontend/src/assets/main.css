@@ -166,7 +166,7 @@ body,
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.6);
-  z-index: 1049;
+  z-index: 1000;
 }
 
 /* ── Sidebar ──────────────────────────────────────────────── */
@@ -864,122 +864,12 @@ body,
   color: var(--color-text-muted);
 }
 
-/* ── Trip detail popover ─────────────────────────────────────── */
+/* ── Inline trip detail (shown inside active card) ───────────── */
 
-.trip-popover {
-  position: fixed;
-  transform: translateY(-50%);
-  z-index: 1001;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  padding: 0.875rem 1rem;
-  width: 220px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
-}
-
-/* Left-pointing arrow (desktop: popover sits to the right of sidebar) */
-.trip-popover::before {
-  content: '';
-  position: absolute;
-  left: -6px;
-  top: 50%;
-  transform: translateY(-50%) rotate(45deg);
-  width: 10px;
-  height: 10px;
-  background: var(--color-surface);
-  border-left: 1px solid var(--color-border);
-  border-bottom: 1px solid var(--color-border);
-}
-
-/* Mobile: popover sits below the selected trip */
-.trip-popover--below {
-  transform: none;
-  width: auto;
-}
-
-.trip-popover--below::before {
-  left: 1rem;
-  top: -6px;
-  transform: rotate(135deg);
-  border-left: none;
-  border-bottom: none;
+.trip-detail__dl--card {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
   border-top: 1px solid var(--color-border);
-  border-right: 1px solid var(--color-border);
-}
-
-.trip-popover__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 0.625rem;
-  padding-bottom: 0.5rem;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.trip-popover__title {
-  font-size: 0.85rem;
-  font-weight: 600;
-}
-
-.trip-popover__close {
-  background: none;
-  border: none;
-  color: var(--color-text-muted);
-  cursor: pointer;
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 4px;
-  font-size: 0.8rem;
-  padding: 0;
-}
-
-.trip-popover__close:hover {
-  background: var(--color-surface-2);
-  color: var(--color-text);
-}
-
-/* ── Trip popover transition ─────────────────────────────────── */
-
-.trip-popover-enter-active,
-.trip-popover-leave-active {
-  transition:
-    opacity 0.15s ease,
-    transform 0.15s ease;
-}
-
-.trip-popover-enter-from,
-.trip-popover-leave-to {
-  opacity: 0;
-  transform: translateX(-4px);
-}
-
-@media (max-width: 767px) {
-  .trip-popover {
-    left: 0;
-    right: 0;
-    top: calc(100% + 8px);
-    width: auto;
-    transform: none;
-  }
-
-  .trip-popover::before {
-    left: 24px;
-    top: -6px;
-    transform: rotate(45deg);
-    border-top: 1px solid var(--color-border);
-    border-left: 1px solid var(--color-border);
-    border-bottom: none;
-  }
-
-  .trip-popover-enter-from,
-  .trip-popover-leave-to {
-    opacity: 0;
-    transform: translateY(-4px);
-  }
 }
 
 .trip-pagination {
@@ -1722,14 +1612,17 @@ body,
     top: 0;
     left: 0;
     bottom: 0;
-    z-index: 1050;
+    z-index: 300;
     transform: translateX(-100%);
     transition: transform 0.25s ease;
     box-shadow: 4px 0 24px rgba(0, 0, 0, 0.5);
   }
 
+  /* Elevate above Leaflet controls (z-index 1000) only while the drawer is
+     open — GPU layer promotion is limited to the 250 ms slide-in animation. */
   .sidebar--open {
     transform: translateX(0);
+    z-index: 1001;
   }
 
   .main-content {

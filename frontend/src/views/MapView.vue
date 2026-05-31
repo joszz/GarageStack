@@ -37,21 +37,11 @@ const PAGE_SIZE = 10
 
 const mapWrapperRef = ref<HTMLElement | null>(null)
 const tripSidebarRef = ref<HTMLElement | null>(null)
-const popoverAnchor = ref<{ top: number; left: number; below: boolean } | null>(null)
-const isMobile = ref(window.innerWidth <= 767)
-
-function onResize() {
-  isMobile.value = window.innerWidth <= 767
-}
 const mapInstance = shallowRef<LeafletMap | null>(null)
 let heatLayer: L.Layer | null = null
 let routeLines: L.Polyline[] = []
 let resizeObserver: ResizeObserver | null = null
-
-function closePopover() {
-  selectedTripIndex.value = null
-  popoverAnchor.value = null
-}
+let mapUpdateRaf: number | null = null
 
 type HeatLayerFactory = {
   heatLayer: (
@@ -93,10 +83,6 @@ const totalPages = computed(() => Math.max(1, Math.ceil(store.trips.length / PAG
 function realIndex(newestFirstIdx: number): number {
   return store.trips.length - 1 - newestFirstIdx
 }
-
-const selectedTrip = computed<Trip | null>(() =>
-  selectedTripIndex.value !== null ? (store.trips[selectedTripIndex.value] ?? null) : null,
-)
 
 const allPoints = computed<[number, number][]>(() =>
   store.trips.flatMap((trip) =>
@@ -177,9 +163,9 @@ function fitBoundsSafe(pts: [number, number][]) {
   if (!map || pts.length === 0) return
   const bounds = L.latLngBounds(pts)
   if (bounds.getNorthEast().equals(bounds.getSouthWest())) {
-    map.setView(bounds.getCenter(), 15)
+    map.setView(bounds.getCenter(), 15, { animate: false })
   } else {
-    map.fitBounds(bounds, { padding: [32, 32] })
+    map.fitBounds(bounds, { padding: [32, 32], animate: false })
   }
 }
 
@@ -187,7 +173,9 @@ function fitAll() {
   if (allPoints.value.length > 0) {
     fitBoundsSafe(allPoints.value)
   } else if (status.value?.latitude != null && status.value?.longitude != null) {
-    mapInstance.value?.setView([status.value.latitude, status.value.longitude], 14)
+    mapInstance.value?.setView([status.value.latitude, status.value.longitude], 14, {
+      animate: false,
+    })
   }
 }
 
@@ -199,7 +187,7 @@ function flyToStatus() {
   const map = mapInstance.value
   const s = status.value
   if (map && s?.latitude != null && s?.longitude != null) {
-    map.setView([s.latitude, s.longitude], 14)
+    map.setView([s.latitude, s.longitude], 14, { animate: false })
   }
 }
 
@@ -223,7 +211,7 @@ function onMapReady(map: LeafletMap) {
         buildRouteLines()
         fitAll()
       } else if (status.value?.latitude != null && status.value?.longitude != null) {
-        map.setView([status.value.latitude, status.value.longitude], 14)
+        map.setView([status.value.latitude, status.value.longitude], 14, { animate: false })
       }
     })
   })
@@ -233,7 +221,7 @@ function onMapReady(map: LeafletMap) {
 watch(status, (s) => {
   if (!mapInstance.value || s?.latitude == null || s?.longitude == null) return
   if (allPoints.value.length === 0) {
-    mapInstance.value.setView([s.latitude, s.longitude], 14)
+    mapInstance.value.setView([s.latitude, s.longitude], 14, { animate: false })
   }
 })
 
@@ -246,18 +234,25 @@ watch(allPoints, async (pts) => {
   fitAll()
 })
 
-// Trip selection drives map display and popover position
+// Trip selection drives map display and popover position.
+// Leaflet operations are deferred to the next animation frame so the Vue DOM
+// update (active state CSS transition, popover enter) renders cleanly before
+// the canvas GPU layer is torn down and rebuilt.
 watch(selectedTripIndex, (idx) => {
-  if (idx === null) {
-    if (heatmapEnabled.value) buildHeatLayer()
-    buildRouteLines()
-    fitAll()
-  } else {
-    removeHeatLayer()
-    buildSelectedLine()
-    const trip = store.trips[idx]
-    if (trip) fitTrip(trip)
-  }
+  if (mapUpdateRaf !== null) cancelAnimationFrame(mapUpdateRaf)
+  mapUpdateRaf = requestAnimationFrame(() => {
+    mapUpdateRaf = null
+    if (idx === null) {
+      if (heatmapEnabled.value) buildHeatLayer()
+      buildRouteLines()
+      fitAll()
+    } else {
+      removeHeatLayer()
+      buildSelectedLine()
+      const trip = store.trips[idx]
+      if (trip) fitTrip(trip)
+    }
+  })
 })
 
 // Heatmap toggle while no trip is selected
@@ -271,7 +266,6 @@ watch(heatmapEnabled, (enabled) => {
 watch(dateRangeDays, async (days) => {
   tripsPage.value = 1
   selectedTripIndex.value = null
-  popoverAnchor.value = null
   if (vin.value) {
     await store.fetchTrips(vin.value, new Date(Date.now() - days * 86_400_000).toISOString())
   }
@@ -280,46 +274,26 @@ watch(dateRangeDays, async (days) => {
 // Deselect when paginating
 watch(tripsPage, () => {
   selectedTripIndex.value = null
-  popoverAnchor.value = null
 })
 
 function selectTrip(realIdx: number) {
   if (selectedTripIndex.value === realIdx) {
-    closePopover()
+    selectedTripIndex.value = null
     return
   }
   selectedTripIndex.value = realIdx
-  popoverAnchor.value = null
   nextTick(() => {
     const sidebar = tripSidebarRef.value
     const active = sidebar?.querySelector('.trip-list__item--active') as HTMLElement | null
     if (sidebar && active) {
       const sidebarRect = sidebar.getBoundingClientRect()
       const itemRect = active.getBoundingClientRect()
-      if (isMobile.value) {
-        // After the scroll the item will sit at the sidebar's top edge,
-        // so compute the expected post-scroll bottom position.
-        const postScrollBottom = sidebarRect.top + itemRect.height
-        popoverAnchor.value = {
-          top: postScrollBottom + 8,
-          left: sidebarRect.left,
-          below: true,
-        }
-      } else {
-        popoverAnchor.value = {
-          top: itemRect.top + itemRect.height / 2,
-          left: sidebarRect.right + 10,
-          below: false,
-        }
-      }
-      const offset = itemRect.top - sidebarRect.top
-      sidebar.scrollBy({ top: offset, behavior: 'smooth' })
+      sidebar.scrollBy({ top: itemRect.top - sidebarRect.top, behavior: 'smooth' })
     }
   })
 }
 
 onMounted(async () => {
-  window.addEventListener('resize', onResize)
   await store.fetchVehicles()
   if (vin.value) {
     await Promise.all([
@@ -333,8 +307,9 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
+  if (mapUpdateRaf !== null) cancelAnimationFrame(mapUpdateRaf)
+  removeHeatLayer()
   resizeObserver?.disconnect()
-  window.removeEventListener('resize', onResize)
 })
 </script>
 
@@ -419,6 +394,22 @@ onUnmounted(() => {
                   {{ trip.distanceKm }} {{ t('common.km') }} &middot;
                   {{ formatDuration(trip.startedAt, trip.endedAt) }}
                 </span>
+                <dl
+                  v-if="selectedTripIndex === realIndex(pageOffset + displayIdx)"
+                  class="trip-detail__dl trip-detail__dl--card"
+                >
+                  <dt>{{ t('trips.started') }}</dt>
+                  <dd>
+                    {{
+                      new Date(trip.startedAt).toLocaleTimeString([], {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })
+                    }}
+                  </dd>
+                  <dt>{{ t('trips.points') }}</dt>
+                  <dd>{{ trip.pointCount }}</dd>
+                </dl>
               </div>
             </li>
           </ul>
@@ -446,50 +437,4 @@ onUnmounted(() => {
       </div>
     </div>
   </div>
-
-  <Teleport to="body">
-    <Transition name="trip-popover">
-      <div
-        v-if="selectedTrip && popoverAnchor"
-        class="trip-popover"
-        :class="{ 'trip-popover--below': popoverAnchor.below }"
-        :style="
-          popoverAnchor.below
-            ? {
-                top: popoverAnchor.top + 'px',
-                left: popoverAnchor.left + 'px',
-                width: (tripSidebarRef?.getBoundingClientRect().width ?? 280) + 'px',
-              }
-            : { top: popoverAnchor.top + 'px', left: popoverAnchor.left + 'px' }
-        "
-        @click.stop
-      >
-        <div class="trip-popover__header">
-          <span class="trip-popover__title">{{
-            new Date(selectedTrip.startedAt).toLocaleDateString()
-          }}</span>
-          <button class="trip-popover__close" @click="closePopover">
-            <font-awesome-icon icon="xmark" />
-          </button>
-        </div>
-        <dl class="trip-detail__dl">
-          <dt>{{ t('trips.started') }}</dt>
-          <dd>
-            {{
-              new Date(selectedTrip.startedAt).toLocaleTimeString([], {
-                hour: '2-digit',
-                minute: '2-digit',
-              })
-            }}
-          </dd>
-          <dt>{{ t('trips.distance') }}</dt>
-          <dd>{{ selectedTrip.distanceKm }} {{ t('common.km') }}</dd>
-          <dt>{{ t('trips.duration') }}</dt>
-          <dd>{{ formatDuration(selectedTrip.startedAt, selectedTrip.endedAt) }}</dd>
-          <dt>{{ t('trips.points') }}</dt>
-          <dd>{{ selectedTrip.pointCount }}</dd>
-        </dl>
-      </div>
-    </Transition>
-  </Teleport>
 </template>
