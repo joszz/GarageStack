@@ -20,7 +20,16 @@ public static class AuthEndpoints
         })
         .WithSummary("Clear the authentication cookie");
 
-        group.MapPost("/login", (LoginRequest req, IConfiguration config, HttpContext httpContext, ILoggerFactory loggerFactory) =>
+        group.MapGet("/me", (HttpContext httpContext) =>
+        {
+            var username = httpContext.User.FindFirst(ClaimTypes.Name)?.Value
+                ?? httpContext.User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
+            return string.IsNullOrEmpty(username) ? Results.Unauthorized() : Results.Ok(new { username });
+        })
+        .RequireAuthorization()
+        .WithSummary("Get current authenticated user");
+
+        group.MapPost("/login", (LoginRequest req, IConfiguration config, HttpContext httpContext, IWebHostEnvironment env, ILoggerFactory loggerFactory) =>
         {
             var logger = loggerFactory.CreateLogger("AuthLogin");
 
@@ -90,7 +99,7 @@ public static class AuthEndpoints
             httpContext.Response.Cookies.Append("garagestack-auth", tokenString, new CookieOptions
             {
                 HttpOnly = true,
-                Secure = httpContext.Request.IsHttps,
+                Secure = !env.IsDevelopment() || httpContext.Request.IsHttps,
                 SameSite = SameSiteMode.Strict,
                 Expires = expires,
                 Path = "/",

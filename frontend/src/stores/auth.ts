@@ -29,5 +29,17 @@ export const useAuthStore = defineStore('auth', () => {
     await authApi.logout()
   }
 
-  return { username, isAuthenticated, login, logout }
+  async function verifySession(): Promise<void> {
+    try {
+      const result = await authApi.me()
+      username.value = result.username
+    } catch {
+      username.value = ''
+      expiresAtUtc.value = ''
+      localStorage.removeItem(AUTH_USERNAME_KEY)
+      localStorage.removeItem(AUTH_EXPIRES_KEY)
+    }
+  }
+
+  return { username, isAuthenticated, login, logout, verifySession }
 })
