@@ -64,7 +64,7 @@ async function submitLogin() {
               :placeholder="t('auth.username')"
               autocomplete="username"
               required
-            >
+            />
           </div>
         </div>
 
@@ -80,7 +80,7 @@ async function submitLogin() {
               :placeholder="t('auth.password')"
               autocomplete="current-password"
               required
-            >
+            />
           </div>
         </div>
 
@@ -90,12 +90,7 @@ async function submitLogin() {
             <span class="settings-toggle__desc">{{ t('auth.rememberMeDesc') }}</span>
           </div>
           <div class="settings-toggle__control form-check form-switch">
-            <input
-              id="remember-me"
-              v-model="rememberMe"
-              type="checkbox"
-              class="form-check-input"
-            >
+            <input id="remember-me" v-model="rememberMe" type="checkbox" class="form-check-input" />
           </div>
         </div>
 

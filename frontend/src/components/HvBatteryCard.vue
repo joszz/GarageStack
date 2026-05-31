@@ -25,7 +25,11 @@ const { isOpen: modalOpen, open: openModal, close: closeModal } = useModal()
 const { sending, lastResult, isPending, send } = useVehicleCommand()
 
 const socPercent = computed(() => {
-  if (props.hvSocKwh === null || props.hvTotalCapacityKwh === null || props.hvTotalCapacityKwh === 0)
+  if (
+    props.hvSocKwh === null ||
+    props.hvTotalCapacityKwh === null ||
+    props.hvTotalCapacityKwh === 0
+  )
     return null
   return Math.round((props.hvSocKwh / props.hvTotalCapacityKwh) * 100)
 })
@@ -46,14 +50,13 @@ const summaryVariant = computed(() => {
   return 'success' as const
 })
 
-const hasAnyData = computed(() =>
-  props.hvSocKwh !== null || props.hvVoltage !== null || props.hvPower !== null,
+const hasAnyData = computed(
+  () => props.hvSocKwh !== null || props.hvVoltage !== null || props.hvPower !== null,
 )
 
 function setChargeLimit(value: string) {
   send(props.vin, 'charge-limit', value)
 }
-
 </script>
 
 <template>
@@ -67,11 +70,7 @@ function setChargeLimit(value: string) {
     @click="openModal"
   />
 
-  <DetailModal
-    :open="modalOpen"
-    :title="t('vehicle.hvBattery.title')"
-    @close="closeModal"
-  >
+  <DetailModal :open="modalOpen" :title="t('vehicle.hvBattery.title')" @close="closeModal">
     <div class="detail-list">
       <div v-if="hvSocKwh !== null" class="detail-list__item">
         <font-awesome-icon icon="bolt" class="detail-list__item-icon" />
@@ -118,7 +117,9 @@ function setChargeLimit(value: string) {
       <div v-if="chargerConnected !== null" class="detail-list__item">
         <font-awesome-icon icon="plug-circle-check" class="detail-list__item-icon" />
         <span class="badge" :class="chargerConnected ? 'badge-info' : 'badge-secondary'">
-          {{ chargerConnected ? t('vehicle.hvBattery.pluggedIn') : t('vehicle.hvBattery.unplugged') }}
+          {{
+            chargerConnected ? t('vehicle.hvBattery.pluggedIn') : t('vehicle.hvBattery.unplugged')
+          }}
         </span>
         <span class="detail-list__item-sep">-</span>
         <span class="detail-list__item-label">{{ t('vehicle.hvBattery.charger') }}</span>
@@ -129,16 +130,47 @@ function setChargeLimit(value: string) {
     <div v-if="canSetChargeLimit" class="detail-modal__section">
       <div class="detail-modal__section-title">{{ t('control.chargeLimit') }}</div>
       <div class="modal-btn-group">
-        <button class="btn btn-outline-secondary" :class="isPending('charge-limit') ? 'btn--pending' : ''" :disabled="sending === 'charge-limit' || isPending('charge-limit')" @click="setChargeLimit('6A')">6 A</button>
-        <button class="btn btn-outline-secondary" :class="isPending('charge-limit') ? 'btn--pending' : ''" :disabled="sending === 'charge-limit' || isPending('charge-limit')" @click="setChargeLimit('8A')">8 A</button>
-        <button class="btn btn-outline-secondary" :class="isPending('charge-limit') ? 'btn--pending' : ''" :disabled="sending === 'charge-limit' || isPending('charge-limit')" @click="setChargeLimit('16A')">16 A</button>
-        <button class="btn btn-success" :class="isPending('charge-limit') ? 'btn--pending' : ''" :disabled="sending === 'charge-limit' || isPending('charge-limit')" @click="setChargeLimit('Max')">Max</button>
+        <button
+          class="btn btn-outline-secondary"
+          :class="isPending('charge-limit') ? 'btn--pending' : ''"
+          :disabled="sending === 'charge-limit' || isPending('charge-limit')"
+          @click="setChargeLimit('6A')"
+        >
+          6 A
+        </button>
+        <button
+          class="btn btn-outline-secondary"
+          :class="isPending('charge-limit') ? 'btn--pending' : ''"
+          :disabled="sending === 'charge-limit' || isPending('charge-limit')"
+          @click="setChargeLimit('8A')"
+        >
+          8 A
+        </button>
+        <button
+          class="btn btn-outline-secondary"
+          :class="isPending('charge-limit') ? 'btn--pending' : ''"
+          :disabled="sending === 'charge-limit' || isPending('charge-limit')"
+          @click="setChargeLimit('16A')"
+        >
+          16 A
+        </button>
+        <button
+          class="btn btn-success"
+          :class="isPending('charge-limit') ? 'btn--pending' : ''"
+          :disabled="sending === 'charge-limit' || isPending('charge-limit')"
+          @click="setChargeLimit('Max')"
+        >
+          Max
+        </button>
       </div>
       <div v-if="isPending('charge-limit')" class="detail-list__feedback text-info">
         <font-awesome-icon icon="clock" />
         {{ t('control.pending') }}
       </div>
-      <div v-else-if="lastResult?.key === 'charge-limit' && !lastResult.ok" class="detail-list__feedback text-danger">
+      <div
+        v-else-if="lastResult?.key === 'charge-limit' && !lastResult.ok"
+        class="detail-list__feedback text-danger"
+      >
         {{ t('control.error') }}
       </div>
     </div>

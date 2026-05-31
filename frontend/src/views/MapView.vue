@@ -14,7 +14,8 @@ import type { Trip } from '@/services/api'
 // Vite wraps CJS modules in a frozen ESM namespace - `import * as LModule` gives that frozen
 // namespace. leaflet.heat patches the actual mutable CJS export (LModule.default), so we must
 // use that reference to reach heatLayer at runtime.
-const L = ((LModule as unknown as { default?: typeof LModule }).default ?? LModule) as typeof LModule
+const L = ((LModule as unknown as { default?: typeof LModule }).default ??
+  LModule) as typeof LModule
 
 const { t } = useI18n()
 const store = useVehicleStore()
@@ -27,7 +28,9 @@ const heatmapEnabled = ref(true)
 
 const dateRangeDays = computed({
   get: () => settingsStore.filterDays,
-  set: (v: number) => { settingsStore.filterDays = v },
+  set: (v: number) => {
+    settingsStore.filterDays = v
+  },
 })
 const tripsPage = ref(1)
 const PAGE_SIZE = 10
@@ -82,7 +85,9 @@ const center: [number, number] = [52.3676, 4.9041]
 // Trips displayed newest-first in the sidebar; selectedTripIndex is always the real store.trips index.
 const newestFirstTrips = computed(() => [...store.trips].reverse())
 const pageOffset = computed(() => (tripsPage.value - 1) * PAGE_SIZE)
-const displayTrips = computed(() => newestFirstTrips.value.slice(pageOffset.value, pageOffset.value + PAGE_SIZE))
+const displayTrips = computed(() =>
+  newestFirstTrips.value.slice(pageOffset.value, pageOffset.value + PAGE_SIZE),
+)
 const totalPages = computed(() => Math.max(1, Math.ceil(store.trips.length / PAGE_SIZE)))
 
 function realIndex(newestFirstIdx: number): number {
@@ -94,7 +99,9 @@ const selectedTrip = computed<Trip | null>(() =>
 )
 
 const allPoints = computed<[number, number][]>(() =>
-  store.trips.flatMap((trip) => trip.points.map((p) => [p.latitude, p.longitude] as [number, number])),
+  store.trips.flatMap((trip) =>
+    trip.points.map((p) => [p.latitude, p.longitude] as [number, number]),
+  ),
 )
 
 function formatDuration(startedAt: string, endedAt: string): string {
@@ -105,7 +112,7 @@ function formatDuration(startedAt: string, endedAt: string): string {
 }
 
 function clearRouteLines() {
-  routeLines.forEach(l => l.remove())
+  routeLines.forEach((l) => l.remove())
   routeLines = []
 }
 
@@ -116,13 +123,18 @@ function buildHeatLayer() {
     console.warn('[map] leaflet.heat plugin not available')
     return
   }
-  if (heatLayer) { heatLayer.remove(); heatLayer = null }
-  heatLayer = leafWithHeat.heatLayer(allPoints.value, {
-    radius: 18,
-    blur: 22,
-    maxZoom: 17,
-    gradient: { 0.4: '#3b82f6', 0.65: '#f59e0b', 1.0: '#ef4444' },
-  }).addTo(map)
+  if (heatLayer) {
+    heatLayer.remove()
+    heatLayer = null
+  }
+  heatLayer = leafWithHeat
+    .heatLayer(allPoints.value, {
+      radius: 18,
+      blur: 22,
+      maxZoom: 17,
+      gradient: { 0.4: '#3b82f6', 0.65: '#f59e0b', 1.0: '#ef4444' },
+    })
+    .addTo(map)
 }
 
 function buildRouteLines() {
@@ -130,7 +142,7 @@ function buildRouteLines() {
   if (!map) return
   clearRouteLines()
   store.trips.forEach((trip, i) => {
-    const pts = trip.points.map(p => [p.latitude, p.longitude] as [number, number])
+    const pts = trip.points.map((p) => [p.latitude, p.longitude] as [number, number])
     if (pts.length < 2) return
     const line = L.polyline(pts, { color: tripColor(i), weight: 3, opacity: 0.75 })
     line.on('click', () => selectTrip(i))
@@ -146,7 +158,7 @@ function buildSelectedLine() {
   clearRouteLines()
   const trip = store.trips[idx]
   if (!trip) return
-  const pts = trip.points.map(p => [p.latitude, p.longitude] as [number, number])
+  const pts = trip.points.map((p) => [p.latitude, p.longitude] as [number, number])
   if (pts.length < 2) return
   const line = L.polyline(pts, { color: tripColor(idx), weight: 5, opacity: 1 })
   line.addTo(map)
@@ -154,7 +166,10 @@ function buildSelectedLine() {
 }
 
 function removeHeatLayer() {
-  if (heatLayer) { heatLayer.remove(); heatLayer = null }
+  if (heatLayer) {
+    heatLayer.remove()
+    heatLayer = null
+  }
 }
 
 function fitBoundsSafe(pts: [number, number][]) {
@@ -309,7 +324,10 @@ onMounted(async () => {
   if (vin.value) {
     await Promise.all([
       store.fetchStatus(vin.value),
-      store.fetchTrips(vin.value, new Date(Date.now() - dateRangeDays.value * 86_400_000).toISOString()),
+      store.fetchTrips(
+        vin.value,
+        new Date(Date.now() - dateRangeDays.value * 86_400_000).toISOString(),
+      ),
     ])
   }
 })
@@ -343,7 +361,7 @@ onUnmounted(() => {
               <span class="settings-toggle__label">{{ t('trips.heatmap') }}</span>
             </div>
             <div class="settings-toggle__control form-check form-switch">
-              <input v-model="heatmapEnabled" type="checkbox" class="form-check-input">
+              <input v-model="heatmapEnabled" type="checkbox" class="form-check-input" />
             </div>
           </div>
         </FiltersPanel>
@@ -372,21 +390,34 @@ onUnmounted(() => {
         </div>
 
         <template v-else>
-          <TripPaginator v-if="totalPages > 1" v-model="tripsPage" :total-pages="totalPages" class="trip-pagination--top" />
+          <TripPaginator
+            v-if="totalPages > 1"
+            v-model="tripsPage"
+            :total-pages="totalPages"
+            class="trip-pagination--top"
+          />
 
           <ul class="trip-list">
             <li
               v-for="(trip, displayIdx) in displayTrips"
               :key="pageOffset + displayIdx"
               class="trip-list__item"
-              :class="{ 'trip-list__item--active': selectedTripIndex === realIndex(pageOffset + displayIdx) }"
+              :class="{
+                'trip-list__item--active': selectedTripIndex === realIndex(pageOffset + displayIdx),
+              }"
               @click="selectTrip(realIndex(pageOffset + displayIdx))"
             >
-              <span class="trip-list__dot" :class="tripColorClass(realIndex(pageOffset + displayIdx))" />
+              <span
+                class="trip-list__dot"
+                :class="tripColorClass(realIndex(pageOffset + displayIdx))"
+              />
               <div class="trip-list__info">
-                <span class="trip-list__name">{{ new Date(trip.startedAt).toLocaleDateString() }}</span>
+                <span class="trip-list__name">{{
+                  new Date(trip.startedAt).toLocaleDateString()
+                }}</span>
                 <span class="trip-list__meta">
-                  {{ trip.distanceKm }} {{ t('common.km') }} &middot; {{ formatDuration(trip.startedAt, trip.endedAt) }}
+                  {{ trip.distanceKm }} {{ t('common.km') }} &middot;
+                  {{ formatDuration(trip.startedAt, trip.endedAt) }}
                 </span>
               </div>
             </li>
@@ -405,13 +436,15 @@ onUnmounted(() => {
           />
 
           <!-- Current position marker -->
-          <LMarker v-if="status?.latitude != null && status?.longitude != null" :lat-lng="[status.latitude!, status.longitude!]">
+          <LMarker
+            v-if="status?.latitude != null && status?.longitude != null"
+            :lat-lng="[status.latitude!, status.longitude!]"
+          >
             <LPopup>{{ store.vehicles[0]?.model ?? store.vehicles[0]?.vin }}</LPopup>
           </LMarker>
         </LMap>
       </div>
     </div>
-
   </div>
 
   <Teleport to="body">
@@ -420,20 +453,35 @@ onUnmounted(() => {
         v-if="selectedTrip && popoverAnchor"
         class="trip-popover"
         :class="{ 'trip-popover--below': popoverAnchor.below }"
-        :style="popoverAnchor.below
-          ? { top: popoverAnchor.top + 'px', left: popoverAnchor.left + 'px', width: (tripSidebarRef?.getBoundingClientRect().width ?? 280) + 'px' }
-          : { top: popoverAnchor.top + 'px', left: popoverAnchor.left + 'px' }"
+        :style="
+          popoverAnchor.below
+            ? {
+                top: popoverAnchor.top + 'px',
+                left: popoverAnchor.left + 'px',
+                width: (tripSidebarRef?.getBoundingClientRect().width ?? 280) + 'px',
+              }
+            : { top: popoverAnchor.top + 'px', left: popoverAnchor.left + 'px' }
+        "
         @click.stop
       >
         <div class="trip-popover__header">
-          <span class="trip-popover__title">{{ new Date(selectedTrip.startedAt).toLocaleDateString() }}</span>
+          <span class="trip-popover__title">{{
+            new Date(selectedTrip.startedAt).toLocaleDateString()
+          }}</span>
           <button class="trip-popover__close" @click="closePopover">
             <font-awesome-icon icon="xmark" />
           </button>
         </div>
         <dl class="trip-detail__dl">
           <dt>{{ t('trips.started') }}</dt>
-          <dd>{{ new Date(selectedTrip.startedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }}</dd>
+          <dd>
+            {{
+              new Date(selectedTrip.startedAt).toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit',
+              })
+            }}
+          </dd>
           <dt>{{ t('trips.distance') }}</dt>
           <dd>{{ selectedTrip.distanceKm }} {{ t('common.km') }}</dd>
           <dt>{{ t('trips.duration') }}</dt>

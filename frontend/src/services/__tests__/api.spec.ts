@@ -27,7 +27,12 @@ describe('unauthorizedHandler', () => {
   it('calls the handler once on a 401 response', async () => {
     const handler = vi.fn<() => void>()
     setUnauthorizedHandler(handler)
-    vi.stubGlobal('fetch', vi.fn<FetchSpy>().mockResolvedValue({ ok: false, status: 401, json: () => Promise.resolve() }))
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn<FetchSpy>()
+        .mockResolvedValue({ ok: false, status: 401, json: () => Promise.resolve() }),
+    )
     await vehicleApi.list().catch(() => {})
     expect(handler).toHaveBeenCalledOnce()
   })
@@ -35,7 +40,12 @@ describe('unauthorizedHandler', () => {
   it('does not call the handler a second time when already handling a 401', async () => {
     const handler = vi.fn<() => void>()
     setUnauthorizedHandler(handler)
-    vi.stubGlobal('fetch', vi.fn<FetchSpy>().mockResolvedValue({ ok: false, status: 401, json: () => Promise.resolve() }))
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn<FetchSpy>()
+        .mockResolvedValue({ ok: false, status: 401, json: () => Promise.resolve() }),
+    )
     await Promise.all([vehicleApi.list().catch(() => {}), vehicleApi.list().catch(() => {})])
     expect(handler).toHaveBeenCalledOnce()
   })
@@ -43,7 +53,12 @@ describe('unauthorizedHandler', () => {
   it('calls the handler again after clearUnauthorizedState', async () => {
     const handler = vi.fn<() => void>()
     setUnauthorizedHandler(handler)
-    vi.stubGlobal('fetch', vi.fn<FetchSpy>().mockResolvedValue({ ok: false, status: 401, json: () => Promise.resolve() }))
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn<FetchSpy>()
+        .mockResolvedValue({ ok: false, status: 401, json: () => Promise.resolve() }),
+    )
     await vehicleApi.list().catch(() => {})
     clearUnauthorizedState()
     await vehicleApi.list().catch(() => {})
@@ -54,7 +69,12 @@ describe('unauthorizedHandler', () => {
     const handler = vi.fn<() => void>()
     setUnauthorizedHandler(handler)
     setUnauthorizedHandler(null)
-    vi.stubGlobal('fetch', vi.fn<FetchSpy>().mockResolvedValue({ ok: false, status: 401, json: () => Promise.resolve() }))
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn<FetchSpy>()
+        .mockResolvedValue({ ok: false, status: 401, json: () => Promise.resolve() }),
+    )
     await vehicleApi.list().catch(() => {})
     expect(handler).not.toHaveBeenCalled()
   })
@@ -118,7 +138,8 @@ describe('vehicleApi', () => {
     if (!firstCall) throw new Error('Expected first fetch call to exist')
     const [url, options] = firstCall
     expect(url).toContain('/api/vehicles/VIN1/commands/lock')
+    if (!options) throw new Error('Expected fetch options to exist')
     expect(options.method).toBe('POST')
-    expect(JSON.parse(options.body)).toEqual({ value: 'lock' })
+    expect(JSON.parse(options.body as string)).toEqual({ value: 'lock' })
   })
 })

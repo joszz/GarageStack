@@ -37,11 +37,7 @@ function stop() {
     @click="openModal"
   />
 
-  <DetailModal
-    :open="modalOpen"
-    :title="t('control.findMyCar')"
-    @close="closeModal"
-  >
+  <DetailModal :open="modalOpen" :title="t('control.findMyCar')" @close="closeModal">
     <p class="card-info-desc">{{ t('control.findMyCarConfirm') }}</p>
     <template #footer>
       <button class="btn btn-outline-secondary" @click="closeModal">

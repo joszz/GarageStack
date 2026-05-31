@@ -86,5 +86,19 @@ export const useVehicleStore = defineStore('vehicle', () => {
     return 'unknown'
   })
 
-  return { vehicles, currentStatus, vehicleConfig, detectedVehicleType, history, trips, loading, error, fetchVehicles, fetchStatus, fetchConfig, fetchHistory, fetchTrips }
+  return {
+    vehicles,
+    currentStatus,
+    vehicleConfig,
+    detectedVehicleType,
+    history,
+    trips,
+    loading,
+    error,
+    fetchVehicles,
+    fetchStatus,
+    fetchConfig,
+    fetchHistory,
+    fetchTrips,
+  }
 })

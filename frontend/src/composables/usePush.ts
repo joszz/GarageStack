@@ -17,7 +17,10 @@ export function usePush() {
   async function initPushState() {
     if (!pushSupported) return
     const perm = Notification.permission
-    if (perm === 'denied') { pushState.value = 'denied'; return }
+    if (perm === 'denied') {
+      pushState.value = 'denied'
+      return
+    }
     const reg = await navigator.serviceWorker.ready
     const sub = await reg.pushManager.getSubscription()
     pushState.value = sub ? 'subscribed' : 'unsubscribed'

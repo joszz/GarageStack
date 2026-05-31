@@ -42,44 +42,54 @@ function cardHasData(id: CardId): boolean {
   const s = status.value
   if (!s) return false
   switch (id) {
-    case 'fuelLevel':          return s.fuelLevelPercent !== null
-    case 'fuelRange':          return s.fuelRangeKm !== null
-    case 'evBattery':          return s.evSocPercent !== null
-    case 'charging':           return s.isCharging !== null
-    case 'sunRoof':            return s.sunRoofOpen !== null
-    case 'efficiencyDistance': return s.mileageOfTheDay !== null
-    case 'efficiencyEnergy':   return s.powerUsageOfDay !== null
-    case 'efficiencyCharge':   return s.mileageSinceLastCharge !== null && !isHev.value
-    case 'efficiencyRatio':    return s.powerUsageOfDay !== null && s.mileageOfTheDay !== null && s.mileageOfTheDay > 0
-    default:                   return true
+    case 'fuelLevel':
+      return s.fuelLevelPercent !== null
+    case 'fuelRange':
+      return s.fuelRangeKm !== null
+    case 'evBattery':
+      return s.evSocPercent !== null
+    case 'charging':
+      return s.isCharging !== null
+    case 'sunRoof':
+      return s.sunRoofOpen !== null
+    case 'efficiencyDistance':
+      return s.mileageOfTheDay !== null
+    case 'efficiencyEnergy':
+      return s.powerUsageOfDay !== null
+    case 'efficiencyCharge':
+      return s.mileageSinceLastCharge !== null && !isHev.value
+    case 'efficiencyRatio':
+      return s.powerUsageOfDay !== null && s.mileageOfTheDay !== null && s.mileageOfTheDay > 0
+    default:
+      return true
   }
 }
 
 const CARD_ICONS: Record<CardId, string> = {
-  fuelLevel:          'gas-pump',
-  fuelRange:          'road',
-  evBattery:          'bolt',
-  charging:           'plug',
-  odometer:           'gauge',
-  battery12v:         'battery-three-quarters',
-  doors:              'lock',
-  windows:            'car-side',
-  sunRoof:            'sun',
-  climate:            'wind',
-  hvBattery:          'battery-half',
-  findMyCar:          'car-burst',
-  lights:             'lightbulb',
+  fuelLevel: 'gas-pump',
+  fuelRange: 'road',
+  evBattery: 'bolt',
+  charging: 'plug',
+  odometer: 'gauge',
+  battery12v: 'battery-three-quarters',
+  doors: 'lock',
+  windows: 'car-side',
+  sunRoof: 'sun',
+  climate: 'wind',
+  hvBattery: 'battery-half',
+  findMyCar: 'car-burst',
+  lights: 'lightbulb',
   efficiencyDistance: 'route',
-  efficiencyEnergy:   'plug-circle-bolt',
-  efficiencyCharge:   'battery-full',
-  efficiencyRatio:    'leaf',
+  efficiencyEnergy: 'plug-circle-bolt',
+  efficiencyCharge: 'battery-full',
+  efficiencyRatio: 'leaf',
 }
 
 function resetLayout() {
   const fresh = defaultCards(vehicleType.value)
-  const active = fresh.filter(c => c.visible && cardHasData(c.id))
-  const noData = fresh.filter(c => c.visible && !cardHasData(c.id))
-  const hidden = fresh.filter(c => !c.visible)
+  const active = fresh.filter((c) => c.visible && cardHasData(c.id))
+  const noData = fresh.filter((c) => c.visible && !cardHasData(c.id))
+  const hidden = fresh.filter((c) => !c.visible)
   settings.cards = [...active, ...noData, ...hidden]
   settings.showTyreDiagram = true
 }
@@ -111,9 +121,9 @@ onMounted(async () => {
   // On a fresh start (no saved layout), push no-data visible cards to the end
   if (!localStorage.getItem('garagestack-settings') && status.value) {
     const current = [...settings.cards]
-    const active = current.filter(c => c.visible && cardHasData(c.id))
-    const noData = current.filter(c => c.visible && !cardHasData(c.id))
-    const hidden = current.filter(c => !c.visible)
+    const active = current.filter((c) => c.visible && cardHasData(c.id))
+    const noData = current.filter((c) => c.visible && !cardHasData(c.id))
+    const hidden = current.filter((c) => !c.visible)
     settings.cards = [...active, ...noData, ...hidden]
   }
   interval = setInterval(refresh, 60_000)
@@ -158,7 +168,10 @@ onUnmounted(() => {
           :class="{ 'card-slot--hidden': !card.visible }"
         >
           <div class="card-slot__content">
-            <DashboardCardContent v-if="card.visible && status && cardHasData(card.id)" :card-id="card.id" />
+            <DashboardCardContent
+              v-if="card.visible && status && cardHasData(card.id)"
+              :card-id="card.id"
+            />
             <div v-else class="card-slot__placeholder">
               <font-awesome-icon :icon="CARD_ICONS[card.id]" />
               <span>{{ t(`settings.cards.${card.id}`) }}</span>

@@ -12,36 +12,36 @@ describe('defaultCards', () => {
 
   it('places visible cards before hidden ones', () => {
     const cards = defaultCards('bev')
-    const firstHidden = cards.findIndex(c => !c.visible)
+    const firstHidden = cards.findIndex((c) => !c.visible)
     const cardsFromFirstHidden = firstHidden >= 0 ? cards.slice(firstHidden) : []
-    expect(cardsFromFirstHidden.some(c => c.visible)).toBe(false)
+    expect(cardsFromFirstHidden.some((c) => c.visible)).toBe(false)
   })
 
   it('hev: hides charging and efficiencyCharge, shows fuel', () => {
     const cards = defaultCards('hev')
-    expect(cards.find(c => c.id === 'fuelLevel')!.visible).toBe(true)
-    expect(cards.find(c => c.id === 'charging')!.visible).toBe(false)
-    expect(cards.find(c => c.id === 'efficiencyCharge')!.visible).toBe(false)
+    expect(cards.find((c) => c.id === 'fuelLevel')!.visible).toBe(true)
+    expect(cards.find((c) => c.id === 'charging')!.visible).toBe(false)
+    expect(cards.find((c) => c.id === 'efficiencyCharge')!.visible).toBe(false)
   })
 
   it('bev: hides fuel cards, shows charging and efficiencyCharge', () => {
     const cards = defaultCards('bev')
-    expect(cards.find(c => c.id === 'fuelLevel')!.visible).toBe(false)
-    expect(cards.find(c => c.id === 'fuelRange')!.visible).toBe(false)
-    expect(cards.find(c => c.id === 'charging')!.visible).toBe(true)
-    expect(cards.find(c => c.id === 'efficiencyCharge')!.visible).toBe(true)
+    expect(cards.find((c) => c.id === 'fuelLevel')!.visible).toBe(false)
+    expect(cards.find((c) => c.id === 'fuelRange')!.visible).toBe(false)
+    expect(cards.find((c) => c.id === 'charging')!.visible).toBe(true)
+    expect(cards.find((c) => c.id === 'efficiencyCharge')!.visible).toBe(true)
   })
 
   it('phev: shows both fuel and charging', () => {
     const cards = defaultCards('phev')
-    expect(cards.find(c => c.id === 'fuelLevel')!.visible).toBe(true)
-    expect(cards.find(c => c.id === 'charging')!.visible).toBe(true)
+    expect(cards.find((c) => c.id === 'fuelLevel')!.visible).toBe(true)
+    expect(cards.find((c) => c.id === 'charging')!.visible).toBe(true)
   })
 
   it('unknown: hides charging, shows fuel', () => {
     const cards = defaultCards('unknown')
-    expect(cards.find(c => c.id === 'charging')!.visible).toBe(false)
-    expect(cards.find(c => c.id === 'fuelLevel')!.visible).toBe(true)
+    expect(cards.find((c) => c.id === 'charging')!.visible).toBe(false)
+    expect(cards.find((c) => c.id === 'fuelLevel')!.visible).toBe(true)
   })
 })
 
@@ -87,12 +87,15 @@ describe('useSettingsStore', () => {
   })
 
   it('loads all settings from localStorage on init', () => {
-    localStorage.setItem(BASE_KEY, JSON.stringify({
-      cards: defaultCards('bev'),
-      vehicleTypeOverride: 'bev',
-      theme: 'light',
-      locale: 'nl',
-    }))
+    localStorage.setItem(
+      BASE_KEY,
+      JSON.stringify({
+        cards: defaultCards('bev'),
+        vehicleTypeOverride: 'bev',
+        theme: 'light',
+        locale: 'nl',
+      }),
+    )
     const store = useSettingsStore()
     expect(store.theme).toBe('light')
     expect(store.locale).toBe('nl')
@@ -103,75 +106,92 @@ describe('useSettingsStore', () => {
     const store = useSettingsStore()
     expect(store.vehicleTypeOverride).toBe('auto')
     expect(store.cards).toHaveLength(17)
-    expect(store.cards.find(c => c.id === 'sunRoof')!.visible).toBe(false)
+    expect(store.cards.find((c) => c.id === 'sunRoof')!.visible).toBe(false)
   })
 
   describe('card migration', () => {
     it('expands legacy fuel card into fuelLevel + fuelRange with same visibility', () => {
-      localStorage.setItem(BASE_KEY, JSON.stringify({
-        cards: [{ id: 'fuel', visible: false }, { id: 'odometer', visible: true }],
-        theme: 'dark',
-      }))
+      localStorage.setItem(
+        BASE_KEY,
+        JSON.stringify({
+          cards: [
+            { id: 'fuel', visible: false },
+            { id: 'odometer', visible: true },
+          ],
+          theme: 'dark',
+        }),
+      )
       const store = useSettingsStore()
-      expect(store.cards.find(c => c.id === 'fuelLevel')!.visible).toBe(false)
-      expect(store.cards.find(c => c.id === 'fuelRange')!.visible).toBe(false)
-      expect(store.cards.find(c => c.id === 'odometer')!.visible).toBe(true)
+      expect(store.cards.find((c) => c.id === 'fuelLevel')!.visible).toBe(false)
+      expect(store.cards.find((c) => c.id === 'fuelRange')!.visible).toBe(false)
+      expect(store.cards.find((c) => c.id === 'odometer')!.visible).toBe(true)
     })
 
     it('expands legacy efficiency card into four efficiency cards', () => {
-      localStorage.setItem(BASE_KEY, JSON.stringify({
-        cards: [{ id: 'efficiency', visible: false }],
-        theme: 'dark',
-      }))
+      localStorage.setItem(
+        BASE_KEY,
+        JSON.stringify({
+          cards: [{ id: 'efficiency', visible: false }],
+          theme: 'dark',
+        }),
+      )
       const store = useSettingsStore()
-      expect(store.cards.find(c => c.id === 'efficiencyDistance')!.visible).toBe(false)
-      expect(store.cards.find(c => c.id === 'efficiencyEnergy')!.visible).toBe(false)
-      expect(store.cards.find(c => c.id === 'efficiencyCharge')!.visible).toBe(false)
-      expect(store.cards.find(c => c.id === 'efficiencyRatio')!.visible).toBe(false)
+      expect(store.cards.find((c) => c.id === 'efficiencyDistance')!.visible).toBe(false)
+      expect(store.cards.find((c) => c.id === 'efficiencyEnergy')!.visible).toBe(false)
+      expect(store.cards.find((c) => c.id === 'efficiencyCharge')!.visible).toBe(false)
+      expect(store.cards.find((c) => c.id === 'efficiencyRatio')!.visible).toBe(false)
     })
 
     it('migrates legacy doors card and inserts windows alongside it', () => {
-      localStorage.setItem(BASE_KEY, JSON.stringify({
-        cards: [{ id: 'doors', visible: false }],
-        theme: 'dark',
-      }))
+      localStorage.setItem(
+        BASE_KEY,
+        JSON.stringify({
+          cards: [{ id: 'doors', visible: false }],
+          theme: 'dark',
+        }),
+      )
       const store = useSettingsStore()
-      expect(store.cards.find(c => c.id === 'doors')!.visible).toBe(false)
-      expect(store.cards.find(c => c.id === 'windows')).toBeTruthy()
+      expect(store.cards.find((c) => c.id === 'doors')!.visible).toBe(false)
+      expect(store.cards.find((c) => c.id === 'windows')).toBeTruthy()
     })
 
     it('migrates the old panels object format', () => {
-      localStorage.setItem(BASE_KEY, JSON.stringify({
-        panels: {
-          showFuel: false,
-          showEvBattery: true,
-          showCharging: false,
-          showHvPower: true,
-          showLights: false,
-          showEfficiency: true,
-          showSunRoof: true,
-        },
-        theme: 'light',
-      }))
+      localStorage.setItem(
+        BASE_KEY,
+        JSON.stringify({
+          panels: {
+            showFuel: false,
+            showEvBattery: true,
+            showCharging: false,
+            showHvPower: true,
+            showLights: false,
+            showEfficiency: true,
+            showSunRoof: true,
+          },
+          theme: 'light',
+        }),
+      )
       const store = useSettingsStore()
-      expect(store.cards.find(c => c.id === 'fuelLevel')!.visible).toBe(false)
-      expect(store.cards.find(c => c.id === 'fuelRange')!.visible).toBe(false)
-      expect(store.cards.find(c => c.id === 'efficiencyDistance')!.visible).toBe(true)
-      expect(store.cards.find(c => c.id === 'sunRoof')!.visible).toBe(true)
+      expect(store.cards.find((c) => c.id === 'fuelLevel')!.visible).toBe(false)
+      expect(store.cards.find((c) => c.id === 'fuelRange')!.visible).toBe(false)
+      expect(store.cards.find((c) => c.id === 'efficiencyDistance')!.visible).toBe(true)
+      expect(store.cards.find((c) => c.id === 'sunRoof')!.visible).toBe(true)
       expect(store.theme).toBe('light')
     })
 
     it('appends newly introduced cards using their default visibility when migrating old data', () => {
       // A saved list that only has known-new ids but is missing some
-      localStorage.setItem(BASE_KEY, JSON.stringify({
-        cards: [{ id: 'odometer', visible: true }],
-        theme: 'dark',
-      }))
+      localStorage.setItem(
+        BASE_KEY,
+        JSON.stringify({
+          cards: [{ id: 'odometer', visible: true }],
+          theme: 'dark',
+        }),
+      )
       const store = useSettingsStore()
       // All 17 card ids should be present after migration fills in the gaps
       expect(store.cards).toHaveLength(17)
-      expect(store.cards.find(c => c.id === 'sunRoof')!.visible).toBe(false)
+      expect(store.cards.find((c) => c.id === 'sunRoof')!.visible).toBe(false)
     })
   })
-
 })

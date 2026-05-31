@@ -18,22 +18,22 @@ const { isOpen: modalOpen, open: openModal, close: closeModal } = useModal()
 type LightItem = { key: string; label: string; on: boolean }
 
 const lightList = computed((): LightItem[] =>
-  ([
-    { key: 'main',   label: t('vehicle.lights.mainBeam'),   on: props.mainBeam },
-    { key: 'dipped', label: t('vehicle.lights.dippedBeam'), on: props.dippedBeam },
-    { key: 'side',   label: t('vehicle.lights.side'),       on: props.side },
-  ] as { key: string; label: string; on: boolean | null }[])
-    .filter((l): l is LightItem => l.on !== null),
+  (
+    [
+      { key: 'main', label: t('vehicle.lights.mainBeam'), on: props.mainBeam },
+      { key: 'dipped', label: t('vehicle.lights.dippedBeam'), on: props.dippedBeam },
+      { key: 'side', label: t('vehicle.lights.side'), on: props.side },
+    ] as { key: string; label: string; on: boolean | null }[]
+  ).filter((l): l is LightItem => l.on !== null),
 )
 
-const activeLights = computed(() => lightList.value.filter(l => l.on))
+const activeLights = computed(() => lightList.value.filter((l) => l.on))
 
 const summary = computed((): string | null => {
   if (lightList.value.length === 0) return null
   if (activeLights.value.length === 0) return t('common.off')
-  return activeLights.value.map(l => l.label).join(' · ')
+  return activeLights.value.map((l) => l.label).join(' · ')
 })
-
 </script>
 
 <template>
@@ -47,11 +47,7 @@ const summary = computed((): string | null => {
     @click="openModal"
   />
 
-  <DetailModal
-    :open="modalOpen"
-    :title="t('vehicle.lights.title')"
-    @close="closeModal"
-  >
+  <DetailModal :open="modalOpen" :title="t('vehicle.lights.title')" @close="closeModal">
     <div class="detail-list">
       <div
         v-for="light in lightList"

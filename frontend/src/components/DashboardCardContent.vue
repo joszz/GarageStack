@@ -29,7 +29,9 @@ const vehicleType = computed((): VehicleType | 'unknown' => {
 })
 
 const isHev = computed(() => vehicleType.value === 'hev')
-const supportsExternalCharge = computed(() => vehicleType.value === 'phev' || vehicleType.value === 'bev')
+const supportsExternalCharge = computed(
+  () => vehicleType.value === 'phev' || vehicleType.value === 'bev',
+)
 </script>
 
 <template>
@@ -41,7 +43,13 @@ const supportsExternalCharge = computed(() => vehicleType.value === 'phev' || ve
       :label="t('vehicle.fuel')"
       :value="Math.round(status.fuelLevelPercent)"
       unit="%"
-      :variant="status.fuelLevelPercent < 15 ? 'danger' : status.fuelLevelPercent < 30 ? 'warning' : 'success'"
+      :variant="
+        status.fuelLevelPercent < 15
+          ? 'danger'
+          : status.fuelLevelPercent < 30
+            ? 'warning'
+            : 'success'
+      "
     />
 
     <!-- fuelRange -->
@@ -60,7 +68,9 @@ const supportsExternalCharge = computed(() => vehicleType.value === 'phev' || ve
       :label="t('vehicle.evSoc')"
       :value="Math.round(status.evSocPercent)"
       unit="%"
-      :variant="status.evSocPercent < 20 ? 'danger' : status.evSocPercent < 50 ? 'warning' : 'success'"
+      :variant="
+        status.evSocPercent < 20 ? 'danger' : status.evSocPercent < 50 ? 'warning' : 'success'
+      "
     />
 
     <!-- charging -->
@@ -146,7 +156,9 @@ const supportsExternalCharge = computed(() => vehicleType.value === 'phev' || ve
       :hv-power="status.hvPower"
       :hv-battery-active="status.hvBatteryActive"
       :charger-connected="supportsExternalCharge ? status.chargerConnected : null"
-      :power-usage-since-last-charge="supportsExternalCharge ? status.powerUsageSinceLastCharge : null"
+      :power-usage-since-last-charge="
+        supportsExternalCharge ? status.powerUsageSinceLastCharge : null
+      "
       :can-set-charge-limit="supportsExternalCharge"
     />
 
@@ -190,7 +202,12 @@ const supportsExternalCharge = computed(() => vehicleType.value === 'phev' || ve
 
     <!-- efficiencyRatio -->
     <StatusCard
-      v-else-if="cardId === 'efficiencyRatio' && status.powerUsageOfDay !== null && status.mileageOfTheDay !== null && status.mileageOfTheDay > 0"
+      v-else-if="
+        cardId === 'efficiencyRatio' &&
+        status.powerUsageOfDay !== null &&
+        status.mileageOfTheDay !== null &&
+        status.mileageOfTheDay > 0
+      "
       icon="leaf"
       :label="t('vehicle.efficiency.efficiency')"
       :value="(status.powerUsageOfDay / status.mileageOfTheDay).toFixed(0)"

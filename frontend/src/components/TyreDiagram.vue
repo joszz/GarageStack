@@ -38,7 +38,12 @@ function fmt(bar: number | null): string {
     </p>
     <div class="tyre-diagram__wrap">
       <div class="tyre-car-wrap">
-        <svg viewBox="0 0 220 340" xmlns="http://www.w3.org/2000/svg" class="tyre-diagram__svg" aria-label="Tyre pressure diagram">
+        <svg
+          viewBox="0 0 220 340"
+          xmlns="http://www.w3.org/2000/svg"
+          class="tyre-diagram__svg"
+          aria-label="Tyre pressure diagram"
+        >
           <!-- Car body -->
           <rect x="55" y="60" width="110" height="220" rx="20" ry="20" class="car-body" />
           <!-- Windscreen -->
@@ -46,31 +51,75 @@ function fmt(bar: number | null): string {
           <!-- Rear window -->
           <rect x="70" y="225" width="80" height="35" rx="6" class="car-glass" />
           <!-- Front left tyre -->
-          <rect x="10" y="65" width="38" height="62" rx="8"
-            :fill="pressureColor(props.frontLeft)" class="tyre" stroke-width="2.5" />
+          <rect
+            x="10"
+            y="65"
+            width="38"
+            height="62"
+            rx="8"
+            :fill="pressureColor(props.frontLeft)"
+            class="tyre"
+            stroke-width="2.5"
+          />
           <!-- Front right tyre -->
-          <rect x="172" y="65" width="38" height="62" rx="8"
-            :fill="pressureColor(props.frontRight)" class="tyre" stroke-width="2.5" />
+          <rect
+            x="172"
+            y="65"
+            width="38"
+            height="62"
+            rx="8"
+            :fill="pressureColor(props.frontRight)"
+            class="tyre"
+            stroke-width="2.5"
+          />
           <!-- Rear left tyre -->
-          <rect x="10" y="213" width="38" height="62" rx="8"
-            :fill="pressureColor(props.rearLeft)" class="tyre" stroke-width="2.5" />
+          <rect
+            x="10"
+            y="213"
+            width="38"
+            height="62"
+            rx="8"
+            :fill="pressureColor(props.rearLeft)"
+            class="tyre"
+            stroke-width="2.5"
+          />
           <!-- Rear right tyre -->
-          <rect x="172" y="213" width="38" height="62" rx="8"
-            :fill="pressureColor(props.rearRight)" class="tyre" stroke-width="2.5" />
+          <rect
+            x="172"
+            y="213"
+            width="38"
+            height="62"
+            rx="8"
+            :fill="pressureColor(props.rearRight)"
+            class="tyre"
+            stroke-width="2.5"
+          />
         </svg>
 
         <!-- Pressure labels overlaid on SVG -->
         <div class="tyre-labels">
-          <div class="tyre-label tyre-label--fl" :class="`tyre-label--${pressureVariant(props.frontLeft)}`">
+          <div
+            class="tyre-label tyre-label--fl"
+            :class="`tyre-label--${pressureVariant(props.frontLeft)}`"
+          >
             {{ fmt(props.frontLeft) }} {{ t('common.bar') }}
           </div>
-          <div class="tyre-label tyre-label--fr" :class="`tyre-label--${pressureVariant(props.frontRight)}`">
+          <div
+            class="tyre-label tyre-label--fr"
+            :class="`tyre-label--${pressureVariant(props.frontRight)}`"
+          >
             {{ fmt(props.frontRight) }} {{ t('common.bar') }}
           </div>
-          <div class="tyre-label tyre-label--rl" :class="`tyre-label--${pressureVariant(props.rearLeft)}`">
+          <div
+            class="tyre-label tyre-label--rl"
+            :class="`tyre-label--${pressureVariant(props.rearLeft)}`"
+          >
             {{ fmt(props.rearLeft) }} {{ t('common.bar') }}
           </div>
-          <div class="tyre-label tyre-label--rr" :class="`tyre-label--${pressureVariant(props.rearRight)}`">
+          <div
+            class="tyre-label tyre-label--rr"
+            :class="`tyre-label--${pressureVariant(props.rearRight)}`"
+          >
             {{ fmt(props.rearRight) }} {{ t('common.bar') }}
           </div>
         </div>

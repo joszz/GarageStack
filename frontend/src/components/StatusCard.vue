@@ -31,7 +31,8 @@ function emitClickIfClickable(clickable?: boolean) {
     <div class="status-card__body">
       <span class="status-card__label">{{ label }}</span>
       <span class="status-card__value">
-        {{ value ?? '-' }}<span v-if="unit && value !== null" class="status-card__unit"> {{ unit }}</span>
+        {{ value ?? '-'
+        }}<span v-if="unit && value !== null" class="status-card__unit"> {{ unit }}</span>
       </span>
     </div>
     <font-awesome-icon v-if="clickable" icon="chevron-right" class="status-card__chevron" />

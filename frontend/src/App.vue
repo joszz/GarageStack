@@ -15,7 +15,16 @@ const router = useRouter()
 const settings = useSettingsStore()
 const auth = useAuthStore()
 const vehicleStore = useVehicleStore()
-const { notifications, unreadCount, panelOpen, loading, togglePanel, closePanel, archiveNotification, deleteNotification } = useNotifications()
+const {
+  notifications,
+  unreadCount,
+  panelOpen,
+  loading,
+  togglePanel,
+  closePanel,
+  archiveNotification,
+  deleteNotification,
+} = useNotifications()
 
 const carModel = computed(() => vehicleStore.vehicles[0]?.model ?? null)
 const menuOpen = ref(false)
@@ -34,8 +43,18 @@ async function logout() {
   await router.replace({ name: 'login' })
 }
 
-watch(() => route.path, () => { menuOpen.value = false })
-watch(() => settings.locale, (val) => { locale.value = val })
+watch(
+  () => route.path,
+  () => {
+    menuOpen.value = false
+  },
+)
+watch(
+  () => settings.locale,
+  (val) => {
+    locale.value = val
+  },
+)
 </script>
 
 <template>

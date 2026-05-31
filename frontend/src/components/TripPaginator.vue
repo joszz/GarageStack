@@ -12,9 +12,12 @@ const emit = defineEmits<{
 
 const pageInput = ref(props.modelValue)
 
-watch(() => props.modelValue, (p) => {
-  pageInput.value = p
-})
+watch(
+  () => props.modelValue,
+  (p) => {
+    pageInput.value = p
+  },
+)
 
 function commit() {
   const val = isNaN(pageInput.value)
@@ -55,7 +58,7 @@ function next() {
       @blur="commit"
       @keydown.enter.prevent="commit"
       @focus="onFocus"
-    >
+    />
     <span class="trip-pagination__sep">/ {{ totalPages }}</span>
     <button
       class="btn btn-sm btn-outline-secondary trip-pagination__btn"

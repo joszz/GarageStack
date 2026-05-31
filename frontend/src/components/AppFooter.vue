@@ -35,19 +35,23 @@ const hwVersion = computed(() => vehicleStore.vehicleConfig['hw_version'] ?? nul
 
 const typeOptions: { value: VehicleTypeOverride; label: string }[] = [
   { value: 'auto', label: t('settings.vehicleType.auto') },
-  { value: 'hev',  label: t('settings.vehicleType.hev') },
+  { value: 'hev', label: t('settings.vehicleType.hev') },
   { value: 'phev', label: t('settings.vehicleType.phev') },
-  { value: 'bev',  label: t('settings.vehicleType.bev') },
+  { value: 'bev', label: t('settings.vehicleType.bev') },
 ]
 
 const isLightTheme = computed({
   get: () => settings.theme === 'light',
-  set: (val: boolean) => { settings.theme = val ? 'light' : 'dark' },
+  set: (val: boolean) => {
+    settings.theme = val ? 'light' : 'dark'
+  },
 })
 
 const isNL = computed({
   get: () => settings.locale === 'nl',
-  set: (val: boolean) => { settings.locale = val ? 'nl' : 'en' },
+  set: (val: boolean) => {
+    settings.locale = val ? 'nl' : 'en'
+  },
 })
 
 async function refresh() {
@@ -81,22 +85,25 @@ async function refresh() {
     </div>
   </footer>
 
-  <DetailModal
-    :open="modalOpen"
-    :title="t('settings.title')"
-    @close="closeModal"
-  >
+  <DetailModal :open="modalOpen" :title="t('settings.title')" @close="closeModal">
     <!-- Appearance -->
     <div class="detail-modal__section">
       <div class="detail-modal__section-title">{{ t('settings.theme.title') }}</div>
       <div class="settings-toggles">
         <div class="settings-toggle">
           <div class="settings-toggle__info">
-            <span class="settings-toggle__label">{{ isLightTheme ? t('settings.theme.light') : t('settings.theme.dark') }}</span>
-            <span class="settings-toggle__desc text-muted">{{ t('settings.theme.lightDesc') }}</span>
+            <span class="settings-toggle__label">{{
+              isLightTheme ? t('settings.theme.light') : t('settings.theme.dark')
+            }}</span>
+            <span class="settings-toggle__desc text-muted">{{
+              t('settings.theme.lightDesc')
+            }}</span>
           </div>
           <div class="settings-toggle__control">
-            <span class="settings-toggle__side-icon" :class="{ 'settings-toggle__side-icon--active': !isLightTheme }">
+            <span
+              class="settings-toggle__side-icon"
+              :class="{ 'settings-toggle__side-icon--active': !isLightTheme }"
+            >
               <font-awesome-icon icon="moon" />
             </span>
             <div class="form-check form-switch mb-0">
@@ -108,7 +115,10 @@ async function refresh() {
                 role="switch"
               />
             </div>
-            <span class="settings-toggle__side-icon" :class="{ 'settings-toggle__side-icon--active': isLightTheme }">
+            <span
+              class="settings-toggle__side-icon"
+              :class="{ 'settings-toggle__side-icon--active': isLightTheme }"
+            >
               <font-awesome-icon icon="sun" />
             </span>
           </div>
@@ -125,7 +135,10 @@ async function refresh() {
             <span class="settings-toggle__label">{{ isNL ? 'Nederlands' : 'English' }}</span>
           </div>
           <div class="settings-toggle__control">
-            <span class="settings-toggle__side-icon settings-toggle__side-icon--flag" :class="{ 'settings-toggle__side-icon--active': !isNL }">
+            <span
+              class="settings-toggle__side-icon settings-toggle__side-icon--flag"
+              :class="{ 'settings-toggle__side-icon--active': !isNL }"
+            >
               <img :src="gbFlag" alt="English" class="settings-toggle__flag" />
             </span>
             <div class="form-check form-switch mb-0">
@@ -137,7 +150,10 @@ async function refresh() {
                 role="switch"
               />
             </div>
-            <span class="settings-toggle__side-icon settings-toggle__side-icon--flag" :class="{ 'settings-toggle__side-icon--active': isNL }">
+            <span
+              class="settings-toggle__side-icon settings-toggle__side-icon--flag"
+              :class="{ 'settings-toggle__side-icon--active': isNL }"
+            >
               <img :src="nlFlag" alt="Nederlands" class="settings-toggle__flag" />
             </span>
           </div>
@@ -153,12 +169,16 @@ async function refresh() {
           <span class="text-muted">{{ t('settings.vehicleType.detected') }}:</span>
           <span v-if="detectedLabel" class="badge badge-info ms-2">{{ detectedLabel }}</span>
           <span v-if="hwVersion" class="text-muted ms-2 text-xs">({{ hwVersion }})</span>
-          <span v-if="!detectedLabel" class="text-muted ms-2">{{ t('settings.vehicleType.notDetected') }}</span>
+          <span v-if="!detectedLabel" class="text-muted ms-2">{{
+            t('settings.vehicleType.notDetected')
+          }}</span>
         </div>
         <div class="vehicle-type-override">
           <label class="text-muted">{{ t('settings.vehicleType.override') }}</label>
           <select v-model="settings.vehicleTypeOverride" class="form-select form-select-sm">
-            <option v-for="opt in typeOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+            <option v-for="opt in typeOptions" :key="opt.value" :value="opt.value">
+              {{ opt.label }}
+            </option>
           </select>
         </div>
       </div>

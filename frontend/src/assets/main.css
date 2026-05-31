@@ -18,7 +18,7 @@
   --radius: 10px;
 }
 
-[data-theme="light"] {
+[data-theme='light'] {
   --color-bg: #f0f4f8;
   --color-surface: #ffffff;
   --color-surface-2: #e8edf3;
@@ -29,7 +29,9 @@
   --color-danger-text: #dc2626;
 }
 
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
@@ -83,7 +85,9 @@
   }
 }
 
-html, body, #app {
+html,
+body,
+#app {
   height: 100%;
   font-family: 'Inter', system-ui, sans-serif;
   background: var(--color-bg);
@@ -205,7 +209,9 @@ html, body, #app {
   color: var(--color-text-muted);
   text-decoration: none;
   font-size: 0.9rem;
-  transition: background 0.15s, color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s;
 }
 
 .sidebar-nav a:hover,
@@ -251,18 +257,36 @@ html, body, #app {
   font-size: 0.85rem;
 }
 
-.text-sm { font-size: 0.85rem; }
-.text-success { color: var(--color-success); }
-.text-danger { color: var(--color-danger); }
+.text-sm {
+  font-size: 0.85rem;
+}
+.text-success {
+  color: var(--color-success);
+}
+.text-danger {
+  color: var(--color-danger);
+}
 
 /* ── Utility spacing ──────────────────────────────────────── */
 
-.mt-2 { margin-top: 0.5rem; }
-.mt-3 { margin-top: 1rem; }
-.mt-4 { margin-top: 1.5rem; }
-.mb-4 { margin-bottom: 1.5rem; }
-.ms-2 { margin-left: 0.5rem; }
-.text-xs { font-size: 0.75rem; }
+.mt-2 {
+  margin-top: 0.5rem;
+}
+.mt-3 {
+  margin-top: 1rem;
+}
+.mt-4 {
+  margin-top: 1.5rem;
+}
+.mb-4 {
+  margin-bottom: 1.5rem;
+}
+.ms-2 {
+  margin-left: 0.5rem;
+}
+.text-xs {
+  font-size: 0.75rem;
+}
 
 .view-header__actions {
   margin-left: auto;
@@ -285,7 +309,6 @@ html, body, #app {
   flex-wrap: wrap;
 }
 
-
 /* ── Status card grid ─────────────────────────────────────── */
 
 .status-grid {
@@ -304,10 +327,18 @@ html, body, #app {
   gap: 1rem;
 }
 
-.status-card--success { border-left: 3px solid var(--color-success); }
-.status-card--warning { border-left: 3px solid var(--color-warning); }
-.status-card--danger  { border-left: 3px solid var(--color-danger); }
-.status-card--info    { border-left: 3px solid var(--color-info); }
+.status-card--success {
+  border-left: 3px solid var(--color-success);
+}
+.status-card--warning {
+  border-left: 3px solid var(--color-warning);
+}
+.status-card--danger {
+  border-left: 3px solid var(--color-danger);
+}
+.status-card--info {
+  border-left: 3px solid var(--color-info);
+}
 
 .status-card__icon {
   font-size: 1.3rem;
@@ -348,7 +379,9 @@ html, body, #app {
 
 .status-card--clickable {
   cursor: pointer;
-  transition: border-color 0.15s, background 0.15s;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
   user-select: none;
 }
 
@@ -358,7 +391,6 @@ html, body, #app {
   border-color: var(--color-primary);
   outline: none;
 }
-
 
 .status-card__chevron {
   font-size: 0.65rem;
@@ -641,14 +673,41 @@ html, body, #app {
 
 /* Positions derived from SVG viewBox 220x340 tyre centers:
    front tyres center-y ≈ 28%, rear ≈ 72% */
-.tyre-label--fl { top: 28%; left: 2%; transform: translateY(-50%); }
-.tyre-label--fr { top: 28%; right: 2%; transform: translateY(-50%); }
-.tyre-label--rl { top: 72%; left: 2%; transform: translateY(-50%); }
-.tyre-label--rr { top: 72%; right: 2%; transform: translateY(-50%); }
-.tyre-label--ok      { border-color: var(--color-success); color: var(--color-success); }
-.tyre-label--warning { border-color: var(--color-warning); color: var(--color-warning); }
-.tyre-label--danger  { border-color: var(--color-danger);  color: var(--color-danger-text); }
-.tyre-label--unknown { color: var(--color-text-muted); }
+.tyre-label--fl {
+  top: 28%;
+  left: 2%;
+  transform: translateY(-50%);
+}
+.tyre-label--fr {
+  top: 28%;
+  right: 2%;
+  transform: translateY(-50%);
+}
+.tyre-label--rl {
+  top: 72%;
+  left: 2%;
+  transform: translateY(-50%);
+}
+.tyre-label--rr {
+  top: 72%;
+  right: 2%;
+  transform: translateY(-50%);
+}
+.tyre-label--ok {
+  border-color: var(--color-success);
+  color: var(--color-success);
+}
+.tyre-label--warning {
+  border-color: var(--color-warning);
+  color: var(--color-warning);
+}
+.tyre-label--danger {
+  border-color: var(--color-danger);
+  color: var(--color-danger-text);
+}
+.tyre-label--unknown {
+  color: var(--color-text-muted);
+}
 
 .tyre-legend {
   display: flex;
@@ -664,9 +723,15 @@ html, body, #app {
   gap: 0.3rem;
 }
 
-.tyre-legend__item--ok      { color: var(--color-success); }
-.tyre-legend__item--warning { color: var(--color-warning); }
-.tyre-legend__item--danger  { color: var(--color-danger-text); }
+.tyre-legend__item--ok {
+  color: var(--color-success);
+}
+.tyre-legend__item--warning {
+  color: var(--color-warning);
+}
+.tyre-legend__item--danger {
+  color: var(--color-danger-text);
+}
 
 /* ── Map ──────────────────────────────────────────────────── */
 
@@ -733,7 +798,9 @@ html, body, #app {
   margin: 0 -1rem;
   border-left: 2px solid transparent;
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
 }
 
 .trip-list__item:hover {
@@ -753,12 +820,24 @@ html, body, #app {
   margin-top: 4px;
 }
 
-.trip-list__dot--0 { background: #3b82f6; }
-.trip-list__dot--1 { background: #10b981; }
-.trip-list__dot--2 { background: #f59e0b; }
-.trip-list__dot--3 { background: #ef4444; }
-.trip-list__dot--4 { background: #8b5cf6; }
-.trip-list__dot--5 { background: #ec4899; }
+.trip-list__dot--0 {
+  background: #3b82f6;
+}
+.trip-list__dot--1 {
+  background: #10b981;
+}
+.trip-list__dot--2 {
+  background: #f59e0b;
+}
+.trip-list__dot--3 {
+  background: #ef4444;
+}
+.trip-list__dot--4 {
+  background: #8b5cf6;
+}
+.trip-list__dot--5 {
+  background: #ec4899;
+}
 
 .map-canvas {
   height: 100%;
@@ -867,7 +946,9 @@ html, body, #app {
 
 .trip-popover-enter-active,
 .trip-popover-leave-active {
-  transition: opacity 0.15s ease, transform 0.15s ease;
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s ease;
 }
 
 .trip-popover-enter-from,
@@ -1041,34 +1122,61 @@ html, body, #app {
   font-weight: 500;
   border: 1px solid transparent;
   cursor: pointer;
-  transition: opacity 0.15s, filter 0.15s;
+  transition:
+    opacity 0.15s,
+    filter 0.15s;
   background: none;
   color: var(--color-text);
 }
 
-.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 
 @keyframes pulse-pending {
-  0%, 100% { opacity: 0.55; }
-  50%       { opacity: 0.9; }
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 0.9;
+  }
 }
 
 .btn--pending {
   animation: pulse-pending 1.8s ease-in-out infinite;
   cursor: not-allowed;
 }
-.btn:not(:disabled):hover { filter: brightness(1.15); }
+.btn:not(:disabled):hover {
+  filter: brightness(1.15);
+}
 
 .btn-sm {
   font-size: 0.78rem;
   padding: 0.3rem 0.7rem;
 }
 
-.btn-primary  { background: var(--color-primary); color: #fff; }
-.btn-success  { background: var(--color-success); color: #fff; }
-.btn-warning  { background: var(--color-warning); color: #000; }
-.btn-danger   { background: var(--color-danger);  color: #fff; }
-.btn-orange   { background: #f97316; color: #fff; }
+.btn-primary {
+  background: var(--color-primary);
+  color: #fff;
+}
+.btn-success {
+  background: var(--color-success);
+  color: #fff;
+}
+.btn-warning {
+  background: var(--color-warning);
+  color: #000;
+}
+.btn-danger {
+  background: var(--color-danger);
+  color: #fff;
+}
+.btn-orange {
+  background: #f97316;
+  color: #fff;
+}
 .btn-outline-secondary {
   border-color: var(--color-border);
   color: var(--color-text);
@@ -1085,11 +1193,27 @@ html, body, #app {
   font-weight: 600;
 }
 
-.badge-success   { background: var(--color-success); color: #fff; }
-.badge-warning   { background: var(--color-warning); color: #000; }
-.badge-danger    { background: var(--color-danger);  color: #fff; }
-.badge-info      { background: var(--color-info);    color: #fff; }
-.badge-secondary { background: var(--color-surface-2); color: var(--color-text-muted); border: 1px solid var(--color-border); }
+.badge-success {
+  background: var(--color-success);
+  color: #fff;
+}
+.badge-warning {
+  background: var(--color-warning);
+  color: #000;
+}
+.badge-danger {
+  background: var(--color-danger);
+  color: #fff;
+}
+.badge-info {
+  background: var(--color-info);
+  color: #fff;
+}
+.badge-secondary {
+  background: var(--color-surface-2);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+}
 
 /* ── Form controls ────────────────────────────────────────── */
 
@@ -1271,7 +1395,7 @@ html, body, #app {
   color: var(--color-text-muted);
 }
 
-.range-control input[type="range"] {
+.range-control input[type='range'] {
   flex: 1;
   appearance: none;
   height: 4px;
@@ -1281,7 +1405,7 @@ html, body, #app {
   cursor: pointer;
 }
 
-.range-control input[type="range"]::-webkit-slider-thumb {
+.range-control input[type='range']::-webkit-slider-thumb {
   appearance: none;
   width: 18px;
   height: 18px;
@@ -1292,7 +1416,7 @@ html, body, #app {
   box-shadow: 0 0 0 2px var(--color-primary);
 }
 
-.range-control input[type="range"]::-moz-range-thumb {
+.range-control input[type='range']::-moz-range-thumb {
   width: 18px;
   height: 18px;
   border-radius: 50%;
@@ -1342,7 +1466,11 @@ html, body, #app {
   border-radius: 50%;
   font-size: 0.7rem;
   opacity: 0.55;
-  transition: opacity 0.15s, color 0.15s, background 0.15s, border-color 0.15s;
+  transition:
+    opacity 0.15s,
+    color 0.15s,
+    background 0.15s,
+    border-color 0.15s;
   z-index: 2;
 }
 
@@ -1363,8 +1491,12 @@ html, body, #app {
 /* ── Dashboard edit mode (iOS-style) ─────────────────────── */
 
 @keyframes card-wiggle {
-  from { transform: rotate(-0.4deg); }
-  to   { transform: rotate(0.4deg); }
+  from {
+    transform: rotate(-0.4deg);
+  }
+  to {
+    transform: rotate(0.4deg);
+  }
 }
 
 .status-grid--edit {
@@ -1379,10 +1511,18 @@ html, body, #app {
   user-select: none;
 }
 
-.card-slot:nth-child(2n)  { animation-delay: 0.06s; }
-.card-slot:nth-child(3n)  { animation-delay: 0.12s; }
-.card-slot:nth-child(4n)  { animation-delay: 0.03s; }
-.card-slot:nth-child(5n)  { animation-delay: 0.09s; }
+.card-slot:nth-child(2n) {
+  animation-delay: 0.06s;
+}
+.card-slot:nth-child(3n) {
+  animation-delay: 0.12s;
+}
+.card-slot:nth-child(4n) {
+  animation-delay: 0.03s;
+}
+.card-slot:nth-child(5n) {
+  animation-delay: 0.09s;
+}
 
 .card-slot--static {
   cursor: default;
@@ -1656,7 +1796,6 @@ html, body, #app {
     flex-wrap: wrap;
     gap: 0.4rem;
   }
-
 }
 
 /* ── Very small phones (< 400px) ─────────────────────────── */
@@ -1673,7 +1812,6 @@ html, body, #app {
   .status-card {
     padding: 0.65rem 0.75rem;
   }
-
 }
 
 /* ── Tablet (768–1023px) ──────────────────────────────────── */
@@ -1891,7 +2029,10 @@ html, body, #app {
   cursor: pointer;
   width: 100%;
   text-align: left;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s,
+    border-color 0.15s;
 }
 
 .sidebar-logout-btn:hover {
@@ -1932,7 +2073,9 @@ html, body, #app {
   justify-content: center;
   border-radius: 6px;
   flex-shrink: 0;
-  transition: color 0.15s, background 0.15s;
+  transition:
+    color 0.15s,
+    background 0.15s;
 }
 
 .notif-bell:hover {
@@ -1973,7 +2116,10 @@ html, body, #app {
   cursor: pointer;
   width: 100%;
   text-align: left;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s,
+    border-color 0.15s;
 }
 
 .sidebar-notif-btn:hover {
@@ -2036,7 +2182,9 @@ html, body, #app {
   justify-content: center;
   border-radius: 6px;
   font-size: 1rem;
-  transition: background 0.15s, color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s;
 }
 
 .notif-panel__close:hover {
@@ -2133,7 +2281,9 @@ html, body, #app {
   justify-content: center;
   border-radius: 6px;
   font-size: 0.8rem;
-  transition: background 0.15s, color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s;
 }
 
 .notif-item__btn:hover {

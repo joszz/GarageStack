@@ -7,28 +7,50 @@ export type Theme = 'dark' | 'light'
 export type Locale = 'en' | 'nl'
 
 export type StatsInsightId =
-  | 'periodDistance' | 'avgTripLength' | 'climateUsage'
-  | 'commutePattern' | 'batteryVoltageTrend' | 'parkingLocations' | 'electricShare'
+  | 'periodDistance'
+  | 'avgTripLength'
+  | 'climateUsage'
+  | 'commutePattern'
+  | 'batteryVoltageTrend'
+  | 'parkingLocations'
+  | 'electricShare'
 
-export type StatsChartId = 'fuelChart' | 'evChart' | 'tyreChart' | 'hybridSocChart' | 'dailyKwhChart'
+export type StatsChartId =
+  | 'fuelChart'
+  | 'evChart'
+  | 'tyreChart'
+  | 'hybridSocChart'
+  | 'dailyKwhChart'
 
-export interface StatsItemConfig<T extends string> { id: T; visible: boolean }
+export interface StatsItemConfig<T extends string> {
+  id: T
+  visible: boolean
+}
 
 const ALL_STATS_INSIGHT_IDS: StatsInsightId[] = [
-  'periodDistance', 'avgTripLength', 'climateUsage',
-  'commutePattern', 'batteryVoltageTrend', 'parkingLocations', 'electricShare',
+  'periodDistance',
+  'avgTripLength',
+  'climateUsage',
+  'commutePattern',
+  'batteryVoltageTrend',
+  'parkingLocations',
+  'electricShare',
 ]
 
 const ALL_STATS_CHART_IDS: StatsChartId[] = [
-  'fuelChart', 'evChart', 'tyreChart', 'hybridSocChart', 'dailyKwhChart',
+  'fuelChart',
+  'evChart',
+  'tyreChart',
+  'hybridSocChart',
+  'dailyKwhChart',
 ]
 
 export function defaultStatsInsights(): StatsItemConfig<StatsInsightId>[] {
-  return ALL_STATS_INSIGHT_IDS.map(id => ({ id, visible: true }))
+  return ALL_STATS_INSIGHT_IDS.map((id) => ({ id, visible: true }))
 }
 
 export function defaultStatsCharts(): StatsItemConfig<StatsChartId>[] {
-  return ALL_STATS_CHART_IDS.map(id => ({ id, visible: true }))
+  return ALL_STATS_CHART_IDS.map((id) => ({ id, visible: true }))
 }
 
 function loadStatsItems<T extends string>(raw: unknown, allIds: T[]): StatsItemConfig<T>[] {
@@ -36,7 +58,11 @@ function loadStatsItems<T extends string>(raw: unknown, allIds: T[]): StatsItemC
   const seen = new Set<T>()
   if (Array.isArray(raw)) {
     for (const item of raw) {
-      if (typeof item?.id === 'string' && (allIds as string[]).includes(item.id) && !seen.has(item.id as T)) {
+      if (
+        typeof item?.id === 'string' &&
+        (allIds as string[]).includes(item.id) &&
+        !seen.has(item.id as T)
+      ) {
         result.push({ id: item.id as T, visible: item.visible !== false })
         seen.add(item.id as T)
       }
@@ -49,17 +75,42 @@ function loadStatsItems<T extends string>(raw: unknown, allIds: T[]): StatsItemC
 }
 
 export type CardId =
-  | 'fuelLevel' | 'fuelRange'
-  | 'evBattery' | 'charging'
-  | 'odometer' | 'battery12v'
-  | 'doors' | 'windows' | 'sunRoof'
-  | 'climate' | 'hvBattery' | 'findMyCar' | 'lights'
-  | 'efficiencyDistance' | 'efficiencyEnergy' | 'efficiencyCharge' | 'efficiencyRatio'
+  | 'fuelLevel'
+  | 'fuelRange'
+  | 'evBattery'
+  | 'charging'
+  | 'odometer'
+  | 'battery12v'
+  | 'doors'
+  | 'windows'
+  | 'sunRoof'
+  | 'climate'
+  | 'hvBattery'
+  | 'findMyCar'
+  | 'lights'
+  | 'efficiencyDistance'
+  | 'efficiencyEnergy'
+  | 'efficiencyCharge'
+  | 'efficiencyRatio'
 
 const ALL_CARD_IDS: CardId[] = [
-  'fuelLevel', 'fuelRange', 'evBattery', 'charging', 'odometer', 'battery12v',
-  'doors', 'windows', 'sunRoof', 'climate', 'hvBattery', 'findMyCar', 'lights',
-  'efficiencyDistance', 'efficiencyEnergy', 'efficiencyCharge', 'efficiencyRatio',
+  'fuelLevel',
+  'fuelRange',
+  'evBattery',
+  'charging',
+  'odometer',
+  'battery12v',
+  'doors',
+  'windows',
+  'sunRoof',
+  'climate',
+  'hvBattery',
+  'findMyCar',
+  'lights',
+  'efficiencyDistance',
+  'efficiencyEnergy',
+  'efficiencyCharge',
+  'efficiencyRatio',
 ]
 
 export interface CardConfig {
@@ -89,25 +140,25 @@ function browserLocale(): Locale {
 
 export function defaultCards(type: VehicleType | 'unknown' = 'unknown'): CardConfig[] {
   const all: CardConfig[] = [
-    { id: 'fuelLevel',          visible: type !== 'bev' },
-    { id: 'fuelRange',          visible: type !== 'bev' },
-    { id: 'evBattery',          visible: true },
-    { id: 'charging',           visible: type === 'phev' || type === 'bev' },
-    { id: 'odometer',           visible: true },
-    { id: 'battery12v',         visible: true },
-    { id: 'doors',              visible: true },
-    { id: 'windows',            visible: true },
-    { id: 'sunRoof',            visible: false },
-    { id: 'climate',            visible: true },
-    { id: 'hvBattery',          visible: true },
-    { id: 'findMyCar',          visible: true },
-    { id: 'lights',             visible: true },
+    { id: 'fuelLevel', visible: type !== 'bev' },
+    { id: 'fuelRange', visible: type !== 'bev' },
+    { id: 'evBattery', visible: true },
+    { id: 'charging', visible: type === 'phev' || type === 'bev' },
+    { id: 'odometer', visible: true },
+    { id: 'battery12v', visible: true },
+    { id: 'doors', visible: true },
+    { id: 'windows', visible: true },
+    { id: 'sunRoof', visible: false },
+    { id: 'climate', visible: true },
+    { id: 'hvBattery', visible: true },
+    { id: 'findMyCar', visible: true },
+    { id: 'lights', visible: true },
     { id: 'efficiencyDistance', visible: true },
-    { id: 'efficiencyEnergy',   visible: true },
-    { id: 'efficiencyCharge',   visible: type !== 'hev' },
-    { id: 'efficiencyRatio',    visible: true },
+    { id: 'efficiencyEnergy', visible: true },
+    { id: 'efficiencyCharge', visible: type !== 'hev' },
+    { id: 'efficiencyRatio', visible: true },
   ]
-  return [...all.filter(c => c.visible), ...all.filter(c => !c.visible)]
+  return [...all.filter((c) => c.visible), ...all.filter((c) => !c.visible)]
 }
 
 const BASE_STORAGE_KEY = 'garagestack-settings'
@@ -126,8 +177,8 @@ const defaults: AppSettings = {
 function migrateCards(raw: { id: string; visible: boolean }[]): CardConfig[] {
   const expanded: CardConfig[] = []
   const usedNewIds = new Set<CardId>()
-  const rawIds = new Set(raw.map(c => c.id))
-  const defaultVisibility = new Map(defaultCards('unknown').map(c => [c.id, c.visible]))
+  const rawIds = new Set(raw.map((c) => c.id))
+  const defaultVisibility = new Map(defaultCards('unknown').map((c) => [c.id, c.visible]))
 
   for (const c of raw) {
     switch (c.id) {
@@ -193,20 +244,23 @@ function loadFromKey(key: string): AppSettings {
       if (parsed.panels && !parsed.cards) {
         const p = parsed.panels
         const visMap: Partial<Record<CardId, boolean>> = {
-          fuelLevel:          p.showFuel,
-          fuelRange:          p.showFuel,
-          evBattery:          p.showEvBattery,
-          charging:           p.showCharging,
-          sunRoof:            p.showSunRoof,
-          hvBattery:          p.showHvPower,
-          lights:             p.showLights,
+          fuelLevel: p.showFuel,
+          fuelRange: p.showFuel,
+          evBattery: p.showEvBattery,
+          charging: p.showCharging,
+          sunRoof: p.showSunRoof,
+          hvBattery: p.showHvPower,
+          lights: p.showLights,
           efficiencyDistance: p.showEfficiency,
-          efficiencyEnergy:   p.showEfficiency,
-          efficiencyCharge:   p.showEfficiency,
-          efficiencyRatio:    p.showEfficiency,
+          efficiencyEnergy: p.showEfficiency,
+          efficiencyCharge: p.showEfficiency,
+          efficiencyRatio: p.showEfficiency,
         }
         return {
-          cards: defaultCards('unknown').map(c => ({ id: c.id, visible: visMap[c.id] ?? c.visible })),
+          cards: defaultCards('unknown').map((c) => ({
+            id: c.id,
+            visible: visMap[c.id] ?? c.visible,
+          })),
           statsInsights: defaultStatsInsights(),
           statsCharts: defaultStatsCharts(),
           showTyreDiagram: true,
@@ -260,16 +314,19 @@ export const useSettingsStore = defineStore('settings', () => {
   document.documentElement.dataset.theme = theme.value
 
   function save() {
-    localStorage.setItem(BASE_STORAGE_KEY, JSON.stringify({
-      cards: cards.value,
-      statsInsights: statsInsights.value,
-      statsCharts: statsCharts.value,
-      showTyreDiagram: showTyreDiagram.value,
-      vehicleTypeOverride: vehicleTypeOverride.value,
-      theme: theme.value,
-      locale: locale.value,
-      filterDays: filterDays.value,
-    }))
+    localStorage.setItem(
+      BASE_STORAGE_KEY,
+      JSON.stringify({
+        cards: cards.value,
+        statsInsights: statsInsights.value,
+        statsCharts: statsCharts.value,
+        showTyreDiagram: showTyreDiagram.value,
+        vehicleTypeOverride: vehicleTypeOverride.value,
+        theme: theme.value,
+        locale: locale.value,
+        filterDays: filterDays.value,
+      }),
+    )
   }
 
   watch(cards, save, { deep: true })
@@ -288,5 +345,15 @@ export const useSettingsStore = defineStore('settings', () => {
     cards.value = defaultCards(type)
   }
 
-  return { cards, statsInsights, statsCharts, showTyreDiagram, vehicleTypeOverride, theme, locale, filterDays, resetCards }
+  return {
+    cards,
+    statsInsights,
+    statsCharts,
+    showTyreDiagram,
+    vehicleTypeOverride,
+    theme,
+    locale,
+    filterDays,
+    resetCards,
+  }
 })

@@ -24,7 +24,18 @@ import {
   Filler,
 } from 'chart.js'
 
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, BarController, Title, Tooltip, Legend, Filler)
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  BarController,
+  Title,
+  Tooltip,
+  Legend,
+  Filler,
+)
 
 const { t } = useI18n()
 const store = useVehicleStore()
@@ -34,7 +45,9 @@ const editMode = ref(false)
 
 const days = computed({
   get: () => settings.filterDays,
-  set: (v: number) => { settings.filterDays = v },
+  set: (v: number) => {
+    settings.filterDays = v
+  },
 })
 
 const vin = computed(() => store.vehicles[0]?.vin ?? null)
@@ -60,35 +73,36 @@ const effectiveVehicleType = computed(() => {
   return store.detectedVehicleType
 })
 
-const hasFuel    = computed(() => effectiveVehicleType.value !== 'bev')
-const hasLargeEv = computed(() =>
-  effectiveVehicleType.value === 'phev' ||
-  effectiveVehicleType.value === 'bev'  ||
-  effectiveVehicleType.value === 'unknown',
+const hasFuel = computed(() => effectiveVehicleType.value !== 'bev')
+const hasLargeEv = computed(
+  () =>
+    effectiveVehicleType.value === 'phev' ||
+    effectiveVehicleType.value === 'bev' ||
+    effectiveVehicleType.value === 'unknown',
 )
-const isHybrid = computed(() =>
-  effectiveVehicleType.value === 'hev' || effectiveVehicleType.value === 'phev'
+const isHybrid = computed(
+  () => effectiveVehicleType.value === 'hev' || effectiveVehicleType.value === 'phev',
 )
 const isPhev = computed(() => effectiveVehicleType.value === 'phev')
 
 // ── Icons ────────────────────────────────────────────────────
 
 const INSIGHT_ICONS: Record<StatsInsightId, string> = {
-  periodDistance:      'route',
-  avgTripLength:       'car-side',
-  climateUsage:        'wind',
-  commutePattern:      'circle-info',
+  periodDistance: 'route',
+  avgTripLength: 'car-side',
+  climateUsage: 'wind',
+  commutePattern: 'circle-info',
   batteryVoltageTrend: 'battery-three-quarters',
-  parkingLocations:    'location-dot',
-  electricShare:       'leaf',
+  parkingLocations: 'location-dot',
+  electricShare: 'leaf',
 }
 
 const CHART_ICONS: Record<StatsChartId, string> = {
-  fuelChart:      'gas-pump',
-  evChart:        'bolt',
-  tyreChart:      'gauge',
+  fuelChart: 'gas-pump',
+  evChart: 'bolt',
+  tyreChart: 'gauge',
   hybridSocChart: 'wave-square',
-  dailyKwhChart:  'bolt-lightning',
+  dailyKwhChart: 'bolt-lightning',
 }
 
 // ── History grouping ─────────────────────────────────────────
@@ -167,9 +181,13 @@ const peakDriveHour = computed(() => {
     const hour = new Date(trip.startedAt).getHours()
     counts.set(hour, (counts.get(hour) ?? 0) + 1)
   }
-  let bestHour = 0, bestCount = 0
+  let bestHour = 0,
+    bestCount = 0
   for (const [hour, count] of counts.entries()) {
-    if (count > bestCount) { bestHour = hour; bestCount = count }
+    if (count > bestCount) {
+      bestHour = hour
+      bestCount = count
+    }
   }
   return `${String(bestHour).padStart(2, '0')}:00`
 })
@@ -189,7 +207,8 @@ const batteryVoltageTrend = computed(() => {
     .map((d) => avg(d.snapshots.map((s) => s.batteryVoltage)))
     .filter((v): v is number => v !== null)
   if (dailyAvg.length < 2) return null
-  const first = dailyAvg[0]!, last = dailyAvg[dailyAvg.length - 1]!
+  const first = dailyAvg[0]!,
+    last = dailyAvg[dailyAvg.length - 1]!
   const delta = round2(last - first)
   return `${delta > 0 ? '+' : ''}${delta} V`
 })
@@ -212,9 +231,10 @@ const insightDefs = computed(() => [
   {
     id: 'periodDistance' as StatsInsightId,
     icon: INSIGHT_ICONS.periodDistance,
-    title: days.value === 30
-      ? t('statistics.insights.monthlyMileage')
-      : t('statistics.insights.distanceInRange'),
+    title:
+      days.value === 30
+        ? t('statistics.insights.monthlyMileage')
+        : t('statistics.insights.distanceInRange'),
     description: t('statistics.cardDesc.distanceInRange'),
     value: periodDistanceKm.value !== null ? String(periodDistanceKm.value) : null,
     unit: t('common.km'),
@@ -278,121 +298,267 @@ const insightDefs = computed(() => [
   },
 ])
 
-const insightDefMap = computed(() =>
-  new Map(insightDefs.value.map((d) => [d.id, d]))
-)
+const insightDefMap = computed(() => new Map(insightDefs.value.map((d) => [d.id, d])))
 
 // ── Chart data ────────────────────────────────────────────────
 
 const fuelChartData = computed(() => ({
   labels: chartLabels(),
-  datasets: [{
-    label: `${t('vehicle.fuel')} (%)`,
-    data: groupedHistory.value.map((d) => avg(d.snapshots.map((s) => s.fuelLevelPercent))),
-    borderColor: '#3b82f6',
-    backgroundColor: 'rgba(59,130,246,0.1)',
-    fill: true, tension: 0.3, spanGaps: true, pointRadius: 2, pointHoverRadius: 4,
-  }],
+  datasets: [
+    {
+      label: `${t('vehicle.fuel')} (%)`,
+      data: groupedHistory.value.map((d) => avg(d.snapshots.map((s) => s.fuelLevelPercent))),
+      borderColor: '#3b82f6',
+      backgroundColor: 'rgba(59,130,246,0.1)',
+      fill: true,
+      tension: 0.3,
+      spanGaps: true,
+      pointRadius: 2,
+      pointHoverRadius: 4,
+    },
+  ],
 }))
 
 const evChartData = computed(() => ({
   labels: chartLabels(),
-  datasets: [{
-    label: `${t('vehicle.evSoc')} (%)`,
-    data: groupedHistory.value.map((d) => avg(d.snapshots.map((s) => s.evSocPercent))),
-    borderColor: '#10b981',
-    backgroundColor: 'rgba(16,185,129,0.1)',
-    fill: true, tension: 0.3, spanGaps: true, pointRadius: 2, pointHoverRadius: 4,
-  }],
+  datasets: [
+    {
+      label: `${t('vehicle.evSoc')} (%)`,
+      data: groupedHistory.value.map((d) => avg(d.snapshots.map((s) => s.evSocPercent))),
+      borderColor: '#10b981',
+      backgroundColor: 'rgba(16,185,129,0.1)',
+      fill: true,
+      tension: 0.3,
+      spanGaps: true,
+      pointRadius: 2,
+      pointHoverRadius: 4,
+    },
+  ],
 }))
 
 const tyreChartData = computed(() => ({
   labels: chartLabels(),
   datasets: [
-    { label: `FL (${t('common.bar')})`, data: groupedHistory.value.map((d) => avg(d.snapshots.map((s) => s.tyrePressureFrontLeft))),  borderColor: '#f59e0b', tension: 0.3, spanGaps: true, pointRadius: 2, pointHoverRadius: 4 },
-    { label: `FR (${t('common.bar')})`, data: groupedHistory.value.map((d) => avg(d.snapshots.map((s) => s.tyrePressureFrontRight))), borderColor: '#ef4444', tension: 0.3, spanGaps: true, pointRadius: 2, pointHoverRadius: 4 },
-    { label: `RL (${t('common.bar')})`, data: groupedHistory.value.map((d) => avg(d.snapshots.map((s) => s.tyrePressureRearLeft))),   borderColor: '#8b5cf6', tension: 0.3, spanGaps: true, pointRadius: 2, pointHoverRadius: 4 },
-    { label: `RR (${t('common.bar')})`, data: groupedHistory.value.map((d) => avg(d.snapshots.map((s) => s.tyrePressureRearRight))),  borderColor: '#ec4899', tension: 0.3, spanGaps: true, pointRadius: 2, pointHoverRadius: 4 },
+    {
+      label: `FL (${t('common.bar')})`,
+      data: groupedHistory.value.map((d) => avg(d.snapshots.map((s) => s.tyrePressureFrontLeft))),
+      borderColor: '#f59e0b',
+      tension: 0.3,
+      spanGaps: true,
+      pointRadius: 2,
+      pointHoverRadius: 4,
+    },
+    {
+      label: `FR (${t('common.bar')})`,
+      data: groupedHistory.value.map((d) => avg(d.snapshots.map((s) => s.tyrePressureFrontRight))),
+      borderColor: '#ef4444',
+      tension: 0.3,
+      spanGaps: true,
+      pointRadius: 2,
+      pointHoverRadius: 4,
+    },
+    {
+      label: `RL (${t('common.bar')})`,
+      data: groupedHistory.value.map((d) => avg(d.snapshots.map((s) => s.tyrePressureRearLeft))),
+      borderColor: '#8b5cf6',
+      tension: 0.3,
+      spanGaps: true,
+      pointRadius: 2,
+      pointHoverRadius: 4,
+    },
+    {
+      label: `RR (${t('common.bar')})`,
+      data: groupedHistory.value.map((d) => avg(d.snapshots.map((s) => s.tyrePressureRearRight))),
+      borderColor: '#ec4899',
+      tension: 0.3,
+      spanGaps: true,
+      pointRadius: 2,
+      pointHoverRadius: 4,
+    },
   ],
 }))
 
 const hybridSocChartData = computed(() => ({
   labels: chartLabels(),
   datasets: [
-    { label: `${t('vehicle.evSoc')} (%)`, data: groupedHistory.value.map((d) => avg(d.snapshots.map((s) => s.evSocPercent))),      borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0)', fill: false, tension: 0.3, spanGaps: true, pointRadius: 2, pointHoverRadius: 4 },
-    { label: `${t('vehicle.fuel')} (%)`,  data: groupedHistory.value.map((d) => avg(d.snapshots.map((s) => s.fuelLevelPercent))), borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0)',  fill: false, tension: 0.3, spanGaps: true, pointRadius: 2, pointHoverRadius: 4 },
+    {
+      label: `${t('vehicle.evSoc')} (%)`,
+      data: groupedHistory.value.map((d) => avg(d.snapshots.map((s) => s.evSocPercent))),
+      borderColor: '#10b981',
+      backgroundColor: 'rgba(16,185,129,0)',
+      fill: false,
+      tension: 0.3,
+      spanGaps: true,
+      pointRadius: 2,
+      pointHoverRadius: 4,
+    },
+    {
+      label: `${t('vehicle.fuel')} (%)`,
+      data: groupedHistory.value.map((d) => avg(d.snapshots.map((s) => s.fuelLevelPercent))),
+      borderColor: '#3b82f6',
+      backgroundColor: 'rgba(59,130,246,0)',
+      fill: false,
+      tension: 0.3,
+      spanGaps: true,
+      pointRadius: 2,
+      pointHoverRadius: 4,
+    },
   ],
 }))
 
 const dailyKwhChartData = computed(() => ({
   labels: chartLabels(),
-  datasets: [{
-    label: 'kWh',
-    data: groupedHistory.value.map((d) => {
-      const vals = d.snapshots.map((s) => s.powerUsageOfDay).filter((v): v is number => v !== null)
-      if (!vals.length) return null
+  datasets: [
+    {
+      label: 'kWh',
+      data: groupedHistory.value.map((d) => {
+        const vals = d.snapshots
+          .map((s) => s.powerUsageOfDay)
+          .filter((v): v is number => v !== null)
+        if (!vals.length) return null
 
-      // Historical completed days: cumulative peak = day's total
-      if (d.key !== toLocalDateKey(new Date())) {
-        return round2(Math.max(...vals) / 1000)
-      }
+        // Historical completed days: cumulative peak = day's total
+        if (d.key !== toLocalDateKey(new Date())) {
+          return round2(Math.max(...vals) / 1000)
+        }
 
-      // Today (partial day): sort by time and detect a true counter reset so we don't
-      // show yesterday's carryover when no driving has happened yet after midnight
-      const sorted = d.snapshots
-        .slice()
-        .sort((a, b) => new Date(a.recordedAt).getTime() - new Date(b.recordedAt).getTime())
-        .map((s) => s.powerUsageOfDay)
-        .filter((v): v is number => v !== null)
+        // Today (partial day): sort by time and detect a true counter reset so we don't
+        // show yesterday's carryover when no driving has happened yet after midnight
+        const sorted = d.snapshots
+          .slice()
+          .sort((a, b) => new Date(a.recordedAt).getTime() - new Date(b.recordedAt).getTime())
+          .map((s) => s.powerUsageOfDay)
+          .filter((v): v is number => v !== null)
 
-      // True reset: counter drops to <5% of recent peak (min 50 Wh to ignore noise)
-      let lastResetIdx = -1
-      let peak = sorted[0] ?? 0
-      for (let i = 1; i < sorted.length; i++) {
-        peak = Math.max(peak, sorted[i - 1]!)
-        if (sorted[i]! < Math.max(peak * 0.05, 50)) lastResetIdx = i
-      }
+        // True reset: counter drops to <5% of recent peak (min 50 Wh to ignore noise)
+        let lastResetIdx = -1
+        let peak = sorted[0] ?? 0
+        for (let i = 1; i < sorted.length; i++) {
+          peak = Math.max(peak, sorted[i - 1]!)
+          if (sorted[i]! < Math.max(peak * 0.05, 50)) lastResetIdx = i
+        }
 
-      if (lastResetIdx >= 0) {
-        const usage = Math.max(...sorted.slice(lastResetIdx))
-        return usage > 0 ? round2(usage / 1000) : null
-      }
+        if (lastResetIdx >= 0) {
+          const usage = Math.max(...sorted.slice(lastResetIdx))
+          return usage > 0 ? round2(usage / 1000) : null
+        }
 
-      // No reset yet: net increase only (carryover with no driving → delta 0 → null)
-      const delta = Math.max(...sorted) - Math.min(...sorted)
-      return delta > 0 ? round2(delta / 1000) : null
-    }),
-    borderColor: '#f59e0b',
-    backgroundColor: 'rgba(245,158,11,0.7)',
-  }],
+        // No reset yet: net increase only (carryover with no driving → delta 0 → null)
+        const delta = Math.max(...sorted) - Math.min(...sorted)
+        return delta > 0 ? round2(delta / 1000) : null
+      }),
+      borderColor: '#f59e0b',
+      backgroundColor: 'rgba(245,158,11,0.7)',
+    },
+  ],
 }))
 
 // ── Chart options ─────────────────────────────────────────────
 
-const percentOptions    = { responsive: true, maintainAspectRatio: true, aspectRatio: 2.6, animation: false as const, plugins: { legend: { display: false } }, scales: { x: { ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 8 } }, y: { min: 0, max: 100 } } }
-const pressureOptions   = { responsive: true, maintainAspectRatio: true, aspectRatio: 2.3, animation: false as const, plugins: { legend: { display: true  } }, scales: { x: { ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 8 } }, y: { min: 1.5, max: 3.5 } } }
-const hybridSocOptions  = { responsive: true, maintainAspectRatio: true, aspectRatio: 2.6, animation: false as const, plugins: { legend: { display: true  } }, scales: { x: { ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 8 } }, y: { min: 0, max: 100 } } }
-const kwhOptions        = { responsive: true, maintainAspectRatio: true, aspectRatio: 2.6, animation: false as const, plugins: { legend: { display: false } }, scales: { x: { ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 8 } }, y: { min: 0 } } }
+const percentOptions = {
+  responsive: true,
+  maintainAspectRatio: true,
+  aspectRatio: 2.6,
+  animation: false as const,
+  plugins: { legend: { display: false } },
+  scales: {
+    x: { ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 8 } },
+    y: { min: 0, max: 100 },
+  },
+}
+const pressureOptions = {
+  responsive: true,
+  maintainAspectRatio: true,
+  aspectRatio: 2.3,
+  animation: false as const,
+  plugins: { legend: { display: true } },
+  scales: {
+    x: { ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 8 } },
+    y: { min: 1.5, max: 3.5 },
+  },
+}
+const hybridSocOptions = {
+  responsive: true,
+  maintainAspectRatio: true,
+  aspectRatio: 2.6,
+  animation: false as const,
+  plugins: { legend: { display: true } },
+  scales: {
+    x: { ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 8 } },
+    y: { min: 0, max: 100 },
+  },
+}
+const kwhOptions = {
+  responsive: true,
+  maintainAspectRatio: true,
+  aspectRatio: 2.6,
+  animation: false as const,
+  plugins: { legend: { display: false } },
+  scales: { x: { ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 8 } }, y: { min: 0 } },
+}
 
 // ── Chart definitions ─────────────────────────────────────────
 
 const chartDefs = computed(() => [
-  { id: 'fuelChart'      as StatsChartId, icon: CHART_ICONS.fuelChart,      title: t('vehicle.fuel'),              vehicleApplicable: hasFuel.value,    applicable: hasFuel.value    && store.history.length > 0, isBar: false, data: fuelChartData.value,      options: percentOptions   },
-  { id: 'evChart'        as StatsChartId, icon: CHART_ICONS.evChart,        title: t('vehicle.evSoc'),             vehicleApplicable: hasLargeEv.value, applicable: hasLargeEv.value && store.history.length > 0, isBar: false, data: evChartData.value,        options: percentOptions   },
-  { id: 'tyreChart'      as StatsChartId, icon: CHART_ICONS.tyreChart,      title: t('vehicle.tyres'),             vehicleApplicable: true,             applicable: store.history.length > 0,                     isBar: false, data: tyreChartData.value,      options: pressureOptions  },
-  { id: 'hybridSocChart' as StatsChartId, icon: CHART_ICONS.hybridSocChart, title: t('statistics.hybridSocChart'), vehicleApplicable: isHybrid.value,   applicable: isHybrid.value   && store.history.length > 0, isBar: false, data: hybridSocChartData.value, options: hybridSocOptions },
-  { id: 'dailyKwhChart'  as StatsChartId, icon: CHART_ICONS.dailyKwhChart,  title: t('statistics.dailyKwhChart'),  vehicleApplicable: isHybrid.value,   applicable: isHybrid.value   && store.history.length > 0, isBar: true,  data: dailyKwhChartData.value,  options: kwhOptions       },
+  {
+    id: 'fuelChart' as StatsChartId,
+    icon: CHART_ICONS.fuelChart,
+    title: t('vehicle.fuel'),
+    vehicleApplicable: hasFuel.value,
+    applicable: hasFuel.value && store.history.length > 0,
+    isBar: false,
+    data: fuelChartData.value,
+    options: percentOptions,
+  },
+  {
+    id: 'evChart' as StatsChartId,
+    icon: CHART_ICONS.evChart,
+    title: t('vehicle.evSoc'),
+    vehicleApplicable: hasLargeEv.value,
+    applicable: hasLargeEv.value && store.history.length > 0,
+    isBar: false,
+    data: evChartData.value,
+    options: percentOptions,
+  },
+  {
+    id: 'tyreChart' as StatsChartId,
+    icon: CHART_ICONS.tyreChart,
+    title: t('vehicle.tyres'),
+    vehicleApplicable: true,
+    applicable: store.history.length > 0,
+    isBar: false,
+    data: tyreChartData.value,
+    options: pressureOptions,
+  },
+  {
+    id: 'hybridSocChart' as StatsChartId,
+    icon: CHART_ICONS.hybridSocChart,
+    title: t('statistics.hybridSocChart'),
+    vehicleApplicable: isHybrid.value,
+    applicable: isHybrid.value && store.history.length > 0,
+    isBar: false,
+    data: hybridSocChartData.value,
+    options: hybridSocOptions,
+  },
+  {
+    id: 'dailyKwhChart' as StatsChartId,
+    icon: CHART_ICONS.dailyKwhChart,
+    title: t('statistics.dailyKwhChart'),
+    vehicleApplicable: isHybrid.value,
+    applicable: isHybrid.value && store.history.length > 0,
+    isBar: true,
+    data: dailyKwhChartData.value,
+    options: kwhOptions,
+  },
 ])
 
-const chartDefMap = computed(() =>
-  new Map(chartDefs.value.map((d) => [d.id, d]))
-)
+const chartDefMap = computed(() => new Map(chartDefs.value.map((d) => [d.id, d])))
 
 // ── Layout reset ──────────────────────────────────────────────
 
 function resetStatsLayout() {
   settings.statsInsights = defaultStatsInsights()
-  settings.statsCharts   = defaultStatsCharts()
+  settings.statsCharts = defaultStatsCharts()
 }
 </script>
 
@@ -432,13 +598,16 @@ function resetStatsLayout() {
     </div>
 
     <template v-else>
-      <div v-if="store.error && !status && !store.history.length" class="empty-state text-danger">{{ store.error }}</div>
-      <div v-else-if="!status && !store.history.length && !editMode" class="empty-state">{{ t('dashboard.noData') }}</div>
+      <div v-if="store.error && !status && !store.history.length" class="empty-state text-danger">
+        {{ store.error }}
+      </div>
+      <div v-else-if="!status && !store.history.length && !editMode" class="empty-state">
+        {{ t('dashboard.noData') }}
+      </div>
 
       <template v-else>
         <!-- ── Insights ──────────────────────────────────── -->
         <section class="stats-insights" aria-label="Statistics insights">
-
           <!-- Edit mode: draggable card slots -->
           <VueDraggable
             v-if="editMode"
@@ -456,16 +625,25 @@ function resetStatsLayout() {
               :class="{ 'card-slot--hidden': !item.visible }"
             >
               <div class="card-slot__content">
-                <template v-if="insightDefMap.get(item.id)?.applicable && insightDefMap.get(item.id)?.value !== null">
+                <template
+                  v-if="
+                    insightDefMap.get(item.id)?.applicable &&
+                    insightDefMap.get(item.id)?.value !== null
+                  "
+                >
                   <div class="status-card">
                     <div class="status-card__icon">
                       <font-awesome-icon :icon="insightDefMap.get(item.id)!.icon" />
                     </div>
                     <div class="status-card__body">
-                      <span class="status-card__label">{{ insightDefMap.get(item.id)!.title }}</span>
+                      <span class="status-card__label">{{
+                        insightDefMap.get(item.id)!.title
+                      }}</span>
                       <span class="status-card__value">
                         {{ insightDefMap.get(item.id)!.value }}
-                        <span v-if="insightDefMap.get(item.id)!.unit" class="status-card__unit"> {{ insightDefMap.get(item.id)!.unit }}</span>
+                        <span v-if="insightDefMap.get(item.id)!.unit" class="status-card__unit">
+                          {{ insightDefMap.get(item.id)!.unit }}</span
+                        >
                       </span>
                     </div>
                   </div>
@@ -499,10 +677,20 @@ function resetStatsLayout() {
                       <font-awesome-icon :icon="insightDefMap.get(item.id)!.icon" />
                     </div>
                     <div class="status-card__body">
-                      <span class="status-card__label">{{ insightDefMap.get(item.id)!.title }}</span>
+                      <span class="status-card__label">{{
+                        insightDefMap.get(item.id)!.title
+                      }}</span>
                       <span class="status-card__value">
                         {{ insightDefMap.get(item.id)!.value ?? '-' }}
-                        <span v-if="insightDefMap.get(item.id)!.value !== null && insightDefMap.get(item.id)!.unit" class="status-card__unit"> {{ insightDefMap.get(item.id)!.unit }}</span>
+                        <span
+                          v-if="
+                            insightDefMap.get(item.id)!.value !== null &&
+                            insightDefMap.get(item.id)!.unit
+                          "
+                          class="status-card__unit"
+                        >
+                          {{ insightDefMap.get(item.id)!.unit }}</span
+                        >
                       </span>
                     </div>
                   </div>
@@ -533,10 +721,21 @@ function resetStatsLayout() {
               :class="{ 'card-slot--hidden': !item.visible }"
             >
               <div class="card-slot__content">
-                <div v-if="chartDefMap.get(item.id)?.applicable && store.history.length" class="chart-container">
+                <div
+                  v-if="chartDefMap.get(item.id)?.applicable && store.history.length"
+                  class="chart-container"
+                >
                   <h2>{{ chartDefMap.get(item.id)!.title }}</h2>
-                  <Bar v-if="chartDefMap.get(item.id)!.isBar" :data="chartDefMap.get(item.id)!.data" :options="chartDefMap.get(item.id)!.options" />
-                  <Line v-else :data="chartDefMap.get(item.id)!.data" :options="chartDefMap.get(item.id)!.options" />
+                  <Bar
+                    v-if="chartDefMap.get(item.id)!.isBar"
+                    :data="chartDefMap.get(item.id)!.data"
+                    :options="chartDefMap.get(item.id)!.options"
+                  />
+                  <Line
+                    v-else
+                    :data="chartDefMap.get(item.id)!.data"
+                    :options="chartDefMap.get(item.id)!.options"
+                  />
                 </div>
                 <div v-else class="card-slot__placeholder card-slot__placeholder--chart">
                   <font-awesome-icon :icon="chartDefMap.get(item.id)?.icon ?? 'chart-line'" />
@@ -557,10 +756,21 @@ function resetStatsLayout() {
           <!-- Normal mode: visible + applicable charts -->
           <div v-else class="stats-chart-grid">
             <template v-for="item in settings.statsCharts" :key="item.id">
-              <div v-if="item.visible && chartDefMap.get(item.id)?.applicable" class="chart-container">
+              <div
+                v-if="item.visible && chartDefMap.get(item.id)?.applicable"
+                class="chart-container"
+              >
                 <h2>{{ chartDefMap.get(item.id)!.title }}</h2>
-                <Bar v-if="chartDefMap.get(item.id)!.isBar" :data="chartDefMap.get(item.id)!.data" :options="chartDefMap.get(item.id)!.options" />
-                <Line v-else :data="chartDefMap.get(item.id)!.data" :options="chartDefMap.get(item.id)!.options" />
+                <Bar
+                  v-if="chartDefMap.get(item.id)!.isBar"
+                  :data="chartDefMap.get(item.id)!.data"
+                  :options="chartDefMap.get(item.id)!.options"
+                />
+                <Line
+                  v-else
+                  :data="chartDefMap.get(item.id)!.data"
+                  :options="chartDefMap.get(item.id)!.options"
+                />
               </div>
             </template>
           </div>

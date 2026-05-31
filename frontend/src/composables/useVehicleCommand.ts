@@ -15,7 +15,10 @@ export function useVehicleCommand() {
 
   function clearPending(key: string) {
     const t = timers.get(key)
-    if (t) { clearTimeout(t); timers.delete(key) }
+    if (t) {
+      clearTimeout(t)
+      timers.delete(key)
+    }
     if (key in pendingSet.value) {
       const { [key]: _, ...rest } = pendingSet.value
       pendingSet.value = rest
@@ -30,7 +33,10 @@ export function useVehicleCommand() {
       await vehicleApi.sendCommand(vin, command, value)
       lastResult.value = { key: command, ok: true }
       pendingSet.value = { ...pendingSet.value, [command]: true }
-      timers.set(command, setTimeout(() => clearPending(command), PENDING_TIMEOUT_MS))
+      timers.set(
+        command,
+        setTimeout(() => clearPending(command), PENDING_TIMEOUT_MS),
+      )
     } catch {
       lastResult.value = { key: command, ok: false }
     } finally {

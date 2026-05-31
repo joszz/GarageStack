@@ -19,29 +19,39 @@ const { isOpen: modalOpen, open: openModal, close: closeModal } = useModal()
 type WinItem = { key: string; label: string; open: boolean }
 
 const windowList = computed((): WinItem[] =>
-  ([
-    { key: 'driver',    label: t('vehicle.doors_detail.driver'),    open: props.driverWindowOpen },
-    { key: 'passenger', label: t('vehicle.doors_detail.passenger'), open: props.passengerWindowOpen },
-    { key: 'rearLeft',  label: t('vehicle.doors_detail.rearLeft'),  open: props.rearLeftWindowOpen },
-    { key: 'rearRight', label: t('vehicle.doors_detail.rearRight'), open: props.rearRightWindowOpen },
-  ] as { key: string; label: string; open: boolean | null }[])
-    .filter((w): w is WinItem => w.open !== null),
+  (
+    [
+      { key: 'driver', label: t('vehicle.doors_detail.driver'), open: props.driverWindowOpen },
+      {
+        key: 'passenger',
+        label: t('vehicle.doors_detail.passenger'),
+        open: props.passengerWindowOpen,
+      },
+      {
+        key: 'rearLeft',
+        label: t('vehicle.doors_detail.rearLeft'),
+        open: props.rearLeftWindowOpen,
+      },
+      {
+        key: 'rearRight',
+        label: t('vehicle.doors_detail.rearRight'),
+        open: props.rearRightWindowOpen,
+      },
+    ] as { key: string; label: string; open: boolean | null }[]
+  ).filter((w): w is WinItem => w.open !== null),
 )
 
-const openWindows = computed(() => windowList.value.filter(w => w.open))
+const openWindows = computed(() => windowList.value.filter((w) => w.open))
 
 const summary = computed((): string | null => {
   if (windowList.value.length === 0) return null
-  return openWindows.value.length > 0
-    ? `${openWindows.value.length} open`
-    : t('common.closed')
+  return openWindows.value.length > 0 ? `${openWindows.value.length} open` : t('common.closed')
 })
 
 const variant = computed(() => {
   if (windowList.value.length === 0) return undefined
-  return openWindows.value.length > 0 ? 'warning' as const : 'success' as const
+  return openWindows.value.length > 0 ? ('warning' as const) : ('success' as const)
 })
-
 </script>
 
 <template>
@@ -55,11 +65,7 @@ const variant = computed(() => {
     @click="openModal"
   />
 
-  <DetailModal
-    :open="modalOpen"
-    :title="t('vehicle.windows')"
-    @close="closeModal"
-  >
+  <DetailModal :open="modalOpen" :title="t('vehicle.windows')" @close="closeModal">
     <div class="detail-list">
       <div
         v-for="win in windowList"
@@ -68,7 +74,9 @@ const variant = computed(() => {
         :class="win.open ? 'detail-list__item--alert' : ''"
       >
         <font-awesome-icon icon="car-side" class="detail-list__item-icon" />
-        <span class="detail-list__item-value">{{ win.open ? t('common.open') : t('common.closed') }}</span>
+        <span class="detail-list__item-value">{{
+          win.open ? t('common.open') : t('common.closed')
+        }}</span>
         <span class="detail-list__item-sep">-</span>
         <span class="detail-list__item-label">{{ win.label }}</span>
       </div>

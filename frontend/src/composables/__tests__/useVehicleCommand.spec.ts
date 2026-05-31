@@ -3,7 +3,9 @@ import { vehicleApi } from '@/services/api'
 import { useVehicleCommand } from '@/composables/useVehicleCommand'
 
 vi.mock('@/services/api', () => ({
-  vehicleApi: { sendCommand: vi.fn<(vin: string, command: string, value: string) => Promise<void>>() },
+  vehicleApi: {
+    sendCommand: vi.fn<(vin: string, command: string, value: string) => Promise<void>>(),
+  },
 }))
 
 // Typed reference to the mock after hoisting is resolved

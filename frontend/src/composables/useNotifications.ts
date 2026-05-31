@@ -6,9 +6,7 @@ const panelOpen = ref(false)
 const loading = ref(false)
 
 export function useNotifications() {
-  const unreadCount = computed(
-    () => notifications.value.filter((n) => !n.isArchived).length,
-  )
+  const unreadCount = computed(() => notifications.value.filter((n) => !n.isArchived).length)
 
   async function fetchNotifications() {
     loading.value = true

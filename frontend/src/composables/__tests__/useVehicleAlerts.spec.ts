@@ -66,11 +66,15 @@ describe('getOpenItems', () => {
   })
 
   it('returns empty array when all items are closed', () => {
-    expect(getOpenItems(makeSnapshot({
-      driverDoorOpen: false,
-      passengerDoorOpen: false,
-      sunRoofOpen: false,
-    }))).toEqual([])
+    expect(
+      getOpenItems(
+        makeSnapshot({
+          driverDoorOpen: false,
+          passengerDoorOpen: false,
+          sunRoofOpen: false,
+        }),
+      ),
+    ).toEqual([])
   })
 
   it('detects open driver door', () => {
@@ -94,13 +98,15 @@ describe('getOpenItems', () => {
   })
 
   it('detects open windows and sunroof', () => {
-    const items = getOpenItems(makeSnapshot({
-      driverWindowOpen: true,
-      passengerWindowOpen: true,
-      rearLeftWindowOpen: true,
-      rearRightWindowOpen: true,
-      sunRoofOpen: true,
-    }))
+    const items = getOpenItems(
+      makeSnapshot({
+        driverWindowOpen: true,
+        passengerWindowOpen: true,
+        rearLeftWindowOpen: true,
+        rearRightWindowOpen: true,
+        sunRoofOpen: true,
+      }),
+    )
     expect(items).toContain('driver window')
     expect(items).toContain('passenger window')
     expect(items).toContain('rear left window')
@@ -121,12 +127,16 @@ describe('getTyrePressureAlerts', () => {
   })
 
   it('returns empty array for normal pressures', () => {
-    expect(getTyrePressureAlerts(makeSnapshot({
-      tyrePressureFrontLeft: 2.5,
-      tyrePressureFrontRight: 2.5,
-      tyrePressureRearLeft: 2.4,
-      tyrePressureRearRight: 2.4,
-    }))).toEqual([])
+    expect(
+      getTyrePressureAlerts(
+        makeSnapshot({
+          tyrePressureFrontLeft: 2.5,
+          tyrePressureFrontRight: 2.5,
+          tyrePressureRearLeft: 2.4,
+          tyrePressureRearRight: 2.4,
+        }),
+      ),
+    ).toEqual([])
   })
 
   it('flags FL tyre below minimum', () => {
@@ -144,25 +154,33 @@ describe('getTyrePressureAlerts', () => {
   })
 
   it('flags RL and RR tyres', () => {
-    const alerts = getTyrePressureAlerts(makeSnapshot({
-      tyrePressureRearLeft: 1.2,
-      tyrePressureRearRight: 3.9,
-    }))
+    const alerts = getTyrePressureAlerts(
+      makeSnapshot({
+        tyrePressureRearLeft: 1.2,
+        tyrePressureRearRight: 3.9,
+      }),
+    )
     expect(alerts).toHaveLength(2)
     expect(alerts[0]).toContain('RL')
     expect(alerts[1]).toContain('RR')
   })
 
   it('accepts pressures exactly at boundaries', () => {
-    expect(getTyrePressureAlerts(makeSnapshot({
-      tyrePressureFrontLeft: 1.8,
-      tyrePressureFrontRight: 3.2,
-    }))).toEqual([])
+    expect(
+      getTyrePressureAlerts(
+        makeSnapshot({
+          tyrePressureFrontLeft: 1.8,
+          tyrePressureFrontRight: 3.2,
+        }),
+      ),
+    ).toEqual([])
   })
 })
 
 describe('useVehicleAlerts', () => {
-  let notificationMock: ReturnType<typeof vi.fn<(title: string, options?: NotificationOptions) => void>>
+  let notificationMock: ReturnType<
+    typeof vi.fn<(title: string, options?: NotificationOptions) => void>
+  >
 
   beforeEach(() => {
     notificationMock = vi.fn<(title: string, options?: NotificationOptions) => void>()

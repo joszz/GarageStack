@@ -34,11 +34,17 @@ const seatLabels = computed(() => [
   t('control.seat.high'),
 ])
 
-const seatLeftLocal  = ref<number>(props.heatedSeatFrontLeft  ?? 0)
+const seatLeftLocal = ref<number>(props.heatedSeatFrontLeft ?? 0)
 const seatRightLocal = ref<number>(props.heatedSeatFrontRight ?? 0)
 
-watch(() => props.climateOn, () => clearPending('climate'))
-watch(() => props.rearWindowDefroster, () => clearPending('rear-defroster'))
+watch(
+  () => props.climateOn,
+  () => clearPending('climate'),
+)
+watch(
+  () => props.rearWindowDefroster,
+  () => clearPending('rear-defroster'),
+)
 
 function onSeatChange(side: 'seat-left' | 'seat-right', e: Event) {
   const val = Number((e.target as HTMLInputElement).value)
@@ -51,19 +57,19 @@ const summaryValue = computed((): string | null => {
   const parts: string[] = []
   if (props.climateOn !== null)
     parts.push(props.climateOn ? t('vehicle.climateOn') : t('vehicle.climateOff'))
-  if (props.interiorTemperature !== null)
-    parts.push(`${props.interiorTemperature.toFixed(1)}°C`)
+  if (props.interiorTemperature !== null) parts.push(`${props.interiorTemperature.toFixed(1)}°C`)
   return parts.length ? parts.join(' · ') : null
 })
 
-const hasAnyData = computed(() =>
-  props.climateOn !== null ||
-  props.remoteTemperature !== null ||
-  props.interiorTemperature !== null ||
-  props.exteriorTemperature !== null ||
-  props.heatedSeatFrontLeft !== null ||
-  props.heatedSeatFrontRight !== null ||
-  props.rearWindowDefroster !== null,
+const hasAnyData = computed(
+  () =>
+    props.climateOn !== null ||
+    props.remoteTemperature !== null ||
+    props.interiorTemperature !== null ||
+    props.exteriorTemperature !== null ||
+    props.heatedSeatFrontLeft !== null ||
+    props.heatedSeatFrontRight !== null ||
+    props.rearWindowDefroster !== null,
 )
 
 function handleClimateToggle() {
@@ -100,14 +106,13 @@ function onSeatRightChange(e: Event) {
     @click="openModal"
   />
 
-  <DetailModal
-    :open="modalOpen"
-    :title="t('control.climate')"
-    @close="closeModal"
-  >
+  <DetailModal :open="modalOpen" :title="t('control.climate')" @close="closeModal">
     <div class="detail-list">
       <!-- AC temperature slider -->
-      <div v-if="climateOn !== null || remoteTemperature !== null" class="detail-list__item detail-list__item--range">
+      <div
+        v-if="climateOn !== null || remoteTemperature !== null"
+        class="detail-list__item detail-list__item--range"
+      >
         <font-awesome-icon icon="temperature-half" class="detail-list__item-icon" />
         <div class="range-control range-control--grow">
           <div class="range-control__header">
@@ -122,13 +127,17 @@ function onSeatRightChange(e: Event) {
               :min="TEMP_MIN"
               :max="TEMP_MAX"
               step="1"
-              :disabled="sending === 'climate-temperature' || isPending('climate-temperature') || !vin"
+              :disabled="
+                sending === 'climate-temperature' || isPending('climate-temperature') || !vin
+              "
             />
             <span>{{ TEMP_MAX }}°</span>
             <button
               class="btn btn-primary btn-sm"
               :class="isPending('climate-temperature') ? 'btn--pending' : ''"
-              :disabled="sending === 'climate-temperature' || isPending('climate-temperature') || !vin"
+              :disabled="
+                sending === 'climate-temperature' || isPending('climate-temperature') || !vin
+              "
               @click="applyTemperature"
             >
               <font-awesome-icon v-if="sending === 'climate-temperature'" icon="spinner" spin />
@@ -158,7 +167,10 @@ function onSeatRightChange(e: Event) {
         <font-awesome-icon icon="clock" />
         {{ t('control.pending') }}
       </div>
-      <div v-else-if="lastResult?.key === 'climate' && !lastResult.ok" class="detail-list__feedback text-danger">
+      <div
+        v-else-if="lastResult?.key === 'climate' && !lastResult.ok"
+        class="detail-list__feedback text-danger"
+      >
         {{ t('control.error') }}
       </div>
 
@@ -181,7 +193,10 @@ function onSeatRightChange(e: Event) {
         <font-awesome-icon icon="clock" />
         {{ t('control.pending') }}
       </div>
-      <div v-else-if="lastResult?.key === 'rear-defroster' && !lastResult.ok" class="detail-list__feedback text-danger">
+      <div
+        v-else-if="lastResult?.key === 'rear-defroster' && !lastResult.ok"
+        class="detail-list__feedback text-danger"
+      >
         {{ t('control.error') }}
       </div>
 
@@ -212,7 +227,9 @@ function onSeatRightChange(e: Event) {
           <div class="range-control__row">
             <input
               type="range"
-              min="0" max="3" step="1"
+              min="0"
+              max="3"
+              step="1"
               :value="seatLeftLocal"
               :disabled="sending === 'seat-left' || isPending('seat-left') || !vin"
               @change="onSeatLeftChange"
@@ -235,7 +252,9 @@ function onSeatRightChange(e: Event) {
           <div class="range-control__row">
             <input
               type="range"
-              min="0" max="3" step="1"
+              min="0"
+              max="3"
+              step="1"
               :value="seatRightLocal"
               :disabled="sending === 'seat-right' || isPending('seat-right') || !vin"
               @change="onSeatRightChange"
@@ -248,7 +267,12 @@ function onSeatRightChange(e: Event) {
       </div>
 
       <!-- General error fallback -->
-      <div v-if="lastResult && !lastResult.ok && !['climate', 'rear-defroster'].includes(lastResult.key)" class="detail-list__feedback text-danger">
+      <div
+        v-if="
+          lastResult && !lastResult.ok && !['climate', 'rear-defroster'].includes(lastResult.key)
+        "
+        class="detail-list__feedback text-danger"
+      >
         {{ t('control.error') }}
       </div>
     </div>

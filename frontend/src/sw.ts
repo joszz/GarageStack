@@ -38,15 +38,13 @@ self.addEventListener('notificationclick', (event) => {
   const targetUrl = (event.notification.data as { url?: string })?.url ?? '/'
 
   event.waitUntil(
-    self.clients
-      .matchAll({ type: 'window', includeUncontrolled: true })
-      .then((clientList) => {
-        const existing = clientList.find((c) => c.url.includes(self.location.origin))
-        if (existing) {
-          existing.focus()
-          return existing.navigate(targetUrl)
-        }
-        return self.clients.openWindow(targetUrl)
-      }),
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      const existing = clientList.find((c) => c.url.includes(self.location.origin))
+      if (existing) {
+        existing.focus()
+        return existing.navigate(targetUrl)
+      }
+      return self.clients.openWindow(targetUrl)
+    }),
   )
 })

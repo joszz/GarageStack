@@ -46,7 +46,11 @@ onUnmounted(() => document.removeEventListener('keydown', onKey))
               <font-awesome-icon icon="bell" class="me-2" />
               {{ t('notifications.title') }}
             </h3>
-            <button class="notif-panel__close" :aria-label="t('common.cancel')" @click="emit('close')">
+            <button
+              class="notif-panel__close"
+              :aria-label="t('common.cancel')"
+              @click="emit('close')"
+            >
               <font-awesome-icon icon="xmark" />
             </button>
           </div>
