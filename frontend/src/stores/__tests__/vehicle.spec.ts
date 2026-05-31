@@ -1,15 +1,16 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { useVehicleStore } from '@/stores/vehicle'
+import type { Vehicle, TelemetrySnapshot, Trip } from '@/services/api'
 
 vi.mock('@/services/api', () => ({
   vehicleApi: {
-    list: vi.fn().mockResolvedValue([]),
-    status: vi.fn().mockResolvedValue(null),
-    config: vi.fn().mockResolvedValue({}),
-    history: vi.fn().mockResolvedValue([]),
-    trips: vi.fn().mockResolvedValue([]),
-    sendCommand: vi.fn().mockResolvedValue(undefined),
+    list: vi.fn<() => Promise<Vehicle[]>>().mockResolvedValue([]),
+    status: vi.fn<() => Promise<TelemetrySnapshot | null>>().mockResolvedValue(null),
+    config: vi.fn<() => Promise<Record<string, string>>>().mockResolvedValue({}),
+    history: vi.fn<() => Promise<TelemetrySnapshot[]>>().mockResolvedValue([]),
+    trips: vi.fn<() => Promise<Trip[]>>().mockResolvedValue([]),
+    sendCommand: vi.fn<() => Promise<void>>().mockResolvedValue(undefined),
   },
 }))
 

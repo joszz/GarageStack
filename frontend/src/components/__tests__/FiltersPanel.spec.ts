@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createI18n } from 'vue-i18n'
 import FiltersPanel from '../FiltersPanel.vue'
-import DetailModal from '../DetailModal.vue'
 
 // Stub FontAwesomeIcon so the test environment doesn't need the FA setup
 const FaStub = { template: '<span />', props: ['icon'] }

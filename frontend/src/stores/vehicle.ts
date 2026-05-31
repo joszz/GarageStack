@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, computed, readonly } from 'vue'
+import { ref, computed } from 'vue'
 import { vehicleApi, type Vehicle, type TelemetrySnapshot, type Trip } from '@/services/api'
 
 export type VehicleType = 'hev' | 'phev' | 'bev' | 'unknown'

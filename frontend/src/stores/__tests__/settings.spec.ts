@@ -13,9 +13,8 @@ describe('defaultCards', () => {
   it('places visible cards before hidden ones', () => {
     const cards = defaultCards('bev')
     const firstHidden = cards.findIndex(c => !c.visible)
-    if (firstHidden !== -1) {
-      expect(cards.slice(firstHidden).some(c => c.visible)).toBe(false)
-    }
+    const cardsFromFirstHidden = firstHidden >= 0 ? cards.slice(firstHidden) : []
+    expect(cardsFromFirstHidden.some(c => c.visible)).toBe(false)
   })
 
   it('hev: hides charging and efficiencyCharge, shows fuel', () => {

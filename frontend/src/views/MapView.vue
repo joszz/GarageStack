@@ -14,7 +14,7 @@ import type { Trip } from '@/services/api'
 // Vite wraps CJS modules in a frozen ESM namespace - `import * as LModule` gives that frozen
 // namespace. leaflet.heat patches the actual mutable CJS export (LModule.default), so we must
 // use that reference to reach heatLayer at runtime.
-const L = ((LModule as any).default ?? LModule) as typeof LModule
+const L = ((LModule as unknown as { default?: typeof LModule }).default ?? LModule) as typeof LModule
 
 const { t } = useI18n()
 const store = useVehicleStore()

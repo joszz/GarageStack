@@ -13,7 +13,7 @@ import HvBatteryCard from './HvBatteryCard.vue'
 import FindMyCarCard from './FindMyCarCard.vue'
 import LightsCard from './LightsCard.vue'
 
-const props = defineProps<{ cardId: CardId }>()
+defineProps<{ cardId: CardId }>()
 
 const { t } = useI18n()
 const store = useVehicleStore()

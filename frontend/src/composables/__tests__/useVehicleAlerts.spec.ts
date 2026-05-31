@@ -162,10 +162,10 @@ describe('getTyrePressureAlerts', () => {
 })
 
 describe('useVehicleAlerts', () => {
-  let notificationMock: ReturnType<typeof vi.fn>
+  let notificationMock: ReturnType<typeof vi.fn<(title: string, options?: NotificationOptions) => void>>
 
   beforeEach(() => {
-    notificationMock = vi.fn()
+    notificationMock = vi.fn<(title: string, options?: NotificationOptions) => void>()
     Object.defineProperty(window, 'Notification', {
       value: notificationMock,
       writable: true,
