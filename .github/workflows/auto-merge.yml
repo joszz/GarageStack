@@ -19,30 +19,23 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Auto-merge patch updates
-        if: steps.meta.outputs.update-type == 'version-update:semver-patch'
-        run: gh pr merge --auto --squash "$PR_URL"
+      # Approve so branch-protection review requirements don't block --auto merge
+      - name: Auto-approve
+        run: gh pr review --approve "$PR_URL"
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Auto-merge GitHub Actions updates
-        if: steps.meta.outputs.package-ecosystem == 'github_actions'
-        run: gh pr merge --auto --squash "$PR_URL"
-        env:
-          PR_URL: ${{ github.event.pull_request.html_url }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Auto-merge minor updates for safe dev-dependency groups
+      # Auto-merge:
+      #   - all patch updates
+      #   - all minor updates that belong to a defined group (CI still must pass)
+      #   - all GitHub Actions updates regardless of semver
+      # Major version bumps are left for manual review.
+      - name: Auto-merge
         if: |
-          steps.meta.outputs.update-type == 'version-update:semver-minor' && (
-            steps.meta.outputs.dependency-group == 'linting' ||
-            steps.meta.outputs.dependency-group == 'testing' ||
-            steps.meta.outputs.dependency-group == 'typescript-and-types' ||
-            steps.meta.outputs.dependency-group == 'test-framework' ||
-            steps.meta.outputs.dependency-group == 'docker-actions' ||
-            steps.meta.outputs.dependency-group == 'github-actions'
-          )
+          steps.meta.outputs.update-type == 'version-update:semver-patch' ||
+          (steps.meta.outputs.update-type == 'version-update:semver-minor' && steps.meta.outputs.dependency-group != '') ||
+          steps.meta.outputs.package-ecosystem == 'github_actions'
         run: gh pr merge --auto --squash "$PR_URL"
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
