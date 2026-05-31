@@ -17,7 +17,7 @@ jobs:
     name: Trivy filesystem scan
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Run Trivy (SARIF output)
         uses: aquasecurity/trivy-action@v0.36.0
@@ -32,7 +32,7 @@ jobs:
       - name: Upload SARIF to GitHub Security
         if: always()
         continue-on-error: true
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: trivy-fs.sarif
           category: trivy-fs
@@ -82,7 +82,7 @@ jobs:
       - name: Upload SARIF to GitHub Security
         if: always()
         continue-on-error: true
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: trivy-image.sarif
           category: trivy-image-${{ matrix.label }}
