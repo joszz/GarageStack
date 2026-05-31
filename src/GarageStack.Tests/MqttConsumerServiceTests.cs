@@ -18,7 +18,7 @@ file sealed class FakePushSender : IPushSender
 {
     public List<(string Title, string Body)> Sent { get; } = [];
 
-    public Task SendToAllAsync(string title, string body, CancellationToken ct = default)
+    public Task SendToAllAsync(string title, string body, CancellationToken ct = default, string? category = null)
     {
         Sent.Add((title, body));
         return Task.CompletedTask;

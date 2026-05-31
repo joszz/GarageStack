@@ -169,6 +169,7 @@ export interface AppNotification {
   body: string
   createdAt: string
   isArchived: boolean
+  category: string | null
 }
 
 export const notificationsApi = {

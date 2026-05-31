@@ -3,6 +3,19 @@ import { onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { AppNotification } from '@/services/api'
 
+const CATEGORY_ICONS: Record<string, string[]> = {
+  'low-tyre': ['fas', 'circle-exclamation'],
+  'low-ev': ['fas', 'battery-quarter'],
+  'engine-start': ['fas', 'car'],
+  'unlocked-parked': ['fas', 'lock-open'],
+  'doors-open-parked': ['fas', 'door-open'],
+  'windows-open-parked': ['fas', 'wind'],
+}
+
+function categoryIcon(category: string | null): string[] {
+  return (category && CATEGORY_ICONS[category]) || ['fas', 'bell']
+}
+
 const props = defineProps<{
   open: boolean
   notifications: AppNotification[]
@@ -73,6 +86,9 @@ onUnmounted(() => document.removeEventListener('keydown', onKey))
                 class="notif-item"
                 :class="{ 'notif-item--archived': n.isArchived }"
               >
+                <div class="notif-item__icon">
+                  <font-awesome-icon :icon="categoryIcon(n.category)" />
+                </div>
                 <div class="notif-item__content">
                   <span class="notif-item__title">{{ n.title }}</span>
                   <span class="notif-item__body">{{ n.body }}</span>

@@ -53,6 +53,9 @@ public class PushNotificationCheckService(
             CheckTyrePressure(snapshot, alerts);
             CheckEvSoc(snapshot, alerts);
             CheckEngineStart(snapshot, vehicle.Vin, alerts);
+            CheckUnlockedWhileParked(snapshot, alerts);
+            CheckDoorsOpenWhileParked(snapshot, alerts);
+            CheckWindowsOpenWhileParked(snapshot, alerts);
 
             foreach (var (key, title, body) in alerts)
             {
@@ -61,7 +64,7 @@ public class PushNotificationCheckService(
                     continue;
 
                 _lastNotified[notifKey] = DateTime.UtcNow;
-                await pushSender.SendToAllAsync(title, body, ct);
+                await pushSender.SendToAllAsync(title, body, ct, key);
                 logger.LogInformation("Push sent: {Key} - {Title}", notifKey, title);
             }
         }
@@ -98,5 +101,46 @@ public class PushNotificationCheckService(
 
         if (current && previous == false)
             alerts.Add(("engine-start", "Car Started", "Your car engine has started"));
+    }
+
+    private static bool IsParked(Core.Models.TelemetrySnapshot s)
+        => s.EngineRunning == false;
+
+    private static void CheckUnlockedWhileParked(Core.Models.TelemetrySnapshot s, List<(string, string, string)> alerts)
+    {
+        if (!IsParked(s)) return;
+        if (s.IsLocked is false)
+            alerts.Add(("unlocked-parked", "Car Left Unlocked", "Your car is parked and unlocked"));
+    }
+
+    private static void CheckDoorsOpenWhileParked(Core.Models.TelemetrySnapshot s, List<(string, string, string)> alerts)
+    {
+        if (!IsParked(s)) return;
+
+        var open = new List<string>();
+        if (s.DriverDoorOpen == true) open.Add("driver");
+        if (s.PassengerDoorOpen == true) open.Add("passenger");
+        if (s.RearLeftDoorOpen == true) open.Add("rear left");
+        if (s.RearRightDoorOpen == true) open.Add("rear right");
+        if (s.TrunkOpen == true) open.Add("boot");
+        if (s.BonnetOpen == true) open.Add("bonnet");
+
+        if (open.Count > 0)
+            alerts.Add(("doors-open-parked", "Door Left Open", $"Door(s) open while parked: {string.Join(", ", open)}"));
+    }
+
+    private static void CheckWindowsOpenWhileParked(Core.Models.TelemetrySnapshot s, List<(string, string, string)> alerts)
+    {
+        if (!IsParked(s)) return;
+
+        var open = new List<string>();
+        if (s.DriverWindowOpen == true) open.Add("driver");
+        if (s.PassengerWindowOpen == true) open.Add("passenger");
+        if (s.RearLeftWindowOpen == true) open.Add("rear left");
+        if (s.RearRightWindowOpen == true) open.Add("rear right");
+        if (s.SunRoofOpen == true) open.Add("sunroof");
+
+        if (open.Count > 0)
+            alerts.Add(("windows-open-parked", "Window Left Open", $"Window(s) open while parked: {string.Join(", ", open)}"));
     }
 }

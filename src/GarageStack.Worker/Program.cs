@@ -1,8 +1,6 @@
-using GarageStack.Data;
 using GarageStack.Data.Extensions;
 using GarageStack.Worker.Mqtt;
 using GarageStack.Worker.Services;
-using Microsoft.EntityFrameworkCore;
 using Serilog;
 using Serilog.Events;
 
@@ -41,12 +39,6 @@ try
     builder.Services.AddHostedService<PushNotificationCheckService>();
 
     var host = builder.Build();
-
-    using (var scope = host.Services.CreateScope())
-    {
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        await db.Database.MigrateAsync();
-    }
 
     host.Run();
 }

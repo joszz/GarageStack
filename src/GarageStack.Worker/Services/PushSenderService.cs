@@ -45,7 +45,7 @@ public sealed class PushSenderService : IPushSender, IDisposable
 
     public bool IsConfigured => _pushClient is not null;
 
-    public async Task SendToAllAsync(string title, string body, CancellationToken ct = default)
+    public async Task SendToAllAsync(string title, string body, CancellationToken ct = default, string? category = null)
     {
         // Always persist so the in-app bell works regardless of push configuration
         try
@@ -57,6 +57,7 @@ public sealed class PushSenderService : IPushSender, IDisposable
                 Title = title,
                 Body = body,
                 CreatedAt = DateTime.UtcNow,
+                Category = category,
             });
             await recordDb.SaveChangesAsync(ct);
         }
@@ -72,7 +73,7 @@ public sealed class PushSenderService : IPushSender, IDisposable
         var subscriptions = await db.PushSubscriptions.AsNoTracking().ToListAsync(ct);
         if (subscriptions.Count == 0) return;
 
-        var payload = System.Text.Json.JsonSerializer.Serialize(new { title, body, icon = "/icons/icon-192.png" });
+        var payload = System.Text.Json.JsonSerializer.Serialize(new { title, body, icon = "/icons/icon-192.png", category });
         var message = new PushMessage(payload) { TimeToLive = 3600 };
         var dead = new List<ModelPushSubscription>();
 
