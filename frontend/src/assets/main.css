@@ -847,29 +847,35 @@ body,
   display: flex;
   flex-direction: column;
   gap: 0.1rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.trip-list__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
 }
 
 .trip-list__name {
   font-size: 0.85rem;
   font-weight: 600;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.trip-list__time {
+  font-size: 0.85rem;
+  flex-shrink: 0;
 }
 
 .trip-list__meta {
   font-size: 0.75rem;
   color: var(--color-text-muted);
-}
-
-.trip-list__date {
-  font-size: 0.7rem;
-  color: var(--color-text-muted);
-}
-
-/* ── Inline trip detail (shown inside active card) ───────────── */
-
-.trip-detail__dl--card {
-  margin-top: 0.5rem;
-  padding-top: 0.5rem;
-  border-top: 1px solid var(--color-border);
 }
 
 .trip-pagination {
@@ -934,17 +940,6 @@ body,
   font-size: 0.8rem;
   color: var(--color-text-muted);
   white-space: nowrap;
-}
-
-.trip-detail__dl {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 0.25rem 0.75rem;
-  font-size: 0.8rem;
-}
-
-.trip-detail__dl dt {
-  color: var(--color-text-muted);
 }
 
 /* ── Control panel ────────────────────────────────────────── */

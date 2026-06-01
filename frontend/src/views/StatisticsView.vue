@@ -42,6 +42,7 @@ const store = useVehicleStore()
 const settings = useSettingsStore()
 
 const editMode = ref(false)
+const loading = ref(false)
 
 const days = computed({
   get: () => settings.filterDays,
@@ -54,15 +55,20 @@ const vin = computed(() => store.vehicles[0]?.vin ?? null)
 const status = computed(() => store.currentStatus)
 
 async function load() {
-  await store.fetchVehicles()
-  if (!vin.value) return
-  const from = new Date(Date.now() - days.value * 86_400_000).toISOString()
-  await Promise.all([
-    store.fetchHistory(vin.value, from),
-    store.fetchTrips(vin.value, from),
-    store.fetchStatus(vin.value),
-    store.fetchConfig(vin.value),
-  ])
+  loading.value = true
+  try {
+    await store.fetchVehicles()
+    if (!vin.value) return
+    const from = new Date(Date.now() - days.value * 86_400_000).toISOString()
+    await Promise.all([
+      store.fetchHistory(vin.value, from),
+      store.fetchTrips(vin.value, from),
+      store.fetchStatus(vin.value),
+      store.fetchConfig(vin.value),
+    ])
+  } finally {
+    loading.value = false
+  }
 }
 
 onMounted(load)
@@ -592,7 +598,7 @@ function resetStatsLayout() {
       </div>
     </div>
 
-    <div v-if="store.loading && !status && !store.history.length" class="loading-state">
+    <div v-if="loading" class="loading-state">
       <font-awesome-icon icon="spinner" spin />
       {{ t('common.loading') }}
     </div>
