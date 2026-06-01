@@ -23,6 +23,7 @@ const settingsStore = useSettingsStore()
 
 const vin = computed(() => store.vehicles[0]?.vin ?? null)
 const status = computed(() => store.currentStatus)
+const displayLocale = computed(() => (settingsStore.locale === 'nl' ? 'nl-NL' : 'en-US'))
 const selectedTripIndex = ref<number | null>(null)
 const heatmapEnabled = ref(true)
 
@@ -387,29 +388,22 @@ onUnmounted(() => {
                 :class="tripColorClass(realIndex(pageOffset + displayIdx))"
               />
               <div class="trip-list__info">
-                <span class="trip-list__name">{{
-                  new Date(trip.startedAt).toLocaleDateString()
-                }}</span>
+                <div class="trip-list__header">
+                  <span class="trip-list__name">{{
+                    new Date(trip.startedAt).toLocaleDateString(displayLocale)
+                  }}</span>
+                  <span class="trip-list__time">{{
+                    new Date(trip.startedAt).toLocaleTimeString(displayLocale, {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })
+                  }}</span>
+                </div>
                 <span class="trip-list__meta">
                   {{ trip.distanceKm }} {{ t('common.km') }} &middot;
-                  {{ formatDuration(trip.startedAt, trip.endedAt) }}
+                  {{ formatDuration(trip.startedAt, trip.endedAt) }} &middot;
+                  {{ trip.pointCount }}
                 </span>
-                <dl
-                  v-if="selectedTripIndex === realIndex(pageOffset + displayIdx)"
-                  class="trip-detail__dl trip-detail__dl--card"
-                >
-                  <dt>{{ t('trips.started') }}</dt>
-                  <dd>
-                    {{
-                      new Date(trip.startedAt).toLocaleTimeString([], {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })
-                    }}
-                  </dd>
-                  <dt>{{ t('trips.points') }}</dt>
-                  <dd>{{ trip.pointCount }}</dd>
-                </dl>
               </div>
             </li>
           </ul>
