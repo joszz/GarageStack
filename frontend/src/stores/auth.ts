@@ -10,11 +10,16 @@ export const useAuthStore = defineStore('auth', () => {
   const expiresAtUtc = ref<string>(localStorage.getItem(AUTH_EXPIRES_KEY) ?? '')
 
   const now = ref(Date.now())
-  const clockInterval = setInterval(() => { now.value = Date.now() }, 60_000)
+  const clockInterval = setInterval(() => {
+    now.value = Date.now()
+  }, 60_000)
   onScopeDispose(() => clearInterval(clockInterval))
 
   const isAuthenticated = computed(
-    () => !!username.value && !!expiresAtUtc.value && new Date(expiresAtUtc.value).getTime() > now.value,
+    () =>
+      !!username.value &&
+      !!expiresAtUtc.value &&
+      new Date(expiresAtUtc.value).getTime() > now.value,
   )
 
   // Cached promise so the server round-trip happens exactly once per page load.
