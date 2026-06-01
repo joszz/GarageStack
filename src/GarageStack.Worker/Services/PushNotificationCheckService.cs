@@ -63,6 +63,14 @@ public class PushNotificationCheckService(
                 if (_lastNotified.TryGetValue(notifKey, out var last) && DateTime.UtcNow - last < _cooldown)
                     continue;
 
+                // Cross-service dedup: check DB so MQTT-emitted notifications suppress repeated checker alerts.
+                var cutoff = DateTime.UtcNow - _cooldown;
+                if (await db.AppNotifications.AnyAsync(n => n.Category == key && n.CreatedAt > cutoff, ct))
+                {
+                    _lastNotified[notifKey] = DateTime.UtcNow;
+                    continue;
+                }
+
                 _lastNotified[notifKey] = DateTime.UtcNow;
                 await pushSender.SendToAllAsync(title, body, ct, key);
                 logger.LogInformation("Push sent: {Key} - {Title}", notifKey, title);

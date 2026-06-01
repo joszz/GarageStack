@@ -1,4 +1,4 @@
-import { computed, ref } from 'vue'
+import { computed, onScopeDispose, ref } from 'vue'
 import { defineStore } from 'pinia'
 import { authApi } from '@/services/api'
 
@@ -9,8 +9,12 @@ export const useAuthStore = defineStore('auth', () => {
   const username = ref<string>(localStorage.getItem(AUTH_USERNAME_KEY) ?? '')
   const expiresAtUtc = ref<string>(localStorage.getItem(AUTH_EXPIRES_KEY) ?? '')
 
+  const now = ref(Date.now())
+  const clockInterval = setInterval(() => { now.value = Date.now() }, 60_000)
+  onScopeDispose(() => clearInterval(clockInterval))
+
   const isAuthenticated = computed(
-    () => !!username.value && !!expiresAtUtc.value && new Date(expiresAtUtc.value) > new Date(),
+    () => !!username.value && !!expiresAtUtc.value && new Date(expiresAtUtc.value).getTime() > now.value,
   )
 
   // Cached promise so the server round-trip happens exactly once per page load.
