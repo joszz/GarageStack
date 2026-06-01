@@ -34,6 +34,19 @@ public class TelemetryRepository(AppDbContext db) : ITelemetryRepository
              s.HeatedSeatFrontLeft != null || s.HeatedSeatFrontRight != null ||
              s.RearWindowDefroster != null;
 
+    // Chart history excludes GPS-only rows: latitude/longitude arrive every minute during driving
+    // and inflate the row count, causing the stride downsampler to skip the sparser fuel/EV/kWh rows.
+    // GPS data for routes belongs to the trips endpoint, not chart history.
+    private static readonly Expression<Func<TelemetrySnapshot, bool>> HasChartData =
+        s => s.FuelLevelPercent != null || s.EvSocPercent != null ||
+             s.PowerUsageOfDay != null || s.BatteryVoltage != null ||
+             s.ClimateOn != null || s.IsCharging != null ||
+             s.TyrePressureFrontLeft != null || s.TyrePressureFrontRight != null ||
+             s.TyrePressureRearLeft != null || s.TyrePressureRearRight != null ||
+             s.MileageOfTheDay != null || s.MileageSinceLastCharge != null ||
+             s.HvSocKwh != null || s.HvTotalCapacityKwh != null ||
+             s.PowerUsageSinceLastCharge != null;
+
     public async Task AddAsync(TelemetrySnapshot snapshot, CancellationToken ct = default)
     {
         db.TelemetrySnapshots.Add(snapshot);
@@ -143,7 +156,7 @@ public class TelemetryRepository(AppDbContext db) : ITelemetryRepository
         var rows = await db.TelemetrySnapshots
             .AsNoTracking()
             .Where(s => s.VehicleId == vehicleId && s.RecordedAt >= from && s.RecordedAt <= to)
-            .Where(HasData)
+            .Where(HasChartData)
             .OrderBy(s => s.RecordedAt)
             .ToListAsync(ct);
 
