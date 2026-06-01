@@ -88,7 +88,9 @@ public sealed class PushSenderService : IPushSender, IDisposable
             {
                 await _pushClient.RequestPushMessageDeliveryAsync(pushSub, message, ct);
             }
-            catch (PushServiceClientException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Gone)
+            catch (PushServiceClientException ex) when (
+                ex.StatusCode == System.Net.HttpStatusCode.Gone ||
+                ex.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
                 dead.Add(sub);
             }

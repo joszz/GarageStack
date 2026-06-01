@@ -203,8 +203,14 @@ public static class VehicleEndpoints
                     P256DhKey = req.P256DhKey,
                     AuthKey = req.AuthKey,
                 });
-                await db.SaveChangesAsync(ct);
             }
+            else if (existing.P256DhKey != req.P256DhKey || existing.AuthKey != req.AuthKey)
+            {
+                existing.P256DhKey = req.P256DhKey;
+                existing.AuthKey = req.AuthKey;
+            }
+
+            await db.SaveChangesAsync(ct);
 
             return Results.Ok();
         })

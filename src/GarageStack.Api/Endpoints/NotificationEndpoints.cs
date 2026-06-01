@@ -17,7 +17,7 @@ public static class NotificationEndpoints
                 .AsNoTracking()
                 .Where(n => !n.IsDeleted)
                 .OrderByDescending(n => n.CreatedAt)
-                .Select(n => new NotificationDto(n.Id, n.Title, n.Body, n.CreatedAt, n.IsArchived))
+                .Select(n => new NotificationDto(n.Id, n.Title, n.Body, n.CreatedAt, n.IsArchived, n.Category))
                 .ToListAsync(ct);
             return Results.Ok(notifications);
         })
@@ -47,4 +47,4 @@ public static class NotificationEndpoints
     }
 }
 
-public record NotificationDto(int Id, string Title, string Body, DateTime CreatedAt, bool IsArchived);
+public record NotificationDto(int Id, string Title, string Body, DateTime CreatedAt, bool IsArchived, string? Category);
