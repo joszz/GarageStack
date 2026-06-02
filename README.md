@@ -40,6 +40,102 @@ To use GarageStack alongside the official MG app without interrupting either, se
 
 This way the official app keeps its own session on the owner account and GarageStack runs independently on the secondary account.
 
+## Homepage dashboard widget
+
+GarageStack exposes a dedicated read-only endpoint for the [gethomepage.dev](https://gethomepage.dev) [Custom API widget](https://gethomepage.dev/widgets/services/customapi/). No fork or custom widget code is required.
+
+### 1. Generate an API key
+
+```bash
+openssl rand -base64 32
+```
+
+Set `WIDGET_API_KEY` to the generated value in your `.env` file (Docker Compose) or as a container environment variable (all-in-one / Unraid). Leave it empty to keep the endpoint disabled.
+
+### 2. Find your VIN
+
+Log in to GarageStack and open the browser developer tools. The VIN appears in the `/api/vehicles` response, or in the URL when you navigate to your vehicle.
+
+### 3. Configure Homepage
+
+Add the following block to your Homepage `services.yaml`, replacing `YOUR_GARAGESTACK_URL`, `YOUR_VIN`, and `YOUR_WIDGET_API_KEY`:
+
+```yaml
+- GarageStack:
+    href: https://YOUR_GARAGESTACK_URL
+    description: MG Vehicle Status
+    widget:
+      type: customapi
+      url: https://YOUR_GARAGESTACK_URL/api/widget/YOUR_VIN/status
+      headers:
+        X-Widget-Key: "YOUR_WIDGET_API_KEY"
+      mappings:
+        - field: evSocPercent
+          label: Battery
+          format: percent
+        - field: isCharging
+          label: Charging
+          format: text
+        - field: exteriorTemperature
+          label: Ext. Temp
+          format: float
+          suffix: "°C"
+        - field: isLocked
+          label: Locked
+          format: text
+```
+
+### Available fields
+
+The endpoint returns a flat JSON object. All numeric fields are `null` when the vehicle has not reported that value yet.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `recordedAt` | string (ISO 8601) | Timestamp of the most recent telemetry |
+| `fuelLevelPercent` | number | Fuel tank level (%) |
+| `fuelRangeKm` | number | Estimated fuel range (km) |
+| `evSocPercent` | number | EV / HV battery state of charge (%) |
+| `isCharging` | boolean | Whether the vehicle is currently charging |
+| `chargerConnected` | boolean | Whether a charger is physically connected |
+| `mileageSinceLastCharge` | number | Distance driven since last full charge (km) |
+| `hvSocKwh` | number | HV battery energy (kWh) |
+| `hvTotalCapacityKwh` | number | HV battery total capacity (kWh) |
+| `hvVoltage` | number | HV system voltage (V) |
+| `hvCurrent` | number | HV system current (A) |
+| `hvPower` | number | HV system power (W) |
+| `odometerKm` | number | Total odometer reading (km) |
+| `mileageOfTheDayKm` | number | Distance driven today (km) |
+| `powerUsageOfDayKwh` | number | Energy used today (kWh, converted from raw Wh) |
+| `electricSharePercent` | number | % of today's distance driven on electric power (PHEV) |
+| `isLocked` | boolean | Whether the doors are locked |
+| `engineRunning` | boolean | Whether the engine is running |
+| `climateOn` | boolean | Whether the remote climate is active |
+| `driverDoorOpen` | boolean | Driver door open state |
+| `passengerDoorOpen` | boolean | Passenger door open state |
+| `rearLeftDoorOpen` | boolean | Rear left door open state |
+| `rearRightDoorOpen` | boolean | Rear right door open state |
+| `trunkOpen` | boolean | Boot / trunk open state |
+| `bonnetOpen` | boolean | Bonnet / hood open state |
+| `anyDoorOpen` | boolean | `true` if any door, boot, or bonnet is open |
+| `driverWindowOpen` | boolean | Driver window open state |
+| `passengerWindowOpen` | boolean | Passenger window open state |
+| `rearLeftWindowOpen` | boolean | Rear left window open state |
+| `rearRightWindowOpen` | boolean | Rear right window open state |
+| `sunRoofOpen` | boolean | Sunroof open state |
+| `anyWindowOpen` | boolean | `true` if any window or sunroof is open |
+| `batteryVoltage` | number | 12V auxiliary battery voltage (V) |
+| `interiorTemperature` | number | Interior temperature (°C) |
+| `exteriorTemperature` | number | Exterior temperature (°C) |
+| `tyrePressureFrontLeft` | number | Front-left tyre pressure (bar) |
+| `tyrePressureFrontRight` | number | Front-right tyre pressure (bar) |
+| `tyrePressureRearLeft` | number | Rear-left tyre pressure (bar) |
+| `tyrePressureRearRight` | number | Rear-right tyre pressure (bar) |
+| `lightsMainBeam` | boolean | Main beam headlights state |
+| `lightsDippedBeam` | boolean | Dipped beam headlights state |
+| `lightsSide` | boolean | Side / parking lights state |
+
+---
+
 ## Installation
 
 Choose the method that fits your environment.

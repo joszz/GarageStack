@@ -115,6 +115,7 @@ services:
       Vapid__PublicKey: "${VAPID_PUBLIC_KEY}"
       Vapid__PrivateKey: "${VAPID_PRIVATE_KEY}"
       Vapid__Subject: "mailto:${SAIC_USER}"
+      Widget__ApiKey: "${WIDGET_API_KEY:-}"
     ports:
       - "${API_PORT:-5000}:8080"
     volumes:
