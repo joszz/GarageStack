@@ -11,17 +11,19 @@ public static class NotificationEndpoints
             .WithTags("Notifications")
             .RequireAuthorization();
 
-        group.MapGet("/", async (AppDbContext db, CancellationToken ct) =>
+        group.MapGet("/", async (AppDbContext db, CancellationToken ct, int limit = 100) =>
         {
+            if (limit is < 1 or > 500) limit = 100;
             var notifications = await db.AppNotifications
                 .AsNoTracking()
                 .Where(n => !n.IsDeleted)
                 .OrderByDescending(n => n.CreatedAt)
+                .Take(limit)
                 .Select(n => new NotificationDto(n.Id, n.Title, n.Body, n.CreatedAt, n.IsArchived, n.Category))
                 .ToListAsync(ct);
             return Results.Ok(notifications);
         })
-        .WithSummary("List all non-deleted notifications");
+        .WithSummary("List non-deleted notifications (most recent first, default limit 100)");
 
         group.MapPatch("/{id:int}/archive", async (int id, AppDbContext db, CancellationToken ct) =>
         {

@@ -1,11 +1,13 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { notificationsApi, type AppNotification } from '@/services/api'
+import { useAuthStore } from '@/stores/auth'
 
 const notifications = ref<AppNotification[]>([])
 const panelOpen = ref(false)
 const loading = ref(false)
 
 export function useNotifications() {
+  const auth = useAuthStore()
   const unreadCount = computed(() => notifications.value.filter((n) => !n.isArchived).length)
 
   async function fetchNotifications() {
@@ -24,6 +26,7 @@ export function useNotifications() {
   }
 
   onMounted(() => {
+    if (!auth.isAuthenticated) return
     fetchNotifications()
     navigator.serviceWorker?.addEventListener('message', onSwMessage)
   })
