@@ -36,6 +36,9 @@ export Auth__Password="${SAIC_PASSWORD}"
 # CORS: the URL users open in their browser
 export Cors__Origins__0="${CORS_ORIGIN:-http://localhost:8080}"
 
+# Homepage widget API key (optional -- leave empty to disable the widget endpoint)
+export Widget__ApiKey="${WIDGET_API_KEY:-}"
+
 # .NET API listens on an internal port; nginx proxies port 80 to it
 export ASPNETCORE_URLS="http://127.0.0.1:9000"
 

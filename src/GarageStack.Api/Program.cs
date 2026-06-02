@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json.Serialization;
 using GarageStack.Api;
 using GarageStack.Api.Endpoints;
@@ -7,6 +8,7 @@ using GarageStack.Data;
 using GarageStack.Data.Extensions;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.Localization;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -44,6 +46,7 @@ try
     var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
         ?? throw new InvalidOperationException("DefaultConnection is not configured.");
 
+    builder.Services.AddLocalization(opts => opts.ResourcesPath = "Resources");
     builder.Services.AddGarageStackData(connectionString);
     builder.Services.AddSingleton<MqttPublisher>();
     builder.Services.AddSingleton<IMqttPublisher>(sp => sp.GetRequiredService<MqttPublisher>());
@@ -184,6 +187,12 @@ try
         await next(ctx);
     });
 
+    app.UseRequestLocalization(new RequestLocalizationOptions
+    {
+        DefaultRequestCulture = new RequestCulture("en"),
+        SupportedCultures = [new CultureInfo("en"), new CultureInfo("nl")],
+        SupportedUICultures = [new CultureInfo("en"), new CultureInfo("nl")],
+    });
     app.UseRateLimiter();
     app.UseAuthentication();
     app.UseAuthorization();
@@ -197,6 +206,7 @@ try
     app.MapAuthEndpoints();
     app.MapVehicleEndpoints();
     app.MapNotificationEndpoints();
+    app.MapWidgetEndpoints();
 
     app.Run();
 }
