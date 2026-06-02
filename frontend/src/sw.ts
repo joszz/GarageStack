@@ -13,7 +13,7 @@ self.addEventListener('activate', (event) => event.waitUntil(self.clients.claim(
 self.addEventListener('push', (event) => {
   if (!event.data) return
 
-  let payload: { title?: string; body?: string; url?: string } = {}
+  let payload: { title?: string; body?: string; url?: string; category?: string } = {}
   try {
     payload = event.data.json() as typeof payload
   } catch {
@@ -21,11 +21,13 @@ self.addEventListener('push', (event) => {
   }
 
   const title = payload.title ?? 'GarageStack'
+  const tag = payload.category ?? 'garagestack-notification'
   const options: NotificationOptions = {
     body: payload.body ?? '',
     icon: '/pwa-192x192.png',
     badge: '/pwa-64x64.png',
-    tag: 'garagestack-notification',
+    tag,
+    renotify: true,
     data: { url: payload.url ?? '/' },
   }
 
