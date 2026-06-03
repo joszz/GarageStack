@@ -10,6 +10,8 @@ import { Line, Bar } from 'vue-chartjs'
 import { VueDraggable } from 'vue-draggable-plus'
 import CardInfoWrap from '@/components/CardInfoWrap.vue'
 import FiltersPanel from '@/components/FiltersPanel.vue'
+import SkeletonCard from '@/components/SkeletonCard.vue'
+import SkeletonChart from '@/components/SkeletonChart.vue'
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -566,6 +568,9 @@ function resetStatsLayout() {
   settings.statsInsights = defaultStatsInsights()
   settings.statsCharts = defaultStatsCharts()
 }
+
+const skeletonInsights = computed(() => settings.statsInsights.filter((i) => i.visible))
+const skeletonChartCount = computed(() => settings.statsCharts.filter((c) => c.visible).length || 3)
 </script>
 
 <template>
@@ -598,10 +603,20 @@ function resetStatsLayout() {
       </div>
     </div>
 
-    <div v-if="loading" class="loading-state">
-      <font-awesome-icon icon="spinner" spin />
-      {{ t('common.loading') }}
-    </div>
+    <template v-if="loading">
+      <section class="stats-insights" aria-label="Statistics insights">
+        <div class="status-grid">
+          <SkeletonCard
+            v-for="item in skeletonInsights"
+            :key="item.id"
+            :icon="INSIGHT_ICONS[item.id]"
+          />
+        </div>
+      </section>
+      <div class="stats-chart-grid">
+        <SkeletonChart v-for="n in skeletonChartCount" :key="n" />
+      </div>
+    </template>
 
     <template v-else>
       <div v-if="store.error && !status && !store.history.length" class="empty-state text-danger">

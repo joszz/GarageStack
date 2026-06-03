@@ -10,6 +10,8 @@ import { defaultCards } from '@/stores/settings'
 import DashboardCardContent from '@/components/DashboardCardContent.vue'
 import CardInfoWrap from '@/components/CardInfoWrap.vue'
 import TyreDiagram from '@/components/TyreDiagram.vue'
+import SkeletonCard from '@/components/SkeletonCard.vue'
+import SkeletonTyreDiagram from '@/components/SkeletonTyreDiagram.vue'
 import { useVehicleAlerts } from '@/composables/useVehicleAlerts'
 
 const { t } = useI18n()
@@ -19,6 +21,7 @@ const settings = useSettingsStore()
 const vin = computed(() => store.vehicles[0]?.vin ?? null)
 const status = computed(() => store.currentStatus)
 const editMode = ref(false)
+const skeletonCards = computed(() => settings.cards.filter((c) => c.visible))
 
 const vehicleType = computed((): VehicleType | 'unknown' => {
   const override = settings.vehicleTypeOverride
@@ -247,10 +250,12 @@ onUnmounted(() => {
 
     <!-- Normal mode -->
     <template v-else>
-      <div v-if="store.loading && !status" class="loading-state">
-        <font-awesome-icon icon="spinner" spin />
-        {{ t('common.loading') }}
-      </div>
+      <template v-if="store.loading && !status">
+        <div class="status-grid">
+          <SkeletonCard v-for="card in skeletonCards" :key="card.id" :icon="CARD_ICONS[card.id]" />
+        </div>
+        <SkeletonTyreDiagram v-if="settings.showTyreDiagram" class="mt-4" />
+      </template>
 
       <div v-else-if="store.error && !status" class="error-state">
         <font-awesome-icon icon="triangle-exclamation" />

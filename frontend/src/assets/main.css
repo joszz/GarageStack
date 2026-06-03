@@ -1522,9 +1522,9 @@ body,
   border-radius: 4px;
   background: linear-gradient(
     90deg,
-    var(--color-surface-2) 25%,
+    var(--color-surface-2) 15%,
     var(--color-border) 50%,
-    var(--color-surface-2) 75%
+    var(--color-surface-2) 85%
   );
   background-size: 200% 100%;
   animation: skeleton-shimmer 1.5s ease-in-out infinite;
