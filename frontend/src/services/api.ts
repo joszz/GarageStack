@@ -132,6 +132,14 @@ export interface TelemetrySnapshot {
   batteryHeatingScheduleMode: string | null
   batteryHeatingScheduleStartTime: string | null
   elevation: number | null
+  bmsChargeStatus: string | null
+  lastChargeEndingPower: number | null
+  chargingLastEndAt: string | null
+  chargingScheduleMode: string | null
+  chargingScheduleStartTime: string | null
+  chargingScheduleEndTime: string | null
+  onboardChargerPlugStatus: number | null
+  offboardChargerPlugStatus: number | null
 }
 
 export interface TripPoint {

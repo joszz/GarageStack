@@ -16,8 +16,8 @@ public static class TelemetryMapper
 
         bool? asBool = payload switch
         {
-            "true" or "True" or "1" or "on" or "open" or "unlocked" or "front" or "blowingonly" => true,
-            "false" or "False" or "0" or "off" or "closed" or "locked" => false,
+            "true" or "True" or "1" or "on" or "open" or "unlocked" or "front" or "blowingonly" or "online" => true,
+            "false" or "False" or "0" or "off" or "closed" or "locked" or "offline" => false,
             _ => null
         };
 
@@ -266,6 +266,42 @@ public static class TelemetryMapper
 
             case "drivetrain/remainingChargingTime":
                 snapshot.RemainingChargingTime = double.IsFinite(numeric) ? (int)numeric : (int?)null;
+                break;
+
+            case "drivetrain/lastChargeEndingPower":
+                snapshot.LastChargeEndingPower = N(numeric);
+                break;
+
+            case "drivetrain/charging/lastEnd":
+                // Unix epoch seconds
+                if (double.IsFinite(numeric))
+                    snapshot.ChargingLastEndAt = DateTimeOffset.FromUnixTimeSeconds((long)numeric).UtcDateTime;
+                break;
+
+            case "drivetrain/chargingSchedule":
+                try
+                {
+                    using var csDoc = JsonDocument.Parse(payload);
+                    if (csDoc.RootElement.TryGetProperty("mode", out var csm)) snapshot.ChargingScheduleMode = csm.GetString();
+                    if (csDoc.RootElement.TryGetProperty("startTime", out var css)) snapshot.ChargingScheduleStartTime = css.GetString();
+                    if (csDoc.RootElement.TryGetProperty("endTime", out var cse)) snapshot.ChargingScheduleEndTime = cse.GetString();
+                }
+                catch
+                {
+                    return false;
+                }
+                break;
+
+            case "bms/chargeStatus":
+                snapshot.BmsChargeStatus = payload;
+                break;
+
+            case "ccu/onboardChargerPlugStatus":
+                snapshot.OnboardChargerPlugStatus = double.IsFinite(numeric) ? (int)numeric : (int?)null;
+                break;
+
+            case "ccu/offboardChargerPlugStatus":
+                snapshot.OffboardChargerPlugStatus = double.IsFinite(numeric) ? (int)numeric : (int?)null;
                 break;
 
             // OBC (onboard charger)

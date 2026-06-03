@@ -263,6 +263,14 @@ The endpoint returns a flat JSON object. Numeric fields are `null` when the vehi
 | `batteryHeatingScheduleMode` | string | Battery heating schedule mode (e.g. `"off"`) |
 | `batteryHeatingScheduleStartTime` | string | Battery heating schedule start time (HH:MM) |
 | `elevation` | number | Vehicle elevation above sea level (m) |
+| `bmsChargeStatus` | string | BMS charge status string (e.g. `"UNPLUGGED"`, `"CHARGING"`) |
+| `lastChargeEndingPower` | number | State of charge (%) when the last charge session ended |
+| `chargingLastEndAt` | string (ISO 8601) | Timestamp the last charge session ended |
+| `chargingScheduleMode` | string | Scheduled charging mode (e.g. `"DISABLED"`, `"UNTIL_CONFIGURED_TIME"`) |
+| `chargingScheduleStartTime` | string | Scheduled charge start time (HH:MM) |
+| `chargingScheduleEndTime` | string | Scheduled charge end time (HH:MM) |
+| `onboardChargerPlugStatus` | number | Onboard charger plug presence status (raw integer) |
+| `offboardChargerPlugStatus` | number | Offboard (DC) charger plug presence status (raw integer) |
 
 ---
 
