@@ -41,9 +41,9 @@ function next() {
 </script>
 
 <template>
-  <div class="trip-pagination">
+  <div class="paginator">
     <button
-      class="btn btn-sm btn-outline-secondary trip-pagination__btn"
+      class="btn btn-sm btn-outline-secondary paginator__btn"
       :disabled="modelValue === 1"
       @click="prev"
     >
@@ -54,14 +54,14 @@ function next() {
       type="number"
       min="1"
       :max="totalPages"
-      class="trip-pagination__input"
+      class="paginator__input"
       @blur="commit"
       @keydown.enter.prevent="commit"
       @focus="onFocus"
     />
-    <span class="trip-pagination__sep">/ {{ totalPages }}</span>
+    <span class="paginator__sep">/ {{ totalPages }}</span>
     <button
-      class="btn btn-sm btn-outline-secondary trip-pagination__btn"
+      class="btn btn-sm btn-outline-secondary paginator__btn"
       :disabled="modelValue === totalPages"
       @click="next"
     >
