@@ -32,7 +32,16 @@ public class TelemetryRepository(AppDbContext db) : ITelemetryRepository
              s.ChargerConnected != null || s.HvBatteryActive != null ||
              s.LightsMainBeam != null || s.LightsDippedBeam != null || s.LightsSide != null ||
              s.HeatedSeatFrontLeft != null || s.HeatedSeatFrontRight != null ||
-             s.RearWindowDefroster != null;
+             s.RearWindowDefroster != null ||
+             s.IsAvailable != null || s.LastVehicleStateAt != null || s.LastChargeStateAt != null ||
+             s.CurrentJourneyDistance != null ||
+             s.ChargingType != null || s.ChargingCableLock != null || s.RemainingChargingTime != null ||
+             s.BmsChargeStatus != null || s.OnboardChargerPlugStatus != null || s.OffboardChargerPlugStatus != null ||
+             s.LastChargeEndingPower != null || s.ChargingLastEndAt != null ||
+             s.ChargingScheduleMode != null || s.ChargingScheduleStartTime != null || s.ChargingScheduleEndTime != null ||
+             s.ObcCurrent != null || s.ObcVoltage != null || s.ObcPowerSinglePhase != null || s.ObcPowerThreePhase != null ||
+             s.BatteryHeating != null || s.BatteryHeatingScheduleMode != null || s.BatteryHeatingScheduleStartTime != null ||
+             s.Elevation != null;
 
     // Chart history excludes GPS-only rows: latitude/longitude arrive every minute during driving
     // and inflate the row count, causing the stride downsampler to skip the sparser fuel/EV/kWh rows.
@@ -127,6 +136,29 @@ public class TelemetryRepository(AppDbContext db) : ITelemetryRepository
             merged.HeatedSeatFrontLeft ??= row.HeatedSeatFrontLeft;
             merged.HeatedSeatFrontRight ??= row.HeatedSeatFrontRight;
             merged.RearWindowDefroster ??= row.RearWindowDefroster;
+            merged.IsAvailable ??= row.IsAvailable;
+            merged.LastVehicleStateAt ??= row.LastVehicleStateAt;
+            merged.LastChargeStateAt ??= row.LastChargeStateAt;
+            merged.CurrentJourneyDistance ??= row.CurrentJourneyDistance;
+            merged.ChargingType ??= row.ChargingType;
+            merged.ChargingCableLock ??= row.ChargingCableLock;
+            merged.RemainingChargingTime ??= row.RemainingChargingTime;
+            merged.BmsChargeStatus ??= row.BmsChargeStatus;
+            merged.OnboardChargerPlugStatus ??= row.OnboardChargerPlugStatus;
+            merged.OffboardChargerPlugStatus ??= row.OffboardChargerPlugStatus;
+            merged.LastChargeEndingPower ??= row.LastChargeEndingPower;
+            merged.ChargingLastEndAt ??= row.ChargingLastEndAt;
+            merged.ChargingScheduleMode ??= row.ChargingScheduleMode;
+            merged.ChargingScheduleStartTime ??= row.ChargingScheduleStartTime;
+            merged.ChargingScheduleEndTime ??= row.ChargingScheduleEndTime;
+            merged.ObcCurrent ??= row.ObcCurrent;
+            merged.ObcVoltage ??= row.ObcVoltage;
+            merged.ObcPowerSinglePhase ??= row.ObcPowerSinglePhase;
+            merged.ObcPowerThreePhase ??= row.ObcPowerThreePhase;
+            merged.BatteryHeating ??= row.BatteryHeating;
+            merged.BatteryHeatingScheduleMode ??= row.BatteryHeatingScheduleMode;
+            merged.BatteryHeatingScheduleStartTime ??= row.BatteryHeatingScheduleStartTime;
+            merged.Elevation ??= row.Elevation;
         }
 
         // GPS rows are sparse: the 200-row window may be filled with non-location

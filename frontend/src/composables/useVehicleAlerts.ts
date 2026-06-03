@@ -50,7 +50,7 @@ export function useVehicleAlerts(status: Ref<TelemetrySnapshot | null>) {
   watch(status, (s) => {
     if (!s) return
 
-    if (!s.engineRunning) {
+    if (s.engineRunning === false) {
       const open = getOpenItems(s)
       if (open.length > 0 && !openAlertSent.value) {
         openAlertSent.value = true
@@ -58,7 +58,7 @@ export function useVehicleAlerts(status: Ref<TelemetrySnapshot | null>) {
       } else if (open.length === 0) {
         openAlertSent.value = false
       }
-    } else {
+    } else if (s.engineRunning === true) {
       openAlertSent.value = false
     }
 
