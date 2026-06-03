@@ -2,7 +2,7 @@
 import { onMounted, onUnmounted, ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { AppNotification } from '@/services/api'
-import AppAppPaginator from '@/components/AppAppPaginator.vue'
+import AppPaginator from '@/components/AppPaginator.vue'
 
 const PAGE_SIZE = 10
 
