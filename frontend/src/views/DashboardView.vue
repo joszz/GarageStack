@@ -104,7 +104,6 @@ const CARD_ICONS: Record<CardId, string> = {
   efficiencyRatio: 'leaf',
   speed: 'gauge-high',
   activeTrip: 'location-arrow',
-  onlineStatus: 'wifi',
   remainingCharge: 'clock',
   chargingSession: 'plug-circle-bolt',
   batteryHeating: 'temperature-arrow-up',
