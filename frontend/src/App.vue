@@ -144,7 +144,9 @@ watch(
           >
             <font-awesome-icon icon="wifi" />
             <span>{{ onlineStatusText }}</span>
-            <span v-if="onlineStatusTime" class="sidebar-online-status__time">{{ onlineStatusTime }}</span>
+            <span v-if="onlineStatusTime" class="sidebar-online-status__time">{{
+              onlineStatusTime
+            }}</span>
           </div>
           <div class="sidebar-user">
             <font-awesome-icon icon="user" />
