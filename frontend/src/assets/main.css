@@ -878,7 +878,7 @@ body,
   color: var(--color-text-muted);
 }
 
-.trip-pagination {
+.paginator {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -887,21 +887,21 @@ body,
   border-top: 1px solid var(--color-border);
 }
 
-.trip-pagination--top {
+.paginator--top {
   border-top: none;
   border-bottom: 1px solid var(--color-border);
   padding-top: 0;
   padding-bottom: 0.25rem;
 }
 
-.trip-pagination__btn {
+.paginator__btn {
   width: 28px;
   height: 28px;
   padding: 0;
   justify-content: center;
 }
 
-.trip-pagination__input {
+.paginator__input {
   width: 2.5rem;
   text-align: center;
   background: var(--color-surface-2);
@@ -914,18 +914,18 @@ body,
   font-family: inherit;
 }
 
-.trip-pagination__input::-webkit-inner-spin-button,
-.trip-pagination__input::-webkit-outer-spin-button {
+.paginator__input::-webkit-inner-spin-button,
+.paginator__input::-webkit-outer-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
 
-.trip-pagination__input:focus {
+.paginator__input:focus {
   outline: none;
   border-color: var(--color-primary);
 }
 
-.trip-pagination__sep {
+.paginator__sep {
   font-size: 0.78rem;
   color: var(--color-text-muted);
 }
@@ -2191,6 +2191,13 @@ body,
 .notif-item__btn--danger:hover {
   background: color-mix(in srgb, var(--color-danger) 15%, var(--color-surface-2));
   color: var(--color-danger-text);
+}
+
+.notif-panel__paginator {
+  display: flex;
+  justify-content: center;
+  padding: 0.75rem 1.25rem;
+  border-top: 1px solid var(--color-border);
 }
 
 /* ── Notification panel transitions ──────────────────────── */

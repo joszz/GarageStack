@@ -4,7 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useVehicleStore } from '@/stores/vehicle'
 import { useSettingsStore } from '@/stores/settings'
 import { LMap, LTileLayer, LMarker, LPopup } from '@vue-leaflet/vue-leaflet'
-import TripPaginator from '@/components/TripPaginator.vue'
+import Paginator from '@/components/Paginator.vue'
 import FiltersPanel from '@/components/FiltersPanel.vue'
 import * as LModule from 'leaflet'
 import type { Map as LeafletMap } from 'leaflet'
@@ -366,11 +366,11 @@ onUnmounted(() => {
         </div>
 
         <template v-else>
-          <TripPaginator
+          <Paginator
             v-if="totalPages > 1"
             v-model="tripsPage"
             :total-pages="totalPages"
-            class="trip-pagination--top"
+            class="paginator--top"
           />
 
           <ul class="trip-list">
@@ -408,7 +408,7 @@ onUnmounted(() => {
             </li>
           </ul>
 
-          <TripPaginator v-if="totalPages > 1" v-model="tripsPage" :total-pages="totalPages" />
+          <Paginator v-if="totalPages > 1" v-model="tripsPage" :total-pages="totalPages" />
         </template>
       </aside>
 

@@ -1,7 +1,10 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted } from 'vue'
+import { onMounted, onUnmounted, ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { AppNotification } from '@/services/api'
+import Paginator from '@/components/Paginator.vue'
+
+const PAGE_SIZE = 10
 
 const CATEGORY_ICONS: Record<string, string[]> = {
   'low-tyre': ['fas', 'circle-exclamation'],
@@ -29,6 +32,25 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
+
+const page = ref(1)
+const totalPages = computed(() => Math.max(1, Math.ceil(props.notifications.length / PAGE_SIZE)))
+const pagedNotifications = computed(() =>
+  props.notifications.slice((page.value - 1) * PAGE_SIZE, page.value * PAGE_SIZE),
+)
+
+watch(
+  () => props.notifications.length,
+  () => {
+    page.value = 1
+  },
+)
+watch(
+  () => props.open,
+  (v) => {
+    if (v) page.value = 1
+  },
+)
 
 function formatTime(iso: string) {
   const d = new Date(iso)
@@ -81,7 +103,7 @@ onUnmounted(() => document.removeEventListener('keydown', onKey))
 
             <ul v-else class="notif-panel__list">
               <li
-                v-for="n in notifications"
+                v-for="n in pagedNotifications"
                 :key="n.id"
                 class="notif-item"
                 :class="{ 'notif-item--archived': n.isArchived }"
@@ -113,6 +135,13 @@ onUnmounted(() => document.removeEventListener('keydown', onKey))
                 </div>
               </li>
             </ul>
+
+            <Paginator
+              v-if="totalPages > 1"
+              v-model="page"
+              :total-pages="totalPages"
+              class="notif-panel__paginator"
+            />
           </div>
         </div>
       </div>
