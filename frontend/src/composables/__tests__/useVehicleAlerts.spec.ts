@@ -71,6 +71,14 @@ function makeSnapshot(overrides: Partial<TelemetrySnapshot> = {}): TelemetrySnap
     batteryHeatingScheduleMode: null,
     batteryHeatingScheduleStartTime: null,
     elevation: null,
+    bmsChargeStatus: null,
+    lastChargeEndingPower: null,
+    chargingLastEndAt: null,
+    chargingScheduleMode: null,
+    chargingScheduleStartTime: null,
+    chargingScheduleEndTime: null,
+    onboardChargerPlugStatus: null,
+    offboardChargerPlugStatus: null,
     ...overrides,
   }
 }
