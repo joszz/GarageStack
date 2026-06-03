@@ -292,6 +292,14 @@ describe('useVehicleAlerts', () => {
     expect(notificationMock).toHaveBeenCalledTimes(1)
   })
 
+  it('does not fire open notification when engineRunning is null (unknown state)', async () => {
+    const status = ref<TelemetrySnapshot | null>(null)
+    useVehicleAlerts(status)
+    status.value = makeSnapshot({ engineRunning: null, driverDoorOpen: true })
+    await nextTick()
+    expect(notificationMock).not.toHaveBeenCalled()
+  })
+
   it('does not fire notification when permission is not granted', async () => {
     Object.defineProperty(window.Notification, 'permission', {
       value: 'default',

@@ -103,6 +103,68 @@ public class TelemetryRepositoryTests
     }
 
     [Fact]
+    public async Task GetMergedLatest_SnapshotWithOnlyIsAvailable_IsNotFilteredOut()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var db = CreateDb();
+        var vehicle = new Vehicle { Vin = "TEST00000000000003" };
+        db.Vehicles.Add(vehicle);
+        await db.SaveChangesAsync(ct);
+
+        db.TelemetrySnapshots.Add(new TelemetrySnapshot
+        {
+            VehicleId = vehicle.Id,
+            RecordedAt = DateTime.UtcNow.AddMinutes(-5),
+            IsAvailable = true,
+        });
+        await db.SaveChangesAsync(ct);
+
+        var result = await new TelemetryRepository(db).GetMergedLatestAsync(vehicle.Id, ct);
+
+        Assert.NotNull(result);
+        Assert.True(result.IsAvailable);
+    }
+
+    [Fact]
+    public async Task GetMergedLatest_NewerFieldsInOlderRows_AreMergedIntoResult()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var db = CreateDb();
+        var vehicle = new Vehicle { Vin = "TEST00000000000004" };
+        db.Vehicles.Add(vehicle);
+        await db.SaveChangesAsync(ct);
+
+        var now = DateTime.UtcNow;
+        db.TelemetrySnapshots.Add(new TelemetrySnapshot
+        {
+            VehicleId = vehicle.Id,
+            RecordedAt = now.AddMinutes(-1),
+            EvSocPercent = 80,
+        });
+        db.TelemetrySnapshots.Add(new TelemetrySnapshot
+        {
+            VehicleId = vehicle.Id,
+            RecordedAt = now.AddMinutes(-5),
+            CurrentJourneyDistance = 12.5,
+            ChargingType = "AC",
+            BatteryHeating = true,
+            Elevation = 55.0,
+            ObcCurrent = 16.0,
+        });
+        await db.SaveChangesAsync(ct);
+
+        var result = await new TelemetryRepository(db).GetMergedLatestAsync(vehicle.Id, ct);
+
+        Assert.NotNull(result);
+        Assert.Equal(80, result.EvSocPercent);
+        Assert.Equal(12.5, result.CurrentJourneyDistance);
+        Assert.Equal("AC", result.ChargingType);
+        Assert.True(result.BatteryHeating);
+        Assert.Equal(55.0, result.Elevation);
+        Assert.Equal(16.0, result.ObcCurrent);
+    }
+
+    [Fact]
     public async Task GetMergedLatest_RemoteTemperatureInOlderRow_IsMergedIntoResult()
     {
         var ct = TestContext.Current.CancellationToken;

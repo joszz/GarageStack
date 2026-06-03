@@ -19,6 +19,10 @@ public class MqttConsumerService(
     private readonly MqttOptions _options = options.Value;
     // Tracks last known EngineRunning state per VIN to detect start events
     internal readonly Dictionary<string, bool> _lastEngineRunning = new();
+    // VINs whose engine state has been seeded from the first MQTT observation.
+    // The first observation after startup only seeds the state; it never fires a
+    // notification, preventing bogus "engine started" alerts after a deploy or crash.
+    private readonly HashSet<string> _engineStateSeeded = new();
 
     protected virtual IMqttClient CreateMqttClient() => new MqttClientFactory().CreateMqttClient();
     protected virtual TimeSpan RetryDelay => TimeSpan.FromSeconds(5);
@@ -175,6 +179,14 @@ public class MqttConsumerService(
     internal async Task CheckEngineStartAsync(string vin, TelemetrySnapshot snapshot, CancellationToken ct)
     {
         if (snapshot.EngineRunning is null) return;
+
+        if (_engineStateSeeded.Add(vin))
+        {
+            // First observation after startup: seed state without firing to avoid
+            // false "engine started" alerts when the worker restarts while driving.
+            _lastEngineRunning[vin] = snapshot.EngineRunning.Value;
+            return;
+        }
 
         var wasRunning = _lastEngineRunning.TryGetValue(vin, out var prev) && prev;
         _lastEngineRunning[vin] = snapshot.EngineRunning.Value;

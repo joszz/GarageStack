@@ -169,11 +169,25 @@ public class MqttConsumerServiceTests
             push);
 
     [Fact]
-    public async Task CheckEngineStartAsync_FirstStartTransition_SendsPushNotification()
+    public async Task CheckEngineStartAsync_FirstObservationRunning_SeedsWithoutFiring()
     {
         var push = new FakePushSender();
         var svc = CreateService(push);
 
+        // On restart the car may already be running; the first observation must not fire.
+        await svc.CheckEngineStartAsync("VIN1", new TelemetrySnapshot { EngineRunning = true }, CancellationToken.None);
+
+        Assert.Empty(push.Sent);
+    }
+
+    [Fact]
+    public async Task CheckEngineStartAsync_GenuineTransition_SendsPushNotification()
+    {
+        var push = new FakePushSender();
+        var svc = CreateService(push);
+
+        // Seed the state with the engine off, then observe a start.
+        await svc.CheckEngineStartAsync("VIN1", new TelemetrySnapshot { EngineRunning = false }, CancellationToken.None);
         await svc.CheckEngineStartAsync("VIN1", new TelemetrySnapshot { EngineRunning = true }, CancellationToken.None);
 
         Assert.Single(push.Sent);
@@ -187,10 +201,11 @@ public class MqttConsumerServiceTests
         var svc = CreateService(push);
 
         var snap = new TelemetrySnapshot { EngineRunning = true };
+        // First: seed. Second: no transition. Neither fires.
         await svc.CheckEngineStartAsync("VIN1", snap, CancellationToken.None);
         await svc.CheckEngineStartAsync("VIN1", snap, CancellationToken.None);
 
-        Assert.Single(push.Sent);
+        Assert.Empty(push.Sent);
     }
 
     [Fact]
@@ -205,16 +220,17 @@ public class MqttConsumerServiceTests
     }
 
     [Fact]
-    public async Task CheckEngineStartAsync_AfterRestart_SendsNotificationAgain()
+    public async Task CheckEngineStartAsync_StartStopStart_SendsOneNotification()
     {
         var push = new FakePushSender();
         var svc = CreateService(push);
 
+        // Seed (no fire), stop, start -> exactly one notification.
         await svc.CheckEngineStartAsync("VIN1", new TelemetrySnapshot { EngineRunning = true }, CancellationToken.None);
         await svc.CheckEngineStartAsync("VIN1", new TelemetrySnapshot { EngineRunning = false }, CancellationToken.None);
         await svc.CheckEngineStartAsync("VIN1", new TelemetrySnapshot { EngineRunning = true }, CancellationToken.None);
 
-        Assert.Equal(2, push.Sent.Count);
+        Assert.Single(push.Sent);
     }
 
     [Fact]
@@ -234,6 +250,9 @@ public class MqttConsumerServiceTests
         var push = new FakePushSender();
         var svc = CreateService(push);
 
+        // Seed both VINs as off, then start each one independently.
+        await svc.CheckEngineStartAsync("VIN1", new TelemetrySnapshot { EngineRunning = false }, CancellationToken.None);
+        await svc.CheckEngineStartAsync("VIN2", new TelemetrySnapshot { EngineRunning = false }, CancellationToken.None);
         await svc.CheckEngineStartAsync("VIN1", new TelemetrySnapshot { EngineRunning = true }, CancellationToken.None);
         await svc.CheckEngineStartAsync("VIN2", new TelemetrySnapshot { EngineRunning = true }, CancellationToken.None);
 
