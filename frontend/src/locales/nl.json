@@ -2,19 +2,14 @@
   "nav": {
     "dashboard": "Dashboard",
     "statistics": "Statistieken",
-    "map": "Kaart",
-    "control": "Bediening",
-    "settings": "Instellingen"
+    "map": "Kaart"
   },
   "dashboard": {
     "title": "Dashboard",
-    "lastUpdated": "Bijgewerkt om {time}",
     "noData": "Geen gegevens beschikbaar",
     "editLayout": "Indeling bewerken",
     "doneEditing": "Klaar",
-    "editLayoutDesc": "Sleep kaarten om te herordenen. Gebruik het oogpictogram om een kaart te tonen of verbergen.",
     "resetLayout": "Standaard herstellen",
-    "dragToReorder": "Slepen om te herordenen",
     "hideCard": "Kaart verbergen",
     "showCard": "Kaart tonen",
     "cardInfoBtn": "Kaartinformatie",
@@ -46,7 +41,6 @@
   },
   "statistics": {
     "insights": {
-      "title": "Snelle inzichten",
       "distanceInRange": "Afstand in periode",
       "monthlyMileage": "Maandkilometrage",
       "avgTripLength": "Gem. ritlengte",
@@ -57,10 +51,6 @@
       "electricShare": "Elektrisch aandeel vandaag"
     },
     "cardDesc": {
-      "todayDistance": "Totale afstand gereden sinds middernacht, zoals gerapporteerd door de auto.",
-      "todayEnergy": "Totale elektrische energie verbruikt vandaag, in wattuur.",
-      "efficiency": "Verbruikte energie gedeeld door de gereden afstand vandaag (Wh/km). Lager is beter.",
-      "sinceCharge": "Afstand gereden sinds de laatste laadsessie.",
       "distanceInRange": "Totale afstand over alle ritten in de geselecteerde periode.",
       "avgTripLength": "Gemiddelde afstand per rit in de geselecteerde periode.",
       "climateUsage": "Percentage van geregistreerde momenten waarop de klimaatbeheersing actief was.",
@@ -78,8 +68,6 @@
     "odometer": "Kilometerteller",
     "locked": "Vergrendeld",
     "unlocked": "Ontgrendeld",
-    "engineOn": "Motor aan",
-    "engineOff": "Motor uit",
     "climateOn": "Aan",
     "climateOff": "Uit",
     "doors": "Deuren",
@@ -89,8 +77,6 @@
     "charging": "Laden",
     "chargingYes": "Aan het laden",
     "chargingNo": "Niet aan het laden",
-    "sunRoofOpen": "Open",
-    "sunRoofClosed": "Gesloten",
     "tyres": "Bandenspanning",
     "temperature": {
       "interior": "Interieurtemperatuur",
@@ -102,8 +88,7 @@
       "rearLeft": "Achter links",
       "rearRight": "Achter rechts",
       "bonnet": "Motorkap",
-      "boot": "Kofferruimte",
-      "sunRoof": "Dakraam"
+      "boot": "Kofferruimte"
     },
     "efficiency": {
       "todayDistance": "Afst. vandaag",
@@ -133,15 +118,12 @@
       "side": "Stadslicht"
     },
     "climateDetail": {
-      "title": "Klimaatdetails",
       "seatLeft": "Bestuurdersstoel verwarming",
-      "seatRight": "Passagiersstoel verwarming",
-      "rearDefroster": "Achterruitsverwarming"
+      "seatRight": "Passagiersstoel verwarming"
     },
     "speed": "Snelheid",
     "activeTrip": "Actieve rit",
     "noActiveTrip": "Geen actieve rit",
-    "onlineStatus": "Status",
     "remainingCharge": "Laadtijd",
     "chargingSession": {
       "title": "Laadsessie",
@@ -164,11 +146,7 @@
     }
   },
   "control": {
-    "title": "Bediening",
     "climate": "Klimaatbeheersing",
-    "climateOn": "Aanzetten",
-    "climateOff": "Uitzetten",
-    "heatedSeats": "Verwarmd zitten",
     "seat": {
       "off": "Uit",
       "low": "Laag",
@@ -187,19 +165,12 @@
     "findMyCarConfirm": "Hiermee activeer je de claxon en verlichting om je auto te vinden. Doorgaan?",
     "chargeLimit": "Laadstroomlimiet",
     "refresh": "Vernieuwen",
-    "sending": "Versturen...",
-    "sent": "Commando verzonden",
     "pending": "Verstuurd - wachten op auto...",
     "error": "Commando mislukt"
   },
   "trips": {
     "title": "Ritgeschiedenis",
     "noTrips": "Geen ritten opgeslagen",
-    "trip": "Rit",
-    "distance": "Afstand",
-    "duration": "Duur",
-    "started": "Gestart",
-    "points": "Punten",
     "dateRange": "Periode",
     "last7days": "Afgelopen 7 dagen",
     "last30days": "Afgelopen 30 dagen",
@@ -210,7 +181,6 @@
   "push": {
     "enable": "Meldingen inschakelen",
     "enabled": "Meldingen aan",
-    "disabled": "Meldingen uit",
     "permissionDenied": "Toestemming geweigerd"
   },
   "notifications": {
@@ -236,7 +206,6 @@
   },
   "settings": {
     "title": "Instellingen",
-    "resetDefaults": "Standaardinstellingen herstellen",
     "theme": {
       "title": "Weergave",
       "light": "Lichte modus",
@@ -245,10 +214,6 @@
     },
     "language": {
       "title": "Taal"
-    },
-    "sunRoof": {
-      "show": "Dakraam tonen in ramenvenster",
-      "showDesc": "De gateway meldt dakraamgegevens voor alle auto's. Schakel dit uit als uw auto geen dakraam heeft."
     },
     "cards": {
       "fuelLevel": "Brandstofniveau",
@@ -277,7 +242,6 @@
     },
     "vehicleType": {
       "title": "Voertuigtype",
-      "description": "Bepaalt welke functies relevant zijn (bijv. laadstatistieken). Automatisch gedetecteerd via de gateway.",
       "detected": "Gedetecteerd",
       "notDetected": "Nog niet gedetecteerd -start de gateway voor automatische detectie",
       "override": "Handmatig instellen",
@@ -285,28 +249,6 @@
       "hev": "HEV (Hybride -geen stekker)",
       "phev": "PHEV (Plug-in hybride)",
       "bev": "BEV (Volledig elektrisch)"
-    },
-    "panels": {
-      "title": "Dashboardpanelen",
-      "description": "Kies welke panelen zichtbaar zijn op het dashboard.",
-      "fuel": "Brandstof",
-      "fuelDesc": "Brandstofpeil en bereik",
-      "evBattery": "EV-accu",
-      "evBatteryDesc": "Laadstatus EV-accu in procent",
-      "hvPower": "HV-accu",
-      "hvPowerDesc": "Hoogspanningsaccu details (kWh, spanning, stroom)",
-      "charging": "Laadstatus",
-      "chargingDesc": "Laadindicator (vooral relevant voor PHEV/EV)",
-      "lights": "Verlichting",
-      "lightsDesc": "Groot-, dim- en stadslicht status",
-      "climateDetail": "Klimaatdetails",
-      "climateDetailDesc": "Stoelverwarming en achterruitsverwarming",
-      "efficiency": "Efficiëntie",
-      "efficiencyDesc": "Dagelijks verbruik, energie en stats sinds laatste laadbeurt",
-      "sunRoof": "Dakraam",
-      "sunRoofDesc": "Dakraam tonen in het ramenvenster (standaard uit -gateway meldt het voor alle auto's)",
-      "heatedSeats": "Stoelverwarming",
-      "heatedSeatsDesc": "Bediening stoelverwarming op het dashboard"
     }
   },
   "common": {
@@ -320,11 +262,12 @@
     "error": "Er is iets misgegaan",
     "open": "Open",
     "closed": "Gesloten",
-    "noData": "Geen gegevens beschikbaar",
     "cancel": "Annuleren",
     "filters": "Filters",
     "online": "Online",
     "offline": "Offline",
-    "min": "min"
+    "min": "min",
+    "fetched": "Opgehaald",
+    "recorded": "Geregistreerd"
   }
 }
