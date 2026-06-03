@@ -160,7 +160,11 @@ watch(
           <div
             v-if="isInitialLoading || onlineStatusText"
             class="sidebar-online-status"
-            :class="!isInitialLoading && onlineStatusVariant ? `sidebar-online-status--${onlineStatusVariant}` : ''"
+            :class="
+              !isInitialLoading && onlineStatusVariant
+                ? `sidebar-online-status--${onlineStatusVariant}`
+                : ''
+            "
           >
             <template v-if="isInitialLoading">
               <span class="skeleton skeleton--icon" />
@@ -191,7 +195,9 @@ watch(
             </template>
             <template v-else>
               <font-awesome-icon icon="clock" />
-              <span class="sidebar-footer__text">{{ t('common.recorded') }} {{ lastRecorded }}</span>
+              <span class="sidebar-footer__text"
+                >{{ t('common.recorded') }} {{ lastRecorded }}</span
+              >
             </template>
           </div>
           <div class="sidebar-user">
