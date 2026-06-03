@@ -22,11 +22,14 @@ const obcPower = computed(() => props.obcPowerThreePhase ?? props.obcPowerSingle
 const summaryValue = computed((): string | null => {
   const parts: string[] = []
   if (obcPower.value !== null) parts.push(`${obcPower.value.toFixed(1)} kW`)
-  if (props.remainingChargingTime !== null) parts.push(`${props.remainingChargingTime} ${t('common.min')}`)
+  if (props.remainingChargingTime !== null)
+    parts.push(`${props.remainingChargingTime} ${t('common.min')}`)
   if (parts.length) return parts.join(' · ')
   if (props.chargingType) return props.chargingType
   if (props.chargingCableLock !== null)
-    return props.chargingCableLock ? t('vehicle.chargingSession.locked') : t('vehicle.chargingSession.unlocked')
+    return props.chargingCableLock
+      ? t('vehicle.chargingSession.locked')
+      : t('vehicle.chargingSession.unlocked')
   return null
 })
 
@@ -72,7 +75,9 @@ const hasAnyData = computed(
       </div>
       <div v-if="remainingChargingTime !== null" class="detail-list__item">
         <font-awesome-icon icon="clock" class="detail-list__item-icon" />
-        <span class="detail-list__item-value">{{ remainingChargingTime }} {{ t('common.min') }}</span>
+        <span class="detail-list__item-value"
+          >{{ remainingChargingTime }} {{ t('common.min') }}</span
+        >
         <span class="detail-list__item-sep">-</span>
         <span class="detail-list__item-label">{{ t('vehicle.remainingCharge') }}</span>
       </div>
@@ -83,9 +88,16 @@ const hasAnyData = computed(
         <span class="detail-list__item-label">{{ t('vehicle.chargingSession.type') }}</span>
       </div>
       <div v-if="chargingCableLock !== null" class="detail-list__item">
-        <font-awesome-icon :icon="chargingCableLock ? 'lock' : 'lock-open'" class="detail-list__item-icon" />
+        <font-awesome-icon
+          :icon="chargingCableLock ? 'lock' : 'lock-open'"
+          class="detail-list__item-icon"
+        />
         <span class="badge" :class="chargingCableLock ? 'badge-success' : 'badge-warning'">
-          {{ chargingCableLock ? t('vehicle.chargingSession.locked') : t('vehicle.chargingSession.unlocked') }}
+          {{
+            chargingCableLock
+              ? t('vehicle.chargingSession.locked')
+              : t('vehicle.chargingSession.unlocked')
+          }}
         </span>
         <span class="detail-list__item-sep">-</span>
         <span class="detail-list__item-label">{{ t('vehicle.chargingSession.cableLock') }}</span>

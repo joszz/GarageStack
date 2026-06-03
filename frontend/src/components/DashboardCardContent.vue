@@ -239,11 +239,21 @@ const supportsExternalCharge = computed(
       v-else-if="cardId === 'activeTrip'"
       icon="location-arrow"
       :label="t('vehicle.activeTrip')"
-      :value="status.currentJourneyDistance !== null && status.currentJourneyDistance > 0
-        ? status.currentJourneyDistance.toFixed(1)
-        : t('vehicle.noActiveTrip')"
-      :unit="status.currentJourneyDistance !== null && status.currentJourneyDistance > 0 ? t('common.km') : undefined"
-      :variant="status.currentJourneyDistance !== null && status.currentJourneyDistance > 0 ? 'info' : undefined"
+      :value="
+        status.currentJourneyDistance !== null && status.currentJourneyDistance > 0
+          ? status.currentJourneyDistance.toFixed(1)
+          : t('vehicle.noActiveTrip')
+      "
+      :unit="
+        status.currentJourneyDistance !== null && status.currentJourneyDistance > 0
+          ? t('common.km')
+          : undefined
+      "
+      :variant="
+        status.currentJourneyDistance !== null && status.currentJourneyDistance > 0
+          ? 'info'
+          : undefined
+      "
     />
 
     <!-- onlineStatus -->
@@ -251,14 +261,30 @@ const supportsExternalCharge = computed(
       v-else-if="cardId === 'onlineStatus'"
       icon="wifi"
       :label="t('vehicle.onlineStatus')"
-      :value="status.isAvailable !== null ? (status.isAvailable ? t('common.online') : t('common.offline')) : null"
+      :value="
+        status.isAvailable !== null
+          ? status.isAvailable
+            ? t('common.online')
+            : t('common.offline')
+          : null
+      "
       :subtitle="relativeTime(status.lastVehicleStateAt)"
-      :variant="status.isAvailable === true ? 'success' : status.isAvailable === false ? 'danger' : undefined"
+      :variant="
+        status.isAvailable === true
+          ? 'success'
+          : status.isAvailable === false
+            ? 'danger'
+            : undefined
+      "
     />
 
     <!-- remainingCharge -->
     <StatusCard
-      v-else-if="cardId === 'remainingCharge' && status.remainingChargingTime !== null && supportsExternalCharge"
+      v-else-if="
+        cardId === 'remainingCharge' &&
+        status.remainingChargingTime !== null &&
+        supportsExternalCharge
+      "
       icon="clock"
       :label="t('vehicle.remainingCharge')"
       :value="status.remainingChargingTime"

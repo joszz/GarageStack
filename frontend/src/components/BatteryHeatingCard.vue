@@ -23,9 +23,7 @@ const summaryValue = computed((): string | null => {
   return state
 })
 
-const hasModal = computed(
-  () => props.scheduleMode !== null || props.scheduleStartTime !== null,
-)
+const hasModal = computed(() => props.scheduleMode !== null || props.scheduleStartTime !== null)
 </script>
 
 <template>
