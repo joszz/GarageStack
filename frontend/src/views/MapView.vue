@@ -4,7 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useVehicleStore } from '@/stores/vehicle'
 import { useSettingsStore } from '@/stores/settings'
 import { LMap, LTileLayer, LMarker, LPopup } from '@vue-leaflet/vue-leaflet'
-import Paginator from '@/components/Paginator.vue'
+import AppAppPaginator from '@/components/AppAppPaginator.vue'
 import FiltersPanel from '@/components/FiltersPanel.vue'
 import * as LModule from 'leaflet'
 import type { Map as LeafletMap } from 'leaflet'
@@ -366,7 +366,7 @@ onUnmounted(() => {
         </div>
 
         <template v-else>
-          <Paginator
+          <AppPaginator
             v-if="totalPages > 1"
             v-model="tripsPage"
             :total-pages="totalPages"
@@ -408,7 +408,7 @@ onUnmounted(() => {
             </li>
           </ul>
 
-          <Paginator v-if="totalPages > 1" v-model="tripsPage" :total-pages="totalPages" />
+          <AppPaginator v-if="totalPages > 1" v-model="tripsPage" :total-pages="totalPages" />
         </template>
       </aside>
 

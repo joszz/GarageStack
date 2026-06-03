@@ -2,7 +2,7 @@
 import { onMounted, onUnmounted, ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { AppNotification } from '@/services/api'
-import Paginator from '@/components/Paginator.vue'
+import AppAppPaginator from '@/components/AppAppPaginator.vue'
 
 const PAGE_SIZE = 10
 
@@ -136,7 +136,7 @@ onUnmounted(() => document.removeEventListener('keydown', onKey))
               </li>
             </ul>
 
-            <Paginator
+            <AppPaginator
               v-if="totalPages > 1"
               v-model="page"
               :total-pages="totalPages"
