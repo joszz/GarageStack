@@ -84,6 +84,14 @@ public class TelemetrySnapshot
     public string? ChargingType { get; set; }
     public bool? ChargingCableLock { get; set; }
     public int? RemainingChargingTime { get; set; }
+    public string? BmsChargeStatus { get; set; }
+    public int? OnboardChargerPlugStatus { get; set; }
+    public int? OffboardChargerPlugStatus { get; set; }
+    public double? LastChargeEndingPower { get; set; }
+    public DateTime? ChargingLastEndAt { get; set; }
+    public string? ChargingScheduleMode { get; set; }
+    public string? ChargingScheduleStartTime { get; set; }
+    public string? ChargingScheduleEndTime { get; set; }
 
     // OBC (onboard charger)
     public double? ObcCurrent { get; set; }

@@ -151,7 +151,11 @@
       "type": "Charging type",
       "cableLock": "Cable lock",
       "locked": "Locked",
-      "unlocked": "Unlocked"
+      "unlocked": "Unlocked",
+      "bmsStatus": "BMS status",
+      "lastEndSoc": "Last charge ended at",
+      "lastEnd": "Last charge session",
+      "schedule": "Charge schedule"
     },
     "batteryHeating": {
       "title": "Battery heating",

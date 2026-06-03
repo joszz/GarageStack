@@ -13,6 +13,12 @@ const props = defineProps<{
   obcPowerSinglePhase: number | null
   obcPowerThreePhase: number | null
   remainingChargingTime: number | null
+  bmsChargeStatus: string | null
+  lastChargeEndingPower: number | null
+  chargingLastEndAt: string | null
+  chargingScheduleMode: string | null
+  chargingScheduleStartTime: string | null
+  chargingScheduleEndTime: string | null
 }>()
 
 const { isOpen: modalOpen, open: openModal, close: closeModal } = useModal()
@@ -38,8 +44,18 @@ const hasAnyData = computed(
     obcPower.value !== null ||
     props.chargingType !== null ||
     props.chargingCableLock !== null ||
-    props.remainingChargingTime !== null,
+    props.remainingChargingTime !== null ||
+    props.bmsChargeStatus !== null,
 )
+
+const lastEndFormatted = computed((): string | null => {
+  if (!props.chargingLastEndAt) return null
+  try {
+    return new Date(props.chargingLastEndAt).toLocaleString()
+  } catch {
+    return null
+  }
+})
 </script>
 
 <template>
@@ -101,6 +117,40 @@ const hasAnyData = computed(
         </span>
         <span class="detail-list__item-sep">-</span>
         <span class="detail-list__item-label">{{ t('vehicle.chargingSession.cableLock') }}</span>
+      </div>
+      <div v-if="bmsChargeStatus" class="detail-list__item">
+        <font-awesome-icon icon="battery-half" class="detail-list__item-icon" />
+        <span class="badge badge-secondary">{{ bmsChargeStatus }}</span>
+        <span class="detail-list__item-sep">-</span>
+        <span class="detail-list__item-label">{{ t('vehicle.chargingSession.bmsStatus') }}</span>
+      </div>
+      <div v-if="lastChargeEndingPower !== null" class="detail-list__item">
+        <font-awesome-icon icon="percent" class="detail-list__item-icon" />
+        <span class="detail-list__item-value">{{ lastChargeEndingPower.toFixed(1) }}%</span>
+        <span class="detail-list__item-sep">-</span>
+        <span class="detail-list__item-label">{{ t('vehicle.chargingSession.lastEndSoc') }}</span>
+      </div>
+      <div v-if="lastEndFormatted" class="detail-list__item">
+        <font-awesome-icon icon="calendar-check" class="detail-list__item-icon" />
+        <span class="detail-list__item-value">{{ lastEndFormatted }}</span>
+        <span class="detail-list__item-sep">-</span>
+        <span class="detail-list__item-label">{{ t('vehicle.chargingSession.lastEnd') }}</span>
+      </div>
+      <div
+        v-if="chargingScheduleMode && chargingScheduleMode !== 'DISABLED'"
+        class="detail-list__item"
+      >
+        <font-awesome-icon icon="clock" class="detail-list__item-icon" />
+        <span class="badge badge-info">{{ chargingScheduleMode }}</span>
+        <template v-if="chargingScheduleStartTime">
+          <span class="detail-list__item-value">{{ chargingScheduleStartTime }}</span>
+          <template v-if="chargingScheduleEndTime">
+            <span class="detail-list__item-sep">-</span>
+            <span class="detail-list__item-value">{{ chargingScheduleEndTime }}</span>
+          </template>
+        </template>
+        <span class="detail-list__item-sep">-</span>
+        <span class="detail-list__item-label">{{ t('vehicle.chargingSession.schedule') }}</span>
       </div>
     </div>
   </DetailModal>

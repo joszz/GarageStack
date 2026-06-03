@@ -151,7 +151,11 @@
       "type": "Laadtype",
       "cableLock": "Kabelslot",
       "locked": "Vergrendeld",
-      "unlocked": "Ontgrendeld"
+      "unlocked": "Ontgrendeld",
+      "bmsStatus": "BMS-status",
+      "lastEndSoc": "Laatste laadbeurt gestopt op",
+      "lastEnd": "Laatste laadsessie",
+      "schedule": "Laadschema"
     },
     "batteryHeating": {
       "title": "Accuverwarming",

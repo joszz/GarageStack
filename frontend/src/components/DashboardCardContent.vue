@@ -300,6 +300,12 @@ const supportsExternalCharge = computed(
       :obc-power-single-phase="status.obcPowerSinglePhase"
       :obc-power-three-phase="status.obcPowerThreePhase"
       :remaining-charging-time="status.remainingChargingTime"
+      :bms-charge-status="status.bmsChargeStatus"
+      :last-charge-ending-power="status.lastChargeEndingPower"
+      :charging-last-end-at="status.chargingLastEndAt"
+      :charging-schedule-mode="status.chargingScheduleMode"
+      :charging-schedule-start-time="status.chargingScheduleStartTime"
+      :charging-schedule-end-time="status.chargingScheduleEndTime"
     />
 
     <!-- batteryHeating -->

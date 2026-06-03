@@ -119,7 +119,16 @@ public record WidgetStatusDto(
     string? BatteryHeatingScheduleMode,
     string? BatteryHeatingScheduleStartTime,
     // Location extras
-    double? Elevation
+    double? Elevation,
+    // Extended charge session
+    string? BmsChargeStatus,
+    double? LastChargeEndingPower,
+    DateTime? ChargingLastEndAt,
+    string? ChargingScheduleMode,
+    string? ChargingScheduleStartTime,
+    string? ChargingScheduleEndTime,
+    int? OnboardChargerPlugStatus,
+    int? OffboardChargerPlugStatus
 )
 {
     public static WidgetStatusDto FromSnapshot(TelemetrySnapshot s, IStringLocalizer<WidgetStrings> l)
@@ -200,7 +209,15 @@ public record WidgetStatusDto(
             BatteryHeating: Loc(s.BatteryHeating, "On", "Off", l),
             BatteryHeatingScheduleMode: s.BatteryHeatingScheduleMode,
             BatteryHeatingScheduleStartTime: s.BatteryHeatingScheduleStartTime,
-            Elevation: s.Elevation
+            Elevation: s.Elevation,
+            BmsChargeStatus: s.BmsChargeStatus,
+            LastChargeEndingPower: s.LastChargeEndingPower,
+            ChargingLastEndAt: s.ChargingLastEndAt,
+            ChargingScheduleMode: s.ChargingScheduleMode,
+            ChargingScheduleStartTime: s.ChargingScheduleStartTime,
+            ChargingScheduleEndTime: s.ChargingScheduleEndTime,
+            OnboardChargerPlugStatus: s.OnboardChargerPlugStatus,
+            OffboardChargerPlugStatus: s.OffboardChargerPlugStatus
         );
     }
 }
