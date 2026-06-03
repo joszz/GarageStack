@@ -377,6 +377,12 @@ body,
   font-weight: 400;
 }
 
+.status-card__subtitle {
+  font-size: 0.68rem;
+  color: var(--color-text-muted);
+  margin-top: 0.1rem;
+}
+
 .status-card--clickable {
   cursor: pointer;
   transition:

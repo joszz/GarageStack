@@ -6,8 +6,8 @@ import { defaultCards, useSettingsStore } from '@/stores/settings'
 const BASE_KEY = 'garagestack-settings'
 
 describe('defaultCards', () => {
-  it('includes all 17 card ids', () => {
-    expect(defaultCards()).toHaveLength(17)
+  it('includes all 23 card ids', () => {
+    expect(defaultCards()).toHaveLength(23)
   })
 
   it('places visible cards before hidden ones', () => {
@@ -17,11 +17,24 @@ describe('defaultCards', () => {
     expect(cardsFromFirstHidden.some((c) => c.visible)).toBe(false)
   })
 
-  it('hev: hides charging and efficiencyCharge, shows fuel', () => {
+  it('hev: hides charging, efficiencyCharge, and plug-only cards; shows fuel', () => {
     const cards = defaultCards('hev')
     expect(cards.find((c) => c.id === 'fuelLevel')!.visible).toBe(true)
     expect(cards.find((c) => c.id === 'charging')!.visible).toBe(false)
     expect(cards.find((c) => c.id === 'efficiencyCharge')!.visible).toBe(false)
+    expect(cards.find((c) => c.id === 'remainingCharge')!.visible).toBe(false)
+    expect(cards.find((c) => c.id === 'chargingSession')!.visible).toBe(false)
+    expect(cards.find((c) => c.id === 'batteryHeating')!.visible).toBe(false)
+  })
+
+  it('bev: shows speed, activeTrip, onlineStatus, remainingCharge, chargingSession, batteryHeating', () => {
+    const cards = defaultCards('bev')
+    expect(cards.find((c) => c.id === 'speed')!.visible).toBe(true)
+    expect(cards.find((c) => c.id === 'activeTrip')!.visible).toBe(true)
+    expect(cards.find((c) => c.id === 'onlineStatus')!.visible).toBe(true)
+    expect(cards.find((c) => c.id === 'remainingCharge')!.visible).toBe(true)
+    expect(cards.find((c) => c.id === 'chargingSession')!.visible).toBe(true)
+    expect(cards.find((c) => c.id === 'batteryHeating')!.visible).toBe(true)
   })
 
   it('bev: hides fuel cards, shows charging and efficiencyCharge', () => {
@@ -105,7 +118,7 @@ describe('useSettingsStore', () => {
   it('falls back to defaults when localStorage is empty', () => {
     const store = useSettingsStore()
     expect(store.vehicleTypeOverride).toBe('auto')
-    expect(store.cards).toHaveLength(17)
+    expect(store.cards).toHaveLength(23)
     expect(store.cards.find((c) => c.id === 'sunRoof')!.visible).toBe(false)
   })
 
@@ -189,8 +202,8 @@ describe('useSettingsStore', () => {
         }),
       )
       const store = useSettingsStore()
-      // All 17 card ids should be present after migration fills in the gaps
-      expect(store.cards).toHaveLength(17)
+      // All 23 card ids should be present after migration fills in the gaps
+      expect(store.cards).toHaveLength(23)
       expect(store.cards.find((c) => c.id === 'sunRoof')!.visible).toBe(false)
     })
   })

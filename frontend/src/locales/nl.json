@@ -35,7 +35,13 @@
       "efficiencyDistance": "Totale afstand gereden vandaag.",
       "efficiencyEnergy": "Totale elektrische energie die sinds middernacht door de hoogspanningsaccu is gegaan, in wattuur. Op een BEV staat dit gelijk aan verbruikt accuvermogen. Op een PHEV omvat het zowel netlaadvermogen als regeneratie. Op een HEV weerspiegelt het de energie die door de kleine hybride accu is gegaan.",
       "efficiencyCharge": "Afstand gereden sinds de laatste laadsessie.",
-      "efficiencyRatio": "Energie vandaag gedeeld door afstand vandaag (Wh/km). Lager is beter. Op een BEV of PHEV in EV-modus vertaalt dit zich direct naar elektriciteitskosten per km. Op een HEV toont het hoe efficiënt het hybridesysteem werkte -- snelwegrijden geeft een lagere waarde dan stop-and-go stadsverkeer."
+      "efficiencyRatio": "Energie vandaag gedeeld door afstand vandaag (Wh/km). Lager is beter. Op een BEV of PHEV in EV-modus vertaalt dit zich direct naar elektriciteitskosten per km. Op een HEV toont het hoe efficiënt het hybridesysteem werkte -- snelwegrijden geeft een lagere waarde dan stop-and-go stadsverkeer.",
+      "speed": "Actuele rijsnelheid zoals gerapporteerd door de gateway.",
+      "activeTrip": "Afstand afgelegd in de huidige rit. Alleen zichtbaar als een rit actief is.",
+      "onlineStatus": "Of de auto momenteel bereikbaar is via de SAIC-cloud. Gaat offline als de auto geparkeerd staat en de gateway stopt met polling.",
+      "remainingCharge": "Geschatte resterende laadtijd in minuten tot de accu de ingestelde limiet bereikt. Alleen relevant voor PHEV en BEV tijdens het laden.",
+      "chargingSession": "Live gegevens van de boordlader: AC-vermogen (één of driefasig), kabelslot en laadtype. Alleen relevant voor PHEV en BEV.",
+      "batteryHeating": "Voorverwarmingsstatus en schema van de hoogspanningsaccu. Opwarmen voor een laadsessie verbetert de laadsnelheid bij koud weer. Alleen relevant voor PHEV en BEV."
     }
   },
   "statistics": {
@@ -131,6 +137,26 @@
       "seatLeft": "Bestuurdersstoel verwarming",
       "seatRight": "Passagiersstoel verwarming",
       "rearDefroster": "Achterruitsverwarming"
+    },
+    "speed": "Snelheid",
+    "activeTrip": "Actieve rit",
+    "noActiveTrip": "Geen actieve rit",
+    "onlineStatus": "Status",
+    "remainingCharge": "Laadtijd",
+    "chargingSession": {
+      "title": "Laadsessie",
+      "power": "Boordlader vermogen",
+      "power3phase": "Driefasig vermogen",
+      "power1phase": "Eenfasig vermogen",
+      "type": "Laadtype",
+      "cableLock": "Kabelslot",
+      "locked": "Vergrendeld",
+      "unlocked": "Ontgrendeld"
+    },
+    "batteryHeating": {
+      "title": "Accuverwarming",
+      "schedule": "Schema",
+      "startTime": "Starttijd"
     }
   },
   "control": {
@@ -237,7 +263,13 @@
       "efficiencyDistance": "Dagafstand",
       "efficiencyEnergy": "Dagenergie",
       "efficiencyCharge": "Sinds lading",
-      "efficiencyRatio": "Verbruik"
+      "efficiencyRatio": "Verbruik",
+      "speed": "Snelheid",
+      "activeTrip": "Actieve rit",
+      "onlineStatus": "Online status",
+      "remainingCharge": "Laadtijd",
+      "chargingSession": "Laadsessie",
+      "batteryHeating": "Accuverwarming"
     },
     "vehicleType": {
       "title": "Voertuigtype",
@@ -285,6 +317,9 @@
     "closed": "Gesloten",
     "noData": "Geen gegevens beschikbaar",
     "cancel": "Annuleren",
-    "filters": "Filters"
+    "filters": "Filters",
+    "online": "Online",
+    "offline": "Offline",
+    "min": "min"
   }
 }

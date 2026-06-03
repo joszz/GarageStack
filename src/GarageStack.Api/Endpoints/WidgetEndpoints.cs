@@ -100,7 +100,26 @@ public record WidgetStatusDto(
     // Lights
     string? LightsMainBeam,
     string? LightsDippedBeam,
-    string? LightsSide
+    string? LightsSide,
+    // Speed & journey
+    double? SpeedKmh,
+    double? CurrentJourneyDistanceKm,
+    // Online status
+    string? IsAvailable,
+    DateTime? LastVehicleStateAt,
+    DateTime? LastChargeStateAt,
+    // Charging session
+    int? RemainingChargingTime,
+    string? ChargingType,
+    string? ChargingCableLock,
+    double? ObcPowerSinglePhase,
+    double? ObcPowerThreePhase,
+    // Battery heating
+    string? BatteryHeating,
+    string? BatteryHeatingScheduleMode,
+    string? BatteryHeatingScheduleStartTime,
+    // Location extras
+    double? Elevation
 )
 {
     public static WidgetStatusDto FromSnapshot(TelemetrySnapshot s, IStringLocalizer<WidgetStrings> l)
@@ -167,7 +186,21 @@ public record WidgetStatusDto(
             TyrePressureRearRight: s.TyrePressureRearRight,
             LightsMainBeam: Loc(s.LightsMainBeam, "On", "Off", l),
             LightsDippedBeam: Loc(s.LightsDippedBeam, "On", "Off", l),
-            LightsSide: Loc(s.LightsSide, "On", "Off", l)
+            LightsSide: Loc(s.LightsSide, "On", "Off", l),
+            SpeedKmh: s.Speed,
+            CurrentJourneyDistanceKm: s.CurrentJourneyDistance,
+            IsAvailable: Loc(s.IsAvailable, "Online", "Offline", l),
+            LastVehicleStateAt: s.LastVehicleStateAt,
+            LastChargeStateAt: s.LastChargeStateAt,
+            RemainingChargingTime: s.RemainingChargingTime,
+            ChargingType: s.ChargingType,
+            ChargingCableLock: Loc(s.ChargingCableLock, "Locked", "Unlocked", l),
+            ObcPowerSinglePhase: s.ObcPowerSinglePhase,
+            ObcPowerThreePhase: s.ObcPowerThreePhase,
+            BatteryHeating: Loc(s.BatteryHeating, "On", "Off", l),
+            BatteryHeatingScheduleMode: s.BatteryHeatingScheduleMode,
+            BatteryHeatingScheduleStartTime: s.BatteryHeatingScheduleStartTime,
+            Elevation: s.Elevation
         );
     }
 }

@@ -34,8 +34,21 @@ function toggleEditMode() {
   editMode.value = !editMode.value
 }
 
-function toggleCardVisibility(card: { visible: boolean }) {
+function toggleCardVisibility(card: { id: CardId; visible: boolean }) {
+  const cards = settings.cards
+  const idx = cards.indexOf(card)
+  if (idx === -1) return
   card.visible = !card.visible
+  if (!card.visible) {
+    // Move to end so hidden cards cluster at the bottom
+    cards.splice(idx, 1)
+    cards.push(card)
+  } else {
+    // Move before the first hidden card so visible order is preserved
+    cards.splice(idx, 1)
+    const firstHidden = cards.findIndex((c) => !c.visible)
+    cards.splice(firstHidden === -1 ? cards.length : firstHidden, 0, card)
+  }
 }
 
 function cardHasData(id: CardId): boolean {
@@ -83,6 +96,12 @@ const CARD_ICONS: Record<CardId, string> = {
   efficiencyEnergy: 'plug-circle-bolt',
   efficiencyCharge: 'battery-full',
   efficiencyRatio: 'leaf',
+  speed: 'gauge-high',
+  activeTrip: 'location-arrow',
+  onlineStatus: 'wifi',
+  remainingCharge: 'clock',
+  chargingSession: 'plug-circle-bolt',
+  batteryHeating: 'temperature-arrow-up',
 }
 
 function resetLayout() {

@@ -35,7 +35,13 @@
       "efficiencyDistance": "Total distance driven so far today.",
       "efficiencyEnergy": "Total electrical energy that passed through the high-voltage battery since midnight, in watt-hours. On a BEV this equals battery charge consumed. On a PHEV it covers both grid charge and regeneration. On an HEV it reflects the energy cycled through the small hybrid battery.",
       "efficiencyCharge": "Distance driven since the last charge session.",
-      "efficiencyRatio": "Energy today divided by distance today (Wh/km). Lower is better. On a BEV or PHEV in EV mode this translates directly to electricity cost per km. On an HEV it shows how efficiently the hybrid system ran - motorway driving gives a lower figure than stop-start city traffic."
+      "efficiencyRatio": "Energy today divided by distance today (Wh/km). Lower is better. On a BEV or PHEV in EV mode this translates directly to electricity cost per km. On an HEV it shows how efficiently the hybrid system ran - motorway driving gives a lower figure than stop-start city traffic.",
+      "speed": "Current vehicle speed as reported by the gateway.",
+      "activeTrip": "Distance covered in the current trip. Only shown while a journey is active.",
+      "onlineStatus": "Whether the car is currently reachable via the SAIC cloud. Goes offline when the car is parked and the gateway stops polling.",
+      "remainingCharge": "Estimated minutes remaining until the battery reaches the configured charge limit. Only relevant for PHEV and BEV while charging.",
+      "chargingSession": "Live onboard-charger data: AC power (single or three-phase), cable lock status and charging type. Only relevant for PHEV and BEV.",
+      "batteryHeating": "High-voltage battery pre-heating status and schedule. Warming the battery before a charge session improves charging speed in cold weather. Only relevant for PHEV and BEV."
     }
   },
   "statistics": {
@@ -131,6 +137,26 @@
       "seatLeft": "Driver seat heat",
       "seatRight": "Passenger seat heat",
       "rearDefroster": "Rear defroster"
+    },
+    "speed": "Speed",
+    "activeTrip": "Active trip",
+    "noActiveTrip": "No active trip",
+    "onlineStatus": "Status",
+    "remainingCharge": "Charge time",
+    "chargingSession": {
+      "title": "Charging session",
+      "power": "OBC power",
+      "power3phase": "3-phase power",
+      "power1phase": "1-phase power",
+      "type": "Charging type",
+      "cableLock": "Cable lock",
+      "locked": "Locked",
+      "unlocked": "Unlocked"
+    },
+    "batteryHeating": {
+      "title": "Battery heating",
+      "schedule": "Schedule",
+      "startTime": "Start time"
     }
   },
   "control": {
@@ -237,7 +263,13 @@
       "efficiencyDistance": "Daily Distance",
       "efficiencyEnergy": "Daily Energy",
       "efficiencyCharge": "Since Charge",
-      "efficiencyRatio": "Efficiency"
+      "efficiencyRatio": "Efficiency",
+      "speed": "Speed",
+      "activeTrip": "Active Trip",
+      "onlineStatus": "Online Status",
+      "remainingCharge": "Charge Time",
+      "chargingSession": "Charging Session",
+      "batteryHeating": "Battery Heating"
     },
     "vehicleType": {
       "title": "Vehicle type",
@@ -285,6 +317,9 @@
     "closed": "Closed",
     "noData": "No data available",
     "cancel": "Cancel",
-    "filters": "Filters"
+    "filters": "Filters",
+    "online": "Online",
+    "offline": "Offline",
+    "min": "min"
   }
 }

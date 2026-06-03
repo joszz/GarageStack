@@ -68,6 +68,12 @@ import {
   faSliders,
   faBoxArchive,
   faTrash,
+  faClock,
+  faLocationArrow,
+  faWifi,
+  faTemperatureArrowUp,
+  faCalendarCheck,
+  faChargingStation,
 } from '@fortawesome/free-solid-svg-icons'
 
 import App from './App.vue'
@@ -140,6 +146,12 @@ library.add(
   faSliders,
   faBoxArchive,
   faTrash,
+  faClock,
+  faLocationArrow,
+  faWifi,
+  faTemperatureArrowUp,
+  faCalendarCheck,
+  faChargingStation,
 )
 
 const i18n = createI18n({
