@@ -4,28 +4,13 @@ GarageStack is a free, open-source vehicle monitoring dashboard for MG / SAIC ca
 
 Features include a live dashboard, trip history with map and heatmap visualisation, energy statistics, and remote commands (climate, lock/unlock, find-my-car). The app is a PWA, so it can be installed on your phone or desktop and receives push notifications.
 
-## Push notifications
-
-GarageStack checks your vehicle's state every 5 minutes and sends both a browser push notification and an in-app notification (bell icon) when any of the following conditions are detected. Each alert has a 1-hour cooldown per vehicle to avoid repeated notifications.
-
-| Alert | Condition |
-|-------|-----------|
-| Engine started | Engine transitions from off to running |
-| Low tyre pressure | Any tyre below 2.2 bar |
-| Low EV battery | EV state-of-charge below 20 % |
-| Car left unlocked | `doors/locked = false` while engine is off |
-| Door left open | Any door, boot, or bonnet open while engine is off |
-| Window left open | Any window or sunroof open while engine is off |
-
-Push notifications require VAPID keys to be configured (`VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY`). Without them, alerts still appear in the in-app notification panel. The "engine started" alert is also triggered in real time when the event arrives over MQTT, independently of the 5-minute polling cycle.
-
-Note: "keys left in the car" is not currently supported because the SAIC MQTT gateway does not expose a key-in-vehicle sensor.
-
 ## Screenshots
 
 | Desktop | Mobile |
 |---------|--------|
 | ![Desktop dashboard](frontend/public/screenshot-desktop-home.webp) | ![Mobile dashboard](frontend/public/screenshot-mobile-home.webp) |
+
+---
 
 ## MG iSmart account and session limits
 
@@ -39,100 +24,6 @@ To use GarageStack alongside the official MG app without interrupting either, se
 4. Use the secondary account's credentials for `SAIC_USER` / `SAIC_PASSWORD` in GarageStack.
 
 This way the official app keeps its own session on the owner account and GarageStack runs independently on the secondary account.
-
-## Homepage dashboard widget
-
-GarageStack exposes a dedicated read-only endpoint for the [gethomepage.dev](https://gethomepage.dev) [Custom API widget](https://gethomepage.dev/widgets/services/customapi/). No fork or custom widget code is required.
-
-### 1. Generate an API key
-
-```bash
-openssl rand -base64 32
-```
-
-Set `WIDGET_API_KEY` to the generated value in your `.env` file (Docker Compose) or as a container environment variable (all-in-one / Unraid). Leave it empty to keep the endpoint disabled.
-
-### 2. Find your VIN
-
-Log in to GarageStack and open the browser developer tools. The VIN appears in the `/api/vehicles` response, or in the URL when you navigate to your vehicle.
-
-### 3. Configure Homepage
-
-Add the following block to your Homepage `services.yaml`, replacing `YOUR_GARAGESTACK_URL`, `YOUR_VIN`, and `YOUR_WIDGET_API_KEY`:
-
-```yaml
-- GarageStack:
-    href: https://YOUR_GARAGESTACK_URL
-    description: MG Vehicle Status
-    widget:
-      type: customapi
-      url: https://YOUR_GARAGESTACK_URL/api/widget/YOUR_VIN/status
-      headers:
-        X-Widget-Key: "YOUR_WIDGET_API_KEY"
-      mappings:
-        - field: evSocPercent
-          label: Battery
-          format: percent
-        - field: isCharging
-          label: Charging
-          format: text
-        - field: exteriorTemperature
-          label: Ext. Temp
-          format: float
-          suffix: "°C"
-        - field: isLocked
-          label: Locked
-          format: text
-```
-
-### Available fields
-
-The endpoint returns a flat JSON object. All numeric fields are `null` when the vehicle has not reported that value yet.
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `recordedAt` | string (ISO 8601) | Timestamp of the most recent telemetry |
-| `fuelLevelPercent` | number | Fuel tank level (%) |
-| `fuelRangeKm` | number | Estimated fuel range (km) |
-| `evSocPercent` | number | EV / HV battery state of charge (%) |
-| `isCharging` | boolean | Whether the vehicle is currently charging |
-| `chargerConnected` | boolean | Whether a charger is physically connected |
-| `mileageSinceLastCharge` | number | Distance driven since last full charge (km) |
-| `hvSocKwh` | number | HV battery energy (kWh) |
-| `hvTotalCapacityKwh` | number | HV battery total capacity (kWh) |
-| `hvVoltage` | number | HV system voltage (V) |
-| `hvCurrent` | number | HV system current (A) |
-| `hvPower` | number | HV system power (W) |
-| `odometerKm` | number | Total odometer reading (km) |
-| `mileageOfTheDayKm` | number | Distance driven today (km) |
-| `powerUsageOfDayKwh` | number | Energy used today (kWh, converted from raw Wh) |
-| `electricSharePercent` | number | % of today's distance driven on electric power (PHEV) |
-| `isLocked` | boolean | Whether the doors are locked |
-| `engineRunning` | boolean | Whether the engine is running |
-| `climateOn` | boolean | Whether the remote climate is active |
-| `driverDoorOpen` | boolean | Driver door open state |
-| `passengerDoorOpen` | boolean | Passenger door open state |
-| `rearLeftDoorOpen` | boolean | Rear left door open state |
-| `rearRightDoorOpen` | boolean | Rear right door open state |
-| `trunkOpen` | boolean | Boot / trunk open state |
-| `bonnetOpen` | boolean | Bonnet / hood open state |
-| `anyDoorOpen` | boolean | `true` if any door, boot, or bonnet is open |
-| `driverWindowOpen` | boolean | Driver window open state |
-| `passengerWindowOpen` | boolean | Passenger window open state |
-| `rearLeftWindowOpen` | boolean | Rear left window open state |
-| `rearRightWindowOpen` | boolean | Rear right window open state |
-| `sunRoofOpen` | boolean | Sunroof open state |
-| `anyWindowOpen` | boolean | `true` if any window or sunroof is open |
-| `batteryVoltage` | number | 12V auxiliary battery voltage (V) |
-| `interiorTemperature` | number | Interior temperature (°C) |
-| `exteriorTemperature` | number | Exterior temperature (°C) |
-| `tyrePressureFrontLeft` | number | Front-left tyre pressure (bar) |
-| `tyrePressureFrontRight` | number | Front-right tyre pressure (bar) |
-| `tyrePressureRearLeft` | number | Rear-left tyre pressure (bar) |
-| `tyrePressureRearRight` | number | Rear-right tyre pressure (bar) |
-| `lightsMainBeam` | boolean | Main beam headlights state |
-| `lightsDippedBeam` | boolean | Dipped beam headlights state |
-| `lightsSide` | boolean | Side / parking lights state |
 
 ---
 
@@ -216,6 +107,129 @@ The frontend is served on port `8080` by default (configurable via `FRONTEND_POR
 
 ---
 
+## Push notifications
+
+GarageStack checks your vehicle's state every 5 minutes and sends both a browser push notification and an in-app notification (bell icon) when any of the following conditions are detected. Each alert has a 1-hour cooldown per vehicle to avoid repeated notifications.
+
+| Alert | Condition |
+|-------|-----------|
+| Engine started | Engine transitions from off to running |
+| Low tyre pressure | Any tyre below 2.2 bar |
+| Low EV battery | EV state-of-charge below 20 % |
+| Car left unlocked | `doors/locked = false` while engine is off |
+| Door left open | Any door, boot, or bonnet open while engine is off |
+| Window left open | Any window or sunroof open while engine is off |
+
+Push notifications require VAPID keys to be configured (`VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY`). Without them, alerts still appear in the in-app notification panel. The "engine started" alert is also triggered in real time when the event arrives over MQTT, independently of the 5-minute polling cycle.
+
+Note: "keys left in the car" is not currently supported because the SAIC MQTT gateway does not expose a key-in-vehicle sensor.
+
+---
+
+## Homepage dashboard widget
+
+GarageStack exposes a dedicated read-only endpoint for the [gethomepage.dev](https://gethomepage.dev) [Custom API widget](https://gethomepage.dev/widgets/services/customapi/). No fork or custom widget code is required.
+
+### 1. Generate an API key
+
+```bash
+openssl rand -base64 32
+```
+
+Set `WIDGET_API_KEY` to the generated value in your `.env` file (Docker Compose) or as a container environment variable (all-in-one / Unraid). Leave it empty to keep the endpoint disabled.
+
+### 2. Find your VIN
+
+Log in to GarageStack and open the browser developer tools. The VIN appears in the `/api/vehicles` response, or in the URL when you navigate to your vehicle.
+
+### 3. Configure Homepage
+
+Add the following block to your Homepage `services.yaml`, replacing `YOUR_GARAGESTACK_URL`, `YOUR_VIN`, and `YOUR_WIDGET_API_KEY`:
+
+```yaml
+- GarageStack:
+    href: https://YOUR_GARAGESTACK_URL
+    description: MG Vehicle Status
+    widget:
+      type: customapi
+      url: https://YOUR_GARAGESTACK_URL/api/widget/YOUR_VIN/status
+      headers:
+        X-Widget-Key: "YOUR_WIDGET_API_KEY"
+      mappings:
+        - field: evSocPercent
+          label: Battery
+          format: percent
+        - field: isCharging
+          label: Charging
+          format: text
+        - field: exteriorTemperature
+          label: Ext. Temp
+          format: float
+          suffix: "°C"
+        - field: isLocked
+          label: Locked
+          format: text
+```
+
+### Available fields
+
+The endpoint returns a flat JSON object. Numeric fields are `null` when the vehicle has not reported that value yet. String state fields are also `null` when unreported, except `anyDoorOpen` and `anyWindowOpen` which are always present. String values are localized based on the `Accept-Language` header.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `recordedAt` | string (ISO 8601) | Timestamp of the most recent telemetry |
+| `fuelLevelPercent` | number | Fuel tank level (%) |
+| `fuelRangeKm` | number | Estimated fuel range (km) |
+| `evSocPercent` | number | EV / HV battery state of charge (%) |
+| `isCharging` | string | Charging state: `"Charging"` or `"Not charging"` |
+| `chargerConnected` | string | Charger connection state: `"Plugged in"` or `"Unplugged"` |
+| `mileageSinceLastCharge` | number | Distance driven since last full charge (km) |
+| `hvSocKwh` | number | HV battery energy (kWh) |
+| `hvTotalCapacityKwh` | number | HV battery total capacity (kWh) |
+| `hvVoltage` | number | HV system voltage (V) |
+| `hvCurrent` | number | HV system current (A) |
+| `hvPower` | number | HV system power (W) |
+| `odometerKm` | number | Total odometer reading (km) |
+| `mileageOfTheDayKm` | number | Distance driven today (km) |
+| `powerUsageOfDayKwh` | number | Energy used today (kWh, converted from raw Wh) |
+| `electricSharePercent` | number | % of today's distance driven on electric power (PHEV) |
+| `isLocked` | string | Lock state: `"Locked"` or `"Unlocked"` |
+| `engineRunning` | string | Engine state: `"Engine on"` or `"Engine off"` |
+| `climateOn` | string | Remote climate state: `"On"` or `"Off"` |
+| `driverDoorOpen` | string | Driver door state: `"Open"` or `"Closed"` |
+| `passengerDoorOpen` | string | Passenger door state: `"Open"` or `"Closed"` |
+| `rearLeftDoorOpen` | string | Rear left door state: `"Open"` or `"Closed"` |
+| `rearRightDoorOpen` | string | Rear right door state: `"Open"` or `"Closed"` |
+| `trunkOpen` | string | Boot / trunk state: `"Open"` or `"Closed"` |
+| `bonnetOpen` | string | Bonnet / hood state: `"Open"` or `"Closed"` |
+| `anyDoorOpen` | string | `"Open"` if any door, boot, or bonnet is open, otherwise `"Closed"` (never null) |
+| `driverWindowOpen` | string | Driver window state: `"Open"` or `"Closed"` |
+| `passengerWindowOpen` | string | Passenger window state: `"Open"` or `"Closed"` |
+| `rearLeftWindowOpen` | string | Rear left window state: `"Open"` or `"Closed"` |
+| `rearRightWindowOpen` | string | Rear right window state: `"Open"` or `"Closed"` |
+| `sunRoofOpen` | string | Sunroof state: `"Open"` or `"Closed"` |
+| `anyWindowOpen` | string | `"Open"` if any window or sunroof is open, otherwise `"Closed"` (never null) |
+| `batteryVoltage` | number | 12V auxiliary battery voltage (V) |
+| `interiorTemperature` | number | Interior temperature (°C) |
+| `exteriorTemperature` | number | Exterior temperature (°C) |
+| `tyrePressureFrontLeft` | number | Front-left tyre pressure (bar) |
+| `tyrePressureFrontRight` | number | Front-right tyre pressure (bar) |
+| `tyrePressureRearLeft` | number | Rear-left tyre pressure (bar) |
+| `tyrePressureRearRight` | number | Rear-right tyre pressure (bar) |
+| `lightsMainBeam` | string | Main beam headlights state: `"On"` or `"Off"` |
+| `lightsDippedBeam` | string | Dipped beam headlights state: `"On"` or `"Off"` |
+| `lightsSide` | string | Side / parking lights state: `"On"` or `"Off"` |
+
+---
+
+## Security defaults
+
+- API routes require login.
+- Login reuses the configured MG account credentials (`SAIC_USER`/`SAIC_PASSWORD`) and issues short-lived JWT tokens.
+- MQTT now requires credentials and ACLs, and broker exposure defaults to localhost-only in Docker Compose.
+
+---
+
 ## GitHub Actions / CI
 
 The Docker build workflow requires two repository secrets to avoid Docker Hub anonymous pull rate limits (GitHub runners share IPs and exhaust the limit quickly):
@@ -226,14 +240,6 @@ The Docker build workflow requires two repository secrets to avoid Docker Hub an
 | `DOCKERHUB_TOKEN` | A Docker Hub access token (hub.docker.com > Account Settings > Security > New Access Token) |
 
 Add them under **Settings > Secrets and variables > Actions** in your fork. A free Docker Hub account is sufficient.
-
----
-
-## Security defaults:
-
-- API routes require login.
-- Login reuses the configured MG account credentials (`SAIC_USER`/`SAIC_PASSWORD`) and issues short-lived JWT tokens.
-- MQTT now requires credentials and ACLs, and broker exposure defaults to localhost-only in Docker Compose.
 
 ---
 
