@@ -12,6 +12,8 @@ import ClimateDetailCard from './ClimateDetailCard.vue'
 import HvBatteryCard from './HvBatteryCard.vue'
 import FindMyCarCard from './FindMyCarCard.vue'
 import LightsCard from './LightsCard.vue'
+import ChargingSessionCard from './ChargingSessionCard.vue'
+import BatteryHeatingCard from './BatteryHeatingCard.vue'
 
 defineProps<{ cardId: CardId }>()
 
@@ -21,6 +23,15 @@ const settings = useSettingsStore()
 
 const vin = computed(() => store.vehicles[0]?.vin ?? null)
 const status = computed(() => store.currentStatus)
+
+function relativeTime(iso: string | null | undefined): string | undefined {
+  if (!iso) return undefined
+  const diffMs = Date.now() - new Date(iso).getTime()
+  const diffMin = Math.floor(diffMs / 60_000)
+  if (diffMin < 1) return t('notifications.justNow')
+  if (diffMin < 60) return t('notifications.minutesAgo', { n: diffMin })
+  return t('notifications.hoursAgo', { n: Math.floor(diffMin / 60) })
+}
 
 const vehicleType = computed((): VehicleType | 'unknown' => {
   const override = settings.vehicleTypeOverride
@@ -212,6 +223,91 @@ const supportsExternalCharge = computed(
       :label="t('vehicle.efficiency.efficiency')"
       :value="(status.powerUsageOfDay / status.mileageOfTheDay).toFixed(0)"
       :unit="`${t('common.wh')}/${t('common.km')}`"
+    />
+
+    <!-- speed -->
+    <StatusCard
+      v-else-if="cardId === 'speed' && status.speed !== null"
+      icon="gauge-high"
+      :label="t('vehicle.speed')"
+      :value="Math.round(status.speed)"
+      unit="km/h"
+    />
+
+    <!-- activeTrip -->
+    <StatusCard
+      v-else-if="cardId === 'activeTrip'"
+      icon="location-arrow"
+      :label="t('vehicle.activeTrip')"
+      :value="
+        status.currentJourneyDistance !== null && status.currentJourneyDistance > 0
+          ? status.currentJourneyDistance.toFixed(1)
+          : t('vehicle.noActiveTrip')
+      "
+      :unit="
+        status.currentJourneyDistance !== null && status.currentJourneyDistance > 0
+          ? t('common.km')
+          : undefined
+      "
+      :variant="
+        status.currentJourneyDistance !== null && status.currentJourneyDistance > 0
+          ? 'info'
+          : undefined
+      "
+    />
+
+    <!-- onlineStatus -->
+    <StatusCard
+      v-else-if="cardId === 'onlineStatus'"
+      icon="wifi"
+      :label="t('vehicle.onlineStatus')"
+      :value="
+        status.isAvailable !== null
+          ? status.isAvailable
+            ? t('common.online')
+            : t('common.offline')
+          : null
+      "
+      :subtitle="relativeTime(status.lastVehicleStateAt)"
+      :variant="
+        status.isAvailable === true
+          ? 'success'
+          : status.isAvailable === false
+            ? 'danger'
+            : undefined
+      "
+    />
+
+    <!-- remainingCharge -->
+    <StatusCard
+      v-else-if="
+        cardId === 'remainingCharge' &&
+        status.remainingChargingTime !== null &&
+        supportsExternalCharge
+      "
+      icon="clock"
+      :label="t('vehicle.remainingCharge')"
+      :value="status.remainingChargingTime"
+      :unit="t('common.min')"
+      variant="info"
+    />
+
+    <!-- chargingSession -->
+    <ChargingSessionCard
+      v-else-if="cardId === 'chargingSession' && supportsExternalCharge"
+      :charging-type="status.chargingType"
+      :charging-cable-lock="status.chargingCableLock"
+      :obc-power-single-phase="status.obcPowerSinglePhase"
+      :obc-power-three-phase="status.obcPowerThreePhase"
+      :remaining-charging-time="status.remainingChargingTime"
+    />
+
+    <!-- batteryHeating -->
+    <BatteryHeatingCard
+      v-else-if="cardId === 'batteryHeating' && supportsExternalCharge"
+      :battery-heating="status.batteryHeating"
+      :schedule-mode="status.batteryHeatingScheduleMode"
+      :schedule-start-time="status.batteryHeatingScheduleStartTime"
     />
   </template>
 </template>
