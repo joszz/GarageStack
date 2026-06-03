@@ -20,12 +20,6 @@ const vin = computed(() => store.vehicles[0]?.vin ?? null)
 const status = computed(() => store.currentStatus)
 const editMode = ref(false)
 
-const lastUpdatedText = computed(() => {
-  const d = store.lastUpdated
-  if (!d) return null
-  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-})
-
 const vehicleType = computed((): VehicleType | 'unknown' => {
   const override = settings.vehicleTypeOverride
   if (override !== 'auto') return override as VehicleType
@@ -168,9 +162,6 @@ onUnmounted(() => {
         <span v-if="store.loading && status" class="text-muted small me-2">
           <font-awesome-icon icon="spinner" spin />
           {{ t('common.refreshing') }}
-        </span>
-        <span v-else-if="lastUpdatedText" class="text-muted small me-2">
-          {{ t('dashboard.lastUpdated', { time: lastUpdatedText }) }}
         </span>
         <button
           class="btn btn-sm"

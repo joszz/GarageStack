@@ -51,6 +51,26 @@ const {
 } = useNotifications()
 
 const carModel = computed(() => vehicleStore.vehicles[0]?.model ?? null)
+
+const isInitialLoading = computed(() => vehicleStore.loading && !vehicleStore.currentStatus)
+
+const lastFetched = computed(() => {
+  const d = vehicleStore.lastUpdated
+  if (!d) return null
+  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+})
+
+const lastRecorded = computed(() => {
+  const ts = vehicleStore.currentStatus?.recordedAt
+  if (!ts) return null
+  return new Date(ts).toLocaleString([], {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+})
+
 const menuOpen = ref(false)
 const isLoginRoute = computed(() => route.name === 'login')
 
@@ -138,15 +158,47 @@ watch(
             <span>{{ carModel }}</span>
           </div>
           <div
-            v-if="onlineStatusText"
+            v-if="isInitialLoading || onlineStatusText"
             class="sidebar-online-status"
-            :class="onlineStatusVariant ? `sidebar-online-status--${onlineStatusVariant}` : ''"
+            :class="
+              !isInitialLoading && onlineStatusVariant
+                ? `sidebar-online-status--${onlineStatusVariant}`
+                : ''
+            "
           >
-            <font-awesome-icon icon="wifi" />
-            <span>{{ onlineStatusText }}</span>
-            <span v-if="onlineStatusTime" class="sidebar-online-status__time">{{
-              onlineStatusTime
-            }}</span>
+            <template v-if="isInitialLoading">
+              <span class="skeleton skeleton--icon" />
+              <span class="skeleton skeleton--text skeleton--text-md" />
+            </template>
+            <template v-else>
+              <font-awesome-icon icon="wifi" />
+              <span class="sidebar-footer__text">{{ onlineStatusText }}</span>
+              <span v-if="onlineStatusTime" class="sidebar-online-status__time">{{
+                onlineStatusTime
+              }}</span>
+            </template>
+          </div>
+          <div v-if="isInitialLoading || lastFetched" class="sidebar-timestamp">
+            <template v-if="isInitialLoading">
+              <span class="skeleton skeleton--icon" />
+              <span class="skeleton skeleton--text skeleton--text-sm" />
+            </template>
+            <template v-else>
+              <font-awesome-icon icon="rotate" :spin="vehicleStore.loading" />
+              <span class="sidebar-footer__text">{{ t('common.fetched') }} {{ lastFetched }}</span>
+            </template>
+          </div>
+          <div v-if="isInitialLoading || lastRecorded" class="sidebar-timestamp">
+            <template v-if="isInitialLoading">
+              <span class="skeleton skeleton--icon" />
+              <span class="skeleton skeleton--text skeleton--text-lg" />
+            </template>
+            <template v-else>
+              <font-awesome-icon icon="clock" />
+              <span class="sidebar-footer__text"
+                >{{ t('common.recorded') }} {{ lastRecorded }}</span
+              >
+            </template>
           </div>
           <div class="sidebar-user">
             <font-awesome-icon icon="user" />

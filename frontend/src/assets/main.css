@@ -177,7 +177,7 @@ body,
   border-right: 1px solid var(--color-border);
   display: flex;
   flex-direction: column;
-  padding: 1.5rem 1rem;
+  padding: 0.5rem;
   flex-shrink: 0;
   overflow-y: auto;
 }
@@ -1506,6 +1506,54 @@ body,
   justify-content: center;
 }
 
+/* ── Skeleton loader ──────────────────────────────────────── */
+
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton {
+  display: inline-block;
+  border-radius: 4px;
+  background: linear-gradient(
+    90deg,
+    var(--color-surface-2) 25%,
+    var(--color-border) 50%,
+    var(--color-surface-2) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s ease-in-out infinite;
+}
+
+.skeleton--icon {
+  width: 1em;
+  height: 1.2em;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.skeleton--text {
+  height: 1.2em;
+  flex: 1;
+}
+
+.skeleton--text-sm {
+  max-width: 55%;
+}
+
+.skeleton--text-md {
+  max-width: 65%;
+}
+
+.skeleton--text-lg {
+  max-width: 78%;
+}
+
 /* ── App footer ───────────────────────────────────────────── */
 
 .app-footer {
@@ -1523,14 +1571,6 @@ body,
 .app-footer__copyright {
   font-size: 0.75rem;
   color: var(--color-text-muted);
-}
-
-.app-footer__last-updated {
-  font-size: 0.72rem;
-  color: var(--color-text-muted);
-  margin-left: auto;
-  margin-right: 0.5rem;
-  white-space: nowrap;
 }
 
 .app-footer__actions {
@@ -1629,10 +1669,6 @@ body,
   .main-content {
     padding: 0.75rem;
     overflow-x: hidden;
-  }
-
-  .app-footer__last-updated {
-    display: none;
   }
 
   /* Icon sits flush at button left so it aligns with card left edge */
@@ -1889,9 +1925,6 @@ body,
   color: var(--color-text);
   font-size: 0.85rem;
   font-weight: 600;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
 }
 
 .sidebar-online-status {
@@ -1916,6 +1949,25 @@ body,
   margin-left: auto;
   font-size: 0.75rem;
   color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.sidebar-footer__text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.sidebar-timestamp {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.25rem 0.75rem;
+  color: var(--color-text-muted);
+  font-size: 0.78rem;
+  overflow: hidden;
+  white-space: nowrap;
 }
 
 .sidebar-user {

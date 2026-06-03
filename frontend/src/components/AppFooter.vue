@@ -20,11 +20,6 @@ const { isOpen: modalOpen, open: openModal, close: closeModal } = useModal()
 
 const vin = computed(() => vehicleStore.vehicles[0]?.vin ?? null)
 
-const lastUpdated = computed(() => {
-  const ts = vehicleStore.currentStatus?.recordedAt
-  return ts ? new Date(ts).toLocaleString() : null
-})
-
 const detectedLabel = computed(() => {
   const type = vehicleStore.detectedVehicleType
   if (type === 'unknown') return null
@@ -65,9 +60,6 @@ async function refresh() {
 <template>
   <footer class="app-footer">
     <span class="app-footer__copyright">&copy; 2026 GarageStack</span>
-    <span v-if="lastUpdated" class="app-footer__last-updated">
-      {{ t('dashboard.lastUpdated') }}: {{ lastUpdated }}
-    </span>
     <div class="app-footer__actions">
       <button
         class="app-footer__btn"

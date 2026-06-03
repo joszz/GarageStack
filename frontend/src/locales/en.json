@@ -2,19 +2,14 @@
   "nav": {
     "dashboard": "Dashboard",
     "statistics": "Statistics",
-    "map": "Map",
-    "control": "Control",
-    "settings": "Settings"
+    "map": "Map"
   },
   "dashboard": {
     "title": "Dashboard",
-    "lastUpdated": "Updated at {time}",
     "noData": "No data available",
     "editLayout": "Edit layout",
     "doneEditing": "Done",
-    "editLayoutDesc": "Drag cards to reorder. Toggle the eye icon to show or hide a card.",
     "resetLayout": "Reset to defaults",
-    "dragToReorder": "Drag to reorder",
     "hideCard": "Hide card",
     "showCard": "Show card",
     "cardInfoBtn": "Card information",
@@ -46,7 +41,6 @@
   },
   "statistics": {
     "insights": {
-      "title": "Quick insights",
       "distanceInRange": "Distance in period",
       "monthlyMileage": "Monthly mileage",
       "avgTripLength": "Avg trip length",
@@ -57,10 +51,6 @@
       "electricShare": "Electric share today"
     },
     "cardDesc": {
-      "todayDistance": "Total distance driven since midnight, as reported by the car.",
-      "todayEnergy": "Total electrical energy used today, in watt-hours.",
-      "efficiency": "Energy consumed divided by distance driven today (Wh/km). Lower is better.",
-      "sinceCharge": "Distance driven since the last charging session.",
       "distanceInRange": "Total distance across all trips in the selected time window.",
       "avgTripLength": "Average distance per trip in the selected period.",
       "climateUsage": "Percentage of recorded snapshots during which climate control was active.",
@@ -78,8 +68,6 @@
     "odometer": "Odometer",
     "locked": "Locked",
     "unlocked": "Unlocked",
-    "engineOn": "Engine on",
-    "engineOff": "Engine off",
     "climateOn": "On",
     "climateOff": "Off",
     "doors": "Doors",
@@ -89,8 +77,6 @@
     "charging": "Charging",
     "chargingYes": "Charging",
     "chargingNo": "Not charging",
-    "sunRoofOpen": "Sunroof open",
-    "sunRoofClosed": "Sunroof closed",
     "tyres": "Tyre Pressures",
     "temperature": {
       "interior": "Interior temp",
@@ -102,8 +88,7 @@
       "rearLeft": "Rear left",
       "rearRight": "Rear right",
       "bonnet": "Bonnet",
-      "boot": "Boot",
-      "sunRoof": "Sunroof"
+      "boot": "Boot"
     },
     "efficiency": {
       "todayDistance": "Dist. today",
@@ -133,15 +118,12 @@
       "side": "Sidelights"
     },
     "climateDetail": {
-      "title": "Climate details",
       "seatLeft": "Driver seat heat",
-      "seatRight": "Passenger seat heat",
-      "rearDefroster": "Rear defroster"
+      "seatRight": "Passenger seat heat"
     },
     "speed": "Speed",
     "activeTrip": "Active trip",
     "noActiveTrip": "No active trip",
-    "onlineStatus": "Status",
     "remainingCharge": "Charge time",
     "chargingSession": {
       "title": "Charging session",
@@ -164,11 +146,7 @@
     }
   },
   "control": {
-    "title": "Control",
     "climate": "Climate control",
-    "climateOn": "Turn on",
-    "climateOff": "Turn off",
-    "heatedSeats": "Heated seats",
     "seat": {
       "off": "Off",
       "low": "Low",
@@ -187,19 +165,12 @@
     "findMyCarConfirm": "This will activate the horn and lights to help locate your car. Continue?",
     "chargeLimit": "Charge current limit",
     "refresh": "Refresh",
-    "sending": "Sending...",
-    "sent": "Command sent",
     "pending": "Sent - waiting for car...",
     "error": "Command failed"
   },
   "trips": {
     "title": "Trip history",
     "noTrips": "No trips recorded",
-    "trip": "Trip",
-    "distance": "Distance",
-    "duration": "Duration",
-    "started": "Started",
-    "points": "Points",
     "dateRange": "Period",
     "last7days": "Last 7 days",
     "last30days": "Last 30 days",
@@ -210,7 +181,6 @@
   "push": {
     "enable": "Enable notifications",
     "enabled": "Notifications on",
-    "disabled": "Notifications off",
     "permissionDenied": "Permission denied"
   },
   "notifications": {
@@ -236,7 +206,6 @@
   },
   "settings": {
     "title": "Settings",
-    "resetDefaults": "Reset to defaults",
     "theme": {
       "title": "Appearance",
       "light": "Light mode",
@@ -245,10 +214,6 @@
     },
     "language": {
       "title": "Language"
-    },
-    "sunRoof": {
-      "show": "Show sunroof in windows panel",
-      "showDesc": "The gateway reports sunroof data for all cars. Disable this if your car has no sunroof."
     },
     "cards": {
       "fuelLevel": "Fuel Level",
@@ -277,7 +242,6 @@
     },
     "vehicleType": {
       "title": "Vehicle type",
-      "description": "Determines which features are relevant (e.g. charging stats). Auto-detected from the gateway when available.",
       "detected": "Detected",
       "notDetected": "Not detected yet -start the gateway to auto-detect",
       "override": "Override",
@@ -285,28 +249,6 @@
       "hev": "HEV (Hybrid -no plug)",
       "phev": "PHEV (Plug-in Hybrid)",
       "bev": "BEV (Full Electric)"
-    },
-    "panels": {
-      "title": "Dashboard panels",
-      "description": "Choose which panels are visible on the dashboard.",
-      "fuel": "Fuel",
-      "fuelDesc": "Fuel level and range cards",
-      "evBattery": "EV battery",
-      "evBatteryDesc": "EV state of charge percentage",
-      "hvPower": "HV battery",
-      "hvPowerDesc": "High-voltage battery details (kWh, voltage, current)",
-      "charging": "Charging status",
-      "chargingDesc": "Charging indicator (mainly relevant for PHEV/EV)",
-      "lights": "Lights",
-      "lightsDesc": "High beam, low beam and sidelights status",
-      "climateDetail": "Climate details",
-      "climateDetailDesc": "Heated seats and rear defroster",
-      "efficiency": "Efficiency",
-      "efficiencyDesc": "Daily distance, energy usage and since-last-charge stats",
-      "sunRoof": "Sunroof",
-      "sunRoofDesc": "Show sunroof in the windows panel (off by default -gateway reports it for all cars)",
-      "heatedSeats": "Heated seats",
-      "heatedSeatsDesc": "Heated seat level controls on the dashboard"
     }
   },
   "common": {
@@ -320,11 +262,12 @@
     "error": "Something went wrong",
     "open": "Open",
     "closed": "Closed",
-    "noData": "No data available",
     "cancel": "Cancel",
     "filters": "Filters",
     "online": "Online",
     "offline": "Offline",
-    "min": "min"
+    "min": "min",
+    "fetched": "Fetched",
+    "recorded": "Recorded"
   }
 }
