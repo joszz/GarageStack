@@ -6,8 +6,8 @@ import { defaultCards, useSettingsStore } from '@/stores/settings'
 const BASE_KEY = 'garagestack-settings'
 
 describe('defaultCards', () => {
-  it('includes all 23 card ids', () => {
-    expect(defaultCards()).toHaveLength(23)
+  it('includes all 22 card ids', () => {
+    expect(defaultCards()).toHaveLength(22)
   })
 
   it('places visible cards before hidden ones', () => {
@@ -27,11 +27,10 @@ describe('defaultCards', () => {
     expect(cards.find((c) => c.id === 'batteryHeating')!.visible).toBe(false)
   })
 
-  it('bev: shows speed, activeTrip, onlineStatus, remainingCharge, chargingSession, batteryHeating', () => {
+  it('bev: shows speed, activeTrip, remainingCharge, chargingSession, batteryHeating', () => {
     const cards = defaultCards('bev')
     expect(cards.find((c) => c.id === 'speed')!.visible).toBe(true)
     expect(cards.find((c) => c.id === 'activeTrip')!.visible).toBe(true)
-    expect(cards.find((c) => c.id === 'onlineStatus')!.visible).toBe(true)
     expect(cards.find((c) => c.id === 'remainingCharge')!.visible).toBe(true)
     expect(cards.find((c) => c.id === 'chargingSession')!.visible).toBe(true)
     expect(cards.find((c) => c.id === 'batteryHeating')!.visible).toBe(true)
@@ -118,7 +117,7 @@ describe('useSettingsStore', () => {
   it('falls back to defaults when localStorage is empty', () => {
     const store = useSettingsStore()
     expect(store.vehicleTypeOverride).toBe('auto')
-    expect(store.cards).toHaveLength(23)
+    expect(store.cards).toHaveLength(22)
     expect(store.cards.find((c) => c.id === 'sunRoof')!.visible).toBe(false)
   })
 
@@ -202,8 +201,8 @@ describe('useSettingsStore', () => {
         }),
       )
       const store = useSettingsStore()
-      // All 23 card ids should be present after migration fills in the gaps
-      expect(store.cards).toHaveLength(23)
+      // All 22 card ids should be present after migration fills in the gaps
+      expect(store.cards).toHaveLength(22)
       expect(store.cards.find((c) => c.id === 'sunRoof')!.visible).toBe(false)
     })
   })

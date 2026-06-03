@@ -256,28 +256,6 @@ const supportsExternalCharge = computed(
       "
     />
 
-    <!-- onlineStatus -->
-    <StatusCard
-      v-else-if="cardId === 'onlineStatus'"
-      icon="wifi"
-      :label="t('vehicle.onlineStatus')"
-      :value="
-        status.isAvailable !== null
-          ? status.isAvailable
-            ? t('common.online')
-            : t('common.offline')
-          : null
-      "
-      :subtitle="relativeTime(status.lastVehicleStateAt)"
-      :variant="
-        status.isAvailable === true
-          ? 'success'
-          : status.isAvailable === false
-            ? 'danger'
-            : undefined
-      "
-    />
-
     <!-- remainingCharge -->
     <StatusCard
       v-else-if="

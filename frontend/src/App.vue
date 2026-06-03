@@ -15,6 +15,30 @@ const router = useRouter()
 const settings = useSettingsStore()
 const auth = useAuthStore()
 const vehicleStore = useVehicleStore()
+const vehicleStatus = computed(() => vehicleStore.currentStatus)
+
+const onlineStatusText = computed(() => {
+  const s = vehicleStatus.value
+  if (!s || s.isAvailable === null) return null
+  return s.isAvailable ? t('common.online') : t('common.offline')
+})
+
+const onlineStatusVariant = computed(() => {
+  const s = vehicleStatus.value
+  if (!s || s.isAvailable === null) return null
+  return s.isAvailable ? 'online' : 'offline'
+})
+
+function relativeTime(iso: string | null | undefined): string | undefined {
+  if (!iso) return undefined
+  const diffMs = Date.now() - new Date(iso).getTime()
+  const diffMin = Math.floor(diffMs / 60_000)
+  if (diffMin < 1) return t('notifications.justNow')
+  if (diffMin < 60) return t('notifications.minutesAgo', { n: diffMin })
+  return t('notifications.hoursAgo', { n: Math.floor(diffMin / 60) })
+}
+
+const onlineStatusTime = computed(() => relativeTime(vehicleStatus.value?.lastVehicleStateAt))
 const {
   notifications,
   unreadCount,
@@ -112,6 +136,15 @@ watch(
           <div v-if="carModel" class="sidebar-car-model">
             <font-awesome-icon icon="car" />
             <span>{{ carModel }}</span>
+          </div>
+          <div
+            v-if="onlineStatusText"
+            class="sidebar-online-status"
+            :class="onlineStatusVariant ? `sidebar-online-status--${onlineStatusVariant}` : ''"
+          >
+            <font-awesome-icon icon="wifi" />
+            <span>{{ onlineStatusText }}</span>
+            <span v-if="onlineStatusTime" class="sidebar-online-status__time">{{ onlineStatusTime }}</span>
           </div>
           <div class="sidebar-user">
             <font-awesome-icon icon="user" />

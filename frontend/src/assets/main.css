@@ -1894,6 +1894,30 @@ body,
   text-overflow: ellipsis;
 }
 
+.sidebar-online-status {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+  overflow: hidden;
+}
+
+.sidebar-online-status--online {
+  color: var(--color-success);
+}
+
+.sidebar-online-status--offline {
+  color: var(--color-danger-text);
+}
+
+.sidebar-online-status__time {
+  margin-left: auto;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
 .sidebar-user {
   display: flex;
   align-items: center;

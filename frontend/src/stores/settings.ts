@@ -94,7 +94,6 @@ export type CardId =
   | 'efficiencyRatio'
   | 'speed'
   | 'activeTrip'
-  | 'onlineStatus'
   | 'remainingCharge'
   | 'chargingSession'
   | 'batteryHeating'
@@ -119,7 +118,6 @@ const ALL_CARD_IDS: CardId[] = [
   'efficiencyRatio',
   'speed',
   'activeTrip',
-  'onlineStatus',
   'remainingCharge',
   'chargingSession',
   'batteryHeating',
@@ -171,7 +169,6 @@ export function defaultCards(type: VehicleType | 'unknown' = 'unknown'): CardCon
     { id: 'efficiencyRatio', visible: true },
     { id: 'speed', visible: true },
     { id: 'activeTrip', visible: true },
-    { id: 'onlineStatus', visible: true },
     { id: 'remainingCharge', visible: type === 'phev' || type === 'bev' },
     { id: 'chargingSession', visible: type === 'phev' || type === 'bev' },
     { id: 'batteryHeating', visible: type === 'phev' || type === 'bev' },
