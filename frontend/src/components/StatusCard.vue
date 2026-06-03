@@ -4,6 +4,7 @@ defineProps<{
   label: string
   value: string | number | null
   unit?: string
+  subtitle?: string
   variant?: 'success' | 'warning' | 'danger' | 'info'
   clickable?: boolean
 }>()
@@ -34,6 +35,7 @@ function emitClickIfClickable(clickable?: boolean) {
         {{ value ?? '-'
         }}<span v-if="unit && value !== null" class="status-card__unit"> {{ unit }}</span>
       </span>
+      <span v-if="subtitle" class="status-card__subtitle">{{ subtitle }}</span>
     </div>
     <font-awesome-icon v-if="clickable" icon="chevron-right" class="status-card__chevron" />
   </div>

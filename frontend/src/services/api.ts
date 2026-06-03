@@ -117,6 +117,21 @@ export interface TelemetrySnapshot {
   heatedSeatFrontLeft: number | null
   heatedSeatFrontRight: number | null
   rearWindowDefroster: boolean | null
+  isAvailable: boolean | null
+  lastVehicleStateAt: string | null
+  lastChargeStateAt: string | null
+  currentJourneyDistance: number | null
+  chargingType: string | null
+  chargingCableLock: boolean | null
+  remainingChargingTime: number | null
+  obcCurrent: number | null
+  obcVoltage: number | null
+  obcPowerSinglePhase: number | null
+  obcPowerThreePhase: number | null
+  batteryHeating: boolean | null
+  batteryHeatingScheduleMode: string | null
+  batteryHeatingScheduleStartTime: string | null
+  elevation: number | null
 }
 
 export interface TripPoint {

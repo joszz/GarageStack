@@ -222,6 +222,99 @@ public static class TelemetryMapper
                 snapshot.RearWindowDefroster = asBool;
                 break;
 
+            // Online / availability
+            case "available":
+                snapshot.IsAvailable = asBool;
+                break;
+
+            case "refresh/lastVehicleState":
+                if (DateTime.TryParse(payload, null, System.Globalization.DateTimeStyles.RoundtripKind, out var lvs))
+                    snapshot.LastVehicleStateAt = lvs;
+                break;
+
+            case "refresh/lastChargeState":
+                if (DateTime.TryParse(payload, null, System.Globalization.DateTimeStyles.RoundtripKind, out var lcs))
+                    snapshot.LastChargeStateAt = lcs;
+                break;
+
+            // Active journey
+            case "drivetrain/currentJourney/distance":
+                snapshot.CurrentJourneyDistance = N(numeric);
+                break;
+
+            case "drivetrain/currentJourney":
+                try
+                {
+                    using var cjDoc = JsonDocument.Parse(payload);
+                    if (cjDoc.RootElement.TryGetProperty("distance", out var dist) && dist.TryGetDouble(out var dv))
+                        snapshot.CurrentJourneyDistance = N(dv);
+                }
+                catch
+                {
+                    return false;
+                }
+                break;
+
+            // Charging session
+            case "drivetrain/chargingType":
+                snapshot.ChargingType = payload;
+                break;
+
+            case "drivetrain/chargingCableLock":
+                snapshot.ChargingCableLock = asBool;
+                break;
+
+            case "drivetrain/remainingChargingTime":
+                snapshot.RemainingChargingTime = double.IsFinite(numeric) ? (int)numeric : (int?)null;
+                break;
+
+            // OBC (onboard charger)
+            case "obc/current":
+                snapshot.ObcCurrent = N(numeric);
+                break;
+            case "obc/voltage":
+                snapshot.ObcVoltage = N(numeric);
+                break;
+            case "obc/powerSinglePhase":
+                snapshot.ObcPowerSinglePhase = N(numeric);
+                break;
+            case "obc/powerThreePhase":
+                snapshot.ObcPowerThreePhase = N(numeric);
+                break;
+
+            // Battery heating
+            case "drivetrain/batteryHeating":
+                snapshot.BatteryHeating = asBool;
+                break;
+
+            case "drivetrain/batteryHeatingSchedule/mode":
+                snapshot.BatteryHeatingScheduleMode = payload;
+                break;
+
+            case "drivetrain/batteryHeatingSchedule/startTime":
+                snapshot.BatteryHeatingScheduleStartTime = payload;
+                break;
+
+            case "drivetrain/batteryHeatingSchedule":
+                try
+                {
+                    using var bhDoc = JsonDocument.Parse(payload);
+                    if (bhDoc.RootElement.TryGetProperty("mode", out var m))
+                        snapshot.BatteryHeatingScheduleMode = m.GetString();
+                    if (bhDoc.RootElement.TryGetProperty("startTime", out var st))
+                        snapshot.BatteryHeatingScheduleStartTime = st.GetString();
+                }
+                catch
+                {
+                    return false;
+                }
+                break;
+
+            // Location extras
+            case "location/elevation":
+                snapshot.Elevation = N(numeric);
+                break;
+
             default:
                 return false;
         }

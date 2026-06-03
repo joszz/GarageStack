@@ -72,6 +72,33 @@ public class TelemetrySnapshot
     public int? HeatedSeatFrontRight { get; set; }
     public bool? RearWindowDefroster { get; set; }
 
+    // Online / availability
+    public bool? IsAvailable { get; set; }
+    public DateTime? LastVehicleStateAt { get; set; }
+    public DateTime? LastChargeStateAt { get; set; }
+
+    // Active journey
+    public double? CurrentJourneyDistance { get; set; }
+
+    // Charging session
+    public string? ChargingType { get; set; }
+    public bool? ChargingCableLock { get; set; }
+    public int? RemainingChargingTime { get; set; }
+
+    // OBC (onboard charger)
+    public double? ObcCurrent { get; set; }
+    public double? ObcVoltage { get; set; }
+    public double? ObcPowerSinglePhase { get; set; }
+    public double? ObcPowerThreePhase { get; set; }
+
+    // Battery heating
+    public bool? BatteryHeating { get; set; }
+    public string? BatteryHeatingScheduleMode { get; set; }
+    public string? BatteryHeatingScheduleStartTime { get; set; }
+
+    // Location extras
+    public double? Elevation { get; set; }
+
     [JsonIgnore]
     public string? RawTopic { get; set; }
     [JsonIgnore]

@@ -92,6 +92,12 @@ export type CardId =
   | 'efficiencyEnergy'
   | 'efficiencyCharge'
   | 'efficiencyRatio'
+  | 'speed'
+  | 'activeTrip'
+  | 'onlineStatus'
+  | 'remainingCharge'
+  | 'chargingSession'
+  | 'batteryHeating'
 
 const ALL_CARD_IDS: CardId[] = [
   'fuelLevel',
@@ -111,6 +117,12 @@ const ALL_CARD_IDS: CardId[] = [
   'efficiencyEnergy',
   'efficiencyCharge',
   'efficiencyRatio',
+  'speed',
+  'activeTrip',
+  'onlineStatus',
+  'remainingCharge',
+  'chargingSession',
+  'batteryHeating',
 ]
 
 export interface CardConfig {
@@ -157,6 +169,12 @@ export function defaultCards(type: VehicleType | 'unknown' = 'unknown'): CardCon
     { id: 'efficiencyEnergy', visible: true },
     { id: 'efficiencyCharge', visible: type !== 'hev' },
     { id: 'efficiencyRatio', visible: true },
+    { id: 'speed', visible: true },
+    { id: 'activeTrip', visible: true },
+    { id: 'onlineStatus', visible: true },
+    { id: 'remainingCharge', visible: type === 'phev' || type === 'bev' },
+    { id: 'chargingSession', visible: type === 'phev' || type === 'bev' },
+    { id: 'batteryHeating', visible: type === 'phev' || type === 'bev' },
   ]
   return [...all.filter((c) => c.visible), ...all.filter((c) => !c.visible)]
 }
