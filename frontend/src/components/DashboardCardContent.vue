@@ -24,15 +24,6 @@ const settings = useSettingsStore()
 const vin = computed(() => store.vehicles[0]?.vin ?? null)
 const status = computed(() => store.currentStatus)
 
-function relativeTime(iso: string | null | undefined): string | undefined {
-  if (!iso) return undefined
-  const diffMs = Date.now() - new Date(iso).getTime()
-  const diffMin = Math.floor(diffMs / 60_000)
-  if (diffMin < 1) return t('notifications.justNow')
-  if (diffMin < 60) return t('notifications.minutesAgo', { n: diffMin })
-  return t('notifications.hoursAgo', { n: Math.floor(diffMin / 60) })
-}
-
 const vehicleType = computed((): VehicleType | 'unknown' => {
   const override = settings.vehicleTypeOverride
   if (override !== 'auto') return override as VehicleType
