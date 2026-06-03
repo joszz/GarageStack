@@ -13,6 +13,7 @@ export const useVehicleStore = defineStore('vehicle', () => {
   const loadingCount = ref(0)
   const loading = computed(() => loadingCount.value > 0)
   const error = ref<string | null>(null)
+  const lastUpdated = ref<Date | null>(null)
 
   async function fetchVehicles() {
     loadingCount.value++
@@ -32,6 +33,7 @@ export const useVehicleStore = defineStore('vehicle', () => {
     error.value = null
     try {
       currentStatus.value = await vehicleApi.status(vin)
+      lastUpdated.value = new Date()
     } catch (e) {
       error.value = String(e)
     } finally {
@@ -91,6 +93,7 @@ export const useVehicleStore = defineStore('vehicle', () => {
     trips,
     loading,
     error,
+    lastUpdated,
     fetchVehicles,
     fetchStatus,
     fetchConfig,

@@ -8,7 +8,7 @@
   },
   "dashboard": {
     "title": "Dashboard",
-    "lastUpdated": "Last updated",
+    "lastUpdated": "Updated at {time}",
     "noData": "No data available",
     "editLayout": "Edit layout",
     "doneEditing": "Done",
@@ -316,6 +316,7 @@
     "on": "On",
     "off": "Off",
     "loading": "Loading...",
+    "refreshing": "Refreshing...",
     "error": "Something went wrong",
     "open": "Open",
     "closed": "Closed",

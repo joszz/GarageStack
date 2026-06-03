@@ -8,7 +8,7 @@
   },
   "dashboard": {
     "title": "Dashboard",
-    "lastUpdated": "Laatst bijgewerkt",
+    "lastUpdated": "Bijgewerkt om {time}",
     "noData": "Geen gegevens beschikbaar",
     "editLayout": "Indeling bewerken",
     "doneEditing": "Klaar",
@@ -316,6 +316,7 @@
     "on": "Aan",
     "off": "Uit",
     "loading": "Laden...",
+    "refreshing": "Vernieuwen...",
     "error": "Er is iets misgegaan",
     "open": "Open",
     "closed": "Gesloten",
