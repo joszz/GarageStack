@@ -161,6 +161,19 @@ public class TelemetryRepository(AppDbContext db) : ITelemetryRepository
             merged.Elevation ??= row.Elevation;
         }
 
+        // If the MG API still reports a journey distance but the engine is off,
+        // the trip has ended and the firmware just hasn't cleared the field yet.
+        // The 5-minute guard on speed handles the red-light case (speed=0 but
+        // engine still running - no EngineRunning row arrives during a stop).
+        if (merged.CurrentJourneyDistance is > 0)
+        {
+            var lastSpeedRow = rows.FirstOrDefault(r => r.Speed != null);
+            var engineOff  = merged.EngineRunning == false;
+            var stationary = lastSpeedRow is { Speed: <= 0 } && DateTime.UtcNow - lastSpeedRow.RecordedAt > TimeSpan.FromMinutes(5);
+            if (engineOff || stationary)
+                merged.CurrentJourneyDistance = null;
+        }
+
         // GPS rows are sparse: the 200-row window may be filled with non-location
         // topics published while the car is parked. Fall back to the most recent
         // row that has coordinates - the partial index makes this cheap.

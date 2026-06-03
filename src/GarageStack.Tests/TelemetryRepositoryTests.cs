@@ -165,6 +165,71 @@ public class TelemetryRepositoryTests
     }
 
     [Fact]
+    public async Task GetMergedLatest_JourneyDistanceCleared_WhenStationaryOverFiveMinutes()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var db = CreateDb();
+        var vehicle = new Vehicle { Vin = "TEST00000000000005" };
+        db.Vehicles.Add(vehicle);
+        await db.SaveChangesAsync(ct);
+
+        var now = DateTime.UtcNow;
+        db.TelemetrySnapshots.AddRange(
+            new TelemetrySnapshot { VehicleId = vehicle.Id, RecordedAt = now.AddMinutes(-1), EvSocPercent = 80 },
+            new TelemetrySnapshot { VehicleId = vehicle.Id, RecordedAt = now.AddMinutes(-6), Speed = 0, CurrentJourneyDistance = 15.2 }
+        );
+        await db.SaveChangesAsync(ct);
+
+        var result = await new TelemetryRepository(db).GetMergedLatestAsync(vehicle.Id, ct);
+
+        Assert.NotNull(result);
+        Assert.Null(result.CurrentJourneyDistance);
+    }
+
+    [Fact]
+    public async Task GetMergedLatest_JourneyDistanceCleared_WhenEngineOffOverFiveMinutes()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var db = CreateDb();
+        var vehicle = new Vehicle { Vin = "TEST00000000000007" };
+        db.Vehicles.Add(vehicle);
+        await db.SaveChangesAsync(ct);
+
+        var now = DateTime.UtcNow;
+        db.TelemetrySnapshots.AddRange(
+            new TelemetrySnapshot { VehicleId = vehicle.Id, RecordedAt = now.AddMinutes(-1), EngineRunning = false },
+            new TelemetrySnapshot { VehicleId = vehicle.Id, RecordedAt = now.AddMinutes(-2), CurrentJourneyDistance = 15.2 }
+        );
+        await db.SaveChangesAsync(ct);
+
+        var result = await new TelemetryRepository(db).GetMergedLatestAsync(vehicle.Id, ct);
+
+        Assert.NotNull(result);
+        Assert.Null(result.CurrentJourneyDistance);
+    }
+
+    [Fact]
+    public async Task GetMergedLatest_JourneyDistanceKept_WhenRecentlyMoving()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var db = CreateDb();
+        var vehicle = new Vehicle { Vin = "TEST00000000000006" };
+        db.Vehicles.Add(vehicle);
+        await db.SaveChangesAsync(ct);
+
+        var now = DateTime.UtcNow;
+        db.TelemetrySnapshots.AddRange(
+            new TelemetrySnapshot { VehicleId = vehicle.Id, RecordedAt = now.AddMinutes(-1), Speed = 60, CurrentJourneyDistance = 8.3 }
+        );
+        await db.SaveChangesAsync(ct);
+
+        var result = await new TelemetryRepository(db).GetMergedLatestAsync(vehicle.Id, ct);
+
+        Assert.NotNull(result);
+        Assert.Equal(8.3, result.CurrentJourneyDistance);
+    }
+
+    [Fact]
     public async Task GetMergedLatest_RemoteTemperatureInOlderRow_IsMergedIntoResult()
     {
         var ct = TestContext.Current.CancellationToken;
