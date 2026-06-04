@@ -270,16 +270,32 @@ public class TelemetryRepository(AppDbContext db) : ITelemetryRepository
         var current = new List<TripPoint>();
         // Hard gap: no telemetry data at all for 30+ minutes.
         var gapThreshold = TimeSpan.FromMinutes(30);
-        // Soft gap: car was stationary (speed=0) for 5+ minutes = distinct trip.
+        // Soft gap: car was stationary for 5+ minutes = distinct trip.
         var parkThreshold = TimeSpan.FromMinutes(5);
         DateTime? lastSeen = null;
         DateTime? parkingSince = null;
+        // Last known GPS position, used to detect stationary GPS-only rows.
+        double? prevLat = null, prevLon = null;
 
         foreach (var p in points)
         {
-            // Null speed (GPS-only row) is treated as stationary: no speed data means
-            // no evidence of movement, so the 5-minute parking split can still fire.
-            var isParked = !p.Speed.HasValue || p.Speed.Value <= 0;
+            // GPS rows from the location/position MQTT topic never carry Speed
+            // (speed arrives on a separate topic in a separate DB row).  Treat
+            // null-speed rows as stationary only when the position hasn't moved
+            // significantly from the last point - i.e. GPS drift rather than
+            // actual movement.  ~50 m is well above GPS noise but well below
+            // any real movement between consecutive updates.
+            bool isParked;
+            if (p.Speed.HasValue)
+            {
+                isParked = p.Speed.Value <= 0;
+            }
+            else
+            {
+                isParked = prevLat.HasValue &&
+                           Haversine(prevLat.Value, prevLon!.Value,
+                                     p.Latitude!.Value, p.Longitude!.Value) * 1000 <= 50;
+            }
 
             // Hard gap: no data at all - always start a new trip.
             if (lastSeen.HasValue && p.RecordedAt - lastSeen.Value > gapThreshold)
@@ -287,6 +303,8 @@ public class TelemetryRepository(AppDbContext db) : ITelemetryRepository
                 TryAddTrip(trips, current);
                 current.Clear();
                 parkingSince = null;
+                prevLat = null;
+                prevLon = null;
             }
 
             lastSeen = p.RecordedAt;
@@ -295,6 +313,8 @@ public class TelemetryRepository(AppDbContext db) : ITelemetryRepository
             {
                 // Record when stationary period began; don't add to trip path.
                 parkingSince ??= p.RecordedAt;
+                prevLat = p.Latitude!.Value;
+                prevLon = p.Longitude!.Value;
                 continue;
             }
 
@@ -310,6 +330,9 @@ public class TelemetryRepository(AppDbContext db) : ITelemetryRepository
             var pt = new TripPoint(p.RecordedAt, p.Latitude!.Value, p.Longitude!.Value, p.Speed);
             if (current.Count == 0 || !SamePosition(current[^1], pt))
                 current.Add(pt);
+
+            prevLat = p.Latitude!.Value;
+            prevLon = p.Longitude!.Value;
         }
 
         TryAddTrip(trips, current);
