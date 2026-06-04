@@ -78,6 +78,10 @@
     "chargingYes": "Charging",
     "chargingNo": "Not charging",
     "tyres": "Tyre Pressures",
+    "overview": "Overview",
+    "diagram": {
+      "panelOpen": "Panel open"
+    },
     "temperature": {
       "interior": "Interior temp",
       "exterior": "Exterior temp"

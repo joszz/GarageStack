@@ -9,9 +9,9 @@ import type { CardId } from '@/stores/settings'
 import { defaultCards } from '@/stores/settings'
 import DashboardCardContent from '@/components/DashboardCardContent.vue'
 import CardInfoWrap from '@/components/CardInfoWrap.vue'
-import TyreDiagram from '@/components/TyreDiagram.vue'
+import CarDiagram from '@/components/CarDiagram.vue'
 import SkeletonCard from '@/components/SkeletonCard.vue'
-import SkeletonTyreDiagram from '@/components/SkeletonTyreDiagram.vue'
+import SkeletonCarDiagram from '@/components/SkeletonCarDiagram.vue'
 import { useVehicleAlerts } from '@/composables/useVehicleAlerts'
 
 const { t } = useI18n()
@@ -220,16 +220,26 @@ onUnmounted(() => {
         :class="{ 'card-slot--hidden': !settings.showTyreDiagram }"
       >
         <div class="card-slot__content">
-          <TyreDiagram
+          <CarDiagram
             v-if="settings.showTyreDiagram && status"
             :front-left="status.tyrePressureFrontLeft"
             :front-right="status.tyrePressureFrontRight"
             :rear-left="status.tyrePressureRearLeft"
             :rear-right="status.tyrePressureRearRight"
+            :driver-door-open="status.driverDoorOpen"
+            :passenger-door-open="status.passengerDoorOpen"
+            :rear-left-door-open="status.rearLeftDoorOpen"
+            :rear-right-door-open="status.rearRightDoorOpen"
+            :trunk-open="status.trunkOpen"
+            :bonnet-open="status.bonnetOpen"
+            :lights-main-beam="status.lightsMainBeam"
+            :lights-dipped-beam="status.lightsDippedBeam"
+            :lights-side="status.lightsSide"
+            :ev-soc-percent="status.evSocPercent"
           />
           <div v-else class="card-slot__placeholder card-slot__placeholder--chart">
-            <font-awesome-icon icon="gauge" />
-            <span>{{ t('vehicle.tyres') }}</span>
+            <font-awesome-icon icon="car-side" />
+            <span>{{ t('vehicle.overview') }}</span>
           </div>
         </div>
         <button
@@ -254,7 +264,7 @@ onUnmounted(() => {
         <div class="status-grid">
           <SkeletonCard v-for="card in skeletonCards" :key="card.id" :icon="CARD_ICONS[card.id]" />
         </div>
-        <SkeletonTyreDiagram v-if="settings.showTyreDiagram" class="mt-4" />
+        <SkeletonCarDiagram v-if="settings.showTyreDiagram" class="mt-4" />
       </template>
 
       <div v-else-if="store.error && !status" class="error-state">
@@ -280,12 +290,22 @@ onUnmounted(() => {
           </template>
         </div>
 
-        <TyreDiagram
+        <CarDiagram
           v-if="settings.showTyreDiagram"
           :front-left="status.tyrePressureFrontLeft"
           :front-right="status.tyrePressureFrontRight"
           :rear-left="status.tyrePressureRearLeft"
           :rear-right="status.tyrePressureRearRight"
+          :driver-door-open="status.driverDoorOpen"
+          :passenger-door-open="status.passengerDoorOpen"
+          :rear-left-door-open="status.rearLeftDoorOpen"
+          :rear-right-door-open="status.rearRightDoorOpen"
+          :trunk-open="status.trunkOpen"
+          :bonnet-open="status.bonnetOpen"
+          :lights-main-beam="status.lightsMainBeam"
+          :lights-dipped-beam="status.lightsDippedBeam"
+          :lights-side="status.lightsSide"
+          :ev-soc-percent="status.evSocPercent"
           class="mt-4"
         />
       </template>
