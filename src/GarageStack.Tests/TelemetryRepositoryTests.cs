@@ -366,3 +366,83 @@ public class TelemetryRepositoryTests
         Assert.Equal("06:30", result.BatteryHeatingScheduleStartTime);
     }
 }
+
+// ── MergeIntoAsync tests ─────────────────────────────────────────────────────
+
+public class TelemetryRepositoryMergeTests
+{
+    private static async Task<(AppDbContext db, TelemetryRepository repo, Vehicle vehicle)> SetupAsync()
+    {
+        var db = new AppDbContext(new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options);
+        var vehicle = new Vehicle { Vin = "MERGE0000000000001" };
+        db.Vehicles.Add(vehicle);
+        await db.SaveChangesAsync();
+        return (db, new TelemetryRepository(db), vehicle);
+    }
+
+    [Fact]
+    public async Task AddAsync_ReturnsNewRowId()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (_, repo, vehicle) = await SetupAsync();
+
+        var id = await repo.AddAsync(new TelemetrySnapshot { VehicleId = vehicle.Id, FuelLevelPercent = 60 }, ct);
+
+        Assert.True(id > 0);
+    }
+
+    [Fact]
+    public async Task MergeIntoAsync_MergesFieldsIntoExistingRow()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (db, repo, vehicle) = await SetupAsync();
+
+        var id = await repo.AddAsync(new TelemetrySnapshot { VehicleId = vehicle.Id, FuelLevelPercent = 60 }, ct);
+        await repo.MergeIntoAsync(id, new TelemetrySnapshot { VehicleId = vehicle.Id, EvSocPercent = 80 }, ct);
+
+        var row = await db.TelemetrySnapshots.FindAsync(id);
+        Assert.Equal(60, row!.FuelLevelPercent);
+        Assert.Equal(80, row.EvSocPercent);
+    }
+
+    [Fact]
+    public async Task MergeIntoAsync_LastWriteWins_OverwritesExistingField()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (db, repo, vehicle) = await SetupAsync();
+
+        var id = await repo.AddAsync(new TelemetrySnapshot { VehicleId = vehicle.Id, FuelLevelPercent = 60 }, ct);
+        await repo.MergeIntoAsync(id, new TelemetrySnapshot { VehicleId = vehicle.Id, FuelLevelPercent = 55 }, ct);
+
+        var row = await db.TelemetrySnapshots.FindAsync(id);
+        Assert.Equal(55, row!.FuelLevelPercent);
+    }
+
+    [Fact]
+    public async Task MergeIntoAsync_NullFieldInPatch_LeavesExistingValueUnchanged()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (db, repo, vehicle) = await SetupAsync();
+
+        var id = await repo.AddAsync(new TelemetrySnapshot { VehicleId = vehicle.Id, FuelLevelPercent = 60, EvSocPercent = 80 }, ct);
+        await repo.MergeIntoAsync(id, new TelemetrySnapshot { VehicleId = vehicle.Id, BatteryVoltage = 12.8 }, ct);
+
+        var row = await db.TelemetrySnapshots.FindAsync(id);
+        Assert.Equal(60, row!.FuelLevelPercent);
+        Assert.Equal(80, row.EvSocPercent);
+        Assert.Equal(12.8, row.BatteryVoltage);
+    }
+
+    [Fact]
+    public async Task MergeIntoAsync_MissingRow_InsertsNewRow()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (db, repo, vehicle) = await SetupAsync();
+
+        await repo.MergeIntoAsync(99999, new TelemetrySnapshot { VehicleId = vehicle.Id, FuelLevelPercent = 70 }, ct);
+
+        Assert.Equal(1, await db.TelemetrySnapshots.CountAsync(ct));
+    }
+}
