@@ -1,4 +1,4 @@
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onUnmounted } from 'vue'
 import { notificationsApi, type AppNotification } from '@/services/api'
 import { useAuthStore } from '@/stores/auth'
 
@@ -25,11 +25,22 @@ export function useNotifications() {
     }
   }
 
-  onMounted(() => {
-    if (!auth.isAuthenticated) return
-    fetchNotifications()
-    navigator.serviceWorker?.addEventListener('message', onSwMessage)
-  })
+  // Use a watch instead of onMounted so initialization also fires when the user
+  // logs in from the login page (App.vue stays mounted throughout; onMounted would
+  // only run once, before auth is established on a cold start on /login).
+  watch(
+    () => auth.isAuthenticated,
+    (authenticated) => {
+      if (authenticated) {
+        fetchNotifications()
+        navigator.serviceWorker?.addEventListener('message', onSwMessage)
+      } else {
+        navigator.serviceWorker?.removeEventListener('message', onSwMessage)
+        notifications.value = []
+      }
+    },
+    { immediate: true },
+  )
 
   onUnmounted(() => {
     navigator.serviceWorker?.removeEventListener('message', onSwMessage)
