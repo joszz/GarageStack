@@ -85,6 +85,22 @@ public static class VehicleEndpoints
         })
         .WithSummary("Get telemetry history for a vehicle");
 
+        group.MapGet("/{vin}/trips/last", async (string vin, IVehicleRepository vehicles, AppDbContext db, CancellationToken ct) =>
+        {
+            var resolved = await ResolveVehicleAsync(vin, vehicles, ct);
+            if (resolved.NotFound is not null) return resolved.NotFound;
+            var vehicle = resolved.Vehicle!;
+
+            var row = await db.TelemetrySnapshots
+                .Where(s => s.VehicleId == vehicle.Id && s.CurrentJourneyDistance > 0)
+                .OrderByDescending(s => s.RecordedAt)
+                .Select(s => new { distanceKm = s.CurrentJourneyDistance!.Value, recordedAt = s.RecordedAt })
+                .FirstOrDefaultAsync(ct);
+
+            return row is null ? Results.NoContent() : Results.Ok(row);
+        })
+        .WithSummary("Get last trip summary (distance and timestamp of most recent journey)");
+
         group.MapGet("/{vin}/trips", async (
             string vin,
             ITelemetryRepository telemetry,

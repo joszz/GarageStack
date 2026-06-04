@@ -32,7 +32,7 @@
       "efficiencyCharge": "Distance driven since the last charge session.",
       "efficiencyRatio": "Energy today divided by distance today (Wh/km). Lower is better. On a BEV or PHEV in EV mode this translates directly to electricity cost per km. On an HEV it shows how efficiently the hybrid system ran - motorway driving gives a lower figure than stop-start city traffic.",
       "speed": "Current vehicle speed as reported by the gateway.",
-      "activeTrip": "Distance covered in the current trip. Only shown while a journey is active.",
+      "activeTrip": "Distance covered in the current trip while active, or the distance of the last completed trip when parked.",
       "onlineStatus": "Whether the car is currently reachable via the SAIC cloud. Goes offline when the car is parked and the gateway stops polling.",
       "remainingCharge": "Estimated minutes remaining until the battery reaches the configured charge limit. Only relevant for PHEV and BEV while charging.",
       "chargingSession": "Live onboard-charger data: AC power (single or three-phase), cable lock status and charging type. Only relevant for PHEV and BEV.",
@@ -123,7 +123,8 @@
     },
     "speed": "Speed",
     "activeTrip": "Active trip",
-    "noActiveTrip": "No active trip",
+    "lastTrip": "Last trip",
+    "noTrips": "No trips",
     "remainingCharge": "Charge time",
     "chargingSession": {
       "title": "Charging session",
