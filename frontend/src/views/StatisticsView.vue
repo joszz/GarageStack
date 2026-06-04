@@ -575,8 +575,17 @@ function resetStatsLayout() {
   settings.statsCharts = defaultStatsCharts()
 }
 
-const skeletonInsights = computed(() => settings.statsInsights.filter((i) => i.visible))
-const skeletonChartCount = computed(() => settings.statsCharts.filter((c) => c.visible).length || 3)
+const skeletonInsights = computed(() =>
+  settings.statsInsights.filter(
+    (i) => i.visible && insightDefMap.value.get(i.id)?.vehicleApplicable !== false,
+  ),
+)
+const skeletonChartCount = computed(
+  () =>
+    settings.statsCharts.filter(
+      (c) => c.visible && chartDefMap.value.get(c.id)?.vehicleApplicable !== false,
+    ).length || 3,
+)
 </script>
 
 <template>
