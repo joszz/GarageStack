@@ -166,7 +166,8 @@ export interface LastTripSummary {
 export const vehicleApi = {
   list: () => request<Vehicle[]>('/api/vehicles'),
   status: (vin: string) => request<TelemetrySnapshot>(`/api/vehicles/${vin}/status`),
-  lastTrip: (vin: string) => request<LastTripSummary | undefined>(`/api/vehicles/${vin}/trips/last`),
+  lastTrip: (vin: string) =>
+    request<LastTripSummary | undefined>(`/api/vehicles/${vin}/trips/last`),
   config: (vin: string) => request<Record<string, string>>(`/api/vehicles/${vin}/config`),
   history: (vin: string, from?: string, to?: string) => {
     const params = new URLSearchParams()

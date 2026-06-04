@@ -1,6 +1,12 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { vehicleApi, type Vehicle, type TelemetrySnapshot, type Trip, type LastTripSummary } from '@/services/api'
+import {
+  vehicleApi,
+  type Vehicle,
+  type TelemetrySnapshot,
+  type Trip,
+  type LastTripSummary,
+} from '@/services/api'
 
 export type VehicleType = 'hev' | 'phev' | 'bev' | 'unknown'
 
