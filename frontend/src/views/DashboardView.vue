@@ -21,7 +21,13 @@ const settings = useSettingsStore()
 const vin = computed(() => store.vehicles[0]?.vin ?? null)
 const status = computed(() => store.currentStatus)
 const editMode = ref(false)
-const skeletonCards = computed(() => settings.cards.filter((c) => c.visible))
+const skeletonCards = computed(() => {
+  const visible = settings.cards.filter((c) => c.visible)
+  if (vehicleType.value === 'unknown') return visible
+  const typeDefaults = defaultCards(vehicleType.value)
+  const hiddenByType = new Set(typeDefaults.filter((c) => !c.visible).map((c) => c.id))
+  return visible.filter((c) => !hiddenByType.has(c.id))
+})
 
 const vehicleType = computed((): VehicleType | 'unknown' => {
   const override = settings.vehicleTypeOverride
@@ -73,7 +79,7 @@ function cardHasData(id: CardId): boolean {
     case 'efficiencyEnergy':
       return s.powerUsageOfDay !== null
     case 'efficiencyCharge':
-      return s.mileageSinceLastCharge !== null && !isHev.value
+      return s.mileageSinceLastCharge !== null && !isHev.value && vehicleType.value !== 'unknown'
     case 'efficiencyRatio':
       return s.powerUsageOfDay !== null && s.mileageOfTheDay !== null && s.mileageOfTheDay > 0
     default:
@@ -118,8 +124,7 @@ function resetLayout() {
 async function refresh() {
   await store.fetchVehicles()
   if (vin.value) {
-    await store.fetchStatus(vin.value)
-    await store.fetchConfig(vin.value)
+    await Promise.all([store.fetchStatus(vin.value), store.fetchConfig(vin.value)])
     store.fetchLastTrip(vin.value)
   }
 }
@@ -140,6 +145,18 @@ function handleVisibilityChange() {
 
 onMounted(async () => {
   await refresh()
+  // Hide cards that don't apply to the detected vehicle type so they don't
+  // appear in the skeleton on subsequent loads
+  if (vehicleType.value !== 'unknown') {
+    const typeDefaults = defaultCards(vehicleType.value)
+    const shouldHide = new Set(typeDefaults.filter((c) => !c.visible).map((c) => c.id))
+    if (settings.cards.some((c) => shouldHide.has(c.id) && c.visible)) {
+      const updated = settings.cards.map((c) =>
+        shouldHide.has(c.id) ? { ...c, visible: false } : c,
+      )
+      settings.cards = [...updated.filter((c) => c.visible), ...updated.filter((c) => !c.visible)]
+    }
+  }
   // On a fresh start (no saved layout), push no-data visible cards to the end
   if (!localStorage.getItem('garagestack-settings') && status.value) {
     const current = [...settings.cards]
