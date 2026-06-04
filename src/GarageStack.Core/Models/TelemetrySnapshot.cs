@@ -109,6 +109,4 @@ public class TelemetrySnapshot
 
     [JsonIgnore]
     public string? RawTopic { get; set; }
-    [JsonIgnore]
-    public string? RawPayload { get; set; }
 }
