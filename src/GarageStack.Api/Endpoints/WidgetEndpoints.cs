@@ -79,14 +79,14 @@ public record WidgetStatusDto(
     string? RearRightDoorOpen,
     string? TrunkOpen,
     string? BonnetOpen,
-    string AnyDoorOpen,
+    string? AnyDoorOpen,
     // Windows
     string? DriverWindowOpen,
     string? PassengerWindowOpen,
     string? RearLeftWindowOpen,
     string? RearRightWindowOpen,
     string? SunRoofOpen,
-    string AnyWindowOpen,
+    string? AnyWindowOpen,
     // 12V battery
     double? BatteryVoltage,
     // Temperature
@@ -136,20 +136,23 @@ public record WidgetStatusDto(
         static string? Loc(bool? v, string trueKey, string falseKey, IStringLocalizer<WidgetStrings> l) =>
             v is null ? null : l[v.Value ? trueKey : falseKey].Value;
 
-        static string LocBool(bool v, string trueKey, string falseKey, IStringLocalizer<WidgetStrings> l) =>
-            l[v ? trueKey : falseKey].Value;
+        // Returns true if any value is true, null if all values are null, false otherwise.
+        static bool? AnyOf(params bool?[] vals)
+        {
+            if (vals.Any(v => v == true)) return true;
+            if (vals.All(v => v == null)) return null;
+            return false;
+        }
 
         double? electricShare = s.MileageSinceLastCharge.HasValue && s.MileageOfTheDay is > 0
             ? Math.Min(100, Math.Round(s.MileageSinceLastCharge.Value / s.MileageOfTheDay!.Value * 100))
             : null;
 
-        var anyDoorOpen = s.DriverDoorOpen == true || s.PassengerDoorOpen == true
-            || s.RearLeftDoorOpen == true || s.RearRightDoorOpen == true
-            || s.TrunkOpen == true || s.BonnetOpen == true;
+        var anyDoorOpen = AnyOf(s.DriverDoorOpen, s.PassengerDoorOpen,
+            s.RearLeftDoorOpen, s.RearRightDoorOpen, s.TrunkOpen, s.BonnetOpen);
 
-        var anyWindowOpen = s.DriverWindowOpen == true || s.PassengerWindowOpen == true
-            || s.RearLeftWindowOpen == true || s.RearRightWindowOpen == true
-            || s.SunRoofOpen == true;
+        var anyWindowOpen = AnyOf(s.DriverWindowOpen, s.PassengerWindowOpen,
+            s.RearLeftWindowOpen, s.RearRightWindowOpen, s.SunRoofOpen);
 
         return new WidgetStatusDto(
             RecordedAt: s.RecordedAt,
@@ -179,13 +182,13 @@ public record WidgetStatusDto(
             RearRightDoorOpen: Loc(s.RearRightDoorOpen, "Open", "Closed", l),
             TrunkOpen: Loc(s.TrunkOpen, "Open", "Closed", l),
             BonnetOpen: Loc(s.BonnetOpen, "Open", "Closed", l),
-            AnyDoorOpen: LocBool(anyDoorOpen, "Open", "Closed", l),
+            AnyDoorOpen: Loc(anyDoorOpen, "Open", "Closed", l),
             DriverWindowOpen: Loc(s.DriverWindowOpen, "Open", "Closed", l),
             PassengerWindowOpen: Loc(s.PassengerWindowOpen, "Open", "Closed", l),
             RearLeftWindowOpen: Loc(s.RearLeftWindowOpen, "Open", "Closed", l),
             RearRightWindowOpen: Loc(s.RearRightWindowOpen, "Open", "Closed", l),
             SunRoofOpen: Loc(s.SunRoofOpen, "Open", "Closed", l),
-            AnyWindowOpen: LocBool(anyWindowOpen, "Open", "Closed", l),
+            AnyWindowOpen: Loc(anyWindowOpen, "Open", "Closed", l),
             BatteryVoltage: s.BatteryVoltage,
             InteriorTemperature: s.InteriorTemperature,
             ExteriorTemperature: s.ExteriorTemperature,

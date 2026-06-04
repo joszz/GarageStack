@@ -193,6 +193,35 @@ public class TelemetryRepository(AppDbContext db) : ITelemetryRepository
             }
         }
 
+        // Charging/heating schedule fields are set only when the user changes a schedule
+        // and may not appear in the most-recent 200 rows. Fall back to the last row
+        // that holds any scheduling data so the dashboard keeps showing those cards.
+        if (merged.ChargingScheduleMode == null && merged.ChargingScheduleStartTime == null
+            && merged.BatteryHeatingScheduleMode == null && merged.BatteryHeatingScheduleStartTime == null)
+        {
+            var sched = await db.TelemetrySnapshots
+                .Where(s => s.VehicleId == vehicleId
+                    && (s.ChargingScheduleMode != null || s.ChargingScheduleStartTime != null
+                        || s.ChargingScheduleEndTime != null || s.BatteryHeatingScheduleMode != null
+                        || s.BatteryHeatingScheduleStartTime != null))
+                .OrderByDescending(s => s.RecordedAt)
+                .Select(s => new
+                {
+                    s.ChargingScheduleMode, s.ChargingScheduleStartTime, s.ChargingScheduleEndTime,
+                    s.BatteryHeatingScheduleMode, s.BatteryHeatingScheduleStartTime,
+                })
+                .FirstOrDefaultAsync(ct);
+
+            if (sched != null)
+            {
+                merged.ChargingScheduleMode ??= sched.ChargingScheduleMode;
+                merged.ChargingScheduleStartTime ??= sched.ChargingScheduleStartTime;
+                merged.ChargingScheduleEndTime ??= sched.ChargingScheduleEndTime;
+                merged.BatteryHeatingScheduleMode ??= sched.BatteryHeatingScheduleMode;
+                merged.BatteryHeatingScheduleStartTime ??= sched.BatteryHeatingScheduleStartTime;
+            }
+        }
+
         return merged;
     }
 
@@ -248,7 +277,9 @@ public class TelemetryRepository(AppDbContext db) : ITelemetryRepository
 
         foreach (var p in points)
         {
-            var isParked = p.Speed.HasValue && p.Speed.Value <= 0;
+            // Null speed (GPS-only row) is treated as stationary: no speed data means
+            // no evidence of movement, so the 5-minute parking split can still fire.
+            var isParked = !p.Speed.HasValue || p.Speed.Value <= 0;
 
             // Hard gap: no data at all - always start a new trip.
             if (lastSeen.HasValue && p.RecordedAt - lastSeen.Value > gapThreshold)

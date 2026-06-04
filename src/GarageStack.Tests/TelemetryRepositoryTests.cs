@@ -74,6 +74,63 @@ public class TelemetryRepositoryTests
         Assert.Single(result);
     }
 
+    [Fact]
+    public async Task GetTrips_NullSpeedParkingGap_SplitsIntoTwoTrips()
+    {
+        // GPS-only rows (Speed = null) between two trips must still trigger the
+        // 5-minute parking split. Previously null Speed was treated as "moving".
+        var ct = TestContext.Current.CancellationToken;
+        await using var db = CreateDb();
+        var vehicle = new Vehicle { Vin = "TRIP00000000000003" };
+        db.Vehicles.Add(vehicle);
+        await db.SaveChangesAsync(ct);
+
+        var t0 = new DateTime(2026, 1, 1, 10, 0, 0, DateTimeKind.Utc);
+        db.TelemetrySnapshots.AddRange(
+            MakePoint(vehicle.Id, t0.AddMinutes(0),  51.50, 0.0, 50),
+            MakePoint(vehicle.Id, t0.AddMinutes(5),  51.55, 0.0, 50),
+            MakePoint(vehicle.Id, t0.AddMinutes(10), 51.60, 0.0, 50),
+            // Gateway sends GPS-only updates (no speed topic) while parked.
+            MakePoint(vehicle.Id, t0.AddMinutes(11), 51.60, 0.0, null),
+            MakePoint(vehicle.Id, t0.AddMinutes(15), 51.60, 0.0, null),
+            MakePoint(vehicle.Id, t0.AddMinutes(20), 51.60, 0.0, null),
+            // Second trip starts after >5 min of null-speed points.
+            MakePoint(vehicle.Id, t0.AddMinutes(21), 51.60, 0.0, 50),
+            MakePoint(vehicle.Id, t0.AddMinutes(25), 51.55, 0.0, 50),
+            MakePoint(vehicle.Id, t0.AddMinutes(30), 51.50, 0.0, 50)
+        );
+        await db.SaveChangesAsync(ct);
+
+        var result = await new TelemetryRepository(db).GetTripsAsync(vehicle.Id, t0.AddHours(-1), t0.AddHours(1), ct);
+
+        Assert.Equal(2, result.Count);
+    }
+
+    [Fact]
+    public async Task GetTrips_BriefNullSpeedBlip_DoesNotSplitTrip()
+    {
+        // A single null-speed GPS update mid-trip (< 5 min) must not split the trip.
+        var ct = TestContext.Current.CancellationToken;
+        await using var db = CreateDb();
+        var vehicle = new Vehicle { Vin = "TRIP00000000000004" };
+        db.Vehicles.Add(vehicle);
+        await db.SaveChangesAsync(ct);
+
+        var t0 = new DateTime(2026, 1, 1, 10, 0, 0, DateTimeKind.Utc);
+        db.TelemetrySnapshots.AddRange(
+            MakePoint(vehicle.Id, t0.AddMinutes(0), 51.50, 0.0, 50),
+            MakePoint(vehicle.Id, t0.AddMinutes(5), 51.55, 0.0, 50),
+            MakePoint(vehicle.Id, t0.AddMinutes(6), 51.55, 0.0, null), // brief null-speed blip
+            MakePoint(vehicle.Id, t0.AddMinutes(7), 51.56, 0.0, 50),
+            MakePoint(vehicle.Id, t0.AddMinutes(12), 51.60, 0.0, 50)
+        );
+        await db.SaveChangesAsync(ct);
+
+        var result = await new TelemetryRepository(db).GetTripsAsync(vehicle.Id, t0.AddHours(-1), t0.AddHours(1), ct);
+
+        Assert.Single(result);
+    }
+
     // ── RemoteTemperature regression tests ──────────────────────────────────
     // These cover the two-part bug: (1) HasData must not filter out rows whose
     // only non-null field is RemoteTemperature, and (2) the merge loop must
@@ -260,5 +317,52 @@ public class TelemetryRepositoryTests
         Assert.NotNull(result);
         Assert.Equal(80, result.FuelLevelPercent);   // from newer row
         Assert.Equal(22.0, result.RemoteTemperature); // merged from older row
+    }
+
+    [Fact]
+    public async Task GetMergedLatest_ScheduleFieldsSurviveSaturatedMergeWindow()
+    {
+        // ChargingScheduleMode lives in an older row that sits beyond the 200-row
+        // Take window. The fallback query must recover it.
+        var ct = TestContext.Current.CancellationToken;
+        await using var db = CreateDb();
+        var vehicle = new Vehicle { Vin = "TEST00000000000008" };
+        db.Vehicles.Add(vehicle);
+        await db.SaveChangesAsync(ct);
+
+        var baseTime = DateTime.UtcNow.AddDays(-1);
+
+        // Row with schedule data, older than the 200-row window.
+        db.TelemetrySnapshots.Add(new TelemetrySnapshot
+        {
+            VehicleId = vehicle.Id,
+            RecordedAt = baseTime,
+            ChargingScheduleMode = "Timed",
+            ChargingScheduleStartTime = "07:00",
+            ChargingScheduleEndTime = "09:00",
+            BatteryHeatingScheduleMode = "On",
+            BatteryHeatingScheduleStartTime = "06:30",
+        });
+
+        // 201 newer rows that all lack scheduling fields, saturating the merge window.
+        for (var i = 1; i <= 201; i++)
+        {
+            db.TelemetrySnapshots.Add(new TelemetrySnapshot
+            {
+                VehicleId = vehicle.Id,
+                RecordedAt = baseTime.AddMinutes(i),
+                EvSocPercent = 80,
+            });
+        }
+        await db.SaveChangesAsync(ct);
+
+        var result = await new TelemetryRepository(db).GetMergedLatestAsync(vehicle.Id, ct);
+
+        Assert.NotNull(result);
+        Assert.Equal("Timed", result.ChargingScheduleMode);
+        Assert.Equal("07:00", result.ChargingScheduleStartTime);
+        Assert.Equal("09:00", result.ChargingScheduleEndTime);
+        Assert.Equal("On", result.BatteryHeatingScheduleMode);
+        Assert.Equal("06:30", result.BatteryHeatingScheduleStartTime);
     }
 }

@@ -1,6 +1,7 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { nextTick } from 'vue'
 import { setActivePinia, createPinia } from 'pinia'
-import { notificationsApi } from '@/services/api'
+import { notificationsApi, authApi } from '@/services/api'
 import type { AppNotification } from '@/services/api'
 
 vi.mock('@/services/api', () => ({
@@ -35,10 +36,77 @@ function makeNotification(overrides: Partial<AppNotification> = {}): AppNotifica
 describe('useNotifications', () => {
   beforeEach(() => {
     vi.resetModules()
+    localStorage.clear()
     setActivePinia(createPinia())
     vi.mocked(notificationsApi.list).mockReset()
     vi.mocked(notificationsApi.archive).mockReset()
     vi.mocked(notificationsApi.delete).mockReset()
+  })
+
+  afterEach(() => {
+    localStorage.clear()
+  })
+
+  it('does not auto-fetch when not authenticated', async () => {
+    vi.mocked(notificationsApi.list).mockResolvedValue([])
+
+    const { useNotifications } = await import('@/composables/useNotifications')
+    useNotifications()
+
+    expect(vi.mocked(notificationsApi.list)).not.toHaveBeenCalled()
+  })
+
+  it('auto-fetches immediately when already authenticated', async () => {
+    // Simulate a stored session so isAuthenticated is true on composable init.
+    localStorage.setItem('garagestack-auth-username', 'testuser')
+    localStorage.setItem('garagestack-auth-expires', new Date(Date.now() + 3_600_000).toISOString())
+    vi.mocked(notificationsApi.list).mockResolvedValue([])
+
+    const { useNotifications } = await import('@/composables/useNotifications')
+    useNotifications()
+
+    expect(vi.mocked(notificationsApi.list)).toHaveBeenCalledOnce()
+  })
+
+  it('auto-fetches when auth state changes to authenticated after login', async () => {
+    vi.mocked(notificationsApi.list).mockResolvedValue([])
+    vi.mocked(authApi.login).mockResolvedValue({
+      username: 'testuser',
+      expiresAtUtc: new Date(Date.now() + 3_600_000).toISOString(),
+    })
+
+    const { useNotifications } = await import('@/composables/useNotifications')
+    const { useAuthStore } = await import('@/stores/auth')
+
+    const auth = useAuthStore()
+    useNotifications()
+
+    expect(vi.mocked(notificationsApi.list)).not.toHaveBeenCalled()
+
+    await auth.login('testuser', 'password')
+    await nextTick()
+
+    expect(vi.mocked(notificationsApi.list)).toHaveBeenCalledOnce()
+  })
+
+  it('clears notifications when auth state changes to unauthenticated', async () => {
+    localStorage.setItem('garagestack-auth-username', 'testuser')
+    localStorage.setItem('garagestack-auth-expires', new Date(Date.now() + 3_600_000).toISOString())
+    vi.mocked(notificationsApi.list).mockResolvedValue([makeNotification({ id: 1 })])
+    vi.mocked(authApi.logout).mockResolvedValue(undefined)
+
+    const { useNotifications } = await import('@/composables/useNotifications')
+    const { useAuthStore } = await import('@/stores/auth')
+
+    const auth = useAuthStore()
+    const { notifications } = useNotifications()
+    await vi.mocked(notificationsApi.list).mock.results[0]?.value
+    await nextTick()
+
+    await auth.logout()
+    await nextTick()
+
+    expect(notifications.value).toHaveLength(0)
   })
 
   it('unreadCount counts non-archived notifications', async () => {
