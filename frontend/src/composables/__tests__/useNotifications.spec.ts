@@ -11,7 +11,9 @@ vi.mock('@/services/api', () => ({
   },
   // authApi is used by useAuthStore inside useNotifications
   authApi: {
-    me: vi.fn<() => Promise<{ username: string; expiresAtUtc: string | null }>>().mockResolvedValue({ username: 'testuser', expiresAtUtc: null }),
+    me: vi
+      .fn<() => Promise<{ username: string; expiresAtUtc: string | null }>>()
+      .mockResolvedValue({ username: 'testuser', expiresAtUtc: null }),
     login: vi.fn<() => Promise<{ username: string; expiresAtUtc: string }>>(),
     logout: vi.fn<() => Promise<void>>(),
   },
