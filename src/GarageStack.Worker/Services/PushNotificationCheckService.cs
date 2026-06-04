@@ -14,8 +14,9 @@ public class PushNotificationCheckService(
 {
     private readonly Dictionary<string, DateTime> _lastNotified = new();
     private readonly TimeSpan _cooldown = TimeSpan.FromHours(1);
-    // Tracks the last known engine state per VIN; null = first check (no baseline yet)
     private readonly Dictionary<string, bool?> _lastEngineRunning = new();
+    private readonly Dictionary<string, DateTime> _lastParkedAt = new();
+    private readonly TimeSpan _parkingGrace = TimeSpan.FromMinutes(10);
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -53,9 +54,13 @@ public class PushNotificationCheckService(
             CheckTyrePressure(snapshot, alerts);
             CheckEvSoc(snapshot, alerts);
             CheckEngineStart(snapshot, vehicle.Vin, alerts);
-            CheckUnlockedWhileParked(snapshot, alerts);
-            CheckDoorsOpenWhileParked(snapshot, alerts);
-            CheckWindowsOpenWhileParked(snapshot, alerts);
+
+            var withinParkingGrace = _lastParkedAt.TryGetValue(vehicle.Vin, out var parkedAt)
+                && DateTime.UtcNow - parkedAt < _parkingGrace;
+
+            CheckUnlockedWhileParked(snapshot, alerts, withinParkingGrace);
+            CheckDoorsOpenWhileParked(snapshot, alerts, withinParkingGrace);
+            CheckWindowsOpenWhileParked(snapshot, alerts, withinParkingGrace);
 
             foreach (var (key, title, body) in alerts)
             {
@@ -109,21 +114,23 @@ public class PushNotificationCheckService(
 
         if (current && previous == false)
             alerts.Add(("engine-start", "Car Started", "Your car engine has started"));
+        else if (!current && previous == true)
+            _lastParkedAt[vin] = DateTime.UtcNow;
     }
 
     private static bool IsParked(Core.Models.TelemetrySnapshot s)
         => s.EngineRunning == false;
 
-    private static void CheckUnlockedWhileParked(Core.Models.TelemetrySnapshot s, List<(string, string, string)> alerts)
+    private static void CheckUnlockedWhileParked(Core.Models.TelemetrySnapshot s, List<(string, string, string)> alerts, bool withinParkingGrace)
     {
-        if (!IsParked(s)) return;
+        if (!IsParked(s) || withinParkingGrace) return;
         if (s.IsLocked is false)
             alerts.Add(("unlocked-parked", "Car Left Unlocked", "Your car is parked and unlocked"));
     }
 
-    private static void CheckDoorsOpenWhileParked(Core.Models.TelemetrySnapshot s, List<(string, string, string)> alerts)
+    private static void CheckDoorsOpenWhileParked(Core.Models.TelemetrySnapshot s, List<(string, string, string)> alerts, bool withinParkingGrace)
     {
-        if (!IsParked(s)) return;
+        if (!IsParked(s) || withinParkingGrace) return;
 
         var open = new List<string>();
         if (s.DriverDoorOpen == true) open.Add("driver");
@@ -137,9 +144,9 @@ public class PushNotificationCheckService(
             alerts.Add(("doors-open-parked", "Door Left Open", $"Door(s) open while parked: {string.Join(", ", open)}"));
     }
 
-    private static void CheckWindowsOpenWhileParked(Core.Models.TelemetrySnapshot s, List<(string, string, string)> alerts)
+    private static void CheckWindowsOpenWhileParked(Core.Models.TelemetrySnapshot s, List<(string, string, string)> alerts, bool withinParkingGrace)
     {
-        if (!IsParked(s)) return;
+        if (!IsParked(s) || withinParkingGrace) return;
 
         var open = new List<string>();
         if (s.DriverWindowOpen == true) open.Add("driver");
