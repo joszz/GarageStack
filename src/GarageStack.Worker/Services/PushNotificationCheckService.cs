@@ -14,8 +14,8 @@ public class PushNotificationCheckService(
 {
     private readonly Dictionary<string, DateTime> _lastNotified = new();
     private readonly TimeSpan _cooldown = TimeSpan.FromHours(1);
-    private readonly Dictionary<string, bool?> _lastEngineRunning = new();
-    private readonly Dictionary<string, DateTime> _lastParkedAt = new();
+    internal readonly Dictionary<string, bool?> _lastEngineRunning = new();
+    internal readonly Dictionary<string, DateTime> _lastParkedAt = new();
     private readonly TimeSpan _parkingGrace = TimeSpan.FromMinutes(10);
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -101,7 +101,7 @@ public class PushNotificationCheckService(
             alerts.Add(("low-ev", "Low EV Battery", $"EV battery at {s.EvSocPercent:F0}%"));
     }
 
-    private void CheckEngineStart(Core.Models.TelemetrySnapshot s, string vin, List<(string, string, string)> alerts)
+    internal void CheckEngineStart(Core.Models.TelemetrySnapshot s, string vin, List<(string, string, string)> alerts)
     {
         if (s.EngineRunning is null) return;
 
@@ -121,14 +121,14 @@ public class PushNotificationCheckService(
     private static bool IsParked(Core.Models.TelemetrySnapshot s)
         => s.EngineRunning == false;
 
-    private static void CheckUnlockedWhileParked(Core.Models.TelemetrySnapshot s, List<(string, string, string)> alerts, bool withinParkingGrace)
+    internal static void CheckUnlockedWhileParked(Core.Models.TelemetrySnapshot s, List<(string, string, string)> alerts, bool withinParkingGrace)
     {
         if (!IsParked(s) || withinParkingGrace) return;
         if (s.IsLocked is false)
             alerts.Add(("unlocked-parked", "Car Left Unlocked", "Your car is parked and unlocked"));
     }
 
-    private static void CheckDoorsOpenWhileParked(Core.Models.TelemetrySnapshot s, List<(string, string, string)> alerts, bool withinParkingGrace)
+    internal static void CheckDoorsOpenWhileParked(Core.Models.TelemetrySnapshot s, List<(string, string, string)> alerts, bool withinParkingGrace)
     {
         if (!IsParked(s) || withinParkingGrace) return;
 
@@ -144,7 +144,7 @@ public class PushNotificationCheckService(
             alerts.Add(("doors-open-parked", "Door Left Open", $"Door(s) open while parked: {string.Join(", ", open)}"));
     }
 
-    private static void CheckWindowsOpenWhileParked(Core.Models.TelemetrySnapshot s, List<(string, string, string)> alerts, bool withinParkingGrace)
+    internal static void CheckWindowsOpenWhileParked(Core.Models.TelemetrySnapshot s, List<(string, string, string)> alerts, bool withinParkingGrace)
     {
         if (!IsParked(s) || withinParkingGrace) return;
 
