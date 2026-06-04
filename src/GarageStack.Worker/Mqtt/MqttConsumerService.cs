@@ -162,7 +162,6 @@ public class MqttConsumerService(
                 VehicleId = vehicle.Id,
                 RecordedAt = DateTime.UtcNow,
                 RawTopic = topic,
-                RawPayload = payload
             };
 
             TelemetryMapper.ApplyMessage(snapshot, subtopic, payload);
