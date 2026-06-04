@@ -117,6 +117,7 @@ async function refresh() {
   if (vin.value) {
     await store.fetchStatus(vin.value)
     await store.fetchConfig(vin.value)
+    store.fetchLastTrip(vin.value)
   }
 }
 

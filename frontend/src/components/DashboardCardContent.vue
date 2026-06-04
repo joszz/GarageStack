@@ -229,14 +229,21 @@ const supportsExternalCharge = computed(
     <StatusCard
       v-else-if="cardId === 'activeTrip'"
       icon="location-arrow"
-      :label="t('vehicle.activeTrip')"
+      :label="
+        status.currentJourneyDistance !== null && status.currentJourneyDistance > 0
+          ? t('vehicle.activeTrip')
+          : t('vehicle.lastTrip')
+      "
       :value="
         status.currentJourneyDistance !== null && status.currentJourneyDistance > 0
           ? status.currentJourneyDistance.toFixed(1)
-          : t('vehicle.noActiveTrip')
+          : store.lastTrip
+            ? store.lastTrip.distanceKm.toFixed(1)
+            : t('vehicle.noTrips')
       "
       :unit="
-        status.currentJourneyDistance !== null && status.currentJourneyDistance > 0
+        (status.currentJourneyDistance !== null && status.currentJourneyDistance > 0) ||
+        store.lastTrip !== null
           ? t('common.km')
           : undefined
       "
