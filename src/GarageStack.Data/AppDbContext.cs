@@ -23,6 +23,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         {
             e.HasKey(s => s.Id);
             e.HasIndex(s => new { s.VehicleId, s.RecordedAt });
+            // IX_TelemetrySnapshots_VehicleId_RecordedAt_Chart is a partial index
+            // managed via raw SQL in the AddChartIndex migration.
             e.HasIndex(s => new { s.VehicleId, s.RawTopic })
              .HasFilter("\"RawTopic\" IS NOT NULL");
             e.HasIndex(s => new { s.VehicleId, s.Latitude, s.Longitude, s.RecordedAt })

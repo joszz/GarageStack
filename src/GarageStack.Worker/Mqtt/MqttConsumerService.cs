@@ -24,6 +24,13 @@ public class MqttConsumerService(
     // notification, preventing bogus "engine started" alerts after a deploy or crash.
     private readonly HashSet<string> _engineStateSeeded = new();
 
+    // MQTT polling cycles emit several messages within ~2 seconds (one per topic).
+    // Messages arriving within this window are merged into the same DB row so that
+    // each row represents a complete poll rather than a single field, reducing row
+    // count by ~9x and ensuring all chart fields land in the same sample.
+    private static readonly TimeSpan MergeWindow = TimeSpan.FromSeconds(15);
+    internal readonly Dictionary<int, (long RowId, DateTime RecordedAt)> _mergeState = new();
+
     protected virtual IMqttClient CreateMqttClient() => new MqttClientFactory().CreateMqttClient();
     protected virtual TimeSpan RetryDelay => TimeSpan.FromSeconds(5);
 
@@ -157,17 +164,27 @@ public class MqttConsumerService(
         {
             var vehicle = await vehicleRepoMain.GetOrCreateByVinAsync(vin, saicUser, ct);
 
-            var snapshot = new TelemetrySnapshot
+            var patch = new TelemetrySnapshot
             {
                 VehicleId = vehicle.Id,
                 RecordedAt = DateTime.UtcNow,
-                RawTopic = topic,
             };
+            TelemetryMapper.ApplyMessage(patch, subtopic, payload);
 
-            TelemetryMapper.ApplyMessage(snapshot, subtopic, payload);
-            await telemetryRepo.AddAsync(snapshot, ct);
+            if (_mergeState.TryGetValue(vehicle.Id, out var last) &&
+                patch.RecordedAt - last.RecordedAt <= MergeWindow)
+            {
+                await telemetryRepo.MergeIntoAsync(last.RowId, patch, ct);
+                _mergeState[vehicle.Id] = (last.RowId, patch.RecordedAt);
+            }
+            else
+            {
+                patch.RawTopic = topic;
+                var newId = await telemetryRepo.AddAsync(patch, ct);
+                _mergeState[vehicle.Id] = (newId, patch.RecordedAt);
+            }
 
-            await CheckEngineStartAsync(vin, snapshot, ct);
+            await CheckEngineStartAsync(vin, patch, ct);
         }
         catch (Exception ex)
         {

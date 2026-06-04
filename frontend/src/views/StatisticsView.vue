@@ -61,7 +61,13 @@ async function load() {
   try {
     await store.fetchVehicles()
     if (!vin.value) return
-    const from = new Date(Date.now() - days.value * 86_400_000).toISOString()
+    const startDay = new Date()
+    startDay.setDate(startDay.getDate() - days.value)
+    const from = new Date(
+      startDay.getFullYear(),
+      startDay.getMonth(),
+      startDay.getDate(),
+    ).toISOString()
     await Promise.all([
       store.fetchHistory(vin.value, from),
       store.fetchTrips(vin.value, from),
