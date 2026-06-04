@@ -739,6 +739,83 @@ body,
   color: var(--color-danger-text);
 }
 
+/* ── Car diagram overlays ─────────────────────────────────── */
+
+/* Open panels (doors, bonnet, trunk) */
+.car-panel--open {
+  fill: var(--color-warning);
+  fill-opacity: 0.3;
+  stroke: var(--color-warning);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+}
+
+/* Headlight indicator bars */
+.car-headlight {
+  fill: var(--color-text-muted);
+  fill-opacity: 0.4;
+}
+.car-headlight--side {
+  fill: #fb923c;
+}
+.car-headlight--dipped {
+  fill: #fde047;
+}
+.car-headlight--main {
+  fill: #f9fafb;
+}
+
+/* Beam cones */
+.car-light-beam {
+  fill: #fde047;
+  fill-opacity: 0.25;
+}
+.car-light-beam--main {
+  fill: #fef9c3;
+  fill-opacity: 0.2;
+}
+
+/* EV battery indicator */
+.car-battery-outer {
+  fill: var(--color-surface);
+  stroke: var(--color-border);
+  stroke-width: 1.5;
+}
+.car-battery-terminal {
+  fill: var(--color-border);
+}
+.car-battery-text {
+  fill: var(--color-text);
+  font-size: 10px;
+  font-weight: 700;
+  font-family: inherit;
+}
+
+/* Active state legend below the tyre pressure legend */
+.vehicle-state-legend {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--color-border);
+  font-size: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.vehicle-state-legend__item {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.vehicle-state-legend__item--open {
+  color: var(--color-warning);
+}
+
+.vehicle-state-legend__item--lights {
+  color: #fde047;
+}
+
 /* ── Map ──────────────────────────────────────────────────── */
 
 .view-container--map {

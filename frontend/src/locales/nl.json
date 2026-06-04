@@ -78,6 +78,10 @@
     "chargingYes": "Aan het laden",
     "chargingNo": "Niet aan het laden",
     "tyres": "Bandenspanning",
+    "overview": "Overzicht",
+    "diagram": {
+      "panelOpen": "Paneel open"
+    },
     "temperature": {
       "interior": "Interieurtemperatuur",
       "exterior": "Buitentemperatuur"
