@@ -1,4 +1,5 @@
 using GarageStack.Core.Interfaces;
+using GarageStack.Data.Demo;
 using GarageStack.Data.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -16,6 +17,18 @@ public static class ServiceCollectionExtensions
 
         services.AddScoped<IVehicleRepository, VehicleRepository>();
         services.AddScoped<ITelemetryRepository, TelemetryRepository>();
+
+        return services;
+    }
+
+    public static IServiceCollection AddDemoServices(this IServiceCollection services)
+    {
+        services.AddDbContext<AppDbContext>(opts =>
+            opts.UseInMemoryDatabase("garagestack-demo"));
+
+        services.AddScoped<IVehicleRepository, DemoVehicleRepository>();
+        services.AddSingleton<ITelemetryRepository, DemoTelemetryRepository>();
+        services.AddSingleton<IPushSender, DemoPushSender>();
 
         return services;
     }

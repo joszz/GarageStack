@@ -1,0 +1,38 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: src/GarageStack.Api/Dockerfile
+    container_name: garagestack-api-demo
+    restart: unless-stopped
+    env_file:
+      - .env.demo
+    environment:
+      ASPNETCORE_ENVIRONMENT: "Production"
+      DEMO_MODE: "true"
+      Cors__Origins__0: "${CORS_ORIGIN:-http://localhost:8080}"
+      Jwt__Secret: "${JWT_SECRET}"
+      Auth__Username: "${AUTH_USERNAME:-demo}"
+      Auth__Password: "${AUTH_PASSWORD:-demo}"
+    ports:
+      - "${API_PORT:-5001}:8080"
+    volumes:
+      - api_demo_logs:/app/logs
+      - api_demo_dataprotection:/root/.aspnet/DataProtection-Keys
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_DEMO_MODE: "true"
+    container_name: garagestack-frontend-demo
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "${FRONTEND_PORT:-8080}:80"
+
+volumes:
+  api_demo_logs:
+  api_demo_dataprotection:

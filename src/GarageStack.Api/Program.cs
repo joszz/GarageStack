@@ -5,6 +5,7 @@ using GarageStack.Api.Endpoints;
 using GarageStack.Api.Services;
 using GarageStack.Core.Interfaces;
 using GarageStack.Data;
+using GarageStack.Data.Demo;
 using GarageStack.Data.Extensions;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
@@ -43,14 +44,25 @@ try
                   .MinimumLevel.Override("System", LogEventLevel.Warning);
     });
 
-    var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
-        ?? throw new InvalidOperationException("DefaultConnection is not configured.");
+    var isDemoMode = builder.Configuration.GetValue<bool>("DEMO_MODE");
 
     builder.Services.AddLocalization(opts => opts.ResourcesPath = "Resources");
-    builder.Services.AddGarageStackData(connectionString);
-    builder.Services.AddSingleton<MqttPublisher>();
-    builder.Services.AddSingleton<IMqttPublisher>(sp => sp.GetRequiredService<MqttPublisher>());
-    builder.Services.AddHostedService(sp => sp.GetRequiredService<MqttPublisher>());
+
+    if (isDemoMode)
+    {
+        Log.Information("DEMO MODE enabled -- using in-memory fake data, no database or MQTT required");
+        builder.Services.AddDemoServices();
+        builder.Services.AddSingleton<IMqttPublisher, DemoNoOpMqttPublisher>();
+    }
+    else
+    {
+        var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+            ?? throw new InvalidOperationException("DefaultConnection is not configured.");
+        builder.Services.AddGarageStackData(connectionString);
+        builder.Services.AddSingleton<MqttPublisher>();
+        builder.Services.AddSingleton<IMqttPublisher>(sp => sp.GetRequiredService<MqttPublisher>());
+        builder.Services.AddHostedService(sp => sp.GetRequiredService<MqttPublisher>());
+    }
     builder.Services.AddOpenApi();
     builder.Services.ConfigureHttpJsonOptions(opts =>
     {
@@ -123,7 +135,19 @@ try
     using (var scope = app.Services.CreateScope())
     {
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        await db.Database.MigrateAsync();
+        if (isDemoMode)
+        {
+            db.Database.EnsureCreated();
+            if (!db.Vehicles.Any())
+            {
+                db.Vehicles.Add(DemoVehicleRepository.DemoVehicle);
+                await db.SaveChangesAsync();
+            }
+        }
+        else
+        {
+            await db.Database.MigrateAsync();
+        }
     }
 
     app.UseExceptionHandler(errorApp => errorApp.Run(async ctx =>
@@ -207,6 +231,12 @@ try
     app.MapVehicleEndpoints();
     app.MapNotificationEndpoints();
     app.MapWidgetEndpoints();
+
+    if (isDemoMode)
+    {
+        var demoTelemetry = app.Services.GetRequiredService<ITelemetryRepository>();
+        app.MapDemoEndpoints(demoTelemetry);
+    }
 
     app.Run();
 }
