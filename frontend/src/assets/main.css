@@ -1479,8 +1479,8 @@ body,
 .card-slot {
   position: relative;
   animation: card-wiggle 0.22s ease-in-out infinite alternate;
-  cursor: grab;
-  touch-action: none;
+  cursor: default;
+  touch-action: auto;
   user-select: none;
 }
 
@@ -1498,15 +1498,45 @@ body,
 }
 
 .card-slot--static {
-  cursor: default;
-  touch-action: auto;
   animation: none;
+}
+
+.card-slot__handle {
+  position: absolute;
+  top: -9px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2.5px solid var(--color-bg);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6rem;
+  cursor: grab;
+  touch-action: none;
+  z-index: 2;
+  line-height: 1;
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+
+.card-slot__handle:hover {
+  background: var(--color-surface-2);
+  color: var(--color-text);
 }
 
 .card-slot--chosen {
   animation: none;
-  cursor: grabbing;
   opacity: 0.9;
+}
+
+.card-slot--chosen .card-slot__handle {
+  cursor: grabbing;
 }
 
 .card-slot--ghost {

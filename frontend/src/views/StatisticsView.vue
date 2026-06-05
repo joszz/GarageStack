@@ -701,6 +701,7 @@ const skeletonChartCount = computed(
             :animation="200"
             ghost-class="card-slot--ghost"
             chosen-class="card-slot--chosen"
+            handle=".card-slot__handle"
           >
             <div
               v-for="item in settings.statsInsights"
@@ -709,6 +710,9 @@ const skeletonChartCount = computed(
               class="card-slot"
               :class="{ 'card-slot--hidden': !item.visible }"
             >
+              <div class="card-slot__handle">
+                <font-awesome-icon icon="grip-lines" />
+              </div>
               <div class="card-slot__content">
                 <template
                   v-if="
@@ -808,6 +812,7 @@ const skeletonChartCount = computed(
             :animation="200"
             ghost-class="card-slot--ghost"
             chosen-class="card-slot--chosen"
+            handle=".card-slot__handle"
           >
             <div
               v-for="item in settings.statsCharts"
@@ -816,6 +821,9 @@ const skeletonChartCount = computed(
               class="card-slot card-slot--chart"
               :class="{ 'card-slot--hidden': !item.visible }"
             >
+              <div class="card-slot__handle">
+                <font-awesome-icon icon="grip-lines" />
+              </div>
               <div class="card-slot__content">
                 <div
                   v-if="chartDefMap.get(item.id)?.applicable && store.history.length"
