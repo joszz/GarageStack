@@ -203,6 +203,7 @@ onUnmounted(() => {
         :animation="200"
         ghost-class="card-slot--ghost"
         chosen-class="card-slot--chosen"
+        handle=".card-slot__handle"
       >
         <div
           v-for="card in settings.cards"
@@ -210,6 +211,9 @@ onUnmounted(() => {
           class="card-slot"
           :class="{ 'card-slot--hidden': !card.visible }"
         >
+          <div class="card-slot__handle">
+            <font-awesome-icon icon="grip-lines" />
+          </div>
           <div class="card-slot__content">
             <DashboardCardContent
               v-if="card.visible && status && cardHasData(card.id)"

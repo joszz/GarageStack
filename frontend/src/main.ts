@@ -75,6 +75,7 @@ import {
   faCalendarCheck,
   faChargingStation,
   faFlask,
+  faGripLines,
 } from '@fortawesome/free-solid-svg-icons'
 
 import App from './App.vue'
@@ -154,6 +155,7 @@ library.add(
   faCalendarCheck,
   faChargingStation,
   faFlask,
+  faGripLines,
 )
 
 const i18n = createI18n({
