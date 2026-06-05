@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, computed, ref, watch } from 'vue'
+import { onMounted, computed, ref, watch, shallowRef, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useVehicleStore } from '@/stores/vehicle'
 import { useSettingsStore } from '@/stores/settings'
@@ -8,10 +8,15 @@ import type { StatsInsightId, StatsChartId } from '@/stores/settings'
 import type { TelemetrySnapshot } from '@/services/api'
 import { Line, Bar } from 'vue-chartjs'
 import { VueDraggable } from 'vue-draggable-plus'
+import { LMap, LTileLayer, LMarker } from '@vue-leaflet/vue-leaflet'
+import * as LModule from 'leaflet'
+import type { Map as LeafletMap } from 'leaflet'
 import CardInfoWrap from '@/components/CardInfoWrap.vue'
+import DetailModal from '@/components/DetailModal.vue'
 import FiltersPanel from '@/components/FiltersPanel.vue'
 import SkeletonCard from '@/components/SkeletonCard.vue'
 import SkeletonChart from '@/components/SkeletonChart.vue'
+import StatusCard from '@/components/StatusCard.vue'
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -38,6 +43,9 @@ ChartJS.register(
   Legend,
   Filler,
 )
+
+const L = ((LModule as unknown as { default?: typeof LModule }).default ??
+  LModule) as typeof LModule
 
 const { t } = useI18n()
 const store = useVehicleStore()
@@ -238,6 +246,47 @@ const electricShareToday = computed(() => {
   if (!s?.mileageSinceLastCharge || !s?.mileageOfTheDay || s.mileageOfTheDay === 0) return null
   return Math.min(100, Math.round((s.mileageSinceLastCharge / s.mileageOfTheDay) * 100))
 })
+
+// ── Parking locations modal ───────────────────────────────────
+
+const parkingModalOpen = ref(false)
+const parkingMapInstance = shallowRef<LeafletMap | null>(null)
+
+const parkingCoordinates = computed<Array<{ lat: number; lng: number }>>(() => {
+  if (!store.trips.length) return []
+  const spots = new Map<string, { lat: number; lng: number }>()
+  for (const trip of store.trips) {
+    const last = trip.points[trip.points.length - 1]
+    if (last) {
+      const key = `${last.latitude.toFixed(3)},${last.longitude.toFixed(3)}`
+      if (!spots.has(key)) spots.set(key, { lat: last.latitude, lng: last.longitude })
+    }
+  }
+  return Array.from(spots.values())
+})
+
+const parkingMapCenter = computed<[number, number]>(() =>
+  parkingCoordinates.value.length
+    ? [parkingCoordinates.value[0]!.lat, parkingCoordinates.value[0]!.lng]
+    : [52.3676, 4.9041],
+)
+
+function onParkingMapReady(map: LeafletMap) {
+  parkingMapInstance.value = map
+  nextTick(() => {
+    requestAnimationFrame(() => {
+      map.invalidateSize()
+      const pts = parkingCoordinates.value
+      if (!pts.length) return
+      const bounds = L.latLngBounds(pts.map((c) => [c.lat, c.lng] as [number, number]))
+      if (bounds.getNorthEast().equals(bounds.getSouthWest())) {
+        map.setView(bounds.getCenter(), 15, { animate: false })
+      } else {
+        map.fitBounds(bounds, { padding: [24, 24], animate: false })
+      }
+    })
+  })
+}
 
 // ── Insight card definitions ──────────────────────────────────
 
@@ -704,33 +753,44 @@ const skeletonChartCount = computed(
           <div v-else class="status-grid">
             <template v-for="item in settings.statsInsights" :key="item.id">
               <template v-if="item.visible && insightDefMap.get(item.id)?.applicable">
-                <CardInfoWrap
-                  :title="insightDefMap.get(item.id)!.title"
-                  :description="insightDefMap.get(item.id)!.description"
-                >
-                  <div class="status-card">
-                    <div class="status-card__icon">
-                      <font-awesome-icon :icon="insightDefMap.get(item.id)!.icon" />
+                <template v-if="item.id === 'parkingLocations'">
+                  <StatusCard
+                    :icon="insightDefMap.get(item.id)!.icon"
+                    :label="insightDefMap.get(item.id)!.title"
+                    :value="insightDefMap.get(item.id)!.value"
+                    clickable
+                    @click="parkingModalOpen = true"
+                  />
+                </template>
+                <template v-else>
+                  <CardInfoWrap
+                    :title="insightDefMap.get(item.id)!.title"
+                    :description="insightDefMap.get(item.id)!.description"
+                  >
+                    <div class="status-card">
+                      <div class="status-card__icon">
+                        <font-awesome-icon :icon="insightDefMap.get(item.id)!.icon" />
+                      </div>
+                      <div class="status-card__body">
+                        <span class="status-card__label">{{
+                          insightDefMap.get(item.id)!.title
+                        }}</span>
+                        <span class="status-card__value">
+                          {{ insightDefMap.get(item.id)!.value ?? '-' }}
+                          <span
+                            v-if="
+                              insightDefMap.get(item.id)!.value !== null &&
+                              insightDefMap.get(item.id)!.unit
+                            "
+                            class="status-card__unit"
+                          >
+                            {{ insightDefMap.get(item.id)!.unit }}</span
+                          >
+                        </span>
+                      </div>
                     </div>
-                    <div class="status-card__body">
-                      <span class="status-card__label">{{
-                        insightDefMap.get(item.id)!.title
-                      }}</span>
-                      <span class="status-card__value">
-                        {{ insightDefMap.get(item.id)!.value ?? '-' }}
-                        <span
-                          v-if="
-                            insightDefMap.get(item.id)!.value !== null &&
-                            insightDefMap.get(item.id)!.unit
-                          "
-                          class="status-card__unit"
-                        >
-                          {{ insightDefMap.get(item.id)!.unit }}</span
-                        >
-                      </span>
-                    </div>
-                  </div>
-                </CardInfoWrap>
+                  </CardInfoWrap>
+                </template>
               </template>
             </template>
           </div>
@@ -819,12 +879,47 @@ const skeletonChartCount = computed(
             {{ t('dashboard.resetLayout') }}
           </button>
         </template>
+
+        <!-- Parking locations map modal -->
+        <DetailModal
+          :open="parkingModalOpen"
+          :title="t('statistics.insights.parkingLocations')"
+          wide
+          @close="parkingModalOpen = false"
+        >
+          <div class="parking-modal-map">
+            <LMap :zoom="13" :center="parkingMapCenter" @ready="onParkingMapReady">
+              <LTileLayer
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                attribution="&copy; OpenStreetMap contributors"
+              />
+              <LMarker
+                v-for="(spot, i) in parkingCoordinates"
+                :key="i"
+                :lat-lng="[spot.lat, spot.lng]"
+              />
+            </LMap>
+          </div>
+        </DetailModal>
       </template>
     </template>
   </div>
 </template>
 
 <style scoped>
+.parking-modal-map {
+  height: 280px;
+  width: 100%;
+  border-radius: var(--radius-sm, 4px);
+  overflow: hidden;
+}
+
+@media (min-width: 768px) {
+  .parking-modal-map {
+    height: 420px;
+  }
+}
+
 .stats-insights {
   margin-bottom: 1rem;
 }
