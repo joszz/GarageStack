@@ -826,6 +826,74 @@ body,
   fill: #fef9c3;
   fill-opacity: 0.18;
 }
+.car-light-beam--side {
+  fill: #fb923c;
+  fill-opacity: 0.35;
+  filter: blur(2px);
+}
+
+/* ── Headlight / sidelight bars ───────────────────────────── */
+
+.car-headlight-bar {
+  opacity: 0.9;
+  filter: blur(0.5px);
+}
+
+/* ── Open panel icon badges ───────────────────────────────── */
+/*
+  Circular warning badges floating at each panel location.
+  Positions derived from SVG viewBox 340×480 mapped to % of container.
+  Left doors  at x≈80/340 =23.5%, right at x≈260/340=76.5%
+  FL/FR doors top≈39%, RL/RR doors top≈50%
+  Bonnet top≈20%, Trunk top≈79%
+*/
+
+.car-badge {
+  position: absolute;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--color-warning);
+  color: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  pointer-events: none;
+  border: 2px solid var(--color-surface);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+
+.car-badge--bonnet {
+  top: 25%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+.car-badge--trunk {
+  top: 75%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+.car-badge--door-fl {
+  top: 45%;
+  left: 23.5%;
+  transform: translate(-50%, -50%);
+}
+.car-badge--door-fr {
+  top: 45%;
+  left: 76.5%;
+  transform: translate(-50%, -50%);
+}
+.car-badge--door-rl {
+  top: 56%;
+  left: 23.5%;
+  transform: translate(-50%, -50%);
+}
+.car-badge--door-rr {
+  top: 56%;
+  left: 76.5%;
+  transform: translate(-50%, -50%);
+}
 
 /* ── Active state legend ──────────────────────────────────── */
 
@@ -845,9 +913,6 @@ body,
   gap: 0.3rem;
 }
 
-.vehicle-state-legend__item--open {
-  color: var(--color-warning);
-}
 .vehicle-state-legend__item--lights {
   color: #fde047;
 }
