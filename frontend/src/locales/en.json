@@ -252,6 +252,11 @@
       "chargingSession": "Charging Session",
       "batteryHeating": "Battery Heating"
     },
+    "dashboard": {
+      "title": "Dashboard",
+      "cardInfoIcons": "Show info icons",
+      "cardInfoIconsDesc": "Show the info button on each card"
+    },
     "vehicleType": {
       "title": "Vehicle type",
       "detected": "Detected",

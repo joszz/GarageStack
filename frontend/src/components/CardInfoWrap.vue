@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useSettingsStore } from '@/stores/settings'
 
 defineProps<{
   title: string
@@ -9,12 +10,14 @@ defineProps<{
 
 const { t } = useI18n()
 const showInfo = ref(false)
+const settings = useSettingsStore()
 </script>
 
 <template>
   <div class="card-info-wrap">
     <slot />
     <button
+      v-if="settings.showCardInfoIcons"
       class="card-info-btn"
       :aria-label="t('dashboard.cardInfoBtn')"
       @click.stop="showInfo = true"
