@@ -52,9 +52,19 @@ export function useNotifications() {
     if (n) n.isArchived = true
   }
 
+  async function archiveAllNotifications() {
+    await notificationsApi.archiveAll()
+    notifications.value.forEach((n) => (n.isArchived = true))
+  }
+
   async function deleteNotification(id: number) {
     await notificationsApi.delete(id)
     notifications.value = notifications.value.filter((n) => n.id !== id)
+  }
+
+  async function deleteAllNotifications() {
+    await notificationsApi.deleteAll()
+    notifications.value = []
   }
 
   function togglePanel() {
@@ -73,7 +83,9 @@ export function useNotifications() {
     loading,
     fetchNotifications,
     archiveNotification,
+    archiveAllNotifications,
     deleteNotification,
+    deleteAllNotifications,
     togglePanel,
     closePanel,
   }

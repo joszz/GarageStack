@@ -191,8 +191,15 @@
   "notifications": {
     "title": "Notifications",
     "empty": "No notifications",
+    "active": "Active",
+    "archived": "Archived",
     "archive": "Archive",
+    "archiveAll": "Archive all",
     "delete": "Delete",
+    "deleteAll": "Delete all",
+    "emptyArchived": "No archived notifications",
+    "confirmArchiveAll": "Archive all notifications?",
+    "confirmDeleteAll": "Permanently delete all notifications?",
     "justNow": "Just now",
     "minutesAgo": "{n} min ago",
     "hoursAgo": "{n}h ago"
@@ -268,6 +275,7 @@
     "open": "Open",
     "closed": "Closed",
     "cancel": "Cancel",
+    "confirm": "Confirm",
     "filters": "Filters",
     "online": "Online",
     "offline": "Offline",

@@ -29,14 +29,40 @@ const emit = defineEmits<{
   (e: 'close'): void
   (e: 'archive', id: number): void
   (e: 'delete', id: number): void
+  (e: 'archiveAll'): void
+  (e: 'deleteAll'): void
 }>()
 
 const { t } = useI18n()
 
 const page = ref(1)
-const totalPages = computed(() => Math.max(1, Math.ceil(props.notifications.length / PAGE_SIZE)))
+const showArchived = ref(false)
+const pendingAction = ref<'archiveAll' | 'deleteAll' | null>(null)
+
+const hasUnarchived = computed(() => props.notifications.some((n) => !n.isArchived))
+
+function requestBulkAction(action: 'archiveAll' | 'deleteAll') {
+  pendingAction.value = action
+}
+
+function confirmBulkAction() {
+  if (pendingAction.value === 'archiveAll') emit('archiveAll')
+  else if (pendingAction.value === 'deleteAll') emit('deleteAll')
+  pendingAction.value = null
+}
+
+function cancelBulkAction() {
+  pendingAction.value = null
+}
+
+const filteredNotifications = computed(() =>
+  props.notifications.filter((n) => n.isArchived === showArchived.value),
+)
+const totalPages = computed(() =>
+  Math.max(1, Math.ceil(filteredNotifications.value.length / PAGE_SIZE)),
+)
 const pagedNotifications = computed(() =>
-  props.notifications.slice((page.value - 1) * PAGE_SIZE, page.value * PAGE_SIZE),
+  filteredNotifications.value.slice((page.value - 1) * PAGE_SIZE, page.value * PAGE_SIZE),
 )
 
 watch(
@@ -48,9 +74,15 @@ watch(
 watch(
   () => props.open,
   (v) => {
-    if (v) page.value = 1
+    if (v) {
+      page.value = 1
+      showArchived.value = false
+    }
   },
 )
+watch(showArchived, () => {
+  page.value = 1
+})
 
 function formatTime(iso: string) {
   const d = new Date(iso)
@@ -90,15 +122,38 @@ onUnmounted(() => document.removeEventListener('keydown', onKey))
             </button>
           </div>
 
+          <div v-if="!loading && notifications.length > 0" class="notif-panel__tabs">
+            <button
+              class="notif-panel__tab"
+              :class="{ 'notif-panel__tab--active': !showArchived }"
+              @click="showArchived = false"
+            >
+              {{ t('notifications.active') }}
+            </button>
+            <button
+              class="notif-panel__tab"
+              :class="{ 'notif-panel__tab--active': showArchived }"
+              @click="showArchived = true"
+            >
+              <font-awesome-icon icon="box-archive" class="me-1" />
+              {{ t('notifications.archived') }}
+            </button>
+          </div>
+
           <div class="notif-panel__body">
             <div v-if="loading" class="notif-panel__empty text-muted">
               <font-awesome-icon icon="spinner" spin />
               {{ t('common.loading') }}
             </div>
 
-            <div v-else-if="notifications.length === 0" class="notif-panel__empty text-muted">
+            <div
+              v-else-if="filteredNotifications.length === 0"
+              class="notif-panel__empty text-muted"
+            >
               <font-awesome-icon icon="bell-slash" class="notif-panel__empty-icon" />
-              <span>{{ t('notifications.empty') }}</span>
+              <span>{{
+                showArchived ? t('notifications.emptyArchived') : t('notifications.empty')
+              }}</span>
             </div>
 
             <ul v-else class="notif-panel__list">
@@ -135,13 +190,59 @@ onUnmounted(() => document.removeEventListener('keydown', onKey))
                 </div>
               </li>
             </ul>
+          </div>
 
-            <AppPaginator
-              v-if="totalPages > 1"
-              v-model="page"
-              :total-pages="totalPages"
-              class="notif-panel__paginator"
-            />
+          <div v-if="!loading && notifications.length > 0" class="notif-panel__footer">
+            <template v-if="pendingAction">
+              <div class="notif-panel__confirm">
+                <span class="notif-panel__confirm-msg">
+                  {{
+                    pendingAction === 'archiveAll'
+                      ? t('notifications.confirmArchiveAll')
+                      : t('notifications.confirmDeleteAll')
+                  }}
+                </span>
+                <div class="notif-panel__confirm-actions">
+                  <button class="notif-panel__bulk-btn" @click="cancelBulkAction">
+                    {{ t('common.cancel') }}
+                  </button>
+                  <button
+                    class="notif-panel__bulk-btn"
+                    :class="{ 'notif-panel__bulk-btn--danger': pendingAction === 'deleteAll' }"
+                    @click="confirmBulkAction"
+                  >
+                    {{ t('common.confirm') }}
+                  </button>
+                </div>
+              </div>
+            </template>
+
+            <template v-else>
+              <div class="notif-panel__footer-side">
+                <button
+                  v-if="!showArchived && hasUnarchived"
+                  class="notif-panel__bulk-btn"
+                  @click="requestBulkAction('archiveAll')"
+                >
+                  <font-awesome-icon icon="box-archive" class="me-1" />
+                  {{ t('notifications.archiveAll') }}
+                </button>
+              </div>
+
+              <div class="notif-panel__footer-center">
+                <AppPaginator v-if="totalPages > 1" v-model="page" :total-pages="totalPages" />
+              </div>
+
+              <div class="notif-panel__footer-side notif-panel__footer-side--right">
+                <button
+                  class="notif-panel__bulk-btn notif-panel__bulk-btn--danger"
+                  @click="requestBulkAction('deleteAll')"
+                >
+                  <font-awesome-icon icon="trash" class="me-1" />
+                  {{ t('notifications.deleteAll') }}
+                </button>
+              </div>
+            </template>
           </div>
         </div>
       </div>
