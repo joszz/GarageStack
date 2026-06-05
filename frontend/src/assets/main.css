@@ -579,6 +579,11 @@ body,
   .modal-leave-to .detail-modal {
     transform: translateY(-12px) scale(0.97);
   }
+
+  .detail-modal--wide {
+    max-width: 680px;
+    width: 92vw;
+  }
 }
 
 /* ── Card component ───────────────────────────────────────── */
