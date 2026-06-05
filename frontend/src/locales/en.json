@@ -282,5 +282,32 @@
     "min": "min",
     "fetched": "Fetched",
     "recorded": "Recorded"
+  },
+  "demo": {
+    "banner": "Demo mode - displaying sample data only",
+    "controlPanel": "Demo Controls",
+    "doors": "Doors / Bonnet / Trunk",
+    "windows": "Windows",
+    "lights": "Lights",
+    "state": "State",
+    "charging": "Charging",
+    "soc": "Battery SOC",
+    "temperature": "Temperature",
+    "driver": "Driver",
+    "passenger": "Passenger",
+    "rearLeft": "Rear L",
+    "rearRight": "Rear R",
+    "trunk": "Trunk",
+    "bonnet": "Bonnet",
+    "mainBeam": "Main beam",
+    "dippedBeam": "Dipped",
+    "sidelights": "Side",
+    "locked": "Locked",
+    "engine": "Engine",
+    "climate": "Climate",
+    "chargerConnected": "Connected",
+    "isCharging": "Charging",
+    "interior": "Interior",
+    "exterior": "Exterior"
   }
 }

@@ -74,6 +74,7 @@ import {
   faTemperatureArrowUp,
   faCalendarCheck,
   faChargingStation,
+  faFlask,
 } from '@fortawesome/free-solid-svg-icons'
 
 import App from './App.vue'
@@ -152,6 +153,7 @@ library.add(
   faTemperatureArrowUp,
   faCalendarCheck,
   faChargingStation,
+  faFlask,
 )
 
 const i18n = createI18n({

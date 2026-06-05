@@ -7,7 +7,12 @@ import { useAuthStore } from '@/stores/auth'
 import { useVehicleStore } from '@/stores/vehicle'
 import AppFooter from '@/components/AppFooter.vue'
 import NotificationPanel from '@/components/NotificationPanel.vue'
+import DemoBanner from '@/components/DemoBanner.vue'
+import DemoControlPanel from '@/components/DemoControlPanel.vue'
 import { useNotifications } from '@/composables/useNotifications'
+
+const isDemoMode = import.meta.env.VITE_DEMO_MODE === 'true'
+const demoControlsOpen = ref(false)
 
 const { t, locale } = useI18n()
 const route = useRoute()
@@ -107,6 +112,8 @@ watch(
   <RouterView v-if="isLoginRoute" />
 
   <div v-else class="app-layout">
+    <DemoBanner v-if="isDemoMode" />
+
     <!-- Mobile topbar -->
     <header class="mobile-topbar">
       <button class="hamburger" :aria-expanded="menuOpen" aria-label="Menu" @click="toggleMenu">
@@ -206,11 +213,21 @@ watch(
             <font-awesome-icon icon="user" />
             <span class="sidebar-user__email">{{ auth.username }}</span>
           </div>
+          <button
+            v-if="isDemoMode"
+            class="sidebar-demo-btn"
+            :class="{ 'is-active': demoControlsOpen }"
+            @click="demoControlsOpen = !demoControlsOpen"
+          >
+            <font-awesome-icon :icon="['fas', 'flask']" />
+            <span>{{ t('demo.controlPanel') }}</span>
+          </button>
           <button class="sidebar-notif-btn" @click="togglePanel">
             <font-awesome-icon icon="bell" />
             <span>{{ t('notifications.title') }}</span>
             <span v-if="unreadCount > 0" class="notif-bell__badge">{{ unreadCount }}</span>
           </button>
+
           <button class="sidebar-logout-btn" @click="logout">
             <font-awesome-icon icon="arrow-right-from-bracket" />
             <span>{{ t('auth.logout') }}</span>
@@ -235,5 +252,7 @@ watch(
       @delete="deleteNotification"
       @delete-all="deleteAllNotifications"
     />
+
+    <DemoControlPanel v-if="isDemoMode" :open="demoControlsOpen" />
   </div>
 </template>

@@ -282,5 +282,32 @@
     "min": "min",
     "fetched": "Opgehaald",
     "recorded": "Geregistreerd"
+  },
+  "demo": {
+    "banner": "Demo modus - alleen voorbeelddata wordt getoond",
+    "controlPanel": "Demo Bediening",
+    "doors": "Deuren / Motorkap / Kofferbak",
+    "windows": "Ramen",
+    "lights": "Verlichting",
+    "state": "Status",
+    "charging": "Laden",
+    "soc": "Batterij SOC",
+    "temperature": "Temperatuur",
+    "driver": "Bestuurder",
+    "passenger": "Passagier",
+    "rearLeft": "Achter L",
+    "rearRight": "Achter R",
+    "trunk": "Kofferbak",
+    "bonnet": "Motorkap",
+    "mainBeam": "Groot licht",
+    "dippedBeam": "Dimlicht",
+    "sidelights": "Stadslicht",
+    "locked": "Vergrendeld",
+    "engine": "Motor",
+    "climate": "Klimaat",
+    "chargerConnected": "Verbonden",
+    "isCharging": "Laden",
+    "interior": "Interieur",
+    "exterior": "Exterieur"
   }
 }
