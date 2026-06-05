@@ -120,6 +120,32 @@ async function refresh() {
       </div>
     </div>
 
+    <!-- Dashboard -->
+    <div class="detail-modal__section">
+      <div class="detail-modal__section-title">{{ t('settings.dashboard.title') }}</div>
+      <div class="settings-toggles">
+        <div class="settings-toggle">
+          <div class="settings-toggle__info">
+            <span class="settings-toggle__label">{{ t('settings.dashboard.cardInfoIcons') }}</span>
+            <span class="settings-toggle__desc text-muted">{{
+              t('settings.dashboard.cardInfoIconsDesc')
+            }}</span>
+          </div>
+          <div class="settings-toggle__control">
+            <div class="form-check form-switch mb-0">
+              <input
+                id="footer-toggle-card-info-icons"
+                v-model="settings.showCardInfoIcons"
+                class="form-check-input"
+                type="checkbox"
+                role="switch"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Language -->
     <div class="detail-modal__section">
       <div class="detail-modal__section-title">{{ t('settings.language.title') }}</div>

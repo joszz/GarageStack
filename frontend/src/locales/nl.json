@@ -252,6 +252,11 @@
       "chargingSession": "Laadsessie",
       "batteryHeating": "Accuverwarming"
     },
+    "dashboard": {
+      "title": "Dashboard",
+      "cardInfoIcons": "Info-iconen tonen",
+      "cardInfoIconsDesc": "Toon de info-knop op elke kaart"
+    },
     "vehicleType": {
       "title": "Voertuigtype",
       "detected": "Gedetecteerd",

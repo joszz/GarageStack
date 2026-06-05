@@ -133,6 +133,7 @@ export interface AppSettings {
   statsInsights: StatsItemConfig<StatsInsightId>[]
   statsCharts: StatsItemConfig<StatsChartId>[]
   showTyreDiagram: boolean
+  showCardInfoIcons: boolean
   vehicleTypeOverride: VehicleTypeOverride
   theme: Theme
   locale: Locale
@@ -183,6 +184,7 @@ const defaults: AppSettings = {
   statsInsights: defaultStatsInsights(),
   statsCharts: defaultStatsCharts(),
   showTyreDiagram: true,
+  showCardInfoIcons: true,
   vehicleTypeOverride: 'auto',
   theme: osPreferredTheme(),
   locale: browserLocale(),
@@ -279,6 +281,7 @@ function loadFromKey(key: string): AppSettings {
           statsInsights: defaultStatsInsights(),
           statsCharts: defaultStatsCharts(),
           showTyreDiagram: true,
+          showCardInfoIcons: parsed.showCardInfoIcons !== false,
           vehicleTypeOverride: parsed.vehicleTypeOverride ?? defaults.vehicleTypeOverride,
           theme: parsed.theme ?? defaults.theme,
           locale: parsed.locale ?? defaults.locale,
@@ -292,6 +295,7 @@ function loadFromKey(key: string): AppSettings {
           statsInsights: loadStatsItems(parsed.statsInsights, ALL_STATS_INSIGHT_IDS),
           statsCharts: loadStatsItems(parsed.statsCharts, ALL_STATS_CHART_IDS),
           showTyreDiagram: parsed.showTyreDiagram !== false,
+          showCardInfoIcons: parsed.showCardInfoIcons !== false,
           vehicleTypeOverride: parsed.vehicleTypeOverride ?? defaults.vehicleTypeOverride,
           theme: parsed.theme ?? defaults.theme,
           locale: parsed.locale ?? defaults.locale,
@@ -325,6 +329,7 @@ export const useSettingsStore = defineStore('settings', () => {
   const statsInsights = ref<StatsItemConfig<StatsInsightId>[]>(loaded.statsInsights)
   const statsCharts = ref<StatsItemConfig<StatsChartId>[]>(loaded.statsCharts)
   const showTyreDiagram = ref<boolean>(loaded.showTyreDiagram)
+  const showCardInfoIcons = ref<boolean>(loaded.showCardInfoIcons)
 
   document.documentElement.dataset.theme = theme.value
 
@@ -336,6 +341,7 @@ export const useSettingsStore = defineStore('settings', () => {
         statsInsights: statsInsights.value,
         statsCharts: statsCharts.value,
         showTyreDiagram: showTyreDiagram.value,
+        showCardInfoIcons: showCardInfoIcons.value,
         vehicleTypeOverride: vehicleTypeOverride.value,
         theme: theme.value,
         locale: locale.value,
@@ -348,6 +354,7 @@ export const useSettingsStore = defineStore('settings', () => {
   watch(statsInsights, save, { deep: true })
   watch(statsCharts, save, { deep: true })
   watch(showTyreDiagram, save)
+  watch(showCardInfoIcons, save)
   watch(vehicleTypeOverride, save)
   watch(locale, save)
   watch(filterDays, save)
@@ -365,6 +372,7 @@ export const useSettingsStore = defineStore('settings', () => {
     statsInsights,
     statsCharts,
     showTyreDiagram,
+    showCardInfoIcons,
     vehicleTypeOverride,
     theme,
     locale,
