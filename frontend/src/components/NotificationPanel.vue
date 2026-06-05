@@ -40,7 +40,6 @@ const showArchived = ref(false)
 const pendingAction = ref<'archiveAll' | 'deleteAll' | null>(null)
 
 const hasUnarchived = computed(() => props.notifications.some((n) => !n.isArchived))
-const hasArchived = computed(() => props.notifications.some((n) => n.isArchived))
 
 function requestBulkAction(action: 'archiveAll' | 'deleteAll') {
   pendingAction.value = action
