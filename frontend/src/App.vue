@@ -47,7 +47,9 @@ const {
   togglePanel,
   closePanel,
   archiveNotification,
+  archiveAllNotifications,
   deleteNotification,
+  deleteAllNotifications,
 } = useNotifications()
 
 const carModel = computed(() => vehicleStore.vehicles[0]?.model ?? null)
@@ -229,7 +231,9 @@ watch(
       :loading="loading"
       @close="closePanel"
       @archive="archiveNotification"
+      @archive-all="archiveAllNotifications"
       @delete="deleteNotification"
+      @delete-all="deleteAllNotifications"
     />
   </div>
 </template>

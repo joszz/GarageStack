@@ -191,8 +191,15 @@
   "notifications": {
     "title": "Meldingen",
     "empty": "Geen meldingen",
+    "active": "Actief",
+    "archived": "Gearchiveerd",
     "archive": "Archiveren",
+    "archiveAll": "Alles archiveren",
     "delete": "Verwijderen",
+    "deleteAll": "Alles verwijderen",
+    "emptyArchived": "Geen gearchiveerde meldingen",
+    "confirmArchiveAll": "Alle meldingen archiveren?",
+    "confirmDeleteAll": "Alle meldingen definitief verwijderen?",
     "justNow": "Zojuist",
     "minutesAgo": "{n} min geleden",
     "hoursAgo": "{n}u geleden"
@@ -268,6 +275,7 @@
     "open": "Open",
     "closed": "Gesloten",
     "cancel": "Annuleren",
+    "confirm": "Bevestigen",
     "filters": "Filters",
     "online": "Online",
     "offline": "Offline",

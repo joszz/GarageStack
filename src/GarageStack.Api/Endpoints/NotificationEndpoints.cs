@@ -45,6 +45,24 @@ public static class NotificationEndpoints
         })
         .WithSummary("Soft-delete a notification");
 
+        group.MapPatch("/archive-all", async (AppDbContext db, CancellationToken ct) =>
+        {
+            await db.AppNotifications
+                .Where(n => !n.IsDeleted && !n.IsArchived)
+                .ExecuteUpdateAsync(s => s.SetProperty(n => n.IsArchived, true), ct);
+            return Results.Ok();
+        })
+        .WithSummary("Archive all non-archived notifications");
+
+        group.MapDelete("/", async (AppDbContext db, CancellationToken ct) =>
+        {
+            await db.AppNotifications
+                .Where(n => !n.IsDeleted)
+                .ExecuteUpdateAsync(s => s.SetProperty(n => n.IsDeleted, true), ct);
+            return Results.Ok();
+        })
+        .WithSummary("Soft-delete all notifications");
+
         return app;
     }
 }

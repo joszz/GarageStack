@@ -2244,6 +2244,105 @@ body,
   color: var(--color-text);
 }
 
+.notif-panel__tabs {
+  display: flex;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.notif-panel__tab {
+  flex: 1;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  padding: 0.5rem 0;
+  transition:
+    color 0.15s,
+    border-color 0.15s;
+  margin-bottom: -1px;
+}
+
+.notif-panel__tab:hover {
+  color: var(--color-text);
+}
+
+.notif-panel__tab--active {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+}
+
+.notif-panel__footer {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-surface);
+  flex-shrink: 0;
+}
+
+.notif-panel__footer-side {
+  display: flex;
+  align-items: center;
+}
+
+.notif-panel__footer-side--right {
+  justify-content: flex-end;
+}
+
+.notif-panel__footer-center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.notif-panel__confirm {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.notif-panel__confirm-msg {
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+}
+
+.notif-panel__confirm-actions {
+  display: flex;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.notif-panel__bulk-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  padding: 0.2rem 0.5rem;
+  border-radius: var(--radius-sm);
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+
+.notif-panel__bulk-btn:hover {
+  background: var(--color-surface-2);
+  color: var(--color-text);
+}
+
+.notif-panel__bulk-btn--danger:hover {
+  background: color-mix(in srgb, var(--color-danger) 15%, var(--color-surface-2));
+  color: var(--color-danger-text);
+}
+
 .notif-panel__body {
   flex: 1;
   overflow-y: auto;
@@ -2355,13 +2454,6 @@ body,
 .notif-item__btn--danger:hover {
   background: color-mix(in srgb, var(--color-danger) 15%, var(--color-surface-2));
   color: var(--color-danger-text);
-}
-
-.notif-panel__paginator {
-  display: flex;
-  justify-content: center;
-  padding: 0.75rem 1.25rem;
-  border-top: 1px solid var(--color-border);
 }
 
 /* ── Notification panel transitions ──────────────────────── */
