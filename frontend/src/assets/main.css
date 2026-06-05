@@ -637,10 +637,11 @@ body,
   justify-content: center;
 }
 
+/* SVG viewBox is 340×480; keep it narrow enough to fit on iPhone SE (375px) */
 .tyre-car-wrap {
   position: relative;
   display: inline-block;
-  width: 200px;
+  width: 220px;
   max-width: 100%;
 }
 
@@ -649,21 +650,59 @@ body,
   display: block;
 }
 
-.car-body {
-  fill: var(--color-surface-2);
-  stroke: var(--color-border);
-  stroke-width: 2;
+/* ── Car SVG illustration classes ────────────────────────── */
+
+.car-svg-body {
+  fill: #f39200;
+}
+.car-svg-accent {
+  fill: #f9b233;
+}
+.car-svg-detail {
+  fill: #3a3020;
+}
+.car-svg-dark {
+  fill: #1d1d1b;
+}
+.car-svg-red {
+  fill: #e6332a;
+}
+.car-svg-highlight {
+  fill: #ededed;
+  opacity: 0.7;
+}
+.car-svg-gloss {
+  fill: #ffffff;
+  opacity: 0.18;
 }
 
-.car-glass {
-  fill: var(--color-border);
-  opacity: 0.6;
+[data-theme='light'] .car-svg-detail {
+  fill: #4a3c20;
+}
+[data-theme='light'] .car-svg-dark {
+  fill: #2d2d2d;
 }
 
-.tyre {
-  opacity: 0.9;
-  stroke: var(--color-border);
+/* ── Tyre pressure indicator lines ───────────────────────── */
+
+.tyre-indicator-line {
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  opacity: 0.85;
 }
+
+.tyre-indicator-dot {
+  opacity: 0.95;
+  stroke: var(--color-surface);
+  stroke-width: 1.5;
+}
+
+/* ── Pressure label positioning ──────────────────────────── */
+/*
+  Labels float at the outer endpoints of the indicator lines.
+  SVG viewBox 340×480; line ends at FL(72,68) FR(268,68) RL(72,404) RR(268,404).
+  As % of container: x=72/340=21.2% x=268/340=78.8% y=68/480=14.2% y=404/480=84.2%
+*/
 
 .tyre-labels {
   position: absolute;
@@ -673,7 +712,7 @@ body,
 
 .tyre-label {
   position: absolute;
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   font-weight: 600;
   padding: 2px 5px;
   border-radius: 4px;
@@ -682,28 +721,27 @@ body,
   white-space: nowrap;
 }
 
-/* Positions derived from SVG viewBox 220x340 tyre centers:
-   front tyres center-y ≈ 28%, rear ≈ 72% */
 .tyre-label--fl {
-  top: 28%;
-  left: 2%;
-  transform: translateY(-50%);
+  top: 14.2%;
+  left: 21.2%;
+  transform: translate(-100%, -50%);
 }
 .tyre-label--fr {
-  top: 28%;
-  right: 2%;
-  transform: translateY(-50%);
+  top: 14.2%;
+  left: 78.8%;
+  transform: translate(0%, -50%);
 }
 .tyre-label--rl {
-  top: 72%;
-  left: 2%;
-  transform: translateY(-50%);
+  top: 84.2%;
+  left: 21.2%;
+  transform: translate(-100%, -50%);
 }
 .tyre-label--rr {
-  top: 72%;
-  right: 2%;
-  transform: translateY(-50%);
+  top: 84.2%;
+  left: 78.8%;
+  transform: translate(0%, -50%);
 }
+
 .tyre-label--ok {
   border-color: var(--color-success);
   color: var(--color-success);
@@ -719,6 +757,40 @@ body,
 .tyre-label--unknown {
   color: var(--color-text-muted);
 }
+
+/* ── Fuel / battery level overlays ───────────────────────── */
+/*
+  Car top (front) sits at ~24% from SVG top; car bottom (rear) at ~76%.
+  Overlays are centered in the empty space above/below the car.
+*/
+
+.diagram-level {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--level-color, var(--color-text));
+  background: var(--color-surface);
+  border: 1px solid currentColor;
+  border-radius: 20px;
+  padding: 3px 10px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.diagram-level--fuel {
+  top: 5%;
+}
+
+.diagram-level--battery {
+  top: 88%;
+}
+
+/* ── Legend ───────────────────────────────────────────────── */
 
 .tyre-legend {
   display: flex;
@@ -744,59 +816,19 @@ body,
   color: var(--color-danger-text);
 }
 
-/* ── Car diagram overlays ─────────────────────────────────── */
+/* ── Car diagram light beams ──────────────────────────────── */
 
-/* Open panels (doors, bonnet, trunk) */
-.car-panel--open {
-  fill: var(--color-warning);
-  fill-opacity: 0.3;
-  stroke: var(--color-warning);
-  stroke-width: 1.5;
-  stroke-linejoin: round;
-}
-
-/* Headlight indicator bars */
-.car-headlight {
-  fill: var(--color-text-muted);
-  fill-opacity: 0.4;
-}
-.car-headlight--side {
-  fill: #fb923c;
-}
-.car-headlight--dipped {
-  fill: #fde047;
-}
-.car-headlight--main {
-  fill: #f9fafb;
-}
-
-/* Beam cones */
 .car-light-beam {
   fill: #fde047;
-  fill-opacity: 0.25;
+  fill-opacity: 0.22;
 }
 .car-light-beam--main {
   fill: #fef9c3;
-  fill-opacity: 0.2;
+  fill-opacity: 0.18;
 }
 
-/* EV battery indicator */
-.car-battery-outer {
-  fill: var(--color-surface);
-  stroke: var(--color-border);
-  stroke-width: 1.5;
-}
-.car-battery-terminal {
-  fill: var(--color-border);
-}
-.car-battery-text {
-  fill: var(--color-text);
-  font-size: 10px;
-  font-weight: 700;
-  font-family: inherit;
-}
+/* ── Active state legend ──────────────────────────────────── */
 
-/* Active state legend below the tyre pressure legend */
 .vehicle-state-legend {
   display: flex;
   gap: 0.75rem;
@@ -816,7 +848,6 @@ body,
 .vehicle-state-legend__item--open {
   color: var(--color-warning);
 }
-
 .vehicle-state-legend__item--lights {
   color: #fde047;
 }

@@ -257,6 +257,7 @@ onUnmounted(() => {
             :lights-dipped-beam="status.lightsDippedBeam"
             :lights-side="status.lightsSide"
             :ev-soc-percent="status.evSocPercent"
+            :fuel-level-percent="status.fuelLevelPercent"
           />
           <div v-else class="card-slot__placeholder card-slot__placeholder--chart">
             <font-awesome-icon icon="car-side" />
@@ -327,6 +328,7 @@ onUnmounted(() => {
           :lights-dipped-beam="status.lightsDippedBeam"
           :lights-side="status.lightsSide"
           :ev-soc-percent="status.evSocPercent"
+          :fuel-level-percent="status.fuelLevelPercent"
           class="mt-4"
         />
       </template>

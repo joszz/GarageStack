@@ -16,7 +16,7 @@
 .tyre-skel__car {
   width: 200px;
   max-width: 100%;
-  aspect-ratio: 220 / 340;
+  aspect-ratio: 340 / 480;
   border-radius: var(--radius);
 }
 </style>
