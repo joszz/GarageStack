@@ -6,6 +6,23 @@ export type VehicleTypeOverride = 'auto' | VehicleType
 export type Theme = 'dark' | 'light'
 export type Locale = 'en' | 'nl'
 
+export interface CarColorScheme {
+  id: string
+  primary: string
+  secondary: string
+}
+
+export const CAR_COLOR_SCHEMES: CarColorScheme[] = [
+  { id: 'orange', primary: '#f9b233', secondary: '#f39200' },
+  { id: 'red', primary: '#e53935', secondary: '#c62828' },
+  { id: 'blue', primary: '#1e88e5', secondary: '#1565c0' },
+  { id: 'silver', primary: '#cfd8dc', secondary: '#90a4ae' },
+  { id: 'white', primary: '#eceff1', secondary: '#b0bec5' },
+  { id: 'anthracite', primary: '#455a64', secondary: '#263238' },
+  { id: 'green', primary: '#43a047', secondary: '#2e7d32' },
+  { id: 'purple', primary: '#8e24aa', secondary: '#6a1b9a' },
+]
+
 export type StatsInsightId =
   | 'periodDistance'
   | 'avgTripLength'
@@ -138,6 +155,7 @@ export interface AppSettings {
   theme: Theme
   locale: Locale
   filterDays: number
+  carColorScheme: string
 }
 
 function osPreferredTheme(): Theme {
@@ -189,6 +207,7 @@ const defaults: AppSettings = {
   theme: osPreferredTheme(),
   locale: browserLocale(),
   filterDays: 7,
+  carColorScheme: 'orange',
 }
 
 function migrateCards(raw: { id: string; visible: boolean }[]): CardConfig[] {
@@ -286,6 +305,7 @@ function loadFromKey(key: string): AppSettings {
           theme: parsed.theme ?? defaults.theme,
           locale: parsed.locale ?? defaults.locale,
           filterDays: parsed.filterDays ?? defaults.filterDays,
+          carColorScheme: parsed.carColorScheme ?? defaults.carColorScheme,
         }
       }
 
@@ -300,6 +320,7 @@ function loadFromKey(key: string): AppSettings {
           theme: parsed.theme ?? defaults.theme,
           locale: parsed.locale ?? defaults.locale,
           filterDays: parsed.filterDays ?? defaults.filterDays,
+          carColorScheme: parsed.carColorScheme ?? defaults.carColorScheme,
         }
       }
     }
@@ -319,6 +340,12 @@ function loadFromKey(key: string): AppSettings {
   return { ...defaults, cards: [...defaults.cards] }
 }
 
+function applyCarColors(id: string) {
+  const scheme = CAR_COLOR_SCHEMES.find((s) => s.id === id) ?? CAR_COLOR_SCHEMES[0]!
+  document.documentElement.style.setProperty('--car-primary', scheme.primary)
+  document.documentElement.style.setProperty('--car-secondary', scheme.secondary)
+}
+
 export const useSettingsStore = defineStore('settings', () => {
   const loaded = loadFromKey(BASE_STORAGE_KEY)
   const cards = ref<CardConfig[]>(loaded.cards)
@@ -330,8 +357,10 @@ export const useSettingsStore = defineStore('settings', () => {
   const statsCharts = ref<StatsItemConfig<StatsChartId>[]>(loaded.statsCharts)
   const showTyreDiagram = ref<boolean>(loaded.showTyreDiagram)
   const showCardInfoIcons = ref<boolean>(loaded.showCardInfoIcons)
+  const carColorScheme = ref<string>(loaded.carColorScheme)
 
   document.documentElement.dataset.theme = theme.value
+  applyCarColors(carColorScheme.value)
 
   function save() {
     localStorage.setItem(
@@ -346,6 +375,7 @@ export const useSettingsStore = defineStore('settings', () => {
         theme: theme.value,
         locale: locale.value,
         filterDays: filterDays.value,
+        carColorScheme: carColorScheme.value,
       }),
     )
   }
@@ -360,6 +390,10 @@ export const useSettingsStore = defineStore('settings', () => {
   watch(filterDays, save)
   watch(theme, (val) => {
     document.documentElement.dataset.theme = val
+    save()
+  })
+  watch(carColorScheme, (val) => {
+    applyCarColors(val)
     save()
   })
 
@@ -377,6 +411,7 @@ export const useSettingsStore = defineStore('settings', () => {
     theme,
     locale,
     filterDays,
+    carColorScheme,
     resetCards,
   }
 })

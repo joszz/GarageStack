@@ -655,10 +655,10 @@ body,
 /* ── Car SVG illustration classes ────────────────────────── */
 
 .car-svg-body {
-  fill: #f39200;
+  fill: var(--car-primary, #f9b233);
 }
 .car-svg-accent {
-  fill: #f9b233;
+  fill: var(--car-secondary, #f39200);
 }
 .car-svg-detail {
   fill: #3a3020;
@@ -1541,6 +1541,44 @@ body,
 
 .settings-toggle__side-icon--active {
   color: var(--color-primary);
+}
+
+/* ── Car colour picker ────────────────────────────────────── */
+
+.car-color-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.car-color-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.car-color-swatch {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  background: linear-gradient(135deg, var(--swatch-s) 50%, var(--swatch-p) 50%);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.15);
+  outline: 2.5px solid transparent;
+  outline-offset: 3px;
+  transition:
+    transform 0.15s,
+    outline-color 0.15s;
+}
+
+.car-color-swatch:hover {
+  transform: scale(1.12);
+}
+
+.car-color-swatch--active {
+  outline-color: var(--color-text);
 }
 
 /* ── Range slider ─────────────────────────────────────────── */

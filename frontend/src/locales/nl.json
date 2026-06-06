@@ -197,7 +197,8 @@
   "push": {
     "enable": "Meldingen inschakelen",
     "enabled": "Meldingen aan",
-    "permissionDenied": "Toestemming geweigerd"
+    "permissionDenied": "Toestemming geweigerd — sta meldingen toe in je browserinstellingen",
+    "desc": "Ontvang een pushmelding op dit apparaat wanneer belangrijke voertuigevents plaatsvinden, zoals het voltooien van het laden of een opengelaten portier."
   },
   "notifications": {
     "title": "Meldingen",
@@ -262,6 +263,17 @@
       "remainingCharge": "Laadtijd",
       "chargingSession": "Laadsessie",
       "batteryHeating": "Accuverwarming"
+    },
+    "carColor": {
+      "title": "Autokleur",
+      "orange": "Oranje",
+      "red": "Rood",
+      "blue": "Blauw",
+      "silver": "Zilver",
+      "white": "Parelwit",
+      "anthracite": "Antraciet",
+      "green": "Groen",
+      "purple": "Paars"
     },
     "dashboard": {
       "title": "Dashboard",
