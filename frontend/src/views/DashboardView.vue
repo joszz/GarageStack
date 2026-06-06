@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, computed, ref } from 'vue'
+import { onMounted, onUnmounted, computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { VueDraggable } from 'vue-draggable-plus'
 import { useVehicleStore } from '@/stores/vehicle'
@@ -36,6 +36,35 @@ const vehicleType = computed((): VehicleType | 'unknown' => {
 })
 
 const isHev = computed(() => vehicleType.value === 'hev')
+
+// Card IDs whose visibility differs between vehicle types (derived from defaultCards).
+// When the override changes these are reset to the new type's defaults.
+const TYPE_SPECIFIC_CARD_IDS = (() => {
+  const knownTypes: VehicleType[] = ['hev', 'phev', 'bev']
+  const unknownMap = new Map(defaultCards('unknown').map((c) => [c.id, c.visible]))
+  return new Set(
+    knownTypes.flatMap((t) =>
+      defaultCards(t)
+        .filter((c) => c.visible !== unknownMap.get(c.id))
+        .map((c) => c.id),
+    ),
+  )
+})()
+
+watch(
+  () => settings.vehicleTypeOverride,
+  () => {
+    const newType = vehicleType.value
+    if (newType === 'unknown') return
+    const newDefaultMap = new Map(defaultCards(newType).map((c) => [c.id, c.visible]))
+    const updated = settings.cards.map((c) =>
+      TYPE_SPECIFIC_CARD_IDS.has(c.id)
+        ? { ...c, visible: newDefaultMap.get(c.id) ?? c.visible }
+        : c,
+    )
+    settings.cards = [...updated.filter((c) => c.visible), ...updated.filter((c) => !c.visible)]
+  },
+)
 
 useVehicleAlerts(status)
 
@@ -82,6 +111,8 @@ function cardHasData(id: CardId): boolean {
       return s.mileageSinceLastCharge !== null && !isHev.value && vehicleType.value !== 'unknown'
     case 'efficiencyRatio':
       return s.powerUsageOfDay !== null && s.mileageOfTheDay !== null && s.mileageOfTheDay > 0
+    case 'remainingCharge':
+      return s.remainingChargingTime !== null
     default:
       return true
   }
@@ -258,6 +289,8 @@ onUnmounted(() => {
             :lights-side="status.lightsSide"
             :ev-soc-percent="status.evSocPercent"
             :fuel-level-percent="status.fuelLevelPercent"
+            :charger-connected="status.chargerConnected"
+            :is-charging="status.isCharging"
           />
           <div v-else class="card-slot__placeholder card-slot__placeholder--chart">
             <font-awesome-icon icon="car-side" />
@@ -329,6 +362,8 @@ onUnmounted(() => {
           :lights-side="status.lightsSide"
           :ev-soc-percent="status.evSocPercent"
           :fuel-level-percent="status.fuelLevelPercent"
+          :charger-connected="status.chargerConnected"
+          :is-charging="status.isCharging"
           class="mt-4"
         />
       </template>

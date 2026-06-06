@@ -21,6 +21,8 @@ const props = defineProps<{
   lightsSide?: boolean | null
   evSocPercent?: number | null
   fuelLevelPercent?: number | null
+  chargerConnected?: boolean | null
+  isCharging?: boolean | null
 }>()
 
 function pressureVariant(bar: number | null): string {
@@ -344,6 +346,19 @@ const activeLightKey = computed(() => {
               />
             </svg>
 
+            <!-- Charging cable: rear bumper → charger off-screen below.
+                 Path direction is bottom→top so dashoffset animation flows toward the car. -->
+            <g
+              v-if="chargerConnected || isCharging"
+              class="charge-group"
+              :class="{ 'charge-group--active': isCharging }"
+            >
+              <circle cx="170" cy="367" r="16" class="charge-entry-glow" />
+              <rect x="162" y="362" width="16" height="8" rx="2" class="charge-socket" />
+              <!-- Cable enters the battery badge from below; endpoint inside badge so nothing shows under it -->
+              <path d="M 170,440 L 170,370" class="charge-cable" />
+            </g>
+
             <!-- Tyre pressure indicator lines -->
             <line
               x1="110"
@@ -493,6 +508,10 @@ const activeLightKey = computed(() => {
           <div
             v-if="showBattery"
             class="diagram-level diagram-level--battery"
+            :class="{
+              'diagram-level--charging': isCharging,
+              'diagram-level--connected': chargerConnected && !isCharging,
+            }"
             :style="{ '--level-color': batteryColor }"
           >
             <font-awesome-icon icon="bolt" />
@@ -507,10 +526,27 @@ const activeLightKey = computed(() => {
         <span class="tyre-legend__item tyre-legend__item--danger">&lt; 2.2 bar</span>
       </div>
 
-      <div v-if="hasLights" class="vehicle-state-legend">
-        <span class="vehicle-state-legend__item vehicle-state-legend__item--lights">
+      <div v-if="hasLights || isCharging || chargerConnected" class="vehicle-state-legend">
+        <span
+          v-if="hasLights"
+          class="vehicle-state-legend__item vehicle-state-legend__item--lights"
+        >
           <font-awesome-icon icon="lightbulb" />
           {{ t(activeLightKey) }}
+        </span>
+        <span
+          v-if="isCharging"
+          class="vehicle-state-legend__item vehicle-state-legend__item--charging"
+        >
+          <font-awesome-icon icon="bolt" />
+          {{ t('vehicle.chargingYes') }}
+        </span>
+        <span
+          v-else-if="chargerConnected"
+          class="vehicle-state-legend__item vehicle-state-legend__item--connected"
+        >
+          <font-awesome-icon icon="plug" />
+          {{ t('vehicle.hvBattery.pluggedIn') }}
         </span>
       </div>
     </div>
