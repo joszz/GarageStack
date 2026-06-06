@@ -325,6 +325,7 @@ body,
   display: flex;
   align-items: center;
   gap: 1rem;
+  min-width: 0;
 }
 
 .status-card--success {
@@ -353,6 +354,7 @@ body,
   flex-direction: column;
   gap: 0.2rem;
   min-width: 0;
+  overflow: hidden;
 }
 
 .status-card__label {
