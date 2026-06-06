@@ -10,6 +10,7 @@ import { usePush } from '@/composables/usePush'
 import { useModal } from '@/composables/useModal'
 import DetailModal from './DetailModal.vue'
 import type { VehicleTypeOverride } from '@/stores/settings'
+import { CAR_COLOR_SCHEMES } from '@/stores/settings'
 
 const { t } = useI18n()
 const settings = useSettingsStore()
@@ -185,6 +186,28 @@ async function refresh() {
       </div>
     </div>
 
+    <!-- Car colour -->
+    <div class="detail-modal__section">
+      <div class="detail-modal__section-title">{{ t('settings.carColor.title') }}</div>
+      <div class="car-color-picker">
+        <span class="settings-toggle__label">{{
+          t(`settings.carColor.${settings.carColorScheme}`)
+        }}</span>
+        <div class="car-color-swatches">
+          <button
+            v-for="scheme in CAR_COLOR_SCHEMES"
+            :key="scheme.id"
+            class="car-color-swatch"
+            :class="{ 'car-color-swatch--active': settings.carColorScheme === scheme.id }"
+            :title="t(`settings.carColor.${scheme.id}`)"
+            :aria-label="t(`settings.carColor.${scheme.id}`)"
+            :style="{ '--swatch-p': scheme.primary, '--swatch-s': scheme.secondary }"
+            @click="settings.carColorScheme = scheme.id"
+          />
+        </div>
+      </div>
+    </div>
+
     <!-- Vehicle type -->
     <div class="detail-modal__section">
       <div class="detail-modal__section-title">{{ t('settings.vehicleType.title') }}</div>
@@ -210,17 +233,30 @@ async function refresh() {
 
     <!-- Push notifications -->
     <div v-if="pushSupported" class="detail-modal__section">
-      <div class="detail-modal__section-title">{{ t('push.enable') }}</div>
-      <button
-        v-if="pushState !== 'denied'"
-        class="btn"
-        :class="pushState === 'subscribed' ? 'btn-success' : 'btn-outline-secondary'"
-        @click="togglePush"
-      >
-        <font-awesome-icon :icon="pushState === 'subscribed' ? 'bell' : 'bell-slash'" />
-        {{ pushState === 'subscribed' ? t('push.enabled') : t('push.enable') }}
-      </button>
-      <span v-else class="text-danger">{{ t('push.permissionDenied') }}</span>
+      <div class="detail-modal__section-title">{{ t('notifications.title') }}</div>
+      <div class="settings-toggles">
+        <div class="settings-toggle">
+          <div class="settings-toggle__info">
+            <span class="settings-toggle__label">{{ t('push.enable') }}</span>
+            <span class="settings-toggle__desc text-muted">{{ t('push.desc') }}</span>
+          </div>
+          <div class="settings-toggle__control">
+            <span v-if="pushState === 'denied'" class="text-danger text-sm">{{
+              t('push.permissionDenied')
+            }}</span>
+            <div v-else class="form-check form-switch mb-0">
+              <input
+                id="footer-toggle-push"
+                :checked="pushState === 'subscribed'"
+                class="form-check-input"
+                type="checkbox"
+                role="switch"
+                @change="togglePush"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </DetailModal>
 </template>

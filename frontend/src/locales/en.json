@@ -197,7 +197,8 @@
   "push": {
     "enable": "Enable notifications",
     "enabled": "Notifications on",
-    "permissionDenied": "Permission denied"
+    "permissionDenied": "Permission denied — allow notifications in your browser settings",
+    "desc": "Receive a push notification on this device when important vehicle events occur, such as charging completing or a door left open."
   },
   "notifications": {
     "title": "Notifications",
@@ -262,6 +263,17 @@
       "remainingCharge": "Charge Time",
       "chargingSession": "Charging Session",
       "batteryHeating": "Battery Heating"
+    },
+    "carColor": {
+      "title": "Car colour",
+      "orange": "Orange",
+      "red": "Red",
+      "blue": "Blue",
+      "silver": "Silver",
+      "white": "Pearl white",
+      "anthracite": "Anthracite",
+      "green": "Green",
+      "purple": "Purple"
     },
     "dashboard": {
       "title": "Dashboard",
