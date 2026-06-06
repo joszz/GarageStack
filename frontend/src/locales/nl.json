@@ -36,7 +36,8 @@
       "onlineStatus": "Of de auto momenteel bereikbaar is via de SAIC-cloud. Gaat offline als de auto geparkeerd staat en de gateway stopt met polling.",
       "remainingCharge": "Geschatte resterende laadtijd in minuten tot de accu de ingestelde limiet bereikt. Alleen relevant voor PHEV en BEV tijdens het laden.",
       "chargingSession": "Live gegevens van de boordlader: AC-vermogen (één of driefasig), kabelslot en laadtype. Alleen relevant voor PHEV en BEV.",
-      "batteryHeating": "Voorverwarmingsstatus en schema van de hoogspanningsaccu. Opwarmen voor een laadsessie verbetert de laadsnelheid bij koud weer. Alleen relevant voor PHEV en BEV."
+      "batteryHeating": "Voorverwarmingsstatus en schema van de hoogspanningsaccu. Opwarmen voor een laadsessie verbetert de laadsnelheid bij koud weer. Alleen relevant voor PHEV en BEV.",
+      "vehicleDiagram": "Bovenaanzicht van het voertuig. Bandenpressiepunten zijn kleurgecodeerd: groen is goed, oranje is laag, rood is kritiek laag. Open portieren, de motorkap en de kofferbak worden aangegeven met een open-slot-icoon. Lichtbundels worden getoond wanneer er verlichting aan is. Brandstofniveau en EV-accupercentage verschijnen respectievelijk voor- en achterin wanneer gegevens beschikbaar zijn."
     }
   },
   "statistics": {
@@ -80,7 +81,15 @@
     "tyres": "Bandenspanning",
     "overview": "Overzicht",
     "diagram": {
-      "panelOpen": "Paneel open"
+      "panelOpen": "Paneel open",
+      "infoTyreTitle": "Bandenspanning",
+      "infoTyreDesc": "Kleurgecodeerde stippen bij elke wielhoek tonen de actuele spanning. Groen is goed (>= 2,6 bar), oranje is laag (2,2 – 2,6 bar) en rood is kritiek laag (< 2,2 bar).",
+      "infoDoorsTitle": "Portieren & Panelen",
+      "infoDoorsDesc": "Een open-slot-icoon verschijnt op elk portier, de motorkap of de kofferbak dat momenteel open staat.",
+      "infoLightsTitle": "Verlichting",
+      "infoLightsDesc": "Lichtbundelvormen worden getekend wanneer groot licht, dimlicht of stadslichten actief zijn.",
+      "infoLevelTitle": "Brandstof & Accu",
+      "infoLevelDesc": "Wanneer gegevens beschikbaar zijn, toont het diagram het brandstofpercentage aan de voorkant en het EV-accupercentage aan de achterkant."
     },
     "temperature": {
       "interior": "Interieurtemperatuur",
@@ -304,6 +313,7 @@
     "rearRight": "Achter R",
     "trunk": "Kofferbak",
     "bonnet": "Motorkap",
+    "lightsOff": "Uit",
     "mainBeam": "Groot licht",
     "dippedBeam": "Dimlicht",
     "sidelights": "Stadslicht",
