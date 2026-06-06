@@ -724,22 +724,22 @@ body,
 }
 
 .tyre-label--fl {
-  top: 14.2%;
+  top: 27.3%;
   left: 21.2%;
   transform: translate(-100%, -50%);
 }
 .tyre-label--fr {
-  top: 14.2%;
+  top: 27.3%;
   left: 78.8%;
   transform: translate(0%, -50%);
 }
 .tyre-label--rl {
-  top: 84.2%;
+  top: 71%;
   left: 21.2%;
   transform: translate(-100%, -50%);
 }
 .tyre-label--rr {
-  top: 84.2%;
+  top: 71%;
   left: 78.8%;
   transform: translate(0%, -50%);
 }

@@ -116,7 +116,8 @@ const activeLightKey = computed(() => {
           Orange car: nested SVG, original bounds x≈137–245 y≈237–445
             placed at x=105 y=115 width=130 height=250 in parent coords.
           Wheel corners (parent): FL(127,123) FR(213,123) RL(127,349) RR(213,349)
-          Indicator lines at 45°:  FL→(72,68)  FR→(268,68)  RL→(72,404) RR→(268,404)
+          Dots at outer side of each wheel: FL(110,145) FR(230,145) RL(110,327) RR(230,327)
+          Labels at (~20° from horizontal):  FL→(72,131) FR→(268,131) RL→(72,341) RR→(268,341)
           Side light cones: left x=72–118 y=137–147 / right x=222–268 y=137–147
           Door icon badges: see .car-badge-* CSS classes
         -->
@@ -345,61 +346,61 @@ const activeLightKey = computed(() => {
 
             <!-- Tyre pressure indicator lines -->
             <line
-              x1="127"
-              y1="123"
+              x1="110"
+              y1="145"
               x2="72"
-              y2="68"
+              y2="131"
               class="tyre-indicator-line"
               :stroke="pressureColor(frontLeft)"
             />
             <circle
-              cx="127"
-              cy="123"
+              cx="110"
+              cy="145"
               r="5"
               class="tyre-indicator-dot"
               :fill="pressureColor(frontLeft)"
             />
             <line
-              x1="213"
-              y1="123"
+              x1="230"
+              y1="145"
               x2="268"
-              y2="68"
+              y2="131"
               class="tyre-indicator-line"
               :stroke="pressureColor(frontRight)"
             />
             <circle
-              cx="213"
-              cy="123"
+              cx="230"
+              cy="145"
               r="5"
               class="tyre-indicator-dot"
               :fill="pressureColor(frontRight)"
             />
             <line
-              x1="127"
-              y1="349"
+              x1="110"
+              y1="327"
               x2="72"
-              y2="404"
+              y2="341"
               class="tyre-indicator-line"
               :stroke="pressureColor(rearLeft)"
             />
             <circle
-              cx="127"
-              cy="349"
+              cx="110"
+              cy="327"
               r="5"
               class="tyre-indicator-dot"
               :fill="pressureColor(rearLeft)"
             />
             <line
-              x1="213"
-              y1="349"
+              x1="230"
+              y1="327"
               x2="268"
-              y2="404"
+              y2="341"
               class="tyre-indicator-line"
               :stroke="pressureColor(rearRight)"
             />
             <circle
-              cx="213"
-              cy="349"
+              cx="230"
+              cy="327"
               r="5"
               class="tyre-indicator-dot"
               :fill="pressureColor(rearRight)"
