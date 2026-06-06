@@ -13,6 +13,7 @@ public sealed class DemoVehicleRepository : IVehicleRepository
         Series = "ZS EV",
         SaicUser = "demo@example.com",
         CreatedAt = DateTime.UtcNow.AddMonths(-6),
+        ConfigJson = """{"hw_version":"MG_BEV_1.0"}""",
     };
 
     public Task<Vehicle?> GetByVinAsync(string vin, CancellationToken ct = default) =>

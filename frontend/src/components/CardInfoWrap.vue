@@ -5,7 +5,7 @@ import { useSettingsStore } from '@/stores/settings'
 
 defineProps<{
   title: string
-  description: string
+  description?: string
 }>()
 
 const { t } = useI18n()
@@ -35,7 +35,9 @@ const settings = useSettingsStore()
                 <font-awesome-icon icon="xmark" />
               </button>
             </div>
-            <p class="card-info-desc">{{ description }}</p>
+            <slot name="info">
+              <p class="card-info-desc">{{ description }}</p>
+            </slot>
           </div>
         </div>
       </Transition>
