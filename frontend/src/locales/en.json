@@ -36,7 +36,8 @@
       "onlineStatus": "Whether the car is currently reachable via the SAIC cloud. Goes offline when the car is parked and the gateway stops polling.",
       "remainingCharge": "Estimated minutes remaining until the battery reaches the configured charge limit. Only relevant for PHEV and BEV while charging.",
       "chargingSession": "Live onboard-charger data: AC power (single or three-phase), cable lock status and charging type. Only relevant for PHEV and BEV.",
-      "batteryHeating": "High-voltage battery pre-heating status and schedule. Warming the battery before a charge session improves charging speed in cold weather. Only relevant for PHEV and BEV."
+      "batteryHeating": "High-voltage battery pre-heating status and schedule. Warming the battery before a charge session improves charging speed in cold weather. Only relevant for PHEV and BEV.",
+      "vehicleDiagram": "Top-down overview of the vehicle. Tyre pressure dots are colour-coded: green is healthy, orange is low, red is critically low. Open doors, the bonnet and the boot are marked with a lock-open icon. Light beams are shown when any lights are on. Fuel level and EV battery percentage appear at the front and rear respectively when data is available."
     }
   },
   "statistics": {
@@ -80,7 +81,17 @@
     "tyres": "Tyre Pressures",
     "overview": "Overview",
     "diagram": {
-      "panelOpen": "Panel open"
+      "panelOpen": "Panel open",
+      "infoTyreTitle": "Tyre Pressure",
+      "infoTyreDesc": "Colour-coded dots at each wheel corner show the current pressure. Green means healthy (>= 2.6 bar), orange means low (2.2 – 2.6 bar) and red means critically low (< 2.2 bar).",
+      "infoDoorsTitle": "Doors & Panels",
+      "infoDoorsDesc": "A lock-open icon appears over any door, the bonnet or the boot that is currently open.",
+      "infoLightsTitle": "Lights",
+      "infoLightsDesc": "Light beam shapes are drawn when high beam, low beam or sidelights are active.",
+      "infoLevelTitle": "Fuel & Battery",
+      "infoLevelDesc": "When data is available, the fuel level percentage appears at the front and the EV battery percentage appears at the rear of the diagram.",
+      "infoChargingTitle": "Charging",
+      "infoChargingDesc": "A cable is shown below the battery indicator when the charger is connected. When actively charging, the cable animates with flowing dashes to show energy entering the car."
     },
     "temperature": {
       "interior": "Interior temp",
@@ -304,6 +315,7 @@
     "rearRight": "Rear R",
     "trunk": "Trunk",
     "bonnet": "Bonnet",
+    "lightsOff": "Off",
     "mainBeam": "Main beam",
     "dippedBeam": "Dipped",
     "sidelights": "Side",

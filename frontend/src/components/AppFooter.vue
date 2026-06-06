@@ -59,7 +59,11 @@ async function refresh() {
 
 <template>
   <footer class="app-footer">
-    <a class="app-footer__copyright" href="https://github.com/joszz/GarageStack"
+    <a
+      class="app-footer__copyright"
+      href="https://github.com/joszz/GarageStack"
+      target="_blank"
+      rel="noopener"
       >&copy; 2026 GarageStack</a
     >
     <div class="app-footer__actions">

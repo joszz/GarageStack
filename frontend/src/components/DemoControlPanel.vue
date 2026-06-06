@@ -36,6 +36,21 @@ async function applyTemperature(field: string, value: string) {
 function bool(val: boolean | null | undefined): boolean {
   return val === true
 }
+
+const lightMode = computed(() => {
+  if (bool(status.value?.lightsMainBeam)) return 'main'
+  if (bool(status.value?.lightsDippedBeam)) return 'dipped'
+  if (bool(status.value?.lightsSide)) return 'side'
+  return 'off'
+})
+
+async function setLights(mode: 'off' | 'side' | 'dipped' | 'main') {
+  await sendOverride({
+    lightsMainBeam: mode === 'main',
+    lightsDippedBeam: mode === 'dipped',
+    lightsSide: mode === 'side' || mode === 'dipped' || mode === 'main',
+  })
+}
 </script>
 
 <template>
@@ -133,24 +148,31 @@ function bool(val: boolean | null | undefined): boolean {
         <div class="demo-panel-toggles">
           <button
             class="demo-toggle-btn"
-            :class="{ 'is-active': bool(status?.lightsMainBeam) }"
-            @click="toggle('lightsMainBeam', status?.lightsMainBeam)"
+            :class="{ 'is-active': lightMode === 'off' }"
+            @click="setLights('off')"
           >
-            {{ t('demo.mainBeam') }}
+            {{ t('demo.lightsOff') }}
           </button>
           <button
             class="demo-toggle-btn"
-            :class="{ 'is-active': bool(status?.lightsDippedBeam) }"
-            @click="toggle('lightsDippedBeam', status?.lightsDippedBeam)"
+            :class="{ 'is-active': lightMode === 'side' }"
+            @click="setLights('side')"
+          >
+            {{ t('demo.sidelights') }}
+          </button>
+          <button
+            class="demo-toggle-btn"
+            :class="{ 'is-active': lightMode === 'dipped' }"
+            @click="setLights('dipped')"
           >
             {{ t('demo.dippedBeam') }}
           </button>
           <button
             class="demo-toggle-btn"
-            :class="{ 'is-active': bool(status?.lightsSide) }"
-            @click="toggle('lightsSide', status?.lightsSide)"
+            :class="{ 'is-active': lightMode === 'main' }"
+            @click="setLights('main')"
           >
-            {{ t('demo.sidelights') }}
+            {{ t('demo.mainBeam') }}
           </button>
         </div>
       </div>
