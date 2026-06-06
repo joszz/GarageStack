@@ -89,7 +89,9 @@
       "infoLightsTitle": "Lights",
       "infoLightsDesc": "Light beam shapes are drawn when high beam, low beam or sidelights are active.",
       "infoLevelTitle": "Fuel & Battery",
-      "infoLevelDesc": "When data is available, the fuel level percentage appears at the front and the EV battery percentage appears at the rear of the diagram."
+      "infoLevelDesc": "When data is available, the fuel level percentage appears at the front and the EV battery percentage appears at the rear of the diagram.",
+      "infoChargingTitle": "Charging",
+      "infoChargingDesc": "A cable is shown below the battery indicator when the charger is connected. When actively charging, the cable animates with flowing dashes to show energy entering the car."
     },
     "temperature": {
       "interior": "Interior temp",

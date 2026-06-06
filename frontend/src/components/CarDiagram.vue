@@ -104,6 +104,13 @@ const activeLightKey = computed(() => {
           </p>
           <p class="card-info-desc">{{ t('vehicle.diagram.infoLevelDesc') }}</p>
         </div>
+        <div class="card-info-section">
+          <p class="card-info-section__title">
+            <font-awesome-icon icon="plug" />
+            {{ t('vehicle.diagram.infoChargingTitle') }}
+          </p>
+          <p class="card-info-desc">{{ t('vehicle.diagram.infoChargingDesc') }}</p>
+        </div>
       </div>
     </template>
     <div class="tyre-diagram">

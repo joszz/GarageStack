@@ -89,7 +89,9 @@
       "infoLightsTitle": "Verlichting",
       "infoLightsDesc": "Lichtbundelvormen worden getekend wanneer groot licht, dimlicht of stadslichten actief zijn.",
       "infoLevelTitle": "Brandstof & Accu",
-      "infoLevelDesc": "Wanneer gegevens beschikbaar zijn, toont het diagram het brandstofpercentage aan de voorkant en het EV-accupercentage aan de achterkant."
+      "infoLevelDesc": "Wanneer gegevens beschikbaar zijn, toont het diagram het brandstofpercentage aan de voorkant en het EV-accupercentage aan de achterkant.",
+      "infoChargingTitle": "Laden",
+      "infoChargingDesc": "Er wordt een kabel weergegeven onder de accu-indicator wanneer de lader is aangesloten. Als er actief geladen wordt, animeert de kabel met bewegende streepjes om de energiestroom in de auto te tonen."
     },
     "temperature": {
       "interior": "Interieurtemperatuur",

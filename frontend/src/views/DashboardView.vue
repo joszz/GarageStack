@@ -113,6 +113,9 @@ function cardHasData(id: CardId): boolean {
       return s.powerUsageOfDay !== null && s.mileageOfTheDay !== null && s.mileageOfTheDay > 0
     case 'remainingCharge':
       return s.remainingChargingTime !== null
+    case 'chargingSession':
+    case 'batteryHeating':
+      return vehicleType.value === 'phev' || vehicleType.value === 'bev'
     default:
       return true
   }

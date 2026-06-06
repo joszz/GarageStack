@@ -979,22 +979,22 @@ body,
 }
 .car-badge--door-fl {
   top: 45%;
-  left: 23.5%;
+  left: 34.5%;
   transform: translate(-50%, -50%);
 }
 .car-badge--door-fr {
   top: 45%;
-  left: 76.5%;
+  left: 65.5%;
   transform: translate(-50%, -50%);
 }
 .car-badge--door-rl {
   top: 56%;
-  left: 23.5%;
+  left: 34.5%;
   transform: translate(-50%, -50%);
 }
 .car-badge--door-rr {
   top: 56%;
-  left: 76.5%;
+  left: 65.5%;
   transform: translate(-50%, -50%);
 }
 
