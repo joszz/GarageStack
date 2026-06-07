@@ -95,7 +95,6 @@ const effectiveVehicleType = computed(() => {
   return store.detectedVehicleType
 })
 
-const hasFuel = computed(() => effectiveVehicleType.value !== 'bev')
 const hasLargeEv = computed(
   () =>
     effectiveVehicleType.value === 'phev' ||
@@ -120,7 +119,6 @@ const INSIGHT_ICONS: Record<StatsInsightId, string> = {
 }
 
 const CHART_ICONS: Record<StatsChartId, string> = {
-  fuelChart: 'gas-pump',
   evChart: 'bolt',
   tyreChart: 'gauge',
   hybridSocChart: 'wave-square',
@@ -365,23 +363,6 @@ const insightDefMap = computed(() => new Map(insightDefs.value.map((d) => [d.id,
 
 // ── Chart data ────────────────────────────────────────────────
 
-const fuelChartData = computed(() => ({
-  labels: chartLabels(),
-  datasets: [
-    {
-      label: `${t('vehicle.fuel')} (%)`,
-      data: groupedHistory.value.map((d) => avg(d.snapshots.map((s) => s.fuelLevelPercent))),
-      borderColor: '#3b82f6',
-      backgroundColor: 'rgba(59,130,246,0.1)',
-      fill: true,
-      tension: 0.3,
-      spanGaps: true,
-      pointRadius: 2,
-      pointHoverRadius: 4,
-    },
-  ],
-}))
-
 const evChartData = computed(() => ({
   labels: chartLabels(),
   datasets: [
@@ -563,16 +544,6 @@ const kwhOptions = {
 // ── Chart definitions ─────────────────────────────────────────
 
 const chartDefs = computed(() => [
-  {
-    id: 'fuelChart' as StatsChartId,
-    icon: CHART_ICONS.fuelChart,
-    title: t('vehicle.fuel'),
-    vehicleApplicable: hasFuel.value,
-    applicable: hasFuel.value && store.history.length > 0,
-    isBar: false,
-    data: fuelChartData.value,
-    options: percentOptions,
-  },
   {
     id: 'evChart' as StatsChartId,
     icon: CHART_ICONS.evChart,
