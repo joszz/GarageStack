@@ -325,10 +325,10 @@ onUnmounted(() => {
     <!-- Normal mode -->
     <template v-else>
       <template v-if="store.loading && !status">
+        <SkeletonCarDiagram v-if="settings.showTyreDiagram" class="mb-4" />
         <div class="status-grid">
           <SkeletonCard v-for="card in skeletonCards" :key="card.id" :icon="CARD_ICONS[card.id]" />
         </div>
-        <SkeletonCarDiagram v-if="settings.showTyreDiagram" class="mt-4" />
       </template>
 
       <div v-else-if="store.error && !status" class="error-state">
