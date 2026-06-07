@@ -30,7 +30,7 @@
       "efficiencyDistance": "Totale afstand gereden vandaag.",
       "efficiencyEnergy": "Totale elektrische energie die sinds middernacht door de hoogspanningsaccu is gegaan, in wattuur. Op een BEV staat dit gelijk aan verbruikt accuvermogen. Op een PHEV omvat het zowel netlaadvermogen als regeneratie. Op een HEV weerspiegelt het de energie die door de kleine hybride accu is gegaan.",
       "efficiencyCharge": "Afstand gereden sinds de laatste laadsessie.",
-      "efficiencyRatio": "Energie vandaag gedeeld door afstand vandaag (Wh/km). Lager is beter. Op een BEV of PHEV in EV-modus vertaalt dit zich direct naar elektriciteitskosten per km. Op een HEV toont het hoe efficiënt het hybridesysteem werkte -- snelwegrijden geeft een lagere waarde dan stop-and-go stadsverkeer.",
+      "efficiencyRatio": "Energie vandaag gedeeld door afstand vandaag (Wh/km). Lager is beter. Op een BEV of PHEV in EV-modus vertaalt dit zich direct naar elektriciteitskosten per km. Op een HEV toont het hoe efficiënt het hybridesysteem werkte -- snelwegrijden geeft een lagere waarde dan stop-and-go stadsverkeer. Als er nog geen rijgegevens beschikbaar zijn, vallen HEV en PHEV terug op een geschat brandstofverbruik (km/%) afgeleid van de rangecalculator van de auto: hoger is zuiniger.",
       "speed": "Actuele rijsnelheid zoals gerapporteerd door de gateway.",
       "activeTrip": "Afstand afgelegd tijdens de huidige rit, of de afstand van de laatste afgesloten rit als de auto geparkeerd staat.",
       "onlineStatus": "Of de auto momenteel bereikbaar is via de SAIC-cloud. Gaat offline als de auto geparkeerd staat en de gateway stopt met polling.",
@@ -109,7 +109,8 @@
       "todayDistance": "Afst. vandaag",
       "todayEnergy": "Energie vandaag",
       "sinceCharge": "Sinds lading",
-      "efficiency": "Verbruik"
+      "efficiency": "Verbruik",
+      "fuelEconomy": "Brandstofverbruik (schatting)"
     },
     "hvBattery": {
       "title": "HV Accu",

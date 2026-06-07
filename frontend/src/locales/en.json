@@ -30,7 +30,7 @@
       "efficiencyDistance": "Total distance driven so far today.",
       "efficiencyEnergy": "Total electrical energy that passed through the high-voltage battery since midnight, in watt-hours. On a BEV this equals battery charge consumed. On a PHEV it covers both grid charge and regeneration. On an HEV it reflects the energy cycled through the small hybrid battery.",
       "efficiencyCharge": "Distance driven since the last charge session.",
-      "efficiencyRatio": "Energy today divided by distance today (Wh/km). Lower is better. On a BEV or PHEV in EV mode this translates directly to electricity cost per km. On an HEV it shows how efficiently the hybrid system ran - motorway driving gives a lower figure than stop-start city traffic.",
+      "efficiencyRatio": "Energy today divided by distance today (Wh/km). Lower is better. On a BEV or PHEV in EV mode this translates directly to electricity cost per km. On an HEV it shows how efficiently the hybrid system ran - motorway driving gives a lower figure than stop-start city traffic. When no driving data is available yet, HEV and PHEV fall back to showing estimated fuel economy (km/%) derived from the car's own range computer: higher is more efficient.",
       "speed": "Current vehicle speed as reported by the gateway.",
       "activeTrip": "Distance covered in the current trip while active, or the distance of the last completed trip when parked.",
       "onlineStatus": "Whether the car is currently reachable via the SAIC cloud. Goes offline when the car is parked and the gateway stops polling.",
@@ -109,7 +109,8 @@
       "todayDistance": "Dist. today",
       "todayEnergy": "Energy today",
       "sinceCharge": "Since charge",
-      "efficiency": "Efficiency"
+      "efficiency": "Efficiency",
+      "fuelEconomy": "Fuel economy (est.)"
     },
     "hvBattery": {
       "title": "HV Battery",
