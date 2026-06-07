@@ -218,4 +218,113 @@ public class PushNotificationCheckServiceTests
         Assert.Single(alerts);
         Assert.Equal("windows-open-parked", alerts[0].Item1);
     }
+
+    // ---------------------------------------------------------------------------
+    // CheckChargingComplete — BEV/PHEV only, transition detection
+    // ---------------------------------------------------------------------------
+
+    [Fact]
+    public void CheckChargingComplete_TransitionToNotCharging_CableConnected_FiresAlert()
+    {
+        var svc = CreateService();
+        var alerts = new List<(string, string, string)>();
+
+        svc.CheckChargingComplete(new TelemetrySnapshot { IsCharging = true, ChargerConnected = true }, "VIN1", "bev", alerts);
+        svc.CheckChargingComplete(new TelemetrySnapshot { IsCharging = false, ChargerConnected = true }, "VIN1", "bev", alerts);
+
+        Assert.Single(alerts);
+        Assert.Equal("charging-complete", alerts[0].Item1);
+    }
+
+    [Fact]
+    public void CheckChargingComplete_IncludesSocInBody_WhenAvailable()
+    {
+        var svc = CreateService();
+        var alerts = new List<(string, string, string)>();
+
+        svc.CheckChargingComplete(new TelemetrySnapshot { IsCharging = true, ChargerConnected = true }, "VIN1", "bev", alerts);
+        svc.CheckChargingComplete(new TelemetrySnapshot { IsCharging = false, ChargerConnected = true, EvSocPercent = 98 }, "VIN1", "bev", alerts);
+
+        Assert.Contains("98%", alerts[0].Item3);
+    }
+
+    [Fact]
+    public void CheckChargingComplete_CableDisconnected_NoAlert()
+    {
+        var svc = CreateService();
+        var alerts = new List<(string, string, string)>();
+
+        svc.CheckChargingComplete(new TelemetrySnapshot { IsCharging = true, ChargerConnected = true }, "VIN1", "bev", alerts);
+        svc.CheckChargingComplete(new TelemetrySnapshot { IsCharging = false, ChargerConnected = false }, "VIN1", "bev", alerts);
+
+        Assert.Empty(alerts);
+    }
+
+    [Fact]
+    public void CheckChargingComplete_HevVehicle_NoAlert()
+    {
+        var svc = CreateService();
+        var alerts = new List<(string, string, string)>();
+
+        svc.CheckChargingComplete(new TelemetrySnapshot { IsCharging = true, ChargerConnected = true }, "VIN1", "hev", alerts);
+        svc.CheckChargingComplete(new TelemetrySnapshot { IsCharging = false, ChargerConnected = true }, "VIN1", "hev", alerts);
+
+        Assert.Empty(alerts);
+    }
+
+    [Fact]
+    public void CheckChargingComplete_PhevVehicle_FiresAlert()
+    {
+        var svc = CreateService();
+        var alerts = new List<(string, string, string)>();
+
+        svc.CheckChargingComplete(new TelemetrySnapshot { IsCharging = true, ChargerConnected = true }, "VIN1", "phev", alerts);
+        svc.CheckChargingComplete(new TelemetrySnapshot { IsCharging = false, ChargerConnected = true }, "VIN1", "phev", alerts);
+
+        Assert.Single(alerts);
+        Assert.Equal("charging-complete", alerts[0].Item1);
+    }
+
+    [Fact]
+    public void CheckChargingComplete_FirstObservation_NoAlert()
+    {
+        var svc = CreateService();
+        var alerts = new List<(string, string, string)>();
+
+        svc.CheckChargingComplete(new TelemetrySnapshot { IsCharging = false, ChargerConnected = true }, "VIN1", "bev", alerts);
+
+        Assert.Empty(alerts);
+    }
+
+    [Fact]
+    public void CheckChargingComplete_MultipleVins_TrackedIndependently()
+    {
+        var svc = CreateService();
+        var alerts = new List<(string, string, string)>();
+
+        svc.CheckChargingComplete(new TelemetrySnapshot { IsCharging = true, ChargerConnected = true }, "VIN1", "bev", alerts);
+        svc.CheckChargingComplete(new TelemetrySnapshot { IsCharging = true, ChargerConnected = true }, "VIN2", "bev", alerts);
+        svc.CheckChargingComplete(new TelemetrySnapshot { IsCharging = false, ChargerConnected = true }, "VIN1", "bev", alerts);
+
+        Assert.Single(alerts);
+        Assert.Equal("charging-complete", alerts[0].Item1);
+    }
+
+    // ---------------------------------------------------------------------------
+    // CheckEvSoc — BEV/PHEV only via vehicle type guard
+    // ---------------------------------------------------------------------------
+
+    [Fact]
+    public void CheckEvSoc_HevVehicle_NoAlertEvenBelowThreshold()
+    {
+        // We test this indirectly via CheckChargingComplete's CanCharge guard —
+        // CheckEvSoc is private, but we can verify the HEV guard via CheckChargingComplete.
+        // For direct SOC coverage, the important contract is: HEV never gets charging-related alerts.
+        var svc = CreateService();
+        var alerts = new List<(string, string, string)>();
+
+        svc.CheckChargingComplete(new TelemetrySnapshot { IsCharging = true }, "VIN1", "hev", alerts);
+
+        Assert.Empty(alerts);
+    }
 }

@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using System.Text.Json;
 
 namespace GarageStack.Worker.Services;
 
@@ -15,6 +16,7 @@ public class PushNotificationCheckService(
     private readonly Dictionary<string, DateTime> _lastNotified = new();
     private readonly TimeSpan _cooldown = TimeSpan.FromHours(1);
     internal readonly Dictionary<string, bool?> _lastEngineRunning = new();
+    internal readonly Dictionary<string, bool?> _lastIsCharging = new();
     internal readonly Dictionary<string, DateTime> _lastParkedAt = new();
     private readonly TimeSpan _parkingGrace = TimeSpan.FromMinutes(10);
 
@@ -54,9 +56,11 @@ public class PushNotificationCheckService(
             if (!_lastParkedAt.ContainsKey(vehicle.Vin) && vehicle.LastParkedAt.HasValue)
                 _lastParkedAt[vehicle.Vin] = vehicle.LastParkedAt.Value;
 
+            var vehicleType = GetVehicleType(vehicle);
             var alerts = new List<(string key, string title, string body)>();
             CheckTyrePressure(snapshot, alerts);
-            CheckEvSoc(snapshot, alerts);
+            CheckEvSoc(snapshot, vehicleType, alerts);
+            CheckChargingComplete(snapshot, vehicle.Vin, vehicleType, alerts);
             var justParked = CheckEngineStart(snapshot, vehicle.Vin, alerts);
             if (justParked)
             {
@@ -104,11 +108,48 @@ public class PushNotificationCheckService(
             alerts.Add(("low-tyre", "Low Tyre Pressure", $"Tyre pressure low: {string.Join(", ", low)}"));
     }
 
-    private static void CheckEvSoc(Core.Models.TelemetrySnapshot s, List<(string, string, string)> alerts)
+    private static void CheckEvSoc(Core.Models.TelemetrySnapshot s, string vehicleType, List<(string, string, string)> alerts)
     {
+        if (!CanCharge(vehicleType)) return;
         if (s.EvSocPercent is not null && s.EvSocPercent < 20)
             alerts.Add(("low-ev", "Low EV Battery", $"EV battery at {s.EvSocPercent:F0}%"));
     }
+
+    internal void CheckChargingComplete(Core.Models.TelemetrySnapshot s, string vin, string vehicleType, List<(string, string, string)> alerts)
+    {
+        if (!CanCharge(vehicleType)) return;
+        if (s.IsCharging is null) return;
+
+        var current = s.IsCharging.Value;
+        var hasPrevious = _lastIsCharging.TryGetValue(vin, out var previous);
+        _lastIsCharging[vin] = current;
+
+        if (!hasPrevious || previous is null) return;
+
+        // Charging finished while cable is still connected (session complete, not unplugged mid-charge)
+        if (!current && previous == true && s.ChargerConnected == true)
+        {
+            var soc = s.EvSocPercent is not null ? $" (SOC: {s.EvSocPercent:F0}%)" : string.Empty;
+            alerts.Add(("charging-complete", "Charging Complete", $"Your car has finished charging{soc}"));
+        }
+    }
+
+    private static string GetVehicleType(Core.Models.Vehicle v)
+    {
+        if (v.ConfigJson is null) return "unknown";
+        try
+        {
+            var cfg = JsonSerializer.Deserialize<Dictionary<string, string>>(v.ConfigJson);
+            var hw = (cfg?.GetValueOrDefault("hw_version") ?? "").ToUpperInvariant();
+            if (hw.Contains("PHEV")) return "phev";
+            if (hw.Contains("HEV")) return "hev";
+            if (hw.Contains("BEV") || hw.Contains("EV")) return "bev";
+        }
+        catch { }
+        return "unknown";
+    }
+
+    private static bool CanCharge(string vehicleType) => vehicleType is "bev" or "phev";
 
     internal bool CheckEngineStart(Core.Models.TelemetrySnapshot s, string vin, List<(string, string, string)> alerts)
     {
