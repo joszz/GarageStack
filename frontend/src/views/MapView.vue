@@ -228,6 +228,7 @@ function flyToStatus() {
   const map = mapInstance.value
   const s = status.value
   if (map && s?.latitude != null && s?.longitude != null) {
+    selectedTripIndex.value = null
     map.setView([s.latitude, s.longitude], 14, { animate: false })
   }
 }
@@ -468,9 +469,11 @@ onUnmounted(() => {
             attribution="© OpenStreetMap contributors"
           />
 
-          <!-- Current position marker -->
+          <!-- Current position marker: hidden while a trip is selected -->
           <LMarker
-            v-if="status?.latitude != null && status?.longitude != null"
+            v-if="
+              status?.latitude != null && status?.longitude != null && selectedTripIndex === null
+            "
             :lat-lng="[status.latitude!, status.longitude!]"
           >
             <LPopup>{{ store.vehicles[0]?.model ?? store.vehicles[0]?.vin }}</LPopup>
