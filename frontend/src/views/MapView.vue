@@ -173,6 +173,7 @@ function buildTripMarkers(trip: Trip) {
 
   const start = trip.points[0]
   const end = trip.points[trip.points.length - 1]
+  if (!start || !end) return
 
   const startIcon = L.divIcon({
     className: '',
