@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRouter } from 'vue-router'
 import { useVehicleStore } from '@/stores/vehicle'
 import { useSettingsStore } from '@/stores/settings'
 import type { CardId } from '@/stores/settings'
@@ -18,6 +19,7 @@ import BatteryHeatingCard from './BatteryHeatingCard.vue'
 defineProps<{ cardId: CardId }>()
 
 const { t } = useI18n()
+const router = useRouter()
 const store = useVehicleStore()
 const settings = useSettingsStore()
 
@@ -267,6 +269,11 @@ const supportsExternalCharge = computed(
           ? 'info'
           : undefined
       "
+      :clickable="
+        !(status.currentJourneyDistance !== null && status.currentJourneyDistance > 0) &&
+        store.lastTrip !== null
+      "
+      @click="router.push({ name: 'map', query: { selectLatest: '1' } })"
     />
 
     <!-- remainingCharge -->

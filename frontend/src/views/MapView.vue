@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, computed, ref, shallowRef, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRoute, useRouter } from 'vue-router'
 import { useVehicleStore } from '@/stores/vehicle'
 import { useSettingsStore } from '@/stores/settings'
 import { LMap, LTileLayer, LMarker, LPopup } from '@vue-leaflet/vue-leaflet'
@@ -18,6 +19,8 @@ const L = ((LModule as unknown as { default?: typeof LModule }).default ??
   LModule) as typeof LModule
 
 const { t } = useI18n()
+const route = useRoute()
+const router = useRouter()
 const store = useVehicleStore()
 const settingsStore = useSettingsStore()
 
@@ -26,6 +29,7 @@ const status = computed(() => store.currentStatus)
 const displayLocale = computed(() => (settingsStore.locale === 'nl' ? 'nl-NL' : 'en-US'))
 const selectedTripIndex = ref<number | null>(null)
 const heatmapEnabled = ref(true)
+let shouldSelectLatest = route.query.selectLatest === '1'
 
 const dateRangeDays = computed({
   get: () => settingsStore.filterDays,
@@ -232,7 +236,12 @@ watch(allPoints, async (pts) => {
   await nextTick()
   buildHeatLayer()
   buildRouteLines()
-  fitAll()
+  if (shouldSelectLatest) {
+    shouldSelectLatest = false
+    selectTrip(store.trips.length - 1)
+  } else {
+    fitAll()
+  }
 })
 
 // Trip selection drives map display and popover position.
@@ -295,6 +304,9 @@ function selectTrip(realIdx: number) {
 }
 
 onMounted(async () => {
+  if (route.query.selectLatest) {
+    router.replace({ name: 'map' })
+  }
   await store.fetchVehicles()
   if (vin.value) {
     await Promise.all([
