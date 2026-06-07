@@ -45,6 +45,8 @@ const tripSidebarRef = ref<HTMLElement | null>(null)
 const mapInstance = shallowRef<LeafletMap | null>(null)
 let heatLayer: L.Layer | null = null
 let routeLines: L.Polyline[] = []
+let startMarker: L.Marker | null = null
+let endMarker: L.Marker | null = null
 let resizeObserver: ResizeObserver | null = null
 let mapUpdateRaf: number | null = null
 
@@ -105,6 +107,14 @@ function formatDuration(startedAt: string, endedAt: string): string {
 function clearRouteLines() {
   routeLines.forEach((l) => l.remove())
   routeLines = []
+  if (startMarker) {
+    startMarker.remove()
+    startMarker = null
+  }
+  if (endMarker) {
+    endMarker.remove()
+    endMarker = null
+  }
 }
 
 function buildHeatLayer() {
@@ -154,6 +164,32 @@ function buildSelectedLine() {
   const line = L.polyline(pts, { color: tripColor(idx), weight: 5, opacity: 1 })
   line.addTo(map)
   routeLines.push(line)
+  buildTripMarkers(trip)
+}
+
+function buildTripMarkers(trip: Trip) {
+  const map = mapInstance.value
+  if (!map || trip.points.length === 0) return
+
+  const start = trip.points[0]
+  const end = trip.points[trip.points.length - 1]
+  if (!start || !end) return
+
+  const startIcon = L.divIcon({
+    className: '',
+    html: '<div class="trip-marker trip-marker--start"></div>',
+    iconSize: [16, 16],
+    iconAnchor: [8, 8],
+  })
+  startMarker = L.marker([start.latitude, start.longitude], { icon: startIcon }).addTo(map)
+
+  const endIcon = L.divIcon({
+    className: '',
+    html: '<div class="trip-marker trip-marker--end"><div class="trip-flag-pole"></div><div class="trip-flag-flag"></div></div>',
+    iconSize: [20, 32],
+    iconAnchor: [2, 32],
+  })
+  endMarker = L.marker([end.latitude, end.longitude], { icon: endIcon }).addTo(map)
 }
 
 function removeHeatLayer() {
@@ -444,3 +480,77 @@ onUnmounted(() => {
     </div>
   </div>
 </template>
+
+<style>
+/* Leaflet injects divIcon HTML outside Vue's rendering pipeline so these cannot be scoped */
+
+.trip-marker--start {
+  width: 16px;
+  height: 16px;
+  background: #10b981;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+  animation: trip-start-pulse 2s ease-in-out infinite;
+}
+
+@keyframes trip-start-pulse {
+  0% {
+    box-shadow:
+      0 0 0 0 rgba(16, 185, 129, 0.55),
+      0 1px 4px rgba(0, 0, 0, 0.35);
+  }
+  70% {
+    box-shadow:
+      0 0 0 10px rgba(16, 185, 129, 0),
+      0 1px 4px rgba(0, 0, 0, 0.35);
+  }
+  100% {
+    box-shadow:
+      0 0 0 0 rgba(16, 185, 129, 0),
+      0 1px 4px rgba(0, 0, 0, 0.35);
+  }
+}
+
+.trip-marker--end {
+  position: relative;
+  width: 20px;
+  height: 32px;
+  pointer-events: none;
+}
+
+.trip-flag-pole {
+  position: absolute;
+  left: 1px;
+  top: 0;
+  width: 2px;
+  height: 32px;
+  background: #333;
+  border-radius: 1px;
+}
+
+.trip-flag-flag {
+  position: absolute;
+  left: 3px;
+  top: 1px;
+  width: 16px;
+  height: 11px;
+  background: repeating-conic-gradient(#111 0% 25%, #fff 0% 50%) 0 0 / 5.33px 5.5px;
+  border: 1px solid rgba(0, 0, 0, 0.4);
+  transform-origin: left center;
+  animation: trip-flag-wave 1.6s ease-in-out infinite;
+}
+
+@keyframes trip-flag-wave {
+  0%,
+  100% {
+    transform: skewY(0deg) scaleX(1);
+  }
+  30% {
+    transform: skewY(-3deg) scaleX(0.97);
+  }
+  70% {
+    transform: skewY(3deg) scaleX(0.97);
+  }
+}
+</style>
