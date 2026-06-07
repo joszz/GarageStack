@@ -12,5 +12,7 @@ public class Vehicle
     /// <summary>JSON blob of capability flags from info/configuration/* MQTT messages.</summary>
     public string? ConfigJson { get; set; }
 
+    public DateTime? LastParkedAt { get; set; }
+
     public ICollection<TelemetrySnapshot> TelemetrySnapshots { get; set; } = [];
 }

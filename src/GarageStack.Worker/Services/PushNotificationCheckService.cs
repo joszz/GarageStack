@@ -50,10 +50,19 @@ public class PushNotificationCheckService(
             var snapshot = await telemetry.GetMergedLatestAsync(vehicle.Id, ct);
             if (snapshot is null) continue;
 
+            // Seed in-memory parking time from DB on first sight of this VIN after a restart
+            if (!_lastParkedAt.ContainsKey(vehicle.Vin) && vehicle.LastParkedAt.HasValue)
+                _lastParkedAt[vehicle.Vin] = vehicle.LastParkedAt.Value;
+
             var alerts = new List<(string key, string title, string body)>();
             CheckTyrePressure(snapshot, alerts);
             CheckEvSoc(snapshot, alerts);
-            CheckEngineStart(snapshot, vehicle.Vin, alerts);
+            var justParked = CheckEngineStart(snapshot, vehicle.Vin, alerts);
+            if (justParked)
+            {
+                vehicle.LastParkedAt = _lastParkedAt[vehicle.Vin];
+                await db.SaveChangesAsync(ct);
+            }
 
             var withinParkingGrace = _lastParkedAt.TryGetValue(vehicle.Vin, out var parkedAt)
                 && DateTime.UtcNow - parkedAt < _parkingGrace;
@@ -101,21 +110,26 @@ public class PushNotificationCheckService(
             alerts.Add(("low-ev", "Low EV Battery", $"EV battery at {s.EvSocPercent:F0}%"));
     }
 
-    internal void CheckEngineStart(Core.Models.TelemetrySnapshot s, string vin, List<(string, string, string)> alerts)
+    internal bool CheckEngineStart(Core.Models.TelemetrySnapshot s, string vin, List<(string, string, string)> alerts)
     {
-        if (s.EngineRunning is null) return;
+        if (s.EngineRunning is null) return false;
 
         var current = s.EngineRunning.Value;
         var hasPrevious = _lastEngineRunning.TryGetValue(vin, out var previous);
         _lastEngineRunning[vin] = current;
 
         // Skip the first check after startup — no baseline to compare against
-        if (!hasPrevious || previous is null) return;
+        if (!hasPrevious || previous is null) return false;
 
         if (current && previous == false)
             alerts.Add(("engine-start", "Car Started", "Your car engine has started"));
         else if (!current && previous == true)
+        {
             _lastParkedAt[vin] = DateTime.UtcNow;
+            return true;
+        }
+
+        return false;
     }
 
     private static bool IsParked(Core.Models.TelemetrySnapshot s)
