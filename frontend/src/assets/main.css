@@ -2121,10 +2121,6 @@ body,
     flex-wrap: wrap;
     gap: 0.4rem;
   }
-
-  .sidebar-notif-btn {
-    display: none;
-  }
 }
 
 /* ── Very small phones (< 400px) ─────────────────────────── */
@@ -2500,6 +2496,12 @@ body,
 .sidebar-notif-btn .notif-bell__badge {
   position: static;
   margin-left: auto;
+}
+
+@media (max-width: 767px) {
+  .sidebar-notif-btn {
+    display: none;
+  }
 }
 
 /* ── Notification panel ───────────────────────────────────── */
