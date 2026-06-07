@@ -32,12 +32,7 @@ export type StatsInsightId =
   | 'parkingLocations'
   | 'electricShare'
 
-export type StatsChartId =
-  | 'fuelChart'
-  | 'evChart'
-  | 'tyreChart'
-  | 'hybridSocChart'
-  | 'dailyKwhChart'
+export type StatsChartId = 'evChart' | 'tyreChart' | 'hybridSocChart' | 'dailyKwhChart'
 
 export interface StatsItemConfig<T extends string> {
   id: T
@@ -55,7 +50,6 @@ const ALL_STATS_INSIGHT_IDS: StatsInsightId[] = [
 ]
 
 const ALL_STATS_CHART_IDS: StatsChartId[] = [
-  'fuelChart',
   'evChart',
   'tyreChart',
   'hybridSocChart',
