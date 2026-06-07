@@ -237,47 +237,9 @@ onUnmounted(() => {
 
     <!-- Edit mode: same grid with draggable card-slot wrappers -->
     <template v-if="editMode">
-      <VueDraggable
-        v-model="settings.cards"
-        class="status-grid status-grid--edit"
-        :animation="200"
-        ghost-class="card-slot--ghost"
-        chosen-class="card-slot--chosen"
-        handle=".card-slot__handle"
-      >
-        <div
-          v-for="card in settings.cards"
-          :key="card.id"
-          class="card-slot"
-          :class="{ 'card-slot--hidden': !card.visible }"
-        >
-          <div class="card-slot__handle">
-            <font-awesome-icon icon="grip-lines" />
-          </div>
-          <div class="card-slot__content">
-            <DashboardCardContent
-              v-if="card.visible && status && cardHasData(card.id)"
-              :card-id="card.id"
-            />
-            <div v-else class="card-slot__placeholder">
-              <font-awesome-icon :icon="CARD_ICONS[card.id]" />
-              <span>{{ t(`settings.cards.${card.id}`) }}</span>
-            </div>
-          </div>
-          <button
-            class="card-slot__badge"
-            :class="card.visible ? 'card-slot__badge--hide' : 'card-slot__badge--show'"
-            :aria-label="card.visible ? t('dashboard.hideCard') : t('dashboard.showCard')"
-            @click.stop="toggleCardVisibility(card)"
-          >
-            <font-awesome-icon :icon="card.visible ? 'xmark' : 'plus'" />
-          </button>
-        </div>
-      </VueDraggable>
-
       <!-- Tyre diagram toggle -->
       <div
-        class="card-slot card-slot--static mt-4"
+        class="card-slot card-slot--static mt-4 mb-4"
         :class="{ 'card-slot--hidden': !settings.showTyreDiagram }"
       >
         <div class="card-slot__content">
@@ -315,6 +277,44 @@ onUnmounted(() => {
           <font-awesome-icon :icon="settings.showTyreDiagram ? 'xmark' : 'plus'" />
         </button>
       </div>
+
+      <VueDraggable
+        v-model="settings.cards"
+        class="status-grid status-grid--edit"
+        :animation="200"
+        ghost-class="card-slot--ghost"
+        chosen-class="card-slot--chosen"
+        handle=".card-slot__handle"
+      >
+        <div
+          v-for="card in settings.cards"
+          :key="card.id"
+          class="card-slot"
+          :class="{ 'card-slot--hidden': !card.visible }"
+        >
+          <div class="card-slot__handle">
+            <font-awesome-icon icon="grip-lines" />
+          </div>
+          <div class="card-slot__content">
+            <DashboardCardContent
+              v-if="card.visible && status && cardHasData(card.id)"
+              :card-id="card.id"
+            />
+            <div v-else class="card-slot__placeholder">
+              <font-awesome-icon :icon="CARD_ICONS[card.id]" />
+              <span>{{ t(`settings.cards.${card.id}`) }}</span>
+            </div>
+          </div>
+          <button
+            class="card-slot__badge"
+            :class="card.visible ? 'card-slot__badge--hide' : 'card-slot__badge--show'"
+            :aria-label="card.visible ? t('dashboard.hideCard') : t('dashboard.showCard')"
+            @click.stop="toggleCardVisibility(card)"
+          >
+            <font-awesome-icon :icon="card.visible ? 'xmark' : 'plus'" />
+          </button>
+        </div>
+      </VueDraggable>
 
       <button class="btn btn-outline-secondary mt-3" @click="resetLayout">
         <font-awesome-icon icon="rotate-left" />
