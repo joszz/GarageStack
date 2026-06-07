@@ -110,7 +110,13 @@ function cardHasData(id: CardId): boolean {
     case 'efficiencyCharge':
       return s.mileageSinceLastCharge !== null && !isHev.value && vehicleType.value !== 'unknown'
     case 'efficiencyRatio':
-      return s.powerUsageOfDay !== null && s.mileageOfTheDay !== null && s.mileageOfTheDay > 0
+      return (
+        (s.powerUsageOfDay !== null && s.mileageOfTheDay !== null && s.mileageOfTheDay > 0) ||
+        ((isHev.value || vehicleType.value === 'phev') &&
+          s.fuelRangeKm !== null &&
+          s.fuelLevelPercent !== null &&
+          s.fuelLevelPercent > 0)
+      )
     case 'remainingCharge':
       return s.remainingChargingTime !== null
     case 'chargingSession':
@@ -335,19 +341,6 @@ onUnmounted(() => {
       </div>
 
       <template v-else>
-        <div class="status-grid">
-          <template v-for="card in settings.cards" :key="card.id">
-            <template v-if="card.visible && cardHasData(card.id)">
-              <CardInfoWrap
-                :title="t(`settings.cards.${card.id}`)"
-                :description="t(`dashboard.cardDesc.${card.id}`)"
-              >
-                <DashboardCardContent :card-id="card.id" />
-              </CardInfoWrap>
-            </template>
-          </template>
-        </div>
-
         <CarDiagram
           v-if="settings.showTyreDiagram"
           :front-left="status.tyrePressureFrontLeft"
@@ -367,8 +360,21 @@ onUnmounted(() => {
           :fuel-level-percent="status.fuelLevelPercent"
           :charger-connected="status.chargerConnected"
           :is-charging="status.isCharging"
-          class="mt-4"
+          class="mb-4"
         />
+
+        <div class="status-grid">
+          <template v-for="card in settings.cards" :key="card.id">
+            <template v-if="card.visible && cardHasData(card.id)">
+              <CardInfoWrap
+                :title="t(`settings.cards.${card.id}`)"
+                :description="t(`dashboard.cardDesc.${card.id}`)"
+              >
+                <DashboardCardContent :card-id="card.id" />
+              </CardInfoWrap>
+            </template>
+          </template>
+        </div>
       </template>
     </template>
   </div>

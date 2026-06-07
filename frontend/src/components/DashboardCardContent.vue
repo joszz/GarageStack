@@ -202,7 +202,7 @@ const supportsExternalCharge = computed(
       :unit="t('common.km')"
     />
 
-    <!-- efficiencyRatio -->
+    <!-- efficiencyRatio - Wh/km when driving data is available -->
     <StatusCard
       v-else-if="
         cardId === 'efficiencyRatio' &&
@@ -214,6 +214,21 @@ const supportsExternalCharge = computed(
       :label="t('vehicle.efficiency.efficiency')"
       :value="(status.powerUsageOfDay / status.mileageOfTheDay).toFixed(0)"
       :unit="`${t('common.wh')}/${t('common.km')}`"
+    />
+
+    <!-- efficiencyRatio - fuel economy estimate for HEV/PHEV from range computer -->
+    <StatusCard
+      v-else-if="
+        cardId === 'efficiencyRatio' &&
+        (isHev || vehicleType === 'phev') &&
+        status.fuelRangeKm !== null &&
+        status.fuelLevelPercent !== null &&
+        status.fuelLevelPercent > 0
+      "
+      icon="gas-pump"
+      :label="t('vehicle.efficiency.fuelEconomy')"
+      :value="(status.fuelRangeKm / (status.fuelLevelPercent / 100) / 100).toFixed(1)"
+      unit="km/%"
     />
 
     <!-- speed -->
