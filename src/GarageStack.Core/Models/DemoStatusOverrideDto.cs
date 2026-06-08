@@ -21,5 +21,6 @@ public record DemoStatusOverrideDto(
     bool? LightsSide,
     double? EvSocPercent,
     double? InteriorTemperature,
-    double? ExteriorTemperature
+    double? ExteriorTemperature,
+    double? Speed
 );

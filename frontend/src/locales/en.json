@@ -338,6 +338,7 @@
     "chargerConnected": "Connected",
     "isCharging": "Charging",
     "interior": "Interior",
-    "exterior": "Exterior"
+    "exterior": "Exterior",
+    "speed": "Speed"
   }
 }

@@ -338,6 +338,7 @@
     "chargerConnected": "Verbonden",
     "isCharging": "Laden",
     "interior": "Interieur",
-    "exterior": "Exterieur"
+    "exterior": "Exterieur",
+    "speed": "Snelheid"
   }
 }

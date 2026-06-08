@@ -13,6 +13,7 @@ const vin = computed(() => vehicleStore.vehicles[0]?.vin ?? null)
 const status = computed(() => vehicleStore.currentStatus)
 
 const socValue = ref<number>(78)
+const speedValue = ref<number>(0)
 
 async function sendOverride(override: Record<string, boolean | number | null>) {
   if (!vin.value) return
@@ -26,6 +27,10 @@ async function toggle(field: string, current: boolean | null | undefined) {
 
 async function applySoc() {
   await sendOverride({ evSocPercent: socValue.value })
+}
+
+async function applySpeed() {
+  await sendOverride({ speed: speedValue.value })
 }
 
 async function applyTemperature(field: string, value: string) {
@@ -230,6 +235,15 @@ async function setLights(mode: 'off' | 'side' | 'dipped' | 'main') {
           <input v-model.number="socValue" type="range" min="10" max="100" step="1" />
           <span>{{ socValue }}%</span>
           <button class="demo-toggle-btn" @click="applySoc">OK</button>
+        </div>
+      </div>
+
+      <div class="demo-panel-section">
+        <div class="demo-panel-section-label">{{ t('demo.speed') }}</div>
+        <div class="demo-panel-range">
+          <input v-model.number="speedValue" type="range" min="0" max="200" step="1" />
+          <span>{{ speedValue }} km/h</span>
+          <button class="demo-toggle-btn" @click="applySpeed">OK</button>
         </div>
       </div>
 
