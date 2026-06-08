@@ -104,7 +104,7 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: "Production"
       ConnectionStrings__DefaultConnection: "Host=${POSTGRES_HOST:-postgres};Port=${POSTGRES_PORT:-5432};Database=${POSTGRES_DB:-garagestack};Username=${POSTGRES_USER:-garagestack};Password=${POSTGRES_PASSWORD}"
-      Cors__Origins__0: "${CORS_ORIGIN:-http://localhost}"
+      Cors__Origins__0: "${CORS_ORIGIN:-http://localhost:8080}"
       Jwt__Secret: "${JWT_SECRET}"
       SAIC_USER: "${SAIC_USER}"
       SAIC_PASSWORD: "${SAIC_PASSWORD}"
@@ -118,8 +118,9 @@ services:
       Vapid__PrivateKey: "${VAPID_PRIVATE_KEY}"
       Vapid__Subject: "mailto:${SAIC_USER}"
       Widget__ApiKey: "${WIDGET_API_KEY:-}"
+      Auth__CookieSecure: "${AUTH_COOKIE_SECURE:-true}"
     ports:
-      - "${API_PORT:-5000}:8080"
+      - "127.0.0.1:${API_PORT:-5000}:8080"
     volumes:
       - api_logs:/app/logs
       - api_dataprotection:/root/.aspnet/DataProtection-Keys

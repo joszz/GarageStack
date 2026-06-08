@@ -9,4 +9,5 @@ public class AppNotification
     public bool IsArchived { get; set; }
     public bool IsDeleted { get; set; }
     public string? Category { get; set; }
+    public int? VehicleId { get; set; }
 }

@@ -103,10 +103,13 @@ public static class AuthEndpoints
 
             var tokenString = new JwtSecurityTokenHandler().WriteToken(token);
 
+            var cookieSecure = config.GetValue<bool?>("Auth:CookieSecure")
+                ?? (!env.IsDevelopment() || httpContext.Request.IsHttps);
+
             httpContext.Response.Cookies.Append("garagestack-auth", tokenString, new CookieOptions
             {
                 HttpOnly = true,
-                Secure = !env.IsDevelopment() || httpContext.Request.IsHttps,
+                Secure = cookieSecure,
                 SameSite = SameSiteMode.Strict,
                 Expires = expires,
                 Path = "/",

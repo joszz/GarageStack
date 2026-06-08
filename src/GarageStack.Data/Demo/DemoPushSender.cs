@@ -9,7 +9,7 @@ public sealed class DemoPushSender : IPushSender
 
     public DemoPushSender(ILogger<DemoPushSender> logger) => _logger = logger;
 
-    public Task SendToAllAsync(string title, string body, CancellationToken ct = default, string? category = null)
+    public Task SendToAllAsync(string title, string body, CancellationToken ct = default, string? category = null, int? vehicleId = null)
     {
         _logger.LogDebug("Demo mode: suppressed push notification '{Title}' (category={Category})", title, category);
         return Task.CompletedTask;

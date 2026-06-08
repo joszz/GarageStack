@@ -8,7 +8,7 @@ namespace GarageStack.Tests;
 
 file sealed class FakeNotificationPushSender : IPushSender
 {
-    public Task SendToAllAsync(string title, string body, CancellationToken ct = default, string? category = null)
+    public Task SendToAllAsync(string title, string body, CancellationToken ct = default, string? category = null, int? vehicleId = null)
         => Task.CompletedTask;
 }
 

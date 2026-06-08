@@ -82,15 +82,16 @@ public class PushNotificationCheckService(
                     continue;
 
                 // Cross-service dedup: check DB so MQTT-emitted notifications suppress repeated checker alerts.
+                // VehicleId is included so one vehicle's alert cannot suppress another vehicle's same-category alert.
                 var cutoff = DateTime.UtcNow - _cooldown;
-                if (await db.AppNotifications.AnyAsync(n => n.Category == key && n.CreatedAt > cutoff, ct))
+                if (await db.AppNotifications.AnyAsync(n => n.Category == key && n.VehicleId == vehicle.Id && n.CreatedAt > cutoff, ct))
                 {
                     _lastNotified[notifKey] = DateTime.UtcNow;
                     continue;
                 }
 
                 _lastNotified[notifKey] = DateTime.UtcNow;
-                await pushSender.SendToAllAsync(title, body, ct, key);
+                await pushSender.SendToAllAsync(title, body, ct, key, vehicle.Id);
                 logger.LogInformation("Push sent: {Key} - {Title}", notifKey, title);
             }
         }

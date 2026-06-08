@@ -45,7 +45,15 @@ self.addEventListener('push', (event) => {
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()
 
-  const targetUrl = (event.notification.data as { url?: string })?.url ?? '/'
+  const rawUrl = (event.notification.data as { url?: string })?.url ?? '/'
+  const targetUrl = (() => {
+    try {
+      const parsed = new URL(rawUrl, self.location.origin)
+      return parsed.origin === self.location.origin ? parsed.href : '/'
+    } catch {
+      return rawUrl.startsWith('/') ? rawUrl : '/'
+    }
+  })()
 
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
