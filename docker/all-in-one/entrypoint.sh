@@ -62,10 +62,13 @@ if [ ! -f "$PGDATA/PG_VERSION" ]; then
     gosu postgres /usr/lib/postgresql/18/bin/pg_ctl -D "$PGDATA" \
         -l /data/logs/postgres-init.log start -w
 
-    gosu postgres psql -v ON_ERROR_STOP=1 <<-EOSQL
-        CREATE USER "${POSTGRES_USER}" WITH PASSWORD '${POSTGRES_PASSWORD}';
-        CREATE DATABASE "${POSTGRES_DB}" OWNER "${POSTGRES_USER}";
-        GRANT ALL PRIVILEGES ON DATABASE "${POSTGRES_DB}" TO "${POSTGRES_USER}";
+    gosu postgres psql -v ON_ERROR_STOP=1 \
+        -v pguser="${POSTGRES_USER}" \
+        -v pgpassword="${POSTGRES_PASSWORD}" \
+        -v pgdb="${POSTGRES_DB}" <<-'EOSQL'
+        CREATE USER :"pguser" WITH PASSWORD :'pgpassword';
+        CREATE DATABASE :"pgdb" OWNER :"pguser";
+        GRANT ALL PRIVILEGES ON DATABASE :"pgdb" TO :"pguser";
 EOSQL
 
     gosu postgres /usr/lib/postgresql/18/bin/pg_ctl -D "$PGDATA" stop -w

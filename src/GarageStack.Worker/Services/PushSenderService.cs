@@ -45,7 +45,7 @@ public sealed class PushSenderService : IPushSender, IDisposable
 
     public bool IsConfigured => _pushClient is not null;
 
-    public async Task SendToAllAsync(string title, string body, CancellationToken ct = default, string? category = null)
+    public async Task SendToAllAsync(string title, string body, CancellationToken ct = default, string? category = null, int? vehicleId = null)
     {
         // Always persist so the in-app bell works regardless of push configuration
         try
@@ -58,6 +58,7 @@ public sealed class PushSenderService : IPushSender, IDisposable
                 Body = body,
                 CreatedAt = DateTime.UtcNow,
                 Category = category,
+                VehicleId = vehicleId,
             });
             await recordDb.SaveChangesAsync(ct);
         }
