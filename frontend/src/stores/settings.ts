@@ -165,7 +165,7 @@ export function defaultCards(type: VehicleType | 'unknown' = 'unknown'): CardCon
   const all: CardConfig[] = [
     { id: 'fuelLevel', visible: type !== 'bev' },
     { id: 'fuelRange', visible: type !== 'bev' },
-    { id: 'evBattery', visible: true },
+    { id: 'evBattery', visible: type !== 'hev' },
     { id: 'charging', visible: type === 'phev' || type === 'bev' },
     { id: 'odometer', visible: true },
     { id: 'battery12v', visible: true },
