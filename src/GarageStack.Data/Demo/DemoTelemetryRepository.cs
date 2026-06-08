@@ -71,6 +71,7 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
             }
             if (dto.InteriorTemperature.HasValue) _current.InteriorTemperature = dto.InteriorTemperature;
             if (dto.ExteriorTemperature.HasValue) _current.ExteriorTemperature = dto.ExteriorTemperature;
+            if (dto.Speed.HasValue) _current.Speed = dto.Speed;
         }
     }
 
