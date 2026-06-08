@@ -92,8 +92,11 @@ docker run -d \
   -e POSTGRES_PASSWORD=changeme \
   -e JWT_SECRET="$(openssl rand -base64 32)" \
   -e CORS_ORIGIN=http://192.168.1.100:8080 \
+  -e AUTH_COOKIE_SECURE=false \
   ghcr.io/joszz/garagestack:latest
 ```
+
+> **HTTPS proxy:** omit `-e AUTH_COOKIE_SECURE=false` (or set it to `true`) when the container sits behind a TLS-terminating reverse proxy.
 
 **Unraid:** import `unraid/garagestack.xml` from Community Apps and fill in the variables in the template UI.
 
