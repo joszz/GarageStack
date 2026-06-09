@@ -16,14 +16,12 @@ const { sending, isPending, send } = useVehicleCommand()
 const active = ref(false)
 const { isOpen: modalOpen, open: openModal, close: closeModal } = useModal()
 
-function activate() {
-  active.value = true
-  send(props.vin, 'find-my-car', 'activate')
+async function activate() {
+  if (await send(props.vin, 'find-my-car', 'activate')) active.value = true
 }
 
-function stop() {
-  active.value = false
-  send(props.vin, 'find-my-car', 'stop')
+async function stop() {
+  if (await send(props.vin, 'find-my-car', 'stop')) active.value = false
 }
 </script>
 

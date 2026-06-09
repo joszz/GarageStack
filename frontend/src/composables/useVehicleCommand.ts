@@ -25,8 +25,8 @@ export function useVehicleCommand() {
     }
   }
 
-  async function send(vin: string | null | undefined, command: string, value: string) {
-    if (!vin || isPending(command)) return
+  async function send(vin: string | null | undefined, command: string, value: string): Promise<boolean> {
+    if (!vin || isPending(command)) return false
     sending.value = command
     lastResult.value = null
     try {
@@ -37,8 +37,10 @@ export function useVehicleCommand() {
         command,
         setTimeout(() => clearPending(command), PENDING_TIMEOUT_MS),
       )
+      return true
     } catch {
       lastResult.value = { key: command, ok: false }
+      return false
     } finally {
       sending.value = null
     }

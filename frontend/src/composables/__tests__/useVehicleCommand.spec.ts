@@ -29,6 +29,23 @@ describe('useVehicleCommand', () => {
     expect(sendCommandMock).not.toHaveBeenCalled()
   })
 
+  it('returns false when vin is null', async () => {
+    const { send } = useVehicleCommand()
+    expect(await send(null, 'lock', 'lock')).toBe(false)
+  })
+
+  it('returns true after a successful command', async () => {
+    sendCommandMock.mockResolvedValue(undefined)
+    const { send } = useVehicleCommand()
+    expect(await send('VIN1', 'lock', 'True')).toBe(true)
+  })
+
+  it('returns false after a failed command', async () => {
+    sendCommandMock.mockRejectedValue(new Error('API error'))
+    const { send } = useVehicleCommand()
+    expect(await send('VIN1', 'lock', 'True')).toBe(false)
+  })
+
   it('does nothing when vin is undefined', async () => {
     const { send, sending } = useVehicleCommand()
     await send(undefined, 'lock', 'lock')
