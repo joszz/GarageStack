@@ -23,6 +23,7 @@ const props = defineProps<{
   fuelLevelPercent?: number | null
   chargerConnected?: boolean | null
   isCharging?: boolean | null
+  speed?: number | null
 }>()
 
 function pressureVariant(bar: number | null): string {
@@ -61,6 +62,14 @@ const fuelColor = computed(() => {
   if (pct >= 30) return 'var(--color-success)'
   if (pct >= 15) return 'var(--color-warning)'
   return 'var(--color-danger)'
+})
+
+const isMoving = computed(() => (props.speed ?? 0) > 0)
+
+const roadAnimDuration = computed(() => {
+  const s = props.speed ?? 0
+  if (s <= 0) return '2s'
+  return `${Math.max(0.2, Math.min(4, 60 / s)).toFixed(2)}s`
 })
 
 const activeLightKey = computed(() => {
@@ -121,17 +130,19 @@ const activeLightKey = computed(() => {
       <div class="tyre-diagram__wrap">
         <div class="tyre-car-wrap">
           <!--
-          ViewBox: 0 0 340 480
+          ViewBox: -40 0 420 480  (widened by 40 px each side; car stays at x=170 = 50%)
           Orange car: nested SVG, original bounds x≈137–245 y≈237–445
             placed at x=105 y=115 width=130 height=250 in parent coords.
+          Car body parent coords: x≈119–222; center x=170.
           Wheel corners (parent): FL(127,123) FR(213,123) RL(127,349) RR(213,349)
           Dots at outer side of each wheel: FL(110,145) FR(230,145) RL(110,327) RR(230,327)
           Labels at (~20° from horizontal):  FL→(72,131) FR→(268,131) RL→(72,341) RR→(268,341)
+          CSS % = (svg_x + 40) / 420: FL/RL=26.7%  FR/RR=73.3%
           Side light cones: left x=72–118 y=137–147 / right x=222–268 y=137–147
           Door icon badges: see .car-badge-* CSS classes
         -->
           <svg
-            viewBox="0 0 340 480"
+            viewBox="-40 0 420 480"
             xmlns="http://www.w3.org/2000/svg"
             class="tyre-diagram__svg"
             aria-label="Vehicle status diagram"
@@ -189,6 +200,32 @@ const activeLightKey = computed(() => {
                 <stop offset="100%" stop-color="#fb923c" stop-opacity="0" />
               </radialGradient>
             </defs>
+
+            <!-- Road animation: visible only while driving (speed > 0).
+                 ViewBox is -40 0 420 480. 3 equal lanes of 140 px each.
+                 Left lane: x=-40–100. Center lane: x=100–240 (car body x≈119–222, ~20 px margin).
+                 Right lane: x=240–380. Edges at x=-38 and x=378. -->
+            <g v-if="isMoving" class="road-anim-group">
+              <rect x="-40" y="0" width="420" height="480" class="road-surface" />
+              <line x1="-38" y1="0" x2="-38" y2="480" class="road-edge" />
+              <line x1="378" y1="0" x2="378" y2="480" class="road-edge" />
+              <line
+                x1="100"
+                y1="0"
+                x2="100"
+                y2="480"
+                class="road-center-dash"
+                :style="{ animationDuration: roadAnimDuration }"
+              />
+              <line
+                x1="240"
+                y1="0"
+                x2="240"
+                y2="480"
+                class="road-center-dash"
+                :style="{ animationDuration: roadAnimDuration }"
+              />
+            </g>
 
             <!--
               Light beams drawn behind car. Polygon bases extend into the car body area (y≈140-145)

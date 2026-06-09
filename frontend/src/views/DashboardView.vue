@@ -262,6 +262,7 @@ onUnmounted(() => {
             :fuel-level-percent="status.fuelLevelPercent"
             :charger-connected="status.chargerConnected"
             :is-charging="status.isCharging"
+            :speed="status.speed"
           />
           <div v-else class="card-slot__placeholder card-slot__placeholder--chart">
             <font-awesome-icon icon="car-side" />
@@ -360,6 +361,7 @@ onUnmounted(() => {
           :fuel-level-percent="status.fuelLevelPercent"
           :charger-connected="status.chargerConnected"
           :is-charging="status.isCharging"
+          :speed="status.speed"
           class="mb-4"
         />
 
