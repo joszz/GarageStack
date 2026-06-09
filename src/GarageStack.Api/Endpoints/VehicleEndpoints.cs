@@ -232,9 +232,9 @@ public static class VehicleEndpoints
         })
         .WithSummary("Register a browser push subscription");
 
-        push.MapDelete("/unsubscribe", async (string endpoint, AppDbContext db, CancellationToken ct) =>
+        push.MapPost("/unsubscribe", async (PushUnsubscribeRequest req, AppDbContext db, CancellationToken ct) =>
         {
-            var sub = await db.PushSubscriptions.FirstOrDefaultAsync(s => s.Endpoint == endpoint, ct);
+            var sub = await db.PushSubscriptions.FirstOrDefaultAsync(s => s.Endpoint == req.Endpoint, ct);
             if (sub is not null)
             {
                 db.PushSubscriptions.Remove(sub);
@@ -249,4 +249,5 @@ public static class VehicleEndpoints
 }
 
 public record PushSubscribeRequest(string Endpoint, string P256DhKey, string AuthKey);
+public record PushUnsubscribeRequest(string Endpoint);
 public record VehicleListItemDto(int Id, string Vin, string? Model, string? Series, DateTime CreatedAt);

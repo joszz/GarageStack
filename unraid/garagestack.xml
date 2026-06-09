@@ -44,13 +44,13 @@
   <Config
     Name="MQTT Port"
     Target="1883"
-    Default="1883"
+    Default=""
     Mode="tcp"
-    Description="Host port for the internal Mosquitto MQTT broker. Only expose if you need direct MQTT access from other devices."
+    Description="Host port for the internal Mosquitto MQTT broker. Leave blank (default) to keep the broker LAN-private. Only set if you need direct MQTT access from other devices."
     Type="Port"
     Display="advanced"
     Required="false"
-    Mask="false">1883</Config>
+    Mask="false"></Config>
 
   <!-- ── Volumes ────────────────────────────────────────────────────────────── -->
 
