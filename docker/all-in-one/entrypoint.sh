@@ -39,9 +39,9 @@ export Vapid__Subject="${Vapid__Subject:-mailto:${SAIC_USER}}"
 export Jwt__Secret="${JWT_SECRET:?JWT_SECRET environment variable is required}"
 export Auth__Username="${SAIC_USER}"
 export Auth__Password="${SAIC_PASSWORD}"
-# Default false: this container is usually served over plain HTTP on a LAN.
-# Set AUTH_COOKIE_SECURE=true when sitting behind a TLS-terminating proxy.
-export Auth__CookieSecure="${AUTH_COOKIE_SECURE:-false}"
+# Default true: matches API production behavior and is correct behind any TLS proxy.
+# Set AUTH_COOKIE_SECURE=false only for trusted plain-HTTP LAN installs.
+export Auth__CookieSecure="${AUTH_COOKIE_SECURE:-true}"
 
 # CORS: the URL users open in their browser
 export Cors__Origins__0="${CORS_ORIGIN:-http://localhost:8080}"

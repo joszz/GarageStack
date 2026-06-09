@@ -2,7 +2,7 @@ FROM node:24-alpine AS build
 WORKDIR /app
 ARG VITE_DEMO_MODE=false
 ENV VITE_DEMO_MODE=$VITE_DEMO_MODE
-RUN apk upgrade --no-cache && corepack enable && corepack prepare pnpm@latest --activate
+RUN apk upgrade --no-cache && corepack enable && corepack prepare pnpm@11.1.3 --activate
 COPY package.json pnpm-lock.yaml ./
 RUN pnpm config set minimum-release-age 0 && pnpm install --frozen-lockfile --ignore-scripts
 COPY . .
