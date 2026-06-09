@@ -164,6 +164,11 @@ public static class VehicleEndpoints
             if (topicSuffix is null)
                 return Results.BadRequest(new { error = $"Unknown command '{command}'" });
 
+            var validationError = ValidateCommandValue(command, value);
+
+            if (validationError is not null)
+                return Results.BadRequest(new { error = validationError });
+
             var topic = $"saic/{vehicle.SaicUser}/vehicles/{vin}/{topicSuffix}";
             await mqtt.PublishAsync(topic, value, ct);
 
@@ -246,6 +251,31 @@ public static class VehicleEndpoints
 
         return app;
     }
+
+    internal static string? ValidateCommandValue(string command, string value) => command switch
+    {
+        "climate" or "rear-defroster" =>
+            value is "on" or "off" ? null : $"'{command}' value must be 'on' or 'off'",
+        "climate-temperature" =>
+            int.TryParse(value, out var temp) && temp is >= 16 and <= 28
+                ? null
+                : "'climate-temperature' value must be an integer between 16 and 28",
+        "seat-left" or "seat-right" =>
+            int.TryParse(value, out var seat) && seat is >= 0 and <= 3
+                ? null
+                : $"'{command}' value must be an integer between 0 and 3",
+        "find-my-car" =>
+            value is "activate" or "stop" ? null : "'find-my-car' value must be 'activate' or 'stop'",
+        "charge-limit" =>
+            int.TryParse(value, out var limit) && limit is >= 1 and <= 100
+                ? null
+                : "'charge-limit' value must be an integer between 1 and 100",
+        "lock" =>
+            value is "True" or "False" ? null : "'lock' value must be 'True' or 'False'",
+        "refresh" =>
+            value == "force" ? null : "'refresh' value must be 'force'",
+        _ => null  // scheduled-charging: accept any non-empty string
+    };
 }
 
 public record PushSubscribeRequest(string Endpoint, string P256DhKey, string AuthKey);
