@@ -21,23 +21,19 @@ namespace GarageStack.Data.Migrations
                 type: "timestamp with time zone",
                 nullable: true);
 
-            migrationBuilder.CreateIndex(
-                name: "IX_TelemetrySnapshots_VehicleId_RecordedAt",
-                table: "TelemetrySnapshots",
-                columns: new[] { "VehicleId", "RecordedAt" });
+            // IX_TelemetrySnapshots_VehicleId_RecordedAt already exists from InitialCreate;
+            // do not recreate it here or upgrade will fail with a duplicate relation error.
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropIndex(
-                name: "IX_TelemetrySnapshots_VehicleId_RecordedAt",
-                table: "TelemetrySnapshots");
-
             migrationBuilder.DropColumn(
                 name: "LastParkedAt",
                 table: "Vehicles");
 
+            // IX_TelemetrySnapshots_VehicleId_RecordedAt was not created in Up,
+            // so it must not be dropped here; it belongs to InitialCreate.
             migrationBuilder.CreateIndex(
                 name: "IX_TelemetrySnapshots_VehicleId_RecordedAt_Chart",
                 table: "TelemetrySnapshots",

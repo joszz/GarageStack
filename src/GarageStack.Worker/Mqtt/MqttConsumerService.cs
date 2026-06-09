@@ -210,7 +210,7 @@ public class MqttConsumerService(
         if (snapshot.EngineRunning.Value && !wasRunning)
         {
             logger.LogInformation("Engine started for VIN={Vin} - sending push notification", vin);
-            await pushSender.SendToAllAsync("Engine started", "Your car has been started.", ct, "engine-start");
+            await pushSender.SendToAllAsync("Engine started", "Your car has been started.", ct, "engine-start", snapshot.VehicleId);
         }
     }
 

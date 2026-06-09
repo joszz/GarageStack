@@ -5,6 +5,7 @@ import { useAuthStore } from '@/stores/auth'
 const notifications = ref<AppNotification[]>([])
 const panelOpen = ref(false)
 const loading = ref(false)
+const fetchError = ref<string | null>(null)
 
 export function useNotifications() {
   const auth = useAuthStore()
@@ -12,8 +13,11 @@ export function useNotifications() {
 
   async function fetchNotifications() {
     loading.value = true
+    fetchError.value = null
     try {
       notifications.value = await notificationsApi.list()
+    } catch (err) {
+      fetchError.value = err instanceof Error ? err.message : 'Failed to load notifications'
     } finally {
       loading.value = false
     }
@@ -81,6 +85,7 @@ export function useNotifications() {
     unreadCount,
     panelOpen,
     loading,
+    fetchError,
     fetchNotifications,
     archiveNotification,
     archiveAllNotifications,
