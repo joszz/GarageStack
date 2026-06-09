@@ -1,4 +1,4 @@
-import { ref, computed, watch, onUnmounted } from 'vue'
+import { ref, computed, watch, onUnmounted, getCurrentInstance } from 'vue'
 import { notificationsApi, type AppNotification } from '@/services/api'
 import { useAuthStore } from '@/stores/auth'
 
@@ -46,9 +46,11 @@ export function useNotifications() {
     { immediate: true },
   )
 
-  onUnmounted(() => {
-    navigator.serviceWorker?.removeEventListener('message', onSwMessage)
-  })
+  if (getCurrentInstance()) {
+    onUnmounted(() => {
+      navigator.serviceWorker?.removeEventListener('message', onSwMessage)
+    })
+  }
 
   async function archiveNotification(id: number) {
     await notificationsApi.archive(id)

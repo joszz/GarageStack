@@ -144,14 +144,15 @@ describe('useNotifications', () => {
     expect(loading.value).toBe(false)
   })
 
-  it('fetchNotifications() resets loading flag even when API throws', async () => {
+  it('fetchNotifications() resets loading flag and sets fetchError when API throws', async () => {
     vi.mocked(notificationsApi.list).mockRejectedValue(new Error('Network error'))
 
     const { useNotifications } = await import('@/composables/useNotifications')
-    const { fetchNotifications, loading } = useNotifications()
-    await fetchNotifications().catch(() => {})
+    const { fetchNotifications, loading, fetchError } = useNotifications()
+    await fetchNotifications()
 
     expect(loading.value).toBe(false)
+    expect(fetchError.value).toBe('Network error')
   })
 
   it('archiveNotification() marks the notification as archived in-place', async () => {

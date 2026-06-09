@@ -402,7 +402,7 @@ public class TelemetryRepositoryMergeTests
         var id = await repo.AddAsync(new TelemetrySnapshot { VehicleId = vehicle.Id, FuelLevelPercent = 60 }, ct);
         await repo.MergeIntoAsync(id, new TelemetrySnapshot { VehicleId = vehicle.Id, EvSocPercent = 80 }, ct);
 
-        var row = await db.TelemetrySnapshots.FindAsync(id);
+        var row = await db.TelemetrySnapshots.FindAsync([id], ct);
         Assert.Equal(60, row!.FuelLevelPercent);
         Assert.Equal(80, row.EvSocPercent);
     }
@@ -416,7 +416,7 @@ public class TelemetryRepositoryMergeTests
         var id = await repo.AddAsync(new TelemetrySnapshot { VehicleId = vehicle.Id, FuelLevelPercent = 60 }, ct);
         await repo.MergeIntoAsync(id, new TelemetrySnapshot { VehicleId = vehicle.Id, FuelLevelPercent = 55 }, ct);
 
-        var row = await db.TelemetrySnapshots.FindAsync(id);
+        var row = await db.TelemetrySnapshots.FindAsync([id], ct);
         Assert.Equal(55, row!.FuelLevelPercent);
     }
 
@@ -429,7 +429,7 @@ public class TelemetryRepositoryMergeTests
         var id = await repo.AddAsync(new TelemetrySnapshot { VehicleId = vehicle.Id, FuelLevelPercent = 60, EvSocPercent = 80 }, ct);
         await repo.MergeIntoAsync(id, new TelemetrySnapshot { VehicleId = vehicle.Id, BatteryVoltage = 12.8 }, ct);
 
-        var row = await db.TelemetrySnapshots.FindAsync(id);
+        var row = await db.TelemetrySnapshots.FindAsync([id], ct);
         Assert.Equal(60, row!.FuelLevelPercent);
         Assert.Equal(80, row.EvSocPercent);
         Assert.Equal(12.8, row.BatteryVoltage);

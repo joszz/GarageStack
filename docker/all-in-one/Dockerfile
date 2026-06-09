@@ -47,15 +47,16 @@ FROM python:3.14-slim
 
 ARG DEBIAN_FRONTEND=noninteractive
 
-# bash  -- required by entrypoint.sh and dotnet-install.sh (slim images ship dash only)
+# bash          -- required by entrypoint.sh and dotnet-install.sh (slim images ship dash only)
 # libgssapi-krb5-2 -- required by the .NET runtime
+# libicu-dev    -- required by .NET globalization (UseRequestLocalization uses CultureInfo)
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
     apt-get update \
     && apt-get install -y --no-install-recommends \
         bash curl gnupg ca-certificates gosu supervisor \
         nginx mosquitto mosquitto-clients \
-        libgssapi-krb5-2 \
+        libgssapi-krb5-2 libicu-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # .NET 10 ASP.NET Core runtime -- installed via the official script, no apt repo needed.
@@ -65,8 +66,6 @@ RUN curl -sSL https://dot.net/v1/dotnet-install.sh -o /tmp/dotnet-install.sh \
     && rm /tmp/dotnet-install.sh
 
 ENV PATH="/usr/local/dotnet:$PATH"
-# Removes the libicu dependency; fine for a telemetry API that uses invariant formatting.
-ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=true
 
 # PostgreSQL 18 -- official apt repo, trixie suite.
 RUN curl -sSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
