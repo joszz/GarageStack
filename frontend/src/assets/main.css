@@ -616,6 +616,47 @@ body,
 
 /* ── Tyre diagram ─────────────────────────────────────────── */
 
+/* ── Road driving animation ───────────────────────────── */
+
+.road-surface {
+  fill: #2a2a2a;
+  opacity: 0.5;
+}
+
+[data-theme='light'] .road-surface {
+  fill: #a0a0a0;
+  opacity: 0.35;
+}
+
+.road-edge {
+  stroke: rgba(255, 255, 255, 0.35);
+  stroke-width: 1.5;
+}
+
+[data-theme='light'] .road-edge {
+  stroke: rgba(255, 255, 255, 0.7);
+}
+
+.road-center-dash {
+  stroke: rgba(255, 255, 255, 0.6);
+  stroke-width: 2.5;
+  stroke-dasharray: 30 15;
+  animation: road-scroll 1s linear infinite;
+}
+
+[data-theme='light'] .road-center-dash {
+  stroke: rgba(255, 255, 255, 0.85);
+}
+
+@keyframes road-scroll {
+  from {
+    stroke-dashoffset: 0;
+  }
+  to {
+    stroke-dashoffset: -45;
+  }
+}
+
 .tyre-diagram {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
@@ -641,11 +682,11 @@ body,
   justify-content: center;
 }
 
-/* SVG viewBox is 340×480; keep it narrow enough to fit on iPhone SE (375px) */
+/* SVG viewBox is 420×480 (widened for 3-lane road); max-width keeps it on small screens */
 .tyre-car-wrap {
   position: relative;
   display: inline-block;
-  width: 220px;
+  width: 300px;
   max-width: 100%;
 }
 
@@ -704,8 +745,9 @@ body,
 /* ── Pressure label positioning ──────────────────────────── */
 /*
   Labels float at the outer endpoints of the indicator lines.
-  SVG viewBox 340×480; line ends at FL(72,68) FR(268,68) RL(72,404) RR(268,404).
-  As % of container: x=72/340=21.2% x=268/340=78.8% y=68/480=14.2% y=404/480=84.2%
+  SVG viewBox -40 0 420 480; line ends at FL(72,131) FR(268,131) RL(72,341) RR(268,341).
+  CSS % = (svg_x + 40) / 420: x=72→26.7%  x=268→73.3%
+  y unchanged: 131/480=27.3%  341/480=71%
 */
 
 .tyre-labels {
@@ -727,22 +769,22 @@ body,
 
 .tyre-label--fl {
   top: 27.3%;
-  left: 21.2%;
+  left: 26.7%;
   transform: translate(-100%, -50%);
 }
 .tyre-label--fr {
   top: 27.3%;
-  left: 78.8%;
+  left: 73.3%;
   transform: translate(0%, -50%);
 }
 .tyre-label--rl {
   top: 71%;
-  left: 21.2%;
+  left: 26.7%;
   transform: translate(-100%, -50%);
 }
 .tyre-label--rr {
   top: 71%;
-  left: 78.8%;
+  left: 73.3%;
   transform: translate(0%, -50%);
 }
 
@@ -947,10 +989,10 @@ body,
 /* ── Open panel icon badges ───────────────────────────────── */
 /*
   Circular warning badges floating at each panel location.
-  Positions derived from SVG viewBox 340×480 mapped to % of container.
-  Left doors  at x≈80/340 =23.5%, right at x≈260/340=76.5%
-  FL/FR doors top≈39%, RL/RR doors top≈50%
-  Bonnet top≈20%, Trunk top≈79%
+  Positions derived from SVG viewBox -40 0 420 480; CSS % = (svg_x + 40) / 420.
+  Left doors  x≈117 → 37.4%, right doors x≈223 → 62.6%
+  Bonnet/Trunk x=170 → 50%
+  Top values are y-based and unchanged.
 */
 
 .car-badge {
@@ -981,22 +1023,22 @@ body,
 }
 .car-badge--door-fl {
   top: 45%;
-  left: 34.5%;
+  left: 37.4%;
   transform: translate(-50%, -50%);
 }
 .car-badge--door-fr {
   top: 45%;
-  left: 65.5%;
+  left: 62.6%;
   transform: translate(-50%, -50%);
 }
 .car-badge--door-rl {
   top: 56%;
-  left: 34.5%;
+  left: 37.4%;
   transform: translate(-50%, -50%);
 }
 .car-badge--door-rr {
   top: 56%;
-  left: 65.5%;
+  left: 62.6%;
   transform: translate(-50%, -50%);
 }
 
