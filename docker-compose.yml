@@ -8,8 +8,8 @@ services:
       -c "
       set -eu;
       rm -f /mosquitto/data/passwd /mosquitto/data/acl;
-      mosquitto_passwd -b -c /mosquitto/data/passwd \"${SAIC_USER}\" \"${SAIC_PASSWORD}\";
-      printf 'user %s\\ntopic readwrite #\\n' \"${SAIC_USER}\" > /mosquitto/data/acl;
+      mosquitto_passwd -b -c /mosquitto/data/passwd \"${MQTT_BROKER_USERNAME:-garagestack}\" \"${MQTT_BROKER_PASSWORD}\";
+      printf 'user %s\\ntopic readwrite #\\n' \"${MQTT_BROKER_USERNAME:-garagestack}\" > /mosquitto/data/acl;
       chown mosquitto:mosquitto /mosquitto/data/passwd /mosquitto/data/acl;
       chmod 600 /mosquitto/data/passwd /mosquitto/data/acl;
       exec /docker-entrypoint.sh /usr/sbin/mosquitto -c /mosquitto/config/mosquitto.conf
@@ -30,8 +30,8 @@ services:
       SAIC_USER: "${SAIC_USER}"
       SAIC_PASSWORD: "${SAIC_PASSWORD}"
       MQTT_URI: "tcp://mosquitto:1883"
-      MQTT_USER: "${SAIC_USER}"
-      MQTT_PASSWORD: "${SAIC_PASSWORD}"
+      MQTT_USER: "${MQTT_BROKER_USERNAME:-garagestack}"
+      MQTT_PASSWORD: "${MQTT_BROKER_PASSWORD}"
       SAIC_REGION: "${SAIC_REGION:-eu}"
 
   # Bundled Postgres - only starts when you pass --profile bundled-postgres.
@@ -77,8 +77,8 @@ services:
       ConnectionStrings__DefaultConnection: "Host=${POSTGRES_HOST:-postgres};Port=${POSTGRES_PORT:-5432};Database=${POSTGRES_DB:-garagestack};Username=${POSTGRES_USER:-garagestack};Password=${POSTGRES_PASSWORD}"
       Mqtt__Host: "${MQTT_HOST:-mosquitto}"
       Mqtt__Port: "${MQTT_PORT:-1883}"
-      Mqtt__Username: "${SAIC_USER}"
-      Mqtt__Password: "${SAIC_PASSWORD}"
+      Mqtt__Username: "${MQTT_BROKER_USERNAME:-garagestack}"
+      Mqtt__Password: "${MQTT_BROKER_PASSWORD}"
       Vapid__PublicKey: "${VAPID_PUBLIC_KEY}"
       Vapid__PrivateKey: "${VAPID_PRIVATE_KEY}"
       Vapid__Subject: "mailto:${SAIC_USER}"
@@ -112,13 +112,13 @@ services:
       Auth__Password: "${SAIC_PASSWORD}"
       Mqtt__Host: "${MQTT_HOST:-mosquitto}"
       Mqtt__Port: "${MQTT_PORT:-1883}"
-      Mqtt__Username: "${SAIC_USER}"
-      Mqtt__Password: "${SAIC_PASSWORD}"
+      Mqtt__Username: "${MQTT_BROKER_USERNAME:-garagestack}"
+      Mqtt__Password: "${MQTT_BROKER_PASSWORD}"
       Vapid__PublicKey: "${VAPID_PUBLIC_KEY}"
       Vapid__PrivateKey: "${VAPID_PRIVATE_KEY}"
       Vapid__Subject: "mailto:${SAIC_USER}"
       Widget__ApiKey: "${WIDGET_API_KEY:-}"
-      Auth__CookieSecure: "${AUTH_COOKIE_SECURE:-false}"
+      Auth__CookieSecure: "${AUTH_COOKIE_SECURE:-true}"
     ports:
       - "127.0.0.1:${API_PORT:-5000}:8080"
     volumes:
