@@ -205,9 +205,20 @@ const activeLightKey = computed(() => {
                 <stop offset="0%" stop-color="#fb923c" stop-opacity="0.70" />
                 <stop offset="100%" stop-color="#fb923c" stop-opacity="0" />
               </radialGradient>
-              <!-- Vertical motion blur applied to the car body above 100 km/h -->
-              <filter id="motion-blur" x="-5%" y="-30%" width="110%" height="160%">
-                <feGaussianBlur :stdDeviation="`0 ${motionBlurAmount}`" />
+              <!-- Motion blur above 100 km/h: ghost is shifted toward the rear (downward)
+                   and blurred, then the sharp original is composited on top so the
+                   blur trails behind the car rather than spreading symmetrically. -->
+              <filter id="motion-blur" x="-5%" y="-5%" width="110%" height="160%">
+                <feOffset in="SourceGraphic" :dy="motionBlurAmount * 2" result="shifted" />
+                <feGaussianBlur
+                  in="shifted"
+                  :stdDeviation="`0 ${motionBlurAmount}`"
+                  result="blurred"
+                />
+                <feMerge>
+                  <feMergeNode in="blurred" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
               </filter>
             </defs>
 
