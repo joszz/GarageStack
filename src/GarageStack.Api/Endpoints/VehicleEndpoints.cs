@@ -186,7 +186,7 @@ public static class VehicleEndpoints
 
             return Results.Ok(topics);
         })
-        .WithSummary("Distinct raw MQTT topics seen for a vehicle");
+        .WithSummary("Distinct raw MQTT topics seen for a vehicle (one entry per 15-second merge window; topics arriving mid-window are not recorded)");
 
         var push = app.MapGroup("/api/push")
             .WithTags("Push Notifications")
