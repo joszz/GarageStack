@@ -80,6 +80,8 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
         Id = 1,
         VehicleId = 1,
         RecordedAt = DateTime.UtcNow.AddMinutes(-3),
+        FuelLevelPercent = 68,
+        FuelRangeKm = 420,
         EvSocPercent = 78,
         HvSocKwh = Math.Round(78.0 / 100.0 * 70.0, 1),
         HvTotalCapacityKwh = 70.0,
@@ -150,6 +152,7 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
         var baseDate = DateTime.UtcNow.Date.AddDays(-30);
         var odometer = 24300.0;
         var soc = 88.0;
+        var fuel = 80.0;
         var idCounter = 100L;
 
         // 4 snapshots per day: depart (7h), midday (12h), return (17h), plug in (22h)
@@ -170,16 +173,24 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
                 {
                     var consumed = 6 + rng.Next(0, 5);
                     soc -= consumed;
+                    fuel -= 1.5 + rng.NextDouble();
                     odometer += consumed * 7.2;
                 }
                 else if (hour == 17)
                 {
                     var consumed = 5 + rng.Next(0, 5);
                     soc -= consumed;
+                    fuel -= 1.0 + rng.NextDouble();
                     odometer += consumed * 7.2;
+                }
+                else if (hour == 22 && day % 7 == 0)
+                {
+                    // weekly refuel
+                    fuel = 90 + rng.Next(0, 10);
                 }
 
                 soc = Math.Clamp(soc, 10, 97);
+                fuel = Math.Clamp(fuel, 5, 100);
 
                 var isCharging = hour == 22;
                 var extTemp = 13.0 + (rng.NextDouble() - 0.5) * 10.0;
@@ -191,6 +202,8 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
                     Id = idCounter++,
                     VehicleId = 1,
                     RecordedAt = ts,
+                    FuelLevelPercent = Math.Round(fuel, 1),
+                    FuelRangeKm = Math.Round(fuel / 100.0 * 650.0, 0),
                     EvSocPercent = Math.Round(soc, 1),
                     HvSocKwh = Math.Round(soc / 100.0 * 70.0, 1),
                     HvTotalCapacityKwh = 70.0,
