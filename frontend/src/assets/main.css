@@ -657,6 +657,13 @@ body,
   }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .road-center-dash {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+}
+
 .tyre-diagram {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
