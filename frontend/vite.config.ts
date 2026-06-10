@@ -45,7 +45,31 @@ export default defineConfig({
             form_factor: 'narrow',
           },
           {
+            src: 'screenshot-mobile-map.webp',
+            sizes: '375x667',
+            type: 'image/webp',
+            form_factor: 'narrow',
+          },
+          {
+            src: 'screenshot-mobile-statistics.webp',
+            sizes: '375x667',
+            type: 'image/webp',
+            form_factor: 'narrow',
+          },
+          {
             src: 'screenshot-desktop-home.webp',
+            sizes: '1269x1038',
+            type: 'image/webp',
+            form_factor: 'wide',
+          },
+          {
+            src: 'screenshot-desktop-map.webp',
+            sizes: '1269x1038',
+            type: 'image/webp',
+            form_factor: 'wide',
+          },
+          {
+            src: 'screenshot-desktop-statistics.webp',
             sizes: '1269x1038',
             type: 'image/webp',
             form_factor: 'wide',
