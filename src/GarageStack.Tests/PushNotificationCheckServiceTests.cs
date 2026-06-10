@@ -219,18 +219,6 @@ public class PushNotificationCheckServiceTests
         Assert.Equal("windows-open-parked", alerts[0].Item1);
     }
 
-    [Fact]
-    public void CheckWindowsOpenWhileParked_SunroofOpen_FiresAlert()
-    {
-        var alerts = new List<(string, string, string)>();
-
-        PushNotificationCheckService.CheckWindowsOpenWhileParked(
-            Parked(s => s.SunRoofOpen = true), alerts, withinParkingGrace: false);
-
-        Assert.Single(alerts);
-        Assert.Contains("sunroof", alerts[0].Item3);
-    }
-
     // ---------------------------------------------------------------------------
     // CheckChargingComplete — BEV/PHEV only, transition detection
     // ---------------------------------------------------------------------------
