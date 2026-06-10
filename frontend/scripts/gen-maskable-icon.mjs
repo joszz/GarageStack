@@ -5,7 +5,7 @@ import { dirname, join } from 'path'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
-const BG = '#1a1d27'
+const BG = '#0f1117'
 const FG = '#3b82f6'
 
 // Car path original coordinate space: 512 x 512.
@@ -14,10 +14,11 @@ const FG = '#3b82f6'
 // Adaptive icon safe zone = circle radius 40% of image size. The car bounding
 // box corners are at ~344 original units from centre, so scale is capped at
 // size*0.38/344 to keep all corners inside the circle with breathing room.
-function buildMaskableSvg(size) {
+// All icons — maskable and non-maskable — use the same layout so they are
+// visually identical regardless of which one the OS or browser picks.
+function buildIconSvg(size) {
   const scale = (size * 0.38) / 344
 
-  // Center the car+text block (y=32–490) in the canvas
   const contentCenterY = 261
   const carTy = (size / 2 - contentCenterY * scale - size * 0.02).toFixed(2)
   const carTx = (size / 2 - 256 * scale).toFixed(2)
@@ -34,7 +35,7 @@ function buildMaskableSvg(size) {
        c-17.7 0-32-14.3-32-32V400 256c0-26.7 16.4-49.6 39.6-59.2zM128 288a32 32 0 1 0-64 0
        32 32 0 1 0 64 0zm288 32a32 32 0 1 0 0-64 32 32 0 1 0 0 64z"/>
   <text x="${size / 2}" y="${textY}" text-anchor="middle"
-        font-family="system-ui,sans-serif" font-size="${fontSize}"
+        font-family="Arial,sans-serif" font-size="${fontSize}"
         font-weight="700" letter-spacing="-1" fill="${FG}">GS</text>
 </svg>`
 }
@@ -76,7 +77,12 @@ function write(filePath, svg, size) {
 
 const pub = join(__dirname, '..', 'public')
 
-write(join(pub, 'maskable-icon-512x512.png'), buildMaskableSvg(512), 512)
-write(join(pub, 'maskable-icon-192x192.png'), buildMaskableSvg(192), 192)
+// App icons — full-bleed dark background, purpose: "any maskable" in the manifest
+write(join(pub, 'pwa-64x64.png'), buildIconSvg(64), 64)
+write(join(pub, 'pwa-192x192.png'), buildIconSvg(192), 192)
+write(join(pub, 'pwa-512x512.png'), buildIconSvg(512), 512)
+write(join(pub, 'apple-touch-icon-180x180.png'), buildIconSvg(180), 180)
+
+// Shortcut icons
 write(join(pub, 'shortcut-map-96x96.png'), buildShortcutSvg(96, mapIconPath, 384, 512), 96)
 write(join(pub, 'shortcut-stats-96x96.png'), buildShortcutSvg(96, statsIconPath, 448, 512), 96)
