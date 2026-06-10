@@ -135,11 +135,6 @@ describe('getOpenItems', () => {
     expect(items).toContain('rear right window')
   })
 
-  it('detects open sunroof', () => {
-    const items = getOpenItems(makeSnapshot({ sunRoofOpen: true }))
-    expect(items).toContain('sunroof')
-  })
-
   it('returns only open items when mixed', () => {
     const items = getOpenItems(makeSnapshot({ driverDoorOpen: true, passengerDoorOpen: false }))
     expect(items).toHaveLength(1)

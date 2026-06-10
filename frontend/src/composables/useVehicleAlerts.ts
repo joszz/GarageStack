@@ -17,7 +17,6 @@ export function getOpenItems(s: TelemetrySnapshot): string[] {
   if (s.passengerWindowOpen) open.push('passenger window')
   if (s.rearLeftWindowOpen) open.push('rear left window')
   if (s.rearRightWindowOpen) open.push('rear right window')
-  if (s.sunRoofOpen) open.push('sunroof')
   return open
 }
 
