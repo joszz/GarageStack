@@ -112,7 +112,7 @@ watch(
 <template>
   <RouterView v-if="isLoginRoute" />
 
-  <div v-else class="app-layout">
+  <div v-else class="app-layout" :class="{ 'has-demo-banner': isDemoMode }">
     <DemoBanner v-if="isDemoMode" />
 
     <!-- Mobile topbar -->
