@@ -11,15 +11,16 @@ const FG = '#3b82f6'
 // Car path original coordinate space: 512 x 512.
 // Content spans y≈32–490 (centre ≈ 261). We centre that in the canvas and
 // bias slightly upward so the result feels visually balanced.
+// Adaptive icon safe zone = circle radius 40% of image size. The car bounding
+// box corners are at ~344 original units from centre, so scale is capped at
+// size*0.38/344 to keep all corners inside the circle with breathing room.
 function buildMaskableSvg(size) {
-  const pad = Math.round(size * 0.1)
-  const inner = size - pad * 2
-  const scale = inner / 512
+  const scale = (size * 0.38) / 344
 
   // Center the car+text block (y=32–490) in the canvas
   const contentCenterY = 261
   const carTy = (size / 2 - contentCenterY * scale - size * 0.02).toFixed(2)
-  const carTx = pad.toFixed(2)
+  const carTx = (size / 2 - 256 * scale).toFixed(2)
   const textY = (parseFloat(carTy) + 490 * scale).toFixed(2)
   const fontSize = Math.round(size * 0.13)
 
