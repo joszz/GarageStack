@@ -9,6 +9,7 @@ import AppFooter from '@/components/AppFooter.vue'
 import NotificationPanel from '@/components/NotificationPanel.vue'
 import DemoBanner from '@/components/DemoBanner.vue'
 import DemoControlPanel from '@/components/DemoControlPanel.vue'
+import PwaInstallModal from '@/components/PwaInstallModal.vue'
 import { useNotifications } from '@/composables/useNotifications'
 
 const isDemoMode = import.meta.env.VITE_DEMO_MODE === 'true'
@@ -254,5 +255,6 @@ watch(
     />
 
     <DemoControlPanel v-if="isDemoMode" :open="demoControlsOpen" />
+    <PwaInstallModal />
   </div>
 </template>
