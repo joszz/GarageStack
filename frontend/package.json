@@ -37,6 +37,7 @@
     "workbox-window": "^7.4.1"
   },
   "devDependencies": {
+    "@resvg/resvg-js": "^2.6.2",
     "@tsconfig/node24": "^24.0.4",
     "@types/jsdom": "^28.0.3",
     "@types/leaflet": "^1.9.21",
