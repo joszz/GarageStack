@@ -37,6 +37,20 @@ const vehicleType = computed((): VehicleType | 'unknown' => {
 
 const isHev = computed(() => vehicleType.value === 'hev')
 
+const hiddenByTypeIds = computed((): Set<CardId> => {
+  if (vehicleType.value === 'unknown') return new Set()
+  const typeDefaults = defaultCards(vehicleType.value)
+  return new Set(typeDefaults.filter((c) => !c.visible).map((c) => c.id))
+})
+
+const editableCards = computed({
+  get: () => settings.cards.filter((c) => !hiddenByTypeIds.value.has(c.id)),
+  set: (newVal) => {
+    const restricted = settings.cards.filter((c) => hiddenByTypeIds.value.has(c.id))
+    settings.cards = [...newVal, ...restricted]
+  },
+})
+
 // Card IDs whose visibility differs between vehicle types (derived from defaultCards).
 // When the override changes these are reset to the new type's defaults.
 const TYPE_SPECIFIC_CARD_IDS = (() => {
@@ -280,7 +294,7 @@ onUnmounted(() => {
       </div>
 
       <VueDraggable
-        v-model="settings.cards"
+        v-model="editableCards"
         class="status-grid status-grid--edit"
         :animation="200"
         ghost-class="card-slot--ghost"
@@ -288,7 +302,7 @@ onUnmounted(() => {
         handle=".card-slot__handle"
       >
         <div
-          v-for="card in settings.cards"
+          v-for="card in editableCards"
           :key="card.id"
           class="card-slot"
           :class="{ 'card-slot--hidden': !card.visible }"
