@@ -19,7 +19,7 @@ jobs:
           dotnet-version: 10.0.x
 
       - name: Submit .NET dependencies
-        uses: actions/nuget-dependency-submission-action@v1
+        uses: github/nuget-dependency-submission-action@v1
         with:
           solution-directory: .
 
