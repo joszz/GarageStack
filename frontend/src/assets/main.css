@@ -16,6 +16,7 @@
   --topbar-height: 56px;
   --footer-height: 48px;
   --radius: 10px;
+  --demo-banner-height: 2.2rem;
 }
 
 [data-theme='light'] {
@@ -2085,6 +2086,19 @@ body,
   /* Push body below fixed topbar on mobile */
   .app-body {
     margin-top: var(--topbar-height);
+  }
+
+  /* When demo banner is present, fix it below the topbar and extend the body offset */
+  .demo-banner {
+    position: fixed;
+    top: var(--topbar-height);
+    left: 0;
+    right: 0;
+    z-index: 199;
+  }
+
+  .has-demo-banner .app-body {
+    margin-top: calc(var(--topbar-height) + var(--demo-banner-height));
   }
 
   .sidebar-backdrop {
