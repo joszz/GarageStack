@@ -17,7 +17,7 @@ jobs:
     name: Trivy filesystem scan
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
       - name: Run Trivy (SARIF output)
         uses: aquasecurity/trivy-action@v0.36.0
