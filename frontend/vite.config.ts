@@ -19,14 +19,34 @@ export default defineConfig({
         background_color: '#0f1117',
         display: 'standalone',
         icons: [
-          { src: 'pwa-64x64.png', sizes: '64x64', type: 'image/png' },
-          { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' },
-          { src: 'pwa-512x512.png', sizes: '512x512', type: 'image/png' },
+          { src: 'pwa-64x64.png', sizes: '64x64', type: 'image/png', purpose: 'any' },
+          { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: 'pwa-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+          {
+            src: 'maskable-icon-192x192.png',
+            sizes: '192x192',
+            type: 'image/png',
+            purpose: 'maskable',
+          },
           {
             src: 'maskable-icon-512x512.png',
             sizes: '512x512',
             type: 'image/png',
             purpose: 'maskable',
+          },
+        ],
+        shortcuts: [
+          {
+            name: 'Map',
+            short_name: 'Map',
+            url: '/map',
+            icons: [{ src: 'shortcut-map-96x96.png', sizes: '96x96', type: 'image/png' }],
+          },
+          {
+            name: 'Statistics',
+            short_name: 'Stats',
+            url: '/statistics',
+            icons: [{ src: 'shortcut-stats-96x96.png', sizes: '96x96', type: 'image/png' }],
           },
         ],
         screenshots: [
