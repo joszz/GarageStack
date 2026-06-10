@@ -195,6 +195,19 @@
     "heatmap": "Heatmap",
     "findCar": "Vind auto"
   },
+  "pwa": {
+    "install": {
+      "title": "GarageStack installeren",
+      "description": "Voeg GarageStack toe aan je startscherm voor de beste ervaring.",
+      "iconAlt": "GarageStack app-icoon",
+      "featureOffline": "Snelle toegang, ook offline",
+      "featureNotifications": "Pushmeldingen voor voertuigevents",
+      "featureNative": "Volledig scherm, native app-gevoel",
+      "install": "App installeren",
+      "notNow": "Niet nu",
+      "neverShow": "Niet meer tonen"
+    }
+  },
   "push": {
     "enable": "Meldingen inschakelen",
     "enabled": "Meldingen aan",
