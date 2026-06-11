@@ -65,7 +65,19 @@ try
         builder.Services.AddHostedService(sp => sp.GetRequiredService<MqttPublisher>());
         builder.Services.AddHostedService<TelemetryNotificationService>();
     }
-    builder.Services.AddOpenApi();
+    builder.Services.AddOpenApi(opts =>
+    {
+        opts.AddDocumentTransformer((doc, _, _) =>
+        {
+            doc.Info = new()
+            {
+                Title = "GarageStack API",
+                Version = "v1",
+                Description = "REST API for GarageStack -- vehicle telemetry, statistics, and notifications.",
+            };
+            return Task.CompletedTask;
+        });
+    });
     builder.Services.ConfigureHttpJsonOptions(opts =>
     {
         opts.SerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
@@ -235,10 +247,18 @@ try
     app.UseAuthentication();
     app.UseAuthorization();
 
-    if (app.Environment.IsDevelopment())
+    if (app.Environment.IsDevelopment() || app.Environment.IsEnvironment("Demo"))
     {
         app.MapOpenApi();
-        app.MapScalarApiReference(opts => opts.WithTitle("GarageStack API"));
+        app.MapScalarApiReference(opts => opts
+            .WithTitle("GarageStack API")
+            .WithTheme(ScalarTheme.DeepSpace)
+            .EnableDarkMode()
+            .WithDynamicBaseServerUrl(true)
+            .SortTagsAlphabetically()
+            .SortOperationsByMethod()
+            .AddPreferredSecuritySchemes(["Bearer"])
+            .AddHttpAuthentication("Bearer", _ => { }));
     }
 
     app.MapHub<TelemetryHub>("/hubs/telemetry").RequireAuthorization();
