@@ -12,6 +12,7 @@ import DemoControlPanel from '@/components/DemoControlPanel.vue'
 import PwaInstallModal from '@/components/PwaInstallModal.vue'
 import { useNotifications, prependNotification } from '@/composables/useNotifications'
 import { useSignalR } from '@/composables/useSignalR'
+import { useFavicon } from '@/composables/useFavicon'
 
 const isDemoMode = import.meta.env.VITE_DEMO_MODE === 'true'
 const demoControlsOpen = ref(false)
@@ -81,6 +82,8 @@ watch(
 onBeforeUnmount(() => {
   if (toastTimer) clearTimeout(toastTimer)
 })
+
+useFavicon()
 
 const { start: startSignalR, stop: stopSignalR } = useSignalR({
   onTelemetryUpdated: (snapshot) => vehicleStore.applyLiveStatus(snapshot),
