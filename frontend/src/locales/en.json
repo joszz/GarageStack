@@ -45,7 +45,7 @@
       "distanceInRange": "Distance in period",
       "monthlyMileage": "Monthly mileage",
       "avgTripLength": "Avg trip length",
-      "climateUsage": "Climate usage",
+      "climateUsage": "Remote preconditioning",
       "commutePattern": "Peak drive time",
       "batteryVoltageTrend": "12V trend",
       "parkingLocations": "Parking locations",
@@ -54,7 +54,7 @@
     "cardDesc": {
       "distanceInRange": "Total distance across all trips in the selected time window.",
       "avgTripLength": "Average distance per trip in the selected period.",
-      "climateUsage": "Percentage of recorded snapshots during which climate control was active.",
+      "climateUsage": "Percentage of recorded snapshots during which remote climate preconditioning was active. Does not reflect in-car A/C usage while driving.",
       "commutePattern": "The hour of day with the most trip starts in the selected period - your most common time to drive.",
       "batteryVoltageTrend": "Change in average 12V battery voltage from the start to the end of the selected period. Shows current voltage when less than two days of data are available.",
       "parkingLocations": "Number of distinct parking spots used across all trips in the selected period, based on rounded GPS coordinates.",

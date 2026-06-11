@@ -45,7 +45,7 @@
       "distanceInRange": "Afstand in periode",
       "monthlyMileage": "Maandkilometrage",
       "avgTripLength": "Gem. ritlengte",
-      "climateUsage": "Klimaatgebruik",
+      "climateUsage": "Voorconditionering",
       "commutePattern": "Piek rijtijd",
       "batteryVoltageTrend": "12V-trend",
       "parkingLocations": "Parkeerlocaties",
@@ -54,7 +54,7 @@
     "cardDesc": {
       "distanceInRange": "Totale afstand over alle ritten in de geselecteerde periode.",
       "avgTripLength": "Gemiddelde afstand per rit in de geselecteerde periode.",
-      "climateUsage": "Percentage van geregistreerde momenten waarop de klimaatbeheersing actief was.",
+      "climateUsage": "Percentage van geregistreerde momenten waarop de klimaatvoorconditionering actief was. Geeft geen weergave van airco-gebruik tijdens het rijden.",
       "commutePattern": "Het uur van de dag met de meeste ritstarts in de geselecteerde periode - jouw meest voorkomende rijtijd.",
       "batteryVoltageTrend": "Verandering in gemiddelde 12V-accuspanning van het begin tot het einde van de geselecteerde periode. Toont de huidige spanning als er minder dan twee dagen aan data beschikbaar is.",
       "parkingLocations": "Aantal unieke parkeerplaatsen gebruikt over alle ritten in de geselecteerde periode, gebaseerd op afgeronde GPS-coordinaten.",
