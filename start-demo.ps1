@@ -22,6 +22,13 @@ function Test-PortOpen([int]$port) {
     finally { $tcp.Dispose() }
 }
 
+function Stop-ProcessOnPort([int]$port) {
+    $conn = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue
+    if ($conn) {
+        Stop-Process -Id $conn.OwningProcess -Force -ErrorAction SilentlyContinue
+    }
+}
+
 function Write-Dot([int]$port) {
     if (Test-PortOpen $port) {
         Write-Host ' [+] ' -NoNewline -ForegroundColor Green
@@ -68,7 +75,11 @@ if ($Menu) {
             'o' { Start-Process 'http://localhost:5000/openapi/v1.json' }
             'v' { code $root }
             'r' {}
-            'q' { exit 0 }
+            'q' {
+                Stop-ProcessOnPort 5000
+                Stop-ProcessOnPort 5173
+                exit 0
+            }
         }
     }
 
