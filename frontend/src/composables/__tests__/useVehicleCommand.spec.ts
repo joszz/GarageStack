@@ -84,6 +84,13 @@ function makeSnapshot(overrides: Partial<TelemetrySnapshot> = {}): TelemetrySnap
     batteryHeatingScheduleStartTime: null,
     elevation: null,
     bmsChargeStatus: null,
+    lastChargeEndingPower: null,
+    chargingLastEndAt: null,
+    chargingScheduleMode: null,
+    chargingScheduleStartTime: null,
+    chargingScheduleEndTime: null,
+    onboardChargerPlugStatus: null,
+    offboardChargerPlugStatus: null,
     ...overrides,
   }
 }
@@ -271,7 +278,7 @@ describe('useVehicleCommand', () => {
       sendCommandMock.mockResolvedValue(undefined)
       const store = useVehicleStore()
       const { send } = useVehicleCommand()
-      const onConfirmed = vi.fn()
+      const onConfirmed = vi.fn<() => void>()
 
       await send('VIN1', 'lock', 'True', (s) => s.isLocked === true, onConfirmed)
 
@@ -285,7 +292,7 @@ describe('useVehicleCommand', () => {
       sendCommandMock.mockResolvedValue(undefined)
       const store = useVehicleStore()
       const { send } = useVehicleCommand()
-      const onConfirmed = vi.fn()
+      const onConfirmed = vi.fn<() => void>()
 
       await send('VIN1', 'lock', 'True', (s) => s.isLocked === true, onConfirmed)
 
