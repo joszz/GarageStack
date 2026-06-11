@@ -215,7 +215,7 @@ watch(
             </template>
             <template v-else>
               <font-awesome-icon icon="wifi" aria-hidden="true" />
-              <span class="sidebar-footer__text" :title="onlineStatusText">{{
+              <span class="sidebar-footer__text" :title="onlineStatusText ?? undefined">{{
                 onlineStatusText
               }}</span>
               <span
