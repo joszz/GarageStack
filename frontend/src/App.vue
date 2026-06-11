@@ -214,11 +214,16 @@ watch(
               <span class="skeleton skeleton--text skeleton--text-md" />
             </template>
             <template v-else>
-              <font-awesome-icon icon="wifi" />
-              <span class="sidebar-footer__text">{{ onlineStatusText }}</span>
-              <span v-if="onlineStatusTime" class="sidebar-online-status__time">{{
-                onlineStatusTime
+              <font-awesome-icon icon="wifi" aria-hidden="true" />
+              <span class="sidebar-footer__text" :title="onlineStatusText ?? undefined">{{
+                onlineStatusText
               }}</span>
+              <span
+                v-if="onlineStatusTime"
+                class="sidebar-online-status__time"
+                :title="onlineStatusTime"
+                >{{ onlineStatusTime }}</span
+              >
             </template>
           </div>
           <div v-if="isInitialLoading || lastFetched" class="sidebar-timestamp">
@@ -227,8 +232,10 @@ watch(
               <span class="skeleton skeleton--text skeleton--text-sm" />
             </template>
             <template v-else>
-              <font-awesome-icon icon="rotate" :spin="vehicleStore.loading" />
-              <span class="sidebar-footer__text">{{ t('common.fetched') }} {{ lastFetched }}</span>
+              <font-awesome-icon icon="rotate" :spin="vehicleStore.loading" aria-hidden="true" />
+              <span class="sidebar-footer__text" :title="`${t('common.fetched')} ${lastFetched}`"
+                >{{ t('common.fetched') }} {{ lastFetched }}</span
+              >
             </template>
           </div>
           <div v-if="isInitialLoading || lastRecorded" class="sidebar-timestamp">
@@ -237,15 +244,15 @@ watch(
               <span class="skeleton skeleton--text skeleton--text-lg" />
             </template>
             <template v-else>
-              <font-awesome-icon icon="clock" />
-              <span class="sidebar-footer__text"
+              <font-awesome-icon icon="clock" aria-hidden="true" />
+              <span class="sidebar-footer__text" :title="`${t('common.recorded')} ${lastRecorded}`"
                 >{{ t('common.recorded') }} {{ lastRecorded }}</span
               >
             </template>
           </div>
           <div class="sidebar-user">
-            <font-awesome-icon icon="user" />
-            <span class="sidebar-user__email">{{ auth.username }}</span>
+            <font-awesome-icon icon="user" aria-hidden="true" />
+            <span class="sidebar-user__email" :title="auth.username">{{ auth.username }}</span>
           </div>
           <button
             v-if="isDemoMode"

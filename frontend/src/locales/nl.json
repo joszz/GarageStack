@@ -321,6 +321,7 @@
     "open": "Open",
     "closed": "Gesloten",
     "cancel": "Annuleren",
+    "close": "Sluiten",
     "apply": "Toepassen",
     "confirm": "Bevestigen",
     "filters": "Filters",
@@ -328,7 +329,10 @@
     "offline": "Offline",
     "min": "min",
     "fetched": "Opgehaald",
-    "recorded": "Geregistreerd"
+    "recorded": "Geregistreerd",
+    "prevPage": "Vorige pagina",
+    "nextPage": "Volgende pagina",
+    "pageOf": "Pagina {n} van {total}"
   },
   "demo": {
     "banner": "Demo modus - alleen voorbeelddata wordt getoond",

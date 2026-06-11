@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 const props = defineProps<{
   modelValue: number
@@ -9,6 +10,8 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'update:modelValue', page: number): void
 }>()
+
+const { t } = useI18n()
 
 const pageInput = ref(props.modelValue)
 
@@ -45,9 +48,10 @@ function next() {
     <button
       class="btn btn-sm btn-outline-secondary paginator__btn"
       :disabled="modelValue === 1"
+      :aria-label="t('common.prevPage')"
       @click="prev"
     >
-      <font-awesome-icon icon="chevron-left" />
+      <font-awesome-icon icon="chevron-left" aria-hidden="true" />
     </button>
     <input
       v-model.number="pageInput"
@@ -55,17 +59,19 @@ function next() {
       min="1"
       :max="totalPages"
       class="paginator__input"
+      :aria-label="t('common.pageOf', { n: modelValue, total: totalPages })"
       @blur="commit"
       @keydown.enter.prevent="commit"
       @focus="onFocus"
     />
-    <span class="paginator__sep">/ {{ totalPages }}</span>
+    <span class="paginator__sep" aria-hidden="true">/ {{ totalPages }}</span>
     <button
       class="btn btn-sm btn-outline-secondary paginator__btn"
       :disabled="modelValue === totalPages"
+      :aria-label="t('common.nextPage')"
       @click="next"
     >
-      <font-awesome-icon icon="chevron-right" />
+      <font-awesome-icon icon="chevron-right" aria-hidden="true" />
     </button>
   </div>
 </template>

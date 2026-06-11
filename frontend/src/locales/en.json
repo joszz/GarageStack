@@ -321,6 +321,7 @@
     "open": "Open",
     "closed": "Closed",
     "cancel": "Cancel",
+    "close": "Close",
     "apply": "Apply",
     "confirm": "Confirm",
     "filters": "Filters",
@@ -328,7 +329,10 @@
     "offline": "Offline",
     "min": "min",
     "fetched": "Fetched",
-    "recorded": "Recorded"
+    "recorded": "Recorded",
+    "prevPage": "Previous page",
+    "nextPage": "Next page",
+    "pageOf": "Page {n} of {total}"
   },
   "demo": {
     "banner": "Demo mode - displaying sample data only",

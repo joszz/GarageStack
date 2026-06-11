@@ -115,10 +115,10 @@ onUnmounted(() => document.removeEventListener('keydown', onKey))
             </h3>
             <button
               class="notif-panel__close"
-              :aria-label="t('common.cancel')"
+              :aria-label="t('common.close')"
               @click="emit('close')"
             >
-              <font-awesome-icon icon="xmark" />
+              <font-awesome-icon icon="xmark" aria-hidden="true" />
             </button>
           </div>
 
@@ -176,16 +176,18 @@ onUnmounted(() => document.removeEventListener('keydown', onKey))
                     v-if="!n.isArchived"
                     class="notif-item__btn"
                     :title="t('notifications.archive')"
+                    :aria-label="t('notifications.archive')"
                     @click="emit('archive', n.id)"
                   >
-                    <font-awesome-icon icon="box-archive" />
+                    <font-awesome-icon icon="box-archive" aria-hidden="true" />
                   </button>
                   <button
                     class="notif-item__btn notif-item__btn--danger"
                     :title="t('notifications.delete')"
+                    :aria-label="t('notifications.delete')"
                     @click="emit('delete', n.id)"
                   >
-                    <font-awesome-icon icon="trash" />
+                    <font-awesome-icon icon="trash" aria-hidden="true" />
                   </button>
                 </div>
               </li>
