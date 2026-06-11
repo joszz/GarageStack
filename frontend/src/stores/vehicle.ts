@@ -19,6 +19,8 @@ export const useVehicleStore = defineStore('vehicle', () => {
   const lastTrip = ref<LastTripSummary | null>(null)
   const loadingCount = ref(0)
   const loading = computed(() => loadingCount.value > 0)
+  const sendingCount = ref(0)
+  const anySending = computed(() => sendingCount.value > 0)
   const error = ref<string | null>(null)
   const lastUpdated = ref<Date | null>(null)
 
@@ -138,6 +140,8 @@ export const useVehicleStore = defineStore('vehicle', () => {
     trips,
     lastTrip,
     loading,
+    anySending,
+    sendingCount,
     error,
     lastUpdated,
     tripJustCompleted,
