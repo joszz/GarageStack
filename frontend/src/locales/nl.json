@@ -194,7 +194,8 @@
     "last30days": "Afgelopen 30 dagen",
     "last90days": "Afgelopen 90 dagen",
     "heatmap": "Heatmap",
-    "findCar": "Vind auto"
+    "findCar": "Vind auto",
+    "points": "ptn"
   },
   "pwa": {
     "install": {

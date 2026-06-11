@@ -194,7 +194,8 @@
     "last30days": "Last 30 days",
     "last90days": "Last 90 days",
     "heatmap": "Heatmap",
-    "findCar": "Find car"
+    "findCar": "Find car",
+    "points": "pts"
   },
   "pwa": {
     "install": {

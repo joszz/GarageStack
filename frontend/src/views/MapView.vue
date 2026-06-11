@@ -459,8 +459,8 @@ onUnmounted(() => {
               </div>
               <span class="trip-list__meta">
                 {{ trip.distanceKm }} {{ t('common.km') }} &middot;
-                {{ formatDuration(trip.startedAt, trip.endedAt) }} &middot;
-                {{ trip.pointCount }}
+                {{ formatDuration(trip.startedAt, trip.endedAt) }} &middot; {{ trip.pointCount }}
+                {{ t('trips.points') }}
               </span>
             </div>
           </li>
