@@ -128,7 +128,8 @@ function onDismiss() {
 
 .pwa-install-modal__actions {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  justify-content: center;
   gap: 0.6rem;
 }
 
@@ -159,11 +160,6 @@ function onDismiss() {
 @media (min-width: 768px) {
   .pwa-install-modal {
     max-width: 380px;
-  }
-
-  .pwa-install-modal__actions {
-    flex-direction: row;
-    justify-content: center;
   }
 
   .pwa-install-modal__cta {
