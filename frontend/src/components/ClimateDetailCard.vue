@@ -216,7 +216,7 @@ function onSeatRightChange(e: Event) {
         v-if="steeringWheelHeating !== null"
         class="detail-list__item detail-list__item--control"
       >
-        <font-awesome-icon icon="circle-dot" class="detail-list__item-icon" />
+        <font-awesome-icon icon="life-ring" class="detail-list__item-icon" />
         <span class="detail-list__item-label">{{ t('control.steeringWheelHeating') }}</span>
         <div class="form-check form-switch">
           <input

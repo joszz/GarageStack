@@ -103,6 +103,7 @@ import {
   faChargingStation,
   faFlask,
   faGripLines,
+  faLifeRing,
 } from '@fortawesome/free-solid-svg-icons'
 
 import App from './App.vue'
@@ -183,6 +184,7 @@ library.add(
   faChargingStation,
   faFlask,
   faGripLines,
+  faLifeRing,
 )
 
 const i18n = createI18n({
