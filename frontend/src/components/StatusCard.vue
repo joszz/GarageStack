@@ -19,10 +19,6 @@ function valueTitle(): string {
   if (props.value === null) return '-'
   return props.unit ? `${props.value} ${props.unit}` : String(props.value)
 }
-
-function cardAriaLabel(): string {
-  return `${props.label}: ${valueTitle()}${props.subtitle ? `, ${props.subtitle}` : ''}`
-}
 </script>
 
 <template>
@@ -31,7 +27,6 @@ function cardAriaLabel(): string {
     :class="[variant ? `status-card--${variant}` : '', clickable ? 'status-card--clickable' : '']"
     :role="clickable ? 'button' : undefined"
     :tabindex="clickable ? 0 : undefined"
-    :aria-label="clickable ? cardAriaLabel() : undefined"
     @click="emitClickIfClickable(clickable)"
     @keydown.enter="emitClickIfClickable(clickable)"
     @keydown.space.prevent="emitClickIfClickable(clickable)"

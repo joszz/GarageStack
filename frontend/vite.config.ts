@@ -8,6 +8,7 @@ export default defineConfig({
     vue(),
     VitePWA({
       registerType: 'autoUpdate',
+      injectRegister: 'script-defer',
       strategies: 'injectManifest',
       srcDir: 'src',
       filename: 'sw.ts',
@@ -84,6 +85,10 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': 'http://127.0.0.1:5000',
+      '/hubs': {
+        target: 'http://127.0.0.1:5000',
+        ws: true,
+      },
     },
   },
   optimizeDeps: {
