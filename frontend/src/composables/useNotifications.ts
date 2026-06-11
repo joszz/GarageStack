@@ -3,6 +3,10 @@ import { notificationsApi, type AppNotification } from '@/services/api'
 import { useAuthStore } from '@/stores/auth'
 
 const notifications = ref<AppNotification[]>([])
+
+export function prependNotification(notification: AppNotification) {
+  notifications.value = [notification, ...notifications.value]
+}
 const panelOpen = ref(false)
 const loading = ref(false)
 const fetchError = ref<string | null>(null)

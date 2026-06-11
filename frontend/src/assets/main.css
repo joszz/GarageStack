@@ -3092,3 +3092,43 @@ body,
     width: auto;
   }
 }
+
+.availability-toast {
+  position: fixed;
+  bottom: 5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.1rem;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  z-index: 2000;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  pointer-events: none;
+}
+
+.availability-toast--online {
+  background: var(--color-success);
+  color: #fff;
+}
+
+.availability-toast--offline {
+  background: var(--color-danger);
+  color: #fff;
+}
+
+.availability-toast-enter-active,
+.availability-toast-leave-active {
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+}
+
+.availability-toast-enter-from,
+.availability-toast-leave-to {
+  opacity: 0;
+  transform: translateX(-50%) translateY(8px);
+}

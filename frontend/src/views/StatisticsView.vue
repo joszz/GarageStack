@@ -94,6 +94,14 @@ async function load() {
 onMounted(load)
 watch(() => settings.filterDays, load)
 
+// Trip just finished: refresh stats and trip list silently
+watch(
+  () => store.tripJustCompleted,
+  (completed) => {
+    if (completed) load()
+  },
+)
+
 const effectiveVehicleType = computed(() => {
   if (settings.vehicleTypeOverride !== 'auto') return settings.vehicleTypeOverride
   return store.detectedVehicleType
