@@ -17,6 +17,7 @@ const props = defineProps<{
   heatedSeatFrontLeft: number | null
   heatedSeatFrontRight: number | null
   rearWindowDefroster: boolean | null
+  steeringWheelHeating: boolean | null
 }>()
 
 const { isOpen: modalOpen, open: openModal, close: closeModal } = useModal()
@@ -60,7 +61,8 @@ const hasAnyData = computed(
     props.exteriorTemperature !== null ||
     props.heatedSeatFrontLeft !== null ||
     props.heatedSeatFrontRight !== null ||
-    props.rearWindowDefroster !== null,
+    props.rearWindowDefroster !== null ||
+    props.steeringWheelHeating !== null,
 )
 
 function handleClimateToggle() {
@@ -77,6 +79,17 @@ function handleDefrostToggle() {
     'rear-defroster',
     newValue ? 'on' : 'off',
     (s) => s.rearWindowDefroster === newValue,
+  )
+}
+
+function handleSteeringWheelToggle() {
+  if (isPending('steering-wheel')) return
+  const newValue = !props.steeringWheelHeating
+  send(
+    props.vin,
+    'steering-wheel',
+    newValue ? 'on' : 'off',
+    (s) => s.steeringWheelHeating === newValue,
   )
 }
 
@@ -198,6 +211,35 @@ function onSeatRightChange(e: Event) {
         {{ t('control.error') }}
       </div>
 
+      <!-- Steering wheel heating toggle -->
+      <div
+        v-if="steeringWheelHeating !== null"
+        class="detail-list__item detail-list__item--control"
+      >
+        <font-awesome-icon icon="circle-dot" class="detail-list__item-icon" />
+        <span class="detail-list__item-label">{{ t('control.steeringWheelHeating') }}</span>
+        <div class="form-check form-switch">
+          <input
+            class="form-check-input"
+            type="checkbox"
+            role="switch"
+            :checked="steeringWheelHeating"
+            :disabled="sending === 'steering-wheel' || isPending('steering-wheel') || !vin"
+            @change="handleSteeringWheelToggle"
+          />
+        </div>
+      </div>
+      <div v-if="isPending('steering-wheel')" class="detail-list__feedback text-info">
+        <font-awesome-icon icon="clock" />
+        {{ t('control.pending') }}
+      </div>
+      <div
+        v-else-if="lastResult?.key === 'steering-wheel' && !lastResult.ok"
+        class="detail-list__feedback text-danger"
+      >
+        {{ t('control.error') }}
+      </div>
+
       <!-- Interior temperature (read-only) -->
       <div v-if="interiorTemperature !== null" class="detail-list__item">
         <font-awesome-icon icon="thermometer-half" class="detail-list__item-icon" />
@@ -267,7 +309,9 @@ function onSeatRightChange(e: Event) {
       <!-- General error fallback -->
       <div
         v-if="
-          lastResult && !lastResult.ok && !['climate', 'rear-defroster'].includes(lastResult.key)
+          lastResult &&
+          !lastResult.ok &&
+          !['climate', 'rear-defroster', 'steering-wheel'].includes(lastResult.key)
         "
         class="detail-list__feedback text-danger"
       >

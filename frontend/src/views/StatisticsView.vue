@@ -5,7 +5,8 @@ import { useVehicleStore } from '@/stores/vehicle'
 import { useSettingsStore } from '@/stores/settings'
 import { defaultStatsInsights, defaultStatsCharts } from '@/stores/settings'
 import type { StatsInsightId, StatsChartId } from '@/stores/settings'
-import type { TelemetrySnapshot } from '@/services/api'
+import { vehicleApi } from '@/services/api'
+import type { TelemetrySnapshot, VehicleAggregateStats } from '@/services/api'
 import { Line, Bar } from 'vue-chartjs'
 import { VueDraggable } from 'vue-draggable-plus'
 import { LMap, LTileLayer, LMarker } from '@vue-leaflet/vue-leaflet'
@@ -53,6 +54,7 @@ const settings = useSettingsStore()
 
 const editMode = ref(false)
 const loading = ref(false)
+const aggregateStats = ref<VehicleAggregateStats | null>(null)
 
 const days = computed({
   get: () => settings.filterDays,
@@ -76,12 +78,14 @@ async function load() {
       startDay.getMonth(),
       startDay.getDate(),
     ).toISOString()
-    await Promise.all([
+    const [, , , , stats] = await Promise.all([
       store.fetchHistory(vin.value, from),
       store.fetchTrips(vin.value, from),
       store.fetchStatus(vin.value),
       store.fetchConfig(vin.value),
+      vehicleApi.stats(vin.value, from),
     ])
+    aggregateStats.value = stats
   } finally {
     loading.value = false
   }
@@ -188,11 +192,7 @@ const averageTripKm = computed(() => {
   return round2(store.trips.reduce((sum, trip) => sum + trip.distanceKm, 0) / store.trips.length)
 })
 
-const climateUsagePct = computed(() => {
-  const known = store.history.filter((s) => s.climateOn !== null)
-  if (!known.length) return null
-  return Math.round((known.filter((s) => s.climateOn === true).length / known.length) * 100)
-})
+const climateUsagePct = computed(() => aggregateStats.value?.climateUsagePct ?? null)
 
 const peakDriveHour = computed(() => {
   if (!store.trips.length) return null
