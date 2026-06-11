@@ -9,6 +9,8 @@ export function useSignalR(onTelemetryUpdated: (snapshot: TelemetrySnapshot) => 
   let connection: signalR.HubConnection | null = null
 
   async function start(vehicleId: number) {
+    if (connection) await stop()
+
     connection = new signalR.HubConnectionBuilder()
       .withUrl(`${BASE_URL}/hubs/telemetry`, { withCredentials: true })
       .withAutomaticReconnect()

@@ -13,18 +13,12 @@ import CarDiagram from '@/components/CarDiagram.vue'
 import SkeletonCard from '@/components/SkeletonCard.vue'
 import SkeletonCarDiagram from '@/components/SkeletonCarDiagram.vue'
 import { useVehicleAlerts } from '@/composables/useVehicleAlerts'
-import { useSignalR } from '@/composables/useSignalR'
 
 const { t } = useI18n()
 const store = useVehicleStore()
 const settings = useSettingsStore()
 
 const vin = computed(() => store.vehicles[0]?.vin ?? null)
-const vehicleId = computed(() => store.vehicles[0]?.id ?? null)
-
-const { connected: signalRConnected, start: startSignalR } = useSignalR((snapshot) => {
-  store.applyLiveStatus(snapshot)
-})
 const status = computed(() => store.currentStatus)
 const editMode = ref(false)
 const skeletonCards = computed(() => {
@@ -204,10 +198,6 @@ function handleSwMessage(event: MessageEvent) {
 
 onMounted(async () => {
   await refresh()
-
-  if (vehicleId.value) {
-    startSignalR(vehicleId.value)
-  }
 
   // Hide cards that don't apply to the detected vehicle type so they don't
   // appear in the skeleton on subsequent loads
