@@ -50,11 +50,9 @@ const isNL = computed({
   },
 })
 
-async function refresh() {
+function refresh() {
   if (!vin.value) return
   send(vin.value, 'refresh', 'force')
-  await vehicleStore.fetchStatus(vin.value)
-  setTimeout(() => vehicleStore.fetchStatus(vin.value!), 4000)
 }
 </script>
 
