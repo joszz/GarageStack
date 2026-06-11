@@ -314,7 +314,7 @@ body,
 
 .status-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  grid-template-columns: repeat(4, 1fr);
   gap: 1rem;
 }
 
@@ -1739,6 +1739,7 @@ body,
 .card-info-wrap {
   position: relative;
   overflow: visible;
+  min-width: 0;
 }
 
 .card-info-btn {
@@ -1831,6 +1832,7 @@ body,
 
 .card-slot {
   position: relative;
+  min-width: 0;
   animation: card-wiggle 0.22s ease-in-out infinite alternate;
   cursor: default;
   touch-action: auto;
@@ -2229,15 +2231,33 @@ body,
   }
 }
 
-/* ── Tablet (768–1023px) ──────────────────────────────────── */
+/* ── Tablet (600–1023px) ──────────────────────────────────── */
 
-@media (min-width: 768px) and (max-width: 1023px) {
+@media (min-width: 600px) and (max-width: 1023px) {
   .main-content {
     padding: 1.5rem;
   }
 
   .status-grid {
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* ── Large desktop (1440px+) ──────────────────────────────── */
+
+@media (min-width: 1440px) {
+  .status-grid {
+    grid-template-columns: repeat(6, 1fr);
+  }
+}
+
+/* ── Full-HD and above (1920px+) ──────────────────────────── */
+
+@media (min-width: 1920px) {
+  .status-grid {
+    grid-template-columns: repeat(8, 1fr);
+    max-width: 1600px;
+    margin-inline: auto;
   }
 }
 
