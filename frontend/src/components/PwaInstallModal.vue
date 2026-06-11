@@ -57,8 +57,8 @@ function onDismiss() {
             </button>
           </div>
 
-          <label class="pwa-install-modal__never">
-            <input v-model="neverShow" type="checkbox" />
+          <label class="pwa-install-modal__never" for="pwa-never-show">
+            <input id="pwa-never-show" v-model="neverShow" type="checkbox" />
             <span>{{ t('pwa.install.neverShow') }}</span>
           </label>
         </div>

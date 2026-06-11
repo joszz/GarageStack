@@ -398,7 +398,12 @@ onUnmounted(() => {
               <span class="settings-toggle__label">{{ t('trips.heatmap') }}</span>
             </div>
             <div class="settings-toggle__control form-check form-switch">
-              <input v-model="heatmapEnabled" type="checkbox" class="form-check-input" />
+              <input
+                v-model="heatmapEnabled"
+                type="checkbox"
+                class="form-check-input"
+                :aria-label="t('trips.heatmap')"
+              />
             </div>
           </div>
         </FiltersPanel>
@@ -459,9 +464,11 @@ onUnmounted(() => {
             />
             <div class="trip-list__info">
               <div class="trip-list__header">
-                <span class="trip-list__name">{{
-                  new Date(trip.startedAt).toLocaleDateString(displayLocale)
-                }}</span>
+                <span
+                  class="trip-list__name"
+                  :title="new Date(trip.startedAt).toLocaleDateString(displayLocale)"
+                  >{{ new Date(trip.startedAt).toLocaleDateString(displayLocale) }}</span
+                >
                 <span class="trip-list__time">{{
                   new Date(trip.startedAt).toLocaleTimeString(displayLocale, {
                     hour: '2-digit',
@@ -469,7 +476,10 @@ onUnmounted(() => {
                   })
                 }}</span>
               </div>
-              <span class="trip-list__meta">
+              <span
+                class="trip-list__meta"
+                :title="`${trip.distanceKm} ${t('common.km')} · ${formatDuration(trip.startedAt, trip.endedAt)} · ${trip.pointCount} ${t('trips.points')}`"
+              >
                 {{ trip.distanceKm }} {{ t('common.km') }} &middot;
                 {{ formatDuration(trip.startedAt, trip.endedAt) }} &middot; {{ trip.pointCount }}
                 {{ t('trips.points') }}
