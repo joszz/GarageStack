@@ -13,12 +13,18 @@ import CarDiagram from '@/components/CarDiagram.vue'
 import SkeletonCard from '@/components/SkeletonCard.vue'
 import SkeletonCarDiagram from '@/components/SkeletonCarDiagram.vue'
 import { useVehicleAlerts } from '@/composables/useVehicleAlerts'
+import { useSignalR } from '@/composables/useSignalR'
 
 const { t } = useI18n()
 const store = useVehicleStore()
 const settings = useSettingsStore()
 
 const vin = computed(() => store.vehicles[0]?.vin ?? null)
+const vehicleId = computed(() => store.vehicles[0]?.id ?? null)
+
+const { connected: signalRConnected, start: startSignalR } = useSignalR((snapshot) => {
+  store.applyLiveStatus(snapshot)
+})
 const status = computed(() => store.currentStatus)
 const editMode = ref(false)
 const skeletonCards = computed(() => {
@@ -183,22 +189,26 @@ async function refresh() {
   }
 }
 
-let interval: ReturnType<typeof setInterval>
-
-function resetInterval() {
-  clearInterval(interval)
-  interval = setInterval(refresh, 60_000)
-}
-
 function handleVisibilityChange() {
   if (document.visibilityState === 'visible') {
+    // Catch any updates missed while the tab was hidden (e.g. SignalR reconnect gap)
     refresh()
-    resetInterval()
+  }
+}
+
+function handleSwMessage(event: MessageEvent) {
+  if (event.data?.type === 'NOTIFICATION_RECEIVED') {
+    refresh()
   }
 }
 
 onMounted(async () => {
   await refresh()
+
+  if (vehicleId.value) {
+    startSignalR(vehicleId.value)
+  }
+
   // Hide cards that don't apply to the detected vehicle type so they don't
   // appear in the skeleton on subsequent loads
   if (vehicleType.value !== 'unknown') {
@@ -219,13 +229,13 @@ onMounted(async () => {
     const hidden = current.filter((c) => !c.visible)
     settings.cards = [...active, ...noData, ...hidden]
   }
-  interval = setInterval(refresh, 60_000)
   document.addEventListener('visibilitychange', handleVisibilityChange)
+  navigator.serviceWorker?.addEventListener('message', handleSwMessage)
 })
 
 onUnmounted(() => {
-  clearInterval(interval)
   document.removeEventListener('visibilitychange', handleVisibilityChange)
+  navigator.serviceWorker?.removeEventListener('message', handleSwMessage)
 })
 </script>
 

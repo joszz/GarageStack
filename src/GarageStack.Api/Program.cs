@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text.Json.Serialization;
 using GarageStack.Api;
 using GarageStack.Api.Endpoints;
+using GarageStack.Api.Hubs;
 using GarageStack.Api.Services;
 using GarageStack.Core.Interfaces;
 using GarageStack.Data;
@@ -62,6 +63,7 @@ try
         builder.Services.AddSingleton<MqttPublisher>();
         builder.Services.AddSingleton<IMqttPublisher>(sp => sp.GetRequiredService<MqttPublisher>());
         builder.Services.AddHostedService(sp => sp.GetRequiredService<MqttPublisher>());
+        builder.Services.AddHostedService<TelemetryNotificationService>();
     }
     builder.Services.AddOpenApi();
     builder.Services.ConfigureHttpJsonOptions(opts =>
@@ -76,6 +78,8 @@ try
     if (jwtSecretBytes.Length < 32)
         throw new InvalidOperationException("Jwt:Secret must be at least 32 bytes.");
 
+    builder.Services.AddSignalR();
+
     builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         .AddJwtBearer(options =>
         {
@@ -83,6 +87,16 @@ try
             {
                 OnMessageReceived = ctx =>
                 {
+                    // SignalR WebSocket connections send the token via query string
+                    if (ctx.Request.Path.StartsWithSegments("/hubs/telemetry"))
+                    {
+                        var qs = ctx.Request.Query["access_token"].ToString();
+                        if (!string.IsNullOrEmpty(qs))
+                        {
+                            ctx.Token = qs;
+                            return Task.CompletedTask;
+                        }
+                    }
                     if (ctx.Request.Cookies.TryGetValue("garagestack-auth", out var cookie))
                         ctx.Token = cookie;
                     return Task.CompletedTask;
@@ -227,6 +241,7 @@ try
         app.MapScalarApiReference(opts => opts.WithTitle("GarageStack API"));
     }
 
+    app.MapHub<TelemetryHub>("/hubs/telemetry").RequireAuthorization();
     app.MapAuthEndpoints();
     app.MapVehicleEndpoints();
     app.MapNotificationEndpoints();
