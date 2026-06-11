@@ -52,6 +52,7 @@ export function useVehicleCommand() {
     if (!vin || isPending(command)) return false
     sending.value = command
     lastResult.value = null
+    store.sendingCount++
     try {
       await vehicleApi.sendCommand(vin, command, value)
       lastResult.value = { key: command, ok: true }
@@ -78,6 +79,7 @@ export function useVehicleCommand() {
       return false
     } finally {
       sending.value = null
+      store.sendingCount--
     }
   }
 
