@@ -7,7 +7,7 @@
       "launchBrowser": false,
       "applicationUrl": "http://localhost:5000",
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development",
+        "ASPNETCORE_ENVIRONMENT": "Demo",
         "DEMO_MODE": "true",
         "Auth__Username": "demo",
         "Auth__Password": "demo",
