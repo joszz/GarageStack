@@ -35,7 +35,7 @@ self.addEventListener('push', (event) => {
     self.registration.showNotification(title, options).then(() =>
       self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
         for (const client of clientList) {
-          client.postMessage({ type: 'NOTIFICATION_RECEIVED' })
+          client.postMessage({ type: 'NOTIFICATION_RECEIVED', category: payload.category })
         }
       }),
     ),

@@ -11,6 +11,7 @@ import DemoBanner from '@/components/DemoBanner.vue'
 import DemoControlPanel from '@/components/DemoControlPanel.vue'
 import PwaInstallModal from '@/components/PwaInstallModal.vue'
 import { useNotifications } from '@/composables/useNotifications'
+import { useSignalR } from '@/composables/useSignalR'
 
 const isDemoMode = import.meta.env.VITE_DEMO_MODE === 'true'
 const demoControlsOpen = ref(false)
@@ -59,6 +60,15 @@ const {
 } = useNotifications()
 
 const carModel = computed(() => vehicleStore.vehicles[0]?.model ?? null)
+const vehicleId = computed(() => vehicleStore.vehicles[0]?.id ?? null)
+
+const { start: startSignalR, stop: stopSignalR } = useSignalR((snapshot) => {
+  vehicleStore.applyLiveStatus(snapshot)
+})
+
+watch(vehicleId, (id) => {
+  if (id) startSignalR(id)
+})
 
 const isInitialLoading = computed(() => vehicleStore.loading && !vehicleStore.currentStatus)
 
@@ -91,6 +101,7 @@ function closeMenu() {
 }
 
 async function logout() {
+  await stopSignalR()
   await auth.logout()
   await router.replace({ name: 'login' })
 }

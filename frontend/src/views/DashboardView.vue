@@ -183,22 +183,22 @@ async function refresh() {
   }
 }
 
-let interval: ReturnType<typeof setInterval>
-
-function resetInterval() {
-  clearInterval(interval)
-  interval = setInterval(refresh, 60_000)
-}
-
 function handleVisibilityChange() {
   if (document.visibilityState === 'visible') {
+    // Catch any updates missed while the tab was hidden (e.g. SignalR reconnect gap)
     refresh()
-    resetInterval()
+  }
+}
+
+function handleSwMessage(event: MessageEvent) {
+  if (event.data?.type === 'NOTIFICATION_RECEIVED') {
+    refresh()
   }
 }
 
 onMounted(async () => {
   await refresh()
+
   // Hide cards that don't apply to the detected vehicle type so they don't
   // appear in the skeleton on subsequent loads
   if (vehicleType.value !== 'unknown') {
@@ -219,13 +219,13 @@ onMounted(async () => {
     const hidden = current.filter((c) => !c.visible)
     settings.cards = [...active, ...noData, ...hidden]
   }
-  interval = setInterval(refresh, 60_000)
   document.addEventListener('visibilitychange', handleVisibilityChange)
+  navigator.serviceWorker?.addEventListener('message', handleSwMessage)
 })
 
 onUnmounted(() => {
-  clearInterval(interval)
   document.removeEventListener('visibilitychange', handleVisibilityChange)
+  navigator.serviceWorker?.removeEventListener('message', handleSwMessage)
 })
 </script>
 

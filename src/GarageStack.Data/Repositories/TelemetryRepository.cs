@@ -60,6 +60,7 @@ public class TelemetryRepository(AppDbContext db) : ITelemetryRepository
     {
         db.TelemetrySnapshots.Add(snapshot);
         await db.SaveChangesAsync(ct);
+        await NotifyUpdatedAsync(snapshot.VehicleId, ct);
         return snapshot.Id;
     }
 
@@ -70,6 +71,7 @@ public class TelemetryRepository(AppDbContext db) : ITelemetryRepository
         {
             db.TelemetrySnapshots.Add(patch);
             await db.SaveChangesAsync(ct);
+            await NotifyUpdatedAsync(patch.VehicleId, ct);
             return;
         }
 
@@ -147,6 +149,17 @@ public class TelemetryRepository(AppDbContext db) : ITelemetryRepository
         if (patch.BatteryHeatingScheduleStartTime != null) existing.BatteryHeatingScheduleStartTime = patch.BatteryHeatingScheduleStartTime;
 
         await db.SaveChangesAsync(ct);
+        await NotifyUpdatedAsync(existing.VehicleId, ct);
+    }
+
+    private async Task NotifyUpdatedAsync(int vehicleId, CancellationToken ct)
+    {
+        if (!db.Database.IsRelational()) return;
+        try
+        {
+            await db.Database.ExecuteSqlAsync($"SELECT pg_notify('telemetry_updated', {vehicleId.ToString()})", ct);
+        }
+        catch { }
     }
 
     public Task<TelemetrySnapshot?> GetLatestAsync(int vehicleId, CancellationToken ct = default) =>

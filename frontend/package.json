@@ -19,6 +19,7 @@
     "@fortawesome/fontawesome-svg-core": "^7.2.0",
     "@fortawesome/free-solid-svg-icons": "^7.2.0",
     "@fortawesome/vue-fontawesome": "^3.2.0",
+    "@microsoft/signalr": "^10.0.0",
     "@vue-leaflet/vue-leaflet": "^0.10.1",
     "chart.js": "^4.5.1",
     "flag-icons": "^7.5.0",

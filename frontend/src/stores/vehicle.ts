@@ -69,6 +69,11 @@ export const useVehicleStore = defineStore('vehicle', () => {
     }
   }
 
+  function applyLiveStatus(snapshot: TelemetrySnapshot) {
+    currentStatus.value = snapshot
+    lastUpdated.value = new Date()
+  }
+
   async function fetchLastTrip(vin: string) {
     try {
       lastTrip.value = (await vehicleApi.lastTrip(vin)) ?? null
@@ -116,5 +121,6 @@ export const useVehicleStore = defineStore('vehicle', () => {
     fetchHistory,
     fetchTrips,
     fetchLastTrip,
+    applyLiveStatus,
   }
 })
