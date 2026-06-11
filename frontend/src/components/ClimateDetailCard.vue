@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, watch, ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import StatusCard from './StatusCard.vue'
 import DetailModal from './DetailModal.vue'
@@ -20,7 +20,7 @@ const props = defineProps<{
 }>()
 
 const { isOpen: modalOpen, open: openModal, close: closeModal } = useModal()
-const { sending, lastResult, isPending, clearPending, send } = useVehicleCommand()
+const { sending, lastResult, isPending, send } = useVehicleCommand()
 
 const TEMP_MIN = 16
 const TEMP_MAX = 28
@@ -36,15 +36,6 @@ const seatLabels = computed(() => [
 
 const seatLeftLocal = ref<number>(props.heatedSeatFrontLeft ?? 0)
 const seatRightLocal = ref<number>(props.heatedSeatFrontRight ?? 0)
-
-watch(
-  () => props.climateOn,
-  () => clearPending('climate'),
-)
-watch(
-  () => props.rearWindowDefroster,
-  () => clearPending('rear-defroster'),
-)
 
 function onSeatChange(side: 'seat-left' | 'seat-right', e: Event) {
   const val = Number((e.target as HTMLInputElement).value)
@@ -74,12 +65,19 @@ const hasAnyData = computed(
 
 function handleClimateToggle() {
   if (isPending('climate')) return
-  send(props.vin, 'climate', props.climateOn ? 'off' : 'on')
+  const newValue = !props.climateOn
+  send(props.vin, 'climate', newValue ? 'on' : 'off', (s) => s.climateOn === newValue)
 }
 
 function handleDefrostToggle() {
   if (isPending('rear-defroster')) return
-  send(props.vin, 'rear-defroster', props.rearWindowDefroster ? 'off' : 'on')
+  const newValue = !props.rearWindowDefroster
+  send(
+    props.vin,
+    'rear-defroster',
+    newValue ? 'on' : 'off',
+    (s) => s.rearWindowDefroster === newValue,
+  )
 }
 
 function applyTemperature() {

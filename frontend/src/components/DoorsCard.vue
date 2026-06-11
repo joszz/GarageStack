@@ -20,7 +20,7 @@ const props = defineProps<{
 }>()
 
 const { isOpen: modalOpen, open: openModal, close: closeModal } = useModal()
-const { sending, lastResult, isPending, clearPending, send } = useVehicleCommand()
+const { sending, lastResult, isPending, send } = useVehicleCommand()
 
 const localLocked = ref<boolean | null>(null)
 const effectiveLocked = computed(() => localLocked.value ?? props.isLocked)
@@ -29,7 +29,6 @@ watch(
   () => props.isLocked,
   () => {
     localLocked.value = null
-    clearPending('lock')
   },
 )
 
@@ -102,7 +101,7 @@ const variant = computed(() => {
 async function handleLockToggle() {
   if (isPending('lock')) return
   const newLocked = !effectiveLocked.value
-  await send(props.vin, 'lock', newLocked ? 'True' : 'False')
+  await send(props.vin, 'lock', newLocked ? 'True' : 'False', (s) => s.isLocked === newLocked)
   if (lastResult.value?.ok) localLocked.value = newLocked
 }
 </script>
