@@ -105,6 +105,12 @@ const hasPendingChanges = computed(() => {
 })
 
 async function applyAll() {
+  if (
+    (props.climateOn !== null || props.remoteTemperature !== null) &&
+    sliderTemp.value !== (props.remoteTemperature ?? 22)
+  ) {
+    await send(props.vin, 'climate-temperature', String(sliderTemp.value))
+  }
   if (props.climateOn !== null && localClimateOn.value !== props.climateOn) {
     const target = localClimateOn.value
     await send(props.vin, 'climate', target ? 'on' : 'off', (s) => s.climateOn === target)
@@ -132,12 +138,6 @@ async function applyAll() {
       target ? 'on' : 'off',
       (s) => s.steeringWheelHeating === target,
     )
-  }
-  if (
-    (props.climateOn !== null || props.remoteTemperature !== null) &&
-    sliderTemp.value !== (props.remoteTemperature ?? 22)
-  ) {
-    await send(props.vin, 'climate-temperature', String(sliderTemp.value))
   }
   if (props.heatedSeatFrontLeft !== null && seatLeftLocal.value !== props.heatedSeatFrontLeft) {
     await send(props.vin, 'seat-left', String(seatLeftLocal.value))
@@ -314,11 +314,7 @@ function onSeatRightChange(e: Event) {
     </div>
 
     <template #footer>
-      <span v-if="anyPending" class="text-info me-auto">
-        <font-awesome-icon icon="clock" />
-        {{ t('control.pending') }}
-      </span>
-      <span v-else-if="lastResult && !lastResult.ok" class="text-danger me-auto">
+      <span v-if="lastResult && !lastResult.ok && !anyPending" class="text-danger me-auto">
         {{ t('control.error') }}
       </span>
       <button class="btn btn-outline-secondary" @click="closeModal">
@@ -327,7 +323,7 @@ function onSeatRightChange(e: Event) {
       <button
         class="btn btn-primary"
         :class="anyPending ? 'btn--pending' : ''"
-        :disabled="isApplying || !vin || !hasPendingChanges"
+        :disabled="sending !== null || !vin || !hasPendingChanges"
         @click="applyAll"
       >
         <font-awesome-icon v-if="isApplying" icon="spinner" spin />
