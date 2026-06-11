@@ -1,6 +1,10 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
+import { nextTick } from 'vue'
+import { setActivePinia, createPinia } from 'pinia'
 import { vehicleApi } from '@/services/api'
+import type { TelemetrySnapshot } from '@/services/api'
 import { useVehicleCommand } from '@/composables/useVehicleCommand'
+import { useVehicleStore } from '@/stores/vehicle'
 
 vi.mock('@/services/api', () => ({
   vehicleApi: {
@@ -11,8 +15,89 @@ vi.mock('@/services/api', () => ({
 // Typed reference to the mock after hoisting is resolved
 const sendCommandMock = vi.mocked(vehicleApi.sendCommand)
 
+function makeSnapshot(overrides: Partial<TelemetrySnapshot> = {}): TelemetrySnapshot {
+  return {
+    id: 1,
+    vehicleId: 1,
+    recordedAt: new Date().toISOString(),
+    fuelLevelPercent: null,
+    fuelRangeKm: null,
+    odometerKm: null,
+    isLocked: null,
+    engineRunning: null,
+    climateOn: null,
+    driverDoorOpen: null,
+    passengerDoorOpen: null,
+    rearLeftDoorOpen: null,
+    rearRightDoorOpen: null,
+    trunkOpen: null,
+    bonnetOpen: null,
+    driverWindowOpen: null,
+    passengerWindowOpen: null,
+    rearLeftWindowOpen: null,
+    rearRightWindowOpen: null,
+    latitude: null,
+    longitude: null,
+    speed: null,
+    heading: null,
+    batteryVoltage: null,
+    interiorTemperature: null,
+    exteriorTemperature: null,
+    evSocPercent: null,
+    isCharging: null,
+    sunRoofOpen: null,
+    tyrePressureFrontLeft: null,
+    tyrePressureFrontRight: null,
+    tyrePressureRearLeft: null,
+    tyrePressureRearRight: null,
+    mileageOfTheDay: null,
+    powerUsageOfDay: null,
+    mileageSinceLastCharge: null,
+    hvVoltage: null,
+    hvCurrent: null,
+    hvPower: null,
+    hvSocKwh: null,
+    hvTotalCapacityKwh: null,
+    powerUsageSinceLastCharge: null,
+    chargerConnected: null,
+    hvBatteryActive: null,
+    lightsMainBeam: null,
+    lightsDippedBeam: null,
+    lightsSide: null,
+    remoteTemperature: null,
+    heatedSeatFrontLeft: null,
+    heatedSeatFrontRight: null,
+    rearWindowDefroster: null,
+    isAvailable: null,
+    lastVehicleStateAt: null,
+    lastChargeStateAt: null,
+    currentJourneyDistance: null,
+    chargingType: null,
+    chargingCableLock: null,
+    remainingChargingTime: null,
+    obcCurrent: null,
+    obcVoltage: null,
+    obcPowerSinglePhase: null,
+    obcPowerThreePhase: null,
+    batteryHeating: null,
+    batteryHeatingScheduleMode: null,
+    batteryHeatingScheduleStartTime: null,
+    elevation: null,
+    bmsChargeStatus: null,
+    lastChargeEndingPower: null,
+    chargingLastEndAt: null,
+    chargingScheduleMode: null,
+    chargingScheduleStartTime: null,
+    chargingScheduleEndTime: null,
+    onboardChargerPlugStatus: null,
+    offboardChargerPlugStatus: null,
+    ...overrides,
+  }
+}
+
 describe('useVehicleCommand', () => {
   beforeEach(() => {
+    setActivePinia(createPinia())
     sendCommandMock.mockReset()
     vi.useFakeTimers()
   })
@@ -158,5 +243,74 @@ describe('useVehicleCommand', () => {
     clearPending('lock')
     await send('VIN1', 'lock', 'False')
     expect(sendCommandMock).toHaveBeenCalledTimes(2)
+  })
+
+  describe('isConfirmed', () => {
+    it('clears pending when isConfirmed returns true on telemetry update', async () => {
+      sendCommandMock.mockResolvedValue(undefined)
+      const store = useVehicleStore()
+      const { send, isPending } = useVehicleCommand()
+
+      await send('VIN1', 'lock', 'True', (s) => s.isLocked === true)
+      expect(isPending('lock')).toBe(true)
+
+      store.applyLiveStatus(makeSnapshot({ isLocked: true }))
+      await nextTick()
+
+      expect(isPending('lock')).toBe(false)
+    })
+
+    it('does not clear pending when isConfirmed returns false', async () => {
+      sendCommandMock.mockResolvedValue(undefined)
+      const store = useVehicleStore()
+      const { send, isPending } = useVehicleCommand()
+
+      await send('VIN1', 'lock', 'True', (s) => s.isLocked === true)
+      expect(isPending('lock')).toBe(true)
+
+      store.applyLiveStatus(makeSnapshot({ isLocked: false }))
+      await nextTick()
+
+      expect(isPending('lock')).toBe(true)
+    })
+
+    it('calls onConfirmed when isConfirmed returns true', async () => {
+      sendCommandMock.mockResolvedValue(undefined)
+      const store = useVehicleStore()
+      const { send } = useVehicleCommand()
+      const onConfirmed = vi.fn<() => void>()
+
+      await send('VIN1', 'lock', 'True', (s) => s.isLocked === true, onConfirmed)
+
+      store.applyLiveStatus(makeSnapshot({ isLocked: true }))
+      await nextTick()
+
+      expect(onConfirmed).toHaveBeenCalledTimes(1)
+    })
+
+    it('does not call onConfirmed when isConfirmed returns false', async () => {
+      sendCommandMock.mockResolvedValue(undefined)
+      const store = useVehicleStore()
+      const { send } = useVehicleCommand()
+      const onConfirmed = vi.fn<() => void>()
+
+      await send('VIN1', 'lock', 'True', (s) => s.isLocked === true, onConfirmed)
+
+      store.applyLiveStatus(makeSnapshot({ isLocked: false }))
+      await nextTick()
+
+      expect(onConfirmed).not.toHaveBeenCalled()
+    })
+
+    it('still clears pending via timeout when isConfirmed is provided', async () => {
+      sendCommandMock.mockResolvedValue(undefined)
+      const { send, isPending } = useVehicleCommand()
+
+      await send('VIN1', 'lock', 'True', (s) => s.isLocked === true)
+      expect(isPending('lock')).toBe(true)
+
+      vi.advanceTimersByTime(30_000)
+      expect(isPending('lock')).toBe(false)
+    })
   })
 })
