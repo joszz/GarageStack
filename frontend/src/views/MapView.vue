@@ -404,61 +404,67 @@ onUnmounted(() => {
     <div class="map-layout">
       <!-- Trip sidebar -->
       <aside ref="tripSidebarRef" class="trip-sidebar">
-        <h3 class="trip-sidebar__title">{{ t('trips.title') }}</h3>
+        <div class="trip-sidebar__header">
+          <h3 class="trip-sidebar__title">{{ t('trips.title') }}</h3>
+          <AppPaginator
+            v-if="!store.loading && totalPages > 1"
+            v-model="tripsPage"
+            :total-pages="totalPages"
+            class="paginator--inline"
+          />
+        </div>
 
-        <div v-if="store.loading" class="loading-state">
-          <font-awesome-icon icon="spinner" spin />
+        <div v-if="store.loading" class="trip-list">
+          <div v-for="i in PAGE_SIZE" :key="i" class="trip-list__item">
+            <span class="trip-list__dot skeleton" />
+            <div class="trip-list__info">
+              <div class="trip-list__header">
+                <span class="skeleton skeleton--text skeleton--text-lg" />
+                <span class="skeleton skeleton--trip-time" />
+              </div>
+              <span class="skeleton skeleton--text skeleton--text-md" />
+            </div>
+          </div>
         </div>
 
         <div v-else-if="!store.trips.length" class="empty-state text-sm">
           {{ t('trips.noTrips') }}
         </div>
 
-        <template v-else>
-          <AppPaginator
-            v-if="totalPages > 1"
-            v-model="tripsPage"
-            :total-pages="totalPages"
-            class="paginator--top"
-          />
-
-          <ul class="trip-list">
-            <li
-              v-for="(trip, displayIdx) in displayTrips"
-              :key="pageOffset + displayIdx"
-              class="trip-list__item"
-              :class="{
-                'trip-list__item--active': selectedTripIndex === realIndex(pageOffset + displayIdx),
-              }"
-              @click="selectTrip(realIndex(pageOffset + displayIdx))"
-            >
-              <span
-                class="trip-list__dot"
-                :class="tripColorClass(realIndex(pageOffset + displayIdx))"
-              />
-              <div class="trip-list__info">
-                <div class="trip-list__header">
-                  <span class="trip-list__name">{{
-                    new Date(trip.startedAt).toLocaleDateString(displayLocale)
-                  }}</span>
-                  <span class="trip-list__time">{{
-                    new Date(trip.startedAt).toLocaleTimeString(displayLocale, {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })
-                  }}</span>
-                </div>
-                <span class="trip-list__meta">
-                  {{ trip.distanceKm }} {{ t('common.km') }} &middot;
-                  {{ formatDuration(trip.startedAt, trip.endedAt) }} &middot;
-                  {{ trip.pointCount }}
-                </span>
+        <ul v-else class="trip-list">
+          <li
+            v-for="(trip, displayIdx) in displayTrips"
+            :key="pageOffset + displayIdx"
+            class="trip-list__item"
+            :class="{
+              'trip-list__item--active': selectedTripIndex === realIndex(pageOffset + displayIdx),
+            }"
+            @click="selectTrip(realIndex(pageOffset + displayIdx))"
+          >
+            <span
+              class="trip-list__dot"
+              :class="tripColorClass(realIndex(pageOffset + displayIdx))"
+            />
+            <div class="trip-list__info">
+              <div class="trip-list__header">
+                <span class="trip-list__name">{{
+                  new Date(trip.startedAt).toLocaleDateString(displayLocale)
+                }}</span>
+                <span class="trip-list__time">{{
+                  new Date(trip.startedAt).toLocaleTimeString(displayLocale, {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })
+                }}</span>
               </div>
-            </li>
-          </ul>
-
-          <AppPaginator v-if="totalPages > 1" v-model="tripsPage" :total-pages="totalPages" />
-        </template>
+              <span class="trip-list__meta">
+                {{ trip.distanceKm }} {{ t('common.km') }} &middot;
+                {{ formatDuration(trip.startedAt, trip.endedAt) }} &middot;
+                {{ trip.pointCount }}
+              </span>
+            </div>
+          </li>
+        </ul>
       </aside>
 
       <!-- Map -->
