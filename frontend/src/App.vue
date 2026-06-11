@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, onBeforeUnmount } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useSettingsStore } from '@/stores/settings'
@@ -10,7 +10,7 @@ import NotificationPanel from '@/components/NotificationPanel.vue'
 import DemoBanner from '@/components/DemoBanner.vue'
 import DemoControlPanel from '@/components/DemoControlPanel.vue'
 import PwaInstallModal from '@/components/PwaInstallModal.vue'
-import { useNotifications } from '@/composables/useNotifications'
+import { useNotifications, prependNotification } from '@/composables/useNotifications'
 import { useSignalR } from '@/composables/useSignalR'
 
 const isDemoMode = import.meta.env.VITE_DEMO_MODE === 'true'
@@ -62,8 +62,30 @@ const {
 const carModel = computed(() => vehicleStore.vehicles[0]?.model ?? null)
 const vehicleId = computed(() => vehicleStore.vehicles[0]?.id ?? null)
 
-const { start: startSignalR, stop: stopSignalR } = useSignalR((snapshot) => {
-  vehicleStore.applyLiveStatus(snapshot)
+const availabilityToast = ref<'online' | 'offline' | null>(null)
+let toastTimer: ReturnType<typeof setTimeout> | null = null
+
+watch(
+  () => vehicleStore.currentStatus?.isAvailable,
+  (now, prev) => {
+    if (prev === undefined || prev === null || now === null || now === undefined) return
+    if (now === prev) return
+    if (toastTimer) clearTimeout(toastTimer)
+    availabilityToast.value = now ? 'online' : 'offline'
+    toastTimer = setTimeout(() => {
+      availabilityToast.value = null
+    }, 5000)
+  },
+)
+
+onBeforeUnmount(() => {
+  if (toastTimer) clearTimeout(toastTimer)
+})
+
+const { start: startSignalR, stop: stopSignalR } = useSignalR({
+  onTelemetryUpdated: (snapshot) => vehicleStore.applyLiveStatus(snapshot),
+  onNotificationReceived: (notification) => prependNotification(notification),
+  onTripCompleted: () => vehicleStore.notifyTripCompleted(),
 })
 
 watch(vehicleId, (id) => {
@@ -251,6 +273,19 @@ watch(
         <RouterView />
       </main>
     </div>
+
+    <Transition name="availability-toast">
+      <div
+        v-if="availabilityToast"
+        class="availability-toast"
+        :class="`availability-toast--${availabilityToast}`"
+      >
+        <font-awesome-icon
+          :icon="availabilityToast === 'online' ? 'wifi' : 'triangle-exclamation'"
+        />
+        {{ availabilityToast === 'online' ? t('vehicle.wentOnline') : t('vehicle.wentOffline') }}
+      </div>
+    </Transition>
 
     <AppFooter />
 

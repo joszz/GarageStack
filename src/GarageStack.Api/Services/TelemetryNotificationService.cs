@@ -1,4 +1,6 @@
 using System.Collections.Concurrent;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading.Channels;
 using GarageStack.Api.Hubs;
 using GarageStack.Core.Interfaces;
@@ -17,6 +19,8 @@ public class TelemetryNotificationService(
     // topics per poll cycle) into a single SignalR broadcast after a quiet period.
     private readonly ConcurrentDictionary<int, CancellationTokenSource> _pending = new();
 
+    private record PgEvent(string Channel, string Payload);
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         var connectionString = config.GetConnectionString("DefaultConnection");
@@ -26,15 +30,30 @@ public class TelemetryNotificationService(
             return;
         }
 
-        var channel = Channel.CreateUnbounded<int>(new UnboundedChannelOptions { SingleReader = true });
+        var channel = Channel.CreateUnbounded<PgEvent>(new UnboundedChannelOptions { SingleReader = true });
 
         _ = ListenAsync(connectionString, channel.Writer, stoppingToken);
 
-        await foreach (var vehicleId in channel.Reader.ReadAllAsync(stoppingToken))
-            ScheduleBroadcast(vehicleId, stoppingToken);
+        await foreach (var evt in channel.Reader.ReadAllAsync(stoppingToken))
+        {
+            switch (evt.Channel)
+            {
+                case "telemetry_updated":
+                    if (int.TryParse(evt.Payload, out var vehicleId))
+                        ScheduleBroadcast(vehicleId, stoppingToken);
+                    break;
+                case "notification_created":
+                    _ = BroadcastNotificationAsync(evt.Payload, stoppingToken);
+                    break;
+                case "trip_completed":
+                    if (int.TryParse(evt.Payload, out var tripVehicleId))
+                        _ = BroadcastTripCompletedAsync(tripVehicleId, stoppingToken);
+                    break;
+            }
+        }
     }
 
-    private async Task ListenAsync(string connectionString, ChannelWriter<int> writer, CancellationToken ct)
+    private async Task ListenAsync(string connectionString, ChannelWriter<PgEvent> writer, CancellationToken ct)
     {
         while (!ct.IsCancellationRequested)
         {
@@ -45,17 +64,13 @@ public class TelemetryNotificationService(
 
                 await using (var cmd = conn.CreateCommand())
                 {
-                    cmd.CommandText = "LISTEN telemetry_updated";
+                    cmd.CommandText = "LISTEN telemetry_updated; LISTEN notification_created; LISTEN trip_completed";
                     await cmd.ExecuteNonQueryAsync(ct);
                 }
 
-                logger.LogInformation("Listening for PostgreSQL telemetry_updated notifications");
+                logger.LogInformation("Listening for PostgreSQL notifications on telemetry_updated, notification_created, trip_completed");
 
-                conn.Notification += (_, e) =>
-                {
-                    if (int.TryParse(e.Payload, out var vehicleId))
-                        writer.TryWrite(vehicleId);
-                };
+                conn.Notification += (_, e) => writer.TryWrite(new PgEvent(e.Channel, e.Payload));
 
                 while (!ct.IsCancellationRequested)
                     await conn.WaitAsync(ct);
@@ -89,7 +104,7 @@ public class TelemetryNotificationService(
             try
             {
                 await Task.Delay(2_000, cts.Token);
-                await BroadcastAsync(vehicleId, stoppingToken);
+                await BroadcastTelemetryAsync(vehicleId, stoppingToken);
             }
             catch (OperationCanceledException) { }
             finally
@@ -100,7 +115,7 @@ public class TelemetryNotificationService(
         }, cts.Token);
     }
 
-    private async Task BroadcastAsync(int vehicleId, CancellationToken ct)
+    private async Task BroadcastTelemetryAsync(int vehicleId, CancellationToken ct)
     {
         try
         {
@@ -112,11 +127,57 @@ public class TelemetryNotificationService(
             await hubContext.Clients.Group($"vehicle-{vehicleId}")
                 .SendAsync("telemetryUpdated", snapshot, ct);
 
-            logger.LogDebug("SignalR broadcast for vehicleId={VehicleId}", vehicleId);
+            logger.LogDebug("SignalR broadcast telemetryUpdated for vehicleId={VehicleId}", vehicleId);
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Failed to broadcast telemetry for vehicleId={VehicleId}", vehicleId);
         }
     }
+
+    private async Task BroadcastNotificationAsync(string json, CancellationToken ct)
+    {
+        try
+        {
+            var notification = JsonSerializer.Deserialize<NotificationPayload>(json, JsonOptions);
+            if (notification is null) return;
+
+            await hubContext.Clients.All.SendAsync("notificationReceived", notification, ct);
+            logger.LogDebug("SignalR broadcast notificationReceived id={Id}", notification.Id);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to broadcast notification");
+        }
+    }
+
+    private async Task BroadcastTripCompletedAsync(int vehicleId, CancellationToken ct)
+    {
+        try
+        {
+            await hubContext.Clients.Group($"vehicle-{vehicleId}")
+                .SendAsync("tripCompleted", vehicleId, ct);
+
+            logger.LogDebug("SignalR broadcast tripCompleted for vehicleId={VehicleId}", vehicleId);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to broadcast tripCompleted for vehicleId={VehicleId}", vehicleId);
+        }
+    }
+
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+    };
+
+    // Mirrors the payload shape written by PushSenderService
+    private sealed record NotificationPayload(
+        int Id,
+        string Title,
+        string Body,
+        string CreatedAt,
+        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Category,
+        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] int? VehicleId);
 }

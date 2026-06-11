@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, computed, nextTick } from 'vue'
 import {
   vehicleApi,
   type Vehicle,
@@ -21,6 +21,10 @@ export const useVehicleStore = defineStore('vehicle', () => {
   const loading = computed(() => loadingCount.value > 0)
   const error = ref<string | null>(null)
   const lastUpdated = ref<Date | null>(null)
+
+  // Reactive one-shot flags set for a single tick when specific state transitions occur.
+  const tripJustCompleted = ref(false)
+  const chargingJustCompleted = ref(false)
 
   async function fetchVehicles() {
     loadingCount.value++
@@ -70,8 +74,29 @@ export const useVehicleStore = defineStore('vehicle', () => {
   }
 
   function applyLiveStatus(snapshot: TelemetrySnapshot) {
+    const prev = currentStatus.value
+
+    // Charging complete: was charging, cable still connected, now stopped
+    if (
+      prev?.isCharging === true &&
+      snapshot.isCharging === false &&
+      snapshot.chargerConnected === true
+    ) {
+      chargingJustCompleted.value = true
+      nextTick(() => {
+        chargingJustCompleted.value = false
+      })
+    }
+
     currentStatus.value = snapshot
     lastUpdated.value = new Date()
+  }
+
+  function notifyTripCompleted() {
+    tripJustCompleted.value = true
+    nextTick(() => {
+      tripJustCompleted.value = false
+    })
   }
 
   async function fetchLastTrip(vin: string) {
@@ -115,6 +140,8 @@ export const useVehicleStore = defineStore('vehicle', () => {
     loading,
     error,
     lastUpdated,
+    tripJustCompleted,
+    chargingJustCompleted,
     fetchVehicles,
     fetchStatus,
     fetchConfig,
@@ -122,5 +149,6 @@ export const useVehicleStore = defineStore('vehicle', () => {
     fetchTrips,
     fetchLastTrip,
     applyLiveStatus,
+    notifyTripCompleted,
   }
 })

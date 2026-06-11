@@ -1,10 +1,16 @@
 import { ref, onUnmounted } from 'vue'
 import * as signalR from '@microsoft/signalr'
-import type { TelemetrySnapshot } from '@/services/api'
+import type { TelemetrySnapshot, AppNotification } from '@/services/api'
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? ''
 
-export function useSignalR(onTelemetryUpdated: (snapshot: TelemetrySnapshot) => void) {
+export interface SignalRCallbacks {
+  onTelemetryUpdated: (snapshot: TelemetrySnapshot) => void
+  onNotificationReceived: (notification: AppNotification) => void
+  onTripCompleted: (vehicleId: number) => void
+}
+
+export function useSignalR(callbacks: SignalRCallbacks) {
   const connected = ref(false)
   let connection: signalR.HubConnection | null = null
 
@@ -18,7 +24,15 @@ export function useSignalR(onTelemetryUpdated: (snapshot: TelemetrySnapshot) => 
       .build()
 
     connection.on('telemetryUpdated', (snapshot: TelemetrySnapshot) => {
-      onTelemetryUpdated(snapshot)
+      callbacks.onTelemetryUpdated(snapshot)
+    })
+
+    connection.on('notificationReceived', (notification: AppNotification) => {
+      callbacks.onNotificationReceived(notification)
+    })
+
+    connection.on('tripCompleted', (vid: number) => {
+      callbacks.onTripCompleted(vid)
     })
 
     connection.onreconnecting(() => {

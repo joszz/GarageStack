@@ -64,6 +64,8 @@
     "dailyKwhChart": "Daily Electric Usage (kWh)"
   },
   "vehicle": {
+    "wentOnline": "Vehicle is online",
+    "wentOffline": "Vehicle went offline",
     "fuel": "Fuel",
     "range": "Range",
     "odometer": "Odometer",

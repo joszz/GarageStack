@@ -64,6 +64,8 @@
     "dailyKwhChart": "Dagelijks elektrisch verbruik (kWh)"
   },
   "vehicle": {
+    "wentOnline": "Voertuig is online",
+    "wentOffline": "Voertuig is offline gegaan",
     "fuel": "Brandstof",
     "range": "Bereik",
     "odometer": "Kilometerteller",

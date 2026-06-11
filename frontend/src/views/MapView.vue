@@ -318,6 +318,18 @@ watch(dateRangeDays, async (days) => {
   }
 })
 
+// Trip just finished: silently prepend without resetting selection or page
+watch(
+  () => store.tripJustCompleted,
+  async (completed) => {
+    if (!completed || !vin.value) return
+    await store.fetchTrips(
+      vin.value,
+      new Date(Date.now() - dateRangeDays.value * 86_400_000).toISOString(),
+    )
+  },
+)
+
 // Deselect when paginating
 watch(tripsPage, () => {
   selectedTripIndex.value = null
