@@ -8,26 +8,11 @@ permissions:
   contents: write
 
 jobs:
-  dotnet:
-    name: .NET dependency snapshot
+  snapshot:
+    name: Dependency snapshot
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: 10.0.x
-
-      - name: Submit .NET dependencies
-        uses: github/nuget-dependency-submission-action@v1
-        with:
-          solution-directory: .
-
-  frontend:
-    name: Frontend dependency snapshot
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Submit frontend dependencies
+      - name: Submit dependencies
         uses: advanced-security/component-detection-dependency-submission-action@v0.1.1
