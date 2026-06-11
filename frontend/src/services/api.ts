@@ -117,6 +117,7 @@ export interface TelemetrySnapshot {
   heatedSeatFrontLeft: number | null
   heatedSeatFrontRight: number | null
   rearWindowDefroster: boolean | null
+  steeringWheelHeating: boolean | null
   isAvailable: boolean | null
   lastVehicleStateAt: string | null
   lastChargeStateAt: string | null
@@ -140,6 +141,12 @@ export interface TelemetrySnapshot {
   chargingScheduleEndTime: string | null
   onboardChargerPlugStatus: number | null
   offboardChargerPlugStatus: number | null
+}
+
+export interface VehicleAggregateStats {
+  climateUsagePct: number | null
+  climateOnSnapshots: number
+  totalClimateSnapshots: number
 }
 
 export interface TripPoint {
@@ -183,6 +190,12 @@ export const vehicleApi = {
   },
   sendCommand: (vin: string, command: string, value: string) =>
     send(`/api/vehicles/${vin}/commands/${command}`, 'POST', { value }),
+  stats: (vin: string, from?: string, to?: string) => {
+    const params = new URLSearchParams()
+    if (from) params.set('from', from)
+    if (to) params.set('to', to)
+    return request<VehicleAggregateStats>(`/api/vehicles/${vin}/stats?${params}`)
+  },
 }
 
 export interface DemoStatusOverride {

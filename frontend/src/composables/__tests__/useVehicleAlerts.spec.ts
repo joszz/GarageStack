@@ -56,6 +56,7 @@ function makeSnapshot(overrides: Partial<TelemetrySnapshot> = {}): TelemetrySnap
     heatedSeatFrontLeft: null,
     heatedSeatFrontRight: null,
     rearWindowDefroster: null,
+    steeringWheelHeating: null,
     isAvailable: null,
     lastVehicleStateAt: null,
     lastChargeStateAt: null,

@@ -42,6 +42,16 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
         Task.FromResult<IReadOnlyList<TripDto>>(
             _allTrips.Value.Where(t => t.StartedAt >= from && t.StartedAt <= to).ToList());
 
+    public Task<VehicleAggregateStats> GetAggregateStatsAsync(
+        int vehicleId, DateTime from, DateTime to, CancellationToken ct = default)
+    {
+        var history = _history.Value.Where(s => s.RecordedAt >= from && s.RecordedAt <= to).ToList();
+        var known = history.Count(s => s.ClimateOn != null);
+        var on = history.Count(s => s.ClimateOn == true);
+        var pct = known > 0 ? (int?)Math.Round((double)on / known * 100) : null;
+        return Task.FromResult(new VehicleAggregateStats(pct, on, known));
+    }
+
     public void ApplyOverride(DemoStatusOverrideDto dto)
     {
         lock (_lock)
@@ -134,6 +144,7 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
         HeatedSeatFrontLeft = 0,
         HeatedSeatFrontRight = 0,
         RearWindowDefroster = false,
+        SteeringWheelHeating = false,
         IsAvailable = true,
         LastVehicleStateAt = DateTime.UtcNow.AddMinutes(-3),
         LastChargeStateAt = DateTime.UtcNow.AddHours(-8),

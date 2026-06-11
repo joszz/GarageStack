@@ -151,6 +151,7 @@ public static class VehicleEndpoints
                 "climate"             => "climate/remoteClimateState/set",
                 "climate-temperature" => "climate/remoteTemperature/set",
                 "rear-defroster"      => "climate/rearWindowDefrosterHeating/set",
+                "steering-wheel"      => "climate/steeringWheelHeating/set",
                 "seat-left"           => "climate/heatedSeatsFrontLeftLevel/set",
                 "seat-right"          => "climate/heatedSeatsFrontRightLevel/set",
                 "find-my-car"         => "location/findMyCar/set",
@@ -175,6 +176,29 @@ public static class VehicleEndpoints
             return Results.Ok(new { topic, value });
         })
         .WithSummary("Send a command to the vehicle via MQTT");
+
+        group.MapGet("/{vin}/stats", async (
+            string vin,
+            string? from,
+            string? to,
+            ITelemetryRepository telemetry,
+            IVehicleRepository vehicles,
+            CancellationToken ct) =>
+        {
+            var resolved = await ResolveVehicleAsync(vin, vehicles, ct);
+            if (resolved.NotFound is not null) return resolved.NotFound;
+            var vehicle = resolved.Vehicle!;
+
+            var end = to is not null && DateTime.TryParse(to, out var parsedEnd) ? parsedEnd.ToUniversalTime() : DateTime.UtcNow;
+            var start = from is not null && DateTime.TryParse(from, out var parsedStart) ? parsedStart.ToUniversalTime() : end.AddDays(-30);
+            var maxRange = TimeSpan.FromDays(90);
+            if (end - start > maxRange)
+                start = end - maxRange;
+
+            var stats = await telemetry.GetAggregateStatsAsync(vehicle.Id, start, end, ct);
+            return Results.Ok(stats);
+        })
+        .WithSummary("Get aggregate statistics for a vehicle over a date range");
 
         group.MapGet("/{vin}/topics", async (string vin, IVehicleRepository vehicles, AppDbContext db, CancellationToken ct) =>
         {
@@ -254,7 +278,7 @@ public static class VehicleEndpoints
 
     internal static string? ValidateCommandValue(string command, string value) => command switch
     {
-        "climate" or "rear-defroster" =>
+        "climate" or "rear-defroster" or "steering-wheel" =>
             value is "on" or "off" ? null : $"'{command}' value must be 'on' or 'off'",
         "climate-temperature" =>
             int.TryParse(value, out var temp) && temp is >= 16 and <= 28
