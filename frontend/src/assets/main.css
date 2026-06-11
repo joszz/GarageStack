@@ -2231,7 +2231,7 @@ body,
   }
 }
 
-/* ── Tablet (768–1023px) ──────────────────────────────────── */
+/* ── Tablet (600–1023px) ──────────────────────────────────── */
 
 @media (min-width: 600px) and (max-width: 1023px) {
   .main-content {
@@ -2240,6 +2240,24 @@ body,
 
   .status-grid {
     grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* ── Large desktop (1440px+) ──────────────────────────────── */
+
+@media (min-width: 1440px) {
+  .status-grid {
+    grid-template-columns: repeat(6, 1fr);
+  }
+}
+
+/* ── Full-HD and above (1920px+) ──────────────────────────── */
+
+@media (min-width: 1920px) {
+  .status-grid {
+    grid-template-columns: repeat(8, 1fr);
+    max-width: 1600px;
+    margin-inline: auto;
   }
 }
 
