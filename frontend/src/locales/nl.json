@@ -198,6 +198,7 @@
     "heatmap": "Heatmap",
     "routeOutline": "Route omlijning",
     "speedOverlay": "Snelheidsoverlay",
+    "speedOverlayDesc": "Zichtbaar wanneer een enkele rit is geselecteerd",
     "findCar": "Vind auto",
     "points": "ptn"
   },

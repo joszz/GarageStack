@@ -547,13 +547,13 @@ onUnmounted(() => {
                 <font-awesome-icon icon="gauge" class="settings-toggle__icon" />
                 {{ t('trips.speedOverlay') }}
               </span>
+              <span class="settings-toggle__desc">{{ t('trips.speedOverlayDesc') }}</span>
             </div>
             <div class="settings-toggle__control form-check form-switch">
               <input
                 v-model="speedOverlayEnabled"
                 type="checkbox"
                 class="form-check-input"
-                :disabled="selectedTripIndex === null"
                 :aria-label="t('trips.speedOverlay')"
               />
             </div>
