@@ -60,6 +60,12 @@
       "parkingLocations": "Aantal unieke parkeerplaatsen gebruikt over alle ritten in de geselecteerde periode, gebaseerd op afgeronde GPS-coordinaten.",
       "electricShare": "Geschat aandeel van de ritten vandaag op elektrisch vermogen, afgeleid van km sinds laatste laadbeurt versus totaal km vandaag. Alleen zichtbaar voor HEV en PHEV."
     },
+    "chartDesc": {
+      "evChart": "Dagelijks gemiddeld EV-accuniveau in de geselecteerde periode.",
+      "tyreChart": "Dagelijkse gemiddelde bandenspanning per wiel in de geselecteerde periode. Normaal bereik voor personenwagens is circa 2,0 – 3,0 bar.",
+      "hybridSocChart": "Dagelijks gemiddeld EV-accuniveau en brandstofniveau in de geselecteerde periode. Geeft inzicht in hoe beide energiebronnen zich samen ontwikkelen.",
+      "dailyKwhChart": "Geschat kWh-verbruik uit de EV-accu per dag. Voltooide dagen tonen de cumulatieve piek van die dag; vandaag toont alleen de nettotoename sinds middernacht, of sinds de laatste tellerreset."
+    },
     "hybridSocChart": "EV & Brandstofniveaus",
     "dailyKwhChart": "Dagelijks elektrisch verbruik (kWh)"
   },
