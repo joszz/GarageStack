@@ -1297,6 +1297,12 @@ body,
   font-weight: 500;
 }
 
+.settings-toggle__icon {
+  width: 0.85em;
+  margin-right: 0.35rem;
+  color: var(--color-text-muted);
+}
+
 .settings-toggle__desc {
   font-size: 0.78rem;
   color: var(--color-text-muted);
