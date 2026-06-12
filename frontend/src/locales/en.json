@@ -330,8 +330,10 @@
     "min": "min",
     "fetched": "Fetched",
     "recorded": "Recorded",
+    "firstPage": "First page",
     "prevPage": "Previous page",
     "nextPage": "Next page",
+    "lastPage": "Last page",
     "pageOf": "Page {n} of {total}"
   },
   "demo": {
