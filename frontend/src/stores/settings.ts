@@ -150,6 +150,9 @@ export interface AppSettings {
   locale: Locale
   filterDays: number
   carColorScheme: string
+  routeOutlineEnabled: boolean
+  heatmapEnabled: boolean
+  speedOverlayEnabled: boolean
 }
 
 function osPreferredTheme(): Theme {
@@ -202,6 +205,9 @@ const defaults: AppSettings = {
   locale: browserLocale(),
   filterDays: 7,
   carColorScheme: 'orange',
+  routeOutlineEnabled: false,
+  heatmapEnabled: true,
+  speedOverlayEnabled: false,
 }
 
 function migrateCards(raw: { id: string; visible: boolean }[]): CardConfig[] {
@@ -300,6 +306,9 @@ function loadFromKey(key: string): AppSettings {
           locale: parsed.locale ?? defaults.locale,
           filterDays: parsed.filterDays ?? defaults.filterDays,
           carColorScheme: parsed.carColorScheme ?? defaults.carColorScheme,
+          routeOutlineEnabled: parsed.routeOutlineEnabled === true,
+          heatmapEnabled: parsed.heatmapEnabled !== false,
+          speedOverlayEnabled: parsed.speedOverlayEnabled === true,
         }
       }
 
@@ -315,6 +324,9 @@ function loadFromKey(key: string): AppSettings {
           locale: parsed.locale ?? defaults.locale,
           filterDays: parsed.filterDays ?? defaults.filterDays,
           carColorScheme: parsed.carColorScheme ?? defaults.carColorScheme,
+          routeOutlineEnabled: parsed.routeOutlineEnabled === true,
+          heatmapEnabled: parsed.heatmapEnabled !== false,
+          speedOverlayEnabled: parsed.speedOverlayEnabled === true,
         }
       }
     }
@@ -352,6 +364,9 @@ export const useSettingsStore = defineStore('settings', () => {
   const showTyreDiagram = ref<boolean>(loaded.showTyreDiagram)
   const showCardInfoIcons = ref<boolean>(loaded.showCardInfoIcons)
   const carColorScheme = ref<string>(loaded.carColorScheme)
+  const routeOutlineEnabled = ref<boolean>(loaded.routeOutlineEnabled)
+  const heatmapEnabled = ref<boolean>(loaded.heatmapEnabled)
+  const speedOverlayEnabled = ref<boolean>(loaded.speedOverlayEnabled)
 
   document.documentElement.dataset.theme = theme.value
   applyCarColors(carColorScheme.value)
@@ -370,6 +385,9 @@ export const useSettingsStore = defineStore('settings', () => {
         locale: locale.value,
         filterDays: filterDays.value,
         carColorScheme: carColorScheme.value,
+        routeOutlineEnabled: routeOutlineEnabled.value,
+        heatmapEnabled: heatmapEnabled.value,
+        speedOverlayEnabled: speedOverlayEnabled.value,
       }),
     )
   }
@@ -382,6 +400,9 @@ export const useSettingsStore = defineStore('settings', () => {
   watch(vehicleTypeOverride, save)
   watch(locale, save)
   watch(filterDays, save)
+  watch(routeOutlineEnabled, save)
+  watch(heatmapEnabled, save)
+  watch(speedOverlayEnabled, save)
   watch(theme, (val) => {
     document.documentElement.dataset.theme = val
     save()
@@ -406,6 +427,9 @@ export const useSettingsStore = defineStore('settings', () => {
     locale,
     filterDays,
     carColorScheme,
+    routeOutlineEnabled,
+    heatmapEnabled,
+    speedOverlayEnabled,
     resetCards,
   }
 })
