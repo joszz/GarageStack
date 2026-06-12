@@ -496,7 +496,10 @@ onUnmounted(() => {
         <FiltersPanel>
           <div class="settings-toggle">
             <div class="settings-toggle__info">
-              <span class="settings-toggle__label">{{ t('trips.dateRange') }}</span>
+              <span class="settings-toggle__label">
+                <font-awesome-icon icon="calendar-check" class="settings-toggle__icon" />
+                {{ t('trips.dateRange') }}
+              </span>
             </div>
             <div class="settings-toggle__control">
               <select v-model="dateRangeDays" class="form-select form-select-sm">
@@ -508,7 +511,10 @@ onUnmounted(() => {
           </div>
           <div class="settings-toggle">
             <div class="settings-toggle__info">
-              <span class="settings-toggle__label">{{ t('trips.heatmap') }}</span>
+              <span class="settings-toggle__label">
+                <font-awesome-icon icon="fire" class="settings-toggle__icon" />
+                {{ t('trips.heatmap') }}
+              </span>
             </div>
             <div class="settings-toggle__control form-check form-switch">
               <input
@@ -521,7 +527,10 @@ onUnmounted(() => {
           </div>
           <div class="settings-toggle">
             <div class="settings-toggle__info">
-              <span class="settings-toggle__label">{{ t('trips.routeOutline') }}</span>
+              <span class="settings-toggle__label">
+                <font-awesome-icon icon="route" class="settings-toggle__icon" />
+                {{ t('trips.routeOutline') }}
+              </span>
             </div>
             <div class="settings-toggle__control form-check form-switch">
               <input
@@ -534,7 +543,10 @@ onUnmounted(() => {
           </div>
           <div class="settings-toggle">
             <div class="settings-toggle__info">
-              <span class="settings-toggle__label">{{ t('trips.speedOverlay') }}</span>
+              <span class="settings-toggle__label">
+                <font-awesome-icon icon="gauge" class="settings-toggle__icon" />
+                {{ t('trips.speedOverlay') }}
+              </span>
             </div>
             <div class="settings-toggle__control form-check form-switch">
               <input
