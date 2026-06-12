@@ -205,7 +205,7 @@ const defaults: AppSettings = {
   locale: browserLocale(),
   filterDays: 7,
   carColorScheme: 'orange',
-  routeOutlineEnabled: true,
+  routeOutlineEnabled: false,
   heatmapEnabled: true,
   speedOverlayEnabled: false,
 }
@@ -306,7 +306,7 @@ function loadFromKey(key: string): AppSettings {
           locale: parsed.locale ?? defaults.locale,
           filterDays: parsed.filterDays ?? defaults.filterDays,
           carColorScheme: parsed.carColorScheme ?? defaults.carColorScheme,
-          routeOutlineEnabled: parsed.routeOutlineEnabled !== false,
+          routeOutlineEnabled: parsed.routeOutlineEnabled === true,
           heatmapEnabled: parsed.heatmapEnabled !== false,
           speedOverlayEnabled: parsed.speedOverlayEnabled === true,
         }
@@ -324,7 +324,7 @@ function loadFromKey(key: string): AppSettings {
           locale: parsed.locale ?? defaults.locale,
           filterDays: parsed.filterDays ?? defaults.filterDays,
           carColorScheme: parsed.carColorScheme ?? defaults.carColorScheme,
-          routeOutlineEnabled: parsed.routeOutlineEnabled !== false,
+          routeOutlineEnabled: parsed.routeOutlineEnabled === true,
           heatmapEnabled: parsed.heatmapEnabled !== false,
           speedOverlayEnabled: parsed.speedOverlayEnabled === true,
         }
