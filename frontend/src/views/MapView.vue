@@ -421,7 +421,7 @@ async function loadChargingStations(initialCenter?: { lat: number; lng: number }
   const mc = map.getBounds().getCenter()
   const center =
     initialCenter ??
-    (allPoints.value.length === 0 && s?.latitude != null
+    (allPoints.value.length === 0 && s?.latitude != null && s?.longitude != null
       ? { lat: s.latitude, lng: s.longitude }
       : { lat: mc.lat, lng: mc.lng })
   // Initial car-position load uses a radius scaled to the power filter so high-power
