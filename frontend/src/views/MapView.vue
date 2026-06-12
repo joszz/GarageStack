@@ -29,6 +29,8 @@ const status = computed(() => store.currentStatus)
 const displayLocale = computed(() => (settingsStore.locale === 'nl' ? 'nl-NL' : 'en-US'))
 const selectedTripIndex = ref<number | null>(null)
 const heatmapEnabled = ref(true)
+const speedOverlayEnabled = ref(false)
+const routeOutlineEnabled = ref(true)
 let shouldSelectLatest = route.query.selectLatest === '1'
 
 const dateRangeDays = computed({
@@ -76,6 +78,35 @@ function tripColor(index: number): string {
 
 function tripColorClass(index: number): string {
   return `trip-list__dot--${index % tripColors.length}`
+}
+
+const speedStops: Array<{ speed: number; r: number; g: number; b: number }> = [
+  { speed: 0, r: 16, g: 185, b: 129 },
+  { speed: 50, r: 132, g: 204, b: 22 },
+  { speed: 90, r: 245, g: 158, b: 11 },
+  { speed: 120, r: 249, g: 115, b: 22 },
+  { speed: 150, r: 239, g: 68, b: 68 },
+]
+
+function speedToColor(speed: number | null, fallback: string): string {
+  if (speed === null) return fallback
+  const s = Math.max(0, speed)
+  const last = speedStops[speedStops.length - 1]!
+  if (s >= last.speed) return `rgb(${last.r},${last.g},${last.b})`
+  let lo = speedStops[0]!
+  let hi = last
+  for (let i = 0; i < speedStops.length - 1; i++) {
+    if (s >= speedStops[i]!.speed && s < speedStops[i + 1]!.speed) {
+      lo = speedStops[i]!
+      hi = speedStops[i + 1]!
+      break
+    }
+  }
+  const t = (s - lo.speed) / (hi.speed - lo.speed)
+  const r = Math.round(lo.r + t * (hi.r - lo.r))
+  const g = Math.round(lo.g + t * (hi.g - lo.g))
+  const b = Math.round(lo.b + t * (hi.b - lo.b))
+  return `rgb(${r},${g},${b})`
 }
 
 // Static initial centre - controlled by fitAll/flyToStatus after data loads.
@@ -143,6 +174,12 @@ function buildRouteLines() {
   store.trips.forEach((trip, i) => {
     const pts = trip.points.map((p) => [p.latitude, p.longitude] as [number, number])
     if (pts.length < 2) return
+    if (routeOutlineEnabled.value) {
+      const border = L.polyline(pts, { color: '#111', weight: 7, opacity: 0.4 })
+      border.on('click', () => selectTrip(i))
+      border.addTo(map)
+      routeLines.push(border)
+    }
     const line = L.polyline(pts, { color: tripColor(i), weight: 3, opacity: 0.75 })
     line.on('click', () => selectTrip(i))
     line.addTo(map)
@@ -157,11 +194,38 @@ function buildSelectedLine() {
   clearRouteLines()
   const trip = store.trips[idx]
   if (!trip) return
-  const pts = trip.points.map((p) => [p.latitude, p.longitude] as [number, number])
+  const pts = trip.points
   if (pts.length < 2) return
-  const line = L.polyline(pts, { color: tripColor(idx), weight: 5, opacity: 1 })
-  line.addTo(map)
-  routeLines.push(line)
+
+  const coords = pts.map((p) => [p.latitude, p.longitude] as [number, number])
+
+  if (routeOutlineEnabled.value) {
+    const border = L.polyline(coords, { color: '#111', weight: 9, opacity: 0.4 })
+    border.addTo(map)
+    routeLines.push(border)
+  }
+
+  if (speedOverlayEnabled.value) {
+    for (let i = 0; i < pts.length - 1; i++) {
+      const p0 = pts[i]!
+      const p1 = pts[i + 1]!
+      const color = speedToColor(p0.speed, tripColor(idx))
+      const segment = L.polyline(
+        [
+          [p0.latitude, p0.longitude],
+          [p1.latitude, p1.longitude],
+        ],
+        { color, weight: 5, opacity: 1, lineCap: 'square' },
+      )
+      segment.addTo(map)
+      routeLines.push(segment)
+    }
+  } else {
+    const line = L.polyline(coords, { color: tripColor(idx), weight: 5, opacity: 1 })
+    line.addTo(map)
+    routeLines.push(line)
+  }
+
   buildTripMarkers(trip)
 }
 
@@ -307,6 +371,26 @@ watch(heatmapEnabled, (enabled) => {
   else removeHeatLayer()
 })
 
+// Speed overlay toggle while a trip is selected
+watch(speedOverlayEnabled, () => {
+  if (selectedTripIndex.value === null) return
+  if (mapUpdateRaf !== null) cancelAnimationFrame(mapUpdateRaf)
+  mapUpdateRaf = requestAnimationFrame(() => {
+    mapUpdateRaf = null
+    buildSelectedLine()
+  })
+})
+
+// Route outline toggle: rebuild whichever layer is currently active
+watch(routeOutlineEnabled, () => {
+  if (mapUpdateRaf !== null) cancelAnimationFrame(mapUpdateRaf)
+  mapUpdateRaf = requestAnimationFrame(() => {
+    mapUpdateRaf = null
+    if (selectedTripIndex.value === null) buildRouteLines()
+    else buildSelectedLine()
+  })
+})
+
 // Date range change: reload trips and reset state
 watch(dateRangeDays, async (days) => {
   displayCount.value = LOAD_MORE_SIZE
@@ -420,6 +504,33 @@ onUnmounted(() => {
               />
             </div>
           </div>
+          <div class="settings-toggle">
+            <div class="settings-toggle__info">
+              <span class="settings-toggle__label">{{ t('trips.routeOutline') }}</span>
+            </div>
+            <div class="settings-toggle__control form-check form-switch">
+              <input
+                v-model="routeOutlineEnabled"
+                type="checkbox"
+                class="form-check-input"
+                :aria-label="t('trips.routeOutline')"
+              />
+            </div>
+          </div>
+          <div class="settings-toggle">
+            <div class="settings-toggle__info">
+              <span class="settings-toggle__label">{{ t('trips.speedOverlay') }}</span>
+            </div>
+            <div class="settings-toggle__control form-check form-switch">
+              <input
+                v-model="speedOverlayEnabled"
+                type="checkbox"
+                class="form-check-input"
+                :disabled="selectedTripIndex === null"
+                :aria-label="t('trips.speedOverlay')"
+              />
+            </div>
+          </div>
         </FiltersPanel>
         <button
           class="btn btn-sm btn-outline-secondary"
@@ -513,6 +624,20 @@ onUnmounted(() => {
             <LPopup>{{ store.vehicles[0]?.model ?? store.vehicles[0]?.vin }}</LPopup>
           </LMarker>
         </LMap>
+
+        <div
+          v-if="speedOverlayEnabled && selectedTripIndex !== null"
+          class="speed-legend"
+          :aria-label="t('trips.speedOverlay')"
+        >
+          <div class="speed-legend__bar"></div>
+          <div class="speed-legend__labels">
+            <span>0</span>
+            <span>50</span>
+            <span>90</span>
+            <span>130+ km/h</span>
+          </div>
+        </div>
       </div>
     </div>
   </div>

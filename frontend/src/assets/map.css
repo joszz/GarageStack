@@ -19,6 +19,7 @@
 }
 
 .map-wrapper {
+  position: relative;
   flex: 1;
   min-height: 0;
   border-radius: var(--radius);
@@ -120,6 +121,34 @@
 
 .map-canvas {
   height: 100%;
+}
+
+.speed-legend {
+  position: absolute;
+  bottom: 28px;
+  right: 10px;
+  z-index: 1000;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 6px 8px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+  font-size: 0.7rem;
+  min-width: 130px;
+  pointer-events: none;
+}
+
+.speed-legend__bar {
+  height: 8px;
+  border-radius: 4px;
+  background: linear-gradient(to right, #10b981, #84cc16, #f59e0b, #f97316, #ef4444);
+  margin-bottom: 4px;
+}
+
+.speed-legend__labels {
+  display: flex;
+  justify-content: space-between;
+  color: var(--color-text-muted);
 }
 
 .trip-list__info {
