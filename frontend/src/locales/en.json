@@ -198,6 +198,7 @@
     "heatmap": "Heatmap",
     "routeOutline": "Route outline",
     "speedOverlay": "Speed overlay",
+    "speedOverlayDesc": "Visible when a single trip is selected",
     "findCar": "Find car",
     "points": "pts"
   },
