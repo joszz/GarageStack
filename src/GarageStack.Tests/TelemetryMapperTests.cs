@@ -369,6 +369,17 @@ public class TelemetryMapperTests
         Assert.True(snapshot.RearWindowDefroster);
     }
 
+    [Theory]
+    [InlineData("climate/steeringWheelHeating")]
+    [InlineData("climate/heatedSteeringWheel")]
+    [InlineData("climate/steeringWheelHeat")]
+    public void ApplyMessage_SteeringWheelHeatingAliases_SetsSteeringWheelHeating(string subtopic)
+    {
+        var snapshot = new TelemetrySnapshot();
+        TelemetryMapper.ApplyMessage(snapshot, subtopic, "true");
+        Assert.True(snapshot.SteeringWheelHeating);
+    }
+
     [Fact]
     public void ApplyMessage_HeatedSeatFrontLeft_SetsLevel()
     {
