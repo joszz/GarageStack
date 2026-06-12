@@ -146,7 +146,7 @@ jobs:
             APP_VERSION=${{ steps.minver.outputs.version }}
           # Each image gets its own GHA cache scope
           cache-from: type=gha,scope=${{ matrix.label }}
-          cache-to: type=gha,scope=${{ matrix.label }},mode=min
+          cache-to: type=gha,scope=${{ matrix.label }},mode=min,ignore-error=true
 
       - name: Sign image with Cosign
         if: github.event_name != 'pull_request'
