@@ -28,9 +28,24 @@ const vin = computed(() => store.vehicles[0]?.vin ?? null)
 const status = computed(() => store.currentStatus)
 const displayLocale = computed(() => (settingsStore.locale === 'nl' ? 'nl-NL' : 'en-US'))
 const selectedTripIndex = ref<number | null>(null)
-const heatmapEnabled = ref(true)
-const speedOverlayEnabled = ref(false)
-const routeOutlineEnabled = ref(true)
+const heatmapEnabled = computed({
+  get: () => settingsStore.heatmapEnabled,
+  set: (v: boolean) => {
+    settingsStore.heatmapEnabled = v
+  },
+})
+const speedOverlayEnabled = computed({
+  get: () => settingsStore.speedOverlayEnabled,
+  set: (v: boolean) => {
+    settingsStore.speedOverlayEnabled = v
+  },
+})
+const routeOutlineEnabled = computed({
+  get: () => settingsStore.routeOutlineEnabled,
+  set: (v: boolean) => {
+    settingsStore.routeOutlineEnabled = v
+  },
+})
 let shouldSelectLatest = route.query.selectLatest === '1'
 
 const dateRangeDays = computed({
