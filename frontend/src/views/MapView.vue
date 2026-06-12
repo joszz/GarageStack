@@ -5,7 +5,6 @@ import { useRoute, useRouter } from 'vue-router'
 import { useVehicleStore } from '@/stores/vehicle'
 import { useSettingsStore } from '@/stores/settings'
 import { LMap, LTileLayer, LMarker, LPopup } from '@vue-leaflet/vue-leaflet'
-import AppPaginator from '@/components/AppPaginator.vue'
 import FiltersPanel from '@/components/FiltersPanel.vue'
 import * as LModule from 'leaflet'
 import type { Map as LeafletMap } from 'leaflet'
@@ -38,8 +37,9 @@ const dateRangeDays = computed({
     settingsStore.filterDays = v
   },
 })
-const tripsPage = ref(1)
-const PAGE_SIZE = 10
+const LOAD_MORE_SIZE = 10
+const displayCount = ref(LOAD_MORE_SIZE)
+const sentinelRef = ref<HTMLElement | null>(null)
 
 const mapWrapperRef = ref<HTMLElement | null>(null)
 const tripSidebarRef = ref<HTMLElement | null>(null)
@@ -49,6 +49,7 @@ let routeLines: L.Polyline[] = []
 let startMarker: L.Marker | null = null
 let endMarker: L.Marker | null = null
 let resizeObserver: ResizeObserver | null = null
+let infiniteScrollObserver: IntersectionObserver | null = null
 let mapUpdateRaf: number | null = null
 
 type HeatLayerFactory = {
@@ -82,11 +83,7 @@ const center: [number, number] = [52.3676, 4.9041]
 
 // Trips displayed newest-first in the sidebar; selectedTripIndex is always the real store.trips index.
 const newestFirstTrips = computed(() => [...store.trips].reverse())
-const pageOffset = computed(() => (tripsPage.value - 1) * PAGE_SIZE)
-const displayTrips = computed(() =>
-  newestFirstTrips.value.slice(pageOffset.value, pageOffset.value + PAGE_SIZE),
-)
-const totalPages = computed(() => Math.max(1, Math.ceil(store.trips.length / PAGE_SIZE)))
+const displayTrips = computed(() => newestFirstTrips.value.slice(0, displayCount.value))
 
 function realIndex(newestFirstIdx: number): number {
   return store.trips.length - 1 - newestFirstIdx
@@ -312,7 +309,7 @@ watch(heatmapEnabled, (enabled) => {
 
 // Date range change: reload trips and reset state
 watch(dateRangeDays, async (days) => {
-  tripsPage.value = 1
+  displayCount.value = LOAD_MORE_SIZE
   selectedTripIndex.value = null
   if (vin.value) {
     await store.fetchTrips(vin.value, new Date(Date.now() - days * 86_400_000).toISOString())
@@ -331,11 +328,6 @@ watch(
   },
 )
 
-// Deselect when paginating
-watch(tripsPage, () => {
-  selectedTripIndex.value = null
-})
-
 function selectTrip(realIdx: number) {
   if (selectedTripIndex.value === realIdx) {
     selectedTripIndex.value = null
@@ -345,10 +337,17 @@ function selectTrip(realIdx: number) {
   nextTick(() => {
     const sidebar = tripSidebarRef.value
     const active = sidebar?.querySelector('.trip-list__item--active') as HTMLElement | null
-    if (sidebar && active) {
-      const sidebarRect = sidebar.getBoundingClientRect()
-      const itemRect = active.getBoundingClientRect()
-      sidebar.scrollBy({ top: itemRect.top - sidebarRect.top, behavior: 'smooth' })
+    if (!sidebar || !active) return
+    const header = sidebar.querySelector('.trip-sidebar__header') as HTMLElement | null
+    const headerHeight = header?.offsetHeight ?? 0
+    const sidebarRect = sidebar.getBoundingClientRect()
+    const itemRect = active.getBoundingClientRect()
+    const itemTop = itemRect.top - sidebarRect.top
+    const itemBottom = itemRect.bottom - sidebarRect.top
+    if (itemTop < headerHeight) {
+      sidebar.scrollBy({ top: itemTop - headerHeight, behavior: 'smooth' })
+    } else if (itemBottom > sidebarRect.height) {
+      sidebar.scrollBy({ top: itemBottom - sidebarRect.height, behavior: 'smooth' })
     }
   })
 }
@@ -367,12 +366,26 @@ onMounted(async () => {
       ),
     ])
   }
+  nextTick(() => {
+    if (sentinelRef.value && tripSidebarRef.value) {
+      infiniteScrollObserver = new IntersectionObserver(
+        ([entry]) => {
+          if (entry?.isIntersecting && displayCount.value < store.trips.length) {
+            displayCount.value += LOAD_MORE_SIZE
+          }
+        },
+        { root: tripSidebarRef.value },
+      )
+      infiniteScrollObserver.observe(sentinelRef.value)
+    }
+  })
 })
 
 onUnmounted(() => {
   if (mapUpdateRaf !== null) cancelAnimationFrame(mapUpdateRaf)
   removeHeatLayer()
   resizeObserver?.disconnect()
+  infiniteScrollObserver?.disconnect()
 })
 </script>
 
@@ -424,16 +437,10 @@ onUnmounted(() => {
       <aside ref="tripSidebarRef" class="trip-sidebar">
         <div class="trip-sidebar__header">
           <h3 class="trip-sidebar__title">{{ t('trips.title') }}</h3>
-          <AppPaginator
-            v-if="!store.loading && totalPages > 1"
-            v-model="tripsPage"
-            :total-pages="totalPages"
-            class="paginator--inline"
-          />
         </div>
 
         <div v-if="store.loading" class="trip-list">
-          <div v-for="i in PAGE_SIZE" :key="i" class="trip-list__item">
+          <div v-for="i in LOAD_MORE_SIZE" :key="i" class="trip-list__item">
             <span class="trip-list__dot skeleton" />
             <div class="trip-list__info">
               <div class="trip-list__header">
@@ -452,17 +459,14 @@ onUnmounted(() => {
         <ul v-else class="trip-list">
           <li
             v-for="(trip, displayIdx) in displayTrips"
-            :key="pageOffset + displayIdx"
+            :key="displayIdx"
             class="trip-list__item"
             :class="{
-              'trip-list__item--active': selectedTripIndex === realIndex(pageOffset + displayIdx),
+              'trip-list__item--active': selectedTripIndex === realIndex(displayIdx),
             }"
-            @click="selectTrip(realIndex(pageOffset + displayIdx))"
+            @click="selectTrip(realIndex(displayIdx))"
           >
-            <span
-              class="trip-list__dot"
-              :class="tripColorClass(realIndex(pageOffset + displayIdx))"
-            />
+            <span class="trip-list__dot" :class="tripColorClass(realIndex(displayIdx))" />
             <div class="trip-list__info">
               <div class="trip-list__header">
                 <span
@@ -488,6 +492,7 @@ onUnmounted(() => {
             </div>
           </li>
         </ul>
+        <div ref="sentinelRef" />
       </aside>
 
       <!-- Map -->

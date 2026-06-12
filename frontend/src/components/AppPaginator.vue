@@ -34,6 +34,10 @@ function onFocus(e: FocusEvent) {
   ;(e.target as HTMLInputElement).select()
 }
 
+function first() {
+  if (props.modelValue !== 1) emit('update:modelValue', 1)
+}
+
 function prev() {
   if (props.modelValue > 1) emit('update:modelValue', props.modelValue - 1)
 }
@@ -41,10 +45,22 @@ function prev() {
 function next() {
   if (props.modelValue < props.totalPages) emit('update:modelValue', props.modelValue + 1)
 }
+
+function last() {
+  if (props.modelValue !== props.totalPages) emit('update:modelValue', props.totalPages)
+}
 </script>
 
 <template>
   <div class="paginator">
+    <button
+      class="btn btn-sm btn-outline-secondary paginator__btn"
+      :disabled="modelValue === 1"
+      :aria-label="t('common.firstPage')"
+      @click="first"
+    >
+      <font-awesome-icon icon="angles-left" aria-hidden="true" />
+    </button>
     <button
       class="btn btn-sm btn-outline-secondary paginator__btn"
       :disabled="modelValue === 1"
@@ -72,6 +88,14 @@ function next() {
       @click="next"
     >
       <font-awesome-icon icon="chevron-right" aria-hidden="true" />
+    </button>
+    <button
+      class="btn btn-sm btn-outline-secondary paginator__btn"
+      :disabled="modelValue === totalPages"
+      :aria-label="t('common.lastPage')"
+      @click="last"
+    >
+      <font-awesome-icon icon="angles-right" aria-hidden="true" />
     </button>
   </div>
 </template>

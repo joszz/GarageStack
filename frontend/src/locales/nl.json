@@ -330,8 +330,10 @@
     "min": "min",
     "fetched": "Opgehaald",
     "recorded": "Geregistreerd",
+    "firstPage": "Eerste pagina",
     "prevPage": "Vorige pagina",
     "nextPage": "Volgende pagina",
+    "lastPage": "Laatste pagina",
     "pageOf": "Pagina {n} van {total}"
   },
   "demo": {
