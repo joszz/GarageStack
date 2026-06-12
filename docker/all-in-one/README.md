@@ -57,6 +57,7 @@ The web login uses the same `SAIC_USER` and `SAIC_PASSWORD` credentials. There i
 | `VAPID_PUBLIC_KEY` | Web Push VAPID public key. Leave empty to disable push notifications. Generate: `npx web-push generate-vapid-keys` |
 | `VAPID_PRIVATE_KEY` | Web Push VAPID private key |
 | `WIDGET_API_KEY` | Static API key for the Homepage dashboard widget endpoint (`/api/widget/{vin}/status`). Leave empty to disable. Generate: `openssl rand -base64 32` |
+| `OPENCHARGEMAP_API_KEY` | API key for the EV charging station map overlay, sourced from [Open Charge Map](https://openchargemap.org/site/develop). Free to obtain. Leave empty to disable the feature. |
 | `POSTGRES_DB` | Database name (default: `garagestack`) |
 | `POSTGRES_USER` | Database user (default: `garagestack`) |
 

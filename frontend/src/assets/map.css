@@ -151,6 +151,82 @@
   color: var(--color-text-muted);
 }
 
+/* Charging station cluster (Leaflet divIcon - cannot be scoped) */
+.charging-cluster {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #16a34a;
+  border: 3px solid rgba(22, 163, 74, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Charging station markers (Leaflet divIcon - cannot be scoped) */
+.charging-marker {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #22c55e;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.charging-marker--unknown {
+  background: #6b7280;
+}
+
+.charging-popup {
+  min-width: 160px;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.charging-popup__title {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.charging-popup__operator {
+  color: var(--color-text-muted, #888);
+  font-size: 0.75rem;
+}
+
+.charging-popup__address {
+  font-size: 0.75rem;
+  margin-top: 2px;
+}
+
+.charging-popup__stalls {
+  font-size: 0.75rem;
+  margin-top: 3px;
+  font-weight: 600;
+  color: #16a34a;
+}
+
+.charging-popup__connectors {
+  list-style: none;
+  padding: 4px 0 0;
+  margin: 4px 0 0;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.charging-popup__connectors li {
+  font-size: 0.75rem;
+}
+
 .trip-list__info {
   display: flex;
   flex-direction: column;

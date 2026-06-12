@@ -205,6 +205,13 @@
     "routeOutline": "Route outline",
     "speedOverlay": "Speed overlay",
     "speedOverlayDesc": "Visible when a single trip is selected",
+    "chargingStations": "Charging stations",
+    "chargingPower": "Power (kW)",
+    "chargingMinPower": "Min. power",
+    "chargingMaxPower": "Max. power",
+    "chargingPowerAny": "Any",
+    "chargingStall": "stall",
+    "chargingStalls": "stalls",
     "findCar": "Find car",
     "points": "pts"
   },

@@ -205,6 +205,13 @@
     "routeOutline": "Route omlijning",
     "speedOverlay": "Snelheidsoverlay",
     "speedOverlayDesc": "Zichtbaar wanneer een enkele rit is geselecteerd",
+    "chargingStations": "Laadstations",
+    "chargingPower": "Vermogen (kW)",
+    "chargingMinPower": "Min. vermogen",
+    "chargingMaxPower": "Max. vermogen",
+    "chargingPowerAny": "Alle",
+    "chargingStall": "laadpunt",
+    "chargingStalls": "laadpunten",
     "findCar": "Vind auto",
     "points": "ptn"
   },
