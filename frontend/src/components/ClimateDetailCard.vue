@@ -35,7 +35,7 @@ const seatLabels = computed(() => [
 
 const localClimateOn = ref<boolean | null>(props.climateOn)
 const localRearDefroster = ref<boolean | null>(props.rearWindowDefroster)
-const localSteeringWheel = ref<boolean | null>(props.steeringWheelHeating)
+const localSteeringWheel = ref<boolean | null>(props.steeringWheelHeating ?? false)
 const sliderTemp = ref<number>(props.remoteTemperature ?? 22)
 const seatLeftLocal = ref<number>(props.heatedSeatFrontLeft ?? 0)
 const seatRightLocal = ref<number>(props.heatedSeatFrontRight ?? 0)
@@ -44,7 +44,7 @@ watch(modalOpen, (open) => {
   if (open) {
     localClimateOn.value = props.climateOn
     localRearDefroster.value = props.rearWindowDefroster
-    localSteeringWheel.value = props.steeringWheelHeating
+    localSteeringWheel.value = props.steeringWheelHeating ?? false
     sliderTemp.value = props.remoteTemperature ?? 22
     seatLeftLocal.value = props.heatedSeatFrontLeft ?? 0
     seatRightLocal.value = props.heatedSeatFrontRight ?? 0
@@ -88,8 +88,8 @@ const hasPendingChanges = computed(() => {
   if (props.rearWindowDefroster !== null && localRearDefroster.value !== props.rearWindowDefroster)
     return true
   if (
-    props.steeringWheelHeating !== null &&
-    localSteeringWheel.value !== props.steeringWheelHeating
+    (props.steeringWheelHeating !== null || props.rearWindowDefroster !== null) &&
+    localSteeringWheel.value !== (props.steeringWheelHeating ?? false)
   )
     return true
   if (
@@ -128,8 +128,8 @@ async function applyAll() {
     )
   }
   if (
-    props.steeringWheelHeating !== null &&
-    localSteeringWheel.value !== props.steeringWheelHeating
+    (props.steeringWheelHeating !== null || props.rearWindowDefroster !== null) &&
+    localSteeringWheel.value !== (props.steeringWheelHeating ?? false)
   ) {
     const target = localSteeringWheel.value
     await send(
@@ -227,9 +227,9 @@ function onSeatRightChange(e: Event) {
         </div>
       </div>
 
-      <!-- Steering wheel heating toggle -->
+      <!-- Steering wheel heating toggle; shows with rear defroster since they share the same SAIC extra-heating API -->
       <div
-        v-if="steeringWheelHeating !== null"
+        v-if="steeringWheelHeating !== null || rearWindowDefroster !== null"
         class="detail-list__item detail-list__item--control"
       >
         <font-awesome-icon icon="life-ring" class="detail-list__item-icon" />

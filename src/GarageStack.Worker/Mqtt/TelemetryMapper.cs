@@ -223,6 +223,7 @@ public static class TelemetryMapper
                 break;
             case "climate/steeringWheelHeating":
             case "climate/heatedSteeringWheel":
+            case "climate/steeringWheelHeat":
                 snapshot.SteeringWheelHeating = asBool;
                 break;
 
