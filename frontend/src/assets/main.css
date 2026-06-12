@@ -1960,7 +1960,12 @@ body,
 @media (min-width: 1920px) {
   .status-grid {
     grid-template-columns: repeat(8, 1fr);
-    max-width: 1600px;
+  }
+}
+
+@media (min-width: 2500px) {
+  .status-grid {
+    grid-template-columns: repeat(12, 1fr);
   }
 }
 
