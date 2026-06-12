@@ -196,6 +196,8 @@
     "last30days": "Afgelopen 30 dagen",
     "last90days": "Afgelopen 90 dagen",
     "heatmap": "Heatmap",
+    "routeOutline": "Route omlijning",
+    "speedOverlay": "Snelheidsoverlay",
     "findCar": "Vind auto",
     "points": "ptn"
   },

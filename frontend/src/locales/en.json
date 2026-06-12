@@ -196,6 +196,8 @@
     "last30days": "Last 30 days",
     "last90days": "Last 90 days",
     "heatmap": "Heatmap",
+    "routeOutline": "Route outline",
+    "speedOverlay": "Speed overlay",
     "findCar": "Find car",
     "points": "pts"
   },
