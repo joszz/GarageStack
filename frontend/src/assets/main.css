@@ -1977,23 +1977,26 @@ body,
 
 @keyframes skeleton-shimmer {
   0% {
-    background-position: 100% 0;
+    transform: translateX(-100%);
   }
   100% {
-    background-position: 0% 0;
+    transform: translateX(100%);
   }
 }
 
 .skeleton {
   display: inline-block;
   border-radius: 4px;
-  background: linear-gradient(
-    90deg,
-    var(--color-surface-2) 25%,
-    var(--color-border) 50%,
-    var(--color-surface-2) 75%
-  );
-  background-size: 400% 100%;
+  background: var(--color-surface-2);
+  position: relative;
+  overflow: hidden;
+}
+
+.skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent 0%, var(--color-border) 50%, transparent 100%);
   animation: skeleton-shimmer 1.5s linear infinite;
 }
 
