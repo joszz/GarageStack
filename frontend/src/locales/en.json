@@ -60,6 +60,12 @@
       "parkingLocations": "Number of distinct parking spots used across all trips in the selected period, based on rounded GPS coordinates.",
       "electricShare": "Estimated share of today's driving on electric power, derived from km since last charge versus total km today. Only meaningful for PHEV, where the battery can be charged from the grid."
     },
+    "chartDesc": {
+      "evChart": "Daily average EV battery state-of-charge over the selected period.",
+      "tyreChart": "Daily average tyre pressure per wheel over the selected period. Typical passenger-car range is 2.0 – 3.0 bar.",
+      "hybridSocChart": "Daily average EV battery and fuel level over the selected period. Lets you compare how both energy sources change together.",
+      "dailyKwhChart": "Estimated kWh consumed from the EV battery per day. Past days show the cumulative peak for that day; today shows only the net increase since midnight, or since the last counter reset."
+    },
     "hybridSocChart": "EV & Fuel Levels",
     "dailyKwhChart": "Daily Electric Usage (kWh)"
   },

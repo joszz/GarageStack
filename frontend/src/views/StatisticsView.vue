@@ -256,6 +256,8 @@ const electricShareToday = computed(() => {
 
 // ── Parking locations modal ───────────────────────────────────
 
+const activeChartInfo = ref<StatsChartId | null>(null)
+
 const parkingModalOpen = ref(false)
 const parkingMapInstance = shallowRef<LeafletMap | null>(null)
 
@@ -557,6 +559,7 @@ const chartDefs = computed(() => [
     id: 'evChart' as StatsChartId,
     icon: CHART_ICONS.evChart,
     title: t('vehicle.evSoc'),
+    description: t('statistics.chartDesc.evChart'),
     vehicleApplicable: hasLargeEv.value,
     applicable: hasLargeEv.value && store.history.length > 0,
     isBar: false,
@@ -567,6 +570,7 @@ const chartDefs = computed(() => [
     id: 'tyreChart' as StatsChartId,
     icon: CHART_ICONS.tyreChart,
     title: t('vehicle.tyres'),
+    description: t('statistics.chartDesc.tyreChart'),
     vehicleApplicable: true,
     applicable: store.history.length > 0,
     isBar: false,
@@ -577,6 +581,7 @@ const chartDefs = computed(() => [
     id: 'hybridSocChart' as StatsChartId,
     icon: CHART_ICONS.hybridSocChart,
     title: t('statistics.hybridSocChart'),
+    description: t('statistics.chartDesc.hybridSocChart'),
     vehicleApplicable: isHybrid.value,
     applicable: isHybrid.value && store.history.length > 0,
     isBar: false,
@@ -587,6 +592,7 @@ const chartDefs = computed(() => [
     id: 'dailyKwhChart' as StatsChartId,
     icon: CHART_ICONS.dailyKwhChart,
     title: t('statistics.dailyKwhChart'),
+    description: t('statistics.chartDesc.dailyKwhChart'),
     vehicleApplicable: isHybrid.value,
     applicable: isHybrid.value && store.history.length > 0,
     isBar: true,
@@ -809,6 +815,14 @@ const skeletonChartCount = computed(
                   v-if="chartDefMap.get(item.id)?.applicable && store.history.length"
                   class="chart-container"
                 >
+                  <button
+                    v-if="settings.showCardInfoIcons"
+                    class="card-info-btn"
+                    :aria-label="t('dashboard.cardInfoBtn')"
+                    @click.stop="activeChartInfo = item.id"
+                  >
+                    <font-awesome-icon icon="circle-info" />
+                  </button>
                   <h2>{{ chartDefMap.get(item.id)!.title }}</h2>
                   <Bar
                     v-if="chartDefMap.get(item.id)!.isBar"
@@ -844,6 +858,14 @@ const skeletonChartCount = computed(
                 v-if="item.visible && chartDefMap.get(item.id)?.applicable"
                 class="chart-container"
               >
+                <button
+                  v-if="settings.showCardInfoIcons"
+                  class="card-info-btn"
+                  :aria-label="t('dashboard.cardInfoBtn')"
+                  @click.stop="activeChartInfo = item.id"
+                >
+                  <font-awesome-icon icon="circle-info" />
+                </button>
                 <h2>{{ chartDefMap.get(item.id)!.title }}</h2>
                 <Bar
                   v-if="chartDefMap.get(item.id)!.isBar"
@@ -867,6 +889,17 @@ const skeletonChartCount = computed(
             {{ t('dashboard.resetLayout') }}
           </button>
         </template>
+
+        <!-- Chart info modal -->
+        <DetailModal
+          :open="activeChartInfo !== null"
+          :title="activeChartInfo ? chartDefMap.get(activeChartInfo)!.title : ''"
+          @close="activeChartInfo = null"
+        >
+          <p class="card-info-desc">
+            {{ activeChartInfo ? chartDefMap.get(activeChartInfo)!.description : '' }}
+          </p>
+        </DetailModal>
 
         <!-- Parking locations map modal -->
         <DetailModal
@@ -922,7 +955,6 @@ const skeletonChartCount = computed(
 .stats-chart-grid .chart-container {
   min-width: 0;
   width: 100%;
-  overflow: hidden;
 }
 
 .stats-chart-grid :deep(canvas) {
