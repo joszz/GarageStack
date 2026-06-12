@@ -92,7 +92,7 @@ export default defineConfig({
     },
   },
   optimizeDeps: {
-    include: ['leaflet', 'leaflet.heat'],
+    include: ['leaflet', 'leaflet.heat', 'leaflet.markercluster'],
   },
   resolve: {
     alias: {

@@ -29,6 +29,20 @@ function Stop-ProcessOnPort([int]$port) {
     }
 }
 
+function Stop-WtParent {
+    $currentPid = $PID
+    while ($currentPid) {
+        $proc = Get-CimInstance Win32_Process -Filter "ProcessId = $currentPid" -ErrorAction SilentlyContinue
+        if (-not $proc) { break }
+        $parent = Get-Process -Id $proc.ParentProcessId -ErrorAction SilentlyContinue
+        if ($parent -and $parent.Name -eq 'WindowsTerminal') {
+            Stop-Process -Id $parent.Id -Force -ErrorAction SilentlyContinue
+            break
+        }
+        $currentPid = $proc.ParentProcessId
+    }
+}
+
 function Write-Dot([int]$port) {
     if (Test-PortOpen $port) {
         Write-Host ' [+] ' -NoNewline -ForegroundColor Green
@@ -78,6 +92,7 @@ if ($Menu) {
             'q' {
                 Stop-ProcessOnPort 5000
                 Stop-ProcessOnPort 5173
+                Stop-WtParent
                 exit 0
             }
         }

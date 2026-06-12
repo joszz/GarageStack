@@ -6,6 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <MinVerTagPrefix>v</MinVerTagPrefix>
     <MinVerDefaultPreReleaseIdentifiers>preview.0</MinVerDefaultPreReleaseIdentifiers>
+    <UserSecretsId>garagestack-api</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>

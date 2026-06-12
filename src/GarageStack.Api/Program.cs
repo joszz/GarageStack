@@ -28,6 +28,11 @@ try
 {
     var builder = WebApplication.CreateBuilder(args);
 
+    // User secrets are loaded automatically in Development; also load them in Demo so local
+    // dev secrets (e.g. OpenChargeMap:ApiKey) are available when running start-demo.ps1.
+    if (builder.Environment.IsEnvironment("Demo"))
+        builder.Configuration.AddUserSecrets<Program>(optional: true);
+
     var debugLogs = string.Equals(builder.Configuration["DEBUG_LOGS"], "true", StringComparison.OrdinalIgnoreCase);
 
     builder.Services.AddSerilog((_, config) =>
@@ -89,6 +94,13 @@ try
     var jwtSecretBytes = Encoding.UTF8.GetBytes(jwtSecret);
     if (jwtSecretBytes.Length < 32)
         throw new InvalidOperationException("Jwt:Secret must be at least 32 bytes.");
+
+    builder.Services.AddMemoryCache();
+    builder.Services.AddHttpClient("ocm", client =>
+    {
+        client.DefaultRequestHeaders.UserAgent.ParseAdd("GarageStack/1.0");
+    });
+    builder.Services.AddScoped<ChargingStationService>();
 
     builder.Services.AddSignalR();
 
@@ -266,6 +278,7 @@ try
     app.MapVehicleEndpoints();
     app.MapNotificationEndpoints();
     app.MapWidgetEndpoints();
+    app.MapMapEndpoints();
 
     if (isDemoMode)
     {

@@ -3,14 +3,19 @@ import { onMounted, onUnmounted, computed, ref, shallowRef, watch, nextTick } fr
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { useVehicleStore } from '@/stores/vehicle'
+import type { VehicleType } from '@/stores/vehicle'
 import { useSettingsStore } from '@/stores/settings'
 import { LMap, LTileLayer, LMarker, LPopup } from '@vue-leaflet/vue-leaflet'
 import FiltersPanel from '@/components/FiltersPanel.vue'
+import Slider from '@vueform/slider'
 import * as LModule from 'leaflet'
 import type { Map as LeafletMap } from 'leaflet'
 import 'leaflet.heat'
+import 'leaflet.markercluster'
+import 'leaflet.markercluster/dist/MarkerCluster.css'
 import '@/assets/map.css'
-import type { Trip } from '@/services/api'
+import type { Trip, ChargingStation } from '@/services/api'
+import { mapApi } from '@/services/api'
 
 // Vite wraps CJS modules in a frozen ESM namespace - `import * as LModule` gives that frozen
 // namespace. leaflet.heat patches the actual mutable CJS export (LModule.default), so we must
@@ -26,6 +31,12 @@ const settingsStore = useSettingsStore()
 
 const vin = computed(() => store.vehicles[0]?.vin ?? null)
 const status = computed(() => store.currentStatus)
+const vehicleType = computed((): VehicleType | 'unknown' => {
+  const override = settingsStore.vehicleTypeOverride
+  if (override !== 'auto') return override as VehicleType
+  return store.detectedVehicleType
+})
+const isHev = computed(() => vehicleType.value === 'hev')
 const displayLocale = computed(() => (settingsStore.locale === 'nl' ? 'nl-NL' : 'en-US'))
 const selectedTripIndex = ref<number | null>(null)
 const heatmapEnabled = computed({
@@ -46,6 +57,51 @@ const routeOutlineEnabled = computed({
     settingsStore.routeOutlineEnabled = v
   },
 })
+const chargingStationsEnabled = computed({
+  get: () => settingsStore.chargingStationsEnabled,
+  set: (v: boolean) => {
+    settingsStore.chargingStationsEnabled = v
+  },
+})
+const chargingMinPowerKw = computed({
+  get: () => settingsStore.chargingMinPowerKw,
+  set: (v: number) => {
+    settingsStore.chargingMinPowerKw = v
+  },
+})
+const chargingMaxPowerKw = computed({
+  get: () => settingsStore.chargingMaxPowerKw,
+  set: (v: number) => {
+    settingsStore.chargingMaxPowerKw = v
+  },
+})
+
+// Slider value: [minKw, maxKw] where max=350 means "no upper limit" (stored as 0 in settings)
+const powerRangeSlider = computed({
+  get: (): [number, number] => [
+    chargingMinPowerKw.value,
+    chargingMaxPowerKw.value === 0 ? 350 : chargingMaxPowerKw.value,
+  ],
+  set: (value: number[]) => {
+    chargingMinPowerKw.value = value[0]!
+    chargingMaxPowerKw.value = (value[1] ?? 350) >= 350 ? 0 : value[1]!
+  },
+})
+
+const powerRangeLabel = computed(() => {
+  const min = chargingMinPowerKw.value
+  const max = chargingMaxPowerKw.value
+  if (min === 0 && max === 0) return t('trips.chargingPowerAny')
+  const minStr = min === 0 ? t('trips.chargingPowerAny') : `${min} kW`
+  const maxStr = max === 0 ? '350+ kW' : `${max} kW`
+  return `${minStr} - ${maxStr}`
+})
+
+function formatPowerTooltip(value: number): string {
+  if (value === 0) return t('trips.chargingPowerAny')
+  if (value >= 350) return '350+'
+  return String(value)
+}
 let shouldSelectLatest = route.query.selectLatest === '1'
 
 const dateRangeDays = computed({
@@ -65,6 +121,11 @@ let heatLayer: L.Layer | null = null
 let routeLines: L.Polyline[] = []
 let startMarker: L.Marker | null = null
 let endMarker: L.Marker | null = null
+let chargingCluster: L.FeatureGroup | null = null
+let chargingDebounceTimer: ReturnType<typeof setTimeout> | null = null
+let chargingFetchId = 0
+let initialChargingLoadDone = false
+let initialChargingUsedCarPos = false
 let resizeObserver: ResizeObserver | null = null
 let infiniteScrollObserver: IntersectionObserver | null = null
 let mapUpdateRaf: number | null = null
@@ -84,6 +145,16 @@ type HeatLayerFactory = {
 }
 
 const leafWithHeat = L as typeof L & HeatLayerFactory
+
+type ClusterFactory = {
+  markerClusterGroup: (options?: {
+    iconCreateFunction?: (cluster: { getChildCount: () => number }) => L.DivIcon
+    maxClusterRadius?: number
+    disableClusteringAtZoom?: number
+    animate?: boolean
+  }) => L.FeatureGroup
+}
+const leafWithCluster = L as typeof L & ClusterFactory
 
 const tripColors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899']
 
@@ -276,6 +347,131 @@ function removeHeatLayer() {
   }
 }
 
+function clearChargingMarkers() {
+  if (chargingCluster) {
+    chargingCluster.remove()
+    chargingCluster = null
+  }
+}
+
+function getBoundsRadiusKm(): number {
+  const map = mapInstance.value
+  if (!map) return 10
+  const bounds = map.getBounds()
+  const distanceM = bounds.getCenter().distanceTo(bounds.getNorthEast())
+  return Math.min(Math.ceil(distanceM / 1000), 200)
+}
+
+// Scale the initial search radius based on min-power filter so high-power DC chargers
+// (which are sparse) are found even when no station is close by.
+function getInitialRadius(): number {
+  const minkw = chargingMinPowerKw.value
+  if (minkw >= 150) return 200
+  if (minkw >= 100) return 100
+  if (minkw >= 50) return 50
+  return 15
+}
+
+function buildChargingPopup(station: ChargingStation): string {
+  // Group connectors by type+power, summing quantity so "11 kW × 4" shows instead
+  // of four identical rows when OCM returns one record per port rather than one with Quantity=4.
+  const grouped = new Map<string, { type: string | null; powerKw: number | null; count: number }>()
+  for (const c of station.connectors) {
+    if (!c.type && c.powerKw == null) continue
+    const key = `${c.type ?? ''}|${c.powerKw ?? ''}`
+    const existing = grouped.get(key)
+    const qty = c.quantity ?? 1
+    if (existing) {
+      existing.count += qty
+    } else {
+      grouped.set(key, { type: c.type, powerKw: c.powerKw, count: qty })
+    }
+  }
+
+  const connectorItems = [...grouped.values()]
+    .map(({ type, powerKw, count }) => {
+      const parts = [type, powerKw != null ? `${powerKw} kW` : null].filter(Boolean)
+      const suffix = count > 1 ? ` ×${count}` : ''
+      return `<li>${parts.join(' · ')}${suffix}</li>`
+    })
+    .join('')
+
+  const stallLine =
+    station.numberOfPoints != null
+      ? `<div class="charging-popup__stalls">${station.numberOfPoints} ${station.numberOfPoints === 1 ? t('trips.chargingStall') : t('trips.chargingStalls')}</div>`
+      : ''
+
+  return `<div class="charging-popup">
+    <strong class="charging-popup__title">${station.title}</strong>
+    ${station.operator ? `<div class="charging-popup__operator">${station.operator}</div>` : ''}
+    ${station.addressLine || station.town ? `<div class="charging-popup__address">${[station.addressLine, station.town].filter(Boolean).join(', ')}</div>` : ''}
+    ${stallLine}
+    ${connectorItems ? `<ul class="charging-popup__connectors">${connectorItems}</ul>` : ''}
+  </div>`
+}
+
+async function loadChargingStations(initialCenter?: { lat: number; lng: number }) {
+  const map = mapInstance.value
+  if (!map || !chargingStationsEnabled.value || isHev.value) {
+    clearChargingMarkers()
+    return
+  }
+  const fetchId = ++chargingFetchId
+  const s = status.value
+  const mc = map.getBounds().getCenter()
+  const center =
+    initialCenter ??
+    (allPoints.value.length === 0 && s?.latitude != null
+      ? { lat: s.latitude, lng: s.longitude }
+      : { lat: mc.lat, lng: mc.lng })
+  // Initial car-position load uses a radius scaled to the power filter so high-power
+  // DC chargers (which are sparse) are reachable. Pan/zoom reloads use the viewport.
+  const radiusKm = initialCenter != null ? getInitialRadius() : getBoundsRadiusKm()
+  try {
+    const stations = await mapApi.chargingStations(
+      center.lat,
+      center.lng,
+      radiusKm,
+      chargingMinPowerKw.value,
+      chargingMaxPowerKw.value,
+    )
+    if (fetchId !== chargingFetchId) return
+    clearChargingMarkers()
+    if (!chargingStationsEnabled.value) return
+
+    chargingCluster = leafWithCluster.markerClusterGroup({
+      maxClusterRadius: 60,
+      disableClusteringAtZoom: 16,
+      animate: true,
+      iconCreateFunction: (cluster) => {
+        const count = cluster.getChildCount()
+        return L.divIcon({
+          className: '',
+          html: `<div class="charging-cluster">${count}</div>`,
+          iconSize: [36, 36],
+          iconAnchor: [18, 18],
+        })
+      },
+    })
+
+    for (const station of stations) {
+      const cls = station.isOperational === false ? ' charging-marker--unknown' : ''
+      const icon = L.divIcon({
+        className: '',
+        html: `<div class="charging-marker${cls}">&#9889;</div>`,
+        iconSize: [28, 28],
+        iconAnchor: [14, 14],
+      })
+      const marker = L.marker([station.latitude, station.longitude], { icon })
+      marker.bindPopup(buildChargingPopup(station))
+      chargingCluster.addLayer(marker)
+    }
+    chargingCluster.addTo(map)
+  } catch {
+    // OCM is optional; silently ignore errors
+  }
+}
+
 function fitBoundsSafe(pts: [number, number][]) {
   const map = mapInstance.value
   if (!map || pts.length === 0) return
@@ -319,6 +515,15 @@ function onMapReady(map: LeafletMap) {
     resizeObserver.observe(mapWrapperRef.value)
   }
 
+  map.on('moveend zoomend', () => {
+    if (!chargingStationsEnabled.value || !initialChargingLoadDone) return
+    if (chargingDebounceTimer !== null) clearTimeout(chargingDebounceTimer)
+    chargingDebounceTimer = setTimeout(() => {
+      chargingDebounceTimer = null
+      loadChargingStations()
+    }, 500)
+  })
+
   // nextTick: wait for Vue DOM → requestAnimationFrame: wait for browser layout pass.
   // Without rAF, clientHeight is still 0 on mobile because the flex heights haven't been
   // computed by the browser yet even though the DOM is ready.
@@ -332,6 +537,20 @@ function onMapReady(map: LeafletMap) {
       } else if (status.value?.latitude != null && status.value?.longitude != null) {
         map.setView([status.value.latitude, status.value.longitude], 14, { animate: false })
       }
+      const s = status.value
+      if (s?.latitude != null && s?.longitude != null) {
+        initialChargingUsedCarPos = true
+        loadChargingStations({ lat: s.latitude, lng: s.longitude })
+      } else {
+        loadChargingStations()
+      }
+      // Allow moveend/zoomend to trigger reloads only after the initial load is kicked off.
+      // Prevents fitAll/invalidateSize moveend events from overriding the car-position fetch.
+      if (chargingDebounceTimer !== null) {
+        clearTimeout(chargingDebounceTimer)
+        chargingDebounceTimer = null
+      }
+      initialChargingLoadDone = true
     })
   })
 }
@@ -341,6 +560,12 @@ watch(status, (s) => {
   if (!mapInstance.value || s?.latitude == null || s?.longitude == null) return
   if (allPoints.value.length === 0) {
     mapInstance.value.setView([s.latitude, s.longitude], 14, { animate: false })
+  }
+  // If status arrived after the initial charging load (demo mode / slow API), redo it
+  // with the actual car position so stations appear near the car, not the map center.
+  if (chargingStationsEnabled.value && initialChargingLoadDone && !initialChargingUsedCarPos) {
+    initialChargingUsedCarPos = true
+    loadChargingStations({ lat: s.latitude, lng: s.longitude })
   }
 })
 
@@ -355,6 +580,19 @@ watch(allPoints, async (pts) => {
     selectTrip(store.trips.length - 1)
   } else {
     fitAll()
+    // fitAll fires moveend synchronously, arming the debounce to reload stations from
+    // the zoomed-out map center. Cancel it and keep stations centered on the car.
+    if (chargingDebounceTimer !== null) {
+      clearTimeout(chargingDebounceTimer)
+      chargingDebounceTimer = null
+    }
+    if (chargingStationsEnabled.value && initialChargingLoadDone) {
+      const s = status.value
+      if (s?.latitude != null && s?.longitude != null) {
+        initialChargingUsedCarPos = true
+        loadChargingStations({ lat: s.latitude, lng: s.longitude })
+      }
+    }
   }
 })
 
@@ -395,6 +633,30 @@ watch(speedOverlayEnabled, () => {
     buildSelectedLine()
   })
 })
+
+// Charging stations toggle and filter changes
+watch(chargingStationsEnabled, (enabled) => {
+  if (enabled) loadChargingStations()
+  else clearChargingMarkers()
+})
+
+watch(isHev, (hev) => {
+  if (hev) clearChargingMarkers()
+  else if (chargingStationsEnabled.value) reloadChargingFromCarOrViewport()
+})
+
+function reloadChargingFromCarOrViewport() {
+  if (!chargingStationsEnabled.value) return
+  const s = status.value
+  if (s?.latitude != null && s?.longitude != null) {
+    loadChargingStations({ lat: s.latitude, lng: s.longitude })
+  } else {
+    loadChargingStations()
+  }
+}
+
+watch(chargingMinPowerKw, reloadChargingFromCarOrViewport)
+watch(chargingMaxPowerKw, reloadChargingFromCarOrViewport)
 
 // Route outline toggle: rebuild whichever layer is currently active
 watch(routeOutlineEnabled, () => {
@@ -482,7 +744,9 @@ onMounted(async () => {
 
 onUnmounted(() => {
   if (mapUpdateRaf !== null) cancelAnimationFrame(mapUpdateRaf)
+  if (chargingDebounceTimer !== null) clearTimeout(chargingDebounceTimer)
   removeHeatLayer()
+  clearChargingMarkers()
   resizeObserver?.disconnect()
   infiniteScrollObserver?.disconnect()
 })
@@ -558,6 +822,49 @@ onUnmounted(() => {
               />
             </div>
           </div>
+          <template v-if="!isHev">
+            <div class="settings-toggle">
+              <div class="settings-toggle__info">
+                <span class="settings-toggle__label">
+                  <font-awesome-icon icon="bolt" class="settings-toggle__icon" />
+                  {{ t('trips.chargingStations') }}
+                </span>
+              </div>
+              <div class="settings-toggle__control form-check form-switch">
+                <input
+                  v-model="chargingStationsEnabled"
+                  type="checkbox"
+                  class="form-check-input"
+                  :aria-label="t('trips.chargingStations')"
+                />
+              </div>
+            </div>
+            <template v-if="chargingStationsEnabled">
+              <div class="charging-power-filter">
+                <div class="charging-power-filter__header">
+                  <span class="settings-toggle__label">
+                    <font-awesome-icon icon="bolt" class="settings-toggle__icon" />
+                    {{ t('trips.chargingPower') }}
+                  </span>
+                  <span class="charging-power-filter__range">{{ powerRangeLabel }}</span>
+                </div>
+                <div class="charging-power-filter__slider">
+                  <Slider
+                    v-model="powerRangeSlider"
+                    :min="0"
+                    :max="350"
+                    :step="10"
+                    :tooltips="true"
+                    :format="formatPowerTooltip"
+                    :merge="50"
+                    :lazy="false"
+                    class="charging-slider"
+                    :aria-label="[t('trips.chargingMinPower'), t('trips.chargingMaxPower')]"
+                  />
+                </div>
+              </div>
+            </template>
+          </template>
         </FiltersPanel>
         <button
           class="btn btn-sm btn-outline-secondary"
@@ -671,6 +978,8 @@ onUnmounted(() => {
 </template>
 
 <style>
+@import '@vueform/slider/themes/default.css';
+
 /* Leaflet injects divIcon HTML outside Vue's rendering pipeline so these cannot be scoped */
 
 .trip-marker--start {
@@ -741,5 +1050,32 @@ onUnmounted(() => {
   70% {
     transform: skewY(3deg) scaleX(0.97);
   }
+}
+
+.charging-power-filter {
+  padding: 0.25rem 0 0.5rem;
+}
+
+.charging-power-filter__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.9rem;
+}
+
+.charging-power-filter__range {
+  font-size: 0.75rem;
+  color: var(--color-text-muted, #888);
+}
+
+.charging-power-filter__slider {
+  padding: 0 0.5rem;
+}
+
+.charging-slider {
+  --slider-connect-bg: #22c55e;
+  --slider-tooltip-bg: #22c55e;
+  --slider-tooltip-color: #fff;
+  --slider-handle-ring-color: rgba(34, 197, 94, 0.2);
 }
 </style>
