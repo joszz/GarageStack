@@ -75,3 +75,63 @@ function next() {
     </button>
   </div>
 </template>
+
+<style>
+.paginator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding-top: 0.25rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.paginator--top {
+  border-top: none;
+  border-bottom: 1px solid var(--color-border);
+  padding-top: 0;
+  padding-bottom: 0.25rem;
+}
+
+.paginator--inline {
+  border-top: none;
+  border-bottom: none;
+  padding: 0;
+}
+
+.paginator__btn {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  justify-content: center;
+}
+
+.paginator__input {
+  width: 2.5rem;
+  text-align: center;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  color: var(--color-text);
+  font-size: 0.78rem;
+  padding: 0.15rem 0;
+  -moz-appearance: textfield;
+  font-family: inherit;
+}
+
+.paginator__input::-webkit-inner-spin-button,
+.paginator__input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.paginator__input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.paginator__sep {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+}
+</style>

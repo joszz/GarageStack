@@ -10,6 +10,7 @@ import FiltersPanel from '@/components/FiltersPanel.vue'
 import * as LModule from 'leaflet'
 import type { Map as LeafletMap } from 'leaflet'
 import 'leaflet.heat'
+import '@/assets/map.css'
 import type { Trip } from '@/services/api'
 
 // Vite wraps CJS modules in a frozen ESM namespace - `import * as LModule` gives that frozen

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import '@/assets/statistics.css'
 import { onMounted, computed, ref, watch, shallowRef, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useVehicleStore } from '@/stores/vehicle'

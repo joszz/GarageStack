@@ -1,0 +1,149 @@
+/* ── Login page ───────────────────────────────────────────── */
+
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: var(--color-bg);
+}
+
+.login-card {
+  width: 100%;
+  max-width: 380px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 2rem 2rem 1.75rem;
+}
+
+.login-card__brand {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.login-card__brand-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius);
+  background: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.login-card__title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--color-text);
+  line-height: 1.2;
+}
+
+.login-card__subtitle {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  margin-top: 0.15rem;
+}
+
+.login-card__form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* ── Login form fields ────────────────────────────────────── */
+
+.login-field {
+  display: block;
+}
+
+.login-field__input-wrap {
+  position: relative;
+}
+
+.login-field__icon {
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+  pointer-events: none;
+}
+
+.login-field__input {
+  width: 100%;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  color: var(--color-text);
+  font-size: 0.9rem;
+  padding: 0.65rem 0.75rem 0.65rem 2.25rem;
+  transition: border-color 0.15s;
+  font-family: inherit;
+}
+
+.login-field__input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.login-field__input::placeholder {
+  color: var(--color-text-muted);
+  opacity: 0.6;
+}
+
+/* Preserve dark theme when the browser auto-fills credentials */
+.login-field__input:-webkit-autofill,
+.login-field__input:-webkit-autofill:hover,
+.login-field__input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px var(--color-surface-2) inset !important;
+  -webkit-text-fill-color: var(--color-text) !important;
+  caret-color: var(--color-text);
+  border-color: var(--color-border) !important;
+}
+
+.login-field__input:-webkit-autofill:focus {
+  border-color: var(--color-primary) !important;
+}
+
+/* ── Login remember toggle ────────────────────────────────── */
+
+.login-remember {
+  padding: 0.25rem 0;
+  border-bottom: none;
+}
+
+.login-remember .settings-toggle__label {
+  color: var(--color-text-muted);
+}
+
+/* ── Login error + submit ─────────────────────────────────── */
+
+.login-error {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 6px;
+  color: var(--color-danger-text);
+  font-size: 0.83rem;
+  padding: 0.55rem 0.75rem;
+}
+
+.login-submit {
+  width: 100%;
+  justify-content: center;
+  padding: 0.65rem 1rem;
+  font-size: 0.9rem;
+  margin-top: 0.25rem;
+}
