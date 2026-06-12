@@ -8,7 +8,17 @@ precacheAndRoute(self.__WB_MANIFEST)
 
 // Activate the new SW immediately instead of waiting for all tabs to close
 self.addEventListener('install', () => self.skipWaiting())
-self.addEventListener('activate', (event) => event.waitUntil(self.clients.claim()))
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    Promise.all([
+      // Enable navigation preload so the browser starts the network fetch in
+      // parallel with SW activation -- prevents the ~1.8s self-redirect that
+      // occurs when clients.claim() retriggers a navigation through the SW.
+      self.registration.navigationPreload?.enable() ?? Promise.resolve(),
+      self.clients.claim(),
+    ]),
+  )
+})
 
 self.addEventListener('push', (event) => {
   if (!event.data) return
