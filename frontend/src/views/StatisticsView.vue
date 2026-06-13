@@ -631,7 +631,11 @@ const skeletonChartCount = computed(
         <FiltersPanel>
           <div class="settings-toggle">
             <div class="settings-toggle__info">
-              <span class="settings-toggle__label">{{ t('trips.dateRange') }}</span>
+              <span class="settings-toggle__label">
+                <font-awesome-icon icon="calendar-check" class="settings-toggle__icon" />
+                {{ t('trips.dateRange') }}
+              </span>
+              <span class="settings-toggle__desc">{{ t('trips.dateRangeDesc') }}</span>
             </div>
             <div class="settings-toggle__control">
               <select v-model="days" class="form-select form-select-sm">
