@@ -764,6 +764,7 @@ onUnmounted(() => {
                 <font-awesome-icon icon="calendar-check" class="settings-toggle__icon" />
                 {{ t('trips.dateRange') }}
               </span>
+              <span class="settings-toggle__desc">{{ t('trips.dateRangeDesc') }}</span>
             </div>
             <div class="settings-toggle__control">
               <select v-model="dateRangeDays" class="form-select form-select-sm">
@@ -779,6 +780,7 @@ onUnmounted(() => {
                 <font-awesome-icon icon="fire" class="settings-toggle__icon" />
                 {{ t('trips.heatmap') }}
               </span>
+              <span class="settings-toggle__desc">{{ t('trips.heatmapDesc') }}</span>
             </div>
             <div class="settings-toggle__control form-check form-switch">
               <input
@@ -795,6 +797,7 @@ onUnmounted(() => {
                 <font-awesome-icon icon="route" class="settings-toggle__icon" />
                 {{ t('trips.routeOutline') }}
               </span>
+              <span class="settings-toggle__desc">{{ t('trips.routeOutlineDesc') }}</span>
             </div>
             <div class="settings-toggle__control form-check form-switch">
               <input
@@ -829,6 +832,7 @@ onUnmounted(() => {
                   <font-awesome-icon icon="bolt" class="settings-toggle__icon" />
                   {{ t('trips.chargingStations') }}
                 </span>
+                <span class="settings-toggle__desc">{{ t('trips.chargingStationsDesc') }}</span>
               </div>
               <div class="settings-toggle__control form-check form-switch">
                 <input
@@ -842,10 +846,13 @@ onUnmounted(() => {
             <template v-if="chargingStationsEnabled">
               <div class="charging-power-filter">
                 <div class="charging-power-filter__header">
-                  <span class="settings-toggle__label">
-                    <font-awesome-icon icon="bolt" class="settings-toggle__icon" />
-                    {{ t('trips.chargingPower') }}
-                  </span>
+                  <div>
+                    <span class="settings-toggle__label">
+                      <font-awesome-icon icon="bolt" class="settings-toggle__icon" />
+                      {{ t('trips.chargingPower') }}
+                    </span>
+                    <span class="settings-toggle__desc">{{ t('trips.chargingPowerDesc') }}</span>
+                  </div>
                   <span class="charging-power-filter__range">{{ powerRangeLabel }}</span>
                 </div>
                 <div class="charging-power-filter__slider">
