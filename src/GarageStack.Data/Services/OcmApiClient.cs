@@ -85,7 +85,8 @@ public sealed class OcmApiClient(
     {
         if (!string.IsNullOrWhiteSpace(c.ConnectionType?.Title))
             return c.ConnectionType.Title;
-        if (c.ConnectionType?.Id is int id && ConnectorTypeNames.TryGetValue(id, out var name))
+        var typeId = c.ConnectionType?.Id ?? c.ConnectionTypeId;
+        if (typeId is int id && ConnectorTypeNames.TryGetValue(id, out var name))
             return name;
         return "Unknown";
     }
@@ -170,7 +171,10 @@ public sealed class OcmApiClient(
 
     private sealed class OcmConnection
     {
+        // In compact=true mode OCM returns a flat integer instead of a nested object.
+        // Capture both forms so ResolveConnectorType can fall back to the flat ID.
         [JsonPropertyName("ConnectionType")] public OcmConnectionType? ConnectionType { get; init; }
+        [JsonPropertyName("ConnectionTypeID")] public int? ConnectionTypeId { get; init; }
         [JsonPropertyName("CurrentTypeID")] public int? CurrentTypeId { get; init; }
         [JsonPropertyName("PowerKW")] public double? PowerKw { get; init; }
         [JsonPropertyName("Quantity")] public int? Quantity { get; init; }
