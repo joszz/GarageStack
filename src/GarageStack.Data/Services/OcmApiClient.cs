@@ -69,6 +69,27 @@ public sealed class OcmApiClient(
         }
     }
 
+    // OCM connection type IDs for common DC connectors (from OCM reference data).
+    // Used as fallback when compact=true responses omit the Title string.
+    private static readonly Dictionary<int, string> ConnectorTypeNames = new()
+    {
+        { 2,  "CHAdeMO" },
+        { 25, "CCS Type 2" },
+        { 32, "CCS Type 1" },
+        { 27, "Tesla Supercharger" },
+        { 30, "Tesla (Roadster)" },
+        { 33, "NACS / Tesla" },
+    };
+
+    private static string ResolveConnectorType(OcmConnection c)
+    {
+        if (!string.IsNullOrWhiteSpace(c.ConnectionType?.Title))
+            return c.ConnectionType.Title;
+        if (c.ConnectionType?.Id is int id && ConnectorTypeNames.TryGetValue(id, out var name))
+            return name;
+        return "Unknown";
+    }
+
     private static PoiItem MapToPoiItem(OcmPoi p)
     {
         var lat = p.AddressInfo?.Latitude ?? 0;
@@ -78,7 +99,7 @@ public sealed class OcmApiClient(
         // but guard here too in case OCM returns mixed results.
         var connectors = p.Connections?
             .Where(c => c.PowerKw.HasValue && c.CurrentTypeId is null or 30)
-            .GroupBy(c => (type: c.ConnectionType?.Title ?? "Unknown", powerKw: (int)Math.Round(c.PowerKw!.Value)))
+            .GroupBy(c => (type: ResolveConnectorType(c), powerKw: (int)Math.Round(c.PowerKw!.Value)))
             .Select(g => new OcmConnectorMeta(g.Key.type, g.Key.powerKw, g.Sum(c => c.Quantity ?? 1)))
             .ToArray() ?? [];
 
@@ -157,6 +178,7 @@ public sealed class OcmApiClient(
 
     private sealed class OcmConnectionType
     {
+        [JsonPropertyName("ID")] public int? Id { get; init; }
         [JsonPropertyName("Title")] public string? Title { get; init; }
     }
 
