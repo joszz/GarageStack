@@ -217,6 +217,11 @@
     "chargingPowerAny": "Any",
     "chargingStall": "stall",
     "chargingStalls": "stalls",
+    "fuelStations": "Fuel stations",
+    "fuelStationsDesc": "Shows petrol and diesel stations near your position. Only available for hybrid vehicles.",
+    "serviceAreas": "Motorway service areas",
+    "serviceAreasDesc": "Shows motorway service areas and rest stops near your position.",
+    "poiLoading": "Fetching live map data...",
     "findCar": "Find car",
     "points": "pts"
   },

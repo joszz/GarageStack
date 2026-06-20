@@ -270,6 +270,15 @@ export interface ChargingStation {
   connectors: Connector[]
 }
 
+export interface PoiItem {
+  externalId: string
+  poiType: string
+  latitude: number
+  longitude: number
+  name: string | null
+  tags: Record<string, string> | null
+}
+
 export const mapApi = {
   chargingStations: (
     lat: number,
@@ -286,6 +295,16 @@ export const mapApi = {
       maxPowerKw: String(maxPowerKw),
     })
     return request<ChargingStation[]>(`/api/map/charging-stations?${params}`)
+  },
+  poi: (type: string, lat: number, lng: number, radiusKm: number, vehicleType: string) => {
+    const params = new URLSearchParams({
+      type,
+      lat: String(lat),
+      lng: String(lng),
+      radiusKm: String(radiusKm),
+      vehicleType,
+    })
+    return request<PoiItem[]>(`/api/map/poi?${params}`)
   },
 }
 

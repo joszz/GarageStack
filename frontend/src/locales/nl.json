@@ -217,6 +217,11 @@
     "chargingPowerAny": "Alle",
     "chargingStall": "laadpunt",
     "chargingStalls": "laadpunten",
+    "fuelStations": "Tankstations",
+    "fuelStationsDesc": "Toont benzine- en dieseltankstations bij jouw locatie. Alleen beschikbaar voor hybride voertuigen.",
+    "serviceAreas": "Verzorgingsplaatsen",
+    "serviceAreasDesc": "Toont verzorgingsplaatsen op de snelweg bij jouw locatie.",
+    "poiLoading": "Live kaartgegevens ophalen...",
     "findCar": "Vind auto",
     "points": "ptn"
   },

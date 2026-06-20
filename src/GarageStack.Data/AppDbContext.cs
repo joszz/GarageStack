@@ -9,6 +9,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<TelemetrySnapshot> TelemetrySnapshots => Set<TelemetrySnapshot>();
     public DbSet<PushSubscription> PushSubscriptions => Set<PushSubscription>();
     public DbSet<AppNotification> AppNotifications => Set<AppNotification>();
+    public DbSet<PoiItem> PoiItems => Set<PoiItem>();
+    public DbSet<PoiCacheTile> PoiCacheTiles => Set<PoiCacheTile>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -47,6 +49,31 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.HasKey(n => n.Id);
             e.HasIndex(n => n.CreatedAt);
             e.HasIndex(n => new { n.IsDeleted, n.CreatedAt });
+        });
+
+        modelBuilder.Entity<PoiItem>(e =>
+        {
+            e.HasKey(p => p.Id);
+            e.HasIndex(p => new { p.Source, p.ExternalId })
+             .IsUnique()
+             .HasDatabaseName("IX_PoiItems_Source_ExternalId");
+            e.HasIndex(p => new { p.Source, p.PoiType, p.CellLat, p.CellLng })
+             .HasDatabaseName("IX_PoiItems_Source_PoiType_CellLatLng");
+            e.Property(p => p.Source).HasMaxLength(32).IsRequired();
+            e.Property(p => p.PoiType).HasMaxLength(32).IsRequired();
+            e.Property(p => p.ExternalId).HasMaxLength(64).IsRequired();
+        });
+
+        modelBuilder.Entity<PoiCacheTile>(e =>
+        {
+            e.HasKey(t => t.Id);
+            e.HasIndex(t => new { t.Source, t.PoiType, t.CellLat, t.CellLng })
+             .IsUnique()
+             .HasDatabaseName("IX_PoiCacheTiles_Source_PoiType_CellLatLng");
+            e.HasIndex(t => t.ExpiresAt)
+             .HasDatabaseName("IX_PoiCacheTiles_ExpiresAt");
+            e.Property(t => t.Source).HasMaxLength(32).IsRequired();
+            e.Property(t => t.PoiType).HasMaxLength(32).IsRequired();
         });
 
     }

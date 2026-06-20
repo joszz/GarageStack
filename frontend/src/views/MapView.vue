@@ -14,7 +14,7 @@ import 'leaflet.heat'
 import 'leaflet.markercluster'
 import 'leaflet.markercluster/dist/MarkerCluster.css'
 import '@/assets/map.css'
-import type { Trip, ChargingStation } from '@/services/api'
+import type { Trip, ChargingStation, PoiItem } from '@/services/api'
 import { mapApi } from '@/services/api'
 
 // Vite wraps CJS modules in a frozen ESM namespace - `import * as LModule` gives that frozen
@@ -37,6 +37,7 @@ const vehicleType = computed((): VehicleType | 'unknown' => {
   return store.detectedVehicleType
 })
 const isHev = computed(() => vehicleType.value === 'hev')
+const isBev = computed(() => vehicleType.value === 'bev')
 const displayLocale = computed(() => (settingsStore.locale === 'nl' ? 'nl-NL' : 'en-US'))
 const selectedTripIndex = ref<number | null>(null)
 const heatmapEnabled = computed({
@@ -61,6 +62,18 @@ const chargingStationsEnabled = computed({
   get: () => settingsStore.chargingStationsEnabled,
   set: (v: boolean) => {
     settingsStore.chargingStationsEnabled = v
+  },
+})
+const fuelStationsEnabled = computed({
+  get: () => settingsStore.fuelStationsEnabled,
+  set: (v: boolean) => {
+    settingsStore.fuelStationsEnabled = v
+  },
+})
+const serviceAreasEnabled = computed({
+  get: () => settingsStore.serviceAreasEnabled,
+  set: (v: boolean) => {
+    settingsStore.serviceAreasEnabled = v
   },
 })
 const chargingMinPowerKw = computed({
@@ -124,11 +137,24 @@ let endMarker: L.Marker | null = null
 let chargingCluster: L.FeatureGroup | null = null
 let chargingDebounceTimer: ReturnType<typeof setTimeout> | null = null
 let chargingFetchId = 0
-let initialChargingLoadDone = false
-let initialChargingUsedCarPos = false
+let fuelCluster: L.FeatureGroup | null = null
+let serviceAreaCluster: L.FeatureGroup | null = null
+let fuelDebounceTimer: ReturnType<typeof setTimeout> | null = null
+let serviceAreaDebounceTimer: ReturnType<typeof setTimeout> | null = null
+let fuelFetchId = 0
+let serviceAreaFetchId = 0
+const fuelLoadedTiles = new Set<string>()
+const fuelLoadedIds = new Set<string>()
+const serviceAreaLoadedTiles = new Set<string>()
+const serviceAreaLoadedIds = new Set<string>()
+const chargingLoadedTiles = new Set<string>()
+const chargingLoadedIds = new Set<string>()
+const poiLoadingCount = ref(0)
+const poiLoading = computed(() => poiLoadingCount.value > 0)
 let resizeObserver: ResizeObserver | null = null
 let infiniteScrollObserver: IntersectionObserver | null = null
 let mapUpdateRaf: number | null = null
+let hasCenteredOnStatus = false
 
 type HeatLayerFactory = {
   heatLayer: (
@@ -150,7 +176,6 @@ type ClusterFactory = {
   markerClusterGroup: (options?: {
     iconCreateFunction?: (cluster: { getChildCount: () => number }) => L.DivIcon
     maxClusterRadius?: number
-    disableClusteringAtZoom?: number
     animate?: boolean
   }) => L.FeatureGroup
 }
@@ -348,9 +373,105 @@ function removeHeatLayer() {
 }
 
 function clearChargingMarkers() {
-  if (chargingCluster) {
-    chargingCluster.remove()
-    chargingCluster = null
+  chargingCluster?.remove()
+  chargingCluster = null
+  chargingLoadedTiles.clear()
+  chargingLoadedIds.clear()
+}
+
+function clearPoiMarkers(poiType: 'fuel' | 'service_area') {
+  if (poiType === 'fuel') {
+    fuelCluster?.remove()
+    fuelCluster = null
+    fuelLoadedTiles.clear()
+    fuelLoadedIds.clear()
+  } else {
+    serviceAreaCluster?.remove()
+    serviceAreaCluster = null
+    serviceAreaLoadedTiles.clear()
+    serviceAreaLoadedIds.clear()
+  }
+}
+
+function buildPoiPopup(item: PoiItem): string {
+  const tags = item.tags ?? {}
+  const brand = tags['brand'] ?? tags['operator'] ?? null
+  const openingHours = tags['opening_hours'] ?? null
+  return `<div class="poi-popup">
+    <strong class="poi-popup__title">${item.name ?? item.poiType}</strong>
+    ${brand ? `<div class="poi-popup__meta">${brand}</div>` : ''}
+    ${openingHours ? `<div class="poi-popup__meta">${openingHours}</div>` : ''}
+  </div>`
+}
+
+async function loadPoiLayer(poiType: 'fuel' | 'service_area', overrideRadius?: number) {
+  const map = mapInstance.value
+  const enabled = poiType === 'fuel' ? fuelStationsEnabled.value : serviceAreasEnabled.value
+  if (!map || !enabled) {
+    clearPoiMarkers(poiType)
+    return
+  }
+
+  const loadedTiles = poiType === 'fuel' ? fuelLoadedTiles : serviceAreaLoadedTiles
+  const loadedIds = poiType === 'fuel' ? fuelLoadedIds : serviceAreaLoadedIds
+  const vt = vehicleType.value === 'unknown' ? 'bev' : vehicleType.value
+  const center = map.getBounds().getCenter()
+  // Track only the center tile -- the server fetches at most 1 tile per request (the one
+  // nearest to center), so marking boundary tiles as "loaded" incorrectly suppresses future
+  // fetches when those boundary tiles become the new viewport center.
+  const centerKey = `${Math.floor(center.lat * 2)},${Math.floor(center.lng * 2)}`
+  if (loadedTiles.has(centerKey)) return
+  const radiusKm = overrideRadius ?? getBoundsRadiusKm()
+  const fetchId = poiType === 'fuel' ? ++fuelFetchId : ++serviceAreaFetchId
+
+  poiLoadingCount.value++
+  try {
+    const items = await mapApi.poi(poiType, center.lat, center.lng, radiusKm, vt)
+    const currentId = poiType === 'fuel' ? fuelFetchId : serviceAreaFetchId
+    if (fetchId !== currentId || !enabled) return
+
+    let cluster = poiType === 'fuel' ? fuelCluster : serviceAreaCluster
+    if (!cluster) {
+      cluster = leafWithCluster.markerClusterGroup({
+        maxClusterRadius: 60,
+        animate: true,
+        iconCreateFunction: (c) => {
+          const count = c.getChildCount()
+          const cls = poiType === 'fuel' ? 'poi-cluster--fuel' : 'poi-cluster--service-area'
+          return L.divIcon({
+            className: '',
+            html: `<div class="poi-cluster ${cls}">${count}</div>`,
+            iconSize: [36, 36],
+            iconAnchor: [18, 18],
+          })
+        },
+      })
+      cluster.addTo(map)
+      if (poiType === 'fuel') fuelCluster = cluster
+      else serviceAreaCluster = cluster
+    }
+
+    for (const item of items) {
+      if (loadedIds.has(item.externalId)) continue
+      loadedIds.add(item.externalId)
+      const cls = poiType === 'fuel' ? 'poi-marker--fuel' : 'poi-marker--service-area'
+      const symbol = poiType === 'fuel' ? '&#9981;' : '&#9654;'
+      const icon = L.divIcon({
+        className: '',
+        html: `<div class="poi-marker ${cls}">${symbol}</div>`,
+        iconSize: [28, 28],
+        iconAnchor: [14, 14],
+      })
+      const marker = L.marker([item.latitude, item.longitude], { icon })
+      marker.bindPopup(buildPoiPopup(item))
+      cluster.addLayer(marker)
+    }
+
+    loadedTiles.add(centerKey)
+  } catch {
+    // Overpass errors are non-fatal
+  } finally {
+    poiLoadingCount.value--
   }
 }
 
@@ -360,16 +481,6 @@ function getBoundsRadiusKm(): number {
   const bounds = map.getBounds()
   const distanceM = bounds.getCenter().distanceTo(bounds.getNorthEast())
   return Math.min(Math.ceil(distanceM / 1000), 200)
-}
-
-// Scale the initial search radius based on min-power filter so high-power DC chargers
-// (which are sparse) are found even when no station is close by.
-function getInitialRadius(): number {
-  const minkw = chargingMinPowerKw.value
-  if (minkw >= 150) return 200
-  if (minkw >= 100) return 100
-  if (minkw >= 50) return 50
-  return 15
 }
 
 function buildChargingPopup(station: ChargingStation): string {
@@ -410,23 +521,21 @@ function buildChargingPopup(station: ChargingStation): string {
   </div>`
 }
 
-async function loadChargingStations(initialCenter?: { lat: number; lng: number }) {
+async function loadChargingStations(overrideRadius?: number) {
   const map = mapInstance.value
   if (!map || !chargingStationsEnabled.value || isHev.value) {
     clearChargingMarkers()
     return
   }
-  const fetchId = ++chargingFetchId
-  const s = status.value
+
   const mc = map.getBounds().getCenter()
-  const center =
-    initialCenter ??
-    (allPoints.value.length === 0 && s?.latitude != null && s?.longitude != null
-      ? { lat: s.latitude, lng: s.longitude }
-      : { lat: mc.lat, lng: mc.lng })
-  // Initial car-position load uses a radius scaled to the power filter so high-power
-  // DC chargers (which are sparse) are reachable. Pan/zoom reloads use the viewport.
-  const radiusKm = initialCenter != null ? getInitialRadius() : getBoundsRadiusKm()
+  const center = { lat: mc.lat, lng: mc.lng }
+  const centerKey = `${Math.floor(center.lat * 2)},${Math.floor(center.lng * 2)}`
+  if (chargingLoadedTiles.has(centerKey)) return
+
+  const fetchId = ++chargingFetchId
+  const radiusKm = overrideRadius ?? getBoundsRadiusKm()
+  poiLoadingCount.value++
   try {
     const stations = await mapApi.chargingStations(
       center.lat,
@@ -435,26 +544,29 @@ async function loadChargingStations(initialCenter?: { lat: number; lng: number }
       chargingMinPowerKw.value,
       chargingMaxPowerKw.value,
     )
-    if (fetchId !== chargingFetchId) return
-    clearChargingMarkers()
-    if (!chargingStationsEnabled.value) return
+    if (fetchId !== chargingFetchId || !chargingStationsEnabled.value) return
 
-    chargingCluster = leafWithCluster.markerClusterGroup({
-      maxClusterRadius: 60,
-      disableClusteringAtZoom: 16,
-      animate: true,
-      iconCreateFunction: (cluster) => {
-        const count = cluster.getChildCount()
-        return L.divIcon({
-          className: '',
-          html: `<div class="charging-cluster">${count}</div>`,
-          iconSize: [36, 36],
-          iconAnchor: [18, 18],
-        })
-      },
-    })
+    if (!chargingCluster) {
+      chargingCluster = leafWithCluster.markerClusterGroup({
+        maxClusterRadius: 60,
+        animate: true,
+        iconCreateFunction: (cluster) => {
+          const count = cluster.getChildCount()
+          return L.divIcon({
+            className: '',
+            html: `<div class="charging-cluster">${count}</div>`,
+            iconSize: [36, 36],
+            iconAnchor: [18, 18],
+          })
+        },
+      })
+      chargingCluster.addTo(map)
+    }
 
     for (const station of stations) {
+      const id = String(station.id)
+      if (chargingLoadedIds.has(id)) continue
+      chargingLoadedIds.add(id)
       const cls = station.isOperational === false ? ' charging-marker--unknown' : ''
       const icon = L.divIcon({
         className: '',
@@ -466,9 +578,12 @@ async function loadChargingStations(initialCenter?: { lat: number; lng: number }
       marker.bindPopup(buildChargingPopup(station))
       chargingCluster.addLayer(marker)
     }
-    chargingCluster.addTo(map)
+
+    chargingLoadedTiles.add(centerKey)
   } catch {
     // OCM is optional; silently ignore errors
+  } finally {
+    poiLoadingCount.value--
   }
 }
 
@@ -516,12 +631,27 @@ function onMapReady(map: LeafletMap) {
   }
 
   map.on('moveend zoomend', () => {
-    if (!chargingStationsEnabled.value || !initialChargingLoadDone) return
-    if (chargingDebounceTimer !== null) clearTimeout(chargingDebounceTimer)
-    chargingDebounceTimer = setTimeout(() => {
-      chargingDebounceTimer = null
-      loadChargingStations()
-    }, 500)
+    if (chargingStationsEnabled.value) {
+      if (chargingDebounceTimer !== null) clearTimeout(chargingDebounceTimer)
+      chargingDebounceTimer = setTimeout(() => {
+        chargingDebounceTimer = null
+        loadChargingStations()
+      }, 500)
+    }
+    if (fuelStationsEnabled.value) {
+      if (fuelDebounceTimer !== null) clearTimeout(fuelDebounceTimer)
+      fuelDebounceTimer = setTimeout(() => {
+        fuelDebounceTimer = null
+        loadPoiLayer('fuel')
+      }, 500)
+    }
+    if (serviceAreasEnabled.value) {
+      if (serviceAreaDebounceTimer !== null) clearTimeout(serviceAreaDebounceTimer)
+      serviceAreaDebounceTimer = setTimeout(() => {
+        serviceAreaDebounceTimer = null
+        loadPoiLayer('service_area')
+      }, 500)
+    }
   })
 
   // nextTick: wait for Vue DOM → requestAnimationFrame: wait for browser layout pass.
@@ -535,37 +665,23 @@ function onMapReady(map: LeafletMap) {
         buildRouteLines()
         fitAll()
       } else if (status.value?.latitude != null && status.value?.longitude != null) {
+        hasCenteredOnStatus = true
         map.setView([status.value.latitude, status.value.longitude], 14, { animate: false })
       }
-      const s = status.value
-      if (s?.latitude != null && s?.longitude != null) {
-        initialChargingUsedCarPos = true
-        loadChargingStations({ lat: s.latitude, lng: s.longitude })
-      } else {
-        loadChargingStations()
-      }
-      // Allow moveend/zoomend to trigger reloads only after the initial load is kicked off.
-      // Prevents fitAll/invalidateSize moveend events from overriding the car-position fetch.
-      if (chargingDebounceTimer !== null) {
-        clearTimeout(chargingDebounceTimer)
-        chargingDebounceTimer = null
-      }
-      initialChargingLoadDone = true
+      if (chargingStationsEnabled.value) loadChargingStations(100)
+      if (fuelStationsEnabled.value) loadPoiLayer('fuel', 100)
+      if (serviceAreasEnabled.value) loadPoiLayer('service_area', 100)
     })
   })
 }
 
-// When status loads and there are no trip points yet, fly to the car's position
+// Center on car position only once on initial load. Subsequent status updates (SignalR
+// reconnects every ~60s) must not move the map away from where the user is looking.
 watch(status, (s) => {
   if (!mapInstance.value || s?.latitude == null || s?.longitude == null) return
-  if (allPoints.value.length === 0) {
+  if (!hasCenteredOnStatus && allPoints.value.length === 0) {
+    hasCenteredOnStatus = true
     mapInstance.value.setView([s.latitude, s.longitude], 14, { animate: false })
-  }
-  // If status arrived after the initial charging load (demo mode / slow API), redo it
-  // with the actual car position so stations appear near the car, not the map center.
-  if (chargingStationsEnabled.value && initialChargingLoadDone && !initialChargingUsedCarPos) {
-    initialChargingUsedCarPos = true
-    loadChargingStations({ lat: s.latitude, lng: s.longitude })
   }
 })
 
@@ -580,19 +696,6 @@ watch(allPoints, async (pts) => {
     selectTrip(store.trips.length - 1)
   } else {
     fitAll()
-    // fitAll fires moveend synchronously, arming the debounce to reload stations from
-    // the zoomed-out map center. Cancel it and keep stations centered on the car.
-    if (chargingDebounceTimer !== null) {
-      clearTimeout(chargingDebounceTimer)
-      chargingDebounceTimer = null
-    }
-    if (chargingStationsEnabled.value && initialChargingLoadDone) {
-      const s = status.value
-      if (s?.latitude != null && s?.longitude != null) {
-        initialChargingUsedCarPos = true
-        loadChargingStations({ lat: s.latitude, lng: s.longitude })
-      }
-    }
   }
 })
 
@@ -640,23 +743,38 @@ watch(chargingStationsEnabled, (enabled) => {
   else clearChargingMarkers()
 })
 
-watch(isHev, (hev) => {
-  if (hev) clearChargingMarkers()
-  else if (chargingStationsEnabled.value) reloadChargingFromCarOrViewport()
+watch(fuelStationsEnabled, (enabled) => {
+  if (enabled) loadPoiLayer('fuel')
+  else clearPoiMarkers('fuel')
 })
 
-function reloadChargingFromCarOrViewport() {
-  if (!chargingStationsEnabled.value) return
-  const s = status.value
-  if (s?.latitude != null && s?.longitude != null) {
-    loadChargingStations({ lat: s.latitude, lng: s.longitude })
-  } else {
+watch(serviceAreasEnabled, (enabled) => {
+  if (enabled) loadPoiLayer('service_area')
+  else clearPoiMarkers('service_area')
+})
+
+watch(isHev, (hev) => {
+  if (hev) clearChargingMarkers()
+  else if (chargingStationsEnabled.value) loadChargingStations()
+})
+
+watch(isBev, (bev) => {
+  if (bev) clearPoiMarkers('fuel')
+  else if (fuelStationsEnabled.value) loadPoiLayer('fuel')
+})
+
+watch(chargingMinPowerKw, () => {
+  if (chargingStationsEnabled.value) {
+    clearChargingMarkers()
     loadChargingStations()
   }
-}
-
-watch(chargingMinPowerKw, reloadChargingFromCarOrViewport)
-watch(chargingMaxPowerKw, reloadChargingFromCarOrViewport)
+})
+watch(chargingMaxPowerKw, () => {
+  if (chargingStationsEnabled.value) {
+    clearChargingMarkers()
+    loadChargingStations()
+  }
+})
 
 // Route outline toggle: rebuild whichever layer is currently active
 watch(routeOutlineEnabled, () => {
@@ -745,8 +863,12 @@ onMounted(async () => {
 onUnmounted(() => {
   if (mapUpdateRaf !== null) cancelAnimationFrame(mapUpdateRaf)
   if (chargingDebounceTimer !== null) clearTimeout(chargingDebounceTimer)
+  if (fuelDebounceTimer !== null) clearTimeout(fuelDebounceTimer)
+  if (serviceAreaDebounceTimer !== null) clearTimeout(serviceAreaDebounceTimer)
   removeHeatLayer()
   clearChargingMarkers()
+  clearPoiMarkers('fuel')
+  clearPoiMarkers('service_area')
   resizeObserver?.disconnect()
   infiniteScrollObserver?.disconnect()
 })
@@ -825,54 +947,72 @@ onUnmounted(() => {
               />
             </div>
           </div>
-          <template v-if="!isHev">
-            <div class="settings-toggle">
-              <div class="settings-toggle__info">
-                <span class="settings-toggle__label">
-                  <font-awesome-icon icon="bolt" class="settings-toggle__icon" />
-                  {{ t('trips.chargingStations') }}
-                </span>
-                <span class="settings-toggle__desc">{{ t('trips.chargingStationsDesc') }}</span>
+          <div class="settings-toggle">
+            <div class="settings-toggle__info">
+              <span class="settings-toggle__label">
+                <font-awesome-icon icon="road" class="settings-toggle__icon" />
+                {{ t('trips.serviceAreas') }}
+              </span>
+              <span class="settings-toggle__desc">{{ t('trips.serviceAreasDesc') }}</span>
+            </div>
+            <div class="settings-toggle__control form-check form-switch">
+              <input
+                v-model="serviceAreasEnabled"
+                type="checkbox"
+                class="form-check-input"
+                :aria-label="t('trips.serviceAreas')"
+              />
+            </div>
+          </div>
+          <template v-if="!isHev && chargingStationsEnabled">
+            <div class="charging-power-filter">
+              <div class="charging-power-filter__header">
+                <div>
+                  <span class="settings-toggle__label">
+                    <font-awesome-icon icon="bolt" class="settings-toggle__icon" />
+                    {{ t('trips.chargingPower') }}
+                  </span>
+                  <span class="settings-toggle__desc">{{ t('trips.chargingPowerDesc') }}</span>
+                </div>
+                <span class="charging-power-filter__range">{{ powerRangeLabel }}</span>
               </div>
-              <div class="settings-toggle__control form-check form-switch">
-                <input
-                  v-model="chargingStationsEnabled"
-                  type="checkbox"
-                  class="form-check-input"
-                  :aria-label="t('trips.chargingStations')"
+              <div class="charging-power-filter__slider">
+                <Slider
+                  v-model="powerRangeSlider"
+                  :min="0"
+                  :max="350"
+                  :step="10"
+                  :tooltips="true"
+                  :format="formatPowerTooltip"
+                  :merge="50"
+                  :lazy="false"
+                  class="charging-slider"
+                  :aria-label="[t('trips.chargingMinPower'), t('trips.chargingMaxPower')]"
                 />
               </div>
             </div>
-            <template v-if="chargingStationsEnabled">
-              <div class="charging-power-filter">
-                <div class="charging-power-filter__header">
-                  <div>
-                    <span class="settings-toggle__label">
-                      <font-awesome-icon icon="bolt" class="settings-toggle__icon" />
-                      {{ t('trips.chargingPower') }}
-                    </span>
-                    <span class="settings-toggle__desc">{{ t('trips.chargingPowerDesc') }}</span>
-                  </div>
-                  <span class="charging-power-filter__range">{{ powerRangeLabel }}</span>
-                </div>
-                <div class="charging-power-filter__slider">
-                  <Slider
-                    v-model="powerRangeSlider"
-                    :min="0"
-                    :max="350"
-                    :step="10"
-                    :tooltips="true"
-                    :format="formatPowerTooltip"
-                    :merge="50"
-                    :lazy="false"
-                    class="charging-slider"
-                    :aria-label="[t('trips.chargingMinPower'), t('trips.chargingMaxPower')]"
-                  />
-                </div>
-              </div>
-            </template>
           </template>
         </FiltersPanel>
+        <button
+          v-if="!isBev"
+          class="btn btn-sm map-layer-btn"
+          :class="{ 'map-layer-btn--active map-layer-btn--fuel': fuelStationsEnabled }"
+          :aria-pressed="fuelStationsEnabled"
+          @click="fuelStationsEnabled = !fuelStationsEnabled"
+        >
+          <font-awesome-icon icon="gas-pump" />
+          {{ t('trips.fuelStations') }}
+        </button>
+        <button
+          v-if="!isHev"
+          class="btn btn-sm map-layer-btn"
+          :class="{ 'map-layer-btn--active map-layer-btn--charging': chargingStationsEnabled }"
+          :aria-pressed="chargingStationsEnabled"
+          @click="chargingStationsEnabled = !chargingStationsEnabled"
+        >
+          <font-awesome-icon icon="bolt" />
+          {{ t('trips.chargingStations') }}
+        </button>
         <button
           class="btn btn-sm btn-outline-secondary"
           :disabled="status?.latitude == null || status?.longitude == null"
@@ -965,6 +1105,16 @@ onUnmounted(() => {
             <LPopup>{{ store.vehicles[0]?.model ?? store.vehicles[0]?.vin }}</LPopup>
           </LMarker>
         </LMap>
+
+        <div
+          v-if="poiLoading"
+          class="poi-loading-indicator"
+          role="status"
+          :aria-label="t('trips.poiLoading')"
+        >
+          <span class="spinner-border spinner-border-sm" aria-hidden="true" />
+          {{ t('trips.poiLoading') }}
+        </div>
 
         <div
           v-if="speedOverlayEnabled && selectedTripIndex !== null"
