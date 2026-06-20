@@ -460,12 +460,14 @@ async function loadPoiLayer(poiType: 'fuel' | 'service_area', overrideRadius?: n
   const loadedTiles = poiType === 'fuel' ? fuelLoadedTiles : serviceAreaLoadedTiles
   const loadedIds = poiType === 'fuel' ? fuelLoadedIds : serviceAreaLoadedIds
   const vt = vehicleType.value === 'unknown' ? 'bev' : vehicleType.value
-  const center = map.getBounds().getCenter()
-  // Track only the center tile -- the server fetches at most 1 tile per request (the one
-  // nearest to center), so marking boundary tiles as "loaded" incorrectly suppresses future
-  // fetches when those boundary tiles become the new viewport center.
+  const bounds = map.getBounds()
+  const center = bounds.getCenter()
   const centerKey = `${Math.floor(center.lat * 2)},${Math.floor(center.lng * 2)}`
-  if (loadedTiles.has(centerKey)) return
+
+  // Skip only when every visible tile has already been fetched.
+  const visibleKeys = overrideRadius ? null : computeVisibleTileKeys(map)
+  if (visibleKeys && visibleKeys.every((k) => loadedTiles.has(k))) return
+
   const radiusKm = overrideRadius ?? getBoundsRadiusKm()
   const fetchId = poiType === 'fuel' ? ++fuelFetchId : ++serviceAreaFetchId
 
@@ -496,9 +498,11 @@ async function loadPoiLayer(poiType: 'fuel' | 'service_area', overrideRadius?: n
       else serviceAreaCluster = cluster
     }
 
+    let newItems = false
     for (const item of items) {
       if (loadedIds.has(item.externalId)) continue
       loadedIds.add(item.externalId)
+      newItems = true
       const cls = poiType === 'fuel' ? 'poi-marker--fuel' : 'poi-marker--service-area'
       const symbol = poiType === 'fuel' ? '&#9981;' : '&#9654;'
       const icon = L.divIcon({
@@ -513,11 +517,49 @@ async function loadPoiLayer(poiType: 'fuel' | 'service_area', overrideRadius?: n
     }
 
     loadedTiles.add(centerKey)
+
+    // When no new items arrived the server has nothing more to cache for this viewport --
+    // mark all visible tiles done so we stop chaining. When new items did arrive, there
+    // may be uncached tiles remaining, so schedule another pass.
+    if (visibleKeys) {
+      if (!newItems) {
+        for (const k of visibleKeys) loadedTiles.add(k)
+      } else if (enabled && visibleKeys.some((k) => !loadedTiles.has(k))) {
+        if (poiType === 'fuel') {
+          if (fuelDebounceTimer !== null) clearTimeout(fuelDebounceTimer)
+          fuelDebounceTimer = setTimeout(() => {
+            fuelDebounceTimer = null
+            loadPoiLayer(poiType)
+          }, 400)
+        } else {
+          if (serviceAreaDebounceTimer !== null) clearTimeout(serviceAreaDebounceTimer)
+          serviceAreaDebounceTimer = setTimeout(() => {
+            serviceAreaDebounceTimer = null
+            loadPoiLayer(poiType)
+          }, 400)
+        }
+      }
+    }
   } catch {
     // Overpass errors are non-fatal
   } finally {
     poiLoadingCount.value--
   }
+}
+
+function computeVisibleTileKeys(map: LeafletMap): string[] {
+  const bounds = map.getBounds()
+  const minCellLat = Math.floor(bounds.getSouth() * 2)
+  const maxCellLat = Math.floor(bounds.getNorth() * 2)
+  const minCellLng = Math.floor(bounds.getWest() * 2)
+  const maxCellLng = Math.floor(bounds.getEast() * 2)
+  const keys: string[] = []
+  for (let lat = minCellLat; lat <= maxCellLat; lat++) {
+    for (let lng = minCellLng; lng <= maxCellLng; lng++) {
+      keys.push(`${lat},${lng}`)
+    }
+  }
+  return keys
 }
 
 function getBoundsRadiusKm(): number {
@@ -576,7 +618,10 @@ async function loadChargingStations(overrideRadius?: number) {
   const mc = map.getBounds().getCenter()
   const center = { lat: mc.lat, lng: mc.lng }
   const centerKey = `${Math.floor(center.lat * 2)},${Math.floor(center.lng * 2)}`
-  if (chargingLoadedTiles.has(centerKey)) return
+
+  // Skip only when every visible tile has already been fetched.
+  const visibleKeys = overrideRadius ? null : computeVisibleTileKeys(map)
+  if (visibleKeys && visibleKeys.every((k) => chargingLoadedTiles.has(k))) return
 
   const fetchId = ++chargingFetchId
   const radiusKm = overrideRadius ?? getBoundsRadiusKm()
@@ -598,6 +643,23 @@ async function loadChargingStations(overrideRadius?: number) {
 
     chargingLoadedTiles.add(centerKey)
     if (newStations) redrawChargingMarkers()
+
+    // When no new stations arrived the server has nothing more to cache for this viewport --
+    // mark all visible tiles done. When new stations did arrive, chain another pass.
+    if (visibleKeys) {
+      if (!newStations) {
+        for (const k of visibleKeys) chargingLoadedTiles.add(k)
+      } else if (
+        chargingStationsEnabled.value &&
+        visibleKeys.some((k) => !chargingLoadedTiles.has(k))
+      ) {
+        if (chargingDebounceTimer !== null) clearTimeout(chargingDebounceTimer)
+        chargingDebounceTimer = setTimeout(() => {
+          chargingDebounceTimer = null
+          loadChargingStations()
+        }, 400)
+      }
+    }
   } catch {
     // OCM is optional; silently ignore errors
   } finally {
