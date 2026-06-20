@@ -148,7 +148,9 @@ const fuelLoadedIds = new Set<string>()
 const serviceAreaLoadedTiles = new Set<string>()
 const serviceAreaLoadedIds = new Set<string>()
 const chargingLoadedTiles = new Set<string>()
-const chargingLoadedIds = new Set<string>()
+// All stations fetched so far, keyed by station ID. The power filter is applied
+// client-side from this cache so slider changes never trigger a new API call.
+const chargingAllStations = new Map<string, ChargingStation>()
 const poiLoadingCount = ref(0)
 const poiLoading = computed(() => poiLoadingCount.value > 0)
 let resizeObserver: ResizeObserver | null = null
@@ -376,7 +378,50 @@ function clearChargingMarkers() {
   chargingCluster?.remove()
   chargingCluster = null
   chargingLoadedTiles.clear()
-  chargingLoadedIds.clear()
+  chargingAllStations.clear()
+}
+
+function redrawChargingMarkers() {
+  const map = mapInstance.value
+  if (!map) return
+  chargingCluster?.remove()
+  chargingCluster = null
+  if (!chargingStationsEnabled.value || chargingAllStations.size === 0) return
+
+  chargingCluster = leafWithCluster.markerClusterGroup({
+    maxClusterRadius: 60,
+    animate: true,
+    iconCreateFunction: (cluster) => {
+      const count = cluster.getChildCount()
+      return L.divIcon({
+        className: '',
+        html: `<div class="charging-cluster">${count}</div>`,
+        iconSize: [36, 36],
+        iconAnchor: [18, 18],
+      })
+    },
+  })
+  chargingCluster.addTo(map)
+
+  const minKw = chargingMinPowerKw.value
+  const maxKw = chargingMaxPowerKw.value
+
+  for (const station of chargingAllStations.values()) {
+    if (minKw > 0 && !station.connectors.some((c) => c.powerKw != null && c.powerKw >= minKw))
+      continue
+    if (maxKw > 0 && !station.connectors.some((c) => c.powerKw == null || c.powerKw <= maxKw))
+      continue
+    const cls = station.isOperational === false ? ' charging-marker--unknown' : ''
+    const icon = L.divIcon({
+      className: '',
+      html: `<div class="charging-marker${cls}">&#9889;</div>`,
+      iconSize: [28, 28],
+      iconAnchor: [14, 14],
+    })
+    const marker = L.marker([station.latitude, station.longitude], { icon })
+    marker.bindPopup(buildChargingPopup(station))
+    chargingCluster.addLayer(marker)
+  }
 }
 
 function clearPoiMarkers(poiType: 'fuel' | 'service_area') {
@@ -537,49 +582,22 @@ async function loadChargingStations(overrideRadius?: number) {
   const radiusKm = overrideRadius ?? getBoundsRadiusKm()
   poiLoadingCount.value++
   try {
-    const stations = await mapApi.chargingStations(
-      center.lat,
-      center.lng,
-      radiusKm,
-      chargingMinPowerKw.value,
-      chargingMaxPowerKw.value,
-    )
+    // Always fetch unfiltered (0, 0) -- the power filter is applied client-side from
+    // chargingAllStations so slider changes never need a new API call.
+    const stations = await mapApi.chargingStations(center.lat, center.lng, radiusKm, 0, 0)
     if (fetchId !== chargingFetchId || !chargingStationsEnabled.value) return
 
-    if (!chargingCluster) {
-      chargingCluster = leafWithCluster.markerClusterGroup({
-        maxClusterRadius: 60,
-        animate: true,
-        iconCreateFunction: (cluster) => {
-          const count = cluster.getChildCount()
-          return L.divIcon({
-            className: '',
-            html: `<div class="charging-cluster">${count}</div>`,
-            iconSize: [36, 36],
-            iconAnchor: [18, 18],
-          })
-        },
-      })
-      chargingCluster.addTo(map)
-    }
-
+    let newStations = false
     for (const station of stations) {
       const id = String(station.id)
-      if (chargingLoadedIds.has(id)) continue
-      chargingLoadedIds.add(id)
-      const cls = station.isOperational === false ? ' charging-marker--unknown' : ''
-      const icon = L.divIcon({
-        className: '',
-        html: `<div class="charging-marker${cls}">&#9889;</div>`,
-        iconSize: [28, 28],
-        iconAnchor: [14, 14],
-      })
-      const marker = L.marker([station.latitude, station.longitude], { icon })
-      marker.bindPopup(buildChargingPopup(station))
-      chargingCluster.addLayer(marker)
+      if (!chargingAllStations.has(id)) {
+        chargingAllStations.set(id, station)
+        newStations = true
+      }
     }
 
     chargingLoadedTiles.add(centerKey)
+    if (newStations) redrawChargingMarkers()
   } catch {
     // OCM is optional; silently ignore errors
   } finally {
@@ -764,16 +782,10 @@ watch(isBev, (bev) => {
 })
 
 watch(chargingMinPowerKw, () => {
-  if (chargingStationsEnabled.value) {
-    clearChargingMarkers()
-    loadChargingStations()
-  }
+  if (chargingStationsEnabled.value) redrawChargingMarkers()
 })
 watch(chargingMaxPowerKw, () => {
-  if (chargingStationsEnabled.value) {
-    clearChargingMarkers()
-    loadChargingStations()
-  }
+  if (chargingStationsEnabled.value) redrawChargingMarkers()
 })
 
 // Route outline toggle: rebuild whichever layer is currently active
