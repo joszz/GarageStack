@@ -279,6 +279,11 @@ export interface PoiItem {
   tags: Record<string, string> | null
 }
 
+export interface PoiResponse {
+  items: PoiItem[]
+  hasMore: boolean
+}
+
 export const mapApi = {
   chargingStations: (
     lat: number,
@@ -304,7 +309,7 @@ export const mapApi = {
       radiusKm: String(radiusKm),
       vehicleType,
     })
-    return request<PoiItem[]>(`/api/map/poi?${params}`)
+    return request<PoiResponse>(`/api/map/poi?${params}`)
   },
 }
 

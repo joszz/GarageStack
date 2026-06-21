@@ -29,7 +29,7 @@ public sealed class OverpassApiClient(
     // same rate-limited tile is not immediately retried on every subsequent pan.
     private static readonly TimeSpan ForegroundMinInterval = TimeSpan.FromSeconds(5);
     private static readonly TimeSpan ForegroundGateTimeout = TimeSpan.FromSeconds(5);
-    private static readonly TimeSpan ForegroundRetryAfter429 = TimeSpan.FromSeconds(60);
+    private static readonly TimeSpan ForegroundRetryAfter429 = TimeSpan.FromSeconds(30);
 
     private string BaseUrl =>
         configuration["Overpass:BaseUrl"] ?? "https://overpass-api.de/api/interpreter";

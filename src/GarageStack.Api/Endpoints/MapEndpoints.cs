@@ -43,10 +43,17 @@ public static class MapEndpoints
                 return Results.BadRequest(new { error = "type must be 'fuel' or 'service_area'" });
 
             if (!PoiService.IsPoiTypeAllowed(type, vehicleType))
-                return Results.Ok(Array.Empty<PoiItemDto>());
+                return Results.Ok(new PoiResult([], false));
 
-            var pois = await svc.GetPoisAsync(type, lat, lng, radiusKm, ct);
-            return Results.Ok(pois);
+            try
+            {
+                var result = await svc.GetPoisAsync(type, lat, lng, radiusKm, ct);
+                return Results.Ok(result);
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                return Results.Ok(new PoiResult([], false));
+            }
         })
         .WithSummary("Get nearby POIs (fuel stations, service areas) from OSM Overpass cache");
 

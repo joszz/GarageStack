@@ -473,7 +473,7 @@ async function loadPoiLayer(poiType: 'fuel' | 'service_area', overrideRadius?: n
 
   poiLoadingCount.value++
   try {
-    const items = await mapApi.poi(poiType, center.lat, center.lng, radiusKm, vt)
+    const { items, hasMore } = await mapApi.poi(poiType, center.lat, center.lng, radiusKm, vt)
     const currentId = poiType === 'fuel' ? fuelFetchId : serviceAreaFetchId
     if (fetchId !== currentId || !enabled) return
 
@@ -518,25 +518,28 @@ async function loadPoiLayer(poiType: 'fuel' | 'service_area', overrideRadius?: n
 
     loadedTiles.add(centerKey)
 
-    // When no new items arrived the server has nothing more to cache for this viewport --
-    // mark all visible tiles done so we stop chaining. When new items did arrive, there
-    // may be uncached tiles remaining, so schedule another pass.
+    // hasMore = server still has uncached tiles in this radius (either beyond MaxOnDemandTiles,
+    // or a fetch was skipped due to Overpass rate-limit backoff).
+    // When !hasMore: all tiles are cached -- bulk-mark the viewport and stop.
+    // When hasMore: chain another request. Use a longer delay when no new items arrived
+    // (server is likely in a rate-limit backoff window) to avoid hammering the API.
     if (visibleKeys) {
-      if (!newItems && loadedIds.size > 0) {
+      if (!hasMore) {
         for (const k of visibleKeys) loadedTiles.add(k)
       } else if (enabled && visibleKeys.some((k) => !loadedTiles.has(k))) {
+        const chainDelay = newItems ? 400 : 5000
         if (poiType === 'fuel') {
           if (fuelDebounceTimer !== null) clearTimeout(fuelDebounceTimer)
           fuelDebounceTimer = setTimeout(() => {
             fuelDebounceTimer = null
             loadPoiLayer(poiType)
-          }, 400)
+          }, chainDelay)
         } else {
           if (serviceAreaDebounceTimer !== null) clearTimeout(serviceAreaDebounceTimer)
           serviceAreaDebounceTimer = setTimeout(() => {
             serviceAreaDebounceTimer = null
             loadPoiLayer(poiType)
-          }, 400)
+          }, chainDelay)
         }
       }
     }

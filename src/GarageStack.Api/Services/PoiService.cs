@@ -24,18 +24,17 @@ public sealed class PoiService(
     public static IReadOnlyList<(int CellLat, int CellLng)> ComputeTiles(double lat, double lng, double radiusKm)
         => TileHelper.ComputeTiles(lat, lng, radiusKm);
 
-    public async Task<IReadOnlyList<PoiItemDto>> GetPoisAsync(
+    public async Task<PoiResult> GetPoisAsync(
         string poiType, double lat, double lng, double radiusKm,
         CancellationToken ct = default)
     {
         var tiles = ComputeTiles(lat, lng, radiusKm);
         var uncached = await repository.GetUncachedTilesAsync("overpass", poiType, tiles, ct);
 
-        // Cap on-demand fetches to the tiles closest to the viewport centre. The remaining
-        // uncached tiles will be filled by the Worker pre-caching service in the background.
-        // This keeps the API response well under the server-side request timeout even on a
-        // cold cache (no 429 backoff concerns here — FetchFuelStationsAsync / FetchServiceAreasAsync
-        // use the foreground fast-fail path and return [] immediately when the gate is busy).
+        // Cap on-demand fetches to the tile closest to the viewport centre. The remaining
+        // uncached tiles will be filled by the Worker pre-caching service in the background
+        // (and by client-side chain loading). FetchFuelStationsAsync / FetchServiceAreasAsync
+        // use the foreground fast-fail path and return null when the gate is busy or rate-limited.
         const int MaxOnDemandTiles = 1;
         var centerCellLat = (int)Math.Floor(lat * 2);
         var centerCellLng = (int)Math.Floor(lng * 2);
@@ -44,6 +43,7 @@ public sealed class PoiService(
             .Take(MaxOnDemandTiles)
             .ToList();
 
+        int tilesActuallyCached = 0;
         foreach (var (cellLat, cellLng) in toFetch)
         {
             try
@@ -55,7 +55,10 @@ public sealed class PoiService(
                     _ => (IReadOnlyList<PoiItem>?)[],
                 };
                 if (items is not null)
+                {
                     await repository.UpsertTileAsync("overpass", poiType, cellLat, cellLng, items, Ttl, ct);
+                    tilesActuallyCached++;
+                }
             }
             catch (Exception ex) when (!ct.IsCancellationRequested)
             {
@@ -64,6 +67,11 @@ public sealed class PoiService(
             }
         }
 
+        // hasMore = uncached tiles still remain after this request (either more exist beyond
+        // MaxOnDemandTiles, or a fetch was skipped due to a rate-limit backoff). The client
+        // uses this to decide whether to chain another request or to stop.
+        bool hasMore = uncached.Count - tilesActuallyCached > 0;
+
         var lngFactor = 111.0 * Math.Cos(lat * Math.PI / 180.0);
         var minLat = lat - radiusKm / 111.0;
         var maxLat = lat + radiusKm / 111.0;
@@ -71,7 +79,7 @@ public sealed class PoiService(
         var maxLng = lngFactor > 0 ? lng + radiusKm / lngFactor : lng + 1.0;
 
         var pois = await repository.GetPoisInBoundsAsync("overpass", poiType, minLat, minLng, maxLat, maxLng, ct);
-        return pois.Select(MapToDto).ToList();
+        return new PoiResult(pois.Select(MapToDto).ToList(), hasMore);
     }
 
     private static PoiItemDto MapToDto(PoiItem p) => new(
@@ -97,3 +105,5 @@ public sealed record PoiItemDto(
     double Longitude,
     string? Name,
     Dictionary<string, string>? Tags);
+
+public sealed record PoiResult(IReadOnlyList<PoiItemDto> Items, bool HasMore);
