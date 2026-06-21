@@ -38,32 +38,35 @@ public sealed class OverpassApiClient(
     // Fail fast: return [] if in a 429 backoff window or the gate is held by the Worker.
     // The API caller serves whatever is already cached.
 
-    public Task<IReadOnlyList<PoiItem>> FetchFuelStationsAsync(int cellLat, int cellLng, CancellationToken ct = default)
+    // Returns null when Overpass is temporarily unavailable (backoff / gate busy).
+    // Callers must skip UpsertTileAsync on null so the tile is not cached as empty.
+    public Task<IReadOnlyList<PoiItem>?> FetchFuelStationsAsync(int cellLat, int cellLng, CancellationToken ct = default)
         => FetchTileAsync("overpass", "fuel", cellLat, cellLng,
             "[out:json][timeout:30];(node[\"amenity\"=\"fuel\"]{bbox};way[\"amenity\"=\"fuel\"]{bbox};);out center;",
             foreground: true, ct);
 
-    public Task<IReadOnlyList<PoiItem>> FetchServiceAreasAsync(int cellLat, int cellLng, CancellationToken ct = default)
+    public Task<IReadOnlyList<PoiItem>?> FetchServiceAreasAsync(int cellLat, int cellLng, CancellationToken ct = default)
         => FetchTileAsync("overpass", "service_area", cellLat, cellLng,
             "[out:json][timeout:30];(node[\"highway\"=\"services\"]{bbox};way[\"highway\"=\"services\"]{bbox};);out center;",
             foreground: true, ct);
 
     // ── Background (Worker pre-caching path) ─────────────────────────────────────────────────
     // Wait indefinitely for the gate and honour the full 429 backoff window.
+    // Background path never returns null -- it throws on rate-limit so the Worker can retry.
 
-    public Task<IReadOnlyList<PoiItem>> FetchFuelStationsBackgroundAsync(int cellLat, int cellLng, CancellationToken ct = default)
-        => FetchTileAsync("overpass", "fuel", cellLat, cellLng,
+    public async Task<IReadOnlyList<PoiItem>> FetchFuelStationsBackgroundAsync(int cellLat, int cellLng, CancellationToken ct = default)
+        => (await FetchTileAsync("overpass", "fuel", cellLat, cellLng,
             "[out:json][timeout:30];(node[\"amenity\"=\"fuel\"]{bbox};way[\"amenity\"=\"fuel\"]{bbox};);out center;",
-            foreground: false, ct);
+            foreground: false, ct))!;
 
-    public Task<IReadOnlyList<PoiItem>> FetchServiceAreasBackgroundAsync(int cellLat, int cellLng, CancellationToken ct = default)
-        => FetchTileAsync("overpass", "service_area", cellLat, cellLng,
+    public async Task<IReadOnlyList<PoiItem>> FetchServiceAreasBackgroundAsync(int cellLat, int cellLng, CancellationToken ct = default)
+        => (await FetchTileAsync("overpass", "service_area", cellLat, cellLng,
             "[out:json][timeout:30];(node[\"highway\"=\"services\"]{bbox};way[\"highway\"=\"services\"]{bbox};);out center;",
-            foreground: false, ct);
+            foreground: false, ct))!;
 
     // ── Core implementation ───────────────────────────────────────────────────────────────────
 
-    private async Task<IReadOnlyList<PoiItem>> FetchTileAsync(
+    private async Task<IReadOnlyList<PoiItem>?> FetchTileAsync(
         string source, string poiType,
         int cellLat, int cellLng,
         string queryTemplate,
@@ -88,7 +91,7 @@ public sealed class OverpassApiClient(
             {
                 logger.LogDebug("Overpass backoff active for {PoiType} ({CellLat},{CellLng}), serving from cache",
                     poiType, cellLat, cellLng);
-                return [];
+                return null;
             }
 
             // Hard timeout on gate acquisition so the HTTP request is never held for minutes.
@@ -96,7 +99,7 @@ public sealed class OverpassApiClient(
             {
                 logger.LogDebug("Overpass gate busy for {PoiType} ({CellLat},{CellLng}), serving from cache",
                     poiType, cellLat, cellLng);
-                return [];
+                return null;
             }
         }
         else
@@ -114,7 +117,7 @@ public sealed class OverpassApiClient(
                 {
                     logger.LogDebug("Overpass backoff active (inside gate) for {PoiType} ({CellLat},{CellLng}), serving from cache",
                         poiType, cellLat, cellLng);
-                    return [];
+                    return null;
                 }
             }
 
@@ -151,7 +154,7 @@ public sealed class OverpassApiClient(
                         (DateTimeOffset.UtcNow + ForegroundRetryAfter429).UtcTicks);
                     logger.LogDebug("Overpass {Status} for {PoiType} ({CellLat},{CellLng}) on foreground path, backing off {Seconds}s",
                         (int)response.StatusCode, poiType, cellLat, cellLng, (int)ForegroundRetryAfter429.TotalSeconds);
-                    return [];
+                    return null;
                 }
 
                 // Background: record backoff window so the foreground path skips Overpass for

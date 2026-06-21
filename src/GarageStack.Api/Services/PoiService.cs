@@ -52,9 +52,10 @@ public sealed class PoiService(
                 {
                     "fuel" => await overpassClient.FetchFuelStationsAsync(cellLat, cellLng, ct),
                     "service_area" => await overpassClient.FetchServiceAreasAsync(cellLat, cellLng, ct),
-                    _ => (IReadOnlyList<PoiItem>)[],
+                    _ => (IReadOnlyList<PoiItem>?)[],
                 };
-                await repository.UpsertTileAsync("overpass", poiType, cellLat, cellLng, items, Ttl, ct);
+                if (items is not null)
+                    await repository.UpsertTileAsync("overpass", poiType, cellLat, cellLng, items, Ttl, ct);
             }
             catch (Exception ex) when (!ct.IsCancellationRequested)
             {

@@ -522,7 +522,7 @@ async function loadPoiLayer(poiType: 'fuel' | 'service_area', overrideRadius?: n
     // mark all visible tiles done so we stop chaining. When new items did arrive, there
     // may be uncached tiles remaining, so schedule another pass.
     if (visibleKeys) {
-      if (!newItems) {
+      if (!newItems && loadedIds.size > 0) {
         for (const k of visibleKeys) loadedTiles.add(k)
       } else if (enabled && visibleKeys.some((k) => !loadedTiles.has(k))) {
         if (poiType === 'fuel') {
@@ -647,7 +647,7 @@ async function loadChargingStations(overrideRadius?: number) {
     // When no new stations arrived the server has nothing more to cache for this viewport --
     // mark all visible tiles done. When new stations did arrive, chain another pass.
     if (visibleKeys) {
-      if (!newStations) {
+      if (!newStations && chargingAllStations.size > 0) {
         for (const k of visibleKeys) chargingLoadedTiles.add(k)
       } else if (
         chargingStationsEnabled.value &&
