@@ -222,6 +222,11 @@
     "serviceAreas": "Motorway service areas",
     "serviceAreasDesc": "Shows motorway service areas and rest stops near your position.",
     "poiLoading": "Fetching live map data...",
+    "fuelBrandFilter": "Brand filter",
+    "fuelBrandFilterDesc": "Show only selected fuel station brands. Only available after loading stations.",
+    "fuelBrandSelected": "selected",
+    "fuelBrandNoneLoaded": "Enable fuel stations on the map to load available brands.",
+    "fuelBrandClear": "Clear selection",
     "findCar": "Find car",
     "points": "pts"
   },

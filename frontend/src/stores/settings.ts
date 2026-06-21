@@ -157,6 +157,7 @@ export interface AppSettings {
   chargingMinPowerKw: number
   chargingMaxPowerKw: number
   fuelStationsEnabled: boolean
+  fuelBrandFilter: string[]
   serviceAreasEnabled: boolean
 }
 
@@ -217,6 +218,7 @@ const defaults: AppSettings = {
   chargingMinPowerKw: 0,
   chargingMaxPowerKw: 0,
   fuelStationsEnabled: false,
+  fuelBrandFilter: [],
   serviceAreasEnabled: false,
 }
 
@@ -325,6 +327,7 @@ function loadFromKey(key: string): AppSettings {
           chargingMaxPowerKw:
             typeof parsed.chargingMaxPowerKw === 'number' ? parsed.chargingMaxPowerKw : 0,
           fuelStationsEnabled: parsed.fuelStationsEnabled === true,
+          fuelBrandFilter: Array.isArray(parsed.fuelBrandFilter) ? parsed.fuelBrandFilter : [],
           serviceAreasEnabled: parsed.serviceAreasEnabled === true,
         }
       }
@@ -350,6 +353,7 @@ function loadFromKey(key: string): AppSettings {
           chargingMaxPowerKw:
             typeof parsed.chargingMaxPowerKw === 'number' ? parsed.chargingMaxPowerKw : 0,
           fuelStationsEnabled: parsed.fuelStationsEnabled === true,
+          fuelBrandFilter: Array.isArray(parsed.fuelBrandFilter) ? parsed.fuelBrandFilter : [],
           serviceAreasEnabled: parsed.serviceAreasEnabled === true,
         }
       }
@@ -395,6 +399,7 @@ export const useSettingsStore = defineStore('settings', () => {
   const chargingMinPowerKw = ref<number>(loaded.chargingMinPowerKw)
   const chargingMaxPowerKw = ref<number>(loaded.chargingMaxPowerKw)
   const fuelStationsEnabled = ref<boolean>(loaded.fuelStationsEnabled)
+  const fuelBrandFilter = ref<string[]>(loaded.fuelBrandFilter)
   const serviceAreasEnabled = ref<boolean>(loaded.serviceAreasEnabled)
 
   document.documentElement.dataset.theme = theme.value
@@ -421,6 +426,7 @@ export const useSettingsStore = defineStore('settings', () => {
         chargingMinPowerKw: chargingMinPowerKw.value,
         chargingMaxPowerKw: chargingMaxPowerKw.value,
         fuelStationsEnabled: fuelStationsEnabled.value,
+        fuelBrandFilter: fuelBrandFilter.value,
         serviceAreasEnabled: serviceAreasEnabled.value,
       }),
     )
@@ -441,6 +447,7 @@ export const useSettingsStore = defineStore('settings', () => {
   watch(chargingMinPowerKw, save)
   watch(chargingMaxPowerKw, save)
   watch(fuelStationsEnabled, save)
+  watch(fuelBrandFilter, save, { deep: true })
   watch(serviceAreasEnabled, save)
   watch(theme, (val) => {
     document.documentElement.dataset.theme = val
@@ -473,6 +480,7 @@ export const useSettingsStore = defineStore('settings', () => {
     chargingMinPowerKw,
     chargingMaxPowerKw,
     fuelStationsEnabled,
+    fuelBrandFilter,
     serviceAreasEnabled,
     resetCards,
   }

@@ -222,6 +222,11 @@
     "serviceAreas": "Verzorgingsplaatsen",
     "serviceAreasDesc": "Toont verzorgingsplaatsen op de snelweg bij jouw locatie.",
     "poiLoading": "Live kaartgegevens ophalen...",
+    "fuelBrandFilter": "Merkfilter",
+    "fuelBrandFilterDesc": "Toon alleen geselecteerde tankstationmerken. Beschikbaar nadat stations zijn geladen.",
+    "fuelBrandSelected": "geselecteerd",
+    "fuelBrandNoneLoaded": "Schakel tankstations in op de kaart om beschikbare merken te laden.",
+    "fuelBrandClear": "Selectie wissen",
     "findCar": "Vind auto",
     "points": "ptn"
   },

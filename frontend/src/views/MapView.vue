@@ -76,6 +76,21 @@ const serviceAreasEnabled = computed({
     settingsStore.serviceAreasEnabled = v
   },
 })
+const fuelBrandFilter = computed({
+  get: () => settingsStore.fuelBrandFilter,
+  set: (v: string[]) => {
+    settingsStore.fuelBrandFilter = v
+  },
+})
+const availableFuelBrands = computed(() => {
+  const brands = new Set<string>()
+  for (const item of fuelAllItems.values()) {
+    const tags = item.tags ?? {}
+    const brand = tags['brand'] ?? tags['operator'] ?? null
+    if (brand) brands.add(brand)
+  }
+  return [...brands].sort((a, b) => a.localeCompare(b))
+})
 const chargingMinPowerKw = computed({
   get: () => settingsStore.chargingMinPowerKw,
   set: (v: number) => {
@@ -145,6 +160,9 @@ let fuelFetchId = 0
 let serviceAreaFetchId = 0
 const fuelLoadedTiles = new Set<string>()
 const fuelLoadedIds = new Set<string>()
+// All fuel stations fetched so far, keyed by externalId. The brand filter is applied
+// client-side from this cache so checkbox changes never trigger a new API call.
+const fuelAllItems = new Map<string, PoiItem>()
 const serviceAreaLoadedTiles = new Set<string>()
 const serviceAreaLoadedIds = new Set<string>()
 const chargingLoadedTiles = new Set<string>()
@@ -430,12 +448,59 @@ function clearPoiMarkers(poiType: 'fuel' | 'service_area') {
     fuelCluster = null
     fuelLoadedTiles.clear()
     fuelLoadedIds.clear()
+    fuelAllItems.clear()
   } else {
     serviceAreaCluster?.remove()
     serviceAreaCluster = null
     serviceAreaLoadedTiles.clear()
     serviceAreaLoadedIds.clear()
   }
+}
+
+function redrawFuelMarkers() {
+  const map = mapInstance.value
+  if (!map) return
+  fuelCluster?.remove()
+  fuelCluster = null
+  if (!fuelStationsEnabled.value || fuelAllItems.size === 0) return
+
+  fuelCluster = leafWithCluster.markerClusterGroup({
+    maxClusterRadius: 60,
+    animate: true,
+    iconCreateFunction: (c) => {
+      const count = c.getChildCount()
+      return L.divIcon({
+        className: '',
+        html: `<div class="poi-cluster poi-cluster--fuel">${count}</div>`,
+        iconSize: [36, 36],
+        iconAnchor: [18, 18],
+      })
+    },
+  })
+  fuelCluster.addTo(map)
+
+  const selectedBrands = fuelBrandFilter.value
+  for (const item of fuelAllItems.values()) {
+    const tags = item.tags ?? {}
+    const brand = tags['brand'] ?? tags['operator'] ?? null
+    if (selectedBrands.length > 0 && brand !== null && !selectedBrands.includes(brand)) continue
+    const icon = L.divIcon({
+      className: '',
+      html: '<div class="poi-marker poi-marker--fuel">&#9981;</div>',
+      iconSize: [28, 28],
+      iconAnchor: [14, 14],
+    })
+    const marker = L.marker([item.latitude, item.longitude], { icon })
+    marker.bindPopup(buildPoiPopup(item))
+    fuelCluster.addLayer(marker)
+  }
+}
+
+function toggleFuelBrand(brand: string) {
+  const current = fuelBrandFilter.value
+  fuelBrandFilter.value = current.includes(brand)
+    ? current.filter((b) => b !== brand)
+    : [...current, brand]
 }
 
 function buildPoiPopup(item: PoiItem): string {
@@ -477,43 +542,49 @@ async function loadPoiLayer(poiType: 'fuel' | 'service_area', overrideRadius?: n
     const currentId = poiType === 'fuel' ? fuelFetchId : serviceAreaFetchId
     if (fetchId !== currentId || !enabled) return
 
-    let cluster = poiType === 'fuel' ? fuelCluster : serviceAreaCluster
-    if (!cluster) {
-      cluster = leafWithCluster.markerClusterGroup({
-        maxClusterRadius: 60,
-        animate: true,
-        iconCreateFunction: (c) => {
-          const count = c.getChildCount()
-          const cls = poiType === 'fuel' ? 'poi-cluster--fuel' : 'poi-cluster--service-area'
-          return L.divIcon({
-            className: '',
-            html: `<div class="poi-cluster ${cls}">${count}</div>`,
-            iconSize: [36, 36],
-            iconAnchor: [18, 18],
-          })
-        },
-      })
-      cluster.addTo(map)
-      if (poiType === 'fuel') fuelCluster = cluster
-      else serviceAreaCluster = cluster
-    }
-
     let newItems = false
-    for (const item of items) {
-      if (loadedIds.has(item.externalId)) continue
-      loadedIds.add(item.externalId)
-      newItems = true
-      const cls = poiType === 'fuel' ? 'poi-marker--fuel' : 'poi-marker--service-area'
-      const symbol = poiType === 'fuel' ? '&#9981;' : '&#9654;'
-      const icon = L.divIcon({
-        className: '',
-        html: `<div class="poi-marker ${cls}">${symbol}</div>`,
-        iconSize: [28, 28],
-        iconAnchor: [14, 14],
-      })
-      const marker = L.marker([item.latitude, item.longitude], { icon })
-      marker.bindPopup(buildPoiPopup(item))
-      cluster.addLayer(marker)
+
+    if (poiType === 'fuel') {
+      for (const item of items) {
+        if (fuelAllItems.has(item.externalId)) continue
+        fuelAllItems.set(item.externalId, item)
+        loadedIds.add(item.externalId)
+        newItems = true
+      }
+      if (newItems) redrawFuelMarkers()
+    } else {
+      let cluster = serviceAreaCluster
+      if (!cluster) {
+        cluster = leafWithCluster.markerClusterGroup({
+          maxClusterRadius: 60,
+          animate: true,
+          iconCreateFunction: (c) => {
+            const count = c.getChildCount()
+            return L.divIcon({
+              className: '',
+              html: `<div class="poi-cluster poi-cluster--service-area">${count}</div>`,
+              iconSize: [36, 36],
+              iconAnchor: [18, 18],
+            })
+          },
+        })
+        cluster.addTo(map)
+        serviceAreaCluster = cluster
+      }
+      for (const item of items) {
+        if (loadedIds.has(item.externalId)) continue
+        loadedIds.add(item.externalId)
+        newItems = true
+        const icon = L.divIcon({
+          className: '',
+          html: '<div class="poi-marker poi-marker--service-area">&#9654;</div>',
+          iconSize: [28, 28],
+          iconAnchor: [14, 14],
+        })
+        const marker = L.marker([item.latitude, item.longitude], { icon })
+        marker.bindPopup(buildPoiPopup(item))
+        cluster.addLayer(marker)
+      }
     }
 
     loadedTiles.add(centerKey)
@@ -831,6 +902,10 @@ watch(fuelStationsEnabled, (enabled) => {
   else clearPoiMarkers('fuel')
 })
 
+watch(fuelBrandFilter, () => {
+  if (fuelStationsEnabled.value) redrawFuelMarkers()
+})
+
 watch(serviceAreasEnabled, (enabled) => {
   if (enabled) loadPoiLayer('service_area')
   else clearPoiMarkers('service_area')
@@ -1041,6 +1116,47 @@ onUnmounted(() => {
               />
             </div>
           </div>
+          <template v-if="!isBev && fuelStationsEnabled">
+            <div class="fuel-brand-filter">
+              <div class="fuel-brand-filter__header">
+                <div>
+                  <span class="settings-toggle__label">
+                    <font-awesome-icon icon="tag" class="settings-toggle__icon" />
+                    {{ t('trips.fuelBrandFilter') }}
+                  </span>
+                  <span class="settings-toggle__desc">{{ t('trips.fuelBrandFilterDesc') }}</span>
+                </div>
+                <button
+                  v-if="fuelBrandFilter.length > 0"
+                  class="btn btn-sm btn-link fuel-brand-filter__clear"
+                  @click="fuelBrandFilter = []"
+                >
+                  {{ t('trips.fuelBrandClear') }}
+                </button>
+              </div>
+              <div v-if="availableFuelBrands.length === 0" class="fuel-brand-filter__empty">
+                {{ t('trips.fuelBrandNoneLoaded') }}
+              </div>
+              <div v-else class="fuel-brand-filter__list">
+                <label
+                  v-for="brand in availableFuelBrands"
+                  :key="brand"
+                  class="fuel-brand-filter__item form-check"
+                >
+                  <input
+                    type="checkbox"
+                    class="form-check-input"
+                    :checked="fuelBrandFilter.includes(brand)"
+                    @change="toggleFuelBrand(brand)"
+                  />
+                  <span class="form-check-label">{{ brand }}</span>
+                </label>
+              </div>
+              <div v-if="fuelBrandFilter.length > 0" class="fuel-brand-filter__summary">
+                {{ fuelBrandFilter.length }} {{ t('trips.fuelBrandSelected') }}
+              </div>
+            </div>
+          </template>
           <template v-if="!isHev && chargingStationsEnabled">
             <div class="charging-power-filter">
               <div class="charging-power-filter__header">
@@ -1311,5 +1427,52 @@ onUnmounted(() => {
   --slider-tooltip-bg: #22c55e;
   --slider-tooltip-color: #fff;
   --slider-handle-ring-color: rgba(34, 197, 94, 0.2);
+}
+
+.fuel-brand-filter {
+  padding: 0.25rem 0 0.5rem;
+}
+
+.fuel-brand-filter__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.5rem;
+}
+
+.fuel-brand-filter__clear {
+  font-size: 0.75rem;
+  padding: 0;
+  color: var(--color-text-muted, #888);
+  flex-shrink: 0;
+}
+
+.fuel-brand-filter__list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.fuel-brand-filter__item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+  margin: 0;
+}
+
+.fuel-brand-filter__empty {
+  font-size: 0.8rem;
+  color: var(--color-text-muted, #888);
+  font-style: italic;
+}
+
+.fuel-brand-filter__summary {
+  margin-top: 0.4rem;
+  font-size: 0.75rem;
+  color: #d97706;
 }
 </style>
