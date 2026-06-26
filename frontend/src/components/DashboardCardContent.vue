@@ -33,6 +33,7 @@ const vehicleType = computed((): VehicleType | 'unknown' => {
 })
 
 const isHev = computed(() => vehicleType.value === 'hev')
+const latestTrip = computed(() => store.trips[store.trips.length - 1] ?? null)
 const supportsExternalCharge = computed(
   () => vehicleType.value === 'phev' || vehicleType.value === 'bev',
 )
@@ -255,13 +256,13 @@ const supportsExternalCharge = computed(
       :value="
         status.currentJourneyDistance !== null && status.currentJourneyDistance > 0
           ? status.currentJourneyDistance.toFixed(1)
-          : store.lastTrip
-            ? store.lastTrip.distanceKm.toFixed(1)
+          : latestTrip
+            ? latestTrip.distanceKm.toFixed(1)
             : t('vehicle.noTrips')
       "
       :unit="
         (status.currentJourneyDistance !== null && status.currentJourneyDistance > 0) ||
-        store.lastTrip !== null
+        latestTrip !== null
           ? t('common.km')
           : undefined
       "
@@ -272,7 +273,7 @@ const supportsExternalCharge = computed(
       "
       :clickable="
         !(status.currentJourneyDistance !== null && status.currentJourneyDistance > 0) &&
-        store.lastTrip !== null
+        latestTrip !== null
       "
       @click="router.push({ name: 'map', query: { selectLatest: '1' } })"
     />
