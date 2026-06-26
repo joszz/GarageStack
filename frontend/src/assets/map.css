@@ -37,7 +37,6 @@
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
 }
 
 .trip-sidebar__header {
@@ -187,6 +186,90 @@
   background: #6b7280;
 }
 
+/* POI markers (Leaflet divIcon - cannot be scoped) */
+.poi-marker {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.poi-marker--fuel {
+  background: #d97706;
+}
+
+.poi-marker--service-area {
+  background: #7c3aed;
+}
+
+.poi-cluster {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 3px solid rgba(0, 0, 0, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+.poi-cluster--fuel {
+  background: #d97706;
+  border-color: rgba(217, 119, 6, 0.35);
+}
+
+.poi-cluster--service-area {
+  background: #7c3aed;
+  border-color: rgba(124, 58, 237, 0.35);
+}
+
+.poi-popup {
+  min-width: 140px;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.poi-popup__title {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.poi-popup__meta {
+  color: var(--color-text-muted, #888);
+  font-size: 0.75rem;
+}
+
+/* Loading indicator overlay on map canvas */
+.poi-loading-indicator {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+  pointer-events: none;
+  white-space: nowrap;
+}
+
 .charging-popup {
   min-width: 160px;
   font-size: 0.82rem;
@@ -260,6 +343,50 @@
 .trip-list__meta {
   font-size: 0.75rem;
   color: var(--color-text-muted);
+}
+
+/* Map layer toggle buttons (header area) */
+.map-layer-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  transition:
+    background 0.15s,
+    border-color 0.15s,
+    color 0.15s;
+}
+
+.map-layer-btn:hover {
+  background: var(--color-surface-2);
+  border-color: var(--color-border);
+  color: var(--color-text);
+}
+
+.map-layer-btn--fuel.map-layer-btn--active {
+  background: #d97706;
+  border-color: #d97706;
+  color: #fff;
+}
+
+.map-layer-btn--fuel.map-layer-btn--active:hover {
+  background: #b45309;
+  border-color: #b45309;
+  color: #fff;
+}
+
+.map-layer-btn--charging.map-layer-btn--active {
+  background: #16a34a;
+  border-color: #16a34a;
+  color: #fff;
+}
+
+.map-layer-btn--charging.map-layer-btn--active:hover {
+  background: #15803d;
+  border-color: #15803d;
+  color: #fff;
 }
 
 .map-controls {

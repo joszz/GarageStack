@@ -156,6 +156,9 @@ export interface AppSettings {
   chargingStationsEnabled: boolean
   chargingMinPowerKw: number
   chargingMaxPowerKw: number
+  fuelStationsEnabled: boolean
+  fuelBrandFilter: string[]
+  serviceAreasEnabled: boolean
 }
 
 function osPreferredTheme(): Theme {
@@ -214,6 +217,9 @@ const defaults: AppSettings = {
   chargingStationsEnabled: false,
   chargingMinPowerKw: 0,
   chargingMaxPowerKw: 0,
+  fuelStationsEnabled: false,
+  fuelBrandFilter: [],
+  serviceAreasEnabled: false,
 }
 
 function migrateCards(raw: { id: string; visible: boolean }[]): CardConfig[] {
@@ -320,6 +326,9 @@ function loadFromKey(key: string): AppSettings {
             typeof parsed.chargingMinPowerKw === 'number' ? parsed.chargingMinPowerKw : 0,
           chargingMaxPowerKw:
             typeof parsed.chargingMaxPowerKw === 'number' ? parsed.chargingMaxPowerKw : 0,
+          fuelStationsEnabled: parsed.fuelStationsEnabled === true,
+          fuelBrandFilter: Array.isArray(parsed.fuelBrandFilter) ? parsed.fuelBrandFilter : [],
+          serviceAreasEnabled: parsed.serviceAreasEnabled === true,
         }
       }
 
@@ -343,6 +352,9 @@ function loadFromKey(key: string): AppSettings {
             typeof parsed.chargingMinPowerKw === 'number' ? parsed.chargingMinPowerKw : 0,
           chargingMaxPowerKw:
             typeof parsed.chargingMaxPowerKw === 'number' ? parsed.chargingMaxPowerKw : 0,
+          fuelStationsEnabled: parsed.fuelStationsEnabled === true,
+          fuelBrandFilter: Array.isArray(parsed.fuelBrandFilter) ? parsed.fuelBrandFilter : [],
+          serviceAreasEnabled: parsed.serviceAreasEnabled === true,
         }
       }
     }
@@ -386,6 +398,9 @@ export const useSettingsStore = defineStore('settings', () => {
   const chargingStationsEnabled = ref<boolean>(loaded.chargingStationsEnabled)
   const chargingMinPowerKw = ref<number>(loaded.chargingMinPowerKw)
   const chargingMaxPowerKw = ref<number>(loaded.chargingMaxPowerKw)
+  const fuelStationsEnabled = ref<boolean>(loaded.fuelStationsEnabled)
+  const fuelBrandFilter = ref<string[]>(loaded.fuelBrandFilter)
+  const serviceAreasEnabled = ref<boolean>(loaded.serviceAreasEnabled)
 
   document.documentElement.dataset.theme = theme.value
   applyCarColors(carColorScheme.value)
@@ -410,6 +425,9 @@ export const useSettingsStore = defineStore('settings', () => {
         chargingStationsEnabled: chargingStationsEnabled.value,
         chargingMinPowerKw: chargingMinPowerKw.value,
         chargingMaxPowerKw: chargingMaxPowerKw.value,
+        fuelStationsEnabled: fuelStationsEnabled.value,
+        fuelBrandFilter: fuelBrandFilter.value,
+        serviceAreasEnabled: serviceAreasEnabled.value,
       }),
     )
   }
@@ -428,6 +446,9 @@ export const useSettingsStore = defineStore('settings', () => {
   watch(chargingStationsEnabled, save)
   watch(chargingMinPowerKw, save)
   watch(chargingMaxPowerKw, save)
+  watch(fuelStationsEnabled, save)
+  watch(fuelBrandFilter, save, { deep: true })
+  watch(serviceAreasEnabled, save)
   watch(theme, (val) => {
     document.documentElement.dataset.theme = val
     save()
@@ -458,6 +479,9 @@ export const useSettingsStore = defineStore('settings', () => {
     chargingStationsEnabled,
     chargingMinPowerKw,
     chargingMaxPowerKw,
+    fuelStationsEnabled,
+    fuelBrandFilter,
+    serviceAreasEnabled,
     resetCards,
   }
 })
