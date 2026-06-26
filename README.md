@@ -8,7 +8,7 @@ GarageStack is a free, open-source vehicle monitoring dashboard for **modern MG 
 
 - **Live dashboard** -- Real-time vehicle telemetry displayed as configurable cards. Cards are automatically shown or hidden based on your vehicle type (HEV, PHEV, BEV) and can be reordered or toggled individually in the dashboard's edit mode.
 - **Trip history** -- Browse past journeys on an interactive map with route playback and heatmap visualisation to identify frequently driven roads.
-- **Energy statistics** -- Track daily energy consumption, efficiency (Wh/km), fuel use, and electric share over time.
+- **Energy statistics** -- Track daily energy consumption, efficiency (Wh/km), fuel use, electric share, average driving speed, and more over a configurable time window.
 - **Remote commands** -- Trigger climate pre-conditioning, lock or unlock the car, and activate the horn and lights remotely from the dashboard.
 - **Push notifications** -- Browser and in-app alerts for key events: engine started, low tyre pressure, low EV battery, car left unlocked, and doors or windows left open.
 - **Homepage widget** -- A read-only API endpoint for the [gethomepage.dev](https://gethomepage.dev) Custom API widget, exposing key vehicle stats at a glance.
@@ -24,7 +24,7 @@ GarageStack is a free, open-source vehicle monitoring dashboard for **modern MG 
 Cards are shown or hidden automatically based on vehicle type (HEV / PHEV / BEV). You can also reorder and toggle individual cards in the dashboard's edit mode.
 
 | Card | Description | Vehicle types |
-|------|-------------|---------------|
+| ---- | ----------- | ------------- |
 | Fuel Level | Tank level as a percentage | HEV, PHEV |
 | Fuel Range | Estimated remaining range | HEV, PHEV |
 | EV Battery | State of charge (%) | All |
@@ -43,17 +43,36 @@ Cards are shown or hidden automatically based on vehicle type (HEV / PHEV / BEV)
 | Since Charge | Distance since last charge session | PHEV, BEV |
 | Efficiency | Energy per km (Wh/km) | All |
 | Speed | Current vehicle speed | All |
+| Top Speed | Highest speed recorded in the most recent completed trip | All |
 | Active Trip | Distance covered in the current trip | All |
 | Online Status | Whether the car is reachable via SAIC cloud | All |
 | Charge Time | Estimated minutes remaining to charge limit | PHEV, BEV |
 | Charging Session | OBC power, cable lock, charging type | PHEV, BEV |
 | Battery Heating | Pre-heating status and schedule | PHEV, BEV |
 
+### Statistics insights
+
+The Statistics view shows insight cards and charts for a configurable period (7, 30, or 90 days). Cards are draggable and individually toggleable.
+
+| Insight | Description |
+| ------- | ----------- |
+| Distance in period | Total distance across all trips in the selected window |
+| Avg trip length | Average distance per trip |
+| Remote preconditioning | Percentage of snapshots with remote climate active |
+| Peak drive time | Hour of day with the most trip starts |
+| 12V trend | Change in average 12V battery voltage over the period |
+| Parking locations | Number of distinct parking spots (rounded GPS) |
+| Electric share today | Estimated share of today's driving on electric power (PHEV only) |
+| Avg speed | Average moving speed across all GPS points in the period, excluding stopped moments |
+
 ## Screenshots
 
-| Desktop | Mobile |
-|---------|--------|
-| ![Desktop dashboard](frontend/public/screenshot-desktop-home.webp) | ![Mobile dashboard](frontend/public/screenshot-mobile-home.webp) |
+| Desktop          | Mobile         |
+| ---------------- | -------------- |
+| ![Desktop][desk] | ![Mobile][mob] |
+
+[desk]: frontend/public/screenshot-desktop-home.webp "Desktop dashboard"
+[mob]: frontend/public/screenshot-mobile-home.webp "Mobile dashboard"
 
 ---
 
@@ -82,7 +101,7 @@ Choose the method that fits your environment.
 
 A single Docker image that bundles every service -- nginx, the .NET API + worker, PostgreSQL, Mosquitto, and the SAIC gateway. No Compose file or external database needed. Ideal for Unraid and similar NAS environments where running multiple containers is inconvenient.
 
-**Quick start**
+#### Quick start
 
 ```bash
 docker run -d \
@@ -111,7 +130,7 @@ See [`docker/all-in-one/README.md`](docker/all-in-one/README.md) for the full va
 
 Separate containers for each service. More flexible -- you can swap in your own PostgreSQL or MQTT broker, and containers update independently.
 
-**1. Clone the repository**
+#### 1. Clone the repository
 
 ```bash
 git clone https://github.com/joszz/garagestack.git
@@ -127,7 +146,7 @@ cp .env.example .env
 Then open `.env` and fill in at minimum:
 
 | Variable | Description |
-|----------|-------------|
+| ---------- | ----------- |
 | `SAIC_USER` | MG iSmart account email |
 | `SAIC_PASSWORD` | MG iSmart account password |
 | `SAIC_REGION` | `eu`, `cn`, or `row` |
@@ -137,7 +156,7 @@ Then open `.env` and fill in at minimum:
 
 `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` are optional; leave them empty to disable push notifications.
 
-**3. Start the stack**
+#### 3. Start the stack
 
 With the bundled PostgreSQL container:
 
@@ -160,7 +179,7 @@ The frontend is served on port `8080` by default (configurable via `FRONTEND_POR
 GarageStack checks your vehicle's state every 5 minutes and sends both a browser push notification and an in-app notification (bell icon) when any of the following conditions are detected. Each alert has a 1-hour cooldown per vehicle to avoid repeated notifications.
 
 | Alert | Condition |
-|-------|-----------|
+| ------- | --------- |
 | Engine started | Engine transitions from off to running |
 | Low tyre pressure | Any tyre below 2.2 bar |
 | Low EV battery | EV state-of-charge below 20 % |
@@ -224,7 +243,7 @@ Add the following block to your Homepage `services.yaml`, replacing `YOUR_GARAGE
 The endpoint returns a flat JSON object. Numeric fields are `null` when the vehicle has not reported that value yet. String state fields are also `null` when unreported, except `anyDoorOpen` and `anyWindowOpen` which are always present. String values are localized: the language is resolved from the request in this order: query string, cookie, `Accept-Language` header, falling back to `en`. Supported languages are `en` and `nl`. To pin a language regardless of the Homepage container's locale, append `?culture=nl&ui-culture=nl` (or `en`) to the widget URL.
 
 | Field | Type | Description |
-|-------|------|-------------|
+| ------- | ------ | ----------- |
 | `recordedAt` | string (ISO 8601) | Timestamp of the most recent telemetry |
 | `fuelLevelPercent` | number | Fuel tank level (%) |
 | `fuelRangeKm` | number | Estimated fuel range (km) |
@@ -348,10 +367,8 @@ All three POI types share the same tile-based PostgreSQL cache:
 
 The Docker build workflow requires two repository secrets to avoid Docker Hub anonymous pull rate limits (GitHub runners share IPs and exhaust the limit quickly):
 
-| Secret | Description |
-|--------|-------------|
-| `DOCKERHUB_USERNAME` | Your Docker Hub username |
-| `DOCKERHUB_TOKEN` | A Docker Hub access token (hub.docker.com > Account Settings > Security > New Access Token) |
+- **`DOCKERHUB_USERNAME`** - Your Docker Hub username
+- **`DOCKERHUB_TOKEN`** - A Docker Hub access token (hub.docker.com > Account Settings > Security > New Access Token)
 
 Add them under **Settings > Secrets and variables > Actions** in your fork. A free Docker Hub account is sufficient.
 

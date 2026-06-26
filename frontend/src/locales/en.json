@@ -32,6 +32,7 @@
       "efficiencyCharge": "Distance driven since the last charge session.",
       "efficiencyRatio": "Energy today divided by distance today (Wh/km). Lower is better. On a BEV or PHEV in EV mode this translates directly to electricity cost per km. On an HEV it shows how efficiently the hybrid system ran - motorway driving gives a lower figure than stop-start city traffic. When no driving data is available yet, HEV and PHEV fall back to showing estimated fuel economy (km/%) derived from the car's own range computer: higher is more efficient.",
       "speed": "Current vehicle speed as reported by the gateway.",
+      "topSpeed": "Highest speed recorded across all GPS points in the most recent completed trip.",
       "activeTrip": "Distance covered in the current trip while active, or the distance of the last completed trip when parked.",
       "onlineStatus": "Whether the car is currently reachable via the SAIC cloud. Goes offline when the car is parked and the gateway stops polling.",
       "remainingCharge": "Estimated minutes remaining until the battery reaches the configured charge limit. Only relevant for PHEV and BEV while charging.",
@@ -49,7 +50,8 @@
       "commutePattern": "Peak drive time",
       "batteryVoltageTrend": "12V trend",
       "parkingLocations": "Parking locations",
-      "electricShare": "Electric share today"
+      "electricShare": "Electric share today",
+      "avgSpeed": "Avg speed"
     },
     "cardDesc": {
       "distanceInRange": "Total distance across all trips in the selected time window.",
@@ -58,7 +60,8 @@
       "commutePattern": "The hour of day with the most trip starts in the selected period - your most common time to drive.",
       "batteryVoltageTrend": "Change in average 12V battery voltage from the start to the end of the selected period. Shows current voltage when less than two days of data are available.",
       "parkingLocations": "Number of distinct parking spots used across all trips in the selected period, based on rounded GPS coordinates.",
-      "electricShare": "Estimated share of today's driving on electric power, derived from km since last charge versus total km today. Only meaningful for PHEV, where the battery can be charged from the grid."
+      "electricShare": "Estimated share of today's driving on electric power, derived from km since last charge versus total km today. Only meaningful for PHEV, where the battery can be charged from the grid.",
+      "avgSpeed": "Average moving speed across all recorded GPS points in the selected period, excluding stopped moments."
     },
     "chartDesc": {
       "evChart": "Daily average EV battery state-of-charge over the selected period.",
@@ -146,6 +149,7 @@
       "seatRight": "Passenger seat heat"
     },
     "speed": "Speed",
+    "topSpeed": "Top speed (last trip)",
     "activeTrip": "Active trip",
     "lastTrip": "Last trip",
     "noTrips": "No trips",
@@ -307,6 +311,7 @@
       "efficiencyCharge": "Since Charge",
       "efficiencyRatio": "Efficiency",
       "speed": "Speed",
+      "topSpeed": "Top Speed",
       "activeTrip": "Active Trip",
       "onlineStatus": "Online Status",
       "remainingCharge": "Charge Time",

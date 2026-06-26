@@ -31,6 +31,7 @@ export type StatsInsightId =
   | 'batteryVoltageTrend'
   | 'parkingLocations'
   | 'electricShare'
+  | 'avgSpeed'
 
 export type StatsChartId = 'evChart' | 'tyreChart' | 'hybridSocChart' | 'dailyKwhChart'
 
@@ -47,6 +48,7 @@ const ALL_STATS_INSIGHT_IDS: StatsInsightId[] = [
   'batteryVoltageTrend',
   'parkingLocations',
   'electricShare',
+  'avgSpeed',
 ]
 
 const ALL_STATS_CHART_IDS: StatsChartId[] = [
@@ -108,6 +110,7 @@ export type CardId =
   | 'remainingCharge'
   | 'chargingSession'
   | 'batteryHeating'
+  | 'topSpeed'
 
 const ALL_CARD_IDS: CardId[] = [
   'fuelLevel',
@@ -132,6 +135,7 @@ const ALL_CARD_IDS: CardId[] = [
   'remainingCharge',
   'chargingSession',
   'batteryHeating',
+  'topSpeed',
 ]
 
 export interface CardConfig {
@@ -194,6 +198,7 @@ export function defaultCards(type: VehicleType | 'unknown' = 'unknown'): CardCon
     { id: 'remainingCharge', visible: type === 'phev' || type === 'bev' },
     { id: 'chargingSession', visible: type === 'phev' || type === 'bev' },
     { id: 'batteryHeating', visible: type === 'phev' || type === 'bev' },
+    { id: 'topSpeed', visible: true },
   ]
   return [...all.filter((c) => c.visible), ...all.filter((c) => !c.visible)]
 }

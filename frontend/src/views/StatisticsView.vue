@@ -129,6 +129,7 @@ const INSIGHT_ICONS: Record<StatsInsightId, string> = {
   batteryVoltageTrend: 'battery-three-quarters',
   parkingLocations: 'location-dot',
   electricShare: 'leaf',
+  avgSpeed: 'gauge-high',
 }
 
 const CHART_ICONS: Record<StatsChartId, string> = {
@@ -246,6 +247,17 @@ const batteryVoltageDisplay = computed(() => {
   if (batteryVoltageTrend.value !== null) return batteryVoltageTrend.value
   const v = status.value?.batteryVoltage
   return v != null ? `${v.toFixed(1)} V` : null
+})
+
+const avgSpeedKmh = computed(() => {
+  const speeds: number[] = []
+  for (const trip of store.trips) {
+    for (const point of trip.points) {
+      if (point.speed !== null && point.speed > 0) speeds.push(point.speed)
+    }
+  }
+  if (!speeds.length) return null
+  return round2(speeds.reduce((sum, s) => sum + s, 0) / speeds.length)
 })
 
 const electricShareToday = computed(() => {
@@ -367,6 +379,16 @@ const insightDefs = computed(() => [
     value: electricShareToday.value !== null ? `${electricShareToday.value}%` : null,
     vehicleApplicable: isPhev.value,
     applicable: isPhev.value && status.value != null,
+  },
+  {
+    id: 'avgSpeed' as StatsInsightId,
+    icon: INSIGHT_ICONS.avgSpeed,
+    title: t('statistics.insights.avgSpeed'),
+    description: t('statistics.cardDesc.avgSpeed'),
+    value: avgSpeedKmh.value !== null ? String(avgSpeedKmh.value) : null,
+    unit: 'km/h',
+    vehicleApplicable: true,
+    applicable: store.trips.some((trip) => trip.points.some((p) => p.speed !== null)),
   },
 ])
 

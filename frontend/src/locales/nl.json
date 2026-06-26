@@ -32,6 +32,7 @@
       "efficiencyCharge": "Afstand gereden sinds de laatste laadsessie.",
       "efficiencyRatio": "Energie vandaag gedeeld door afstand vandaag (Wh/km). Lager is beter. Op een BEV of PHEV in EV-modus vertaalt dit zich direct naar elektriciteitskosten per km. Op een HEV toont het hoe efficiënt het hybridesysteem werkte -- snelwegrijden geeft een lagere waarde dan stop-and-go stadsverkeer. Als er nog geen rijgegevens beschikbaar zijn, vallen HEV en PHEV terug op een geschat brandstofverbruik (km/%) afgeleid van de rangecalculator van de auto: hoger is zuiniger.",
       "speed": "Actuele rijsnelheid zoals gerapporteerd door de gateway.",
+      "topSpeed": "Hoogste gemeten snelheid over alle GPS-punten van de meest recente rit.",
       "activeTrip": "Afstand afgelegd tijdens de huidige rit, of de afstand van de laatste afgesloten rit als de auto geparkeerd staat.",
       "onlineStatus": "Of de auto momenteel bereikbaar is via de SAIC-cloud. Gaat offline als de auto geparkeerd staat en de gateway stopt met polling.",
       "remainingCharge": "Geschatte resterende laadtijd in minuten tot de accu de ingestelde limiet bereikt. Alleen relevant voor PHEV en BEV tijdens het laden.",
@@ -49,7 +50,8 @@
       "commutePattern": "Piek rijtijd",
       "batteryVoltageTrend": "12V-trend",
       "parkingLocations": "Parkeerlocaties",
-      "electricShare": "Elektrisch aandeel vandaag"
+      "electricShare": "Elektrisch aandeel vandaag",
+      "avgSpeed": "Gem. snelheid"
     },
     "cardDesc": {
       "distanceInRange": "Totale afstand over alle ritten in de geselecteerde periode.",
@@ -58,7 +60,8 @@
       "commutePattern": "Het uur van de dag met de meeste ritstarts in de geselecteerde periode - jouw meest voorkomende rijtijd.",
       "batteryVoltageTrend": "Verandering in gemiddelde 12V-accuspanning van het begin tot het einde van de geselecteerde periode. Toont de huidige spanning als er minder dan twee dagen aan data beschikbaar is.",
       "parkingLocations": "Aantal unieke parkeerplaatsen gebruikt over alle ritten in de geselecteerde periode, gebaseerd op afgeronde GPS-coordinaten.",
-      "electricShare": "Geschat aandeel van de ritten vandaag op elektrisch vermogen, afgeleid van km sinds laatste laadbeurt versus totaal km vandaag. Alleen zichtbaar voor HEV en PHEV."
+      "electricShare": "Geschat aandeel van de ritten vandaag op elektrisch vermogen, afgeleid van km sinds laatste laadbeurt versus totaal km vandaag. Alleen zichtbaar voor HEV en PHEV.",
+      "avgSpeed": "Gemiddelde rijsnelheid over alle geregistreerde GPS-punten in de geselecteerde periode, exclusief stilstaande momenten."
     },
     "chartDesc": {
       "evChart": "Dagelijks gemiddeld EV-accuniveau in de geselecteerde periode.",
@@ -146,6 +149,7 @@
       "seatRight": "Passagiersstoel verwarming"
     },
     "speed": "Snelheid",
+    "topSpeed": "Topsnelheid (laatste rit)",
     "activeTrip": "Actieve rit",
     "lastTrip": "Laatste rit",
     "noTrips": "Geen ritten",
@@ -307,6 +311,7 @@
       "efficiencyCharge": "Sinds lading",
       "efficiencyRatio": "Verbruik",
       "speed": "Snelheid",
+      "topSpeed": "Topsnelheid",
       "activeTrip": "Actieve rit",
       "onlineStatus": "Online status",
       "remainingCharge": "Laadtijd",

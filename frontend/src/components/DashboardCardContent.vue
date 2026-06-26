@@ -34,6 +34,11 @@ const vehicleType = computed((): VehicleType | 'unknown' => {
 
 const isHev = computed(() => vehicleType.value === 'hev')
 const latestTrip = computed(() => store.trips[store.trips.length - 1] ?? null)
+const topSpeedKmh = computed(() => {
+  if (!latestTrip.value) return null
+  const speeds = latestTrip.value.points.map((p) => p.speed).filter((s): s is number => s !== null)
+  return speeds.length ? Math.round(Math.max(...speeds)) : null
+})
 const supportsExternalCharge = computed(
   () => vehicleType.value === 'phev' || vehicleType.value === 'bev',
 )
@@ -314,6 +319,15 @@ const supportsExternalCharge = computed(
       :battery-heating="status.batteryHeating"
       :schedule-mode="status.batteryHeatingScheduleMode"
       :schedule-start-time="status.batteryHeatingScheduleStartTime"
+    />
+
+    <!-- topSpeed -->
+    <StatusCard
+      v-else-if="cardId === 'topSpeed' && topSpeedKmh !== null"
+      icon="gauge-high"
+      :label="t('vehicle.topSpeed')"
+      :value="topSpeedKmh"
+      unit="km/h"
     />
   </template>
 </template>
