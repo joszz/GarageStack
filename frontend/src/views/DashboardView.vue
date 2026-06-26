@@ -178,8 +178,14 @@ function resetLayout() {
 async function refresh() {
   await store.fetchVehicles()
   if (vin.value) {
-    await Promise.all([store.fetchStatus(vin.value), store.fetchConfig(vin.value)])
-    store.fetchLastTrip(vin.value)
+    await Promise.all([
+      store.fetchStatus(vin.value),
+      store.fetchConfig(vin.value),
+      store.fetchTrips(
+        vin.value,
+        new Date(Date.now() - settings.filterDays * 86_400_000).toISOString(),
+      ),
+    ])
   }
 }
 

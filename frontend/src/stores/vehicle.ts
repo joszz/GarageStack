@@ -1,12 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed, nextTick } from 'vue'
-import {
-  vehicleApi,
-  type Vehicle,
-  type TelemetrySnapshot,
-  type Trip,
-  type LastTripSummary,
-} from '@/services/api'
+import { vehicleApi, type Vehicle, type TelemetrySnapshot, type Trip } from '@/services/api'
 
 export type VehicleType = 'hev' | 'phev' | 'bev' | 'unknown'
 
@@ -16,7 +10,6 @@ export const useVehicleStore = defineStore('vehicle', () => {
   const vehicleConfig = ref<Record<string, string>>({})
   const history = ref<TelemetrySnapshot[]>([])
   const trips = ref<Trip[]>([])
-  const lastTrip = ref<LastTripSummary | null>(null)
   const loadingCount = ref(0)
   const loading = computed(() => loadingCount.value > 0)
   const sendingCount = ref(0)
@@ -101,14 +94,6 @@ export const useVehicleStore = defineStore('vehicle', () => {
     })
   }
 
-  async function fetchLastTrip(vin: string) {
-    try {
-      lastTrip.value = (await vehicleApi.lastTrip(vin)) ?? null
-    } catch {
-      // non-critical, leave stale value
-    }
-  }
-
   async function fetchTrips(vin: string, from?: string, to?: string) {
     loadingCount.value++
     error.value = null
@@ -138,7 +123,6 @@ export const useVehicleStore = defineStore('vehicle', () => {
     detectedVehicleType,
     history,
     trips,
-    lastTrip,
     loading,
     anySending,
     sendingCount,
@@ -151,7 +135,6 @@ export const useVehicleStore = defineStore('vehicle', () => {
     fetchConfig,
     fetchHistory,
     fetchTrips,
-    fetchLastTrip,
     applyLiveStatus,
     notifyTripCompleted,
   }
