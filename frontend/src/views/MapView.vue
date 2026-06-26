@@ -483,7 +483,7 @@ function redrawFuelMarkers() {
   for (const item of fuelAllItems.values()) {
     const tags = item.tags ?? {}
     const brand = tags['brand'] ?? tags['operator'] ?? null
-    if (selectedBrands.length > 0 && brand !== null && !selectedBrands.includes(brand)) continue
+    if (selectedBrands.length > 0 && (brand === null || !selectedBrands.includes(brand))) continue
     const icon = L.divIcon({
       className: '',
       html: '<div class="poi-marker poi-marker--fuel">&#9981;</div>',
