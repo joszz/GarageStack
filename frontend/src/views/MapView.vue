@@ -522,9 +522,12 @@ async function loadPoiLayer(poiType: 'fuel' | 'service_area', overrideRadius?: n
     return
   }
 
+  // Vehicle type not resolved yet - wait for the vehicleType watch to retry once config loads
+  if (poiType === 'fuel' && vehicleType.value === 'unknown') return
+
   const loadedTiles = poiType === 'fuel' ? fuelLoadedTiles : serviceAreaLoadedTiles
   const loadedIds = poiType === 'fuel' ? fuelLoadedIds : serviceAreaLoadedIds
-  const vt = vehicleType.value === 'unknown' ? 'bev' : vehicleType.value
+  const vt = vehicleType.value
   const bounds = map.getBounds()
   const center = bounds.getCenter()
   const centerKey = `${Math.floor(center.lat * 2)},${Math.floor(center.lng * 2)}`
@@ -921,6 +924,12 @@ watch(isBev, (bev) => {
   else if (fuelStationsEnabled.value) loadPoiLayer('fuel')
 })
 
+// Vehicle type transitions from unknown once fetchConfig resolves - reload fuel layer now we know the type
+watch(vehicleType, (newVt, oldVt) => {
+  if (oldVt !== 'unknown' || newVt === 'unknown' || !mapInstance.value) return
+  if (fuelStationsEnabled.value) loadPoiLayer('fuel')
+})
+
 watch(chargingMinPowerKw, () => {
   if (chargingStationsEnabled.value) redrawChargingMarkers()
 })
@@ -991,6 +1000,7 @@ onMounted(async () => {
   if (vin.value) {
     await Promise.all([
       store.fetchStatus(vin.value),
+      store.fetchConfig(vin.value),
       store.fetchTrips(
         vin.value,
         new Date(Date.now() - dateRangeDays.value * 86_400_000).toISOString(),
