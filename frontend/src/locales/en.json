@@ -332,10 +332,10 @@
     "vehicleType": {
       "title": "Vehicle type",
       "detected": "Detected",
-      "notDetected": "Not detected yet -start the gateway to auto-detect",
+      "notDetected": "Not detected yet -- start the gateway to auto-detect",
       "override": "Override",
       "auto": "Auto (use detected)",
-      "hev": "HEV (Hybrid -no plug)",
+      "hev": "HEV (Hybrid, no plug)",
       "phev": "PHEV (Plug-in Hybrid)",
       "bev": "BEV (Full Electric)"
     }

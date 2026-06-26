@@ -332,10 +332,10 @@
     "vehicleType": {
       "title": "Voertuigtype",
       "detected": "Gedetecteerd",
-      "notDetected": "Nog niet gedetecteerd -start de gateway voor automatische detectie",
+      "notDetected": "Nog niet gedetecteerd -- start de gateway voor automatische detectie",
       "override": "Handmatig instellen",
       "auto": "Automatisch (gebruik gedetecteerd type)",
-      "hev": "HEV (Hybride -geen stekker)",
+      "hev": "HEV (Hybride, geen stekker)",
       "phev": "PHEV (Plug-in hybride)",
       "bev": "BEV (Volledig elektrisch)"
     }
