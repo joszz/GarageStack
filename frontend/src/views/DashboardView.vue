@@ -136,6 +136,10 @@ function cardHasData(id: CardId): boolean {
     case 'chargingSession':
     case 'batteryHeating':
       return vehicleType.value === 'phev' || vehicleType.value === 'bev'
+    case 'topSpeed': {
+      const trip = store.trips[store.trips.length - 1]
+      return trip != null && trip.points.some((p) => p.speed !== null)
+    }
     default:
       return true
   }
@@ -164,6 +168,7 @@ const CARD_ICONS: Record<CardId, string> = {
   remainingCharge: 'clock',
   chargingSession: 'plug-circle-bolt',
   batteryHeating: 'temperature-arrow-up',
+  topSpeed: 'gauge-high',
 }
 
 function resetLayout() {
