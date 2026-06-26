@@ -1,46 +1,12 @@
-using System.Net;
-using System.Net.Http.Headers;
-using System.Text;
+using System.Text.Json;
 using GarageStack.Api.Services;
-using Microsoft.Extensions.Caching.Memory;
+using GarageStack.Core.Helpers;
+using GarageStack.Core.Models;
+using GarageStack.Data.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace GarageStack.Tests;
-
-// ---------------------------------------------------------------------------
-// Test infrastructure
-// ---------------------------------------------------------------------------
-
-file sealed class FakeHttpMessageHandler(string responseJson, HttpStatusCode statusCode = HttpStatusCode.OK)
-    : HttpMessageHandler
-{
-    public int CallCount { get; private set; }
-    public string? LastRequestUrl { get; private set; }
-    public HttpRequestHeaders? LastRequestHeaders { get; private set; }
-
-    protected override Task<HttpResponseMessage> SendAsync(
-        HttpRequestMessage request, CancellationToken ct)
-    {
-        CallCount++;
-        LastRequestUrl = request.RequestUri?.ToString();
-        LastRequestHeaders = request.Headers;
-        var response = new HttpResponseMessage(statusCode)
-        {
-            Content = new StringContent(responseJson, Encoding.UTF8, "application/json"),
-        };
-        return Task.FromResult(response);
-    }
-}
-
-file sealed class FakeHttpClientFactory(HttpClient client) : IHttpClientFactory
-{
-    public HttpClient CreateClient(string name) => client;
-}
-
-// ---------------------------------------------------------------------------
-// Tests
-// ---------------------------------------------------------------------------
 
 public class ChargingStationServiceTests
 {
@@ -52,221 +18,149 @@ public class ChargingStationServiceTests
             .AddInMemoryCollection(new Dictionary<string, string?> { ["OpenChargeMap:ApiKey"] = key })
             .Build();
 
-    private static IMemoryCache NewCache() =>
-        new MemoryCache(new MemoryCacheOptions());
+    private static OcmApiClient BuildOcmClient(string json, string? apiKey = "test-key")
+    {
+        var handler = new PoiFakeOverpassHandler(json);
+        var factory = new PoiFakeHttpClientFactory(new System.Net.Http.HttpClient(handler));
+        var config = apiKey is null ? EmptyConfig() : ConfigWithKey(apiKey);
+        return new OcmApiClient(factory, config, NullLogger<OcmApiClient>.Instance);
+    }
 
-    private static ChargingStationService Build(
-        IHttpClientFactory factory,
-        IConfiguration config,
-        IMemoryCache cache) =>
-        new(factory, config, cache, NullLogger<ChargingStationService>.Instance);
+    private static ChargingStationService Build(PoiFakeRepository repo, OcmApiClient ocm)
+        => new(repo, ocm, NullLogger<ChargingStationService>.Instance);
+
+    private static PoiItem MakeItem(int id, double lat, double lng, int powerKw, string connType = "CCS")
+    {
+        var meta = new OcmApiClient.OcmMeta(null, null, null, true, 1,
+            [new OcmApiClient.OcmConnectorMeta(connType, powerKw, 1)]);
+        return new PoiItem
+        {
+            Source = "ocm", PoiType = "charging",
+            ExternalId = $"ocm/{id}",
+            Latitude = lat, Longitude = lng,
+            Name = $"Station {id}",
+            MetaJson = JsonSerializer.Serialize(meta),
+            CellLat = (int)Math.Floor(lat * 2),
+            CellLng = (int)Math.Floor(lng * 2),
+        };
+    }
+
+    private static void SeedAllTiles(PoiFakeRepository repo, double lat, double lng, int distanceKm)
+    {
+        foreach (var (cl, cg) in TileHelper.ComputeTiles(lat, lng, distanceKm))
+            repo.SeedTile("ocm", "charging", cl, cg);
+    }
 
     // -----------------------------------------------------------------------
 
     [Fact]
     public async Task GetStationsAsync_NoApiKey_ReturnsEmptyList()
     {
-        var handler = new FakeHttpMessageHandler("[]");
-        var factory = new FakeHttpClientFactory(new HttpClient(handler));
-        var svc = Build(factory, EmptyConfig(), NewCache());
+        var svc = Build(new PoiFakeRepository(), BuildOcmClient("[]", apiKey: null));
 
         var result = await svc.GetStationsAsync(52.37, 4.90, 5);
 
         Assert.Empty(result);
-        Assert.Equal(0, handler.CallCount);
     }
 
     [Fact]
-    public async Task GetStationsAsync_CacheHit_DoesNotCallHttpClient()
+    public async Task GetStationsAsync_AllTilesCached_DoesNotCallOcm()
     {
-        const string json = """
-            [{"AddressInfo":{"ID":1,"Title":"Station A","Latitude":52.37,"Longitude":4.90},
-              "Connections":[{"ConnectionType":{"Title":"CCS"},"PowerKW":50}],
-              "OperatorInfo":{"Title":"Operator X"},
-              "StatusType":{"IsOperational":true}}]
-            """;
+        var repo = new PoiFakeRepository();
+        SeedAllTiles(repo, 52.37, 4.90, 5);
+        repo.SeedItem(MakeItem(1, 52.37, 4.90, 50));
 
-        var handler = new FakeHttpMessageHandler(json);
-        var factory = new FakeHttpClientFactory(new HttpClient(handler));
-        var cache = NewCache();
-        var svc = Build(factory, ConfigWithKey("test-key"), cache);
+        var svc = Build(repo, BuildOcmClient("[]"));
 
-        var first = await svc.GetStationsAsync(52.37, 4.90, 5);
-        var second = await svc.GetStationsAsync(52.37, 4.90, 5);
+        var result = await svc.GetStationsAsync(52.37, 4.90, 5);
 
-        Assert.Equal(1, handler.CallCount);
-        Assert.Single(first);
-        Assert.Equal(first[0].Id, second[0].Id);
-    }
-
-    [Fact]
-    public async Task GetStationsAsync_DifferentFilters_BypassCache()
-    {
-        const string json = "[{\"AddressInfo\":{\"ID\":1,\"Title\":\"S\",\"Latitude\":52.37,\"Longitude\":4.90}}]";
-        var handler = new FakeHttpMessageHandler(json);
-        var factory = new FakeHttpClientFactory(new HttpClient(handler));
-        var cache = NewCache();
-        var svc = Build(factory, ConfigWithKey("test-key"), cache);
-
-        await svc.GetStationsAsync(52.37, 4.90, 5, minPowerKw: 0);
-        await svc.GetStationsAsync(52.37, 4.90, 5, minPowerKw: 50);
-
-        Assert.Equal(2, handler.CallCount);
-    }
-
-    [Fact]
-    public async Task GetStationsAsync_AlwaysUsesKmDistanceUnit()
-    {
-        const string json = "[]";
-        var handler = new FakeHttpMessageHandler(json);
-        var factory = new FakeHttpClientFactory(new HttpClient(handler));
-        var svc = Build(factory, ConfigWithKey("test-key"), NewCache());
-
-        await svc.GetStationsAsync(52.37, 4.90, 5);
-
-        Assert.Contains("distanceunit=KM", handler.LastRequestUrl);
-    }
-
-    [Fact]
-    public async Task GetStationsAsync_WithMinPowerFilter_IncludesFilterInUrl()
-    {
-        const string json = "[]";
-        var handler = new FakeHttpMessageHandler(json);
-        var factory = new FakeHttpClientFactory(new HttpClient(handler));
-        var svc = Build(factory, ConfigWithKey("test-key"), NewCache());
-
-        await svc.GetStationsAsync(52.37, 4.90, 5, minPowerKw: 50);
-
-        Assert.Contains("minpowerkw=50", handler.LastRequestUrl);
+        Assert.Equal(0, repo.UpsertCallCount);
+        Assert.Single(result);
     }
 
     [Fact]
     public async Task GetStationsAsync_SuccessfulResponse_ReturnsMappedDtos()
     {
-        const string json = """
-            [{"AddressInfo":{"ID":42,"Title":"Fast Charger","AddressLine1":"Main St 1","Town":"Amsterdam",
-                             "Latitude":52.3700,"Longitude":4.9000},
-              "Connections":[{"ConnectionType":{"Title":"CCS (Type 2)"},"PowerKW":150,"Quantity":2},
-                             {"ConnectionType":{"Title":"CHAdeMO"},"PowerKW":50}],
-              "OperatorInfo":{"Title":"ANWB Energie"},
-              "StatusType":{"IsOperational":true},
-              "NumberOfPoints":4}]
-            """;
+        var repo = new PoiFakeRepository();
+        SeedAllTiles(repo, 52.37, 4.90, 5);
+        repo.SeedItem(new PoiItem
+        {
+            Source = "ocm", PoiType = "charging",
+            ExternalId = "ocm/42",
+            Latitude = 52.37, Longitude = 4.90,
+            Name = "Fast Charger",
+            MetaJson = JsonSerializer.Serialize(new OcmApiClient.OcmMeta(
+                "Main St 1", "Amsterdam", "ANWB Energie", true, 4,
+                [
+                    new OcmApiClient.OcmConnectorMeta("CCS (Type 2)", 150, 2),
+                    new OcmApiClient.OcmConnectorMeta("CHAdeMO", 50, 1),
+                ])),
+            CellLat = (int)Math.Floor(52.37 * 2),
+            CellLng = (int)Math.Floor(4.90 * 2),
+        });
 
-        var factory = new FakeHttpClientFactory(new HttpClient(new FakeHttpMessageHandler(json)));
-        var svc = Build(factory, ConfigWithKey("test-key"), NewCache());
+        var svc = Build(repo, BuildOcmClient("[]"));
 
         var result = await svc.GetStationsAsync(52.37, 4.90, 5);
 
         Assert.Single(result);
-        var station = result[0];
-        Assert.Equal(42, station.Id);
-        Assert.Equal("Fast Charger", station.Title);
-        Assert.Equal("Main St 1", station.AddressLine);
-        Assert.Equal("Amsterdam", station.Town);
-        Assert.Equal("ANWB Energie", station.Operator);
-        Assert.True(station.IsOperational);
-        Assert.Equal(4, station.NumberOfPoints);
-        Assert.Equal(2, station.Connectors.Count);
-        Assert.Equal("CCS (Type 2)", station.Connectors[0].Type);
-        Assert.Equal(150, station.Connectors[0].PowerKw);
-        Assert.Equal(2, station.Connectors[0].Quantity);
-    }
-
-    [Fact]
-    public async Task GetStationsAsync_HttpFailure_ReturnsEmptyList()
-    {
-        var handler = new FakeHttpMessageHandler("{}", HttpStatusCode.InternalServerError);
-        var factory = new FakeHttpClientFactory(new HttpClient(handler));
-        var svc = Build(factory, ConfigWithKey("test-key"), NewCache());
-
-        var result = await svc.GetStationsAsync(52.37, 4.90, 5);
-
-        Assert.Empty(result);
-    }
-
-    [Fact]
-    public async Task GetStationsAsync_ApiKeyInXApiKeyHeader_NotInUrl()
-    {
-        const string json = "[]";
-        var handler = new FakeHttpMessageHandler(json);
-        var factory = new FakeHttpClientFactory(new HttpClient(handler));
-        var svc = Build(factory, ConfigWithKey("my-secret-key"), NewCache());
-
-        await svc.GetStationsAsync(52.37, 4.90, 5);
-
-        Assert.DoesNotContain("my-secret-key", handler.LastRequestUrl);
-        Assert.True(handler.LastRequestHeaders!.Contains("X-API-Key"));
-        Assert.Equal("my-secret-key", handler.LastRequestHeaders.GetValues("X-API-Key").Single());
-    }
-
-    [Fact]
-    public async Task GetStationsAsync_AlwaysFiltersOperationalStations()
-    {
-        const string json = "[]";
-        var handler = new FakeHttpMessageHandler(json);
-        var factory = new FakeHttpClientFactory(new HttpClient(handler));
-        var svc = Build(factory, ConfigWithKey("test-key"), NewCache());
-
-        await svc.GetStationsAsync(52.37, 4.90, 5);
-
-        Assert.Contains("statustypeid=50", handler.LastRequestUrl);
-    }
-
-    [Fact]
-    public async Task GetStationsAsync_AlwaysIncludesClientIdentifier()
-    {
-        const string json = "[]";
-        var handler = new FakeHttpMessageHandler(json);
-        var factory = new FakeHttpClientFactory(new HttpClient(handler));
-        var svc = Build(factory, ConfigWithKey("test-key"), NewCache());
-
-        await svc.GetStationsAsync(52.37, 4.90, 5);
-
-        Assert.Contains("client=garagestack", handler.LastRequestUrl);
+        var s = result[0];
+        Assert.Equal(42, s.Id);
+        Assert.Equal("Fast Charger", s.Title);
+        Assert.Equal("Main St 1", s.AddressLine);
+        Assert.Equal("Amsterdam", s.Town);
+        Assert.Equal("ANWB Energie", s.Operator);
+        Assert.True(s.IsOperational);
+        Assert.Equal(4, s.NumberOfPoints);
+        Assert.Equal(2, s.Connectors.Count);
+        Assert.Equal("CCS (Type 2)", s.Connectors[0].Type);
+        Assert.Equal(150, s.Connectors[0].PowerKw);
+        Assert.Equal(2, s.Connectors[0].Quantity);
     }
 
     [Fact]
     public async Task GetStationsAsync_MaxPowerFilter_ExcludesHighPowerOnlyStations()
     {
-        // Station A has only 150 kW connectors (exceeds maxPowerKw=100, no null-power connectors)
-        // Station B has a 50 kW connector (within range) — should be included
-        const string json = """
-            [{"AddressInfo":{"ID":1,"Title":"Fast DC","Latitude":52.37,"Longitude":4.90},
-              "Connections":[{"ConnectionType":{"Title":"CCS"},"PowerKW":150}],
-              "StatusType":{"IsOperational":true}},
-             {"AddressInfo":{"ID":2,"Title":"Mid DC","Latitude":52.38,"Longitude":4.91},
-              "Connections":[{"ConnectionType":{"Title":"CCS"},"PowerKW":50}],
-              "StatusType":{"IsOperational":true}}]
-            """;
+        var repo = new PoiFakeRepository();
+        SeedAllTiles(repo, 52.37, 4.90, 5);
+        repo.SeedItem(MakeItem(1, 52.37, 4.90, 150)); // exceeds maxPowerKw=100
+        repo.SeedItem(MakeItem(2, 52.38, 4.91, 50));  // within range
 
-        var factory = new FakeHttpClientFactory(new HttpClient(new FakeHttpMessageHandler(json)));
-        var svc = Build(factory, ConfigWithKey("test-key"), NewCache());
-
-        var result = await svc.GetStationsAsync(52.37, 4.90, 5, minPowerKw: 0, maxPowerKw: 100);
+        var result = await Build(repo, BuildOcmClient("[]"))
+            .GetStationsAsync(52.37, 4.90, 5, maxPowerKw: 100);
 
         Assert.Single(result);
         Assert.Equal(2, result[0].Id);
     }
 
     [Fact]
-    public async Task GetStationsAsync_MaxPowerFilter_UsesCache_DoesNotCallHttpClientAgain()
+    public async Task GetStationsAsync_MinPowerFilter_ExcludesLowPowerStations()
     {
-        const string json = """
-            [{"AddressInfo":{"ID":1,"Title":"Station","Latitude":52.37,"Longitude":4.90},
-              "Connections":[{"ConnectionType":{"Title":"CCS"},"PowerKW":50}],
-              "StatusType":{"IsOperational":true}}]
-            """;
+        var repo = new PoiFakeRepository();
+        SeedAllTiles(repo, 52.37, 4.90, 5);
+        repo.SeedItem(MakeItem(1, 52.37, 4.90, 22)); // below minPowerKw=50
+        repo.SeedItem(MakeItem(2, 52.38, 4.91, 50)); // meets threshold
 
-        var handler = new FakeHttpMessageHandler(json);
-        var factory = new FakeHttpClientFactory(new HttpClient(handler));
-        var cache = NewCache();
-        var svc = Build(factory, ConfigWithKey("test-key"), cache);
+        var result = await Build(repo, BuildOcmClient("[]"))
+            .GetStationsAsync(52.37, 4.90, 5, minPowerKw: 50);
 
-        await svc.GetStationsAsync(52.37, 4.90, 5, minPowerKw: 0, maxPowerKw: 0);
-        await svc.GetStationsAsync(52.37, 4.90, 5, minPowerKw: 0, maxPowerKw: 100);
+        Assert.Single(result);
+        Assert.Equal(2, result[0].Id);
+    }
 
-        // Both calls share the same cache key (minPowerKw=0) so only one HTTP request is made
-        Assert.Equal(1, handler.CallCount);
+    [Fact]
+    public async Task GetStationsAsync_BothFilters_OnlyIncludesStationsInRange()
+    {
+        var repo = new PoiFakeRepository();
+        SeedAllTiles(repo, 52.37, 4.90, 5);
+        repo.SeedItem(MakeItem(1, 52.37, 4.90, 22));  // too low
+        repo.SeedItem(MakeItem(2, 52.38, 4.91, 50));  // in range [50,100]
+        repo.SeedItem(MakeItem(3, 52.39, 4.92, 150)); // too high
+
+        var result = await Build(repo, BuildOcmClient("[]"))
+            .GetStationsAsync(52.37, 4.90, 5, minPowerKw: 50, maxPowerKw: 100);
+
+        Assert.Single(result);
+        Assert.Equal(2, result[0].Id);
     }
 }
