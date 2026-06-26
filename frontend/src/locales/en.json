@@ -217,6 +217,16 @@
     "chargingPowerAny": "Any",
     "chargingStall": "stall",
     "chargingStalls": "stalls",
+    "fuelStations": "Fuel stations",
+    "fuelStationsDesc": "Shows petrol and diesel stations near your position. Only available for hybrid vehicles.",
+    "serviceAreas": "Motorway service areas",
+    "serviceAreasDesc": "Shows motorway service areas and rest stops near your position.",
+    "poiLoading": "Fetching live map data...",
+    "fuelBrandFilter": "Brand filter",
+    "fuelBrandFilterDesc": "Show only selected fuel station brands. Only available after loading stations.",
+    "fuelBrandSelected": "selected",
+    "fuelBrandNoneLoaded": "Enable fuel stations on the map to load available brands.",
+    "fuelBrandClear": "Clear selection",
     "findCar": "Find car",
     "points": "pts"
   },
@@ -322,10 +332,10 @@
     "vehicleType": {
       "title": "Vehicle type",
       "detected": "Detected",
-      "notDetected": "Not detected yet -start the gateway to auto-detect",
+      "notDetected": "Not detected yet -- start the gateway to auto-detect",
       "override": "Override",
       "auto": "Auto (use detected)",
-      "hev": "HEV (Hybrid -no plug)",
+      "hev": "HEV (Hybrid, no plug)",
       "phev": "PHEV (Plug-in Hybrid)",
       "bev": "BEV (Full Electric)"
     }

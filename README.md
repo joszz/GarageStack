@@ -13,7 +13,9 @@ GarageStack is a free, open-source vehicle monitoring dashboard for **modern MG 
 - **Push notifications** -- Browser and in-app alerts for key events: engine started, low tyre pressure, low EV battery, car left unlocked, and doors or windows left open.
 - **Homepage widget** -- A read-only API endpoint for the [gethomepage.dev](https://gethomepage.dev) Custom API widget, exposing key vehicle stats at a glance.
 - **Progressive Web App (PWA)** -- Installable on mobile or desktop for a native app-like experience, complete with a home screen icon and push notification support.
-- **Charging stations** -- Overlay nearby EV charging stations on the map, sourced from the [Open Charge Map](https://openchargemap.org) database. Markers show operational status; clicking a marker displays the station name, operator, address, and available connector types with power ratings. Requires a free OCM API key (`OPENCHARGEMAP_API_KEY`).
+- **Charging stations** -- Overlay nearby EV charging stations on the map, sourced from the [Open Charge Map](https://openchargemap.org) database. Station data is cached in the database for 7 days; on page load the map immediately shows all stations within 100 km of your car that are already cached. Markers show operational status; clicking a marker displays the station name, operator, address, and available connector types with power ratings. Requires a free OCM API key (`OPENCHARGEMAP_API_KEY`). Unlike fuel stations and service areas, charging station tiles are loaded on demand as you browse the map and are not pre-populated by the background Worker.
+- **Fuel stations** -- Overlay nearby petrol and diesel stations on the map (HEV and PHEV only; not shown for BEV). Sourced from OpenStreetMap via the Overpass API -- no API key required. POI data is cached in the database for 7 days and pre-populated by the Worker for a 100 km radius around the car's last known position so the overlay is instant on first view.
+- **Motorway service areas** -- Overlay motorway service areas and rest stops on the map (all vehicle types). Same DB-backed cache and Worker pre-cache as fuel stations; useful for BEV drivers who often find fast chargers at service areas.
 - **Multi-language support** -- Interface available in English and Dutch, with locale resolved from query string, cookie, or browser preference.
 - **Self-hosted** -- Runs entirely on your own infrastructure via Docker (all-in-one container or Docker Compose). No cloud account or subscription required beyond the SAIC iSmart API.
 
@@ -287,6 +289,50 @@ The endpoint returns a flat JSON object. Numeric fields are `null` when the vehi
 | `chargingScheduleEndTime` | string | Scheduled charge end time (HH:MM) |
 | `onboardChargerPlugStatus` | number | Onboard charger plug presence status (raw integer) |
 | `offboardChargerPlugStatus` | number | Offboard (DC) charger plug presence status (raw integer) |
+
+---
+
+## Map overlays
+
+The map view supports three POI overlay layers. All data is cached in the database and served instantly on subsequent visits. Open the **Filters** panel (sliders icon, top-right of the map) to toggle each layer and adjust filters.
+
+### Charging stations
+
+Requires a free [Open Charge Map](https://openchargemap.org/site/develop) API key (`OPENCHARGEMAP_API_KEY`).
+
+- Markers show operational status at a glance.
+- Clicking a marker shows the station name, operator, address, and available connectors with power ratings.
+- **Power filter** -- a dual-handle slider lets you restrict results to a specific kW range (e.g. 50-150 kW for fast DC only). The filter is applied client-side from the local cache; no new API call is made when you move the slider. Set the upper handle to the maximum (350+) to remove the upper limit.
+- Tile data is loaded on demand as you browse the map and cached for 7 days. The Worker does not pre-populate charging tiles.
+- Available for BEV and PHEV vehicles only; hidden for HEV.
+
+### Fuel stations (HEV and PHEV only)
+
+Sourced from OpenStreetMap via the free [Overpass API](https://overpass-api.de) -- no API key required.
+
+- Shows petrol and diesel stations from OSM data. Accuracy and completeness depend on OSM coverage in your area.
+- **Brand filter** -- select one or more brands (e.g. BP, Shell, Total) from the Filters panel. Only stations with a matching `brand` or `operator` OSM tag are shown; untagged stations are hidden when any filter is active. The filter is applied client-side with no additional API call.
+- The Worker pre-populates a 100 km radius around your car's last known position every 6 hours, so the layer loads instantly on first view without hitting Overpass.
+- If Overpass returns a 429 rate-limit response, the client backs off and retries automatically; existing cached data is shown in the meantime.
+- Tile data is cached for 7 days. Zooming or panning to a new area triggers on-demand fetching for uncached tiles.
+- Hidden for BEV vehicles (petrol stations are not relevant).
+
+### Motorway service areas
+
+Sourced from OpenStreetMap (`highway=services`) via the Overpass API -- no API key required.
+
+- Shows motorway service areas and rest stops.
+- Available for all vehicle types; useful for BEV drivers because many service areas have fast-charger banks.
+- Same DB-backed cache and Worker pre-population as fuel stations.
+
+### Caching architecture
+
+All three POI types share the same tile-based PostgreSQL cache:
+
+- The map is divided into a 0.5 deg x 0.5 deg grid (roughly 55 x 40 km at European latitudes).
+- Each tile is fetched once and stored for 7 days; subsequent requests for the same area are served from the database with no external API call.
+- The background Worker pre-populates tiles around your car on startup and every 6 hours (fuel and service areas only).
+- The `MaxOnDemandTiles` cap (1 per API request) prevents Overpass rate-limiting when many uncached tiles are requested at once; the frontend chains requests automatically with back-off when more tiles remain.
 
 ---
 

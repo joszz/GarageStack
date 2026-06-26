@@ -217,6 +217,16 @@
     "chargingPowerAny": "Alle",
     "chargingStall": "laadpunt",
     "chargingStalls": "laadpunten",
+    "fuelStations": "Tankstations",
+    "fuelStationsDesc": "Toont benzine- en dieseltankstations bij jouw locatie. Alleen beschikbaar voor hybride voertuigen.",
+    "serviceAreas": "Verzorgingsplaatsen",
+    "serviceAreasDesc": "Toont verzorgingsplaatsen op de snelweg bij jouw locatie.",
+    "poiLoading": "Live kaartgegevens ophalen...",
+    "fuelBrandFilter": "Merkfilter",
+    "fuelBrandFilterDesc": "Toon alleen geselecteerde tankstationmerken. Beschikbaar nadat stations zijn geladen.",
+    "fuelBrandSelected": "geselecteerd",
+    "fuelBrandNoneLoaded": "Schakel tankstations in op de kaart om beschikbare merken te laden.",
+    "fuelBrandClear": "Selectie wissen",
     "findCar": "Vind auto",
     "points": "ptn"
   },
@@ -322,10 +332,10 @@
     "vehicleType": {
       "title": "Voertuigtype",
       "detected": "Gedetecteerd",
-      "notDetected": "Nog niet gedetecteerd -start de gateway voor automatische detectie",
+      "notDetected": "Nog niet gedetecteerd -- start de gateway voor automatische detectie",
       "override": "Handmatig instellen",
       "auto": "Automatisch (gebruik gedetecteerd type)",
-      "hev": "HEV (Hybride -geen stekker)",
+      "hev": "HEV (Hybride, geen stekker)",
       "phev": "PHEV (Plug-in hybride)",
       "bev": "BEV (Volledig elektrisch)"
     }
