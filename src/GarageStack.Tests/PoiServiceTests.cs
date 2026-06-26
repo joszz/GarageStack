@@ -145,7 +145,7 @@ public class PoiServiceTests
 
         Assert.True(handler.CallCount > 0);
         Assert.True(repo.UpsertCallCount > 0);
-        Assert.Contains(result, p => p.Name == "Shell");
+        Assert.Contains(result.Items, p => p.Name == "Shell");
     }
 
     [Fact]
@@ -170,7 +170,7 @@ public class PoiServiceTests
         // Should not throw even with HTTP errors for uncached tiles
         var result = await svc.GetPoisAsync("fuel", 52.3, 4.9, 5.0);
 
-        Assert.Contains(result, p => p.Name == "BP");
+        Assert.Contains(result.Items, p => p.Name == "BP");
     }
 
     [Theory]
