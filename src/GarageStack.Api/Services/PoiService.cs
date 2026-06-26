@@ -62,8 +62,9 @@ public sealed class PoiService(
             }
             catch (Exception ex) when (!ct.IsCancellationRequested)
             {
+                var safePoiType = poiType.Replace("\r", "").Replace("\n", "");
                 logger.LogWarning(ex, "On-demand Overpass fetch failed for {PoiType} ({CellLat},{CellLng})",
-                    poiType, cellLat, cellLng);
+                    safePoiType, cellLat, cellLng);
             }
         }
 
