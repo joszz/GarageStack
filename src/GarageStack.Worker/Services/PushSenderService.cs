@@ -64,6 +64,9 @@ public sealed class PushSenderService : IPushSender, IDisposable
             recordDb.AppNotifications.Add(record);
             await recordDb.SaveChangesAsync(ct);
 
+            var unreadCount = await recordDb.AppNotifications
+                .CountAsync(n => !n.IsArchived && !n.IsDeleted, ct);
+
             // Signal the API process via PostgreSQL so connected browser clients get
             // an immediate notificationReceived push without polling.
             var notifyJson = JsonSerializer.Serialize(new
@@ -74,6 +77,7 @@ public sealed class PushSenderService : IPushSender, IDisposable
                 createdAt = record.CreatedAt.ToString("O"),
                 category = record.Category,
                 vehicleId = record.VehicleId,
+                unreadCount,
             });
             await recordDb.Database.ExecuteSqlInterpolatedAsync(
                 $"SELECT pg_notify('notification_created', {notifyJson})", ct);
@@ -90,7 +94,9 @@ public sealed class PushSenderService : IPushSender, IDisposable
         var subscriptions = await db.PushSubscriptions.AsNoTracking().ToListAsync(ct);
         if (subscriptions.Count == 0) return;
 
-        var payload = System.Text.Json.JsonSerializer.Serialize(new { title, body, icon = "/icons/icon-192.png", category });
+        var unreadCountForPayload = await db.AppNotifications
+            .CountAsync(n => !n.IsArchived && !n.IsDeleted, ct);
+        var payload = System.Text.Json.JsonSerializer.Serialize(new { title, body, icon = "/icons/icon-192.png", category, unreadCount = unreadCountForPayload });
         var message = new PushMessage(payload) { TimeToLive = 3600 };
         var dead = new List<ModelPushSubscription>();
 

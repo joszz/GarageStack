@@ -4,6 +4,20 @@ import { useAuthStore } from '@/stores/auth'
 
 const notifications = ref<AppNotification[]>([])
 
+type BadgingNavigator = Navigator & {
+  setAppBadge?: (count?: number) => Promise<void>
+  clearAppBadge?: () => Promise<void>
+}
+
+function syncBadge(count: number) {
+  const nav = navigator as BadgingNavigator
+  if (count > 0) {
+    nav.setAppBadge?.(count)
+  } else {
+    nav.clearAppBadge?.()
+  }
+}
+
 export function prependNotification(notification: AppNotification) {
   notifications.value = [notification, ...notifications.value]
 }
@@ -20,6 +34,7 @@ export function useNotifications() {
     fetchError.value = null
     try {
       notifications.value = await notificationsApi.list()
+      syncBadge(unreadCount.value)
     } catch (err) {
       fetchError.value = err instanceof Error ? err.message : 'Failed to load notifications'
     } finally {
@@ -65,16 +80,19 @@ export function useNotifications() {
   async function archiveAllNotifications() {
     await notificationsApi.archiveAll()
     notifications.value.forEach((n) => (n.isArchived = true))
+    syncBadge(0)
   }
 
   async function deleteNotification(id: number) {
     await notificationsApi.delete(id)
     notifications.value = notifications.value.filter((n) => n.id !== id)
+    syncBadge(unreadCount.value)
   }
 
   async function deleteAllNotifications() {
     await notificationsApi.deleteAll()
     notifications.value = []
+    syncBadge(0)
   }
 
   function togglePanel() {
