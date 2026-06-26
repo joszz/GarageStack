@@ -233,13 +233,13 @@ public static class TelemetryMapper
                 break;
 
             case "refresh/lastVehicleState":
-                if (DateTime.TryParse(payload, null, System.Globalization.DateTimeStyles.RoundtripKind, out var lvs))
-                    snapshot.LastVehicleStateAt = lvs;
+                if (DateTimeOffset.TryParse(payload, null, System.Globalization.DateTimeStyles.RoundtripKind, out var lvs))
+                    snapshot.LastVehicleStateAt = lvs.UtcDateTime;
                 break;
 
             case "refresh/lastChargeState":
-                if (DateTime.TryParse(payload, null, System.Globalization.DateTimeStyles.RoundtripKind, out var lcs))
-                    snapshot.LastChargeStateAt = lcs;
+                if (DateTimeOffset.TryParse(payload, null, System.Globalization.DateTimeStyles.RoundtripKind, out var lcs))
+                    snapshot.LastChargeStateAt = lcs.UtcDateTime;
                 break;
 
             // Active journey

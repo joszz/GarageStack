@@ -10,11 +10,12 @@
   <Support>https://github.com/joszz/garagestack/issues</Support>
   <Project>https://github.com/joszz/garagestack</Project>
   <Overview>
-    GarageStack is an open-source vehicle monitoring dashboard for MG / SAIC electric and plug-in hybrid vehicles.
+    GarageStack is an open-source vehicle monitoring dashboard for MG / SAIC electric, plug-in hybrid, and hybrid vehicles.
     It connects to the MG iSmart cloud via the SAIC MQTT Gateway and stores all data locally in an embedded
-    PostgreSQL database. Features include a live dashboard, charging and efficiency statistics, trip history
-    with heatmap visualisation, and Web Push notifications. Everything runs in a single container -- no
-    external database or MQTT broker required.
+    PostgreSQL database. Features include: live dashboard, energy and efficiency statistics, trip history with
+    heatmap visualisation, EV charging station overlay (requires free OCM API key), fuel station and motorway
+    service area overlays (OpenStreetMap, no key required), Web Push notifications, and a Homepage dashboard widget.
+    Everything runs in a single container -- no external database or MQTT broker required.
   </Overview>
   <Category>Tools: HomeAutomation:</Category>
   <WebUI>http://[IP]:[PORT:80]/</WebUI>
@@ -156,6 +157,39 @@
     Display="advanced"
     Required="false"
     Mask="true"/>
+
+  <Config
+    Name="Homepage Widget API Key"
+    Target="WIDGET_API_KEY"
+    Default=""
+    Mode=""
+    Description="Static API key for the read-only /api/widget/{vin}/status endpoint used by the gethomepage.dev Custom API widget. Leave empty to keep the endpoint disabled. Generate with: openssl rand -base64 32"
+    Type="Variable"
+    Display="advanced"
+    Required="false"
+    Mask="true"/>
+
+  <Config
+    Name="Open Charge Map API Key"
+    Target="OPENCHARGEMAP_API_KEY"
+    Default=""
+    Mode=""
+    Description="API key for the EV charging station overlay on the map. Free to obtain at https://openchargemap.org/site/develop -- create an account and generate a key. Leave empty to disable the charging station feature."
+    Type="Variable"
+    Display="advanced"
+    Required="false"
+    Mask="true"/>
+
+  <Config
+    Name="Overpass API Base URL"
+    Target="OVERPASS__BASEURL"
+    Default="https://overpass-api.de/api/interpreter"
+    Mode=""
+    Description="Overpass API endpoint used for fuel station and motorway service area overlays. Defaults to the public endpoint -- no API key required. Change this only if you self-host an Overpass instance."
+    Type="Variable"
+    Display="advanced"
+    Required="false"
+    Mask="false">https://overpass-api.de/api/interpreter</Config>
 
   <Config
     Name="Database Name"

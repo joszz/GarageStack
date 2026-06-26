@@ -34,9 +34,15 @@ try
 
     builder.Services.AddGarageStackData(connectionString);
     builder.Services.Configure<MqttOptions>(builder.Configuration.GetSection("Mqtt"));
+    builder.Services.AddHttpClient("overpass", client =>
+    {
+        client.DefaultRequestHeaders.UserAgent.ParseAdd("GarageStack/1.0");
+        client.Timeout = TimeSpan.FromSeconds(45);
+    });
     builder.Services.AddSingleton<GarageStack.Core.Interfaces.IPushSender, GarageStack.Worker.Services.PushSenderService>();
     builder.Services.AddHostedService<MqttConsumerService>();
     builder.Services.AddHostedService<PushNotificationCheckService>();
+    builder.Services.AddHostedService<PoiPreCachingService>();
 
     var host = builder.Build();
 

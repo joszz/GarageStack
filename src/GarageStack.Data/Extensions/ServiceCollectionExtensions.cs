@@ -1,6 +1,7 @@
 using GarageStack.Core.Interfaces;
 using GarageStack.Data.Demo;
 using GarageStack.Data.Repositories;
+using GarageStack.Data.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
@@ -17,6 +18,9 @@ public static class ServiceCollectionExtensions
 
         services.AddScoped<IVehicleRepository, VehicleRepository>();
         services.AddScoped<ITelemetryRepository, TelemetryRepository>();
+        services.AddScoped<IPoiRepository, PoiRepository>();
+        services.AddSingleton<OverpassApiClient>();
+        services.AddSingleton<OcmApiClient>();
 
         return services;
     }
@@ -29,6 +33,9 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IVehicleRepository, DemoVehicleRepository>();
         services.AddSingleton<ITelemetryRepository, DemoTelemetryRepository>();
         services.AddSingleton<IPushSender, DemoPushSender>();
+        services.AddScoped<IPoiRepository, PoiRepository>();
+        services.AddSingleton<OverpassApiClient>();
+        services.AddSingleton<OcmApiClient>();
 
         return services;
     }

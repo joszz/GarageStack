@@ -1,10 +1,10 @@
+using GarageStack.Core.Helpers;
 using GarageStack.Core.Interfaces;
 using GarageStack.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using System.Text.Json;
 
 namespace GarageStack.Worker.Services;
 
@@ -135,22 +135,9 @@ public class PushNotificationCheckService(
         }
     }
 
-    private static string GetVehicleType(Core.Models.Vehicle v)
-    {
-        if (v.ConfigJson is null) return "unknown";
-        try
-        {
-            var cfg = JsonSerializer.Deserialize<Dictionary<string, string>>(v.ConfigJson);
-            var hw = (cfg?.GetValueOrDefault("hw_version") ?? "").ToUpperInvariant();
-            if (hw.Contains("PHEV")) return "phev";
-            if (hw.Contains("HEV")) return "hev";
-            if (hw.Contains("BEV") || hw.Contains("EV")) return "bev";
-        }
-        catch { }
-        return "unknown";
-    }
+    private static string GetVehicleType(Core.Models.Vehicle v) => VehicleTypeHelper.GetVehicleType(v);
 
-    private static bool CanCharge(string vehicleType) => vehicleType is "bev" or "phev";
+    private static bool CanCharge(string vehicleType) => VehicleTypeHelper.CanCharge(vehicleType);
 
     internal bool CheckEngineStart(Core.Models.TelemetrySnapshot s, string vin, List<(string, string, string)> alerts)
     {
