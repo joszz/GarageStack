@@ -4,7 +4,7 @@
 FROM node:24-alpine AS frontend-build
 WORKDIR /app
 RUN apk upgrade --no-cache && corepack enable && corepack prepare pnpm@11.1.3 --activate
-COPY frontend/package.json frontend/pnpm-lock.yaml ./
+COPY frontend/package.json frontend/pnpm-lock.yaml frontend/pnpm-workspace.yaml ./
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
     pnpm config set store-dir /pnpm/store && \
     pnpm config set minimum-release-age 0 && \
