@@ -292,6 +292,50 @@ The endpoint returns a flat JSON object. Numeric fields are `null` when the vehi
 
 ---
 
+## Map overlays
+
+The map view supports three POI overlay layers. All data is cached in the database and served instantly on subsequent visits. Open the **Filters** panel (sliders icon, top-right of the map) to toggle each layer and adjust filters.
+
+### Charging stations
+
+Requires a free [Open Charge Map](https://openchargemap.org/site/develop) API key (`OPENCHARGEMAP_API_KEY`).
+
+- Markers show operational status at a glance.
+- Clicking a marker shows the station name, operator, address, and available connectors with power ratings.
+- **Power filter** -- a dual-handle slider lets you restrict results to a specific kW range (e.g. 50-150 kW for fast DC only). The filter is applied client-side from the local cache; no new API call is made when you move the slider. Set the upper handle to the maximum (350+) to remove the upper limit.
+- Tile data is loaded on demand as you browse the map and cached for 7 days. The Worker does not pre-populate charging tiles.
+- Available for BEV and PHEV vehicles only; hidden for HEV.
+
+### Fuel stations (HEV and PHEV only)
+
+Sourced from OpenStreetMap via the free [Overpass API](https://overpass-api.de) -- no API key required.
+
+- Shows petrol and diesel stations from OSM data. Accuracy and completeness depend on OSM coverage in your area.
+- **Brand filter** -- select one or more brands (e.g. BP, Shell, Total) from the Filters panel. Only stations with a matching `brand` or `operator` OSM tag are shown; untagged stations are hidden when any filter is active. The filter is applied client-side with no additional API call.
+- The Worker pre-populates a 100 km radius around your car's last known position every 6 hours, so the layer loads instantly on first view without hitting Overpass.
+- If Overpass returns a 429 rate-limit response, the client backs off and retries automatically; existing cached data is shown in the meantime.
+- Tile data is cached for 7 days. Zooming or panning to a new area triggers on-demand fetching for uncached tiles.
+- Hidden for BEV vehicles (petrol stations are not relevant).
+
+### Motorway service areas
+
+Sourced from OpenStreetMap (`highway=services`) via the Overpass API -- no API key required.
+
+- Shows motorway service areas and rest stops.
+- Available for all vehicle types; useful for BEV drivers because many service areas have fast-charger banks.
+- Same DB-backed cache and Worker pre-population as fuel stations.
+
+### Caching architecture
+
+All three POI types share the same tile-based PostgreSQL cache:
+
+- The map is divided into a 0.5 deg x 0.5 deg grid (roughly 55 x 40 km at European latitudes).
+- Each tile is fetched once and stored for 7 days; subsequent requests for the same area are served from the database with no external API call.
+- The background Worker pre-populates tiles around your car on startup and every 6 hours (fuel and service areas only).
+- The `MaxOnDemandTiles` cap (1 per API request) prevents Overpass rate-limiting when many uncached tiles are requested at once; the frontend chains requests automatically with back-off when more tiles remain.
+
+---
+
 ## Security defaults
 
 - API routes require login.
