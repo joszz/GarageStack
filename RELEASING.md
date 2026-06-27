@@ -28,11 +28,11 @@ All images live on GitHub Container Registry (`ghcr.io`). Replace `joszz` with t
 
 | Tag | Example | When created |
 |-----|---------|--------------|
-| `latest` | `garagestack:latest` | Every push to `main` |
+| `latest` | `garagestack:latest` | Every push to `main`, weekly rebuild (Mondays 05:00 UTC), manual dispatch |
 | `1.2.3` | `garagestack:1.2.3` | On `v1.2.3` git tag |
 | `1.2` | `garagestack:1.2` | On any `v1.2.x` tag |
 | `1` | `garagestack:1` | On any `v1.x.x` tag |
-| `sha-abc1234` | `garagestack:sha-abc1234` | Every push to `main` |
+| `sha-abc1234` | `garagestack:sha-abc1234` | Every push to `main`, weekly rebuild, manual dispatch |
 
 ---
 
@@ -43,11 +43,14 @@ All images live on GitHub Container Registry (`ghcr.io`). Replace `joszz` with t
 ```
 PR opened
   CI (lint, typecheck, test, build, container-build)
+  CodeQL (actions, C#, JS/TS analysis)
   Security (Trivy filesystem scan)
 
 Merge to main
   CI
+  CodeQL
   Security (Trivy filesystem + image scan after publish)
+  Dependency submission (graph snapshot to GitHub)
   Release Please (update release PR)
   docker-publish (push images with short SHA + latest tags)
     Sign with Cosign
@@ -58,6 +61,11 @@ Release PR merged
   docker-publish (push versioned tags + latest)
     Sign with Cosign
     Attach SBOM + provenance
+
+Weekly (Mondays)
+  CodeQL
+  Security (Trivy filesystem + image scan)
+  docker-publish (rebuild and re-push latest tags)
 ```
 
 ---
@@ -115,6 +123,10 @@ The `ci` workflow runs on every PR and push to `main`. All jobs must pass before
 | `backend-test` | `dotnet test` (all xUnit tests) |
 | `container-build` | Docker build (no push) for all four images |
 
+### Code Analysis (CodeQL)
+
+The `codeql` workflow runs alongside CI on every PR, every push to `main`, and weekly on Mondays at 07:00 UTC. It analyzes three language targets: `actions` (workflow files), `csharp` (backend), and `javascript-typescript` (frontend). Results appear in the GitHub Security tab.
+
 ---
 
 ## Dependency Management
@@ -127,9 +139,17 @@ The `auto-merge` workflow merges Dependabot PRs automatically when CI passes, co
 
 - **All patch updates** (any package, any ecosystem)
 - **Any GitHub Actions updates** (infrastructure, low-risk)
-- **Minor updates** for dev-only groups: `linting`, `testing`, `typescript-and-types`, `test-framework`, `docker-actions`, `github-actions`
+- **Minor updates** for any named Dependabot group (the condition is `dependency-group != ''`)
 
-Everything else (minor and major runtime dependencies) requires manual review and merge.
+Named groups defined in `.github/dependabot.yml`:
+
+| Ecosystem | Groups |
+| --------- | ------ |
+| npm | `vue-ecosystem`, `vite-and-pwa`, `map-and-charts`, `fontawesome`, `linting`, `typescript-and-types`, `testing` |
+| NuGet | `dotnet-platform`, `identity-model`, `serilog`, `test-framework` |
+| GitHub Actions | `docker-actions`, `github-actions` |
+
+Everything else (ungrouped minor and all major updates) requires manual review and merge.
 
 ---
 
@@ -188,6 +208,10 @@ cosign verify \
 ```
 
 A successful verification confirms the image was built by this repository's workflow and was not tampered with after publishing.
+
+### Dependency Submission
+
+The `dependency-submission` workflow runs on every push to `main`. It uses the `component-detection-dependency-submission-action` to snapshot all dependency graphs (npm, NuGet, GitHub Actions) and submit them to GitHub. This powers the Dependency graph and Dependabot alerts in the repository Security tab.
 
 ---
 
