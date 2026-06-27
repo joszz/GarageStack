@@ -77,6 +77,7 @@ Click the flask icon in the bottom-right corner to open the panel. Changes take 
 | State | Locked, engine running, climate |
 | Charging | Charger connected, actively charging |
 | Battery SOC | Slider 10-100% |
+| Speed | Slider 0-200 km/h |
 | Temperature | Interior and exterior (°C) |
 
 ## How it works
