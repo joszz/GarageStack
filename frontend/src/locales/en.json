@@ -230,6 +230,7 @@
     "fuelBrandFilterDesc": "Show only selected fuel station brands. Only available after loading stations.",
     "fuelBrandSelected": "selected",
     "fuelBrandNoneLoaded": "Enable fuel stations on the map to load available brands.",
+    "fuelBrandPlaceholder": "Filter brands...",
     "fuelBrandClear": "Clear selection",
     "findCar": "Find car",
     "points": "pts"
