@@ -1123,11 +1123,13 @@ onUnmounted(() => {
           <template v-if="!isBev && fuelStationsEnabled">
             <div class="fuel-brand-filter">
               <div class="fuel-brand-filter__header">
-                <span class="settings-toggle__label">
-                  <font-awesome-icon icon="tag" class="settings-toggle__icon" />
-                  {{ t('trips.fuelBrandFilter') }}
-                </span>
-                <span class="settings-toggle__desc">{{ t('trips.fuelBrandFilterDesc') }}</span>
+                <div class="settings-toggle__info">
+                  <span class="settings-toggle__label">
+                    <font-awesome-icon icon="tag" class="settings-toggle__icon" />
+                    {{ t('trips.fuelBrandFilter') }}
+                  </span>
+                  <span class="settings-toggle__desc">{{ t('trips.fuelBrandFilterDesc') }}</span>
+                </div>
               </div>
               <Multiselect
                 v-model="fuelBrandFilter"
