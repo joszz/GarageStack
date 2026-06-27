@@ -311,6 +311,10 @@ export const mapApi = {
     })
     return request<PoiResponse>(`/api/map/poi?${params}`)
   },
+  poiBrands: (type: string, vehicleType: string) => {
+    const params = new URLSearchParams({ type, vehicleType })
+    return request<string[]>(`/api/map/poi/brands?${params}`)
+  },
 }
 
 export interface MeResponse {

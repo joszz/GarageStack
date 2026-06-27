@@ -1,3 +1,4 @@
+using System.Text.Json;
 using GarageStack.Core.Interfaces;
 using GarageStack.Core.Models;
 using Microsoft.EntityFrameworkCore;
@@ -139,5 +140,30 @@ public class PoiRepository(AppDbContext db) : IPoiRepository
                         && p.Longitude >= minLng && p.Longitude <= maxLng)
             .AsNoTracking()
             .ToListAsync(ct);
+    }
+
+    public async Task<IReadOnlyList<string>> GetDistinctBrandsAsync(
+        string source, string poiType,
+        CancellationToken ct = default)
+    {
+        var metaJsonList = await db.PoiItems
+            .Where(p => p.Source == source && p.PoiType == poiType && p.MetaJson != null)
+            .Select(p => p.MetaJson!)
+            .AsNoTracking()
+            .ToListAsync(ct);
+
+        var brands = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var json in metaJsonList)
+        {
+            try
+            {
+                var dict = JsonSerializer.Deserialize<Dictionary<string, string>>(json);
+                if (dict is null) continue;
+                var brand = dict.GetValueOrDefault("brand") ?? dict.GetValueOrDefault("operator");
+                if (!string.IsNullOrWhiteSpace(brand)) brands.Add(brand);
+            }
+            catch { }
+        }
+        return [.. brands.Order()];
     }
 }

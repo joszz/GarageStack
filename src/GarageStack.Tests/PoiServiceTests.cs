@@ -67,6 +67,29 @@ internal sealed class PoiFakeRepository : IPoiRepository
             .ToList();
         return Task.FromResult(result);
     }
+
+    public Task<IReadOnlyList<string>> GetDistinctBrandsAsync(
+        string source, string poiType,
+        CancellationToken ct = default)
+    {
+        IReadOnlyList<string> result = _items
+            .Where(p => p.Source == source && p.PoiType == poiType && p.MetaJson != null)
+            .Select(p =>
+            {
+                try
+                {
+                    var dict = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(p.MetaJson!);
+                    return dict?.GetValueOrDefault("brand") ?? dict?.GetValueOrDefault("operator");
+                }
+                catch { return null; }
+            })
+            .Where(b => !string.IsNullOrWhiteSpace(b))
+            .Select(b => b!)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Order()
+            .ToList();
+        return Task.FromResult(result);
+    }
 }
 
 internal sealed class PoiFakeOverpassHandler(string json, HttpStatusCode status = HttpStatusCode.OK)
