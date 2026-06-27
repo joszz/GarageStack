@@ -230,6 +230,7 @@
     "fuelBrandFilterDesc": "Toon alleen geselecteerde tankstationmerken. Beschikbaar nadat stations zijn geladen.",
     "fuelBrandSelected": "geselecteerd",
     "fuelBrandNoneLoaded": "Schakel tankstations in op de kaart om beschikbare merken te laden.",
+    "fuelBrandPlaceholder": "Merken filteren...",
     "fuelBrandClear": "Selectie wissen",
     "findCar": "Vind auto",
     "points": "ptn"
