@@ -64,6 +64,7 @@ async function submitLogin() {
               :aria-label="t('auth.username')"
               :placeholder="t('auth.username')"
               autocomplete="username"
+              autofocus
               required
             />
           </div>
