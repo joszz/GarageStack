@@ -58,7 +58,7 @@ public class ChargingStationServiceTests
     {
         var svc = Build(new PoiFakeRepository(), BuildOcmClient("[]", apiKey: null));
 
-        var result = await svc.GetStationsAsync(52.37, 4.90, 5);
+        var result = await svc.GetStationsAsync(52.37, 4.90, 5, ct: TestContext.Current.CancellationToken);
 
         Assert.Empty(result);
     }
@@ -72,7 +72,7 @@ public class ChargingStationServiceTests
 
         var svc = Build(repo, BuildOcmClient("[]"));
 
-        var result = await svc.GetStationsAsync(52.37, 4.90, 5);
+        var result = await svc.GetStationsAsync(52.37, 4.90, 5, ct: TestContext.Current.CancellationToken);
 
         Assert.Equal(0, repo.UpsertCallCount);
         Assert.Single(result);
@@ -101,7 +101,7 @@ public class ChargingStationServiceTests
 
         var svc = Build(repo, BuildOcmClient("[]"));
 
-        var result = await svc.GetStationsAsync(52.37, 4.90, 5);
+        var result = await svc.GetStationsAsync(52.37, 4.90, 5, ct: TestContext.Current.CancellationToken);
 
         Assert.Single(result);
         var s = result[0];
@@ -127,7 +127,7 @@ public class ChargingStationServiceTests
         repo.SeedItem(MakeItem(2, 52.38, 4.91, 50));  // within range
 
         var result = await Build(repo, BuildOcmClient("[]"))
-            .GetStationsAsync(52.37, 4.90, 5, maxPowerKw: 100);
+            .GetStationsAsync(52.37, 4.90, 5, maxPowerKw: 100, ct: TestContext.Current.CancellationToken);
 
         Assert.Single(result);
         Assert.Equal(2, result[0].Id);
@@ -142,7 +142,7 @@ public class ChargingStationServiceTests
         repo.SeedItem(MakeItem(2, 52.38, 4.91, 50)); // meets threshold
 
         var result = await Build(repo, BuildOcmClient("[]"))
-            .GetStationsAsync(52.37, 4.90, 5, minPowerKw: 50);
+            .GetStationsAsync(52.37, 4.90, 5, minPowerKw: 50, ct: TestContext.Current.CancellationToken);
 
         Assert.Single(result);
         Assert.Equal(2, result[0].Id);
@@ -158,7 +158,7 @@ public class ChargingStationServiceTests
         repo.SeedItem(MakeItem(3, 52.39, 4.92, 150)); // too high
 
         var result = await Build(repo, BuildOcmClient("[]"))
-            .GetStationsAsync(52.37, 4.90, 5, minPowerKw: 50, maxPowerKw: 100);
+            .GetStationsAsync(52.37, 4.90, 5, minPowerKw: 50, maxPowerKw: 100, ct: TestContext.Current.CancellationToken);
 
         Assert.Single(result);
         Assert.Equal(2, result[0].Id);

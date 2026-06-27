@@ -151,7 +151,7 @@ public class PoiServiceTests
         foreach (var (clat, clng) in tiles)
             repo.SeedTile("overpass", "fuel", clat, clng);
 
-        await svc.GetPoisAsync("fuel", 52.0, 5.0, 10.0);
+        await svc.GetPoisAsync("fuel", 52.0, 5.0, 10.0, TestContext.Current.CancellationToken);
 
         Assert.Equal(0, handler.CallCount);
         Assert.Equal(0, repo.UpsertCallCount);
@@ -164,7 +164,7 @@ public class PoiServiceTests
         var handler = new PoiFakeOverpassHandler(OneNodeResponse);
         var svc = BuildPoiService(repo, BuildOverpassClient(handler));
 
-        var result = await svc.GetPoisAsync("fuel", 52.3, 4.9, 5.0);
+        var result = await svc.GetPoisAsync("fuel", 52.3, 4.9, 5.0, TestContext.Current.CancellationToken);
 
         Assert.True(handler.CallCount > 0);
         Assert.True(repo.UpsertCallCount > 0);
@@ -191,7 +191,7 @@ public class PoiServiceTests
         var svc = BuildPoiService(repo, BuildOverpassClient(handler));
 
         // Should not throw even with HTTP errors for uncached tiles
-        var result = await svc.GetPoisAsync("fuel", 52.3, 4.9, 5.0);
+        var result = await svc.GetPoisAsync("fuel", 52.3, 4.9, 5.0, TestContext.Current.CancellationToken);
 
         Assert.Contains(result.Items, p => p.Name == "BP");
     }
