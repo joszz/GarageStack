@@ -83,6 +83,9 @@ public sealed class PoiService(
         return new PoiResult(pois.Select(MapToDto).ToList(), hasMore);
     }
 
+    public Task<IReadOnlyList<string>> GetBrandsAsync(string poiType, CancellationToken ct = default)
+        => repository.GetDistinctBrandsAsync("overpass", poiType, ct);
+
     private static PoiItemDto MapToDto(PoiItem p) => new(
         p.ExternalId,
         p.PoiType,

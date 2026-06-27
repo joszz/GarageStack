@@ -83,8 +83,11 @@ const fuelBrandFilter = computed({
     settingsStore.fuelBrandFilter = v
   },
 })
+const cachedFuelBrands = ref<string[]>([])
+const brandsLoading = ref(false)
+
 const availableFuelBrands = computed(() => {
-  const brands = new Set<string>()
+  const brands = new Set<string>(cachedFuelBrands.value)
   for (const item of fuelAllItems.values()) {
     const tags = item.tags ?? {}
     const brand = tags['brand'] ?? tags['operator'] ?? null
@@ -92,6 +95,18 @@ const availableFuelBrands = computed(() => {
   }
   return [...brands].sort((a, b) => a.localeCompare(b))
 })
+
+async function loadFuelBrands() {
+  if (vehicleType.value === 'unknown') return
+  brandsLoading.value = true
+  try {
+    cachedFuelBrands.value = await mapApi.poiBrands('fuel', vehicleType.value)
+  } catch {
+    // non-fatal
+  } finally {
+    brandsLoading.value = false
+  }
+}
 const chargingMinPowerKw = computed({
   get: () => settingsStore.chargingMinPowerKw,
   set: (v: number) => {
@@ -895,8 +910,13 @@ watch(chargingStationsEnabled, (enabled) => {
 })
 
 watch(fuelStationsEnabled, (enabled) => {
-  if (enabled) loadPoiLayer('fuel')
-  else clearPoiMarkers('fuel')
+  if (enabled) {
+    loadFuelBrands()
+    loadPoiLayer('fuel')
+  } else {
+    clearPoiMarkers('fuel')
+    cachedFuelBrands.value = []
+  }
 })
 
 watch(fuelBrandFilter, () => {
@@ -921,7 +941,10 @@ watch(isBev, (bev) => {
 // Vehicle type transitions from unknown once fetchConfig resolves - reload fuel layer now we know the type
 watch(vehicleType, (newVt, oldVt) => {
   if (oldVt !== 'unknown' || newVt === 'unknown' || !mapInstance.value) return
-  if (fuelStationsEnabled.value) loadPoiLayer('fuel')
+  if (fuelStationsEnabled.value) {
+    loadFuelBrands()
+    loadPoiLayer('fuel')
+  }
 })
 
 watch(chargingMinPowerKw, () => {
@@ -1000,6 +1023,9 @@ onMounted(async () => {
         new Date(Date.now() - dateRangeDays.value * 86_400_000).toISOString(),
       ),
     ])
+  }
+  if (fuelStationsEnabled.value) {
+    loadFuelBrands()
   }
   nextTick(() => {
     if (sentinelRef.value && tripSidebarRef.value) {
@@ -1139,7 +1165,8 @@ onUnmounted(() => {
                 :close-on-select="false"
                 :clear-on-select="false"
                 mode="tags"
-                :no-results-text="t('trips.fuelBrandNoneLoaded')"
+                :loading="brandsLoading"
+                :no-results-text="t('trips.fuelBrandNoMatch')"
                 :no-options-text="t('trips.fuelBrandNoneLoaded')"
                 append-to="body"
                 class="fuel-brand-multiselect"

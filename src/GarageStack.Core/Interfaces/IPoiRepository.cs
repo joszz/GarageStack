@@ -26,4 +26,8 @@ public interface IPoiRepository
         double minLat, double minLng,
         double maxLat, double maxLng,
         CancellationToken ct = default);
+
+    Task<IReadOnlyList<string>> GetDistinctBrandsAsync(
+        string source, string poiType,
+        CancellationToken ct = default);
 }

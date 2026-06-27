@@ -27,6 +27,23 @@ public static class MapEndpoints
         })
         .WithSummary("Get nearby EV charging stations from Open Charge Map");
 
+        group.MapGet("/poi/brands", async (
+            string type,
+            string vehicleType,
+            PoiService svc,
+            CancellationToken ct) =>
+        {
+            if (type is not ("fuel" or "service_area"))
+                return Results.BadRequest(new { error = "type must be 'fuel' or 'service_area'" });
+
+            if (!PoiService.IsPoiTypeAllowed(type, vehicleType))
+                return Results.Ok(Array.Empty<string>());
+
+            var brands = await svc.GetBrandsAsync(type, ct);
+            return Results.Ok(brands);
+        })
+        .WithSummary("Get distinct brand names from the cached POI dataset");
+
         group.MapGet("/poi", async (
             string type,
             double lat,
