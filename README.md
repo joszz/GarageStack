@@ -227,6 +227,12 @@ To generate a VAPID key pair (requires Node.js):
 npx web-push generate-vapid-keys
 ```
 
+No Node.js installed? Use a temporary Docker container instead:
+
+```bash
+docker run --rm node:lts-alpine npx --yes web-push generate-vapid-keys
+```
+
 Copy the public key to `VAPID_PUBLIC_KEY` and the private key to `VAPID_PRIVATE_KEY` in your `.env` file (or as container environment variables). Keep the private key secret -- regenerating it invalidates all existing push subscriptions, requiring users to re-enable notifications in the browser.
 
 Note: "keys left in the car" is not currently supported because the SAIC MQTT gateway does not expose a key-in-vehicle sensor.
