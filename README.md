@@ -91,6 +91,17 @@ This way the official app keeps its own session on the owner account and GarageS
 
 ---
 
+## Prerequisites
+
+Before installing, make sure the following are available on your host:
+
+- **Docker** 20.10 or later (or Podman with Docker Compose compatibility)
+- **Docker Compose v2** (bundled with Docker Desktop; on Linux install the `docker-compose-plugin` package) -- required for Option B only
+- An **MG iSmart account** with your vehicle already linked in the official app
+- Outbound internet access on the host so the container can reach the SAIC API and (optionally) Overpass / Open Charge Map
+
+---
+
 ## Installation
 
 Choose the method that fits your environment.
@@ -174,6 +185,27 @@ The frontend is served on port `8080` by default (configurable via `FRONTEND_POR
 
 ---
 
+## Updating
+
+Pull the latest image and restart. Database migrations run automatically on startup.
+
+**Docker Compose:**
+
+```bash
+docker compose pull
+docker compose up -d
+```
+
+**All-in-one container:**
+
+```bash
+docker pull ghcr.io/joszz/garagestack:latest
+docker stop garagestack && docker rm garagestack
+# Re-run your original docker run command
+```
+
+---
+
 ## Push notifications
 
 GarageStack checks your vehicle's state every 5 minutes and sends both a browser push notification and an in-app notification (bell icon) when any of the following conditions are detected. Each alert has a 1-hour cooldown per vehicle to avoid repeated notifications.
@@ -188,6 +220,14 @@ GarageStack checks your vehicle's state every 5 minutes and sends both a browser
 | Window left open | Any window or sunroof open while engine is off |
 
 Push notifications require VAPID keys to be configured (`VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY`). Without them, alerts still appear in the in-app notification panel. The "engine started" alert is also triggered in real time when the event arrives over MQTT, independently of the 5-minute polling cycle.
+
+To generate a VAPID key pair (requires Node.js):
+
+```bash
+npx web-push generate-vapid-keys
+```
+
+Copy the public key to `VAPID_PUBLIC_KEY` and the private key to `VAPID_PRIVATE_KEY` in your `.env` file (or as container environment variables). Keep the private key secret -- regenerating it invalidates all existing push subscriptions, requiring users to re-enable notifications in the browser.
 
 Note: "keys left in the car" is not currently supported because the SAIC MQTT gateway does not expose a key-in-vehicle sensor.
 
@@ -329,6 +369,8 @@ Requires a free [Open Charge Map](https://openchargemap.org/site/develop) API ke
 
 Sourced from OpenStreetMap via the free [Overpass API](https://overpass-api.de) -- no API key required.
 
+> **Performance note:** Fetching data from the Overpass API for uncached map tiles can be slow -- a single tile request may take anywhere from a few seconds to over 30 seconds depending on Overpass server load and the density of POIs in the area. The background Worker pre-populates a 100 km radius around your car's position on startup and every 6 hours, so that area loads instantly. Outside that radius, each newly-visible tile triggers an on-demand Overpass fetch; expect a visible delay until it is cached. Subsequent visits load from the database with no external call.
+
 - Shows petrol and diesel stations from OSM data. Accuracy and completeness depend on OSM coverage in your area.
 - **Brand filter** -- select one or more brands (e.g. BP, Shell, Total) from the Filters panel. Only stations with a matching `brand` or `operator` OSM tag are shown; untagged stations are hidden when any filter is active. The filter is applied client-side with no additional API call.
 - The Worker pre-populates a 100 km radius around your car's last known position every 6 hours, so the layer loads instantly on first view without hitting Overpass.
@@ -342,7 +384,7 @@ Sourced from OpenStreetMap (`highway=services`) via the Overpass API -- no API k
 
 - Shows motorway service areas and rest stops.
 - Available for all vehicle types; useful for BEV drivers because many service areas have fast-charger banks.
-- Same DB-backed cache and Worker pre-population as fuel stations.
+- Same DB-backed cache and Worker pre-population as fuel stations. The same Overpass slowness applies for uncached tiles outside the pre-populated radius -- see the note in the Fuel stations section above.
 
 ### Caching architecture
 
