@@ -10,6 +10,7 @@
   --color-success: #22c55e;
   --color-warning: #f59e0b;
   --color-danger: #ef4444;
+  --color-danger-badge: #b91c1c;
   --color-danger-text: #f87171;
   --color-info: #06b6d4;
   --sidebar-width: 220px;
@@ -2123,7 +2124,7 @@ body,
   min-width: 16px;
   height: 16px;
   padding: 0 3px;
-  background: var(--color-danger);
+  background: var(--color-danger-badge);
   color: #fff;
   font-size: 0.6rem;
   font-weight: 700;
