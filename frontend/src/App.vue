@@ -162,7 +162,9 @@ watch(
       </RouterLink>
       <button class="notif-bell" :aria-label="t('notifications.title')" @click="togglePanel">
         <font-awesome-icon icon="bell" />
-        <span v-if="unreadCount > 0" class="notif-bell__badge">{{ unreadCount }}</span>
+        <span v-if="unreadCount > 0" class="notif-bell__badge" aria-hidden="true">{{
+          unreadCount
+        }}</span>
       </button>
     </header>
 
@@ -269,7 +271,9 @@ watch(
           <button class="sidebar-notif-btn" @click="togglePanel">
             <font-awesome-icon icon="bell" />
             <span>{{ t('notifications.title') }}</span>
-            <span v-if="unreadCount > 0" class="notif-bell__badge">{{ unreadCount }}</span>
+            <span v-if="unreadCount > 0" class="notif-bell__badge" aria-hidden="true">{{
+              unreadCount
+            }}</span>
           </button>
 
           <button class="sidebar-logout-btn" @click="logout">
