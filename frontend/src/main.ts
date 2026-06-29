@@ -1,7 +1,7 @@
 import './assets/main.css'
 import 'leaflet/dist/leaflet.css'
 
-import { createApp } from 'vue'
+import { createApp, type Component } from 'vue'
 
 if ('serviceWorker' in navigator) {
   let refreshing = false
@@ -209,7 +209,7 @@ i18n.global.locale.value = settings.locale
 
 app.use(router)
 app.use(i18n)
-app.component('FontAwesomeIcon', FontAwesomeIcon)
+app.component('FontAwesomeIcon', FontAwesomeIcon as unknown as Component)
 
 setUnauthorizedHandler(() => {
   const auth = useAuthStore()
