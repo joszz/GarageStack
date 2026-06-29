@@ -7,6 +7,7 @@ import type { VehicleType } from '@/stores/vehicle'
 import { useSettingsStore } from '@/stores/settings'
 import { LMap, LTileLayer, LMarker, LPopup } from '@vue-leaflet/vue-leaflet'
 import FiltersPanel from '@/components/FiltersPanel.vue'
+import { useInfiniteScroll } from '@/composables/useInfiniteScroll'
 import Slider from '@vueform/slider'
 import Multiselect from '@vueform/multiselect'
 import * as LModule from 'leaflet'
@@ -155,8 +156,6 @@ const dateRangeDays = computed({
   },
 })
 const LOAD_MORE_SIZE = 10
-const displayCount = ref(LOAD_MORE_SIZE)
-const sentinelRef = ref<HTMLElement | null>(null)
 
 const mapWrapperRef = ref<HTMLElement | null>(null)
 const tripSidebarRef = ref<HTMLElement | null>(null)
@@ -188,7 +187,6 @@ const chargingAllStations = new Map<string, ChargingStation>()
 const poiLoadingCount = ref(0)
 const poiLoading = computed(() => poiLoadingCount.value > 0)
 let resizeObserver: ResizeObserver | null = null
-let infiniteScrollObserver: IntersectionObserver | null = null
 let mapUpdateRaf: number | null = null
 let hasCenteredOnStatus = false
 
@@ -261,7 +259,13 @@ const center: [number, number] = [52.3676, 4.9041]
 
 // Trips displayed newest-first in the sidebar; selectedTripIndex is always the real store.trips index.
 const newestFirstTrips = computed(() => [...store.trips].reverse())
-const displayTrips = computed(() => newestFirstTrips.value.slice(0, displayCount.value))
+
+const {
+  displayItems: displayTrips,
+  sentinelRef,
+  reset: resetTripScroll,
+  observe: observeTrips,
+} = useInfiniteScroll(newestFirstTrips, LOAD_MORE_SIZE)
 
 function realIndex(newestFirstIdx: number): number {
   return store.trips.length - 1 - newestFirstIdx
@@ -966,7 +970,7 @@ watch(routeOutlineEnabled, () => {
 
 // Date range change: reload trips and reset state
 watch(dateRangeDays, async (days) => {
-  displayCount.value = LOAD_MORE_SIZE
+  resetTripScroll()
   selectedTripIndex.value = null
   if (vin.value) {
     await store.fetchTrips(vin.value, new Date(Date.now() - days * 86_400_000).toISOString())
@@ -1028,17 +1032,7 @@ onMounted(async () => {
     loadFuelBrands()
   }
   nextTick(() => {
-    if (sentinelRef.value && tripSidebarRef.value) {
-      infiniteScrollObserver = new IntersectionObserver(
-        ([entry]) => {
-          if (entry?.isIntersecting && displayCount.value < store.trips.length) {
-            displayCount.value += LOAD_MORE_SIZE
-          }
-        },
-        { root: tripSidebarRef.value },
-      )
-      infiniteScrollObserver.observe(sentinelRef.value)
-    }
+    observeTrips(tripSidebarRef.value)
   })
 })
 
@@ -1052,7 +1046,6 @@ onUnmounted(() => {
   clearPoiMarkers('fuel')
   clearPoiMarkers('service_area')
   resizeObserver?.disconnect()
-  infiniteScrollObserver?.disconnect()
 })
 </script>
 
