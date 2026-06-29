@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, computed, watch } from 'vue'
+import { onMounted, onUnmounted, ref, computed, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { AppNotification } from '@/services/api'
-import AppPaginator from '@/components/AppPaginator.vue'
+import { useInfiniteScroll } from '@/composables/useInfiniteScroll'
 
 const PAGE_SIZE = 10
 
@@ -35,9 +35,9 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 
-const page = ref(1)
 const showArchived = ref(false)
 const pendingAction = ref<'archiveAll' | 'deleteAll' | null>(null)
+const bodyRef = ref<HTMLElement | null>(null)
 
 const hasUnarchived = computed(() => props.notifications.some((n) => !n.isArchived))
 
@@ -58,30 +58,36 @@ function cancelBulkAction() {
 const filteredNotifications = computed(() =>
   props.notifications.filter((n) => n.isArchived === showArchived.value),
 )
-const totalPages = computed(() =>
-  Math.max(1, Math.ceil(filteredNotifications.value.length / PAGE_SIZE)),
-)
-const pagedNotifications = computed(() =>
-  filteredNotifications.value.slice((page.value - 1) * PAGE_SIZE, page.value * PAGE_SIZE),
-)
+
+const {
+  displayItems: pagedNotifications,
+  sentinelRef,
+  reset,
+  observe,
+  disconnect,
+} = useInfiniteScroll(filteredNotifications, PAGE_SIZE)
 
 watch(
   () => props.notifications.length,
   () => {
-    page.value = 1
+    reset()
   },
 )
 watch(
   () => props.open,
-  (v) => {
+  async (v) => {
     if (v) {
-      page.value = 1
+      reset()
       showArchived.value = false
+      await nextTick()
+      observe(bodyRef.value)
+    } else {
+      disconnect()
     }
   },
 )
 watch(showArchived, () => {
-  page.value = 1
+  reset()
 })
 
 function formatTime(iso: string) {
@@ -140,7 +146,7 @@ onUnmounted(() => document.removeEventListener('keydown', onKey))
             </button>
           </div>
 
-          <div class="notif-panel__body">
+          <div ref="bodyRef" class="notif-panel__body">
             <div v-if="loading" class="notif-panel__empty text-muted">
               <font-awesome-icon icon="spinner" spin />
               {{ t('common.loading') }}
@@ -191,6 +197,7 @@ onUnmounted(() => document.removeEventListener('keydown', onKey))
                   </button>
                 </div>
               </li>
+              <li ref="sentinelRef" aria-hidden="true" />
             </ul>
           </div>
 
@@ -229,10 +236,6 @@ onUnmounted(() => document.removeEventListener('keydown', onKey))
                   <font-awesome-icon icon="box-archive" class="me-1" />
                   {{ t('notifications.archiveAll') }}
                 </button>
-              </div>
-
-              <div class="notif-panel__footer-center">
-                <AppPaginator v-if="totalPages > 1" v-model="page" :total-pages="totalPages" />
               </div>
 
               <div class="notif-panel__footer-side notif-panel__footer-side--right">
