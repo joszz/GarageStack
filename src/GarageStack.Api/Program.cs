@@ -234,6 +234,18 @@ try
     // verify it matches a configured allowed origin. SameSite=Strict is the primary CSRF
     // protection; this adds an explicit server-side check for deployments where that alone
     // is not sufficient (e.g., same-site subdomain compromise).
+    var allowedOrigins = app.Configuration.GetSection("Cors:Origins").Get<string[]>() ?? [];
+    if (!app.Environment.IsDevelopment() &&
+        allowedOrigins.Any(o => o.Contains("localhost", StringComparison.OrdinalIgnoreCase)))
+    {
+        Log.Warning(
+            "CORS_ORIGIN contains 'localhost' ({Origins}). " +
+            "Requests from other devices on the LAN will be rejected with 403. " +
+            "Set CORS_ORIGIN to the address you use to reach the app from those devices, " +
+            "e.g. http://192.168.1.100:8080",
+            string.Join(", ", allowedOrigins));
+    }
+
     app.Use(async (ctx, next) =>
     {
         if (HttpMethods.IsPost(ctx.Request.Method) ||
@@ -244,10 +256,17 @@ try
             var origin = ctx.Request.Headers.Origin.ToString();
             if (!string.IsNullOrEmpty(origin) && !app.Environment.IsDevelopment())
             {
-                var allowed = app.Configuration.GetSection("Cors:Origins").Get<string[]>() ?? [];
-                if (!CsrfPolicy.IsOriginAllowed(origin, allowed))
+                var csrfAllowed = app.Configuration.GetSection("Cors:Origins").Get<string[]>() ?? [];
+                if (!CsrfPolicy.IsOriginAllowed(origin, csrfAllowed))
                 {
+                    Log.Warning(
+                        "CSRF origin check failed: request Origin '{Origin}' not in allowed list ({Allowed}). " +
+                        "If you are accessing from a LAN device, set CORS_ORIGIN to match the address in your browser.",
+                        origin, string.Join(", ", csrfAllowed));
                     ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
+                    ctx.Response.ContentType = "application/json";
+                    await ctx.Response.WriteAsync(
+                        "{\"error\":\"Origin not allowed. Set CORS_ORIGIN to the address you use to reach the app.\"}");
                     return;
                 }
             }
