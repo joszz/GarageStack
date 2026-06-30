@@ -74,6 +74,15 @@ watch(
   },
 )
 watch(
+  () => props.loading,
+  async (isLoading) => {
+    if (!isLoading && props.open) {
+      await nextTick()
+      observe(bodyRef.value)
+    }
+  },
+)
+watch(
   () => props.open,
   async (v) => {
     if (v) {
