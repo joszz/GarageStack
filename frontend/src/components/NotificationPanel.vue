@@ -95,8 +95,10 @@ watch(
     }
   },
 )
-watch(showArchived, () => {
+watch(showArchived, async () => {
   reset()
+  await nextTick()
+  observe(bodyRef.value)
 })
 
 function formatTime(iso: string) {
