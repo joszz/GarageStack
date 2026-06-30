@@ -9,7 +9,7 @@ precacheAndRoute(self.__WB_MANIFEST)
 // Activate the new SW immediately instead of waiting for all tabs to close
 self.addEventListener('install', () => self.skipWaiting())
 self.addEventListener('activate', (event) => {
-  event.waitUntil(self.registration.navigationPreload?.enable() ?? Promise.resolve())
+  event.waitUntil(self.clients.claim())
 })
 
 type BadgingNavigator = WorkerNavigator & {
