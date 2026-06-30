@@ -10,16 +10,25 @@ namespace GarageStack.Data.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.CreateIndex(
-                name: "IX_UserRefreshTokens_Revoked_ExpiresAt",
-                table: "UserRefreshTokens",
-                columns: new[] { "Revoked", "ExpiresAt" });
-
-            migrationBuilder.CreateIndex(
-                name: "IX_UserRefreshTokens_Token",
-                table: "UserRefreshTokens",
-                column: "Token",
-                unique: true);
+            // UserRefreshTokens is created in AddAuthentication (20260522120000), which has a later
+            // timestamp. On a fresh install migrations run in timestamp order, so this migration
+            // runs first and the table does not exist yet. Use conditional SQL so that existing
+            // deployments (where AddAuthentication already ran) get the indexes, while fresh
+            // installs skip them safely -- RemoveAuthentication (20260526) drops the table anyway.
+            migrationBuilder.Sql("""
+                DO $$ BEGIN
+                    IF EXISTS (
+                        SELECT 1 FROM information_schema.tables
+                        WHERE table_schema = 'public'
+                        AND table_name = 'UserRefreshTokens'
+                    ) THEN
+                        CREATE INDEX IF NOT EXISTS "IX_UserRefreshTokens_Revoked_ExpiresAt"
+                            ON "UserRefreshTokens" ("Revoked", "ExpiresAt");
+                        CREATE UNIQUE INDEX IF NOT EXISTS "IX_UserRefreshTokens_Token"
+                            ON "UserRefreshTokens" ("Token");
+                    END IF;
+                END $$;
+                """);
 
             migrationBuilder.CreateIndex(
                 name: "IX_TelemetrySnapshots_VehicleId_LatLon_RecordedAt",
@@ -37,13 +46,10 @@ namespace GarageStack.Data.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropIndex(
-                name: "IX_UserRefreshTokens_Revoked_ExpiresAt",
-                table: "UserRefreshTokens");
-
-            migrationBuilder.DropIndex(
-                name: "IX_UserRefreshTokens_Token",
-                table: "UserRefreshTokens");
+            migrationBuilder.Sql("""
+                DROP INDEX IF EXISTS "IX_UserRefreshTokens_Revoked_ExpiresAt";
+                DROP INDEX IF EXISTS "IX_UserRefreshTokens_Token";
+                """);
 
             migrationBuilder.DropIndex(
                 name: "IX_TelemetrySnapshots_VehicleId_LatLon_RecordedAt",
