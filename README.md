@@ -122,13 +122,13 @@ docker run -d \
   -e SAIC_USER=your@email.com \
   -e SAIC_PASSWORD=yourpassword \
   -e SAIC_REGION=eu \
-  -e POSTGRES_PASSWORD=changeme \
   -e JWT_SECRET="$(openssl rand -base64 32)" \
   -e CORS_ORIGIN=http://192.168.1.100:8080 \
   -e AUTH_COOKIE_SECURE=false \
   ghcr.io/joszz/garagestack:latest
 ```
 
+> `POSTGRES_PASSWORD` is omitted -- a strong random password is auto-generated on first start and saved to `/data/.postgres_password`. Pass `-e POSTGRES_PASSWORD=yourpassword` explicitly if you need a known value (e.g. to connect with an external DB tool).
 > **HTTPS proxy:** omit `-e AUTH_COOKIE_SECURE=false` (or set it to `true`) when the container sits behind a TLS-terminating reverse proxy.
 
 **Unraid:** import `unraid/garagestack.xml` from Community Apps and fill in the variables in the template UI.
@@ -161,9 +161,10 @@ Then open `.env` and fill in at minimum:
 | `SAIC_USER` | MG iSmart account email |
 | `SAIC_PASSWORD` | MG iSmart account password |
 | `SAIC_REGION` | `eu`, `cn`, or `row` |
-| `POSTGRES_PASSWORD` | Pick a strong random password |
 | `JWT_SECRET` | At least 32 random characters -- generate with `openssl rand -base64 32` |
 | `CORS_ORIGIN` | The URL you open in your browser, e.g. `http://192.168.1.100:8080` |
+
+`POSTGRES_PASSWORD` and `MQTT_BROKER_PASSWORD` default to `garagestack` when using the bundled services. Set them explicitly if you want stronger credentials or need to connect to the database/broker from outside the stack.
 
 `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` are optional; leave them empty to disable push notifications.
 

@@ -106,10 +106,10 @@
     Target="POSTGRES_PASSWORD"
     Default=""
     Mode=""
-    Description="Password for the embedded PostgreSQL database. Set a strong random value -- you will not need to enter this again. Generate one with: openssl rand -base64 24"
+    Description="Password for the embedded PostgreSQL database. If left empty a strong random password is auto-generated on first start and saved to /data/.postgres_password inside the data directory. Set explicitly only if you need to connect to the database directly with external tools. Generate with: openssl rand -base64 24"
     Type="Variable"
-    Display="always"
-    Required="true"
+    Display="advanced"
+    Required="false"
     Mask="true"/>
 
   <Config

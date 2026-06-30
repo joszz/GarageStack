@@ -9,7 +9,7 @@ Single container that bundles every GarageStack service. Designed for Unraid and
 | **nginx** | Serves the Vue SPA on port 80; proxies `/api/` to the .NET API |
 | **GarageStack.Api** | ASP.NET Core REST API (localhost:9000, not directly exposed) |
 | **GarageStack.Worker** | .NET background service -- MQTT consumer, push notifications |
-| **PostgreSQL 17** | Embedded database (localhost:5432, not directly exposed) |
+| **PostgreSQL 18** | Embedded database (localhost:5432, not directly exposed) |
 | **Mosquitto** | MQTT broker on port 1883 with username/password auth and ACL |
 | **SAIC MQTT Gateway** | Python 3.14 service that polls the MG iSmart cloud and publishes telemetry to Mosquitto. Copied directly from the official `saicismartapi/saic-python-mqtt-gateway` image. |
 
@@ -44,7 +44,6 @@ Mount a single volume at `/data`. The container creates the following layout ins
 | `SAIC_USER` | MG iSmart account email (must be the vehicle owner account) |
 | `SAIC_PASSWORD` | MG iSmart account password |
 | `SAIC_REGION` | Region: `eu`, `cn`, or `row` (default: `eu`) |
-| `POSTGRES_PASSWORD` | Password for the embedded database. Set once and do not change. |
 | `JWT_SECRET` | Token signing key, minimum 32 characters. Generate: `openssl rand -base64 32` |
 | `CORS_ORIGIN` | Exact URL you use to open the app, e.g. `http://192.168.1.100:8080` |
 
@@ -54,6 +53,7 @@ The web login uses the same `SAIC_USER` and `SAIC_PASSWORD` credentials. There i
 
 | Variable | Description |
 |----------|-------------|
+| `POSTGRES_PASSWORD` | Password for the embedded database. If not set, a random password is auto-generated on first start and saved to `/data/.postgres_password`. Set explicitly if you need a known value (e.g. for external tools that connect directly to the database). |
 | `VAPID_PUBLIC_KEY` | Web Push VAPID public key. Leave empty to disable push notifications. Generate: `npx web-push generate-vapid-keys` |
 | `VAPID_PRIVATE_KEY` | Web Push VAPID private key |
 | `WIDGET_API_KEY` | Static API key for the Homepage dashboard widget endpoint (`/api/widget/{vin}/status`). Leave empty to disable. Generate: `openssl rand -base64 32` |
@@ -83,20 +83,22 @@ docker run -d \
   -e SAIC_USER=your@email.com \
   -e SAIC_PASSWORD=yourpassword \
   -e SAIC_REGION=eu \
-  -e POSTGRES_PASSWORD=changeme \
   -e JWT_SECRET="$(openssl rand -base64 32)" \
   -e CORS_ORIGIN=http://localhost:8080 \
   ghcr.io/joszz/garagestack:latest
 ```
+
+> `POSTGRES_PASSWORD` is omitted here -- a random password is auto-generated on first start and saved to `/data/.postgres_password`. Pass `-e POSTGRES_PASSWORD=yourpassword` explicitly if you need a known value.
 
 ## Unraid Community Apps
 
 Import the template from `unraid/garagestack.xml`. Fill in at minimum:
 
 1. **MG iSmart Email / Password / Region**
-2. **Database Password** -- pick a strong random value
-3. **JWT Secret** -- generate with `openssl rand -base64 32`
-4. **App URL** -- the address you use in your browser (e.g. `http://192.168.1.50:8080`)
+2. **JWT Secret** -- generate with `openssl rand -base64 32`
+3. **App URL** -- the address you use in your browser (e.g. `http://192.168.1.50:8080`)
+
+**Database Password** is optional -- if left blank a strong random password is auto-generated on first start and saved to `/data/.postgres_password`. You only need to set it explicitly if you want to connect to the embedded database with an external tool.
 
 VAPID keys are optional; leave them blank to skip push notifications.
 
