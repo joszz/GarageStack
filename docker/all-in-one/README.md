@@ -33,6 +33,8 @@ Mount a single volume at `/data`. The container creates the following layout ins
     mosquitto/    Mosquitto retained messages
   logs/           All application and service logs
   dataprotection/ ASP.NET Core Data Protection keys
+  .postgres_password   Auto-generated DB password (if not set via env var)
+  .db_initialized      Marker written after full database setup completes
 ```
 
 ## Environment variables
@@ -61,25 +63,38 @@ The web login uses the same `SAIC_USER` and `SAIC_PASSWORD` credentials. There i
 | `OVERPASS__BASEURL` | Overpass API endpoint used for the fuel station and motorway service area map overlays. Defaults to the public endpoint (`https://overpass-api.de/api/interpreter`). Set this only if you self-host an Overpass instance. No API key is required for the default public endpoint. |
 | `POSTGRES_DB` | Database name (default: `garagestack`) |
 | `POSTGRES_USER` | Database user (default: `garagestack`) |
+| `AUTH_COOKIE_SECURE` | Set to `true` when serving behind a TLS-terminating reverse proxy. Defaults to `false` so plain-HTTP LAN installs work out of the box. |
 
 ## Building the image
 
-The Dockerfile must be built from the **repository root**, not from this directory, because it copies source from `frontend/` and `src/`:
+The Dockerfile must be built from the **repository root**, not from this directory, because it copies source from `frontend/` and `src/`.
+
+macOS/Linux:
 
 ```bash
 docker build \
   -f docker/all-in-one/Dockerfile \
-  -t ghcr.io/joszz/garagestack:latest \
+  -t garagestack-aio:local \
   .
 ```
 
-## Running locally for testing
+Windows (PowerShell):
 
-macOS/Linux (bash):
+```powershell
+docker build `
+  -f docker/all-in-one/Dockerfile `
+  -t garagestack-aio:local `
+  .
+```
+
+## Running
+
+### macOS/Linux
 
 ```bash
 docker run -d \
   --name garagestack \
+  --restart unless-stopped \
   -p 8080:80 \
   -v ./garagestack-data:/data \
   -e SAIC_USER=your@email.com \
@@ -90,14 +105,17 @@ docker run -d \
   ghcr.io/joszz/garagestack:latest
 ```
 
-Windows (PowerShell -- `openssl` is not available by default and `$()` substitution is bash-only):
+### Windows (PowerShell)
+
+> **Important:** always use PowerShell, **not Git Bash**. Git Bash (MSYS) mangles the container-side path `/data` into a Windows path, which silently breaks the volume mount.
 
 ```powershell
 $jwtSecret = [Convert]::ToBase64String((1..32 | ForEach-Object { Get-Random -Minimum 0 -Maximum 256 }))
 docker run -d `
   --name garagestack `
+  --restart unless-stopped `
   -p 8080:80 `
-  -v ${PWD}/garagestack-data:/data `
+  -v "${PWD}\garagestack-data:/data" `
   -e SAIC_USER=your@email.com `
   -e SAIC_PASSWORD=yourpassword `
   -e SAIC_REGION=eu `
@@ -106,7 +124,86 @@ docker run -d `
   ghcr.io/joszz/garagestack:latest
 ```
 
-> `POSTGRES_PASSWORD` is omitted here -- a random password is auto-generated on first start and saved to `/data/.postgres_password`. Pass `-e POSTGRES_PASSWORD=yourpassword` explicitly if you need a known value.
+> `POSTGRES_PASSWORD` is omitted -- a random password is auto-generated on first start and saved to `/data/.postgres_password`. Pass `-e POSTGRES_PASSWORD=yourpassword` if you need a known value (e.g. to connect with an external DB tool).
+
+Once running, open `http://localhost:8080` in your browser. First start takes 20-30 seconds for PostgreSQL to initialise and for the .NET services to come up.
+
+## Managing the container
+
+### View live logs (PowerShell or bash)
+
+```powershell
+docker logs -f garagestack
+```
+
+To view a specific service log from inside the container (all logs are written to the `/data/logs/` bind-mounted directory):
+
+```powershell
+# Tail the API log directly from the host
+Get-Content -Wait garagestack-data\logs\api-supervisor.log
+```
+
+### Stop and start
+
+```powershell
+docker stop garagestack
+docker start garagestack
+```
+
+The container picks up where it left off on restart -- the database and data protection keys are persisted in the mounted `garagestack-data` directory.
+
+### Remove
+
+```powershell
+docker rm -f garagestack
+```
+
+This removes the container but **keeps** `garagestack-data`. To also wipe the data:
+
+```powershell
+docker rm -f garagestack
+Remove-Item -Recurse -Force garagestack-data
+```
+
+## Troubleshooting
+
+### 28P01: password authentication failed for user "garagestack"
+
+The API crash-loops with this error when it cannot connect to the embedded PostgreSQL instance. This most commonly happens when the data directory (`garagestack-data`) contains a partially-initialised database cluster from a previous container version that crashed during first-run setup.
+
+**Fix:** wipe the data directory and let the container reinitialise from scratch.
+
+PowerShell:
+
+```powershell
+docker rm -f garagestack
+Remove-Item -Recurse -Force garagestack-data
+```
+
+Linux/macOS:
+
+```bash
+docker rm -f garagestack
+rm -rf garagestack-data
+```
+
+Then run the container again. The database, credentials, and data protection keys will all be regenerated automatically.
+
+> Note: if the `garagestack-data` directory was created by Docker on Linux (including WSL2), the files inside are owned by Linux UIDs and may not be deletable from Windows Explorer or PowerShell. Use the commands above which force-remove them.
+
+### Container starts but the web UI returns 502
+
+PostgreSQL or the .NET API is still starting up. The API has a 20-second startup delay built in; allow up to 30 seconds after `docker start`. Watch the logs:
+
+```powershell
+docker logs -f garagestack
+```
+
+Look for `[garagestack] Starting all services via supervisord...` and then all six services reaching `RUNNING` state in the supervisord output.
+
+### Cannot log in with my MG iSmart credentials
+
+The web login uses your `SAIC_USER` / `SAIC_PASSWORD` environment variables directly -- there is no separate account. Check that those values match exactly what you use in the MG iSmart app. The SAIC gateway in the container will also need a few minutes to establish its first session with the MG cloud.
 
 ## Unraid Community Apps
 

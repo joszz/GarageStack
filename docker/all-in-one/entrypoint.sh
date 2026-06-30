@@ -78,26 +78,42 @@ chown mosquitto:mosquitto /etc/mosquitto/conf.d/passwd /etc/mosquitto/conf.d/acl
 chmod 600 /etc/mosquitto/conf.d/passwd /etc/mosquitto/conf.d/acl
 
 # ── PostgreSQL initialisation ──────────────────────────────────────────────────
-if [ ! -f "$PGDATA/PG_VERSION" ]; then
-    echo "[garagestack] Initialising PostgreSQL data directory..."
-    chown -R postgres:postgres /data/db/postgres /data/logs
-    gosu postgres /usr/lib/postgresql/18/bin/initdb \
-        -D "$PGDATA" --auth-host=md5 --auth-local=trust -E UTF8 --locale=C
+# Guard on a dedicated marker file rather than PG_VERSION so we can recover
+# from a partial initialisation: a container that crashed after initdb wrote
+# PG_VERSION but before CREATE ROLE executed leaves the cluster without the
+# garagestack role, causing 28P01 ("password authentication failed") on every
+# subsequent start because Postgres hides role-not-found behind that error code.
+DB_INIT_MARKER="/data/.db_initialized"
 
-    # Start temporarily to create the role and database
+if [ ! -f "$DB_INIT_MARKER" ]; then
+    if [ ! -f "$PGDATA/PG_VERSION" ]; then
+        echo "[garagestack] Initialising PostgreSQL data directory..."
+        chown -R postgres:postgres /data/db/postgres /data/logs
+        gosu postgres /usr/lib/postgresql/18/bin/initdb \
+            -D "$PGDATA" --auth-host=md5 --auth-local=trust -E UTF8 --locale=C
+    else
+        echo "[garagestack] Resuming PostgreSQL setup (partial initialisation detected)..."
+        chown -R postgres:postgres /data/db/postgres /data/logs
+    fi
+
     gosu postgres /usr/lib/postgresql/18/bin/pg_ctl -D "$PGDATA" \
         -l /data/logs/postgres-init.log start -w
 
+    # IF NOT EXISTS makes these idempotent when recovering a partial init.
+    # ALTER ROLE ensures the password matches .postgres_password even when the
+    # role already existed from a prior partial run with a different password.
     gosu postgres psql -v ON_ERROR_STOP=1 \
         -v pguser="${POSTGRES_USER}" \
         -v pgpassword="${POSTGRES_PASSWORD}" \
         -v pgdb="${POSTGRES_DB}" <<-'EOSQL'
-        CREATE USER :"pguser" WITH PASSWORD :'pgpassword';
-        CREATE DATABASE :"pgdb" OWNER :"pguser";
+        CREATE ROLE :"pguser" IF NOT EXISTS WITH LOGIN PASSWORD :'pgpassword';
+        ALTER ROLE :"pguser" WITH PASSWORD :'pgpassword';
+        CREATE DATABASE :"pgdb" IF NOT EXISTS OWNER :"pguser";
         GRANT ALL PRIVILEGES ON DATABASE :"pgdb" TO :"pguser";
 EOSQL
 
     gosu postgres /usr/lib/postgresql/18/bin/pg_ctl -D "$PGDATA" stop -w
+    touch "$DB_INIT_MARKER"
     echo "[garagestack] PostgreSQL initialised."
 fi
 
