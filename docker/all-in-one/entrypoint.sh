@@ -69,14 +69,18 @@ mkdir -p /data/dataprotection /root/.aspnet
 ln -sfn /data/dataprotection /root/.aspnet/DataProtection-Keys
 
 # Generate Mosquitto password and ACL files from SAIC credentials.
+# Mosquitto 2.x refuses to load password/ACL files unless they are owned by
+# the user it runs as (it checks the literal "mosquitto" account via getpwnam,
+# not the process's actual uid) -- run the broker as that user via gosu below.
 mosquitto_passwd -b -c /etc/mosquitto/conf.d/passwd "${MQTT_BROKER_USERNAME}" "${MQTT_BROKER_PASSWORD}"
 printf 'user %s\ntopic readwrite #\n' "${MQTT_BROKER_USERNAME}" > /etc/mosquitto/conf.d/acl
+chown mosquitto:mosquitto /etc/mosquitto/conf.d/passwd /etc/mosquitto/conf.d/acl /data/db/mosquitto
 chmod 600 /etc/mosquitto/conf.d/passwd /etc/mosquitto/conf.d/acl
 
 # ── PostgreSQL initialisation ──────────────────────────────────────────────────
 if [ ! -f "$PGDATA/PG_VERSION" ]; then
     echo "[garagestack] Initialising PostgreSQL data directory..."
-    chown -R postgres:postgres /data/db
+    chown -R postgres:postgres /data/db/postgres /data/logs
     gosu postgres /usr/lib/postgresql/18/bin/initdb \
         -D "$PGDATA" --auth-host=md5 --auth-local=trust -E UTF8 --locale=C
 
@@ -97,7 +101,7 @@ EOSQL
     echo "[garagestack] PostgreSQL initialised."
 fi
 
-chown -R postgres:postgres /data/db
+chown -R postgres:postgres /data/db/postgres /data/logs
 
 echo "[garagestack] Starting all services via supervisord..."
 exec /usr/bin/supervisord -n -c /etc/supervisor/supervisord.conf

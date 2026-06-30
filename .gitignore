@@ -13,6 +13,9 @@ node_modules/
 frontend/dist/
 frontend/.env.local
 
+# local all-in-one container testing data (see docker/all-in-one/README.md)
+garagestack-data/
+
 CLAUDE.md
 dev.ps1
 example_data.txt

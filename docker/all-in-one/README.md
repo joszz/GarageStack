@@ -75,6 +75,8 @@ docker build \
 
 ## Running locally for testing
 
+macOS/Linux (bash):
+
 ```bash
 docker run -d \
   --name garagestack \
@@ -85,6 +87,22 @@ docker run -d \
   -e SAIC_REGION=eu \
   -e JWT_SECRET="$(openssl rand -base64 32)" \
   -e CORS_ORIGIN=http://localhost:8080 \
+  ghcr.io/joszz/garagestack:latest
+```
+
+Windows (PowerShell -- `openssl` is not available by default and `$()` substitution is bash-only):
+
+```powershell
+$jwtSecret = [Convert]::ToBase64String((1..32 | ForEach-Object { Get-Random -Minimum 0 -Maximum 256 }))
+docker run -d `
+  --name garagestack `
+  -p 8080:80 `
+  -v ${PWD}/garagestack-data:/data `
+  -e SAIC_USER=your@email.com `
+  -e SAIC_PASSWORD=yourpassword `
+  -e SAIC_REGION=eu `
+  -e JWT_SECRET=$jwtSecret `
+  -e CORS_ORIGIN=http://localhost:8080 `
   ghcr.io/joszz/garagestack:latest
 ```
 
