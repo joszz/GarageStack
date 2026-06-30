@@ -1,7 +1,66 @@
 import { fileURLToPath, URL } from 'node:url'
-import { defineConfig } from 'vite'
+import { defineConfig, type Plugin } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import { VitePWA } from 'vite-plugin-pwa'
+
+/**
+ * Converts the main CSS bundle from render-blocking to non-blocking.
+ *
+ * Strategy (no external deps, strict-CSP-compatible):
+ *   1. Inline a tiny <style> that sets the dark background so there is no
+ *      white flash before the full CSS activates.  Its SHA-256 hash is fixed
+ *      and added to style-src-elem in both nginx.conf files.
+ *   2. Change <link rel="stylesheet"> → <link rel="preload" as="style"> so
+ *      the browser fetches CSS at high priority without blocking the
+ *      first paint.
+ *   3. Inject a small <script defer> (hash in script-src / script-src-elem)
+ *      that promotes the preload back to a stylesheet.  defer means it runs
+ *      before the Vue module but after HTML parsing, so the CSS is almost
+ *      always already in the preload cache when it fires.
+ *   4. Add a <noscript> fallback for the (theoretical) no-JS case.
+ *
+ * Inline style hash  (style-src-elem):
+ *   sha256-IjDBH01/QEhAptpG1bqDVKT5WXiu63d/qZH2r6WdVO0=
+ * Inline script hash (script-src / script-src-elem):
+ *   sha256-MsyHDz2Q9MM6DjmYjpACXTrSgtFF+tutkPYzSbPmHwA=
+ */
+function deferNonCriticalCss(): Plugin {
+  const INLINE_STYLE = 'body,html{background:#0f1117}'
+  const ACTIVATION_SCRIPT =
+    "document.querySelectorAll('link[rel=preload][as=style]').forEach(function(l){l.rel='stylesheet'})"
+
+  return {
+    name: 'defer-non-critical-css',
+    apply: 'build',
+    transformIndexHtml: {
+      order: 'post',
+      handler(html: string): string {
+        const cssLinkRe = /<link rel="stylesheet" crossorigin href="([^"]+\.css)">/g
+        const hrefs: string[] = []
+        let m: RegExpExecArray | null
+        while ((m = cssLinkRe.exec(html)) !== null) hrefs.push(m[1])
+        if (hrefs.length === 0) return html
+
+        html = html.replace(
+          /<link rel="stylesheet" crossorigin href="([^"]+\.css)">/g,
+          '<link rel="preload" as="style" crossorigin href="$1">',
+        )
+
+        const noscriptLinks = hrefs
+          .map((h) => `<link rel="stylesheet" crossorigin href="${h}">`)
+          .join('')
+
+        const injection = [
+          `<style>${INLINE_STYLE}</style>`,
+          `<script defer>${ACTIVATION_SCRIPT}</script>`,
+          `<noscript>${noscriptLinks}</noscript>`,
+        ].join('\n    ')
+
+        return html.replace('\n  </head>', `\n    ${injection}\n  </head>`)
+      },
+    },
+  }
+}
 
 export default defineConfig({
   plugins: [
@@ -81,6 +140,7 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
       },
     }),
+    deferNonCriticalCss(),
   ],
   server: {
     proxy: {
