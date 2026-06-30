@@ -1,0 +1,8 @@
+# Scripts and config copied into Linux containers must keep LF line endings
+# regardless of the contributor's platform or core.autocrlf setting --
+# CRLF breaks shebangs ("no such file or directory") when the image is
+# built locally on Windows.
+*.sh text eol=lf
+docker/**/*.conf text eol=lf
+mosquitto/**/*.conf text eol=lf
+Dockerfile text eol=lf
