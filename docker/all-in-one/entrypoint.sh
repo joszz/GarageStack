@@ -7,11 +7,23 @@ mkdir -p /data/db/postgres /data/db/mosquitto /data/logs /data/dataprotection
 PGDATA="/data/db/postgres"
 POSTGRES_DB="${POSTGRES_DB:-garagestack}"
 POSTGRES_USER="${POSTGRES_USER:-garagestack}"
-POSTGRES_PASSWORD="${POSTGRES_PASSWORD:?POSTGRES_PASSWORD environment variable is required}"
 SAIC_USER="${SAIC_USER:?SAIC_USER environment variable is required}"
 SAIC_PASSWORD="${SAIC_PASSWORD:?SAIC_PASSWORD environment variable is required}"
 
-# Dedicated internal MQTT broker credentials — decoupled from SAIC account credentials
+# Auto-generate POSTGRES_PASSWORD on first run and persist it so subsequent
+# restarts use the same password as the already-initialised database cluster.
+if [ -z "${POSTGRES_PASSWORD:-}" ]; then
+    if [ -f "/data/.postgres_password" ]; then
+        POSTGRES_PASSWORD="$(cat /data/.postgres_password)"
+    else
+        POSTGRES_PASSWORD="$(openssl rand -hex 32)"
+        echo "${POSTGRES_PASSWORD}" > /data/.postgres_password
+        chmod 600 /data/.postgres_password
+        echo "[garagestack] POSTGRES_PASSWORD not set -- auto-generated and saved to /data/.postgres_password"
+    fi
+fi
+
+# Dedicated internal MQTT broker credentials -- decoupled from SAIC account credentials
 # so a LAN-exposed broker does not leak the user's cloud account password.
 MQTT_BROKER_USERNAME="${MQTT_BROKER_USERNAME:-garagestack}"
 if [ -z "${MQTT_BROKER_PASSWORD:-}" ]; then
