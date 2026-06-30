@@ -76,7 +76,7 @@ chmod 600 /etc/mosquitto/conf.d/passwd /etc/mosquitto/conf.d/acl
 # ── PostgreSQL initialisation ──────────────────────────────────────────────────
 if [ ! -f "$PGDATA/PG_VERSION" ]; then
     echo "[garagestack] Initialising PostgreSQL data directory..."
-    chown -R postgres:postgres /data/db
+    chown -R postgres:postgres /data/db /data/logs
     gosu postgres /usr/lib/postgresql/18/bin/initdb \
         -D "$PGDATA" --auth-host=md5 --auth-local=trust -E UTF8 --locale=C
 
@@ -97,7 +97,7 @@ EOSQL
     echo "[garagestack] PostgreSQL initialised."
 fi
 
-chown -R postgres:postgres /data/db
+chown -R postgres:postgres /data/db /data/logs
 
 echo "[garagestack] Starting all services via supervisord..."
 exec /usr/bin/supervisord -n -c /etc/supervisor/supervisord.conf
