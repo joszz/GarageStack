@@ -41,6 +41,11 @@ const vehicleType = computed((): VehicleType | 'unknown' => {
 })
 const isHev = computed(() => vehicleType.value === 'hev')
 const isBev = computed(() => vehicleType.value === 'bev')
+// Until vehicleType resolves from 'unknown', neither flag is true, which would show
+// both layer-toggle buttons and then remove one once the type is known - a visible
+// layout shift. Keep both hidden while unknown so the header never shows more
+// buttons than its final, resolved state.
+const vehicleTypeKnown = computed(() => vehicleType.value !== 'unknown')
 const displayLocale = computed(() => (settingsStore.locale === 'nl' ? 'nl-NL' : 'en-US'))
 const selectedTripIndex = ref<number | null>(null)
 const heatmapEnabled = computed({
@@ -1197,7 +1202,7 @@ onUnmounted(() => {
           </template>
         </FiltersPanel>
         <button
-          v-if="!isBev"
+          v-if="vehicleTypeKnown && !isBev"
           class="btn btn-sm map-layer-btn"
           :class="{ 'map-layer-btn--active map-layer-btn--fuel': fuelStationsEnabled }"
           :aria-pressed="fuelStationsEnabled"
@@ -1207,7 +1212,7 @@ onUnmounted(() => {
           {{ t('trips.fuelStations') }}
         </button>
         <button
-          v-if="!isHev"
+          v-if="vehicleTypeKnown && !isHev"
           class="btn btn-sm map-layer-btn"
           :class="{ 'map-layer-btn--active map-layer-btn--charging': chargingStationsEnabled }"
           :aria-pressed="chargingStationsEnabled"
@@ -1231,7 +1236,7 @@ onUnmounted(() => {
       <!-- Trip sidebar -->
       <aside ref="tripSidebarRef" class="trip-sidebar">
         <div class="trip-sidebar__header">
-          <h3 class="trip-sidebar__title">{{ t('trips.title') }}</h3>
+          <h2 class="trip-sidebar__title">{{ t('trips.title') }}</h2>
         </div>
 
         <div v-if="store.loading" class="trip-list">
