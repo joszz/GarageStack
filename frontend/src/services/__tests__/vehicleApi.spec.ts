@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 
-import { vehicleApi, setUnauthorizedHandler, clearUnauthorizedState } from '@/services/api'
+import { vehicleApi } from '@/services/vehicleApi'
+import { setUnauthorizedHandler, clearUnauthorizedState } from '@/services/apiCore'
 
 function makeResponse(status: number, body?: unknown) {
   return {

@@ -16,8 +16,9 @@ import 'leaflet.heat'
 import 'leaflet.markercluster'
 import 'leaflet.markercluster/dist/MarkerCluster.css'
 import '@/assets/map.css'
-import type { Trip, ChargingStation, PoiItem } from '@/services/api'
-import { mapApi } from '@/services/api'
+import type { Trip } from '@/services/vehicleApi'
+import type { ChargingStation, PoiItem } from '@/services/mapApi'
+import { mapApi } from '@/services/mapApi'
 
 // Vite wraps CJS modules in a frozen ESM namespace - `import * as LModule` gives that frozen
 // namespace. leaflet.heat patches the actual mutable CJS export (LModule.default), so we must

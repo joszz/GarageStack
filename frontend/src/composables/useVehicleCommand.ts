@@ -1,5 +1,5 @@
 import { ref, watch, getCurrentInstance, onUnmounted } from 'vue'
-import { vehicleApi, type TelemetrySnapshot } from '@/services/api'
+import { vehicleApi, type TelemetrySnapshot } from '@/services/vehicleApi'
 import { useVehicleStore } from '@/stores/vehicle'
 
 const PENDING_TIMEOUT_MS = 30_000

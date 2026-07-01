@@ -1,12 +1,12 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
 import { nextTick } from 'vue'
 import { setActivePinia, createPinia } from 'pinia'
-import { vehicleApi } from '@/services/api'
-import type { TelemetrySnapshot } from '@/services/api'
+import { vehicleApi } from '@/services/vehicleApi'
+import type { TelemetrySnapshot } from '@/services/vehicleApi'
 import { useVehicleCommand } from '@/composables/useVehicleCommand'
 import { useVehicleStore } from '@/stores/vehicle'
 
-vi.mock('@/services/api', () => ({
+vi.mock('@/services/vehicleApi', () => ({
   vehicleApi: {
     sendCommand: vi.fn<(vin: string, command: string, value: string) => Promise<void>>(),
   },

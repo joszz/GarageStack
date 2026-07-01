@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref, computed, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { AppNotification } from '@/services/api'
+import type { AppNotification } from '@/services/notificationsApi'
 import { useInfiniteScroll } from '@/composables/useInfiniteScroll'
 
 const PAGE_SIZE = 10

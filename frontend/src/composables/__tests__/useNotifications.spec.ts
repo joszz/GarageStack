@@ -1,16 +1,20 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { nextTick } from 'vue'
 import { setActivePinia, createPinia } from 'pinia'
-import { notificationsApi, authApi } from '@/services/api'
-import type { AppNotification } from '@/services/api'
+import { notificationsApi } from '@/services/notificationsApi'
+import { authApi } from '@/services/authApi'
+import type { AppNotification } from '@/services/notificationsApi'
 
-vi.mock('@/services/api', () => ({
+vi.mock('@/services/notificationsApi', () => ({
   notificationsApi: {
     list: vi.fn<() => Promise<AppNotification[]>>(),
     archive: vi.fn<(id: number) => Promise<void>>(),
     delete: vi.fn<(id: number) => Promise<void>>(),
   },
-  // authApi is used by useAuthStore inside useNotifications
+}))
+
+// authApi is used by useAuthStore inside useNotifications
+vi.mock('@/services/authApi', () => ({
   authApi: {
     me: vi
       .fn<() => Promise<{ username: string; expiresAtUtc: string | null }>>()

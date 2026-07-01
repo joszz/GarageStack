@@ -1,6 +1,7 @@
 import { ref, onUnmounted } from 'vue'
 import * as signalR from '@microsoft/signalr'
-import type { TelemetrySnapshot, AppNotification } from '@/services/api'
+import type { TelemetrySnapshot } from '@/services/vehicleApi'
+import type { AppNotification } from '@/services/notificationsApi'
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? ''
 

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { ref, nextTick } from 'vue'
 import { getOpenItems, getTyrePressureAlerts, useVehicleAlerts } from '../useVehicleAlerts'
-import type { TelemetrySnapshot } from '@/services/api'
+import type { TelemetrySnapshot } from '@/services/vehicleApi'
 
 function makeSnapshot(overrides: Partial<TelemetrySnapshot> = {}): TelemetrySnapshot {
   return {

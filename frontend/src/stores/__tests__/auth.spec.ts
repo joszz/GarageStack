@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
-import { authApi } from '@/services/api'
-import type { MeResponse, LoginResponse } from '@/services/api'
+import { authApi } from '@/services/authApi'
+import type { MeResponse, LoginResponse } from '@/services/authApi'
 
-vi.mock('@/services/api', () => ({
+vi.mock('@/services/authApi', () => ({
   authApi: {
     me: vi.fn<() => Promise<MeResponse>>(),
     login: vi.fn<() => Promise<LoginResponse>>(),

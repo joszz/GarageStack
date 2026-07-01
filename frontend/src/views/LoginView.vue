@@ -3,7 +3,7 @@ import '@/assets/login.css'
 import { ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { ApiError } from '@/services/api'
+import { ApiError } from '@/services/apiCore'
 import { useAuthStore } from '@/stores/auth'
 
 const { t } = useI18n()
