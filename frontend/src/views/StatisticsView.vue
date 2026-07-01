@@ -770,13 +770,18 @@ const skeletonChartCount = computed(
             <template v-for="item in settings.statsInsights" :key="item.id">
               <template v-if="item.visible && insightDefMap.get(item.id)?.applicable">
                 <template v-if="item.id === 'parkingLocations'">
-                  <StatusCard
-                    :icon="insightDefMap.get(item.id)!.icon"
-                    :label="insightDefMap.get(item.id)!.title"
-                    :value="insightDefMap.get(item.id)!.value"
-                    clickable
-                    @click="parkingModalOpen = true"
-                  />
+                  <CardInfoWrap
+                    :title="insightDefMap.get(item.id)!.title"
+                    :description="insightDefMap.get(item.id)!.description"
+                  >
+                    <StatusCard
+                      :icon="insightDefMap.get(item.id)!.icon"
+                      :label="insightDefMap.get(item.id)!.title"
+                      :value="insightDefMap.get(item.id)!.value"
+                      clickable
+                      @click="parkingModalOpen = true"
+                    />
+                  </CardInfoWrap>
                 </template>
                 <template v-else>
                   <CardInfoWrap
