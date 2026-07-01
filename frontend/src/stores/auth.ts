@@ -1,6 +1,6 @@
 import { computed, onScopeDispose, ref } from 'vue'
 import { defineStore } from 'pinia'
-import { authApi } from '@/services/api'
+import { authApi } from '@/services/authApi'
 
 const AUTH_USERNAME_KEY = 'garagestack-auth-username'
 const AUTH_EXPIRES_KEY = 'garagestack-auth-expires'

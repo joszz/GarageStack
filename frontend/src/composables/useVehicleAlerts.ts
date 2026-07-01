@@ -1,6 +1,6 @@
 import { watch, ref } from 'vue'
 import type { Ref } from 'vue'
-import type { TelemetrySnapshot } from '@/services/api'
+import type { TelemetrySnapshot } from '@/services/vehicleApi'
 
 const TYRE_LOW = 1.8
 const TYRE_HIGH = 3.2

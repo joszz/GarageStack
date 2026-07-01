@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { useVehicleStore } from '@/stores/vehicle'
-import type { Vehicle, TelemetrySnapshot, Trip } from '@/services/api'
+import type { Vehicle, TelemetrySnapshot, Trip } from '@/services/vehicleApi'
 
-vi.mock('@/services/api', () => ({
+vi.mock('@/services/vehicleApi', () => ({
   vehicleApi: {
     list: vi.fn<() => Promise<Vehicle[]>>().mockResolvedValue([]),
     status: vi.fn<() => Promise<TelemetrySnapshot | null>>().mockResolvedValue(null),
@@ -74,7 +74,7 @@ describe('useVehicleStore - fetchVehicles', () => {
   })
 
   it('populates vehicles on success', async () => {
-    const { vehicleApi } = await import('@/services/api')
+    const { vehicleApi } = await import('@/services/vehicleApi')
     vi.mocked(vehicleApi.list).mockResolvedValue([
       { id: 1, vin: 'ABC123', model: 'MG ZS EV', series: null, createdAt: '' },
     ])
@@ -88,7 +88,7 @@ describe('useVehicleStore - fetchVehicles', () => {
   })
 
   it('sets error on failure', async () => {
-    const { vehicleApi } = await import('@/services/api')
+    const { vehicleApi } = await import('@/services/vehicleApi')
     vi.mocked(vehicleApi.list).mockRejectedValue(new Error('Network error'))
     const store = useVehicleStore()
     await store.fetchVehicles()

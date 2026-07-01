@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { demoApi } from '@/services/api'
+import { demoApi } from '@/services/demoApi'
 import { useVehicleStore } from '@/stores/vehicle'
 
 const props = defineProps<{ open: boolean }>()

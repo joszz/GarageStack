@@ -1,5 +1,5 @@
 import { ref, computed, watch, onUnmounted, getCurrentInstance } from 'vue'
-import { notificationsApi, type AppNotification } from '@/services/api'
+import { notificationsApi, type AppNotification } from '@/services/notificationsApi'
 import { useAuthStore } from '@/stores/auth'
 
 const notifications = ref<AppNotification[]>([])

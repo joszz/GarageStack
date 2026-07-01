@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch, onBeforeUnmount } from 'vue'
+import { computed, ref, watch, onBeforeUnmount, defineAsyncComponent } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useSettingsStore } from '@/stores/settings'
@@ -8,8 +8,9 @@ import { useVehicleStore } from '@/stores/vehicle'
 import AppFooter from '@/components/AppFooter.vue'
 import NotificationPanel from '@/components/NotificationPanel.vue'
 import DemoBanner from '@/components/DemoBanner.vue'
-import DemoControlPanel from '@/components/DemoControlPanel.vue'
 import PwaInstallModal from '@/components/PwaInstallModal.vue'
+
+const DemoControlPanel = defineAsyncComponent(() => import('@/components/DemoControlPanel.vue'))
 import { useNotifications, prependNotification } from '@/composables/useNotifications'
 import { useSignalR } from '@/composables/useSignalR'
 import { useFavicon } from '@/composables/useFavicon'

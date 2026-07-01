@@ -1,5 +1,5 @@
 import { ref, onMounted } from 'vue'
-import { pushApi } from '@/services/api'
+import { pushApi } from '@/services/pushApi'
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array<ArrayBuffer> {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
