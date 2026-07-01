@@ -103,6 +103,11 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "Resolved MinVer version: $VERSION"
 
+      - name: Compute OS patch date
+        id: patchdate
+        shell: bash
+        run: echo "date=$(date -u +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
+
       - name: Log in to Docker Hub (avoids pull rate limits for moby/buildkit)
         if: github.event_name != 'pull_request'
         continue-on-error: true
@@ -146,6 +151,7 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             APP_VERSION=${{ steps.minver.outputs.version }}
+            OS_PATCH_DATE=${{ steps.patchdate.outputs.date }}
           # Each image gets its own GHA cache scope
           cache-from: type=gha,scope=${{ matrix.label }}
           cache-to: type=gha,scope=${{ matrix.label }},mode=min,ignore-error=true
