@@ -69,7 +69,12 @@ public static class AuthEndpoints
             var validPassword = FixedTimeEquals(providedPassword, configuredPassword);
 
             if (!validUser || !validPassword)
+            {
+                logger.LogWarning(
+                    "Failed login attempt for username={Username} from IP={RemoteIp}",
+                    providedUsername, httpContext.Connection.RemoteIpAddress);
                 return Results.Unauthorized();
+            }
 
             var jwtSecret = config["Jwt:Secret"];
             if (string.IsNullOrWhiteSpace(jwtSecret))
@@ -119,6 +124,7 @@ public static class AuthEndpoints
 
             return Results.Ok(new LoginResponse(providedUsername, expires));
         })
+        .RequireRateLimiting("login")
         .WithSummary("Authenticate user and issue JWT token");
 
         return app;
