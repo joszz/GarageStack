@@ -1,10 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import StatusCard from './StatusCard.vue'
-import DetailModal from './DetailModal.vue'
+import ExpandableStatusCard from './ExpandableStatusCard.vue'
 import DetailListItem from './DetailListItem.vue'
-import { useModal } from '@/composables/useModal'
 
 const { t } = useI18n()
 
@@ -13,8 +11,6 @@ const props = defineProps<{
   dippedBeam: boolean | null
   side: boolean | null
 }>()
-
-const { isOpen: modalOpen, open: openModal, close: closeModal } = useModal()
 
 type LightItem = { key: string; label: string; on: boolean }
 
@@ -38,17 +34,13 @@ const summary = computed((): string | null => {
 </script>
 
 <template>
-  <StatusCard
+  <ExpandableStatusCard
     v-if="lightList.length > 0"
     icon="lightbulb"
-    :label="t('vehicle.lights.title')"
+    :title="t('vehicle.lights.title')"
     :value="summary"
     :variant="activeLights.length > 0 ? 'success' : 'danger'"
-    clickable
-    @click="openModal"
-  />
-
-  <DetailModal :open="modalOpen" :title="t('vehicle.lights.title')" @close="closeModal">
+  >
     <div class="detail-list">
       <DetailListItem
         v-for="light in lightList"
@@ -64,5 +56,5 @@ const summary = computed((): string | null => {
         </template>
       </DetailListItem>
     </div>
-  </DetailModal>
+  </ExpandableStatusCard>
 </template>

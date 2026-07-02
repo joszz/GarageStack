@@ -1,10 +1,8 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import StatusCard from './StatusCard.vue'
-import DetailModal from './DetailModal.vue'
+import ExpandableStatusCard from './ExpandableStatusCard.vue'
 import DetailListItem from './DetailListItem.vue'
-import { useModal } from '@/composables/useModal'
 import { useVehicleCommand } from '@/composables/useVehicleCommand'
 
 const { t } = useI18n()
@@ -20,7 +18,6 @@ const props = defineProps<{
   trunkOpen: boolean | null
 }>()
 
-const { isOpen: modalOpen, open: openModal, close: closeModal } = useModal()
 const { sending, lastResult, isPending, send } = useVehicleCommand()
 
 const localLocked = ref<boolean | null>(null)
@@ -108,17 +105,13 @@ async function handleLockToggle() {
 </script>
 
 <template>
-  <StatusCard
+  <ExpandableStatusCard
     v-if="summary !== null"
     :icon="effectiveLocked === false ? 'lock-open' : 'lock'"
-    :label="t('vehicle.doors')"
+    :title="t('vehicle.doors')"
     :value="summary"
     :variant="variant"
-    clickable
-    @click="openModal"
-  />
-
-  <DetailModal :open="modalOpen" :title="t('vehicle.doors')" @close="closeModal">
+  >
     <div v-if="isLocked !== null" class="detail-list">
       <div class="detail-list__item detail-list__item--control">
         <font-awesome-icon
@@ -168,5 +161,5 @@ async function handleLockToggle() {
         :alert="door.open"
       />
     </div>
-  </DetailModal>
+  </ExpandableStatusCard>
 </template>

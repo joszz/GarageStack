@@ -1,10 +1,8 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import StatusCard from './StatusCard.vue'
-import DetailModal from './DetailModal.vue'
+import ExpandableStatusCard from './ExpandableStatusCard.vue'
 import { useVehicleCommand } from '@/composables/useVehicleCommand'
-import { useModal } from '@/composables/useModal'
 
 const { t } = useI18n()
 
@@ -14,7 +12,6 @@ const props = defineProps<{
 
 const { sending, isPending, send } = useVehicleCommand()
 const active = ref(false)
-const { isOpen: modalOpen, open: openModal, close: closeModal } = useModal()
 
 async function activate() {
   if (await send(props.vin, 'find-my-car', 'activate')) active.value = true
@@ -26,19 +23,15 @@ async function stop() {
 </script>
 
 <template>
-  <StatusCard
+  <ExpandableStatusCard
     icon="car-burst"
-    :label="t('control.findMyCar')"
+    :title="t('control.findMyCar')"
     :value="active ? t('control.findMyCarActive') : '-'"
     :variant="active ? 'warning' : undefined"
-    clickable
-    @click="openModal"
-  />
-
-  <DetailModal :open="modalOpen" :title="t('control.findMyCar')" @close="closeModal">
+  >
     <p class="card-info-desc">{{ t('control.findMyCarConfirm') }}</p>
-    <template #footer>
-      <button class="btn btn-outline-secondary" @click="closeModal">
+    <template #footer="{ close }">
+      <button class="btn btn-outline-secondary" @click="close">
         {{ t('common.cancel') }}
       </button>
       <button
@@ -66,5 +59,5 @@ async function stop() {
         {{ isPending('find-my-car') ? t('control.pending') : t('control.findMyCarStop') }}
       </button>
     </template>
-  </DetailModal>
+  </ExpandableStatusCard>
 </template>

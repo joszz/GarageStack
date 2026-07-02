@@ -1,10 +1,8 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import StatusCard from './StatusCard.vue'
-import DetailModal from './DetailModal.vue'
+import ExpandableStatusCard from './ExpandableStatusCard.vue'
 import DetailListItem from './DetailListItem.vue'
-import { useModal } from '@/composables/useModal'
 import { useVehicleCommand } from '@/composables/useVehicleCommand'
 
 const { t } = useI18n()
@@ -21,7 +19,7 @@ const props = defineProps<{
   steeringWheelHeating: boolean | null
 }>()
 
-const { isOpen: modalOpen, open: openModal, close: closeModal } = useModal()
+const modalOpen = ref(false)
 const { sending, lastResult, isPending, send } = useVehicleCommand()
 
 const TEMP_MIN = 16
@@ -158,17 +156,14 @@ function onSeatRightChange(e: Event) {
 </script>
 
 <template>
-  <StatusCard
+  <ExpandableStatusCard
     v-if="hasAnyData"
     icon="wind"
-    :label="t('control.climate')"
+    :title="t('control.climate')"
     :value="summaryValue"
     :variant="climateOn ? 'info' : undefined"
-    clickable
-    @click="openModal"
-  />
-
-  <DetailModal :open="modalOpen" :title="t('control.climate')" @close="closeModal">
+    v-model:open="modalOpen"
+  >
     <div class="detail-list">
       <!-- AC temperature slider -->
       <div
@@ -314,11 +309,11 @@ function onSeatRightChange(e: Event) {
       </div>
     </div>
 
-    <template #footer>
+    <template #footer="{ close }">
       <span v-if="lastResult && !lastResult.ok && !anyPending" class="text-danger me-auto">
         {{ t('control.error') }}
       </span>
-      <button class="btn btn-outline-secondary" @click="closeModal">
+      <button class="btn btn-outline-secondary" @click="close">
         {{ t('common.cancel') }}
       </button>
       <button
@@ -333,7 +328,7 @@ function onSeatRightChange(e: Event) {
         {{ anyPending ? t('control.pending') : t('common.apply') }}
       </button>
     </template>
-  </DetailModal>
+  </ExpandableStatusCard>
 </template>
 
 <style scoped>

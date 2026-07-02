@@ -1,10 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import StatusCard from './StatusCard.vue'
-import DetailModal from './DetailModal.vue'
+import ExpandableStatusCard from './ExpandableStatusCard.vue'
 import DetailListItem from './DetailListItem.vue'
-import { useModal } from '@/composables/useModal'
 
 const { t } = useI18n()
 
@@ -21,8 +19,6 @@ const props = defineProps<{
   chargingScheduleStartTime: string | null
   chargingScheduleEndTime: string | null
 }>()
-
-const { isOpen: modalOpen, open: openModal, close: closeModal } = useModal()
 
 const obcPower = computed(() => props.obcPowerThreePhase ?? props.obcPowerSinglePhase)
 
@@ -60,17 +56,13 @@ const lastEndFormatted = computed((): string | null => {
 </script>
 
 <template>
-  <StatusCard
+  <ExpandableStatusCard
     v-if="hasAnyData"
     icon="plug-circle-bolt"
-    :label="t('vehicle.chargingSession.title')"
+    :title="t('vehicle.chargingSession.title')"
     :value="summaryValue"
     variant="info"
-    clickable
-    @click="openModal"
-  />
-
-  <DetailModal :open="modalOpen" :title="t('vehicle.chargingSession.title')" @close="closeModal">
+  >
     <div class="detail-list">
       <DetailListItem
         v-if="obcPower !== null"
@@ -158,5 +150,5 @@ const lastEndFormatted = computed((): string | null => {
         </template>
       </DetailListItem>
     </div>
-  </DetailModal>
+  </ExpandableStatusCard>
 </template>
