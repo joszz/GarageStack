@@ -4,10 +4,13 @@ using GarageStack.Core.Helpers;
 using GarageStack.Core.Interfaces;
 using GarageStack.Core.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace GarageStack.Data.Repositories;
 
-public class TelemetryRepository(AppDbContext db) : ITelemetryRepository
+// logger is optional (DI always supplies one) so existing tests can keep constructing
+// this directly with just a DbContext.
+public class TelemetryRepository(AppDbContext db, ILogger<TelemetryRepository>? logger = null) : ITelemetryRepository
 {
     // All TelemetrySnapshot properties except identity/bookkeeping fields (Id, VehicleId, Vehicle,
     // RecordedAt, RawTopic) participate in field-by-field merging. Computed once and reused by both
@@ -136,7 +139,12 @@ public class TelemetryRepository(AppDbContext db) : ITelemetryRepository
         {
             await db.Database.ExecuteSqlAsync($"SELECT pg_notify('telemetry_updated', {vehicleId.ToString()})", ct);
         }
-        catch { }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            // The telemetry row itself is already saved at this point, so this only means
+            // live SignalR/dashboard updates are delayed until the next poll, not data loss.
+            logger?.LogWarning(ex, "Failed to notify telemetry_updated for vehicleId={VehicleId}", vehicleId);
+        }
     }
 
     public Task<TelemetrySnapshot?> GetLatestAsync(int vehicleId, CancellationToken ct = default) =>
