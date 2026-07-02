@@ -1,4 +1,4 @@
-using System.Text.Json;
+using GarageStack.Core.Helpers;
 using GarageStack.Core.Interfaces;
 using GarageStack.Core.Models;
 using Microsoft.EntityFrameworkCore;
@@ -12,26 +12,9 @@ public class PoiRepository(AppDbContext db, IMemoryCache cache) : IPoiRepository
     // Brand lists (charging network operators, fuel brands) change rarely, so a short cache
     // avoids re-deserializing every PoiItem's MetaJson on every map filter-panel open.
     private static readonly TimeSpan BrandsCacheTtl = TimeSpan.FromMinutes(15);
-    public async Task<IReadOnlyList<(int CellLat, int CellLng)>> GetUncachedTilesAsync(
-        string source, string poiType,
-        IReadOnlyList<(int CellLat, int CellLng)> tiles,
-        CancellationToken ct = default)
-    {
-        var now = DateTime.UtcNow;
-        var cellLats = tiles.Select(t => t.CellLat).Distinct().ToList();
-        var cellLngs = tiles.Select(t => t.CellLng).Distinct().ToList();
-
-        var cached = await db.PoiCacheTiles
-            .Where(t => t.Source == source && t.PoiType == poiType && t.ExpiresAt > now
-                        && cellLats.Contains(t.CellLat)
-                        && cellLngs.Contains(t.CellLng))
-            .Select(t => new { t.CellLat, t.CellLng })
-            .ToListAsync(ct);
-
-        var cachedSet = cached.Select(c => (c.CellLat, c.CellLng)).ToHashSet();
-        return tiles.Where(t => !cachedSet.Contains(t)).ToList();
-    }
-
+    // Used both for the on-demand API path (any tile not cached yet) and the Worker's
+    // pre-cache path (tiles whose cache has since expired) - "uncached" and "expired or
+    // missing" are the same query: anything outside the currently-valid (ExpiresAt > now) set.
     public async Task<IReadOnlyList<(int CellLat, int CellLng)>> GetExpiredOrMissingTilesAsync(
         string source, string poiType,
         IReadOnlyList<(int CellLat, int CellLng)> tiles,
@@ -199,14 +182,10 @@ public class PoiRepository(AppDbContext db, IMemoryCache cache) : IPoiRepository
         var brands = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var json in metaJsonList)
         {
-            try
-            {
-                var dict = JsonSerializer.Deserialize<Dictionary<string, string>>(json);
-                if (dict is null) continue;
-                var brand = dict.GetValueOrDefault("brand") ?? dict.GetValueOrDefault("operator");
-                if (!string.IsNullOrWhiteSpace(brand)) brands.Add(brand);
-            }
-            catch { }
+            var dict = SafeJson.TryDeserialize<Dictionary<string, string>>(json);
+            if (dict is null) continue;
+            var brand = dict.GetValueOrDefault("brand") ?? dict.GetValueOrDefault("operator");
+            if (!string.IsNullOrWhiteSpace(brand)) brands.Add(brand);
         }
 
         IReadOnlyList<string> result = [.. brands.Order()];

@@ -1,3 +1,4 @@
+using GarageStack.Core.Helpers;
 using GarageStack.Core.Interfaces;
 using GarageStack.Core.Models;
 using GarageStack.Data;
@@ -8,17 +9,18 @@ namespace GarageStack.Api.Endpoints;
 
 public static class VehicleEndpoints
 {
+    /// <summary>Looks up a vehicle by VIN, shared by every endpoint that takes a {vin} route parameter.</summary>
+    public static async Task<(Vehicle? Vehicle, IResult? NotFound)> ResolveVehicleAsync(
+        string vin,
+        IVehicleRepository vehicles,
+        CancellationToken ct)
+    {
+        var vehicle = await vehicles.GetByVinAsync(vin, ct);
+        return vehicle is null ? (null, Results.NotFound()) : (vehicle, null);
+    }
+
     public static IEndpointRouteBuilder MapVehicleEndpoints(this IEndpointRouteBuilder app)
     {
-        static async Task<(Vehicle? Vehicle, IResult? NotFound)> ResolveVehicleAsync(
-            string vin,
-            IVehicleRepository vehicles,
-            CancellationToken ct)
-        {
-            var vehicle = await vehicles.GetByVinAsync(vin, ct);
-            return vehicle is null ? (null, Results.NotFound()) : (vehicle, null);
-        }
-
         static DateTime ClampRangeStart(DateTime start, DateTime end, TimeSpan maxRange) =>
             end - start > maxRange ? end - maxRange : start;
 
@@ -42,15 +44,9 @@ public static class VehicleEndpoints
             if (resolved.NotFound is not null) return resolved.NotFound;
             var vehicle = resolved.Vehicle!;
             if (vehicle.ConfigJson is null) return Results.Ok(new Dictionary<string, string>());
-            try
-            {
-                var config = JsonSerializer.Deserialize<Dictionary<string, string>>(vehicle.ConfigJson);
-                return Results.Ok(config ?? new Dictionary<string, string>());
-            }
-            catch
-            {
-                return Results.Ok(new Dictionary<string, string>());
-            }
+            var config = SafeJson.TryDeserialize<Dictionary<string, string>>(vehicle.ConfigJson)
+                ?? new Dictionary<string, string>();
+            return Results.Ok(config);
         })
         .WithSummary("Get vehicle capability config");
 

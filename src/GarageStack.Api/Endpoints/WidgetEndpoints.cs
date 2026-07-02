@@ -33,8 +33,9 @@ public static class WidgetEndpoints
             IStringLocalizer<WidgetStrings> localizer,
             CancellationToken ct) =>
         {
-            var vehicle = await vehicles.GetByVinAsync(vin, ct);
-            if (vehicle is null) return Results.NotFound();
+            var resolved = await VehicleEndpoints.ResolveVehicleAsync(vin, vehicles, ct);
+            if (resolved.NotFound is not null) return resolved.NotFound;
+            var vehicle = resolved.Vehicle!;
 
             var snapshot = await telemetry.GetMergedLatestAsync(vehicle.Id, ct);
             return snapshot is null ? Results.NoContent() : Results.Ok(WidgetStatusDto.FromSnapshot(snapshot, localizer));

@@ -4,11 +4,6 @@ namespace GarageStack.Core.Interfaces;
 
 public interface IPoiRepository
 {
-    Task<IReadOnlyList<(int CellLat, int CellLng)>> GetUncachedTilesAsync(
-        string source, string poiType,
-        IReadOnlyList<(int CellLat, int CellLng)> tiles,
-        CancellationToken ct = default);
-
     Task<IReadOnlyList<(int CellLat, int CellLng)>> GetExpiredOrMissingTilesAsync(
         string source, string poiType,
         IReadOnlyList<(int CellLat, int CellLng)> tiles,

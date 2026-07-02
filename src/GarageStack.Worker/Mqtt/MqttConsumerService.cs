@@ -117,6 +117,18 @@ public class MqttConsumerService(
         }
     }
 
+    // Resolves (creating on first sight) the vehicle for `vin` within a fresh DI scope. The
+    // caller owns disposal of the returned scope and can resolve further scoped services
+    // (e.g. ITelemetryRepository, AppDbContext) from the same ServiceProvider before disposing it.
+    private async Task<(IServiceScope Scope, IVehicleRepository VehicleRepo, Vehicle Vehicle)> ResolveVehicleInNewScopeAsync(
+        string vin, string? saicUser, CancellationToken ct)
+    {
+        var scope = scopeFactory.CreateScope();
+        var vehicleRepo = scope.ServiceProvider.GetRequiredService<IVehicleRepository>();
+        var vehicle = await vehicleRepo.GetOrCreateByVinAsync(vin, saicUser, ct);
+        return (scope, vehicleRepo, vehicle);
+    }
+
     private async Task HandleMessageAsync(MqttApplicationMessageReceivedEventArgs e, CancellationToken ct)
     {
         var topic = e.ApplicationMessage.Topic;
@@ -143,12 +155,11 @@ public class MqttConsumerService(
         {
             var configKey = subtopic["info/configuration/".Length..];
             logger.LogInformation("MQTT config - VIN={Vin} key={Key} payloadBytes={PayloadBytes}", vin, configKey, payload.Length);
-            using var cfgScope = scopeFactory.CreateScope();
-            var vehicleRepo = cfgScope.ServiceProvider.GetRequiredService<IVehicleRepository>();
             try
             {
-                var vehicle = await vehicleRepo.GetOrCreateByVinAsync(vin, saicUser, ct);
-                await vehicleRepo.SetConfigValueAsync(vehicle.Id, configKey, payload, ct);
+                var resolved = await ResolveVehicleInNewScopeAsync(vin, saicUser, ct);
+                using var scope = resolved.Scope;
+                await resolved.VehicleRepo.SetConfigValueAsync(resolved.Vehicle.Id, configKey, payload, ct);
             }
             catch (Exception ex)
             {
@@ -170,14 +181,14 @@ public class MqttConsumerService(
 
         logger.LogDebug("MQTT mapped - VIN={Vin} subtopic={Subtopic} payloadBytes={PayloadBytes}", vin, subtopic, payload.Length);
 
-        using var scope = scopeFactory.CreateScope();
-        var vehicleRepoMain = scope.ServiceProvider.GetRequiredService<IVehicleRepository>();
-        var telemetryRepo = scope.ServiceProvider.GetRequiredService<ITelemetryRepository>();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-
         try
         {
-            var vehicle = await vehicleRepoMain.GetOrCreateByVinAsync(vin, saicUser, ct);
+            var resolved = await ResolveVehicleInNewScopeAsync(vin, saicUser, ct);
+            using var scope = resolved.Scope;
+            var vehicle = resolved.Vehicle;
+            var telemetryRepo = scope.ServiceProvider.GetRequiredService<ITelemetryRepository>();
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
             patch.VehicleId = vehicle.Id;
             patch.RecordedAt = DateTime.UtcNow;
 
@@ -269,12 +280,11 @@ public class MqttConsumerService(
 
             logger.LogInformation("HA discovery - VIN={Vin} hw_version={HwVersion} model={Model}", vin, hwVersion, model);
 
-            using var scope = scopeFactory.CreateScope();
-            var vehicleRepo = scope.ServiceProvider.GetRequiredService<IVehicleRepository>();
-            var vehicle = await vehicleRepo.GetOrCreateByVinAsync(vin, null, ct);
-            await vehicleRepo.SetConfigValueAsync(vehicle.Id, "hw_version", hwVersion, ct);
+            var resolved = await ResolveVehicleInNewScopeAsync(vin, null, ct);
+            using var scope = resolved.Scope;
+            await resolved.VehicleRepo.SetConfigValueAsync(resolved.Vehicle.Id, "hw_version", hwVersion, ct);
             if (!string.IsNullOrWhiteSpace(model))
-                await vehicleRepo.SetModelAsync(vehicle.Id, model, ct);
+                await resolved.VehicleRepo.SetModelAsync(resolved.Vehicle.Id, model, ct);
         }
         catch (Exception ex)
         {
