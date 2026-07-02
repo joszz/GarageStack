@@ -13,7 +13,9 @@
     "hideCard": "Hide card",
     "showCard": "Show card",
     "cardInfoBtn": "Card information",
+    "openFullMap": "Open full map",
     "cardDesc": {
+      "location": "Current location of the car on a small map. Click the map or the expand button to open the full map view.",
       "fuelLevel": "Shows the current fuel tank level as a percentage.",
       "fuelRange": "Estimated remaining driving range based on the current fuel level.",
       "evBattery": "State of charge as a percentage. On a PHEV or BEV this is your electric range gauge. On an HEV the hybrid battery is small and managed automatically by the car, so the exact value is less meaningful day-to-day.",
@@ -91,6 +93,8 @@
     "chargingNo": "Not charging",
     "tyres": "Tyre Pressures",
     "overview": "Overview",
+    "location": "Location",
+    "locationUnavailable": "Location unavailable",
     "diagram": {
       "panelOpen": "Panel open",
       "infoTyreTitle": "Tyre Pressure",
@@ -102,7 +106,13 @@
       "infoLevelTitle": "Fuel & Battery",
       "infoLevelDesc": "When data is available, the fuel level percentage appears at the front and the EV battery percentage appears at the rear of the diagram.",
       "infoChargingTitle": "Charging",
-      "infoChargingDesc": "A cable is shown below the battery indicator when the charger is connected. When actively charging, the cable animates with flowing dashes to show energy entering the car."
+      "infoChargingDesc": "A cable is shown below the battery indicator when the charger is connected. When actively charging, the cable animates with flowing dashes to show energy entering the car.",
+      "tyrePosition": {
+        "frontLeft": "Front left",
+        "frontRight": "Front right",
+        "rearLeft": "Rear left",
+        "rearRight": "Rear right"
+      }
     },
     "temperature": {
       "interior": "Interior temp",

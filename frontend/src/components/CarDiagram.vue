@@ -66,6 +66,43 @@ const fuelColor = computed(() => {
 
 const isMoving = computed(() => (props.speed ?? 0) > 0)
 
+// Speedometer gauge: 270° arc opening at the bottom, needle sweeps from
+// -135deg (0 km/h) to +135deg (MAX_SPEED_KMH) through the top of the dial.
+const MAX_SPEED_KMH = 200
+const GAUGE_CX = 50
+const GAUGE_CY = 48
+const GAUGE_R = 36
+const GAUGE_ARC_LENGTH = 1.5 * Math.PI * GAUGE_R
+
+function polarToCartesian(cx: number, cy: number, r: number, bearingDeg: number) {
+  const rad = (bearingDeg * Math.PI) / 180
+  return { x: cx + r * Math.sin(rad), y: cy - r * Math.cos(rad) }
+}
+
+const gaugeArcPath = (() => {
+  const start = polarToCartesian(GAUGE_CX, GAUGE_CY, GAUGE_R, -135)
+  const end = polarToCartesian(GAUGE_CX, GAUGE_CY, GAUGE_R, 135)
+  return `M ${start.x} ${start.y} A ${GAUGE_R} ${GAUGE_R} 0 1 1 ${end.x} ${end.y}`
+})()
+
+const showSpeedGauge = computed(() => (props.speed ?? 0) > 0)
+
+const speedFraction = computed(() => {
+  const s = props.speed ?? 0
+  return Math.min(1, Math.max(0, s / MAX_SPEED_KMH))
+})
+
+const needleRotation = computed(() => -135 + speedFraction.value * 270)
+
+const gaugeDashOffset = computed(() => GAUGE_ARC_LENGTH * (1 - speedFraction.value))
+
+const gaugeColor = computed(() => {
+  const s = props.speed ?? 0
+  if (s >= 140) return 'var(--color-danger)'
+  if (s >= 100) return 'var(--color-warning)'
+  return 'var(--color-primary-light)'
+})
+
 const roadAnimDuration = computed(() => {
   const s = props.speed ?? 0
   if (s <= 0) return '2s'
@@ -133,6 +170,7 @@ const activeLightKey = computed(() => {
         <font-awesome-icon icon="car-side" />
         {{ t('vehicle.overview') }}
       </p>
+
       <div class="tyre-diagram__wrap">
         <div class="tyre-car-wrap">
           <!--
@@ -253,21 +291,22 @@ const activeLightKey = computed(() => {
               so the car SVG layer on top masks them, making beams appear to emerge from the headlights.
               Gradient anchored at y=138 (car front edge) fades toward each tip.
             -->
-            <template v-if="lightsMainBeam">
-              <polygon
-                points="132,145 162,140 148,52 102,62"
-                class="car-light-beam car-light-beam--main"
-              />
-              <polygon
-                points="208,145 178,140 192,52 238,62"
-                class="car-light-beam car-light-beam--main"
-              />
-            </template>
-            <template v-else-if="lightsDippedBeam">
-              <polygon points="130,145 148,140 144,80 118,85" class="car-light-beam" />
-              <polygon points="210,145 192,140 196,80 222,85" class="car-light-beam" />
-            </template>
-            <template v-if="lightsSide || lightsDippedBeam || lightsMainBeam">
+            <g v-if="hasLights">
+              <title>{{ t(activeLightKey) }}</title>
+              <template v-if="lightsMainBeam">
+                <polygon
+                  points="132,145 162,140 148,52 102,62"
+                  class="car-light-beam car-light-beam--main"
+                />
+                <polygon
+                  points="208,145 178,140 192,52 238,62"
+                  class="car-light-beam car-light-beam--main"
+                />
+              </template>
+              <template v-else-if="lightsDippedBeam">
+                <polygon points="130,145 148,140 144,80 118,85" class="car-light-beam" />
+                <polygon points="210,145 192,140 196,80 222,85" class="car-light-beam" />
+              </template>
               <!--
                 Side marker pie-sectors. Centers sit inside car body (y=145) so the car SVG masks
                 the source; only the outward crescent is visible. Positioned on the front fender,
@@ -285,7 +324,7 @@ const activeLightKey = computed(() => {
                 d="M 219,145 L 221,131 A 14,14 0 0 1 219,159 Z"
                 class="car-light-beam--side-r"
               />
-            </template>
+            </g>
 
             <!-- Orange car illustration (top-view) -->
             <g :filter="motionBlurAmount > 0 ? 'url(#motion-blur)' : undefined">
@@ -420,6 +459,9 @@ const activeLightKey = computed(() => {
               class="charge-group"
               :class="{ 'charge-group--active': isCharging }"
             >
+              <title>
+                {{ isCharging ? t('vehicle.chargingYes') : t('vehicle.hvBattery.pluggedIn') }}
+              </title>
               <circle cx="170" cy="367" r="16" class="charge-entry-glow" />
               <rect x="162" y="362" width="16" height="8" rx="2" class="charge-socket" />
               <!-- Cable enters the battery badge from below; endpoint inside badge so nothing shows under it -->
@@ -427,66 +469,90 @@ const activeLightKey = computed(() => {
             </g>
 
             <!-- Tyre pressure indicator lines -->
-            <line
-              x1="110"
-              y1="145"
-              x2="72"
-              y2="131"
-              class="tyre-indicator-line"
-              :stroke="pressureColor(frontLeft)"
-            />
-            <circle
-              cx="110"
-              cy="145"
-              r="5"
-              class="tyre-indicator-dot"
-              :fill="pressureColor(frontLeft)"
-            />
-            <line
-              x1="230"
-              y1="145"
-              x2="268"
-              y2="131"
-              class="tyre-indicator-line"
-              :stroke="pressureColor(frontRight)"
-            />
-            <circle
-              cx="230"
-              cy="145"
-              r="5"
-              class="tyre-indicator-dot"
-              :fill="pressureColor(frontRight)"
-            />
-            <line
-              x1="110"
-              y1="327"
-              x2="72"
-              y2="341"
-              class="tyre-indicator-line"
-              :stroke="pressureColor(rearLeft)"
-            />
-            <circle
-              cx="110"
-              cy="327"
-              r="5"
-              class="tyre-indicator-dot"
-              :fill="pressureColor(rearLeft)"
-            />
-            <line
-              x1="230"
-              y1="327"
-              x2="268"
-              y2="341"
-              class="tyre-indicator-line"
-              :stroke="pressureColor(rearRight)"
-            />
-            <circle
-              cx="230"
-              cy="327"
-              r="5"
-              class="tyre-indicator-dot"
-              :fill="pressureColor(rearRight)"
-            />
+            <g>
+              <title>
+                {{ t('vehicle.diagram.tyrePosition.frontLeft') }}: {{ fmt(frontLeft) }}
+                {{ t('common.bar') }}
+              </title>
+              <line
+                x1="110"
+                y1="145"
+                x2="72"
+                y2="131"
+                class="tyre-indicator-line"
+                :stroke="pressureColor(frontLeft)"
+              />
+              <circle
+                cx="110"
+                cy="145"
+                r="5"
+                class="tyre-indicator-dot"
+                :fill="pressureColor(frontLeft)"
+              />
+            </g>
+            <g>
+              <title>
+                {{ t('vehicle.diagram.tyrePosition.frontRight') }}: {{ fmt(frontRight) }}
+                {{ t('common.bar') }}
+              </title>
+              <line
+                x1="230"
+                y1="145"
+                x2="268"
+                y2="131"
+                class="tyre-indicator-line"
+                :stroke="pressureColor(frontRight)"
+              />
+              <circle
+                cx="230"
+                cy="145"
+                r="5"
+                class="tyre-indicator-dot"
+                :fill="pressureColor(frontRight)"
+              />
+            </g>
+            <g>
+              <title>
+                {{ t('vehicle.diagram.tyrePosition.rearLeft') }}: {{ fmt(rearLeft) }}
+                {{ t('common.bar') }}
+              </title>
+              <line
+                x1="110"
+                y1="327"
+                x2="72"
+                y2="341"
+                class="tyre-indicator-line"
+                :stroke="pressureColor(rearLeft)"
+              />
+              <circle
+                cx="110"
+                cy="327"
+                r="5"
+                class="tyre-indicator-dot"
+                :fill="pressureColor(rearLeft)"
+              />
+            </g>
+            <g>
+              <title>
+                {{ t('vehicle.diagram.tyrePosition.rearRight') }}: {{ fmt(rearRight) }}
+                {{ t('common.bar') }}
+              </title>
+              <line
+                x1="230"
+                y1="327"
+                x2="268"
+                y2="341"
+                class="tyre-indicator-line"
+                :stroke="pressureColor(rearRight)"
+              />
+              <circle
+                cx="230"
+                cy="327"
+                r="5"
+                class="tyre-indicator-dot"
+                :fill="pressureColor(rearRight)"
+              />
+            </g>
           </svg>
 
           <!-- Tyre pressure labels -->
@@ -494,24 +560,28 @@ const activeLightKey = computed(() => {
             <div
               class="tyre-label tyre-label--fl"
               :class="`tyre-label--${pressureVariant(frontLeft)}`"
+              :title="t('vehicle.diagram.tyrePosition.frontLeft')"
             >
               {{ fmt(frontLeft) }} {{ t('common.bar') }}
             </div>
             <div
               class="tyre-label tyre-label--fr"
               :class="`tyre-label--${pressureVariant(frontRight)}`"
+              :title="t('vehicle.diagram.tyrePosition.frontRight')"
             >
               {{ fmt(frontRight) }} {{ t('common.bar') }}
             </div>
             <div
               class="tyre-label tyre-label--rl"
               :class="`tyre-label--${pressureVariant(rearLeft)}`"
+              :title="t('vehicle.diagram.tyrePosition.rearLeft')"
             >
               {{ fmt(rearLeft) }} {{ t('common.bar') }}
             </div>
             <div
               class="tyre-label tyre-label--rr"
               :class="`tyre-label--${pressureVariant(rearRight)}`"
+              :title="t('vehicle.diagram.tyrePosition.rearRight')"
             >
               {{ fmt(rearRight) }} {{ t('common.bar') }}
             </div>
@@ -566,6 +636,7 @@ const activeLightKey = computed(() => {
             v-if="showFuel"
             class="diagram-level diagram-level--fuel"
             :style="{ '--level-color': fuelColor }"
+            :title="`${t('vehicle.fuel')}: ${Math.round(fuelLevelPercent ?? 0)}%`"
           >
             <font-awesome-icon icon="gas-pump" />
             <span>{{ Math.round(fuelLevelPercent ?? 0) }}%</span>
@@ -580,41 +651,46 @@ const activeLightKey = computed(() => {
               'diagram-level--connected': chargerConnected && !isCharging,
             }"
             :style="{ '--level-color': batteryColor }"
+            :title="`${t('vehicle.evSoc')}: ${Math.round(evSocPercent ?? 0)}%`"
           >
             <font-awesome-icon icon="bolt" />
             <span>{{ Math.round(evSocPercent ?? 0) }}%</span>
           </div>
+
+          <div
+            v-if="showSpeedGauge"
+            class="speed-gauge"
+            role="img"
+            :aria-label="`${t('vehicle.speed')}: ${Math.round(speed ?? 0)} km/h`"
+            :title="`${t('vehicle.speed')}: ${Math.round(speed ?? 0)} km/h`"
+          >
+            <svg viewBox="0 0 100 92" class="speed-gauge__svg">
+              <path :d="gaugeArcPath" class="speed-gauge__track" />
+              <path
+                :d="gaugeArcPath"
+                class="speed-gauge__progress"
+                :style="{
+                  strokeDasharray: GAUGE_ARC_LENGTH,
+                  strokeDashoffset: gaugeDashOffset,
+                  stroke: gaugeColor,
+                }"
+              />
+              <line
+                x1="50"
+                y1="48"
+                x2="50"
+                y2="20"
+                class="speed-gauge__needle"
+                :style="{ transform: `rotate(${needleRotation}deg)` }"
+              />
+              <circle cx="50" cy="48" r="3" class="speed-gauge__pivot" />
+              <text x="50" y="64" text-anchor="middle" class="speed-gauge__value">
+                {{ Math.round(speed ?? 0) }}
+              </text>
+              <text x="50" y="78" text-anchor="middle" class="speed-gauge__unit">km/h</text>
+            </svg>
+          </div>
         </div>
-      </div>
-
-      <div class="tyre-legend">
-        <span class="tyre-legend__item tyre-legend__item--ok">&#x2265; 2.6 bar</span>
-        <span class="tyre-legend__item tyre-legend__item--warning">2.2 – 2.6 bar</span>
-        <span class="tyre-legend__item tyre-legend__item--danger">&lt; 2.2 bar</span>
-      </div>
-
-      <div v-if="hasLights || isCharging || chargerConnected" class="vehicle-state-legend">
-        <span
-          v-if="hasLights"
-          class="vehicle-state-legend__item vehicle-state-legend__item--lights"
-        >
-          <font-awesome-icon icon="lightbulb" />
-          {{ t(activeLightKey) }}
-        </span>
-        <span
-          v-if="isCharging"
-          class="vehicle-state-legend__item vehicle-state-legend__item--charging"
-        >
-          <font-awesome-icon icon="bolt" />
-          {{ t('vehicle.chargingYes') }}
-        </span>
-        <span
-          v-else-if="chargerConnected"
-          class="vehicle-state-legend__item vehicle-state-legend__item--connected"
-        >
-          <font-awesome-icon icon="plug" />
-          {{ t('vehicle.hvBattery.pluggedIn') }}
-        </span>
       </div>
     </div>
   </CardInfoWrap>
