@@ -5,6 +5,7 @@ using GarageStack.Core.Models;
 using GarageStack.Data;
 using GarageStack.Worker.Services;
 using MQTTnet;
+using MQTTnet.Protocol;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -41,9 +42,15 @@ public class MqttConsumerService(
 
         client.ApplicationMessageReceivedAsync += msg => HandleMessageAsync(msg, stoppingToken);
 
+        // CleanSession(false) + a stable ClientId let the broker retain a persistent
+        // session across reconnects, so it queues messages for us while we're offline.
+        // Actual redelivery still depends on the effective QoS being >=1, i.e. it also
+        // requires the saic-mqtt-gateway publisher to publish at QoS >=1 - the broker
+        // downgrades delivery to the lower of publish/subscribe QoS.
         var mqttOptionsBuilder = new MqttClientOptionsBuilder()
             .WithTcpServer(_options.Host, _options.Port)
-            .WithCleanSession();
+            .WithClientId(_options.ClientId)
+            .WithCleanSession(false);
 
         if (!string.IsNullOrWhiteSpace(_options.Username))
             mqttOptionsBuilder.WithCredentials(_options.Username, _options.Password);
@@ -67,8 +74,8 @@ public class MqttConsumerService(
                 logger.LogInformation("Connected to MQTT broker at {Host}:{Port}", _options.Host, _options.Port);
 
                 await client.SubscribeAsync(new MqttClientSubscribeOptionsBuilder()
-                    .WithTopicFilter("saic/#")
-                    .WithTopicFilter("homeassistant/#")
+                    .WithTopicFilter("saic/#", MqttQualityOfServiceLevel.AtLeastOnce)
+                    .WithTopicFilter("homeassistant/#", MqttQualityOfServiceLevel.AtLeastOnce)
                     .Build(), stoppingToken);
                 logger.LogInformation("Subscribed to saic/# and homeassistant/#");
 

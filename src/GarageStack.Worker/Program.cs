@@ -51,6 +51,7 @@ try
 catch (Exception ex) when (ex is not HostAbortedException)
 {
     Log.Fatal(ex, "Worker terminated unexpectedly");
+    Environment.ExitCode = 1;
 }
 finally
 {
