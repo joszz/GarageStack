@@ -24,6 +24,7 @@ const props = defineProps<{
   open: boolean
   notifications: AppNotification[]
   loading: boolean
+  actionError?: string | null
 }>()
 
 const emit = defineEmits<{
@@ -128,6 +129,11 @@ onUnmounted(() => document.removeEventListener('keydown', onKey))
             >
               <font-awesome-icon icon="xmark" aria-hidden="true" />
             </button>
+          </div>
+
+          <div v-if="actionError" class="notif-panel__error text-danger">
+            <font-awesome-icon icon="triangle-exclamation" />
+            {{ t('common.error') }}
           </div>
 
           <div v-if="!loading && notifications.length > 0" class="notif-panel__tabs">
