@@ -92,6 +92,20 @@ file sealed class FakeMqttClient : IMqttClient
     public Task WaitForConnectAsync(TimeSpan? timeout = null) =>
         _connectCalled.WaitAsync(timeout ?? TimeSpan.FromSeconds(5));
 
+    // Call from a test to simulate an incoming message on the subscribed topics.
+    public Task TriggerMessageAsync(string topic, string payload)
+    {
+        if (_msgHandler is null) return Task.CompletedTask;
+
+        var message = new MqttApplicationMessageBuilder()
+            .WithTopic(topic)
+            .WithPayload(payload)
+            .Build();
+        var args = new MqttApplicationMessageReceivedEventArgs(
+            "test-client", message, new MqttPublishPacket(), (_, _) => Task.CompletedTask);
+        return _msgHandler(args);
+    }
+
     public Task PingAsync(CancellationToken ct) => Task.CompletedTask;
     public Task<MqttClientPublishResult> PublishAsync(MqttApplicationMessage msg, CancellationToken ct) =>
         throw new NotImplementedException();
@@ -320,5 +334,56 @@ public class MqttConsumerServiceReconnectTests
         try { await serviceTask; } catch (OperationCanceledException) { }
 
         Assert.True(client.ConnectCount >= 3, $"Expected >= 3 connects, got {client.ConnectCount}");
+    }
+}
+
+// ---------------------------------------------------------------------------
+// HA discovery payload parsing -- these all resolve before (or independently of)
+// the DI scope, so they're reachable with the null-service FakeServiceScopeFactory.
+// The assertion is that malformed/incomplete payloads never crash the message
+// pipeline, matching HandleHaDiscoveryAsync's early-return / catch-and-log design.
+// ---------------------------------------------------------------------------
+
+public class MqttConsumerServiceHaDiscoveryTests
+{
+    [Theory]
+    [InlineData("""{"device":{"identifiers":["FAKEVN00000000001"]}}""")] // missing hw_version
+    [InlineData("""{"device":{"hw_version":"MG_BEV_1.0"}}""")] // missing identifiers
+    [InlineData("not json but mentions hw_version and identifiers")] // not valid JSON at all
+    [InlineData("""{"foo":{"hw_version":"x","identifiers":["VIN"]}}""")] // missing "device" property
+    [InlineData("""{"device":{"identifiers":["VIN"],"other":"hw_version"}}""")] // device has no hw_version property
+    [InlineData("""{"device":{"hw_version":"MG_BEV_1.0","identifiers":[]}}""")] // empty identifiers array
+    [InlineData("""{"device":{"hw_version":"MG_BEV_1.0","identifiers":[123,456]}}""")] // non-string identifiers
+    public async Task HandleHaDiscovery_IncompleteOrMalformedPayload_DoesNotThrow(string payload)
+    {
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        var client = new FakeMqttClient();
+        var svc = new TestableMqttConsumerService(new FakePushSender(), client);
+        var serviceTask = svc.RunAsync(cts.Token);
+        await client.WaitForConnectAsync();
+
+        // Should return quietly (or be caught internally) rather than propagate.
+        await client.TriggerMessageAsync("homeassistant/sensor/garagestack/config", payload);
+
+        await cts.CancelAsync();
+        try { await serviceTask; } catch (OperationCanceledException) { }
+    }
+
+    [Fact]
+    public async Task HandleHaDiscovery_ValidPayload_DoesNotThrowEvenWhenScopeResolutionFails()
+    {
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        var client = new FakeMqttClient();
+        var svc = new TestableMqttConsumerService(new FakePushSender(), client);
+        var serviceTask = svc.RunAsync(cts.Token);
+        await client.WaitForConnectAsync();
+        const string payload = """{"device":{"hw_version":"MG_BEV_1.0","identifiers":["FAKEVN00000000001"],"model":"MG4"}}""";
+
+        // FakeServiceScopeFactory resolves no real services, so the DB write inside
+        // HandleHaDiscoveryAsync will fail - but it's caught and logged, not thrown.
+        await client.TriggerMessageAsync("homeassistant/sensor/garagestack/config", payload);
+
+        await cts.CancelAsync();
+        try { await serviceTask; } catch (OperationCanceledException) { }
     }
 }
