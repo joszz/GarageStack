@@ -2,6 +2,7 @@ using System.Text.Json;
 using GarageStack.Core.Interfaces;
 using GarageStack.Core.Models;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 
 namespace GarageStack.Data.Repositories;
 
@@ -25,7 +26,19 @@ public class VehicleRepository(AppDbContext db) : IVehicleRepository
 
         vehicle = new Vehicle { Vin = vin, SaicUser = saicUser };
         db.Vehicles.Add(vehicle);
-        await db.SaveChangesAsync(ct);
+        try
+        {
+            await db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: "23505" })
+        {
+            // The API and Worker can both call GetOrCreateByVinAsync for a brand-new VIN at
+            // nearly the same time (e.g. on startup); the loser of that race hits the unique
+            // constraint on Vin here. Forget our failed insert and read back the winner's row.
+            db.ChangeTracker.Clear();
+            vehicle = await db.Vehicles.FirstOrDefaultAsync(v => v.Vin == vin, ct)
+                ?? throw new InvalidOperationException($"Unique-constraint violation on VIN {vin} but no row found on retry.");
+        }
         return vehicle;
     }
 
