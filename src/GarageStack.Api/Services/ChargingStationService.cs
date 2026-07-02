@@ -1,4 +1,3 @@
-using System.Text.Json;
 using GarageStack.Core.Helpers;
 using GarageStack.Core.Interfaces;
 using GarageStack.Core.Models;
@@ -36,7 +35,7 @@ public sealed class ChargingStationService(
         if (!ocmClient.IsConfigured) return [];
 
         var tiles = TileHelper.ComputeTiles(lat, lng, distanceKm);
-        var uncached = await repository.GetUncachedTilesAsync("ocm", "charging", tiles, ct);
+        var uncached = await repository.GetExpiredOrMissingTilesAsync("ocm", "charging", tiles, ct);
 
         // Cap on-demand fetches to the 1 tile closest to the viewport centre so the API
         // never takes 80+ seconds on a cold cache. The Worker fills remaining tiles in the background.
@@ -58,14 +57,10 @@ public sealed class ChargingStationService(
         return ApplyPowerFilter(stations, minPowerKw, maxPowerKw);
     }
 
-    private static ChargingStationDto MapToDto(PoiItem p)
+    private ChargingStationDto MapToDto(PoiItem p)
     {
-        OcmApiClient.OcmMeta? meta = null;
-        if (p.MetaJson is not null)
-        {
-            try { meta = JsonSerializer.Deserialize<OcmApiClient.OcmMeta>(p.MetaJson); }
-            catch { }
-        }
+        var meta = SafeJson.TryDeserialize<OcmApiClient.OcmMeta>(p.MetaJson,
+            ex => logger.LogWarning(ex, "Failed to parse OCM meta JSON for POI {ExternalId}", p.ExternalId));
 
         var connectors = meta?.Connectors
             .Select(c => new ConnectorDto(c.Type, c.PowerKw, c.Quantity))

@@ -1,4 +1,3 @@
-using System.Text.Json;
 using GarageStack.Core.Helpers;
 using GarageStack.Core.Interfaces;
 using GarageStack.Core.Models;
@@ -29,7 +28,7 @@ public sealed class PoiService(
         CancellationToken ct = default)
     {
         var tiles = ComputeTiles(lat, lng, radiusKm);
-        var uncached = await repository.GetUncachedTilesAsync("overpass", poiType, tiles, ct);
+        var uncached = await repository.GetExpiredOrMissingTilesAsync("overpass", poiType, tiles, ct);
 
         // Cap on-demand fetches to the tile closest to the viewport centre. The remaining
         // uncached tiles will be filled by the Worker pre-caching service in the background
@@ -68,20 +67,14 @@ public sealed class PoiService(
     public Task<IReadOnlyList<string>> GetBrandsAsync(string poiType, CancellationToken ct = default)
         => repository.GetDistinctBrandsAsync("overpass", poiType, ct);
 
-    private static PoiItemDto MapToDto(PoiItem p) => new(
+    private PoiItemDto MapToDto(PoiItem p) => new(
         p.ExternalId,
         p.PoiType,
         p.Latitude,
         p.Longitude,
         p.Name,
-        ParseMeta(p.MetaJson));
-
-    private static Dictionary<string, string>? ParseMeta(string? json)
-    {
-        if (json is null) return null;
-        try { return JsonSerializer.Deserialize<Dictionary<string, string>>(json); }
-        catch { return null; }
-    }
+        SafeJson.TryDeserialize<Dictionary<string, string>>(p.MetaJson,
+            ex => logger.LogWarning(ex, "Failed to parse POI meta JSON for {ExternalId}", p.ExternalId)));
 }
 
 public sealed record PoiItemDto(

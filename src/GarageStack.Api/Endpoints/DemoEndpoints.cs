@@ -24,8 +24,8 @@ public static class DemoEndpoints
             IVehicleRepository vehicles,
             CancellationToken ct) =>
         {
-            var vehicle = await vehicles.GetByVinAsync(vin, ct);
-            if (vehicle is null) return Results.NotFound();
+            var resolved = await VehicleEndpoints.ResolveVehicleAsync(vin, vehicles, ct);
+            if (resolved.NotFound is not null) return resolved.NotFound;
             demoRepo.ApplyOverride(dto);
             return Results.NoContent();
         })

@@ -24,7 +24,7 @@ internal sealed class PoiFakeRepository : IPoiRepository
 
     public void SeedItem(PoiItem item) => _items.Add(item);
 
-    public Task<IReadOnlyList<(int CellLat, int CellLng)>> GetUncachedTilesAsync(
+    public Task<IReadOnlyList<(int CellLat, int CellLng)>> GetExpiredOrMissingTilesAsync(
         string source, string poiType,
         IReadOnlyList<(int CellLat, int CellLng)> tiles,
         CancellationToken ct = default)
@@ -34,12 +34,6 @@ internal sealed class PoiFakeRepository : IPoiRepository
             .ToList();
         return Task.FromResult(result);
     }
-
-    public Task<IReadOnlyList<(int CellLat, int CellLng)>> GetExpiredOrMissingTilesAsync(
-        string source, string poiType,
-        IReadOnlyList<(int CellLat, int CellLng)> tiles,
-        CancellationToken ct = default)
-        => GetUncachedTilesAsync(source, poiType, tiles, ct);
 
     public Task UpsertTileAsync(
         string source, string poiType,

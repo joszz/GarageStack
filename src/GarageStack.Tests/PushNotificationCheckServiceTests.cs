@@ -1,40 +1,19 @@
-using GarageStack.Core.Interfaces;
 using GarageStack.Core.Models;
 using GarageStack.Worker.Services;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace GarageStack.Tests;
 
-file sealed class FakeNotificationPushSender : IPushSender
-{
-    public Task SendToAllAsync(string title, string body, CancellationToken ct = default, string? category = null, int? vehicleId = null)
-        => Task.CompletedTask;
-}
-
-file sealed class FakeNotificationScopeFactory : IServiceScopeFactory
-{
-    public IServiceScope CreateScope() => new FakeNotificationScope();
-
-    private sealed class FakeNotificationScope : IServiceScope
-    {
-        public IServiceProvider ServiceProvider { get; } = new FakeNotificationServiceProvider();
-        public void Dispose() { }
-    }
-
-    private sealed class FakeNotificationServiceProvider : IServiceProvider
-    {
-        public object? GetService(Type serviceType) => null;
-    }
-}
+// FakePushSender / FakeServiceScopeFactory live in WorkerTestFakes.cs (shared with
+// MqttConsumerServiceTests).
 
 public class PushNotificationCheckServiceTests
 {
     private static PushNotificationCheckService CreateService() =>
         new(
             NullLogger<PushNotificationCheckService>.Instance,
-            new FakeNotificationScopeFactory(),
-            new FakeNotificationPushSender());
+            new FakeServiceScopeFactory(),
+            new FakePushSender());
 
     private static TelemetrySnapshot Parked(Action<TelemetrySnapshot>? configure = null)
     {

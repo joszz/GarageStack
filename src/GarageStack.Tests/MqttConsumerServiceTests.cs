@@ -1,7 +1,6 @@
 using GarageStack.Core.Interfaces;
 using GarageStack.Core.Models;
 using GarageStack.Worker.Mqtt;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using MQTTnet;
@@ -10,36 +9,8 @@ using MQTTnet.Packets;
 
 namespace GarageStack.Tests;
 
-// ---------------------------------------------------------------------------
-// Shared fakes
-// ---------------------------------------------------------------------------
-
-file sealed class FakePushSender : IPushSender
-{
-    public List<(string Title, string Body)> Sent { get; } = [];
-
-    public Task SendToAllAsync(string title, string body, CancellationToken ct = default, string? category = null, int? vehicleId = null)
-    {
-        Sent.Add((title, body));
-        return Task.CompletedTask;
-    }
-}
-
-file sealed class FakeServiceScopeFactory : IServiceScopeFactory
-{
-    public IServiceScope CreateScope() => new FakeScope();
-
-    private sealed class FakeScope : IServiceScope
-    {
-        public IServiceProvider ServiceProvider { get; } = new FakeServiceProvider();
-        public void Dispose() { }
-    }
-
-    private sealed class FakeServiceProvider : IServiceProvider
-    {
-        public object? GetService(Type serviceType) => null;
-    }
-}
+// FakePushSender / FakeServiceScopeFactory live in WorkerTestFakes.cs (shared with
+// PushNotificationCheckServiceTests).
 
 // ---------------------------------------------------------------------------
 // FakeMqttClient -- controllable IMqttClient for reconnect-loop tests
