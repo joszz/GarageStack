@@ -706,6 +706,36 @@ body,
   }
 }
 
+/* Edit mode wraps each slot in extra card-slot/card-slot__content layers, which
+   otherwise break the height stretch and leave the map shorter than the car
+   diagram. Propagate flex sizing all the way down to each card's content so
+   both slots stay the same height whether editing or not. The child selector
+   also reaches .card-info-btn, but it's position:absolute so flex sizing is a
+   no-op for it. */
+.overview-row > .card-slot {
+  display: flex;
+  flex-direction: column;
+}
+
+.overview-row > .card-slot > .card-slot__content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.overview-row > .card-slot > .card-slot__content > .card-info-wrap {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.overview-row > .card-slot > .card-slot__content > .card-info-wrap > * {
+  flex: 1;
+  min-height: 0;
+}
+
 .location-map-card {
   position: relative;
   background: var(--color-surface);
