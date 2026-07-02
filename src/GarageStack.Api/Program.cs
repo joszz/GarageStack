@@ -160,6 +160,22 @@ try
                     AutoReplenishment = true,
                 });
         });
+
+        // Tighter, endpoint-specific limit on login to slow down credential-stuffing attempts.
+        // Composes with (i.e. is enforced in addition to) the global limiter above.
+        opts.AddPolicy("login", httpContext =>
+        {
+            var ip = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+            return RateLimitPartition.GetFixedWindowLimiter(
+                partitionKey: ip,
+                factory: _ => new FixedWindowRateLimiterOptions
+                {
+                    Window = TimeSpan.FromMinutes(5),
+                    PermitLimit = 10,
+                    QueueLimit = 0,
+                    AutoReplenishment = true,
+                });
+        });
     });
 
     builder.Services.AddCors(opts =>
@@ -230,6 +246,11 @@ try
     app.UseSerilogRequestLogging();
     app.UseCors();
 
+    // Rate limiting runs before the CSRF origin check so that a flood of requests with a
+    // spoofed/mismatched Origin gets throttled instead of generating unbounded warning-log
+    // volume below.
+    app.UseRateLimiter();
+
     // Defense-in-depth: when an Origin header is present on a state-changing request,
     // verify it matches a configured allowed origin. SameSite=Strict is the primary CSRF
     // protection; this adds an explicit server-side check for deployments where that alone
@@ -280,7 +301,6 @@ try
         SupportedCultures = [new CultureInfo("en"), new CultureInfo("nl")],
         SupportedUICultures = [new CultureInfo("en"), new CultureInfo("nl")],
     });
-    app.UseRateLimiter();
     app.UseAuthentication();
     app.UseAuthorization();
 
