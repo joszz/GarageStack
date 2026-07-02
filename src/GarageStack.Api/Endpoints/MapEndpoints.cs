@@ -19,6 +19,9 @@ public static class MapEndpoints
             ChargingStationService svc,
             CancellationToken ct) =>
         {
+            if (lat is < -90 or > 90 || lng is < -180 or > 180)
+                return Results.BadRequest(new { error = "lat must be between -90 and 90, lng between -180 and 180" });
+
             if (distanceKm is < 1 or > 200)
                 return Results.BadRequest(new { error = "distanceKm must be between 1 and 200" });
 
@@ -53,6 +56,9 @@ public static class MapEndpoints
             PoiService svc,
             CancellationToken ct) =>
         {
+            if (lat is < -90 or > 90 || lng is < -180 or > 180)
+                return Results.BadRequest(new { error = "lat must be between -90 and 90, lng between -180 and 180" });
+
             if (radiusKm is < 1 or > 200)
                 return Results.BadRequest(new { error = "radiusKm must be between 1 and 200" });
 

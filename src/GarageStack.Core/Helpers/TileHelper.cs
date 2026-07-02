@@ -5,14 +5,19 @@ public static class TileHelper
     // Grid resolution: each cell covers 0.5 degrees of lat/lng (~55km at the equator).
     private const double CellsPerDegree = 2.0;
 
+    // Below this, cos(lat) is close enough to zero near the poles that radiusKm / lngFactor
+    // would blow up into an enormous longitude range (and a huge tile count); fall back to a
+    // fixed +/-1 degree box instead.
+    private const double MinLngFactor = 1.0;
+
     public static (double MinLat, double MaxLat, double MinLng, double MaxLng) ComputeBounds(
         double lat, double lng, double radiusKm)
     {
         var minLat = lat - radiusKm / 111.0;
         var maxLat = lat + radiusKm / 111.0;
         var lngFactor = 111.0 * Math.Cos(lat * Math.PI / 180.0);
-        var minLng = lngFactor > 0 ? lng - radiusKm / lngFactor : lng - 1.0;
-        var maxLng = lngFactor > 0 ? lng + radiusKm / lngFactor : lng + 1.0;
+        var minLng = lngFactor > MinLngFactor ? lng - radiusKm / lngFactor : lng - 1.0;
+        var maxLng = lngFactor > MinLngFactor ? lng + radiusKm / lngFactor : lng + 1.0;
         return (minLat, maxLat, minLng, maxLng);
     }
 
