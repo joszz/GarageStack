@@ -148,6 +148,7 @@ export interface AppSettings {
   statsInsights: StatsItemConfig<StatsInsightId>[]
   statsCharts: StatsItemConfig<StatsChartId>[]
   showTyreDiagram: boolean
+  showLocationMap: boolean
   showCardInfoIcons: boolean
   vehicleTypeOverride: VehicleTypeOverride
   theme: Theme
@@ -193,7 +194,7 @@ export function defaultCards(type: VehicleType | 'unknown' = 'unknown'): CardCon
     { id: 'efficiencyEnergy', visible: true },
     { id: 'efficiencyCharge', visible: type !== 'hev' },
     { id: 'efficiencyRatio', visible: true },
-    { id: 'speed', visible: true },
+    { id: 'speed', visible: false },
     { id: 'activeTrip', visible: true },
     { id: 'remainingCharge', visible: type === 'phev' || type === 'bev' },
     { id: 'chargingSession', visible: type === 'phev' || type === 'bev' },
@@ -210,6 +211,7 @@ const defaults: AppSettings = {
   statsInsights: defaultStatsInsights(),
   statsCharts: defaultStatsCharts(),
   showTyreDiagram: true,
+  showLocationMap: true,
   showCardInfoIcons: true,
   vehicleTypeOverride: 'auto',
   theme: osPreferredTheme(),
@@ -317,6 +319,7 @@ function loadFromKey(key: string): AppSettings {
           statsInsights: defaultStatsInsights(),
           statsCharts: defaultStatsCharts(),
           showTyreDiagram: true,
+          showLocationMap: true,
           showCardInfoIcons: parsed.showCardInfoIcons !== false,
           vehicleTypeOverride: parsed.vehicleTypeOverride ?? defaults.vehicleTypeOverride,
           theme: parsed.theme ?? defaults.theme,
@@ -343,6 +346,7 @@ function loadFromKey(key: string): AppSettings {
           statsInsights: loadStatsItems(parsed.statsInsights, ALL_STATS_INSIGHT_IDS),
           statsCharts: loadStatsItems(parsed.statsCharts, ALL_STATS_CHART_IDS),
           showTyreDiagram: parsed.showTyreDiagram !== false,
+          showLocationMap: parsed.showLocationMap !== false,
           showCardInfoIcons: parsed.showCardInfoIcons !== false,
           vehicleTypeOverride: parsed.vehicleTypeOverride ?? defaults.vehicleTypeOverride,
           theme: parsed.theme ?? defaults.theme,
@@ -395,6 +399,7 @@ export const useSettingsStore = defineStore('settings', () => {
   const statsInsights = ref<StatsItemConfig<StatsInsightId>[]>(loaded.statsInsights)
   const statsCharts = ref<StatsItemConfig<StatsChartId>[]>(loaded.statsCharts)
   const showTyreDiagram = ref<boolean>(loaded.showTyreDiagram)
+  const showLocationMap = ref<boolean>(loaded.showLocationMap)
   const showCardInfoIcons = ref<boolean>(loaded.showCardInfoIcons)
   const carColorScheme = ref<string>(loaded.carColorScheme)
   const routeOutlineEnabled = ref<boolean>(loaded.routeOutlineEnabled)
@@ -418,6 +423,7 @@ export const useSettingsStore = defineStore('settings', () => {
         statsInsights: statsInsights.value,
         statsCharts: statsCharts.value,
         showTyreDiagram: showTyreDiagram.value,
+        showLocationMap: showLocationMap.value,
         showCardInfoIcons: showCardInfoIcons.value,
         vehicleTypeOverride: vehicleTypeOverride.value,
         theme: theme.value,
@@ -441,6 +447,7 @@ export const useSettingsStore = defineStore('settings', () => {
   watch(statsInsights, save, { deep: true })
   watch(statsCharts, save, { deep: true })
   watch(showTyreDiagram, save)
+  watch(showLocationMap, save)
   watch(showCardInfoIcons, save)
   watch(vehicleTypeOverride, save)
   watch(locale, save)
@@ -472,6 +479,7 @@ export const useSettingsStore = defineStore('settings', () => {
     statsInsights,
     statsCharts,
     showTyreDiagram,
+    showLocationMap,
     showCardInfoIcons,
     vehicleTypeOverride,
     theme,

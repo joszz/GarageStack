@@ -10,8 +10,10 @@ import { defaultCards } from '@/stores/settings'
 import DashboardCardContent from '@/components/DashboardCardContent.vue'
 import CardInfoWrap from '@/components/CardInfoWrap.vue'
 import CarDiagram from '@/components/CarDiagram.vue'
+import LocationMapWidget from '@/components/LocationMapWidget.vue'
 import SkeletonCard from '@/components/SkeletonCard.vue'
 import SkeletonCarDiagram from '@/components/SkeletonCarDiagram.vue'
+import SkeletonLocationMap from '@/components/SkeletonLocationMap.vue'
 import { useVehicleAlerts } from '@/composables/useVehicleAlerts'
 
 const { t } = useI18n()
@@ -21,13 +23,6 @@ const settings = useSettingsStore()
 const vin = computed(() => store.vehicles[0]?.vin ?? null)
 const status = computed(() => store.currentStatus)
 const editMode = ref(false)
-const skeletonCards = computed(() => {
-  const visible = settings.cards.filter((c) => c.visible)
-  if (vehicleType.value === 'unknown') return visible
-  const typeDefaults = defaultCards(vehicleType.value)
-  const hiddenByType = new Set(typeDefaults.filter((c) => !c.visible).map((c) => c.id))
-  return visible.filter((c) => !hiddenByType.has(c.id))
-})
 
 const vehicleType = computed((): VehicleType | 'unknown' => {
   const override = settings.vehicleTypeOverride
@@ -36,20 +31,6 @@ const vehicleType = computed((): VehicleType | 'unknown' => {
 })
 
 const isHev = computed(() => vehicleType.value === 'hev')
-
-const hiddenByTypeIds = computed((): Set<CardId> => {
-  if (vehicleType.value === 'unknown') return new Set()
-  const typeDefaults = defaultCards(vehicleType.value)
-  return new Set(typeDefaults.filter((c) => !c.visible).map((c) => c.id))
-})
-
-const editableCards = computed({
-  get: () => settings.cards.filter((c) => !hiddenByTypeIds.value.has(c.id)),
-  set: (newVal) => {
-    const restricted = settings.cards.filter((c) => hiddenByTypeIds.value.has(c.id))
-    settings.cards = [...newVal, ...restricted]
-  },
-})
 
 // Card IDs whose visibility differs between vehicle types (derived from defaultCards).
 // When the override changes these are reset to the new type's defaults.
@@ -64,6 +45,30 @@ const TYPE_SPECIFIC_CARD_IDS = (() => {
     ),
   )
 })()
+
+// Cards that are genuinely inapplicable to the detected vehicle type (e.g. fuelLevel on a
+// BEV). Cards that are merely off by default for every type (e.g. sunRoof, speed) are not
+// included here, so they stay user-togglable and their visibility survives a reload.
+const hiddenByTypeIds = computed((): Set<CardId> => {
+  if (vehicleType.value === 'unknown') return new Set()
+  const typeDefaults = defaultCards(vehicleType.value)
+  return new Set(
+    typeDefaults.filter((c) => !c.visible && TYPE_SPECIFIC_CARD_IDS.has(c.id)).map((c) => c.id),
+  )
+})
+
+const skeletonCards = computed(() => {
+  const visible = settings.cards.filter((c) => c.visible)
+  return visible.filter((c) => !hiddenByTypeIds.value.has(c.id))
+})
+
+const editableCards = computed({
+  get: () => settings.cards.filter((c) => !hiddenByTypeIds.value.has(c.id)),
+  set: (newVal) => {
+    const restricted = settings.cards.filter((c) => hiddenByTypeIds.value.has(c.id))
+    settings.cards = [...newVal, ...restricted]
+  },
+})
 
 watch(
   () => settings.vehicleTypeOverride,
@@ -211,16 +216,12 @@ onMounted(async () => {
   await refresh()
 
   // Hide cards that don't apply to the detected vehicle type so they don't
-  // appear in the skeleton on subsequent loads
-  if (vehicleType.value !== 'unknown') {
-    const typeDefaults = defaultCards(vehicleType.value)
-    const shouldHide = new Set(typeDefaults.filter((c) => !c.visible).map((c) => c.id))
-    if (settings.cards.some((c) => shouldHide.has(c.id) && c.visible)) {
-      const updated = settings.cards.map((c) =>
-        shouldHide.has(c.id) ? { ...c, visible: false } : c,
-      )
-      settings.cards = [...updated.filter((c) => c.visible), ...updated.filter((c) => !c.visible)]
-    }
+  // appear in the skeleton on subsequent loads. Cards merely off by default
+  // (e.g. sunRoof, speed) are left alone so a user's manual toggle survives reloads.
+  const shouldHide = hiddenByTypeIds.value
+  if (settings.cards.some((c) => shouldHide.has(c.id) && c.visible)) {
+    const updated = settings.cards.map((c) => (shouldHide.has(c.id) ? { ...c, visible: false } : c))
+    settings.cards = [...updated.filter((c) => c.visible), ...updated.filter((c) => !c.visible)]
   }
   // On a fresh start (no saved layout), push no-data visible cards to the end
   if (!localStorage.getItem('garagestack-settings') && status.value) {
@@ -262,46 +263,73 @@ onUnmounted(() => {
 
     <!-- Edit mode: same grid with draggable card-slot wrappers -->
     <template v-if="editMode">
-      <!-- Tyre diagram toggle -->
-      <div
-        class="card-slot card-slot--static mt-4 mb-4"
-        :class="{ 'card-slot--hidden': !settings.showTyreDiagram }"
-      >
-        <div class="card-slot__content">
-          <CarDiagram
-            v-if="settings.showTyreDiagram && status"
-            :front-left="status.tyrePressureFrontLeft"
-            :front-right="status.tyrePressureFrontRight"
-            :rear-left="status.tyrePressureRearLeft"
-            :rear-right="status.tyrePressureRearRight"
-            :driver-door-open="status.driverDoorOpen"
-            :passenger-door-open="status.passengerDoorOpen"
-            :rear-left-door-open="status.rearLeftDoorOpen"
-            :rear-right-door-open="status.rearRightDoorOpen"
-            :trunk-open="status.trunkOpen"
-            :bonnet-open="status.bonnetOpen"
-            :lights-main-beam="status.lightsMainBeam"
-            :lights-dipped-beam="status.lightsDippedBeam"
-            :lights-side="status.lightsSide"
-            :ev-soc-percent="status.evSocPercent"
-            :fuel-level-percent="vehicleType === 'bev' ? null : status.fuelLevelPercent"
-            :charger-connected="status.chargerConnected"
-            :is-charging="status.isCharging"
-            :speed="status.speed"
-          />
-          <div v-else class="card-slot__placeholder card-slot__placeholder--chart">
-            <font-awesome-icon icon="car-side" />
-            <span>{{ t('vehicle.overview') }}</span>
-          </div>
-        </div>
-        <button
-          class="card-slot__badge"
-          :class="settings.showTyreDiagram ? 'card-slot__badge--hide' : 'card-slot__badge--show'"
-          :aria-label="settings.showTyreDiagram ? t('dashboard.hideCard') : t('dashboard.showCard')"
-          @click.stop="settings.showTyreDiagram = !settings.showTyreDiagram"
+      <!-- Tyre diagram + location map toggles -->
+      <div class="overview-row overview-row--edit mt-4 mb-4">
+        <div
+          class="card-slot card-slot--static overview-row__car"
+          :class="{ 'card-slot--hidden': !settings.showTyreDiagram }"
         >
-          <font-awesome-icon :icon="settings.showTyreDiagram ? 'xmark' : 'plus'" />
-        </button>
+          <div class="card-slot__content">
+            <CarDiagram
+              v-if="settings.showTyreDiagram && status"
+              :front-left="status.tyrePressureFrontLeft"
+              :front-right="status.tyrePressureFrontRight"
+              :rear-left="status.tyrePressureRearLeft"
+              :rear-right="status.tyrePressureRearRight"
+              :driver-door-open="status.driverDoorOpen"
+              :passenger-door-open="status.passengerDoorOpen"
+              :rear-left-door-open="status.rearLeftDoorOpen"
+              :rear-right-door-open="status.rearRightDoorOpen"
+              :trunk-open="status.trunkOpen"
+              :bonnet-open="status.bonnetOpen"
+              :lights-main-beam="status.lightsMainBeam"
+              :lights-dipped-beam="status.lightsDippedBeam"
+              :lights-side="status.lightsSide"
+              :ev-soc-percent="status.evSocPercent"
+              :fuel-level-percent="vehicleType === 'bev' ? null : status.fuelLevelPercent"
+              :charger-connected="status.chargerConnected"
+              :is-charging="status.isCharging"
+              :speed="status.speed"
+            />
+            <div v-else class="card-slot__placeholder card-slot__placeholder--chart">
+              <font-awesome-icon icon="car-side" />
+              <span>{{ t('vehicle.overview') }}</span>
+            </div>
+          </div>
+          <button
+            class="card-slot__badge"
+            :class="settings.showTyreDiagram ? 'card-slot__badge--hide' : 'card-slot__badge--show'"
+            :aria-label="
+              settings.showTyreDiagram ? t('dashboard.hideCard') : t('dashboard.showCard')
+            "
+            @click.stop="settings.showTyreDiagram = !settings.showTyreDiagram"
+          >
+            <font-awesome-icon :icon="settings.showTyreDiagram ? 'xmark' : 'plus'" />
+          </button>
+        </div>
+
+        <div
+          class="card-slot card-slot--static overview-row__map"
+          :class="{ 'card-slot--hidden': !settings.showLocationMap }"
+        >
+          <div class="card-slot__content">
+            <LocationMapWidget v-if="settings.showLocationMap" />
+            <div v-else class="card-slot__placeholder card-slot__placeholder--chart">
+              <font-awesome-icon icon="location-dot" />
+              <span>{{ t('vehicle.location') }}</span>
+            </div>
+          </div>
+          <button
+            class="card-slot__badge"
+            :class="settings.showLocationMap ? 'card-slot__badge--hide' : 'card-slot__badge--show'"
+            :aria-label="
+              settings.showLocationMap ? t('dashboard.hideCard') : t('dashboard.showCard')
+            "
+            @click.stop="settings.showLocationMap = !settings.showLocationMap"
+          >
+            <font-awesome-icon :icon="settings.showLocationMap ? 'xmark' : 'plus'" />
+          </button>
+        </div>
       </div>
 
       <VueDraggable
@@ -351,7 +379,10 @@ onUnmounted(() => {
     <!-- Normal mode -->
     <template v-else>
       <template v-if="store.loading && !status">
-        <SkeletonCarDiagram v-if="settings.showTyreDiagram" class="mb-4" />
+        <div v-if="settings.showTyreDiagram || settings.showLocationMap" class="overview-row mb-4">
+          <SkeletonCarDiagram v-if="settings.showTyreDiagram" class="overview-row__car" />
+          <SkeletonLocationMap v-if="settings.showLocationMap" class="overview-row__map" />
+        </div>
         <div class="status-grid">
           <SkeletonCard v-for="card in skeletonCards" :key="card.id" :icon="CARD_ICONS[card.id]" />
         </div>
@@ -367,28 +398,31 @@ onUnmounted(() => {
       </div>
 
       <template v-else>
-        <CarDiagram
-          v-if="settings.showTyreDiagram"
-          :front-left="status.tyrePressureFrontLeft"
-          :front-right="status.tyrePressureFrontRight"
-          :rear-left="status.tyrePressureRearLeft"
-          :rear-right="status.tyrePressureRearRight"
-          :driver-door-open="status.driverDoorOpen"
-          :passenger-door-open="status.passengerDoorOpen"
-          :rear-left-door-open="status.rearLeftDoorOpen"
-          :rear-right-door-open="status.rearRightDoorOpen"
-          :trunk-open="status.trunkOpen"
-          :bonnet-open="status.bonnetOpen"
-          :lights-main-beam="status.lightsMainBeam"
-          :lights-dipped-beam="status.lightsDippedBeam"
-          :lights-side="status.lightsSide"
-          :ev-soc-percent="status.evSocPercent"
-          :fuel-level-percent="vehicleType === 'bev' ? null : status.fuelLevelPercent"
-          :charger-connected="status.chargerConnected"
-          :is-charging="status.isCharging"
-          :speed="status.speed"
-          class="mb-4"
-        />
+        <div v-if="settings.showTyreDiagram || settings.showLocationMap" class="overview-row mb-4">
+          <CarDiagram
+            v-if="settings.showTyreDiagram"
+            :front-left="status.tyrePressureFrontLeft"
+            :front-right="status.tyrePressureFrontRight"
+            :rear-left="status.tyrePressureRearLeft"
+            :rear-right="status.tyrePressureRearRight"
+            :driver-door-open="status.driverDoorOpen"
+            :passenger-door-open="status.passengerDoorOpen"
+            :rear-left-door-open="status.rearLeftDoorOpen"
+            :rear-right-door-open="status.rearRightDoorOpen"
+            :trunk-open="status.trunkOpen"
+            :bonnet-open="status.bonnetOpen"
+            :lights-main-beam="status.lightsMainBeam"
+            :lights-dipped-beam="status.lightsDippedBeam"
+            :lights-side="status.lightsSide"
+            :ev-soc-percent="status.evSocPercent"
+            :fuel-level-percent="vehicleType === 'bev' ? null : status.fuelLevelPercent"
+            :charger-connected="status.chargerConnected"
+            :is-charging="status.isCharging"
+            :speed="status.speed"
+            class="overview-row__car"
+          />
+          <LocationMapWidget v-if="settings.showLocationMap" class="overview-row__map" />
+        </div>
 
         <div class="status-grid">
           <template v-for="card in settings.cards" :key="card.id">

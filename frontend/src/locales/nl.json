@@ -13,7 +13,9 @@
     "hideCard": "Kaart verbergen",
     "showCard": "Kaart tonen",
     "cardInfoBtn": "Kaartinformatie",
+    "openFullMap": "Volledige kaart openen",
     "cardDesc": {
+      "location": "Huidige locatie van de auto op een kleine kaart. Klik op de kaart of de uitklapknop om de volledige kaartweergave te openen.",
       "fuelLevel": "Huidig brandstofniveau van de tank als percentage.",
       "fuelRange": "Geschatte resterende rijafstand op basis van het huidige brandstofniveau.",
       "evBattery": "Laadstatus als percentage. Op een PHEV of BEV is dit je elektrisch bereiksmeter. Op een HEV is de hybride accu klein en wordt deze automatisch door de auto beheerd, waardoor de exacte waarde dagelijks minder relevant is.",
@@ -91,6 +93,8 @@
     "chargingNo": "Niet aan het laden",
     "tyres": "Bandenspanning",
     "overview": "Overzicht",
+    "location": "Locatie",
+    "locationUnavailable": "Locatie niet beschikbaar",
     "diagram": {
       "panelOpen": "Paneel open",
       "infoTyreTitle": "Bandenspanning",
@@ -102,7 +106,13 @@
       "infoLevelTitle": "Brandstof & Accu",
       "infoLevelDesc": "Wanneer gegevens beschikbaar zijn, toont het diagram het brandstofpercentage aan de voorkant en het EV-accupercentage aan de achterkant.",
       "infoChargingTitle": "Laden",
-      "infoChargingDesc": "Er wordt een kabel weergegeven onder de accu-indicator wanneer de lader is aangesloten. Als er actief geladen wordt, animeert de kabel met bewegende streepjes om de energiestroom in de auto te tonen."
+      "infoChargingDesc": "Er wordt een kabel weergegeven onder de accu-indicator wanneer de lader is aangesloten. Als er actief geladen wordt, animeert de kabel met bewegende streepjes om de energiestroom in de auto te tonen.",
+      "tyrePosition": {
+        "frontLeft": "Linksvoor",
+        "frontRight": "Rechtsvoor",
+        "rearLeft": "Linksachter",
+        "rearRight": "Rechtsachter"
+      }
     },
     "temperature": {
       "interior": "Interieurtemperatuur",

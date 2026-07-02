@@ -668,10 +668,205 @@ body,
 }
 
 .tyre-diagram {
+  position: relative;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   padding: 1.25rem;
+}
+
+/* ── Overview row: car diagram + location map ─────────────── */
+
+.overview-row {
+  display: flex;
+  align-items: stretch;
+  gap: 1rem;
+}
+
+.overview-row__car {
+  flex: 2 1 320px;
+  min-width: 0;
+}
+
+.overview-row__map {
+  flex: 1 1 260px;
+  min-width: 220px;
+  max-width: 380px;
+  display: flex;
+  flex-direction: column;
+}
+
+@media (max-width: 767px) {
+  .overview-row {
+    flex-direction: column;
+  }
+
+  .overview-row__map {
+    max-width: none;
+  }
+}
+
+/* Edit mode wraps each slot in extra card-slot/card-slot__content layers, which
+   otherwise break the height stretch and leave the map shorter than the car
+   diagram. Propagate flex sizing all the way down to each card's content so
+   both slots stay the same height whether editing or not. The child selector
+   also reaches .card-info-btn, but it's position:absolute so flex sizing is a
+   no-op for it. */
+.overview-row > .card-slot {
+  display: flex;
+  flex-direction: column;
+}
+
+.overview-row > .card-slot > .card-slot__content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.overview-row > .card-slot > .card-slot__content > .card-info-wrap {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.overview-row > .card-slot > .card-slot__content > .card-info-wrap > * {
+  flex: 1;
+  min-height: 0;
+}
+
+.location-map-card {
+  position: relative;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.location-map-card__map {
+  position: relative;
+  flex: 1;
+  min-height: 180px;
+  border-radius: var(--radius);
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.location-map-card__canvas {
+  /* absolute + inset instead of height:100% - the edit-mode layout only gives
+     this element's ancestors a min-height (not a definite height), which a
+     percentage height cannot resolve against, leaving Leaflet's container at
+     0 height. Absolute positioning sizes against the laid-out box instead. */
+  position: absolute;
+  inset: 0;
+}
+
+.location-map-card__empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  color: var(--color-text-muted);
+  background: var(--color-surface-2);
+  font-size: 0.85rem;
+}
+
+.location-map-card__expand {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  z-index: 1000;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  color: var(--color-text);
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+  transition: background 0.15s;
+}
+
+.location-map-card__expand:hover {
+  background: var(--color-surface-2);
+}
+
+/* ── Speedometer gauge ───────────────────────────────────── */
+
+.speed-gauge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 80px;
+  pointer-events: auto;
+  user-select: none;
+  z-index: 1;
+}
+
+.speed-gauge__svg {
+  width: 100%;
+  display: block;
+  overflow: visible;
+}
+
+.speed-gauge__track {
+  fill: none;
+  stroke: var(--color-border);
+  stroke-width: 7;
+  stroke-linecap: round;
+}
+
+.speed-gauge__progress {
+  fill: none;
+  stroke-width: 7;
+  stroke-linecap: round;
+  transition:
+    stroke-dashoffset 0.7s cubic-bezier(0.4, 0, 0.2, 1),
+    stroke 0.5s ease;
+}
+
+.speed-gauge__needle {
+  stroke: var(--color-primary-light);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  transform-origin: 50px 48px;
+  transition: transform 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.speed-gauge__pivot {
+  fill: var(--color-text-muted);
+}
+
+.speed-gauge__value {
+  font-size: 24px;
+  font-weight: 700;
+  fill: var(--color-text);
+}
+
+.speed-gauge__unit {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  fill: var(--color-text-muted);
+  text-transform: uppercase;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .speed-gauge__progress,
+  .speed-gauge__needle {
+    transition: none;
+  }
 }
 
 .tyre-diagram__title {
@@ -775,6 +970,8 @@ body,
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   white-space: nowrap;
+  pointer-events: auto;
+  user-select: none;
 }
 
 .tyre-label--fl {
@@ -835,7 +1032,8 @@ body,
   border-radius: 20px;
   padding: 3px 10px;
   white-space: nowrap;
-  pointer-events: none;
+  pointer-events: auto;
+  user-select: none;
 }
 
 .diagram-level--fuel {
@@ -859,7 +1057,6 @@ body,
 .charge-entry-glow {
   fill: var(--charge-color);
   opacity: 0;
-  pointer-events: none;
 }
 
 .charge-group--active .charge-entry-glow {
@@ -881,7 +1078,6 @@ body,
   stroke: var(--charge-color);
   stroke-width: 1.5;
   opacity: 0.65;
-  pointer-events: none;
 }
 
 .charge-group--active .charge-socket {
@@ -897,7 +1093,6 @@ body,
   stroke-linecap: round;
   stroke-dasharray: 3 7;
   opacity: 0.45;
-  pointer-events: none;
 }
 
 .charge-group--active .charge-cable {
@@ -934,32 +1129,6 @@ body,
 
 .diagram-level--connected {
   box-shadow: 0 0 0 1.5px rgba(59, 130, 246, 0.6);
-}
-
-/* ── Legend ───────────────────────────────────────────────── */
-
-.tyre-legend {
-  display: flex;
-  gap: 1rem;
-  margin-top: 1rem;
-  font-size: 0.75rem;
-  flex-wrap: wrap;
-}
-
-.tyre-legend__item {
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-}
-
-.tyre-legend__item--ok {
-  color: var(--color-success);
-}
-.tyre-legend__item--warning {
-  color: var(--color-warning);
-}
-.tyre-legend__item--danger {
-  color: var(--color-danger-text);
 }
 
 /* ── Car diagram light beams ──────────────────────────────── */
@@ -1016,7 +1185,8 @@ body,
   align-items: center;
   justify-content: center;
   font-size: 0.65rem;
-  pointer-events: none;
+  pointer-events: auto;
+  user-select: none;
   border: 2px solid var(--color-surface);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
 }
@@ -1050,36 +1220,6 @@ body,
   top: 56%;
   left: 62.6%;
   transform: translate(-50%, -50%);
-}
-
-/* ── Active state legend ──────────────────────────────────── */
-
-.vehicle-state-legend {
-  display: flex;
-  gap: 0.75rem;
-  margin-top: 0.5rem;
-  padding-top: 0.5rem;
-  border-top: 1px solid var(--color-border);
-  font-size: 0.75rem;
-  flex-wrap: wrap;
-}
-
-.vehicle-state-legend__item {
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-}
-
-.vehicle-state-legend__item--lights {
-  color: #fde047;
-}
-
-.vehicle-state-legend__item--charging {
-  color: var(--color-success);
-}
-
-.vehicle-state-legend__item--connected {
-  color: var(--color-primary-light);
 }
 
 /* ── Buttons ──────────────────────────────────────────────── */

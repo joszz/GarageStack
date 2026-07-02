@@ -27,9 +27,9 @@ describe('defaultCards', () => {
     expect(cards.find((c) => c.id === 'batteryHeating')!.visible).toBe(false)
   })
 
-  it('bev: shows speed, activeTrip, remainingCharge, chargingSession, batteryHeating', () => {
+  it('bev: hides speed by default (already shown by the overview gauge); shows activeTrip, remainingCharge, chargingSession, batteryHeating', () => {
     const cards = defaultCards('bev')
-    expect(cards.find((c) => c.id === 'speed')!.visible).toBe(true)
+    expect(cards.find((c) => c.id === 'speed')!.visible).toBe(false)
     expect(cards.find((c) => c.id === 'activeTrip')!.visible).toBe(true)
     expect(cards.find((c) => c.id === 'remainingCharge')!.visible).toBe(true)
     expect(cards.find((c) => c.id === 'chargingSession')!.visible).toBe(true)
@@ -74,6 +74,19 @@ describe('useSettingsStore', () => {
     await nextTick()
     const saved = JSON.parse(localStorage.getItem(BASE_KEY)!)
     expect(saved.theme).toBe('light')
+  })
+
+  it('persists location map visibility change to localStorage', async () => {
+    const store = useSettingsStore()
+    store.showLocationMap = false
+    await nextTick()
+    const saved = JSON.parse(localStorage.getItem(BASE_KEY)!)
+    expect(saved.showLocationMap).toBe(false)
+  })
+
+  it('defaults showLocationMap to true when localStorage is empty', () => {
+    const store = useSettingsStore()
+    expect(store.showLocationMap).toBe(true)
   })
 
   it('persists locale change to localStorage', async () => {
