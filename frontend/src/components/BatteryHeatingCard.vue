@@ -1,10 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import StatusCard from './StatusCard.vue'
-import DetailModal from './DetailModal.vue'
+import ExpandableStatusCard from './ExpandableStatusCard.vue'
 import DetailListItem from './DetailListItem.vue'
-import { useModal } from '@/composables/useModal'
 
 const { t } = useI18n()
 
@@ -13,8 +11,6 @@ const props = defineProps<{
   scheduleMode: string | null
   scheduleStartTime: string | null
 }>()
-
-const { isOpen: modalOpen, open: openModal, close: closeModal } = useModal()
 
 const summaryValue = computed((): string | null => {
   if (props.batteryHeating === null) return null
@@ -28,21 +24,13 @@ const hasModal = computed(() => props.scheduleMode !== null || props.scheduleSta
 </script>
 
 <template>
-  <StatusCard
+  <ExpandableStatusCard
     v-if="batteryHeating !== null"
     icon="temperature-arrow-up"
-    :label="t('vehicle.batteryHeating.title')"
+    :title="t('vehicle.batteryHeating.title')"
     :value="summaryValue"
     :variant="batteryHeating ? 'info' : undefined"
     :clickable="hasModal"
-    @click="hasModal ? openModal() : undefined"
-  />
-
-  <DetailModal
-    v-if="hasModal"
-    :open="modalOpen"
-    :title="t('vehicle.batteryHeating.title')"
-    @close="closeModal"
   >
     <div class="detail-list">
       <DetailListItem
@@ -74,5 +62,5 @@ const hasModal = computed(() => props.scheduleMode !== null || props.scheduleSta
         :label="t('vehicle.batteryHeating.startTime')"
       />
     </div>
-  </DetailModal>
+  </ExpandableStatusCard>
 </template>
