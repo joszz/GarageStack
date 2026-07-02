@@ -1,4 +1,5 @@
 using System.Text.Json;
+using GarageStack.Core.Helpers;
 using GarageStack.Core.Interfaces;
 using GarageStack.Core.Models;
 using GarageStack.Data;
@@ -19,12 +20,10 @@ public class MqttConsumerService(
     IPushSender pushSender) : BackgroundService
 {
     private readonly MqttOptions _options = options.Value;
-    // Tracks last known EngineRunning state per VIN to detect start events
-    internal readonly Dictionary<string, bool> _lastEngineRunning = new();
-    // VINs whose engine state has been seeded from the first MQTT observation.
-    // The first observation after startup only seeds the state; it never fires a
-    // notification, preventing bogus "engine started" alerts after a deploy or crash.
-    private readonly HashSet<string> _engineStateSeeded = new();
+    // Tracks last known EngineRunning state per VIN to detect start events. The first
+    // observation for a VIN only seeds the tracker; it never fires a notification,
+    // preventing bogus "engine started" alerts after a deploy or crash.
+    internal readonly VinStateTracker<bool> _engineRunningTracker = new();
 
     // MQTT polling cycles emit several messages within ~2 seconds (one per topic).
     // Messages arriving within this window are merged into the same DB row so that
@@ -145,8 +144,8 @@ public class MqttConsumerService(
             return;
         }
 
-        var probe = new TelemetrySnapshot();
-        if (!TelemetryMapper.ApplyMessage(probe, subtopic, payload))
+        var patch = new TelemetrySnapshot();
+        if (!TelemetryMapper.ApplyMessage(patch, subtopic, payload))
         {
             var ns = subtopic.Split('/')[0];
             if (ns is "info" or "refresh" or "_internal" or "available")
@@ -166,13 +165,8 @@ public class MqttConsumerService(
         try
         {
             var vehicle = await vehicleRepoMain.GetOrCreateByVinAsync(vin, saicUser, ct);
-
-            var patch = new TelemetrySnapshot
-            {
-                VehicleId = vehicle.Id,
-                RecordedAt = DateTime.UtcNow,
-            };
-            TelemetryMapper.ApplyMessage(patch, subtopic, payload);
+            patch.VehicleId = vehicle.Id;
+            patch.RecordedAt = DateTime.UtcNow;
 
             if (_mergeState.TryGetValue(vehicle.Id, out var last) &&
                 patch.RecordedAt - last.RecordedAt <= MergeWindow)
@@ -206,16 +200,13 @@ public class MqttConsumerService(
     {
         if (snapshot.EngineRunning is null) return false;
 
-        if (_engineStateSeeded.Add(vin))
+        var hadPrevious = _engineRunningTracker.TryUpdate(vin, snapshot.EngineRunning.Value, out var wasRunning);
+        if (!hadPrevious)
         {
             // First observation after startup: seed state without firing to avoid
             // false "engine started" alerts when the worker restarts while driving.
-            _lastEngineRunning[vin] = snapshot.EngineRunning.Value;
             return false;
         }
-
-        var wasRunning = _lastEngineRunning.TryGetValue(vin, out var prev) && prev;
-        _lastEngineRunning[vin] = snapshot.EngineRunning.Value;
 
         if (snapshot.EngineRunning.Value && !wasRunning)
         {

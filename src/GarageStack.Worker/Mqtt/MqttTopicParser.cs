@@ -1,10 +1,12 @@
+using System.Text.RegularExpressions;
+
 namespace GarageStack.Worker.Mqtt;
 
-public static class MqttTopicParser
+public static partial class MqttTopicParser
 {
     // VIN is exactly 17 alphanumeric characters (I, O, Q excluded per ISO 3779).
-    private static readonly System.Text.RegularExpressions.Regex VinPattern =
-        new(@"^[A-HJ-NPR-Z0-9]{17}$", System.Text.RegularExpressions.RegexOptions.None);
+    [GeneratedRegex(@"^[A-HJ-NPR-Z0-9]{17}$")]
+    private static partial Regex VinPattern();
 
     public static bool TryExtractVin(string topic, out string vin)
     {
@@ -13,7 +15,7 @@ public static class MqttTopicParser
         if (parts.Length >= 4 && parts[0] == "saic" && parts[2] == "vehicles")
         {
             var candidate = parts[3];
-            if (VinPattern.IsMatch(candidate))
+            if (VinPattern().IsMatch(candidate))
             {
                 vin = candidate;
                 return true;

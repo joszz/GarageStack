@@ -52,7 +52,9 @@ export function useSignalR(callbacks: SignalRCallbacks) {
       await connection.invoke('JoinVehicle', vehicleId)
       connected.value = true
     } catch {
-      // SignalR unavailable — dashboard falls back to polling
+      // SignalR failed to start. There is no polling fallback anywhere in this app,
+      // so connected stays false and the UI simply goes stale until start() is called
+      // again (e.g. on next mount or a manual reload).
     }
   }
 

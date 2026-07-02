@@ -110,4 +110,6 @@ public class TelemetrySnapshot
 
     [JsonIgnore]
     public string? RawTopic { get; set; }
+
+    public TelemetrySnapshot Clone() => (TelemetrySnapshot)MemberwiseClone();
 }

@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import StatusCard from './StatusCard.vue'
 import DetailModal from './DetailModal.vue'
+import DetailListItem from './DetailListItem.vue'
 import { useModal } from '@/composables/useModal'
 
 const { t } = useI18n()
@@ -49,19 +50,19 @@ const summary = computed((): string | null => {
 
   <DetailModal :open="modalOpen" :title="t('vehicle.lights.title')" @close="closeModal">
     <div class="detail-list">
-      <div
+      <DetailListItem
         v-for="light in lightList"
         :key="light.key"
-        class="detail-list__item"
-        :class="light.on ? 'detail-list__item--alert' : ''"
+        icon="lightbulb"
+        :label="light.label"
+        :alert="light.on"
       >
-        <font-awesome-icon icon="lightbulb" class="detail-list__item-icon" />
-        <span class="badge" :class="light.on ? 'badge-warning' : 'badge-secondary'">
-          {{ light.on ? t('common.on') : t('common.off') }}
-        </span>
-        <span class="detail-list__item-sep">-</span>
-        <span class="detail-list__item-label">{{ light.label }}</span>
-      </div>
+        <template #value>
+          <span class="badge" :class="light.on ? 'badge-warning' : 'badge-secondary'">
+            {{ light.on ? t('common.on') : t('common.off') }}
+          </span>
+        </template>
+      </DetailListItem>
     </div>
   </DetailModal>
 </template>

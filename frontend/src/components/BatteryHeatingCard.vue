@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import StatusCard from './StatusCard.vue'
 import DetailModal from './DetailModal.vue'
+import DetailListItem from './DetailListItem.vue'
 import { useModal } from '@/composables/useModal'
 
 const { t } = useI18n()
@@ -44,28 +45,34 @@ const hasModal = computed(() => props.scheduleMode !== null || props.scheduleSta
     @close="closeModal"
   >
     <div class="detail-list">
-      <div v-if="batteryHeating !== null" class="detail-list__item">
-        <font-awesome-icon icon="temperature-arrow-up" class="detail-list__item-icon" />
-        <span class="badge" :class="batteryHeating ? 'badge-info' : 'badge-secondary'">
-          {{ batteryHeating ? t('common.on') : t('common.off') }}
-        </span>
-        <span class="detail-list__item-sep">-</span>
-        <span class="detail-list__item-label">{{ t('vehicle.batteryHeating.title') }}</span>
-      </div>
-      <div v-if="scheduleMode !== null" class="detail-list__item">
-        <font-awesome-icon icon="calendar-check" class="detail-list__item-icon" />
-        <span class="badge" :class="scheduleMode !== 'off' ? 'badge-info' : 'badge-secondary'">
-          {{ scheduleMode }}
-        </span>
-        <span class="detail-list__item-sep">-</span>
-        <span class="detail-list__item-label">{{ t('vehicle.batteryHeating.schedule') }}</span>
-      </div>
-      <div v-if="scheduleStartTime !== null" class="detail-list__item">
-        <font-awesome-icon icon="clock" class="detail-list__item-icon" />
-        <span class="detail-list__item-value">{{ scheduleStartTime }}</span>
-        <span class="detail-list__item-sep">-</span>
-        <span class="detail-list__item-label">{{ t('vehicle.batteryHeating.startTime') }}</span>
-      </div>
+      <DetailListItem
+        v-if="batteryHeating !== null"
+        icon="temperature-arrow-up"
+        :label="t('vehicle.batteryHeating.title')"
+      >
+        <template #value>
+          <span class="badge" :class="batteryHeating ? 'badge-info' : 'badge-secondary'">
+            {{ batteryHeating ? t('common.on') : t('common.off') }}
+          </span>
+        </template>
+      </DetailListItem>
+      <DetailListItem
+        v-if="scheduleMode !== null"
+        icon="calendar-check"
+        :label="t('vehicle.batteryHeating.schedule')"
+      >
+        <template #value>
+          <span class="badge" :class="scheduleMode !== 'off' ? 'badge-info' : 'badge-secondary'">
+            {{ scheduleMode }}
+          </span>
+        </template>
+      </DetailListItem>
+      <DetailListItem
+        v-if="scheduleStartTime !== null"
+        icon="clock"
+        :value="scheduleStartTime"
+        :label="t('vehicle.batteryHeating.startTime')"
+      />
     </div>
   </DetailModal>
 </template>

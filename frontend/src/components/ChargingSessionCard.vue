@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import StatusCard from './StatusCard.vue'
 import DetailModal from './DetailModal.vue'
+import DetailListItem from './DetailListItem.vue'
 import { useModal } from '@/composables/useModal'
 
 const { t } = useI18n()
@@ -71,87 +72,91 @@ const lastEndFormatted = computed((): string | null => {
 
   <DetailModal :open="modalOpen" :title="t('vehicle.chargingSession.title')" @close="closeModal">
     <div class="detail-list">
-      <div v-if="obcPower !== null" class="detail-list__item">
-        <font-awesome-icon icon="bolt-lightning" class="detail-list__item-icon" />
-        <span class="detail-list__item-value">{{ obcPower.toFixed(1) }} kW</span>
-        <span class="detail-list__item-sep">-</span>
-        <span class="detail-list__item-label">{{ t('vehicle.chargingSession.power') }}</span>
-      </div>
-      <div v-if="obcPowerThreePhase !== null" class="detail-list__item">
-        <font-awesome-icon icon="plug" class="detail-list__item-icon" />
-        <span class="detail-list__item-value">{{ obcPowerThreePhase.toFixed(1) }} kW</span>
-        <span class="detail-list__item-sep">-</span>
-        <span class="detail-list__item-label">{{ t('vehicle.chargingSession.power3phase') }}</span>
-      </div>
-      <div v-if="obcPowerSinglePhase !== null" class="detail-list__item">
-        <font-awesome-icon icon="plug" class="detail-list__item-icon" />
-        <span class="detail-list__item-value">{{ obcPowerSinglePhase.toFixed(1) }} kW</span>
-        <span class="detail-list__item-sep">-</span>
-        <span class="detail-list__item-label">{{ t('vehicle.chargingSession.power1phase') }}</span>
-      </div>
-      <div v-if="remainingChargingTime !== null" class="detail-list__item">
-        <font-awesome-icon icon="clock" class="detail-list__item-icon" />
-        <span class="detail-list__item-value"
-          >{{ remainingChargingTime }} {{ t('common.min') }}</span
-        >
-        <span class="detail-list__item-sep">-</span>
-        <span class="detail-list__item-label">{{ t('vehicle.remainingCharge') }}</span>
-      </div>
-      <div v-if="chargingType" class="detail-list__item">
-        <font-awesome-icon icon="charging-station" class="detail-list__item-icon" />
-        <span class="badge badge-info">{{ chargingType }}</span>
-        <span class="detail-list__item-sep">-</span>
-        <span class="detail-list__item-label">{{ t('vehicle.chargingSession.type') }}</span>
-      </div>
-      <div v-if="chargingCableLock !== null" class="detail-list__item">
-        <font-awesome-icon
-          :icon="chargingCableLock ? 'lock' : 'lock-open'"
-          class="detail-list__item-icon"
-        />
-        <span class="badge" :class="chargingCableLock ? 'badge-success' : 'badge-warning'">
-          {{
-            chargingCableLock
-              ? t('vehicle.chargingSession.locked')
-              : t('vehicle.chargingSession.unlocked')
-          }}
-        </span>
-        <span class="detail-list__item-sep">-</span>
-        <span class="detail-list__item-label">{{ t('vehicle.chargingSession.cableLock') }}</span>
-      </div>
-      <div v-if="bmsChargeStatus" class="detail-list__item">
-        <font-awesome-icon icon="battery-half" class="detail-list__item-icon" />
-        <span class="badge badge-secondary">{{ bmsChargeStatus }}</span>
-        <span class="detail-list__item-sep">-</span>
-        <span class="detail-list__item-label">{{ t('vehicle.chargingSession.bmsStatus') }}</span>
-      </div>
-      <div v-if="lastChargeEndingPower !== null" class="detail-list__item">
-        <font-awesome-icon icon="percent" class="detail-list__item-icon" />
-        <span class="detail-list__item-value">{{ lastChargeEndingPower.toFixed(1) }}%</span>
-        <span class="detail-list__item-sep">-</span>
-        <span class="detail-list__item-label">{{ t('vehicle.chargingSession.lastEndSoc') }}</span>
-      </div>
-      <div v-if="lastEndFormatted" class="detail-list__item">
-        <font-awesome-icon icon="calendar-check" class="detail-list__item-icon" />
-        <span class="detail-list__item-value">{{ lastEndFormatted }}</span>
-        <span class="detail-list__item-sep">-</span>
-        <span class="detail-list__item-label">{{ t('vehicle.chargingSession.lastEnd') }}</span>
-      </div>
-      <div
-        v-if="chargingScheduleMode && chargingScheduleMode !== 'DISABLED'"
-        class="detail-list__item"
+      <DetailListItem
+        v-if="obcPower !== null"
+        icon="bolt-lightning"
+        :value="`${obcPower.toFixed(1)} kW`"
+        :label="t('vehicle.chargingSession.power')"
+      />
+      <DetailListItem
+        v-if="obcPowerThreePhase !== null"
+        icon="plug"
+        :value="`${obcPowerThreePhase.toFixed(1)} kW`"
+        :label="t('vehicle.chargingSession.power3phase')"
+      />
+      <DetailListItem
+        v-if="obcPowerSinglePhase !== null"
+        icon="plug"
+        :value="`${obcPowerSinglePhase.toFixed(1)} kW`"
+        :label="t('vehicle.chargingSession.power1phase')"
+      />
+      <DetailListItem
+        v-if="remainingChargingTime !== null"
+        icon="clock"
+        :value="`${remainingChargingTime} ${t('common.min')}`"
+        :label="t('vehicle.remainingCharge')"
+      />
+      <DetailListItem
+        v-if="chargingType"
+        icon="charging-station"
+        :label="t('vehicle.chargingSession.type')"
       >
-        <font-awesome-icon icon="clock" class="detail-list__item-icon" />
-        <span class="badge badge-info">{{ chargingScheduleMode }}</span>
-        <template v-if="chargingScheduleStartTime">
-          <span class="detail-list__item-value">{{ chargingScheduleStartTime }}</span>
-          <template v-if="chargingScheduleEndTime">
-            <span class="detail-list__item-sep">-</span>
-            <span class="detail-list__item-value">{{ chargingScheduleEndTime }}</span>
+        <template #value>
+          <span class="badge badge-info">{{ chargingType }}</span>
+        </template>
+      </DetailListItem>
+      <DetailListItem
+        v-if="chargingCableLock !== null"
+        :icon="chargingCableLock ? 'lock' : 'lock-open'"
+        :label="t('vehicle.chargingSession.cableLock')"
+      >
+        <template #value>
+          <span class="badge" :class="chargingCableLock ? 'badge-success' : 'badge-warning'">
+            {{
+              chargingCableLock
+                ? t('vehicle.chargingSession.locked')
+                : t('vehicle.chargingSession.unlocked')
+            }}
+          </span>
+        </template>
+      </DetailListItem>
+      <DetailListItem
+        v-if="bmsChargeStatus"
+        icon="battery-half"
+        :label="t('vehicle.chargingSession.bmsStatus')"
+      >
+        <template #value>
+          <span class="badge badge-secondary">{{ bmsChargeStatus }}</span>
+        </template>
+      </DetailListItem>
+      <DetailListItem
+        v-if="lastChargeEndingPower !== null"
+        icon="percent"
+        :value="`${lastChargeEndingPower.toFixed(1)}%`"
+        :label="t('vehicle.chargingSession.lastEndSoc')"
+      />
+      <DetailListItem
+        v-if="lastEndFormatted"
+        icon="calendar-check"
+        :value="lastEndFormatted"
+        :label="t('vehicle.chargingSession.lastEnd')"
+      />
+      <DetailListItem
+        v-if="chargingScheduleMode && chargingScheduleMode !== 'DISABLED'"
+        icon="clock"
+        :label="t('vehicle.chargingSession.schedule')"
+      >
+        <template #value>
+          <span class="badge badge-info">{{ chargingScheduleMode }}</span>
+          <template v-if="chargingScheduleStartTime">
+            <span class="detail-list__item-value">{{ chargingScheduleStartTime }}</span>
+            <template v-if="chargingScheduleEndTime">
+              <span class="detail-list__item-sep">-</span>
+              <span class="detail-list__item-value">{{ chargingScheduleEndTime }}</span>
+            </template>
           </template>
         </template>
-        <span class="detail-list__item-sep">-</span>
-        <span class="detail-list__item-label">{{ t('vehicle.chargingSession.schedule') }}</span>
-      </div>
+      </DetailListItem>
     </div>
   </DetailModal>
 </template>

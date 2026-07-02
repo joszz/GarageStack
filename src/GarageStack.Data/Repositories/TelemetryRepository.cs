@@ -1,4 +1,6 @@
 using System.Linq.Expressions;
+using System.Reflection;
+using GarageStack.Core.Helpers;
 using GarageStack.Core.Interfaces;
 using GarageStack.Core.Models;
 using Microsoft.EntityFrameworkCore;
@@ -7,6 +9,51 @@ namespace GarageStack.Data.Repositories;
 
 public class TelemetryRepository(AppDbContext db) : ITelemetryRepository
 {
+    // All TelemetrySnapshot properties except identity/bookkeeping fields (Id, VehicleId, Vehicle,
+    // RecordedAt, RawTopic) participate in field-by-field merging. Computed once and reused by both
+    // MergeIntoAsync (last-write-wins) and GetMergedLatestAsync (first-non-null-wins) so a new
+    // telemetry field only needs to be added to the model - not hand-copied into two merge loops.
+    private static readonly HashSet<string> NonMergeableProperties =
+    [
+        nameof(TelemetrySnapshot.Id), nameof(TelemetrySnapshot.VehicleId),
+        nameof(TelemetrySnapshot.Vehicle), nameof(TelemetrySnapshot.RecordedAt),
+        nameof(TelemetrySnapshot.RawTopic),
+    ];
+
+    private static readonly PropertyInfo[] MergeableProperties = typeof(TelemetrySnapshot)
+        .GetProperties(BindingFlags.Public | BindingFlags.Instance)
+        .Where(p => p.CanRead && p.CanWrite && !NonMergeableProperties.Contains(p.Name))
+        .ToArray();
+
+    // Daily counters reset at midnight - a stale value from a prior day must not be carried
+    // forward into "today's" merged snapshot, so these two are merged with an extra date guard.
+    private static readonly HashSet<string> DailyCounterFields =
+    [
+        nameof(TelemetrySnapshot.MileageOfTheDay), nameof(TelemetrySnapshot.PowerUsageOfDay),
+    ];
+
+    /// <summary>Overwrites every field on <paramref name="target"/> with the non-null value from <paramref name="source"/>, if any.</summary>
+    private static void ApplyNonNullFields(TelemetrySnapshot target, TelemetrySnapshot source)
+    {
+        foreach (var prop in MergeableProperties)
+        {
+            var value = prop.GetValue(source);
+            if (value is not null) prop.SetValue(target, value);
+        }
+    }
+
+    /// <summary>Fills any still-empty field on <paramref name="target"/> from <paramref name="source"/>, leaving already-set fields untouched.</summary>
+    private static void ApplyFirstNonNullFields(TelemetrySnapshot target, TelemetrySnapshot source, ISet<string>? skip = null)
+    {
+        foreach (var prop in MergeableProperties)
+        {
+            if (skip is not null && skip.Contains(prop.Name)) continue;
+            if (prop.GetValue(target) is not null) continue;
+            var value = prop.GetValue(source);
+            if (value is not null) prop.SetValue(target, value);
+        }
+    }
+
     private static readonly Expression<Func<TelemetrySnapshot, bool>> HasData =
         s => s.FuelLevelPercent != null || s.FuelRangeKm != null ||
              s.OdometerKm != null || s.EngineRunning != null || s.Speed != null ||
@@ -76,78 +123,7 @@ public class TelemetryRepository(AppDbContext db) : ITelemetryRepository
         }
 
         // Last-write-wins per field: overwrite with any non-null value from the patch.
-        if (patch.FuelLevelPercent != null) existing.FuelLevelPercent = patch.FuelLevelPercent;
-        if (patch.FuelRangeKm != null) existing.FuelRangeKm = patch.FuelRangeKm;
-        if (patch.OdometerKm != null) existing.OdometerKm = patch.OdometerKm;
-        if (patch.IsLocked != null) existing.IsLocked = patch.IsLocked;
-        if (patch.EngineRunning != null) existing.EngineRunning = patch.EngineRunning;
-        if (patch.ClimateOn != null) existing.ClimateOn = patch.ClimateOn;
-        if (patch.DriverDoorOpen != null) existing.DriverDoorOpen = patch.DriverDoorOpen;
-        if (patch.PassengerDoorOpen != null) existing.PassengerDoorOpen = patch.PassengerDoorOpen;
-        if (patch.RearLeftDoorOpen != null) existing.RearLeftDoorOpen = patch.RearLeftDoorOpen;
-        if (patch.RearRightDoorOpen != null) existing.RearRightDoorOpen = patch.RearRightDoorOpen;
-        if (patch.TrunkOpen != null) existing.TrunkOpen = patch.TrunkOpen;
-        if (patch.BonnetOpen != null) existing.BonnetOpen = patch.BonnetOpen;
-        if (patch.DriverWindowOpen != null) existing.DriverWindowOpen = patch.DriverWindowOpen;
-        if (patch.PassengerWindowOpen != null) existing.PassengerWindowOpen = patch.PassengerWindowOpen;
-        if (patch.RearLeftWindowOpen != null) existing.RearLeftWindowOpen = patch.RearLeftWindowOpen;
-        if (patch.RearRightWindowOpen != null) existing.RearRightWindowOpen = patch.RearRightWindowOpen;
-        if (patch.SunRoofOpen != null) existing.SunRoofOpen = patch.SunRoofOpen;
-        if (patch.Latitude != null) existing.Latitude = patch.Latitude;
-        if (patch.Longitude != null) existing.Longitude = patch.Longitude;
-        if (patch.Speed != null) existing.Speed = patch.Speed;
-        if (patch.Heading != null) existing.Heading = patch.Heading;
-        if (patch.BatteryVoltage != null) existing.BatteryVoltage = patch.BatteryVoltage;
-        if (patch.InteriorTemperature != null) existing.InteriorTemperature = patch.InteriorTemperature;
-        if (patch.ExteriorTemperature != null) existing.ExteriorTemperature = patch.ExteriorTemperature;
-        if (patch.RemoteTemperature != null) existing.RemoteTemperature = patch.RemoteTemperature;
-        if (patch.EvSocPercent != null) existing.EvSocPercent = patch.EvSocPercent;
-        if (patch.IsCharging != null) existing.IsCharging = patch.IsCharging;
-        if (patch.TyrePressureFrontLeft != null) existing.TyrePressureFrontLeft = patch.TyrePressureFrontLeft;
-        if (patch.TyrePressureFrontRight != null) existing.TyrePressureFrontRight = patch.TyrePressureFrontRight;
-        if (patch.TyrePressureRearLeft != null) existing.TyrePressureRearLeft = patch.TyrePressureRearLeft;
-        if (patch.TyrePressureRearRight != null) existing.TyrePressureRearRight = patch.TyrePressureRearRight;
-        if (patch.MileageOfTheDay != null) existing.MileageOfTheDay = patch.MileageOfTheDay;
-        if (patch.PowerUsageOfDay != null) existing.PowerUsageOfDay = patch.PowerUsageOfDay;
-        if (patch.MileageSinceLastCharge != null) existing.MileageSinceLastCharge = patch.MileageSinceLastCharge;
-        if (patch.HvVoltage != null) existing.HvVoltage = patch.HvVoltage;
-        if (patch.HvCurrent != null) existing.HvCurrent = patch.HvCurrent;
-        if (patch.HvPower != null) existing.HvPower = patch.HvPower;
-        if (patch.HvSocKwh != null) existing.HvSocKwh = patch.HvSocKwh;
-        if (patch.HvTotalCapacityKwh != null) existing.HvTotalCapacityKwh = patch.HvTotalCapacityKwh;
-        if (patch.PowerUsageSinceLastCharge != null) existing.PowerUsageSinceLastCharge = patch.PowerUsageSinceLastCharge;
-        if (patch.ChargerConnected != null) existing.ChargerConnected = patch.ChargerConnected;
-        if (patch.HvBatteryActive != null) existing.HvBatteryActive = patch.HvBatteryActive;
-        if (patch.LightsMainBeam != null) existing.LightsMainBeam = patch.LightsMainBeam;
-        if (patch.LightsDippedBeam != null) existing.LightsDippedBeam = patch.LightsDippedBeam;
-        if (patch.LightsSide != null) existing.LightsSide = patch.LightsSide;
-        if (patch.HeatedSeatFrontLeft != null) existing.HeatedSeatFrontLeft = patch.HeatedSeatFrontLeft;
-        if (patch.HeatedSeatFrontRight != null) existing.HeatedSeatFrontRight = patch.HeatedSeatFrontRight;
-        if (patch.RearWindowDefroster != null) existing.RearWindowDefroster = patch.RearWindowDefroster;
-        if (patch.SteeringWheelHeating != null) existing.SteeringWheelHeating = patch.SteeringWheelHeating;
-        if (patch.IsAvailable != null) existing.IsAvailable = patch.IsAvailable;
-        if (patch.LastVehicleStateAt != null) existing.LastVehicleStateAt = patch.LastVehicleStateAt;
-        if (patch.LastChargeStateAt != null) existing.LastChargeStateAt = patch.LastChargeStateAt;
-        if (patch.CurrentJourneyDistance != null) existing.CurrentJourneyDistance = patch.CurrentJourneyDistance;
-        if (patch.Elevation != null) existing.Elevation = patch.Elevation;
-        if (patch.ChargingType != null) existing.ChargingType = patch.ChargingType;
-        if (patch.ChargingCableLock != null) existing.ChargingCableLock = patch.ChargingCableLock;
-        if (patch.RemainingChargingTime != null) existing.RemainingChargingTime = patch.RemainingChargingTime;
-        if (patch.BmsChargeStatus != null) existing.BmsChargeStatus = patch.BmsChargeStatus;
-        if (patch.OnboardChargerPlugStatus != null) existing.OnboardChargerPlugStatus = patch.OnboardChargerPlugStatus;
-        if (patch.OffboardChargerPlugStatus != null) existing.OffboardChargerPlugStatus = patch.OffboardChargerPlugStatus;
-        if (patch.LastChargeEndingPower != null) existing.LastChargeEndingPower = patch.LastChargeEndingPower;
-        if (patch.ChargingLastEndAt != null) existing.ChargingLastEndAt = patch.ChargingLastEndAt;
-        if (patch.ChargingScheduleMode != null) existing.ChargingScheduleMode = patch.ChargingScheduleMode;
-        if (patch.ChargingScheduleStartTime != null) existing.ChargingScheduleStartTime = patch.ChargingScheduleStartTime;
-        if (patch.ChargingScheduleEndTime != null) existing.ChargingScheduleEndTime = patch.ChargingScheduleEndTime;
-        if (patch.ObcCurrent != null) existing.ObcCurrent = patch.ObcCurrent;
-        if (patch.ObcVoltage != null) existing.ObcVoltage = patch.ObcVoltage;
-        if (patch.ObcPowerSinglePhase != null) existing.ObcPowerSinglePhase = patch.ObcPowerSinglePhase;
-        if (patch.ObcPowerThreePhase != null) existing.ObcPowerThreePhase = patch.ObcPowerThreePhase;
-        if (patch.BatteryHeating != null) existing.BatteryHeating = patch.BatteryHeating;
-        if (patch.BatteryHeatingScheduleMode != null) existing.BatteryHeatingScheduleMode = patch.BatteryHeatingScheduleMode;
-        if (patch.BatteryHeatingScheduleStartTime != null) existing.BatteryHeatingScheduleStartTime = patch.BatteryHeatingScheduleStartTime;
+        ApplyNonNullFields(existing, patch);
 
         await db.SaveChangesAsync(ct);
         await NotifyUpdatedAsync(existing.VehicleId, ct);
@@ -165,6 +141,7 @@ public class TelemetryRepository(AppDbContext db) : ITelemetryRepository
 
     public Task<TelemetrySnapshot?> GetLatestAsync(int vehicleId, CancellationToken ct = default) =>
         db.TelemetrySnapshots
+          .AsNoTracking()
           .Where(s => s.VehicleId == vehicleId)
           .OrderByDescending(s => s.RecordedAt)
           .FirstOrDefaultAsync(ct);
@@ -173,6 +150,7 @@ public class TelemetryRepository(AppDbContext db) : ITelemetryRepository
     {
         var since = DateTime.UtcNow.AddDays(-7);
         var rows = await db.TelemetrySnapshots
+            .AsNoTracking()
             .Where(s => s.VehicleId == vehicleId && s.RecordedAt >= since)
             .Where(HasData)
             .OrderByDescending(s => s.RecordedAt)
@@ -185,82 +163,14 @@ public class TelemetryRepository(AppDbContext db) : ITelemetryRepository
         var merged = new TelemetrySnapshot { VehicleId = vehicleId, RecordedAt = rows[0].RecordedAt };
         foreach (var row in rows)
         {
-            merged.FuelLevelPercent ??= row.FuelLevelPercent;
-            merged.FuelRangeKm ??= row.FuelRangeKm;
-            merged.OdometerKm ??= row.OdometerKm;
-            merged.EngineRunning ??= row.EngineRunning;
-            merged.Speed ??= row.Speed;
-            merged.IsLocked ??= row.IsLocked;
-            merged.ClimateOn ??= row.ClimateOn;
-            merged.DriverDoorOpen ??= row.DriverDoorOpen;
-            merged.PassengerDoorOpen ??= row.PassengerDoorOpen;
-            merged.RearLeftDoorOpen ??= row.RearLeftDoorOpen;
-            merged.RearRightDoorOpen ??= row.RearRightDoorOpen;
-            merged.TrunkOpen ??= row.TrunkOpen;
-            merged.BonnetOpen ??= row.BonnetOpen;
-            merged.DriverWindowOpen ??= row.DriverWindowOpen;
-            merged.PassengerWindowOpen ??= row.PassengerWindowOpen;
-            merged.RearLeftWindowOpen ??= row.RearLeftWindowOpen;
-            merged.RearRightWindowOpen ??= row.RearRightWindowOpen;
-            merged.SunRoofOpen ??= row.SunRoofOpen;
-            merged.Latitude ??= row.Latitude;
-            merged.Longitude ??= row.Longitude;
-            merged.Heading ??= row.Heading;
-            merged.BatteryVoltage ??= row.BatteryVoltage;
-            merged.InteriorTemperature ??= row.InteriorTemperature;
-            merged.RemoteTemperature ??= row.RemoteTemperature;
-            merged.ExteriorTemperature ??= row.ExteriorTemperature;
-            merged.EvSocPercent ??= row.EvSocPercent;
-            merged.IsCharging ??= row.IsCharging;
-            merged.TyrePressureFrontLeft ??= row.TyrePressureFrontLeft;
-            merged.TyrePressureFrontRight ??= row.TyrePressureFrontRight;
-            merged.TyrePressureRearLeft ??= row.TyrePressureRearLeft;
-            merged.TyrePressureRearRight ??= row.TyrePressureRearRight;
+            ApplyFirstNonNullFields(merged, row, skip: DailyCounterFields);
+
             // Daily counters are only meaningful from today - don't carry yesterday's values forward
             if (row.RecordedAt >= todayStart)
             {
                 merged.MileageOfTheDay ??= row.MileageOfTheDay;
                 merged.PowerUsageOfDay ??= row.PowerUsageOfDay;
             }
-            merged.MileageSinceLastCharge ??= row.MileageSinceLastCharge;
-            merged.HvVoltage ??= row.HvVoltage;
-            merged.HvCurrent ??= row.HvCurrent;
-            merged.HvPower ??= row.HvPower;
-            merged.HvSocKwh ??= row.HvSocKwh;
-            merged.HvTotalCapacityKwh ??= row.HvTotalCapacityKwh;
-            merged.PowerUsageSinceLastCharge ??= row.PowerUsageSinceLastCharge;
-            merged.ChargerConnected ??= row.ChargerConnected;
-            merged.HvBatteryActive ??= row.HvBatteryActive;
-            merged.LightsMainBeam ??= row.LightsMainBeam;
-            merged.LightsDippedBeam ??= row.LightsDippedBeam;
-            merged.LightsSide ??= row.LightsSide;
-            merged.HeatedSeatFrontLeft ??= row.HeatedSeatFrontLeft;
-            merged.HeatedSeatFrontRight ??= row.HeatedSeatFrontRight;
-            merged.RearWindowDefroster ??= row.RearWindowDefroster;
-            merged.SteeringWheelHeating ??= row.SteeringWheelHeating;
-            merged.IsAvailable ??= row.IsAvailable;
-            merged.LastVehicleStateAt ??= row.LastVehicleStateAt;
-            merged.LastChargeStateAt ??= row.LastChargeStateAt;
-            merged.CurrentJourneyDistance ??= row.CurrentJourneyDistance;
-            merged.ChargingType ??= row.ChargingType;
-            merged.ChargingCableLock ??= row.ChargingCableLock;
-            merged.RemainingChargingTime ??= row.RemainingChargingTime;
-            merged.BmsChargeStatus ??= row.BmsChargeStatus;
-            merged.OnboardChargerPlugStatus ??= row.OnboardChargerPlugStatus;
-            merged.OffboardChargerPlugStatus ??= row.OffboardChargerPlugStatus;
-            merged.LastChargeEndingPower ??= row.LastChargeEndingPower;
-            merged.ChargingLastEndAt ??= row.ChargingLastEndAt;
-            merged.ChargingScheduleMode ??= row.ChargingScheduleMode;
-            merged.ChargingScheduleStartTime ??= row.ChargingScheduleStartTime;
-            merged.ChargingScheduleEndTime ??= row.ChargingScheduleEndTime;
-            merged.ObcCurrent ??= row.ObcCurrent;
-            merged.ObcVoltage ??= row.ObcVoltage;
-            merged.ObcPowerSinglePhase ??= row.ObcPowerSinglePhase;
-            merged.ObcPowerThreePhase ??= row.ObcPowerThreePhase;
-            merged.BatteryHeating ??= row.BatteryHeating;
-            merged.BatteryHeatingScheduleMode ??= row.BatteryHeatingScheduleMode;
-            merged.BatteryHeatingScheduleStartTime ??= row.BatteryHeatingScheduleStartTime;
-            merged.Elevation ??= row.Elevation;
         }
 
         // If the MG API still reports a journey distance but the engine is off,
@@ -417,7 +327,7 @@ public class TelemetryRepository(AppDbContext db) : ITelemetryRepository
             else
             {
                 isParked = prevLat.HasValue &&
-                           Haversine(prevLat.Value, prevLon!.Value,
+                           GeoHelper.Haversine(prevLat.Value, prevLon!.Value,
                                      p.Latitude!.Value, p.Longitude!.Value) * 1000 <= 50;
             }
 
@@ -484,29 +394,18 @@ public class TelemetryRepository(AppDbContext db) : ITelemetryRepository
     {
         var distance = 0.0;
         for (var i = 1; i < points.Count; i++)
-            distance += Haversine(points[i - 1].Latitude, points[i - 1].Longitude, points[i].Latitude, points[i].Longitude);
+            distance += GeoHelper.Haversine(points[i - 1].Latitude, points[i - 1].Longitude, points[i].Latitude, points[i].Longitude);
 
         // Reject GPS-teleportation: consecutive points implying > 250 km/h are not real trips
         for (var i = 1; i < points.Count; i++)
         {
-            var segKm = Haversine(points[i - 1].Latitude, points[i - 1].Longitude, points[i].Latitude, points[i].Longitude);
+            var segKm = GeoHelper.Haversine(points[i - 1].Latitude, points[i - 1].Longitude, points[i].Latitude, points[i].Longitude);
             var segHours = (points[i].RecordedAt - points[i - 1].RecordedAt).TotalHours;
             if (segHours > 0 && segKm / segHours > 250)
                 return null;
         }
 
         return new TripDto(index, points[0].RecordedAt, points[^1].RecordedAt, Math.Round(distance, 2), points.Count, points);
-    }
-
-    private static double Haversine(double lat1, double lon1, double lat2, double lon2)
-    {
-        const double R = 6371.0;
-        var dLat = (lat2 - lat1) * Math.PI / 180;
-        var dLon = (lon2 - lon1) * Math.PI / 180;
-        var a = Math.Sin(dLat / 2) * Math.Sin(dLat / 2) +
-                Math.Cos(lat1 * Math.PI / 180) * Math.Cos(lat2 * Math.PI / 180) *
-                Math.Sin(dLon / 2) * Math.Sin(dLon / 2);
-        return R * 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
     }
 
     public async Task<VehicleAggregateStats> GetAggregateStatsAsync(int vehicleId, DateTime from, DateTime to, CancellationToken ct = default)

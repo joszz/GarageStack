@@ -15,8 +15,8 @@ public class PushNotificationCheckService(
 {
     private readonly Dictionary<string, DateTime> _lastNotified = new();
     private readonly TimeSpan _cooldown = TimeSpan.FromHours(1);
-    internal readonly Dictionary<string, bool?> _lastEngineRunning = new();
-    internal readonly Dictionary<string, bool?> _lastIsCharging = new();
+    internal readonly VinStateTracker<bool?> _engineRunningTracker = new();
+    internal readonly VinStateTracker<bool?> _isChargingTracker = new();
     internal readonly Dictionary<string, DateTime> _lastParkedAt = new();
     private readonly TimeSpan _parkingGrace = TimeSpan.FromMinutes(10);
 
@@ -122,8 +122,7 @@ public class PushNotificationCheckService(
         if (s.IsCharging is null) return;
 
         var current = s.IsCharging.Value;
-        var hasPrevious = _lastIsCharging.TryGetValue(vin, out var previous);
-        _lastIsCharging[vin] = current;
+        var hasPrevious = _isChargingTracker.TryUpdate(vin, current, out var previous);
 
         if (!hasPrevious || previous is null) return;
 
@@ -144,8 +143,7 @@ public class PushNotificationCheckService(
         if (s.EngineRunning is null) return false;
 
         var current = s.EngineRunning.Value;
-        var hasPrevious = _lastEngineRunning.TryGetValue(vin, out var previous);
-        _lastEngineRunning[vin] = current;
+        var hasPrevious = _engineRunningTracker.TryUpdate(vin, current, out var previous);
 
         // Skip the first check after startup — no baseline to compare against
         if (!hasPrevious || previous is null) return false;

@@ -186,15 +186,16 @@ describe('useAuthStore', () => {
     expect(localStorage.getItem(AUTH_EXPIRES_KEY)).toBeNull()
   })
 
-  it('verifySession() does not update expiry when API returns null expiresAtUtc', async () => {
+  it('verifySession() does not authenticate when API returns null expiresAtUtc', async () => {
     vi.mocked(authApi.me).mockResolvedValue({ username: 'dave', expiresAtUtc: null })
 
     const { useAuthStore } = await import('@/stores/auth')
     const store = useAuthStore()
     await store.verifySession()
 
-    // username is set but expiresAtUtc stays empty
-    expect(store.username).toBe('dave')
+    // Without an expiry there's no valid session, so username must not be set either -
+    // otherwise the store would be in a half-authenticated state (username set, not authenticated).
+    expect(store.username).toBe('')
     expect(localStorage.getItem(AUTH_EXPIRES_KEY)).toBeNull()
   })
 

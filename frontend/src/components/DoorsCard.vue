@@ -3,6 +3,7 @@ import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import StatusCard from './StatusCard.vue'
 import DetailModal from './DetailModal.vue'
+import DetailListItem from './DetailListItem.vue'
 import { useModal } from '@/composables/useModal'
 import { useVehicleCommand } from '@/composables/useVehicleCommand'
 
@@ -158,19 +159,14 @@ async function handleLockToggle() {
     </div>
 
     <div v-if="doorList.length > 0" class="detail-list" :class="isLocked !== null ? 'mt-3' : ''">
-      <div
+      <DetailListItem
         v-for="door in doorList"
         :key="door.key"
-        class="detail-list__item"
-        :class="door.open ? 'detail-list__item--alert' : ''"
-      >
-        <font-awesome-icon :icon="door.icon" class="detail-list__item-icon" />
-        <span class="detail-list__item-value">{{
-          door.open ? t('common.open') : t('common.closed')
-        }}</span>
-        <span class="detail-list__item-sep">-</span>
-        <span class="detail-list__item-label">{{ door.label }}</span>
-      </div>
+        :icon="door.icon"
+        :value="door.open ? t('common.open') : t('common.closed')"
+        :label="door.label"
+        :alert="door.open"
+      />
     </div>
   </DetailModal>
 </template>

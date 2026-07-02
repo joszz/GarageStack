@@ -21,11 +21,12 @@ public sealed class PushSenderService : IPushSender, IDisposable
     public PushSenderService(
         ILogger<PushSenderService> logger,
         IServiceScopeFactory scopeFactory,
-        IConfiguration config)
+        IConfiguration config,
+        IHttpClientFactory httpClientFactory)
     {
         _logger = logger;
         _scopeFactory = scopeFactory;
-        _httpClient = new HttpClient();
+        _httpClient = httpClientFactory.CreateClient(nameof(PushSenderService));
 
         var publicKey = config["Vapid:PublicKey"];
         var privateKey = config["Vapid:PrivateKey"];

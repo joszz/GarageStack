@@ -10,7 +10,9 @@ public static class DemoEndpoints
         this IEndpointRouteBuilder app,
         ITelemetryRepository telemetry)
     {
-        var demoRepo = (DemoTelemetryRepository)telemetry;
+        var demoRepo = telemetry as DemoTelemetryRepository
+            ?? throw new InvalidOperationException(
+                $"{nameof(MapDemoEndpoints)} requires {nameof(DemoTelemetryRepository)} to be registered as {nameof(ITelemetryRepository)} - check demo mode DI wiring in Program.cs.");
 
         var group = app.MapGroup("/api/demo")
             .WithTags("Demo")

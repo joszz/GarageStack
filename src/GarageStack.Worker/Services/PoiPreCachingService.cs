@@ -1,5 +1,6 @@
 using GarageStack.Core.Helpers;
 using GarageStack.Core.Interfaces;
+using GarageStack.Core.Models;
 using GarageStack.Data;
 using GarageStack.Data.Services;
 using Microsoft.EntityFrameworkCore;
@@ -49,15 +50,22 @@ public sealed class PoiPreCachingService(
 
         var vehicles = await db.Vehicles.ToListAsync(ct);
 
+        // Single query for the latest known location of every vehicle instead of one query per
+        // vehicle: the RecordedAt == MAX(RecordedAt) correlated subquery reliably translates to SQL.
+        var latestByVehicle = (await db.TelemetrySnapshots
+            .Where(s => s.Latitude != null && s.Longitude != null)
+            .Where(s => s.RecordedAt == db.TelemetrySnapshots
+                .Where(x => x.VehicleId == s.VehicleId && x.Latitude != null && x.Longitude != null)
+                .Max(x => x.RecordedAt))
+            .ToListAsync(ct))
+            .GroupBy(s => s.VehicleId)
+            .ToDictionary(g => g.Key, g => g.First());
+
         foreach (var vehicle in vehicles)
         {
-            var snapshot = await db.TelemetrySnapshots
-                .Where(s => s.VehicleId == vehicle.Id
-                            && s.Latitude != null && s.Longitude != null)
-                .OrderByDescending(s => s.RecordedAt)
-                .FirstOrDefaultAsync(ct);
-
-            if (snapshot?.Latitude is null || snapshot.Longitude is null)
+            if (!latestByVehicle.TryGetValue(vehicle.Id, out var snapshot))
+                continue;
+            if (snapshot.Latitude is null || snapshot.Longitude is null)
                 continue;
 
             var lat = snapshot.Latitude.Value;
@@ -97,25 +105,23 @@ public sealed class PoiPreCachingService(
             logger.LogInformation("Pre-caching {Count} Overpass {PoiType} tiles for {Vin}",
                 toRefresh.Count, poiType, vin);
 
-            foreach (var (cellLat, cellLng) in toRefresh)
-            {
-                try
+            await PoiTileFetcher.FetchAndCacheAsync(
+                toRefresh,
+                async (cellLat, cellLng, token) =>
                 {
-                    var items = poiType switch
+                    IReadOnlyList<PoiItem> items = poiType switch
                     {
-                        "fuel" => await overpassClient.FetchFuelStationsBackgroundAsync(cellLat, cellLng, ct),
-                        "service_area" => await overpassClient.FetchServiceAreasBackgroundAsync(cellLat, cellLng, ct),
+                        "fuel" => await overpassClient.FetchFuelStationsBackgroundAsync(cellLat, cellLng, token),
+                        "service_area" => await overpassClient.FetchServiceAreasBackgroundAsync(cellLat, cellLng, token),
                         _ => [],
                     };
-                    await repository.UpsertTileAsync("overpass", poiType, cellLat, cellLng, items, Ttl, ct);
-                }
-                catch (Exception ex) when (!ct.IsCancellationRequested)
-                {
-                    logger.LogWarning(ex,
-                        "Failed to pre-cache Overpass {PoiType} tile ({CellLat},{CellLng}) for {Vin}",
-                        poiType, cellLat, cellLng, vin);
-                }
-            }
+                    return (IReadOnlyList<PoiItem>?)items;
+                },
+                (cellLat, cellLng, items, token) => repository.UpsertTileAsync("overpass", poiType, cellLat, cellLng, items, Ttl, token),
+                (ex, cellLat, cellLng) => logger.LogWarning(ex,
+                    "Failed to pre-cache Overpass {PoiType} tile ({CellLat},{CellLng}) for {Vin}",
+                    poiType, cellLat, cellLng, vin),
+                ct);
         }
     }
 
@@ -139,19 +145,13 @@ public sealed class PoiPreCachingService(
 
         logger.LogInformation("Pre-caching {Count} OCM charging tiles for {Vin}", toRefresh.Count, vin);
 
-        foreach (var (cellLat, cellLng) in toRefresh)
-        {
-            try
-            {
-                var items = await ocmClient.FetchChargingStationsAsync(cellLat, cellLng, ct);
-                await repository.UpsertTileAsync("ocm", "charging", cellLat, cellLng, items, Ttl, ct);
-            }
-            catch (Exception ex) when (!ct.IsCancellationRequested)
-            {
-                logger.LogWarning(ex,
-                    "Failed to pre-cache OCM charging tile ({CellLat},{CellLng}) for {Vin}",
-                    cellLat, cellLng, vin);
-            }
-        }
+        await PoiTileFetcher.FetchAndCacheAsync(
+            toRefresh,
+            async (cellLat, cellLng, token) => (IReadOnlyList<PoiItem>?)await ocmClient.FetchChargingStationsAsync(cellLat, cellLng, token),
+            (cellLat, cellLng, items, token) => repository.UpsertTileAsync("ocm", "charging", cellLat, cellLng, items, Ttl, token),
+            (ex, cellLat, cellLng) => logger.LogWarning(ex,
+                "Failed to pre-cache OCM charging tile ({CellLat},{CellLng}) for {Vin}",
+                cellLat, cellLng, vin),
+            ct);
     }
 }

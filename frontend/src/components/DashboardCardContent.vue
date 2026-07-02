@@ -3,8 +3,8 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { useVehicleStore } from '@/stores/vehicle'
-import { useSettingsStore } from '@/stores/settings'
-import type { CardId } from '@/stores/settings'
+import { useUiSettingsStore } from '@/stores/settingsUi'
+import type { CardId } from '@/stores/settingsShared'
 import type { VehicleType } from '@/stores/vehicle'
 import StatusCard from './StatusCard.vue'
 import DoorsCard from './DoorsCard.vue'
@@ -16,12 +16,22 @@ import LightsCard from './LightsCard.vue'
 import ChargingSessionCard from './ChargingSessionCard.vue'
 import BatteryHeatingCard from './BatteryHeatingCard.vue'
 
-defineProps<{ cardId: CardId }>()
+const props = defineProps<{ cardId: CardId }>()
 
 const { t } = useI18n()
 const router = useRouter()
 const store = useVehicleStore()
-const settings = useSettingsStore()
+const settings = useUiSettingsStore()
+
+interface SimpleCardConfig {
+  id: CardId
+  match: boolean
+  icon: string
+  label: string
+  value: string | number | null
+  unit?: string
+  variant?: 'success' | 'warning' | 'danger' | 'info'
+}
 
 const vin = computed(() => store.vehicles[0]?.vin ?? null)
 const status = computed(() => store.currentStatus)
@@ -42,73 +52,184 @@ const topSpeedKmh = computed(() => {
 const supportsExternalCharge = computed(
   () => vehicleType.value === 'phev' || vehicleType.value === 'bev',
 )
+
+// Config table for the branches that render nothing but a plain <StatusCard>. Branches that
+// dispatch to a dedicated sub-component (doors, climate, hvBattery, etc.) stay in the
+// v-else-if chain below since they aren't simple StatusCard-only cases.
+const simpleCards = computed((): SimpleCardConfig[] => {
+  const s = status.value
+  if (!s) return []
+  return [
+    {
+      id: 'fuelLevel',
+      match: s.fuelLevelPercent !== null,
+      icon: 'gas-pump',
+      label: t('vehicle.fuel'),
+      value: s.fuelLevelPercent !== null ? Math.round(s.fuelLevelPercent) : null,
+      unit: '%',
+      variant:
+        s.fuelLevelPercent !== null
+          ? s.fuelLevelPercent < 15
+            ? 'danger'
+            : s.fuelLevelPercent < 30
+              ? 'warning'
+              : 'success'
+          : undefined,
+    },
+    {
+      id: 'fuelRange',
+      match: s.fuelRangeKm !== null,
+      icon: 'road',
+      label: t('vehicle.range'),
+      value: s.fuelRangeKm !== null ? Math.round(s.fuelRangeKm) : null,
+      unit: t('common.km'),
+    },
+    {
+      id: 'evBattery',
+      match: s.evSocPercent !== null,
+      icon: 'bolt',
+      label: t('vehicle.evSoc'),
+      value: s.evSocPercent !== null ? Math.round(s.evSocPercent) : null,
+      unit: '%',
+      variant:
+        s.evSocPercent !== null
+          ? s.evSocPercent < 20
+            ? 'danger'
+            : s.evSocPercent < 50
+              ? 'warning'
+              : 'success'
+          : undefined,
+    },
+    {
+      id: 'charging',
+      match: s.isCharging !== null,
+      icon: 'plug',
+      label: t('vehicle.charging'),
+      value: s.isCharging ? t('vehicle.chargingYes') : t('vehicle.chargingNo'),
+      variant: s.isCharging ? 'info' : undefined,
+    },
+    {
+      id: 'odometer',
+      match: true,
+      icon: 'gauge',
+      label: t('vehicle.odometer'),
+      value: s.odometerKm !== null ? Math.round(s.odometerKm).toLocaleString() : null,
+      unit: t('common.km'),
+    },
+    {
+      id: 'battery12v',
+      match: true,
+      icon: 'battery-three-quarters',
+      label: t('vehicle.battery'),
+      value: s.batteryVoltage !== null ? s.batteryVoltage.toFixed(1) : null,
+      unit: 'V',
+      variant: s.batteryVoltage !== null && s.batteryVoltage < 12 ? 'danger' : 'success',
+    },
+    {
+      id: 'sunRoof',
+      match: s.sunRoofOpen !== null,
+      icon: 'sun',
+      label: t('settings.cards.sunRoof'),
+      value: s.sunRoofOpen ? t('common.open') : t('common.closed'),
+      variant: s.sunRoofOpen ? 'warning' : 'success',
+    },
+    {
+      id: 'efficiencyDistance',
+      match: s.mileageOfTheDay !== null,
+      icon: 'route',
+      label: t('vehicle.efficiency.todayDistance'),
+      value: s.mileageOfTheDay !== null ? s.mileageOfTheDay.toFixed(1) : null,
+      unit: t('common.km'),
+    },
+    {
+      id: 'efficiencyEnergy',
+      match: s.powerUsageOfDay !== null,
+      icon: 'plug-circle-bolt',
+      label: t('vehicle.efficiency.todayEnergy'),
+      value: s.powerUsageOfDay !== null ? s.powerUsageOfDay.toFixed(0) : null,
+      unit: t('common.wh'),
+    },
+    {
+      id: 'efficiencyCharge',
+      match: s.mileageSinceLastCharge !== null && !isHev.value,
+      icon: 'battery-full',
+      label: t('vehicle.efficiency.sinceCharge'),
+      value: s.mileageSinceLastCharge !== null ? s.mileageSinceLastCharge.toFixed(1) : null,
+      unit: t('common.km'),
+    },
+    // efficiencyRatio - Wh/km when driving data is available
+    {
+      id: 'efficiencyRatio',
+      match: s.powerUsageOfDay !== null && s.mileageOfTheDay !== null && s.mileageOfTheDay > 0,
+      icon: 'leaf',
+      label: t('vehicle.efficiency.efficiency'),
+      value:
+        s.powerUsageOfDay !== null && s.mileageOfTheDay !== null
+          ? (s.powerUsageOfDay / s.mileageOfTheDay).toFixed(0)
+          : null,
+      unit: `${t('common.wh')}/${t('common.km')}`,
+    },
+    // efficiencyRatio - fuel economy estimate for HEV/PHEV from range computer
+    {
+      id: 'efficiencyRatio',
+      match:
+        (isHev.value || vehicleType.value === 'phev') &&
+        s.fuelRangeKm !== null &&
+        s.fuelLevelPercent !== null &&
+        s.fuelLevelPercent > 0,
+      icon: 'gas-pump',
+      label: t('vehicle.efficiency.fuelEconomy'),
+      value:
+        s.fuelRangeKm !== null && s.fuelLevelPercent !== null
+          ? (s.fuelRangeKm / (s.fuelLevelPercent / 100) / 100).toFixed(1)
+          : null,
+      unit: 'km/%',
+    },
+    {
+      id: 'speed',
+      match: s.speed !== null,
+      icon: 'gauge-high',
+      label: t('vehicle.speed'),
+      value: s.speed !== null ? Math.round(s.speed) : null,
+      unit: 'km/h',
+    },
+    {
+      id: 'remainingCharge',
+      match: s.remainingChargingTime !== null && supportsExternalCharge.value,
+      icon: 'clock',
+      label: t('vehicle.remainingCharge'),
+      value: s.remainingChargingTime,
+      unit: t('common.min'),
+      variant: 'info',
+    },
+    {
+      id: 'topSpeed',
+      match: topSpeedKmh.value !== null,
+      icon: 'gauge-high',
+      label: t('vehicle.topSpeed'),
+      value: topSpeedKmh.value,
+      unit: 'km/h',
+    },
+  ]
+})
+
+// At most one entry can match a given cardId (efficiencyRatio has two candidate entries,
+// so this preserves the original v-else-if "first match wins" semantics).
+const activeSimpleCard = computed(
+  () => simpleCards.value.find((c) => c.id === props.cardId && c.match) ?? null,
+)
 </script>
 
 <template>
   <template v-if="status">
-    <!-- fuelLevel -->
+    <!-- simple StatusCard-only cards, driven by the simpleCards config table -->
     <StatusCard
-      v-if="cardId === 'fuelLevel' && status.fuelLevelPercent !== null"
-      icon="gas-pump"
-      :label="t('vehicle.fuel')"
-      :value="Math.round(status.fuelLevelPercent)"
-      unit="%"
-      :variant="
-        status.fuelLevelPercent < 15
-          ? 'danger'
-          : status.fuelLevelPercent < 30
-            ? 'warning'
-            : 'success'
-      "
-    />
-
-    <!-- fuelRange -->
-    <StatusCard
-      v-else-if="cardId === 'fuelRange' && status.fuelRangeKm !== null"
-      icon="road"
-      :label="t('vehicle.range')"
-      :value="Math.round(status.fuelRangeKm)"
-      :unit="t('common.km')"
-    />
-
-    <!-- evBattery -->
-    <StatusCard
-      v-else-if="cardId === 'evBattery' && status.evSocPercent !== null"
-      icon="bolt"
-      :label="t('vehicle.evSoc')"
-      :value="Math.round(status.evSocPercent)"
-      unit="%"
-      :variant="
-        status.evSocPercent < 20 ? 'danger' : status.evSocPercent < 50 ? 'warning' : 'success'
-      "
-    />
-
-    <!-- charging -->
-    <StatusCard
-      v-else-if="cardId === 'charging' && status.isCharging !== null"
-      icon="plug"
-      :label="t('vehicle.charging')"
-      :value="status.isCharging ? t('vehicle.chargingYes') : t('vehicle.chargingNo')"
-      :variant="status.isCharging ? 'info' : undefined"
-    />
-
-    <!-- odometer -->
-    <StatusCard
-      v-else-if="cardId === 'odometer'"
-      icon="gauge"
-      :label="t('vehicle.odometer')"
-      :value="status.odometerKm !== null ? Math.round(status.odometerKm).toLocaleString() : null"
-      :unit="t('common.km')"
-    />
-
-    <!-- battery12v -->
-    <StatusCard
-      v-else-if="cardId === 'battery12v'"
-      icon="battery-three-quarters"
-      :label="t('vehicle.battery')"
-      :value="status.batteryVoltage !== null ? status.batteryVoltage.toFixed(1) : null"
-      unit="V"
-      :variant="status.batteryVoltage !== null && status.batteryVoltage < 12 ? 'danger' : 'success'"
+      v-if="activeSimpleCard"
+      :icon="activeSimpleCard.icon"
+      :label="activeSimpleCard.label"
+      :value="activeSimpleCard.value"
+      :unit="activeSimpleCard.unit"
+      :variant="activeSimpleCard.variant"
     />
 
     <!-- doors -->
@@ -131,15 +252,6 @@ const supportsExternalCharge = computed(
       :passenger-window-open="status.passengerWindowOpen"
       :rear-left-window-open="status.rearLeftWindowOpen"
       :rear-right-window-open="status.rearRightWindowOpen"
-    />
-
-    <!-- sunRoof -->
-    <StatusCard
-      v-else-if="cardId === 'sunRoof' && status.sunRoofOpen !== null"
-      icon="sun"
-      :label="t('settings.cards.sunRoof')"
-      :value="status.sunRoofOpen ? t('common.open') : t('common.closed')"
-      :variant="status.sunRoofOpen ? 'warning' : 'success'"
     />
 
     <!-- climate -->
@@ -184,71 +296,6 @@ const supportsExternalCharge = computed(
       :side="status.lightsSide"
     />
 
-    <!-- efficiencyDistance -->
-    <StatusCard
-      v-else-if="cardId === 'efficiencyDistance' && status.mileageOfTheDay !== null"
-      icon="route"
-      :label="t('vehicle.efficiency.todayDistance')"
-      :value="status.mileageOfTheDay.toFixed(1)"
-      :unit="t('common.km')"
-    />
-
-    <!-- efficiencyEnergy -->
-    <StatusCard
-      v-else-if="cardId === 'efficiencyEnergy' && status.powerUsageOfDay !== null"
-      icon="plug-circle-bolt"
-      :label="t('vehicle.efficiency.todayEnergy')"
-      :value="status.powerUsageOfDay.toFixed(0)"
-      :unit="t('common.wh')"
-    />
-
-    <!-- efficiencyCharge -->
-    <StatusCard
-      v-else-if="cardId === 'efficiencyCharge' && status.mileageSinceLastCharge !== null && !isHev"
-      icon="battery-full"
-      :label="t('vehicle.efficiency.sinceCharge')"
-      :value="status.mileageSinceLastCharge.toFixed(1)"
-      :unit="t('common.km')"
-    />
-
-    <!-- efficiencyRatio - Wh/km when driving data is available -->
-    <StatusCard
-      v-else-if="
-        cardId === 'efficiencyRatio' &&
-        status.powerUsageOfDay !== null &&
-        status.mileageOfTheDay !== null &&
-        status.mileageOfTheDay > 0
-      "
-      icon="leaf"
-      :label="t('vehicle.efficiency.efficiency')"
-      :value="(status.powerUsageOfDay / status.mileageOfTheDay).toFixed(0)"
-      :unit="`${t('common.wh')}/${t('common.km')}`"
-    />
-
-    <!-- efficiencyRatio - fuel economy estimate for HEV/PHEV from range computer -->
-    <StatusCard
-      v-else-if="
-        cardId === 'efficiencyRatio' &&
-        (isHev || vehicleType === 'phev') &&
-        status.fuelRangeKm !== null &&
-        status.fuelLevelPercent !== null &&
-        status.fuelLevelPercent > 0
-      "
-      icon="gas-pump"
-      :label="t('vehicle.efficiency.fuelEconomy')"
-      :value="(status.fuelRangeKm / (status.fuelLevelPercent / 100) / 100).toFixed(1)"
-      unit="km/%"
-    />
-
-    <!-- speed -->
-    <StatusCard
-      v-else-if="cardId === 'speed' && status.speed !== null"
-      icon="gauge-high"
-      :label="t('vehicle.speed')"
-      :value="Math.round(status.speed)"
-      unit="km/h"
-    />
-
     <!-- activeTrip -->
     <StatusCard
       v-else-if="cardId === 'activeTrip'"
@@ -283,20 +330,6 @@ const supportsExternalCharge = computed(
       @click="router.push({ name: 'map', query: { selectLatest: '1' } })"
     />
 
-    <!-- remainingCharge -->
-    <StatusCard
-      v-else-if="
-        cardId === 'remainingCharge' &&
-        status.remainingChargingTime !== null &&
-        supportsExternalCharge
-      "
-      icon="clock"
-      :label="t('vehicle.remainingCharge')"
-      :value="status.remainingChargingTime"
-      :unit="t('common.min')"
-      variant="info"
-    />
-
     <!-- chargingSession -->
     <ChargingSessionCard
       v-else-if="cardId === 'chargingSession' && supportsExternalCharge"
@@ -319,15 +352,6 @@ const supportsExternalCharge = computed(
       :battery-heating="status.batteryHeating"
       :schedule-mode="status.batteryHeatingScheduleMode"
       :schedule-start-time="status.batteryHeatingScheduleStartTime"
-    />
-
-    <!-- topSpeed -->
-    <StatusCard
-      v-else-if="cardId === 'topSpeed' && topSpeedKmh !== null"
-      icon="gauge-high"
-      :label="t('vehicle.topSpeed')"
-      :value="topSpeedKmh"
-      unit="km/h"
     />
   </template>
 </template>

@@ -8,7 +8,7 @@ public sealed class DemoVehicleRepository : IVehicleRepository
     public static readonly Vehicle DemoVehicle = new()
     {
         Id = 1,
-        Vin = "LSJXXXXXXXXXX12345",
+        Vin = "DEMOVIN0000012345",
         Model = "MG ZS EV",
         Series = "ZS EV",
         SaicUser = "demo@example.com",

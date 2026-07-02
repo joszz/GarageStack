@@ -43,31 +43,37 @@ function showNotification(title: string, body: string) {
   }
 }
 
+// Fires `notify` once when `issues` goes from empty to non-empty, then stays quiet until
+// `issues` is empty again, at which point it resets and can fire again on the next issue.
+function useStickyAlert<T>(notify: (issues: T[]) => void) {
+  const sent = ref(false)
+  return (issues: T[]) => {
+    if (issues.length > 0 && !sent.value) {
+      sent.value = true
+      notify(issues)
+    } else if (issues.length === 0) {
+      sent.value = false
+    }
+  }
+}
+
 export function useVehicleAlerts(status: Ref<TelemetrySnapshot | null>) {
-  const openAlertSent = ref(false)
-  const tyreAlertSent = ref(false)
+  const checkOpenAlert = useStickyAlert<string>((open) =>
+    showNotification('GarageStack', `Open while parked: ${open.join(', ')}`),
+  )
+  const checkTyreAlert = useStickyAlert<string>((tyreIssues) =>
+    showNotification('GarageStack', `Tyre pressure: ${tyreIssues.join(', ')}`),
+  )
 
   watch(status, (s) => {
     if (!s) return
 
     if (s.engineRunning === false) {
-      const open = getOpenItems(s)
-      if (open.length > 0 && !openAlertSent.value) {
-        openAlertSent.value = true
-        showNotification('GarageStack', `Open while parked: ${open.join(', ')}`)
-      } else if (open.length === 0) {
-        openAlertSent.value = false
-      }
+      checkOpenAlert(getOpenItems(s))
     } else if (s.engineRunning === true) {
-      openAlertSent.value = false
+      checkOpenAlert([])
     }
 
-    const tyreIssues = getTyrePressureAlerts(s)
-    if (tyreIssues.length > 0 && !tyreAlertSent.value) {
-      tyreAlertSent.value = true
-      showNotification('GarageStack', `Tyre pressure: ${tyreIssues.join(', ')}`)
-    } else if (tyreIssues.length === 0) {
-      tyreAlertSent.value = false
-    }
+    checkTyreAlert(getTyrePressureAlerts(s))
   })
 }

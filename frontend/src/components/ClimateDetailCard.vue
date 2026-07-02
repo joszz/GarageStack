@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import StatusCard from './StatusCard.vue'
 import DetailModal from './DetailModal.vue'
+import DetailListItem from './DetailListItem.vue'
 import { useModal } from '@/composables/useModal'
 import { useVehicleCommand } from '@/composables/useVehicleCommand'
 
@@ -247,20 +248,20 @@ function onSeatRightChange(e: Event) {
       </div>
 
       <!-- Interior temperature (read-only) -->
-      <div v-if="interiorTemperature !== null" class="detail-list__item">
-        <font-awesome-icon icon="thermometer-half" class="detail-list__item-icon" />
-        <span class="detail-list__item-value">{{ interiorTemperature.toFixed(1) }} °C</span>
-        <span class="detail-list__item-sep">-</span>
-        <span class="detail-list__item-label">{{ t('vehicle.temperature.interior') }}</span>
-      </div>
+      <DetailListItem
+        v-if="interiorTemperature !== null"
+        icon="thermometer-half"
+        :value="`${interiorTemperature.toFixed(1)} °C`"
+        :label="t('vehicle.temperature.interior')"
+      />
 
       <!-- Exterior temperature (read-only) -->
-      <div v-if="exteriorTemperature !== null" class="detail-list__item">
-        <font-awesome-icon icon="temperature-low" class="detail-list__item-icon" />
-        <span class="detail-list__item-value">{{ exteriorTemperature.toFixed(1) }} °C</span>
-        <span class="detail-list__item-sep">-</span>
-        <span class="detail-list__item-label">{{ t('vehicle.temperature.exterior') }}</span>
-      </div>
+      <DetailListItem
+        v-if="exteriorTemperature !== null"
+        icon="temperature-low"
+        :value="`${exteriorTemperature.toFixed(1)} °C`"
+        :label="t('vehicle.temperature.exterior')"
+      />
 
       <!-- Driver seat slider -->
       <div v-if="heatedSeatFrontLeft !== null" class="detail-list__item detail-list__item--range">

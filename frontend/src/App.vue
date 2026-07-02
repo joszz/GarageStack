@@ -2,7 +2,7 @@
 import { computed, ref, watch, onBeforeUnmount, defineAsyncComponent } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { useSettingsStore } from '@/stores/settings'
+import { useUiSettingsStore } from '@/stores/settingsUi'
 import { useAuthStore } from '@/stores/auth'
 import { useVehicleStore } from '@/stores/vehicle'
 import AppFooter from '@/components/AppFooter.vue'
@@ -14,6 +14,7 @@ const DemoControlPanel = defineAsyncComponent(() => import('@/components/DemoCon
 import { useNotifications, prependNotification } from '@/composables/useNotifications'
 import { useSignalR } from '@/composables/useSignalR'
 import { useFavicon } from '@/composables/useFavicon'
+import { useRelativeTime } from '@/composables/useRelativeTime'
 
 const isDemoMode = import.meta.env.VITE_DEMO_MODE === 'true'
 const demoControlsOpen = ref(false)
@@ -21,7 +22,7 @@ const demoControlsOpen = ref(false)
 const { t, locale } = useI18n()
 const route = useRoute()
 const router = useRouter()
-const settings = useSettingsStore()
+const settings = useUiSettingsStore()
 const auth = useAuthStore()
 const vehicleStore = useVehicleStore()
 const vehicleStatus = computed(() => vehicleStore.currentStatus)
@@ -38,16 +39,12 @@ const onlineStatusVariant = computed(() => {
   return s.isAvailable ? 'online' : 'offline'
 })
 
-function relativeTime(iso: string | null | undefined): string | undefined {
-  if (!iso) return undefined
-  const diffMs = Date.now() - new Date(iso).getTime()
-  const diffMin = Math.floor(diffMs / 60_000)
-  if (diffMin < 1) return t('notifications.justNow')
-  if (diffMin < 60) return t('notifications.minutesAgo', { n: diffMin })
-  return t('notifications.hoursAgo', { n: Math.floor(diffMin / 60) })
-}
+const { relativeTime } = useRelativeTime()
 
-const onlineStatusTime = computed(() => relativeTime(vehicleStatus.value?.lastVehicleStateAt))
+const onlineStatusTime = computed(() => {
+  const iso = vehicleStatus.value?.lastVehicleStateAt
+  return iso ? relativeTime(iso) : undefined
+})
 const {
   notifications,
   unreadCount,
