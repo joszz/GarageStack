@@ -114,6 +114,7 @@ const lastRecorded = computed(() => {
 
 const menuOpen = ref(false)
 const isLoginRoute = computed(() => route.name === 'login')
+const mainContent = ref<HTMLElement | null>(null)
 
 function toggleMenu() {
   menuOpen.value = !menuOpen.value
@@ -133,6 +134,7 @@ watch(
   () => route.path,
   () => {
     menuOpen.value = false
+    mainContent.value?.scrollTo({ top: 0 })
   },
 )
 watch(
@@ -281,7 +283,7 @@ watch(
         </div>
       </nav>
 
-      <main class="main-content">
+      <main ref="mainContent" class="main-content">
         <RouterView />
       </main>
     </div>

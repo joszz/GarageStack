@@ -26,6 +26,12 @@ const router = createRouter({
       component: () => import('@/views/MapView.vue'),
     },
   ],
+  scrollBehavior(to, from, savedPosition) {
+    if (savedPosition) {
+      return savedPosition
+    }
+    return { top: 0 }
+  },
 })
 
 router.beforeEach(async (to) => {
