@@ -30,6 +30,12 @@ public class MqttConsumerService(
     // Messages arriving within this window are merged into the same DB row so that
     // each row represents a complete poll rather than a single field, reducing row
     // count by ~9x and ensuring all chart fields land in the same sample.
+    //
+    // Unlike _engineRunningTracker, this dictionary is read, awaited on, then written back
+    // (see HandleMessageAsync), so a simple lock can't cover the whole critical section without
+    // blocking across an await. That's safe only because MQTTnet invokes
+    // ApplicationMessageReceivedAsync for one message at a time on this client; if that dispatch
+    // model ever changes, this needs an async-safe lock (e.g. SemaphoreSlim) around the read/await/write.
     private static readonly TimeSpan MergeWindow = TimeSpan.FromSeconds(15);
     internal readonly Dictionary<int, (long RowId, DateTime RecordedAt)> _mergeState = new();
 
