@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Text.Json;
 using GarageStack.Core.Interfaces;
 using GarageStack.Data;
@@ -13,6 +14,8 @@ namespace GarageStack.Worker.Services;
 
 public sealed class PushSenderService : IPushSender, IDisposable
 {
+    private const int MaxConcurrentDeliveries = 10;
+
     private readonly ILogger<PushSenderService> _logger;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly HttpClient _httpClient;
@@ -99,30 +102,42 @@ public sealed class PushSenderService : IPushSender, IDisposable
             .CountAsync(n => !n.IsArchived && !n.IsDeleted, ct);
         var payload = System.Text.Json.JsonSerializer.Serialize(new { title, body, icon = "/icons/icon-192.png", category, unreadCount = unreadCountForPayload });
         var message = new PushMessage(payload) { TimeToLive = 3600 };
-        var dead = new List<ModelPushSubscription>();
+        var dead = new ConcurrentBag<ModelPushSubscription>();
 
-        foreach (var sub in subscriptions)
+        // Deliver concurrently (bounded) so one slow/unreachable subscriber can't delay
+        // delivery to everyone else; a single push endpoint request can take several
+        // seconds if that push service is degraded.
+        using var throttle = new SemaphoreSlim(MaxConcurrentDeliveries);
+        await Task.WhenAll(subscriptions.Select(async sub =>
         {
-            var pushSub = new PushSubscription();
-            pushSub.Endpoint = sub.Endpoint;
-            pushSub.SetKey(PushEncryptionKeyName.P256DH, sub.P256DhKey);
-            pushSub.SetKey(PushEncryptionKeyName.Auth, sub.AuthKey);
-
+            await throttle.WaitAsync(ct);
             try
             {
-                await _pushClient.RequestPushMessageDeliveryAsync(pushSub, message, ct);
+                var pushSub = new PushSubscription();
+                pushSub.Endpoint = sub.Endpoint;
+                pushSub.SetKey(PushEncryptionKeyName.P256DH, sub.P256DhKey);
+                pushSub.SetKey(PushEncryptionKeyName.Auth, sub.AuthKey);
+
+                try
+                {
+                    await _pushClient.RequestPushMessageDeliveryAsync(pushSub, message, ct);
+                }
+                catch (PushServiceClientException ex) when (
+                    ex.StatusCode == System.Net.HttpStatusCode.Gone ||
+                    ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    dead.Add(sub);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to send push to {Endpoint}", sub.Endpoint);
+                }
             }
-            catch (PushServiceClientException ex) when (
-                ex.StatusCode == System.Net.HttpStatusCode.Gone ||
-                ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+            finally
             {
-                dead.Add(sub);
+                throttle.Release();
             }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to send push to {Endpoint}", sub.Endpoint);
-            }
-        }
+        }));
 
         if (dead.Count > 0)
         {

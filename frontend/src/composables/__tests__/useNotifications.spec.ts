@@ -9,7 +9,9 @@ vi.mock('@/services/notificationsApi', () => ({
   notificationsApi: {
     list: vi.fn<() => Promise<AppNotification[]>>(),
     archive: vi.fn<(id: number) => Promise<void>>(),
+    archiveAll: vi.fn<() => Promise<void>>(),
     delete: vi.fn<(id: number) => Promise<void>>(),
+    deleteAll: vi.fn<() => Promise<void>>(),
   },
 }))
 
@@ -44,7 +46,9 @@ describe('useNotifications', () => {
     setActivePinia(createPinia())
     vi.mocked(notificationsApi.list).mockReset()
     vi.mocked(notificationsApi.archive).mockReset()
+    vi.mocked(notificationsApi.archiveAll).mockReset()
     vi.mocked(notificationsApi.delete).mockReset()
+    vi.mocked(notificationsApi.deleteAll).mockReset()
   })
 
   afterEach(() => {
@@ -210,6 +214,63 @@ describe('useNotifications', () => {
     await deleteNotification(9)
 
     expect(vi.mocked(notificationsApi.delete)).toHaveBeenCalledWith(9)
+  })
+
+  it('archiveNotification() sets actionError and leaves the item unarchived when the API throws', async () => {
+    const item = makeNotification({ id: 5, isArchived: false })
+    vi.mocked(notificationsApi.list).mockResolvedValue([item])
+    vi.mocked(notificationsApi.archive).mockRejectedValue(new Error('Network error'))
+
+    const { useNotifications } = await import('@/composables/useNotifications')
+    const { fetchNotifications, archiveNotification, notifications, actionError } =
+      useNotifications()
+    await fetchNotifications()
+    await archiveNotification(5)
+
+    expect(actionError.value).toBe('Network error')
+    expect(notifications.value.find((n) => n.id === 5)?.isArchived).toBe(false)
+  })
+
+  it('deleteNotification() sets actionError and keeps the item when the API throws', async () => {
+    vi.mocked(notificationsApi.list).mockResolvedValue([makeNotification({ id: 9 })])
+    vi.mocked(notificationsApi.delete).mockRejectedValue(new Error('Network error'))
+
+    const { useNotifications } = await import('@/composables/useNotifications')
+    const { fetchNotifications, deleteNotification, notifications, actionError } =
+      useNotifications()
+    await fetchNotifications()
+    await deleteNotification(9)
+
+    expect(actionError.value).toBe('Network error')
+    expect(notifications.value).toHaveLength(1)
+  })
+
+  it('archiveAllNotifications() sets actionError when the API throws', async () => {
+    vi.mocked(notificationsApi.list).mockResolvedValue([makeNotification({ id: 1 })])
+    vi.mocked(notificationsApi.archiveAll).mockRejectedValue(new Error('Network error'))
+
+    const { useNotifications } = await import('@/composables/useNotifications')
+    const { fetchNotifications, archiveAllNotifications, notifications, actionError } =
+      useNotifications()
+    await fetchNotifications()
+    await archiveAllNotifications()
+
+    expect(actionError.value).toBe('Network error')
+    expect(notifications.value[0]?.isArchived).toBe(false)
+  })
+
+  it('deleteAllNotifications() sets actionError when the API throws', async () => {
+    vi.mocked(notificationsApi.list).mockResolvedValue([makeNotification({ id: 1 })])
+    vi.mocked(notificationsApi.deleteAll).mockRejectedValue(new Error('Network error'))
+
+    const { useNotifications } = await import('@/composables/useNotifications')
+    const { fetchNotifications, deleteAllNotifications, notifications, actionError } =
+      useNotifications()
+    await fetchNotifications()
+    await deleteAllNotifications()
+
+    expect(actionError.value).toBe('Network error')
+    expect(notifications.value).toHaveLength(1)
   })
 
   it('togglePanel() opens a closed panel', async () => {
