@@ -3,7 +3,10 @@
 # ── Stage 1: Build frontend ───────────────────────────────────────────────────
 FROM node:24-alpine AS frontend-build
 WORKDIR /app
-RUN apk upgrade --no-cache && corepack enable && corepack prepare pnpm@11.1.3 --activate
+# OS_PATCH_DATE busts the layer cache so apk upgrade actually re-runs instead of
+# reusing a stale cached layer from before an OS package fix was published.
+ARG OS_PATCH_DATE=0
+RUN echo "os patch date: ${OS_PATCH_DATE}" && apk upgrade --no-cache && corepack enable && corepack prepare pnpm@11.1.3 --activate
 COPY frontend/package.json frontend/pnpm-lock.yaml frontend/pnpm-workspace.yaml ./
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
     pnpm config set store-dir /pnpm/store && \
@@ -47,12 +50,17 @@ FROM python:3.14-slim
 
 ARG DEBIAN_FRONTEND=noninteractive
 
+# OS_PATCH_DATE busts the layer cache so apt-get upgrade actually re-runs instead of
+# reusing a stale cached layer from before an OS package fix was published.
+ARG OS_PATCH_DATE=0
+
 # bash          -- required by entrypoint.sh and dotnet-install.sh (slim images ship dash only)
 # libgssapi-krb5-2 -- required by the .NET runtime
 # libicu-dev    -- required by .NET globalization (UseRequestLocalization uses CultureInfo)
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
-    apt-get update \
+    echo "os patch date: ${OS_PATCH_DATE}" \
+    && apt-get update \
     && apt-get upgrade -y --no-install-recommends \
     && apt-get install -y --no-install-recommends \
         bash curl gnupg ca-certificates gosu supervisor \
