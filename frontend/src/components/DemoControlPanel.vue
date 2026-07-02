@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { demoApi } from '@/services/demoApi'
 import { useVehicleStore } from '@/stores/vehicle'
+import type { TelemetrySnapshot } from '@/services/vehicleApi'
 
 const props = defineProps<{ open: boolean }>()
 
@@ -11,6 +12,42 @@ const vehicleStore = useVehicleStore()
 
 const vin = computed(() => vehicleStore.vehicles[0]?.vin ?? null)
 const status = computed(() => vehicleStore.currentStatus)
+
+interface ToggleButtonConfig {
+  field: keyof TelemetrySnapshot
+  label: string
+}
+
+const doorToggles: ToggleButtonConfig[] = [
+  { field: 'driverDoorOpen', label: 'demo.driver' },
+  { field: 'passengerDoorOpen', label: 'demo.passenger' },
+  { field: 'rearLeftDoorOpen', label: 'demo.rearLeft' },
+  { field: 'rearRightDoorOpen', label: 'demo.rearRight' },
+  { field: 'trunkOpen', label: 'demo.trunk' },
+  { field: 'bonnetOpen', label: 'demo.bonnet' },
+]
+
+const windowToggles: ToggleButtonConfig[] = [
+  { field: 'driverWindowOpen', label: 'demo.driver' },
+  { field: 'passengerWindowOpen', label: 'demo.passenger' },
+  { field: 'rearLeftWindowOpen', label: 'demo.rearLeft' },
+  { field: 'rearRightWindowOpen', label: 'demo.rearRight' },
+]
+
+const stateToggles: ToggleButtonConfig[] = [
+  { field: 'isLocked', label: 'demo.locked' },
+  { field: 'engineRunning', label: 'demo.engine' },
+  { field: 'climateOn', label: 'demo.climate' },
+]
+
+const chargingToggles: ToggleButtonConfig[] = [
+  { field: 'chargerConnected', label: 'demo.chargerConnected' },
+  { field: 'isCharging', label: 'demo.isCharging' },
+]
+
+function statusBool(field: keyof TelemetrySnapshot): boolean {
+  return bool(status.value?.[field] as boolean | null | undefined)
+}
 
 const socValue = ref<number>(78)
 const speedValue = ref<number>(0)
@@ -70,46 +107,13 @@ async function setLights(mode: 'off' | 'side' | 'dipped' | 'main') {
         <div class="demo-panel-section-label">{{ t('demo.doors') }}</div>
         <div class="demo-panel-toggles">
           <button
+            v-for="btn in doorToggles"
+            :key="btn.field"
             class="demo-toggle-btn"
-            :class="{ 'is-active': bool(status?.driverDoorOpen) }"
-            @click="toggle('driverDoorOpen', status?.driverDoorOpen)"
+            :class="{ 'is-active': statusBool(btn.field) }"
+            @click="toggle(btn.field, status?.[btn.field] as boolean | null | undefined)"
           >
-            {{ t('demo.driver') }}
-          </button>
-          <button
-            class="demo-toggle-btn"
-            :class="{ 'is-active': bool(status?.passengerDoorOpen) }"
-            @click="toggle('passengerDoorOpen', status?.passengerDoorOpen)"
-          >
-            {{ t('demo.passenger') }}
-          </button>
-          <button
-            class="demo-toggle-btn"
-            :class="{ 'is-active': bool(status?.rearLeftDoorOpen) }"
-            @click="toggle('rearLeftDoorOpen', status?.rearLeftDoorOpen)"
-          >
-            {{ t('demo.rearLeft') }}
-          </button>
-          <button
-            class="demo-toggle-btn"
-            :class="{ 'is-active': bool(status?.rearRightDoorOpen) }"
-            @click="toggle('rearRightDoorOpen', status?.rearRightDoorOpen)"
-          >
-            {{ t('demo.rearRight') }}
-          </button>
-          <button
-            class="demo-toggle-btn"
-            :class="{ 'is-active': bool(status?.trunkOpen) }"
-            @click="toggle('trunkOpen', status?.trunkOpen)"
-          >
-            {{ t('demo.trunk') }}
-          </button>
-          <button
-            class="demo-toggle-btn"
-            :class="{ 'is-active': bool(status?.bonnetOpen) }"
-            @click="toggle('bonnetOpen', status?.bonnetOpen)"
-          >
-            {{ t('demo.bonnet') }}
+            {{ t(btn.label) }}
           </button>
         </div>
       </div>
@@ -118,32 +122,13 @@ async function setLights(mode: 'off' | 'side' | 'dipped' | 'main') {
         <div class="demo-panel-section-label">{{ t('demo.windows') }}</div>
         <div class="demo-panel-toggles">
           <button
+            v-for="btn in windowToggles"
+            :key="btn.field"
             class="demo-toggle-btn"
-            :class="{ 'is-active': bool(status?.driverWindowOpen) }"
-            @click="toggle('driverWindowOpen', status?.driverWindowOpen)"
+            :class="{ 'is-active': statusBool(btn.field) }"
+            @click="toggle(btn.field, status?.[btn.field] as boolean | null | undefined)"
           >
-            {{ t('demo.driver') }}
-          </button>
-          <button
-            class="demo-toggle-btn"
-            :class="{ 'is-active': bool(status?.passengerWindowOpen) }"
-            @click="toggle('passengerWindowOpen', status?.passengerWindowOpen)"
-          >
-            {{ t('demo.passenger') }}
-          </button>
-          <button
-            class="demo-toggle-btn"
-            :class="{ 'is-active': bool(status?.rearLeftWindowOpen) }"
-            @click="toggle('rearLeftWindowOpen', status?.rearLeftWindowOpen)"
-          >
-            {{ t('demo.rearLeft') }}
-          </button>
-          <button
-            class="demo-toggle-btn"
-            :class="{ 'is-active': bool(status?.rearRightWindowOpen) }"
-            @click="toggle('rearRightWindowOpen', status?.rearRightWindowOpen)"
-          >
-            {{ t('demo.rearRight') }}
+            {{ t(btn.label) }}
           </button>
         </div>
       </div>
@@ -186,25 +171,13 @@ async function setLights(mode: 'off' | 'side' | 'dipped' | 'main') {
         <div class="demo-panel-section-label">{{ t('demo.state') }}</div>
         <div class="demo-panel-toggles">
           <button
+            v-for="btn in stateToggles"
+            :key="btn.field"
             class="demo-toggle-btn"
-            :class="{ 'is-active': bool(status?.isLocked) }"
-            @click="toggle('isLocked', status?.isLocked)"
+            :class="{ 'is-active': statusBool(btn.field) }"
+            @click="toggle(btn.field, status?.[btn.field] as boolean | null | undefined)"
           >
-            {{ t('demo.locked') }}
-          </button>
-          <button
-            class="demo-toggle-btn"
-            :class="{ 'is-active': bool(status?.engineRunning) }"
-            @click="toggle('engineRunning', status?.engineRunning)"
-          >
-            {{ t('demo.engine') }}
-          </button>
-          <button
-            class="demo-toggle-btn"
-            :class="{ 'is-active': bool(status?.climateOn) }"
-            @click="toggle('climateOn', status?.climateOn)"
-          >
-            {{ t('demo.climate') }}
+            {{ t(btn.label) }}
           </button>
         </div>
       </div>
@@ -213,18 +186,13 @@ async function setLights(mode: 'off' | 'side' | 'dipped' | 'main') {
         <div class="demo-panel-section-label">{{ t('demo.charging') }}</div>
         <div class="demo-panel-toggles">
           <button
+            v-for="btn in chargingToggles"
+            :key="btn.field"
             class="demo-toggle-btn"
-            :class="{ 'is-active': bool(status?.chargerConnected) }"
-            @click="toggle('chargerConnected', status?.chargerConnected)"
+            :class="{ 'is-active': statusBool(btn.field) }"
+            @click="toggle(btn.field, status?.[btn.field] as boolean | null | undefined)"
           >
-            {{ t('demo.chargerConnected') }}
-          </button>
-          <button
-            class="demo-toggle-btn"
-            :class="{ 'is-active': bool(status?.isCharging) }"
-            @click="toggle('isCharging', status?.isCharging)"
-          >
-            {{ t('demo.isCharging') }}
+            {{ t(btn.label) }}
           </button>
         </div>
       </div>

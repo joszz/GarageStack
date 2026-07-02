@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import StatusCard from './StatusCard.vue'
 import DetailModal from './DetailModal.vue'
+import DetailListItem from './DetailListItem.vue'
 import { useModal } from '@/composables/useModal'
 import { useVehicleCommand } from '@/composables/useVehicleCommand'
 
@@ -72,58 +73,61 @@ function setChargeLimit(value: string) {
 
   <DetailModal :open="modalOpen" :title="t('vehicle.hvBattery.title')" @close="closeModal">
     <div class="detail-list">
-      <div v-if="hvSocKwh !== null" class="detail-list__item">
-        <font-awesome-icon icon="bolt" class="detail-list__item-icon" />
-        <span class="detail-list__item-value">{{ hvSocKwh.toFixed(1) }} kWh</span>
-        <span class="detail-list__item-sep">-</span>
-        <span class="detail-list__item-label">{{ t('vehicle.hvBattery.socKwh') }}</span>
-      </div>
-      <div v-if="hvTotalCapacityKwh !== null" class="detail-list__item">
-        <font-awesome-icon icon="database" class="detail-list__item-icon" />
-        <span class="detail-list__item-value">{{ hvTotalCapacityKwh.toFixed(1) }} kWh</span>
-        <span class="detail-list__item-sep">-</span>
-        <span class="detail-list__item-label">{{ t('vehicle.hvBattery.capacity') }}</span>
-      </div>
-      <div v-if="socPercent !== null" class="detail-list__item">
-        <font-awesome-icon icon="percent" class="detail-list__item-icon" />
-        <span class="detail-list__item-value">{{ socPercent }}%</span>
-        <span class="detail-list__item-sep">-</span>
-        <span class="detail-list__item-label">{{ t('vehicle.hvBattery.soc') }}</span>
-      </div>
-      <div v-if="hvVoltage !== null" class="detail-list__item">
-        <font-awesome-icon icon="plug" class="detail-list__item-icon" />
-        <span class="detail-list__item-value">{{ hvVoltage.toFixed(0) }} V</span>
-        <span class="detail-list__item-sep">-</span>
-        <span class="detail-list__item-label">{{ t('vehicle.hvBattery.voltage') }}</span>
-      </div>
-      <div v-if="hvCurrent !== null" class="detail-list__item">
-        <font-awesome-icon icon="wave-square" class="detail-list__item-icon" />
-        <span class="detail-list__item-value">{{ hvCurrent.toFixed(1) }} A</span>
-        <span class="detail-list__item-sep">-</span>
-        <span class="detail-list__item-label">{{ t('vehicle.hvBattery.current') }}</span>
-      </div>
-      <div v-if="hvPower !== null" class="detail-list__item">
-        <font-awesome-icon icon="bolt-lightning" class="detail-list__item-icon" />
-        <span class="detail-list__item-value">{{ hvPower.toFixed(1) }} kW</span>
-        <span class="detail-list__item-sep">-</span>
-        <span class="detail-list__item-label">{{ t('vehicle.hvBattery.power') }}</span>
-      </div>
-      <div v-if="powerUsageSinceLastCharge !== null" class="detail-list__item">
-        <font-awesome-icon icon="chart-line" class="detail-list__item-icon" />
-        <span class="detail-list__item-value">{{ powerUsageSinceLastCharge.toFixed(1) }} kWh</span>
-        <span class="detail-list__item-sep">-</span>
-        <span class="detail-list__item-label">{{ t('vehicle.hvBattery.usedSinceCharge') }}</span>
-      </div>
-      <div v-if="chargerConnected !== null" class="detail-list__item">
-        <font-awesome-icon icon="plug-circle-check" class="detail-list__item-icon" />
-        <span class="badge" :class="chargerConnected ? 'badge-info' : 'badge-secondary'">
-          {{
-            chargerConnected ? t('vehicle.hvBattery.pluggedIn') : t('vehicle.hvBattery.unplugged')
-          }}
-        </span>
-        <span class="detail-list__item-sep">-</span>
-        <span class="detail-list__item-label">{{ t('vehicle.hvBattery.charger') }}</span>
-      </div>
+      <DetailListItem
+        v-if="hvSocKwh !== null"
+        icon="bolt"
+        :value="`${hvSocKwh.toFixed(1)} kWh`"
+        :label="t('vehicle.hvBattery.socKwh')"
+      />
+      <DetailListItem
+        v-if="hvTotalCapacityKwh !== null"
+        icon="database"
+        :value="`${hvTotalCapacityKwh.toFixed(1)} kWh`"
+        :label="t('vehicle.hvBattery.capacity')"
+      />
+      <DetailListItem
+        v-if="socPercent !== null"
+        icon="percent"
+        :value="`${socPercent}%`"
+        :label="t('vehicle.hvBattery.soc')"
+      />
+      <DetailListItem
+        v-if="hvVoltage !== null"
+        icon="plug"
+        :value="`${hvVoltage.toFixed(0)} V`"
+        :label="t('vehicle.hvBattery.voltage')"
+      />
+      <DetailListItem
+        v-if="hvCurrent !== null"
+        icon="wave-square"
+        :value="`${hvCurrent.toFixed(1)} A`"
+        :label="t('vehicle.hvBattery.current')"
+      />
+      <DetailListItem
+        v-if="hvPower !== null"
+        icon="bolt-lightning"
+        :value="`${hvPower.toFixed(1)} kW`"
+        :label="t('vehicle.hvBattery.power')"
+      />
+      <DetailListItem
+        v-if="powerUsageSinceLastCharge !== null"
+        icon="chart-line"
+        :value="`${powerUsageSinceLastCharge.toFixed(1)} kWh`"
+        :label="t('vehicle.hvBattery.usedSinceCharge')"
+      />
+      <DetailListItem
+        v-if="chargerConnected !== null"
+        icon="plug-circle-check"
+        :label="t('vehicle.hvBattery.charger')"
+      >
+        <template #value>
+          <span class="badge" :class="chargerConnected ? 'badge-info' : 'badge-secondary'">
+            {{
+              chargerConnected ? t('vehicle.hvBattery.pluggedIn') : t('vehicle.hvBattery.unplugged')
+            }}
+          </span>
+        </template>
+      </DetailListItem>
     </div>
 
     <!-- Charge current limit - PHEV/BEV only -->

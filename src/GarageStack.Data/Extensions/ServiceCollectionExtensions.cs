@@ -16,6 +16,7 @@ public static class ServiceCollectionExtensions
             opts.UseNpgsql(connectionString)
                 .ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning)));
 
+        services.AddMemoryCache();
         services.AddScoped<IVehicleRepository, VehicleRepository>();
         services.AddScoped<ITelemetryRepository, TelemetryRepository>();
         services.AddScoped<IPoiRepository, PoiRepository>();
@@ -30,6 +31,7 @@ public static class ServiceCollectionExtensions
         services.AddDbContext<AppDbContext>(opts =>
             opts.UseInMemoryDatabase("garagestack-demo"));
 
+        services.AddMemoryCache();
         services.AddScoped<IVehicleRepository, DemoVehicleRepository>();
         services.AddSingleton<ITelemetryRepository, DemoTelemetryRepository>();
         services.AddSingleton<IPushSender, DemoPushSender>();

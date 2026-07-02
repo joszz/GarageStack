@@ -14,7 +14,7 @@ public static class VehicleTypeHelper
             var hw = (cfg?.GetValueOrDefault("hw_version") ?? "").ToUpperInvariant();
             if (hw.Contains("PHEV")) return "phev";
             if (hw.Contains("HEV")) return "hev";
-            if (hw.Contains("BEV") || hw.Contains("EV")) return "bev";
+            if (hw.Contains("EV")) return "bev";
         }
         catch { }
         return "unknown";

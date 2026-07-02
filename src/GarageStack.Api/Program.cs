@@ -127,7 +127,7 @@ try
                             return Task.CompletedTask;
                         }
                     }
-                    if (ctx.Request.Cookies.TryGetValue("garagestack-auth", out var cookie))
+                    if (ctx.Request.Cookies.TryGetValue(AuthEndpoints.CookieName, out var cookie))
                         ctx.Token = cookie;
                     return Task.CompletedTask;
                 },

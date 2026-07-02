@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed, nextTick } from 'vue'
+import type { Ref } from 'vue'
 import { vehicleApi, type Vehicle, type TelemetrySnapshot, type Trip } from '@/services/vehicleApi'
 
 export type VehicleType = 'hev' | 'phev' | 'bev' | 'unknown'
@@ -14,37 +15,45 @@ export const useVehicleStore = defineStore('vehicle', () => {
   const loading = computed(() => loadingCount.value > 0)
   const sendingCount = ref(0)
   const anySending = computed(() => sendingCount.value > 0)
-  const error = ref<string | null>(null)
+  // Each fetch action gets its own error ref so concurrent calls (e.g. Promise.all on
+  // mount) can't have one action's success silently overwrite another action's error.
+  const vehiclesError = ref<string | null>(null)
+  const statusError = ref<string | null>(null)
+  const historyError = ref<string | null>(null)
+  const tripsError = ref<string | null>(null)
   const lastUpdated = ref<Date | null>(null)
 
   // Reactive one-shot flags set for a single tick when specific state transitions occur.
   const tripJustCompleted = ref(false)
   const chargingJustCompleted = ref(false)
 
-  async function fetchVehicles() {
+  async function withLoading(errorRef: Ref<string | null>, fn: () => Promise<void>) {
     loadingCount.value++
-    error.value = null
+    errorRef.value = null
     try {
-      const result = await vehicleApi.list()
-      vehicles.value = result
+      await fn()
     } catch (e) {
-      error.value = String(e)
+      errorRef.value = String(e)
     } finally {
       loadingCount.value--
     }
   }
 
+  // The vehicle list rarely changes during a session, so every view (Dashboard, Map, Statistics)
+  // calling fetchVehicles() on mount would otherwise re-fetch it on every navigation. Skip the
+  // request once it's already populated unless the caller explicitly asks for a fresh copy.
+  async function fetchVehicles(force = false) {
+    if (!force && vehicles.value.length > 0) return
+    await withLoading(vehiclesError, async () => {
+      vehicles.value = await vehicleApi.list()
+    })
+  }
+
   async function fetchStatus(vin: string) {
-    loadingCount.value++
-    error.value = null
-    try {
+    await withLoading(statusError, async () => {
       currentStatus.value = await vehicleApi.status(vin)
       lastUpdated.value = new Date()
-    } catch (e) {
-      error.value = String(e)
-    } finally {
-      loadingCount.value--
-    }
+    })
   }
 
   async function fetchConfig(vin: string) {
@@ -56,16 +65,9 @@ export const useVehicleStore = defineStore('vehicle', () => {
   }
 
   async function fetchHistory(vin: string, from?: string, to?: string) {
-    loadingCount.value++
-    error.value = null
-    try {
-      const result = await vehicleApi.history(vin, from, to)
-      history.value = result
-    } catch (e) {
-      error.value = String(e)
-    } finally {
-      loadingCount.value--
-    }
+    await withLoading(historyError, async () => {
+      history.value = await vehicleApi.history(vin, from, to)
+    })
   }
 
   function applyLiveStatus(snapshot: TelemetrySnapshot) {
@@ -95,15 +97,9 @@ export const useVehicleStore = defineStore('vehicle', () => {
   }
 
   async function fetchTrips(vin: string, from?: string, to?: string) {
-    loadingCount.value++
-    error.value = null
-    try {
+    await withLoading(tripsError, async () => {
       trips.value = await vehicleApi.trips(vin, from, to)
-    } catch (e) {
-      error.value = String(e)
-    } finally {
-      loadingCount.value--
-    }
+    })
   }
 
   // Derived from hw_version in vehicleConfig, set by HA discovery MQTT messages
@@ -126,7 +122,10 @@ export const useVehicleStore = defineStore('vehicle', () => {
     loading,
     anySending,
     sendingCount,
-    error,
+    vehiclesError,
+    statusError,
+    historyError,
+    tripsError,
     lastUpdated,
     tripJustCompleted,
     chargingJustCompleted,

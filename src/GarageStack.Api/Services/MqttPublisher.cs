@@ -43,9 +43,12 @@ public class MqttPublisher(IConfiguration config, ILogger<MqttPublisher> logger)
 
     public async Task PublishAsync(string topic, string payload, CancellationToken ct = default)
     {
-        if (_client is null || !_client.IsConnected)
+        if (_client is null || _options is null)
+            throw new InvalidOperationException("MQTT broker not reachable");
+
+        if (!_client.IsConnected)
         {
-            try { await _client!.ConnectAsync(_options!, ct); }
+            try { await _client.ConnectAsync(_options, ct); }
             catch (Exception ex)
             {
                 logger.LogError(ex, "MQTT publisher reconnect failed");

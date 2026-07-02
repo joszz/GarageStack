@@ -3,9 +3,10 @@ import '@/assets/statistics.css'
 import { onMounted, computed, ref, watch, shallowRef, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useVehicleStore } from '@/stores/vehicle'
-import { useSettingsStore } from '@/stores/settings'
-import { defaultStatsInsights, defaultStatsCharts } from '@/stores/settings'
-import type { StatsInsightId, StatsChartId } from '@/stores/settings'
+import { useDashboardSettingsStore } from '@/stores/settingsDashboard'
+import { useUiSettingsStore } from '@/stores/settingsUi'
+import { defaultStatsInsights, defaultStatsCharts } from '@/stores/settingsShared'
+import type { StatsInsightId, StatsChartId } from '@/stores/settingsShared'
 import { vehicleApi } from '@/services/vehicleApi'
 import type { TelemetrySnapshot, VehicleAggregateStats } from '@/services/vehicleApi'
 import { Line, Bar } from 'vue-chartjs'
@@ -51,16 +52,17 @@ const L = ((LModule as unknown as { default?: typeof LModule }).default ??
 
 const { t } = useI18n()
 const store = useVehicleStore()
-const settings = useSettingsStore()
+const settings = useDashboardSettingsStore()
+const uiSettings = useUiSettingsStore()
 
 const editMode = ref(false)
 const loading = ref(false)
 const aggregateStats = ref<VehicleAggregateStats | null>(null)
 
 const days = computed({
-  get: () => settings.filterDays,
+  get: () => uiSettings.filterDays,
   set: (v: number) => {
-    settings.filterDays = v
+    uiSettings.filterDays = v
   },
 })
 
@@ -93,7 +95,7 @@ async function load() {
 }
 
 onMounted(load)
-watch(() => settings.filterDays, load)
+watch(() => uiSettings.filterDays, load)
 
 // Trip just finished: refresh stats and trip list silently
 watch(
@@ -104,7 +106,7 @@ watch(
 )
 
 const effectiveVehicleType = computed(() => {
-  if (settings.vehicleTypeOverride !== 'auto') return settings.vehicleTypeOverride
+  if (uiSettings.vehicleTypeOverride !== 'auto') return uiSettings.vehicleTypeOverride
   return store.detectedVehicleType
 })
 
@@ -186,9 +188,7 @@ const groupedHistory = computed(() => {
   }))
 })
 
-function chartLabels() {
-  return groupedHistory.value.map((d) => d.label)
-}
+const chartLabels = computed(() => groupedHistory.value.map((d) => d.label))
 
 // ── Insight computed values ───────────────────────────────────
 
@@ -222,14 +222,24 @@ const peakDriveHour = computed(() => {
   return `${String(bestHour).padStart(2, '0')}:00`
 })
 
-const parkingLocations = computed(() => {
-  if (!store.trips.length) return null
-  const spots = new Set<string>()
+// Deduplicated by 3-decimal lat/lng so repeat visits to the same spot count once. Shared with
+// the parking-locations modal below - parkingLocations is just this list's count.
+const parkingCoordinates = computed<Array<{ lat: number; lng: number }>>(() => {
+  if (!store.trips.length) return []
+  const spots = new Map<string, { lat: number; lng: number }>()
   for (const trip of store.trips) {
     const last = trip.points[trip.points.length - 1]
-    if (last) spots.add(`${last.latitude.toFixed(3)},${last.longitude.toFixed(3)}`)
+    if (last) {
+      const key = `${last.latitude.toFixed(3)},${last.longitude.toFixed(3)}`
+      if (!spots.has(key)) spots.set(key, { lat: last.latitude, lng: last.longitude })
+    }
   }
-  return spots.size
+  return Array.from(spots.values())
+})
+
+const parkingLocations = computed(() => {
+  if (!store.trips.length) return null
+  return parkingCoordinates.value.length
 })
 
 const batteryVoltageTrend = computed(() => {
@@ -272,19 +282,6 @@ const activeChartInfo = ref<StatsChartId | null>(null)
 
 const parkingModalOpen = ref(false)
 const parkingMapInstance = shallowRef<LeafletMap | null>(null)
-
-const parkingCoordinates = computed<Array<{ lat: number; lng: number }>>(() => {
-  if (!store.trips.length) return []
-  const spots = new Map<string, { lat: number; lng: number }>()
-  for (const trip of store.trips) {
-    const last = trip.points[trip.points.length - 1]
-    if (last) {
-      const key = `${last.latitude.toFixed(3)},${last.longitude.toFixed(3)}`
-      if (!spots.has(key)) spots.set(key, { lat: last.latitude, lng: last.longitude })
-    }
-  }
-  return Array.from(spots.values())
-})
 
 const parkingMapCenter = computed<[number, number]>(() =>
   parkingCoordinates.value.length
@@ -397,7 +394,7 @@ const insightDefMap = computed(() => new Map(insightDefs.value.map((d) => [d.id,
 // ── Chart data ────────────────────────────────────────────────
 
 const evChartData = computed(() => ({
-  labels: chartLabels(),
+  labels: chartLabels.value,
   datasets: [
     {
       label: `${t('vehicle.evSoc')} (%)`,
@@ -414,7 +411,7 @@ const evChartData = computed(() => ({
 }))
 
 const tyreChartData = computed(() => ({
-  labels: chartLabels(),
+  labels: chartLabels.value,
   datasets: [
     {
       label: `FL (${t('common.bar')})`,
@@ -456,7 +453,7 @@ const tyreChartData = computed(() => ({
 }))
 
 const hybridSocChartData = computed(() => ({
-  labels: chartLabels(),
+  labels: chartLabels.value,
   datasets: [
     {
       label: `${t('vehicle.evSoc')} (%)`,
@@ -484,7 +481,7 @@ const hybridSocChartData = computed(() => ({
 }))
 
 const dailyKwhChartData = computed(() => ({
-  labels: chartLabels(),
+  labels: chartLabels.value,
   datasets: [
     {
       label: 'kWh',
@@ -695,8 +692,11 @@ const skeletonChartCount = computed(
     </template>
 
     <template v-else>
-      <div v-if="store.error && !status && !store.history.length" class="empty-state text-danger">
-        {{ store.error }}
+      <div
+        v-if="store.historyError && !status && !store.history.length"
+        class="empty-state text-danger"
+      >
+        {{ store.historyError }}
       </div>
       <div v-else-if="!status && !store.history.length && !editMode" class="empty-state">
         {{ t('dashboard.noData') }}
@@ -732,22 +732,12 @@ const skeletonChartCount = computed(
                     insightDefMap.get(item.id)?.value !== null
                   "
                 >
-                  <div class="status-card">
-                    <div class="status-card__icon">
-                      <font-awesome-icon :icon="insightDefMap.get(item.id)!.icon" />
-                    </div>
-                    <div class="status-card__body">
-                      <span class="status-card__label">{{
-                        insightDefMap.get(item.id)!.title
-                      }}</span>
-                      <span class="status-card__value">
-                        {{ insightDefMap.get(item.id)!.value }}
-                        <span v-if="insightDefMap.get(item.id)!.unit" class="status-card__unit">
-                          {{ insightDefMap.get(item.id)!.unit }}</span
-                        >
-                      </span>
-                    </div>
-                  </div>
+                  <StatusCard
+                    :icon="insightDefMap.get(item.id)!.icon"
+                    :label="insightDefMap.get(item.id)!.title"
+                    :value="insightDefMap.get(item.id)!.value"
+                    :unit="insightDefMap.get(item.id)!.unit"
+                  />
                 </template>
                 <div v-else class="card-slot__placeholder">
                   <font-awesome-icon :icon="insightDefMap.get(item.id)?.icon ?? 'circle-info'" />
@@ -788,28 +778,12 @@ const skeletonChartCount = computed(
                     :title="insightDefMap.get(item.id)!.title"
                     :description="insightDefMap.get(item.id)!.description"
                   >
-                    <div class="status-card">
-                      <div class="status-card__icon">
-                        <font-awesome-icon :icon="insightDefMap.get(item.id)!.icon" />
-                      </div>
-                      <div class="status-card__body">
-                        <span class="status-card__label">{{
-                          insightDefMap.get(item.id)!.title
-                        }}</span>
-                        <span class="status-card__value">
-                          {{ insightDefMap.get(item.id)!.value ?? '-' }}
-                          <span
-                            v-if="
-                              insightDefMap.get(item.id)!.value !== null &&
-                              insightDefMap.get(item.id)!.unit
-                            "
-                            class="status-card__unit"
-                          >
-                            {{ insightDefMap.get(item.id)!.unit }}</span
-                          >
-                        </span>
-                      </div>
-                    </div>
+                    <StatusCard
+                      :icon="insightDefMap.get(item.id)!.icon"
+                      :label="insightDefMap.get(item.id)!.title"
+                      :value="insightDefMap.get(item.id)!.value"
+                      :unit="insightDefMap.get(item.id)!.unit"
+                    />
                   </CardInfoWrap>
                 </template>
               </template>
@@ -819,7 +793,9 @@ const skeletonChartCount = computed(
 
         <!-- ── Charts ───────────────────────────────────── -->
         <template v-if="editMode || store.history.length">
-          <div v-if="store.error" class="empty-state text-danger mt-2">{{ store.error }}</div>
+          <div v-if="store.historyError" class="empty-state text-danger mt-2">
+            {{ store.historyError }}
+          </div>
 
           <!-- Edit mode: draggable chart slots -->
           <VueDraggable
@@ -847,7 +823,7 @@ const skeletonChartCount = computed(
                   class="chart-container"
                 >
                   <button
-                    v-if="settings.showCardInfoIcons"
+                    v-if="uiSettings.showCardInfoIcons"
                     class="card-info-btn"
                     :aria-label="t('dashboard.cardInfoBtn')"
                     @click.stop="activeChartInfo = item.id"
@@ -890,7 +866,7 @@ const skeletonChartCount = computed(
                 class="chart-container"
               >
                 <button
-                  v-if="settings.showCardInfoIcons"
+                  v-if="uiSettings.showCardInfoIcons"
                   class="card-info-btn"
                   :aria-label="t('dashboard.cardInfoBtn')"
                   @click.stop="activeChartInfo = item.id"

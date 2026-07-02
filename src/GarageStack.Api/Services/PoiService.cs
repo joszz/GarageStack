@@ -35,49 +35,31 @@ public sealed class PoiService(
         // uncached tiles will be filled by the Worker pre-caching service in the background
         // (and by client-side chain loading). FetchFuelStationsAsync / FetchServiceAreasAsync
         // use the foreground fast-fail path and return null when the gate is busy or rate-limited.
-        const int MaxOnDemandTiles = 1;
-        var centerCellLat = (int)Math.Floor(lat * 2);
-        var centerCellLng = (int)Math.Floor(lng * 2);
-        var toFetch = uncached
-            .OrderBy(t => Math.Abs(t.CellLat - centerCellLat) + Math.Abs(t.CellLng - centerCellLng))
-            .Take(MaxOnDemandTiles)
-            .ToList();
+        var toFetch = TileHelper.ClosestTiles(uncached, lat, lng, PoiTileFetcher.DefaultMaxOnDemandTiles);
 
-        int tilesActuallyCached = 0;
-        foreach (var (cellLat, cellLng) in toFetch)
-        {
-            try
+        var tilesActuallyCached = await PoiTileFetcher.FetchAndCacheAsync(
+            toFetch,
+            (cellLat, cellLng, token) => poiType switch
             {
-                var items = poiType switch
-                {
-                    "fuel" => await overpassClient.FetchFuelStationsAsync(cellLat, cellLng, ct),
-                    "service_area" => await overpassClient.FetchServiceAreasAsync(cellLat, cellLng, ct),
-                    _ => (IReadOnlyList<PoiItem>?)[],
-                };
-                if (items is not null)
-                {
-                    await repository.UpsertTileAsync("overpass", poiType, cellLat, cellLng, items, Ttl, ct);
-                    tilesActuallyCached++;
-                }
-            }
-            catch (Exception ex) when (!ct.IsCancellationRequested)
+                "fuel" => overpassClient.FetchFuelStationsAsync(cellLat, cellLng, token),
+                "service_area" => overpassClient.FetchServiceAreasAsync(cellLat, cellLng, token),
+                _ => Task.FromResult((IReadOnlyList<PoiItem>?)[]),
+            },
+            (cellLat, cellLng, items, token) => repository.UpsertTileAsync("overpass", poiType, cellLat, cellLng, items, Ttl, token),
+            (ex, cellLat, cellLng) =>
             {
                 var safePoiType = poiType.Replace("\r", "").Replace("\n", "");
                 logger.LogWarning(ex, "On-demand Overpass fetch failed for {PoiType} ({CellLat},{CellLng})",
                     safePoiType, cellLat, cellLng);
-            }
-        }
+            },
+            ct);
 
         // hasMore = uncached tiles still remain after this request (either more exist beyond
         // MaxOnDemandTiles, or a fetch was skipped due to a rate-limit backoff). The client
         // uses this to decide whether to chain another request or to stop.
         bool hasMore = uncached.Count - tilesActuallyCached > 0;
 
-        var lngFactor = 111.0 * Math.Cos(lat * Math.PI / 180.0);
-        var minLat = lat - radiusKm / 111.0;
-        var maxLat = lat + radiusKm / 111.0;
-        var minLng = lngFactor > 0 ? lng - radiusKm / lngFactor : lng - 1.0;
-        var maxLng = lngFactor > 0 ? lng + radiusKm / lngFactor : lng + 1.0;
+        var (minLat, maxLat, minLng, maxLng) = TileHelper.ComputeBounds(lat, lng, radiusKm);
 
         var pois = await repository.GetPoisInBoundsAsync("overpass", poiType, minLat, minLng, maxLat, maxLng, ct);
         return new PoiResult(pois.Select(MapToDto).ToList(), hasMore);

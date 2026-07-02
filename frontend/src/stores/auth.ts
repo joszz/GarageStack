@@ -26,20 +26,38 @@ export const useAuthStore = defineStore('auth', () => {
   // The router guard awaits this before deciding whether to allow or redirect.
   let _verifyPromise: Promise<void> | null = null
 
+  // Bumped at the start of login()/verifySession(). Each call captures its own value
+  // and only applies its result if it's still the latest call by the time it settles,
+  // so a stale verifySession() can't clobber state set by a newer login() (or vice versa).
+  let _generation = 0
+
+  function persistSession(user: string, expires: string) {
+    username.value = user
+    expiresAtUtc.value = expires
+    localStorage.setItem(AUTH_USERNAME_KEY, user)
+    localStorage.setItem(AUTH_EXPIRES_KEY, expires)
+  }
+
+  function clearSession() {
+    username.value = ''
+    expiresAtUtc.value = ''
+    localStorage.removeItem(AUTH_USERNAME_KEY)
+    localStorage.removeItem(AUTH_EXPIRES_KEY)
+  }
+
   async function verifySession(): Promise<void> {
+    const generation = ++_generation
     try {
       const result = await authApi.me()
-      username.value = result.username
+      if (generation !== _generation) return
+      // Only treat the session as authenticated once we have an expiry to go with the
+      // username, otherwise isAuthenticated would stay false while username looked set.
       if (result.expiresAtUtc) {
-        expiresAtUtc.value = result.expiresAtUtc
-        localStorage.setItem(AUTH_USERNAME_KEY, result.username)
-        localStorage.setItem(AUTH_EXPIRES_KEY, result.expiresAtUtc)
+        persistSession(result.username, result.expiresAtUtc)
       }
     } catch {
-      username.value = ''
-      expiresAtUtc.value = ''
-      localStorage.removeItem(AUTH_USERNAME_KEY)
-      localStorage.removeItem(AUTH_EXPIRES_KEY)
+      if (generation !== _generation) return
+      clearSession()
     }
   }
 
@@ -49,21 +67,17 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function login(usernameInput: string, password: string, rememberMe = false) {
+    const generation = ++_generation
     const result = await authApi.login(usernameInput, password, rememberMe)
-    username.value = result.username
-    expiresAtUtc.value = result.expiresAtUtc
-    localStorage.setItem(AUTH_USERNAME_KEY, result.username)
-    localStorage.setItem(AUTH_EXPIRES_KEY, result.expiresAtUtc)
+    if (generation !== _generation) return
+    persistSession(result.username, result.expiresAtUtc)
     // Fresh login: reset the verify cache so next guard check reflects the new session.
     _verifyPromise = Promise.resolve()
   }
 
   async function logout() {
     _verifyPromise = null
-    username.value = ''
-    expiresAtUtc.value = ''
-    localStorage.removeItem(AUTH_USERNAME_KEY)
-    localStorage.removeItem(AUTH_EXPIRES_KEY)
+    clearSession()
     await authApi.logout()
   }
 

@@ -8,6 +8,8 @@ namespace GarageStack.Api.Endpoints;
 
 public static class AuthEndpoints
 {
+    public const string CookieName = "garagestack-auth";
+
     public static IEndpointRouteBuilder MapAuthEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/auth")
@@ -15,7 +17,7 @@ public static class AuthEndpoints
 
         group.MapPost("/logout", (HttpContext httpContext) =>
         {
-            httpContext.Response.Cookies.Delete("garagestack-auth", new CookieOptions { Path = "/" });
+            httpContext.Response.Cookies.Delete(CookieName, new CookieOptions { Path = "/" });
             return Results.NoContent();
         })
         .WithSummary("Clear the authentication cookie");
@@ -106,7 +108,7 @@ public static class AuthEndpoints
             var cookieSecure = config.GetValue<bool?>("Auth:CookieSecure")
                 ?? (!env.IsDevelopment() || httpContext.Request.IsHttps);
 
-            httpContext.Response.Cookies.Append("garagestack-auth", tokenString, new CookieOptions
+            httpContext.Response.Cookies.Append(CookieName, tokenString, new CookieOptions
             {
                 HttpOnly = true,
                 Secure = cookieSecure,

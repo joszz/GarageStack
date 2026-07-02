@@ -3,6 +3,7 @@ import { onMounted, onUnmounted, ref, computed, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { AppNotification } from '@/services/notificationsApi'
 import { useInfiniteScroll } from '@/composables/useInfiniteScroll'
+import { useRelativeTime } from '@/composables/useRelativeTime'
 
 const PAGE_SIZE = 10
 
@@ -101,17 +102,7 @@ watch(showArchived, async () => {
   observe(bodyRef.value)
 })
 
-function formatTime(iso: string) {
-  const d = new Date(iso)
-  const now = new Date()
-  const diff = now.getTime() - d.getTime()
-  const mins = Math.floor(diff / 60000)
-  if (mins < 1) return t('notifications.justNow')
-  if (mins < 60) return t('notifications.minutesAgo', { n: mins })
-  const hrs = Math.floor(mins / 60)
-  if (hrs < 24) return t('notifications.hoursAgo', { n: hrs })
-  return d.toLocaleDateString()
-}
+const { relativeTime } = useRelativeTime()
 
 function onKey(e: KeyboardEvent) {
   if (e.key === 'Escape' && props.open) emit('close')
@@ -186,7 +177,7 @@ onUnmounted(() => document.removeEventListener('keydown', onKey))
                 <div class="notif-item__content">
                   <span class="notif-item__title">{{ n.title }}</span>
                   <span class="notif-item__body">{{ n.body }}</span>
-                  <span class="notif-item__time text-muted">{{ formatTime(n.createdAt) }}</span>
+                  <span class="notif-item__time text-muted">{{ relativeTime(n.createdAt) }}</span>
                 </div>
                 <div class="notif-item__actions">
                   <button

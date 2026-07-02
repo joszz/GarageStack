@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useSettingsStore } from '@/stores/settings'
+import { useUiSettingsStore } from '@/stores/settingsUi'
 import gbFlag from 'flag-icons/flags/4x3/gb.svg'
 import nlFlag from 'flag-icons/flags/4x3/nl.svg'
 import { useVehicleStore } from '@/stores/vehicle'
@@ -9,11 +9,12 @@ import { useVehicleCommand } from '@/composables/useVehicleCommand'
 import { usePush } from '@/composables/usePush'
 import { useModal } from '@/composables/useModal'
 import DetailModal from './DetailModal.vue'
-import type { VehicleTypeOverride } from '@/stores/settings'
-import { CAR_COLOR_SCHEMES } from '@/stores/settings'
+import SettingsToggle from './SettingsToggle.vue'
+import type { VehicleTypeOverride } from '@/stores/settingsUi'
+import { CAR_COLOR_SCHEMES } from '@/stores/settingsUi'
 
 const { t } = useI18n()
-const settings = useSettingsStore()
+const settings = useUiSettingsStore()
 const vehicleStore = useVehicleStore()
 const { sending, send } = useVehicleCommand()
 const { pushSupported, pushState, togglePush } = usePush()
@@ -87,16 +88,12 @@ function refresh() {
     <div class="detail-modal__section">
       <div class="detail-modal__section-title">{{ t('settings.theme.title') }}</div>
       <div class="settings-toggles">
-        <div class="settings-toggle">
-          <div class="settings-toggle__info">
-            <span class="settings-toggle__label">{{
-              isLightTheme ? t('settings.theme.light') : t('settings.theme.dark')
-            }}</span>
-            <span class="settings-toggle__desc text-muted">{{
-              t('settings.theme.lightDesc')
-            }}</span>
-          </div>
-          <div class="settings-toggle__control">
+        <SettingsToggle
+          :label="isLightTheme ? t('settings.theme.light') : t('settings.theme.dark')"
+          :desc="t('settings.theme.lightDesc')"
+          input-id="footer-toggle-theme"
+        >
+          <template #control>
             <span
               class="settings-toggle__side-icon"
               :class="{ 'settings-toggle__side-icon--active': !isLightTheme }"
@@ -118,8 +115,8 @@ function refresh() {
             >
               <font-awesome-icon icon="sun" />
             </span>
-          </div>
-        </div>
+          </template>
+        </SettingsToggle>
       </div>
     </div>
 
@@ -127,25 +124,12 @@ function refresh() {
     <div class="detail-modal__section">
       <div class="detail-modal__section-title">{{ t('settings.dashboard.title') }}</div>
       <div class="settings-toggles">
-        <div class="settings-toggle">
-          <div class="settings-toggle__info">
-            <span class="settings-toggle__label">{{ t('settings.dashboard.cardInfoIcons') }}</span>
-            <span class="settings-toggle__desc text-muted">{{
-              t('settings.dashboard.cardInfoIconsDesc')
-            }}</span>
-          </div>
-          <div class="settings-toggle__control">
-            <div class="form-check form-switch mb-0">
-              <input
-                id="footer-toggle-card-info-icons"
-                v-model="settings.showCardInfoIcons"
-                class="form-check-input"
-                type="checkbox"
-                role="switch"
-              />
-            </div>
-          </div>
-        </div>
+        <SettingsToggle
+          v-model="settings.showCardInfoIcons"
+          :label="t('settings.dashboard.cardInfoIcons')"
+          :desc="t('settings.dashboard.cardInfoIconsDesc')"
+          input-id="footer-toggle-card-info-icons"
+        />
       </div>
     </div>
 
@@ -153,11 +137,8 @@ function refresh() {
     <div class="detail-modal__section">
       <div class="detail-modal__section-title">{{ t('settings.language.title') }}</div>
       <div class="settings-toggles">
-        <div class="settings-toggle">
-          <div class="settings-toggle__info">
-            <span class="settings-toggle__label">{{ isNL ? 'Nederlands' : 'English' }}</span>
-          </div>
-          <div class="settings-toggle__control">
+        <SettingsToggle :label="isNL ? 'Nederlands' : 'English'" input-id="footer-toggle-lang">
+          <template #control>
             <span
               class="settings-toggle__side-icon settings-toggle__side-icon--flag"
               :class="{ 'settings-toggle__side-icon--active': !isNL }"
@@ -179,8 +160,8 @@ function refresh() {
             >
               <img :src="nlFlag" alt="Nederlands" class="settings-toggle__flag" />
             </span>
-          </div>
-        </div>
+          </template>
+        </SettingsToggle>
       </div>
     </div>
 
@@ -233,12 +214,12 @@ function refresh() {
     <div v-if="pushSupported" class="detail-modal__section">
       <div class="detail-modal__section-title">{{ t('notifications.title') }}</div>
       <div class="settings-toggles">
-        <div class="settings-toggle">
-          <div class="settings-toggle__info">
-            <span class="settings-toggle__label">{{ t('push.enable') }}</span>
-            <span class="settings-toggle__desc text-muted">{{ t('push.desc') }}</span>
-          </div>
-          <div class="settings-toggle__control">
+        <SettingsToggle
+          :label="t('push.enable')"
+          :desc="t('push.desc')"
+          input-id="footer-toggle-push"
+        >
+          <template #control>
             <span v-if="pushState === 'denied'" class="text-danger text-sm">{{
               t('push.permissionDenied')
             }}</span>
@@ -252,8 +233,8 @@ function refresh() {
                 @change="togglePush"
               />
             </div>
-          </div>
-        </div>
+          </template>
+        </SettingsToggle>
       </div>
     </div>
   </DetailModal>

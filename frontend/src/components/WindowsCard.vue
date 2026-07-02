@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import StatusCard from './StatusCard.vue'
 import DetailModal from './DetailModal.vue'
+import DetailListItem from './DetailListItem.vue'
 import { useModal } from '@/composables/useModal'
 
 const { t } = useI18n()
@@ -67,19 +68,14 @@ const variant = computed(() => {
 
   <DetailModal :open="modalOpen" :title="t('vehicle.windows')" @close="closeModal">
     <div class="detail-list">
-      <div
+      <DetailListItem
         v-for="win in windowList"
         :key="win.key"
-        class="detail-list__item"
-        :class="win.open ? 'detail-list__item--alert' : ''"
-      >
-        <font-awesome-icon icon="car-side" class="detail-list__item-icon" />
-        <span class="detail-list__item-value">{{
-          win.open ? t('common.open') : t('common.closed')
-        }}</span>
-        <span class="detail-list__item-sep">-</span>
-        <span class="detail-list__item-label">{{ win.label }}</span>
-      </div>
+        icon="car-side"
+        :value="win.open ? t('common.open') : t('common.closed')"
+        :label="win.label"
+        :alert="win.open"
+      />
     </div>
   </DetailModal>
 </template>

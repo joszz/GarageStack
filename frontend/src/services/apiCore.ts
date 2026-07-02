@@ -51,3 +51,15 @@ export async function send(path: string, method: string, body?: unknown): Promis
 
   handleResponse(res, path)
 }
+
+// Builds a query string from scalar params, skipping undefined values. Returns an empty
+// string when there's nothing to add, otherwise a string starting with '?'.
+export function buildQuery(params: Record<string, string | number | boolean | undefined>): string {
+  const search = new URLSearchParams()
+  for (const [key, value] of Object.entries(params)) {
+    if (value === undefined) continue
+    search.set(key, String(value))
+  }
+  const qs = search.toString()
+  return qs ? `?${qs}` : ''
+}

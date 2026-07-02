@@ -1,4 +1,4 @@
-import { request, send } from '@/services/apiCore'
+import { request, send, buildQuery } from '@/services/apiCore'
 
 export interface Vehicle {
   id: number
@@ -120,23 +120,17 @@ export const vehicleApi = {
     request<LastTripSummary | undefined>(`/api/vehicles/${vin}/trips/last`),
   config: (vin: string) => request<Record<string, string>>(`/api/vehicles/${vin}/config`),
   history: (vin: string, from?: string, to?: string) => {
-    const params = new URLSearchParams()
-    if (from) params.set('from', from)
-    if (to) params.set('to', to)
-    return request<TelemetrySnapshot[]>(`/api/vehicles/${vin}/history?${params}`)
+    const query = buildQuery({ from, to })
+    return request<TelemetrySnapshot[]>(`/api/vehicles/${vin}/history${query}`)
   },
   trips: (vin: string, from?: string, to?: string) => {
-    const params = new URLSearchParams()
-    if (from) params.set('from', from)
-    if (to) params.set('to', to)
-    return request<Trip[]>(`/api/vehicles/${vin}/trips?${params}`)
+    const query = buildQuery({ from, to })
+    return request<Trip[]>(`/api/vehicles/${vin}/trips${query}`)
   },
   sendCommand: (vin: string, command: string, value: string) =>
     send(`/api/vehicles/${vin}/commands/${command}`, 'POST', { value }),
   stats: (vin: string, from?: string, to?: string) => {
-    const params = new URLSearchParams()
-    if (from) params.set('from', from)
-    if (to) params.set('to', to)
-    return request<VehicleAggregateStats>(`/api/vehicles/${vin}/stats?${params}`)
+    const query = buildQuery({ from, to })
+    return request<VehicleAggregateStats>(`/api/vehicles/${vin}/stats${query}`)
   },
 }

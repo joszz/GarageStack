@@ -2,20 +2,29 @@ using System.Text.Json;
 using GarageStack.Core.Interfaces;
 using GarageStack.Core.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Npgsql;
 
 namespace GarageStack.Data.Repositories;
 
-public class PoiRepository(AppDbContext db) : IPoiRepository
+public class PoiRepository(AppDbContext db, IMemoryCache cache) : IPoiRepository
 {
+    // Brand lists (charging network operators, fuel brands) change rarely, so a short cache
+    // avoids re-deserializing every PoiItem's MetaJson on every map filter-panel open.
+    private static readonly TimeSpan BrandsCacheTtl = TimeSpan.FromMinutes(15);
     public async Task<IReadOnlyList<(int CellLat, int CellLng)>> GetUncachedTilesAsync(
         string source, string poiType,
         IReadOnlyList<(int CellLat, int CellLng)> tiles,
         CancellationToken ct = default)
     {
         var now = DateTime.UtcNow;
+        var cellLats = tiles.Select(t => t.CellLat).Distinct().ToList();
+        var cellLngs = tiles.Select(t => t.CellLng).Distinct().ToList();
+
         var cached = await db.PoiCacheTiles
-            .Where(t => t.Source == source && t.PoiType == poiType && t.ExpiresAt > now)
+            .Where(t => t.Source == source && t.PoiType == poiType && t.ExpiresAt > now
+                        && cellLats.Contains(t.CellLat)
+                        && cellLngs.Contains(t.CellLng))
             .Select(t => new { t.CellLat, t.CellLng })
             .ToListAsync(ct);
 
@@ -51,22 +60,49 @@ public class PoiRepository(AppDbContext db) : IPoiRepository
         TimeSpan ttl,
         CancellationToken ct = default)
     {
+        // A concurrent writer (e.g. API on-demand + Worker pre-cache racing on the same tile) can
+        // insert overlapping rows between our SELECT and INSERT, which fails the whole batch with a
+        // unique-violation and rolls back this transaction. Retry once: the second attempt re-reads
+        // the now-committed rows as "existing" and updates them instead of re-inserting, so this
+        // request's own items are actually persisted rather than silently dropped.
+        try
+        {
+            await UpsertTileAttemptAsync(source, poiType, cellLat, cellLng, items, ttl, ct);
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: "23505" })
+        {
+            db.ChangeTracker.Clear();
+            await UpsertTileAttemptAsync(source, poiType, cellLat, cellLng, items, ttl, ct);
+        }
+    }
+
+    private async Task UpsertTileAttemptAsync(
+        string source, string poiType,
+        int cellLat, int cellLng,
+        IReadOnlyList<PoiItem> items,
+        TimeSpan ttl,
+        CancellationToken ct)
+    {
         var now = DateTime.UtcNow;
 
-        // Load any existing items that share an ExternalId with the incoming batch.
-        // Elements near tile boundaries appear in two adjacent tile queries but share the same
-        // ExternalId; we UPDATE them rather than INSERT to avoid hitting the unique constraint.
+        await UpsertItemsAsync(source, poiType, cellLat, cellLng, items, now, ct);
+        await PruneStaleItemsAsync(source, poiType, cellLat, cellLng, items, ct);
+        await UpsertCacheTileRowAsync(source, poiType, cellLat, cellLng, now, ttl, ct);
+
+        await db.SaveChangesAsync(ct);
+    }
+
+    // Elements near tile boundaries appear in two adjacent tile queries but share the same
+    // ExternalId; we UPDATE them rather than INSERT to avoid hitting the unique constraint.
+    private async Task UpsertItemsAsync(
+        string source, string poiType, int cellLat, int cellLng,
+        IReadOnlyList<PoiItem> items, DateTime now, CancellationToken ct)
+    {
         var newExternalIds = items.Select(i => i.ExternalId).ToHashSet();
         var existingByExternalId = await db.PoiItems
             .Where(p => p.Source == source && p.PoiType == poiType
                         && newExternalIds.Contains(p.ExternalId))
             .ToDictionaryAsync(p => p.ExternalId, ct);
-
-        // Load items currently "owned" by this tile so we can prune removed elements.
-        var ownedByTile = await db.PoiItems
-            .Where(p => p.Source == source && p.PoiType == poiType
-                        && p.CellLat == cellLat && p.CellLng == cellLng)
-            .ToListAsync(ct);
 
         foreach (var item in items)
         {
@@ -87,8 +123,18 @@ public class PoiRepository(AppDbContext db) : IPoiRepository
                 db.PoiItems.Add(item);
             }
         }
+    }
 
-        // Remove items that were owned by this tile but are no longer in the query result.
+    // Removes items that were owned by this tile in a previous fetch but are no longer present.
+    private async Task PruneStaleItemsAsync(
+        string source, string poiType, int cellLat, int cellLng,
+        IReadOnlyList<PoiItem> items, CancellationToken ct)
+    {
+        var ownedByTile = await db.PoiItems
+            .Where(p => p.Source == source && p.PoiType == poiType
+                        && p.CellLat == cellLat && p.CellLng == cellLng)
+            .ToListAsync(ct);
+
         var survivingIds = items
             .Where(i => i.CellLat == cellLat && i.CellLng == cellLng)
             .Select(i => i.ExternalId)
@@ -96,7 +142,12 @@ public class PoiRepository(AppDbContext db) : IPoiRepository
         var toRemove = ownedByTile.Where(p => !survivingIds.Contains(p.ExternalId)).ToList();
         if (toRemove.Count > 0)
             db.PoiItems.RemoveRange(toRemove);
+    }
 
+    private async Task UpsertCacheTileRowAsync(
+        string source, string poiType, int cellLat, int cellLng,
+        DateTime now, TimeSpan ttl, CancellationToken ct)
+    {
         var tile = await db.PoiCacheTiles.FirstOrDefaultAsync(
             t => t.Source == source && t.PoiType == poiType
                  && t.CellLat == cellLat && t.CellLng == cellLng, ct);
@@ -115,17 +166,6 @@ public class PoiRepository(AppDbContext db) : IPoiRepository
 
         tile.CachedAt = now;
         tile.ExpiresAt = now.Add(ttl);
-
-        try
-        {
-            await db.SaveChangesAsync(ct);
-        }
-        catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: "23505" })
-        {
-            // A concurrent writer (e.g. API on-demand + Worker pre-cache racing on the same tile)
-            // already committed the same rows. Reset context state and move on — the tile is cached.
-            db.ChangeTracker.Clear();
-        }
     }
 
     public async Task<IReadOnlyList<PoiItem>> GetPoisInBoundsAsync(
@@ -146,6 +186,10 @@ public class PoiRepository(AppDbContext db) : IPoiRepository
         string source, string poiType,
         CancellationToken ct = default)
     {
+        var cacheKey = $"poi-brands/{source}/{poiType}";
+        if (cache.TryGetValue(cacheKey, out IReadOnlyList<string>? cached) && cached is not null)
+            return cached;
+
         var metaJsonList = await db.PoiItems
             .Where(p => p.Source == source && p.PoiType == poiType && p.MetaJson != null)
             .Select(p => p.MetaJson!)
@@ -164,6 +208,9 @@ public class PoiRepository(AppDbContext db) : IPoiRepository
             }
             catch { }
         }
-        return [.. brands.Order()];
+
+        IReadOnlyList<string> result = [.. brands.Order()];
+        cache.Set(cacheKey, result, BrandsCacheTtl);
+        return result;
     }
 }

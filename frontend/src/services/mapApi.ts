@@ -1,4 +1,4 @@
-import { request } from '@/services/apiCore'
+import { request, buildQuery } from '@/services/apiCore'
 
 export interface Connector {
   type: string | null
@@ -41,27 +41,15 @@ export const mapApi = {
     minPowerKw = 0,
     maxPowerKw = 0,
   ) => {
-    const params = new URLSearchParams({
-      lat: String(lat),
-      lng: String(lng),
-      distanceKm: String(distanceKm),
-      minPowerKw: String(minPowerKw),
-      maxPowerKw: String(maxPowerKw),
-    })
-    return request<ChargingStation[]>(`/api/map/charging-stations?${params}`)
+    const query = buildQuery({ lat, lng, distanceKm, minPowerKw, maxPowerKw })
+    return request<ChargingStation[]>(`/api/map/charging-stations${query}`)
   },
   poi: (type: string, lat: number, lng: number, radiusKm: number, vehicleType: string) => {
-    const params = new URLSearchParams({
-      type,
-      lat: String(lat),
-      lng: String(lng),
-      radiusKm: String(radiusKm),
-      vehicleType,
-    })
-    return request<PoiResponse>(`/api/map/poi?${params}`)
+    const query = buildQuery({ type, lat, lng, radiusKm, vehicleType })
+    return request<PoiResponse>(`/api/map/poi${query}`)
   },
   poiBrands: (type: string, vehicleType: string) => {
-    const params = new URLSearchParams({ type, vehicleType })
-    return request<string[]>(`/api/map/poi/brands?${params}`)
+    const query = buildQuery({ type, vehicleType })
+    return request<string[]>(`/api/map/poi/brands${query}`)
   },
 }

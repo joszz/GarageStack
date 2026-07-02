@@ -19,6 +19,9 @@ public static class VehicleEndpoints
             return vehicle is null ? (null, Results.NotFound()) : (vehicle, null);
         }
 
+        static DateTime ClampRangeStart(DateTime start, DateTime end, TimeSpan maxRange) =>
+            end - start > maxRange ? end - maxRange : start;
+
         var group = app.MapGroup("/api/vehicles")
             .WithTags("Vehicles")
             .RequireAuthorization();
@@ -77,9 +80,7 @@ public static class VehicleEndpoints
             var end = to?.UtcDateTime ?? DateTime.UtcNow;
             if (start >= end)
                 return Results.BadRequest(new { error = "from must be before to" });
-            var maxRange = TimeSpan.FromDays(90);
-            if (end - start > maxRange)
-                start = end - maxRange;
+            start = ClampRangeStart(start, end, TimeSpan.FromDays(90));
             var history = await telemetry.GetHistoryAsync(vehicle.Id, start, end, ct);
             return Results.Ok(history);
         })
@@ -117,9 +118,7 @@ public static class VehicleEndpoints
             var end = to?.UtcDateTime ?? DateTime.UtcNow;
             if (start >= end)
                 return Results.BadRequest(new { error = "from must be before to" });
-            var maxRange = TimeSpan.FromDays(90);
-            if (end - start > maxRange)
-                start = end - maxRange;
+            start = ClampRangeStart(start, end, TimeSpan.FromDays(90));
             var trips = await telemetry.GetTripsAsync(vehicle.Id, start, end, ct);
             return Results.Ok(trips);
         })
@@ -179,8 +178,8 @@ public static class VehicleEndpoints
 
         group.MapGet("/{vin}/stats", async (
             string vin,
-            string? from,
-            string? to,
+            DateTimeOffset? from,
+            DateTimeOffset? to,
             ITelemetryRepository telemetry,
             IVehicleRepository vehicles,
             CancellationToken ct) =>
@@ -189,11 +188,9 @@ public static class VehicleEndpoints
             if (resolved.NotFound is not null) return resolved.NotFound;
             var vehicle = resolved.Vehicle!;
 
-            var end = to is not null && DateTime.TryParse(to, out var parsedEnd) ? parsedEnd.ToUniversalTime() : DateTime.UtcNow;
-            var start = from is not null && DateTime.TryParse(from, out var parsedStart) ? parsedStart.ToUniversalTime() : end.AddDays(-30);
-            var maxRange = TimeSpan.FromDays(90);
-            if (end - start > maxRange)
-                start = end - maxRange;
+            var end = to?.UtcDateTime ?? DateTime.UtcNow;
+            var start = from?.UtcDateTime ?? end.AddDays(-30);
+            start = ClampRangeStart(start, end, TimeSpan.FromDays(90));
 
             var stats = await telemetry.GetAggregateStatsAsync(vehicle.Id, start, end, ct);
             return Results.Ok(stats);

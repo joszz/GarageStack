@@ -111,7 +111,7 @@ import {
 
 import App from './App.vue'
 import router from './router'
-import { useSettingsStore } from './stores/settings'
+import { useUiSettingsStore } from './stores/settingsUi'
 import { useAuthStore } from './stores/auth'
 import { setUnauthorizedHandler, clearUnauthorizedState } from './services/apiCore'
 import en from './locales/en.json'
@@ -204,7 +204,7 @@ const app = createApp(App)
 const pinia = createPinia()
 app.use(pinia)
 
-const settings = useSettingsStore()
+const settings = useUiSettingsStore()
 i18n.global.locale.value = settings.locale
 
 app.use(router)
