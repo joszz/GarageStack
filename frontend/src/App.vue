@@ -50,6 +50,7 @@ const {
   unreadCount,
   panelOpen,
   loading,
+  actionError: notificationActionError,
   togglePanel,
   closePanel,
   archiveNotification,
@@ -83,14 +84,25 @@ onBeforeUnmount(() => {
 
 useFavicon()
 
-const { start: startSignalR, stop: stopSignalR } = useSignalR({
+const {
+  connected: signalRConnected,
+  start: startSignalR,
+  stop: stopSignalR,
+} = useSignalR({
   onTelemetryUpdated: (snapshot) => vehicleStore.applyLiveStatus(snapshot),
   onNotificationReceived: (notification) => prependNotification(notification),
   onTripCompleted: () => vehicleStore.notifyTripCompleted(),
 })
 
+// Only show "paused" once we've actually attempted a connection, not during the
+// brief window before startSignalR() is first called.
+const signalRAttempted = ref(false)
+
 watch(vehicleId, (id) => {
-  if (id) startSignalR(id)
+  if (id) {
+    signalRAttempted.value = true
+    startSignalR(id)
+  }
 })
 
 const isInitialLoading = computed(() => vehicleStore.loading && !vehicleStore.currentStatus)
@@ -206,6 +218,13 @@ watch(
             <span>{{ carModel }}</span>
           </div>
           <div
+            v-if="signalRAttempted && !signalRConnected"
+            class="sidebar-online-status sidebar-online-status--offline"
+          >
+            <font-awesome-icon icon="triangle-exclamation" aria-hidden="true" />
+            <span class="sidebar-footer__text">{{ t('common.liveUpdatesPaused') }}</span>
+          </div>
+          <div
             v-if="isInitialLoading || onlineStatusText"
             class="sidebar-online-status"
             :class="
@@ -307,6 +326,7 @@ watch(
       :open="panelOpen"
       :notifications="notifications"
       :loading="loading"
+      :action-error="notificationActionError"
       @close="closePanel"
       @archive="archiveNotification"
       @archive-all="archiveAllNotifications"

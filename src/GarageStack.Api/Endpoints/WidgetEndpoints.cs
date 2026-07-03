@@ -20,7 +20,7 @@ public static class WidgetEndpoints
                         statusCode: StatusCodes.Status503ServiceUnavailable);
 
                 var providedKey = ctx.HttpContext.Request.Headers["X-Widget-Key"].ToString();
-                if (!string.Equals(providedKey, configuredKey, StringComparison.Ordinal))
+                if (!AuthEndpoints.FixedTimeEquals(providedKey, configuredKey))
                     return Results.Unauthorized();
 
                 return await next(ctx);

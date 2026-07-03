@@ -366,6 +366,7 @@
     "loading": "Laden...",
     "refreshing": "Vernieuwen...",
     "error": "Er is iets misgegaan",
+    "liveUpdatesPaused": "Live-updates gepauzeerd",
     "open": "Open",
     "closed": "Gesloten",
     "cancel": "Annuleren",
