@@ -365,6 +365,71 @@ public class TelemetryRepositoryTests
         Assert.Equal("On", result.BatteryHeatingScheduleMode);
         Assert.Equal("06:30", result.BatteryHeatingScheduleStartTime);
     }
+
+    // ── GetAggregateStatsAsync tests ─────────────────────────────────────────
+
+    [Fact]
+    public async Task GetAggregateStats_NoSnapshotsWithClimateData_ReturnsNullPercentAndZeroCounts()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var db = CreateDb();
+        var vehicle = new Vehicle { Vin = "STAT00000000000001" };
+        db.Vehicles.Add(vehicle);
+        await db.SaveChangesAsync(ct);
+
+        var now = DateTime.UtcNow;
+        db.TelemetrySnapshots.Add(new TelemetrySnapshot { VehicleId = vehicle.Id, RecordedAt = now, FuelLevelPercent = 50 });
+        await db.SaveChangesAsync(ct);
+
+        var result = await new TelemetryRepository(db).GetAggregateStatsAsync(vehicle.Id, now.AddDays(-1), now.AddDays(1), ct);
+
+        Assert.Null(result.ClimateUsagePct);
+        Assert.Equal(0, result.ClimateOnSnapshots);
+        Assert.Equal(0, result.TotalClimateSnapshots);
+    }
+
+    [Fact]
+    public async Task GetAggregateStats_MixedClimateSnapshots_ComputesCorrectPercentage()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var db = CreateDb();
+        var vehicle = new Vehicle { Vin = "STAT00000000000002" };
+        db.Vehicles.Add(vehicle);
+        await db.SaveChangesAsync(ct);
+
+        var now = DateTime.UtcNow;
+        db.TelemetrySnapshots.AddRange(
+            new TelemetrySnapshot { VehicleId = vehicle.Id, RecordedAt = now.AddMinutes(-1), ClimateOn = true },
+            new TelemetrySnapshot { VehicleId = vehicle.Id, RecordedAt = now.AddMinutes(-2), ClimateOn = true },
+            new TelemetrySnapshot { VehicleId = vehicle.Id, RecordedAt = now.AddMinutes(-3), ClimateOn = false },
+            new TelemetrySnapshot { VehicleId = vehicle.Id, RecordedAt = now.AddMinutes(-4), ClimateOn = false }
+        );
+        await db.SaveChangesAsync(ct);
+
+        var result = await new TelemetryRepository(db).GetAggregateStatsAsync(vehicle.Id, now.AddDays(-1), now.AddDays(1), ct);
+
+        Assert.Equal(50, result.ClimateUsagePct);
+        Assert.Equal(2, result.ClimateOnSnapshots);
+        Assert.Equal(4, result.TotalClimateSnapshots);
+    }
+
+    [Fact]
+    public async Task GetAggregateStats_OutsideDateRange_IsExcluded()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var db = CreateDb();
+        var vehicle = new Vehicle { Vin = "STAT00000000000003" };
+        db.Vehicles.Add(vehicle);
+        await db.SaveChangesAsync(ct);
+
+        var now = DateTime.UtcNow;
+        db.TelemetrySnapshots.Add(new TelemetrySnapshot { VehicleId = vehicle.Id, RecordedAt = now.AddDays(-30), ClimateOn = true });
+        await db.SaveChangesAsync(ct);
+
+        var result = await new TelemetryRepository(db).GetAggregateStatsAsync(vehicle.Id, now.AddDays(-1), now.AddDays(1), ct);
+
+        Assert.Equal(0, result.TotalClimateSnapshots);
+    }
 }
 
 // ── MergeIntoAsync tests ─────────────────────────────────────────────────────
