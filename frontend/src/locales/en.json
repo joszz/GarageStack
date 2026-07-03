@@ -366,6 +366,7 @@
     "loading": "Loading...",
     "refreshing": "Refreshing...",
     "error": "Something went wrong",
+    "liveUpdatesPaused": "Live updates paused",
     "open": "Open",
     "closed": "Closed",
     "cancel": "Cancel",

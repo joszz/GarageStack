@@ -141,7 +141,7 @@ public static class AuthEndpoints
         return null;
     }
 
-    private static bool FixedTimeEquals(string left, string right)
+    internal static bool FixedTimeEquals(string left, string right)
     {
         // Hash both values first so the compared buffers always have identical length.
         var leftBytes = SHA256.HashData(Encoding.UTF8.GetBytes(left));

@@ -24,6 +24,7 @@ export function prependNotification(notification: AppNotification) {
 const panelOpen = ref(false)
 const loading = ref(false)
 const fetchError = ref<string | null>(null)
+const actionError = ref<string | null>(null)
 
 export function useNotifications() {
   const auth = useAuthStore()
@@ -72,27 +73,51 @@ export function useNotifications() {
   }
 
   async function archiveNotification(id: number) {
-    await notificationsApi.archive(id)
-    const n = notifications.value.find((n) => n.id === id)
-    if (n) n.isArchived = true
+    actionError.value = null
+    try {
+      await notificationsApi.archive(id)
+      const n = notifications.value.find((n) => n.id === id)
+      if (n) n.isArchived = true
+    } catch (err) {
+      console.error('Failed to archive notification', err)
+      actionError.value = err instanceof Error ? err.message : 'Failed to archive notification'
+    }
   }
 
   async function archiveAllNotifications() {
-    await notificationsApi.archiveAll()
-    notifications.value.forEach((n) => (n.isArchived = true))
-    syncBadge(0)
+    actionError.value = null
+    try {
+      await notificationsApi.archiveAll()
+      notifications.value.forEach((n) => (n.isArchived = true))
+      syncBadge(0)
+    } catch (err) {
+      console.error('Failed to archive all notifications', err)
+      actionError.value = err instanceof Error ? err.message : 'Failed to archive all notifications'
+    }
   }
 
   async function deleteNotification(id: number) {
-    await notificationsApi.delete(id)
-    notifications.value = notifications.value.filter((n) => n.id !== id)
-    syncBadge(unreadCount.value)
+    actionError.value = null
+    try {
+      await notificationsApi.delete(id)
+      notifications.value = notifications.value.filter((n) => n.id !== id)
+      syncBadge(unreadCount.value)
+    } catch (err) {
+      console.error('Failed to delete notification', err)
+      actionError.value = err instanceof Error ? err.message : 'Failed to delete notification'
+    }
   }
 
   async function deleteAllNotifications() {
-    await notificationsApi.deleteAll()
-    notifications.value = []
-    syncBadge(0)
+    actionError.value = null
+    try {
+      await notificationsApi.deleteAll()
+      notifications.value = []
+      syncBadge(0)
+    } catch (err) {
+      console.error('Failed to delete all notifications', err)
+      actionError.value = err instanceof Error ? err.message : 'Failed to delete all notifications'
+    }
   }
 
   function togglePanel() {
@@ -110,6 +135,7 @@ export function useNotifications() {
     panelOpen,
     loading,
     fetchError,
+    actionError,
     fetchNotifications,
     archiveNotification,
     archiveAllNotifications,
