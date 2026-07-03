@@ -418,15 +418,16 @@ public class TelemetryRepository(AppDbContext db, ILogger<TelemetryRepository>? 
 
     public async Task<VehicleAggregateStats> GetAggregateStatsAsync(int vehicleId, DateTime from, DateTime to, CancellationToken ct = default)
     {
-        var climateKnown = await db.TelemetrySnapshots
+        // Single grouped query instead of two round-trips: total count and the
+        // ClimateOn == true count are both conditional aggregates over the same filtered set.
+        var agg = await db.TelemetrySnapshots
             .Where(s => s.VehicleId == vehicleId && s.RecordedAt >= from && s.RecordedAt <= to && s.ClimateOn != null)
-            .CountAsync(ct);
+            .GroupBy(s => 1)
+            .Select(g => new { Known = g.Count(), On = g.Count(s => s.ClimateOn == true) })
+            .FirstOrDefaultAsync(ct);
 
-        var climateOn = climateKnown > 0
-            ? await db.TelemetrySnapshots
-                .Where(s => s.VehicleId == vehicleId && s.RecordedAt >= from && s.RecordedAt <= to && s.ClimateOn == true)
-                .CountAsync(ct)
-            : 0;
+        var climateKnown = agg?.Known ?? 0;
+        var climateOn = agg?.On ?? 0;
 
         return new VehicleAggregateStats(
             ClimateUsagePct: climateKnown > 0 ? (int)Math.Round((double)climateOn / climateKnown * 100) : null,

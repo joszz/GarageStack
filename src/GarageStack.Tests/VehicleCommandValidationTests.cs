@@ -143,4 +143,18 @@ public class VehicleCommandValidationTests
     {
         Assert.Null(VehicleEndpoints.ValidateCommandValue(command, value));
     }
+
+    [Fact]
+    public void ScheduledCharging_ValueOver500Chars_ReturnsError()
+    {
+        var value = new string('a', 501);
+        Assert.NotNull(VehicleEndpoints.ValidateCommandValue("scheduled-charging", value));
+    }
+
+    [Fact]
+    public void ScheduledCharging_ValueExactly500Chars_ReturnsNull()
+    {
+        var value = new string('a', 500);
+        Assert.Null(VehicleEndpoints.ValidateCommandValue("scheduled-charging", value));
+    }
 }
