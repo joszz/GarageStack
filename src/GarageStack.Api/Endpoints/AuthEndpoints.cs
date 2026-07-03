@@ -72,7 +72,7 @@ public static class AuthEndpoints
             {
                 logger.LogWarning(
                     "Failed login attempt for username={Username} from IP={RemoteIp}",
-                    providedUsername, httpContext.Connection.RemoteIpAddress);
+                    SanitizeForLog(providedUsername), httpContext.Connection.RemoteIpAddress);
                 return Results.Unauthorized();
             }
 
@@ -140,6 +140,9 @@ public static class AuthEndpoints
 
         return null;
     }
+
+    private static string SanitizeForLog(string value) =>
+        value.Replace("\r", string.Empty).Replace("\n", string.Empty);
 
     private static bool FixedTimeEquals(string left, string right)
     {
