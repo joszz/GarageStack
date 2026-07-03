@@ -291,7 +291,9 @@ public static class VehicleEndpoints
             value is "True" or "False" ? null : "'lock' value must be 'True' or 'False'",
         "refresh" =>
             value == "force" ? null : "'refresh' value must be 'force'",
-        _ => null  // scheduled-charging: accept any non-empty string
+        // scheduled-charging: the SAIC API expects a JSON blob (mode + start/end time), whose
+        // shape isn't validated here; just cap the length forwarded to MQTT.
+        _ => value.Length <= 500 ? null : "value is too long"
     };
 }
 
