@@ -13,15 +13,18 @@
     <PackageReference Include="MinVer" Version="7.0.0" PrivateAssets="all" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.9" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.9" />
-    <!-- Pinned above the transitive 2.0.0 pulled in by Microsoft.AspNetCore.OpenApi 10.0.9 to avoid CVE-2026-49451 (stack overflow on circular schema refs). -->
-    <PackageReference Include="Microsoft.OpenApi" Version="2.7.6" />
+    <!-- Pinned above the transitive 2.0.0 pulled in by Microsoft.AspNetCore.OpenApi 10.0.9 to avoid CVE-2026-49451 (stack overflow on circular schema refs).
+         Stay on the 2.x line - Microsoft.OpenApi 3.x breaks Microsoft.AspNetCore.OpenApi 10.0.9 at
+         both compile time (XmlCommentGenerator) and runtime (OpenApiResponse.Content no longer
+         exists in the same form), and no compatible Microsoft.AspNetCore.OpenApi release exists yet. -->
+    <PackageReference Include="Microsoft.OpenApi" Version="2.9.0" />
     <PackageReference Include="Microsoft.IdentityModel.Tokens" Version="8.19.1" />
-    <PackageReference Include="MQTTnet" Version="5.1.0.1559" />
+    <PackageReference Include="MQTTnet" Version="5.2.0.1603" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.9">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-    <PackageReference Include="Scalar.AspNetCore" Version="2.16.6" />
+    <PackageReference Include="Scalar.AspNetCore" Version="2.16.9" />
     <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
     <PackageReference Include="Serilog.Extensions.Hosting" Version="10.0.0" />
     <PackageReference Include="Serilog.Settings.Configuration" Version="10.0.1" />
