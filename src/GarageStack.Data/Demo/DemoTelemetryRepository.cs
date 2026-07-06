@@ -9,6 +9,26 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
     private static long _nextId = 9000;
     private static readonly object _lock = new();
 
+    // The vehicle is mid-trip in the demo scenario: this is the road already driven, ending at
+    // the "live" position reported by BuildDefaultSnapshot. Kept as one source so the current
+    // status marker and the in-progress trip's route line agree on where the car is.
+    private static readonly (double Lat, double Lon, double SpeedKmh)[] InProgressTripWaypoints =
+    [
+        (52.3676, 4.9041, 30),
+        (52.3600, 4.9143, 45),
+        (52.3520, 4.9210, 55),
+        (52.3455, 4.9330, 60),
+        (52.3401, 4.9455, 65),
+    ];
+
+    private static double TotalDistanceKm((double Lat, double Lon, double SpeedKmh)[] waypoints)
+    {
+        var total = 0.0;
+        for (var i = 1; i < waypoints.Length; i++)
+            total += GeoHelper.Haversine(waypoints[i - 1].Lat, waypoints[i - 1].Lon, waypoints[i].Lat, waypoints[i].Lon);
+        return total;
+    }
+
     private TelemetrySnapshot _current = BuildDefaultSnapshot();
 
     private static readonly Lazy<IReadOnlyList<TelemetrySnapshot>> _history =
@@ -87,76 +107,82 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
         }
     }
 
-    private static TelemetrySnapshot BuildDefaultSnapshot() => new()
+    private static TelemetrySnapshot BuildDefaultSnapshot()
     {
-        Id = 1,
-        VehicleId = 1,
-        RecordedAt = DateTime.UtcNow.AddMinutes(-3),
-        FuelLevelPercent = 68,
-        FuelRangeKm = 420,
-        EvSocPercent = 78,
-        HvSocKwh = Math.Round(78.0 / 100.0 * 70.0, 1),
-        HvTotalCapacityKwh = 70.0,
-        HvVoltage = 386.0,
-        HvCurrent = 0.0,
-        HvPower = 0.0,
-        HvBatteryActive = true,
-        OdometerKm = 24852,
-        EngineRunning = false,
-        IsCharging = false,
-        ChargerConnected = true,
-        ChargingType = "AC",
-        ChargingCableLock = true,
-        BmsChargeStatus = "FullyCharged",
-        OnboardChargerPlugStatus = 1,
-        OffboardChargerPlugStatus = 0,
-        ObcVoltage = 230.0,
-        ObcCurrent = 0.0,
-        ObcPowerSinglePhase = 0.0,
-        InteriorTemperature = 21.0,
-        ExteriorTemperature = 14.0,
-        RemoteTemperature = 19.5,
-        Speed = 0,
-        Heading = 270,
-        IsLocked = true,
-        ClimateOn = false,
-        BatteryHeating = false,
-        DriverDoorOpen = false,
-        PassengerDoorOpen = false,
-        RearLeftDoorOpen = false,
-        RearRightDoorOpen = false,
-        TrunkOpen = false,
-        BonnetOpen = false,
-        DriverWindowOpen = false,
-        PassengerWindowOpen = false,
-        RearLeftWindowOpen = false,
-        RearRightWindowOpen = false,
-        SunRoofOpen = null,
-        TyrePressureFrontLeft = 2.4,
-        TyrePressureFrontRight = 2.4,
-        TyrePressureRearLeft = 2.3,
-        TyrePressureRearRight = 2.3,
-        Latitude = 52.3676,
-        Longitude = 4.9041,
-        Elevation = 3.0,
-        BatteryVoltage = 12.7,
-        LightsMainBeam = false,
-        LightsDippedBeam = false,
-        LightsSide = false,
-        HeatedSeatFrontLeft = 0,
-        HeatedSeatFrontRight = 0,
-        RearWindowDefroster = false,
-        SteeringWheelHeating = false,
-        IsAvailable = true,
-        LastVehicleStateAt = DateTime.UtcNow.AddMinutes(-3),
-        LastChargeStateAt = DateTime.UtcNow.AddHours(-8),
-        MileageSinceLastCharge = 32.4,
-        MileageOfTheDay = 18.2,
-        PowerUsageOfDay = 2950,
-        ChargingScheduleMode = "Immediate",
-        ChargingScheduleStartTime = "00:00",
-        ChargingScheduleEndTime = "07:00",
-    };
+        var current = InProgressTripWaypoints[^1];
+
+        return new()
+        {
+            Id = 1,
+            VehicleId = 1,
+            RecordedAt = DateTime.UtcNow,
+            FuelLevelPercent = 68,
+            FuelRangeKm = 420,
+            EvSocPercent = 71,
+            HvSocKwh = Math.Round(71.0 / 100.0 * 70.0, 1),
+            HvTotalCapacityKwh = 70.0,
+            HvVoltage = 386.0,
+            HvCurrent = 42.0,
+            HvPower = 16.2,
+            HvBatteryActive = true,
+            OdometerKm = 24852,
+            EngineRunning = true,
+            IsCharging = false,
+            ChargerConnected = false,
+            ChargingType = "AC",
+            ChargingCableLock = false,
+            BmsChargeStatus = "NotCharging",
+            OnboardChargerPlugStatus = 0,
+            OffboardChargerPlugStatus = 0,
+            ObcVoltage = 0.0,
+            ObcCurrent = 0.0,
+            ObcPowerSinglePhase = 0.0,
+            InteriorTemperature = 21.0,
+            ExteriorTemperature = 14.0,
+            RemoteTemperature = 19.5,
+            Speed = current.SpeedKmh,
+            Heading = 150,
+            CurrentJourneyDistance = Math.Round(TotalDistanceKm(InProgressTripWaypoints), 1),
+            IsLocked = true,
+            ClimateOn = false,
+            BatteryHeating = false,
+            DriverDoorOpen = false,
+            PassengerDoorOpen = false,
+            RearLeftDoorOpen = false,
+            RearRightDoorOpen = false,
+            TrunkOpen = false,
+            BonnetOpen = false,
+            DriverWindowOpen = false,
+            PassengerWindowOpen = false,
+            RearLeftWindowOpen = false,
+            RearRightWindowOpen = false,
+            SunRoofOpen = null,
+            TyrePressureFrontLeft = 2.4,
+            TyrePressureFrontRight = 2.4,
+            TyrePressureRearLeft = 2.3,
+            TyrePressureRearRight = 2.3,
+            Latitude = current.Lat,
+            Longitude = current.Lon,
+            Elevation = 3.0,
+            BatteryVoltage = 12.7,
+            LightsMainBeam = false,
+            LightsDippedBeam = false,
+            LightsSide = false,
+            HeatedSeatFrontLeft = 0,
+            HeatedSeatFrontRight = 0,
+            RearWindowDefroster = false,
+            SteeringWheelHeating = false,
+            IsAvailable = true,
+            LastVehicleStateAt = DateTime.UtcNow,
+            LastChargeStateAt = DateTime.UtcNow.AddHours(-8),
+            MileageSinceLastCharge = 32.4,
+            MileageOfTheDay = 18.2,
+            PowerUsageOfDay = 2950,
+            ChargingScheduleMode = "Immediate",
+            ChargingScheduleStartTime = "00:00",
+            ChargingScheduleEndTime = "07:00",
+        };
+    }
 
     private static IReadOnlyList<TelemetrySnapshot> BuildHistory()
     {
@@ -397,6 +423,10 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
                 (51.5604, 4.8206, 60),
                 (51.5719, 4.7683, 25),
             ]),
+            // In progress: the road already driven, ending at BuildDefaultSnapshot's live position.
+            // Must stay last in this list - the API returns trips in list order and the frontend
+            // treats the final entry as the active trip whenever CurrentJourneyDistance > 0.
+            BuildTrip(10, now.AddMinutes(-8), "Amsterdam to Duivendrecht", InProgressTripWaypoints),
         ];
     }
 
