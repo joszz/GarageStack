@@ -82,7 +82,7 @@ public class TelemetryRepository(AppDbContext db, ILogger<TelemetryRepository>? 
              s.ChargerConnected != null || s.HvBatteryActive != null ||
              s.LightsMainBeam != null || s.LightsDippedBeam != null || s.LightsSide != null ||
              s.HeatedSeatFrontLeft != null || s.HeatedSeatFrontRight != null ||
-             s.RearWindowDefroster != null || s.SteeringWheelHeating != null ||
+             s.RearWindowDefroster != null ||
              s.IsAvailable != null || s.LastVehicleStateAt != null || s.LastChargeStateAt != null ||
              s.CurrentJourneyDistance != null ||
              s.ChargingType != null || s.ChargingCableLock != null || s.RemainingChargingTime != null ||
