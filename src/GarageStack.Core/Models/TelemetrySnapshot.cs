@@ -71,7 +71,6 @@ public class TelemetrySnapshot
     public int? HeatedSeatFrontLeft { get; set; }
     public int? HeatedSeatFrontRight { get; set; }
     public bool? RearWindowDefroster { get; set; }
-    public bool? SteeringWheelHeating { get; set; }
 
     // Online / availability
     public bool? IsAvailable { get; set; }

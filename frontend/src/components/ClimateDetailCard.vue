@@ -17,11 +17,11 @@ const props = defineProps<{
   heatedSeatFrontLeft: number | null
   heatedSeatFrontRight: number | null
   rearWindowDefroster: boolean | null
-  steeringWheelHeating: boolean | null
 }>()
 
 const modalOpen = ref(false)
-const { sending, lastResult, isPending, send } = useVehicleCommand()
+const applyInProgress = ref(false)
+const { sending, lastResult, isPending, send, waitUntilSettled } = useVehicleCommand()
 
 const TEMP_MIN = 16
 const TEMP_MAX = 28
@@ -35,7 +35,6 @@ const seatLabels = computed(() => [
 
 const localClimateOn = ref<boolean | null>(props.climateOn)
 const localRearDefroster = ref<boolean | null>(props.rearWindowDefroster)
-const localSteeringWheel = ref<boolean | null>(props.steeringWheelHeating ?? false)
 const sliderTemp = ref<number>(props.remoteTemperature ?? 22)
 const seatLeftLocal = ref<number>(props.heatedSeatFrontLeft ?? 0)
 const seatRightLocal = ref<number>(props.heatedSeatFrontRight ?? 0)
@@ -44,7 +43,6 @@ watch(modalOpen, (open) => {
   if (open) {
     localClimateOn.value = props.climateOn
     localRearDefroster.value = props.rearWindowDefroster
-    localSteeringWheel.value = props.steeringWheelHeating ?? false
     sliderTemp.value = props.remoteTemperature ?? 22
     seatLeftLocal.value = props.heatedSeatFrontLeft ?? 0
     seatRightLocal.value = props.heatedSeatFrontRight ?? 0
@@ -67,14 +65,12 @@ const hasAnyData = computed(
     props.exteriorTemperature !== null ||
     props.heatedSeatFrontLeft !== null ||
     props.heatedSeatFrontRight !== null ||
-    props.rearWindowDefroster !== null ||
-    props.steeringWheelHeating !== null,
+    props.rearWindowDefroster !== null,
 )
 
 const commandKeys = [
   'climate',
   'rear-defroster',
-  'steering-wheel',
   'climate-temperature',
   'seat-left',
   'seat-right',
@@ -88,11 +84,6 @@ const hasPendingChanges = computed(() => {
   if (props.rearWindowDefroster !== null && localRearDefroster.value !== props.rearWindowDefroster)
     return true
   if (
-    (props.steeringWheelHeating !== null || props.rearWindowDefroster !== null) &&
-    localSteeringWheel.value !== (props.steeringWheelHeating ?? false)
-  )
-    return true
-  if (
     (props.climateOn !== null || props.remoteTemperature !== null) &&
     sliderTemp.value !== (props.remoteTemperature ?? 22)
   )
@@ -104,46 +95,59 @@ const hasPendingChanges = computed(() => {
   return false
 })
 
+// The real vehicle API only processes one command at a time (each can take up to ~30s
+// to reach the car), so a batch of changes must be sent one at a time, waiting for each
+// to settle before sending the next - firing them all at once queues later commands
+// behind earlier ones and makes them miss their own confirmation window.
 async function applyAll() {
-  if (
-    (props.climateOn !== null || props.remoteTemperature !== null) &&
-    sliderTemp.value !== (props.remoteTemperature ?? 22)
-  ) {
-    await send(props.vin, 'climate-temperature', String(sliderTemp.value))
-  }
-  if (props.climateOn !== null && localClimateOn.value !== props.climateOn) {
-    const target = localClimateOn.value
-    await send(props.vin, 'climate', target ? 'on' : 'off', (s) => s.climateOn === target)
-  }
-  if (
-    props.rearWindowDefroster !== null &&
-    localRearDefroster.value !== props.rearWindowDefroster
-  ) {
-    const target = localRearDefroster.value
-    await send(
-      props.vin,
-      'rear-defroster',
-      target ? 'on' : 'off',
-      (s) => s.rearWindowDefroster === target,
-    )
-  }
-  if (
-    (props.steeringWheelHeating !== null || props.rearWindowDefroster !== null) &&
-    localSteeringWheel.value !== (props.steeringWheelHeating ?? false)
-  ) {
-    const target = localSteeringWheel.value
-    await send(
-      props.vin,
-      'steering-wheel',
-      target ? 'on' : 'off',
-      (s) => s.steeringWheelHeating === target,
-    )
-  }
-  if (props.heatedSeatFrontLeft !== null && seatLeftLocal.value !== props.heatedSeatFrontLeft) {
-    await send(props.vin, 'seat-left', String(seatLeftLocal.value))
-  }
-  if (props.heatedSeatFrontRight !== null && seatRightLocal.value !== props.heatedSeatFrontRight) {
-    await send(props.vin, 'seat-right', String(seatRightLocal.value))
+  applyInProgress.value = true
+  try {
+    if (
+      (props.climateOn !== null || props.remoteTemperature !== null) &&
+      sliderTemp.value !== (props.remoteTemperature ?? 22)
+    ) {
+      const target = sliderTemp.value
+      await send(
+        props.vin,
+        'climate-temperature',
+        String(target),
+        (s) => s.remoteTemperature === target,
+      )
+      await waitUntilSettled('climate-temperature')
+    }
+    if (props.climateOn !== null && localClimateOn.value !== props.climateOn) {
+      const target = localClimateOn.value
+      await send(props.vin, 'climate', target ? 'on' : 'off', (s) => s.climateOn === target)
+      await waitUntilSettled('climate')
+    }
+    if (
+      props.rearWindowDefroster !== null &&
+      localRearDefroster.value !== props.rearWindowDefroster
+    ) {
+      const target = localRearDefroster.value
+      await send(
+        props.vin,
+        'rear-defroster',
+        target ? 'on' : 'off',
+        (s) => s.rearWindowDefroster === target,
+      )
+      await waitUntilSettled('rear-defroster')
+    }
+    if (props.heatedSeatFrontLeft !== null && seatLeftLocal.value !== props.heatedSeatFrontLeft) {
+      const target = seatLeftLocal.value
+      await send(props.vin, 'seat-left', String(target), (s) => s.heatedSeatFrontLeft === target)
+      await waitUntilSettled('seat-left')
+    }
+    if (
+      props.heatedSeatFrontRight !== null &&
+      seatRightLocal.value !== props.heatedSeatFrontRight
+    ) {
+      const target = seatRightLocal.value
+      await send(props.vin, 'seat-right', String(target), (s) => s.heatedSeatFrontRight === target)
+      await waitUntilSettled('seat-right')
+    }
+  } finally {
+    applyInProgress.value = false
   }
 }
 
@@ -224,25 +228,6 @@ function onSeatRightChange(e: Event) {
         </div>
       </div>
 
-      <!-- Steering wheel heating toggle; shows with rear defroster since they share the same SAIC extra-heating API -->
-      <div
-        v-if="steeringWheelHeating !== null || rearWindowDefroster !== null"
-        class="detail-list__item detail-list__item--control"
-      >
-        <font-awesome-icon icon="life-ring" class="detail-list__item-icon" />
-        <span class="detail-list__item-label">{{ t('control.steeringWheelHeating') }}</span>
-        <div class="form-check form-switch">
-          <input
-            class="form-check-input"
-            type="checkbox"
-            role="switch"
-            :checked="localSteeringWheel ?? false"
-            :disabled="isApplying || !vin"
-            @change="localSteeringWheel = !localSteeringWheel"
-          />
-        </div>
-      </div>
-
       <!-- Interior temperature (read-only) -->
       <DetailListItem
         v-if="interiorTemperature !== null"
@@ -317,13 +302,10 @@ function onSeatRightChange(e: Event) {
       <button class="btn btn-outline-secondary" @click="close">
         {{ t('common.cancel') }}
       </button>
-      <CommandButton
-        class="btn-primary"
-        :pending="anyPending"
-        :sending="isApplying"
-        :disabled="!vin || !hasPendingChanges"
-        icon="check"
-        :label="t('common.apply')"
+      <button
+        class="btn btn-primary"
+        :class="anyPending ? 'btn--pending' : ''"
+        :disabled="applyInProgress || !vin || !hasPendingChanges"
         @click="applyAll"
       />
     </template>
