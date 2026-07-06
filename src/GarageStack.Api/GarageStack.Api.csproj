@@ -17,7 +17,7 @@
          Stay on the 2.x line - Microsoft.OpenApi 3.x breaks Microsoft.AspNetCore.OpenApi 10.0.9 at
          both compile time (XmlCommentGenerator) and runtime (OpenApiResponse.Content no longer
          exists in the same form), and no compatible Microsoft.AspNetCore.OpenApi release exists yet. -->
-    <PackageReference Include="Microsoft.OpenApi" Version="2.9.0" />
+    <PackageReference Include="Microsoft.OpenApi" Version="3.7.0" />
     <PackageReference Include="Microsoft.IdentityModel.Tokens" Version="8.19.1" />
     <PackageReference Include="MQTTnet" Version="5.2.0.1603" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.9">
