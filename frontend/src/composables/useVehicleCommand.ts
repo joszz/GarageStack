@@ -16,6 +16,25 @@ export function useVehicleCommand() {
     return !!pendingSet.value[key]
   }
 
+  // The real vehicle API processes one command at a time and can take up to ~30s per
+  // command, so callers that need to send several commands in one batch must wait for
+  // each to settle (confirmed or timed out) before sending the next - otherwise they
+  // queue up behind each other on the gateway and miss their own confirmation window.
+  function waitUntilSettled(key: string): Promise<void> {
+    if (!isPending(key)) return Promise.resolve()
+    return new Promise((resolve) => {
+      const stop = watch(
+        () => pendingSet.value[key],
+        (pending) => {
+          if (!pending) {
+            stop()
+            resolve()
+          }
+        },
+      )
+    })
+  }
+
   function clearPending(key: string) {
     const t = timers.get(key)
     if (t) {
@@ -83,5 +102,5 @@ export function useVehicleCommand() {
     }
   }
 
-  return { sending, lastResult, isPending, clearPending, send }
+  return { sending, lastResult, isPending, clearPending, send, waitUntilSettled }
 }
