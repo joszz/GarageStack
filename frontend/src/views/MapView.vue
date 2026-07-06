@@ -18,6 +18,7 @@ import type { Map as LeafletMap } from 'leaflet'
 import 'leaflet.heat'
 import '@/assets/map.css'
 import type { Trip } from '@/services/vehicleApi'
+import { CAR_SILHOUETTE_VIEWBOX, CAR_SILHOUETTE_MARKUP } from '@/assets/carSilhouette'
 
 // Vite wraps CJS modules in a frozen ESM namespace - `import * as LModule` gives that frozen
 // namespace. leaflet.heat patches the actual mutable CJS export (LModule.default), so we must
@@ -186,6 +187,27 @@ const allPoints = computed<[number, number][]>(() =>
   ),
 )
 
+// The backend always appends the still-open segment as the last trip while the car hasn't
+// been parked for 5+ minutes, so a positive currentJourneyDistance means that last trip is
+// the one currently being driven.
+const activeTripIndex = computed<number | null>(() => {
+  if (store.trips.length === 0) return null
+  const dist = status.value?.currentJourneyDistance
+  if (dist == null || dist <= 0) return null
+  return store.trips.length - 1
+})
+
+const activeCarLatLng = computed<[number, number] | null>(() => {
+  const s = status.value
+  if (s?.latitude != null && s?.longitude != null) return [s.latitude, s.longitude]
+  const idx = activeTripIndex.value
+  const trip = idx !== null ? store.trips[idx] : undefined
+  const last = trip?.points[trip.points.length - 1]
+  return last ? [last.latitude, last.longitude] : null
+})
+
+const activeCarHeading = computed(() => status.value?.heading ?? 0)
+
 function formatDuration(startedAt: string, endedAt: string): string {
   const ms = new Date(endedAt).getTime() - new Date(startedAt).getTime()
   const mins = Math.round(ms / 60_000)
@@ -304,16 +326,30 @@ function buildSelectedLine() {
     routeLines.push(line)
   }
 
-  buildTripMarkers(trip)
+  buildTripMarkers(trip, idx)
 }
 
-function buildTripMarkers(trip: Trip) {
+// Live car icon used for a trip's endpoint while it is still in progress, in place of the
+// static end flag - rotated to the vehicle's current heading (0deg = north, matching the
+// silhouette's default forward-facing-up orientation).
+function buildCarMarkerIcon(headingDeg: number) {
+  const heading = Number.isFinite(headingDeg) ? headingDeg : 0
+  return L.divIcon({
+    className: '',
+    html: `<div class="trip-marker trip-marker--active" style="transform: rotate(${heading}deg)">
+      <svg viewBox="${CAR_SILHOUETTE_VIEWBOX}" class="trip-marker-car-svg">${CAR_SILHOUETTE_MARKUP}</svg>
+    </div>`,
+    iconSize: [24, 46],
+    iconAnchor: [12, 23],
+  })
+}
+
+function buildTripMarkers(trip: Trip, realIdx: number) {
   const map = mapInstance.value
   if (!map || trip.points.length === 0) return
 
   const start = trip.points[0]
-  const end = trip.points[trip.points.length - 1]
-  if (!start || !end) return
+  if (!start) return
 
   const startIcon = L.divIcon({
     className: '',
@@ -322,6 +358,16 @@ function buildTripMarkers(trip: Trip) {
     iconAnchor: [8, 8],
   })
   startMarker = L.marker([start.latitude, start.longitude], { icon: startIcon }).addTo(map)
+
+  if (realIdx === activeTripIndex.value && activeCarLatLng.value) {
+    endMarker = L.marker(activeCarLatLng.value, {
+      icon: buildCarMarkerIcon(activeCarHeading.value),
+    }).addTo(map)
+    return
+  }
+
+  const end = trip.points[trip.points.length - 1]
+  if (!end) return
 
   const endIcon = L.divIcon({
     className: '',
@@ -413,6 +459,16 @@ watch(status, (s) => {
     hasCenteredOnStatus = true
     mapInstance.value.setView([s.latitude, s.longitude], 14, { animate: false })
   }
+})
+
+// Keep the active trip's car marker following the live position/heading while it's the
+// selected trip, without a full rebuild (would reset the speed-overlay/route-outline state).
+watch(status, (s) => {
+  if (!endMarker || selectedTripIndex.value === null) return
+  if (selectedTripIndex.value !== activeTripIndex.value) return
+  if (s?.latitude == null || s?.longitude == null) return
+  endMarker.setLatLng([s.latitude, s.longitude])
+  endMarker.setIcon(buildCarMarkerIcon(s.heading ?? 0))
 })
 
 // When trips load after the map is ready, rebuild layers and fit
@@ -732,7 +788,13 @@ onUnmounted(() => {
             }"
             @click="selectTrip(realIndex(displayIdx))"
           >
-            <span class="trip-list__dot" :class="tripColorClass(realIndex(displayIdx))" />
+            <span
+              class="trip-list__dot"
+              :class="[
+                tripColorClass(realIndex(displayIdx)),
+                { 'trip-list__dot--live': realIndex(displayIdx) === activeTripIndex },
+              ]"
+            />
             <div class="trip-list__info">
               <div class="trip-list__header">
                 <span
@@ -740,7 +802,12 @@ onUnmounted(() => {
                   :title="new Date(trip.startedAt).toLocaleDateString(displayLocale)"
                   >{{ new Date(trip.startedAt).toLocaleDateString(displayLocale) }}</span
                 >
-                <span class="trip-list__time">{{
+                <span
+                  v-if="realIndex(displayIdx) === activeTripIndex"
+                  class="trip-list__live-badge"
+                  >{{ t('trips.inProgress') }}</span
+                >
+                <span v-else class="trip-list__time">{{
                   new Date(trip.startedAt).toLocaleTimeString(displayLocale, {
                     hour: '2-digit',
                     minute: '2-digit',
@@ -882,6 +949,30 @@ onUnmounted(() => {
   70% {
     transform: skewY(3deg) scaleX(0.97);
   }
+}
+
+.trip-marker--active {
+  width: 24px;
+  height: 46px;
+  pointer-events: none;
+  transform-origin: center;
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.5));
+}
+
+.trip-marker-car-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.trip-list__dot--live {
+  animation: trip-start-pulse 2s ease-in-out infinite;
+}
+
+.trip-list__live-badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-success, #10b981);
 }
 
 .charging-power-filter {
