@@ -146,7 +146,6 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
         HeatedSeatFrontLeft = 0,
         HeatedSeatFrontRight = 0,
         RearWindowDefroster = false,
-        SteeringWheelHeating = false,
         IsAvailable = true,
         LastVehicleStateAt = DateTime.UtcNow.AddMinutes(-3),
         LastChargeStateAt = DateTime.UtcNow.AddHours(-8),
