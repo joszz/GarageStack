@@ -84,6 +84,13 @@ updates:
       time: "07:00"
       timezone: "Europe/Amsterdam"
     open-pull-requests-limit: 6
+    ignore:
+      # Microsoft.OpenApi 3.x breaks Microsoft.AspNetCore.OpenApi 10.0.9 at both compile
+      # time and runtime (see the pin comment on the Microsoft.OpenApi PackageReference
+      # in GarageStack.Api.csproj) - no compatible Microsoft.AspNetCore.OpenApi release
+      # exists yet. Only block the major bump; keep getting 2.x patch/minor updates.
+      - dependency-name: "Microsoft.OpenApi"
+        update-types: ["version-update:semver-major"]
     groups:
       # The whole Microsoft .NET / ASP.NET / Extensions family ships on the same
       # cadence (patch Tuesday), so one PR covers all of them.
