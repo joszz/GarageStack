@@ -105,7 +105,6 @@ import {
   faChargingStation,
   faFlask,
   faGripLines,
-  faLifeRing,
   faTag,
 } from '@fortawesome/free-solid-svg-icons'
 
@@ -189,7 +188,6 @@ library.add(
   faChargingStation,
   faFlask,
   faGripLines,
-  faLifeRing,
   faTag,
 )
 

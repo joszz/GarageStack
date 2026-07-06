@@ -146,7 +146,6 @@ public static class VehicleEndpoints
                 "climate"             => "climate/remoteClimateState/set",
                 "climate-temperature" => "climate/remoteTemperature/set",
                 "rear-defroster"      => "climate/rearWindowDefrosterHeating/set",
-                "steering-wheel"      => "climate/steeringWheelHeating/set",
                 "seat-left"           => "climate/heatedSeatsFrontLeftLevel/set",
                 "seat-right"          => "climate/heatedSeatsFrontRightLevel/set",
                 "find-my-car"         => "location/findMyCar/set",
@@ -271,7 +270,7 @@ public static class VehicleEndpoints
 
     internal static string? ValidateCommandValue(string command, string value) => command switch
     {
-        "climate" or "rear-defroster" or "steering-wheel" =>
+        "climate" or "rear-defroster" =>
             value is "on" or "off" ? null : $"'{command}' value must be 'on' or 'off'",
         "climate-temperature" =>
             int.TryParse(value, out var temp) && temp is >= 16 and <= 28
