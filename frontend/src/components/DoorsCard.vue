@@ -3,6 +3,7 @@ import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ExpandableStatusCard from './ExpandableStatusCard.vue'
 import DetailListItem from './DetailListItem.vue'
+import CommandButton from './CommandButton.vue'
 import { useVehicleCommand } from '@/composables/useVehicleCommand'
 
 const { t } = useI18n()
@@ -119,29 +120,22 @@ async function handleLockToggle() {
           class="detail-list__item-icon"
         />
         <span class="detail-list__item-label">{{ t('control.lockDoors') }}</span>
-        <button
-          class="btn btn-sm"
+        <CommandButton
+          class="btn-sm"
           :class="
             isPending('lock')
-              ? 'btn--pending btn-outline-secondary'
+              ? 'btn-outline-secondary'
               : effectiveLocked
                 ? 'btn-outline-warning'
                 : 'btn-success'
           "
-          :disabled="sending === 'lock' || isPending('lock') || !vin"
+          :pending="isPending('lock')"
+          :sending="sending === 'lock'"
+          :disabled="!vin"
+          :icon="effectiveLocked ? 'lock-open' : 'lock'"
+          :label="effectiveLocked ? t('control.unlock') : t('control.lock')"
           @click="handleLockToggle"
-        >
-          <font-awesome-icon v-if="sending === 'lock'" icon="spinner" spin />
-          <font-awesome-icon v-else-if="isPending('lock')" icon="clock" />
-          <font-awesome-icon v-else :icon="effectiveLocked ? 'lock-open' : 'lock'" />
-          {{
-            isPending('lock')
-              ? t('control.pending')
-              : effectiveLocked
-                ? t('control.unlock')
-                : t('control.lock')
-          }}
-        </button>
+        />
       </div>
       <div
         v-if="lastResult?.key === 'lock' && !lastResult.ok && !isPending('lock')"

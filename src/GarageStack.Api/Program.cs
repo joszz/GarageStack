@@ -96,15 +96,6 @@ try
         throw new InvalidOperationException("Jwt:Secret must be at least 32 bytes.");
 
     builder.Services.AddMemoryCache();
-    builder.Services.AddHttpClient("ocm", client =>
-    {
-        client.DefaultRequestHeaders.UserAgent.ParseAdd("GarageStack/1.0");
-    });
-    builder.Services.AddHttpClient("overpass", client =>
-    {
-        client.DefaultRequestHeaders.UserAgent.ParseAdd("GarageStack/1.0");
-        client.Timeout = TimeSpan.FromSeconds(45);
-    });
     builder.Services.AddScoped<ChargingStationService>();
     builder.Services.AddScoped<PoiService>();
 

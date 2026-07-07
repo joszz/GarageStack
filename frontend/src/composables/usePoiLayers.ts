@@ -1,21 +1,12 @@
 import { computed, ref, watch, onUnmounted, type ComputedRef, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import * as LModule from 'leaflet'
-import type { Map as LeafletMap } from 'leaflet'
+import { L, type LeafletMap } from '@/utils/leaflet'
 import 'leaflet.markercluster'
 import 'leaflet.markercluster/dist/MarkerCluster.css'
 import type { VehicleType } from '@/stores/vehicle'
 import { useMapSettingsStore } from '@/stores/settingsMap'
 import { mapApi } from '@/services/mapApi'
 import type { ChargingStation, PoiItem } from '@/services/mapApi'
-
-// Vite wraps CJS modules in a frozen ESM namespace - `import * as LModule` gives that frozen
-// namespace. leaflet.markercluster patches the actual mutable CJS export (LModule.default), so
-// we must use that reference to reach markerClusterGroup at runtime. Both this module and
-// MapView.vue import 'leaflet' as the same cached ES module instance, so the plugin patch here
-// is visible from either file regardless of which one imported the plugin side-effect first.
-const L = ((LModule as unknown as { default?: typeof LModule }).default ??
-  LModule) as typeof LModule
 
 type ClusterFactory = {
   markerClusterGroup: (options?: {

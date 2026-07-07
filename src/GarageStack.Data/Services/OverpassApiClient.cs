@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using GarageStack.Core.Helpers;
 using GarageStack.Core.Models;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -184,6 +185,7 @@ public sealed class OverpassApiClient(
         var lat = e.Type == "node" ? e.Lat : e.Center?.Lat ?? 0;
         var lng = e.Type == "node" ? e.Lon : e.Center?.Lon ?? 0;
         var meta = e.Tags is { Count: > 0 } ? JsonSerializer.Serialize(e.Tags) : null;
+        var (cellLat, cellLng) = TileHelper.CellOf(lat, lng);
         return new PoiItem
         {
             Source = source,
@@ -196,8 +198,8 @@ public sealed class OverpassApiClient(
             // Tile coords derived from the element's own position, not the queried tile.
             // This prevents duplicate-key violations when the same border element appears
             // in two adjacent tile queries.
-            CellLat = (int)Math.Floor(lat * 2),
-            CellLng = (int)Math.Floor(lng * 2),
+            CellLat = cellLat,
+            CellLng = cellLng,
         };
     }
 

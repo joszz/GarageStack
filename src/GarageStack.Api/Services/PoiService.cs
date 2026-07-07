@@ -20,14 +20,11 @@ public sealed class PoiService(
         _ => false,
     };
 
-    public static IReadOnlyList<(int CellLat, int CellLng)> ComputeTiles(double lat, double lng, double radiusKm)
-        => TileHelper.ComputeTiles(lat, lng, radiusKm);
-
     public async Task<PoiResult> GetPoisAsync(
         string poiType, double lat, double lng, double radiusKm,
         CancellationToken ct = default)
     {
-        var tiles = ComputeTiles(lat, lng, radiusKm);
+        var tiles = TileHelper.ComputeTiles(lat, lng, radiusKm);
         var uncached = await repository.GetExpiredOrMissingTilesAsync("overpass", poiType, tiles, ct);
 
         // Cap on-demand fetches to the tile closest to the viewport centre. The remaining

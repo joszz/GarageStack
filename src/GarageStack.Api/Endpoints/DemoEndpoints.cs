@@ -18,18 +18,14 @@ public static class DemoEndpoints
             .WithTags("Demo")
             .RequireAuthorization();
 
-        group.MapPost("/status/{vin}", async (
-            string vin,
-            DemoStatusOverrideDto dto,
-            IVehicleRepository vehicles,
-            CancellationToken ct) =>
-        {
-            var resolved = await VehicleEndpoints.ResolveVehicleAsync(vin, vehicles, ct);
-            if (resolved.NotFound is not null) return resolved.NotFound;
-            demoRepo.ApplyOverride(dto);
-            return Results.NoContent();
-        })
-        .WithSummary("Override demo vehicle status fields");
+        group.MapGroup("/status/{vin}")
+            .AddEndpointFilter<VehicleEndpoints.ResolveVehicleFilter>()
+            .MapPost("/", (DemoStatusOverrideDto dto) =>
+            {
+                demoRepo.ApplyOverride(dto);
+                return Results.NoContent();
+            })
+            .WithSummary("Override demo vehicle status fields");
 
         return app;
     }

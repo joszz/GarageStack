@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using GarageStack.Core.Helpers;
 using GarageStack.Core.Models;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -95,6 +96,7 @@ public sealed class OcmApiClient(
     {
         var lat = p.AddressInfo?.Latitude ?? 0;
         var lng = p.AddressInfo?.Longitude ?? 0;
+        var (cellLat, cellLng) = TileHelper.CellOf(lat, lng);
 
         // Only store DC connectors (CurrentTypeID == 30); AC already excluded at API level
         // but guard here too in case OCM returns mixed results.
@@ -123,8 +125,8 @@ public sealed class OcmApiClient(
             MetaJson = JsonSerializer.Serialize(meta),
             // Tile from element's own position (same pattern as Overpass) so that a station
             // returned by an adjacent tile's radius query doesn't collide on the unique index.
-            CellLat = (int)Math.Floor(lat * 2),
-            CellLng = (int)Math.Floor(lng * 2),
+            CellLat = cellLat,
+            CellLng = cellLng,
         };
     }
 

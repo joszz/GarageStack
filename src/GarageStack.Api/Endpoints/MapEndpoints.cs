@@ -4,6 +4,21 @@ namespace GarageStack.Api.Endpoints;
 
 public static class MapEndpoints
 {
+    private static IResult? ValidateLatLng(double lat, double lng) =>
+        lat is < -90 or > 90 || lng is < -180 or > 180
+            ? Results.BadRequest(new { error = "lat must be between -90 and 90, lng between -180 and 180" })
+            : null;
+
+    private static IResult? ValidateRadiusKm(double radiusKm, string paramName) =>
+        radiusKm is < 1 or > 200
+            ? Results.BadRequest(new { error = $"{paramName} must be between 1 and 200" })
+            : null;
+
+    private static IResult? ValidatePoiType(string type) =>
+        type is not ("fuel" or "service_area")
+            ? Results.BadRequest(new { error = "type must be 'fuel' or 'service_area'" })
+            : null;
+
     public static IEndpointRouteBuilder MapMapEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/map")
@@ -19,11 +34,8 @@ public static class MapEndpoints
             ChargingStationService svc,
             CancellationToken ct) =>
         {
-            if (lat is < -90 or > 90 || lng is < -180 or > 180)
-                return Results.BadRequest(new { error = "lat must be between -90 and 90, lng between -180 and 180" });
-
-            if (distanceKm is < 1 or > 200)
-                return Results.BadRequest(new { error = "distanceKm must be between 1 and 200" });
+            var error = ValidateLatLng(lat, lng) ?? ValidateRadiusKm(distanceKm, "distanceKm");
+            if (error is not null) return error;
 
             var stations = await svc.GetStationsAsync(lat, lng, distanceKm, minPowerKw, maxPowerKw, ct);
             return Results.Ok(stations);
@@ -36,8 +48,8 @@ public static class MapEndpoints
             PoiService svc,
             CancellationToken ct) =>
         {
-            if (type is not ("fuel" or "service_area"))
-                return Results.BadRequest(new { error = "type must be 'fuel' or 'service_area'" });
+            var error = ValidatePoiType(type);
+            if (error is not null) return error;
 
             if (!PoiService.IsPoiTypeAllowed(type, vehicleType))
                 return Results.Ok(Array.Empty<string>());
@@ -56,14 +68,8 @@ public static class MapEndpoints
             PoiService svc,
             CancellationToken ct) =>
         {
-            if (lat is < -90 or > 90 || lng is < -180 or > 180)
-                return Results.BadRequest(new { error = "lat must be between -90 and 90, lng between -180 and 180" });
-
-            if (radiusKm is < 1 or > 200)
-                return Results.BadRequest(new { error = "radiusKm must be between 1 and 200" });
-
-            if (type is not ("fuel" or "service_area"))
-                return Results.BadRequest(new { error = "type must be 'fuel' or 'service_area'" });
+            var error = ValidateLatLng(lat, lng) ?? ValidateRadiusKm(radiusKm, "radiusKm") ?? ValidatePoiType(type);
+            if (error is not null) return error;
 
             if (!PoiService.IsPoiTypeAllowed(type, vehicleType))
                 return Results.Ok(new PoiResult([], false));

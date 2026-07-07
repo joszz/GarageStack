@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ExpandableStatusCard from './ExpandableStatusCard.vue'
+import CommandButton from './CommandButton.vue'
 import { useVehicleCommand } from '@/composables/useVehicleCommand'
 
 const { t } = useI18n()
@@ -34,30 +35,25 @@ async function stop() {
       <button class="btn btn-outline-secondary" @click="close">
         {{ t('common.cancel') }}
       </button>
-      <button
+      <CommandButton
         v-if="!active"
-        class="btn btn-warning"
-        :class="isPending('find-my-car') ? 'btn--pending' : ''"
-        :disabled="sending === 'find-my-car' || isPending('find-my-car') || !vin"
+        class="btn-warning"
+        :pending="isPending('find-my-car')"
+        :sending="sending === 'find-my-car'"
+        :disabled="!vin"
+        icon="bullhorn"
+        :label="t('control.findMyCarActivate')"
         @click="activate"
-      >
-        <font-awesome-icon v-if="sending === 'find-my-car'" icon="spinner" spin />
-        <font-awesome-icon v-else-if="isPending('find-my-car')" icon="clock" />
-        <font-awesome-icon v-else icon="bullhorn" />
-        {{ isPending('find-my-car') ? t('control.pending') : t('control.findMyCarActivate') }}
-      </button>
-      <button
+      />
+      <CommandButton
         v-else
-        class="btn btn-danger"
-        :class="isPending('find-my-car') ? 'btn--pending' : ''"
-        :disabled="sending === 'find-my-car' || isPending('find-my-car')"
+        class="btn-danger"
+        :pending="isPending('find-my-car')"
+        :sending="sending === 'find-my-car'"
+        icon="xmark"
+        :label="t('control.findMyCarStop')"
         @click="stop"
-      >
-        <font-awesome-icon v-if="sending === 'find-my-car'" icon="spinner" spin />
-        <font-awesome-icon v-else-if="isPending('find-my-car')" icon="clock" />
-        <font-awesome-icon v-else icon="xmark" />
-        {{ isPending('find-my-car') ? t('control.pending') : t('control.findMyCarStop') }}
-      </button>
+      />
     </template>
   </ExpandableStatusCard>
 </template>

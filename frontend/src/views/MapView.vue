@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, computed, ref, shallowRef, watch, nextTick } from 'vue'
+import { onMounted, onUnmounted, computed, ref, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { useVehicleStore } from '@/stores/vehicle'
@@ -11,20 +11,14 @@ import FiltersPanel from '@/components/FiltersPanel.vue'
 import SettingsToggle from '@/components/SettingsToggle.vue'
 import { useInfiniteScroll } from '@/composables/useInfiniteScroll'
 import { usePoiLayers } from '@/composables/usePoiLayers'
+import { useLeafletMap } from '@/composables/useLeafletMap'
 import Slider from '@vueform/slider'
 import Multiselect from '@vueform/multiselect'
-import * as LModule from 'leaflet'
-import type { Map as LeafletMap } from 'leaflet'
+import { L, type LeafletMap } from '@/utils/leaflet'
 import 'leaflet.heat'
 import '@/assets/map.css'
 import type { Trip } from '@/services/vehicleApi'
 import { buildCarMarkerIcon } from '@/utils/mapCarIcon'
-
-// Vite wraps CJS modules in a frozen ESM namespace - `import * as LModule` gives that frozen
-// namespace. leaflet.heat patches the actual mutable CJS export (LModule.default), so we must
-// use that reference to reach heatLayer at runtime.
-const L = ((LModule as unknown as { default?: typeof LModule }).default ??
-  LModule) as typeof LModule
 
 const { t } = useI18n()
 const route = useRoute()
@@ -80,7 +74,7 @@ const LOAD_MORE_SIZE = 10
 
 const mapWrapperRef = ref<HTMLElement | null>(null)
 const tripSidebarRef = ref<HTMLElement | null>(null)
-const mapInstance = shallowRef<LeafletMap | null>(null)
+const { mapInstance, bindMapReady } = useLeafletMap(mapWrapperRef)
 
 // Charging-station / fuel-station / service-area layers: settings bindings, on-demand tile
 // fetching/caching, marker clustering, and popups all live in this composable so this view only
@@ -105,7 +99,6 @@ let heatLayer: L.Layer | null = null
 let routeLines: L.Polyline[] = []
 let startMarker: L.Marker | null = null
 let endMarker: L.Marker | null = null
-let resizeObserver: ResizeObserver | null = null
 let mapUpdateRaf: number | null = null
 let hasCenteredOnStatus = false
 
@@ -405,34 +398,19 @@ function flyToStatus() {
 }
 
 function onMapReady(map: LeafletMap) {
-  mapInstance.value = map
-
-  // Keep map in sync when the flex container resizes (orientation change, sidebar toggle, etc.)
-  if (mapWrapperRef.value) {
-    resizeObserver = new ResizeObserver(() => map.invalidateSize())
-    resizeObserver.observe(mapWrapperRef.value)
-  }
-
   // POI layer reload on pan/zoom is handled internally by usePoiLayers (it watches mapInstance).
-
-  // nextTick: wait for Vue DOM → requestAnimationFrame: wait for browser layout pass.
-  // Without rAF, clientHeight is still 0 on mobile because the flex heights haven't been
-  // computed by the browser yet even though the DOM is ready.
-  nextTick(() => {
-    requestAnimationFrame(() => {
-      map.invalidateSize()
-      if (allPoints.value.length > 0) {
-        buildHeatLayer()
-        buildRouteLines()
-        fitAll()
-      } else if (status.value?.latitude != null && status.value?.longitude != null) {
-        hasCenteredOnStatus = true
-        map.setView([status.value.latitude, status.value.longitude], 14, { animate: false })
-      }
-      if (chargingStationsEnabled.value) loadChargingStations(100)
-      if (fuelStationsEnabled.value) loadPoiLayer('fuel', 100)
-      if (serviceAreasEnabled.value) loadPoiLayer('service_area', 100)
-    })
+  bindMapReady(map, () => {
+    if (allPoints.value.length > 0) {
+      buildHeatLayer()
+      buildRouteLines()
+      fitAll()
+    } else if (status.value?.latitude != null && status.value?.longitude != null) {
+      hasCenteredOnStatus = true
+      map.setView([status.value.latitude, status.value.longitude], 14, { animate: false })
+    }
+    if (chargingStationsEnabled.value) loadChargingStations(100)
+    if (fuelStationsEnabled.value) loadPoiLayer('fuel', 100)
+    if (serviceAreasEnabled.value) loadPoiLayer('service_area', 100)
   })
 }
 
@@ -589,7 +567,6 @@ onMounted(async () => {
 onUnmounted(() => {
   if (mapUpdateRaf !== null) cancelAnimationFrame(mapUpdateRaf)
   removeHeatLayer()
-  resizeObserver?.disconnect()
   // POI layer cleanup (debouncers, marker clearing) is handled internally by usePoiLayers.
 })
 </script>

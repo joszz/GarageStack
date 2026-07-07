@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text;
 using GarageStack.Api.Services;
+using GarageStack.Core.Helpers;
 using GarageStack.Core.Interfaces;
 using GarageStack.Core.Models;
 using GarageStack.Data.Services;
@@ -141,7 +142,7 @@ public class PoiServiceTests
         var svc = BuildPoiService(repo, BuildOverpassClient(handler));
 
         // Pre-seed every tile that ComputeTiles would return for this request
-        var tiles = PoiService.ComputeTiles(52.0, 5.0, 10.0);
+        var tiles = TileHelper.ComputeTiles(52.0, 5.0, 10.0);
         foreach (var (clat, clng) in tiles)
             repo.SeedTile("overpass", "fuel", clat, clng);
 
@@ -169,7 +170,7 @@ public class PoiServiceTests
     public async Task GetPoisAsync_OverpassFailure_ContinuesAndReturnsSeededItems()
     {
         var repo = new PoiFakeRepository();
-        var tiles = PoiService.ComputeTiles(52.3, 4.9, 5.0).ToList();
+        var tiles = TileHelper.ComputeTiles(52.3, 4.9, 5.0).ToList();
         var firstTile = tiles[0];
 
         // Seed one tile + one item to verify partial return still works
@@ -202,23 +203,5 @@ public class PoiServiceTests
     public void IsPoiTypeAllowed_ReturnsExpectedResult(string poiType, string vehicleType, bool expected)
     {
         Assert.Equal(expected, PoiService.IsPoiTypeAllowed(poiType, vehicleType));
-    }
-
-    [Fact]
-    public void ComputeTiles_KnownPoint_ReturnsContainingCell()
-    {
-        // lat=52.3, lng=4.9 → cellLat=floor(52.3*2)=104, cellLng=floor(4.9*2)=9
-        var tiles = PoiService.ComputeTiles(52.3, 4.9, 0.1);
-
-        Assert.Contains((104, 9), tiles);
-    }
-
-    [Fact]
-    public void ComputeTiles_LargeRadius_ReturnsMultipleCells()
-    {
-        // 100km radius should span several 0.5° cells
-        var tiles = PoiService.ComputeTiles(52.3, 4.9, 100.0);
-
-        Assert.True(tiles.Count > 4);
     }
 }

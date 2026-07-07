@@ -1,18 +1,13 @@
 <script setup lang="ts">
-import { computed, nextTick, onUnmounted, ref, shallowRef, watch } from 'vue'
+import { computed, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { LMap, LTileLayer, LMarker } from '@vue-leaflet/vue-leaflet'
-import * as LModule from 'leaflet'
-import type { Map as LeafletMap } from 'leaflet'
+import { L, type LeafletMap } from '@/utils/leaflet'
+import { useLeafletMap } from '@/composables/useLeafletMap'
 import { useVehicleStore } from '@/stores/vehicle'
 import CardInfoWrap from './CardInfoWrap.vue'
 import { buildCarMarkerIcon } from '@/utils/mapCarIcon'
-
-// Vite wraps CJS modules in a frozen ESM namespace - `import * as LModule` gives that frozen
-// namespace, which already exposes the plain (unpatched) Leaflet API this file needs.
-const L = ((LModule as unknown as { default?: typeof LModule }).default ??
-  LModule) as typeof LModule
 
 const { t } = useI18n()
 const router = useRouter()
@@ -47,8 +42,7 @@ const mapOptions = {
 }
 
 const mapWrapperRef = ref<HTMLElement | null>(null)
-const mapInstance = shallowRef<LeafletMap | null>(null)
-let resizeObserver: ResizeObserver | null = null
+const { mapInstance, bindMapReady } = useLeafletMap(mapWrapperRef)
 let routeLine: L.Polyline | null = null
 let carMarker: L.Marker | null = null
 
@@ -77,17 +71,9 @@ function buildActiveTripLayers() {
 }
 
 function onMapReady(map: LeafletMap) {
-  mapInstance.value = map
-  if (mapWrapperRef.value) {
-    resizeObserver = new ResizeObserver(() => map.invalidateSize())
-    resizeObserver.observe(mapWrapperRef.value)
-  }
-  nextTick(() => {
-    requestAnimationFrame(() => {
-      map.invalidateSize()
-      if (hasLocation.value) map.setView(center.value, 14, { animate: false })
-      buildActiveTripLayers()
-    })
+  bindMapReady(map, () => {
+    if (hasLocation.value) map.setView(center.value, 14, { animate: false })
+    buildActiveTripLayers()
   })
 }
 
@@ -107,7 +93,6 @@ watch(status, (s) => {
 watch(activeTrip, () => buildActiveTripLayers())
 
 onUnmounted(() => {
-  resizeObserver?.disconnect()
   clearActiveTripLayers()
 })
 
