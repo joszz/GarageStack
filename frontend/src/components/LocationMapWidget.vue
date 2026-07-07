@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onUnmounted, ref, watch } from 'vue'
+import { computed, nextTick, onUnmounted, ref, shallowRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { LMap, LTileLayer, LMarker } from '@vue-leaflet/vue-leaflet'
@@ -47,7 +47,7 @@ const mapOptions = {
 }
 
 const mapWrapperRef = ref<HTMLElement | null>(null)
-const mapInstance = ref<LeafletMap | null>(null)
+const mapInstance = shallowRef<LeafletMap | null>(null)
 let resizeObserver: ResizeObserver | null = null
 let routeLine: L.Polyline | null = null
 let carMarker: L.Marker | null = null
