@@ -18,7 +18,7 @@ import type { Map as LeafletMap } from 'leaflet'
 import 'leaflet.heat'
 import '@/assets/map.css'
 import type { Trip } from '@/services/vehicleApi'
-import { CAR_SILHOUETTE_VIEWBOX, CAR_SILHOUETTE_MARKUP } from '@/assets/carSilhouette'
+import { buildCarMarkerIcon } from '@/utils/mapCarIcon'
 
 // Vite wraps CJS modules in a frozen ESM namespace - `import * as LModule` gives that frozen
 // namespace. leaflet.heat patches the actual mutable CJS export (LModule.default), so we must
@@ -327,21 +327,6 @@ function buildSelectedLine() {
   }
 
   buildTripMarkers(trip, idx)
-}
-
-// Live car icon used for a trip's endpoint while it is still in progress, in place of the
-// static end flag - rotated to the vehicle's current heading (0deg = north, matching the
-// silhouette's default forward-facing-up orientation).
-function buildCarMarkerIcon(headingDeg: number) {
-  const heading = Number.isFinite(headingDeg) ? headingDeg : 0
-  return L.divIcon({
-    className: '',
-    html: `<div class="trip-marker trip-marker--active" style="transform: rotate(${heading}deg)">
-      <svg viewBox="${CAR_SILHOUETTE_VIEWBOX}" class="trip-marker-car-svg">${CAR_SILHOUETTE_MARKUP}</svg>
-    </div>`,
-    iconSize: [24, 46],
-    iconAnchor: [12, 23],
-  })
 }
 
 function buildTripMarkers(trip: Trip, realIdx: number) {
@@ -949,20 +934,6 @@ onUnmounted(() => {
   70% {
     transform: skewY(3deg) scaleX(0.97);
   }
-}
-
-.trip-marker--active {
-  width: 24px;
-  height: 46px;
-  pointer-events: none;
-  transform-origin: center;
-  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.5));
-}
-
-.trip-marker-car-svg {
-  width: 100%;
-  height: 100%;
-  display: block;
 }
 
 .trip-list__dot--live {
