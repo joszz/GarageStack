@@ -122,12 +122,13 @@ public class PushNotificationCheckService(
         if (s.IsCharging is null) return;
 
         var current = s.IsCharging.Value;
-        var hasPrevious = _isChargingTracker.TryUpdate(vin, current, out var previous);
+        var hadPrevious = _isChargingTracker.TryUpdate(vin, current, out var previous);
 
-        if (!hasPrevious || previous is null) return;
+        if (BoolTransitionDetector.Detect(hadPrevious, previous, current) != StateTransition.TurnedOff)
+            return;
 
         // Charging finished while cable is still connected (session complete, not unplugged mid-charge)
-        if (!current && previous == true && s.ChargerConnected == true)
+        if (s.ChargerConnected == true)
         {
             var soc = s.EvSocPercent is not null ? $" (SOC: {s.EvSocPercent:F0}%)" : string.Empty;
             alerts.Add(("charging-complete", "Charging Complete", $"Your car has finished charging{soc}"));
@@ -143,20 +144,22 @@ public class PushNotificationCheckService(
         if (s.EngineRunning is null) return false;
 
         var current = s.EngineRunning.Value;
-        var hasPrevious = _engineRunningTracker.TryUpdate(vin, current, out var previous);
+        var hadPrevious = _engineRunningTracker.TryUpdate(vin, current, out var previous);
 
-        // Skip the first check after startup — no baseline to compare against
-        if (!hasPrevious || previous is null) return false;
-
-        if (current && previous == false)
-            alerts.Add(("engine-start", "Car Started", "Your car engine has started"));
-        else if (!current && previous == true)
+        // First observation after startup is skipped: no baseline to compare against.
+        switch (BoolTransitionDetector.Detect(hadPrevious, previous, current))
         {
-            _lastParkedAt[vin] = DateTime.UtcNow;
-            return true;
-        }
+            case StateTransition.TurnedOn:
+                alerts.Add(("engine-start", "Car Started", "Your car engine has started"));
+                return false;
 
-        return false;
+            case StateTransition.TurnedOff:
+                _lastParkedAt[vin] = DateTime.UtcNow;
+                return true;
+
+            default:
+                return false;
+        }
     }
 
     private static bool IsParked(Core.Models.TelemetrySnapshot s)

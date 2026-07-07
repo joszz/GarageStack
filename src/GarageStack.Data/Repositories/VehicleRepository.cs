@@ -8,12 +8,20 @@ namespace GarageStack.Data.Repositories;
 
 public class VehicleRepository(AppDbContext db) : IVehicleRepository
 {
+    // track: false for read-only lookups so EF doesn't snapshot the entity for change detection;
+    // track: true when the caller may mutate and save the returned entity.
+    private Task<Vehicle?> FindByVinAsync(string vin, bool track, CancellationToken ct)
+    {
+        var query = track ? db.Vehicles : db.Vehicles.AsNoTracking();
+        return query.FirstOrDefaultAsync(v => v.Vin == vin, ct);
+    }
+
     public Task<Vehicle?> GetByVinAsync(string vin, CancellationToken ct = default) =>
-        db.Vehicles.FirstOrDefaultAsync(v => v.Vin == vin, ct);
+        FindByVinAsync(vin, track: false, ct);
 
     public async Task<Vehicle> GetOrCreateByVinAsync(string vin, string? saicUser = null, CancellationToken ct = default)
     {
-        var vehicle = await db.Vehicles.FirstOrDefaultAsync(v => v.Vin == vin, ct);
+        var vehicle = await FindByVinAsync(vin, track: true, ct);
         if (vehicle is not null)
         {
             if (saicUser is not null && vehicle.SaicUser != saicUser)
@@ -36,7 +44,7 @@ public class VehicleRepository(AppDbContext db) : IVehicleRepository
             // nearly the same time (e.g. on startup); the loser of that race hits the unique
             // constraint on Vin here. Forget our failed insert and read back the winner's row.
             db.ChangeTracker.Clear();
-            vehicle = await db.Vehicles.FirstOrDefaultAsync(v => v.Vin == vin, ct)
+            vehicle = await FindByVinAsync(vin, track: true, ct)
                 ?? throw new InvalidOperationException($"Unique-constraint violation on VIN {vin} but no row found on retry.");
         }
         return vehicle;

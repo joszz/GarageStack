@@ -37,6 +37,23 @@ public static class TelemetryMapper
 
     private static double? N(double v) => double.IsFinite(v) ? v : null;
 
+    // Applies a compound-JSON payload (e.g. location/position, chargingSchedule) via the given
+    // callback. Returns false, rather than throwing, when the payload isn't valid JSON so callers
+    // can treat a malformed message the same way as any other recognised-but-bad subtopic.
+    private static bool TryApplyJson(string payload, Action<JsonElement> apply)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(payload);
+            apply(doc.RootElement);
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
     private static bool? ApplyDrivetrainBasics(TelemetrySnapshot s, string subtopic, double numeric, bool? asBool)
     {
         switch (subtopic)
@@ -151,20 +168,13 @@ public static class TelemetryMapper
         {
             // Gateway publishes a compound JSON object, not separate topics
             case "location/position":
-                try
+                return TryApplyJson(payload, root =>
                 {
-                    using var doc = JsonDocument.Parse(payload);
-                    var root = doc.RootElement;
                     if (root.TryGetProperty("latitude", out var lat) && lat.TryGetDouble(out var latVal))
                         s.Latitude = N(latVal);
                     if (root.TryGetProperty("longitude", out var lon) && lon.TryGetDouble(out var lonVal))
                         s.Longitude = N(lonVal);
-                }
-                catch
-                {
-                    return false;
-                }
-                return true;
+                });
 
             case "location/latitude":
                 s.Latitude = N(numeric);
@@ -338,17 +348,11 @@ public static class TelemetryMapper
                 return true;
 
             case "drivetrain/currentJourney":
-                try
+                return TryApplyJson(payload, root =>
                 {
-                    using var cjDoc = JsonDocument.Parse(payload);
-                    if (cjDoc.RootElement.TryGetProperty("distance", out var dist) && dist.TryGetDouble(out var dv))
+                    if (root.TryGetProperty("distance", out var dist) && dist.TryGetDouble(out var dv))
                         s.CurrentJourneyDistance = N(dv);
-                }
-                catch
-                {
-                    return false;
-                }
-                return true;
+                });
 
             default:
                 return null;
@@ -382,18 +386,12 @@ public static class TelemetryMapper
                 return true;
 
             case "drivetrain/chargingSchedule":
-                try
+                return TryApplyJson(payload, root =>
                 {
-                    using var csDoc = JsonDocument.Parse(payload);
-                    if (csDoc.RootElement.TryGetProperty("mode", out var csm)) s.ChargingScheduleMode = csm.GetString();
-                    if (csDoc.RootElement.TryGetProperty("startTime", out var css)) s.ChargingScheduleStartTime = css.GetString();
-                    if (csDoc.RootElement.TryGetProperty("endTime", out var cse)) s.ChargingScheduleEndTime = cse.GetString();
-                }
-                catch
-                {
-                    return false;
-                }
-                return true;
+                    if (root.TryGetProperty("mode", out var csm)) s.ChargingScheduleMode = csm.GetString();
+                    if (root.TryGetProperty("startTime", out var css)) s.ChargingScheduleStartTime = css.GetString();
+                    if (root.TryGetProperty("endTime", out var cse)) s.ChargingScheduleEndTime = cse.GetString();
+                });
 
             case "bms/chargeStatus":
                 s.BmsChargeStatus = payload;
@@ -444,19 +442,13 @@ public static class TelemetryMapper
                 return true;
 
             case "drivetrain/batteryHeatingSchedule":
-                try
+                return TryApplyJson(payload, root =>
                 {
-                    using var bhDoc = JsonDocument.Parse(payload);
-                    if (bhDoc.RootElement.TryGetProperty("mode", out var m))
+                    if (root.TryGetProperty("mode", out var m))
                         s.BatteryHeatingScheduleMode = m.GetString();
-                    if (bhDoc.RootElement.TryGetProperty("startTime", out var st))
+                    if (root.TryGetProperty("startTime", out var st))
                         s.BatteryHeatingScheduleStartTime = st.GetString();
-                }
-                catch
-                {
-                    return false;
-                }
-                return true;
+                });
 
             default:
                 return null;

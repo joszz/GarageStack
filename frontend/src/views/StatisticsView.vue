@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import '@/assets/statistics.css'
-import { onMounted, computed, ref, watch, shallowRef, nextTick } from 'vue'
+import { onMounted, computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useVehicleStore } from '@/stores/vehicle'
 import { useDashboardSettingsStore } from '@/stores/settingsDashboard'
@@ -12,14 +12,15 @@ import type { TelemetrySnapshot, VehicleAggregateStats } from '@/services/vehicl
 import { Line, Bar } from 'vue-chartjs'
 import { VueDraggable } from 'vue-draggable-plus'
 import { LMap, LTileLayer, LMarker } from '@vue-leaflet/vue-leaflet'
-import * as LModule from 'leaflet'
-import type { Map as LeafletMap } from 'leaflet'
+import { L, type LeafletMap } from '@/utils/leaflet'
+import { useLeafletMap } from '@/composables/useLeafletMap'
 import CardInfoWrap from '@/components/CardInfoWrap.vue'
 import DetailModal from '@/components/DetailModal.vue'
 import FiltersPanel from '@/components/FiltersPanel.vue'
 import SkeletonCard from '@/components/SkeletonCard.vue'
 import SkeletonChart from '@/components/SkeletonChart.vue'
 import StatusCard from '@/components/StatusCard.vue'
+import EditableCardSlot from '@/components/EditableCardSlot.vue'
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -46,9 +47,6 @@ ChartJS.register(
   Legend,
   Filler,
 )
-
-const L = ((LModule as unknown as { default?: typeof LModule }).default ??
-  LModule) as typeof LModule
 
 const { t } = useI18n()
 const store = useVehicleStore()
@@ -281,7 +279,7 @@ const electricShareToday = computed(() => {
 const activeChartInfo = ref<StatsChartId | null>(null)
 
 const parkingModalOpen = ref(false)
-const parkingMapInstance = shallowRef<LeafletMap | null>(null)
+const { bindMapReady: bindParkingMapReady } = useLeafletMap()
 
 const parkingMapCenter = computed<[number, number]>(() =>
   parkingCoordinates.value.length
@@ -290,19 +288,15 @@ const parkingMapCenter = computed<[number, number]>(() =>
 )
 
 function onParkingMapReady(map: LeafletMap) {
-  parkingMapInstance.value = map
-  nextTick(() => {
-    requestAnimationFrame(() => {
-      map.invalidateSize()
-      const pts = parkingCoordinates.value
-      if (!pts.length) return
-      const bounds = L.latLngBounds(pts.map((c) => [c.lat, c.lng] as [number, number]))
-      if (bounds.getNorthEast().equals(bounds.getSouthWest())) {
-        map.setView(bounds.getCenter(), 15, { animate: false })
-      } else {
-        map.fitBounds(bounds, { padding: [24, 24], animate: false })
-      }
-    })
+  bindParkingMapReady(map, () => {
+    const pts = parkingCoordinates.value
+    if (!pts.length) return
+    const bounds = L.latLngBounds(pts.map((c) => [c.lat, c.lng] as [number, number]))
+    if (bounds.getNorthEast().equals(bounds.getSouthWest())) {
+      map.setView(bounds.getCenter(), 15, { animate: false })
+    } else {
+      map.fitBounds(bounds, { padding: [24, 24], animate: false })
+    }
   })
 }
 
@@ -715,44 +709,31 @@ const skeletonChartCount = computed(
             chosen-class="card-slot--chosen"
             handle=".card-slot__handle"
           >
-            <div
+            <EditableCardSlot
               v-for="item in settings.statsInsights"
               v-show="insightDefMap.get(item.id)?.vehicleApplicable !== false"
               :key="item.id"
-              class="card-slot"
-              :class="{ 'card-slot--hidden': !item.visible }"
+              :visible="item.visible"
+              @toggle-visible="item.visible = !item.visible"
             >
-              <div class="card-slot__handle">
-                <font-awesome-icon icon="grip-lines" />
-              </div>
-              <div class="card-slot__content">
-                <template
-                  v-if="
-                    insightDefMap.get(item.id)?.applicable &&
-                    insightDefMap.get(item.id)?.value !== null
-                  "
-                >
-                  <StatusCard
-                    :icon="insightDefMap.get(item.id)!.icon"
-                    :label="insightDefMap.get(item.id)!.title"
-                    :value="insightDefMap.get(item.id)!.value"
-                    :unit="insightDefMap.get(item.id)!.unit"
-                  />
-                </template>
-                <div v-else class="card-slot__placeholder">
-                  <font-awesome-icon :icon="insightDefMap.get(item.id)?.icon ?? 'circle-info'" />
-                  <span>{{ insightDefMap.get(item.id)?.title }}</span>
-                </div>
-              </div>
-              <button
-                class="card-slot__badge"
-                :class="item.visible ? 'card-slot__badge--hide' : 'card-slot__badge--show'"
-                :aria-label="item.visible ? t('dashboard.hideCard') : t('dashboard.showCard')"
-                @click.stop="item.visible = !item.visible"
+              <template
+                v-if="
+                  insightDefMap.get(item.id)?.applicable &&
+                  insightDefMap.get(item.id)?.value !== null
+                "
               >
-                <font-awesome-icon :icon="item.visible ? 'xmark' : 'plus'" />
-              </button>
-            </div>
+                <StatusCard
+                  :icon="insightDefMap.get(item.id)!.icon"
+                  :label="insightDefMap.get(item.id)!.title"
+                  :value="insightDefMap.get(item.id)!.value"
+                  :unit="insightDefMap.get(item.id)!.unit"
+                />
+              </template>
+              <div v-else class="card-slot__placeholder">
+                <font-awesome-icon :icon="insightDefMap.get(item.id)?.icon ?? 'circle-info'" />
+                <span>{{ insightDefMap.get(item.id)?.title }}</span>
+              </div>
+            </EditableCardSlot>
           </VueDraggable>
 
           <!-- Normal mode: visible + applicable insights -->
@@ -807,55 +788,43 @@ const skeletonChartCount = computed(
             chosen-class="card-slot--chosen"
             handle=".card-slot__handle"
           >
-            <div
+            <EditableCardSlot
               v-for="item in settings.statsCharts"
               v-show="chartDefMap.get(item.id)?.vehicleApplicable !== false"
               :key="item.id"
-              class="card-slot card-slot--chart"
-              :class="{ 'card-slot--hidden': !item.visible }"
+              class="card-slot--chart"
+              :visible="item.visible"
+              @toggle-visible="item.visible = !item.visible"
             >
-              <div class="card-slot__handle">
-                <font-awesome-icon icon="grip-lines" />
-              </div>
-              <div class="card-slot__content">
-                <div
-                  v-if="chartDefMap.get(item.id)?.applicable && store.history.length"
-                  class="chart-container"
-                >
-                  <button
-                    v-if="uiSettings.showCardInfoIcons"
-                    class="card-info-btn"
-                    :aria-label="t('dashboard.cardInfoBtn')"
-                    @click.stop="activeChartInfo = item.id"
-                  >
-                    <font-awesome-icon icon="circle-info" />
-                  </button>
-                  <h2>{{ chartDefMap.get(item.id)!.title }}</h2>
-                  <Bar
-                    v-if="chartDefMap.get(item.id)!.isBar"
-                    :data="chartDefMap.get(item.id)!.data"
-                    :options="chartDefMap.get(item.id)!.options"
-                  />
-                  <Line
-                    v-else
-                    :data="chartDefMap.get(item.id)!.data"
-                    :options="chartDefMap.get(item.id)!.options"
-                  />
-                </div>
-                <div v-else class="card-slot__placeholder card-slot__placeholder--chart">
-                  <font-awesome-icon :icon="chartDefMap.get(item.id)?.icon ?? 'chart-line'" />
-                  <span>{{ chartDefMap.get(item.id)?.title }}</span>
-                </div>
-              </div>
-              <button
-                class="card-slot__badge"
-                :class="item.visible ? 'card-slot__badge--hide' : 'card-slot__badge--show'"
-                :aria-label="item.visible ? t('dashboard.hideCard') : t('dashboard.showCard')"
-                @click.stop="item.visible = !item.visible"
+              <div
+                v-if="chartDefMap.get(item.id)?.applicable && store.history.length"
+                class="chart-container"
               >
-                <font-awesome-icon :icon="item.visible ? 'xmark' : 'plus'" />
-              </button>
-            </div>
+                <button
+                  v-if="uiSettings.showCardInfoIcons"
+                  class="card-info-btn"
+                  :aria-label="t('dashboard.cardInfoBtn')"
+                  @click.stop="activeChartInfo = item.id"
+                >
+                  <font-awesome-icon icon="circle-info" />
+                </button>
+                <h2>{{ chartDefMap.get(item.id)!.title }}</h2>
+                <Bar
+                  v-if="chartDefMap.get(item.id)!.isBar"
+                  :data="chartDefMap.get(item.id)!.data"
+                  :options="chartDefMap.get(item.id)!.options"
+                />
+                <Line
+                  v-else
+                  :data="chartDefMap.get(item.id)!.data"
+                  :options="chartDefMap.get(item.id)!.options"
+                />
+              </div>
+              <div v-else class="card-slot__placeholder card-slot__placeholder--chart">
+                <font-awesome-icon :icon="chartDefMap.get(item.id)?.icon ?? 'chart-line'" />
+                <span>{{ chartDefMap.get(item.id)?.title }}</span>
+              </div>
+            </EditableCardSlot>
           </VueDraggable>
 
           <!-- Normal mode: visible + applicable charts -->

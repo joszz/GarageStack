@@ -9,21 +9,56 @@ namespace GarageStack.Api.Endpoints;
 
 public static class VehicleEndpoints
 {
-    /// <summary>Looks up a vehicle by VIN, shared by every endpoint that takes a {vin} route parameter.</summary>
-    public static async Task<(Vehicle? Vehicle, IResult? NotFound)> ResolveVehicleAsync(
-        string vin,
-        IVehicleRepository vehicles,
-        CancellationToken ct)
+    /// <summary>
+    /// Resolves the {vin} route value to a Vehicle before the handler runs, short-circuiting
+    /// with 404 if no such vehicle exists. Shared by every endpoint group that takes a {vin}
+    /// route parameter (vehicles, widget, demo). Handlers retrieve the result via
+    /// <see cref="GetResolvedVehicle"/>.
+    /// </summary>
+    public sealed class ResolveVehicleFilter : IEndpointFilter
     {
-        var vehicle = await vehicles.GetByVinAsync(vin, ct);
-        return vehicle is null ? (null, Results.NotFound()) : (vehicle, null);
+        private const string VehicleItemKey = "GarageStack.ResolvedVehicle";
+
+        public async ValueTask<object?> InvokeAsync(EndpointFilterInvocationContext context, EndpointFilterDelegate next)
+        {
+            var vin = context.HttpContext.Request.RouteValues["vin"] as string
+                ?? throw new InvalidOperationException($"{nameof(ResolveVehicleFilter)} requires a {{vin}} route parameter.");
+
+            var vehicles = context.HttpContext.RequestServices.GetRequiredService<IVehicleRepository>();
+            var vehicle = await vehicles.GetByVinAsync(vin, context.HttpContext.RequestAborted);
+            if (vehicle is null) return Results.NotFound();
+
+            context.HttpContext.Items[VehicleItemKey] = vehicle;
+            return await next(context);
+        }
+
+        public static Vehicle GetResolvedVehicle(HttpContext httpContext) =>
+            (Vehicle)httpContext.Items[VehicleItemKey]!;
+    }
+
+    /// <summary>
+    /// Resolves the [start, end) UTC range for a from/to query: defaults the missing bound
+    /// (end to now, start to end - defaultSpan) and clamps the span to maxSpan. Returns a 400
+    /// IResult if the resulting range is inverted.
+    /// </summary>
+    private static IResult? TryResolveDateRange(
+        DateTimeOffset? from, DateTimeOffset? to, TimeSpan defaultSpan, TimeSpan maxSpan,
+        out DateTime start, out DateTime end)
+    {
+        end = to?.UtcDateTime ?? DateTime.UtcNow;
+        start = from?.UtcDateTime ?? end - defaultSpan;
+
+        if (start >= end)
+            return Results.BadRequest(new { error = "from must be before to" });
+
+        if (end - start > maxSpan)
+            start = end - maxSpan;
+
+        return null;
     }
 
     public static IEndpointRouteBuilder MapVehicleEndpoints(this IEndpointRouteBuilder app)
     {
-        static DateTime ClampRangeStart(DateTime start, DateTime end, TimeSpan maxRange) =>
-            end - start > maxRange ? end - maxRange : start;
-
         var group = app.MapGroup("/api/vehicles")
             .WithTags("Vehicles")
             .RequireAuthorization();
@@ -38,11 +73,11 @@ public static class VehicleEndpoints
         })
         .WithSummary("List all vehicles");
 
-        group.MapGet("/{vin}/config", async (string vin, IVehicleRepository vehicles, CancellationToken ct) =>
+        var vehicleGroup = group.MapGroup("/{vin}").AddEndpointFilter<ResolveVehicleFilter>();
+
+        vehicleGroup.MapGet("/config", (HttpContext httpContext) =>
         {
-            var resolved = await ResolveVehicleAsync(vin, vehicles, ct);
-            if (resolved.NotFound is not null) return resolved.NotFound;
-            var vehicle = resolved.Vehicle!;
+            var vehicle = ResolveVehicleFilter.GetResolvedVehicle(httpContext);
             if (vehicle.ConfigJson is null) return Results.Ok(new Dictionary<string, string>());
             var config = SafeJson.TryDeserialize<Dictionary<string, string>>(vehicle.ConfigJson)
                 ?? new Dictionary<string, string>();
@@ -50,43 +85,34 @@ public static class VehicleEndpoints
         })
         .WithSummary("Get vehicle capability config");
 
-        group.MapGet("/{vin}/status", async (string vin, ITelemetryRepository telemetry, IVehicleRepository vehicles, CancellationToken ct) =>
+        vehicleGroup.MapGet("/status", async (HttpContext httpContext, ITelemetryRepository telemetry, CancellationToken ct) =>
         {
-            var resolved = await ResolveVehicleAsync(vin, vehicles, ct);
-            if (resolved.NotFound is not null) return resolved.NotFound;
-            var vehicle = resolved.Vehicle!;
+            var vehicle = ResolveVehicleFilter.GetResolvedVehicle(httpContext);
             var snapshot = await telemetry.GetMergedLatestAsync(vehicle.Id, ct);
             return snapshot is null ? Results.NoContent() : Results.Ok(snapshot);
         })
         .WithSummary("Get latest telemetry for a vehicle");
 
-        group.MapGet("/{vin}/history", async (
-            string vin,
+        vehicleGroup.MapGet("/history", async (
+            HttpContext httpContext,
             ITelemetryRepository telemetry,
-            IVehicleRepository vehicles,
             DateTimeOffset? from,
             DateTimeOffset? to,
             CancellationToken ct) =>
         {
-            var resolved = await ResolveVehicleAsync(vin, vehicles, ct);
-            if (resolved.NotFound is not null) return resolved.NotFound;
-            var vehicle = resolved.Vehicle!;
+            var vehicle = ResolveVehicleFilter.GetResolvedVehicle(httpContext);
 
-            var start = from?.UtcDateTime ?? DateTime.UtcNow.AddDays(-7);
-            var end = to?.UtcDateTime ?? DateTime.UtcNow;
-            if (start >= end)
-                return Results.BadRequest(new { error = "from must be before to" });
-            start = ClampRangeStart(start, end, TimeSpan.FromDays(90));
+            var rangeError = TryResolveDateRange(from, to, TimeSpan.FromDays(7), TimeSpan.FromDays(90), out var start, out var end);
+            if (rangeError is not null) return rangeError;
+
             var history = await telemetry.GetHistoryAsync(vehicle.Id, start, end, ct);
             return Results.Ok(history);
         })
         .WithSummary("Get telemetry history for a vehicle");
 
-        group.MapGet("/{vin}/trips/last", async (string vin, IVehicleRepository vehicles, AppDbContext db, CancellationToken ct) =>
+        vehicleGroup.MapGet("/trips/last", async (HttpContext httpContext, AppDbContext db, CancellationToken ct) =>
         {
-            var resolved = await ResolveVehicleAsync(vin, vehicles, ct);
-            if (resolved.NotFound is not null) return resolved.NotFound;
-            var vehicle = resolved.Vehicle!;
+            var vehicle = ResolveVehicleFilter.GetResolvedVehicle(httpContext);
 
             var row = await db.TelemetrySnapshots
                 .Where(s => s.VehicleId == vehicle.Id && s.CurrentJourneyDistance > 0)
@@ -98,44 +124,40 @@ public static class VehicleEndpoints
         })
         .WithSummary("Get last trip summary (distance and timestamp of most recent journey)");
 
-        group.MapGet("/{vin}/trips", async (
-            string vin,
+        vehicleGroup.MapGet("/trips", async (
+            HttpContext httpContext,
             ITelemetryRepository telemetry,
-            IVehicleRepository vehicles,
             DateTimeOffset? from,
             DateTimeOffset? to,
             CancellationToken ct) =>
         {
-            var resolved = await ResolveVehicleAsync(vin, vehicles, ct);
-            if (resolved.NotFound is not null) return resolved.NotFound;
-            var vehicle = resolved.Vehicle!;
+            var vehicle = ResolveVehicleFilter.GetResolvedVehicle(httpContext);
 
-            var start = from?.UtcDateTime ?? DateTime.UtcNow.AddDays(-30);
-            var end = to?.UtcDateTime ?? DateTime.UtcNow;
-            if (start >= end)
-                return Results.BadRequest(new { error = "from must be before to" });
-            start = ClampRangeStart(start, end, TimeSpan.FromDays(90));
+            var rangeError = TryResolveDateRange(from, to, TimeSpan.FromDays(30), TimeSpan.FromDays(90), out var start, out var end);
+            if (rangeError is not null) return rangeError;
+
             var trips = await telemetry.GetTripsAsync(vehicle.Id, start, end, ct);
             return Results.Ok(trips);
         })
         .WithSummary("Get trip history");
 
-        group.MapPost("/{vin}/commands/{command}", async (
+        vehicleGroup.MapPost("/commands/{command}", async (
+            HttpContext httpContext,
             string vin,
             string command,
             JsonElement body,
             IMqttPublisher mqtt,
-            IVehicleRepository vehicles,
             CancellationToken ct) =>
         {
-            var resolved = await ResolveVehicleAsync(vin, vehicles, ct);
-            if (resolved.NotFound is not null) return resolved.NotFound;
-            var vehicle = resolved.Vehicle!;
+            var vehicle = ResolveVehicleFilter.GetResolvedVehicle(httpContext);
             if (vehicle.SaicUser is null)
                 return Results.Problem("SAIC username not yet known for this vehicle");
 
             if (!body.TryGetProperty("value", out var valueEl))
                 return Results.BadRequest(new { error = "Missing 'value' in request body" });
+
+            if (valueEl.ValueKind != JsonValueKind.String)
+                return Results.BadRequest(new { error = "'value' must be a string" });
 
             var value = valueEl.GetString();
             if (string.IsNullOrWhiteSpace(value))
@@ -172,32 +194,26 @@ public static class VehicleEndpoints
         })
         .WithSummary("Send a command to the vehicle via MQTT");
 
-        group.MapGet("/{vin}/stats", async (
-            string vin,
+        vehicleGroup.MapGet("/stats", async (
+            HttpContext httpContext,
             DateTimeOffset? from,
             DateTimeOffset? to,
             ITelemetryRepository telemetry,
-            IVehicleRepository vehicles,
             CancellationToken ct) =>
         {
-            var resolved = await ResolveVehicleAsync(vin, vehicles, ct);
-            if (resolved.NotFound is not null) return resolved.NotFound;
-            var vehicle = resolved.Vehicle!;
+            var vehicle = ResolveVehicleFilter.GetResolvedVehicle(httpContext);
 
-            var end = to?.UtcDateTime ?? DateTime.UtcNow;
-            var start = from?.UtcDateTime ?? end.AddDays(-30);
-            start = ClampRangeStart(start, end, TimeSpan.FromDays(90));
+            var rangeError = TryResolveDateRange(from, to, TimeSpan.FromDays(30), TimeSpan.FromDays(90), out var start, out var end);
+            if (rangeError is not null) return rangeError;
 
             var stats = await telemetry.GetAggregateStatsAsync(vehicle.Id, start, end, ct);
             return Results.Ok(stats);
         })
         .WithSummary("Get aggregate statistics for a vehicle over a date range");
 
-        group.MapGet("/{vin}/topics", async (string vin, IVehicleRepository vehicles, AppDbContext db, CancellationToken ct) =>
+        vehicleGroup.MapGet("/topics", async (HttpContext httpContext, AppDbContext db, CancellationToken ct) =>
         {
-            var resolved = await ResolveVehicleAsync(vin, vehicles, ct);
-            if (resolved.NotFound is not null) return resolved.NotFound;
-            var vehicle = resolved.Vehicle!;
+            var vehicle = ResolveVehicleFilter.GetResolvedVehicle(httpContext);
 
             var topics = await db.TelemetrySnapshots
                 .Where(s => s.VehicleId == vehicle.Id && s.RawTopic != null)

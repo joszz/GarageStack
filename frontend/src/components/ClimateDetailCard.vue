@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ExpandableStatusCard from './ExpandableStatusCard.vue'
 import DetailListItem from './DetailListItem.vue'
+import CommandButton from './CommandButton.vue'
 import { useVehicleCommand } from '@/composables/useVehicleCommand'
 
 const { t } = useI18n()
@@ -316,17 +317,15 @@ function onSeatRightChange(e: Event) {
       <button class="btn btn-outline-secondary" @click="close">
         {{ t('common.cancel') }}
       </button>
-      <button
-        class="btn btn-primary"
-        :class="anyPending ? 'btn--pending' : ''"
-        :disabled="sending !== null || !vin || !hasPendingChanges"
+      <CommandButton
+        class="btn-primary"
+        :pending="anyPending"
+        :sending="isApplying"
+        :disabled="!vin || !hasPendingChanges"
+        icon="check"
+        :label="t('common.apply')"
         @click="applyAll"
-      >
-        <font-awesome-icon v-if="isApplying" icon="spinner" spin />
-        <font-awesome-icon v-else-if="anyPending" icon="clock" />
-        <font-awesome-icon v-else icon="check" />
-        {{ anyPending ? t('control.pending') : t('common.apply') }}
-      </button>
+      />
     </template>
   </ExpandableStatusCard>
 </template>

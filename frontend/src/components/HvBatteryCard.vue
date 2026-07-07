@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ExpandableStatusCard from './ExpandableStatusCard.vue'
 import DetailListItem from './DetailListItem.vue'
+import CommandButton from './CommandButton.vue'
 import { useVehicleCommand } from '@/composables/useVehicleCommand'
 
 const { t } = useI18n()
@@ -127,38 +128,38 @@ function setChargeLimit(value: string) {
     <div v-if="canSetChargeLimit" class="detail-modal__section">
       <div class="detail-modal__section-title">{{ t('control.chargeLimit') }}</div>
       <div class="modal-btn-group">
-        <button
-          class="btn btn-outline-secondary"
-          :class="isPending('charge-limit') ? 'btn--pending' : ''"
-          :disabled="sending === 'charge-limit' || isPending('charge-limit')"
+        <CommandButton
+          class="btn-outline-secondary"
+          :pending="isPending('charge-limit')"
+          :sending="sending === 'charge-limit'"
+          :show-pending-label="false"
+          label="6 A"
           @click="setChargeLimit('6A')"
-        >
-          6 A
-        </button>
-        <button
-          class="btn btn-outline-secondary"
-          :class="isPending('charge-limit') ? 'btn--pending' : ''"
-          :disabled="sending === 'charge-limit' || isPending('charge-limit')"
+        />
+        <CommandButton
+          class="btn-outline-secondary"
+          :pending="isPending('charge-limit')"
+          :sending="sending === 'charge-limit'"
+          :show-pending-label="false"
+          label="8 A"
           @click="setChargeLimit('8A')"
-        >
-          8 A
-        </button>
-        <button
-          class="btn btn-outline-secondary"
-          :class="isPending('charge-limit') ? 'btn--pending' : ''"
-          :disabled="sending === 'charge-limit' || isPending('charge-limit')"
+        />
+        <CommandButton
+          class="btn-outline-secondary"
+          :pending="isPending('charge-limit')"
+          :sending="sending === 'charge-limit'"
+          :show-pending-label="false"
+          label="16 A"
           @click="setChargeLimit('16A')"
-        >
-          16 A
-        </button>
-        <button
-          class="btn btn-success"
-          :class="isPending('charge-limit') ? 'btn--pending' : ''"
-          :disabled="sending === 'charge-limit' || isPending('charge-limit')"
+        />
+        <CommandButton
+          class="btn-success"
+          :pending="isPending('charge-limit')"
+          :sending="sending === 'charge-limit'"
+          :show-pending-label="false"
+          label="Max"
           @click="setChargeLimit('Max')"
-        >
-          Max
-        </button>
+        />
       </div>
       <div v-if="isPending('charge-limit')" class="detail-list__feedback text-info">
         <font-awesome-icon icon="clock" />

@@ -52,6 +52,8 @@ public sealed class PushSenderService : IPushSender, IDisposable
 
     public async Task SendToAllAsync(string title, string body, CancellationToken ct = default, string? category = null, int? vehicleId = null)
     {
+        int? unreadCount = null;
+
         // Always persist so the in-app bell works regardless of push configuration
         try
         {
@@ -68,7 +70,7 @@ public sealed class PushSenderService : IPushSender, IDisposable
             recordDb.AppNotifications.Add(record);
             await recordDb.SaveChangesAsync(ct);
 
-            var unreadCount = await recordDb.AppNotifications
+            unreadCount = await recordDb.AppNotifications
                 .CountAsync(n => !n.IsArchived && !n.IsDeleted, ct);
 
             // Signal the API process via PostgreSQL so connected browser clients get
@@ -88,7 +90,7 @@ public sealed class PushSenderService : IPushSender, IDisposable
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to persist notification record — push delivery will still proceed");
+            _logger.LogWarning(ex, "Failed to persist notification record, push delivery will still proceed");
         }
 
         if (_pushClient is null) return;
@@ -98,9 +100,10 @@ public sealed class PushSenderService : IPushSender, IDisposable
         var subscriptions = await db.PushSubscriptions.AsNoTracking().ToListAsync(ct);
         if (subscriptions.Count == 0) return;
 
-        var unreadCountForPayload = await db.AppNotifications
+        // Only re-queried if persistence above failed before it could compute this itself.
+        unreadCount ??= await db.AppNotifications
             .CountAsync(n => !n.IsArchived && !n.IsDeleted, ct);
-        var payload = System.Text.Json.JsonSerializer.Serialize(new { title, body, icon = "/icons/icon-192.png", category, unreadCount = unreadCountForPayload });
+        var payload = System.Text.Json.JsonSerializer.Serialize(new { title, body, icon = "/icons/icon-192.png", category, unreadCount });
         var message = new PushMessage(payload) { TimeToLive = 3600 };
         var dead = new ConcurrentBag<ModelPushSubscription>();
 

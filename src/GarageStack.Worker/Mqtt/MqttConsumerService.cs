@@ -224,26 +224,25 @@ public class MqttConsumerService(
     {
         if (snapshot.EngineRunning is null) return false;
 
-        var hadPrevious = _engineRunningTracker.TryUpdate(vin, snapshot.EngineRunning.Value, out var wasRunning);
-        if (!hadPrevious)
+        var current = snapshot.EngineRunning.Value;
+        var hadPrevious = _engineRunningTracker.TryUpdate(vin, current, out var wasRunning);
+
+        // First observation after startup is treated as a no-op to avoid false "engine started"
+        // alerts when the worker restarts while driving.
+        switch (BoolTransitionDetector.Detect(hadPrevious, wasRunning, current))
         {
-            // First observation after startup: seed state without firing to avoid
-            // false "engine started" alerts when the worker restarts while driving.
-            return false;
+            case StateTransition.TurnedOn:
+                logger.LogInformation("Engine started for VIN={Vin} - sending push notification", vin);
+                await pushSender.SendToAllAsync("Engine started", "Your car has been started.", ct, "engine-start", snapshot.VehicleId);
+                return false;
+
+            case StateTransition.TurnedOff:
+                // A trip just completed
+                return true;
+
+            default:
+                return false;
         }
-
-        if (snapshot.EngineRunning.Value && !wasRunning)
-        {
-            logger.LogInformation("Engine started for VIN={Vin} - sending push notification", vin);
-            await pushSender.SendToAllAsync("Engine started", "Your car has been started.", ct, "engine-start", snapshot.VehicleId);
-            return false;
-        }
-
-        // Engine stopped: a trip just completed
-        if (!snapshot.EngineRunning.Value && wasRunning)
-            return true;
-
-        return false;
     }
 
     private async Task HandleHaDiscoveryAsync(string payload, CancellationToken ct)

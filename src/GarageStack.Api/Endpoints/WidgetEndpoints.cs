@@ -26,21 +26,19 @@ public static class WidgetEndpoints
                 return await next(ctx);
             });
 
-        group.MapGet("/{vin}/status", async (
-            string vin,
-            IVehicleRepository vehicles,
-            ITelemetryRepository telemetry,
-            IStringLocalizer<WidgetStrings> localizer,
-            CancellationToken ct) =>
-        {
-            var resolved = await VehicleEndpoints.ResolveVehicleAsync(vin, vehicles, ct);
-            if (resolved.NotFound is not null) return resolved.NotFound;
-            var vehicle = resolved.Vehicle!;
-
-            var snapshot = await telemetry.GetMergedLatestAsync(vehicle.Id, ct);
-            return snapshot is null ? Results.NoContent() : Results.Ok(WidgetStatusDto.FromSnapshot(snapshot, localizer));
-        })
-        .WithSummary("Get latest vehicle status for Homepage widget (requires X-Widget-Key header)");
+        group.MapGroup("/{vin}")
+            .AddEndpointFilter<VehicleEndpoints.ResolveVehicleFilter>()
+            .MapGet("/status", async (
+                HttpContext httpContext,
+                ITelemetryRepository telemetry,
+                IStringLocalizer<WidgetStrings> localizer,
+                CancellationToken ct) =>
+            {
+                var vehicle = VehicleEndpoints.ResolveVehicleFilter.GetResolvedVehicle(httpContext);
+                var snapshot = await telemetry.GetMergedLatestAsync(vehicle.Id, ct);
+                return snapshot is null ? Results.NoContent() : Results.Ok(WidgetStatusDto.FromSnapshot(snapshot, localizer));
+            })
+            .WithSummary("Get latest vehicle status for Homepage widget (requires X-Widget-Key header)");
 
         return app;
     }

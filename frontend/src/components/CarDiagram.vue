@@ -46,6 +46,74 @@ function fmt(bar: number | null): string {
   return bar !== null ? bar.toFixed(2) : '-'
 }
 
+// Tyre indicator line/dot endpoints - see the ViewBox comment above the template for how
+// these coordinates were derived from the car body bounds.
+const tyreIndicators = computed(() => [
+  { key: 'frontLeft', value: props.frontLeft, x1: 110, y1: 145, x2: 72, y2: 131, cx: 110, cy: 145 },
+  {
+    key: 'frontRight',
+    value: props.frontRight,
+    x1: 230,
+    y1: 145,
+    x2: 268,
+    y2: 131,
+    cx: 230,
+    cy: 145,
+  },
+  { key: 'rearLeft', value: props.rearLeft, x1: 110, y1: 327, x2: 72, y2: 341, cx: 110, cy: 327 },
+  {
+    key: 'rearRight',
+    value: props.rearRight,
+    x1: 230,
+    y1: 327,
+    x2: 268,
+    y2: 341,
+    cx: 230,
+    cy: 327,
+  },
+])
+
+const tyreLabels = computed(() => [
+  { key: 'frontLeft', suffix: 'fl', value: props.frontLeft },
+  { key: 'frontRight', suffix: 'fr', value: props.frontRight },
+  { key: 'rearLeft', suffix: 'rl', value: props.rearLeft },
+  { key: 'rearRight', suffix: 'rr', value: props.rearRight },
+])
+
+const doorBadges = computed(() => [
+  {
+    key: 'bonnet',
+    open: props.bonnetOpen,
+    suffix: 'bonnet',
+    titleKey: 'vehicle.doors_detail.bonnet',
+  },
+  {
+    key: 'driver',
+    open: props.driverDoorOpen,
+    suffix: 'door-fl',
+    titleKey: 'vehicle.doors_detail.driver',
+  },
+  {
+    key: 'passenger',
+    open: props.passengerDoorOpen,
+    suffix: 'door-fr',
+    titleKey: 'vehicle.doors_detail.passenger',
+  },
+  {
+    key: 'rearLeft',
+    open: props.rearLeftDoorOpen,
+    suffix: 'door-rl',
+    titleKey: 'vehicle.doors_detail.rearLeft',
+  },
+  {
+    key: 'rearRight',
+    open: props.rearRightDoorOpen,
+    suffix: 'door-rr',
+    titleKey: 'vehicle.doors_detail.rearRight',
+  },
+  { key: 'trunk', open: props.trunkOpen, suffix: 'trunk', titleKey: 'vehicle.doors_detail.boot' },
+])
+
 const hasLights = computed(() => props.lightsMainBeam || props.lightsDippedBeam || props.lightsSide)
 
 const showBattery = computed(() => props.evSocPercent != null)
@@ -356,88 +424,25 @@ const activeLightKey = computed(() => {
             </g>
 
             <!-- Tyre pressure indicator lines -->
-            <g>
+            <g v-for="tyre in tyreIndicators" :key="tyre.key">
               <title>
-                {{ t('vehicle.diagram.tyrePosition.frontLeft') }}: {{ fmt(frontLeft) }}
+                {{ t(`vehicle.diagram.tyrePosition.${tyre.key}`) }}: {{ fmt(tyre.value) }}
                 {{ t('common.bar') }}
               </title>
               <line
-                x1="110"
-                y1="145"
-                x2="72"
-                y2="131"
+                :x1="tyre.x1"
+                :y1="tyre.y1"
+                :x2="tyre.x2"
+                :y2="tyre.y2"
                 class="tyre-indicator-line"
-                :stroke="pressureColor(frontLeft)"
+                :stroke="pressureColor(tyre.value)"
               />
               <circle
-                cx="110"
-                cy="145"
+                :cx="tyre.cx"
+                :cy="tyre.cy"
                 r="5"
                 class="tyre-indicator-dot"
-                :fill="pressureColor(frontLeft)"
-              />
-            </g>
-            <g>
-              <title>
-                {{ t('vehicle.diagram.tyrePosition.frontRight') }}: {{ fmt(frontRight) }}
-                {{ t('common.bar') }}
-              </title>
-              <line
-                x1="230"
-                y1="145"
-                x2="268"
-                y2="131"
-                class="tyre-indicator-line"
-                :stroke="pressureColor(frontRight)"
-              />
-              <circle
-                cx="230"
-                cy="145"
-                r="5"
-                class="tyre-indicator-dot"
-                :fill="pressureColor(frontRight)"
-              />
-            </g>
-            <g>
-              <title>
-                {{ t('vehicle.diagram.tyrePosition.rearLeft') }}: {{ fmt(rearLeft) }}
-                {{ t('common.bar') }}
-              </title>
-              <line
-                x1="110"
-                y1="327"
-                x2="72"
-                y2="341"
-                class="tyre-indicator-line"
-                :stroke="pressureColor(rearLeft)"
-              />
-              <circle
-                cx="110"
-                cy="327"
-                r="5"
-                class="tyre-indicator-dot"
-                :fill="pressureColor(rearLeft)"
-              />
-            </g>
-            <g>
-              <title>
-                {{ t('vehicle.diagram.tyrePosition.rearRight') }}: {{ fmt(rearRight) }}
-                {{ t('common.bar') }}
-              </title>
-              <line
-                x1="230"
-                y1="327"
-                x2="268"
-                y2="341"
-                class="tyre-indicator-line"
-                :stroke="pressureColor(rearRight)"
-              />
-              <circle
-                cx="230"
-                cy="327"
-                r="5"
-                class="tyre-indicator-dot"
-                :fill="pressureColor(rearRight)"
+                :fill="pressureColor(tyre.value)"
               />
             </g>
           </svg>
@@ -445,78 +450,30 @@ const activeLightKey = computed(() => {
           <!-- Tyre pressure labels -->
           <div class="tyre-labels">
             <div
-              class="tyre-label tyre-label--fl"
-              :class="`tyre-label--${pressureVariant(frontLeft)}`"
-              :title="t('vehicle.diagram.tyrePosition.frontLeft')"
+              v-for="label in tyreLabels"
+              :key="label.key"
+              :class="[
+                'tyre-label',
+                `tyre-label--${label.suffix}`,
+                `tyre-label--${pressureVariant(label.value)}`,
+              ]"
+              :title="t(`vehicle.diagram.tyrePosition.${label.key}`)"
             >
-              {{ fmt(frontLeft) }} {{ t('common.bar') }}
-            </div>
-            <div
-              class="tyre-label tyre-label--fr"
-              :class="`tyre-label--${pressureVariant(frontRight)}`"
-              :title="t('vehicle.diagram.tyrePosition.frontRight')"
-            >
-              {{ fmt(frontRight) }} {{ t('common.bar') }}
-            </div>
-            <div
-              class="tyre-label tyre-label--rl"
-              :class="`tyre-label--${pressureVariant(rearLeft)}`"
-              :title="t('vehicle.diagram.tyrePosition.rearLeft')"
-            >
-              {{ fmt(rearLeft) }} {{ t('common.bar') }}
-            </div>
-            <div
-              class="tyre-label tyre-label--rr"
-              :class="`tyre-label--${pressureVariant(rearRight)}`"
-              :title="t('vehicle.diagram.tyrePosition.rearRight')"
-            >
-              {{ fmt(rearRight) }} {{ t('common.bar') }}
+              {{ fmt(label.value) }} {{ t('common.bar') }}
             </div>
           </div>
 
           <!-- Open panel icon badges – positioned over SVG at each panel location -->
-          <div
-            v-if="bonnetOpen"
-            class="car-badge car-badge--bonnet"
-            :title="t('vehicle.doors_detail.bonnet')"
-          >
-            <font-awesome-icon icon="lock-open" />
-          </div>
-          <div
-            v-if="driverDoorOpen"
-            class="car-badge car-badge--door-fl"
-            :title="t('vehicle.doors_detail.driver')"
-          >
-            <font-awesome-icon icon="lock-open" />
-          </div>
-          <div
-            v-if="passengerDoorOpen"
-            class="car-badge car-badge--door-fr"
-            :title="t('vehicle.doors_detail.passenger')"
-          >
-            <font-awesome-icon icon="lock-open" />
-          </div>
-          <div
-            v-if="rearLeftDoorOpen"
-            class="car-badge car-badge--door-rl"
-            :title="t('vehicle.doors_detail.rearLeft')"
-          >
-            <font-awesome-icon icon="lock-open" />
-          </div>
-          <div
-            v-if="rearRightDoorOpen"
-            class="car-badge car-badge--door-rr"
-            :title="t('vehicle.doors_detail.rearRight')"
-          >
-            <font-awesome-icon icon="lock-open" />
-          </div>
-          <div
-            v-if="trunkOpen"
-            class="car-badge car-badge--trunk"
-            :title="t('vehicle.doors_detail.boot')"
-          >
-            <font-awesome-icon icon="lock-open" />
-          </div>
+          <template v-for="badge in doorBadges" :key="badge.key">
+            <div
+              v-if="badge.open"
+              class="car-badge"
+              :class="`car-badge--${badge.suffix}`"
+              :title="t(badge.titleKey)"
+            >
+              <font-awesome-icon icon="lock-open" />
+            </div>
+          </template>
 
           <!-- Fuel level (front) -->
           <div

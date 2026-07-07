@@ -12,6 +12,7 @@ import DashboardCardContent from '@/components/DashboardCardContent.vue'
 import CardInfoWrap from '@/components/CardInfoWrap.vue'
 import CarDiagram from '@/components/CarDiagram.vue'
 import LocationMapWidget from '@/components/LocationMapWidget.vue'
+import EditableCardSlot from '@/components/EditableCardSlot.vue'
 import SkeletonCard from '@/components/SkeletonCard.vue'
 import SkeletonCarDiagram from '@/components/SkeletonCarDiagram.vue'
 import SkeletonLocationMap from '@/components/SkeletonLocationMap.vue'
@@ -293,51 +294,31 @@ onUnmounted(() => {
     <template v-if="editMode">
       <!-- Tyre diagram + location map toggles -->
       <div class="overview-row overview-row--edit mt-4 mb-4">
-        <div
-          class="card-slot card-slot--static overview-row__car"
-          :class="{ 'card-slot--hidden': !settings.showTyreDiagram }"
+        <EditableCardSlot
+          class="card-slot--static overview-row__car"
+          :visible="settings.showTyreDiagram"
+          :draggable="false"
+          @toggle-visible="settings.showTyreDiagram = !settings.showTyreDiagram"
         >
-          <div class="card-slot__content">
-            <CarDiagram v-if="settings.showTyreDiagram && status" v-bind="carDiagramProps" />
-            <div v-else class="card-slot__placeholder card-slot__placeholder--chart">
-              <font-awesome-icon icon="car-side" />
-              <span>{{ t('vehicle.overview') }}</span>
-            </div>
+          <CarDiagram v-if="settings.showTyreDiagram && status" v-bind="carDiagramProps" />
+          <div v-else class="card-slot__placeholder card-slot__placeholder--chart">
+            <font-awesome-icon icon="car-side" />
+            <span>{{ t('vehicle.overview') }}</span>
           </div>
-          <button
-            class="card-slot__badge"
-            :class="settings.showTyreDiagram ? 'card-slot__badge--hide' : 'card-slot__badge--show'"
-            :aria-label="
-              settings.showTyreDiagram ? t('dashboard.hideCard') : t('dashboard.showCard')
-            "
-            @click.stop="settings.showTyreDiagram = !settings.showTyreDiagram"
-          >
-            <font-awesome-icon :icon="settings.showTyreDiagram ? 'xmark' : 'plus'" />
-          </button>
-        </div>
+        </EditableCardSlot>
 
-        <div
-          class="card-slot card-slot--static overview-row__map"
-          :class="{ 'card-slot--hidden': !settings.showLocationMap }"
+        <EditableCardSlot
+          class="card-slot--static overview-row__map"
+          :visible="settings.showLocationMap"
+          :draggable="false"
+          @toggle-visible="settings.showLocationMap = !settings.showLocationMap"
         >
-          <div class="card-slot__content">
-            <LocationMapWidget v-if="settings.showLocationMap" />
-            <div v-else class="card-slot__placeholder card-slot__placeholder--chart">
-              <font-awesome-icon icon="location-dot" />
-              <span>{{ t('vehicle.location') }}</span>
-            </div>
+          <LocationMapWidget v-if="settings.showLocationMap" />
+          <div v-else class="card-slot__placeholder card-slot__placeholder--chart">
+            <font-awesome-icon icon="location-dot" />
+            <span>{{ t('vehicle.location') }}</span>
           </div>
-          <button
-            class="card-slot__badge"
-            :class="settings.showLocationMap ? 'card-slot__badge--hide' : 'card-slot__badge--show'"
-            :aria-label="
-              settings.showLocationMap ? t('dashboard.hideCard') : t('dashboard.showCard')
-            "
-            @click.stop="settings.showLocationMap = !settings.showLocationMap"
-          >
-            <font-awesome-icon :icon="settings.showLocationMap ? 'xmark' : 'plus'" />
-          </button>
-        </div>
+        </EditableCardSlot>
       </div>
 
       <VueDraggable
@@ -348,34 +329,21 @@ onUnmounted(() => {
         chosen-class="card-slot--chosen"
         handle=".card-slot__handle"
       >
-        <div
+        <EditableCardSlot
           v-for="card in editableCards"
           :key="card.id"
-          class="card-slot"
-          :class="{ 'card-slot--hidden': !card.visible }"
+          :visible="card.visible"
+          @toggle-visible="toggleCardVisibility(card)"
         >
-          <div class="card-slot__handle">
-            <font-awesome-icon icon="grip-lines" />
+          <DashboardCardContent
+            v-if="card.visible && status && cardHasData(card.id)"
+            :card-id="card.id"
+          />
+          <div v-else class="card-slot__placeholder">
+            <font-awesome-icon :icon="CARD_ICONS[card.id]" />
+            <span>{{ t(`settings.cards.${card.id}`) }}</span>
           </div>
-          <div class="card-slot__content">
-            <DashboardCardContent
-              v-if="card.visible && status && cardHasData(card.id)"
-              :card-id="card.id"
-            />
-            <div v-else class="card-slot__placeholder">
-              <font-awesome-icon :icon="CARD_ICONS[card.id]" />
-              <span>{{ t(`settings.cards.${card.id}`) }}</span>
-            </div>
-          </div>
-          <button
-            class="card-slot__badge"
-            :class="card.visible ? 'card-slot__badge--hide' : 'card-slot__badge--show'"
-            :aria-label="card.visible ? t('dashboard.hideCard') : t('dashboard.showCard')"
-            @click.stop="toggleCardVisibility(card)"
-          >
-            <font-awesome-icon :icon="card.visible ? 'xmark' : 'plus'" />
-          </button>
-        </div>
+        </EditableCardSlot>
       </VueDraggable>
 
       <button class="btn btn-outline-secondary mt-3" @click="resetLayout">

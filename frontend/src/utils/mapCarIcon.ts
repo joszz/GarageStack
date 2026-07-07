@@ -1,10 +1,5 @@
-import * as LModule from 'leaflet'
+import { L } from '@/utils/leaflet'
 import { CAR_SILHOUETTE_VIEWBOX, CAR_SILHOUETTE_MARKUP } from '@/assets/carSilhouette'
-
-// Vite wraps CJS modules in a frozen ESM namespace - `import * as LModule` gives that frozen
-// namespace, which already exposes the plain (unpatched) Leaflet API this file needs.
-const L = ((LModule as unknown as { default?: typeof LModule }).default ??
-  LModule) as typeof LModule
 
 const CAR_ICON_SIZE: [number, number] = [24, 46]
 const CAR_ICON_ANCHOR: [number, number] = [12, 23]
