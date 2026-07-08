@@ -401,8 +401,10 @@
   white-space: nowrap;
 }
 
-@media (max-width: 767px) {
-  /* Map: column direction on mobile (base already sets flex: 1 / min-height: 0) */
+/* Trips above the map: below the tablet breakpoint the nav sidebar (220px) plus the fixed
+   290px trip sidebar leave too little width for a usable map, so stack them here rather than
+   waiting for the general mobile breakpoint below. */
+@media (max-width: 1023px) {
   .map-layout {
     flex-direction: column;
   }
@@ -419,7 +421,9 @@
     min-height: 200px;
     height: auto;
   }
+}
 
+@media (max-width: 767px) {
   .map-controls {
     flex-wrap: wrap;
     gap: 0.4rem;
