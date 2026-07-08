@@ -2111,6 +2111,11 @@ body,
   .status-grid {
     grid-template-columns: repeat(6, 1fr);
   }
+
+  .overview-row__map {
+    flex: 1.4 1 420px;
+    max-width: 560px;
+  }
 }
 
 /* ── Full-HD and above (1920px+) ──────────────────────────── */
@@ -2118,6 +2123,10 @@ body,
 @media (min-width: 1920px) {
   .status-grid {
     grid-template-columns: repeat(8, 1fr);
+  }
+
+  .overview-row__map {
+    max-width: 680px;
   }
 }
 

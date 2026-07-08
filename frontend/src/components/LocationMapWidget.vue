@@ -70,27 +70,52 @@ function buildActiveTripLayers() {
   }).addTo(map)
 }
 
+// While a trip is in progress, fit the view to the entire route travelled so far (start to
+// current position) instead of just centering on the car, so the whole trip stays visible as
+// it grows. Falls back to centering on the car when parked (no active trip).
+function updateMapView() {
+  const map = mapInstance.value
+  if (!map) return
+  const trip = activeTrip.value
+  if (trip) {
+    const coords = trip.points.map((p) => [p.latitude, p.longitude] as [number, number])
+    if (hasLocation.value) coords.push(center.value)
+    if (coords.length === 0) return
+    const bounds = L.latLngBounds(coords)
+    if (bounds.getNorthEast().equals(bounds.getSouthWest())) {
+      map.setView(bounds.getCenter(), 15, { animate: false })
+    } else {
+      map.fitBounds(bounds, { padding: [24, 24], animate: false })
+    }
+  } else if (hasLocation.value) {
+    map.setView(center.value, 14, { animate: false })
+  }
+}
+
 function onMapReady(map: LeafletMap) {
   bindMapReady(map, () => {
-    if (hasLocation.value) map.setView(center.value, 14, { animate: false })
     buildActiveTripLayers()
+    updateMapView()
   })
 }
 
-// Keep the preview centred on the car as new status updates arrive, and keep the live car
-// marker (if the active trip is currently shown) following position/heading without a full
-// layer rebuild.
+// Keep the preview following the car (or the whole in-progress trip) as new status updates
+// arrive, and keep the live car marker following position/heading without a full layer rebuild.
 watch(status, (s) => {
   if (!mapInstance.value || s?.latitude == null || s?.longitude == null) return
-  mapInstance.value.setView([s.latitude, s.longitude], 14, { animate: false })
   if (carMarker) {
     carMarker.setLatLng([s.latitude, s.longitude])
     carMarker.setIcon(buildCarMarkerIcon(s.heading ?? 0))
   }
+  updateMapView()
 })
 
-// Trip start/end, or a refreshed trips fetch: rebuild the route line and car marker.
-watch(activeTrip, () => buildActiveTripLayers())
+// Trip start/end, or a refreshed trips fetch: rebuild the route line and car marker, and
+// refit the view to the (possibly grown) route.
+watch(activeTrip, () => {
+  buildActiveTripLayers()
+  updateMapView()
+})
 
 onUnmounted(() => {
   clearActiveTripLayers()
