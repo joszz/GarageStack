@@ -7,6 +7,7 @@ import type { VehicleType } from '@/stores/vehicle'
 import { useMapSettingsStore } from '@/stores/settingsMap'
 import { mapApi } from '@/services/mapApi'
 import type { ChargingStation, PoiItem } from '@/services/mapApi'
+import { canonicalFuelBrand } from '@/utils/fuelBrands'
 
 type ClusterFactory = {
   markerClusterGroup: (options?: {
@@ -182,12 +183,14 @@ export function usePoiLayers({ mapInstance, vehicleType, isHev, isBev }: UsePoiL
   const poiLoadingCount = ref(0)
   const poiLoading = computed(() => poiLoadingCount.value > 0)
 
+  // Coalesced brand names shown in the filter dropdown (e.g. "BP" covers "BP" and "BP express").
+  // See canonicalFuelBrand for the raw-variant -> canonical mapping.
   const availableFuelBrands = computed(() => {
-    const brands = new Set<string>(cachedFuelBrands.value)
+    const brands = new Set<string>(cachedFuelBrands.value.map(canonicalFuelBrand))
     for (const item of fuelAllItems.values()) {
       const tags = item.tags ?? {}
       const brand = tags['brand'] ?? tags['operator'] ?? null
-      if (brand) brands.add(brand)
+      if (brand) brands.add(canonicalFuelBrand(brand))
     }
     return [...brands].sort((a, b) => a.localeCompare(b))
   })
@@ -337,7 +340,12 @@ export function usePoiLayers({ mapInstance, vehicleType, isHev, isBev }: UsePoiL
     for (const item of fuelAllItems.values()) {
       const tags = item.tags ?? {}
       const brand = tags['brand'] ?? tags['operator'] ?? null
-      if (selectedBrands.length > 0 && (brand === null || !selectedBrands.includes(brand))) continue
+      const canonicalBrand = brand ? canonicalFuelBrand(brand) : null
+      if (
+        selectedBrands.length > 0 &&
+        (canonicalBrand === null || !selectedBrands.includes(canonicalBrand))
+      )
+        continue
       const icon = L.divIcon({
         className: '',
         html: '<div class="poi-marker poi-marker--fuel">&#9981;</div>',
