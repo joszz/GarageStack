@@ -70,23 +70,43 @@ function buildActiveTripLayers() {
   }).addTo(map)
 }
 
+function fitBoundsSafe(map: LeafletMap, bounds: ReturnType<typeof L.latLngBounds>) {
+  if (bounds.getNorthEast().equals(bounds.getSouthWest())) {
+    map.setView(bounds.getCenter(), 15, { animate: false })
+  } else {
+    map.fitBounds(bounds, { padding: [24, 24], animate: false })
+  }
+}
+
 // While a trip is in progress, fit the view to the entire route travelled so far (start to
-// current position) instead of just centering on the car, so the whole trip stays visible as
-// it grows. Falls back to centering on the car when parked (no active trip).
+// current position) while keeping the car centered, so the whole trip stays visible as it
+// grows without the view drifting off the car. Built by taking the largest lat/lng offset from
+// the car to any trip point and mirroring it on the opposite side, which keeps the car at the
+// exact centre of the resulting bounds. Falls back to centering on the car when parked.
 function updateMapView() {
   const map = mapInstance.value
   if (!map) return
   const trip = activeTrip.value
-  if (trip) {
-    const coords = trip.points.map((p) => [p.latitude, p.longitude] as [number, number])
-    if (hasLocation.value) coords.push(center.value)
-    if (coords.length === 0) return
-    const bounds = L.latLngBounds(coords)
-    if (bounds.getNorthEast().equals(bounds.getSouthWest())) {
-      map.setView(bounds.getCenter(), 15, { animate: false })
-    } else {
-      map.fitBounds(bounds, { padding: [24, 24], animate: false })
+  if (trip && hasLocation.value) {
+    const car = center.value
+    let maxLatDelta = 0
+    let maxLngDelta = 0
+    for (const p of trip.points) {
+      maxLatDelta = Math.max(maxLatDelta, Math.abs(p.latitude - car[0]))
+      maxLngDelta = Math.max(maxLngDelta, Math.abs(p.longitude - car[1]))
     }
+    fitBoundsSafe(
+      map,
+      L.latLngBounds(
+        [car[0] - maxLatDelta, car[1] - maxLngDelta],
+        [car[0] + maxLatDelta, car[1] + maxLngDelta],
+      ),
+    )
+  } else if (trip && trip.points.length > 0) {
+    fitBoundsSafe(
+      map,
+      L.latLngBounds(trip.points.map((p) => [p.latitude, p.longitude] as [number, number])),
+    )
   } else if (hasLocation.value) {
     map.setView(center.value, 14, { animate: false })
   }
