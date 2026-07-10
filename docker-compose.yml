@@ -3,6 +3,8 @@ services:
     image: eclipse-mosquitto:2
     container_name: mosquitto
     restart: unless-stopped
+    mem_limit: 128m
+    cpus: 0.5
     entrypoint: /bin/sh
     command: >
       -c "
@@ -24,6 +26,8 @@ services:
     image: saicismartapi/saic-python-mqtt-gateway:0.12.0
     container_name: saic-mqtt
     restart: unless-stopped
+    mem_limit: 256m
+    cpus: 0.5
     depends_on:
       - mosquitto
     environment:
@@ -42,6 +46,8 @@ services:
     image: postgres:18-alpine
     container_name: garagestack-postgres
     restart: unless-stopped
+    mem_limit: 512m
+    cpus: 1.0
     environment:
       POSTGRES_DB: "${POSTGRES_DB:-garagestack}"
       POSTGRES_USER: "${POSTGRES_USER:-garagestack}"
@@ -60,6 +66,8 @@ services:
       dockerfile: src/GarageStack.Worker/Dockerfile
     container_name: garagestack-worker
     restart: unless-stopped
+    mem_limit: 256m
+    cpus: 0.5
     labels:
       net.unraid.docker.icon: "https://raw.githubusercontent.com/joszz/garagestack/main/frontend/public/pwa-192x192.png"
     depends_on:
@@ -69,7 +77,7 @@ services:
       mosquitto:
         condition: service_started
       api:
-        condition: service_started
+        condition: service_healthy
     env_file:
       - .env
     environment:
@@ -91,6 +99,8 @@ services:
       dockerfile: src/GarageStack.Api/Dockerfile
     container_name: garagestack-api
     restart: unless-stopped
+    mem_limit: 512m
+    cpus: 1.0
     labels:
       net.unraid.docker.icon: "https://raw.githubusercontent.com/joszz/garagestack/main/frontend/public/pwa-192x192.png"
     depends_on:
@@ -132,11 +142,14 @@ services:
       dockerfile: Dockerfile
     container_name: garagestack-frontend
     restart: unless-stopped
+    mem_limit: 128m
+    cpus: 0.5
     labels:
       net.unraid.docker.icon: "https://raw.githubusercontent.com/joszz/garagestack/main/frontend/public/pwa-192x192.png"
       net.unraid.docker.webui: "http://[IP]:[PORT:80]/"
     depends_on:
-      - api
+      api:
+        condition: service_healthy
     ports:
       - "${FRONTEND_PORT:-8080}:80"
 

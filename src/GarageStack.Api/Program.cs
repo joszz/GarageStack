@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.IdentityModel.Tokens.Jwt;
 using System.Text.Json.Serialization;
 using GarageStack.Api;
 using GarageStack.Api.Endpoints;
@@ -107,6 +108,7 @@ try
     builder.Services.AddMemoryCache();
     builder.Services.AddScoped<ChargingStationService>();
     builder.Services.AddScoped<PoiService>();
+    builder.Services.AddSingleton<VehicleCommandGate>();
 
     builder.Services.AddSignalR();
 
@@ -130,6 +132,17 @@ try
                     if (ctx.Request.Cookies.TryGetValue(AuthEndpoints.CookieName, out var cookie))
                         ctx.Token = cookie;
                     return Task.CompletedTask;
+                },
+                OnTokenValidated = async ctx =>
+                {
+                    // Checked after signature/lifetime validation already passed, so this only
+                    // needs to catch tokens explicitly revoked via /api/auth/logout.
+                    var jti = ctx.Principal?.FindFirst(JwtRegisteredClaimNames.Jti)?.Value;
+                    if (string.IsNullOrEmpty(jti)) return;
+
+                    var db = ctx.HttpContext.RequestServices.GetRequiredService<AppDbContext>();
+                    var isRevoked = await TokenRevocation.IsRevokedAsync(db, jti, ctx.HttpContext.RequestAborted);
+                    if (isRevoked) ctx.Fail("Token has been revoked");
                 },
             };
             options.TokenValidationParameters = new TokenValidationParameters
@@ -172,6 +185,23 @@ try
                 {
                     Window = TimeSpan.FromMinutes(5),
                     PermitLimit = 10,
+                    QueueLimit = 0,
+                    AutoReplenishment = true,
+                });
+        });
+
+        // Tighter limit on the widget endpoint to slow down guessing WIDGET_API_KEY, which the
+        // global limiter alone (120/min) would allow at a much higher rate. Still generous
+        // enough for a handful of dashboard widgets behind the same NAT polling every 30s.
+        opts.AddPolicy("widget", httpContext =>
+        {
+            var ip = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+            return RateLimitPartition.GetFixedWindowLimiter(
+                partitionKey: ip,
+                factory: _ => new FixedWindowRateLimiterOptions
+                {
+                    Window = TimeSpan.FromMinutes(5),
+                    PermitLimit = 60,
                     QueueLimit = 0,
                     AutoReplenishment = true,
                 });
@@ -378,6 +408,7 @@ try
             .AddHttpAuthentication("Bearer", _ => { }));
     }
 
+    app.MapHealthEndpoints();
     app.MapHub<TelemetryHub>("/hubs/telemetry").RequireAuthorization();
     app.MapAuthEndpoints();
     app.MapVehicleEndpoints();

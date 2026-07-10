@@ -19,10 +19,12 @@ ARG OS_PATCH_DATE=0
 RUN echo "os patch date: ${OS_PATCH_DATE}" \
 	&& apt-get update \
 	&& apt-get upgrade -y \
-	&& apt-get install -y --no-install-recommends libgssapi-krb5-2 gosu \
+	&& apt-get install -y --no-install-recommends libgssapi-krb5-2 gosu curl \
 	&& rm -rf /var/lib/apt/lists/*
 COPY --from=build /app .
 COPY src/GarageStack.Api/docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh
 EXPOSE 8080
+HEALTHCHECK --interval=10s --timeout=5s --start-period=15s --retries=5 \
+	CMD curl -fsS http://127.0.0.1:8080/health || exit 1
 ENTRYPOINT ["/docker-entrypoint.sh"]

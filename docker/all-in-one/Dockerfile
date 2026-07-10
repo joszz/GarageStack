@@ -68,6 +68,12 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         libgssapi-krb5-2 libicu-dev \
     && rm -rf /var/lib/apt/lists/*
 
+# Dedicated non-root user for the .NET API/Worker and the SAIC gateway. Postgres and
+# Mosquitto already run as their own unprivileged users via gosu (see supervisord.conf),
+# and nginx already drops its worker processes to www-data via the Debian package default,
+# only its master process stays root to bind port 80.
+RUN useradd --system --create-home --home-dir /home/appuser --shell /usr/sbin/nologin appuser
+
 # .NET 10 ASP.NET Core runtime -- installed via the official script, no apt repo needed.
 RUN curl -sSL https://dot.net/v1/dotnet-install.sh -o /tmp/dotnet-install.sh \
     && chmod +x /tmp/dotnet-install.sh \
@@ -94,6 +100,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 # Layout in the saic image: WORKDIR=/usr/src/app, venv at /usr/src/app/.venv,
 # entry point: python ./main.py
 COPY --from=saic-source /usr/src/app /opt/saic/app
+RUN chown -R appuser:appuser /opt/saic/app
 
 # Frontend SPA
 COPY --from=frontend-build /app/dist /usr/share/nginx/html
@@ -102,19 +109,33 @@ COPY --from=frontend-build /app/dist /usr/share/nginx/html
 COPY --from=dotnet-build /publish/api    /app/api
 COPY --from=dotnet-build /publish/worker /app/worker
 
+# The API/Worker resolve "logs" and "keys" relative to their working directory (which
+# supervisord pins to /app/api and /app/worker, see supervisord.conf), so symlink those
+# names to the persisted /data volume the same way postgres/mosquitto already are. Reuses
+# /data/dataprotection so upgrades from older images keep the same DataProtection keys
+# (and therefore the same auth cookies) instead of silently invalidating every login.
+RUN ln -sfn /data/api /app/api/logs \
+ && ln -sfn /data/dataprotection /app/api/keys \
+ && ln -sfn /data/worker /app/worker/logs
+
 # Configuration
 COPY docker/all-in-one/nginx.conf       /etc/nginx/conf.d/default.conf
 COPY docker/all-in-one/mosquitto.conf   /etc/mosquitto/conf.d/garagestack.conf
 COPY docker/all-in-one/supervisord.conf /etc/supervisor/supervisord.conf
 COPY docker/all-in-one/entrypoint.sh   /entrypoint.sh
+COPY docker/all-in-one/wait-for-postgres.sh  /wait-for-postgres.sh
+COPY docker/all-in-one/wait-for-mosquitto.sh /wait-for-mosquitto.sh
 
 RUN rm -f /etc/nginx/sites-enabled/default \
-    && chmod +x /entrypoint.sh \
-    && mkdir -p /data/db/postgres /data/db/mosquitto /data/logs /data/dataprotection
+    && chmod +x /entrypoint.sh /wait-for-postgres.sh /wait-for-mosquitto.sh \
+    && mkdir -p /data/db/postgres /data/db/mosquitto /data/logs /data/dataprotection /data/api /data/worker
 
 # Port 80  -- nginx (web UI + API proxy)
 # Port 1883 -- Mosquitto MQTT broker
 EXPOSE 80 1883
+
+HEALTHCHECK --interval=10s --timeout=5s --start-period=30s --retries=5 \
+    CMD curl -fsS http://127.0.0.1:9000/health || exit 1
 
 VOLUME ["/data"]
 

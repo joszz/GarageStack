@@ -175,6 +175,12 @@ updates:
     open-pull-requests-limit: 2
     cooldown:
       default-days: 3
+    ignore:
+      # Node 25 is an odd-numbered "Current" release, not LTS. Node 26 doesn't
+      # become LTS until October 2026. Stay on the 24-alpine LTS line until
+      # 26 actually goes LTS, then update this ignore rule.
+      - dependency-name: "node"
+        versions: [">=25"]
 
   - package-ecosystem: docker
     directory: /docker/all-in-one
@@ -186,6 +192,12 @@ updates:
     open-pull-requests-limit: 2
     cooldown:
       default-days: 3
+    ignore:
+      # Node 25 is an odd-numbered "Current" release, not LTS. Node 26 doesn't
+      # become LTS until October 2026. Stay on the 24-alpine LTS line until
+      # 26 actually goes LTS, then update this ignore rule.
+      - dependency-name: "node"
+        versions: [">=25"]
 
   # ── GitHub Actions ───────────────────────────────────────────────────────────
   - package-ecosystem: github-actions

@@ -15,10 +15,10 @@ services:
       Auth__Username: "${AUTH_USERNAME:-demo}"
       Auth__Password: "${AUTH_PASSWORD:-demo}"
     ports:
-      - "${API_PORT:-5001}:8080"
+      - "127.0.0.1:${API_PORT:-5001}:8080"
     volumes:
       - api_demo_logs:/app/logs
-      - api_demo_dataprotection:/root/.aspnet/DataProtection-Keys
+      - api_demo_dataprotection:/app/keys
 
   frontend:
     build:
@@ -29,7 +29,8 @@ services:
     container_name: garagestack-frontend-demo
     restart: unless-stopped
     depends_on:
-      - api
+      api:
+        condition: service_healthy
     ports:
       - "${FRONTEND_PORT:-8080}:80"
 

@@ -23,9 +23,34 @@ public class TelemetryRepository(AppDbContext db, ILogger<TelemetryRepository>? 
         nameof(TelemetrySnapshot.RawTopic),
     ];
 
-    private static readonly PropertyInfo[] MergeableProperties = typeof(TelemetrySnapshot)
+    // Compiled expression-tree accessors instead of live reflection (PropertyInfo.GetValue/
+    // SetValue): this runs on every MQTT message merge, multiple times per second per vehicle,
+    // and reflection's per-call overhead is avoidable since the property set is fixed at
+    // startup. Built once here, then invoked like a regular delegate call from then on.
+    private sealed record PropertyAccessor(string Name, Func<TelemetrySnapshot, object?> Get, Action<TelemetrySnapshot, object?> Set);
+
+    private static PropertyAccessor BuildAccessor(PropertyInfo prop)
+    {
+        var instance = Expression.Parameter(typeof(TelemetrySnapshot), "instance");
+        var value = Expression.Parameter(typeof(object), "value");
+
+        var getter = Expression.Lambda<Func<TelemetrySnapshot, object?>>(
+            Expression.Convert(Expression.Property(instance, prop), typeof(object)),
+            instance).Compile();
+
+        var setter = Expression.Lambda<Action<TelemetrySnapshot, object?>>(
+            Expression.Assign(
+                Expression.Property(instance, prop),
+                Expression.Convert(value, prop.PropertyType)),
+            instance, value).Compile();
+
+        return new PropertyAccessor(prop.Name, getter, setter);
+    }
+
+    private static readonly PropertyAccessor[] MergeableProperties = typeof(TelemetrySnapshot)
         .GetProperties(BindingFlags.Public | BindingFlags.Instance)
         .Where(p => p.CanRead && p.CanWrite && !NonMergeableProperties.Contains(p.Name))
+        .Select(BuildAccessor)
         .ToArray();
 
     // Daily counters reset at midnight - a stale value from a prior day must not be carried
@@ -40,8 +65,8 @@ public class TelemetryRepository(AppDbContext db, ILogger<TelemetryRepository>? 
     {
         foreach (var prop in MergeableProperties)
         {
-            var value = prop.GetValue(source);
-            if (value is not null) prop.SetValue(target, value);
+            var value = prop.Get(source);
+            if (value is not null) prop.Set(target, value);
         }
     }
 
@@ -51,9 +76,9 @@ public class TelemetryRepository(AppDbContext db, ILogger<TelemetryRepository>? 
         foreach (var prop in MergeableProperties)
         {
             if (skip is not null && skip.Contains(prop.Name)) continue;
-            if (prop.GetValue(target) is not null) continue;
-            var value = prop.GetValue(source);
-            if (value is not null) prop.SetValue(target, value);
+            if (prop.Get(target) is not null) continue;
+            var value = prop.Get(source);
+            if (value is not null) prop.Set(target, value);
         }
     }
 

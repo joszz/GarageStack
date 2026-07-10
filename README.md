@@ -207,6 +207,44 @@ docker stop garagestack && docker rm garagestack
 
 ---
 
+## Backup and restore
+
+The only data that matters for disaster recovery is your PostgreSQL database (all vehicle telemetry/trip history) and the DataProtection keys used to sign login cookies -- losing the keys just logs everyone out, it doesn't lose any vehicle data.
+
+**Docker Compose:** back up the database with `pg_dump` (works whether you're using the bundled Postgres or your own external server):
+
+```bash
+docker compose exec postgres pg_dump -U garagestack garagestack > garagestack-backup.sql
+```
+
+Restore into a fresh database:
+
+```bash
+cat garagestack-backup.sql | docker compose exec -T postgres psql -U garagestack garagestack
+```
+
+(Replace `garagestack`/`garagestack` with your `POSTGRES_USER`/`POSTGRES_DB` if you customised them.) The DataProtection keys live in the `api_dataprotection` named volume -- back it up with the API stopped so nothing is mid-write:
+
+```bash
+docker compose stop api
+docker run --rm -v garagestack_api_dataprotection:/keys -v "$(pwd)":/backup alpine tar czf /backup/dataprotection-backup.tar.gz -C /keys .
+docker compose start api
+```
+
+(Volume names are prefixed with the Compose project name -- run `docker volume ls` to confirm yours if it's not `garagestack`.) The `mosquitto_data`, `worker_logs`, and `api_logs` volumes hold disposable/regeneratable data and don't need backing up.
+
+**All-in-one container:** everything lives under the single `/data` bind mount (`garagestack-data/` by default). Stop the container first so nothing is mid-write, then copy the whole directory:
+
+```bash
+docker stop garagestack
+cp -r garagestack-data garagestack-data-backup
+docker start garagestack
+```
+
+To restore, stop the container, replace `garagestack-data` with the backup, and start it again.
+
+---
+
 ## Push notifications
 
 GarageStack checks your vehicle's state every 5 minutes and sends both a browser push notification and an in-app notification (bell icon) when any of the following conditions are detected. Each alert has a 1-hour cooldown per vehicle to avoid repeated notifications.
@@ -407,7 +445,7 @@ All three POI types share the same tile-based PostgreSQL cache:
 ## Security defaults
 
 - API routes require login.
-- Login reuses the configured MG account credentials (`SAIC_USER`/`SAIC_PASSWORD`) and issues short-lived JWT tokens.
+- Login reuses the configured MG account credentials (`SAIC_USER`/`SAIC_PASSWORD`) and issues JWT tokens (12 hours by default, 30 days with "remember me"). Logout revokes the token server-side, not just the client-side cookie.
 - MQTT now requires credentials and ACLs, and broker exposure defaults to localhost-only in Docker Compose.
 
 ---
