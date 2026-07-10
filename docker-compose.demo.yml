@@ -29,7 +29,8 @@ services:
     container_name: garagestack-frontend-demo
     restart: unless-stopped
     depends_on:
-      - api
+      api:
+        condition: service_healthy
     ports:
       - "${FRONTEND_PORT:-8080}:80"
 

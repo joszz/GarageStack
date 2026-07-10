@@ -123,14 +123,19 @@ COPY docker/all-in-one/nginx.conf       /etc/nginx/conf.d/default.conf
 COPY docker/all-in-one/mosquitto.conf   /etc/mosquitto/conf.d/garagestack.conf
 COPY docker/all-in-one/supervisord.conf /etc/supervisor/supervisord.conf
 COPY docker/all-in-one/entrypoint.sh   /entrypoint.sh
+COPY docker/all-in-one/wait-for-postgres.sh  /wait-for-postgres.sh
+COPY docker/all-in-one/wait-for-mosquitto.sh /wait-for-mosquitto.sh
 
 RUN rm -f /etc/nginx/sites-enabled/default \
-    && chmod +x /entrypoint.sh \
+    && chmod +x /entrypoint.sh /wait-for-postgres.sh /wait-for-mosquitto.sh \
     && mkdir -p /data/db/postgres /data/db/mosquitto /data/logs /data/dataprotection /data/api /data/worker
 
 # Port 80  -- nginx (web UI + API proxy)
 # Port 1883 -- Mosquitto MQTT broker
 EXPOSE 80 1883
+
+HEALTHCHECK --interval=10s --timeout=5s --start-period=30s --retries=5 \
+    CMD curl -fsS http://127.0.0.1:9000/health || exit 1
 
 VOLUME ["/data"]
 

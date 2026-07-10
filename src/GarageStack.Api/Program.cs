@@ -395,6 +395,7 @@ try
             .AddHttpAuthentication("Bearer", _ => { }));
     }
 
+    app.MapHealthEndpoints();
     app.MapHub<TelemetryHub>("/hubs/telemetry").RequireAuthorization();
     app.MapAuthEndpoints();
     app.MapVehicleEndpoints();
