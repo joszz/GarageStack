@@ -2,7 +2,7 @@
 set -e
 
 # Ensure volume subdirectories exist on a fresh mount
-mkdir -p /data/db/postgres /data/db/mosquitto /data/logs /data/dataprotection
+mkdir -p /data/db/postgres /data/db/mosquitto /data/logs /data/dataprotection /data/api /data/worker
 
 PGDATA="/data/db/postgres"
 POSTGRES_DB="${POSTGRES_DB:-garagestack}"
@@ -64,9 +64,11 @@ export Widget__ApiKey="${WIDGET_API_KEY:-}"
 # .NET API listens on an internal port; nginx proxies port 80 to it
 export ASPNETCORE_URLS="http://127.0.0.1:9000"
 
-# Data Protection keys persist to the data volume
-mkdir -p /data/dataprotection /root/.aspnet
-ln -sfn /data/dataprotection /root/.aspnet/DataProtection-Keys
+# /app/api/logs, /app/api/keys, and /app/worker/logs are symlinked (in the Dockerfile) into
+# these /data paths, so the non-root API/Worker processes need write access here. Volume
+# contents may be root-owned from an image built before these processes dropped root, or
+# from a fresh named volume Docker always creates as root -- reclaim them on every start.
+chown -R appuser:appuser /data/api /data/worker /data/dataprotection
 
 # Generate Mosquitto password and ACL files from SAIC credentials.
 # Mosquitto 2.x refuses to load password/ACL files unless they are owned by
