@@ -167,6 +167,24 @@ docker rm -f garagestack
 Remove-Item -Recurse -Force garagestack-data
 ```
 
+### Backup and restore
+
+Everything -- the PostgreSQL database, Mosquitto retained messages, logs, and DataProtection keys -- lives under `garagestack-data`. Stop the container first so nothing is mid-write, then copy the whole directory:
+
+```powershell
+docker stop garagestack
+Copy-Item -Recurse garagestack-data garagestack-data-backup
+docker start garagestack
+```
+
+```bash
+docker stop garagestack
+cp -r garagestack-data garagestack-data-backup
+docker start garagestack
+```
+
+To restore, stop the container, replace `garagestack-data` with the backup, and start it again. Only the database (`garagestack-data/db/postgres`) and DataProtection keys (`garagestack-data/dataprotection`) actually matter for disaster recovery -- losing the keys just logs everyone out, it doesn't lose any vehicle data.
+
 ## Troubleshooting
 
 ### 28P01: password authentication failed for user "garagestack"
