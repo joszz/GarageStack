@@ -59,7 +59,7 @@
     "jiti": "^2.7.0",
     "jsdom": "^29.1.1",
     "npm-run-all2": "^9.0.2",
-    "oxlint": "~1.72.0",
+    "oxlint": "~1.73.0",
     "prettier": "3.9.4",
     "typescript": "~6.0.3",
     "vite": "^8.1.4",
