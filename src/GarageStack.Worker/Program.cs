@@ -37,6 +37,7 @@ try
     builder.Services.AddSingleton<GarageStack.Core.Interfaces.IPushSender, GarageStack.Worker.Services.PushSenderService>();
     builder.Services.AddHostedService<MqttConsumerService>();
     builder.Services.AddHostedService<PushNotificationCheckService>();
+    builder.Services.AddHostedService<MaintenanceCheckService>();
     builder.Services.AddHostedService<PoiPreCachingService>();
 
     var host = builder.Build();

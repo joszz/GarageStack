@@ -210,6 +210,12 @@ watch(
               <span>{{ t('nav.map') }}</span>
             </RouterLink>
           </li>
+          <li>
+            <RouterLink to="/maintenance" active-class="active">
+              <font-awesome-icon icon="screwdriver-wrench" />
+              <span>{{ t('nav.maintenance') }}</span>
+            </RouterLink>
+          </li>
         </ul>
 
         <div class="sidebar-footer">

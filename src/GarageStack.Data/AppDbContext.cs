@@ -11,6 +11,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<AppNotification> AppNotifications => Set<AppNotification>();
     public DbSet<PoiItem> PoiItems => Set<PoiItem>();
     public DbSet<PoiCacheTile> PoiCacheTiles => Set<PoiCacheTile>();
+    public DbSet<MaintenanceItem> MaintenanceItems => Set<MaintenanceItem>();
+    public DbSet<MaintenanceLogEntry> MaintenanceLogEntries => Set<MaintenanceLogEntry>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -74,6 +76,29 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
              .HasDatabaseName("IX_PoiCacheTiles_ExpiresAt");
             e.Property(t => t.Source).HasMaxLength(32).IsRequired();
             e.Property(t => t.PoiType).HasMaxLength(32).IsRequired();
+        });
+
+        modelBuilder.Entity<MaintenanceItem>(e =>
+        {
+            e.HasKey(m => m.Id);
+            e.HasIndex(m => m.VehicleId);
+            e.Property(m => m.Name).HasMaxLength(200).IsRequired();
+            e.Property(m => m.Notes).HasMaxLength(1000);
+            e.HasOne(m => m.Vehicle)
+             .WithMany()
+             .HasForeignKey(m => m.VehicleId)
+             .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<MaintenanceLogEntry>(e =>
+        {
+            e.HasKey(l => l.Id);
+            e.HasIndex(l => new { l.MaintenanceItemId, l.PerformedAt });
+            e.Property(l => l.Notes).HasMaxLength(1000);
+            e.HasOne(l => l.MaintenanceItem)
+             .WithMany(m => m.LogEntries)
+             .HasForeignKey(l => l.MaintenanceItemId)
+             .OnDelete(DeleteBehavior.Cascade);
         });
 
     }
