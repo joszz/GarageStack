@@ -13,6 +13,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<PoiCacheTile> PoiCacheTiles => Set<PoiCacheTile>();
     public DbSet<MaintenanceItem> MaintenanceItems => Set<MaintenanceItem>();
     public DbSet<MaintenanceLogEntry> MaintenanceLogEntries => Set<MaintenanceLogEntry>();
+    public DbSet<RevokedToken> RevokedTokens => Set<RevokedToken>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -99,6 +100,13 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
              .WithMany(m => m.LogEntries)
              .HasForeignKey(l => l.MaintenanceItemId)
              .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<RevokedToken>(e =>
+        {
+            e.HasKey(r => r.Id);
+            e.HasIndex(r => r.Jti).IsUnique();
+            e.Property(r => r.Jti).HasMaxLength(64).IsRequired();
         });
 
     }

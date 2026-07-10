@@ -147,6 +147,7 @@ public static class VehicleEndpoints
             string command,
             JsonElement body,
             IMqttPublisher mqtt,
+            VehicleCommandGate commandGate,
             CancellationToken ct) =>
         {
             var vehicle = ResolveVehicleFilter.GetResolvedVehicle(httpContext);
@@ -187,7 +188,7 @@ public static class VehicleEndpoints
                 return Results.BadRequest(new { error = validationError });
 
             var topic = $"saic/{vehicle.SaicUser}/vehicles/{vin}/{topicSuffix}";
-            await mqtt.PublishAsync(topic, value, ct);
+            await commandGate.RunAsync(vin, () => mqtt.PublishAsync(topic, value, ct), ct);
 
             return Results.Ok(new { topic, value });
         })
