@@ -36,7 +36,7 @@ RUN dotnet publish GarageStack.Api/GarageStack.Api.csproj -c Release -o /publish
 # ── Stage 3: Pull SAIC MQTT Gateway (source of truth for the gateway app) ────
 # The gateway is not on PyPI. We copy its pre-built venv + source directly from
 # the official image so we always match the tested Python/dependency versions.
-FROM saicismartapi/saic-python-mqtt-gateway:latest AS saic-source
+FROM saicismartapi/saic-python-mqtt-gateway:0.12.0 AS saic-source
 
 # ── Stage 4: Final all-in-one runtime image ───────────────────────────────────
 # python:3.14-slim is Debian trixie (13) -- the same base the saic gateway uses,

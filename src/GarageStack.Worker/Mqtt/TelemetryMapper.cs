@@ -225,11 +225,6 @@ public static class TelemetryMapper
             case "climate/rearWindowDefrosterHeating":
                 s.RearWindowDefroster = asBool;
                 return true;
-            case "climate/steeringWheelHeating":
-            case "climate/heatedSteeringWheel":
-            case "climate/steeringWheelHeat":
-                s.SteeringWheelHeating = asBool;
-                return true;
 
             default:
                 return null;

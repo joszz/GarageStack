@@ -80,14 +80,14 @@ The Statistics view shows insight cards and charts for a configurable period (7,
 
 > **Important:** The MG iSmart API only allows one active session per account at a time. Logging in anywhere else with the same credentials -- including the official MG app -- will immediately invalidate GarageStack's session, causing telemetry to stop until GarageStack reconnects.
 
-To use GarageStack alongside the official MG app without interrupting either, set up a secondary account:
+GarageStack needs the vehicle **owner account**: shared or secondary accounts lack the write permissions required to register alarm switches and will fail with error 1100003. So instead of moving GarageStack off the owner account, set up a secondary account for the official MG app to use, and keep the owner account free for GarageStack:
 
 1. Open the MG app and go to **Settings > Account management > Add secondary account** (exact wording varies by region and app version).
 2. Invite a second email address and accept the invite on that account.
 3. Grant the secondary account access to your vehicle.
-4. Use the secondary account's credentials for `SAIC_USER` / `SAIC_PASSWORD` in GarageStack.
+4. Sign in to the official MG app with the secondary account, and use the owner account's credentials for `SAIC_USER` / `SAIC_PASSWORD` in GarageStack.
 
-This way the official app keeps its own session on the owner account and GarageStack runs independently on the secondary account.
+This way the official app runs independently on the secondary account and GarageStack keeps its own session on the owner account.
 
 ---
 
