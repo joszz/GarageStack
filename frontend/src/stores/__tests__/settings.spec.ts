@@ -17,8 +17,8 @@ const DASHBOARD_KEY = 'garagestack-settings-dashboard'
 const MAP_KEY = 'garagestack-settings-map'
 
 describe('defaultCards', () => {
-  it('includes all 22 card ids', () => {
-    expect(defaultCards()).toHaveLength(23)
+  it('includes all 24 card ids', () => {
+    expect(defaultCards()).toHaveLength(24)
   })
 
   it('places visible cards before hidden ones', () => {
@@ -198,7 +198,7 @@ describe('useDashboardSettingsStore', () => {
 
   it('falls back to defaults when localStorage is empty', () => {
     const store = useDashboardSettingsStore()
-    expect(store.cards).toHaveLength(23)
+    expect(store.cards).toHaveLength(24)
     expect(store.cards.find((c) => c.id === 'sunRoof')!.visible).toBe(false)
   })
 
@@ -254,8 +254,8 @@ describe('useDashboardSettingsStore', () => {
         }),
       )
       const store = useDashboardSettingsStore()
-      // All 23 card ids should be present after migration fills in the gaps
-      expect(store.cards).toHaveLength(23)
+      // All 24 card ids should be present after migration fills in the gaps
+      expect(store.cards).toHaveLength(24)
       expect(store.cards.find((c) => c.id === 'sunRoof')!.visible).toBe(false)
     })
   })

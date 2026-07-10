@@ -2,7 +2,8 @@
   "nav": {
     "dashboard": "Dashboard",
     "statistics": "Statistieken",
-    "map": "Kaart"
+    "map": "Kaart",
+    "maintenance": "Onderhoud"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -40,7 +41,8 @@
       "remainingCharge": "Geschatte resterende laadtijd in minuten tot de accu de ingestelde limiet bereikt. Alleen relevant voor PHEV en BEV tijdens het laden.",
       "chargingSession": "Live gegevens van de boordlader: AC-vermogen (één of driefasig), kabelslot en laadtype. Alleen relevant voor PHEV en BEV.",
       "batteryHeating": "Voorverwarmingsstatus en schema van de hoogspanningsaccu. Opwarmen voor een laadsessie verbetert de laadsnelheid bij koud weer. Alleen relevant voor PHEV en BEV.",
-      "vehicleDiagram": "Bovenaanzicht van het voertuig. Bandenpressiepunten zijn kleurgecodeerd: groen is goed, oranje is laag, rood is kritiek laag. Open portieren, de motorkap en de kofferbak worden aangegeven met een open-slot-icoon. Lichtbundels worden getoond wanneer er verlichting aan is. Brandstofniveau en EV-accupercentage verschijnen respectievelijk voor- en achterin wanneer gegevens beschikbaar zijn."
+      "vehicleDiagram": "Bovenaanzicht van het voertuig. Bandenpressiepunten zijn kleurgecodeerd: groen is goed, oranje is laag, rood is kritiek laag. Open portieren, de motorkap en de kofferbak worden aangegeven met een open-slot-icoon. Lichtbundels worden getoond wanneer er verlichting aan is. Brandstofniveau en EV-accupercentage verschijnen respectievelijk voor- en achterin wanneer gegevens beschikbaar zijn.",
+      "maintenance": "Aankomende en verlopen onderhoudsitems op basis van de servicetermijnen die je zelf instelt. Klik door naar de onderhoudspagina om items toe te voegen of een uitgevoerde service te registreren."
     }
   },
   "statistics": {
@@ -328,7 +330,8 @@
       "onlineStatus": "Online status",
       "remainingCharge": "Laadtijd",
       "chargingSession": "Laadsessie",
-      "batteryHeating": "Accuverwarming"
+      "batteryHeating": "Accuverwarming",
+      "maintenance": "Onderhoud"
     },
     "carColor": {
       "title": "Autokleur",
@@ -413,5 +416,53 @@
     "interior": "Interieur",
     "exterior": "Exterieur",
     "speed": "Snelheid"
+  },
+  "maintenance": {
+    "title": "Onderhoud",
+    "subtitle": "Houd terugkerende onderhoudsitems voor je auto bij en ontvang een melding als ze verschuldigd zijn.",
+    "addItem": "Item toevoegen",
+    "editItem": "Item bewerken",
+    "delete": "Verwijderen",
+    "deleteConfirm": "Dit onderhoudsitem en de servicegeschiedenis verwijderen?",
+    "empty": "Nog geen onderhoudsitems. Voeg er een toe om servicetermijnen bij te houden.",
+    "logService": "Onderhoud registreren",
+    "history": "Servicegeschiedenis",
+    "noHistory": "Nog geen servicegeschiedenis geregistreerd",
+    "deleteLogEntry": "Item verwijderen",
+    "everyKm": "Elke {km} km",
+    "everyMonths": "Elke {months} maanden",
+    "or": "of",
+    "nextDueOdometer": "Volgende beurt",
+    "nextDueDate": "Volgende beurt",
+    "form": {
+      "name": "Naam",
+      "namePlaceholder": "bijv. Olie verversen",
+      "notes": "Notities",
+      "intervalKm": "Afstandsinterval (km)",
+      "intervalMonths": "Tijdsinterval (maanden)",
+      "intervalHint": "Stel minstens één interval in. Als beide zijn ingesteld, is het item verschuldigd op wat het eerst komt.",
+      "lastServiceDate": "Laatste servicedatum",
+      "lastServiceOdometer": "Kilometerstand bij laatste service",
+      "lastServiceHint": "Optioneel. Laat leeg als dit nog niet onderhouden is.",
+      "save": "Opslaan",
+      "validationNameRequired": "Naam is verplicht",
+      "validationIntervalRequired": "Stel minstens één interval in (afstand of tijd)"
+    },
+    "logForm": {
+      "performedAt": "Servicedatum",
+      "odometer": "Kilometerstand (km)",
+      "notes": "Notities",
+      "submit": "Onderhoud registreren"
+    },
+    "status": {
+      "unknown": "Nog niet bijgehouden",
+      "ok": "OK",
+      "dueSoon": "Bijna verschuldigd",
+      "overdue": "Verlopen"
+    },
+    "dashboard": {
+      "allOk": "Alle onderhoudsitems zijn up-to-date",
+      "moreCount": "+{count} meer"
+    }
   }
 }

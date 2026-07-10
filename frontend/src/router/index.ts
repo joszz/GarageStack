@@ -25,6 +25,11 @@ const router = createRouter({
       name: 'map',
       component: () => import('@/views/MapView.vue'),
     },
+    {
+      path: '/maintenance',
+      name: 'maintenance',
+      component: () => import('@/views/MaintenanceView.vue'),
+    },
   ],
   scrollBehavior(to, from, savedPosition) {
     if (savedPosition) {

@@ -17,6 +17,7 @@ const CATEGORY_ICONS: Record<string, string[]> = {
 }
 
 function categoryIcon(category: string | null): string[] {
+  if (category?.startsWith('maintenance-')) return ['fas', 'screwdriver-wrench']
   return (category && CATEGORY_ICONS[category]) || ['fas', 'bell']
 }
 

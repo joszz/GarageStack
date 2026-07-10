@@ -5,6 +5,7 @@ using GarageStack.Api.Endpoints;
 using GarageStack.Api.Hubs;
 using GarageStack.Api.Services;
 using GarageStack.Core.Interfaces;
+using GarageStack.Core.Models;
 using GarageStack.Data;
 using GarageStack.Data.Demo;
 using GarageStack.Data.Extensions;
@@ -202,6 +203,66 @@ try
                 db.Vehicles.Add(DemoVehicleRepository.DemoVehicle);
                 await db.SaveChangesAsync();
             }
+            if (!db.MaintenanceItems.Any())
+            {
+                var vehicleId = DemoVehicleRepository.DemoVehicle.Id;
+                var oilChange = new MaintenanceItem
+                {
+                    VehicleId = vehicleId,
+                    Name = "Oil change",
+                    IntervalKm = 15_000,
+                    IntervalMonths = 12,
+                    LastServiceDate = DateTime.UtcNow.AddMonths(-7),
+                    LastServiceOdometerKm = 15_000,
+                };
+                var tyreRotation = new MaintenanceItem
+                {
+                    VehicleId = vehicleId,
+                    Name = "Tyre rotation",
+                    IntervalKm = 10_000,
+                    LastServiceDate = DateTime.UtcNow.AddMonths(-4),
+                    LastServiceOdometerKm = 15_500,
+                };
+                var majorService = new MaintenanceItem
+                {
+                    VehicleId = vehicleId,
+                    Name = "Major service",
+                    IntervalKm = 60_000,
+                    IntervalMonths = 60,
+                    LastServiceDate = DateTime.UtcNow.AddMonths(-61),
+                    LastServiceOdometerKm = 0,
+                };
+                var cabinFilter = new MaintenanceItem
+                {
+                    VehicleId = vehicleId,
+                    Name = "Cabin air filter",
+                    IntervalKm = 15_000,
+                };
+
+                db.MaintenanceItems.AddRange(oilChange, tyreRotation, majorService, cabinFilter);
+                await db.SaveChangesAsync();
+
+                db.MaintenanceLogEntries.AddRange(
+                    new MaintenanceLogEntry
+                    {
+                        MaintenanceItemId = oilChange.Id,
+                        PerformedAt = oilChange.LastServiceDate!.Value,
+                        OdometerKm = oilChange.LastServiceOdometerKm,
+                    },
+                    new MaintenanceLogEntry
+                    {
+                        MaintenanceItemId = tyreRotation.Id,
+                        PerformedAt = tyreRotation.LastServiceDate!.Value,
+                        OdometerKm = tyreRotation.LastServiceOdometerKm,
+                    },
+                    new MaintenanceLogEntry
+                    {
+                        MaintenanceItemId = majorService.Id,
+                        PerformedAt = majorService.LastServiceDate!.Value,
+                        OdometerKm = majorService.LastServiceOdometerKm,
+                    });
+                await db.SaveChangesAsync();
+            }
         }
         else
         {
@@ -321,6 +382,7 @@ try
     app.MapAuthEndpoints();
     app.MapVehicleEndpoints();
     app.MapNotificationEndpoints();
+    app.MapMaintenanceEndpoints();
     app.MapWidgetEndpoints();
     app.MapMapEndpoints();
 

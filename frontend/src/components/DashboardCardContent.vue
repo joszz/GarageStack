@@ -15,6 +15,7 @@ import FindMyCarCard from './FindMyCarCard.vue'
 import LightsCard from './LightsCard.vue'
 import ChargingSessionCard from './ChargingSessionCard.vue'
 import BatteryHeatingCard from './BatteryHeatingCard.vue'
+import MaintenanceSummaryCard from './MaintenanceSummaryCard.vue'
 
 const props = defineProps<{ cardId: CardId }>()
 
@@ -352,5 +353,8 @@ const activeSimpleCard = computed(
       :schedule-mode="status.batteryHeatingScheduleMode"
       :schedule-start-time="status.batteryHeatingScheduleStartTime"
     />
+
+    <!-- maintenance -->
+    <MaintenanceSummaryCard v-else-if="cardId === 'maintenance'" />
   </template>
 </template>
