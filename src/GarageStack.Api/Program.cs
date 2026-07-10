@@ -176,6 +176,23 @@ try
                     AutoReplenishment = true,
                 });
         });
+
+        // Tighter limit on the widget endpoint to slow down guessing WIDGET_API_KEY, which the
+        // global limiter alone (120/min) would allow at a much higher rate. Still generous
+        // enough for a handful of dashboard widgets behind the same NAT polling every 30s.
+        opts.AddPolicy("widget", httpContext =>
+        {
+            var ip = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+            return RateLimitPartition.GetFixedWindowLimiter(
+                partitionKey: ip,
+                factory: _ => new FixedWindowRateLimiterOptions
+                {
+                    Window = TimeSpan.FromMinutes(5),
+                    PermitLimit = 60,
+                    QueueLimit = 0,
+                    AutoReplenishment = true,
+                });
+        });
     });
 
     builder.Services.AddCors(opts =>

@@ -18,6 +18,12 @@ public sealed class OcmApiClient(
     private DateTimeOffset _lastRequestAt = DateTimeOffset.MinValue;
     private static readonly TimeSpan MinInterval = TimeSpan.FromMilliseconds(500);
 
+    // Written and read under _gate, so a plain field (not Interlocked) is safe here -- unlike
+    // OverpassApiClient's foreground path, every caller of this method already goes through
+    // _gate, there is no lock-free pre-check path.
+    private DateTimeOffset _backoffUntil = DateTimeOffset.MinValue;
+    private static readonly TimeSpan RetryAfter429 = TimeSpan.FromSeconds(60);
+
     private const string BaseUrl = "https://api.openchargemap.io/v3/poi/";
 
     public bool IsConfigured => !string.IsNullOrWhiteSpace(configuration["OpenChargeMap:ApiKey"]);
@@ -37,6 +43,13 @@ public sealed class OcmApiClient(
         await _gate.WaitAsync(ct);
         try
         {
+            // Fail fast without hitting the network if a prior request was rate-limited. Both
+            // the on-demand API path and the Worker's pre-caching pass (which loops over many
+            // tiles) share this gate, so this stops a sustained rate-limit from being hammered
+            // every MinInterval by every remaining tile in the current pass.
+            if (_backoffUntil > DateTimeOffset.UtcNow)
+                throw new HttpRequestException($"OCM rate-limited, backing off until {_backoffUntil:O}");
+
             var wait = MinInterval - (DateTimeOffset.UtcNow - _lastRequestAt);
             if (wait > TimeSpan.Zero) await Task.Delay(wait, ct);
 
@@ -53,6 +66,14 @@ public sealed class OcmApiClient(
             var client = httpClientFactory.CreateClient("ocm");
             _lastRequestAt = DateTimeOffset.UtcNow;
             var response = await client.SendAsync(request, ct);
+
+            if ((int)response.StatusCode is 429 or 503 or 504)
+            {
+                _backoffUntil = DateTimeOffset.UtcNow + RetryAfter429;
+                throw new HttpRequestException(
+                    $"OCM rate-limited ({(int)response.StatusCode}), backing off {(int)RetryAfter429.TotalSeconds}s");
+            }
+
             response.EnsureSuccessStatusCode();
 
             await using var stream = await response.Content.ReadAsStreamAsync(ct);

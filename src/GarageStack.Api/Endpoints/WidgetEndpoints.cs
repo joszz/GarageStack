@@ -10,6 +10,7 @@ public static class WidgetEndpoints
     {
         var group = app.MapGroup("/api/widget")
             .WithTags("Widget")
+            .RequireRateLimiting("widget")
             .AddEndpointFilter(async (ctx, next) =>
             {
                 var config = ctx.HttpContext.RequestServices.GetRequiredService<IConfiguration>();
