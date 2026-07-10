@@ -445,7 +445,7 @@ All three POI types share the same tile-based PostgreSQL cache:
 ## Security defaults
 
 - API routes require login.
-- Login reuses the configured MG account credentials (`SAIC_USER`/`SAIC_PASSWORD`) and issues short-lived JWT tokens.
+- Login reuses the configured MG account credentials (`SAIC_USER`/`SAIC_PASSWORD`) and issues JWT tokens (12 hours by default, 30 days with "remember me"). Logout revokes the token server-side, not just the client-side cookie.
 - MQTT now requires credentials and ACLs, and broker exposure defaults to localhost-only in Docker Compose.
 
 ---

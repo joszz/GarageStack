@@ -2,6 +2,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
+using GarageStack.Data;
 using Microsoft.IdentityModel.Tokens;
 
 namespace GarageStack.Api.Endpoints;
@@ -15,12 +16,25 @@ public static class AuthEndpoints
         var group = app.MapGroup("/api/auth")
             .WithTags("Authentication");
 
-        group.MapPost("/logout", (HttpContext httpContext) =>
+        group.MapPost("/logout", async (HttpContext httpContext, AppDbContext db, CancellationToken ct) =>
         {
             httpContext.Response.Cookies.Delete(CookieName, new CookieOptions { Path = "/" });
+
+            // Revoke the token server-side so a copy captured before logout (e.g. from a
+            // compromised device) can't keep authenticating for the rest of its lifetime.
+            // Not required to be authenticated for logout to succeed -- an already-expired or
+            // missing token has nothing to revoke, and the cookie is cleared either way above.
+            var jti = httpContext.User.FindFirst(JwtRegisteredClaimNames.Jti)?.Value;
+            var expClaim = httpContext.User.FindFirst(JwtRegisteredClaimNames.Exp)?.Value;
+            if (!string.IsNullOrEmpty(jti) && long.TryParse(expClaim, out var expUnix))
+            {
+                var expiresAtUtc = DateTimeOffset.FromUnixTimeSeconds(expUnix).UtcDateTime;
+                await TokenRevocation.RevokeAsync(db, jti, expiresAtUtc, ct);
+            }
+
             return Results.NoContent();
         })
-        .WithSummary("Clear the authentication cookie");
+        .WithSummary("Clear the authentication cookie and revoke the token server-side");
 
         group.MapGet("/me", (HttpContext httpContext) =>
         {
@@ -98,6 +112,9 @@ public static class AuthEndpoints
                 new Claim(JwtRegisteredClaimNames.Sub, providedUsername),
                 new Claim(JwtRegisteredClaimNames.UniqueName, providedUsername),
                 new Claim(ClaimTypes.Name, providedUsername),
+                // Lets logout revoke this specific token server-side (see RevokedToken) instead
+                // of only clearing the client-side cookie.
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString("N")),
             };
 
             var token = new JwtSecurityToken(
