@@ -9,6 +9,7 @@ using GarageStack.Data;
 using GarageStack.Data.Demo;
 using GarageStack.Data.Extensions;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.AspNetCore.RateLimiting;
@@ -49,6 +50,13 @@ try
                   .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
                   .MinimumLevel.Override("System", LogEventLevel.Warning);
     });
+
+    // Pin the key ring to a fixed, CWD-relative path (mirrors "logs/api-.log" above) instead of
+    // relying on ASP.NET Core's implicit default, which resolves against the OS user profile.
+    // A container running as a non-root user with no profile falls back to an in-memory key
+    // ring there, silently invalidating every auth cookie on each restart.
+    builder.Services.AddDataProtection()
+        .PersistKeysToFileSystem(new DirectoryInfo("keys"));
 
     var isDemoMode = builder.Configuration.GetValue<bool>("DEMO_MODE");
 

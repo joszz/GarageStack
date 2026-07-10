@@ -125,6 +125,54 @@ updates:
           - "Microsoft.NET.Test.Sdk"
           - "coverlet.*"
 
+  # ── Docker base images ───────────────────────────────────────────────────────
+  # Covers both Dockerfile FROM lines and docker-compose.yml image: references
+  # (e.g. the pinned saicismartapi/saic-python-mqtt-gateway tag) in each directory.
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "07:00"
+      timezone: "Europe/Amsterdam"
+    open-pull-requests-limit: 4
+
+  - package-ecosystem: docker
+    directory: /src/GarageStack.Api
+    schedule:
+      interval: weekly
+      day: monday
+      time: "07:00"
+      timezone: "Europe/Amsterdam"
+    open-pull-requests-limit: 2
+
+  - package-ecosystem: docker
+    directory: /src/GarageStack.Worker
+    schedule:
+      interval: weekly
+      day: monday
+      time: "07:00"
+      timezone: "Europe/Amsterdam"
+    open-pull-requests-limit: 2
+
+  - package-ecosystem: docker
+    directory: /frontend
+    schedule:
+      interval: weekly
+      day: monday
+      time: "07:00"
+      timezone: "Europe/Amsterdam"
+    open-pull-requests-limit: 2
+
+  - package-ecosystem: docker
+    directory: /docker/all-in-one
+    schedule:
+      interval: weekly
+      day: monday
+      time: "07:00"
+      timezone: "Europe/Amsterdam"
+    open-pull-requests-limit: 2
+
   # ── GitHub Actions ───────────────────────────────────────────────────────────
   - package-ecosystem: github-actions
     directory: /
