@@ -36,7 +36,7 @@ This project interacts with the MG/SAIC iSmart API and stores vehicle data. Area
 - Authentication and session handling
 - API credential storage and transmission
 - Personally identifiable information (PII) and location/route data
-- Redis and PostgreSQL access controls
+- PostgreSQL access controls
 - PWA push notification endpoints and VAPID key handling
 - Third-party dependency vulnerabilities with direct exploit paths
 
@@ -78,10 +78,9 @@ This project follows a coordinated vulnerability disclosure model. Good-faith se
 - Subresource Integrity (SRI) is used for third-party assets where supported
 - No sensitive data is stored in `localStorage` or `sessionStorage`
 
-### Database and Cache
+### Database
 
 - PostgreSQL connections use least-privilege credentials per service role
-- Redis is not exposed publicly; access is restricted to internal service communication
 - Sensitive fields (e.g., tokens, location history) are not logged in plaintext
 
 ### Dependencies
