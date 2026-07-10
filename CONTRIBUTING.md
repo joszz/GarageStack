@@ -5,10 +5,10 @@ Thank you for your interest in contributing! This document explains how to get i
 ## Getting Started
 
 1. Fork the repository and clone it locally.
-2. Install prerequisites: .NET (latest LTS), Node.js, PNPM, PostgreSQL, Redis, Docker (optional).
+2. Install prerequisites: .NET (latest LTS), Node.js, PNPM, PostgreSQL, Docker (optional).
 3. Copy `.env.example` to `.env` and fill in your values.
 4. Run `pnpm install` inside the `frontend/` directory.
-5. Run `dotnet restore` in the backend directory.
+5. Run `dotnet restore` from the repository root (the solution spans multiple projects under `src/`).
 
 ## Development Workflow
 
@@ -16,7 +16,7 @@ Thank you for your interest in contributing! This document explains how to get i
 - Keep changes focused -- one feature or fix per pull request.
 - Run the test suite before opening a PR:
   - Backend: `dotnet test`
-  - Frontend: `pnpm test`
+  - Frontend: `pnpm test:unit`
 - Make sure linting passes: `pnpm lint`
 
 ## Commit Style

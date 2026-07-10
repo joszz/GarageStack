@@ -1,5 +1,5 @@
 blank_issues_enabled: false
 contact_links:
   - name: Ask a question / General support
-    url: https://github.com/joszz/garagestack/discussions
-    about: For usage questions, setup help, or general discussion, please use GitHub Discussions.
+    url: https://github.com/joszz/garagestack/issues/new?labels=question
+    about: For usage questions or setup help, open an issue with the "question" label.
