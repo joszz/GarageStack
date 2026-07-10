@@ -109,6 +109,7 @@ export type CardId =
   | 'chargingSession'
   | 'batteryHeating'
   | 'topSpeed'
+  | 'maintenance'
 
 export interface CardConfig {
   id: CardId
@@ -140,6 +141,7 @@ export function defaultCards(type: VehicleType | 'unknown' = 'unknown'): CardCon
     { id: 'chargingSession', visible: type === 'phev' || type === 'bev' },
     { id: 'batteryHeating', visible: type === 'phev' || type === 'bev' },
     { id: 'topSpeed', visible: true },
+    { id: 'maintenance', visible: true },
   ]
   return [...all.filter((c) => c.visible), ...all.filter((c) => !c.visible)]
 }

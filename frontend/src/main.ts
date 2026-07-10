@@ -106,6 +106,7 @@ import {
   faFlask,
   faGripLines,
   faTag,
+  faScrewdriverWrench,
 } from '@fortawesome/free-solid-svg-icons'
 
 import App from './App.vue'
@@ -189,6 +190,7 @@ library.add(
   faFlask,
   faGripLines,
   faTag,
+  faScrewdriverWrench,
 )
 
 const i18n = createI18n({

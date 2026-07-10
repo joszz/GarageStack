@@ -203,6 +203,7 @@ const CARD_ICONS: Record<CardId, string> = {
   chargingSession: 'plug-circle-bolt',
   batteryHeating: 'temperature-arrow-up',
   topSpeed: 'gauge-high',
+  maintenance: 'screwdriver-wrench',
 }
 
 function resetLayout() {

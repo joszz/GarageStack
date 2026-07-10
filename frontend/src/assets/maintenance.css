@@ -1,0 +1,103 @@
+/* ── List ─────────────────────────────────────────────────── */
+
+.maintenance-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+/* ── Form fields ──────────────────────────────────────────── */
+
+.maintenance-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.maintenance-field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.9rem;
+}
+
+.maintenance-field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.maintenance-field-group label {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+}
+
+.maintenance-field {
+  width: 100%;
+  padding: 0.4rem 0.6rem;
+  font-size: 0.85rem;
+  border-radius: 6px;
+  border: 1px solid var(--color-border);
+  background-color: var(--color-surface-2);
+  color: var(--color-text);
+}
+
+.maintenance-field--textarea {
+  resize: vertical;
+  font-family: inherit;
+}
+
+/* ── Detail modal ─────────────────────────────────────────── */
+
+.maintenance-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.maintenance-detail__summary {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.3rem;
+}
+
+.maintenance-detail__heading {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  margin-top: 1rem;
+  margin-bottom: 0.2rem;
+}
+
+.maintenance-log-form {
+  gap: 0.6rem;
+}
+
+/* ── Service history ──────────────────────────────────────── */
+
+.maintenance-history {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.maintenance-history__row {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  font-size: 0.85rem;
+  flex-wrap: wrap;
+}
+
+.maintenance-history__delete {
+  margin-left: auto;
+}
+
+@media (max-width: 767px) {
+  .maintenance-field-row {
+    grid-template-columns: 1fr;
+  }
+}

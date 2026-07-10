@@ -2,7 +2,8 @@
   "nav": {
     "dashboard": "Dashboard",
     "statistics": "Statistics",
-    "map": "Map"
+    "map": "Map",
+    "maintenance": "Maintenance"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -40,7 +41,8 @@
       "remainingCharge": "Estimated minutes remaining until the battery reaches the configured charge limit. Only relevant for PHEV and BEV while charging.",
       "chargingSession": "Live onboard-charger data: AC power (single or three-phase), cable lock status and charging type. Only relevant for PHEV and BEV.",
       "batteryHeating": "High-voltage battery pre-heating status and schedule. Warming the battery before a charge session improves charging speed in cold weather. Only relevant for PHEV and BEV.",
-      "vehicleDiagram": "Top-down overview of the vehicle. Tyre pressure dots are colour-coded: green is healthy, orange is low, red is critically low. Open doors, the bonnet and the boot are marked with a lock-open icon. Light beams are shown when any lights are on. Fuel level and EV battery percentage appear at the front and rear respectively when data is available."
+      "vehicleDiagram": "Top-down overview of the vehicle. Tyre pressure dots are colour-coded: green is healthy, orange is low, red is critically low. Open doors, the bonnet and the boot are marked with a lock-open icon. Light beams are shown when any lights are on. Fuel level and EV battery percentage appear at the front and rear respectively when data is available.",
+      "maintenance": "Upcoming and overdue maintenance items based on the service intervals you define. Click through to the Maintenance page to add items or log a completed service."
     }
   },
   "statistics": {
@@ -328,7 +330,8 @@
       "onlineStatus": "Online Status",
       "remainingCharge": "Charge Time",
       "chargingSession": "Charging Session",
-      "batteryHeating": "Battery Heating"
+      "batteryHeating": "Battery Heating",
+      "maintenance": "Maintenance"
     },
     "carColor": {
       "title": "Car colour",
@@ -413,5 +416,53 @@
     "interior": "Interior",
     "exterior": "Exterior",
     "speed": "Speed"
+  },
+  "maintenance": {
+    "title": "Maintenance",
+    "subtitle": "Track recurring service items for your car and get notified when they come due.",
+    "addItem": "Add item",
+    "editItem": "Edit item",
+    "delete": "Delete",
+    "deleteConfirm": "Delete this maintenance item and its service history?",
+    "empty": "No maintenance items yet. Add one to start tracking service intervals.",
+    "logService": "Log a service",
+    "history": "Service history",
+    "noHistory": "No service history recorded yet",
+    "deleteLogEntry": "Delete entry",
+    "everyKm": "Every {km} km",
+    "everyMonths": "Every {months} months",
+    "or": "or",
+    "nextDueOdometer": "Next due",
+    "nextDueDate": "Next due",
+    "form": {
+      "name": "Name",
+      "namePlaceholder": "e.g. Oil change",
+      "notes": "Notes",
+      "intervalKm": "Distance interval (km)",
+      "intervalMonths": "Time interval (months)",
+      "intervalHint": "Set at least one interval. When both are set, the item is due whichever comes first.",
+      "lastServiceDate": "Last service date",
+      "lastServiceOdometer": "Last service odometer (km)",
+      "lastServiceHint": "Optional. Leave empty if this hasn't been serviced yet.",
+      "save": "Save",
+      "validationNameRequired": "Name is required",
+      "validationIntervalRequired": "Set at least one interval (distance or time)"
+    },
+    "logForm": {
+      "performedAt": "Service date",
+      "odometer": "Odometer (km)",
+      "notes": "Notes",
+      "submit": "Log service"
+    },
+    "status": {
+      "unknown": "Not tracked yet",
+      "ok": "OK",
+      "dueSoon": "Due soon",
+      "overdue": "Overdue"
+    },
+    "dashboard": {
+      "allOk": "All maintenance items are up to date",
+      "moreCount": "+{count} more"
+    }
   }
 }
