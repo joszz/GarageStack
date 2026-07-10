@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, computed, nextTick } from 'vue'
+import { ref, shallowRef, computed, nextTick } from 'vue'
 import type { Ref } from 'vue'
 import { vehicleApi, type Vehicle, type TelemetrySnapshot, type Trip } from '@/services/vehicleApi'
 
@@ -9,8 +9,10 @@ export const useVehicleStore = defineStore('vehicle', () => {
   const vehicles = ref<Vehicle[]>([])
   const currentStatus = ref<TelemetrySnapshot | null>(null)
   const vehicleConfig = ref<Record<string, string>>({})
-  const history = ref<TelemetrySnapshot[]>([])
-  const trips = ref<Trip[]>([])
+  // shallowRef: these are only ever replaced wholesale on fetch, never mutated
+  // field-by-field, so deep reactivity on every GPS point/telemetry snapshot is wasted work.
+  const history = shallowRef<TelemetrySnapshot[]>([])
+  const trips = shallowRef<Trip[]>([])
   const loadingCount = ref(0)
   const loading = computed(() => loadingCount.value > 0)
   const sendingCount = ref(0)

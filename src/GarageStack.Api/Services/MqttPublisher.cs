@@ -1,6 +1,7 @@
 using GarageStack.Core.Interfaces;
 using MQTTnet;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace GarageStack.Api.Services;
 
@@ -64,7 +65,15 @@ public class MqttPublisher(IConfiguration config, ILogger<MqttPublisher> logger)
             .Build();
 
         await _client.PublishAsync(message, ct);
-        logger.LogInformation("Published MQTT topic={Topic} payloadBytes={PayloadBytes}", topic.ReplaceLineEndings(" "), Encoding.UTF8.GetByteCount(payload));
+
+        var sanitizedTopic = topic.ReplaceLineEndings(" ");
+        // Topics carry the MG account email and VIN (saic/{email}/vehicles/{vin}/...) - redact
+        // both before logging at Information level, which persists to 30-day rotating files.
+        // The full topic (including the command path, useful for troubleshooting) is still
+        // available at Debug level when DEBUG_LOGS is enabled.
+        var redactedTopic = Regex.Replace(sanitizedTopic, @"^saic/[^/]+/vehicles/[^/]+/", "saic/***/vehicles/***/");
+        logger.LogInformation("Published MQTT topic={Topic} payloadBytes={PayloadBytes}", redactedTopic, Encoding.UTF8.GetByteCount(payload));
+        logger.LogDebug("Published MQTT full topic={Topic}", sanitizedTopic);
     }
 
     public async Task StopAsync(CancellationToken ct)

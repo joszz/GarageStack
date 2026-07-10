@@ -233,7 +233,7 @@ function buildHeatLayer() {
     heatLayer = null
   }
   heatLayer = leafWithHeat
-    .heatLayer(allPoints.value, {
+    .heatLayer(downsample(allPoints.value, MAX_HEATMAP_POINTS), {
       radius: 18,
       blur: 22,
       maxZoom: 17,
@@ -262,22 +262,27 @@ function buildRouteLines() {
   })
 }
 
+function downsample<T>(items: T[], max: number): T[] {
+  if (items.length <= max) return items
+  const stride = items.length / max
+  const sampled: T[] = []
+  for (let i = 0; i < max; i++) {
+    sampled.push(items[Math.floor(i * stride)]!)
+  }
+  const last = items[items.length - 1]!
+  if (sampled[sampled.length - 1] !== last) sampled.push(last)
+  return sampled
+}
+
 // Speed overlay renders one Leaflet polyline layer per segment. A long trip can have thousands
 // of GPS points, which would create thousands of DOM elements - downsample first so the map
 // stays responsive; a few hundred segments is already more color resolution than is visible.
 const MAX_SPEED_OVERLAY_SEGMENTS = 500
 
-function downsampleForOverlay(pts: Trip['points']): Trip['points'] {
-  if (pts.length <= MAX_SPEED_OVERLAY_SEGMENTS) return pts
-  const stride = pts.length / MAX_SPEED_OVERLAY_SEGMENTS
-  const sampled: Trip['points'] = []
-  for (let i = 0; i < MAX_SPEED_OVERLAY_SEGMENTS; i++) {
-    sampled.push(pts[Math.floor(i * stride)]!)
-  }
-  const last = pts[pts.length - 1]!
-  if (sampled[sampled.length - 1] !== last) sampled.push(last)
-  return sampled
-}
+// Heatmap renders to a canvas rather than one DOM element per point, so it tolerates far more
+// points than the polyline overlay, but a 90-day range with dense GPS logging can still reach
+// tens of thousands of points across all trips - cap it so it stays responsive to rebuild.
+const MAX_HEATMAP_POINTS = 5000
 
 function buildSelectedLine() {
   const map = mapInstance.value
@@ -298,7 +303,7 @@ function buildSelectedLine() {
   }
 
   if (speedOverlayEnabled.value) {
-    const speedPts = downsampleForOverlay(pts)
+    const speedPts = downsample(pts, MAX_SPEED_OVERLAY_SEGMENTS)
     for (let i = 0; i < speedPts.length - 1; i++) {
       const p0 = speedPts[i]!
       const p1 = speedPts[i + 1]!
