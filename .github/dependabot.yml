@@ -12,6 +12,14 @@ updates:
     open-pull-requests-limit: 8
     cooldown:
       default-days: 3
+    ignore:
+      # TypeScript 7 restructured its package exports and dropped the
+      # ./lib/tsc subpath vue-tsc relies on, breaking `vue-tsc --build`
+      # with ERR_PACKAGE_PATH_NOT_EXPORTED. vue-tsc has no fix yet, tracked
+      # at https://github.com/vuejs/language-tools/issues/5381. Stay on the
+      # 6.x line until vue-tsc adds TypeScript 7 support.
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
     groups:
       # Vue runtime + all official plugins that ship together
       vue-ecosystem:
