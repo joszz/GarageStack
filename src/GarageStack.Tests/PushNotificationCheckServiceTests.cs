@@ -1,3 +1,4 @@
+using GarageStack.Core.Configuration;
 using GarageStack.Core.Models;
 using GarageStack.Worker.Services;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -9,11 +10,12 @@ namespace GarageStack.Tests;
 
 public class PushNotificationCheckServiceTests
 {
-    private static PushNotificationCheckService CreateService() =>
+    private static PushNotificationCheckService CreateService(TyrePressureThresholds? thresholds = null) =>
         new(
             NullLogger<PushNotificationCheckService>.Instance,
             new FakeServiceScopeFactory(),
-            new FakePushSender());
+            new FakePushSender(),
+            thresholds ?? TyrePressureThresholds.Default);
 
     private static TelemetrySnapshot Parked(Action<TelemetrySnapshot>? configure = null)
     {
@@ -305,5 +307,60 @@ public class PushNotificationCheckServiceTests
         svc.CheckChargingComplete(new TelemetrySnapshot { IsCharging = true }, "VIN1", "hev", alerts);
 
         Assert.Empty(alerts);
+    }
+
+    // ---------------------------------------------------------------------------
+    // CheckTyrePressure — configurable low/high thresholds
+    // ---------------------------------------------------------------------------
+
+    [Fact]
+    public void CheckTyrePressure_BelowDefaultLow_FiresLowAlert()
+    {
+        var svc = CreateService();
+        var alerts = new List<(string, string, string)>();
+
+        svc.CheckTyrePressure(new TelemetrySnapshot { TyrePressureFrontLeft = 2.0 }, alerts);
+
+        Assert.Single(alerts);
+        Assert.Equal("low-tyre", alerts[0].Item1);
+        Assert.Contains("FL", alerts[0].Item3);
+    }
+
+    [Fact]
+    public void CheckTyrePressure_AboveDefaultHigh_FiresHighAlert()
+    {
+        var svc = CreateService();
+        var alerts = new List<(string, string, string)>();
+
+        svc.CheckTyrePressure(new TelemetrySnapshot { TyrePressureRearRight = 3.5 }, alerts);
+
+        Assert.Single(alerts);
+        Assert.Equal("high-tyre", alerts[0].Item1);
+        Assert.Contains("RR", alerts[0].Item3);
+    }
+
+    [Fact]
+    public void CheckTyrePressure_WithinDefaultRange_NoAlert()
+    {
+        var svc = CreateService();
+        var alerts = new List<(string, string, string)>();
+
+        svc.CheckTyrePressure(new TelemetrySnapshot { TyrePressureFrontLeft = 2.5 }, alerts);
+
+        Assert.Empty(alerts);
+    }
+
+    [Fact]
+    public void CheckTyrePressure_UsesConfiguredThresholds_NotHardcodedDefaults()
+    {
+        var svc = CreateService(new TyrePressureThresholds(LowBar: 2.4, GoodBar: 2.55, HighBar: 2.7));
+        var alerts = new List<(string, string, string)>();
+
+        // 2.3 bar is below the default 2.2 low bar (would not alert with defaults), but below
+        // the configured 2.4 low bar here.
+        svc.CheckTyrePressure(new TelemetrySnapshot { TyrePressureFrontLeft = 2.3 }, alerts);
+
+        Assert.Single(alerts);
+        Assert.Equal("low-tyre", alerts[0].Item1);
     }
 }

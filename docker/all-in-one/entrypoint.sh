@@ -65,6 +65,12 @@ export Cors__Origins__0="${CORS_ORIGIN:-http://localhost:8080}"
 # Homepage widget API key (optional -- leave empty to disable the widget endpoint)
 export Widget__ApiKey="${WIDGET_API_KEY:-}"
 
+# Tyre pressure colour-coding / notification thresholds (bar). Optional -- defaults to
+# 2.2 / 2.6 / 3.2 (the app's built-in values) when unset.
+export TyrePressure__LowBar="${TYRE_PRESSURE_LOW_BAR:-2.2}"
+export TyrePressure__GoodBar="${TYRE_PRESSURE_GOOD_BAR:-2.6}"
+export TyrePressure__HighBar="${TYRE_PRESSURE_HIGH_BAR:-3.2}"
+
 # .NET API listens on an internal port; nginx proxies port 80 to it
 export ASPNETCORE_URLS="http://127.0.0.1:9000"
 

@@ -203,6 +203,39 @@
     Mask="false">https://overpass-api.de/api/interpreter</Config>
 
   <Config
+    Name="Tyre Pressure - Low (bar)"
+    Target="TYRE_PRESSURE_LOW_BAR"
+    Default="2.2"
+    Mode=""
+    Description="Tyre pressure (bar) below which a tyre is shown red / triggers a low-pressure alert. Override to match your vehicle's placarded pressure."
+    Type="Variable"
+    Display="advanced"
+    Required="false"
+    Mask="false">2.2</Config>
+
+  <Config
+    Name="Tyre Pressure - Good (bar)"
+    Target="TYRE_PRESSURE_GOOD_BAR"
+    Default="2.6"
+    Mode=""
+    Description="Tyre pressure (bar) at and above which a tyre is shown green (healthy). Below this and above the low threshold, it is shown orange."
+    Type="Variable"
+    Display="advanced"
+    Required="false"
+    Mask="false">2.6</Config>
+
+  <Config
+    Name="Tyre Pressure - High (bar)"
+    Target="TYRE_PRESSURE_HIGH_BAR"
+    Default="3.2"
+    Mode=""
+    Description="Tyre pressure (bar) above which a tyre is shown red / triggers an over-inflation alert."
+    Type="Variable"
+    Display="advanced"
+    Required="false"
+    Mask="false">3.2</Config>
+
+  <Config
     Name="Database Name"
     Target="POSTGRES_DB"
     Default="garagestack"

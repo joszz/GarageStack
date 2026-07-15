@@ -112,9 +112,17 @@ export interface LastTripSummary {
   recordedAt: string
 }
 
+export interface TyrePressureThresholds {
+  lowBar: number
+  goodBar: number
+  highBar: number
+}
+
 export const vehicleApi = {
   list: () => request<Vehicle[]>('/api/vehicles'),
   status: (vin: string) => request<TelemetrySnapshot>(`/api/vehicles/${vin}/status`),
+  tyrePressureThresholds: () =>
+    request<TyrePressureThresholds>('/api/vehicles/tyre-pressure-thresholds'),
   lastTrip: (vin: string) =>
     request<LastTripSummary | undefined>(`/api/vehicles/${vin}/trips/last`),
   config: (vin: string) => request<Record<string, string>>(`/api/vehicles/${vin}/config`),

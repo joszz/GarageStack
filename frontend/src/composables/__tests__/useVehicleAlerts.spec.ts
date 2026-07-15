@@ -190,11 +190,21 @@ describe('getTyrePressureAlerts', () => {
     expect(
       getTyrePressureAlerts(
         makeSnapshot({
-          tyrePressureFrontLeft: 1.8,
+          tyrePressureFrontLeft: 2.2,
           tyrePressureFrontRight: 3.2,
         }),
       ),
     ).toEqual([])
+  })
+
+  it('uses custom thresholds when provided', () => {
+    const alerts = getTyrePressureAlerts(makeSnapshot({ tyrePressureFrontLeft: 2.3 }), {
+      lowBar: 2.4,
+      goodBar: 2.55,
+      highBar: 2.7,
+    })
+    expect(alerts).toHaveLength(1)
+    expect(alerts[0]).toContain('FL')
   })
 })
 
@@ -215,10 +225,21 @@ describe('useVehicleAlerts', () => {
       writable: true,
       configurable: true,
     })
+    // useVehicleAlerts fetches the tyre pressure thresholds on setup; stub it so tests don't
+    // hit the network (the composable already has sane defaults before this resolves).
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve({ lowBar: 2.2, goodBar: 2.6, highBar: 3.2 }),
+      }),
+    )
   })
 
   afterEach(() => {
     vi.restoreAllMocks()
+    vi.unstubAllGlobals()
   })
 
   it('does not fire when status is null', async () => {
