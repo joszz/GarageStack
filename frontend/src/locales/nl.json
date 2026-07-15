@@ -100,7 +100,7 @@
     "diagram": {
       "panelOpen": "Paneel open",
       "infoTyreTitle": "Bandenspanning",
-      "infoTyreDesc": "Kleurgecodeerde stippen bij elke wielhoek tonen de actuele spanning. Groen is goed (>= 2,6 bar), oranje is laag (2,2 – 2,6 bar) en rood is kritiek laag (< 2,2 bar).",
+      "infoTyreDesc": "Kleurgecodeerde stippen bij elke wielhoek tonen de actuele spanning. Groen is goed ({good} – {high} bar), oranje is laag ({low} – {good} bar) en rood is kritiek laag (< {low} bar) of te hoog (> {high} bar).",
       "infoDoorsTitle": "Portieren & Panelen",
       "infoDoorsDesc": "Een open-slot-icoon verschijnt op elk portier, de motorkap of de kofferbak dat momenteel open staat.",
       "infoLightsTitle": "Verlichting",

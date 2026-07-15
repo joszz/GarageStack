@@ -1,9 +1,11 @@
 import { watch, ref } from 'vue'
 import type { Ref } from 'vue'
 import type { TelemetrySnapshot } from '@/services/vehicleApi'
-
-const TYRE_LOW = 1.8
-const TYRE_HIGH = 3.2
+import {
+  useTyrePressureThresholds,
+  DEFAULT_TYRE_PRESSURE_THRESHOLDS,
+  type TyrePressureThresholds,
+} from '@/composables/useTyrePressureThresholds'
 
 export function getOpenItems(s: TelemetrySnapshot): string[] {
   const open: string[] = []
@@ -20,10 +22,13 @@ export function getOpenItems(s: TelemetrySnapshot): string[] {
   return open
 }
 
-export function getTyrePressureAlerts(s: TelemetrySnapshot): string[] {
+export function getTyrePressureAlerts(
+  s: TelemetrySnapshot,
+  thresholds: TyrePressureThresholds = DEFAULT_TYRE_PRESSURE_THRESHOLDS,
+): string[] {
   const alerts: string[] = []
   const check = (label: string, val: number | null) => {
-    if (val !== null && (val < TYRE_LOW || val > TYRE_HIGH)) {
+    if (val !== null && (val < thresholds.lowBar || val > thresholds.highBar)) {
       alerts.push(`${label}: ${val.toFixed(2)} bar`)
     }
   }
@@ -58,6 +63,7 @@ function useStickyAlert<T>(notify: (issues: T[]) => void) {
 }
 
 export function useVehicleAlerts(status: Ref<TelemetrySnapshot | null>) {
+  const tyreThresholds = useTyrePressureThresholds()
   const checkOpenAlert = useStickyAlert<string>((open) =>
     showNotification('GarageStack', `Open while parked: ${open.join(', ')}`),
   )
@@ -74,6 +80,6 @@ export function useVehicleAlerts(status: Ref<TelemetrySnapshot | null>) {
       checkOpenAlert([])
     }
 
-    checkTyreAlert(getTyrePressureAlerts(s))
+    checkTyreAlert(getTyrePressureAlerts(s, tyreThresholds.value))
   })
 }

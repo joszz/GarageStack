@@ -3,8 +3,10 @@ import { useI18n } from 'vue-i18n'
 import { computed } from 'vue'
 import CardInfoWrap from './CardInfoWrap.vue'
 import { CAR_SILHOUETTE_VIEWBOX, CAR_SILHOUETTE_MARKUP } from '@/assets/carSilhouette'
+import { useTyrePressureThresholds, pressureVariant } from '@/composables/useTyrePressureThresholds'
 
 const { t } = useI18n()
+const tyreThresholds = useTyrePressureThresholds()
 
 const props = defineProps<{
   frontLeft: number | null
@@ -27,15 +29,8 @@ const props = defineProps<{
   speed?: number | null
 }>()
 
-function pressureVariant(bar: number | null): string {
-  if (bar === null) return 'unknown'
-  if (bar < 2.2) return 'danger'
-  if (bar < 2.6) return 'warning'
-  return 'ok'
-}
-
 function pressureColor(bar: number | null): string {
-  const v = pressureVariant(bar)
+  const v = pressureVariant(bar, tyreThresholds.value)
   if (v === 'danger') return 'var(--tyre-danger, #dc3545)'
   if (v === 'warning') return 'var(--tyre-warning, #fd7e14)'
   if (v === 'ok') return 'var(--tyre-ok, #198754)'
@@ -202,7 +197,15 @@ const activeLightKey = computed(() => {
             <font-awesome-icon icon="circle" class="tyre-legend-dot tyre-legend-dot--danger" />
             {{ t('vehicle.diagram.infoTyreTitle') }}
           </p>
-          <p class="card-info-desc">{{ t('vehicle.diagram.infoTyreDesc') }}</p>
+          <p class="card-info-desc">
+            {{
+              t('vehicle.diagram.infoTyreDesc', {
+                low: tyreThresholds.lowBar,
+                good: tyreThresholds.goodBar,
+                high: tyreThresholds.highBar,
+              })
+            }}
+          </p>
         </div>
         <div class="card-info-section">
           <p class="card-info-section__title">
@@ -455,7 +458,7 @@ const activeLightKey = computed(() => {
               :class="[
                 'tyre-label',
                 `tyre-label--${label.suffix}`,
-                `tyre-label--${pressureVariant(label.value)}`,
+                `tyre-label--${pressureVariant(label.value, tyreThresholds)}`,
               ]"
               :title="t(`vehicle.diagram.tyrePosition.${label.key}`)"
             >

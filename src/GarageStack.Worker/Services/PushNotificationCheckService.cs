@@ -1,3 +1,4 @@
+using GarageStack.Core.Configuration;
 using GarageStack.Core.Helpers;
 using GarageStack.Core.Interfaces;
 using GarageStack.Data;
@@ -11,7 +12,8 @@ namespace GarageStack.Worker.Services;
 public class PushNotificationCheckService(
     ILogger<PushNotificationCheckService> logger,
     IServiceScopeFactory scopeFactory,
-    IPushSender pushSender) : BackgroundService
+    IPushSender pushSender,
+    TyrePressureThresholds tyrePressureThresholds) : BackgroundService
 {
     private readonly Dictionary<string, DateTime> _lastNotified = new();
     private readonly TimeSpan _cooldown = TimeSpan.FromHours(1);
@@ -97,16 +99,25 @@ public class PushNotificationCheckService(
         }
     }
 
-    private static void CheckTyrePressure(Core.Models.TelemetrySnapshot s, List<(string, string, string)> alerts)
+    internal void CheckTyrePressure(Core.Models.TelemetrySnapshot s, List<(string, string, string)> alerts)
     {
         var low = new List<string>();
-        if (s.TyrePressureFrontLeft is not null && s.TyrePressureFrontLeft < 2.2) low.Add("FL");
-        if (s.TyrePressureFrontRight is not null && s.TyrePressureFrontRight < 2.2) low.Add("FR");
-        if (s.TyrePressureRearLeft is not null && s.TyrePressureRearLeft < 2.2) low.Add("RL");
-        if (s.TyrePressureRearRight is not null && s.TyrePressureRearRight < 2.2) low.Add("RR");
+        if (s.TyrePressureFrontLeft is not null && s.TyrePressureFrontLeft < tyrePressureThresholds.LowBar) low.Add("FL");
+        if (s.TyrePressureFrontRight is not null && s.TyrePressureFrontRight < tyrePressureThresholds.LowBar) low.Add("FR");
+        if (s.TyrePressureRearLeft is not null && s.TyrePressureRearLeft < tyrePressureThresholds.LowBar) low.Add("RL");
+        if (s.TyrePressureRearRight is not null && s.TyrePressureRearRight < tyrePressureThresholds.LowBar) low.Add("RR");
 
         if (low.Count > 0)
             alerts.Add(("low-tyre", "Low Tyre Pressure", $"Tyre pressure low: {string.Join(", ", low)}"));
+
+        var high = new List<string>();
+        if (s.TyrePressureFrontLeft is not null && s.TyrePressureFrontLeft > tyrePressureThresholds.HighBar) high.Add("FL");
+        if (s.TyrePressureFrontRight is not null && s.TyrePressureFrontRight > tyrePressureThresholds.HighBar) high.Add("FR");
+        if (s.TyrePressureRearLeft is not null && s.TyrePressureRearLeft > tyrePressureThresholds.HighBar) high.Add("RL");
+        if (s.TyrePressureRearRight is not null && s.TyrePressureRearRight > tyrePressureThresholds.HighBar) high.Add("RR");
+
+        if (high.Count > 0)
+            alerts.Add(("high-tyre", "High Tyre Pressure", $"Tyre pressure high: {string.Join(", ", high)}"));
     }
 
     private static void CheckEvSoc(Core.Models.TelemetrySnapshot s, string vehicleType, List<(string, string, string)> alerts)

@@ -1,3 +1,4 @@
+using GarageStack.Core.Configuration;
 using GarageStack.Data.Extensions;
 using GarageStack.Worker.Mqtt;
 using GarageStack.Worker.Services;
@@ -34,6 +35,8 @@ try
 
     builder.Services.AddGarageStackData(connectionString);
     builder.Services.Configure<MqttOptions>(builder.Configuration.GetSection("Mqtt"));
+    builder.Services.AddSingleton(builder.Configuration.GetSection("TyrePressure").Get<TyrePressureThresholds>()
+        ?? TyrePressureThresholds.Default);
     builder.Services.AddSingleton<GarageStack.Core.Interfaces.IPushSender, GarageStack.Worker.Services.PushSenderService>();
     builder.Services.AddHostedService<MqttConsumerService>();
     builder.Services.AddHostedService<PushNotificationCheckService>();

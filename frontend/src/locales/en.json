@@ -100,7 +100,7 @@
     "diagram": {
       "panelOpen": "Panel open",
       "infoTyreTitle": "Tyre Pressure",
-      "infoTyreDesc": "Colour-coded dots at each wheel corner show the current pressure. Green means healthy (>= 2.6 bar), orange means low (2.2 – 2.6 bar) and red means critically low (< 2.2 bar).",
+      "infoTyreDesc": "Colour-coded dots at each wheel corner show the current pressure. Green means healthy ({good} – {high} bar), orange means low ({low} – {good} bar) and red means critically low (< {low} bar) or over-inflated (> {high} bar).",
       "infoDoorsTitle": "Doors & Panels",
       "infoDoorsDesc": "A lock-open icon appears over any door, the bonnet or the boot that is currently open.",
       "infoLightsTitle": "Lights",

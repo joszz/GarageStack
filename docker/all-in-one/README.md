@@ -61,6 +61,7 @@ The web login uses the same `SAIC_USER` and `SAIC_PASSWORD` credentials. There i
 | `WIDGET_API_KEY` | Static API key for the Homepage dashboard widget endpoint (`/api/widget/{vin}/status`). Leave empty to disable. Generate: `openssl rand -base64 32` |
 | `OPENCHARGEMAP_API_KEY` | API key for the EV charging station map overlay, sourced from [Open Charge Map](https://openchargemap.org/site/develop). Free to obtain. Leave empty to disable the feature. |
 | `OVERPASS__BASEURL` | Overpass API endpoint used for the fuel station and motorway service area map overlays. Defaults to the public endpoint (`https://overpass-api.de/api/interpreter`). Set this only if you self-host an Overpass instance. No API key is required for the default public endpoint. |
+| `TYRE_PRESSURE_LOW_BAR` / `TYRE_PRESSURE_GOOD_BAR` / `TYRE_PRESSURE_HIGH_BAR` | Colour-coding and notification thresholds (bar) for tyre pressure. Default to `2.2` / `2.6` / `3.2`. Override to match your vehicle's placarded pressure, e.g. `TYRE_PRESSURE_GOOD_BAR=2.55`. |
 | `SAIC_REST_URI` | Override for the SAIC gateway API endpoint. Only needed if your region isn't listed in the `SAIC_REGION` row above -- set it directly to your gateway's endpoint. |
 | `POSTGRES_DB` | Database name (default: `garagestack`) |
 | `POSTGRES_USER` | Database user (default: `garagestack`) |

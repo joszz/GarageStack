@@ -5,6 +5,7 @@ using GarageStack.Api;
 using GarageStack.Api.Endpoints;
 using GarageStack.Api.Hubs;
 using GarageStack.Api.Services;
+using GarageStack.Core.Configuration;
 using GarageStack.Core.Interfaces;
 using GarageStack.Core.Models;
 using GarageStack.Data;
@@ -104,6 +105,9 @@ try
     var jwtSecretBytes = Encoding.UTF8.GetBytes(jwtSecret);
     if (jwtSecretBytes.Length < 32)
         throw new InvalidOperationException("Jwt:Secret must be at least 32 bytes.");
+
+    builder.Services.AddSingleton(builder.Configuration.GetSection("TyrePressure").Get<TyrePressureThresholds>()
+        ?? TyrePressureThresholds.Default);
 
     builder.Services.AddMemoryCache();
     builder.Services.AddScoped<ChargingStationService>();

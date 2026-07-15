@@ -169,6 +169,8 @@ Then open `.env` and fill in at minimum:
 
 `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` are optional; leave them empty to disable push notifications.
 
+`TYRE_PRESSURE_LOW_BAR` / `TYRE_PRESSURE_GOOD_BAR` / `TYRE_PRESSURE_HIGH_BAR` are optional and default to `2.2` / `2.6` / `3.2` bar; override them to match your vehicle's placarded tyre pressure (see [Push notifications](#push-notifications) below).
+
 #### 3. Start the stack
 
 With the bundled PostgreSQL container:
@@ -253,13 +255,16 @@ GarageStack checks your vehicle's state every 5 minutes and sends both a browser
 | Alert | Condition |
 | ------- | --------- |
 | Engine started | Engine transitions from off to running |
-| Low tyre pressure | Any tyre below 2.2 bar |
+| Low tyre pressure | Any tyre below `TYRE_PRESSURE_LOW_BAR` (default 2.2 bar) |
+| High tyre pressure | Any tyre above `TYRE_PRESSURE_HIGH_BAR` (default 3.2 bar) |
 | Low EV battery | EV state-of-charge below 20 % |
 | Car left unlocked | `doors/locked = false` while engine is off |
 | Door left open | Any door, boot, or bonnet open while engine is off |
 | Window left open | Any window or sunroof open while engine is off |
 
 Push notifications require VAPID keys to be configured (`VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY`). Without them, alerts still appear in the in-app notification panel. The "engine started" alert is also triggered in real time when the event arrives over MQTT, independently of the 5-minute polling cycle.
+
+The tyre pressure thresholds (`TYRE_PRESSURE_LOW_BAR` / `TYRE_PRESSURE_GOOD_BAR` / `TYRE_PRESSURE_HIGH_BAR`) also drive the colour-coded dots on the dashboard's vehicle diagram and the in-browser low/high pressure alert -- set them once in your `.env` (or container environment) to match your vehicle's placarded pressure instead of the app's generic defaults.
 
 To generate a VAPID key pair (requires Node.js):
 

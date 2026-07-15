@@ -1,3 +1,4 @@
+using GarageStack.Core.Configuration;
 using GarageStack.Core.Helpers;
 using GarageStack.Core.Interfaces;
 using GarageStack.Core.Models;
@@ -72,6 +73,9 @@ public static class VehicleEndpoints
             return Results.Ok(vehicles);
         })
         .WithSummary("List all vehicles");
+
+        group.MapGet("/tyre-pressure-thresholds", (TyrePressureThresholds thresholds) => Results.Ok(thresholds))
+        .WithSummary("Get configured tyre pressure colour-coding thresholds");
 
         var vehicleGroup = group.MapGroup("/{vin}").AddEndpointFilter<ResolveVehicleFilter>();
 
