@@ -160,7 +160,8 @@ Then open `.env` and fill in at minimum:
 | ---------- | ----------- |
 | `SAIC_USER` | MG iSmart account email |
 | `SAIC_PASSWORD` | MG iSmart account password |
-| `SAIC_REGION` | `eu`, `cn`, or `row` |
+| `SAIC_REGION` | Region the car is registered in: `eu` (default), `au`, or `tr` -- automatically mapped to the right API endpoint |
+| `SAIC_REST_URI` | Optional, only needed for a region not listed above -- set directly to your gateway's endpoint |
 | `JWT_SECRET` | At least 32 random characters -- generate with `openssl rand -base64 32` |
 | `CORS_ORIGIN` | The URL you open in your browser, e.g. `http://192.168.1.100:8080` |
 

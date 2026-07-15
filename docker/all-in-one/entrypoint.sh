@@ -10,6 +10,10 @@ POSTGRES_USER="${POSTGRES_USER:-garagestack}"
 SAIC_USER="${SAIC_USER:?SAIC_USER environment variable is required}"
 SAIC_PASSWORD="${SAIC_PASSWORD:?SAIC_PASSWORD environment variable is required}"
 
+# Derives SAIC_REST_URI from SAIC_REGION for known regions (unless already set) so
+# the SAIC gateway hits the right API endpoint -- see the script for details.
+. /resolve-saic-rest-uri.sh
+
 # Auto-generate POSTGRES_PASSWORD on first run and persist it so subsequent
 # restarts use the same password as the already-initialised database cluster.
 if [ -z "${POSTGRES_PASSWORD:-}" ]; then

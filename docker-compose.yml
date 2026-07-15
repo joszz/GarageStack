@@ -37,6 +37,11 @@ services:
       MQTT_USER: "${MQTT_BROKER_USERNAME:-garagestack}"
       MQTT_PASSWORD: "${MQTT_BROKER_PASSWORD:-garagestack}"
       SAIC_REGION: "${SAIC_REGION:-eu}"
+      SAIC_REST_URI: "${SAIC_REST_URI:-}"
+    volumes:
+      - ./docker/resolve-saic-rest-uri.sh:/resolve-saic-rest-uri.sh:ro
+    entrypoint: ["/bin/sh", "-c"]
+    command: [". /resolve-saic-rest-uri.sh && exec python ./main.py"]
 
   # Bundled Postgres - only starts when you pass --profile bundled-postgres.
   # Skip this and set POSTGRES_HOST to your own server to reuse an existing instance.
