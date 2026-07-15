@@ -281,7 +281,22 @@
     "confirmDeleteAll": "Alle meldingen definitief verwijderen?",
     "justNow": "Zojuist",
     "minutesAgo": "{n} min geleden",
-    "hoursAgo": "{n}u geleden"
+    "hoursAgo": "{n}u geleden",
+    "typeFilter": "Typefilter",
+    "typeFilterDesc": "Toon alleen meldingen van de geselecteerde typen. Laat leeg om alle typen te tonen.",
+    "typeFilterPlaceholder": "Typen filteren...",
+    "typeFilterNoMatch": "Geen overeenkomende typen.",
+    "categories": {
+      "lowTyre": "Lage bandenspanning",
+      "highTyre": "Hoge bandenspanning",
+      "lowEv": "Lage EV-accustand",
+      "chargingComplete": "Laden voltooid",
+      "engineStart": "Motor gestart",
+      "unlockedParked": "Ontgrendeld terwijl geparkeerd",
+      "doorsOpenParked": "Portier open terwijl geparkeerd",
+      "windowsOpenParked": "Raam open terwijl geparkeerd",
+      "maintenance": "Onderhoudsherinneringen"
+    }
   },
   "auth": {
     "subtitle": "Log in met je MG-accountgegevens",
@@ -358,6 +373,9 @@
       "hev": "HEV (Hybride, geen stekker)",
       "phev": "PHEV (Plug-in hybride)",
       "bev": "BEV (Volledig elektrisch)"
+    },
+    "notificationTypes": {
+      "title": "Meldingstypen"
     }
   },
   "common": {

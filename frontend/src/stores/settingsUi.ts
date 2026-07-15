@@ -21,6 +21,7 @@ interface UiSettings {
   carColorScheme: string
   vehicleTypeOverride: VehicleTypeOverride
   filterDays: number
+  notificationTypeFilter: string[]
 }
 
 function defaultsFor(): UiSettings {
@@ -31,6 +32,7 @@ function defaultsFor(): UiSettings {
     carColorScheme: 'orange',
     vehicleTypeOverride: 'auto',
     filterDays: 7,
+    notificationTypeFilter: [],
   }
 }
 
@@ -43,6 +45,9 @@ function parseUiFields(parsed: Record<string, unknown>, fallback: UiSettings): U
     vehicleTypeOverride:
       (parsed.vehicleTypeOverride as VehicleTypeOverride) ?? fallback.vehicleTypeOverride,
     filterDays: (parsed.filterDays as number) ?? fallback.filterDays,
+    notificationTypeFilter: Array.isArray(parsed.notificationTypeFilter)
+      ? (parsed.notificationTypeFilter as string[])
+      : fallback.notificationTypeFilter,
   }
 }
 
@@ -73,6 +78,7 @@ export const useUiSettingsStore = defineStore('settingsUi', () => {
   const carColorScheme = ref<string>(loaded.carColorScheme)
   const vehicleTypeOverride = ref<VehicleTypeOverride>(loaded.vehicleTypeOverride)
   const filterDays = ref<number>(loaded.filterDays)
+  const notificationTypeFilter = ref<string[]>(loaded.notificationTypeFilter)
 
   document.documentElement.dataset.theme = theme.value
   applyCarColors(carColorScheme.value)
@@ -87,6 +93,7 @@ export const useUiSettingsStore = defineStore('settingsUi', () => {
         carColorScheme: carColorScheme.value,
         vehicleTypeOverride: vehicleTypeOverride.value,
         filterDays: filterDays.value,
+        notificationTypeFilter: notificationTypeFilter.value,
       }),
     )
   }
@@ -96,6 +103,7 @@ export const useUiSettingsStore = defineStore('settingsUi', () => {
   watch(vehicleTypeOverride, scheduleSave)
   watch(locale, scheduleSave)
   watch(filterDays, scheduleSave)
+  watch(notificationTypeFilter, scheduleSave, { deep: true })
   watch(theme, (val) => {
     document.documentElement.dataset.theme = val
     scheduleSave()
@@ -112,5 +120,6 @@ export const useUiSettingsStore = defineStore('settingsUi', () => {
     carColorScheme,
     vehicleTypeOverride,
     filterDays,
+    notificationTypeFilter,
   }
 })
