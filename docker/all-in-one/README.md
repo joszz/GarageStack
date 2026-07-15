@@ -45,7 +45,7 @@ Mount a single volume at `/data`. The container creates the following layout ins
 |----------|-------------|
 | `SAIC_USER` | MG iSmart account email (must be the vehicle owner account) |
 | `SAIC_PASSWORD` | MG iSmart account password |
-| `SAIC_REGION` | Region: `eu`, `cn`, or `row` (default: `eu`) |
+| `SAIC_REGION` | Region the car is registered in: `eu` (default), `au`, or `tr` -- automatically mapped to the right API endpoint |
 | `JWT_SECRET` | Token signing key, minimum 32 characters. Generate: `openssl rand -base64 32` |
 | `CORS_ORIGIN` | Exact URL you use to open the app, e.g. `http://192.168.1.100:8080` |
 
@@ -61,6 +61,7 @@ The web login uses the same `SAIC_USER` and `SAIC_PASSWORD` credentials. There i
 | `WIDGET_API_KEY` | Static API key for the Homepage dashboard widget endpoint (`/api/widget/{vin}/status`). Leave empty to disable. Generate: `openssl rand -base64 32` |
 | `OPENCHARGEMAP_API_KEY` | API key for the EV charging station map overlay, sourced from [Open Charge Map](https://openchargemap.org/site/develop). Free to obtain. Leave empty to disable the feature. |
 | `OVERPASS__BASEURL` | Overpass API endpoint used for the fuel station and motorway service area map overlays. Defaults to the public endpoint (`https://overpass-api.de/api/interpreter`). Set this only if you self-host an Overpass instance. No API key is required for the default public endpoint. |
+| `SAIC_REST_URI` | Override for the SAIC gateway API endpoint. Only needed if your region isn't listed in the `SAIC_REGION` row above -- set it directly to your gateway's endpoint. |
 | `POSTGRES_DB` | Database name (default: `garagestack`) |
 | `POSTGRES_USER` | Database user (default: `garagestack`) |
 | `AUTH_COOKIE_SECURE` | Set to `true` when serving behind a TLS-terminating reverse proxy. Defaults to `false` so plain-HTTP LAN installs work out of the box. |

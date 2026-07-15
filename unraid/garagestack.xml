@@ -95,7 +95,7 @@
     Target="SAIC_REGION"
     Default="eu"
     Mode=""
-    Description="Region your vehicle is registered in: eu (Europe), cn (China), or row (Rest of World)."
+    Description="Region your vehicle is registered in: eu (Europe, default), au (Australia/New Zealand), or tr (Turkiye). Automatically mapped to the right API endpoint."
     Type="Variable"
     Display="always"
     Required="true"
@@ -135,6 +135,17 @@
     Mask="false">http://localhost:8080</Config>
 
   <!-- ── Optional variables ─────────────────────────────────────────────────── -->
+
+  <Config
+    Name="MG API Endpoint Override"
+    Target="SAIC_REST_URI"
+    Default=""
+    Mode=""
+    Description="Optional. Only needed if your region isn't eu, au, or tr -- set directly to your gateway's endpoint."
+    Type="Variable"
+    Display="advanced"
+    Required="false"
+    Mask="false"></Config>
 
   <Config
     Name="VAPID Public Key"
