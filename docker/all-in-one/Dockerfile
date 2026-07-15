@@ -100,7 +100,12 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 # Layout in the saic image: WORKDIR=/usr/src/app, venv at /usr/src/app/.venv,
 # entry point: python ./main.py
 COPY --from=saic-source /usr/src/app /opt/saic/app
-RUN chown -R appuser:appuser /opt/saic/app
+# The upstream 0.12.0 image ships pip 26.1.1 (CVE-2026-8643, path traversal via a
+# malicious entry point name during wheel install). Nothing in this image ever runs
+# pip again, so it's not reachable at runtime, but patch it anyway to keep the image
+# scan clean until upstream bumps it.
+RUN /opt/saic/app/.venv/bin/python -m pip install --no-cache-dir --upgrade "pip>=26.1.2" \
+    && chown -R appuser:appuser /opt/saic/app
 
 # Frontend SPA
 COPY --from=frontend-build /app/dist /usr/share/nginx/html
