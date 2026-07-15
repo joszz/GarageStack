@@ -25,6 +25,7 @@ function valueTitle(): string {
   <div
     class="status-card"
     :class="[variant ? `status-card--${variant}` : '', clickable ? 'status-card--clickable' : '']"
+    :title="subtitle"
     :role="clickable ? 'button' : undefined"
     :tabindex="clickable ? 0 : undefined"
     @click="emitClickIfClickable(clickable)"
@@ -40,7 +41,6 @@ function valueTitle(): string {
         {{ value ?? '-'
         }}<span v-if="unit && value !== null" class="status-card__unit"> {{ unit }}</span>
       </span>
-      <span v-if="subtitle" class="status-card__subtitle" :title="subtitle">{{ subtitle }}</span>
     </div>
     <font-awesome-icon
       v-if="clickable"

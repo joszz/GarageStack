@@ -124,6 +124,26 @@ describe('useUiSettingsStore', () => {
     expect(store.vehicleTypeOverride).toBe('bev')
     expect(store.filterDays).toBe(14)
   })
+
+  it('defaults notificationTypeFilter to an empty array (no filter, show all)', () => {
+    const store = useUiSettingsStore()
+    expect(store.notificationTypeFilter).toEqual([])
+  })
+
+  it('persists notificationTypeFilter changes to its own localStorage key', async () => {
+    const store = useUiSettingsStore()
+    store.notificationTypeFilter = ['low-tyre', 'maintenance']
+    await nextTick()
+    vi.advanceTimersByTime(SAVE_DEBOUNCE_MS)
+    const saved = JSON.parse(localStorage.getItem(UI_KEY)!)
+    expect(saved.notificationTypeFilter).toEqual(['low-tyre', 'maintenance'])
+  })
+
+  it('loads notificationTypeFilter from its own localStorage key on init', () => {
+    localStorage.setItem(UI_KEY, JSON.stringify({ notificationTypeFilter: ['charging-complete'] }))
+    const store = useUiSettingsStore()
+    expect(store.notificationTypeFilter).toEqual(['charging-complete'])
+  })
 })
 
 describe('useMapSettingsStore', () => {

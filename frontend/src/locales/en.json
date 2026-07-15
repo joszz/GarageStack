@@ -281,7 +281,22 @@
     "confirmDeleteAll": "Permanently delete all notifications?",
     "justNow": "Just now",
     "minutesAgo": "{n} min ago",
-    "hoursAgo": "{n}h ago"
+    "hoursAgo": "{n}h ago",
+    "typeFilter": "Type filter",
+    "typeFilterDesc": "Only show notifications of the selected types. Leave empty to show all types.",
+    "typeFilterPlaceholder": "Filter types...",
+    "typeFilterNoMatch": "No matching types.",
+    "categories": {
+      "lowTyre": "Low tyre pressure",
+      "highTyre": "High tyre pressure",
+      "lowEv": "Low EV battery",
+      "chargingComplete": "Charging complete",
+      "engineStart": "Engine start",
+      "unlockedParked": "Unlocked while parked",
+      "doorsOpenParked": "Doors open while parked",
+      "windowsOpenParked": "Windows open while parked",
+      "maintenance": "Maintenance reminders"
+    }
   },
   "auth": {
     "subtitle": "Sign in with your MG account credentials",
@@ -358,6 +373,9 @@
       "hev": "HEV (Hybrid, no plug)",
       "phev": "PHEV (Plug-in Hybrid)",
       "bev": "BEV (Full Electric)"
+    },
+    "notificationTypes": {
+      "title": "Notification types"
     }
   },
   "common": {

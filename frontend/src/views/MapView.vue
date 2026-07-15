@@ -844,7 +844,6 @@ onUnmounted(() => {
 
 <style>
 @import '@vueform/slider/themes/default.css';
-@import '@vueform/multiselect/themes/default.css';
 
 /* Leaflet injects divIcon HTML outside Vue's rendering pipeline so these cannot be scoped */
 
@@ -955,74 +954,9 @@ onUnmounted(() => {
   --slider-handle-ring-color: rgba(34, 197, 94, 0.2);
 }
 
-/* --ms-* vars set on :root so they cascade to the body-teleported dropdown too */
-:root {
-  --ms-bg: var(--color-surface-2);
-  --ms-bg-disabled: var(--color-surface);
-  --ms-border-color: var(--color-border);
-  --ms-border-width: 1px;
-  --ms-radius: 6px;
-  --ms-py: 0.375rem;
-  --ms-px: 0.625rem;
-  --ms-font-size: 0.875rem;
-  --ms-line-height: 1.375;
-  --ms-spinner-color: var(--color-primary);
-  --ms-caret-color: var(--color-text-muted);
-  --ms-clear-color: var(--color-text-muted);
-  --ms-clear-color-hover: var(--color-text);
-
-  --ms-tag-font-size: 0.8rem;
-  --ms-tag-font-weight: 500;
-  --ms-tag-line-height: 1.25;
-  --ms-tag-py: 0.2rem;
-  --ms-tag-px: 0.5rem;
-  --ms-tag-my: 0.2rem;
-  --ms-tag-mx: 0.2rem;
-  --ms-tag-bg: var(--color-primary);
-  --ms-tag-bg-disabled: var(--color-surface);
-  --ms-tag-color: #fff;
-  --ms-tag-color-disabled: var(--color-text-muted);
-  --ms-tag-radius: 4px;
-  --ms-tag-remove-radius: 3px;
-  --ms-tag-remove-py: 0.2rem;
-  --ms-tag-remove-px: 0.2rem;
-
-  --ms-dropdown-bg: var(--color-surface);
-  --ms-dropdown-border-color: var(--color-border);
-  --ms-dropdown-border-width: 1px;
-  --ms-dropdown-radius: 6px;
-
-  --ms-placeholder-color: var(--color-text-muted);
-
-  --ms-option-font-size: 0.875rem;
-  --ms-option-bg-pointed: var(--color-surface-2);
-  --ms-option-color-pointed: var(--color-text);
-  --ms-option-bg-selected: var(--color-primary);
-  --ms-option-color-selected: #fff;
-  --ms-option-bg-selected-pointed: color-mix(in srgb, var(--color-primary) 85%, #000);
-  --ms-option-color-selected-pointed: #fff;
-  --ms-option-bg-disabled: transparent;
-  --ms-option-color-disabled: var(--color-text-muted);
-  --ms-option-py: 0.5rem;
-  --ms-option-px: 0.75rem;
-
-  --ms-empty-color: var(--color-text-muted);
-
-  --ms-ring-width: 2px;
-  --ms-ring-color: color-mix(in srgb, var(--color-primary) 30%, transparent);
-}
-
-/* Teleported dropdown must sit above the modal (z-index 1100) */
-.multiselect-dropdown {
-  z-index: 1200;
-}
-
-/* Ensure the search input inside the multiselect also uses the theme background */
-.multiselect-search,
-.multiselect-tags-search {
-  background: var(--color-surface-2);
-  color: var(--color-text);
-}
+/* Multiselect theme vars, dropdown z-index, and search input styling now live globally in
+   main.css (moved there so the AppFooter settings-modal notification-type multiselect is
+   themed correctly even before this lazy-loaded view has ever been visited). */
 
 .fuel-brand-filter {
   padding: 0.25rem 0 0.5rem;

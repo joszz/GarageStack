@@ -1,6 +1,8 @@
 import { ref, computed, watch, onUnmounted, getCurrentInstance } from 'vue'
 import { notificationsApi, type AppNotification } from '@/services/notificationsApi'
 import { useAuthStore } from '@/stores/auth'
+import { useUiSettingsStore } from '@/stores/settingsUi'
+import { notificationCategoryId } from '@/utils/notificationCategories'
 
 const notifications = ref<AppNotification[]>([])
 
@@ -28,7 +30,20 @@ const actionError = ref<string | null>(null)
 
 export function useNotifications() {
   const auth = useAuthStore()
-  const unreadCount = computed(() => notifications.value.filter((n) => !n.isArchived).length)
+  const uiSettings = useUiSettingsStore()
+
+  // Empty selection means "no filter" (show every type), matching the fuel-brand-filter
+  // convention used elsewhere in settings.
+  const visibleNotifications = computed(() => {
+    const selected = uiSettings.notificationTypeFilter
+    if (selected.length === 0) return notifications.value
+    return notifications.value.filter((n) => {
+      const categoryId = notificationCategoryId(n.category)
+      return categoryId !== null && selected.includes(categoryId)
+    })
+  })
+
+  const unreadCount = computed(() => visibleNotifications.value.filter((n) => !n.isArchived).length)
 
   async function fetchNotifications() {
     loading.value = true
@@ -130,7 +145,7 @@ export function useNotifications() {
   }
 
   return {
-    notifications,
+    notifications: visibleNotifications,
     unreadCount,
     panelOpen,
     loading,

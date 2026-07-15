@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import Multiselect from '@vueform/multiselect'
 import { useUiSettingsStore } from '@/stores/settingsUi'
 import gbFlag from 'flag-icons/flags/4x3/gb.svg'
 import nlFlag from 'flag-icons/flags/4x3/nl.svg'
@@ -12,6 +13,10 @@ import DetailModal from './DetailModal.vue'
 import SettingsToggle from './SettingsToggle.vue'
 import type { VehicleTypeOverride } from '@/stores/settingsUi'
 import { CAR_COLOR_SCHEMES } from '@/stores/settingsUi'
+import {
+  NOTIFICATION_CATEGORY_IDS,
+  type NotificationCategoryId,
+} from '@/utils/notificationCategories'
 
 const { t } = useI18n()
 const settings = useUiSettingsStore()
@@ -36,6 +41,25 @@ const typeOptions: { value: VehicleTypeOverride; label: string }[] = [
   { value: 'phev', label: t('settings.vehicleType.phev') },
   { value: 'bev', label: t('settings.vehicleType.bev') },
 ]
+
+const NOTIFICATION_CATEGORY_LABEL_KEYS: Record<NotificationCategoryId, string> = {
+  'low-tyre': 'lowTyre',
+  'high-tyre': 'highTyre',
+  'low-ev': 'lowEv',
+  'charging-complete': 'chargingComplete',
+  'engine-start': 'engineStart',
+  'unlocked-parked': 'unlockedParked',
+  'doors-open-parked': 'doorsOpenParked',
+  'windows-open-parked': 'windowsOpenParked',
+  maintenance: 'maintenance',
+}
+
+const notificationTypeOptions = computed(() =>
+  NOTIFICATION_CATEGORY_IDS.map((id) => ({
+    value: id,
+    label: t(`notifications.categories.${NOTIFICATION_CATEGORY_LABEL_KEYS[id]}`),
+  })),
+)
 
 const isLightTheme = computed({
   get: () => settings.theme === 'light',
@@ -201,12 +225,41 @@ function refresh() {
         </div>
         <div class="vehicle-type-override">
           <label class="text-muted">{{ t('settings.vehicleType.override') }}</label>
-          <select v-model="settings.vehicleTypeOverride" class="form-select form-select-sm">
-            <option v-for="opt in typeOptions" :key="opt.value" :value="opt.value">
-              {{ opt.label }}
-            </option>
-          </select>
+          <Multiselect
+            v-model="settings.vehicleTypeOverride"
+            :options="typeOptions"
+            :searchable="false"
+            :can-clear="false"
+            :can-deselect="false"
+            append-to="body"
+            class="vehicle-type-select"
+          />
         </div>
+      </div>
+    </div>
+
+    <!-- Notification types -->
+    <div class="detail-modal__section">
+      <div class="detail-modal__section-title">{{ t('settings.notificationTypes.title') }}</div>
+      <div class="notif-type-filter">
+        <div class="notif-type-filter__header">
+          <div class="settings-toggle__info">
+            <span class="settings-toggle__label">{{ t('notifications.typeFilter') }}</span>
+            <span class="settings-toggle__desc">{{ t('notifications.typeFilterDesc') }}</span>
+          </div>
+        </div>
+        <Multiselect
+          v-model="settings.notificationTypeFilter"
+          :options="notificationTypeOptions"
+          :placeholder="t('notifications.typeFilterPlaceholder')"
+          :searchable="true"
+          :close-on-select="false"
+          :clear-on-select="false"
+          mode="tags"
+          :no-results-text="t('notifications.typeFilterNoMatch')"
+          append-to="body"
+          class="notif-type-multiselect"
+        />
       </div>
     </div>
 
