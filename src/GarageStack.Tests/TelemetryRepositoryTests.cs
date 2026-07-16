@@ -2,6 +2,7 @@ using GarageStack.Core.Models;
 using GarageStack.Data;
 using GarageStack.Data.Repositories;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace GarageStack.Tests;
 
@@ -364,6 +365,60 @@ public class TelemetryRepositoryTests
         Assert.Equal("09:00", result.ChargingScheduleEndTime);
         Assert.Equal("On", result.BatteryHeatingScheduleMode);
         Assert.Equal("06:30", result.BatteryHeatingScheduleStartTime);
+    }
+
+    // ── GetMergedLatestAsync caching tests ───────────────────────────────────
+
+    [Fact]
+    public async Task GetMergedLatest_SecondCall_ReturnsCachedValue_WhenRowAddedOutsideRepository()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var db = CreateDb();
+        using var cache = new MemoryCache(new MemoryCacheOptions());
+        var vehicle = new Vehicle { Vin = "CACHE0000000000001" };
+        db.Vehicles.Add(vehicle);
+        await db.SaveChangesAsync(ct);
+
+        var repo = new TelemetryRepository(db, cache: cache);
+        var now = DateTime.UtcNow;
+        db.TelemetrySnapshots.Add(new TelemetrySnapshot { VehicleId = vehicle.Id, RecordedAt = now.AddMinutes(-1), FuelLevelPercent = 50 });
+        await db.SaveChangesAsync(ct);
+
+        var first = await repo.GetMergedLatestAsync(vehicle.Id, ct);
+        Assert.Equal(50, first!.FuelLevelPercent);
+
+        // Added directly via the DbContext, bypassing AddAsync/MergeIntoAsync, so nothing
+        // invalidates the cache entry populated above - the second call must still return it.
+        db.TelemetrySnapshots.Add(new TelemetrySnapshot { VehicleId = vehicle.Id, RecordedAt = now, FuelLevelPercent = 90 });
+        await db.SaveChangesAsync(ct);
+
+        var second = await repo.GetMergedLatestAsync(vehicle.Id, ct);
+        Assert.Equal(50, second!.FuelLevelPercent);
+    }
+
+    [Fact]
+    public async Task GetMergedLatest_AfterAddAsync_CacheIsInvalidated()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var db = CreateDb();
+        using var cache = new MemoryCache(new MemoryCacheOptions());
+        var vehicle = new Vehicle { Vin = "CACHE0000000000002" };
+        db.Vehicles.Add(vehicle);
+        await db.SaveChangesAsync(ct);
+
+        var repo = new TelemetryRepository(db, cache: cache);
+        var now = DateTime.UtcNow;
+        await repo.AddAsync(new TelemetrySnapshot { VehicleId = vehicle.Id, RecordedAt = now.AddMinutes(-1), FuelLevelPercent = 50 }, ct);
+
+        var first = await repo.GetMergedLatestAsync(vehicle.Id, ct);
+        Assert.Equal(50, first!.FuelLevelPercent);
+
+        // AddAsync invalidates the cache entry for this vehicle, so the next read must
+        // reflect the new row instead of returning the stale cached snapshot.
+        await repo.AddAsync(new TelemetrySnapshot { VehicleId = vehicle.Id, RecordedAt = now, FuelLevelPercent = 90 }, ct);
+
+        var second = await repo.GetMergedLatestAsync(vehicle.Id, ct);
+        Assert.Equal(90, second!.FuelLevelPercent);
     }
 
     // ── GetAggregateStatsAsync tests ─────────────────────────────────────────
