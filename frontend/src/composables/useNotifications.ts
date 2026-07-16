@@ -32,14 +32,15 @@ export function useNotifications() {
   const auth = useAuthStore()
   const uiSettings = useUiSettingsStore()
 
-  // Empty selection means "no filter" (show every type), matching the fuel-brand-filter
-  // convention used elsewhere in settings.
+  // Empty exclusion list means "no filter" (show every type). A notification is hidden only
+  // when its category resolves to a known id AND that id is excluded - a null/unrecognized
+  // category (never selectable in the checklist) is always shown, even while a filter is active.
   const visibleNotifications = computed(() => {
-    const selected = uiSettings.notificationTypeFilter
-    if (selected.length === 0) return notifications.value
+    const excluded = uiSettings.notificationTypeExclusions
+    if (excluded.length === 0) return notifications.value
     return notifications.value.filter((n) => {
       const categoryId = notificationCategoryId(n.category)
-      return categoryId !== null && selected.includes(categoryId)
+      return categoryId === null || !excluded.includes(categoryId)
     })
   })
 

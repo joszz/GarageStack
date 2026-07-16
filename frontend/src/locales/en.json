@@ -262,10 +262,8 @@
     }
   },
   "push": {
-    "enable": "Enable notifications",
     "enabled": "Notifications on",
-    "permissionDenied": "Permission denied — allow notifications in your browser settings",
-    "desc": "Receive a push notification on this device when important vehicle events occur, such as charging completing or a door left open."
+    "permissionDenied": "Permission denied — allow notifications in your browser settings"
   },
   "notifications": {
     "title": "Notifications",
@@ -283,9 +281,9 @@
     "minutesAgo": "{n} min ago",
     "hoursAgo": "{n}h ago",
     "typeFilter": "Type filter",
-    "typeFilterDesc": "Only show notifications of the selected types. Leave empty to show all types.",
-    "typeFilterPlaceholder": "Filter types...",
-    "typeFilterNoMatch": "No matching types.",
+    "typeFilterDesc": "Choose which notification types to show and receive push alerts for. Deselect all to turn push notifications off completely.",
+    "selectAll": "Select all",
+    "deselectAll": "Deselect all",
     "categories": {
       "lowTyre": "Low tyre pressure",
       "highTyre": "High tyre pressure",

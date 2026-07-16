@@ -131,7 +131,7 @@ describe('useNotifications', () => {
     expect(unreadCount.value).toBe(2)
   })
 
-  it('shows every notification when notificationTypeFilter is empty (no filter set)', async () => {
+  it('shows every notification when notificationTypeExclusions is empty (no exclusions)', async () => {
     vi.mocked(notificationsApi.list).mockResolvedValue([
       makeNotification({ id: 1, category: 'low-tyre' }),
       makeNotification({ id: 2, category: 'engine-start' }),
@@ -144,10 +144,10 @@ describe('useNotifications', () => {
     expect(notifications.value).toHaveLength(2)
   })
 
-  it('only shows notifications whose category is in notificationTypeFilter', async () => {
+  it('hides notifications whose category is in notificationTypeExclusions', async () => {
     localStorage.setItem(
       'garagestack-settings-ui',
-      JSON.stringify({ notificationTypeFilter: ['low-tyre'] }),
+      JSON.stringify({ notificationTypeExclusions: ['engine-start'] }),
     )
     vi.mocked(notificationsApi.list).mockResolvedValue([
       makeNotification({ id: 1, category: 'low-tyre' }),
@@ -162,10 +162,10 @@ describe('useNotifications', () => {
     expect(notifications.value[0]?.id).toBe(1)
   })
 
-  it('groups dynamic maintenance-<id> categories under the "maintenance" filter entry', async () => {
+  it('groups dynamic maintenance-<id> categories under the "maintenance" exclusion entry', async () => {
     localStorage.setItem(
       'garagestack-settings-ui',
-      JSON.stringify({ notificationTypeFilter: ['maintenance'] }),
+      JSON.stringify({ notificationTypeExclusions: ['maintenance'] }),
     )
     vi.mocked(notificationsApi.list).mockResolvedValue([
       makeNotification({ id: 1, category: 'maintenance-42' }),
@@ -177,13 +177,13 @@ describe('useNotifications', () => {
     await fetchNotifications()
 
     expect(notifications.value).toHaveLength(1)
-    expect(notifications.value[0]?.id).toBe(1)
+    expect(notifications.value[0]?.id).toBe(2)
   })
 
   it('unreadCount only counts non-archived notifications that pass the type filter', async () => {
     localStorage.setItem(
       'garagestack-settings-ui',
-      JSON.stringify({ notificationTypeFilter: ['low-tyre'] }),
+      JSON.stringify({ notificationTypeExclusions: ['engine-start'] }),
     )
     vi.mocked(notificationsApi.list).mockResolvedValue([
       makeNotification({ id: 1, category: 'low-tyre', isArchived: false }),
@@ -195,6 +195,25 @@ describe('useNotifications', () => {
     await fetchNotifications()
 
     expect(unreadCount.value).toBe(1)
+  })
+
+  it('never hides notifications with a null or unrecognized category, even while a filter is active', async () => {
+    localStorage.setItem(
+      'garagestack-settings-ui',
+      JSON.stringify({ notificationTypeExclusions: ['low-tyre'] }),
+    )
+    vi.mocked(notificationsApi.list).mockResolvedValue([
+      makeNotification({ id: 1, category: null }),
+      makeNotification({ id: 2, category: 'some-future-category' }),
+      makeNotification({ id: 3, category: 'low-tyre' }),
+    ])
+
+    const { useNotifications } = await import('@/composables/useNotifications')
+    const { fetchNotifications, notifications } = useNotifications()
+    await fetchNotifications()
+
+    expect(notifications.value).toHaveLength(2)
+    expect(notifications.value.map((n) => n.id).sort()).toEqual([1, 2])
   })
 
   it('fetchNotifications() populates the notifications list', async () => {
