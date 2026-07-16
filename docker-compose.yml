@@ -10,7 +10,7 @@ services:
       -c "
       set -eu;
       rm -f /mosquitto/data/passwd /mosquitto/data/acl;
-      mosquitto_passwd -b -c /mosquitto/data/passwd \"${MQTT_BROKER_USERNAME:-garagestack}\" \"${MQTT_BROKER_PASSWORD:-garagestack}\";
+      mosquitto_passwd -b -c /mosquitto/data/passwd \"${MQTT_BROKER_USERNAME:-garagestack}\" \"${MQTT_BROKER_PASSWORD:?Set MQTT_BROKER_PASSWORD in your .env file, see .env.example}\";
       printf 'user %s\\ntopic readwrite #\\n' \"${MQTT_BROKER_USERNAME:-garagestack}\" > /mosquitto/data/acl;
       chown mosquitto:mosquitto /mosquitto/data/passwd /mosquitto/data/acl;
       chmod 600 /mosquitto/data/passwd /mosquitto/data/acl;
@@ -35,7 +35,7 @@ services:
       SAIC_PASSWORD: "${SAIC_PASSWORD}"
       MQTT_URI: "tcp://mosquitto:1883"
       MQTT_USER: "${MQTT_BROKER_USERNAME:-garagestack}"
-      MQTT_PASSWORD: "${MQTT_BROKER_PASSWORD:-garagestack}"
+      MQTT_PASSWORD: "${MQTT_BROKER_PASSWORD:?Set MQTT_BROKER_PASSWORD in your .env file, see .env.example}"
       SAIC_REGION: "${SAIC_REGION:-eu}"
       SAIC_REST_URI: "${SAIC_REST_URI:-}"
     volumes:
@@ -56,7 +56,7 @@ services:
     environment:
       POSTGRES_DB: "${POSTGRES_DB:-garagestack}"
       POSTGRES_USER: "${POSTGRES_USER:-garagestack}"
-      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-garagestack}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in your .env file, see .env.example}"
     volumes:
       - postgres_data:/var/lib/postgresql
     healthcheck:
@@ -87,11 +87,11 @@ services:
       - .env
     environment:
       ASPNETCORE_ENVIRONMENT: "Production"
-      ConnectionStrings__DefaultConnection: "Host=${POSTGRES_HOST:-postgres};Port=${POSTGRES_PORT:-5432};Database=${POSTGRES_DB:-garagestack};Username=${POSTGRES_USER:-garagestack};Password=${POSTGRES_PASSWORD:-garagestack}"
+      ConnectionStrings__DefaultConnection: "Host=${POSTGRES_HOST:-postgres};Port=${POSTGRES_PORT:-5432};Database=${POSTGRES_DB:-garagestack};Username=${POSTGRES_USER:-garagestack};Password=${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in your .env file, see .env.example}"
       Mqtt__Host: "${MQTT_HOST:-mosquitto}"
       Mqtt__Port: "${MQTT_PORT:-1883}"
       Mqtt__Username: "${MQTT_BROKER_USERNAME:-garagestack}"
-      Mqtt__Password: "${MQTT_BROKER_PASSWORD:-garagestack}"
+      Mqtt__Password: "${MQTT_BROKER_PASSWORD:?Set MQTT_BROKER_PASSWORD in your .env file, see .env.example}"
       Vapid__PublicKey: "${VAPID_PUBLIC_KEY}"
       Vapid__PrivateKey: "${VAPID_PRIVATE_KEY}"
       Vapid__Subject: "mailto:${SAIC_USER}"
@@ -121,7 +121,7 @@ services:
       - .env
     environment:
       ASPNETCORE_ENVIRONMENT: "Production"
-      ConnectionStrings__DefaultConnection: "Host=${POSTGRES_HOST:-postgres};Port=${POSTGRES_PORT:-5432};Database=${POSTGRES_DB:-garagestack};Username=${POSTGRES_USER:-garagestack};Password=${POSTGRES_PASSWORD:-garagestack}"
+      ConnectionStrings__DefaultConnection: "Host=${POSTGRES_HOST:-postgres};Port=${POSTGRES_PORT:-5432};Database=${POSTGRES_DB:-garagestack};Username=${POSTGRES_USER:-garagestack};Password=${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in your .env file, see .env.example}"
       Cors__Origins__0: "${CORS_ORIGIN:-http://localhost:8080}"
       Jwt__Secret: "${JWT_SECRET}"
       SAIC_USER: "${SAIC_USER}"
@@ -131,7 +131,7 @@ services:
       Mqtt__Host: "${MQTT_HOST:-mosquitto}"
       Mqtt__Port: "${MQTT_PORT:-1883}"
       Mqtt__Username: "${MQTT_BROKER_USERNAME:-garagestack}"
-      Mqtt__Password: "${MQTT_BROKER_PASSWORD:-garagestack}"
+      Mqtt__Password: "${MQTT_BROKER_PASSWORD:?Set MQTT_BROKER_PASSWORD in your .env file, see .env.example}"
       Vapid__PublicKey: "${VAPID_PUBLIC_KEY}"
       Vapid__PrivateKey: "${VAPID_PRIVATE_KEY}"
       Vapid__Subject: "mailto:${SAIC_USER}"

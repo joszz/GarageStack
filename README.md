@@ -164,8 +164,10 @@ Then open `.env` and fill in at minimum:
 | `SAIC_REST_URI` | Optional, only needed for a region not listed above -- set directly to your gateway's endpoint |
 | `JWT_SECRET` | At least 32 random characters -- generate with `openssl rand -base64 32` |
 | `CORS_ORIGIN` | The URL you open in your browser, e.g. `http://192.168.1.100:8080` |
+| `POSTGRES_PASSWORD` | Generate with `openssl rand -hex 32`. Using an external Postgres server instead of the bundled one? Set this to match its existing password. |
+| `MQTT_BROKER_PASSWORD` | Generate with `openssl rand -hex 32`. Mosquitto always runs bundled, so this is required either way. |
 
-`POSTGRES_PASSWORD` and `MQTT_BROKER_PASSWORD` default to `garagestack` when using the bundled services. Set them explicitly if you want stronger credentials or need to connect to the database/broker from outside the stack.
+`docker compose up` refuses to start until both `POSTGRES_PASSWORD` and `MQTT_BROKER_PASSWORD` are set.
 
 `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` are optional; leave them empty to disable push notifications.
 
