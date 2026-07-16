@@ -107,6 +107,9 @@ public class TelemetrySnapshot
     // Location extras
     public double? Elevation { get; set; }
 
+    // Only set on the row that starts a merge window (TelemetryRepository.AddAsync), never on
+    // rows folded into it via MergeIntoAsync - kept for troubleshooting which MQTT topic
+    // created a given row. Not serialized to the API response.
     [JsonIgnore]
     public string? RawTopic { get; set; }
 

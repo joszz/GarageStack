@@ -2,7 +2,13 @@
 
 Thank you for your interest in contributing! This document explains how to get involved.
 
+See [ARCHITECTURE.md](ARCHITECTURE.md) for how the services (Worker, Api, Mosquitto, Postgres, frontend) fit together before diving into a change that spans more than one of them.
+
 ## Getting Started
+
+Don't have a real MG vehicle or SAIC account to test against? See [DEMO.md](DEMO.md) -- demo mode runs the full app against realistic fake data with no MG credentials, database, or MQTT broker required, and is the fastest way to get the frontend running locally.
+
+To work against the full stack (real or self-provided credentials):
 
 1. Fork the repository and clone it locally.
 2. Install prerequisites: .NET (latest LTS), Node.js, PNPM, PostgreSQL, Docker (optional).
