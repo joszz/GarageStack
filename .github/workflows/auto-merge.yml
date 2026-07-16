@@ -32,13 +32,12 @@ jobs:
       # Auto-merge:
       #   - all patch updates
       #   - all minor updates that belong to a defined group (CI still must pass)
-      #   - all GitHub Actions updates regardless of semver
-      # Major version bumps are left for manual review.
+      # Major version bumps are left for manual review, including GitHub Actions updates --
+      # Actions run with repo secrets, so they get no blanket exemption from this rule.
       - name: Auto-merge
         if: |
           steps.meta.outputs.update-type == 'version-update:semver-patch' ||
-          (steps.meta.outputs.update-type == 'version-update:semver-minor' && steps.meta.outputs.dependency-group != '') ||
-          steps.meta.outputs.package-ecosystem == 'github_actions'
+          (steps.meta.outputs.update-type == 'version-update:semver-minor' && steps.meta.outputs.dependency-group != '')
         run: gh pr merge --auto --squash "$PR_URL"
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
