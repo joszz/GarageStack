@@ -4,14 +4,34 @@ using GarageStack.Core.Helpers;
 using GarageStack.Core.Interfaces;
 using GarageStack.Core.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 
 namespace GarageStack.Data.Repositories;
 
-// logger is optional (DI always supplies one) so existing tests can keep constructing
-// this directly with just a DbContext.
-public class TelemetryRepository(AppDbContext db, ILogger<TelemetryRepository>? logger = null) : ITelemetryRepository
+// logger/cache are optional (DI always supplies both) so existing tests can keep
+// constructing this directly with just a DbContext.
+public class TelemetryRepository(
+    AppDbContext db,
+    ILogger<TelemetryRepository>? logger = null,
+    IMemoryCache? cache = null) : ITelemetryRepository
 {
+    // GetMergedLatestAsync scans up to 200 rows (plus up to 2 fallback queries) and runs on
+    // every /status, /widget/status, maintenance-mutation, and SignalR-broadcast call. A write
+    // (AddAsync/MergeIntoAsync) always invalidates the entry immediately via NotifyUpdatedAsync,
+    // so this short TTL only bounds staleness for the rare case nothing has written new
+    // telemetry at all - its real job is absorbing bursts of reads between writes (multiple
+    // browser tabs, homepage widget polling, etc).
+    private static readonly TimeSpan MergedLatestCacheTtl = TimeSpan.FromSeconds(5);
+
+    private static string LatestCacheKey(int vehicleId) => $"telemetry-latest/{vehicleId}";
+
+    // Defensive cap on raw row counts for GetTripsAsync/GetHistoryAsync. Endpoints already cap
+    // the requestable window to 90 days, and GPS rows arrive roughly once/minute while driving,
+    // so this is far above any realistic heavy-user volume - it exists purely to bound
+    // worst-case memory rather than to affect normal queries.
+    private const int MaxRawRowsPerQuery = 200_000;
+
     // All TelemetrySnapshot properties except identity/bookkeeping fields (Id, VehicleId, Vehicle,
     // RecordedAt, RawTopic) participate in field-by-field merging. Computed once and reused by both
     // MergeIntoAsync (last-write-wins) and GetMergedLatestAsync (first-non-null-wins) so a new
@@ -159,6 +179,11 @@ public class TelemetryRepository(AppDbContext db, ILogger<TelemetryRepository>? 
 
     private async Task NotifyUpdatedAsync(int vehicleId, CancellationToken ct)
     {
+        // Always invalidate, relational or not - GetMergedLatestAsync's cache must never
+        // outlive the write that just happened, since TelemetryNotificationService reads
+        // through this same cache to build the "live" SignalR broadcast.
+        cache?.Remove(LatestCacheKey(vehicleId));
+
         if (!db.Database.IsRelational()) return;
         try
         {
@@ -181,6 +206,10 @@ public class TelemetryRepository(AppDbContext db, ILogger<TelemetryRepository>? 
 
     public async Task<TelemetrySnapshot?> GetMergedLatestAsync(int vehicleId, CancellationToken ct = default)
     {
+        var cacheKey = LatestCacheKey(vehicleId);
+        if (cache is not null && cache.TryGetValue(cacheKey, out TelemetrySnapshot? cached))
+            return cached;
+
         var since = DateTime.UtcNow.AddDays(-7);
         var rows = await db.TelemetrySnapshots
             .AsNoTracking()
@@ -267,17 +296,29 @@ public class TelemetryRepository(AppDbContext db, ILogger<TelemetryRepository>? 
             }
         }
 
+        cache?.Set(cacheKey, merged, MergedLatestCacheTtl);
         return merged;
     }
 
     public async Task<IReadOnlyList<TelemetrySnapshot>> GetHistoryAsync(int vehicleId, DateTime from, DateTime to, CancellationToken ct = default)
     {
+        // Ordered newest-first with a cap, then reversed back to chronological order below:
+        // if the cap is ever hit, it's the oldest rows in the range that get dropped, not the
+        // newest - recent history matters more to users than the tail of a 90-day window.
         var rows = await db.TelemetrySnapshots
             .AsNoTracking()
             .Where(s => s.VehicleId == vehicleId && s.RecordedAt >= from && s.RecordedAt <= to)
             .Where(HasChartData)
-            .OrderBy(s => s.RecordedAt)
+            .OrderByDescending(s => s.RecordedAt)
+            .Take(MaxRawRowsPerQuery)
             .ToListAsync(ct);
+
+        if (rows.Count == MaxRawRowsPerQuery)
+            logger?.LogWarning(
+                "GetHistoryAsync hit the {Cap}-row cap for vehicleId={VehicleId} ({From} to {To}); oldest rows in range were dropped",
+                MaxRawRowsPerQuery, vehicleId, from, to);
+
+        rows.Reverse();
 
         if (rows.Count == 0) return rows;
 
@@ -324,12 +365,23 @@ public class TelemetryRepository(AppDbContext db, ILogger<TelemetryRepository>? 
     public async Task<IReadOnlyList<TripDto>> GetTripsAsync(int vehicleId, DateTime from, DateTime to, CancellationToken ct = default)
     {
         // Include speed=0 points so we can detect parking gaps between back-to-back trips.
+        // Ordered newest-first with a cap, then reversed back to chronological order below:
+        // if the cap is ever hit, it's the oldest rows in the range that get dropped, not the
+        // newest - recent trips matter more to users than the tail of a 90-day window.
         var points = await db.TelemetrySnapshots
             .Where(s => s.VehicleId == vehicleId && s.RecordedAt >= from && s.RecordedAt <= to
                         && s.Latitude != null && s.Longitude != null)
-            .OrderBy(s => s.RecordedAt)
+            .OrderByDescending(s => s.RecordedAt)
             .Select(s => new { s.RecordedAt, s.Latitude, s.Longitude, s.Speed })
+            .Take(MaxRawRowsPerQuery)
             .ToListAsync(ct);
+
+        if (points.Count == MaxRawRowsPerQuery)
+            logger?.LogWarning(
+                "GetTripsAsync hit the {Cap}-row cap for vehicleId={VehicleId} ({From} to {To}); oldest rows in range were dropped",
+                MaxRawRowsPerQuery, vehicleId, from, to);
+
+        points.Reverse();
 
         if (points.Count == 0) return [];
 
