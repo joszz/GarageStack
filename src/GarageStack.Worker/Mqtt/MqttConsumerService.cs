@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Text.Json;
 using GarageStack.Core.Helpers;
 using GarageStack.Core.Interfaces;
@@ -31,13 +32,15 @@ public class MqttConsumerService(
     // each row represents a complete poll rather than a single field, reducing row
     // count by ~9x and ensuring all chart fields land in the same sample.
     //
-    // Unlike _engineRunningTracker, this dictionary is read, awaited on, then written back
-    // (see HandleMessageAsync), so a simple lock can't cover the whole critical section without
-    // blocking across an await. That's safe only because MQTTnet invokes
-    // ApplicationMessageReceivedAsync for one message at a time on this client; if that dispatch
-    // model ever changes, this needs an async-safe lock (e.g. SemaphoreSlim) around the read/await/write.
+    // Unlike _engineRunningTracker, this dictionary is read, awaited on (the DB call in
+    // MergeOrAddTelemetryAsync), then written back - a plain lock can't cover that critical
+    // section without blocking across an await. Each vehicle gets its own SemaphoreSlim instead
+    // (same pattern as VehicleCommandGate), rather than relying on MQTTnet invoking
+    // ApplicationMessageReceivedAsync for one message at a time on this client, which is an
+    // implementation detail this class shouldn't assume.
     private static readonly TimeSpan MergeWindow = TimeSpan.FromSeconds(15);
     internal readonly Dictionary<int, (long RowId, DateTime RecordedAt)> _mergeState = new();
+    private readonly ConcurrentDictionary<int, SemaphoreSlim> _mergeGates = new();
 
     protected virtual IMqttClient CreateMqttClient() => new MqttClientFactory().CreateMqttClient();
     protected virtual TimeSpan RetryDelay => TimeSpan.FromSeconds(5);
@@ -192,18 +195,7 @@ public class MqttConsumerService(
             patch.VehicleId = vehicle.Id;
             patch.RecordedAt = DateTime.UtcNow;
 
-            if (_mergeState.TryGetValue(vehicle.Id, out var last) &&
-                patch.RecordedAt - last.RecordedAt <= MergeWindow)
-            {
-                await telemetryRepo.MergeIntoAsync(last.RowId, patch, ct);
-                _mergeState[vehicle.Id] = (last.RowId, patch.RecordedAt);
-            }
-            else
-            {
-                patch.RawTopic = topic;
-                var newId = await telemetryRepo.AddAsync(patch, ct);
-                _mergeState[vehicle.Id] = (newId, patch.RecordedAt);
-            }
+            await MergeOrAddTelemetryAsync(vehicle.Id, patch, topic, telemetryRepo, ct);
 
             var tripCompleted = await CheckEngineStartAsync(vin, patch, ct);
             if (tripCompleted && patch.VehicleId > 0)
@@ -217,6 +209,34 @@ public class MqttConsumerService(
         catch (Exception ex)
         {
             logger.LogError(ex, "Failed to persist telemetry for VIN={Vin} topic={Topic}", vin, topic);
+        }
+    }
+
+    // Serializes read-await-write access to _mergeState per vehicle so two concurrently
+    // dispatched messages for the same vehicle can't race on which row they merge into.
+    internal async Task MergeOrAddTelemetryAsync(
+        int vehicleId, TelemetrySnapshot patch, string topic, ITelemetryRepository telemetryRepo, CancellationToken ct)
+    {
+        var gate = _mergeGates.GetOrAdd(vehicleId, static _ => new SemaphoreSlim(1, 1));
+        await gate.WaitAsync(ct);
+        try
+        {
+            if (_mergeState.TryGetValue(vehicleId, out var last) &&
+                patch.RecordedAt - last.RecordedAt <= MergeWindow)
+            {
+                await telemetryRepo.MergeIntoAsync(last.RowId, patch, ct);
+                _mergeState[vehicleId] = (last.RowId, patch.RecordedAt);
+            }
+            else
+            {
+                patch.RawTopic = topic;
+                var newId = await telemetryRepo.AddAsync(patch, ct);
+                _mergeState[vehicleId] = (newId, patch.RecordedAt);
+            }
+        }
+        finally
+        {
+            gate.Release();
         }
     }
 

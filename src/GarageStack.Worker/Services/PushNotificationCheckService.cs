@@ -15,8 +15,7 @@ public class PushNotificationCheckService(
     IPushSender pushSender,
     TyrePressureThresholds tyrePressureThresholds) : BackgroundService
 {
-    private readonly Dictionary<string, DateTime> _lastNotified = new();
-    private readonly TimeSpan _cooldown = TimeSpan.FromHours(1);
+    private readonly NotificationCooldownGate _cooldownGate = new(TimeSpan.FromHours(1));
     internal readonly VinStateTracker<bool?> _engineRunningTracker = new();
     internal readonly VinStateTracker<bool?> _isChargingTracker = new();
     internal readonly Dictionary<string, DateTime> _lastParkedAt = new();
@@ -79,22 +78,17 @@ public class PushNotificationCheckService(
 
             foreach (var (key, title, body) in alerts)
             {
-                var notifKey = $"{vehicle.Vin}/{key}";
-                if (_lastNotified.TryGetValue(notifKey, out var last) && DateTime.UtcNow - last < _cooldown)
-                    continue;
+                // VehicleId is included in the DB check so one vehicle's alert cannot suppress
+                // another vehicle's same-category alert; this also lets MQTT-emitted notifications
+                // (e.g. engine-start, sent directly from MqttConsumerService) suppress a repeated
+                // checker alert for the same category.
+                var cutoff = DateTime.UtcNow - _cooldownGate.Cooldown;
+                var shouldNotify = await _cooldownGate.ShouldNotifyAsync(vehicle.Vin, key, () =>
+                    db.AppNotifications.AnyAsync(n => n.Category == key && n.VehicleId == vehicle.Id && n.CreatedAt > cutoff, ct));
+                if (!shouldNotify) continue;
 
-                // Cross-service dedup: check DB so MQTT-emitted notifications suppress repeated checker alerts.
-                // VehicleId is included so one vehicle's alert cannot suppress another vehicle's same-category alert.
-                var cutoff = DateTime.UtcNow - _cooldown;
-                if (await db.AppNotifications.AnyAsync(n => n.Category == key && n.VehicleId == vehicle.Id && n.CreatedAt > cutoff, ct))
-                {
-                    _lastNotified[notifKey] = DateTime.UtcNow;
-                    continue;
-                }
-
-                _lastNotified[notifKey] = DateTime.UtcNow;
                 await pushSender.SendToAllAsync(title, body, ct, key, vehicle.Id);
-                logger.LogInformation("Push sent: {Key} - {Title}", notifKey, title);
+                logger.LogInformation("Push sent: {Vin}/{Key} - {Title}", vehicle.Vin, key, title);
             }
         }
     }
