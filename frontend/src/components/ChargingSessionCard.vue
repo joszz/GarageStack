@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ExpandableStatusCard from './ExpandableStatusCard.vue'
 import DetailListItem from './DetailListItem.vue'
+import { formatNumber } from '@/utils/format'
 
 const { t } = useI18n()
 
@@ -24,7 +25,7 @@ const obcPower = computed(() => props.obcPowerThreePhase ?? props.obcPowerSingle
 
 const summaryValue = computed((): string | null => {
   const parts: string[] = []
-  if (obcPower.value !== null) parts.push(`${obcPower.value.toFixed(1)} kW`)
+  if (obcPower.value !== null) parts.push(`${formatNumber(obcPower.value)} kW`)
   if (props.remainingChargingTime !== null)
     parts.push(`${props.remainingChargingTime} ${t('common.min')}`)
   if (parts.length) return parts.join(' · ')
@@ -67,19 +68,19 @@ const lastEndFormatted = computed((): string | null => {
       <DetailListItem
         v-if="obcPower !== null"
         icon="bolt-lightning"
-        :value="`${obcPower.toFixed(1)} kW`"
+        :value="`${formatNumber(obcPower)} kW`"
         :label="t('vehicle.chargingSession.power')"
       />
       <DetailListItem
         v-if="obcPowerThreePhase !== null"
         icon="plug"
-        :value="`${obcPowerThreePhase.toFixed(1)} kW`"
+        :value="`${formatNumber(obcPowerThreePhase)} kW`"
         :label="t('vehicle.chargingSession.power3phase')"
       />
       <DetailListItem
         v-if="obcPowerSinglePhase !== null"
         icon="plug"
-        :value="`${obcPowerSinglePhase.toFixed(1)} kW`"
+        :value="`${formatNumber(obcPowerSinglePhase)} kW`"
         :label="t('vehicle.chargingSession.power1phase')"
       />
       <DetailListItem
@@ -124,7 +125,7 @@ const lastEndFormatted = computed((): string | null => {
       <DetailListItem
         v-if="lastChargeEndingPower !== null"
         icon="percent"
-        :value="`${lastChargeEndingPower.toFixed(1)}%`"
+        :value="`${formatNumber(lastChargeEndingPower)}%`"
         :label="t('vehicle.chargingSession.lastEndSoc')"
       />
       <DetailListItem
