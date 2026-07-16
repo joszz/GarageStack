@@ -4,6 +4,16 @@ using GarageStack.Core.Models;
 
 namespace GarageStack.Worker.Mqtt;
 
+// Maps saic-mqtt-gateway MQTT subtopics onto TelemetrySnapshot fields. Several fields below
+// accept more than one subtopic name (e.g. FuelLevelPercent from both "drivetrain/fossilFuel/
+// percentage" and "drivetrain/fuelLevel"). Checked against the pinned gateway version's own
+// topic list (src/mqtt_topics.py in SAIC-iSmart-API/saic-python-mqtt-gateway): in every such
+// case, exactly one of the aliases matches a topic the current gateway actually publishes, and
+// the other(s) do not appear in it at all - e.g. "doors/boot"/"doors/bonnet" are current,
+// "doors/trunk"/"doors/hood" are not. These are compatibility names for an older gateway
+// version or a differently-configured/forked one, not topics the current gateway emits
+// alongside its canonical name. Safe to drop an alias only after confirming no supported
+// gateway version still uses it.
 public static class TelemetryMapper
 {
     /// <returns>true if the subtopic was recognised and a field was set; false for metadata/unknown topics.</returns>
