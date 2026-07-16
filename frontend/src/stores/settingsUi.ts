@@ -8,6 +8,7 @@ import {
   readLegacyBlob,
   createDebouncedSave,
 } from './settingsShared'
+import { NOTIFICATION_CATEGORY_IDS } from '@/utils/notificationCategories'
 
 export type { Theme, Locale, VehicleTypeOverride, CarColorScheme } from './settingsShared'
 export { CAR_COLOR_SCHEMES }
@@ -21,7 +22,7 @@ interface UiSettings {
   carColorScheme: string
   vehicleTypeOverride: VehicleTypeOverride
   filterDays: number
-  notificationTypeFilter: string[]
+  notificationTypeExclusions: string[]
 }
 
 function defaultsFor(): UiSettings {
@@ -32,8 +33,28 @@ function defaultsFor(): UiSettings {
     carColorScheme: 'orange',
     vehicleTypeOverride: 'auto',
     filterDays: 7,
-    notificationTypeFilter: [],
+    notificationTypeExclusions: [],
   }
+}
+
+// One-time migration: an earlier version stored `notificationTypeFilter` with whitelist
+// semantics (empty = show all, non-empty = show only listed types). It was replaced by
+// `notificationTypeExclusions` (blacklist semantics: empty = show all, non-empty = hide listed
+// types) - a much better fit for "everything on, opt a couple out" - before seeing meaningful
+// adoption, but it already shipped, so convert any stored whitelist into the equivalent
+// exclusion list so a user's effective visible-category set doesn't change under them.
+function migrateNotificationTypeExclusions(
+  parsed: Record<string, unknown>,
+  fallback: string[],
+): string[] {
+  if (Array.isArray(parsed.notificationTypeExclusions)) {
+    return parsed.notificationTypeExclusions as string[]
+  }
+  if (Array.isArray(parsed.notificationTypeFilter) && parsed.notificationTypeFilter.length > 0) {
+    const oldWhitelist = parsed.notificationTypeFilter as string[]
+    return NOTIFICATION_CATEGORY_IDS.filter((id) => !oldWhitelist.includes(id))
+  }
+  return fallback
 }
 
 function parseUiFields(parsed: Record<string, unknown>, fallback: UiSettings): UiSettings {
@@ -45,9 +66,10 @@ function parseUiFields(parsed: Record<string, unknown>, fallback: UiSettings): U
     vehicleTypeOverride:
       (parsed.vehicleTypeOverride as VehicleTypeOverride) ?? fallback.vehicleTypeOverride,
     filterDays: (parsed.filterDays as number) ?? fallback.filterDays,
-    notificationTypeFilter: Array.isArray(parsed.notificationTypeFilter)
-      ? (parsed.notificationTypeFilter as string[])
-      : fallback.notificationTypeFilter,
+    notificationTypeExclusions: migrateNotificationTypeExclusions(
+      parsed,
+      fallback.notificationTypeExclusions,
+    ),
   }
 }
 
@@ -78,7 +100,7 @@ export const useUiSettingsStore = defineStore('settingsUi', () => {
   const carColorScheme = ref<string>(loaded.carColorScheme)
   const vehicleTypeOverride = ref<VehicleTypeOverride>(loaded.vehicleTypeOverride)
   const filterDays = ref<number>(loaded.filterDays)
-  const notificationTypeFilter = ref<string[]>(loaded.notificationTypeFilter)
+  const notificationTypeExclusions = ref<string[]>(loaded.notificationTypeExclusions)
 
   document.documentElement.dataset.theme = theme.value
   applyCarColors(carColorScheme.value)
@@ -93,7 +115,7 @@ export const useUiSettingsStore = defineStore('settingsUi', () => {
         carColorScheme: carColorScheme.value,
         vehicleTypeOverride: vehicleTypeOverride.value,
         filterDays: filterDays.value,
-        notificationTypeFilter: notificationTypeFilter.value,
+        notificationTypeExclusions: notificationTypeExclusions.value,
       }),
     )
   }
@@ -103,7 +125,7 @@ export const useUiSettingsStore = defineStore('settingsUi', () => {
   watch(vehicleTypeOverride, scheduleSave)
   watch(locale, scheduleSave)
   watch(filterDays, scheduleSave)
-  watch(notificationTypeFilter, scheduleSave, { deep: true })
+  watch(notificationTypeExclusions, scheduleSave, { deep: true })
   watch(theme, (val) => {
     document.documentElement.dataset.theme = val
     scheduleSave()
@@ -120,6 +142,6 @@ export const useUiSettingsStore = defineStore('settingsUi', () => {
     carColorScheme,
     vehicleTypeOverride,
     filterDays,
-    notificationTypeFilter,
+    notificationTypeExclusions,
   }
 })

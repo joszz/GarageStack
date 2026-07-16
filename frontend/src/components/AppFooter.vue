@@ -7,7 +7,7 @@ import gbFlag from 'flag-icons/flags/4x3/gb.svg'
 import nlFlag from 'flag-icons/flags/4x3/nl.svg'
 import { useVehicleStore } from '@/stores/vehicle'
 import { useVehicleCommand } from '@/composables/useVehicleCommand'
-import { usePush } from '@/composables/usePush'
+import { useNotificationPushSync } from '@/composables/useNotificationPushSync'
 import { useModal } from '@/composables/useModal'
 import DetailModal from './DetailModal.vue'
 import SettingsToggle from './SettingsToggle.vue'
@@ -22,7 +22,7 @@ const { t } = useI18n()
 const settings = useUiSettingsStore()
 const vehicleStore = useVehicleStore()
 const { sending, send } = useVehicleCommand()
-const { pushSupported, pushState, togglePush } = usePush()
+const { showPermissionDeniedNotice } = useNotificationPushSync()
 const { isOpen: modalOpen, open: openModal, close: closeModal } = useModal()
 
 const vin = computed(() => vehicleStore.vehicles[0]?.vin ?? null)
@@ -78,6 +78,20 @@ const isNL = computed({
 function refresh() {
   if (!vin.value) return
   send(vin.value, 'refresh', 'force')
+}
+
+function selectAllNotificationTypes() {
+  settings.notificationTypeExclusions = []
+}
+
+function deselectAllNotificationTypes() {
+  settings.notificationTypeExclusions = [...NOTIFICATION_CATEGORY_IDS]
+}
+
+function toggleNotificationType(id: NotificationCategoryId, checked: boolean) {
+  settings.notificationTypeExclusions = checked
+    ? settings.notificationTypeExclusions.filter((excludedId) => excludedId !== id)
+    : [...settings.notificationTypeExclusions, id]
 }
 </script>
 
@@ -238,7 +252,8 @@ function refresh() {
       </div>
     </div>
 
-    <!-- Notification types -->
+    <!-- Notification types (also controls push subscription: deselecting every type
+         unsubscribes, selecting at least one (re)subscribes) -->
     <div class="detail-modal__section">
       <div class="detail-modal__section-title">{{ t('settings.notificationTypes.title') }}</div>
       <div class="notif-type-filter">
@@ -247,47 +262,49 @@ function refresh() {
             <span class="settings-toggle__label">{{ t('notifications.typeFilter') }}</span>
             <span class="settings-toggle__desc">{{ t('notifications.typeFilterDesc') }}</span>
           </div>
+          <div class="notif-type-filter__actions">
+            <button
+              type="button"
+              class="btn btn-sm btn-outline-secondary"
+              @click="selectAllNotificationTypes"
+            >
+              {{ t('notifications.selectAll') }}
+            </button>
+            <button
+              type="button"
+              class="btn btn-sm btn-outline-secondary"
+              @click="deselectAllNotificationTypes"
+            >
+              {{ t('notifications.deselectAll') }}
+            </button>
+          </div>
         </div>
-        <Multiselect
-          v-model="settings.notificationTypeFilter"
-          :options="notificationTypeOptions"
-          :placeholder="t('notifications.typeFilterPlaceholder')"
-          :searchable="true"
-          :close-on-select="false"
-          :clear-on-select="false"
-          mode="tags"
-          :no-results-text="t('notifications.typeFilterNoMatch')"
-          append-to="body"
-          class="notif-type-multiselect"
-        />
-      </div>
-    </div>
 
-    <!-- Push notifications -->
-    <div v-if="pushSupported" class="detail-modal__section">
-      <div class="detail-modal__section-title">{{ t('notifications.title') }}</div>
-      <div class="settings-toggles">
-        <SettingsToggle
-          :label="t('push.enable')"
-          :desc="t('push.desc')"
-          input-id="footer-toggle-push"
+        <div
+          v-if="showPermissionDeniedNotice"
+          class="notif-type-filter__denied text-danger text-sm"
         >
-          <template #control>
-            <span v-if="pushState === 'denied'" class="text-danger text-sm">{{
-              t('push.permissionDenied')
-            }}</span>
-            <div v-else class="form-check form-switch mb-0">
-              <input
-                id="footer-toggle-push"
-                :checked="pushState === 'subscribed'"
-                class="form-check-input"
-                type="checkbox"
-                role="switch"
-                @change="togglePush"
-              />
-            </div>
-          </template>
-        </SettingsToggle>
+          {{ t('push.permissionDenied') }}
+        </div>
+
+        <div class="notif-type-checklist">
+          <label
+            v-for="opt in notificationTypeOptions"
+            :key="opt.value"
+            class="form-check form-switch notif-type-checklist__item"
+          >
+            <input
+              class="form-check-input"
+              type="checkbox"
+              role="switch"
+              :checked="!settings.notificationTypeExclusions.includes(opt.value)"
+              @change="
+                toggleNotificationType(opt.value, ($event.target as HTMLInputElement).checked)
+              "
+            />
+            <span class="notif-type-checklist__label">{{ opt.label }}</span>
+          </label>
+        </div>
       </div>
     </div>
   </DetailModal>

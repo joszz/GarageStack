@@ -1571,6 +1571,56 @@ body,
 
 .notif-type-filter__header {
   margin-bottom: 0.5rem;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.notif-type-filter__actions {
+  display: flex;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.notif-type-filter__denied {
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+/* Own internal scroll so a long category list never pushes the rest of the settings modal's
+   sections down. minmax(170px, 1fr) against .detail-modal's actual width budget: the mobile
+   bottom-sheet content is ~300-335px wide -> 1 column; the desktop dialog is capped at
+   max-width: 440px -> 2 columns, where all 9 categories fit in 5 rows with no scrollbar at all.
+   max-height keeps the 1-column mobile case to ~5-6 visible rows before scrolling. */
+.notif-type-checklist {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 0.4rem 0.75rem;
+  max-height: 15rem;
+  overflow-y: auto;
+  margin-top: 0.5rem;
+  padding-right: 0.25rem;
+}
+
+.notif-type-checklist__item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0.4rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.notif-type-checklist__item:hover {
+  background: var(--color-surface-2);
+}
+
+.notif-type-checklist__label {
+  line-height: 1.25;
 }
 
 /* ── Car colour picker ────────────────────────────────────── */

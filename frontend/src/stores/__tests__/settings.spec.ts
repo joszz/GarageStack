@@ -5,6 +5,7 @@ import { defaultCards } from '@/stores/settingsShared'
 import { useUiSettingsStore } from '@/stores/settingsUi'
 import { useDashboardSettingsStore } from '@/stores/settingsDashboard'
 import { useMapSettingsStore } from '@/stores/settingsMap'
+import { NOTIFICATION_CATEGORY_IDS } from '@/utils/notificationCategories'
 
 // Settings persistence is debounced (see createDebouncedSave in settingsShared.ts) so a burst of
 // ref changes coalesces into one localStorage write - advance fake timers past the debounce
@@ -125,24 +126,63 @@ describe('useUiSettingsStore', () => {
     expect(store.filterDays).toBe(14)
   })
 
-  it('defaults notificationTypeFilter to an empty array (no filter, show all)', () => {
+  it('defaults notificationTypeExclusions to an empty array (no exclusions, show all)', () => {
     const store = useUiSettingsStore()
-    expect(store.notificationTypeFilter).toEqual([])
+    expect(store.notificationTypeExclusions).toEqual([])
   })
 
-  it('persists notificationTypeFilter changes to its own localStorage key', async () => {
+  it('persists notificationTypeExclusions changes to its own localStorage key', async () => {
     const store = useUiSettingsStore()
-    store.notificationTypeFilter = ['low-tyre', 'maintenance']
+    store.notificationTypeExclusions = ['low-tyre', 'maintenance']
     await nextTick()
     vi.advanceTimersByTime(SAVE_DEBOUNCE_MS)
     const saved = JSON.parse(localStorage.getItem(UI_KEY)!)
-    expect(saved.notificationTypeFilter).toEqual(['low-tyre', 'maintenance'])
+    expect(saved.notificationTypeExclusions).toEqual(['low-tyre', 'maintenance'])
   })
 
-  it('loads notificationTypeFilter from its own localStorage key on init', () => {
-    localStorage.setItem(UI_KEY, JSON.stringify({ notificationTypeFilter: ['charging-complete'] }))
+  it('loads notificationTypeExclusions from its own localStorage key on init', () => {
+    localStorage.setItem(
+      UI_KEY,
+      JSON.stringify({ notificationTypeExclusions: ['charging-complete'] }),
+    )
     const store = useUiSettingsStore()
-    expect(store.notificationTypeFilter).toEqual(['charging-complete'])
+    expect(store.notificationTypeExclusions).toEqual(['charging-complete'])
+  })
+})
+
+describe('notificationTypeExclusions migration from legacy notificationTypeFilter', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    localStorage.clear()
+  })
+
+  it('converts a non-empty legacy whitelist into the inverse exclusion list', () => {
+    localStorage.setItem(
+      UI_KEY,
+      JSON.stringify({ notificationTypeFilter: ['low-tyre', 'maintenance'] }),
+    )
+    const store = useUiSettingsStore()
+    expect(store.notificationTypeExclusions).toEqual(
+      NOTIFICATION_CATEGORY_IDS.filter((id) => !['low-tyre', 'maintenance'].includes(id)),
+    )
+  })
+
+  it('treats an empty legacy whitelist as no exclusions', () => {
+    localStorage.setItem(UI_KEY, JSON.stringify({ notificationTypeFilter: [] }))
+    const store = useUiSettingsStore()
+    expect(store.notificationTypeExclusions).toEqual([])
+  })
+
+  it('prefers the new field over the legacy one when both are present', () => {
+    localStorage.setItem(
+      UI_KEY,
+      JSON.stringify({
+        notificationTypeFilter: ['low-tyre'],
+        notificationTypeExclusions: ['engine-start'],
+      }),
+    )
+    const store = useUiSettingsStore()
+    expect(store.notificationTypeExclusions).toEqual(['engine-start'])
   })
 })
 

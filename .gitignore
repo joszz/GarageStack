@@ -22,3 +22,5 @@ example_data.txt
 appsettings.Development.json
 .env.development
 .stfolder
+.claude
+\keys
