@@ -11,9 +11,8 @@ public class MaintenanceCheckService(
     IServiceScopeFactory scopeFactory,
     IPushSender pushSender) : BackgroundService
 {
-    private readonly Dictionary<string, DateTime> _lastNotified = new();
     private readonly TimeSpan _checkInterval = TimeSpan.FromHours(6);
-    private readonly TimeSpan _cooldown = TimeSpan.FromDays(7);
+    private readonly NotificationCooldownGate _cooldownGate = new(TimeSpan.FromDays(7));
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -63,21 +62,13 @@ public class MaintenanceCheckService(
                 var alert = BuildAlert(item, result);
                 if (alert is null) continue;
 
-                var notifKey = $"{vehicle.Vin}/{alert.Value.Category}";
-                if (_lastNotified.TryGetValue(notifKey, out var last) && DateTime.UtcNow - last < _cooldown)
-                    continue;
+                var cutoff = DateTime.UtcNow - _cooldownGate.Cooldown;
+                var shouldNotify = await _cooldownGate.ShouldNotifyAsync(vehicle.Vin, alert.Value.Category, () =>
+                    db.AppNotifications.AnyAsync(n => n.Category == alert.Value.Category && n.VehicleId == vehicle.Id && n.CreatedAt > cutoff, ct));
+                if (!shouldNotify) continue;
 
-                // Cross-service dedup: check DB so a restart doesn't forget the in-memory cooldown.
-                var cutoff = DateTime.UtcNow - _cooldown;
-                if (await db.AppNotifications.AnyAsync(n => n.Category == alert.Value.Category && n.VehicleId == vehicle.Id && n.CreatedAt > cutoff, ct))
-                {
-                    _lastNotified[notifKey] = DateTime.UtcNow;
-                    continue;
-                }
-
-                _lastNotified[notifKey] = DateTime.UtcNow;
                 await pushSender.SendToAllAsync(alert.Value.Title, alert.Value.Body, ct, alert.Value.Category, vehicle.Id);
-                logger.LogInformation("Maintenance push sent: {Key} - {Title}", notifKey, alert.Value.Title);
+                logger.LogInformation("Maintenance push sent: {Vin}/{Category} - {Title}", vehicle.Vin, alert.Value.Category, alert.Value.Title);
             }
         }
     }

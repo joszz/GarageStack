@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import ExpandableStatusCard from './ExpandableStatusCard.vue'
 import DetailListItem from './DetailListItem.vue'
 import { useVehicleCommand } from '@/composables/useVehicleCommand'
+import { formatNumber } from '@/utils/format'
 
 const { t } = useI18n()
 
@@ -52,7 +53,7 @@ const summaryValue = computed((): string | null => {
   const parts: string[] = []
   if (props.climateOn !== null)
     parts.push(props.climateOn ? t('vehicle.climateOn') : t('vehicle.climateOff'))
-  if (props.interiorTemperature !== null) parts.push(`${props.interiorTemperature.toFixed(1)}°C`)
+  if (props.interiorTemperature !== null) parts.push(`${formatNumber(props.interiorTemperature)}°C`)
   return parts.length ? parts.join(' · ') : null
 })
 
@@ -231,7 +232,7 @@ function onSeatRightChange(e: Event) {
       <DetailListItem
         v-if="interiorTemperature !== null"
         icon="thermometer-half"
-        :value="`${interiorTemperature.toFixed(1)} °C`"
+        :value="`${formatNumber(interiorTemperature)} °C`"
         :label="t('vehicle.temperature.interior')"
       />
 
@@ -239,7 +240,7 @@ function onSeatRightChange(e: Event) {
       <DetailListItem
         v-if="exteriorTemperature !== null"
         icon="temperature-low"
-        :value="`${exteriorTemperature.toFixed(1)} °C`"
+        :value="`${formatNumber(exteriorTemperature)} °C`"
         :label="t('vehicle.temperature.exterior')"
       />
 

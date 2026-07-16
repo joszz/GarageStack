@@ -5,6 +5,7 @@ import ExpandableStatusCard from './ExpandableStatusCard.vue'
 import DetailListItem from './DetailListItem.vue'
 import CommandButton from './CommandButton.vue'
 import { useVehicleCommand } from '@/composables/useVehicleCommand'
+import { formatNumber } from '@/utils/format'
 
 const { t } = useI18n()
 
@@ -36,7 +37,7 @@ const socPercent = computed(() => {
 const summaryValue = computed((): string | null => {
   const parts: string[] = []
   if (socPercent.value !== null) parts.push(`${socPercent.value}%`)
-  else if (props.hvSocKwh !== null) parts.push(`${props.hvSocKwh.toFixed(1)} kWh`)
+  else if (props.hvSocKwh !== null) parts.push(`${formatNumber(props.hvSocKwh)} kWh`)
   if (props.hvBatteryActive !== null)
     parts.push(props.hvBatteryActive ? t('vehicle.hvBattery.active') : t('vehicle.hvBattery.idle'))
   return parts.length ? parts.join(' · ') : null
@@ -70,13 +71,13 @@ function setChargeLimit(value: string) {
       <DetailListItem
         v-if="hvSocKwh !== null"
         icon="bolt"
-        :value="`${hvSocKwh.toFixed(1)} kWh`"
+        :value="`${formatNumber(hvSocKwh)} kWh`"
         :label="t('vehicle.hvBattery.socKwh')"
       />
       <DetailListItem
         v-if="hvTotalCapacityKwh !== null"
         icon="database"
-        :value="`${hvTotalCapacityKwh.toFixed(1)} kWh`"
+        :value="`${formatNumber(hvTotalCapacityKwh)} kWh`"
         :label="t('vehicle.hvBattery.capacity')"
       />
       <DetailListItem
@@ -88,25 +89,25 @@ function setChargeLimit(value: string) {
       <DetailListItem
         v-if="hvVoltage !== null"
         icon="plug"
-        :value="`${hvVoltage.toFixed(0)} V`"
+        :value="`${formatNumber(hvVoltage, 0)} V`"
         :label="t('vehicle.hvBattery.voltage')"
       />
       <DetailListItem
         v-if="hvCurrent !== null"
         icon="wave-square"
-        :value="`${hvCurrent.toFixed(1)} A`"
+        :value="`${formatNumber(hvCurrent)} A`"
         :label="t('vehicle.hvBattery.current')"
       />
       <DetailListItem
         v-if="hvPower !== null"
         icon="bolt-lightning"
-        :value="`${hvPower.toFixed(1)} kW`"
+        :value="`${formatNumber(hvPower)} kW`"
         :label="t('vehicle.hvBattery.power')"
       />
       <DetailListItem
         v-if="powerUsageSinceLastCharge !== null"
         icon="chart-line"
-        :value="`${powerUsageSinceLastCharge.toFixed(1)} kWh`"
+        :value="`${formatNumber(powerUsageSinceLastCharge)} kWh`"
         :label="t('vehicle.hvBattery.usedSinceCharge')"
       />
       <DetailListItem

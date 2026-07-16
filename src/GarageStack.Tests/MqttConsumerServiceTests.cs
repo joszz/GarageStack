@@ -141,6 +141,40 @@ file sealed class TestableMqttConsumerService : MqttConsumerService
 }
 
 // ---------------------------------------------------------------------------
+// Fake ITelemetryRepository with a slow AddAsync -- used to widen the race
+// window in the merge-state concurrency test below.
+// ---------------------------------------------------------------------------
+
+file sealed class SlowFakeTelemetryRepository : ITelemetryRepository
+{
+    private long _nextId;
+    public int AddCount;
+    public int MergeCount;
+
+    public async Task<long> AddAsync(TelemetrySnapshot snapshot, CancellationToken ct = default)
+    {
+        Interlocked.Increment(ref AddCount);
+        // Without MqttConsumerService's per-vehicle gate, two concurrent callers would both
+        // read an empty _mergeState before either finishes this delay and writes back,
+        // and both would end up here instead of the second one merging into the first.
+        await Task.Delay(50, ct);
+        return Interlocked.Increment(ref _nextId);
+    }
+
+    public Task MergeIntoAsync(long rowId, TelemetrySnapshot patch, CancellationToken ct = default)
+    {
+        Interlocked.Increment(ref MergeCount);
+        return Task.CompletedTask;
+    }
+
+    public Task<TelemetrySnapshot?> GetLatestAsync(int vehicleId, CancellationToken ct = default) => throw new NotImplementedException();
+    public Task<TelemetrySnapshot?> GetMergedLatestAsync(int vehicleId, CancellationToken ct = default) => throw new NotImplementedException();
+    public Task<IReadOnlyList<TelemetrySnapshot>> GetHistoryAsync(int vehicleId, DateTime from, DateTime to, CancellationToken ct = default) => throw new NotImplementedException();
+    public Task<IReadOnlyList<TripDto>> GetTripsAsync(int vehicleId, DateTime from, DateTime to, CancellationToken ct = default) => throw new NotImplementedException();
+    public Task<VehicleAggregateStats> GetAggregateStatsAsync(int vehicleId, DateTime from, DateTime to, CancellationToken ct = default) => throw new NotImplementedException();
+}
+
+// ---------------------------------------------------------------------------
 // Engine-start notification tests (unchanged logic)
 // ---------------------------------------------------------------------------
 
@@ -152,6 +186,26 @@ public class MqttConsumerServiceTests
             Options.Create(new MqttOptions()),
             new FakeServiceScopeFactory(),
             push);
+
+    [Fact]
+    public async Task MergeOrAddTelemetryAsync_ConcurrentCallsSameVehicle_SecondCallMergesInsteadOfRacing()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var repo = new SlowFakeTelemetryRepository();
+        var svc = CreateService(new FakePushSender());
+
+        var now = DateTime.UtcNow;
+        var patch1 = new TelemetrySnapshot { VehicleId = 1, RecordedAt = now };
+        var patch2 = new TelemetrySnapshot { VehicleId = 1, RecordedAt = now.AddSeconds(1) }; // within the 15s merge window
+
+        // Fire both "concurrently", as two overlapping MQTT dispatches for the same vehicle would.
+        await Task.WhenAll(
+            svc.MergeOrAddTelemetryAsync(1, patch1, "saic/vin/topic1", repo, ct),
+            svc.MergeOrAddTelemetryAsync(1, patch2, "saic/vin/topic2", repo, ct));
+
+        Assert.Equal(1, repo.AddCount);
+        Assert.Equal(1, repo.MergeCount);
+    }
 
     [Fact]
     public async Task CheckEngineStartAsync_FirstObservationRunning_SeedsWithoutFiring()

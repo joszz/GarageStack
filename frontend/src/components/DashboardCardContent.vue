@@ -16,6 +16,7 @@ import LightsCard from './LightsCard.vue'
 import ChargingSessionCard from './ChargingSessionCard.vue'
 import BatteryHeatingCard from './BatteryHeatingCard.vue'
 import MaintenanceSummaryCard from './MaintenanceSummaryCard.vue'
+import { formatNumber } from '@/utils/format'
 
 const props = defineProps<{ cardId: CardId }>()
 
@@ -122,7 +123,7 @@ const simpleCards = computed((): SimpleCardConfig[] => {
       match: true,
       icon: 'battery-three-quarters',
       label: t('vehicle.battery'),
-      value: s.batteryVoltage !== null ? s.batteryVoltage.toFixed(1) : null,
+      value: s.batteryVoltage !== null ? formatNumber(s.batteryVoltage) : null,
       unit: 'V',
       variant: s.batteryVoltage !== null && s.batteryVoltage < 12 ? 'danger' : 'success',
     },
@@ -139,7 +140,7 @@ const simpleCards = computed((): SimpleCardConfig[] => {
       match: s.mileageOfTheDay !== null,
       icon: 'route',
       label: t('vehicle.efficiency.todayDistance'),
-      value: s.mileageOfTheDay !== null ? s.mileageOfTheDay.toFixed(1) : null,
+      value: s.mileageOfTheDay !== null ? formatNumber(s.mileageOfTheDay) : null,
       unit: t('common.km'),
     },
     {
@@ -147,7 +148,7 @@ const simpleCards = computed((): SimpleCardConfig[] => {
       match: s.powerUsageOfDay !== null,
       icon: 'plug-circle-bolt',
       label: t('vehicle.efficiency.todayEnergy'),
-      value: s.powerUsageOfDay !== null ? s.powerUsageOfDay.toFixed(0) : null,
+      value: s.powerUsageOfDay !== null ? formatNumber(s.powerUsageOfDay, 0) : null,
       unit: t('common.wh'),
     },
     {
@@ -155,7 +156,7 @@ const simpleCards = computed((): SimpleCardConfig[] => {
       match: s.mileageSinceLastCharge !== null && !isHev.value,
       icon: 'battery-full',
       label: t('vehicle.efficiency.sinceCharge'),
-      value: s.mileageSinceLastCharge !== null ? s.mileageSinceLastCharge.toFixed(1) : null,
+      value: s.mileageSinceLastCharge !== null ? formatNumber(s.mileageSinceLastCharge) : null,
       unit: t('common.km'),
     },
     // efficiencyRatio - Wh/km when driving data is available
@@ -166,7 +167,7 @@ const simpleCards = computed((): SimpleCardConfig[] => {
       label: t('vehicle.efficiency.efficiency'),
       value:
         s.powerUsageOfDay !== null && s.mileageOfTheDay !== null
-          ? (s.powerUsageOfDay / s.mileageOfTheDay).toFixed(0)
+          ? formatNumber(s.powerUsageOfDay / s.mileageOfTheDay, 0)
           : null,
       unit: `${t('common.wh')}/${t('common.km')}`,
     },
@@ -182,7 +183,7 @@ const simpleCards = computed((): SimpleCardConfig[] => {
       label: t('vehicle.efficiency.fuelEconomy'),
       value:
         s.fuelRangeKm !== null && s.fuelLevelPercent !== null
-          ? (s.fuelRangeKm / (s.fuelLevelPercent / 100) / 100).toFixed(1)
+          ? formatNumber(s.fuelRangeKm / (s.fuelLevelPercent / 100) / 100)
           : null,
       unit: 'km/%',
     },
@@ -307,9 +308,9 @@ const activeSimpleCard = computed(
       "
       :value="
         status.currentJourneyDistance !== null && status.currentJourneyDistance > 0
-          ? status.currentJourneyDistance.toFixed(1)
+          ? formatNumber(status.currentJourneyDistance)
           : latestTrip
-            ? latestTrip.distanceKm.toFixed(1)
+            ? formatNumber(latestTrip.distanceKm)
             : t('vehicle.noTrips')
       "
       :unit="

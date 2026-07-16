@@ -21,6 +21,7 @@ import SkeletonCard from '@/components/SkeletonCard.vue'
 import SkeletonChart from '@/components/SkeletonChart.vue'
 import StatusCard from '@/components/StatusCard.vue'
 import EditableCardSlot from '@/components/EditableCardSlot.vue'
+import { formatNumber } from '@/utils/format'
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -254,7 +255,7 @@ const batteryVoltageTrend = computed(() => {
 const batteryVoltageDisplay = computed(() => {
   if (batteryVoltageTrend.value !== null) return batteryVoltageTrend.value
   const v = status.value?.batteryVoltage
-  return v != null ? `${v.toFixed(1)} V` : null
+  return v != null ? `${formatNumber(v)} V` : null
 })
 
 const avgSpeedKmh = computed(() => {
