@@ -74,8 +74,7 @@ This project follows a coordinated vulnerability disclosure model. Good-faith se
 
 ### Frontend
 
-- Content Security Policy (CSP) headers are applied
-- Subresource Integrity (SRI) is used for third-party assets where supported
+- Content Security Policy (CSP) headers are applied, restricting scripts/styles to same-origin plus specific sha256 hashes (`script-src 'self' 'sha256-...'`) -- there are no third-party CDN assets to apply SRI to; everything is self-hosted and bundled at build time
 - No sensitive data is stored in `localStorage` or `sessionStorage`
 
 ### Database
