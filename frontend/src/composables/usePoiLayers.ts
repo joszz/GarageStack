@@ -1,4 +1,5 @@
 import { computed, ref, watch, onUnmounted, type ComputedRef, type Ref } from 'vue'
+import { storeToRefs } from 'pinia'
 import { useI18n } from 'vue-i18n'
 import { L, type LeafletMap } from '@/utils/leaflet'
 import 'leaflet.markercluster'
@@ -92,43 +93,17 @@ export interface UsePoiLayersOptions {
 export function usePoiLayers({ mapInstance, vehicleType, isHev, isBev }: UsePoiLayersOptions) {
   const { t } = useI18n()
   const settingsStore = useMapSettingsStore()
-
-  const chargingStationsEnabled = computed({
-    get: () => settingsStore.chargingStationsEnabled,
-    set: (v: boolean) => {
-      settingsStore.chargingStationsEnabled = v
-    },
-  })
-  const fuelStationsEnabled = computed({
-    get: () => settingsStore.fuelStationsEnabled,
-    set: (v: boolean) => {
-      settingsStore.fuelStationsEnabled = v
-    },
-  })
-  const serviceAreasEnabled = computed({
-    get: () => settingsStore.serviceAreasEnabled,
-    set: (v: boolean) => {
-      settingsStore.serviceAreasEnabled = v
-    },
-  })
-  const fuelBrandFilter = computed({
-    get: () => settingsStore.fuelBrandFilter,
-    set: (v: string[]) => {
-      settingsStore.fuelBrandFilter = v
-    },
-  })
-  const chargingMinPowerKw = computed({
-    get: () => settingsStore.chargingMinPowerKw,
-    set: (v: number) => {
-      settingsStore.chargingMinPowerKw = v
-    },
-  })
-  const chargingMaxPowerKw = computed({
-    get: () => settingsStore.chargingMaxPowerKw,
-    set: (v: number) => {
-      settingsStore.chargingMaxPowerKw = v
-    },
-  })
+  // These are plain refs on the store already (Composition-API-style defineStore), so
+  // storeToRefs gives directly writable, reactive bindings with no wrapper needed - a
+  // computed({get, set}) proxy per field would only reproduce what storeToRefs already does.
+  const {
+    chargingStationsEnabled,
+    fuelStationsEnabled,
+    serviceAreasEnabled,
+    fuelBrandFilter,
+    chargingMinPowerKw,
+    chargingMaxPowerKw,
+  } = storeToRefs(settingsStore)
 
   // Slider value: [minKw, maxKw] where max=350 means "no upper limit" (stored as 0 in settings)
   const powerRangeSlider = computed({

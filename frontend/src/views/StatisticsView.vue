@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import '@/assets/statistics.css'
 import { onMounted, computed, ref, watch } from 'vue'
+import { storeToRefs } from 'pinia'
 import { useI18n } from 'vue-i18n'
 import { useVehicleStore } from '@/stores/vehicle'
 import { useDashboardSettingsStore } from '@/stores/settingsDashboard'
@@ -58,12 +59,9 @@ const editMode = ref(false)
 const loading = ref(false)
 const aggregateStats = ref<VehicleAggregateStats | null>(null)
 
-const days = computed({
-  get: () => uiSettings.filterDays,
-  set: (v: number) => {
-    uiSettings.filterDays = v
-  },
-})
+// Plain ref on the store already (Composition-API-style defineStore) - storeToRefs gives a
+// directly writable, reactive binding with no computed({get, set}) wrapper needed.
+const { filterDays: days } = storeToRefs(uiSettings)
 
 const vin = computed(() => store.vehicles[0]?.vin ?? null)
 const status = computed(() => store.currentStatus)

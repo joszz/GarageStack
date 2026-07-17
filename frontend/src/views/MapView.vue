@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, computed, ref, watch, nextTick } from 'vue'
+import { storeToRefs } from 'pinia'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { useVehicleStore } from '@/stores/vehicle'
@@ -43,33 +44,12 @@ const isBev = computed(() => vehicleType.value === 'bev')
 const vehicleTypeKnown = computed(() => vehicleType.value !== 'unknown')
 const displayLocale = computed(() => (uiSettingsStore.locale === 'nl' ? 'nl-NL' : 'en-US'))
 const selectedTripIndex = ref<number | null>(null)
-const heatmapEnabled = computed({
-  get: () => settingsStore.heatmapEnabled,
-  set: (v: boolean) => {
-    settingsStore.heatmapEnabled = v
-  },
-})
-const speedOverlayEnabled = computed({
-  get: () => settingsStore.speedOverlayEnabled,
-  set: (v: boolean) => {
-    settingsStore.speedOverlayEnabled = v
-  },
-})
-const routeOutlineEnabled = computed({
-  get: () => settingsStore.routeOutlineEnabled,
-  set: (v: boolean) => {
-    settingsStore.routeOutlineEnabled = v
-  },
-})
+// Plain refs on their stores already (Composition-API-style defineStore) - storeToRefs gives
+// directly writable, reactive bindings with no computed({get, set}) wrapper needed.
+const { heatmapEnabled, speedOverlayEnabled, routeOutlineEnabled } = storeToRefs(settingsStore)
+const { filterDays: dateRangeDays } = storeToRefs(uiSettingsStore)
 
 let shouldSelectLatest = route.query.selectLatest === '1'
-
-const dateRangeDays = computed({
-  get: () => uiSettingsStore.filterDays,
-  set: (v: number) => {
-    uiSettingsStore.filterDays = v
-  },
-})
 const LOAD_MORE_SIZE = 10
 
 const mapWrapperRef = ref<HTMLElement | null>(null)
