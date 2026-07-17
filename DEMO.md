@@ -97,8 +97,8 @@ No PostgreSQL, Mosquitto, Worker, or SAIC gateway containers are started.
 | Variable | Default | Description |
 | --- | --- | --- |
 | `DEMO_MODE` | `false` | Set to `true` to activate demo mode |
-| `AUTH_USERNAME` | _(required)_ | Login username |
-| `AUTH_PASSWORD` | _(required)_ | Login password |
+| `AUTH_USERNAME` | `demo` | Login username |
+| `AUTH_PASSWORD` | `demo` | Login password |
 | `JWT_SECRET` | _(required)_ | Min 32 chars, used to sign tokens |
 | `FRONTEND_PORT` | `8080` | Host port for the frontend container |
 | `API_PORT` | `5001` | Host port for the API container |

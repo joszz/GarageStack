@@ -261,7 +261,7 @@ const activeLightKey = computed(() => {
             viewBox="-40 0 420 480"
             xmlns="http://www.w3.org/2000/svg"
             class="tyre-diagram__svg"
-            aria-label="Vehicle status diagram"
+            :aria-label="t('vehicle.diagramLabel')"
           >
             <defs>
               <!--

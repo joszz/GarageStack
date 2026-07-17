@@ -672,7 +672,7 @@ const skeletonChartCount = computed(
     </div>
 
     <template v-if="loading">
-      <section class="stats-insights" aria-label="Statistics insights">
+      <section class="stats-insights" :aria-label="t('statistics.insightsSectionLabel')">
         <div class="status-grid">
           <SkeletonCard
             v-for="item in skeletonInsights"
@@ -699,7 +699,7 @@ const skeletonChartCount = computed(
 
       <template v-else>
         <!-- ── Insights ──────────────────────────────────── -->
-        <section class="stats-insights" aria-label="Statistics insights">
+        <section class="stats-insights" :aria-label="t('statistics.insightsSectionLabel')">
           <!-- Edit mode: draggable card slots -->
           <VueDraggable
             v-if="editMode"

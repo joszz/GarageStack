@@ -114,7 +114,7 @@ watch(
   },
 )
 
-useVehicleAlerts(status)
+useVehicleAlerts(status, t)
 
 function toggleEditMode() {
   editMode.value = !editMode.value

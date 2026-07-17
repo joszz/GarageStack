@@ -1,7 +1,34 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { ref, nextTick } from 'vue'
+import { createI18n } from 'vue-i18n'
 import { getOpenItems, getTyrePressureAlerts, useVehicleAlerts } from '../useVehicleAlerts'
 import type { TelemetrySnapshot } from '@/services/vehicleApi'
+
+const i18n = createI18n({
+  legacy: false,
+  locale: 'en',
+  messages: {
+    en: {
+      vehicle: {
+        alerts: {
+          openWhileParked: 'Open while parked: {items}',
+          tyrePressure: 'Tyre pressure: {items}',
+          driverDoor: 'driver door',
+          passengerDoor: 'passenger door',
+          rearLeftDoor: 'rear left door',
+          rearRightDoor: 'rear right door',
+          boot: 'boot',
+          bonnet: 'bonnet',
+          driverWindow: 'driver window',
+          passengerWindow: 'passenger window',
+          rearLeftWindow: 'rear left window',
+          rearRightWindow: 'rear right window',
+        },
+      },
+    },
+  },
+})
+const t = i18n.global.t
 
 function makeSnapshot(overrides: Partial<TelemetrySnapshot> = {}): TelemetrySnapshot {
   return {
@@ -85,7 +112,7 @@ function makeSnapshot(overrides: Partial<TelemetrySnapshot> = {}): TelemetrySnap
 
 describe('getOpenItems', () => {
   it('returns empty array when all values are null', () => {
-    expect(getOpenItems(makeSnapshot())).toEqual([])
+    expect(getOpenItems(makeSnapshot(), t)).toEqual([])
   })
 
   it('returns empty array when all items are closed', () => {
@@ -96,26 +123,27 @@ describe('getOpenItems', () => {
           passengerDoorOpen: false,
           sunRoofOpen: false,
         }),
+        t,
       ),
     ).toEqual([])
   })
 
   it('detects open driver door', () => {
-    expect(getOpenItems(makeSnapshot({ driverDoorOpen: true }))).toContain('driver door')
+    expect(getOpenItems(makeSnapshot({ driverDoorOpen: true }), t)).toContain('driver door')
   })
 
   it('detects open passenger door', () => {
-    expect(getOpenItems(makeSnapshot({ passengerDoorOpen: true }))).toContain('passenger door')
+    expect(getOpenItems(makeSnapshot({ passengerDoorOpen: true }), t)).toContain('passenger door')
   })
 
   it('detects open rear doors', () => {
-    const items = getOpenItems(makeSnapshot({ rearLeftDoorOpen: true, rearRightDoorOpen: true }))
+    const items = getOpenItems(makeSnapshot({ rearLeftDoorOpen: true, rearRightDoorOpen: true }), t)
     expect(items).toContain('rear left door')
     expect(items).toContain('rear right door')
   })
 
   it('detects open boot and bonnet', () => {
-    const items = getOpenItems(makeSnapshot({ trunkOpen: true, bonnetOpen: true }))
+    const items = getOpenItems(makeSnapshot({ trunkOpen: true, bonnetOpen: true }), t)
     expect(items).toContain('boot')
     expect(items).toContain('bonnet')
   })
@@ -128,6 +156,7 @@ describe('getOpenItems', () => {
         rearLeftWindowOpen: true,
         rearRightWindowOpen: true,
       }),
+      t,
     )
     expect(items).toContain('driver window')
     expect(items).toContain('passenger window')
@@ -136,7 +165,7 @@ describe('getOpenItems', () => {
   })
 
   it('returns only open items when mixed', () => {
-    const items = getOpenItems(makeSnapshot({ driverDoorOpen: true, passengerDoorOpen: false }))
+    const items = getOpenItems(makeSnapshot({ driverDoorOpen: true, passengerDoorOpen: false }), t)
     expect(items).toHaveLength(1)
     expect(items).toContain('driver door')
   })
@@ -244,14 +273,14 @@ describe('useVehicleAlerts', () => {
 
   it('does not fire when status is null', async () => {
     const status = ref<TelemetrySnapshot | null>(null)
-    useVehicleAlerts(status)
+    useVehicleAlerts(status, t)
     await nextTick()
     expect(notificationMock).not.toHaveBeenCalled()
   })
 
   it('fires open-while-parked notification when door is open and engine off', async () => {
     const status = ref<TelemetrySnapshot | null>(null)
-    useVehicleAlerts(status)
+    useVehicleAlerts(status, t)
     status.value = makeSnapshot({ engineRunning: false, driverDoorOpen: true })
     await nextTick()
     expect(notificationMock).toHaveBeenCalledWith(
@@ -262,7 +291,7 @@ describe('useVehicleAlerts', () => {
 
   it('does not fire open notification when engine is running', async () => {
     const status = ref<TelemetrySnapshot | null>(null)
-    useVehicleAlerts(status)
+    useVehicleAlerts(status, t)
     status.value = makeSnapshot({ engineRunning: true, driverDoorOpen: true })
     await nextTick()
     expect(notificationMock).not.toHaveBeenCalled()
@@ -270,7 +299,7 @@ describe('useVehicleAlerts', () => {
 
   it('does not repeat open notification on subsequent polls while still open', async () => {
     const status = ref<TelemetrySnapshot | null>(null)
-    useVehicleAlerts(status)
+    useVehicleAlerts(status, t)
     status.value = makeSnapshot({ engineRunning: false, driverDoorOpen: true })
     await nextTick()
     status.value = makeSnapshot({ engineRunning: false, driverDoorOpen: true })
@@ -280,7 +309,7 @@ describe('useVehicleAlerts', () => {
 
   it('resets and re-fires open alert after door closes then reopens', async () => {
     const status = ref<TelemetrySnapshot | null>(null)
-    useVehicleAlerts(status)
+    useVehicleAlerts(status, t)
     status.value = makeSnapshot({ engineRunning: false, driverDoorOpen: true })
     await nextTick()
     status.value = makeSnapshot({ engineRunning: false, driverDoorOpen: false })
@@ -292,7 +321,7 @@ describe('useVehicleAlerts', () => {
 
   it('fires tyre pressure notification when pressure is low', async () => {
     const status = ref<TelemetrySnapshot | null>(null)
-    useVehicleAlerts(status)
+    useVehicleAlerts(status, t)
     status.value = makeSnapshot({ tyrePressureFrontLeft: 1.5 })
     await nextTick()
     expect(notificationMock).toHaveBeenCalledWith(
@@ -303,7 +332,7 @@ describe('useVehicleAlerts', () => {
 
   it('does not repeat tyre alert on subsequent polls while still low', async () => {
     const status = ref<TelemetrySnapshot | null>(null)
-    useVehicleAlerts(status)
+    useVehicleAlerts(status, t)
     status.value = makeSnapshot({ tyrePressureFrontLeft: 1.5 })
     await nextTick()
     status.value = makeSnapshot({ tyrePressureFrontLeft: 1.5 })
@@ -313,7 +342,7 @@ describe('useVehicleAlerts', () => {
 
   it('does not fire open notification when engineRunning is null (unknown state)', async () => {
     const status = ref<TelemetrySnapshot | null>(null)
-    useVehicleAlerts(status)
+    useVehicleAlerts(status, t)
     status.value = makeSnapshot({ engineRunning: null, driverDoorOpen: true })
     await nextTick()
     expect(notificationMock).not.toHaveBeenCalled()
@@ -326,7 +355,7 @@ describe('useVehicleAlerts', () => {
       configurable: true,
     })
     const status = ref<TelemetrySnapshot | null>(null)
-    useVehicleAlerts(status)
+    useVehicleAlerts(status, t)
     status.value = makeSnapshot({ engineRunning: false, driverDoorOpen: true })
     await nextTick()
     expect(notificationMock).not.toHaveBeenCalled()

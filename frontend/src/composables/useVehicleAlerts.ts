@@ -7,18 +7,25 @@ import {
   type TyrePressureThresholds,
 } from '@/composables/useTyrePressureThresholds'
 
-export function getOpenItems(s: TelemetrySnapshot): string[] {
+// `t` is injected rather than obtained via useI18n() here so these stay plain, directly
+// testable functions - useI18n() requires an active component setup context, which these
+// don't have when called from useVehicleAlerts's own unit tests. A minimal structural type
+// (rather than vue-i18n's own ComposerTranslation) avoids coupling to a specific locale's
+// message-key generics, which differ between the app's real i18n instance and a test one.
+type Translate = (key: string, named?: Record<string, unknown>) => string
+
+export function getOpenItems(s: TelemetrySnapshot, t: Translate): string[] {
   const open: string[] = []
-  if (s.driverDoorOpen) open.push('driver door')
-  if (s.passengerDoorOpen) open.push('passenger door')
-  if (s.rearLeftDoorOpen) open.push('rear left door')
-  if (s.rearRightDoorOpen) open.push('rear right door')
-  if (s.trunkOpen) open.push('boot')
-  if (s.bonnetOpen) open.push('bonnet')
-  if (s.driverWindowOpen) open.push('driver window')
-  if (s.passengerWindowOpen) open.push('passenger window')
-  if (s.rearLeftWindowOpen) open.push('rear left window')
-  if (s.rearRightWindowOpen) open.push('rear right window')
+  if (s.driverDoorOpen) open.push(t('vehicle.alerts.driverDoor'))
+  if (s.passengerDoorOpen) open.push(t('vehicle.alerts.passengerDoor'))
+  if (s.rearLeftDoorOpen) open.push(t('vehicle.alerts.rearLeftDoor'))
+  if (s.rearRightDoorOpen) open.push(t('vehicle.alerts.rearRightDoor'))
+  if (s.trunkOpen) open.push(t('vehicle.alerts.boot'))
+  if (s.bonnetOpen) open.push(t('vehicle.alerts.bonnet'))
+  if (s.driverWindowOpen) open.push(t('vehicle.alerts.driverWindow'))
+  if (s.passengerWindowOpen) open.push(t('vehicle.alerts.passengerWindow'))
+  if (s.rearLeftWindowOpen) open.push(t('vehicle.alerts.rearLeftWindow'))
+  if (s.rearRightWindowOpen) open.push(t('vehicle.alerts.rearRightWindow'))
   return open
 }
 
@@ -62,20 +69,26 @@ function useStickyAlert<T>(notify: (issues: T[]) => void) {
   }
 }
 
-export function useVehicleAlerts(status: Ref<TelemetrySnapshot | null>) {
+export function useVehicleAlerts(status: Ref<TelemetrySnapshot | null>, t: Translate) {
   const tyreThresholds = useTyrePressureThresholds()
   const checkOpenAlert = useStickyAlert<string>((open) =>
-    showNotification('GarageStack', `Open while parked: ${open.join(', ')}`),
+    showNotification(
+      'GarageStack',
+      t('vehicle.alerts.openWhileParked', { items: open.join(', ') }),
+    ),
   )
   const checkTyreAlert = useStickyAlert<string>((tyreIssues) =>
-    showNotification('GarageStack', `Tyre pressure: ${tyreIssues.join(', ')}`),
+    showNotification(
+      'GarageStack',
+      t('vehicle.alerts.tyrePressure', { items: tyreIssues.join(', ') }),
+    ),
   )
 
   watch(status, (s) => {
     if (!s) return
 
     if (s.engineRunning === false) {
-      checkOpenAlert(getOpenItems(s))
+      checkOpenAlert(getOpenItems(s, t))
     } else if (s.engineRunning === true) {
       checkOpenAlert([])
     }
