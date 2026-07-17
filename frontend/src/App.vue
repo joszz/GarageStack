@@ -165,7 +165,12 @@ watch(
 
     <!-- Mobile topbar -->
     <header class="mobile-topbar">
-      <button class="hamburger" :aria-expanded="menuOpen" aria-label="Menu" @click="toggleMenu">
+      <button
+        class="hamburger"
+        :aria-expanded="menuOpen"
+        :aria-label="t('nav.menuLabel')"
+        @click="toggleMenu"
+      >
         <font-awesome-icon :icon="menuOpen ? 'xmark' : 'bars'" />
       </button>
       <RouterLink to="/" class="mobile-brand">

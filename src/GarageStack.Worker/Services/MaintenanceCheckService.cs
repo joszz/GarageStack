@@ -2,6 +2,7 @@ using GarageStack.Core.Helpers;
 using GarageStack.Core.Interfaces;
 using GarageStack.Core.Models;
 using GarageStack.Data;
+using GarageStack.Data.Extensions;
 using Microsoft.EntityFrameworkCore;
 
 namespace GarageStack.Worker.Services;
@@ -62,9 +63,8 @@ public class MaintenanceCheckService(
                 var alert = BuildAlert(item, result);
                 if (alert is null) continue;
 
-                var cutoff = DateTime.UtcNow - _cooldownGate.Cooldown;
-                var shouldNotify = await _cooldownGate.ShouldNotifyAsync(vehicle.Vin, alert.Value.Category, () =>
-                    db.AppNotifications.AnyAsync(n => n.Category == alert.Value.Category && n.VehicleId == vehicle.Id && n.CreatedAt > cutoff, ct));
+                var shouldNotify = await _cooldownGate.ShouldNotifyAsync(vehicle.Vin, alert.Value.Category, cutoff =>
+                    db.WasNotificationSentSinceAsync(alert.Value.Category, vehicle.Id, cutoff, ct));
                 if (!shouldNotify) continue;
 
                 await pushSender.SendToAllAsync(alert.Value.Title, alert.Value.Body, ct, alert.Value.Category, vehicle.Id);

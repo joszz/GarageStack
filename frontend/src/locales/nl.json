@@ -3,7 +3,8 @@
     "dashboard": "Dashboard",
     "statistics": "Statistieken",
     "map": "Kaart",
-    "maintenance": "Onderhoud"
+    "maintenance": "Onderhoud",
+    "menuLabel": "Menu"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -46,6 +47,7 @@
     }
   },
   "statistics": {
+    "insightsSectionLabel": "Statistiekoverzicht",
     "insights": {
       "distanceInRange": "Afstand in periode",
       "monthlyMileage": "Maandkilometrage",
@@ -77,6 +79,7 @@
     "dailyKwhChart": "Dagelijks elektrisch verbruik (kWh)"
   },
   "vehicle": {
+    "diagramLabel": "Voertuigstatusdiagram",
     "wentOnline": "Voertuig is online",
     "wentOffline": "Voertuig is offline gegaan",
     "fuel": "Brandstof",
@@ -127,6 +130,20 @@
       "rearRight": "Achter rechts",
       "bonnet": "Motorkap",
       "boot": "Kofferruimte"
+    },
+    "alerts": {
+      "openWhileParked": "Open terwijl geparkeerd: {items}",
+      "tyrePressure": "Bandenspanning: {items}",
+      "driverDoor": "bestuurdersdeur",
+      "passengerDoor": "passagiersdeur",
+      "rearLeftDoor": "linkerachterdeur",
+      "rearRightDoor": "rechterachterdeur",
+      "boot": "kofferbak",
+      "bonnet": "motorkap",
+      "driverWindow": "bestuurdersraam",
+      "passengerWindow": "passagiersraam",
+      "rearLeftWindow": "linkerachterraam",
+      "rearRightWindow": "rechterachterraam"
     },
     "efficiency": {
       "todayDistance": "Afst. vandaag",
@@ -297,6 +314,7 @@
     }
   },
   "auth": {
+    "formLabel": "Inlogformulier",
     "subtitle": "Log in met je MG-accountgegevens",
     "username": "Gebruikersnaam",
     "password": "Wachtwoord",
