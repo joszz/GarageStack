@@ -3,15 +3,25 @@ using GarageStack.Core.Interfaces;
 using GarageStack.Core.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Logging;
 using Npgsql;
 
 namespace GarageStack.Data.Repositories;
 
-public class PoiRepository(AppDbContext db, IMemoryCache cache) : IPoiRepository
+// logger is optional (DI always supplies one) so existing tests can keep constructing this
+// directly with just a DbContext and cache.
+public class PoiRepository(AppDbContext db, IMemoryCache cache, ILogger<PoiRepository>? logger = null) : IPoiRepository
 {
     // Brand lists (charging network operators, fuel brands) change rarely, so a short cache
     // avoids re-deserializing every PoiItem's MetaJson on every map filter-panel open.
     private static readonly TimeSpan BrandsCacheTtl = TimeSpan.FromMinutes(15);
+
+    // Defensive cap on GetPoisInBoundsAsync. The map endpoint already bounds radiusKm to
+    // <= 200km (MapEndpoints.ValidateRadiusKm), and POI density is inherently bounded by
+    // real-world business counts (nowhere near TelemetryRepository's per-vehicle row growth),
+    // so this is far above any realistic result set - a safety net, not expected to affect
+    // normal queries.
+    private const int MaxPoisPerBoundsQuery = 10_000;
     // Used both for the on-demand API path (any tile not cached yet) and the Worker's
     // pre-cache path (tiles whose cache has since expired) - "uncached" and "expired or
     // missing" are the same query: anything outside the currently-valid (ExpiresAt > now) set.
@@ -157,12 +167,20 @@ public class PoiRepository(AppDbContext db, IMemoryCache cache) : IPoiRepository
         double maxLat, double maxLng,
         CancellationToken ct = default)
     {
-        return await db.PoiItems
+        var pois = await db.PoiItems
             .Where(p => p.Source == source && p.PoiType == poiType
                         && p.Latitude >= minLat && p.Latitude <= maxLat
                         && p.Longitude >= minLng && p.Longitude <= maxLng)
             .AsNoTracking()
+            .Take(MaxPoisPerBoundsQuery)
             .ToListAsync(ct);
+
+        if (pois.Count == MaxPoisPerBoundsQuery)
+            logger?.LogWarning(
+                "GetPoisInBoundsAsync hit the {Cap}-row cap for source={Source} poiType={PoiType} bounds=({MinLat},{MinLng})-({MaxLat},{MaxLng})",
+                MaxPoisPerBoundsQuery, source, poiType, minLat, minLng, maxLat, maxLng);
+
+        return pois;
     }
 
     public async Task<IReadOnlyList<string>> GetDistinctBrandsAsync(
