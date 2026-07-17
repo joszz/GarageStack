@@ -90,4 +90,38 @@ public class NotificationCooldownGateTests
 
         Assert.True(result);
     }
+
+    // ── Cutoff-computing overload (used by MaintenanceCheckService/PushNotificationCheckService
+    // via AppDbContext.WasNotificationSentSinceAsync) ──────────────────────────────────────────
+
+    [Fact]
+    public async Task ShouldNotifyWithCutoff_PassesCooldownDerivedCutoff_ToCallback()
+    {
+        var cooldown = TimeSpan.FromHours(1);
+        var gate = new NotificationCooldownGate(cooldown);
+        var before = DateTime.UtcNow;
+
+        DateTime? receivedCutoff = null;
+        await gate.ShouldNotifyAsync("VIN1", "low-tyre", cutoff =>
+        {
+            receivedCutoff = cutoff;
+            return Task.FromResult(false);
+        });
+
+        Assert.NotNull(receivedCutoff);
+        // The cutoff passed to the callback is "now minus cooldown", computed at call time -
+        // assert it falls within the window this test itself ran in, rather than pinning an
+        // exact timestamp.
+        Assert.InRange(receivedCutoff!.Value, before - cooldown, DateTime.UtcNow - cooldown);
+    }
+
+    [Fact]
+    public async Task ShouldNotifyWithCutoff_DbHasRecentMatch_ReturnsFalse()
+    {
+        var gate = new NotificationCooldownGate(TimeSpan.FromHours(1));
+
+        var result = await gate.ShouldNotifyAsync("VIN1", "engine-start", _ => Task.FromResult(true));
+
+        Assert.False(result);
+    }
 }

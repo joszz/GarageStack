@@ -2,6 +2,7 @@ using GarageStack.Core.Configuration;
 using GarageStack.Core.Helpers;
 using GarageStack.Core.Interfaces;
 using GarageStack.Data;
+using GarageStack.Data.Extensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -82,9 +83,8 @@ public class PushNotificationCheckService(
                 // another vehicle's same-category alert; this also lets MQTT-emitted notifications
                 // (e.g. engine-start, sent directly from MqttConsumerService) suppress a repeated
                 // checker alert for the same category.
-                var cutoff = DateTime.UtcNow - _cooldownGate.Cooldown;
-                var shouldNotify = await _cooldownGate.ShouldNotifyAsync(vehicle.Vin, key, () =>
-                    db.AppNotifications.AnyAsync(n => n.Category == key && n.VehicleId == vehicle.Id && n.CreatedAt > cutoff, ct));
+                var shouldNotify = await _cooldownGate.ShouldNotifyAsync(vehicle.Vin, key, cutoff =>
+                    db.WasNotificationSentSinceAsync(key, vehicle.Id, cutoff, ct));
                 if (!shouldNotify) continue;
 
                 await pushSender.SendToAllAsync(title, body, ct, key, vehicle.Id);

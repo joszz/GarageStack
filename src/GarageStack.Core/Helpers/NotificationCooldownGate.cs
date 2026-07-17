@@ -43,4 +43,13 @@ public sealed class NotificationCooldownGate(TimeSpan cooldown)
         lock (_lock) { _lastNotified[key] = DateTime.UtcNow; }
         return true;
     }
+
+    /// <summary>
+    /// Convenience overload: computes the cutoff from <see cref="Cooldown"/> and passes it to
+    /// <paramref name="wasRecentlySentSinceAsync"/>, so callers only need to supply the DB
+    /// check itself (e.g. <c>AppDbContext.WasNotificationSentSinceAsync</c>) instead of also
+    /// managing the cutoff calculation at every call site.
+    /// </summary>
+    public Task<bool> ShouldNotifyAsync(string vin, string category, Func<DateTime, Task<bool>> wasRecentlySentSinceAsync) =>
+        ShouldNotifyAsync(vin, category, () => wasRecentlySentSinceAsync(DateTime.UtcNow - Cooldown));
 }
