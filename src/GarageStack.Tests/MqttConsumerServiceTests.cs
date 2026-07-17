@@ -1,6 +1,8 @@
 using GarageStack.Core.Interfaces;
 using GarageStack.Core.Models;
+using GarageStack.Data;
 using GarageStack.Worker.Mqtt;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using MQTTnet;
@@ -187,6 +189,13 @@ public class MqttConsumerServiceTests
             new FakeServiceScopeFactory(),
             push);
 
+    // CheckEngineStartAsync's cooldown gate checks AppNotifications via this db - an empty
+    // in-memory context is enough for these tests since none of them pre-seed a notification row.
+    private static AppDbContext CreateTestDb() =>
+        new(new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options);
+
     [Fact]
     public async Task MergeOrAddTelemetryAsync_ConcurrentCallsSameVehicle_SecondCallMergesInsteadOfRacing()
     {
@@ -210,11 +219,13 @@ public class MqttConsumerServiceTests
     [Fact]
     public async Task CheckEngineStartAsync_FirstObservationRunning_SeedsWithoutFiring()
     {
+        var ct = TestContext.Current.CancellationToken;
         var push = new FakePushSender();
         var svc = CreateService(push);
+        await using var db = CreateTestDb();
 
         // On restart the car may already be running; the first observation must not fire.
-        await svc.CheckEngineStartAsync("VIN1", new TelemetrySnapshot { EngineRunning = true }, CancellationToken.None);
+        await svc.CheckEngineStartAsync("VIN1", new TelemetrySnapshot { EngineRunning = true }, db, ct);
 
         Assert.Empty(push.Sent);
     }
@@ -222,12 +233,14 @@ public class MqttConsumerServiceTests
     [Fact]
     public async Task CheckEngineStartAsync_GenuineTransition_SendsPushNotification()
     {
+        var ct = TestContext.Current.CancellationToken;
         var push = new FakePushSender();
         var svc = CreateService(push);
+        await using var db = CreateTestDb();
 
         // Seed the state with the engine off, then observe a start.
-        await svc.CheckEngineStartAsync("VIN1", new TelemetrySnapshot { EngineRunning = false }, CancellationToken.None);
-        await svc.CheckEngineStartAsync("VIN1", new TelemetrySnapshot { EngineRunning = true }, CancellationToken.None);
+        await svc.CheckEngineStartAsync("VIN1", new TelemetrySnapshot { EngineRunning = false }, db, ct);
+        await svc.CheckEngineStartAsync("VIN1", new TelemetrySnapshot { EngineRunning = true }, db, ct);
 
         Assert.Single(push.Sent);
         Assert.Equal("Engine started", push.Sent[0].Title);
@@ -236,13 +249,15 @@ public class MqttConsumerServiceTests
     [Fact]
     public async Task CheckEngineStartAsync_AlreadyRunning_DoesNotSendAgain()
     {
+        var ct = TestContext.Current.CancellationToken;
         var push = new FakePushSender();
         var svc = CreateService(push);
+        await using var db = CreateTestDb();
 
         var snap = new TelemetrySnapshot { EngineRunning = true };
         // First: seed. Second: no transition. Neither fires.
-        await svc.CheckEngineStartAsync("VIN1", snap, CancellationToken.None);
-        await svc.CheckEngineStartAsync("VIN1", snap, CancellationToken.None);
+        await svc.CheckEngineStartAsync("VIN1", snap, db, ct);
+        await svc.CheckEngineStartAsync("VIN1", snap, db, ct);
 
         Assert.Empty(push.Sent);
     }
@@ -250,10 +265,12 @@ public class MqttConsumerServiceTests
     [Fact]
     public async Task CheckEngineStartAsync_EngineOff_DoesNotSendNotification()
     {
+        var ct = TestContext.Current.CancellationToken;
         var push = new FakePushSender();
         var svc = CreateService(push);
+        await using var db = CreateTestDb();
 
-        await svc.CheckEngineStartAsync("VIN1", new TelemetrySnapshot { EngineRunning = false }, CancellationToken.None);
+        await svc.CheckEngineStartAsync("VIN1", new TelemetrySnapshot { EngineRunning = false }, db, ct);
 
         Assert.Empty(push.Sent);
     }
@@ -261,13 +278,15 @@ public class MqttConsumerServiceTests
     [Fact]
     public async Task CheckEngineStartAsync_StartStopStart_SendsOneNotification()
     {
+        var ct = TestContext.Current.CancellationToken;
         var push = new FakePushSender();
         var svc = CreateService(push);
+        await using var db = CreateTestDb();
 
         // Seed (no fire), stop, start -> exactly one notification.
-        await svc.CheckEngineStartAsync("VIN1", new TelemetrySnapshot { EngineRunning = true }, CancellationToken.None);
-        await svc.CheckEngineStartAsync("VIN1", new TelemetrySnapshot { EngineRunning = false }, CancellationToken.None);
-        await svc.CheckEngineStartAsync("VIN1", new TelemetrySnapshot { EngineRunning = true }, CancellationToken.None);
+        await svc.CheckEngineStartAsync("VIN1", new TelemetrySnapshot { EngineRunning = true }, db, ct);
+        await svc.CheckEngineStartAsync("VIN1", new TelemetrySnapshot { EngineRunning = false }, db, ct);
+        await svc.CheckEngineStartAsync("VIN1", new TelemetrySnapshot { EngineRunning = true }, db, ct);
 
         Assert.Single(push.Sent);
     }
@@ -275,10 +294,12 @@ public class MqttConsumerServiceTests
     [Fact]
     public async Task CheckEngineStartAsync_NullEngineRunning_SkipsCheck()
     {
+        var ct = TestContext.Current.CancellationToken;
         var push = new FakePushSender();
         var svc = CreateService(push);
+        await using var db = CreateTestDb();
 
-        await svc.CheckEngineStartAsync("VIN1", new TelemetrySnapshot { EngineRunning = null }, CancellationToken.None);
+        await svc.CheckEngineStartAsync("VIN1", new TelemetrySnapshot { EngineRunning = null }, db, ct);
 
         Assert.Empty(push.Sent);
     }
@@ -286,16 +307,40 @@ public class MqttConsumerServiceTests
     [Fact]
     public async Task CheckEngineStartAsync_MultipleVins_TracksStateIndependently()
     {
+        var ct = TestContext.Current.CancellationToken;
         var push = new FakePushSender();
         var svc = CreateService(push);
+        await using var db = CreateTestDb();
 
         // Seed both VINs as off, then start each one independently.
-        await svc.CheckEngineStartAsync("VIN1", new TelemetrySnapshot { EngineRunning = false }, CancellationToken.None);
-        await svc.CheckEngineStartAsync("VIN2", new TelemetrySnapshot { EngineRunning = false }, CancellationToken.None);
-        await svc.CheckEngineStartAsync("VIN1", new TelemetrySnapshot { EngineRunning = true }, CancellationToken.None);
-        await svc.CheckEngineStartAsync("VIN2", new TelemetrySnapshot { EngineRunning = true }, CancellationToken.None);
+        await svc.CheckEngineStartAsync("VIN1", new TelemetrySnapshot { EngineRunning = false }, db, ct);
+        await svc.CheckEngineStartAsync("VIN2", new TelemetrySnapshot { EngineRunning = false }, db, ct);
+        await svc.CheckEngineStartAsync("VIN1", new TelemetrySnapshot { EngineRunning = true }, db, ct);
+        await svc.CheckEngineStartAsync("VIN2", new TelemetrySnapshot { EngineRunning = true }, db, ct);
 
         Assert.Equal(2, push.Sent.Count);
+    }
+
+    [Fact]
+    public async Task CheckEngineStartAsync_RapidFlap_DoesNotSendDuplicateNotification()
+    {
+        // Regression test for the P0 fix: MqttConsumerService.CheckEngineStartAsync previously
+        // sent a push on every false->true transition _engineRunningTracker observed, with no
+        // cooldown at all - a flapping EngineRunning signal (MQTT reconnect/replay noise) could
+        // fire a burst of duplicate "Engine started" pushes. The cooldown gate must suppress the
+        // second genuine transition within its window even though the tracker itself sees it as
+        // a real state change.
+        var ct = TestContext.Current.CancellationToken;
+        var push = new FakePushSender();
+        var svc = CreateService(push);
+        await using var db = CreateTestDb();
+
+        await svc.CheckEngineStartAsync("VIN1", new TelemetrySnapshot { EngineRunning = false }, db, ct);
+        await svc.CheckEngineStartAsync("VIN1", new TelemetrySnapshot { EngineRunning = true }, db, ct); // genuine start - sends
+        await svc.CheckEngineStartAsync("VIN1", new TelemetrySnapshot { EngineRunning = false }, db, ct); // flap off
+        await svc.CheckEngineStartAsync("VIN1", new TelemetrySnapshot { EngineRunning = true }, db, ct); // flap back on - must not re-send
+
+        Assert.Single(push.Sent);
     }
 }
 

@@ -4,6 +4,7 @@ using GarageStack.Core.Helpers;
 using GarageStack.Core.Interfaces;
 using GarageStack.Core.Models;
 using GarageStack.Data;
+using GarageStack.Data.Extensions;
 using GarageStack.Worker.Services;
 using MQTTnet;
 using MQTTnet.Protocol;
@@ -26,6 +27,15 @@ public class MqttConsumerService(
     // observation for a VIN only seeds the tracker; it never fires a notification,
     // preventing bogus "engine started" alerts after a deploy or crash.
     internal readonly VinStateTracker<bool> _engineRunningTracker = new();
+
+    // Same cooldown and "engine-start" category PushNotificationCheckService uses for its own
+    // (slower, polled) engine-start detection - this path fires immediately on the MQTT event
+    // for low-latency delivery, but still needs its own gate: a flapping EngineRunning signal
+    // (reconnect/replay noise) would otherwise send an ungated push on every observed
+    // false->true transition. The two services' gates are separate instances, but both check
+    // AppNotifications via the same category key, so either one seeing a recent send suppresses
+    // the other.
+    private readonly NotificationCooldownGate _engineStartCooldownGate = new(TimeSpan.FromHours(1));
 
     // MQTT polling cycles emit several messages within ~2 seconds (one per topic).
     // Messages arriving within this window are merged into the same DB row so that
@@ -197,7 +207,7 @@ public class MqttConsumerService(
 
             await MergeOrAddTelemetryAsync(vehicle.Id, patch, topic, telemetryRepo, ct);
 
-            var tripCompleted = await CheckEngineStartAsync(vin, patch, ct);
+            var tripCompleted = await CheckEngineStartAsync(vin, patch, db, ct);
             if (tripCompleted && patch.VehicleId > 0)
             {
                 var vid = patch.VehicleId.ToString();
@@ -240,7 +250,7 @@ public class MqttConsumerService(
         }
     }
 
-    internal async Task<bool> CheckEngineStartAsync(string vin, TelemetrySnapshot snapshot, CancellationToken ct)
+    internal async Task<bool> CheckEngineStartAsync(string vin, TelemetrySnapshot snapshot, AppDbContext db, CancellationToken ct)
     {
         if (snapshot.EngineRunning is null) return false;
 
@@ -252,8 +262,13 @@ public class MqttConsumerService(
         switch (BoolTransitionDetector.Detect(hadPrevious, wasRunning, current))
         {
             case StateTransition.TurnedOn:
-                logger.LogInformation("Engine started for VIN={Vin} - sending push notification", vin);
-                await pushSender.SendToAllAsync("Engine started", "Your car has been started.", ct, "engine-start", snapshot.VehicleId);
+                var shouldNotify = await _engineStartCooldownGate.ShouldNotifyAsync(vin, "engine-start", cutoff =>
+                    db.WasNotificationSentSinceAsync("engine-start", snapshot.VehicleId, cutoff, ct));
+                if (shouldNotify)
+                {
+                    logger.LogInformation("Engine started for VIN={Vin} - sending push notification", vin);
+                    await pushSender.SendToAllAsync("Engine started", "Your car has been started.", ct, "engine-start", snapshot.VehicleId);
+                }
                 return false;
 
             case StateTransition.TurnedOff:
