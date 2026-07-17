@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ExpandableStatusCard from './ExpandableStatusCard.vue'
 import DetailListItem from './DetailListItem.vue'
+import { useBooleanStatusList } from '@/composables/useBooleanStatusList'
 
 const { t } = useI18n()
 
@@ -13,30 +14,12 @@ const props = defineProps<{
   rearRightWindowOpen: boolean | null
 }>()
 
-type WinItem = { key: string; label: string; open: boolean }
-
-const windowList = computed((): WinItem[] =>
-  (
-    [
-      { key: 'driver', label: t('vehicle.doors_detail.driver'), open: props.driverWindowOpen },
-      {
-        key: 'passenger',
-        label: t('vehicle.doors_detail.passenger'),
-        open: props.passengerWindowOpen,
-      },
-      {
-        key: 'rearLeft',
-        label: t('vehicle.doors_detail.rearLeft'),
-        open: props.rearLeftWindowOpen,
-      },
-      {
-        key: 'rearRight',
-        label: t('vehicle.doors_detail.rearRight'),
-        open: props.rearRightWindowOpen,
-      },
-    ] as { key: string; label: string; open: boolean | null }[]
-  ).filter((w): w is WinItem => w.open !== null),
-)
+const windowList = useBooleanStatusList(() => [
+  { key: 'driver', label: t('vehicle.doors_detail.driver'), open: props.driverWindowOpen },
+  { key: 'passenger', label: t('vehicle.doors_detail.passenger'), open: props.passengerWindowOpen },
+  { key: 'rearLeft', label: t('vehicle.doors_detail.rearLeft'), open: props.rearLeftWindowOpen },
+  { key: 'rearRight', label: t('vehicle.doors_detail.rearRight'), open: props.rearRightWindowOpen },
+])
 
 const openWindows = computed(() => windowList.value.filter((w) => w.open))
 

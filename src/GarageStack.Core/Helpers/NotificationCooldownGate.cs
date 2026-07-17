@@ -10,7 +10,7 @@ public sealed class NotificationCooldownGate(TimeSpan cooldown)
 {
     public TimeSpan Cooldown { get; } = cooldown;
 
-    private readonly Dictionary<string, DateTime> _lastNotified = new();
+    internal readonly Dictionary<string, DateTime> _lastNotified = new();
 
     // Guards _lastNotified: callers invoke ShouldNotifyAsync from a single BackgroundService
     // loop today, but this class makes no assumption about that staying true.
@@ -28,6 +28,7 @@ public sealed class NotificationCooldownGate(TimeSpan cooldown)
 
         lock (_lock)
         {
+            EvictExpired();
             if (_lastNotified.TryGetValue(key, out var last) && DateTime.UtcNow - last < Cooldown)
                 return false;
         }
@@ -52,4 +53,25 @@ public sealed class NotificationCooldownGate(TimeSpan cooldown)
     /// </summary>
     public Task<bool> ShouldNotifyAsync(string vin, string category, Func<DateTime, Task<bool>> wasRecentlySentSinceAsync) =>
         ShouldNotifyAsync(vin, category, () => wasRecentlySentSinceAsync(DateTime.UtcNow - Cooldown));
+
+    // Called with _lock already held. An entry past Cooldown provides no further dedup value
+    // (the TryGetValue check above would ignore it anyway), so this is a pure memory-cleanup
+    // sweep with no behavioral effect - keeps a long-lived gate (e.g. maintenance items that
+    // get deleted and never checked again) from growing forever.
+    private void EvictExpired()
+    {
+        if (_lastNotified.Count == 0) return;
+
+        var now = DateTime.UtcNow;
+        List<string>? expired = null;
+        foreach (var (key, last) in _lastNotified)
+        {
+            if (now - last >= Cooldown)
+                (expired ??= []).Add(key);
+        }
+        if (expired is null) return;
+
+        foreach (var key in expired)
+            _lastNotified.Remove(key);
+    }
 }

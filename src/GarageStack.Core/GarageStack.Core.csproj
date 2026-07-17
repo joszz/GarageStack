@@ -12,4 +12,8 @@
     <PackageReference Include="MinVer" Version="7.0.0" PrivateAssets="all" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="GarageStack.Tests" />
+  </ItemGroup>
+
 </Project>

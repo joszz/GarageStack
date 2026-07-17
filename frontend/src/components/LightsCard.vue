@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ExpandableStatusCard from './ExpandableStatusCard.vue'
 import DetailListItem from './DetailListItem.vue'
+import { useBooleanStatusList } from '@/composables/useBooleanStatusList'
 
 const { t } = useI18n()
 
@@ -12,19 +13,13 @@ const props = defineProps<{
   side: boolean | null
 }>()
 
-type LightItem = { key: string; label: string; on: boolean }
+const lightList = useBooleanStatusList(() => [
+  { key: 'main', label: t('vehicle.lights.mainBeam'), open: props.mainBeam },
+  { key: 'dipped', label: t('vehicle.lights.dippedBeam'), open: props.dippedBeam },
+  { key: 'side', label: t('vehicle.lights.side'), open: props.side },
+])
 
-const lightList = computed((): LightItem[] =>
-  (
-    [
-      { key: 'main', label: t('vehicle.lights.mainBeam'), on: props.mainBeam },
-      { key: 'dipped', label: t('vehicle.lights.dippedBeam'), on: props.dippedBeam },
-      { key: 'side', label: t('vehicle.lights.side'), on: props.side },
-    ] as { key: string; label: string; on: boolean | null }[]
-  ).filter((l): l is LightItem => l.on !== null),
-)
-
-const activeLights = computed(() => lightList.value.filter((l) => l.on))
+const activeLights = computed(() => lightList.value.filter((l) => l.open))
 
 const summary = computed((): string | null => {
   if (lightList.value.length === 0) return null
@@ -47,11 +42,11 @@ const summary = computed((): string | null => {
         :key="light.key"
         icon="lightbulb"
         :label="light.label"
-        :alert="light.on"
+        :alert="light.open"
       >
         <template #value>
-          <span class="badge" :class="light.on ? 'badge-warning' : 'badge-secondary'">
-            {{ light.on ? t('common.on') : t('common.off') }}
+          <span class="badge" :class="light.open ? 'badge-warning' : 'badge-secondary'">
+            {{ light.open ? t('common.on') : t('common.off') }}
           </span>
         </template>
       </DetailListItem>
