@@ -3,7 +3,8 @@
     "dashboard": "Dashboard",
     "statistics": "Statistics",
     "map": "Map",
-    "maintenance": "Maintenance"
+    "maintenance": "Maintenance",
+    "menuLabel": "Menu"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -46,6 +47,7 @@
     }
   },
   "statistics": {
+    "insightsSectionLabel": "Statistics insights",
     "insights": {
       "distanceInRange": "Distance in period",
       "monthlyMileage": "Monthly mileage",
@@ -77,6 +79,7 @@
     "dailyKwhChart": "Daily Electric Usage (kWh)"
   },
   "vehicle": {
+    "diagramLabel": "Vehicle status diagram",
     "wentOnline": "Vehicle is online",
     "wentOffline": "Vehicle went offline",
     "fuel": "Fuel",
@@ -127,6 +130,20 @@
       "rearRight": "Rear right",
       "bonnet": "Bonnet",
       "boot": "Boot"
+    },
+    "alerts": {
+      "openWhileParked": "Open while parked: {items}",
+      "tyrePressure": "Tyre pressure: {items}",
+      "driverDoor": "driver door",
+      "passengerDoor": "passenger door",
+      "rearLeftDoor": "rear left door",
+      "rearRightDoor": "rear right door",
+      "boot": "boot",
+      "bonnet": "bonnet",
+      "driverWindow": "driver window",
+      "passengerWindow": "passenger window",
+      "rearLeftWindow": "rear left window",
+      "rearRightWindow": "rear right window"
     },
     "efficiency": {
       "todayDistance": "Dist. today",
@@ -297,6 +314,7 @@
     }
   },
   "auth": {
+    "formLabel": "Login form",
     "subtitle": "Sign in with your MG account credentials",
     "username": "Username",
     "password": "Password",

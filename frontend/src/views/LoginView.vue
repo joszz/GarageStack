@@ -41,7 +41,7 @@ async function submitLogin() {
 
 <template>
   <div class="login-page">
-    <section class="login-card" aria-label="Login form">
+    <section class="login-card" :aria-label="t('auth.formLabel')">
       <div class="login-card__brand">
         <div class="login-card__brand-icon">
           <font-awesome-icon icon="car" />
