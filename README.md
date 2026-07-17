@@ -216,7 +216,7 @@ docker stop garagestack && docker rm garagestack
 
 The only data that matters for disaster recovery is your PostgreSQL database (all vehicle telemetry/trip history) and the DataProtection keys used to sign login cookies -- losing the keys just logs everyone out, it doesn't lose any vehicle data.
 
-**Docker Compose:** back up the database with `pg_dump` (works whether you're using the bundled Postgres or your own external server):
+**Docker Compose, bundled Postgres:** back up the database with `pg_dump` via the `postgres` service:
 
 ```bash
 docker compose exec postgres pg_dump -U garagestack garagestack > garagestack-backup.sql
@@ -228,7 +228,21 @@ Restore into a fresh database:
 cat garagestack-backup.sql | docker compose exec -T postgres psql -U garagestack garagestack
 ```
 
-(Replace `garagestack`/`garagestack` with your `POSTGRES_USER`/`POSTGRES_DB` if you customised them.) The DataProtection keys live in the `api_dataprotection` named volume -- back it up with the API stopped so nothing is mid-write:
+(Replace `garagestack`/`garagestack` with your `POSTGRES_USER`/`POSTGRES_DB` if you customised them.)
+
+**Docker Compose, external Postgres:** the `postgres` service above only exists when started with `--profile bundled-postgres`, so `docker compose exec postgres ...` won't work here -- back up directly against your own server instead, using the same `POSTGRES_HOST`/`POSTGRES_PORT`/`POSTGRES_USER`/`POSTGRES_DB` values you set in `.env`:
+
+```bash
+pg_dump -h <POSTGRES_HOST> -p <POSTGRES_PORT> -U <POSTGRES_USER> <POSTGRES_DB> > garagestack-backup.sql
+```
+
+Restore the same way, with `psql` in place of `pg_dump`:
+
+```bash
+psql -h <POSTGRES_HOST> -p <POSTGRES_PORT> -U <POSTGRES_USER> <POSTGRES_DB> < garagestack-backup.sql
+```
+
+Either way, the DataProtection keys live in the `api_dataprotection` named volume -- back it up with the API stopped so nothing is mid-write:
 
 ```bash
 docker compose stop api
