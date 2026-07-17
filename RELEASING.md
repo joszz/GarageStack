@@ -137,9 +137,8 @@ The `codeql` workflow runs alongside CI on every PR, every push to `main`, and w
 
 The `auto-merge` workflow merges Dependabot PRs automatically when CI passes, covering:
 
-- **All patch updates** (any package, any ecosystem)
-- **Any GitHub Actions updates** (infrastructure, low-risk)
-- **Minor updates** for any named Dependabot group (the condition is `dependency-group != ''`)
+- **All patch updates** (any package, any ecosystem, including GitHub Actions)
+- **Minor updates** for any named Dependabot group (the condition is `dependency-group != ''`) -- this covers GitHub Actions too, via the `docker-actions`/`github-actions` groups below
 
 Named groups defined in `.github/dependabot.yml`:
 
