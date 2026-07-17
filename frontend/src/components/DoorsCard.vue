@@ -5,6 +5,7 @@ import ExpandableStatusCard from './ExpandableStatusCard.vue'
 import DetailListItem from './DetailListItem.vue'
 import CommandButton from './CommandButton.vue'
 import { useVehicleCommand } from '@/composables/useVehicleCommand'
+import { useBooleanStatusList } from '@/composables/useBooleanStatusList'
 
 const { t } = useI18n()
 
@@ -31,50 +32,39 @@ watch(
   },
 )
 
-type DoorItem = { key: string; label: string; icon: string; open: boolean }
-
-const doorList = computed((): DoorItem[] =>
-  (
-    [
-      {
-        key: 'driver',
-        label: t('vehicle.doors_detail.driver'),
-        icon: 'door-open',
-        open: props.driverDoorOpen,
-      },
-      {
-        key: 'passenger',
-        label: t('vehicle.doors_detail.passenger'),
-        icon: 'door-open',
-        open: props.passengerDoorOpen,
-      },
-      {
-        key: 'rearLeft',
-        label: t('vehicle.doors_detail.rearLeft'),
-        icon: 'door-open',
-        open: props.rearLeftDoorOpen,
-      },
-      {
-        key: 'rearRight',
-        label: t('vehicle.doors_detail.rearRight'),
-        icon: 'door-open',
-        open: props.rearRightDoorOpen,
-      },
-      {
-        key: 'bonnet',
-        label: t('vehicle.doors_detail.bonnet'),
-        icon: 'car-burst',
-        open: props.bonnetOpen,
-      },
-      {
-        key: 'boot',
-        label: t('vehicle.doors_detail.boot'),
-        icon: 'car-rear',
-        open: props.trunkOpen,
-      },
-    ] as { key: string; label: string; icon: string; open: boolean | null }[]
-  ).filter((d): d is DoorItem => d.open !== null),
-)
+const doorList = useBooleanStatusList(() => [
+  {
+    key: 'driver',
+    label: t('vehicle.doors_detail.driver'),
+    icon: 'door-open',
+    open: props.driverDoorOpen,
+  },
+  {
+    key: 'passenger',
+    label: t('vehicle.doors_detail.passenger'),
+    icon: 'door-open',
+    open: props.passengerDoorOpen,
+  },
+  {
+    key: 'rearLeft',
+    label: t('vehicle.doors_detail.rearLeft'),
+    icon: 'door-open',
+    open: props.rearLeftDoorOpen,
+  },
+  {
+    key: 'rearRight',
+    label: t('vehicle.doors_detail.rearRight'),
+    icon: 'door-open',
+    open: props.rearRightDoorOpen,
+  },
+  {
+    key: 'bonnet',
+    label: t('vehicle.doors_detail.bonnet'),
+    icon: 'car-burst',
+    open: props.bonnetOpen,
+  },
+  { key: 'boot', label: t('vehicle.doors_detail.boot'), icon: 'car-rear', open: props.trunkOpen },
+])
 
 const openDoors = computed(() => doorList.value.filter((d) => d.open))
 
