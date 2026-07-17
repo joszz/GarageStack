@@ -176,9 +176,12 @@ public class PoiRepository(AppDbContext db, IMemoryCache cache, ILogger<PoiRepos
             .ToListAsync(ct);
 
         if (pois.Count == MaxPoisPerBoundsQuery)
+        {
+            var safePoiType = poiType.Replace("\r", "").Replace("\n", "");
             logger?.LogWarning(
                 "GetPoisInBoundsAsync hit the {Cap}-row cap for source={Source} poiType={PoiType} bounds=({MinLat},{MinLng})-({MaxLat},{MaxLng})",
-                MaxPoisPerBoundsQuery, source, poiType, minLat, minLng, maxLat, maxLng);
+                MaxPoisPerBoundsQuery, source, safePoiType, minLat, minLng, maxLat, maxLng);
+        }
 
         return pois;
     }
