@@ -144,6 +144,13 @@ public record WidgetStatusDto(
             return false;
         }
 
+        // Approximates "% of today's driving done on electric power" for PHEVs: the gateway
+        // has no direct electric-vs-fuel mileage split, so this uses MileageSinceLastCharge
+        // (distance covered since the last EV charge, a proxy for "electric-covered distance")
+        // against MileageOfTheDay (today's total distance, all power sources). Since the last
+        // charge can be several days ago while MileageOfTheDay only covers today, the ratio can
+        // exceed 100% (e.g. charged 3 days ago, driven a little each day since) - capped rather
+        // than treated as exact.
         double? electricShare = s.MileageSinceLastCharge.HasValue && s.MileageOfTheDay is > 0
             ? Math.Min(100, Math.Round(s.MileageSinceLastCharge.Value / s.MileageOfTheDay!.Value * 100))
             : null;
