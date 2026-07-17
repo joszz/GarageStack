@@ -76,8 +76,8 @@ process-local one doesn't already provide. Two caches exist today:
   and be queried by bounding box - a job a plain in-memory cache isn't suited for anyway.
 
 If GarageStack ever needs to run more than one Api/Worker instance, revisit this: per-vehicle
-in-memory state (this cache, `VehicleCommandGate`, the Overpass/OCM rate limiters) would all
-need to move to something shared.
+in-memory state (this cache, `VehicleCommandGate`, `NotificationCooldownGate`, the Overpass/OCM
+rate limiters) would all need to move to something shared.
 
 ## Database
 

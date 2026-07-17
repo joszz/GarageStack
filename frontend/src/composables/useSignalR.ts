@@ -11,6 +11,14 @@ export interface SignalRCallbacks {
   onTripCompleted: (vehicleId: number) => void
 }
 
+/**
+ * Owns the SignalR connection to the `/hubs/telemetry` hub: connecting, joining the given
+ * vehicle's group, automatic reconnection, and dispatching the three server-pushed events
+ * (telemetry, notifications, trip-completed) to caller-supplied callbacks. This is the app's
+ * only real-time channel - there is no REST-polling fallback, so if `start()` fails or the
+ * connection drops without reconnecting, the UI simply goes stale until `start()` is called
+ * again (next mount or a manual reload).
+ */
 export function useSignalR(callbacks: SignalRCallbacks) {
   const connected = ref(false)
   let connection: signalR.HubConnection | null = null
