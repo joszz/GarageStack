@@ -28,6 +28,15 @@ const loading = ref(false)
 const fetchError = ref<string | null>(null)
 const actionError = ref<string | null>(null)
 
+/**
+ * Owns the in-app notification list: fetching, the user's per-category exclusion filter,
+ * unread badge sync (both the PWA app badge and the bell icon), service-worker push wiring,
+ * and the archive/delete actions. The underlying state (`notifications`, `panelOpen`, etc.) is
+ * module-level, not per-call - every component calling this composable shares one list, so
+ * e.g. archiving a notification in one place updates it everywhere. Fetches automatically
+ * whenever auth state changes (via a watcher, not onMounted, since App.vue stays mounted
+ * across login rather than remounting).
+ */
 export function useNotifications() {
   const auth = useAuthStore()
   const uiSettings = useUiSettingsStore()
