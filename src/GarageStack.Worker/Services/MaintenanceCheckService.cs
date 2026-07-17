@@ -44,12 +44,15 @@ public class MaintenanceCheckService(
 
         var vehicles = await db.Vehicles.ToListAsync(ct);
 
+        // One query for every vehicle's items instead of one query per vehicle (mirrors the
+        // grouped-lookup pattern PoiPreCachingService already uses for latest-location data).
+        var itemsByVehicle = (await db.MaintenanceItems.AsNoTracking().ToListAsync(ct))
+            .GroupBy(m => m.VehicleId)
+            .ToDictionary(g => g.Key, g => g.ToList());
+
         foreach (var vehicle in vehicles)
         {
-            var items = await db.MaintenanceItems.AsNoTracking()
-                .Where(m => m.VehicleId == vehicle.Id)
-                .ToListAsync(ct);
-            if (items.Count == 0) continue;
+            if (!itemsByVehicle.TryGetValue(vehicle.Id, out var items) || items.Count == 0) continue;
 
             var snapshot = await telemetry.GetMergedLatestAsync(vehicle.Id, ct);
 
