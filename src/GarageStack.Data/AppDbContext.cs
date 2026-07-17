@@ -62,6 +62,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
              .HasDatabaseName("IX_PoiItems_Source_ExternalId");
             e.HasIndex(p => new { p.Source, p.PoiType, p.CellLat, p.CellLng })
              .HasDatabaseName("IX_PoiItems_Source_PoiType_CellLatLng");
+            // Backs GetPoisInBoundsAsync's lat/lng range query - without this, that query can
+            // only narrow to the Source+PoiType partition via the index above and then scans
+            // every row in it, since neither Latitude nor Longitude appear in any other index.
+            e.HasIndex(p => new { p.Source, p.PoiType, p.Latitude, p.Longitude })
+             .HasDatabaseName("IX_PoiItems_Source_PoiType_LatLon");
             e.Property(p => p.Source).HasMaxLength(32).IsRequired();
             e.Property(p => p.PoiType).HasMaxLength(32).IsRequired();
             e.Property(p => p.ExternalId).HasMaxLength(64).IsRequired();
