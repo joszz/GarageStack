@@ -90,4 +90,25 @@ public class NotificationCooldownGateTests
 
         Assert.True(result);
     }
+
+    [Fact]
+    public async Task ShouldNotify_ExpiredEntry_IsEvictedOnNextCall()
+    {
+        // Regression test for unbounded growth: a key that will never be queried again (e.g. a
+        // deleted maintenance item) must not linger in _lastNotified forever once its cooldown
+        // has passed - any later call (for any key) should sweep it out.
+        var ct = TestContext.Current.CancellationToken;
+        var gate = new NotificationCooldownGate(TimeSpan.FromMilliseconds(10));
+
+        await gate.ShouldNotifyAsync("VIN1", "maintenance-overdue-1", () => Task.FromResult(false));
+        Assert.Single(gate._lastNotified);
+
+        await Task.Delay(TimeSpan.FromMilliseconds(50), ct);
+        await gate.ShouldNotifyAsync("VIN1", "maintenance-overdue-2", () => Task.FromResult(false));
+
+        // The expired "maintenance-overdue-1" entry was evicted, leaving only the fresh one.
+        Assert.Single(gate._lastNotified);
+        Assert.DoesNotContain("VIN1/maintenance-overdue-1", gate._lastNotified.Keys);
+        Assert.Contains("VIN1/maintenance-overdue-2", gate._lastNotified.Keys);
+    }
 }
