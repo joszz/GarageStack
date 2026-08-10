@@ -19,7 +19,7 @@
     "@fortawesome/fontawesome-svg-core": "^7.3.1",
     "@fortawesome/free-solid-svg-icons": "^7.3.1",
     "@fortawesome/vue-fontawesome": "^3.3.3",
-    "@microsoft/signalr": "^10.0.0",
+    "@microsoft/signalr": "^10.0.11",
     "@vue-leaflet/vue-leaflet": "^0.10.1",
     "@vueform/multiselect": "^2.6.11",
     "@vueform/slider": "^2.1.10",
