@@ -46,7 +46,7 @@
     "@types/jsdom": "^30.0.0",
     "@types/leaflet": "^1.9.22",
     "@types/leaflet.markercluster": "^1.5.6",
-    "@types/node": "^26.2.0",
+    "@types/node": "^26.4.0",
     "@vitejs/plugin-vue": "^6.0.8",
     "@vitest/eslint-plugin": "^1.6.27",
     "@vue/eslint-config-typescript": "^14.9.0",
