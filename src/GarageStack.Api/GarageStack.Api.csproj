@@ -10,7 +10,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="MinVer" Version="7.0.0" PrivateAssets="all" />
+    <PackageReference Include="MinVer" Version="8.0.0" PrivateAssets="all" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.11" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.11" />
     <!-- Pinned above the transitive 2.0.0 pulled in by Microsoft.AspNetCore.OpenApi 10.0.9 to avoid CVE-2026-49451 (stack overflow on circular schema refs).
