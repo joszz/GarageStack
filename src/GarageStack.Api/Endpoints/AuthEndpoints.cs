@@ -1,9 +1,10 @@
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
+using GarageStack.Api.Authentication;
 using GarageStack.Data;
-using Microsoft.IdentityModel.Tokens;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 
 namespace GarageStack.Api.Endpoints;
 
@@ -11,76 +12,111 @@ public static class AuthEndpoints
 {
     public const string CookieName = "garagestack-auth";
 
+    private static readonly TimeSpan PasswordSessionLifetime = TimeSpan.FromHours(12);
+    private static readonly TimeSpan PasswordRememberMeLifetime = TimeSpan.FromDays(30);
+
     public static IEndpointRouteBuilder MapAuthEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/auth")
             .WithTags("Authentication");
 
+        // Public on purpose: the login page has to know which sign-in methods exist before
+        // anyone is authenticated. It exposes no secrets, only which buttons to render.
+        group.MapGet("/config", (OidcOptions oidc, PasswordLoginOptions passwordLogin) =>
+            Results.Ok(new AuthConfigResponse(
+                PasswordLoginEnabled: passwordLogin.Enabled,
+                OidcEnabled: oidc.Enabled,
+                OidcProviderName: oidc.Enabled ? oidc.ProviderName : null,
+                OidcAutoLogin: oidc.Enabled && oidc.AutoLogin)))
+        .WithSummary("Get the enabled sign-in methods");
+
+        // A browser navigation, not a fetch: the response is a redirect to the identity
+        // provider, and the provider redirects back to OidcOptions.CallbackPath.
+        group.MapGet("/oidc/login", async (
+            string? returnUrl,
+            OidcOptions oidc,
+            HttpContext httpContext,
+            ILoggerFactory loggerFactory) =>
+        {
+            if (!oidc.Enabled)
+                return Results.NotFound();
+
+            var properties = new AuthenticationProperties { RedirectUri = LocalRedirect.Sanitize(returnUrl) };
+
+            try
+            {
+                await httpContext.ChallengeAsync(OpenIdConnectDefaults.AuthenticationScheme, properties);
+                return Results.Empty;
+            }
+            catch (Exception ex) when (!httpContext.Response.HasStarted)
+            {
+                // The challenge talks to the provider before it redirects anywhere (fetching the
+                // discovery document, and pushing the authorization request when the provider
+                // supports PAR), so bad client credentials or an unreachable provider surface
+                // here. This is a browser navigation: answer with the login page carrying an
+                // error, not a JSON 500 the user can do nothing with.
+                loggerFactory.CreateLogger("GarageStack.Authentication").LogError(
+                    ex, "Could not start OIDC sign-in with {Authority}", oidc.Authority);
+
+                return Results.Redirect(AuthenticationSetup.LoginPageUrl("oidc_failed"));
+            }
+        })
+        .RequireRateLimiting("oidc-login")
+        .WithSummary("Start the OpenID Connect sign-in flow");
+
         group.MapPost("/logout", async (HttpContext httpContext, AppDbContext db, CancellationToken ct) =>
         {
-            httpContext.Response.Cookies.Delete(CookieName, new CookieOptions { Path = "/" });
+            // Revoke the session server-side so a cookie copied before logout (from a
+            // compromised device, say) stops working immediately instead of at its own expiry.
+            // Authentication is not required: with no session there is simply nothing to revoke.
+            var result = await httpContext.AuthenticateAsync();
+            var sessionId = result.Principal?.FindFirst(SessionPrincipal.SessionIdClaimType)?.Value;
 
-            // Revoke the token server-side so a copy captured before logout (e.g. from a
-            // compromised device) can't keep authenticating for the rest of its lifetime.
-            // Not required to be authenticated for logout to succeed -- an already-expired or
-            // missing token has nothing to revoke, and the cookie is cleared either way above.
-            var jti = httpContext.User.FindFirst(JwtRegisteredClaimNames.Jti)?.Value;
-            var expClaim = httpContext.User.FindFirst(JwtRegisteredClaimNames.Exp)?.Value;
-            if (!string.IsNullOrEmpty(jti) && long.TryParse(expClaim, out var expUnix))
+            if (!string.IsNullOrEmpty(sessionId))
             {
-                var expiresAtUtc = DateTimeOffset.FromUnixTimeSeconds(expUnix).UtcDateTime;
-                await TokenRevocation.RevokeAsync(db, jti, expiresAtUtc, ct);
+                var expiresAtUtc = result.Properties?.ExpiresUtc?.UtcDateTime
+                    ?? DateTime.UtcNow.Add(PasswordRememberMeLifetime);
+                await TokenRevocation.RevokeAsync(db, sessionId, expiresAtUtc, ct);
             }
+
+            await httpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
 
             return Results.NoContent();
         })
-        .WithSummary("Clear the authentication cookie and revoke the token server-side");
+        .WithSummary("Clear the session cookie and revoke the session server-side");
 
-        group.MapGet("/me", (HttpContext httpContext) =>
+        group.MapGet("/me", async (HttpContext httpContext) =>
         {
-            var username = httpContext.User.FindFirst(ClaimTypes.Name)?.Value
-                ?? httpContext.User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
-            if (string.IsNullOrEmpty(username)) return Results.Unauthorized();
+            var result = await httpContext.AuthenticateAsync();
+            if (!result.Succeeded || result.Principal is null)
+                return Results.Unauthorized();
 
-            DateTime? expiresAtUtc = null;
-            var expClaim = httpContext.User.FindFirst(JwtRegisteredClaimNames.Exp)?.Value;
-            if (long.TryParse(expClaim, out var expUnix))
-                expiresAtUtc = DateTimeOffset.FromUnixTimeSeconds(expUnix).UtcDateTime;
-
-            return Results.Ok(new MeResponse(username, expiresAtUtc));
+            var username = SessionPrincipal.ResolveDisplayName(result.Principal);
+            return Results.Ok(new MeResponse(username, result.Properties?.ExpiresUtc?.UtcDateTime));
         })
         .RequireAuthorization()
         .WithSummary("Get current authenticated user");
 
-        group.MapPost("/login", (LoginRequest req, IConfiguration config, HttpContext httpContext, IWebHostEnvironment env, ILoggerFactory loggerFactory) =>
+        group.MapPost("/login", async (
+            LoginRequest req,
+            PasswordLoginOptions passwordLogin,
+            HttpContext httpContext,
+            ILoggerFactory loggerFactory) =>
         {
-            var logger = loggerFactory.CreateLogger("AuthLogin");
+            var logger = loggerFactory.CreateLogger("GarageStack.Authentication");
 
-            var configuredUsername = FirstNonEmpty(
-                config["Auth:Username"],
-                config["SAIC_USER"],
-                config["Saic:User"]);
-            var configuredPassword = FirstNonEmpty(
-                config["Auth:Password"],
-                config["SAIC_PASSWORD"],
-                config["Saic:Password"]);
-
-            if (string.IsNullOrWhiteSpace(configuredUsername) || string.IsNullOrWhiteSpace(configuredPassword))
+            if (!passwordLogin.Enabled)
             {
                 logger.LogWarning(
-                    "Auth credentials are not configured. Presence: Auth:Username={AuthUserSet}, SAIC_USER={SaicUserSet}, Auth:Password={AuthPassSet}, SAIC_PASSWORD={SaicPassSet}",
-                    !string.IsNullOrWhiteSpace(config["Auth:Username"]),
-                    !string.IsNullOrWhiteSpace(config["SAIC_USER"]),
-                    !string.IsNullOrWhiteSpace(config["Auth:Password"]),
-                    !string.IsNullOrWhiteSpace(config["SAIC_PASSWORD"]));
-                return Results.Unauthorized();
+                    "Password login attempt while disabled (configured: {Configured})", passwordLogin.Configured);
+                return Results.NotFound();
             }
 
             var providedUsername = req.Username?.Trim() ?? string.Empty;
             var providedPassword = req.Password ?? string.Empty;
 
-            var validUser = FixedTimeEquals(providedUsername, configuredUsername);
-            var validPassword = FixedTimeEquals(providedPassword, configuredPassword);
+            var validUser = FixedTimeEquals(providedUsername, passwordLogin.Username);
+            var validPassword = FixedTimeEquals(providedPassword, passwordLogin.Password);
 
             if (!validUser || !validPassword)
             {
@@ -90,72 +126,26 @@ public static class AuthEndpoints
                 return Results.Unauthorized();
             }
 
-            var jwtSecret = config["Jwt:Secret"];
-            if (string.IsNullOrWhiteSpace(jwtSecret))
-            {
-                logger.LogWarning("JWT secret missing while handling login");
-                return Results.Unauthorized();
-            }
+            var expires = DateTimeOffset.UtcNow.Add(
+                req.RememberMe ? PasswordRememberMeLifetime : PasswordSessionLifetime);
 
-            var secretBytes = Encoding.UTF8.GetBytes(jwtSecret);
-            if (secretBytes.Length < 32)
-            {
-                logger.LogWarning("JWT secret too short while handling login");
-                return Results.Unauthorized();
-            }
+            var principal = SessionPrincipal.Create(
+                providedUsername,
+                providedUsername,
+                CookieAuthenticationDefaults.AuthenticationScheme,
+                SessionPrincipal.NewSessionId());
 
-            var now = DateTime.UtcNow;
-            var expires = req.RememberMe ? now.AddDays(30) : now.AddHours(12);
+            await httpContext.SignInAsync(
+                CookieAuthenticationDefaults.AuthenticationScheme,
+                principal,
+                new AuthenticationProperties { IsPersistent = true, ExpiresUtc = expires });
 
-            var claims = new[]
-            {
-                new Claim(JwtRegisteredClaimNames.Sub, providedUsername),
-                new Claim(JwtRegisteredClaimNames.UniqueName, providedUsername),
-                new Claim(ClaimTypes.Name, providedUsername),
-                // Lets logout revoke this specific token server-side (see RevokedToken) instead
-                // of only clearing the client-side cookie.
-                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString("N")),
-            };
-
-            var token = new JwtSecurityToken(
-                claims: claims,
-                notBefore: now,
-                expires: expires,
-                signingCredentials: new SigningCredentials(
-                    new SymmetricSecurityKey(secretBytes),
-                    SecurityAlgorithms.HmacSha256));
-
-            var tokenString = new JwtSecurityTokenHandler().WriteToken(token);
-
-            var cookieSecure = config.GetValue<bool?>("Auth:CookieSecure")
-                ?? (!env.IsDevelopment() || httpContext.Request.IsHttps);
-
-            httpContext.Response.Cookies.Append(CookieName, tokenString, new CookieOptions
-            {
-                HttpOnly = true,
-                Secure = cookieSecure,
-                SameSite = SameSiteMode.Strict,
-                Expires = expires,
-                Path = "/",
-            });
-
-            return Results.Ok(new LoginResponse(providedUsername, expires));
+            return Results.Ok(new LoginResponse(providedUsername, expires.UtcDateTime));
         })
         .RequireRateLimiting("login")
-        .WithSummary("Authenticate user and issue JWT token");
+        .WithSummary("Authenticate with the built-in password login");
 
         return app;
-    }
-
-    private static string? FirstNonEmpty(params string?[] values)
-    {
-        foreach (var value in values)
-        {
-            if (!string.IsNullOrWhiteSpace(value))
-                return value;
-        }
-
-        return null;
     }
 
     private static string SanitizeForLog(string value) =>
@@ -174,3 +164,8 @@ public static class AuthEndpoints
 public sealed record LoginRequest(string Username, string Password, bool RememberMe = false);
 public sealed record LoginResponse(string Username, DateTime ExpiresAtUtc);
 public sealed record MeResponse(string Username, DateTime? ExpiresAtUtc);
+public sealed record AuthConfigResponse(
+    bool PasswordLoginEnabled,
+    bool OidcEnabled,
+    string? OidcProviderName,
+    bool OidcAutoLogin);

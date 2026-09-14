@@ -1,9 +1,8 @@
 import { ref, onUnmounted } from 'vue'
 import * as signalR from '@microsoft/signalr'
+import { apiUrl } from '@/services/apiCore'
 import type { TelemetrySnapshot } from '@/services/vehicleApi'
 import type { AppNotification } from '@/services/notificationsApi'
-
-const BASE_URL = import.meta.env.VITE_API_URL ?? ''
 
 export interface SignalRCallbacks {
   onTelemetryUpdated: (snapshot: TelemetrySnapshot) => void
@@ -27,7 +26,7 @@ export function useSignalR(callbacks: SignalRCallbacks) {
     if (connection) await stop()
 
     connection = new signalR.HubConnectionBuilder()
-      .withUrl(`${BASE_URL}/hubs/telemetry`, { withCredentials: true })
+      .withUrl(apiUrl('/hubs/telemetry'), { withCredentials: true })
       .withAutomaticReconnect()
       .configureLogging(signalR.LogLevel.Warning)
       .build()

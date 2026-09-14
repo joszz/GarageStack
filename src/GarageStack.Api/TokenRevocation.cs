@@ -6,9 +6,9 @@ namespace GarageStack.Api;
 
 internal static class TokenRevocation
 {
-    // Revokes the given token and opportunistically prunes rows past their own token's expiry --
-    // once a token has expired, JwtBearer's ValidateLifetime already rejects it regardless of
-    // this table, so there's no need for a dedicated background sweep.
+    // Revokes the given session and opportunistically prunes rows past their own session's
+    // expiry -- once a session has expired the cookie handler rejects it regardless of this
+    // table, so there's no need for a dedicated background sweep.
     internal static async Task RevokeAsync(AppDbContext db, string jti, DateTime expiresAtUtc, CancellationToken ct)
     {
         db.RevokedTokens.Add(new RevokedToken { Jti = jti, ExpiresAtUtc = expiresAtUtc });

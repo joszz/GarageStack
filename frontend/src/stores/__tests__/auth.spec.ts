@@ -1,13 +1,14 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { authApi } from '@/services/authApi'
-import type { MeResponse, LoginResponse } from '@/services/authApi'
+import type { MeResponse, LoginResponse, AuthConfigResponse } from '@/services/authApi'
 
 vi.mock('@/services/authApi', () => ({
   authApi: {
     me: vi.fn<() => Promise<MeResponse>>(),
     login: vi.fn<() => Promise<LoginResponse>>(),
     logout: vi.fn<() => Promise<void>>(),
+    config: vi.fn<() => Promise<AuthConfigResponse>>(),
   },
 }))
 
@@ -29,6 +30,7 @@ describe('useAuthStore', () => {
     vi.mocked(authApi.me).mockReset()
     vi.mocked(authApi.login).mockReset()
     vi.mocked(authApi.logout).mockReset()
+    vi.mocked(authApi.config).mockReset()
   })
 
   afterEach(() => {
@@ -209,5 +211,49 @@ describe('useAuthStore', () => {
     await Promise.all([store.ensureVerified(), store.ensureVerified(), store.ensureVerified()])
 
     expect(vi.mocked(authApi.me)).toHaveBeenCalledOnce()
+  })
+
+  // ── ensureConfig() ────────────────────────────────────────────────────────
+
+  it('ensureConfig() exposes the sign-in methods the server reports', async () => {
+    const serverConfig = {
+      passwordLoginEnabled: false,
+      oidcEnabled: true,
+      oidcProviderName: 'Authentik',
+      oidcAutoLogin: true,
+    }
+    vi.mocked(authApi.config).mockResolvedValue(serverConfig)
+
+    const { useAuthStore } = await import('@/stores/auth')
+    const store = useAuthStore()
+    const result = await store.ensureConfig()
+
+    expect(result).toEqual(serverConfig)
+    expect(store.config).toEqual(serverConfig)
+  })
+
+  it('ensureConfig() fetches only once across multiple calls', async () => {
+    vi.mocked(authApi.config).mockResolvedValue({
+      passwordLoginEnabled: true,
+      oidcEnabled: false,
+      oidcProviderName: null,
+      oidcAutoLogin: false,
+    })
+
+    const { useAuthStore } = await import('@/stores/auth')
+    const store = useAuthStore()
+    await Promise.all([store.ensureConfig(), store.ensureConfig()])
+
+    expect(vi.mocked(authApi.config)).toHaveBeenCalledOnce()
+  })
+
+  it('ensureConfig() returns null when the server cannot be reached', async () => {
+    vi.mocked(authApi.config).mockRejectedValue(new Error('offline'))
+
+    const { useAuthStore } = await import('@/stores/auth')
+    const store = useAuthStore()
+
+    expect(await store.ensureConfig()).toBeNull()
+    expect(store.config).toBeNull()
   })
 })

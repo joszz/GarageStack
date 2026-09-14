@@ -123,11 +123,28 @@ services:
       ASPNETCORE_ENVIRONMENT: "Production"
       ConnectionStrings__DefaultConnection: "Host=${POSTGRES_HOST:-postgres};Port=${POSTGRES_PORT:-5432};Database=${POSTGRES_DB:-garagestack};Username=${POSTGRES_USER:-garagestack};Password=${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in your .env file, see .env.example}"
       Cors__Origins__0: "${CORS_ORIGIN:-http://localhost:8080}"
-      Jwt__Secret: "${JWT_SECRET}"
       SAIC_USER: "${SAIC_USER}"
       SAIC_PASSWORD: "${SAIC_PASSWORD}"
-      Auth__Username: "${SAIC_USER}"
-      Auth__Password: "${SAIC_PASSWORD}"
+      # Built-in password login, used only when no OIDC provider is configured below. Left
+      # empty, the API falls back to the MG account credentials above. Set
+      # AUTH_PASSWORD_LOGIN_ENABLED=true to keep it available alongside OIDC as well.
+      Auth__Username: "${AUTH_USERNAME:-}"
+      Auth__Password: "${AUTH_PASSWORD:-}"
+      Auth__PasswordLoginEnabled: "${AUTH_PASSWORD_LOGIN_ENABLED:-}"
+      # OpenID Connect single sign-on -- see AUTHENTICATION.md. Setting OIDC_AUTHORITY switches
+      # authentication over to the provider and disables the password login above, unless
+      # AUTH_PASSWORD_LOGIN_ENABLED keeps it on.
+      Oidc__Authority: "${OIDC_AUTHORITY:-}"
+      Oidc__ClientId: "${OIDC_CLIENT_ID:-}"
+      Oidc__ClientSecret: "${OIDC_CLIENT_SECRET:-}"
+      Oidc__Scopes: "${OIDC_SCOPES:-openid profile email}"
+      Oidc__ProviderName: "${OIDC_PROVIDER_NAME:-SSO}"
+      Oidc__AutoLogin: "${OIDC_AUTO_LOGIN:-false}"
+      Oidc__AllowedGroups: "${OIDC_ALLOWED_GROUPS:-}"
+      Oidc__AllowedEmails: "${OIDC_ALLOWED_EMAILS:-}"
+      Oidc__GroupsClaim: "${OIDC_GROUPS_CLAIM:-groups}"
+      Oidc__RedirectUri: "${OIDC_REDIRECT_URI:-}"
+      Oidc__RequireHttpsMetadata: "${OIDC_REQUIRE_HTTPS_METADATA:-true}"
       Mqtt__Host: "${MQTT_HOST:-mosquitto}"
       Mqtt__Port: "${MQTT_PORT:-1883}"
       Mqtt__Username: "${MQTT_BROKER_USERNAME:-garagestack}"
@@ -138,6 +155,7 @@ services:
       Widget__ApiKey: "${WIDGET_API_KEY:-}"
       OpenChargeMap__ApiKey: "${OPENCHARGEMAP_API_KEY:-}"
       Auth__CookieSecure: "${AUTH_COOKIE_SECURE:-false}"
+      Auth__SessionLifetimeHours: "${AUTH_SESSION_LIFETIME_HOURS:-168}"
       TyrePressure__LowBar: "${TYRE_PRESSURE_LOW_BAR:-2.2}"
       TyrePressure__GoodBar: "${TYRE_PRESSURE_GOOD_BAR:-2.6}"
       TyrePressure__HighBar: "${TYRE_PRESSURE_HIGH_BAR:-3.2}"

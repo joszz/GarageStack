@@ -51,13 +51,29 @@ export Vapid__PublicKey="${VAPID_PUBLIC_KEY:-}"
 export Vapid__PrivateKey="${VAPID_PRIVATE_KEY:-}"
 export Vapid__Subject="${Vapid__Subject:-mailto:${SAIC_USER}}"
 
-# JWT
-export Jwt__Secret="${JWT_SECRET:?JWT_SECRET environment variable is required}"
-export Auth__Username="${SAIC_USER}"
-export Auth__Password="${SAIC_PASSWORD}"
+# Authentication: OpenID Connect when a provider is configured, the built-in password login
+# otherwise. See AUTHENTICATION.md.
+export Oidc__Authority="${OIDC_AUTHORITY:-}"
+export Oidc__ClientId="${OIDC_CLIENT_ID:-}"
+export Oidc__ClientSecret="${OIDC_CLIENT_SECRET:-}"
+export Oidc__Scopes="${OIDC_SCOPES:-openid profile email}"
+export Oidc__ProviderName="${OIDC_PROVIDER_NAME:-SSO}"
+export Oidc__AutoLogin="${OIDC_AUTO_LOGIN:-false}"
+export Oidc__AllowedGroups="${OIDC_ALLOWED_GROUPS:-}"
+export Oidc__AllowedEmails="${OIDC_ALLOWED_EMAILS:-}"
+export Oidc__GroupsClaim="${OIDC_GROUPS_CLAIM:-groups}"
+export Oidc__RedirectUri="${OIDC_REDIRECT_URI:-}"
+export Oidc__RequireHttpsMetadata="${OIDC_REQUIRE_HTTPS_METADATA:-true}"
+
+# Password login falls back to the MG account credentials when no dedicated ones are given.
+# It switches off automatically once OIDC is configured, unless explicitly enabled here.
+export Auth__Username="${AUTH_USERNAME:-${SAIC_USER}}"
+export Auth__Password="${AUTH_PASSWORD:-${SAIC_PASSWORD}}"
+export Auth__PasswordLoginEnabled="${AUTH_PASSWORD_LOGIN_ENABLED:-}"
 # Default false so plain-HTTP LAN installs work out of the box.
 # Set AUTH_COOKIE_SECURE=true when the app is served behind a TLS-terminating proxy.
 export Auth__CookieSecure="${AUTH_COOKIE_SECURE:-false}"
+export Auth__SessionLifetimeHours="${AUTH_SESSION_LIFETIME_HOURS:-168}"
 
 # CORS: the URL users open in their browser
 export Cors__Origins__0="${CORS_ORIGIN:-http://localhost:8080}"

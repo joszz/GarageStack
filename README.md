@@ -16,6 +16,7 @@ GarageStack is a free, open-source vehicle monitoring dashboard for **modern MG 
 - **Charging stations** -- Overlay nearby EV charging stations on the map, sourced from the [Open Charge Map](https://openchargemap.org) database. Station data is cached in the database for 7 days; on page load the map immediately shows all stations within 100 km of your car that are already cached. Markers show operational status; clicking a marker displays the station name, operator, address, and available connector types with power ratings. Requires a free OCM API key (`OPENCHARGEMAP_API_KEY`). Unlike fuel stations and service areas, charging station tiles are loaded on demand as you browse the map and are not pre-populated by the background Worker.
 - **Fuel stations** -- Overlay nearby petrol and diesel stations on the map (HEV and PHEV only; not shown for BEV). Sourced from OpenStreetMap via the Overpass API -- no API key required. POI data is cached in the database for 7 days and pre-populated by the Worker for a 100 km radius around the car's last known position so the overlay is instant on first view.
 - **Motorway service areas** -- Overlay motorway service areas and rest stops on the map (all vehicle types). Same DB-backed cache and Worker pre-cache as fuel stations; useful for BEV drivers who often find fast chargers at service areas.
+- **Single sign-on** -- Sign in through your own identity provider (Authentik, Authelia, Keycloak, Pocket ID, Google, and anything else speaking OpenID Connect), with optional auto-login and group or email based access restrictions. A built-in username/password login remains available for installs without a provider. See [`AUTHENTICATION.md`](AUTHENTICATION.md).
 - **Multi-language support** -- Interface available in English and Dutch, with locale resolved from query string, cookie, or browser preference.
 - **Self-hosted** -- Runs entirely on your own infrastructure via Docker (all-in-one container or Docker Compose). No cloud account or subscription required beyond the SAIC iSmart API.
 
@@ -122,7 +123,6 @@ docker run -d \
   -e SAIC_USER=your@email.com \
   -e SAIC_PASSWORD=yourpassword \
   -e SAIC_REGION=eu \
-  -e JWT_SECRET="$(openssl rand -base64 32)" \
   -e CORS_ORIGIN=http://192.168.1.100:8080 \
   -e AUTH_COOKIE_SECURE=false \
   ghcr.io/joszz/garagestack:latest
@@ -130,6 +130,7 @@ docker run -d \
 
 > `POSTGRES_PASSWORD` is omitted -- a strong random password is auto-generated on first start and saved to `/data/.postgres_password`. Pass `-e POSTGRES_PASSWORD=yourpassword` explicitly if you need a known value (e.g. to connect with an external DB tool).
 > **HTTPS proxy:** omit `-e AUTH_COOKIE_SECURE=false` (or set it to `true`) when the container sits behind a TLS-terminating reverse proxy.
+> **Logging in:** without further configuration the web login uses your `SAIC_USER` / `SAIC_PASSWORD`. Set `AUTH_USERNAME` / `AUTH_PASSWORD` for separate credentials, or point GarageStack at your identity provider -- see [`AUTHENTICATION.md`](AUTHENTICATION.md).
 
 **Unraid:** import `unraid/garagestack.xml` from Community Apps and fill in the variables in the template UI.
 
@@ -162,7 +163,6 @@ Then open `.env` and fill in at minimum:
 | `SAIC_PASSWORD` | MG iSmart account password |
 | `SAIC_REGION` | Region the car is registered in: `eu` (default), `au`, or `tr` -- automatically mapped to the right API endpoint |
 | `SAIC_REST_URI` | Optional, only needed for a region not listed above -- set directly to your gateway's endpoint |
-| `JWT_SECRET` | At least 32 random characters -- generate with `openssl rand -base64 32` |
 | `CORS_ORIGIN` | The URL you open in your browser, e.g. `http://192.168.1.100:8080` |
 | `POSTGRES_PASSWORD` | Generate with `openssl rand -hex 32`. Using an external Postgres server instead of the bundled one? Set this to match its existing password. |
 | `MQTT_BROKER_PASSWORD` | Generate with `openssl rand -hex 32`. Mosquitto always runs bundled, so this is required either way. |
@@ -170,6 +170,8 @@ Then open `.env` and fill in at minimum:
 `docker compose up` refuses to start until both `POSTGRES_PASSWORD` and `MQTT_BROKER_PASSWORD` are set.
 
 `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` are optional; leave them empty to disable push notifications.
+
+Sign-in is configured separately: the built-in login reuses `SAIC_USER` / `SAIC_PASSWORD` unless you set `AUTH_USERNAME` / `AUTH_PASSWORD`, and setting `OIDC_AUTHORITY` switches GarageStack over to your identity provider. See [`AUTHENTICATION.md`](AUTHENTICATION.md).
 
 `TYRE_PRESSURE_LOW_BAR` / `TYRE_PRESSURE_GOOD_BAR` / `TYRE_PRESSURE_HIGH_BAR` are optional and default to `2.2` / `2.6` / `3.2` bar; override them to match your vehicle's placarded tyre pressure (see [Push notifications](#push-notifications) below).
 
@@ -214,7 +216,7 @@ docker stop garagestack && docker rm garagestack
 
 ## Backup and restore
 
-The only data that matters for disaster recovery is your PostgreSQL database (all vehicle telemetry/trip history) and the DataProtection keys used to sign login cookies -- losing the keys just logs everyone out, it doesn't lose any vehicle data.
+The only data that matters for disaster recovery is your PostgreSQL database (all vehicle telemetry/trip history) and the DataProtection keys used to encrypt login cookies -- losing the keys just logs everyone out, it doesn't lose any vehicle data.
 
 **Docker Compose, bundled Postgres:** back up the database with `pg_dump` via the `postgres` service:
 
@@ -467,7 +469,10 @@ All three POI types share the same tile-based PostgreSQL cache:
 ## Security defaults
 
 - API routes require login.
-- Login reuses the configured MG account credentials (`SAIC_USER`/`SAIC_PASSWORD`) and issues JWT tokens (12 hours by default, 30 days with "remember me"). Logout revokes the token server-side, not just the client-side cookie.
+- Sign-in goes through your own identity provider when `OIDC_AUTHORITY` is configured, which also disables the built-in password login unless you keep it on with `AUTH_PASSWORD_LOGIN_ENABLED=true`. Without a provider, the built-in login reuses the configured MG account credentials unless `AUTH_USERNAME`/`AUTH_PASSWORD` are set. Full reference: [`AUTHENTICATION.md`](AUTHENTICATION.md).
+- Sessions are encrypted, HTTP-only, `SameSite=Strict` cookies. Logout revokes the session server-side, not just the client-side cookie.
+- With an identity provider, restrict who may sign in -- at the provider itself or with `OIDC_ALLOWED_GROUPS` / `OIDC_ALLOWED_EMAILS`. Without a restriction, every account the provider accepts can sign in and control the car.
+- Login endpoints are rate-limited per IP address on top of the global limit.
 - MQTT now requires credentials and ACLs, and broker exposure defaults to localhost-only in Docker Compose.
 
 ---

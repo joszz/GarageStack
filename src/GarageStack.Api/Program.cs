@@ -1,7 +1,7 @@
 using System.Globalization;
-using System.IdentityModel.Tokens.Jwt;
 using System.Text.Json.Serialization;
 using GarageStack.Api;
+using GarageStack.Api.Authentication;
 using GarageStack.Api.Endpoints;
 using GarageStack.Api.Hubs;
 using GarageStack.Api.Services;
@@ -11,17 +11,14 @@ using GarageStack.Core.Models;
 using GarageStack.Data;
 using GarageStack.Data.Demo;
 using GarageStack.Data.Extensions;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
 using Scalar.AspNetCore;
 using Serilog;
 using Serilog.Events;
-using System.Text;
 using System.Threading.RateLimiting;
 
 Log.Logger = new LoggerConfiguration()
@@ -100,12 +97,6 @@ try
         opts.SerializerOptions.Converters.Add(new FiniteDoubleConverter());
     });
 
-    var jwtSecret = builder.Configuration["Jwt:Secret"]
-        ?? throw new InvalidOperationException("Jwt:Secret is not configured.");
-    var jwtSecretBytes = Encoding.UTF8.GetBytes(jwtSecret);
-    if (jwtSecretBytes.Length < 32)
-        throw new InvalidOperationException("Jwt:Secret must be at least 32 bytes.");
-
     builder.Services.AddSingleton(builder.Configuration.GetSection("TyrePressure").Get<TyrePressureThresholds>()
         ?? TyrePressureThresholds.Default);
 
@@ -116,50 +107,7 @@ try
 
     builder.Services.AddSignalR();
 
-    builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-        .AddJwtBearer(options =>
-        {
-            options.Events = new Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerEvents
-            {
-                OnMessageReceived = ctx =>
-                {
-                    // SignalR WebSocket connections send the token via query string
-                    if (ctx.Request.Path.StartsWithSegments("/hubs/telemetry"))
-                    {
-                        var qs = ctx.Request.Query["access_token"].ToString();
-                        if (!string.IsNullOrEmpty(qs))
-                        {
-                            ctx.Token = qs;
-                            return Task.CompletedTask;
-                        }
-                    }
-                    if (ctx.Request.Cookies.TryGetValue(AuthEndpoints.CookieName, out var cookie))
-                        ctx.Token = cookie;
-                    return Task.CompletedTask;
-                },
-                OnTokenValidated = async ctx =>
-                {
-                    // Checked after signature/lifetime validation already passed, so this only
-                    // needs to catch tokens explicitly revoked via /api/auth/logout.
-                    var jti = ctx.Principal?.FindFirst(JwtRegisteredClaimNames.Jti)?.Value;
-                    if (string.IsNullOrEmpty(jti)) return;
-
-                    var db = ctx.HttpContext.RequestServices.GetRequiredService<AppDbContext>();
-                    var isRevoked = await TokenRevocation.IsRevokedAsync(db, jti, ctx.HttpContext.RequestAborted);
-                    if (isRevoked) ctx.Fail("Token has been revoked");
-                },
-            };
-            options.TokenValidationParameters = new TokenValidationParameters
-            {
-                ValidateIssuer = false,
-                ValidateAudience = false,
-                ValidateIssuerSigningKey = true,
-                IssuerSigningKey = new SymmetricSecurityKey(jwtSecretBytes),
-                ValidateLifetime = true,
-                ClockSkew = TimeSpan.FromMinutes(1),
-            };
-        });
-    builder.Services.AddAuthorization();
+    builder.Services.AddGarageStackAuthentication(builder.Configuration, builder.Environment);
 
     builder.Services.AddRateLimiter(opts =>
     {
@@ -189,6 +137,24 @@ try
                 {
                     Window = TimeSpan.FromMinutes(5),
                     PermitLimit = 10,
+                    QueueLimit = 0,
+                    AutoReplenishment = true,
+                });
+        });
+
+        // Starting an OIDC sign-in submits no credentials, so it needs no brute-force limit --
+        // but it does redirect to the identity provider, and a redirect loop caused by a
+        // misconfiguration should not hammer it. Loose enough that auto-login plus a few page
+        // reloads never trips it.
+        opts.AddPolicy("oidc-login", httpContext =>
+        {
+            var ip = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+            return RateLimitPartition.GetFixedWindowLimiter(
+                partitionKey: ip,
+                factory: _ => new FixedWindowRateLimiterOptions
+                {
+                    Window = TimeSpan.FromMinutes(5),
+                    PermitLimit = 30,
                     QueueLimit = 0,
                     AutoReplenishment = true,
                 });
@@ -407,9 +373,7 @@ try
             .EnableDarkMode()
             .WithDynamicBaseServerUrl(true)
             .SortTagsAlphabetically()
-            .SortOperationsByMethod()
-            .AddPreferredSecuritySchemes(["Bearer"])
-            .AddHttpAuthentication("Bearer", _ => { }));
+            .SortOperationsByMethod());
     }
 
     app.MapHealthEndpoints();

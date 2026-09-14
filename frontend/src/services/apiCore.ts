@@ -11,6 +11,12 @@ export function clearUnauthorizedState() {
   handlingUnauthorized = false
 }
 
+// Absolute URL for an API path. Needed for links and WebSocket connections, which the browser
+// resolves itself instead of going through request()/send().
+export function apiUrl(path: string): string {
+  return `${BASE_URL}${path}`
+}
+
 export class ApiError extends Error {
   status: number
   path: string

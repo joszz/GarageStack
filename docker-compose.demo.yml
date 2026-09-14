@@ -11,7 +11,6 @@ services:
       ASPNETCORE_ENVIRONMENT: "Production"
       DEMO_MODE: "true"
       Cors__Origins__0: "${CORS_ORIGIN:-http://localhost:8080}"
-      Jwt__Secret: "${JWT_SECRET}"
       Auth__Username: "${AUTH_USERNAME:-demo}"
       Auth__Password: "${AUTH_PASSWORD:-demo}"
     ports:
