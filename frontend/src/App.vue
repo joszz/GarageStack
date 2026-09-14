@@ -139,7 +139,9 @@ function closeMenu() {
 async function logout() {
   await stopSignalR()
   await auth.logout()
-  await router.replace({ name: 'login' })
+  // loggedOut tells the login page this was deliberate, so OIDC auto-login does not
+  // immediately sign the user back in through the provider's still-valid session.
+  await router.replace({ name: 'login', query: { loggedOut: '1' } })
 }
 
 watch(

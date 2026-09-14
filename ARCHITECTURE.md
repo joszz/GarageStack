@@ -79,6 +79,18 @@ If GarageStack ever needs to run more than one Api/Worker instance, revisit this
 in-memory state (this cache, `VehicleCommandGate`, `NotificationCooldownGate`, the Overpass/OCM
 rate limiters) would all need to move to something shared.
 
+## Authentication
+
+`src/GarageStack.Api/Authentication/` wires both sign-in methods into a single session scheme, so nothing downstream has to care which one was used.
+
+- **Sessions** are ASP.NET Core cookie-auth tickets (`garagestack-auth`), encrypted with the Data Protection keys on disk. `AuthenticationSetup` answers unauthenticated API calls with 401 instead of the framework's default redirect to a login page, checks every request's session id against the `RevokedTokens` table, and keeps the principal slim: display name, subject, session id.
+- **OIDC** uses the stock `AddOpenIdConnect` handler (authorization code + PKCE, `response_mode=query` so the callback carries `SameSite=Lax` cookies on plain HTTP). `OidcOptions` binds the `OIDC_*` environment variables and fails fast on a half-finished configuration; `OidcAccessPolicy` decides whether an authenticated user is also authorised, and is the piece worth reading first.
+- **Password login** is the fallback. `PasswordLoginOptions.Resolve` switches it off as soon as OIDC is configured, unless `AUTH_PASSWORD_LOGIN_ENABLED` explicitly asks for both, and the API refuses to start when that leaves no way in at all.
+
+Both `/api/auth/oidc/login` and the callback answer failures with a redirect to `/login?error=...` rather than an exception: they are browser navigations, and a JSON 500 is useless to the person looking at it (and, with auto-login on, loops).
+
+The callback lives at `/api/auth/oidc/callback` rather than the handler's default `/signin-oidc` because nginx only proxies `/api/` and `/hubs/` to the API. Operator-facing documentation is in [`AUTHENTICATION.md`](AUTHENTICATION.md); `AuthenticationFlowTests` drives the whole round-trip against a fake provider.
+
 ## Database
 
 Code-first EF Core migrations live in `src/GarageStack.Data/Migrations/`. `Program.cs` runs `db.Database.MigrateAsync()` on Api startup in normal operation; in `DEMO_MODE` it calls `EnsureCreated()` and seeds fake data instead, bypassing a real Postgres server entirely.

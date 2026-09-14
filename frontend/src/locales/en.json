@@ -315,7 +315,7 @@
   },
   "auth": {
     "formLabel": "Login form",
-    "subtitle": "Sign in with your MG account credentials",
+    "subtitle": "Sign in to continue",
     "username": "Username",
     "password": "Password",
     "login": "Log in",
@@ -324,7 +324,14 @@
     "invalidCredentials": "Invalid username or password",
     "loginFailed": "Login failed, please try again",
     "rememberMe": "Remember me",
-    "rememberMeDesc": "Stay logged in for 30 days"
+    "rememberMeDesc": "Stay logged in for 30 days",
+    "signInWith": "Sign in with {provider}",
+    "redirecting": "Redirecting to {provider}...",
+    "or": "or",
+    "loggedOut": "You have been signed out",
+    "accessDenied": "This account is not allowed to use GarageStack",
+    "ssoFailed": "Single sign-on failed, please try again",
+    "noSignInMethod": "No sign-in method is available. Check that the API is running and configured."
   },
   "settings": {
     "title": "Settings",

@@ -46,10 +46,9 @@ Mount a single volume at `/data`. The container creates the following layout ins
 | `SAIC_USER` | MG iSmart account email (must be the vehicle owner account) |
 | `SAIC_PASSWORD` | MG iSmart account password |
 | `SAIC_REGION` | Region the car is registered in: `eu` (default), `au`, or `tr` -- automatically mapped to the right API endpoint |
-| `JWT_SECRET` | Token signing key, minimum 32 characters. Generate: `openssl rand -base64 32` |
 | `CORS_ORIGIN` | Exact URL you use to open the app, e.g. `http://192.168.1.100:8080` |
 
-The web login uses the same `SAIC_USER` and `SAIC_PASSWORD` credentials. There is no separate signup flow.
+By default the web login uses the same `SAIC_USER` and `SAIC_PASSWORD` credentials, and there is no separate signup flow. Set `AUTH_USERNAME` / `AUTH_PASSWORD` for dedicated credentials, or hand sign-in over to your own identity provider with the `OIDC_*` variables below -- see [`AUTHENTICATION.md`](../../AUTHENTICATION.md).
 
 ### Optional
 
@@ -66,6 +65,15 @@ The web login uses the same `SAIC_USER` and `SAIC_PASSWORD` credentials. There i
 | `POSTGRES_DB` | Database name (default: `garagestack`) |
 | `POSTGRES_USER` | Database user (default: `garagestack`) |
 | `AUTH_COOKIE_SECURE` | Set to `true` when serving behind a TLS-terminating reverse proxy. Defaults to `false` so plain-HTTP LAN installs work out of the box. |
+| `AUTH_USERNAME` / `AUTH_PASSWORD` | Credentials for the built-in login. Default to `SAIC_USER` / `SAIC_PASSWORD`. Ignored once OIDC is configured, unless `AUTH_PASSWORD_LOGIN_ENABLED=true`. |
+| `AUTH_PASSWORD_LOGIN_ENABLED` | Set to `true` to keep the built-in login available alongside OIDC (break-glass access), or to `false` to switch it off entirely. Defaults to on only while no OIDC provider is configured. |
+| `AUTH_SESSION_LIFETIME_HOURS` | How long a single sign-on session lasts before the provider is consulted again (default `168`). |
+| `OIDC_AUTHORITY` | Issuer URL of your identity provider. Setting it enables single sign-on and disables the built-in password login. Register `<CORS_ORIGIN>/api/auth/oidc/callback` as the redirect URI. |
+| `OIDC_CLIENT_ID` / `OIDC_CLIENT_SECRET` | Client credentials from your provider. The secret may be empty for a public (PKCE-only) client. |
+| `OIDC_ALLOWED_GROUPS` / `OIDC_ALLOWED_EMAILS` | Restrict who may sign in. Leave empty only if the provider already restricts this application. |
+| `OIDC_PROVIDER_NAME` | Name on the sign-in button (default `SSO`). |
+| `OIDC_AUTO_LOGIN` | Set to `true` to skip the login page and go straight to the provider. |
+| `OIDC_SCOPES`, `OIDC_GROUPS_CLAIM`, `OIDC_REDIRECT_URI`, `OIDC_REQUIRE_HTTPS_METADATA` | Fine-tuning for less common providers -- see [`AUTHENTICATION.md`](../../AUTHENTICATION.md). |
 | `MQTT_BROKER_USERNAME` | Username for the embedded Mosquitto broker (default: `garagestack`). Only matters if you expose port 1883 to the LAN. |
 | `MQTT_BROKER_PASSWORD` | Password for the embedded Mosquitto broker. If not set, a random password is auto-generated on first start. Set explicitly if you expose port 1883 and want a known value. |
 
@@ -104,7 +112,6 @@ docker run -d \
   -e SAIC_USER=your@email.com \
   -e SAIC_PASSWORD=yourpassword \
   -e SAIC_REGION=eu \
-  -e JWT_SECRET="$(openssl rand -base64 32)" \
   -e CORS_ORIGIN=http://localhost:8080 \
   ghcr.io/joszz/garagestack:latest
 ```
@@ -114,7 +121,6 @@ docker run -d \
 > **Important:** always use PowerShell, **not Git Bash**. Git Bash (MSYS) mangles the container-side path `/data` into a Windows path, which silently breaks the volume mount.
 
 ```powershell
-$jwtSecret = [Convert]::ToBase64String((1..32 | ForEach-Object { Get-Random -Minimum 0 -Maximum 256 }))
 docker run -d `
   --name garagestack `
   --restart unless-stopped `
@@ -123,7 +129,6 @@ docker run -d `
   -e SAIC_USER=your@email.com `
   -e SAIC_PASSWORD=yourpassword `
   -e SAIC_REGION=eu `
-  -e JWT_SECRET=$jwtSecret `
   -e CORS_ORIGIN=http://localhost:8080 `
   ghcr.io/joszz/garagestack:latest
 ```
@@ -225,18 +230,21 @@ Look for `[garagestack] Starting all services via supervisord...` and then all s
 
 ### Cannot log in with my MG iSmart credentials
 
-The web login uses your `SAIC_USER` / `SAIC_PASSWORD` environment variables directly -- there is no separate account. Check that those values match exactly what you use in the MG iSmart app. The SAIC gateway in the container will also need a few minutes to establish its first session with the MG cloud.
+Unless you configured something else, the web login uses your `SAIC_USER` / `SAIC_PASSWORD` environment variables directly -- there is no separate account. Check that those values match exactly what you use in the MG iSmart app. The SAIC gateway in the container will also need a few minutes to establish its first session with the MG cloud.
+
+Note that setting `OIDC_AUTHORITY` replaces this login: the page then offers only "Sign in with ...", unless `AUTH_PASSWORD_LOGIN_ENABLED=true` keeps both. See [`AUTHENTICATION.md`](../../AUTHENTICATION.md).
 
 ## Unraid Community Apps
 
 Import the template from `unraid/garagestack.xml`. Fill in at minimum:
 
 1. **MG iSmart Email / Password / Region**
-2. **JWT Secret** -- generate with `openssl rand -base64 32`
-3. **App URL** -- the address you use in your browser (e.g. `http://192.168.1.50:8080`)
+2. **App URL** -- the address you use in your browser (e.g. `http://192.168.1.50:8080`)
 
 **Database Password** is optional -- if left blank a strong random password is auto-generated on first start and saved to `/data/.postgres_password`. You only need to set it explicitly if you want to connect to the embedded database with an external tool.
 
 VAPID keys are optional; leave them blank to skip push notifications.
+
+The **OIDC** fields under "Show advanced settings" are optional too. Fill them in to sign in through Authentik, Authelia, Keycloak or any other OpenID Connect provider instead of the built-in login -- see [`AUTHENTICATION.md`](../../AUTHENTICATION.md).
 
 > **Note on the MG account:** see the [MG iSmart account and session limits](../../README.md#mg-ismart-account-and-session-limits) section in the main README.

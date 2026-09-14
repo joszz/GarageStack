@@ -113,17 +113,6 @@
     Mask="true"/>
 
   <Config
-    Name="JWT Secret"
-    Target="JWT_SECRET"
-    Default=""
-    Mode=""
-    Description="Secret used to sign login tokens. Must be at least 32 characters. Generate with: openssl rand -base64 32"
-    Type="Variable"
-    Display="always"
-    Required="true"
-    Mask="true"/>
-
-  <Config
     Name="App URL"
     Target="CORS_ORIGIN"
     Default="http://localhost:8080"
@@ -133,6 +122,96 @@
     Display="always"
     Required="true"
     Mask="false">http://localhost:8080</Config>
+
+  <!-- ── Single sign-on (OpenID Connect) ────────────────────────────────────── -->
+
+  <Config
+    Name="OIDC Issuer URL"
+    Target="OIDC_AUTHORITY"
+    Default=""
+    Mode=""
+    Description="Optional. Issuer URL of your identity provider (Authentik, Authelia, Keycloak, Pocket ID, ...) -- the URL its /.well-known/openid-configuration sits under. Setting this switches GarageStack to single sign-on and disables the built-in password login. Register the redirect URI &lt;App URL&gt;/api/auth/oidc/callback at your provider. See AUTHENTICATION.md."
+    Type="Variable"
+    Display="advanced"
+    Required="false"
+    Mask="false"/>
+
+  <Config
+    Name="OIDC Client ID"
+    Target="OIDC_CLIENT_ID"
+    Default=""
+    Mode=""
+    Description="Client ID issued by your identity provider for GarageStack. Required when OIDC Issuer URL is set."
+    Type="Variable"
+    Display="advanced"
+    Required="false"
+    Mask="false"/>
+
+  <Config
+    Name="OIDC Client Secret"
+    Target="OIDC_CLIENT_SECRET"
+    Default=""
+    Mode=""
+    Description="Client secret issued by your identity provider. Leave empty for a public client that uses PKCE only."
+    Type="Variable"
+    Display="advanced"
+    Required="false"
+    Mask="true"/>
+
+  <Config
+    Name="OIDC Allowed Groups"
+    Target="OIDC_ALLOWED_GROUPS"
+    Default=""
+    Mode=""
+    Description="Comma-separated groups allowed to sign in, e.g. garagestack-users. Leave empty only if your provider already restricts who can use this application -- otherwise every account it accepts can sign in and control your car."
+    Type="Variable"
+    Display="advanced"
+    Required="false"
+    Mask="false"/>
+
+  <Config
+    Name="OIDC Allowed Emails"
+    Target="OIDC_ALLOWED_EMAILS"
+    Default=""
+    Mode=""
+    Description="Comma-separated email addresses allowed to sign in. Useful with providers that have no groups. Works alongside OIDC Allowed Groups -- a match on either list grants access."
+    Type="Variable"
+    Display="advanced"
+    Required="false"
+    Mask="false"/>
+
+  <Config
+    Name="OIDC Provider Name"
+    Target="OIDC_PROVIDER_NAME"
+    Default="SSO"
+    Mode=""
+    Description="Name shown on the sign-in button, e.g. Authentik."
+    Type="Variable"
+    Display="advanced"
+    Required="false"
+    Mask="false">SSO</Config>
+
+  <Config
+    Name="Keep Password Login With OIDC"
+    Target="AUTH_PASSWORD_LOGIN_ENABLED"
+    Default=""
+    Mode=""
+    Description="Set to true to keep the built-in username/password login available alongside single sign-on, e.g. as break-glass access for when your identity provider is down. Leave empty to switch it off automatically once OIDC is configured. Set AUTH_USERNAME and AUTH_PASSWORD to a strong dedicated password if you enable this."
+    Type="Variable"
+    Display="advanced"
+    Required="false"
+    Mask="false"/>
+
+  <Config
+    Name="OIDC Auto Login"
+    Target="OIDC_AUTO_LOGIN"
+    Default="false"
+    Mode=""
+    Description="Set to true to skip the GarageStack login page and go straight to your identity provider."
+    Type="Variable"
+    Display="advanced"
+    Required="false"
+    Mask="false">false</Config>
 
   <!-- ── Optional variables ─────────────────────────────────────────────────── -->
 

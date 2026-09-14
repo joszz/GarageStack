@@ -315,7 +315,7 @@
   },
   "auth": {
     "formLabel": "Inlogformulier",
-    "subtitle": "Log in met je MG-accountgegevens",
+    "subtitle": "Log in om verder te gaan",
     "username": "Gebruikersnaam",
     "password": "Wachtwoord",
     "login": "Inloggen",
@@ -324,7 +324,14 @@
     "invalidCredentials": "Ongeldige gebruikersnaam of wachtwoord",
     "loginFailed": "Inloggen mislukt, probeer het opnieuw",
     "rememberMe": "Onthoud mij",
-    "rememberMeDesc": "Ingelogd blijven voor 30 dagen"
+    "rememberMeDesc": "Ingelogd blijven voor 30 dagen",
+    "signInWith": "Inloggen met {provider}",
+    "redirecting": "Doorsturen naar {provider}...",
+    "or": "of",
+    "loggedOut": "Je bent uitgelogd",
+    "accessDenied": "Dit account mag GarageStack niet gebruiken",
+    "ssoFailed": "Eenmalig inloggen is mislukt, probeer het opnieuw",
+    "noSignInMethod": "Er is geen inlogmethode beschikbaar. Controleer of de API draait en geconfigureerd is."
   },
   "settings": {
     "title": "Instellingen",

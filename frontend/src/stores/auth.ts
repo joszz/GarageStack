@@ -1,6 +1,6 @@
 import { computed, onScopeDispose, ref } from 'vue'
 import { defineStore } from 'pinia'
-import { authApi } from '@/services/authApi'
+import { authApi, type AuthConfigResponse } from '@/services/authApi'
 
 const AUTH_USERNAME_KEY = 'garagestack-auth-username'
 const AUTH_EXPIRES_KEY = 'garagestack-auth-expires'
@@ -21,6 +21,11 @@ export const useAuthStore = defineStore('auth', () => {
       !!expiresAtUtc.value &&
       new Date(expiresAtUtc.value).getTime() > now.value,
   )
+
+  // Which sign-in methods the server offers. Only the server knows: whether OIDC is configured
+  // comes from the container's environment, not from the build.
+  const config = ref<AuthConfigResponse | null>(null)
+  let _configPromise: Promise<AuthConfigResponse | null> | null = null
 
   // Cached promise so the server round-trip happens exactly once per page load.
   // The router guard awaits this before deciding whether to allow or redirect.
@@ -66,6 +71,22 @@ export const useAuthStore = defineStore('auth', () => {
     return _verifyPromise
   }
 
+  async function loadConfig(): Promise<AuthConfigResponse | null> {
+    try {
+      config.value = await authApi.config()
+    } catch {
+      // Leaves the login page to render its "no sign-in method available" state rather than
+      // an empty card.
+      config.value = null
+    }
+    return config.value
+  }
+
+  function ensureConfig(): Promise<AuthConfigResponse | null> {
+    _configPromise ??= loadConfig()
+    return _configPromise
+  }
+
   async function login(usernameInput: string, password: string, rememberMe = false) {
     const generation = ++_generation
     const result = await authApi.login(usernameInput, password, rememberMe)
@@ -81,5 +102,14 @@ export const useAuthStore = defineStore('auth', () => {
     await authApi.logout()
   }
 
-  return { username, isAuthenticated, login, logout, verifySession, ensureVerified }
+  return {
+    username,
+    config,
+    isAuthenticated,
+    login,
+    logout,
+    verifySession,
+    ensureVerified,
+    ensureConfig,
+  }
 })

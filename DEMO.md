@@ -13,7 +13,6 @@ Demo mode runs GarageStack with realistic fake data and requires no MG iSmart cr
 
 ```bash
 cp .env.demo.example .env.demo
-# Edit .env.demo and set a real JWT_SECRET (at least 32 characters)
 docker compose -f docker-compose.demo.yml up --build
 ```
 
@@ -65,6 +64,8 @@ The `.env.development.local` file sets `VITE_DEMO_MODE=true` so the demo banner 
 
 The credentials come from `AUTH_USERNAME` / `AUTH_PASSWORD` in `.env.demo` (Docker) or the `Auth__Username` / `Auth__Password` values in the `Demo` launch profile (local). Change them in either place if you want different credentials.
 
+Demo mode deliberately sticks to the built-in password login. Configuring `OIDC_AUTHORITY` would switch the demo over to single sign-on as well -- see [`AUTHENTICATION.md`](AUTHENTICATION.md).
+
 ## Demo Controls panel
 
 Click the flask icon in the bottom-right corner to open the panel. Changes take effect immediately and refresh the dashboard. Available controls:
@@ -99,7 +100,6 @@ No PostgreSQL, Mosquitto, Worker, or SAIC gateway containers are started.
 | `DEMO_MODE` | `false` | Set to `true` to activate demo mode |
 | `AUTH_USERNAME` | `demo` | Login username |
 | `AUTH_PASSWORD` | `demo` | Login password |
-| `JWT_SECRET` | _(required)_ | Min 32 chars, used to sign tokens |
 | `FRONTEND_PORT` | `8080` | Host port for the frontend container |
 | `API_PORT` | `5001` | Host port for the API container |
 | `CORS_ORIGIN` | `http://localhost:8080` | Allowed CORS origin |
