@@ -26,6 +26,9 @@ const { sending, send } = useVehicleCommand()
 const { showPermissionDeniedNotice } = useNotificationPushSync()
 const { isOpen: modalOpen, open: openModal, close: closeModal } = useModal()
 
+// Joined in script rather than the template, which drops a whitespace-only text node before the version
+const copyrightLabel = ['© 2026 GarageStack', APP_VERSION].filter(Boolean).join(' ')
+
 const vin = computed(() => vehicleStore.vehicles[0]?.vin ?? null)
 
 const detectedLabel = computed(() => {
@@ -103,7 +106,7 @@ function toggleNotificationType(id: NotificationCategoryId, checked: boolean) {
       href="https://github.com/joszz/GarageStack"
       target="_blank"
       rel="noopener"
-      >&copy; 2026 GarageStack<template v-if="APP_VERSION"> {{ APP_VERSION }}</template></a
+      >{{ copyrightLabel }}</a
     >
     <div class="app-footer__actions">
       <button

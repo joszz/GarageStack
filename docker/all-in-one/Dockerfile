@@ -33,8 +33,9 @@ COPY src/GarageStack.Core/ GarageStack.Core/
 COPY src/GarageStack.Data/ GarageStack.Data/
 COPY src/GarageStack.Api/ GarageStack.Api/
 COPY src/GarageStack.Worker/ GarageStack.Worker/
-RUN dotnet publish GarageStack.Api/GarageStack.Api.csproj -c Release -o /publish/api /p:MinVerVersionOverride=${APP_VERSION} \
- && dotnet publish GarageStack.Worker/GarageStack.Worker.csproj -c Release -o /publish/worker /p:MinVerVersionOverride=${APP_VERSION}
+# ${APP_VERSION#v} strips a leading "v" (e.g. a tag name), which MinVer rejects
+RUN dotnet publish GarageStack.Api/GarageStack.Api.csproj -c Release -o /publish/api /p:MinVerVersionOverride=${APP_VERSION#v} \
+ && dotnet publish GarageStack.Worker/GarageStack.Worker.csproj -c Release -o /publish/worker /p:MinVerVersionOverride=${APP_VERSION#v}
 
 # ── Stage 3: Pull SAIC MQTT Gateway (source of truth for the gateway app) ────
 # The gateway is not on PyPI. We copy its pre-built venv + source directly from

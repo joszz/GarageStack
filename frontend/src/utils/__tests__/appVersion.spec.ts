@@ -14,7 +14,15 @@ describe('formatAppVersion', () => {
     expect(formatAppVersion(' 1.2.3\n')).toBe('v1.2.3')
   })
 
-  it.each([undefined, '', '   '])('returns null when no version was injected (%j)', (version) => {
-    expect(formatAppVersion(version)).toBeNull()
+  it('does not double the "v" when given a tag name', () => {
+    expect(formatAppVersion('v0.5.0')).toBe('v0.5.0')
+    expect(formatAppVersion('v0.5.0-115-g95ad3a3')).toBe('v0.5.0-115-g95ad3a3')
   })
+
+  it.each([undefined, '', '   ', 'v'])(
+    'returns null when no version was injected (%j)',
+    (version) => {
+      expect(formatAppVersion(version)).toBeNull()
+    },
+  )
 })

@@ -9,7 +9,8 @@ COPY src/GarageStack.Core/ GarageStack.Core/
 COPY src/GarageStack.Data/ GarageStack.Data/
 COPY src/GarageStack.Worker/ GarageStack.Worker/
 WORKDIR /src/GarageStack.Worker
-RUN dotnet publish -c Release -o /app /p:MinVerVersionOverride=${APP_VERSION}
+# ${APP_VERSION#v} strips a leading "v" (e.g. a tag name), which MinVer rejects
+RUN dotnet publish -c Release -o /app /p:MinVerVersionOverride=${APP_VERSION#v}
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
