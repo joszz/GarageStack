@@ -121,6 +121,21 @@ public class OidcAccessPolicyTests
         Assert.True(decision.Allowed);
     }
 
+    [Theory]
+    [InlineData("owner@example.com", "true")]
+    [InlineData("owner@example.com", "false")]
+    [InlineData("someone@example.com", "true")]
+    public void Evaluate_KeepsTheEmailAddressOutOfTheReason(string email, string emailVerified)
+    {
+        // The reason is logged on every sign-in, and log files are no place for personal data.
+        var options = new OidcOptions { AllowedEmails = "owner@example.com" };
+        var user = User(("email", email), ("email_verified", emailVerified));
+
+        var decision = OidcAccessPolicy.Evaluate(user, options);
+
+        Assert.DoesNotContain(email, decision.Reason, StringComparison.OrdinalIgnoreCase);
+    }
+
     // ── Combined ──────────────────────────────────────────────────────────────
 
     [Fact]

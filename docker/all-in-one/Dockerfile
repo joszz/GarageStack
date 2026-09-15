@@ -100,11 +100,12 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 # Layout in the saic image: WORKDIR=/usr/src/app, venv at /usr/src/app/.venv,
 # entry point: python ./main.py
 COPY --from=saic-source /usr/src/app /opt/saic/app
-# The upstream 0.12.0 image ships pip 26.1.1 (CVE-2026-8643, path traversal via a
-# malicious entry point name during wheel install). Nothing in this image ever runs
-# pip again, so it's not reachable at runtime, but patch it anyway to keep the image
-# scan clean until upstream bumps it.
-RUN /opt/saic/app/.venv/bin/python -m pip install --no-cache-dir --upgrade "pip>=26.1.2" \
+# Nothing in this image installs Python packages at runtime, so remove pip from both the
+# gateway venv and the base interpreter. Even the newest pip vendors outdated copies of
+# msgpack and setuptools' pkg_resources that image scans keep flagging (GHSA-6v7p-g79w-8964,
+# CVE-2025-47273, CVE-2026-59890), and dropping it also retires the earlier pip CVE patching.
+RUN /opt/saic/app/.venv/bin/python -m pip uninstall --yes pip \
+    && python -m pip uninstall --yes pip \
     && chown -R appuser:appuser /opt/saic/app
 
 # Frontend SPA
