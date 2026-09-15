@@ -17,12 +17,20 @@ public static class AuthEndpoints
 
     public static IEndpointRouteBuilder MapAuthEndpoints(this IEndpointRouteBuilder app)
     {
+        // Resolved once here instead of taken as handler parameters: both are fixed at startup
+        // from configuration. Static analysis (CodeQL) treats every handler parameter as request
+        // input, which would turn each check on these settings into a false alarm.
+        var oidc = app.ServiceProvider.GetRequiredService<OidcOptions>();
+        var passwordLogin = app.ServiceProvider.GetRequiredService<PasswordLoginOptions>();
+        var logger = app.ServiceProvider.GetRequiredService<ILoggerFactory>()
+            .CreateLogger(AuthenticationSetup.LogCategory);
+
         var group = app.MapGroup("/api/auth")
             .WithTags("Authentication");
 
         // Public on purpose: the login page has to know which sign-in methods exist before
         // anyone is authenticated. It exposes no secrets, only which buttons to render.
-        group.MapGet("/config", (OidcOptions oidc, PasswordLoginOptions passwordLogin) =>
+        group.MapGet("/config", () =>
             Results.Ok(new AuthConfigResponse(
                 PasswordLoginEnabled: passwordLogin.Enabled,
                 OidcEnabled: oidc.Enabled,
@@ -32,11 +40,7 @@ public static class AuthEndpoints
 
         // A browser navigation, not a fetch: the response is a redirect to the identity
         // provider, and the provider redirects back to OidcOptions.CallbackPath.
-        group.MapGet("/oidc/login", async (
-            string? returnUrl,
-            OidcOptions oidc,
-            HttpContext httpContext,
-            ILoggerFactory loggerFactory) =>
+        group.MapGet("/oidc/login", async (string? returnUrl, HttpContext httpContext) =>
         {
             if (!oidc.Enabled)
                 return Results.NotFound();
@@ -55,8 +59,7 @@ public static class AuthEndpoints
                 // supports PAR), so bad client credentials or an unreachable provider surface
                 // here. This is a browser navigation: answer with the login page carrying an
                 // error, not a JSON 500 the user can do nothing with.
-                loggerFactory.CreateLogger("GarageStack.Authentication").LogError(
-                    ex, "Could not start OIDC sign-in with {Authority}", oidc.Authority);
+                logger.LogError(ex, "Could not start OIDC sign-in with {Authority}", oidc.Authority);
 
                 return Results.Redirect(AuthenticationSetup.LoginPageUrl("oidc_failed"));
             }
@@ -97,14 +100,8 @@ public static class AuthEndpoints
         .RequireAuthorization()
         .WithSummary("Get current authenticated user");
 
-        group.MapPost("/login", async (
-            LoginRequest req,
-            PasswordLoginOptions passwordLogin,
-            HttpContext httpContext,
-            ILoggerFactory loggerFactory) =>
+        group.MapPost("/login", async (LoginRequest req, HttpContext httpContext) =>
         {
-            var logger = loggerFactory.CreateLogger("GarageStack.Authentication");
-
             if (!passwordLogin.Enabled)
             {
                 logger.LogWarning(

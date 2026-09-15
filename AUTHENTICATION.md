@@ -298,7 +298,7 @@ The callback did not validate. The API log has the reason. Common causes: the co
 
 ### "This account is not allowed to use GarageStack"
 
-Authentication succeeded, authorization did not. The log line names the groups or email that were seen. If the provider sends no groups at all, either add a group claim (see your provider above) or switch to `OIDC_ALLOWED_EMAILS`.
+Authentication succeeded, authorization did not. The log line names the account and the groups that were seen. For `OIDC_ALLOWED_EMAILS` it says whether the provider sent an email claim at all, but it never logs the address itself; compare the account's email at the provider with the allow-list. If the provider sends no groups at all, either add a group claim (see your provider above) or switch to `OIDC_ALLOWED_EMAILS`.
 
 ### The provider is served over plain HTTP
 

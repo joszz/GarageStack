@@ -26,6 +26,9 @@ internal static class AuthenticationSetup
     /// <summary>SPA route users land on when sign-in fails; ?error= drives the message shown.</summary>
     private const string LoginPagePath = "/login";
 
+    /// <summary>Logger category shared by every sign-in related log line.</summary>
+    internal const string LogCategory = "GarageStack.Authentication";
+
     internal static IServiceCollection AddGarageStackAuthentication(
         this IServiceCollection services,
         IConfiguration config,
@@ -235,7 +238,7 @@ internal static class AuthenticationSetup
     internal static string LoginPageUrl(string error) => $"{LoginPagePath}?error={Uri.EscapeDataString(error)}";
 
     private static Microsoft.Extensions.Logging.ILogger CreateLogger(HttpContext context) =>
-        context.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("GarageStack.Authentication");
+        context.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger(LogCategory);
 
     private static CookieSecurePolicy ResolveCookieSecurePolicy(IConfiguration config, IWebHostEnvironment env) =>
         config.GetValue<bool?>("Auth:CookieSecure") switch

@@ -2,6 +2,10 @@ using System.Security.Claims;
 
 namespace GarageStack.Api.Authentication;
 
+/// <param name="Reason">
+/// Written to the log, so it never contains the email address itself: the log line already names
+/// the account, and log files are no place for personal data.
+/// </param>
 internal readonly record struct OidcAccessDecision(bool Allowed, string Reason);
 
 /// <summary>
@@ -41,8 +45,8 @@ internal static class OidcAccessPolicy
                 // An allow-list keyed on an address the provider itself has not verified is worth
                 // no more than the provider's signup form.
                 return IsEmailVerified(principal)
-                    ? new OidcAccessDecision(true, $"email '{email}' is allow-listed")
-                    : new OidcAccessDecision(false, $"email '{email}' is allow-listed but the provider reports it as unverified");
+                    ? new OidcAccessDecision(true, "email is allow-listed")
+                    : new OidcAccessDecision(false, "email is allow-listed but the provider reports it as unverified");
             }
         }
 
@@ -63,10 +67,9 @@ internal static class OidcAccessPolicy
 
         if (options.AllowedEmailList.Count > 0)
         {
-            var email = FindEmail(principal);
-            parts.Add(string.IsNullOrWhiteSpace(email)
+            parts.Add(string.IsNullOrWhiteSpace(FindEmail(principal))
                 ? "no 'email' claim was returned by the provider (OIDC_ALLOWED_EMAILS requires one)"
-                : $"email '{email}' is not in OIDC_ALLOWED_EMAILS");
+                : "email is not in OIDC_ALLOWED_EMAILS");
         }
 
         return string.Join("; ", parts);
