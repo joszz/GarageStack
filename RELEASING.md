@@ -234,7 +234,8 @@ GarageStack uses MinVer for .NET assembly version metadata and for the version s
 - On non-tag commits, MinVer produces prerelease versions using `preview.0` as the identifier (e.g. `0.5.1-preview.0.12`, so `latest` images built from `main` show that instead of the last release)
 - If no `v*` tags exist yet, MinVer starts from `0.0.0-preview.0.<height>`
 - In CI, the workflow computes MinVer once and passes it to all Docker builds as `APP_VERSION`
-- The frontend Dockerfiles forward `APP_VERSION` to Vite as `VITE_APP_VERSION`; local Docker builds default to `0.0.0-local` and `pnpm dev` hides the version
+- The frontend Dockerfiles forward `APP_VERSION` to Vite as `VITE_APP_VERSION`; `pnpm dev` hides the version
+- `docker-compose.yml` passes `APP_VERSION` through from the shell or `.env` and defaults to `0.0.0-local`. Source builds cannot read git history inside Docker, so build with `APP_VERSION=$(git describe --tags) docker compose up -d --build` to show the real version. A leading `v` is stripped, since MinVer rejects it
 
 **Do not manually set `<Version>` in `*.csproj` or `package.json` for releases.** MinVer reads it from git.
 

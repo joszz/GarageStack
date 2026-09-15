@@ -69,6 +69,8 @@ services:
     build:
       context: .
       dockerfile: src/GarageStack.Worker/Dockerfile
+      args:
+        APP_VERSION: "${APP_VERSION:-0.0.0-local}"
     container_name: garagestack-worker
     restart: unless-stopped
     mem_limit: 256m
@@ -105,6 +107,8 @@ services:
     build:
       context: .
       dockerfile: src/GarageStack.Api/Dockerfile
+      args:
+        APP_VERSION: "${APP_VERSION:-0.0.0-local}"
     container_name: garagestack-api
     restart: unless-stopped
     mem_limit: 512m
@@ -169,6 +173,8 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        APP_VERSION: "${APP_VERSION:-0.0.0-local}"
     container_name: garagestack-frontend
     restart: unless-stopped
     mem_limit: 128m
