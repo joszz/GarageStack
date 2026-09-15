@@ -4,13 +4,15 @@ using GarageStack.Core.Models;
 using GarageStack.Data;
 using GarageStack.Data.Extensions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Localization;
 
 namespace GarageStack.Worker.Services;
 
 public class MaintenanceCheckService(
     ILogger<MaintenanceCheckService> logger,
     IServiceScopeFactory scopeFactory,
-    IPushSender pushSender) : BackgroundService
+    IPushSender pushSender,
+    IStringLocalizer<NotificationStrings> strings) : BackgroundService
 {
     private readonly TimeSpan _checkInterval = TimeSpan.FromHours(6);
     private readonly NotificationCooldownGate _cooldownGate = new(TimeSpan.FromDays(7));
@@ -63,7 +65,7 @@ public class MaintenanceCheckService(
                     item.LastServiceDate, item.LastServiceOdometerKm,
                     snapshot?.OdometerKm, DateTime.UtcNow);
 
-                var alert = BuildAlert(item, result);
+                var alert = BuildAlert(item, result, strings);
                 if (alert is null) continue;
 
                 var shouldNotify = await _cooldownGate.ShouldNotifyAsync(vehicle.Vin, alert.Value.Category, cutoff =>
@@ -71,7 +73,8 @@ public class MaintenanceCheckService(
                 if (!shouldNotify) continue;
 
                 await pushSender.SendToAllAsync(alert.Value.Title, alert.Value.Body, ct, alert.Value.Category, vehicle.Id);
-                logger.LogInformation("Maintenance push sent: {Vin}/{Category} - {Title}", vehicle.Vin, alert.Value.Category, alert.Value.Title);
+                logger.LogInformation("Maintenance push sent: {Vin}/{Category} - {Title}",
+                    LogRedaction.Vin(vehicle.Vin), alert.Value.Category, alert.Value.Title);
             }
         }
     }
@@ -81,10 +84,17 @@ public class MaintenanceCheckService(
     // Category includes the item id: unlike PushNotificationCheckService's fixed category
     // strings (one alert type per vehicle), maintenance items multiply per vehicle, so a fixed
     // category would let one item's recent notification wrongly suppress another item's alert.
-    internal static MaintenanceAlert? BuildAlert(MaintenanceItem item, MaintenanceDueResult result) => result.Status switch
-    {
-        MaintenanceDueStatus.Overdue => new MaintenanceAlert($"maintenance-overdue-{item.Id}", "Maintenance Overdue", $"{item.Name} is overdue"),
-        MaintenanceDueStatus.DueSoon => new MaintenanceAlert($"maintenance-due-soon-{item.Id}", "Maintenance Due Soon", $"{item.Name} is due soon"),
-        _ => null,
-    };
+    internal static MaintenanceAlert? BuildAlert(MaintenanceItem item, MaintenanceDueResult result, IStringLocalizer<NotificationStrings> strings) =>
+        result.Status switch
+        {
+            MaintenanceDueStatus.Overdue => new MaintenanceAlert(
+                NotificationCategories.MaintenanceOverdue(item.Id),
+                strings["MaintenanceOverdueTitle"],
+                strings["MaintenanceOverdueBody", item.Name]),
+            MaintenanceDueStatus.DueSoon => new MaintenanceAlert(
+                NotificationCategories.MaintenanceDueSoon(item.Id),
+                strings["MaintenanceDueSoonTitle"],
+                strings["MaintenanceDueSoonBody", item.Name]),
+            _ => null,
+        };
 }

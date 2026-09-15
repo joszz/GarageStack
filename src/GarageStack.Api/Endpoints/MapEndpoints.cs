@@ -1,4 +1,5 @@
 using GarageStack.Api.Services;
+using GarageStack.Core.Helpers;
 
 namespace GarageStack.Api.Endpoints;
 
@@ -15,9 +16,9 @@ public static class MapEndpoints
             : null;
 
     private static IResult? ValidatePoiType(string type) =>
-        type is not ("fuel" or "service_area")
-            ? Results.BadRequest(new { error = "type must be 'fuel' or 'service_area'" })
-            : null;
+        PoiTypePolicy.IsKnown(type)
+            ? null
+            : Results.BadRequest(new { error = $"type must be '{PoiTypePolicy.Fuel}' or '{PoiTypePolicy.ServiceArea}'" });
 
     public static IEndpointRouteBuilder MapMapEndpoints(this IEndpointRouteBuilder app)
     {
@@ -51,7 +52,7 @@ public static class MapEndpoints
             var error = ValidatePoiType(type);
             if (error is not null) return error;
 
-            if (!PoiService.IsPoiTypeAllowed(type, vehicleType))
+            if (!PoiTypePolicy.IsAllowed(type, vehicleType))
                 return Results.Ok(Array.Empty<string>());
 
             var brands = await svc.GetBrandsAsync(type, ct);
@@ -71,7 +72,7 @@ public static class MapEndpoints
             var error = ValidateLatLng(lat, lng) ?? ValidateRadiusKm(radiusKm, "radiusKm") ?? ValidatePoiType(type);
             if (error is not null) return error;
 
-            if (!PoiService.IsPoiTypeAllowed(type, vehicleType))
+            if (!PoiTypePolicy.IsAllowed(type, vehicleType))
                 return Results.Ok(new PoiResult([], false));
 
             try

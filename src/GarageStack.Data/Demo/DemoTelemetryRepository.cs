@@ -54,15 +54,30 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
         lock (_lock) { return Task.FromResult<TelemetrySnapshot?>(_current.Clone()); }
     }
 
-    public Task<IReadOnlyList<TelemetrySnapshot>> GetHistoryAsync(
+    public Task<IReadOnlyList<TelemetryHistoryPoint>> GetHistoryAsync(
         int vehicleId, DateTime from, DateTime to, CancellationToken ct = default) =>
-        Task.FromResult<IReadOnlyList<TelemetrySnapshot>>(
-            _history.Value.Where(s => s.RecordedAt >= from && s.RecordedAt <= to).ToList());
+        Task.FromResult<IReadOnlyList<TelemetryHistoryPoint>>(
+            _history.Value
+                .Where(s => s.RecordedAt >= from && s.RecordedAt <= to)
+                .Select(TelemetryHistoryPoint.FromSnapshot)
+                .ToList());
 
     public Task<IReadOnlyList<TripDto>> GetTripsAsync(
         int vehicleId, DateTime from, DateTime to, CancellationToken ct = default) =>
         Task.FromResult<IReadOnlyList<TripDto>>(
             _allTrips.Value.Where(t => t.StartedAt >= from && t.StartedAt <= to).ToList());
+
+    // The in-progress trip is always the last entry (see BuildTrips), which is also the one the
+    // live snapshot's CurrentJourneyDistance describes.
+    public Task<LastTripSummary?> GetLastTripSummaryAsync(int vehicleId, CancellationToken ct = default)
+    {
+        var trip = _allTrips.Value[^1];
+        return Task.FromResult<LastTripSummary?>(new LastTripSummary(trip.DistanceKm, trip.EndedAt));
+    }
+
+    // Demo data is not ingested from MQTT, so there are no raw topics to report.
+    public Task<IReadOnlyList<RawTopicStat>> GetRawTopicStatsAsync(int vehicleId, CancellationToken ct = default) =>
+        Task.FromResult<IReadOnlyList<RawTopicStat>>([]);
 
     public Task<VehicleAggregateStats> GetAggregateStatsAsync(
         int vehicleId, DateTime from, DateTime to, CancellationToken ct = default)

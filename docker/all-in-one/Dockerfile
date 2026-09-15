@@ -22,6 +22,9 @@ RUN pnpm run build
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS dotnet-build
 WORKDIR /src
 ARG APP_VERSION=0.0.0-local
+# Shared build settings (target framework, analyzers) and central package versions. MSBuild
+# finds them by walking up from each project folder, so they sit one level above the projects.
+COPY Directory.Build.props Directory.Packages.props .editorconfig ./
 COPY src/GarageStack.Core/GarageStack.Core.csproj GarageStack.Core/
 COPY src/GarageStack.Data/GarageStack.Data.csproj GarageStack.Data/
 COPY src/GarageStack.Api/GarageStack.Api.csproj GarageStack.Api/
@@ -130,6 +133,8 @@ RUN ln -sfn /data/api /app/api/logs \
 
 # Configuration
 COPY docker/all-in-one/nginx.conf       /etc/nginx/conf.d/default.conf
+# Same security-header snippet the frontend image uses, so the two never drift apart.
+COPY frontend/nginx-security-headers.conf /etc/nginx/snippets/garagestack-security-headers.conf
 COPY docker/all-in-one/mosquitto.conf   /etc/mosquitto/conf.d/garagestack.conf
 COPY docker/all-in-one/supervisord.conf /etc/supervisor/supervisord.conf
 COPY docker/all-in-one/entrypoint.sh   /entrypoint.sh

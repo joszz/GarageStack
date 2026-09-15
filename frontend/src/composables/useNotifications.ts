@@ -20,6 +20,12 @@ function syncBadge(count: number) {
   }
 }
 
+// The message alone for real errors, so the panel and the log can show something useful,
+// with no English fallback text: the UI translates its own error line.
+function errorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err)
+}
+
 export function prependNotification(notification: AppNotification) {
   notifications.value = [notification, ...notifications.value]
 }
@@ -62,7 +68,7 @@ export function useNotifications() {
       notifications.value = await notificationsApi.list()
       syncBadge(unreadCount.value)
     } catch (err) {
-      fetchError.value = err instanceof Error ? err.message : 'Failed to load notifications'
+      fetchError.value = errorMessage(err)
     } finally {
       loading.value = false
     }
@@ -105,7 +111,7 @@ export function useNotifications() {
       if (n) n.isArchived = true
     } catch (err) {
       console.error('Failed to archive notification', err)
-      actionError.value = err instanceof Error ? err.message : 'Failed to archive notification'
+      actionError.value = errorMessage(err)
     }
   }
 
@@ -117,7 +123,7 @@ export function useNotifications() {
       syncBadge(0)
     } catch (err) {
       console.error('Failed to archive all notifications', err)
-      actionError.value = err instanceof Error ? err.message : 'Failed to archive all notifications'
+      actionError.value = errorMessage(err)
     }
   }
 
@@ -129,7 +135,7 @@ export function useNotifications() {
       syncBadge(unreadCount.value)
     } catch (err) {
       console.error('Failed to delete notification', err)
-      actionError.value = err instanceof Error ? err.message : 'Failed to delete notification'
+      actionError.value = errorMessage(err)
     }
   }
 
@@ -141,7 +147,7 @@ export function useNotifications() {
       syncBadge(0)
     } catch (err) {
       console.error('Failed to delete all notifications', err)
-      actionError.value = err instanceof Error ? err.message : 'Failed to delete all notifications'
+      actionError.value = errorMessage(err)
     }
   }
 

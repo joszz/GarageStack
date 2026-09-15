@@ -1,4 +1,4 @@
-import { request, send } from '@/services/apiCore'
+import { request, requestJson, send } from '@/services/apiCore'
 
 export type MaintenanceDueStatus = 'unknown' | 'ok' | 'dueSoon' | 'overdue'
 
@@ -55,33 +55,21 @@ export interface LogMaintenanceServiceResponse {
   logEntry: MaintenanceLogEntry
 }
 
-function postJson<T>(path: string, body: unknown): Promise<T> {
-  return request<T>(path, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  })
-}
-
-function putJson<T>(path: string, body: unknown): Promise<T> {
-  return request<T>(path, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  })
-}
-
 export const maintenanceApi = {
   list: (vin: string) => request<MaintenanceItem[]>(`/api/vehicles/${vin}/maintenance`),
   create: (vin: string, body: CreateMaintenanceItemRequest) =>
-    postJson<MaintenanceItem>(`/api/vehicles/${vin}/maintenance`, body),
+    requestJson<MaintenanceItem>(`/api/vehicles/${vin}/maintenance`, 'POST', body),
   update: (vin: string, id: number, body: UpdateMaintenanceItemRequest) =>
-    putJson<MaintenanceItem>(`/api/vehicles/${vin}/maintenance/${id}`, body),
+    requestJson<MaintenanceItem>(`/api/vehicles/${vin}/maintenance/${id}`, 'PUT', body),
   delete: (vin: string, id: number) => send(`/api/vehicles/${vin}/maintenance/${id}`, 'DELETE'),
   listLog: (vin: string, id: number) =>
     request<MaintenanceLogEntry[]>(`/api/vehicles/${vin}/maintenance/${id}/log`),
   logService: (vin: string, id: number, body: LogMaintenanceServiceRequest) =>
-    postJson<LogMaintenanceServiceResponse>(`/api/vehicles/${vin}/maintenance/${id}/log`, body),
+    requestJson<LogMaintenanceServiceResponse>(
+      `/api/vehicles/${vin}/maintenance/${id}/log`,
+      'POST',
+      body,
+    ),
   deleteLogEntry: (vin: string, id: number, logId: number) =>
     send(`/api/vehicles/${vin}/maintenance/${id}/log/${logId}`, 'DELETE'),
 }

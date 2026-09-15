@@ -1,18 +1,15 @@
 using System.Collections.Concurrent;
 using System.Text.Json;
+using GarageStack.Core.Configuration;
 using GarageStack.Core.Helpers;
 using GarageStack.Core.Interfaces;
 using GarageStack.Core.Models;
 using GarageStack.Data;
 using GarageStack.Data.Extensions;
-using GarageStack.Worker.Services;
+using Microsoft.Extensions.Localization;
+using Microsoft.Extensions.Options;
 using MQTTnet;
 using MQTTnet.Protocol;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 namespace GarageStack.Worker.Mqtt;
 
@@ -20,7 +17,8 @@ public class MqttConsumerService(
     ILogger<MqttConsumerService> logger,
     IOptions<MqttOptions> options,
     IServiceScopeFactory scopeFactory,
-    IPushSender pushSender) : BackgroundService
+    IPushSender pushSender,
+    IStringLocalizer<NotificationStrings> strings) : BackgroundService
 {
     private readonly MqttOptions _options = options.Value;
     // Tracks last known EngineRunning state per VIN to detect start events. The first
@@ -42,14 +40,15 @@ public class MqttConsumerService(
     // each row represents a complete poll rather than a single field, reducing row
     // count by ~9x and ensuring all chart fields land in the same sample.
     //
-    // Unlike _engineRunningTracker, this dictionary is read, awaited on (the DB call in
+    // Unlike _engineRunningTracker, this state is read, awaited on (the DB call in
     // MergeOrAddTelemetryAsync), then written back - a plain lock can't cover that critical
     // section without blocking across an await. Each vehicle gets its own SemaphoreSlim instead
     // (same pattern as VehicleCommandGate), rather than relying on MQTTnet invoking
     // ApplicationMessageReceivedAsync for one message at a time on this client, which is an
-    // implementation detail this class shouldn't assume.
+    // implementation detail this class shouldn't assume. The dictionary itself is concurrent for
+    // the same reason: two different vehicles may write it at once.
     private static readonly TimeSpan MergeWindow = TimeSpan.FromSeconds(15);
-    internal readonly Dictionary<int, (long RowId, DateTime RecordedAt)> _mergeState = new();
+    internal readonly ConcurrentDictionary<int, (long RowId, DateTime RecordedAt)> _mergeState = new();
     private readonly ConcurrentDictionary<int, SemaphoreSlim> _mergeGates = new();
 
     protected virtual IMqttClient CreateMqttClient() => new MqttClientFactory().CreateMqttClient();
@@ -154,20 +153,21 @@ public class MqttConsumerService(
             return;
         }
 
-        if (!MqttTopicParser.TryExtractVin(topic, out var vin))
+        if (!MqttTopicParser.TryParse(topic, out var parsed))
         {
             logger.LogDebug("Skipping non-vehicle topic: {Topic}", topic);
             return;
         }
 
-        MqttTopicParser.TryExtractUser(topic, out var saicUser);
-        var subtopic = MqttTopicParser.ExtractSubtopic(topic);
+        var (saicUser, vin, subtopic) = parsed;
+        // VIN and account email identify one person; only the Debug lines carry them in full.
+        var vinForLog = LogRedaction.Vin(vin);
 
         // Capability config messages - store as JSON on the vehicle record
         if (subtopic.StartsWith("info/configuration/", StringComparison.OrdinalIgnoreCase))
         {
             var configKey = subtopic["info/configuration/".Length..];
-            logger.LogInformation("MQTT config - VIN={Vin} key={Key} payloadBytes={PayloadBytes}", vin, configKey, payload.Length);
+            logger.LogInformation("MQTT config - VIN={Vin} key={Key} payloadBytes={PayloadBytes}", vinForLog, configKey, payload.Length);
             try
             {
                 var resolved = await ResolveVehicleInNewScopeAsync(vin, saicUser, ct);
@@ -176,7 +176,7 @@ public class MqttConsumerService(
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Failed to persist config for VIN={Vin} key={Key}", vin, configKey);
+                logger.LogError(ex, "Failed to persist config for VIN={Vin} key={Key}", vinForLog, configKey);
             }
             return;
         }
@@ -188,7 +188,7 @@ public class MqttConsumerService(
             if (ns is "info" or "refresh" or "_internal" or "available")
                 logger.LogDebug("MQTT metadata (skipped) - VIN={Vin} subtopic={Subtopic}", vin, subtopic);
             else
-                logger.LogWarning("Unmapped telemetry topic - VIN={Vin} subtopic={Subtopic} payloadBytes={PayloadBytes}", vin, subtopic, payload.Length);
+                logger.LogWarning("Unmapped telemetry topic - VIN={Vin} subtopic={Subtopic} payloadBytes={PayloadBytes}", vinForLog, subtopic, payload.Length);
             return;
         }
 
@@ -210,15 +210,13 @@ public class MqttConsumerService(
             var tripCompleted = await CheckEngineStartAsync(vin, patch, db, ct);
             if (tripCompleted && patch.VehicleId > 0)
             {
-                var vid = patch.VehicleId.ToString();
-                await db.Database.ExecuteSqlInterpolatedAsync(
-                    $"SELECT pg_notify('trip_completed', {vid})", ct);
+                await db.Database.NotifyAsync(PgChannels.TripCompleted, patch.VehicleId.ToString(), ct);
                 logger.LogInformation("Trip completed for vehicleId={VehicleId} - notifying SignalR clients", patch.VehicleId);
             }
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Failed to persist telemetry for VIN={Vin} topic={Topic}", vin, topic);
+            logger.LogError(ex, "Failed to persist telemetry for VIN={Vin} topic={Topic}", vinForLog, LogRedaction.MqttTopic(topic));
         }
     }
 
@@ -262,12 +260,14 @@ public class MqttConsumerService(
         switch (BoolTransitionDetector.Detect(hadPrevious, wasRunning, current))
         {
             case StateTransition.TurnedOn:
-                var shouldNotify = await _engineStartCooldownGate.ShouldNotifyAsync(vin, "engine-start", cutoff =>
-                    db.WasNotificationSentSinceAsync("engine-start", snapshot.VehicleId, cutoff, ct));
+                var shouldNotify = await _engineStartCooldownGate.ShouldNotifyAsync(vin, NotificationCategories.EngineStart, cutoff =>
+                    db.WasNotificationSentSinceAsync(NotificationCategories.EngineStart, snapshot.VehicleId, cutoff, ct));
                 if (shouldNotify)
                 {
-                    logger.LogInformation("Engine started for VIN={Vin} - sending push notification", vin);
-                    await pushSender.SendToAllAsync("Engine started", "Your car has been started.", ct, "engine-start", snapshot.VehicleId);
+                    logger.LogInformation("Engine started for VIN={Vin} - sending push notification", LogRedaction.Vin(vin));
+                    await pushSender.SendToAllAsync(
+                        strings["EngineStartTitle"], strings["EngineStartBody"], ct,
+                        NotificationCategories.EngineStart, snapshot.VehicleId);
                 }
                 return false;
 
@@ -312,7 +312,7 @@ public class MqttConsumerService(
             }
             if (string.IsNullOrWhiteSpace(vin)) return;
 
-            logger.LogInformation("HA discovery - VIN={Vin} hw_version={HwVersion} model={Model}", vin, hwVersion, model);
+            logger.LogInformation("HA discovery - VIN={Vin} hw_version={HwVersion} model={Model}", LogRedaction.Vin(vin), hwVersion, model);
 
             var resolved = await ResolveVehicleInNewScopeAsync(vin, null, ct);
             using var scope = resolved.Scope;

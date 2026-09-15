@@ -101,7 +101,6 @@
     "location": "Locatie",
     "locationUnavailable": "Locatie niet beschikbaar",
     "diagram": {
-      "panelOpen": "Paneel open",
       "infoTyreTitle": "Bandenspanning",
       "infoTyreDesc": "Kleurgecodeerde stippen bij elke wielhoek tonen de actuele spanning. Groen is goed ({good} – {high} bar), oranje is laag ({low} – {good} bar) en rood is kritiek laag (< {low} bar) of te hoog (> {high} bar).",
       "infoDoorsTitle": "Portieren & Panelen",
@@ -201,7 +200,8 @@
       "title": "Accuverwarming",
       "schedule": "Schema",
       "startTime": "Starttijd"
-    }
+    },
+    "windowsOpenCount": "{n} open"
   },
   "control": {
     "climate": "Klimaatbeheersing",
@@ -241,7 +241,6 @@
     "speedOverlay": "Snelheidsoverlay",
     "speedOverlayDesc": "Zichtbaar wanneer een enkele rit is geselecteerd",
     "chargingStations": "Laadstations",
-    "chargingStationsDesc": "Toont EV-laadstations bij je huidige positie",
     "chargingPower": "Vermogen (kW)",
     "chargingPowerDesc": "Filter stations op beschikbaar laadvermogen",
     "chargingMinPower": "Min. vermogen",
@@ -250,20 +249,19 @@
     "chargingStall": "laadpunt",
     "chargingStalls": "laadpunten",
     "fuelStations": "Tankstations",
-    "fuelStationsDesc": "Toont benzine- en dieseltankstations bij jouw locatie. Alleen beschikbaar voor hybride voertuigen.",
     "serviceAreas": "Verzorgingsplaatsen",
     "serviceAreasDesc": "Toont verzorgingsplaatsen op de snelweg bij jouw locatie.",
     "poiLoading": "Live kaartgegevens ophalen...",
     "fuelBrandFilter": "Merkfilter",
     "fuelBrandFilterDesc": "Toon alleen geselecteerde tankstationmerken. Beschikbaar nadat stations zijn geladen.",
-    "fuelBrandSelected": "geselecteerd",
     "fuelBrandNoneLoaded": "Nog geen merken gevonden — verschuif de kaart om stations te laden.",
     "fuelBrandNoMatch": "Geen overeenkomende merken.",
     "fuelBrandPlaceholder": "Merken filteren...",
-    "fuelBrandClear": "Selectie wissen",
     "findCar": "Vind auto",
     "points": "ptn",
-    "inProgress": "Rit onderweg"
+    "inProgress": "Rit onderweg",
+    "durationMinutes": "{n} min",
+    "durationHoursMinutes": "{h} u {m} min"
   },
   "pwa": {
     "install": {
@@ -279,7 +277,6 @@
     }
   },
   "push": {
-    "enabled": "Meldingen aan",
     "permissionDenied": "Toestemming geweigerd — sta meldingen toe in je browserinstellingen"
   },
   "notifications": {
@@ -416,7 +413,6 @@
     "closed": "Gesloten",
     "cancel": "Annuleren",
     "close": "Sluiten",
-    "apply": "Toepassen",
     "confirm": "Bevestigen",
     "filters": "Filters",
     "online": "Online",

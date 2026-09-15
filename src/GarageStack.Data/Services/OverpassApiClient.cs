@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using GarageStack.Core.Configuration;
 using GarageStack.Core.Helpers;
 using GarageStack.Core.Models;
 using Microsoft.Extensions.Configuration;
@@ -12,13 +13,10 @@ public sealed class OverpassApiClient(
     IConfiguration configuration,
     ILogger<OverpassApiClient> logger)
 {
-    // Singleton-level gate: serializes all Overpass requests so we never fire two in parallel.
-    private readonly SemaphoreSlim _gate = new(1, 1);
-    private DateTimeOffset _lastRequestAt = DateTimeOffset.MinValue;
+    public const string HttpClientName = "overpass";
 
-    // Written inside the gate (background path on 429), read outside it (foreground pre-gate
-    // check). Interlocked ensures cross-thread visibility without a full lock.
-    private long _backoffUntilTicks = DateTimeOffset.MinValue.UtcTicks;
+    // Singleton-level gate: serializes all Overpass requests so we never fire two in parallel.
+    private readonly UpstreamRateGate _gate = new();
 
     // Background (Worker): polite interval + long 429 backoff.
     private static readonly TimeSpan BackgroundMinInterval = TimeSpan.FromSeconds(5);
@@ -32,63 +30,46 @@ public sealed class OverpassApiClient(
     private static readonly TimeSpan ForegroundGateTimeout = TimeSpan.FromSeconds(5);
     private static readonly TimeSpan ForegroundRetryAfter429 = TimeSpan.FromSeconds(30);
 
+    private const string FuelQuery =
+        "[out:json][timeout:30];(node[\"amenity\"=\"fuel\"]{bbox};way[\"amenity\"=\"fuel\"]{bbox};);out center;";
+    private const string ServiceAreaQuery =
+        "[out:json][timeout:30];(node[\"highway\"=\"services\"]{bbox};way[\"highway\"=\"services\"]{bbox};);out center;";
+
     private string BaseUrl =>
         configuration["Overpass:BaseUrl"] ?? "https://overpass-api.de/api/interpreter";
 
-    // ── Foreground (on-demand API path) ──────────────────────────────────────────────────────
-    // Fail fast: return [] if in a 429 backoff window or the gate is held by the Worker.
-    // The API caller serves whatever is already cached.
+    private static string QueryFor(string poiType) => poiType switch
+    {
+        PoiTypePolicy.Fuel => FuelQuery,
+        PoiTypePolicy.ServiceArea => ServiceAreaQuery,
+        _ => throw new ArgumentOutOfRangeException(nameof(poiType), poiType, "Not an Overpass POI type"),
+    };
 
-    // Returns null when Overpass is temporarily unavailable (backoff / gate busy).
-    // Callers must skip UpsertTileAsync on null so the tile is not cached as empty.
-    public Task<IReadOnlyList<PoiItem>?> FetchFuelStationsAsync(int cellLat, int cellLng, CancellationToken ct = default)
-        => FetchTileAsync("overpass", "fuel", cellLat, cellLng,
-            "[out:json][timeout:30];(node[\"amenity\"=\"fuel\"]{bbox};way[\"amenity\"=\"fuel\"]{bbox};);out center;",
-            foreground: true, ct);
+    /// <summary>
+    /// Foreground (on-demand API) fetch: fails fast and returns null when Overpass is in a
+    /// backoff window or the gate is held by the Worker, so the caller serves whatever is
+    /// already cached. Callers must skip UpsertTileAsync on null so the tile is not cached as empty.
+    /// </summary>
+    public Task<IReadOnlyList<PoiItem>?> FetchAsync(string poiType, int cellLat, int cellLng, CancellationToken ct = default)
+        => FetchTileAsync(poiType, cellLat, cellLng, foreground: true, ct);
 
-    public Task<IReadOnlyList<PoiItem>?> FetchServiceAreasAsync(int cellLat, int cellLng, CancellationToken ct = default)
-        => FetchTileAsync("overpass", "service_area", cellLat, cellLng,
-            "[out:json][timeout:30];(node[\"highway\"=\"services\"]{bbox};way[\"highway\"=\"services\"]{bbox};);out center;",
-            foreground: true, ct);
-
-    // ── Background (Worker pre-caching path) ─────────────────────────────────────────────────
-    // Wait indefinitely for the gate and honour the full 429 backoff window.
-    // Background path never returns null -- it throws on rate-limit so the Worker can retry.
-
-    public async Task<IReadOnlyList<PoiItem>> FetchFuelStationsBackgroundAsync(int cellLat, int cellLng, CancellationToken ct = default)
-        => (await FetchTileAsync("overpass", "fuel", cellLat, cellLng,
-            "[out:json][timeout:30];(node[\"amenity\"=\"fuel\"]{bbox};way[\"amenity\"=\"fuel\"]{bbox};);out center;",
-            foreground: false, ct))!;
-
-    public async Task<IReadOnlyList<PoiItem>> FetchServiceAreasBackgroundAsync(int cellLat, int cellLng, CancellationToken ct = default)
-        => (await FetchTileAsync("overpass", "service_area", cellLat, cellLng,
-            "[out:json][timeout:30];(node[\"highway\"=\"services\"]{bbox};way[\"highway\"=\"services\"]{bbox};);out center;",
-            foreground: false, ct))!;
-
-    // ── Core implementation ───────────────────────────────────────────────────────────────────
+    /// <summary>
+    /// Background (Worker pre-caching) fetch: waits indefinitely for the gate, honours the full
+    /// 429 backoff window, and throws on rate limit so the Worker can retry the tile later.
+    /// </summary>
+    public async Task<IReadOnlyList<PoiItem>> FetchBackgroundAsync(string poiType, int cellLat, int cellLng, CancellationToken ct = default)
+        => (await FetchTileAsync(poiType, cellLat, cellLng, foreground: false, ct))!;
 
     private async Task<IReadOnlyList<PoiItem>?> FetchTileAsync(
-        string source, string poiType,
-        int cellLat, int cellLng,
-        string queryTemplate,
-        bool foreground,
-        CancellationToken ct)
+        string poiType, int cellLat, int cellLng, bool foreground, CancellationToken ct)
     {
-        var minLat = cellLat / 2.0;
-        var minLng = cellLng / 2.0;
-        var maxLat = (cellLat + 1) / 2.0;
-        var maxLng = (cellLng + 1) / 2.0;
-        var bbox = $"({minLat.ToString(System.Globalization.CultureInfo.InvariantCulture)}," +
-                   $"{minLng.ToString(System.Globalization.CultureInfo.InvariantCulture)}," +
-                   $"{maxLat.ToString(System.Globalization.CultureInfo.InvariantCulture)}," +
-                   $"{maxLng.ToString(System.Globalization.CultureInfo.InvariantCulture)})";
-        var query = queryTemplate.Replace("{bbox}", bbox);
+        var query = QueryFor(poiType).Replace("{bbox}", BuildBbox(cellLat, cellLng));
 
         if (foreground)
         {
             // Quick pre-gate check: respect the background Worker's 429 backoff window without
             // even attempting to acquire the gate.
-            if (new DateTimeOffset(Interlocked.Read(ref _backoffUntilTicks), TimeSpan.Zero) > DateTimeOffset.UtcNow)
+            if (_gate.IsBackingOff)
             {
                 logger.LogDebug("Overpass backoff active for {PoiType} ({CellLat},{CellLng}), serving from cache",
                     poiType, cellLat, cellLng);
@@ -110,49 +91,31 @@ public sealed class OverpassApiClient(
 
         try
         {
-            if (foreground)
+            // Re-check inside the gate: the Worker may have set a backoff while we were waiting.
+            if (foreground && _gate.IsBackingOff)
             {
-                // Re-check inside the gate: the Worker may have set _backoffUntilTicks while we
-                // were waiting for _gate.WaitAsync to return.
-                if (new DateTimeOffset(Interlocked.Read(ref _backoffUntilTicks), TimeSpan.Zero) > DateTimeOffset.UtcNow)
-                {
-                    logger.LogDebug("Overpass backoff active (inside gate) for {PoiType} ({CellLat},{CellLng}), serving from cache",
-                        poiType, cellLat, cellLng);
-                    return null;
-                }
+                logger.LogDebug("Overpass backoff active (inside gate) for {PoiType} ({CellLat},{CellLng}), serving from cache",
+                    poiType, cellLat, cellLng);
+                return null;
             }
 
-            // Background: nextAllowed = max(_lastRequestAt + BackgroundMinInterval, _backoffUntil)
-            // Foreground: nextAllowed = _lastRequestAt + ForegroundMinInterval
-            DateTimeOffset nextAllowed;
-            if (!foreground)
-            {
-                var backoffUntil = new DateTimeOffset(Interlocked.Read(ref _backoffUntilTicks), TimeSpan.Zero);
-                var fromLastRequest = _lastRequestAt + BackgroundMinInterval;
-                nextAllowed = backoffUntil > fromLastRequest ? backoffUntil : fromLastRequest;
-            }
-            else
-            {
-                nextAllowed = _lastRequestAt + ForegroundMinInterval;
-            }
+            await _gate.ThrottleAsync(
+                foreground ? ForegroundMinInterval : BackgroundMinInterval,
+                honourBackoff: !foreground,
+                ct);
 
-            var wait = nextAllowed - DateTimeOffset.UtcNow;
-            if (wait > TimeSpan.Zero)
-                await Task.Delay(wait, ct);
-
-            var client = httpClientFactory.CreateClient("overpass");
+            var client = httpClientFactory.CreateClient(HttpClientName);
             using var content = new FormUrlEncodedContent([new KeyValuePair<string, string>("data", query)]);
-            _lastRequestAt = DateTimeOffset.UtcNow;
-            var response = await client.PostAsync(BaseUrl, content, ct);
+            _gate.MarkRequestSent();
+            using var response = await client.PostAsync(BaseUrl, content, ct);
 
-            if ((int)response.StatusCode is 429 or 503 or 504)
+            if (UpstreamRateGate.IsThrottlingStatus((int)response.StatusCode))
             {
                 if (foreground)
                 {
-                    // Set a short backoff so subsequent pans don't immediately retry the same
+                    // Short backoff so subsequent pans don't immediately retry the same
                     // rate-limited tile and keep getting 429 forever ("area stays blank").
-                    Interlocked.Exchange(ref _backoffUntilTicks,
-                        (DateTimeOffset.UtcNow + ForegroundRetryAfter429).UtcTicks);
+                    _gate.SetBackoff(ForegroundRetryAfter429);
                     logger.LogDebug("Overpass {Status} for {PoiType} ({CellLat},{CellLng}) on foreground path, backing off {Seconds}s",
                         (int)response.StatusCode, poiType, cellLat, cellLng, (int)ForegroundRetryAfter429.TotalSeconds);
                     return null;
@@ -160,8 +123,7 @@ public sealed class OverpassApiClient(
 
                 // Background: record backoff window so the foreground path skips Overpass for
                 // the next BackgroundRetryAfter429 seconds.
-                Interlocked.Exchange(ref _backoffUntilTicks,
-                    (DateTimeOffset.UtcNow + BackgroundRetryAfter429).UtcTicks);
+                _gate.SetBackoff(BackgroundRetryAfter429);
                 throw new HttpRequestException(
                     $"Overpass rate-limited ({(int)response.StatusCode}) for {poiType} ({cellLat},{cellLng})");
             }
@@ -171,7 +133,7 @@ public sealed class OverpassApiClient(
             await using var stream = await response.Content.ReadAsStreamAsync(ct);
             var result = await JsonSerializer.DeserializeAsync<OverpassResponse>(stream, cancellationToken: ct);
             return result?.Elements
-                .Select(e => MapElement(e, source, poiType))
+                .Select(e => MapElement(e, poiType))
                 .ToList() ?? [];
         }
         finally
@@ -180,7 +142,11 @@ public sealed class OverpassApiClient(
         }
     }
 
-    private static PoiItem MapElement(OverpassElement e, string source, string poiType)
+    // Tile (cellLat, cellLng) covers [cellLat/2, (cellLat+1)/2) degrees, see TileHelper.CellOf.
+    private static string BuildBbox(int cellLat, int cellLng) =>
+        FormattableString.Invariant($"({cellLat / 2.0},{cellLng / 2.0},{(cellLat + 1) / 2.0},{(cellLng + 1) / 2.0})");
+
+    private static PoiItem MapElement(OverpassElement e, string poiType)
     {
         var lat = e.Type == "node" ? e.Lat : e.Center?.Lat ?? 0;
         var lng = e.Type == "node" ? e.Lon : e.Center?.Lon ?? 0;
@@ -188,12 +154,13 @@ public sealed class OverpassApiClient(
         var (cellLat, cellLng) = TileHelper.CellOf(lat, lng);
         return new PoiItem
         {
-            Source = source,
+            Source = PoiCacheDefaults.OverpassSource,
             PoiType = poiType,
             ExternalId = $"{e.Type}/{e.Id}",
             Latitude = lat,
             Longitude = lng,
             Name = e.Tags?.GetValueOrDefault("name"),
+            Brand = ExtractBrand(e.Tags),
             MetaJson = meta,
             // Tile coords derived from the element's own position, not the queried tile.
             // This prevents duplicate-key violations when the same border element appears
@@ -201,6 +168,15 @@ public sealed class OverpassApiClient(
             CellLat = cellLat,
             CellLng = cellLng,
         };
+    }
+
+    // OSM tags the chain as "brand" for branded stations and "operator" for the rest; the map's
+    // brand filter treats them the same way.
+    private static string? ExtractBrand(Dictionary<string, string>? tags)
+    {
+        var brand = (tags?.GetValueOrDefault("brand") ?? tags?.GetValueOrDefault("operator"))?.Trim();
+        if (string.IsNullOrEmpty(brand)) return null;
+        return brand.Length <= PoiItemLimits.BrandMaxLength ? brand : brand[..PoiItemLimits.BrandMaxLength];
     }
 
     private sealed class OverpassResponse

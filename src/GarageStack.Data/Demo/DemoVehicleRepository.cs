@@ -16,6 +16,9 @@ public sealed class DemoVehicleRepository : IVehicleRepository
         ConfigJson = """{"hw_version":"MG_BEV_1.0"}""",
     };
 
+    public Task<IReadOnlyList<Vehicle>> GetAllAsync(CancellationToken ct = default) =>
+        Task.FromResult<IReadOnlyList<Vehicle>>([DemoVehicle]);
+
     public Task<Vehicle?> GetByVinAsync(string vin, CancellationToken ct = default) =>
         Task.FromResult<Vehicle?>(vin == DemoVehicle.Vin ? DemoVehicle : null);
 

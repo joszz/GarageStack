@@ -64,6 +64,44 @@ public class PoiRepositoryTests
     }
 
     [Fact]
+    public async Task GetDistinctBrandsAsync_ReturnsSortedCaseInsensitiveDistinctBrands()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var db = CreateDb();
+        var shell = MakeItem("overpass", "fuel", "shell-1", lat: 52.0, lng: 5.0);
+        shell.Brand = "Shell";
+        var shellLower = MakeItem("overpass", "fuel", "shell-2", lat: 52.1, lng: 5.1);
+        shellLower.Brand = "shell";
+        var bp = MakeItem("overpass", "fuel", "bp-1", lat: 52.2, lng: 5.2);
+        bp.Brand = "BP";
+        var unbranded = MakeItem("overpass", "fuel", "none-1", lat: 52.3, lng: 5.3);
+        var otherType = MakeItem("overpass", "service_area", "sa-1", lat: 52.4, lng: 5.4);
+        otherType.Brand = "Rest Stop Co";
+        db.PoiItems.AddRange(shell, shellLower, bp, unbranded, otherType);
+        await db.SaveChangesAsync(ct);
+
+        var result = await CreateRepo(db).GetDistinctBrandsAsync("overpass", "fuel", ct);
+
+        Assert.Equal(["BP", "Shell"], result);
+    }
+
+    [Fact]
+    public async Task UpsertTileAsync_InvalidatesCachedBrandList()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var db = CreateDb();
+        var repo = CreateRepo(db);
+
+        Assert.Empty(await repo.GetDistinctBrandsAsync("overpass", "fuel", ct));
+
+        var item = MakeItem("overpass", "fuel", "esso-1", lat: 52.0, lng: 5.0);
+        item.Brand = "Esso";
+        await repo.UpsertTileAsync("overpass", "fuel", item.CellLat, item.CellLng, [item], TimeSpan.FromDays(1), ct);
+
+        Assert.Equal(["Esso"], await repo.GetDistinctBrandsAsync("overpass", "fuel", ct));
+    }
+
+    [Fact]
     public async Task GetPoisInBoundsAsync_NoMatches_ReturnsEmpty()
     {
         var ct = TestContext.Current.CancellationToken;

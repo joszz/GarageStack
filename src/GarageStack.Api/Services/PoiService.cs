@@ -1,8 +1,8 @@
+using GarageStack.Core.Configuration;
 using GarageStack.Core.Helpers;
 using GarageStack.Core.Interfaces;
 using GarageStack.Core.Models;
 using GarageStack.Data.Services;
-using Microsoft.Extensions.Logging;
 
 namespace GarageStack.Api.Services;
 
@@ -11,37 +11,24 @@ public sealed class PoiService(
     OverpassApiClient overpassClient,
     ILogger<PoiService> logger)
 {
-    private static readonly TimeSpan Ttl = TimeSpan.FromDays(7);
-
-    public static bool IsPoiTypeAllowed(string poiType, string vehicleType) => poiType switch
-    {
-        "fuel" => vehicleType is "hev" or "phev",
-        "service_area" => true,
-        _ => false,
-    };
-
     public async Task<PoiResult> GetPoisAsync(
         string poiType, double lat, double lng, double radiusKm,
         CancellationToken ct = default)
     {
         var tiles = TileHelper.ComputeTiles(lat, lng, radiusKm);
-        var uncached = await repository.GetExpiredOrMissingTilesAsync("overpass", poiType, tiles, ct);
+        var uncached = await repository.GetExpiredOrMissingTilesAsync(PoiCacheDefaults.OverpassSource, poiType, tiles, ct);
 
         // Cap on-demand fetches to the tile closest to the viewport centre. The remaining
         // uncached tiles will be filled by the Worker pre-caching service in the background
-        // (and by client-side chain loading). FetchFuelStationsAsync / FetchServiceAreasAsync
-        // use the foreground fast-fail path and return null when the gate is busy or rate-limited.
+        // (and by client-side chain loading). The foreground fetch fails fast and returns null
+        // when the gate is busy or rate-limited, so the tile is not cached as empty.
         var toFetch = TileHelper.ClosestTiles(uncached, lat, lng, PoiTileFetcher.DefaultMaxOnDemandTiles);
 
         var tilesActuallyCached = await PoiTileFetcher.FetchAndCacheAsync(
             toFetch,
-            (cellLat, cellLng, token) => poiType switch
-            {
-                "fuel" => overpassClient.FetchFuelStationsAsync(cellLat, cellLng, token),
-                "service_area" => overpassClient.FetchServiceAreasAsync(cellLat, cellLng, token),
-                _ => Task.FromResult((IReadOnlyList<PoiItem>?)[]),
-            },
-            (cellLat, cellLng, items, token) => repository.UpsertTileAsync("overpass", poiType, cellLat, cellLng, items, Ttl, token),
+            (cellLat, cellLng, token) => overpassClient.FetchAsync(poiType, cellLat, cellLng, token),
+            (cellLat, cellLng, items, token) => repository.UpsertTileAsync(
+                PoiCacheDefaults.OverpassSource, poiType, cellLat, cellLng, items, PoiCacheDefaults.Ttl, token),
             (ex, cellLat, cellLng) =>
             {
                 var safePoiType = poiType.Replace("\r", "").Replace("\n", "");
@@ -57,12 +44,12 @@ public sealed class PoiService(
 
         var (minLat, maxLat, minLng, maxLng) = TileHelper.ComputeBounds(lat, lng, radiusKm);
 
-        var pois = await repository.GetPoisInBoundsAsync("overpass", poiType, minLat, minLng, maxLat, maxLng, ct);
+        var pois = await repository.GetPoisInBoundsAsync(PoiCacheDefaults.OverpassSource, poiType, minLat, minLng, maxLat, maxLng, ct);
         return new PoiResult(pois.Select(MapToDto).ToList(), hasMore);
     }
 
     public Task<IReadOnlyList<string>> GetBrandsAsync(string poiType, CancellationToken ct = default)
-        => repository.GetDistinctBrandsAsync("overpass", poiType, ct);
+        => repository.GetDistinctBrandsAsync(PoiCacheDefaults.OverpassSource, poiType, ct);
 
     private PoiItemDto MapToDto(PoiItem p) => new(
         p.ExternalId,

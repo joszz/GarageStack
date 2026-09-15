@@ -1,8 +1,8 @@
+using GarageStack.Core.Configuration;
 using GarageStack.Core.Helpers;
 using GarageStack.Core.Interfaces;
 using GarageStack.Core.Models;
 using GarageStack.Data.Services;
-using Microsoft.Extensions.Logging;
 
 namespace GarageStack.Api.Services;
 
@@ -25,7 +25,8 @@ public sealed class ChargingStationService(
     OcmApiClient ocmClient,
     ILogger<ChargingStationService> logger)
 {
-    private static readonly TimeSpan Ttl = TimeSpan.FromDays(7);
+    private const string Source = PoiCacheDefaults.OcmSource;
+    private const string PoiType = PoiCacheDefaults.ChargingPoiType;
 
     public async Task<IReadOnlyList<ChargingStationDto>> GetStationsAsync(
         double lat, double lng, int distanceKm,
@@ -35,7 +36,7 @@ public sealed class ChargingStationService(
         if (!ocmClient.IsConfigured) return [];
 
         var tiles = TileHelper.ComputeTiles(lat, lng, distanceKm);
-        var uncached = await repository.GetExpiredOrMissingTilesAsync("ocm", "charging", tiles, ct);
+        var uncached = await repository.GetExpiredOrMissingTilesAsync(Source, PoiType, tiles, ct);
 
         // Cap on-demand fetches to the 1 tile closest to the viewport centre so the API
         // never takes 80+ seconds on a cold cache. The Worker fills remaining tiles in the background.
@@ -44,14 +45,14 @@ public sealed class ChargingStationService(
         await PoiTileFetcher.FetchAndCacheAsync(
             toFetch,
             async (cellLat, cellLng, token) => (IReadOnlyList<PoiItem>?)await ocmClient.FetchChargingStationsAsync(cellLat, cellLng, token),
-            (cellLat, cellLng, items, token) => repository.UpsertTileAsync("ocm", "charging", cellLat, cellLng, items, Ttl, token),
+            (cellLat, cellLng, items, token) => repository.UpsertTileAsync(Source, PoiType, cellLat, cellLng, items, PoiCacheDefaults.Ttl, token),
             (ex, cellLat, cellLng) => logger.LogWarning(ex, "On-demand OCM fetch failed for charging ({CellLat},{CellLng})",
                 cellLat, cellLng),
             ct);
 
         var (minLat, maxLat, minLng, maxLng) = TileHelper.ComputeBounds(lat, lng, distanceKm);
 
-        var pois = await repository.GetPoisInBoundsAsync("ocm", "charging", minLat, minLng, maxLat, maxLng, ct);
+        var pois = await repository.GetPoisInBoundsAsync(Source, PoiType, minLat, minLng, maxLat, maxLng, ct);
         var stations = pois.Select(MapToDto).ToList();
 
         return ApplyPowerFilter(stations, minPowerKw, maxPowerKw);

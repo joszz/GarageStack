@@ -283,9 +283,13 @@ GarageStack checks your vehicle's state every 5 minutes and sends both a browser
 | Low EV battery | EV state-of-charge below 20 % |
 | Car left unlocked | `doors/locked = false` while engine is off |
 | Door left open | Any door, boot, or bonnet open while engine is off |
-| Window left open | Any window or sunroof open while engine is off |
+| Window left open | Any window open while engine is off |
+| Charging complete | Charging stops while the cable is still connected (plug-in vehicles) |
+| Maintenance due | A maintenance item reaches 90 % of its interval, or passes it (checked every 6 hours, 7-day cooldown per item) |
 
 Push notifications require VAPID keys to be configured (`VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY`). Without them, alerts still appear in the in-app notification panel. The "engine started" alert is also triggered in real time when the event arrives over MQTT, independently of the 5-minute polling cycle.
+
+Notification texts are written by the background worker, which has no browser to take a language from, so their language is a deployment setting: `NOTIFICATION_LANGUAGE=en` (default) or `nl`. The web UI's own language toggle does not affect them.
 
 The tyre pressure thresholds (`TYRE_PRESSURE_LOW_BAR` / `TYRE_PRESSURE_GOOD_BAR` / `TYRE_PRESSURE_HIGH_BAR`) also drive the colour-coded dots on the dashboard's vehicle diagram and the in-browser low/high pressure alert -- set them once in your `.env` (or container environment) to match your vehicle's placarded pressure instead of the app's generic defaults.
 
@@ -321,7 +325,7 @@ Set `WIDGET_API_KEY` to the generated value in your `.env` file (Docker Compose)
 
 ### 2. Find your VIN
 
-Log in to GarageStack and open the browser developer tools. The VIN appears in the `/api/vehicles` response, or in the URL when you navigate to your vehicle.
+Log in to GarageStack, open the browser developer tools (Network tab) and reload: the VIN is the `vin` field in the `/api/vehicles` response. It is also the 17-character segment in the MQTT topics the gateway logs, `saic/<account>/vehicles/<VIN>/...`.
 
 ### 3. Configure Homepage
 

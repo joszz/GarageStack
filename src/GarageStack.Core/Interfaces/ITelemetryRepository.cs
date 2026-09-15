@@ -34,17 +34,23 @@ public interface ITelemetryRepository
     Task<TelemetrySnapshot?> GetMergedLatestAsync(int vehicleId, CancellationToken ct = default);
 
     /// <summary>
-    /// Returns chart-relevant snapshots between <paramref name="from"/> and <paramref name="to"/>
-    /// (GPS-only rows are excluded - see the Statistics/Map trip endpoints for route data),
-    /// downsampled per-day to a resolution appropriate for the requested range's length.
+    /// Returns the chart-relevant fields of snapshots between <paramref name="from"/> and
+    /// <paramref name="to"/> (GPS-only rows are excluded - see the Statistics/Map trip endpoints
+    /// for route data), downsampled per-day to a resolution appropriate for the requested range.
     /// </summary>
-    Task<IReadOnlyList<TelemetrySnapshot>> GetHistoryAsync(int vehicleId, DateTime from, DateTime to, CancellationToken ct = default);
+    Task<IReadOnlyList<TelemetryHistoryPoint>> GetHistoryAsync(int vehicleId, DateTime from, DateTime to, CancellationToken ct = default);
 
     /// <summary>
     /// Reconstructs discrete trips from GPS rows between <paramref name="from"/> and
     /// <paramref name="to"/>, splitting on data gaps and sustained parking periods.
     /// </summary>
     Task<IReadOnlyList<TripDto>> GetTripsAsync(int vehicleId, DateTime from, DateTime to, CancellationToken ct = default);
+
+    /// <summary>Distance and timestamp of the newest row that reported a journey in progress, or null when none exists.</summary>
+    Task<LastTripSummary?> GetLastTripSummaryAsync(int vehicleId, CancellationToken ct = default);
+
+    /// <summary>The raw MQTT topics that started telemetry rows for <paramref name="vehicleId"/>, most frequent first.</summary>
+    Task<IReadOnlyList<RawTopicStat>> GetRawTopicStatsAsync(int vehicleId, CancellationToken ct = default);
 
     /// <summary>Computes summary statistics (e.g. climate usage) over snapshots in the given date range.</summary>
     Task<VehicleAggregateStats> GetAggregateStatsAsync(int vehicleId, DateTime from, DateTime to, CancellationToken ct = default);

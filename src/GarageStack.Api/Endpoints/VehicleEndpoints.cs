@@ -1,10 +1,8 @@
+using System.Text.Json;
 using GarageStack.Core.Configuration;
 using GarageStack.Core.Helpers;
 using GarageStack.Core.Interfaces;
 using GarageStack.Core.Models;
-using GarageStack.Data;
-using Microsoft.EntityFrameworkCore;
-using System.Text.Json;
 
 namespace GarageStack.Api.Endpoints;
 
@@ -64,13 +62,10 @@ public static class VehicleEndpoints
             .WithTags("Vehicles")
             .RequireAuthorization();
 
-        group.MapGet("/", async (AppDbContext db, CancellationToken ct) =>
+        group.MapGet("/", async (IVehicleRepository vehicles, CancellationToken ct) =>
         {
-            var vehicles = await db.Vehicles
-                .AsNoTracking()
-                .Select(v => new VehicleListItemDto(v.Id, v.Vin, v.Model, v.Series, v.CreatedAt))
-                .ToListAsync(ct);
-            return Results.Ok(vehicles);
+            var all = await vehicles.GetAllAsync(ct);
+            return Results.Ok(all.Select(v => new VehicleListItemDto(v.Id, v.Vin, v.Model, v.Series, v.CreatedAt)));
         })
         .WithSummary("List all vehicles");
 
@@ -112,19 +107,13 @@ public static class VehicleEndpoints
             var history = await telemetry.GetHistoryAsync(vehicle.Id, start, end, ct);
             return Results.Ok(history);
         })
-        .WithSummary("Get telemetry history for a vehicle");
+        .WithSummary("Get chart history for a vehicle (only the fields the statistics charts use)");
 
-        vehicleGroup.MapGet("/trips/last", async (HttpContext httpContext, AppDbContext db, CancellationToken ct) =>
+        vehicleGroup.MapGet("/trips/last", async (HttpContext httpContext, ITelemetryRepository telemetry, CancellationToken ct) =>
         {
             var vehicle = ResolveVehicleFilter.GetResolvedVehicle(httpContext);
-
-            var row = await db.TelemetrySnapshots
-                .Where(s => s.VehicleId == vehicle.Id && s.CurrentJourneyDistance > 0)
-                .OrderByDescending(s => s.RecordedAt)
-                .Select(s => new { distanceKm = s.CurrentJourneyDistance!.Value, recordedAt = s.RecordedAt })
-                .FirstOrDefaultAsync(ct);
-
-            return row is null ? Results.NoContent() : Results.Ok(row);
+            var summary = await telemetry.GetLastTripSummaryAsync(vehicle.Id, ct);
+            return summary is null ? Results.NoContent() : Results.Ok(summary);
         })
         .WithSummary("Get last trip summary (distance and timestamp of most recent journey)");
 
@@ -147,7 +136,6 @@ public static class VehicleEndpoints
 
         vehicleGroup.MapPost("/commands/{command}", async (
             HttpContext httpContext,
-            string vin,
             string command,
             JsonElement body,
             IMqttPublisher mqtt,
@@ -170,16 +158,16 @@ public static class VehicleEndpoints
 
             var topicSuffix = command switch
             {
-                "climate"             => "climate/remoteClimateState/set",
+                "climate" => "climate/remoteClimateState/set",
                 "climate-temperature" => "climate/remoteTemperature/set",
-                "rear-defroster"      => "climate/rearWindowDefrosterHeating/set",
-                "seat-left"           => "climate/heatedSeatsFrontLeftLevel/set",
-                "seat-right"          => "climate/heatedSeatsFrontRightLevel/set",
-                "find-my-car"         => "location/findMyCar/set",
-                "charge-limit"        => "drivetrain/chargeCurrentLimit/set",
-                "scheduled-charging"  => "drivetrain/scheduledCharging/set",
-                "lock"                => "doors/locked/set",
-                "refresh"             => "refresh/mode/set",
+                "rear-defroster" => "climate/rearWindowDefrosterHeating/set",
+                "seat-left" => "climate/heatedSeatsFrontLeftLevel/set",
+                "seat-right" => "climate/heatedSeatsFrontRightLevel/set",
+                "find-my-car" => "location/findMyCar/set",
+                "charge-limit" => "drivetrain/chargeCurrentLimit/set",
+                "scheduled-charging" => "drivetrain/scheduledCharging/set",
+                "lock" => "doors/locked/set",
+                "refresh" => "refresh/mode/set",
                 _ => null
             };
 
@@ -191,8 +179,10 @@ public static class VehicleEndpoints
             if (validationError is not null)
                 return Results.BadRequest(new { error = validationError });
 
-            var topic = $"saic/{vehicle.SaicUser}/vehicles/{vin}/{topicSuffix}";
-            await commandGate.RunAsync(vin, () => mqtt.PublishAsync(topic, value, ct), ct);
+            // The resolved vehicle's VIN, not the raw route value, so the topic always matches
+            // the row the filter found.
+            var topic = $"saic/{vehicle.SaicUser}/vehicles/{vehicle.Vin}/{topicSuffix}";
+            await commandGate.RunAsync(vehicle.Vin, () => mqtt.PublishAsync(topic, value, ct), ct);
 
             return Results.Ok(new { topic, value });
         })
@@ -215,76 +205,13 @@ public static class VehicleEndpoints
         })
         .WithSummary("Get aggregate statistics for a vehicle over a date range");
 
-        vehicleGroup.MapGet("/topics", async (HttpContext httpContext, AppDbContext db, CancellationToken ct) =>
+        vehicleGroup.MapGet("/topics", async (HttpContext httpContext, ITelemetryRepository telemetry, CancellationToken ct) =>
         {
             var vehicle = ResolveVehicleFilter.GetResolvedVehicle(httpContext);
-
-            var topics = await db.TelemetrySnapshots
-                .Where(s => s.VehicleId == vehicle.Id && s.RawTopic != null)
-                .GroupBy(s => s.RawTopic!)
-                .Select(g => new { topic = g.Key, count = g.Count(), last = g.Max(s => s.RecordedAt) })
-                .OrderByDescending(x => x.count)
-                .ToListAsync(ct);
-
+            var topics = await telemetry.GetRawTopicStatsAsync(vehicle.Id, ct);
             return Results.Ok(topics);
         })
         .WithSummary("Distinct raw MQTT topics seen for a vehicle (one entry per 15-second merge window; topics arriving mid-window are not recorded)");
-
-        var push = app.MapGroup("/api/push")
-            .WithTags("Push Notifications")
-            .RequireAuthorization();
-
-        push.MapGet("/vapid-public-key", (IConfiguration config) =>
-        {
-            var key = config["Vapid:PublicKey"];
-            return string.IsNullOrWhiteSpace(key)
-                ? Results.Problem("VAPID keys not configured")
-                : Results.Ok(new { publicKey = key });
-        })
-        .WithSummary("Get VAPID public key for push subscription");
-
-        push.MapPost("/subscribe", async (PushSubscribeRequest req, AppDbContext db, CancellationToken ct) =>
-        {
-            if (string.IsNullOrWhiteSpace(req.Endpoint) ||
-                string.IsNullOrWhiteSpace(req.P256DhKey) ||
-                string.IsNullOrWhiteSpace(req.AuthKey))
-                return Results.BadRequest(new { error = "Endpoint, P256DhKey and AuthKey are required" });
-
-            var existing = await db.PushSubscriptions
-                .FirstOrDefaultAsync(s => s.Endpoint == req.Endpoint, ct);
-
-            if (existing is null)
-            {
-                db.PushSubscriptions.Add(new PushSubscription
-                {
-                    Endpoint = req.Endpoint,
-                    P256DhKey = req.P256DhKey,
-                    AuthKey = req.AuthKey,
-                });
-            }
-            else if (existing.P256DhKey != req.P256DhKey || existing.AuthKey != req.AuthKey)
-            {
-                existing.P256DhKey = req.P256DhKey;
-                existing.AuthKey = req.AuthKey;
-            }
-
-            await db.SaveChangesAsync(ct);
-
-            return Results.Ok();
-        })
-        .WithSummary("Register a browser push subscription");
-
-        push.MapPost("/unsubscribe", async (PushUnsubscribeRequest req, AppDbContext db, CancellationToken ct) =>
-        {
-            var sub = await db.PushSubscriptions.FirstOrDefaultAsync(s => s.Endpoint == req.Endpoint, ct);
-            if (sub is not null)
-            {
-                db.PushSubscriptions.Remove(sub);
-                await db.SaveChangesAsync(ct);
-            }
-            return Results.Ok();
-        })
-        .WithSummary("Remove a push subscription");
 
         return app;
     }
@@ -317,6 +244,4 @@ public static class VehicleEndpoints
     };
 }
 
-public record PushSubscribeRequest(string Endpoint, string P256DhKey, string AuthKey);
-public record PushUnsubscribeRequest(string Endpoint);
 public record VehicleListItemDto(int Id, string Vin, string? Model, string? Series, DateTime CreatedAt);

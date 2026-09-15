@@ -3,9 +3,7 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { useVehicleStore } from '@/stores/vehicle'
-import { useUiSettingsStore } from '@/stores/settingsUi'
 import type { CardId } from '@/stores/settingsShared'
-import type { VehicleType } from '@/stores/vehicle'
 import StatusCard from './StatusCard.vue'
 import DoorsCard from './DoorsCard.vue'
 import WindowsCard from './WindowsCard.vue'
@@ -24,7 +22,6 @@ const props = defineProps<{ cardId: CardId }>()
 const { t } = useI18n()
 const router = useRouter()
 const store = useVehicleStore()
-const settings = useUiSettingsStore()
 
 interface SimpleCardConfig {
   id: CardId
@@ -39,12 +36,7 @@ interface SimpleCardConfig {
 const vin = computed(() => store.vehicles[0]?.vin ?? null)
 const status = computed(() => store.currentStatus)
 
-const vehicleType = computed((): VehicleType | 'unknown' => {
-  const override = settings.vehicleTypeOverride
-  if (override !== 'auto') return override as VehicleType
-  return store.detectedVehicleType
-})
-
+const vehicleType = computed(() => store.effectiveVehicleType)
 const isHev = computed(() => vehicleType.value === 'hev')
 const latestTrip = computed(() => store.trips[store.trips.length - 1] ?? null)
 const topSpeedKmh = computed(() => {

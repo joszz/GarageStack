@@ -31,12 +31,8 @@ const router = createRouter({
       component: () => import('@/views/MaintenanceView.vue'),
     },
   ],
-  scrollBehavior(to, from, savedPosition) {
-    if (savedPosition) {
-      return savedPosition
-    }
-    return { top: 0 }
-  },
+  // No scrollBehavior: the scroll container is the main content element, not the window, so
+  // App.vue scrolls it to the top on every route change itself.
 })
 
 router.beforeEach(async (to) => {

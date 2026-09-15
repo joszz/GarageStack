@@ -85,6 +85,29 @@ export interface TelemetrySnapshot {
   offboardChargerPlugStatus: number | null
 }
 
+/**
+ * The chart-relevant slice of a snapshot returned by the history endpoint. Mirrors
+ * TelemetryHistoryPoint on the API; the statistics page reads nothing else per point.
+ */
+export interface TelemetryHistoryPoint {
+  recordedAt: string
+  fuelLevelPercent: number | null
+  evSocPercent: number | null
+  powerUsageOfDay: number | null
+  batteryVoltage: number | null
+  climateOn: boolean | null
+  isCharging: boolean | null
+  tyrePressureFrontLeft: number | null
+  tyrePressureFrontRight: number | null
+  tyrePressureRearLeft: number | null
+  tyrePressureRearRight: number | null
+  mileageOfTheDay: number | null
+  mileageSinceLastCharge: number | null
+  hvSocKwh: number | null
+  hvTotalCapacityKwh: number | null
+  powerUsageSinceLastCharge: number | null
+}
+
 export interface VehicleAggregateStats {
   climateUsagePct: number | null
   climateOnSnapshots: number
@@ -107,11 +130,6 @@ export interface Trip {
   points: TripPoint[]
 }
 
-export interface LastTripSummary {
-  distanceKm: number
-  recordedAt: string
-}
-
 export interface TyrePressureThresholds {
   lowBar: number
   goodBar: number
@@ -123,12 +141,10 @@ export const vehicleApi = {
   status: (vin: string) => request<TelemetrySnapshot>(`/api/vehicles/${vin}/status`),
   tyrePressureThresholds: () =>
     request<TyrePressureThresholds>('/api/vehicles/tyre-pressure-thresholds'),
-  lastTrip: (vin: string) =>
-    request<LastTripSummary | undefined>(`/api/vehicles/${vin}/trips/last`),
   config: (vin: string) => request<Record<string, string>>(`/api/vehicles/${vin}/config`),
   history: (vin: string, from?: string, to?: string) => {
     const query = buildQuery({ from, to })
-    return request<TelemetrySnapshot[]>(`/api/vehicles/${vin}/history${query}`)
+    return request<TelemetryHistoryPoint[]>(`/api/vehicles/${vin}/history${query}`)
   },
   trips: (vin: string, from?: string, to?: string) => {
     const query = buildQuery({ from, to })

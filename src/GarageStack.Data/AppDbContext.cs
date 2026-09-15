@@ -67,9 +67,14 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             // every row in it, since neither Latitude nor Longitude appear in any other index.
             e.HasIndex(p => new { p.Source, p.PoiType, p.Latitude, p.Longitude })
              .HasDatabaseName("IX_PoiItems_Source_PoiType_LatLon");
+            // Backs GetDistinctBrandsAsync: the brand filter list is a DISTINCT over this index
+            // instead of a scan that deserializes every row's MetaJson.
+            e.HasIndex(p => new { p.Source, p.PoiType, p.Brand })
+             .HasDatabaseName("IX_PoiItems_Source_PoiType_Brand");
             e.Property(p => p.Source).HasMaxLength(32).IsRequired();
             e.Property(p => p.PoiType).HasMaxLength(32).IsRequired();
             e.Property(p => p.ExternalId).HasMaxLength(64).IsRequired();
+            e.Property(p => p.Brand).HasMaxLength(PoiItemLimits.BrandMaxLength);
         });
 
         modelBuilder.Entity<PoiCacheTile>(e =>
@@ -113,6 +118,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.HasIndex(r => r.Jti).IsUnique();
             e.Property(r => r.Jti).HasMaxLength(64).IsRequired();
         });
-
     }
+}
+
+/// <summary>Column limits shared between the model configuration and the ingest code that must respect them.</summary>
+public static class PoiItemLimits
+{
+    public const int BrandMaxLength = 128;
 }

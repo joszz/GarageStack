@@ -4,7 +4,6 @@ import { storeToRefs } from 'pinia'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { useVehicleStore } from '@/stores/vehicle'
-import type { VehicleType } from '@/stores/vehicle'
 import { useMapSettingsStore } from '@/stores/settingsMap'
 import { useUiSettingsStore } from '@/stores/settingsUi'
 import { LMap, LTileLayer, LMarker, LPopup } from '@vue-leaflet/vue-leaflet'
@@ -20,6 +19,7 @@ import 'leaflet.heat'
 import '@/assets/map.css'
 import type { Trip } from '@/services/vehicleApi'
 import { buildCarMarkerIcon } from '@/utils/mapCarIcon'
+import { daysAgoIso } from '@/utils/dates'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -30,11 +30,7 @@ const uiSettingsStore = useUiSettingsStore()
 
 const vin = computed(() => store.vehicles[0]?.vin ?? null)
 const status = computed(() => store.currentStatus)
-const vehicleType = computed((): VehicleType | 'unknown' => {
-  const override = uiSettingsStore.vehicleTypeOverride
-  if (override !== 'auto') return override as VehicleType
-  return store.detectedVehicleType
-})
+const vehicleType = computed(() => store.effectiveVehicleType)
 const isHev = computed(() => vehicleType.value === 'hev')
 const isBev = computed(() => vehicleType.value === 'bev')
 // Until vehicleType resolves from 'unknown', neither flag is true, which would show
@@ -184,8 +180,8 @@ const activeCarHeading = computed(() => status.value?.heading ?? 0)
 function formatDuration(startedAt: string, endedAt: string): string {
   const ms = new Date(endedAt).getTime() - new Date(startedAt).getTime()
   const mins = Math.round(ms / 60_000)
-  if (mins < 60) return `${mins} min`
-  return `${Math.floor(mins / 60)}h ${mins % 60}m`
+  if (mins < 60) return t('trips.durationMinutes', { n: mins })
+  return t('trips.durationHoursMinutes', { h: Math.floor(mins / 60), m: mins % 60 })
 }
 
 function clearRouteLines() {
@@ -486,7 +482,7 @@ watch(dateRangeDays, async (days) => {
   resetTripScroll()
   selectedTripIndex.value = null
   if (vin.value) {
-    await store.fetchTrips(vin.value, new Date(Date.now() - days * 86_400_000).toISOString())
+    await store.fetchTrips(vin.value, daysAgoIso(days))
   }
 })
 
@@ -495,10 +491,7 @@ watch(
   () => store.tripJustCompleted,
   async (completed) => {
     if (!completed || !vin.value) return
-    await store.fetchTrips(
-      vin.value,
-      new Date(Date.now() - dateRangeDays.value * 86_400_000).toISOString(),
-    )
+    await store.fetchTrips(vin.value, daysAgoIso(dateRangeDays.value))
   },
 )
 
@@ -535,10 +528,7 @@ onMounted(async () => {
     await Promise.all([
       store.fetchStatus(vin.value),
       store.fetchConfig(vin.value),
-      store.fetchTrips(
-        vin.value,
-        new Date(Date.now() - dateRangeDays.value * 86_400_000).toISOString(),
-      ),
+      store.fetchTrips(vin.value, daysAgoIso(dateRangeDays.value)),
     ])
   }
   if (fuelStationsEnabled.value) {

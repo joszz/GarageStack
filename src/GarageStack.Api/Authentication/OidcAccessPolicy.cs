@@ -2,6 +2,7 @@ using System.Security.Claims;
 
 namespace GarageStack.Api.Authentication;
 
+/// <param name="Allowed">Whether the authenticated user may use GarageStack.</param>
 /// <param name="Reason">
 /// Written to the log, so it never contains the email address itself: the log line already names
 /// the account, and log files are no place for personal data.

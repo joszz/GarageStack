@@ -5,6 +5,9 @@ namespace GarageStack.Core.Interfaces;
 /// <summary>Looks up and creates <see cref="Vehicle"/> records by VIN, and updates their capability metadata.</summary>
 public interface IVehicleRepository
 {
+    /// <summary>Every known vehicle, in the order they were first seen.</summary>
+    Task<IReadOnlyList<Vehicle>> GetAllAsync(CancellationToken ct = default);
+
     Task<Vehicle?> GetByVinAsync(string vin, CancellationToken ct = default);
 
     /// <summary>

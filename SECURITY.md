@@ -68,19 +68,20 @@ This project follows a coordinated vulnerability disclosure model. Good-faith se
 
 ### API and Network
 
-- API rate limiting is enforced server-side to protect both the application and the upstream iSmart API
-- HTTPS is required in production; HTTP-only cookies are used where applicable
-- CORS is restricted to known origins
+- API rate limiting is enforced server-side, per client IP, with tighter limits on the login and widget endpoints
+- Sessions are encrypted, HTTP-only, `SameSite=Strict` cookies, revoked server-side on logout
+- Plain HTTP on a LAN is the documented default. Put a TLS-terminating proxy in front for anything reachable from outside the LAN and set `AUTH_COOKIE_SECURE=true` so the session cookie is only sent over HTTPS
+- CORS is restricted to the configured origin, and state-changing requests carrying an `Origin` header are rejected unless it matches
 
 ### Frontend
 
-- Content Security Policy (CSP) headers are applied, restricting scripts/styles to same-origin plus specific sha256 hashes (`script-src 'self' 'sha256-...'`) -- there are no third-party CDN assets to apply SRI to; everything is self-hosted and bundled at build time
-- No sensitive data is stored in `localStorage` or `sessionStorage`
+- Content Security Policy (CSP) headers are applied to every response, restricting scripts/styles to same-origin plus specific sha256 hashes (`script-src 'self' 'sha256-...'`) -- there are no third-party CDN assets to apply SRI to; everything is self-hosted and bundled at build time
+- `localStorage` holds only UI preferences and the signed-in display name with its session expiry; the session itself lives in the HTTP-only cookie
 
 ### Database
 
-- PostgreSQL connections use least-privilege credentials per service role
-- Sensitive fields (e.g., tokens, location history) are not logged in plaintext
+- The bundled deployments use one PostgreSQL role, owned by the application, for both the API and the Worker. There is no split into per-service roles; on an external server you can create a dedicated role with access to the `garagestack` database only
+- Personal identifiers are kept out of the rotating log files: the MG account email and VIN are redacted from MQTT topics before logging, VINs are shortened to their last four characters, and failed login attempts log only the client IP. Location data is stored in the database and never logged
 
 ### Dependencies
 

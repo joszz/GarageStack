@@ -18,6 +18,7 @@ import SkeletonCarDiagram from '@/components/SkeletonCarDiagram.vue'
 import SkeletonLocationMap from '@/components/SkeletonLocationMap.vue'
 import { useVehicleAlerts } from '@/composables/useVehicleAlerts'
 import { whPerKm } from '@/utils/energy'
+import { daysAgoIso } from '@/utils/dates'
 
 const { t } = useI18n()
 const store = useVehicleStore()
@@ -28,12 +29,7 @@ const vin = computed(() => store.vehicles[0]?.vin ?? null)
 const status = computed(() => store.currentStatus)
 const editMode = ref(false)
 
-const vehicleType = computed((): VehicleType | 'unknown' => {
-  const override = uiSettings.vehicleTypeOverride
-  if (override !== 'auto') return override as VehicleType
-  return store.detectedVehicleType
-})
-
+const vehicleType = computed(() => store.effectiveVehicleType)
 const isHev = computed(() => vehicleType.value === 'hev')
 
 // Shared prop set for the two <CarDiagram> invocations (edit mode + normal mode), which
@@ -216,30 +212,41 @@ function resetLayout() {
   settings.showTyreDiagram = true
 }
 
+// Everything the dashboard shows: vehicle list (cached after the first call), live status,
+// capability config and the recent trips behind the active-trip and top-speed cards.
 async function refresh() {
   await store.fetchVehicles()
   if (vin.value) {
     await Promise.all([
       store.fetchStatus(vin.value),
       store.fetchConfig(vin.value),
-      store.fetchTrips(
-        vin.value,
-        new Date(Date.now() - uiSettings.filterDays * 86_400_000).toISOString(),
-      ),
+      store.fetchTrips(vin.value, daysAgoIso(uiSettings.filterDays)),
     ])
   }
+}
+
+// Only what can have changed while the tab was hidden: the live status and, since a trip may
+// have ended meanwhile, the trip list. The vehicle list and capability config do not drift.
+async function refreshLive() {
+  if (!vin.value) return
+  await Promise.all([
+    store.fetchStatus(vin.value),
+    store.fetchTrips(vin.value, daysAgoIso(uiSettings.filterDays)),
+  ])
 }
 
 function handleVisibilityChange() {
   if (document.visibilityState === 'visible') {
     // Catch any updates missed while the tab was hidden (e.g. SignalR reconnect gap)
-    refresh()
+    refreshLive()
   }
 }
 
 function handleSwMessage(event: MessageEvent) {
-  if (event.data?.type === 'NOTIFICATION_RECEIVED') {
-    refresh()
+  // A push notification means the car reported something (engine start, door left open, ...)
+  // that the live status should reflect.
+  if (event.data?.type === 'NOTIFICATION_RECEIVED' && vin.value) {
+    store.fetchStatus(vin.value)
   }
 }
 
@@ -254,8 +261,9 @@ onMounted(async () => {
     const updated = settings.cards.map((c) => (shouldHide.has(c.id) ? { ...c, visible: false } : c))
     settings.cards = [...updated.filter((c) => c.visible), ...updated.filter((c) => !c.visible)]
   }
-  // On a fresh start (no saved layout), push no-data visible cards to the end
-  if (!localStorage.getItem('garagestack-settings') && status.value) {
+  // On a first visit (nothing saved yet), push no-data visible cards to the end. Once a
+  // layout has been saved the user's ordering is theirs and is never reshuffled on mount.
+  if (!settings.hasSavedLayout && status.value) {
     const current = [...settings.cards]
     const active = current.filter((c) => c.visible && cardHasData(c.id))
     const noData = current.filter((c) => c.visible && !cardHasData(c.id))

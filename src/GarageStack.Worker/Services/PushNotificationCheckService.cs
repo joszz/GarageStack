@@ -1,12 +1,11 @@
 using GarageStack.Core.Configuration;
 using GarageStack.Core.Helpers;
 using GarageStack.Core.Interfaces;
+using GarageStack.Core.Models;
 using GarageStack.Data;
 using GarageStack.Data.Extensions;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Localization;
 
 namespace GarageStack.Worker.Services;
 
@@ -14,13 +13,42 @@ public class PushNotificationCheckService(
     ILogger<PushNotificationCheckService> logger,
     IServiceScopeFactory scopeFactory,
     IPushSender pushSender,
-    TyrePressureThresholds tyrePressureThresholds) : BackgroundService
+    TyrePressureThresholds tyrePressureThresholds,
+    IStringLocalizer<NotificationStrings> strings) : BackgroundService
 {
     private readonly NotificationCooldownGate _cooldownGate = new(TimeSpan.FromHours(1));
     internal readonly VinStateTracker<bool?> _engineRunningTracker = new();
     internal readonly VinStateTracker<bool?> _isChargingTracker = new();
     internal readonly Dictionary<string, DateTime> _lastParkedAt = new();
     private readonly TimeSpan _parkingGrace = TimeSpan.FromMinutes(10);
+
+    // The positions each check reads, in the order they are listed in an alert body. Tyres keep
+    // their conventional abbreviations; door and window positions are localized by resource key.
+    private static readonly (string Label, Func<TelemetrySnapshot, double?> Read)[] TyrePositions =
+    [
+        ("FL", s => s.TyrePressureFrontLeft),
+        ("FR", s => s.TyrePressureFrontRight),
+        ("RL", s => s.TyrePressureRearLeft),
+        ("RR", s => s.TyrePressureRearRight),
+    ];
+
+    private static readonly (string ResourceKey, Func<TelemetrySnapshot, bool?> Read)[] DoorPositions =
+    [
+        ("PositionDriver", s => s.DriverDoorOpen),
+        ("PositionPassenger", s => s.PassengerDoorOpen),
+        ("PositionRearLeft", s => s.RearLeftDoorOpen),
+        ("PositionRearRight", s => s.RearRightDoorOpen),
+        ("PositionBoot", s => s.TrunkOpen),
+        ("PositionBonnet", s => s.BonnetOpen),
+    ];
+
+    private static readonly (string ResourceKey, Func<TelemetrySnapshot, bool?> Read)[] WindowPositions =
+    [
+        ("PositionDriver", s => s.DriverWindowOpen),
+        ("PositionPassenger", s => s.PassengerWindowOpen),
+        ("PositionRearLeft", s => s.RearLeftWindowOpen),
+        ("PositionRearRight", s => s.RearRightWindowOpen),
+    ];
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -58,7 +86,7 @@ public class PushNotificationCheckService(
             if (!_lastParkedAt.ContainsKey(vehicle.Vin) && vehicle.LastParkedAt.HasValue)
                 _lastParkedAt[vehicle.Vin] = vehicle.LastParkedAt.Value;
 
-            var vehicleType = GetVehicleType(vehicle);
+            var vehicleType = VehicleTypeHelper.GetVehicleType(vehicle);
             var alerts = new List<(string key, string title, string body)>();
             CheckTyrePressure(snapshot, alerts);
             CheckEvSoc(snapshot, vehicleType, alerts);
@@ -88,42 +116,38 @@ public class PushNotificationCheckService(
                 if (!shouldNotify) continue;
 
                 await pushSender.SendToAllAsync(title, body, ct, key, vehicle.Id);
-                logger.LogInformation("Push sent: {Vin}/{Key} - {Title}", vehicle.Vin, key, title);
+                logger.LogInformation("Push sent: {Vin}/{Key} - {Title}", LogRedaction.Vin(vehicle.Vin), key, title);
             }
         }
     }
 
-    internal void CheckTyrePressure(Core.Models.TelemetrySnapshot s, List<(string, string, string)> alerts)
+    internal void CheckTyrePressure(TelemetrySnapshot s, List<(string, string, string)> alerts)
     {
-        var low = new List<string>();
-        if (s.TyrePressureFrontLeft is not null && s.TyrePressureFrontLeft < tyrePressureThresholds.LowBar) low.Add("FL");
-        if (s.TyrePressureFrontRight is not null && s.TyrePressureFrontRight < tyrePressureThresholds.LowBar) low.Add("FR");
-        if (s.TyrePressureRearLeft is not null && s.TyrePressureRearLeft < tyrePressureThresholds.LowBar) low.Add("RL");
-        if (s.TyrePressureRearRight is not null && s.TyrePressureRearRight < tyrePressureThresholds.LowBar) low.Add("RR");
-
+        var low = TyrePositions
+            .Where(p => p.Read(s) is { } bar && bar < tyrePressureThresholds.LowBar)
+            .Select(p => p.Label)
+            .ToList();
         if (low.Count > 0)
-            alerts.Add(("low-tyre", "Low Tyre Pressure", $"Tyre pressure low: {string.Join(", ", low)}"));
+            alerts.Add((NotificationCategories.LowTyre, strings["LowTyreTitle"], strings["LowTyreBody", string.Join(", ", low)]));
 
-        var high = new List<string>();
-        if (s.TyrePressureFrontLeft is not null && s.TyrePressureFrontLeft > tyrePressureThresholds.HighBar) high.Add("FL");
-        if (s.TyrePressureFrontRight is not null && s.TyrePressureFrontRight > tyrePressureThresholds.HighBar) high.Add("FR");
-        if (s.TyrePressureRearLeft is not null && s.TyrePressureRearLeft > tyrePressureThresholds.HighBar) high.Add("RL");
-        if (s.TyrePressureRearRight is not null && s.TyrePressureRearRight > tyrePressureThresholds.HighBar) high.Add("RR");
-
+        var high = TyrePositions
+            .Where(p => p.Read(s) is { } bar && bar > tyrePressureThresholds.HighBar)
+            .Select(p => p.Label)
+            .ToList();
         if (high.Count > 0)
-            alerts.Add(("high-tyre", "High Tyre Pressure", $"Tyre pressure high: {string.Join(", ", high)}"));
+            alerts.Add((NotificationCategories.HighTyre, strings["HighTyreTitle"], strings["HighTyreBody", string.Join(", ", high)]));
     }
 
-    private static void CheckEvSoc(Core.Models.TelemetrySnapshot s, string vehicleType, List<(string, string, string)> alerts)
+    private void CheckEvSoc(TelemetrySnapshot s, string vehicleType, List<(string, string, string)> alerts)
     {
-        if (!CanCharge(vehicleType)) return;
+        if (!VehicleTypeHelper.CanCharge(vehicleType)) return;
         if (s.EvSocPercent is not null && s.EvSocPercent < 20)
-            alerts.Add(("low-ev", "Low EV Battery", $"EV battery at {s.EvSocPercent:F0}%"));
+            alerts.Add((NotificationCategories.LowEv, strings["LowEvTitle"], strings["LowEvBody", $"{s.EvSocPercent:F0}"]));
     }
 
-    internal void CheckChargingComplete(Core.Models.TelemetrySnapshot s, string vin, string vehicleType, List<(string, string, string)> alerts)
+    internal void CheckChargingComplete(TelemetrySnapshot s, string vin, string vehicleType, List<(string, string, string)> alerts)
     {
-        if (!CanCharge(vehicleType)) return;
+        if (!VehicleTypeHelper.CanCharge(vehicleType)) return;
         if (s.IsCharging is null) return;
 
         var current = s.IsCharging.Value;
@@ -135,16 +159,14 @@ public class PushNotificationCheckService(
         // Charging finished while cable is still connected (session complete, not unplugged mid-charge)
         if (s.ChargerConnected == true)
         {
-            var soc = s.EvSocPercent is not null ? $" (SOC: {s.EvSocPercent:F0}%)" : string.Empty;
-            alerts.Add(("charging-complete", "Charging Complete", $"Your car has finished charging{soc}"));
+            var body = s.EvSocPercent is not null
+                ? strings["ChargingCompleteBodyWithSoc", $"{s.EvSocPercent:F0}"]
+                : strings["ChargingCompleteBody"];
+            alerts.Add((NotificationCategories.ChargingComplete, strings["ChargingCompleteTitle"], body));
         }
     }
 
-    private static string GetVehicleType(Core.Models.Vehicle v) => VehicleTypeHelper.GetVehicleType(v);
-
-    private static bool CanCharge(string vehicleType) => VehicleTypeHelper.CanCharge(vehicleType);
-
-    internal bool CheckEngineStart(Core.Models.TelemetrySnapshot s, string vin, List<(string, string, string)> alerts)
+    internal bool CheckEngineStart(TelemetrySnapshot s, string vin, List<(string, string, string)> alerts)
     {
         if (s.EngineRunning is null) return false;
 
@@ -155,7 +177,7 @@ public class PushNotificationCheckService(
         switch (BoolTransitionDetector.Detect(hadPrevious, previous, current))
         {
             case StateTransition.TurnedOn:
-                alerts.Add(("engine-start", "Car Started", "Your car engine has started"));
+                alerts.Add((NotificationCategories.EngineStart, strings["EngineStartTitle"], strings["EngineStartBody"]));
                 return false;
 
             case StateTransition.TurnedOff:
@@ -167,43 +189,37 @@ public class PushNotificationCheckService(
         }
     }
 
-    private static bool IsParked(Core.Models.TelemetrySnapshot s)
+    private static bool IsParked(TelemetrySnapshot s)
         => s.EngineRunning == false;
 
-    internal static void CheckUnlockedWhileParked(Core.Models.TelemetrySnapshot s, List<(string, string, string)> alerts, bool withinParkingGrace)
+    internal void CheckUnlockedWhileParked(TelemetrySnapshot s, List<(string, string, string)> alerts, bool withinParkingGrace)
     {
         if (!IsParked(s) || withinParkingGrace) return;
         if (s.IsLocked is false)
-            alerts.Add(("unlocked-parked", "Car Left Unlocked", "Your car is parked and unlocked"));
+            alerts.Add((NotificationCategories.UnlockedParked, strings["UnlockedParkedTitle"], strings["UnlockedParkedBody"]));
     }
 
-    internal static void CheckDoorsOpenWhileParked(Core.Models.TelemetrySnapshot s, List<(string, string, string)> alerts, bool withinParkingGrace)
+    internal void CheckDoorsOpenWhileParked(TelemetrySnapshot s, List<(string, string, string)> alerts, bool withinParkingGrace)
     {
         if (!IsParked(s) || withinParkingGrace) return;
 
-        var open = new List<string>();
-        if (s.DriverDoorOpen == true) open.Add("driver");
-        if (s.PassengerDoorOpen == true) open.Add("passenger");
-        if (s.RearLeftDoorOpen == true) open.Add("rear left");
-        if (s.RearRightDoorOpen == true) open.Add("rear right");
-        if (s.TrunkOpen == true) open.Add("boot");
-        if (s.BonnetOpen == true) open.Add("bonnet");
-
+        var open = OpenPositions(s, DoorPositions);
         if (open.Count > 0)
-            alerts.Add(("doors-open-parked", "Door Left Open", $"Door(s) open while parked: {string.Join(", ", open)}"));
+            alerts.Add((NotificationCategories.DoorsOpenParked, strings["DoorsOpenTitle"], strings["DoorsOpenBody", string.Join(", ", open)]));
     }
 
-    internal static void CheckWindowsOpenWhileParked(Core.Models.TelemetrySnapshot s, List<(string, string, string)> alerts, bool withinParkingGrace)
+    internal void CheckWindowsOpenWhileParked(TelemetrySnapshot s, List<(string, string, string)> alerts, bool withinParkingGrace)
     {
         if (!IsParked(s) || withinParkingGrace) return;
 
-        var open = new List<string>();
-        if (s.DriverWindowOpen == true) open.Add("driver");
-        if (s.PassengerWindowOpen == true) open.Add("passenger");
-        if (s.RearLeftWindowOpen == true) open.Add("rear left");
-        if (s.RearRightWindowOpen == true) open.Add("rear right");
-
+        var open = OpenPositions(s, WindowPositions);
         if (open.Count > 0)
-            alerts.Add(("windows-open-parked", "Window Left Open", $"Window(s) open while parked: {string.Join(", ", open)}"));
+            alerts.Add((NotificationCategories.WindowsOpenParked, strings["WindowsOpenTitle"], strings["WindowsOpenBody", string.Join(", ", open)]));
     }
+
+    private List<string> OpenPositions(TelemetrySnapshot s, (string ResourceKey, Func<TelemetrySnapshot, bool?> Read)[] positions) =>
+        positions
+            .Where(p => p.Read(s) == true)
+            .Select(p => strings[p.ResourceKey].Value)
+            .ToList();
 }

@@ -35,9 +35,11 @@ public class ChargingStationServiceTests
             [new OcmApiClient.OcmConnectorMeta(connType, powerKw, 1)]);
         return new PoiItem
         {
-            Source = "ocm", PoiType = "charging",
+            Source = "ocm",
+            PoiType = "charging",
             ExternalId = $"ocm/{id}",
-            Latitude = lat, Longitude = lng,
+            Latitude = lat,
+            Longitude = lng,
             Name = $"Station {id}",
             MetaJson = JsonSerializer.Serialize(meta),
             CellLat = (int)Math.Floor(lat * 2),
@@ -85,9 +87,11 @@ public class ChargingStationServiceTests
         SeedAllTiles(repo, 52.37, 4.90, 5);
         repo.SeedItem(new PoiItem
         {
-            Source = "ocm", PoiType = "charging",
+            Source = "ocm",
+            PoiType = "charging",
             ExternalId = "ocm/42",
-            Latitude = 52.37, Longitude = 4.90,
+            Latitude = 52.37,
+            Longitude = 4.90,
             Name = "Fast Charger",
             MetaJson = JsonSerializer.Serialize(new OcmApiClient.OcmMeta(
                 "Main St 1", "Amsterdam", "ANWB Energie", true, 4,

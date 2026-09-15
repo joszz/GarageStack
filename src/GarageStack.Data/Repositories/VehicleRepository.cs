@@ -1,4 +1,5 @@
 using System.Text.Json;
+using GarageStack.Core.Helpers;
 using GarageStack.Core.Interfaces;
 using GarageStack.Core.Models;
 using Microsoft.EntityFrameworkCore;
@@ -15,6 +16,9 @@ public class VehicleRepository(AppDbContext db) : IVehicleRepository
         var query = track ? db.Vehicles : db.Vehicles.AsNoTracking();
         return query.FirstOrDefaultAsync(v => v.Vin == vin, ct);
     }
+
+    public async Task<IReadOnlyList<Vehicle>> GetAllAsync(CancellationToken ct = default) =>
+        await db.Vehicles.AsNoTracking().OrderBy(v => v.Id).ToListAsync(ct);
 
     public Task<Vehicle?> GetByVinAsync(string vin, CancellationToken ct = default) =>
         FindByVinAsync(vin, track: false, ct);
@@ -45,7 +49,7 @@ public class VehicleRepository(AppDbContext db) : IVehicleRepository
             // constraint on Vin here. Forget our failed insert and read back the winner's row.
             db.ChangeTracker.Clear();
             vehicle = await FindByVinAsync(vin, track: true, ct)
-                ?? throw new InvalidOperationException($"Unique-constraint violation on VIN {vin} but no row found on retry.");
+                ?? throw new InvalidOperationException($"Unique-constraint violation on VIN {LogRedaction.Vin(vin)} but no row found on retry.");
         }
         return vehicle;
     }
@@ -63,9 +67,10 @@ public class VehicleRepository(AppDbContext db) : IVehicleRepository
         var vehicle = await db.Vehicles.FindAsync([vehicleId], ct);
         if (vehicle is null) return;
 
-        var config = vehicle.ConfigJson is not null
-            ? JsonSerializer.Deserialize<Dictionary<string, string>>(vehicle.ConfigJson) ?? []
-            : new Dictionary<string, string>();
+        // A malformed blob (there is no schema, the gateway writes free-form values) starts a
+        // fresh dictionary instead of taking the message handler down.
+        var config = SafeJson.TryDeserialize<Dictionary<string, string>>(vehicle.ConfigJson)
+            ?? new Dictionary<string, string>();
 
         config[key] = value;
         vehicle.ConfigJson = JsonSerializer.Serialize(config);

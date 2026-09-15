@@ -1,0 +1,53 @@
+<Project>
+
+  <!-- Central package management: every NuGet version lives here once, so the four projects
+       cannot drift apart (EF Core in particular must match across Data, Api, Worker and Tests). -->
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <CentralPackageTransitivePinningEnabled>false</CentralPackageTransitivePinningEnabled>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageVersion Include="MinVer" Version="8.0.0" />
+
+    <!-- ASP.NET Core / hosting -->
+    <PackageVersion Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.12" />
+    <!-- Pinned above the transitive 2.0.0 pulled in by Microsoft.AspNetCore.OpenApi to avoid CVE-2026-49451
+         (stack overflow on circular schema refs). Stay on the 2.x line: Microsoft.OpenApi 3.x breaks
+         Microsoft.AspNetCore.OpenApi at both compile time (XmlCommentGenerator) and runtime. -->
+    <PackageVersion Include="Microsoft.OpenApi" Version="2.12.2" />
+    <PackageVersion Include="Microsoft.IdentityModel.Tokens" Version="8.22.0" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.Extensions.Http" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.Extensions.Caching.Memory" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.Extensions.Localization" Version="10.0.12" />
+    <PackageVersion Include="Scalar.AspNetCore" Version="2.17.3" />
+
+    <!-- Entity Framework Core -->
+    <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.12" />
+    <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
+
+    <!-- Messaging / push -->
+    <PackageVersion Include="MQTTnet" Version="5.2.0.1603" />
+    <PackageVersion Include="Lib.Net.Http.WebPush" Version="3.3.1" />
+
+    <!-- Logging -->
+    <PackageVersion Include="Serilog.AspNetCore" Version="10.0.0" />
+    <PackageVersion Include="Serilog.Extensions.Hosting" Version="10.0.0" />
+    <PackageVersion Include="Serilog.Settings.Configuration" Version="10.0.1" />
+    <PackageVersion Include="Serilog.Sinks.Console" Version="6.1.1" />
+    <PackageVersion Include="Serilog.Sinks.File" Version="7.0.0" />
+
+    <!-- Tests -->
+    <PackageVersion Include="coverlet.collector" Version="10.0.1" />
+    <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.10.0" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="4.0.0" />
+    <PackageVersion Include="xunit.v3" Version="4.0.1" />
+  </ItemGroup>
+
+</Project>

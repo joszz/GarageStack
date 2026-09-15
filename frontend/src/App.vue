@@ -98,10 +98,16 @@ const {
 // brief window before startSignalR() is first called.
 const signalRAttempted = ref(false)
 
-watch(vehicleId, (id) => {
-  if (id) {
+// The connection follows both the vehicle and the session: the vehicle store keeps its data
+// across a logout, so watching the vehicle id alone would never restart live updates after
+// signing back in within the same tab. start() closes any existing connection first.
+watch([vehicleId, () => auth.isAuthenticated], ([id, authenticated]) => {
+  if (id && authenticated) {
     signalRAttempted.value = true
     startSignalR(id)
+  } else if (!authenticated) {
+    signalRAttempted.value = false
+    stopSignalR()
   }
 })
 

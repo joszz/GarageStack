@@ -1,8 +1,8 @@
+using System.Text.Json;
 using GarageStack.Core.Models;
 using GarageStack.Data;
 using GarageStack.Data.Repositories;
 using Microsoft.EntityFrameworkCore;
-using System.Text.Json;
 
 namespace GarageStack.Tests;
 

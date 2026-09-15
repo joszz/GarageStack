@@ -23,7 +23,11 @@ To work against the full stack (real or self-provided credentials):
 - Run the test suite before opening a PR:
   - Backend: `dotnet test`
   - Frontend: `pnpm test:unit`
-- Make sure linting passes: `pnpm lint`
+- Make sure linting and formatting pass:
+  - Backend: `dotnet build` (analyzers run as part of the build, warnings are errors) and `dotnet format GarageStack.slnx`
+  - Frontend: `pnpm lint` and `pnpm format`
+- Changed an EF Core entity? Add a migration from the repository root (no Api configuration needed):
+  `dotnet ef migrations add <Name> --project src/GarageStack.Data --startup-project src/GarageStack.Data`
 
 ## Commit Style
 

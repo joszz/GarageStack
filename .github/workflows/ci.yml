@@ -28,7 +28,7 @@ jobs:
 
       - uses: actions/setup-node@v7.0.0
         with:
-          node-version: 22
+          node-version: 24
           cache: pnpm
           cache-dependency-path: frontend/pnpm-lock.yaml
 
@@ -60,7 +60,7 @@ jobs:
 
       - uses: actions/setup-node@v7.0.0
         with:
-          node-version: 22
+          node-version: 24
           cache: pnpm
           cache-dependency-path: frontend/pnpm-lock.yaml
 
@@ -86,7 +86,7 @@ jobs:
 
       - uses: actions/setup-node@v7.0.0
         with:
-          node-version: 22
+          node-version: 24
           cache: pnpm
           cache-dependency-path: frontend/pnpm-lock.yaml
 
@@ -133,6 +133,18 @@ jobs:
 
       - name: Build
         run: dotnet build --configuration Release --no-restore
+
+      # Warnings are errors and the .NET analyzers run as part of the build above; this step
+      # covers what the build cannot: whitespace, using order and the other .editorconfig rules.
+      - name: Format check
+        run: dotnet format GarageStack.slnx --verify-no-changes --no-restore
+
+      # A model change without a migration would only surface at MigrateAsync on a real
+      # database. The Data project carries its own design-time factory, so no API config is needed.
+      - name: EF model matches migrations
+        run: |
+          dotnet tool install --global dotnet-ef
+          dotnet ef migrations has-pending-model-changes --project src/GarageStack.Data --startup-project src/GarageStack.Data --no-build --configuration Release
 
   container-build:
     name: Container build (${{ matrix.label }})

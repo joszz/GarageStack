@@ -1,3 +1,4 @@
+using GarageStack.Api;
 using GarageStack.Api.Endpoints;
 using GarageStack.Core.Models;
 using Microsoft.Extensions.Localization;

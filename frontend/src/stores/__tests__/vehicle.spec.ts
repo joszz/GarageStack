@@ -1,14 +1,15 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { useVehicleStore } from '@/stores/vehicle'
-import type { Vehicle, TelemetrySnapshot, Trip } from '@/services/vehicleApi'
+import { useUiSettingsStore } from '@/stores/settingsUi'
+import type { Vehicle, TelemetrySnapshot, TelemetryHistoryPoint, Trip } from '@/services/vehicleApi'
 
 vi.mock('@/services/vehicleApi', () => ({
   vehicleApi: {
     list: vi.fn<() => Promise<Vehicle[]>>().mockResolvedValue([]),
     status: vi.fn<() => Promise<TelemetrySnapshot | null>>().mockResolvedValue(null),
     config: vi.fn<() => Promise<Record<string, string>>>().mockResolvedValue({}),
-    history: vi.fn<() => Promise<TelemetrySnapshot[]>>().mockResolvedValue([]),
+    history: vi.fn<() => Promise<TelemetryHistoryPoint[]>>().mockResolvedValue([]),
     trips: vi.fn<() => Promise<Trip[]>>().mockResolvedValue([]),
     sendCommand: vi.fn<() => Promise<void>>().mockResolvedValue(undefined),
   },
@@ -64,6 +65,27 @@ describe('useVehicleStore - detectedVehicleType', () => {
     const store = useVehicleStore()
     store.vehicleConfig['hw_version'] = 'PHEV_HEV_COMBO'
     expect(store.detectedVehicleType).toBe('phev')
+  })
+})
+
+describe('useVehicleStore - effectiveVehicleType', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    setActivePinia(createPinia())
+  })
+
+  it('follows the detected type while the override is auto', () => {
+    const store = useVehicleStore()
+    store.vehicleConfig['hw_version'] = 'MG_PHEV_1.2'
+    expect(store.effectiveVehicleType).toBe('phev')
+  })
+
+  it('uses the manual override when one is set', () => {
+    const store = useVehicleStore()
+    const ui = useUiSettingsStore()
+    store.vehicleConfig['hw_version'] = 'MG_PHEV_1.2'
+    ui.vehicleTypeOverride = 'hev'
+    expect(store.effectiveVehicleType).toBe('hev')
   })
 })
 

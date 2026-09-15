@@ -30,8 +30,8 @@ public class TelemetryRepositoryTests
         var t0 = new DateTime(2026, 1, 1, 10, 0, 0, DateTimeKind.Utc);
         db.TelemetrySnapshots.AddRange(
             // Trip 1: A -> B
-            MakePoint(vehicle.Id, t0.AddMinutes(0),  51.50, 0.0, 50),
-            MakePoint(vehicle.Id, t0.AddMinutes(5),  51.55, 0.0, 50),
+            MakePoint(vehicle.Id, t0.AddMinutes(0), 51.50, 0.0, 50),
+            MakePoint(vehicle.Id, t0.AddMinutes(5), 51.55, 0.0, 50),
             MakePoint(vehicle.Id, t0.AddMinutes(10), 51.60, 0.0, 50),
             // Parked at B for 10 minutes (> 5 min threshold)
             MakePoint(vehicle.Id, t0.AddMinutes(11), 51.60, 0.0, 0),
@@ -60,12 +60,12 @@ public class TelemetryRepositoryTests
 
         var t0 = new DateTime(2026, 1, 1, 10, 0, 0, DateTimeKind.Utc);
         db.TelemetrySnapshots.AddRange(
-            MakePoint(vehicle.Id, t0.AddMinutes(0),  51.50, 0.0, 50),
-            MakePoint(vehicle.Id, t0.AddMinutes(5),  51.55, 0.0, 50),
+            MakePoint(vehicle.Id, t0.AddMinutes(0), 51.50, 0.0, 50),
+            MakePoint(vehicle.Id, t0.AddMinutes(5), 51.55, 0.0, 50),
             // Brief stop at a traffic light (2 minutes < 5 min threshold)
-            MakePoint(vehicle.Id, t0.AddMinutes(6),  51.55, 0.0, 0),
-            MakePoint(vehicle.Id, t0.AddMinutes(7),  51.55, 0.0, 0),
-            MakePoint(vehicle.Id, t0.AddMinutes(8),  51.55, 0.0, 50),
+            MakePoint(vehicle.Id, t0.AddMinutes(6), 51.55, 0.0, 0),
+            MakePoint(vehicle.Id, t0.AddMinutes(7), 51.55, 0.0, 0),
+            MakePoint(vehicle.Id, t0.AddMinutes(8), 51.55, 0.0, 50),
             MakePoint(vehicle.Id, t0.AddMinutes(13), 51.60, 0.0, 50)
         );
         await db.SaveChangesAsync(ct);
@@ -88,8 +88,8 @@ public class TelemetryRepositoryTests
 
         var t0 = new DateTime(2026, 1, 1, 10, 0, 0, DateTimeKind.Utc);
         db.TelemetrySnapshots.AddRange(
-            MakePoint(vehicle.Id, t0.AddMinutes(0),  51.50, 0.0, 50),
-            MakePoint(vehicle.Id, t0.AddMinutes(5),  51.55, 0.0, 50),
+            MakePoint(vehicle.Id, t0.AddMinutes(0), 51.50, 0.0, 50),
+            MakePoint(vehicle.Id, t0.AddMinutes(5), 51.55, 0.0, 50),
             MakePoint(vehicle.Id, t0.AddMinutes(10), 51.60, 0.0, 50),
             // Gateway sends GPS-only updates (no speed topic) while parked.
             MakePoint(vehicle.Id, t0.AddMinutes(11), 51.60, 0.0, null),
@@ -564,5 +564,44 @@ public class TelemetryRepositoryMergeTests
         await repo.MergeIntoAsync(99999, new TelemetrySnapshot { VehicleId = vehicle.Id, FuelLevelPercent = 70 }, ct);
 
         Assert.Equal(1, await db.TelemetrySnapshots.CountAsync(ct));
+    }
+
+    // Regression: sorting after projecting into the RawTopicStat record could not be translated
+    // by EF and returned a 500 from /topics on PostgreSQL.
+    [Fact]
+    public async Task GetRawTopicStatsAsync_GroupsByTopic_MostFrequentFirst()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (db, repo, vehicle) = await SetupAsync();
+        var t0 = new DateTime(2026, 1, 1, 10, 0, 0, DateTimeKind.Utc);
+        db.TelemetrySnapshots.AddRange(
+            new TelemetrySnapshot { VehicleId = vehicle.Id, RecordedAt = t0, RawTopic = "a", EvSocPercent = 1 },
+            new TelemetrySnapshot { VehicleId = vehicle.Id, RecordedAt = t0.AddMinutes(1), RawTopic = "b", EvSocPercent = 1 },
+            new TelemetrySnapshot { VehicleId = vehicle.Id, RecordedAt = t0.AddMinutes(2), RawTopic = "b", EvSocPercent = 1 },
+            new TelemetrySnapshot { VehicleId = vehicle.Id, RecordedAt = t0.AddMinutes(3), EvSocPercent = 1 });
+        await db.SaveChangesAsync(ct);
+
+        var stats = await repo.GetRawTopicStatsAsync(vehicle.Id, ct);
+
+        Assert.Equal(2, stats.Count);
+        Assert.Equal(new RawTopicStat("b", 2, t0.AddMinutes(2)), stats[0]);
+        Assert.Equal(new RawTopicStat("a", 1, t0), stats[1]);
+    }
+
+    [Fact]
+    public async Task GetLastTripSummaryAsync_ReturnsNewestRowWithAJourneyDistance()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (db, repo, vehicle) = await SetupAsync();
+        var t0 = new DateTime(2026, 1, 1, 10, 0, 0, DateTimeKind.Utc);
+        db.TelemetrySnapshots.AddRange(
+            new TelemetrySnapshot { VehicleId = vehicle.Id, RecordedAt = t0, CurrentJourneyDistance = 4.2 },
+            new TelemetrySnapshot { VehicleId = vehicle.Id, RecordedAt = t0.AddHours(1), CurrentJourneyDistance = 9.5 },
+            new TelemetrySnapshot { VehicleId = vehicle.Id, RecordedAt = t0.AddHours(2), CurrentJourneyDistance = 0 });
+        await db.SaveChangesAsync(ct);
+
+        var summary = await repo.GetLastTripSummaryAsync(vehicle.Id, ct);
+
+        Assert.Equal(new LastTripSummary(9.5, t0.AddHours(1)), summary);
     }
 }

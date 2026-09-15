@@ -9,7 +9,8 @@ import { VitePWA } from 'vite-plugin-pwa'
  * Strategy (no external deps, strict-CSP-compatible):
  *   1. Inline a tiny <style> that sets the dark background so there is no
  *      white flash before the full CSS activates.  Its SHA-256 hash is fixed
- *      and added to style-src-elem in both nginx.conf files.
+ *      and added to style-src-elem in nginx-security-headers.conf (shared by
+ *      the frontend and all-in-one images).
  *   2. Change <link rel="stylesheet"> → <link rel="preload" as="style"> so
  *      the browser fetches CSS at high priority without blocking the
  *      first paint.

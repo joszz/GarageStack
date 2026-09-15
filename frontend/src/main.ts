@@ -110,6 +110,8 @@ import {
   faScrewdriverWrench,
   faCircleExclamation,
   faBatteryQuarter,
+  faMobileScreen,
+  faDownload,
 } from '@fortawesome/free-solid-svg-icons'
 
 import App from './App.vue'
@@ -197,6 +199,8 @@ library.add(
   faScrewdriverWrench,
   faCircleExclamation,
   faBatteryQuarter,
+  faMobileScreen,
+  faDownload,
 )
 
 const i18n = createI18n({

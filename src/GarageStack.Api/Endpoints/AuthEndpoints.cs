@@ -5,6 +5,7 @@ using GarageStack.Data;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace GarageStack.Api.Endpoints;
 
@@ -67,7 +68,7 @@ public static class AuthEndpoints
         .RequireRateLimiting("oidc-login")
         .WithSummary("Start the OpenID Connect sign-in flow");
 
-        group.MapPost("/logout", async (HttpContext httpContext, AppDbContext db, CancellationToken ct) =>
+        group.MapPost("/logout", async (HttpContext httpContext, AppDbContext db, IMemoryCache cache, CancellationToken ct) =>
         {
             // Revoke the session server-side so a cookie copied before logout (from a
             // compromised device, say) stops working immediately instead of at its own expiry.
@@ -79,7 +80,7 @@ public static class AuthEndpoints
             {
                 var expiresAtUtc = result.Properties?.ExpiresUtc?.UtcDateTime
                     ?? DateTime.UtcNow.Add(PasswordRememberMeLifetime);
-                await TokenRevocation.RevokeAsync(db, sessionId, expiresAtUtc, ct);
+                await TokenRevocation.RevokeAsync(db, cache, sessionId, expiresAtUtc, ct);
             }
 
             await httpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
@@ -117,9 +118,11 @@ public static class AuthEndpoints
 
             if (!validUser || !validPassword)
             {
+                // The attempted username is deliberately not logged: with the MG account fallback
+                // it is usually an email address, and a typo'd password would put it in the
+                // 30-day log files.
                 logger.LogWarning(
-                    "Failed login attempt for username={Username} from IP={RemoteIp}",
-                    SanitizeForLog(providedUsername), httpContext.Connection.RemoteIpAddress);
+                    "Failed login attempt from IP={RemoteIp}", httpContext.Connection.RemoteIpAddress);
                 return Results.Unauthorized();
             }
 
@@ -144,9 +147,6 @@ public static class AuthEndpoints
 
         return app;
     }
-
-    private static string SanitizeForLog(string value) =>
-        value.Replace("\r", string.Empty).Replace("\n", string.Empty);
 
     internal static bool FixedTimeEquals(string left, string right)
     {

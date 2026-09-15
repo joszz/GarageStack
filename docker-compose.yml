@@ -95,6 +95,8 @@ services:
       Vapid__PublicKey: "${VAPID_PUBLIC_KEY}"
       Vapid__PrivateKey: "${VAPID_PRIVATE_KEY}"
       Vapid__Subject: "mailto:${SAIC_USER}"
+      # Language of push notification texts (en or nl); the Worker has no browser to ask.
+      Notifications__Culture: "${NOTIFICATION_LANGUAGE:-en}"
       TyrePressure__LowBar: "${TYRE_PRESSURE_LOW_BAR:-2.2}"
       TyrePressure__GoodBar: "${TYRE_PRESSURE_GOOD_BAR:-2.6}"
       TyrePressure__HighBar: "${TYRE_PRESSURE_HIGH_BAR:-3.2}"

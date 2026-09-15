@@ -36,6 +36,16 @@ function handleResponse(res: Response, path: string) {
   if (!res.ok) throw new ApiError(res.status, path)
 }
 
+// The one place that knows how a JSON body travels: every POST/PUT/PATCH goes through here.
+function jsonInit(method: string, body?: unknown): RequestInit {
+  return {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+  }
+}
+
+/** Fetches `path` and parses the JSON response (undefined on 204). */
 export async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE_URL}${path}`, {
     ...options,
@@ -47,12 +57,16 @@ export async function request<T>(path: string, options?: RequestInit): Promise<T
   return res.json() as Promise<T>
 }
 
+/** Sends a JSON body and parses the JSON response. */
+export function requestJson<T>(path: string, method: string, body?: unknown): Promise<T> {
+  return request<T>(path, jsonInit(method, body))
+}
+
+/** Sends a JSON body (or none) and ignores the response body, for endpoints that answer with an empty 200. */
 export async function send(path: string, method: string, body?: unknown): Promise<void> {
   const res = await fetch(`${BASE_URL}${path}`, {
-    method,
+    ...jsonInit(method, body),
     credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
-    body: body !== undefined ? JSON.stringify(body) : undefined,
   })
 
   handleResponse(res, path)

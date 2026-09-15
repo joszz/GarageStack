@@ -1,6 +1,9 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 ARG APP_VERSION=0.0.0-local
+# Shared build settings (target framework, analyzers) and central package versions. MSBuild
+# finds them by walking up from each project folder, so they sit one level above the projects.
+COPY ["Directory.Build.props", "Directory.Packages.props", ".editorconfig", "./"]
 COPY ["src/GarageStack.Core/GarageStack.Core.csproj", "GarageStack.Core/"]
 COPY ["src/GarageStack.Data/GarageStack.Data.csproj", "GarageStack.Data/"]
 COPY ["src/GarageStack.Worker/GarageStack.Worker.csproj", "GarageStack.Worker/"]
