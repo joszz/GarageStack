@@ -12,6 +12,7 @@ GarageStack is a free, open-source vehicle monitoring dashboard for **modern MG 
 - **Remote commands** -- Trigger climate pre-conditioning, lock or unlock the car, and activate the horn and lights remotely from the dashboard.
 - **Push notifications** -- Browser and in-app alerts for key events: engine started, low tyre pressure, low EV battery, car left unlocked, and doors or windows left open.
 - **Homepage widget** -- A read-only API endpoint for the [gethomepage.dev](https://gethomepage.dev) Custom API widget, exposing key vehicle stats at a glance.
+- **Home Assistant** -- Your car appears in Home Assistant automatically through MQTT discovery, sharing GarageStack's broker and MG session instead of needing a second integration. See [`HOME_ASSISTANT.md`](HOME_ASSISTANT.md).
 - **Progressive Web App (PWA)** -- Installable on mobile or desktop for a native app-like experience, complete with a home screen icon and push notification support.
 - **Charging stations** -- Overlay nearby EV charging stations on the map, sourced from the [Open Charge Map](https://openchargemap.org) database. Station data is cached in the database for 7 days; on page load the map immediately shows all stations within 100 km of your car that are already cached. Markers show operational status; clicking a marker displays the station name, operator, address, and available connector types with power ratings. Requires a free OCM API key (`OPENCHARGEMAP_API_KEY`). Unlike fuel stations and service areas, charging station tiles are loaded on demand as you browse the map and are not pre-populated by the background Worker.
 - **Fuel stations** -- Overlay nearby petrol and diesel stations on the map (HEV and PHEV only; not shown for BEV). Sourced from OpenStreetMap via the Overpass API -- no API key required. POI data is cached in the database for 7 days and pre-populated by the Worker for a 100 km radius around the car's last known position so the overlay is instant on first view.
@@ -89,6 +90,8 @@ GarageStack needs the vehicle **owner account**: shared or secondary accounts la
 4. Sign in to the official MG app with the secondary account, and use the owner account's credentials for `SAIC_USER` / `SAIC_PASSWORD` in GarageStack.
 
 This way the official app runs independently on the secondary account and GarageStack keeps its own session on the owner account.
+
+The same applies to Home Assistant: rather than adding an MG integration there, connect Home Assistant to GarageStack's MQTT broker so both share one session. See [`HOME_ASSISTANT.md`](HOME_ASSISTANT.md).
 
 ---
 
@@ -170,6 +173,8 @@ Then open `.env` and fill in at minimum:
 `docker compose up` refuses to start until both `POSTGRES_PASSWORD` and `MQTT_BROKER_PASSWORD` are set.
 
 `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` are optional; leave them empty to disable push notifications.
+
+`HA_MQTT_USERNAME` / `HA_MQTT_PASSWORD` are optional and create a restricted broker login for Home Assistant. See [`HOME_ASSISTANT.md`](HOME_ASSISTANT.md).
 
 Sign-in is configured separately: the built-in login reuses `SAIC_USER` / `SAIC_PASSWORD` unless you set `AUTH_USERNAME` / `AUTH_PASSWORD`, and setting `OIDC_AUTHORITY` switches GarageStack over to your identity provider. See [`AUTHENTICATION.md`](AUTHENTICATION.md).
 
@@ -474,6 +479,7 @@ All three POI types share the same tile-based PostgreSQL cache:
 - With an identity provider, restrict who may sign in -- at the provider itself or with `OIDC_ALLOWED_GROUPS` / `OIDC_ALLOWED_EMAILS`. Without a restriction, every account the provider accepts can sign in and control the car.
 - Login endpoints are rate-limited per IP address on top of the global limit.
 - MQTT now requires credentials and ACLs, and broker exposure defaults to localhost-only in Docker Compose.
+- The optional Home Assistant broker login can only use the car's `saic/#` topics and read Home Assistant discovery, so it cannot publish fake discovery configs or reach anything else on the broker.
 
 ---
 

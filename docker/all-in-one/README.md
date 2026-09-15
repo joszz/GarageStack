@@ -20,7 +20,7 @@ All processes are managed by **supervisord**. Startup order is enforced via prio
 | Container port | Purpose | Expose? |
 |---------------|---------|---------|
 | **80** | Web UI (nginx) | Yes -- map to your chosen host port (default 8080) |
-| **1883** | MQTT broker | Optional -- only needed for external MQTT clients; keep closed unless needed |
+| **1883** | MQTT broker | Optional -- only needed for external MQTT clients such as [Home Assistant](../../HOME_ASSISTANT.md); keep closed unless needed |
 
 ## Persistent data
 
@@ -76,6 +76,7 @@ By default the web login uses the same `SAIC_USER` and `SAIC_PASSWORD` credentia
 | `OIDC_SCOPES`, `OIDC_GROUPS_CLAIM`, `OIDC_REDIRECT_URI`, `OIDC_REQUIRE_HTTPS_METADATA` | Fine-tuning for less common providers -- see [`AUTHENTICATION.md`](../../AUTHENTICATION.md). |
 | `MQTT_BROKER_USERNAME` | Username for the embedded Mosquitto broker (default: `garagestack`). Only matters if you expose port 1883 to the LAN. |
 | `MQTT_BROKER_PASSWORD` | Password for the embedded Mosquitto broker. If not set, a random password is auto-generated on first start. Set explicitly if you expose port 1883 and want a known value. |
+| `HA_MQTT_USERNAME` / `HA_MQTT_PASSWORD` | Optional broker login for Home Assistant, limited to the car's topics and Home Assistant discovery. Leave empty to skip it. Needs port 1883 published. See [`HOME_ASSISTANT.md`](../../HOME_ASSISTANT.md). |
 
 ## Building the image
 
