@@ -3,6 +3,7 @@ using System.Reflection;
 using GarageStack.Core.Helpers;
 using GarageStack.Core.Interfaces;
 using GarageStack.Core.Models;
+using GarageStack.Data.Extensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
@@ -31,6 +32,10 @@ public class TelemetryRepository(
     // so this is far above any realistic heavy-user volume - it exists purely to bound
     // worst-case memory rather than to affect normal queries.
     private const int MaxRawRowsPerQuery = 200_000;
+
+    // Consecutive GPS points implying more than this speed are treated as a positioning glitch
+    // rather than a real trip.
+    private const double MaxPlausibleSpeedKmh = 250;
 
     // All TelemetrySnapshot properties except identity/bookkeeping fields (Id, VehicleId, Vehicle,
     // RecordedAt, RawTopic) participate in field-by-field merging. Computed once and reused by both
@@ -140,7 +145,8 @@ public class TelemetryRepository(
 
     // Chart history excludes GPS-only rows: latitude/longitude arrive every minute during driving
     // and inflate the row count, causing the stride downsampler to skip the sparser fuel/EV/kWh rows.
-    // GPS data for routes belongs to the trips endpoint, not chart history.
+    // GPS data for routes belongs to the trips endpoint, not chart history. The fields listed here
+    // are exactly the ones TelemetryHistoryPoint carries.
     private static readonly Expression<Func<TelemetrySnapshot, bool>> HasChartData =
         s => s.FuelLevelPercent != null || s.EvSocPercent != null ||
              s.PowerUsageOfDay != null || s.BatteryVoltage != null ||
@@ -184,10 +190,9 @@ public class TelemetryRepository(
         // through this same cache to build the "live" SignalR broadcast.
         cache?.Remove(LatestCacheKey(vehicleId));
 
-        if (!db.Database.IsRelational()) return;
         try
         {
-            await db.Database.ExecuteSqlAsync($"SELECT pg_notify('telemetry_updated', {vehicleId.ToString()})", ct);
+            await db.Database.NotifyAsync(PgChannels.TelemetryUpdated, vehicleId.ToString(), ct);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -242,7 +247,7 @@ public class TelemetryRepository(
         if (merged.CurrentJourneyDistance is > 0)
         {
             var lastSpeedRow = rows.FirstOrDefault(r => r.Speed != null);
-            var engineOff  = merged.EngineRunning == false;
+            var engineOff = merged.EngineRunning == false;
             var stationary = lastSpeedRow is { Speed: <= 0 } && DateTime.UtcNow - lastSpeedRow.RecordedAt > TimeSpan.FromMinutes(5);
             if (engineOff || stationary)
                 merged.CurrentJourneyDistance = null;
@@ -281,8 +286,11 @@ public class TelemetryRepository(
                 .OrderByDescending(s => s.RecordedAt)
                 .Select(s => new
                 {
-                    s.ChargingScheduleMode, s.ChargingScheduleStartTime, s.ChargingScheduleEndTime,
-                    s.BatteryHeatingScheduleMode, s.BatteryHeatingScheduleStartTime,
+                    s.ChargingScheduleMode,
+                    s.ChargingScheduleStartTime,
+                    s.ChargingScheduleEndTime,
+                    s.BatteryHeatingScheduleMode,
+                    s.BatteryHeatingScheduleStartTime,
                 })
                 .FirstOrDefaultAsync(ct);
 
@@ -300,17 +308,20 @@ public class TelemetryRepository(
         return merged;
     }
 
-    public async Task<IReadOnlyList<TelemetrySnapshot>> GetHistoryAsync(int vehicleId, DateTime from, DateTime to, CancellationToken ct = default)
+    public async Task<IReadOnlyList<TelemetryHistoryPoint>> GetHistoryAsync(int vehicleId, DateTime from, DateTime to, CancellationToken ct = default)
     {
         // Ordered newest-first with a cap, then reversed back to chronological order below:
         // if the cap is ever hit, it's the oldest rows in the range that get dropped, not the
         // newest - recent history matters more to users than the tail of a 90-day window.
+        // Only the chart fields are selected: a full snapshot row is ~70 columns, almost all of
+        // which the statistics page never reads.
         var rows = await db.TelemetrySnapshots
             .AsNoTracking()
             .Where(s => s.VehicleId == vehicleId && s.RecordedAt >= from && s.RecordedAt <= to)
             .Where(HasChartData)
             .OrderByDescending(s => s.RecordedAt)
             .Take(MaxRawRowsPerQuery)
+            .Select(TelemetryHistoryPoint.Projection)
             .ToListAsync(ct);
 
         if (rows.Count == MaxRawRowsPerQuery)
@@ -324,9 +335,9 @@ public class TelemetryRepository(
 
         var maxPoints = (to - from).TotalDays switch
         {
-            <= 1  => 288,  // ~5-min resolution
-            <= 7  => 336,  // ~30-min resolution
-            _     => 360,  // ~2-hour resolution
+            <= 1 => 288,  // ~5-min resolution
+            <= 7 => 336,  // ~30-min resolution
+            _ => 360,  // ~2-hour resolution
         };
 
         if (rows.Count <= maxPoints) return rows;
@@ -342,7 +353,7 @@ public class TelemetryRepository(
             .ToList();
 
         var targetPerDay = Math.Max(1, maxPoints / dayGroups.Count);
-        var result = new List<TelemetrySnapshot>(maxPoints + dayGroups.Count);
+        var result = new List<TelemetryHistoryPoint>(maxPoints + dayGroups.Count);
         foreach (var dayGroup in dayGroups)
         {
             var dayRows = dayGroup.ToList();
@@ -460,6 +471,25 @@ public class TelemetryRepository(
         return trips.Where(t => t.DistanceKm >= 0.1).ToList();
     }
 
+    public Task<LastTripSummary?> GetLastTripSummaryAsync(int vehicleId, CancellationToken ct = default) =>
+        db.TelemetrySnapshots
+            .AsNoTracking()
+            .Where(s => s.VehicleId == vehicleId && s.CurrentJourneyDistance > 0)
+            .OrderByDescending(s => s.RecordedAt)
+            .Select(s => new LastTripSummary(s.CurrentJourneyDistance!.Value, s.RecordedAt))
+            .FirstOrDefaultAsync(ct);
+
+    // Ordered on the group before projecting: EF cannot translate an OrderBy on a property of a
+    // record built through its constructor, so sorting after the Select fails at runtime.
+    public async Task<IReadOnlyList<RawTopicStat>> GetRawTopicStatsAsync(int vehicleId, CancellationToken ct = default) =>
+        await db.TelemetrySnapshots
+            .AsNoTracking()
+            .Where(s => s.VehicleId == vehicleId && s.RawTopic != null)
+            .GroupBy(s => s.RawTopic!)
+            .OrderByDescending(g => g.Count())
+            .Select(g => new RawTopicStat(g.Key, g.Count(), g.Max(s => s.RecordedAt)))
+            .ToListAsync(ct);
+
     private static void TryAddTrip(List<TripDto> trips, List<TripPoint> current)
     {
         if (current.Count < 2) return;
@@ -475,19 +505,18 @@ public class TelemetryRepository(
         Math.Abs(a.Latitude - b.Latitude) < 0.00001 &&
         Math.Abs(a.Longitude - b.Longitude) < 0.00001;
 
+    // Sums the segment distances and, in the same pass, rejects GPS teleportation: a trip
+    // with any segment implying an impossible speed is not a real trip.
     private static TripDto? BuildTrip(int index, List<TripPoint> points)
     {
         var distance = 0.0;
         for (var i = 1; i < points.Count; i++)
-            distance += GeoHelper.Haversine(points[i - 1].Latitude, points[i - 1].Longitude, points[i].Latitude, points[i].Longitude);
-
-        // Reject GPS-teleportation: consecutive points implying > 250 km/h are not real trips
-        for (var i = 1; i < points.Count; i++)
         {
             var segKm = GeoHelper.Haversine(points[i - 1].Latitude, points[i - 1].Longitude, points[i].Latitude, points[i].Longitude);
             var segHours = (points[i].RecordedAt - points[i - 1].RecordedAt).TotalHours;
-            if (segHours > 0 && segKm / segHours > 250)
+            if (segHours > 0 && segKm / segHours > MaxPlausibleSpeedKmh)
                 return null;
+            distance += segKm;
         }
 
         return new TripDto(index, points[0].RecordedAt, points[^1].RecordedAt, Math.Round(distance, 2), points.Count, points);

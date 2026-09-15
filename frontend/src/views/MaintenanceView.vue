@@ -8,6 +8,7 @@ import StatusCard from '@/components/StatusCard.vue'
 import MaintenanceItemFormModal from '@/components/MaintenanceItemFormModal.vue'
 import MaintenanceItemDetailModal from '@/components/MaintenanceItemDetailModal.vue'
 import type { MaintenanceItem, MaintenanceDueStatus } from '@/services/maintenanceApi'
+import { formatIntervalSummary } from '@/utils/maintenance'
 
 const { t } = useI18n()
 const vehicleStore = useVehicleStore()
@@ -46,15 +47,6 @@ function statusVariant(status: MaintenanceDueStatus): 'success' | 'warning' | 'd
   if (status === 'dueSoon') return 'warning'
   if (status === 'ok') return 'success'
   return 'info'
-}
-
-function intervalSummary(item: MaintenanceItem): string {
-  const parts: string[] = []
-  if (item.intervalKm != null)
-    parts.push(t('maintenance.everyKm', { km: item.intervalKm.toLocaleString() }))
-  if (item.intervalMonths != null)
-    parts.push(t('maintenance.everyMonths', { months: item.intervalMonths }))
-  return parts.join(` ${t('maintenance.or')} `)
 }
 
 function openAdd() {
@@ -104,7 +96,7 @@ watch(vin, (v) => {
         icon="screwdriver-wrench"
         :label="item.name"
         :value="t(`maintenance.status.${item.dueStatus}`)"
-        :subtitle="intervalSummary(item)"
+        :subtitle="formatIntervalSummary(item, t)"
         :variant="statusVariant(item.dueStatus)"
         clickable
         @click="openDetail(item)"

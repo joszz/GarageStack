@@ -57,15 +57,41 @@ function migrateNotificationTypeExclusions(
   return fallback
 }
 
+const THEMES: readonly Theme[] = ['dark', 'light']
+const LOCALES: readonly Locale[] = ['en', 'nl']
+const VEHICLE_TYPE_OVERRIDES: readonly VehicleTypeOverride[] = ['auto', 'hev', 'phev', 'bev']
+const CAR_COLOR_SCHEME_IDS = CAR_COLOR_SCHEMES.map((s) => s.id)
+// The API clamps every range to 90 days; anything up to a year is accepted here so an older
+// build's stored value is not thrown away.
+const MAX_FILTER_DAYS = 365
+
+// localStorage is user-editable and survives old builds: an unknown value would otherwise be
+// applied verbatim (an unstyled theme, a select with no matching option).
+function oneOf<T>(value: unknown, allowed: readonly T[], fallback: T): T {
+  return (allowed as readonly unknown[]).includes(value) ? (value as T) : fallback
+}
+
+function positiveDays(value: unknown, fallback: number): number {
+  return typeof value === 'number' &&
+    Number.isInteger(value) &&
+    value > 0 &&
+    value <= MAX_FILTER_DAYS
+    ? value
+    : fallback
+}
+
 function parseUiFields(parsed: Record<string, unknown>, fallback: UiSettings): UiSettings {
   return {
-    theme: (parsed.theme as Theme) ?? fallback.theme,
-    locale: (parsed.locale as Locale) ?? fallback.locale,
+    theme: oneOf(parsed.theme, THEMES, fallback.theme),
+    locale: oneOf(parsed.locale, LOCALES, fallback.locale),
     showCardInfoIcons: parsed.showCardInfoIcons !== false,
-    carColorScheme: (parsed.carColorScheme as string) ?? fallback.carColorScheme,
-    vehicleTypeOverride:
-      (parsed.vehicleTypeOverride as VehicleTypeOverride) ?? fallback.vehicleTypeOverride,
-    filterDays: (parsed.filterDays as number) ?? fallback.filterDays,
+    carColorScheme: oneOf(parsed.carColorScheme, CAR_COLOR_SCHEME_IDS, fallback.carColorScheme),
+    vehicleTypeOverride: oneOf(
+      parsed.vehicleTypeOverride,
+      VEHICLE_TYPE_OVERRIDES,
+      fallback.vehicleTypeOverride,
+    ),
+    filterDays: positiveDays(parsed.filterDays, fallback.filterDays),
     notificationTypeExclusions: migrateNotificationTypeExclusions(
       parsed,
       fallback.notificationTypeExclusions,

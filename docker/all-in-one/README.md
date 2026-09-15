@@ -57,6 +57,7 @@ By default the web login uses the same `SAIC_USER` and `SAIC_PASSWORD` credentia
 | `POSTGRES_PASSWORD` | Password for the embedded database. If not set, a random password is auto-generated on first start and saved to `/data/.postgres_password`. Set explicitly if you need a known value (e.g. for external tools that connect directly to the database). |
 | `VAPID_PUBLIC_KEY` | Web Push VAPID public key. Leave empty to disable push notifications. Generate: `npx web-push generate-vapid-keys` |
 | `VAPID_PRIVATE_KEY` | Web Push VAPID private key |
+| `NOTIFICATION_LANGUAGE` | Language of the push notification texts: `en` (default) or `nl`. A deployment setting, since the worker that writes them has no browser to ask. |
 | `WIDGET_API_KEY` | Static API key for the Homepage dashboard widget endpoint (`/api/widget/{vin}/status`). Leave empty to disable. Generate: `openssl rand -base64 32` |
 | `OPENCHARGEMAP_API_KEY` | API key for the EV charging station map overlay, sourced from [Open Charge Map](https://openchargemap.org/site/develop). Free to obtain. Leave empty to disable the feature. |
 | `OVERPASS__BASEURL` | Overpass API endpoint used for the fuel station and motorway service area map overlays. Defaults to the public endpoint (`https://overpass-api.de/api/interpreter`). Set this only if you self-host an Overpass instance. No API key is required for the default public endpoint. |

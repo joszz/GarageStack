@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text.Json.Serialization;
+using System.Threading.RateLimiting;
 using GarageStack.Api;
 using GarageStack.Api.Authentication;
 using GarageStack.Api.Endpoints;
@@ -7,19 +8,16 @@ using GarageStack.Api.Hubs;
 using GarageStack.Api.Services;
 using GarageStack.Core.Configuration;
 using GarageStack.Core.Interfaces;
-using GarageStack.Core.Models;
 using GarageStack.Data;
 using GarageStack.Data.Demo;
 using GarageStack.Data.Extensions;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Localization;
-using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
 using Serilog;
 using Serilog.Events;
-using System.Threading.RateLimiting;
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
@@ -61,6 +59,7 @@ try
     var isDemoMode = builder.Configuration.GetValue<bool>("DEMO_MODE");
 
     builder.Services.AddLocalization(opts => opts.ResourcesPath = "Resources");
+    builder.Services.Configure<MqttOptions>(builder.Configuration.GetSection(MqttOptions.SectionName));
 
     if (isDemoMode)
     {
@@ -112,71 +111,27 @@ try
     builder.Services.AddRateLimiter(opts =>
     {
         opts.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-        opts.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
-        {
-            var ip = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
-            return RateLimitPartition.GetFixedWindowLimiter(
-                partitionKey: ip,
-                factory: _ => new FixedWindowRateLimiterOptions
-                {
-                    Window = TimeSpan.FromMinutes(1),
-                    PermitLimit = 120,
-                    QueueLimit = 0,
-                    AutoReplenishment = true,
-                });
-        });
+        opts.GlobalLimiter = PartitionedRateLimiter.Create(FixedWindowPerIp(TimeSpan.FromMinutes(1), permitLimit: 120));
 
         // Tighter, endpoint-specific limit on login to slow down credential-stuffing attempts.
         // Composes with (i.e. is enforced in addition to) the global limiter above.
-        opts.AddPolicy("login", httpContext =>
-        {
-            var ip = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
-            return RateLimitPartition.GetFixedWindowLimiter(
-                partitionKey: ip,
-                factory: _ => new FixedWindowRateLimiterOptions
-                {
-                    Window = TimeSpan.FromMinutes(5),
-                    PermitLimit = 10,
-                    QueueLimit = 0,
-                    AutoReplenishment = true,
-                });
-        });
+        opts.AddPolicy("login", FixedWindowPerIp(TimeSpan.FromMinutes(5), permitLimit: 10));
 
         // Starting an OIDC sign-in submits no credentials, so it needs no brute-force limit --
         // but it does redirect to the identity provider, and a redirect loop caused by a
         // misconfiguration should not hammer it. Loose enough that auto-login plus a few page
         // reloads never trips it.
-        opts.AddPolicy("oidc-login", httpContext =>
-        {
-            var ip = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
-            return RateLimitPartition.GetFixedWindowLimiter(
-                partitionKey: ip,
-                factory: _ => new FixedWindowRateLimiterOptions
-                {
-                    Window = TimeSpan.FromMinutes(5),
-                    PermitLimit = 30,
-                    QueueLimit = 0,
-                    AutoReplenishment = true,
-                });
-        });
+        opts.AddPolicy("oidc-login", FixedWindowPerIp(TimeSpan.FromMinutes(5), permitLimit: 30));
 
         // Tighter limit on the widget endpoint to slow down guessing WIDGET_API_KEY, which the
         // global limiter alone (120/min) would allow at a much higher rate. Still generous
         // enough for a handful of dashboard widgets behind the same NAT polling every 30s.
-        opts.AddPolicy("widget", httpContext =>
-        {
-            var ip = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
-            return RateLimitPartition.GetFixedWindowLimiter(
-                partitionKey: ip,
-                factory: _ => new FixedWindowRateLimiterOptions
-                {
-                    Window = TimeSpan.FromMinutes(5),
-                    PermitLimit = 60,
-                    QueueLimit = 0,
-                    AutoReplenishment = true,
-                });
-        });
+        opts.AddPolicy("widget", FixedWindowPerIp(TimeSpan.FromMinutes(5), permitLimit: 60));
     });
+
+    // The browser origins allowed to call the API: CORS for cross-origin deployments and the
+    // CSRF origin check below. Read once here; it is fixed for the process lifetime.
+    var allowedOrigins = builder.Configuration.GetSection("Cors:Origins").Get<string[]>() ?? [];
 
     builder.Services.AddCors(opts =>
         opts.AddDefaultPolicy(p =>
@@ -184,7 +139,7 @@ try
             if (builder.Environment.IsDevelopment())
                 p.SetIsOriginAllowed(_ => true).AllowAnyHeader().AllowAnyMethod().AllowCredentials();
             else
-                p.WithOrigins(builder.Configuration.GetSection("Cors:Origins").Get<string[]>() ?? [])
+                p.WithOrigins(allowedOrigins)
                  .AllowAnyHeader()
                  .AllowAnyMethod()
                  .AllowCredentials();
@@ -196,78 +151,9 @@ try
     {
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         if (isDemoMode)
-        {
-            db.Database.EnsureCreated();
-            if (!db.Vehicles.Any())
-            {
-                db.Vehicles.Add(DemoVehicleRepository.DemoVehicle);
-                await db.SaveChangesAsync();
-            }
-            if (!db.MaintenanceItems.Any())
-            {
-                var vehicleId = DemoVehicleRepository.DemoVehicle.Id;
-                var oilChange = new MaintenanceItem
-                {
-                    VehicleId = vehicleId,
-                    Name = "Oil change",
-                    IntervalKm = 15_000,
-                    IntervalMonths = 12,
-                    LastServiceDate = DateTime.UtcNow.AddMonths(-7),
-                    LastServiceOdometerKm = 15_000,
-                };
-                var tyreRotation = new MaintenanceItem
-                {
-                    VehicleId = vehicleId,
-                    Name = "Tyre rotation",
-                    IntervalKm = 10_000,
-                    LastServiceDate = DateTime.UtcNow.AddMonths(-4),
-                    LastServiceOdometerKm = 15_500,
-                };
-                var majorService = new MaintenanceItem
-                {
-                    VehicleId = vehicleId,
-                    Name = "Major service",
-                    IntervalKm = 60_000,
-                    IntervalMonths = 60,
-                    LastServiceDate = DateTime.UtcNow.AddMonths(-61),
-                    LastServiceOdometerKm = 0,
-                };
-                var cabinFilter = new MaintenanceItem
-                {
-                    VehicleId = vehicleId,
-                    Name = "Cabin air filter",
-                    IntervalKm = 15_000,
-                };
-
-                db.MaintenanceItems.AddRange(oilChange, tyreRotation, majorService, cabinFilter);
-                await db.SaveChangesAsync();
-
-                db.MaintenanceLogEntries.AddRange(
-                    new MaintenanceLogEntry
-                    {
-                        MaintenanceItemId = oilChange.Id,
-                        PerformedAt = oilChange.LastServiceDate!.Value,
-                        OdometerKm = oilChange.LastServiceOdometerKm,
-                    },
-                    new MaintenanceLogEntry
-                    {
-                        MaintenanceItemId = tyreRotation.Id,
-                        PerformedAt = tyreRotation.LastServiceDate!.Value,
-                        OdometerKm = tyreRotation.LastServiceOdometerKm,
-                    },
-                    new MaintenanceLogEntry
-                    {
-                        MaintenanceItemId = majorService.Id,
-                        PerformedAt = majorService.LastServiceDate!.Value,
-                        OdometerKm = majorService.LastServiceOdometerKm,
-                    });
-                await db.SaveChangesAsync();
-            }
-        }
+            await DemoSeeder.SeedAsync(db);
         else
-        {
             await db.Database.MigrateAsync();
-        }
     }
 
     app.UseExceptionHandler(errorApp => errorApp.Run(async ctx =>
@@ -294,7 +180,7 @@ try
         // Fallback: trust all RFC 1918 ranges so nginx in a Docker network is recognised.
         // Set ForwardedHeaders:TrustedProxies in production to restrict to the actual proxy IP.
         if (!app.Environment.IsDevelopment())
-            Log.Warning("ForwardedHeaders:TrustedProxies is not configured — trusting all RFC 1918 ranges. " +
+            Log.Warning("ForwardedHeaders:TrustedProxies is not configured -- trusting all RFC 1918 ranges. " +
                         "Set this to your proxy IP(s) to prevent forwarded-header spoofing.");
 #pragma warning disable ASPDEPR005
         forwardedOptions.KnownNetworks.Add(new IPNetwork(System.Net.IPAddress.Parse("10.0.0.0"), 8));
@@ -315,7 +201,6 @@ try
     // verify it matches a configured allowed origin. SameSite=Strict is the primary CSRF
     // protection; this adds an explicit server-side check for deployments where that alone
     // is not sufficient (e.g., same-site subdomain compromise).
-    var allowedOrigins = app.Configuration.GetSection("Cors:Origins").Get<string[]>() ?? [];
     if (!app.Environment.IsDevelopment() &&
         allowedOrigins.Any(o => o.Contains("localhost", StringComparison.OrdinalIgnoreCase)))
     {
@@ -327,29 +212,24 @@ try
             string.Join(", ", allowedOrigins));
     }
 
+    var enforceOriginCheck = !app.Environment.IsDevelopment();
+    var allowedOriginsForLog = string.Join(", ", allowedOrigins);
     app.Use(async (ctx, next) =>
     {
-        if (HttpMethods.IsPost(ctx.Request.Method) ||
-            HttpMethods.IsPut(ctx.Request.Method) ||
-            HttpMethods.IsPatch(ctx.Request.Method) ||
-            HttpMethods.IsDelete(ctx.Request.Method))
+        if (enforceOriginCheck && IsStateChanging(ctx.Request.Method))
         {
             var origin = ctx.Request.Headers.Origin.ToString();
-            if (!string.IsNullOrEmpty(origin) && !app.Environment.IsDevelopment())
+            if (!string.IsNullOrEmpty(origin) && !CsrfPolicy.IsOriginAllowed(origin, allowedOrigins))
             {
-                var csrfAllowed = app.Configuration.GetSection("Cors:Origins").Get<string[]>() ?? [];
-                if (!CsrfPolicy.IsOriginAllowed(origin, csrfAllowed))
-                {
-                    Log.Warning(
-                        "CSRF origin check failed: request Origin '{Origin}' not in allowed list ({Allowed}). " +
-                        "If you are accessing from a LAN device, set CORS_ORIGIN to match the address in your browser.",
-                        origin, string.Join(", ", csrfAllowed));
-                    ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
-                    ctx.Response.ContentType = "application/json";
-                    await ctx.Response.WriteAsync(
-                        "{\"error\":\"Origin not allowed. Set CORS_ORIGIN to the address you use to reach the app.\"}");
-                    return;
-                }
+                Log.Warning(
+                    "CSRF origin check failed: request Origin '{Origin}' not in allowed list ({Allowed}). " +
+                    "If you are accessing from a LAN device, set CORS_ORIGIN to match the address in your browser.",
+                    origin, allowedOriginsForLog);
+                ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
+                ctx.Response.ContentType = "application/json";
+                await ctx.Response.WriteAsync(
+                    "{\"error\":\"Origin not allowed. Set CORS_ORIGIN to the address you use to reach the app.\"}");
+                return;
             }
         }
         await next(ctx);
@@ -380,6 +260,7 @@ try
     app.MapHub<TelemetryHub>("/hubs/telemetry").RequireAuthorization();
     app.MapAuthEndpoints();
     app.MapVehicleEndpoints();
+    app.MapPushEndpoints();
     app.MapNotificationEndpoints();
     app.MapMaintenanceEndpoints();
     app.MapWidgetEndpoints();
@@ -401,3 +282,18 @@ finally
 {
     Log.CloseAndFlush();
 }
+
+// One fixed-window limiter per client IP. Every policy above differs only in window and limit.
+static Func<HttpContext, RateLimitPartition<string>> FixedWindowPerIp(TimeSpan window, int permitLimit) =>
+    httpContext => RateLimitPartition.GetFixedWindowLimiter(
+        partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        factory: _ => new FixedWindowRateLimiterOptions
+        {
+            Window = window,
+            PermitLimit = permitLimit,
+            QueueLimit = 0,
+            AutoReplenishment = true,
+        });
+
+static bool IsStateChanging(string method) =>
+    HttpMethods.IsPost(method) || HttpMethods.IsPut(method) || HttpMethods.IsPatch(method) || HttpMethods.IsDelete(method);

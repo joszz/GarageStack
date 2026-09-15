@@ -45,8 +45,6 @@ public static class WidgetEndpoints
     }
 }
 
-public sealed class WidgetStrings;
-
 public record WidgetStatusDto(
     // Timestamp
     DateTime RecordedAt,

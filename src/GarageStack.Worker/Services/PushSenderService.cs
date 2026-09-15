@@ -1,14 +1,14 @@
 using System.Collections.Concurrent;
 using System.Text.Json;
 using GarageStack.Core.Interfaces;
+using GarageStack.Core.Models;
 using GarageStack.Data;
+using GarageStack.Data.Extensions;
 using Lib.Net.Http.WebPush;
 using Lib.Net.Http.WebPush.Authentication;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using ModelPushSubscription = GarageStack.Core.Models.PushSubscription;
+using WebPushSubscription = Lib.Net.Http.WebPush.PushSubscription;
 
 namespace GarageStack.Worker.Services;
 
@@ -59,7 +59,7 @@ public sealed class PushSenderService : IPushSender, IDisposable
         {
             using var recordScope = _scopeFactory.CreateScope();
             var recordDb = recordScope.ServiceProvider.GetRequiredService<AppDbContext>();
-            var record = new GarageStack.Core.Models.AppNotification
+            var record = new AppNotification
             {
                 Title = title,
                 Body = body,
@@ -75,18 +75,8 @@ public sealed class PushSenderService : IPushSender, IDisposable
 
             // Signal the API process via PostgreSQL so connected browser clients get
             // an immediate notificationReceived push without polling.
-            var notifyJson = JsonSerializer.Serialize(new
-            {
-                id = record.Id,
-                title = record.Title,
-                body = record.Body,
-                createdAt = record.CreatedAt.ToString("O"),
-                category = record.Category,
-                vehicleId = record.VehicleId,
-                unreadCount,
-            });
-            await recordDb.Database.ExecuteSqlInterpolatedAsync(
-                $"SELECT pg_notify('notification_created', {notifyJson})", ct);
+            var payload = NotificationCreatedPayload.From(record, unreadCount);
+            await recordDb.Database.NotifyAsync(PgChannels.NotificationCreated, payload.ToJson(), ct);
         }
         catch (Exception ex)
         {
@@ -103,8 +93,10 @@ public sealed class PushSenderService : IPushSender, IDisposable
         // Only re-queried if persistence above failed before it could compute this itself.
         unreadCount ??= await db.AppNotifications
             .CountAsync(n => !n.IsArchived && !n.IsDeleted, ct);
-        var payload = System.Text.Json.JsonSerializer.Serialize(new { title, body, icon = "/icons/icon-192.png", category, unreadCount });
-        var message = new PushMessage(payload) { TimeToLive = 3600 };
+        // The service worker (frontend/src/sw.ts) reads title, body, category and unreadCount;
+        // it picks the icon itself from the app's own assets.
+        var webPushPayload = JsonSerializer.Serialize(new { title, body, category, unreadCount });
+        var message = new PushMessage(webPushPayload) { TimeToLive = 3600 };
         var dead = new ConcurrentBag<ModelPushSubscription>();
 
         // Deliver concurrently (bounded) so one slow/unreachable subscriber can't delay
@@ -116,7 +108,7 @@ public sealed class PushSenderService : IPushSender, IDisposable
             await throttle.WaitAsync(ct);
             try
             {
-                var pushSub = new PushSubscription();
+                var pushSub = new WebPushSubscription();
                 pushSub.Endpoint = sub.Endpoint;
                 pushSub.SetKey(PushEncryptionKeyName.P256DH, sub.P256DhKey);
                 pushSub.SetKey(PushEncryptionKeyName.Auth, sub.AuthKey);

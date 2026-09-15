@@ -27,6 +27,37 @@ public class MqttTopicParserTests
     }
 
     [Fact]
+    public void TryParse_ValidTopic_ReturnsUserVinAndSubtopicInOnePass()
+    {
+        var ok = MqttTopicParser.TryParse("saic/user@example.com/vehicles/FAKEVN00000000001/drivetrain/fuelLevel", out var parsed);
+
+        Assert.True(ok);
+        Assert.Equal("user@example.com", parsed.User);
+        Assert.Equal("FAKEVN00000000001", parsed.Vin);
+        Assert.Equal("drivetrain/fuelLevel", parsed.Subtopic);
+    }
+
+    [Theory]
+    [InlineData("saic/user/vehicles/FAKEVN00000000001")]
+    [InlineData("saic/user/vehicles/VIN123/drivetrain/fuelLevel")]
+    [InlineData("homeassistant/sensor/something")]
+    public void TryParse_TopicWithoutSubtopicOrInvalidVin_HandlesBothCases(string topic)
+    {
+        var ok = MqttTopicParser.TryParse(topic, out var parsed);
+
+        // The first case is a well-formed vehicle topic with nothing after the VIN.
+        if (topic.EndsWith("FAKEVN00000000001", StringComparison.Ordinal))
+        {
+            Assert.True(ok);
+            Assert.Equal(string.Empty, parsed.Subtopic);
+        }
+        else
+        {
+            Assert.False(ok);
+        }
+    }
+
+    [Fact]
     public void ExtractSubtopic_ReturnsEverythingAfterVin()
     {
         var subtopic = MqttTopicParser.ExtractSubtopic("saic/user/vehicles/VIN/drivetrain/fuelLevel");

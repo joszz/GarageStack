@@ -1,5 +1,7 @@
 using GarageStack.Core.Interfaces;
+using GarageStack.Worker;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Localization;
 
 namespace GarageStack.Tests;
 
@@ -31,4 +33,17 @@ internal sealed class FakeServiceScopeFactory : IServiceScopeFactory
     {
         public object? GetService(Type serviceType) => null;
     }
+}
+
+// The real resource-backed localizer, exactly as the Worker host builds it, so the tests also
+// prove the resx files are found (a marker type in the wrong namespace fails silently with
+// keys instead of texts).
+internal static class WorkerLocalizer
+{
+    public static IStringLocalizer<NotificationStrings> Notifications() =>
+        new ServiceCollection()
+            .AddLogging()
+            .AddLocalization(o => o.ResourcesPath = "Resources")
+            .BuildServiceProvider()
+            .GetRequiredService<IStringLocalizer<NotificationStrings>>();
 }

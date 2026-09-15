@@ -15,7 +15,8 @@ public class PushNotificationCheckServiceTests
             NullLogger<PushNotificationCheckService>.Instance,
             new FakeServiceScopeFactory(),
             new FakePushSender(),
-            thresholds ?? TyrePressureThresholds.Default);
+            thresholds ?? TyrePressureThresholds.Default,
+            WorkerLocalizer.Notifications());
 
     private static TelemetrySnapshot Parked(Action<TelemetrySnapshot>? configure = null)
     {
@@ -87,7 +88,7 @@ public class PushNotificationCheckServiceTests
     {
         var alerts = new List<(string, string, string)>();
 
-        PushNotificationCheckService.CheckDoorsOpenWhileParked(
+        CreateService().CheckDoorsOpenWhileParked(
             Parked(s => s.DriverDoorOpen = true), alerts, withinParkingGrace: true);
 
         Assert.Empty(alerts);
@@ -98,7 +99,7 @@ public class PushNotificationCheckServiceTests
     {
         var alerts = new List<(string, string, string)>();
 
-        PushNotificationCheckService.CheckDoorsOpenWhileParked(
+        CreateService().CheckDoorsOpenWhileParked(
             Parked(s => s.DriverDoorOpen = true), alerts, withinParkingGrace: false);
 
         Assert.Single(alerts);
@@ -111,7 +112,7 @@ public class PushNotificationCheckServiceTests
         var alerts = new List<(string, string, string)>();
         var snap = new TelemetrySnapshot { EngineRunning = true, DriverDoorOpen = true };
 
-        PushNotificationCheckService.CheckDoorsOpenWhileParked(snap, alerts, withinParkingGrace: false);
+        CreateService().CheckDoorsOpenWhileParked(snap, alerts, withinParkingGrace: false);
 
         Assert.Empty(alerts);
     }
@@ -121,7 +122,7 @@ public class PushNotificationCheckServiceTests
     {
         var alerts = new List<(string, string, string)>();
 
-        PushNotificationCheckService.CheckDoorsOpenWhileParked(
+        CreateService().CheckDoorsOpenWhileParked(
             Parked(s =>
             {
                 s.DriverDoorOpen = true;
@@ -144,7 +145,7 @@ public class PushNotificationCheckServiceTests
     {
         var alerts = new List<(string, string, string)>();
 
-        PushNotificationCheckService.CheckUnlockedWhileParked(
+        CreateService().CheckUnlockedWhileParked(
             Parked(s => s.IsLocked = false), alerts, withinParkingGrace: true);
 
         Assert.Empty(alerts);
@@ -155,7 +156,7 @@ public class PushNotificationCheckServiceTests
     {
         var alerts = new List<(string, string, string)>();
 
-        PushNotificationCheckService.CheckUnlockedWhileParked(
+        CreateService().CheckUnlockedWhileParked(
             Parked(s => s.IsLocked = false), alerts, withinParkingGrace: false);
 
         Assert.Single(alerts);
@@ -167,7 +168,7 @@ public class PushNotificationCheckServiceTests
     {
         var alerts = new List<(string, string, string)>();
 
-        PushNotificationCheckService.CheckUnlockedWhileParked(
+        CreateService().CheckUnlockedWhileParked(
             Parked(s => s.IsLocked = true), alerts, withinParkingGrace: false);
 
         Assert.Empty(alerts);
@@ -182,7 +183,7 @@ public class PushNotificationCheckServiceTests
     {
         var alerts = new List<(string, string, string)>();
 
-        PushNotificationCheckService.CheckWindowsOpenWhileParked(
+        CreateService().CheckWindowsOpenWhileParked(
             Parked(s => s.DriverWindowOpen = true), alerts, withinParkingGrace: true);
 
         Assert.Empty(alerts);
@@ -193,7 +194,7 @@ public class PushNotificationCheckServiceTests
     {
         var alerts = new List<(string, string, string)>();
 
-        PushNotificationCheckService.CheckWindowsOpenWhileParked(
+        CreateService().CheckWindowsOpenWhileParked(
             Parked(s => s.DriverWindowOpen = true), alerts, withinParkingGrace: false);
 
         Assert.Single(alerts);

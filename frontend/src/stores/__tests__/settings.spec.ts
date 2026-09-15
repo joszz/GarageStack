@@ -406,3 +406,38 @@ describe('legacy combined-blob migration', () => {
     expect(saved.theme).toBe('light')
   })
 })
+
+describe('useDashboardSettingsStore - hasSavedLayout', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    setActivePinia(createPinia())
+    vi.useFakeTimers()
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('is false on a first visit with nothing stored', () => {
+    expect(useDashboardSettingsStore().hasSavedLayout).toBe(false)
+  })
+
+  it('is true when a layout was stored under the current key', () => {
+    localStorage.setItem(DASHBOARD_KEY, JSON.stringify({ cards: [] }))
+    expect(useDashboardSettingsStore().hasSavedLayout).toBe(true)
+  })
+
+  it('is true for a returning user whose layout still sits in the legacy blob', () => {
+    localStorage.setItem(LEGACY_KEY, JSON.stringify({ cards: [] }))
+    expect(useDashboardSettingsStore().hasSavedLayout).toBe(true)
+  })
+
+  it('flips to true once the first change has been persisted', async () => {
+    const dashboard = useDashboardSettingsStore()
+    expect(dashboard.hasSavedLayout).toBe(false)
+    dashboard.showLocationMap = false
+    await nextTick()
+    vi.advanceTimersByTime(SAVE_DEBOUNCE_MS)
+    expect(dashboard.hasSavedLayout).toBe(true)
+  })
+})

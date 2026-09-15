@@ -51,6 +51,10 @@ export Vapid__PublicKey="${VAPID_PUBLIC_KEY:-}"
 export Vapid__PrivateKey="${VAPID_PRIVATE_KEY:-}"
 export Vapid__Subject="${Vapid__Subject:-mailto:${SAIC_USER}}"
 
+# Language of push notification texts (en or nl). The Worker has no browser request to take
+# a language from, so it is a deployment setting.
+export Notifications__Culture="${NOTIFICATION_LANGUAGE:-en}"
+
 # Authentication: OpenID Connect when a provider is configured, the built-in password login
 # otherwise. See AUTHENTICATION.md.
 export Oidc__Authority="${OIDC_AUTHORITY:-}"

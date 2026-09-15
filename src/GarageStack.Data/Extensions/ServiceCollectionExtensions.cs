@@ -3,7 +3,6 @@ using GarageStack.Data.Demo;
 using GarageStack.Data.Repositories;
 using GarageStack.Data.Services;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace GarageStack.Data.Extensions;
@@ -12,9 +11,10 @@ public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddGarageStackData(this IServiceCollection services, string connectionString)
     {
-        services.AddDbContext<AppDbContext>(opts =>
-            opts.UseNpgsql(connectionString)
-                .ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning)));
+        // No warning suppression here on purpose: EF's pending-model-changes warning is the
+        // only thing that tells a developer they added a property and forgot the migration,
+        // before MigrateAsync fails on a real database.
+        services.AddDbContext<AppDbContext>(opts => opts.UseNpgsql(connectionString));
 
         services.AddMemoryCache();
         services.AddScoped<IVehicleRepository, VehicleRepository>();
@@ -44,11 +44,11 @@ public static class ServiceCollectionExtensions
     // or AddDemoServices) so the "ocm"/"overpass" HttpClient config can't drift between processes.
     private static IServiceCollection AddGarageStackPoiClients(this IServiceCollection services)
     {
-        services.AddHttpClient("ocm", client =>
+        services.AddHttpClient(OcmApiClient.HttpClientName, client =>
         {
             client.DefaultRequestHeaders.UserAgent.ParseAdd("GarageStack/1.0");
         });
-        services.AddHttpClient("overpass", client =>
+        services.AddHttpClient(OverpassApiClient.HttpClientName, client =>
         {
             client.DefaultRequestHeaders.UserAgent.ParseAdd("GarageStack/1.0");
             client.Timeout = TimeSpan.FromSeconds(45);

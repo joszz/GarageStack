@@ -1,20 +1,28 @@
 import { defineStore } from 'pinia'
 import { ref, shallowRef, computed, nextTick } from 'vue'
-import type { Ref } from 'vue'
-import { vehicleApi, type Vehicle, type TelemetrySnapshot, type Trip } from '@/services/vehicleApi'
+import {
+  vehicleApi,
+  type Vehicle,
+  type TelemetrySnapshot,
+  type TelemetryHistoryPoint,
+  type Trip,
+} from '@/services/vehicleApi'
+import { useUiSettingsStore } from '@/stores/settingsUi'
+import { useLoadingTracker } from '@/composables/useLoadingTracker'
 
 export type VehicleType = 'hev' | 'phev' | 'bev' | 'unknown'
 
 export const useVehicleStore = defineStore('vehicle', () => {
+  const uiSettings = useUiSettingsStore()
+
   const vehicles = ref<Vehicle[]>([])
   const currentStatus = ref<TelemetrySnapshot | null>(null)
   const vehicleConfig = ref<Record<string, string>>({})
   // shallowRef: these are only ever replaced wholesale on fetch, never mutated
   // field-by-field, so deep reactivity on every GPS point/telemetry snapshot is wasted work.
-  const history = shallowRef<TelemetrySnapshot[]>([])
+  const history = shallowRef<TelemetryHistoryPoint[]>([])
   const trips = shallowRef<Trip[]>([])
-  const loadingCount = ref(0)
-  const loading = computed(() => loadingCount.value > 0)
+  const { loading, withLoading } = useLoadingTracker()
   const sendingCount = ref(0)
   const anySending = computed(() => sendingCount.value > 0)
   // Each fetch action gets its own error ref so concurrent calls (e.g. Promise.all on
@@ -28,18 +36,6 @@ export const useVehicleStore = defineStore('vehicle', () => {
   // Reactive one-shot flags set for a single tick when specific state transitions occur.
   const tripJustCompleted = ref(false)
   const chargingJustCompleted = ref(false)
-
-  async function withLoading(errorRef: Ref<string | null>, fn: () => Promise<void>) {
-    loadingCount.value++
-    errorRef.value = null
-    try {
-      await fn()
-    } catch (e) {
-      errorRef.value = String(e)
-    } finally {
-      loadingCount.value--
-    }
-  }
 
   // The vehicle list rarely changes during a session, so every view (Dashboard, Map, Statistics)
   // calling fetchVehicles() on mount would otherwise re-fetch it on every navigation. Skip the
@@ -104,14 +100,21 @@ export const useVehicleStore = defineStore('vehicle', () => {
     })
   }
 
-  // Derived from hw_version in vehicleConfig, set by HA discovery MQTT messages
+  // Derived from hw_version in vehicleConfig, set by HA discovery MQTT messages. Order is
+  // load-bearing: "PHEV" contains "HEV" and "EV", so the most specific match goes first.
   const detectedVehicleType = computed((): VehicleType => {
     const hw = (vehicleConfig.value['hw_version'] ?? '').toUpperCase()
-    if (!hw) return 'unknown'
     if (hw.includes('PHEV')) return 'phev'
     if (hw.includes('HEV')) return 'hev'
-    if (hw.includes('BEV') || hw.includes('EV')) return 'bev'
+    if (hw.includes('EV')) return 'bev'
     return 'unknown'
+  })
+
+  // What every view should treat the car as: the user's manual override when set, otherwise
+  // the detected type. Defined once here rather than in each view.
+  const effectiveVehicleType = computed((): VehicleType => {
+    const override = uiSettings.vehicleTypeOverride
+    return override === 'auto' ? detectedVehicleType.value : override
   })
 
   return {
@@ -119,6 +122,7 @@ export const useVehicleStore = defineStore('vehicle', () => {
     currentStatus,
     vehicleConfig,
     detectedVehicleType,
+    effectiveVehicleType,
     history,
     trips,
     loading,

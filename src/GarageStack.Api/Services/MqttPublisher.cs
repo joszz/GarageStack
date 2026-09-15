@@ -1,40 +1,38 @@
-using GarageStack.Core.Interfaces;
-using MQTTnet;
 using System.Text;
-using System.Text.RegularExpressions;
+using GarageStack.Core.Configuration;
+using GarageStack.Core.Helpers;
+using GarageStack.Core.Interfaces;
+using Microsoft.Extensions.Options;
+using MQTTnet;
 
 namespace GarageStack.Api.Services;
 
-public class MqttPublisher(IConfiguration config, ILogger<MqttPublisher> logger)
+public class MqttPublisher(IOptions<MqttOptions> options, ILogger<MqttPublisher> logger)
     : IHostedService, IMqttPublisher
 {
+    private readonly MqttOptions _options = options.Value;
     private IMqttClient? _client;
-    private MqttClientOptions? _options;
+    private MqttClientOptions? _clientOptions;
 
     public async Task StartAsync(CancellationToken ct)
     {
-        var host = config["Mqtt:Host"] ?? "localhost";
-        var port = int.Parse(config["Mqtt:Port"] ?? "1883");
-        var username = config["Mqtt:Username"];
-        var password = config["Mqtt:Password"];
-
         var optionsBuilder = new MqttClientOptionsBuilder()
-            .WithTcpServer(host, port)
+            .WithTcpServer(_options.Host, _options.Port)
             .WithClientId("garagestack-api")
             .WithCleanSession();
 
-        if (!string.IsNullOrWhiteSpace(username))
-            optionsBuilder.WithCredentials(username, password);
+        if (!string.IsNullOrWhiteSpace(_options.Username))
+            optionsBuilder.WithCredentials(_options.Username, _options.Password);
 
-        _options = optionsBuilder.Build();
+        _clientOptions = optionsBuilder.Build();
 
         var factory = new MqttClientFactory();
         _client = factory.CreateMqttClient();
 
         try
         {
-            await _client.ConnectAsync(_options, ct);
-            logger.LogInformation("MQTT publisher connected to {Host}:{Port}", host, port);
+            await _client.ConnectAsync(_clientOptions, ct);
+            logger.LogInformation("MQTT publisher connected to {Host}:{Port}", _options.Host, _options.Port);
         }
         catch (Exception ex)
         {
@@ -44,12 +42,12 @@ public class MqttPublisher(IConfiguration config, ILogger<MqttPublisher> logger)
 
     public async Task PublishAsync(string topic, string payload, CancellationToken ct = default)
     {
-        if (_client is null || _options is null)
+        if (_client is null || _clientOptions is null)
             throw new InvalidOperationException("MQTT broker not reachable");
 
         if (!_client.IsConnected)
         {
-            try { await _client.ConnectAsync(_options, ct); }
+            try { await _client.ConnectAsync(_clientOptions, ct); }
             catch (Exception ex)
             {
                 logger.LogError(ex, "MQTT publisher reconnect failed");
@@ -66,14 +64,12 @@ public class MqttPublisher(IConfiguration config, ILogger<MqttPublisher> logger)
 
         await _client.PublishAsync(message, ct);
 
-        var sanitizedTopic = topic.ReplaceLineEndings(" ");
-        // Topics carry the MG account email and VIN (saic/{email}/vehicles/{vin}/...) - redact
-        // both before logging at Information level, which persists to 30-day rotating files.
-        // The full topic (including the command path, useful for troubleshooting) is still
-        // available at Debug level when DEBUG_LOGS is enabled.
-        var redactedTopic = Regex.Replace(sanitizedTopic, @"^saic/[^/]+/vehicles/[^/]+/", "saic/***/vehicles/***/");
-        logger.LogInformation("Published MQTT topic={Topic} payloadBytes={PayloadBytes}", redactedTopic, Encoding.UTF8.GetByteCount(payload));
-        logger.LogDebug("Published MQTT full topic={Topic}", sanitizedTopic);
+        // Topics carry the MG account email and VIN - redacted before logging at Information
+        // level, which persists to 30-day rotating files. The full topic (useful for
+        // troubleshooting) is still available at Debug level when DEBUG_LOGS is enabled.
+        logger.LogInformation("Published MQTT topic={Topic} payloadBytes={PayloadBytes}",
+            LogRedaction.MqttTopic(topic), Encoding.UTF8.GetByteCount(payload));
+        logger.LogDebug("Published MQTT full topic={Topic}", topic.ReplaceLineEndings(" "));
     }
 
     public async Task StopAsync(CancellationToken ct)

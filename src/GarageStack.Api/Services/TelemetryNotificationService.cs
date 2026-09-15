@@ -1,9 +1,9 @@
 using System.Collections.Concurrent;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using System.Threading.Channels;
 using GarageStack.Api.Hubs;
 using GarageStack.Core.Interfaces;
+using GarageStack.Core.Models;
+using GarageStack.Data.Extensions;
 using Microsoft.AspNetCore.SignalR;
 using Npgsql;
 
@@ -26,7 +26,7 @@ public class TelemetryNotificationService(
         var connectionString = config.GetConnectionString("DefaultConnection");
         if (string.IsNullOrEmpty(connectionString))
         {
-            logger.LogWarning("No DefaultConnection configured — real-time SignalR updates disabled");
+            logger.LogWarning("No DefaultConnection configured -- real-time SignalR updates disabled");
             return;
         }
 
@@ -38,14 +38,14 @@ public class TelemetryNotificationService(
         {
             switch (evt.Channel)
             {
-                case "telemetry_updated":
+                case PgChannels.TelemetryUpdated:
                     if (int.TryParse(evt.Payload, out var vehicleId))
                         ScheduleBroadcast(vehicleId, stoppingToken);
                     break;
-                case "notification_created":
+                case PgChannels.NotificationCreated:
                     _ = BroadcastNotificationAsync(evt.Payload, stoppingToken);
                     break;
-                case "trip_completed":
+                case PgChannels.TripCompleted:
                     if (int.TryParse(evt.Payload, out var tripVehicleId))
                         _ = BroadcastTripCompletedAsync(tripVehicleId, stoppingToken);
                     break;
@@ -55,6 +55,9 @@ public class TelemetryNotificationService(
 
     private async Task ListenAsync(string connectionString, ChannelWriter<PgEvent> writer, CancellationToken ct)
     {
+        var listenCommand = string.Join("; ", PgChannels.All.Select(c => $"LISTEN {c}"));
+        var channelList = string.Join(", ", PgChannels.All);
+
         while (!ct.IsCancellationRequested)
         {
             try
@@ -64,11 +67,11 @@ public class TelemetryNotificationService(
 
                 await using (var cmd = conn.CreateCommand())
                 {
-                    cmd.CommandText = "LISTEN telemetry_updated; LISTEN notification_created; LISTEN trip_completed";
+                    cmd.CommandText = listenCommand;
                     await cmd.ExecuteNonQueryAsync(ct);
                 }
 
-                logger.LogInformation("Listening for PostgreSQL notifications on telemetry_updated, notification_created, trip_completed");
+                logger.LogInformation("Listening for PostgreSQL notifications on {Channels}", channelList);
 
                 conn.Notification += (_, e) => writer.TryWrite(new PgEvent(e.Channel, e.Payload));
 
@@ -139,7 +142,7 @@ public class TelemetryNotificationService(
     {
         try
         {
-            var notification = JsonSerializer.Deserialize<NotificationPayload>(json, JsonOptions);
+            var notification = NotificationCreatedPayload.FromJson(json);
             if (notification is null) return;
 
             await hubContext.Clients.All.SendAsync("notificationReceived", notification, ct);
@@ -165,19 +168,4 @@ public class TelemetryNotificationService(
             logger.LogError(ex, "Failed to broadcast tripCompleted for vehicleId={VehicleId}", vehicleId);
         }
     }
-
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNameCaseInsensitive = true,
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-    };
-
-    // Mirrors the payload shape written by PushSenderService
-    private sealed record NotificationPayload(
-        int Id,
-        string Title,
-        string Body,
-        string CreatedAt,
-        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Category,
-        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] int? VehicleId);
 }

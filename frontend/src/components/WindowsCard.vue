@@ -25,7 +25,9 @@ const openWindows = computed(() => windowList.value.filter((w) => w.open))
 
 const summary = computed((): string | null => {
   if (windowList.value.length === 0) return null
-  return openWindows.value.length > 0 ? `${openWindows.value.length} open` : t('common.closed')
+  return openWindows.value.length > 0
+    ? t('vehicle.windowsOpenCount', { n: openWindows.value.length })
+    : t('common.closed')
 })
 
 const variant = computed(() => {

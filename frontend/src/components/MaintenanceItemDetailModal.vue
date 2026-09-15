@@ -5,6 +5,7 @@ import DetailModal from './DetailModal.vue'
 import { useMaintenanceStore } from '@/stores/maintenance'
 import { useVehicleStore } from '@/stores/vehicle'
 import type { MaintenanceItem } from '@/services/maintenanceApi'
+import { formatIntervalSummary } from '@/utils/maintenance'
 
 const props = defineProps<{
   open: boolean
@@ -40,15 +41,6 @@ watch(
     store.fetchLog(props.vin, props.item.id)
   },
 )
-
-function intervalSummary(item: MaintenanceItem): string {
-  const parts: string[] = []
-  if (item.intervalKm != null)
-    parts.push(t('maintenance.everyKm', { km: item.intervalKm.toLocaleString() }))
-  if (item.intervalMonths != null)
-    parts.push(t('maintenance.everyMonths', { months: item.intervalMonths }))
-  return parts.join(` ${t('maintenance.or')} `)
-}
 
 function formatDate(value: string) {
   return new Date(value).toLocaleDateString()
@@ -110,7 +102,7 @@ async function confirmDelete() {
         >
           {{ t(`maintenance.status.${currentItem.dueStatus}`) }}
         </span>
-        <span class="text-muted text-sm">{{ intervalSummary(currentItem) }}</span>
+        <span class="text-muted text-sm">{{ formatIntervalSummary(currentItem, t) }}</span>
       </div>
 
       <p v-if="currentItem.nextDueOdometerKm != null" class="text-sm">

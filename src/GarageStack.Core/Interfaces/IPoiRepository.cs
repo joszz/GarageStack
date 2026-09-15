@@ -5,8 +5,8 @@ namespace GarageStack.Core.Interfaces;
 /// <summary>
 /// Caches map points-of-interest (charging stations, fuel stations, service areas) in a
 /// tile-based grid so repeated map views don't re-hit the upstream API (Open Charge Map /
-/// Overpass). <paramref name="source"/> identifies the upstream provider and
-/// <paramref name="poiType"/> the category; tiles are addressed by integer
+/// Overpass). The <c>source</c> argument identifies the upstream provider and
+/// <c>poiType</c> the category; tiles are addressed by integer
 /// <c>(CellLat, CellLng)</c> grid cell, not raw coordinates.
 /// </summary>
 public interface IPoiRepository

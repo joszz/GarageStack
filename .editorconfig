@@ -1,0 +1,39 @@
+# Backend (C#) formatting and style. The frontend keeps its own settings in frontend/.editorconfig
+# and Prettier; this file covers everything under src/ and the repository root.
+root = true
+
+[*]
+charset = utf-8
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.{cs,csproj,props,targets,slnx}]
+indent_style = space
+indent_size = 4
+
+[*.{json,yml,yaml,xml,resx,md,sh,conf}]
+indent_style = space
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false
+
+[*.cs]
+# Style choices the code base already follows everywhere, enforced so a stray file cannot drift.
+csharp_style_namespace_declarations = file_scoped:warning
+csharp_style_var_for_built_in_types = true:suggestion
+csharp_style_var_when_type_is_apparent = true:suggestion
+csharp_style_var_elsewhere = true:suggestion
+csharp_prefer_braces = when_multiline:suggestion
+csharp_style_expression_bodied_methods = when_on_single_line:suggestion
+csharp_style_expression_bodied_properties = true:suggestion
+dotnet_style_qualification_for_field = false:suggestion
+dotnet_style_qualification_for_property = false:suggestion
+dotnet_style_qualification_for_method = false:suggestion
+dotnet_sort_system_directives_first = true
+csharp_using_directive_placement = outside_namespace:warning
+dotnet_diagnostic.IDE0005.severity = warning
+
+# EF Core migrations are exempted by src/GarageStack.Data/Migrations/.editorconfig rather than a
+# path section here: the Dockerfiles copy projects to /src without the src/ prefix, so a
+# repository-relative path would stop matching inside the container build.

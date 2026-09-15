@@ -4,6 +4,7 @@ using GarageStack.Data;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Serilog;
 
@@ -113,8 +114,10 @@ internal static class AuthenticationSetup
                 if (string.IsNullOrEmpty(sessionId))
                     return;
 
-                var db = ctx.HttpContext.RequestServices.GetRequiredService<AppDbContext>();
-                if (!await TokenRevocation.IsRevokedAsync(db, sessionId, ctx.HttpContext.RequestAborted))
+                var services = ctx.HttpContext.RequestServices;
+                var db = services.GetRequiredService<AppDbContext>();
+                var cache = services.GetRequiredService<IMemoryCache>();
+                if (!await TokenRevocation.IsRevokedAsync(db, cache, sessionId, ctx.HttpContext.RequestAborted))
                     return;
 
                 ctx.RejectPrincipal();

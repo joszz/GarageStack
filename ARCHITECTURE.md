@@ -45,7 +45,9 @@ without a real car, see [DEMO.md](DEMO.md).
 4. `TelemetryNotificationService` ([src/GarageStack.Api/Services/TelemetryNotificationService.cs](src/GarageStack.Api/Services/TelemetryNotificationService.cs)), a background service in the Api process, holds a `LISTEN telemetry_updated` connection. On notification it debounces briefly (to coalesce a poll cycle's several writes into one update), re-reads the merged latest snapshot, and broadcasts it over SignalR to browsers subscribed to that vehicle's group.
 5. The frontend's `useSignalR` composable ([frontend/src/composables/useSignalR.ts](frontend/src/composables/useSignalR.ts)) receives the `telemetryUpdated` event and updates the UI. There is no polling fallback - if the SignalR connection drops, the dashboard goes stale until it reconnects.
 
-The same `pg_notify`/`LISTEN`/SignalR pattern also carries `notification_created` (push/in-app alerts) and `trip_completed` events.
+The same `pg_notify`/`LISTEN`/SignalR pattern also carries `notification_created` (push/in-app alerts) and `trip_completed` events. The channel names live in `PgChannels` and every publisher goes through the `NotifyAsync` extension in [src/GarageStack.Data/Extensions/PgNotifyExtensions.cs](src/GarageStack.Data/Extensions/PgNotifyExtensions.cs), which is a no-op on the in-memory provider used by demo mode and the tests. The `notification_created` payload is the `NotificationCreatedPayload` record in Core, serialized by the Worker and deserialized by the Api, so the two processes cannot disagree about its shape.
+
+Push notification texts are written by the Worker, which has no browser request to take a language from; they come from `Resources/NotificationStrings*.resx` in the Worker project and the language is the `NOTIFICATION_LANGUAGE` deployment setting. The marker types for these resources (`NotificationStrings`, and `WidgetStrings` in the Api) must stay in their assembly's root namespace: the resource localizer maps a marker in a sub-namespace to a resource path that does not exist and silently falls back to the keys.
 
 ## Sending a command to the car (the reverse path)
 
@@ -73,11 +75,18 @@ process-local one doesn't already provide. Two caches exist today:
   triggered a SignalR broadcast.
 - Map POI tiles (charging stations, fuel stations, service areas) are cached in Postgres itself
   (`PoiCacheTile`/`PoiItem`), not in memory, since that data needs to survive process restarts
-  and be queried by bounding box - a job a plain in-memory cache isn't suited for anyway.
+  and be queried by bounding box - a job a plain in-memory cache isn't suited for anyway. The
+  brand filter list is a DISTINCT over the `Brand` column, extracted from the upstream metadata
+  at ingest, with a short in-memory cache on top that every tile upsert invalidates.
+- Session revocation (`TokenRevocation`) is checked by the cookie handler on every authenticated
+  request. The answer is cached in memory: a revocation made by this process is written to the
+  cache immediately, a "not revoked" answer is trusted for five minutes, so the check costs no
+  database round trip per request.
 
 If GarageStack ever needs to run more than one Api/Worker instance, revisit this: per-vehicle
-in-memory state (this cache, `VehicleCommandGate`, `NotificationCooldownGate`, the Overpass/OCM
-rate limiters) would all need to move to something shared.
+in-memory state (this cache, the revocation cache, `VehicleCommandGate`,
+`NotificationCooldownGate`, the shared `UpstreamRateGate` behind the Overpass/OCM clients)
+would all need to move to something shared.
 
 ## Authentication
 
@@ -93,8 +102,23 @@ The callback lives at `/api/auth/oidc/callback` rather than the handler's defaul
 
 ## Database
 
-Code-first EF Core migrations live in `src/GarageStack.Data/Migrations/`. `Program.cs` runs `db.Database.MigrateAsync()` on Api startup in normal operation; in `DEMO_MODE` it calls `EnsureCreated()` and seeds fake data instead, bypassing a real Postgres server entirely.
+Code-first EF Core migrations live in `src/GarageStack.Data/Migrations/`. `Program.cs` runs `db.Database.MigrateAsync()` on Api startup in normal operation; in `DEMO_MODE` it calls `DemoSeeder.SeedAsync()` instead, which creates the in-memory schema and seeds fake data, bypassing a real Postgres server entirely.
+
+The Data project has its own `DesignTimeDbContextFactory`, so the EF tooling never needs the Api's configuration:
+
+```sh
+dotnet ef migrations add <Name> --project src/GarageStack.Data --startup-project src/GarageStack.Data
+dotnet ef migrations has-pending-model-changes --project src/GarageStack.Data --startup-project src/GarageStack.Data
+```
+
+CI runs the second command, and the pending-model-changes warning is not suppressed anywhere, so a model change without a migration fails before it reaches a real database.
 
 ## Frontend
 
-REST calls go through `frontend/src/services/` - `apiCore.ts` centralizes the `fetch` wrapper (cookie-based auth, shared 401 handling), and each domain area (`vehicleApi.ts`, `maintenanceApi.ts`, `notificationsApi.ts`, `mapApi.ts`, etc.) builds on it. Real-time updates use `useSignalR.ts` as described above, not polling.
+REST calls go through `frontend/src/services/` - `apiCore.ts` centralizes the `fetch` wrapper (cookie-based auth, shared 401 handling, the JSON request helpers), and each domain area (`vehicleApi.ts`, `maintenanceApi.ts`, `notificationsApi.ts`, `mapApi.ts`, etc.) builds on it. Real-time updates use `useSignalR.ts` as described above, not polling.
+
+The vehicle store owns `effectiveVehicleType` (the user's manual override, else the type detected from the gateway's `hw_version`); views derive their `isHev`/`isBev` style flags from it rather than repeating the override logic. The TypeScript interfaces in `services/` mirror the API's DTOs by hand; the history endpoint returns `TelemetryHistoryPoint` (the chart fields only), not full snapshots.
+
+## Build conventions
+
+Backend projects share `Directory.Build.props` (analyzers on, warnings are errors, `.editorconfig` style rules enforced in the build) and `Directory.Packages.props` (central package versions). `dotnet format GarageStack.slnx` applies the formatting rules; CI verifies them. The frontend is linted by oxlint and ESLint and formatted by Prettier, also verified in CI.

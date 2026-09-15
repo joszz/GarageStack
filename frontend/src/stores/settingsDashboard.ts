@@ -106,8 +106,20 @@ function loadDashboardSettings(): DashboardSettings {
   return defaultsFor()
 }
 
+// Whether this browser has ever stored a dashboard layout, under the current key or the
+// pre-split blob. The dashboard uses it to tell a first visit (where it may order cards by
+// which ones have data) from a returning user whose ordering must be left alone.
+function hasPersistedLayout(): boolean {
+  try {
+    return localStorage.getItem(STORAGE_KEY) !== null || readLegacyBlob() !== null
+  } catch {
+    return false
+  }
+}
+
 export const useDashboardSettingsStore = defineStore('settingsDashboard', () => {
   const loaded = loadDashboardSettings()
+  const hasSavedLayout = ref(hasPersistedLayout())
   const cards = ref<CardConfig[]>(loaded.cards)
   const statsInsights = ref<StatsItemConfig<StatsInsightId>[]>(loaded.statsInsights)
   const statsCharts = ref<StatsItemConfig<StatsChartId>[]>(loaded.statsCharts)
@@ -125,6 +137,7 @@ export const useDashboardSettingsStore = defineStore('settingsDashboard', () => 
         showLocationMap: showLocationMap.value,
       }),
     )
+    hasSavedLayout.value = true
   }
   const scheduleSave = createDebouncedSave(save)
 
@@ -139,6 +152,7 @@ export const useDashboardSettingsStore = defineStore('settingsDashboard', () => 
   }
 
   return {
+    hasSavedLayout,
     cards,
     statsInsights,
     statsCharts,

@@ -17,7 +17,7 @@ namespace GarageStack.Data.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.10")
+                .HasAnnotation("ProductVersion", "10.0.12")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -185,6 +185,10 @@ namespace GarageStack.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
+                    b.Property<string>("Brand")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
                     b.Property<int>("CellLat")
                         .HasColumnType("integer");
 
@@ -229,6 +233,9 @@ namespace GarageStack.Data.Migrations
                     b.HasIndex("Source", "ExternalId")
                         .IsUnique()
                         .HasDatabaseName("IX_PoiItems_Source_ExternalId");
+
+                    b.HasIndex("Source", "PoiType", "Brand")
+                        .HasDatabaseName("IX_PoiItems_Source_PoiType_Brand");
 
                     b.HasIndex("Source", "PoiType", "CellLat", "CellLng")
                         .HasDatabaseName("IX_PoiItems_Source_PoiType_CellLatLng");

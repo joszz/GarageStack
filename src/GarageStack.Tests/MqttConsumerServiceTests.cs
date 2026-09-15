@@ -1,3 +1,4 @@
+using GarageStack.Core.Configuration;
 using GarageStack.Core.Interfaces;
 using GarageStack.Core.Models;
 using GarageStack.Data;
@@ -128,7 +129,7 @@ file sealed class TestableMqttConsumerService : MqttConsumerService
     private readonly FakeMqttClient _client;
 
     public TestableMqttConsumerService(FakePushSender push, FakeMqttClient client)
-        : base(NullLogger<MqttConsumerService>.Instance, Options.Create(new MqttOptions()), new FakeServiceScopeFactory(), push)
+        : base(NullLogger<MqttConsumerService>.Instance, Options.Create(new MqttOptions()), new FakeServiceScopeFactory(), push, WorkerLocalizer.Notifications())
     {
         _client = client;
     }
@@ -171,8 +172,10 @@ file sealed class SlowFakeTelemetryRepository : ITelemetryRepository
 
     public Task<TelemetrySnapshot?> GetLatestAsync(int vehicleId, CancellationToken ct = default) => throw new NotImplementedException();
     public Task<TelemetrySnapshot?> GetMergedLatestAsync(int vehicleId, CancellationToken ct = default) => throw new NotImplementedException();
-    public Task<IReadOnlyList<TelemetrySnapshot>> GetHistoryAsync(int vehicleId, DateTime from, DateTime to, CancellationToken ct = default) => throw new NotImplementedException();
+    public Task<IReadOnlyList<TelemetryHistoryPoint>> GetHistoryAsync(int vehicleId, DateTime from, DateTime to, CancellationToken ct = default) => throw new NotImplementedException();
     public Task<IReadOnlyList<TripDto>> GetTripsAsync(int vehicleId, DateTime from, DateTime to, CancellationToken ct = default) => throw new NotImplementedException();
+    public Task<LastTripSummary?> GetLastTripSummaryAsync(int vehicleId, CancellationToken ct = default) => throw new NotImplementedException();
+    public Task<IReadOnlyList<RawTopicStat>> GetRawTopicStatsAsync(int vehicleId, CancellationToken ct = default) => throw new NotImplementedException();
     public Task<VehicleAggregateStats> GetAggregateStatsAsync(int vehicleId, DateTime from, DateTime to, CancellationToken ct = default) => throw new NotImplementedException();
 }
 
@@ -187,7 +190,8 @@ public class MqttConsumerServiceTests
             NullLogger<MqttConsumerService>.Instance,
             Options.Create(new MqttOptions()),
             new FakeServiceScopeFactory(),
-            push);
+            push,
+            WorkerLocalizer.Notifications());
 
     // CheckEngineStartAsync's cooldown gate checks AppNotifications via this db - an empty
     // in-memory context is enough for these tests since none of them pre-seed a notification row.

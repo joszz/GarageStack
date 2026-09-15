@@ -203,6 +203,50 @@
     Mask="false"/>
 
   <Config
+    Name="Login Username"
+    Target="AUTH_USERNAME"
+    Default=""
+    Mode=""
+    Description="Username for the built-in web login. Leave empty to sign in with the MG iSmart email above."
+    Type="Variable"
+    Display="advanced"
+    Required="false"
+    Mask="false"/>
+
+  <Config
+    Name="Login Password"
+    Target="AUTH_PASSWORD"
+    Default=""
+    Mode=""
+    Description="Password for the built-in web login. Leave empty to sign in with the MG iSmart password above. Set a strong dedicated password when the login stays enabled alongside single sign-on."
+    Type="Variable"
+    Display="advanced"
+    Required="false"
+    Mask="true"/>
+
+  <Config
+    Name="Secure Session Cookie"
+    Target="AUTH_COOKIE_SECURE"
+    Default="false"
+    Mode=""
+    Description="Set to true when GarageStack is served over HTTPS (behind a TLS-terminating reverse proxy) so the session cookie is never sent over plain HTTP. Leave false for a plain-HTTP LAN install, or you will not be able to log in."
+    Type="Variable"
+    Display="advanced"
+    Required="false"
+    Mask="false">false</Config>
+
+  <Config
+    Name="Session Lifetime (hours)"
+    Target="AUTH_SESSION_LIFETIME_HOURS"
+    Default="168"
+    Mode=""
+    Description="How long a single sign-on session lasts before the identity provider is consulted again. Signing in again is usually invisible while the provider's own session is still valid."
+    Type="Variable"
+    Display="advanced"
+    Required="false"
+    Mask="false">168</Config>
+
+  <Config
     Name="OIDC Auto Login"
     Target="OIDC_AUTO_LOGIN"
     Default="false"
@@ -214,6 +258,50 @@
     Mask="false">false</Config>
 
   <!-- ── Home Assistant ─────────────────────────────────────────────────────── -->
+
+  <Config
+    Name="OIDC Scopes"
+    Target="OIDC_SCOPES"
+    Default="openid profile email"
+    Mode=""
+    Description="Scopes requested from the identity provider. Add the scope that carries group membership if your provider needs one for OIDC Allowed Groups."
+    Type="Variable"
+    Display="advanced"
+    Required="false"
+    Mask="false">openid profile email</Config>
+
+  <Config
+    Name="OIDC Groups Claim"
+    Target="OIDC_GROUPS_CLAIM"
+    Default="groups"
+    Mode=""
+    Description="Name of the token claim that OIDC Allowed Groups is matched against. Provider-specific; groups covers most."
+    Type="Variable"
+    Display="advanced"
+    Required="false"
+    Mask="false">groups</Config>
+
+  <Config
+    Name="OIDC Redirect URI"
+    Target="OIDC_REDIRECT_URI"
+    Default=""
+    Mode=""
+    Description="Only needed when GarageStack cannot work out its own public URL, e.g. behind several chained reverse proxies. Must be &lt;App URL&gt;/api/auth/oidc/callback. Leave empty otherwise."
+    Type="Variable"
+    Display="advanced"
+    Required="false"
+    Mask="false"/>
+
+  <Config
+    Name="OIDC Require HTTPS Metadata"
+    Target="OIDC_REQUIRE_HTTPS_METADATA"
+    Default="true"
+    Mode=""
+    Description="Set to false only for an identity provider served over plain HTTP on your LAN."
+    Type="Variable"
+    Display="advanced"
+    Required="false"
+    Mask="false">true</Config>
 
   <Config
     Name="Home Assistant MQTT Username"
@@ -238,6 +326,28 @@
     Mask="true"/>
 
   <!-- ── Optional variables ─────────────────────────────────────────────────── -->
+
+  <Config
+    Name="Internal MQTT Username"
+    Target="MQTT_BROKER_USERNAME"
+    Default="garagestack"
+    Mode=""
+    Description="Login the SAIC gateway, API and Worker use on the bundled Mosquitto broker. Only relevant if you connect other MQTT clients to the exposed MQTT port."
+    Type="Variable"
+    Display="advanced"
+    Required="false"
+    Mask="false">garagestack</Config>
+
+  <Config
+    Name="Internal MQTT Password"
+    Target="MQTT_BROKER_PASSWORD"
+    Default=""
+    Mode=""
+    Description="Password for the internal broker login. Leave empty to have a random one generated at every start (fine unless external MQTT clients need a stable password). Generate with: openssl rand -hex 32"
+    Type="Variable"
+    Display="advanced"
+    Required="false"
+    Mask="true"/>
 
   <Config
     Name="MG API Endpoint Override"
@@ -271,6 +381,17 @@
     Display="advanced"
     Required="false"
     Mask="true"/>
+
+  <Config
+    Name="Notification Language"
+    Target="NOTIFICATION_LANGUAGE"
+    Default="en"
+    Mode=""
+    Description="Language of the push notification texts (Engine started, Door left open, ...): en or nl. Notifications are written by the background worker, which has no browser to take a language from, so this is set per deployment."
+    Type="Variable"
+    Display="advanced"
+    Required="false"
+    Mask="false">en</Config>
 
   <Config
     Name="Homepage Widget API Key"

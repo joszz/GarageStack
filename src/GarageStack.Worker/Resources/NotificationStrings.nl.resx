@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>1.3</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="EngineStartTitle" xml:space="preserve">
+    <value>Motor gestart</value>
+  </data>
+  <data name="EngineStartBody" xml:space="preserve">
+    <value>Je auto is gestart.</value>
+  </data>
+  <data name="LowTyreTitle" xml:space="preserve">
+    <value>Lage bandenspanning</value>
+  </data>
+  <data name="LowTyreBody" xml:space="preserve">
+    <value>Bandenspanning te laag: {0}</value>
+  </data>
+  <data name="HighTyreTitle" xml:space="preserve">
+    <value>Hoge bandenspanning</value>
+  </data>
+  <data name="HighTyreBody" xml:space="preserve">
+    <value>Bandenspanning te hoog: {0}</value>
+  </data>
+  <data name="LowEvTitle" xml:space="preserve">
+    <value>Lage EV-accustand</value>
+  </data>
+  <data name="LowEvBody" xml:space="preserve">
+    <value>EV-accu op {0}%</value>
+  </data>
+  <data name="ChargingCompleteTitle" xml:space="preserve">
+    <value>Laden voltooid</value>
+  </data>
+  <data name="ChargingCompleteBody" xml:space="preserve">
+    <value>Je auto is klaar met laden</value>
+  </data>
+  <data name="ChargingCompleteBodyWithSoc" xml:space="preserve">
+    <value>Je auto is klaar met laden (accustand: {0}%)</value>
+  </data>
+  <data name="UnlockedParkedTitle" xml:space="preserve">
+    <value>Auto niet vergrendeld</value>
+  </data>
+  <data name="UnlockedParkedBody" xml:space="preserve">
+    <value>Je auto staat geparkeerd en is niet vergrendeld</value>
+  </data>
+  <data name="DoorsOpenTitle" xml:space="preserve">
+    <value>Portier open</value>
+  </data>
+  <data name="DoorsOpenBody" xml:space="preserve">
+    <value>Portier(en) open terwijl geparkeerd: {0}</value>
+  </data>
+  <data name="WindowsOpenTitle" xml:space="preserve">
+    <value>Raam open</value>
+  </data>
+  <data name="WindowsOpenBody" xml:space="preserve">
+    <value>Raam/ramen open terwijl geparkeerd: {0}</value>
+  </data>
+  <data name="PositionDriver" xml:space="preserve">
+    <value>bestuurder</value>
+  </data>
+  <data name="PositionPassenger" xml:space="preserve">
+    <value>passagier</value>
+  </data>
+  <data name="PositionRearLeft" xml:space="preserve">
+    <value>achter links</value>
+  </data>
+  <data name="PositionRearRight" xml:space="preserve">
+    <value>achter rechts</value>
+  </data>
+  <data name="PositionBoot" xml:space="preserve">
+    <value>kofferruimte</value>
+  </data>
+  <data name="PositionBonnet" xml:space="preserve">
+    <value>motorkap</value>
+  </data>
+  <data name="MaintenanceOverdueTitle" xml:space="preserve">
+    <value>Onderhoud te laat</value>
+  </data>
+  <data name="MaintenanceOverdueBody" xml:space="preserve">
+    <value>{0} is over tijd</value>
+  </data>
+  <data name="MaintenanceDueSoonTitle" xml:space="preserve">
+    <value>Onderhoud binnenkort nodig</value>
+  </data>
+  <data name="MaintenanceDueSoonBody" xml:space="preserve">
+    <value>{0} is binnenkort nodig</value>
+  </data>
+</root>

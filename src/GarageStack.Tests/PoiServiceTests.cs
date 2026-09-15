@@ -68,18 +68,8 @@ internal sealed class PoiFakeRepository : IPoiRepository
         CancellationToken ct = default)
     {
         IReadOnlyList<string> result = _items
-            .Where(p => p.Source == source && p.PoiType == poiType && p.MetaJson != null)
-            .Select(p =>
-            {
-                try
-                {
-                    var dict = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(p.MetaJson!);
-                    return dict?.GetValueOrDefault("brand") ?? dict?.GetValueOrDefault("operator");
-                }
-                catch { return null; }
-            })
-            .Where(b => !string.IsNullOrWhiteSpace(b))
-            .Select(b => b!)
+            .Where(p => p.Source == source && p.PoiType == poiType && !string.IsNullOrWhiteSpace(p.Brand))
+            .Select(p => p.Brand!)
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .Order()
             .ToList();
@@ -167,6 +157,19 @@ public class PoiServiceTests
     }
 
     [Fact]
+    public async Task GetPoisAsync_CacheMiss_StoresBrandExtractedFromTags()
+    {
+        var repo = new PoiFakeRepository();
+        var handler = new PoiFakeOverpassHandler(OneNodeResponse);
+        var svc = BuildPoiService(repo, BuildOverpassClient(handler));
+
+        await svc.GetPoisAsync("fuel", 52.3, 4.9, 5.0, TestContext.Current.CancellationToken);
+
+        var brands = await repo.GetDistinctBrandsAsync("overpass", "fuel", TestContext.Current.CancellationToken);
+        Assert.Equal(["Shell"], brands);
+    }
+
+    [Fact]
     public async Task GetPoisAsync_OverpassFailure_ContinuesAndReturnsSeededItems()
     {
         var repo = new PoiFakeRepository();
@@ -177,9 +180,14 @@ public class PoiServiceTests
         repo.SeedTile("overpass", "fuel", firstTile.CellLat, firstTile.CellLng);
         repo.SeedItem(new PoiItem
         {
-            Source = "overpass", PoiType = "fuel",
-            ExternalId = "node/999", Latitude = 52.31, Longitude = 4.91,
-            Name = "BP", CellLat = firstTile.CellLat, CellLng = firstTile.CellLng,
+            Source = "overpass",
+            PoiType = "fuel",
+            ExternalId = "node/999",
+            Latitude = 52.31,
+            Longitude = 4.91,
+            Name = "BP",
+            CellLat = firstTile.CellLat,
+            CellLng = firstTile.CellLng,
         });
 
         var handler = new PoiFakeOverpassHandler("", HttpStatusCode.ServiceUnavailable);
@@ -202,6 +210,6 @@ public class PoiServiceTests
     [InlineData("service_area", "unknown", true)]
     public void IsPoiTypeAllowed_ReturnsExpectedResult(string poiType, string vehicleType, bool expected)
     {
-        Assert.Equal(expected, PoiService.IsPoiTypeAllowed(poiType, vehicleType));
+        Assert.Equal(expected, PoiTypePolicy.IsAllowed(poiType, vehicleType));
     }
 }

@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { Ref } from 'vue'
+import { useLoadingTracker } from '@/composables/useLoadingTracker'
 import {
   maintenanceApi,
   type MaintenanceItem,
@@ -13,22 +13,9 @@ import {
 export const useMaintenanceStore = defineStore('maintenance', () => {
   const items = ref<MaintenanceItem[]>([])
   const logEntries = ref<Record<number, MaintenanceLogEntry[]>>({})
-  const loadingCount = ref(0)
-  const loading = computed(() => loadingCount.value > 0)
+  const { loading, withLoading } = useLoadingTracker()
   const itemsError = ref<string | null>(null)
   const actionError = ref<string | null>(null)
-
-  async function withLoading(errorRef: Ref<string | null>, fn: () => Promise<void>) {
-    loadingCount.value++
-    errorRef.value = null
-    try {
-      await fn()
-    } catch (e) {
-      errorRef.value = String(e)
-    } finally {
-      loadingCount.value--
-    }
-  }
 
   async function fetchItems(vin: string) {
     await withLoading(itemsError, async () => {

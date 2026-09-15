@@ -17,5 +17,9 @@ public static class VehicleTypeHelper
         return "unknown";
     }
 
+    /// <summary>Plug-in vehicles: the ones that charge from an external charger.</summary>
     public static bool CanCharge(string vehicleType) => vehicleType is "bev" or "phev";
+
+    /// <summary>Vehicles that burn fuel and therefore need fuel stations on the map.</summary>
+    public static bool HasCombustionEngine(string vehicleType) => vehicleType is "hev" or "phev";
 }

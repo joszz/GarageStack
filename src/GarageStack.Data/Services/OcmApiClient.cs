@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using GarageStack.Core.Configuration;
 using GarageStack.Core.Helpers;
 using GarageStack.Core.Models;
 using Microsoft.Extensions.Configuration;
@@ -13,15 +14,13 @@ public sealed class OcmApiClient(
     IConfiguration configuration,
     ILogger<OcmApiClient> logger)
 {
-    // Singleton-level gate: prevents hammering the OCM API with concurrent tile requests
-    private readonly SemaphoreSlim _gate = new(1, 1);
-    private DateTimeOffset _lastRequestAt = DateTimeOffset.MinValue;
-    private static readonly TimeSpan MinInterval = TimeSpan.FromMilliseconds(500);
+    public const string HttpClientName = "ocm";
 
-    // Written and read under _gate, so a plain field (not Interlocked) is safe here -- unlike
-    // OverpassApiClient's foreground path, every caller of this method already goes through
-    // _gate, there is no lock-free pre-check path.
-    private DateTimeOffset _backoffUntil = DateTimeOffset.MinValue;
+    // Singleton-level gate: prevents hammering the OCM API with concurrent tile requests. Both
+    // the on-demand API path and the Worker's pre-caching pass go through it, so a backoff set
+    // by one is honoured by the other.
+    private readonly UpstreamRateGate _gate = new();
+    private static readonly TimeSpan MinInterval = TimeSpan.FromMilliseconds(500);
     private static readonly TimeSpan RetryAfter429 = TimeSpan.FromSeconds(60);
 
     private const string BaseUrl = "https://api.openchargemap.io/v3/poi/";
@@ -43,15 +42,13 @@ public sealed class OcmApiClient(
         await _gate.WaitAsync(ct);
         try
         {
-            // Fail fast without hitting the network if a prior request was rate-limited. Both
-            // the on-demand API path and the Worker's pre-caching pass (which loops over many
-            // tiles) share this gate, so this stops a sustained rate-limit from being hammered
-            // every MinInterval by every remaining tile in the current pass.
-            if (_backoffUntil > DateTimeOffset.UtcNow)
-                throw new HttpRequestException($"OCM rate-limited, backing off until {_backoffUntil:O}");
+            // Fail fast without hitting the network if a prior request was rate-limited, so a
+            // sustained rate limit is not hammered every MinInterval by every remaining tile in
+            // the Worker's current pass.
+            if (_gate.IsBackingOff)
+                throw new HttpRequestException($"OCM rate-limited, backing off until {_gate.BackoffUntil:O}");
 
-            var wait = MinInterval - (DateTimeOffset.UtcNow - _lastRequestAt);
-            if (wait > TimeSpan.Zero) await Task.Delay(wait, ct);
+            await _gate.ThrottleAsync(MinInterval, honourBackoff: false, ct);
 
             // currenttypeid=30 = DC only; excludes AC slow chargers (Type 1/2, Schuko, etc.)
             // distance=50 covers the full 0.5°×0.5° tile diagonal at European latitudes (~33 km)
@@ -63,13 +60,13 @@ public sealed class OcmApiClient(
             using var request = new HttpRequestMessage(HttpMethod.Get, url);
             request.Headers.Add("X-API-Key", apiKey);
 
-            var client = httpClientFactory.CreateClient("ocm");
-            _lastRequestAt = DateTimeOffset.UtcNow;
-            var response = await client.SendAsync(request, ct);
+            var client = httpClientFactory.CreateClient(HttpClientName);
+            _gate.MarkRequestSent();
+            using var response = await client.SendAsync(request, ct);
 
-            if ((int)response.StatusCode is 429 or 503 or 504)
+            if (UpstreamRateGate.IsThrottlingStatus((int)response.StatusCode))
             {
-                _backoffUntil = DateTimeOffset.UtcNow + RetryAfter429;
+                _gate.SetBackoff(RetryAfter429);
                 throw new HttpRequestException(
                     $"OCM rate-limited ({(int)response.StatusCode}), backing off {(int)RetryAfter429.TotalSeconds}s");
             }
@@ -135,14 +132,19 @@ public sealed class OcmApiClient(
             p.NumberOfPoints,
             connectors);
 
+        var operatorName = p.OperatorInfo?.Title?.Trim();
+
         return new PoiItem
         {
-            Source = "ocm",
-            PoiType = "charging",
+            Source = PoiCacheDefaults.OcmSource,
+            PoiType = PoiCacheDefaults.ChargingPoiType,
             ExternalId = $"ocm/{p.AddressInfo?.Id ?? 0}",
             Latitude = lat,
             Longitude = lng,
             Name = p.AddressInfo?.Title,
+            Brand = string.IsNullOrEmpty(operatorName)
+                ? null
+                : operatorName.Length <= PoiItemLimits.BrandMaxLength ? operatorName : operatorName[..PoiItemLimits.BrandMaxLength],
             MetaJson = JsonSerializer.Serialize(meta),
             // Tile from element's own position (same pattern as Overpass) so that a station
             // returned by an adjacent tile's radius query doesn't collide on the unique index.

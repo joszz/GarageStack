@@ -1,4 +1,3 @@
-using GarageStack.Core.Helpers;
 using GarageStack.Core.Interfaces;
 using GarageStack.Core.Models;
 using Microsoft.EntityFrameworkCore;
@@ -13,7 +12,7 @@ namespace GarageStack.Data.Repositories;
 public class PoiRepository(AppDbContext db, IMemoryCache cache, ILogger<PoiRepository>? logger = null) : IPoiRepository
 {
     // Brand lists (charging network operators, fuel brands) change rarely, so a short cache
-    // avoids re-deserializing every PoiItem's MetaJson on every map filter-panel open.
+    // avoids re-running the DISTINCT query on every map filter-panel open.
     private static readonly TimeSpan BrandsCacheTtl = TimeSpan.FromMinutes(15);
 
     // Defensive cap on GetPoisInBoundsAsync. The map endpoint already bounds radiusKm to
@@ -22,6 +21,9 @@ public class PoiRepository(AppDbContext db, IMemoryCache cache, ILogger<PoiRepos
     // so this is far above any realistic result set - a safety net, not expected to affect
     // normal queries.
     private const int MaxPoisPerBoundsQuery = 10_000;
+
+    private static string BrandsCacheKey(string source, string poiType) => $"poi-brands/{source}/{poiType}";
+
     // Used both for the on-demand API path (any tile not cached yet) and the Worker's
     // pre-cache path (tiles whose cache has since expired) - "uncached" and "expired or
     // missing" are the same query: anything outside the currently-valid (ExpiresAt > now) set.
@@ -67,6 +69,9 @@ public class PoiRepository(AppDbContext db, IMemoryCache cache, ILogger<PoiRepos
             db.ChangeTracker.Clear();
             await UpsertTileAttemptAsync(source, poiType, cellLat, cellLng, items, ttl, ct);
         }
+
+        // A fresh tile may carry brands the cached filter list has not seen yet.
+        cache.Remove(BrandsCacheKey(source, poiType));
     }
 
     private async Task UpsertTileAttemptAsync(
@@ -78,7 +83,7 @@ public class PoiRepository(AppDbContext db, IMemoryCache cache, ILogger<PoiRepos
     {
         var now = DateTime.UtcNow;
 
-        await UpsertItemsAsync(source, poiType, cellLat, cellLng, items, now, ct);
+        await UpsertItemsAsync(source, poiType, items, now, ct);
         await PruneStaleItemsAsync(source, poiType, cellLat, cellLng, items, ct);
         await UpsertCacheTileRowAsync(source, poiType, cellLat, cellLng, now, ttl, ct);
 
@@ -88,7 +93,7 @@ public class PoiRepository(AppDbContext db, IMemoryCache cache, ILogger<PoiRepos
     // Elements near tile boundaries appear in two adjacent tile queries but share the same
     // ExternalId; we UPDATE them rather than INSERT to avoid hitting the unique constraint.
     private async Task UpsertItemsAsync(
-        string source, string poiType, int cellLat, int cellLng,
+        string source, string poiType,
         IReadOnlyList<PoiItem> items, DateTime now, CancellationToken ct)
     {
         var newExternalIds = items.Select(i => i.ExternalId).ToHashSet();
@@ -104,6 +109,7 @@ public class PoiRepository(AppDbContext db, IMemoryCache cache, ILogger<PoiRepos
                 existing.Latitude = item.Latitude;
                 existing.Longitude = item.Longitude;
                 existing.Name = item.Name;
+                existing.Brand = item.Brand;
                 existing.MetaJson = item.MetaJson;
                 existing.CellLat = item.CellLat;
                 existing.CellLng = item.CellLng;
@@ -190,26 +196,20 @@ public class PoiRepository(AppDbContext db, IMemoryCache cache, ILogger<PoiRepos
         string source, string poiType,
         CancellationToken ct = default)
     {
-        var cacheKey = $"poi-brands/{source}/{poiType}";
+        var cacheKey = BrandsCacheKey(source, poiType);
         if (cache.TryGetValue(cacheKey, out IReadOnlyList<string>? cached) && cached is not null)
             return cached;
 
-        var metaJsonList = await db.PoiItems
-            .Where(p => p.Source == source && p.PoiType == poiType && p.MetaJson != null)
-            .Select(p => p.MetaJson!)
+        // One index-backed DISTINCT; the case-insensitive merge and sort happen on the (short)
+        // result rather than on every row.
+        var brands = await db.PoiItems
             .AsNoTracking()
+            .Where(p => p.Source == source && p.PoiType == poiType && p.Brand != null)
+            .Select(p => p.Brand!)
+            .Distinct()
             .ToListAsync(ct);
 
-        var brands = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var json in metaJsonList)
-        {
-            var dict = SafeJson.TryDeserialize<Dictionary<string, string>>(json);
-            if (dict is null) continue;
-            var brand = dict.GetValueOrDefault("brand") ?? dict.GetValueOrDefault("operator");
-            if (!string.IsNullOrWhiteSpace(brand)) brands.Add(brand);
-        }
-
-        IReadOnlyList<string> result = [.. brands.Order()];
+        IReadOnlyList<string> result = [.. brands.Distinct(StringComparer.OrdinalIgnoreCase).Order()];
         cache.Set(cacheKey, result, BrandsCacheTtl);
         return result;
     }

@@ -1,22 +1,21 @@
+using GarageStack.Core.Configuration;
 using GarageStack.Core.Helpers;
 using GarageStack.Core.Interfaces;
 using GarageStack.Core.Models;
 using GarageStack.Data;
 using GarageStack.Data.Services;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 
 namespace GarageStack.Worker.Services;
 
 public sealed class PoiPreCachingService(
     ILogger<PoiPreCachingService> logger,
-    IServiceScopeFactory scopeFactory) : BackgroundService
+    IServiceScopeFactory scopeFactory,
+    OverpassApiClient overpassClient,
+    OcmApiClient ocmClient) : BackgroundService
 {
     private static readonly TimeSpan InitialDelay = TimeSpan.FromMinutes(2);
     private static readonly TimeSpan Interval = TimeSpan.FromHours(6);
-    private static readonly TimeSpan Ttl = TimeSpan.FromDays(7);
     private const double PreCacheRadiusKm = 100.0;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -45,8 +44,6 @@ public sealed class PoiPreCachingService(
         using var scope = scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var repository = scope.ServiceProvider.GetRequiredService<IPoiRepository>();
-        var overpassClient = scope.ServiceProvider.GetRequiredService<OverpassApiClient>();
-        var ocmClient = scope.ServiceProvider.GetRequiredService<OcmApiClient>();
 
         var vehicles = await db.Vehicles.ToListAsync(ct);
 
@@ -71,87 +68,72 @@ public sealed class PoiPreCachingService(
             var lat = snapshot.Latitude.Value;
             var lng = snapshot.Longitude.Value;
             var vehicleType = VehicleTypeHelper.GetVehicleType(vehicle);
+            var vinForLog = LogRedaction.Vin(vehicle.Vin);
 
-            await PreCacheOverpassAsync(vehicleType, vehicle.Vin, lat, lng, repository, overpassClient, ct);
+            foreach (var poiType in PoiTypePolicy.AllowedOverpassTypes(vehicleType))
+                await PreCacheOverpassAsync(poiType, vinForLog, lat, lng, repository, ct);
 
-            if (ocmClient.IsConfigured)
-                await PreCacheOcmAsync(vehicleType, vehicle.Vin, lat, lng, repository, ocmClient, ct);
+            if (ocmClient.IsConfigured && VehicleTypeHelper.CanCharge(vehicleType))
+                await PreCacheOcmAsync(vinForLog, lat, lng, repository, ct);
         }
     }
 
     private async Task PreCacheOverpassAsync(
-        string vehicleType, string vin,
+        string poiType, string vinForLog,
         double lat, double lng,
-        IPoiRepository repository, OverpassApiClient overpassClient,
+        IPoiRepository repository,
         CancellationToken ct)
     {
-        var poiTypes = vehicleType switch
-        {
-            "hev" or "phev" => new[] { "fuel", "service_area" },
-            _ => ["service_area"],
-        };
-
-        foreach (var poiType in poiTypes)
-        {
-            var tiles = TileHelper.ComputeTiles(lat, lng, PreCacheRadiusKm);
-            var toRefresh = await repository.GetExpiredOrMissingTilesAsync("overpass", poiType, tiles, ct);
-
-            if (toRefresh.Count == 0)
-            {
-                logger.LogDebug("All Overpass {PoiType} tiles are fresh for {Vin}", poiType, vin);
-                continue;
-            }
-
-            logger.LogInformation("Pre-caching {Count} Overpass {PoiType} tiles for {Vin}",
-                toRefresh.Count, poiType, vin);
-
-            await PoiTileFetcher.FetchAndCacheAsync(
-                toRefresh,
-                async (cellLat, cellLng, token) =>
-                {
-                    IReadOnlyList<PoiItem> items = poiType switch
-                    {
-                        "fuel" => await overpassClient.FetchFuelStationsBackgroundAsync(cellLat, cellLng, token),
-                        "service_area" => await overpassClient.FetchServiceAreasBackgroundAsync(cellLat, cellLng, token),
-                        _ => [],
-                    };
-                    return (IReadOnlyList<PoiItem>?)items;
-                },
-                (cellLat, cellLng, items, token) => repository.UpsertTileAsync("overpass", poiType, cellLat, cellLng, items, Ttl, token),
-                (ex, cellLat, cellLng) => logger.LogWarning(ex,
-                    "Failed to pre-cache Overpass {PoiType} tile ({CellLat},{CellLng}) for {Vin}",
-                    poiType, cellLat, cellLng, vin),
-                ct);
-        }
-    }
-
-    private async Task PreCacheOcmAsync(
-        string vehicleType, string vin,
-        double lat, double lng,
-        IPoiRepository repository, OcmApiClient ocmClient,
-        CancellationToken ct)
-    {
-        if (vehicleType is not ("bev" or "phev"))
-            return;
-
         var tiles = TileHelper.ComputeTiles(lat, lng, PreCacheRadiusKm);
-        var toRefresh = await repository.GetExpiredOrMissingTilesAsync("ocm", "charging", tiles, ct);
+        var toRefresh = await repository.GetExpiredOrMissingTilesAsync(PoiCacheDefaults.OverpassSource, poiType, tiles, ct);
 
         if (toRefresh.Count == 0)
         {
-            logger.LogDebug("All OCM charging tiles are fresh for {Vin}", vin);
+            logger.LogDebug("All Overpass {PoiType} tiles are fresh for {Vin}", poiType, vinForLog);
             return;
         }
 
-        logger.LogInformation("Pre-caching {Count} OCM charging tiles for {Vin}", toRefresh.Count, vin);
+        logger.LogInformation("Pre-caching {Count} Overpass {PoiType} tiles for {Vin}",
+            toRefresh.Count, poiType, vinForLog);
+
+        await PoiTileFetcher.FetchAndCacheAsync(
+            toRefresh,
+            async (cellLat, cellLng, token) => (IReadOnlyList<PoiItem>?)await overpassClient.FetchBackgroundAsync(poiType, cellLat, cellLng, token),
+            (cellLat, cellLng, items, token) => repository.UpsertTileAsync(
+                PoiCacheDefaults.OverpassSource, poiType, cellLat, cellLng, items, PoiCacheDefaults.Ttl, token),
+            (ex, cellLat, cellLng) => logger.LogWarning(ex,
+                "Failed to pre-cache Overpass {PoiType} tile ({CellLat},{CellLng}) for {Vin}",
+                poiType, cellLat, cellLng, vinForLog),
+            ct);
+    }
+
+    private async Task PreCacheOcmAsync(
+        string vinForLog,
+        double lat, double lng,
+        IPoiRepository repository,
+        CancellationToken ct)
+    {
+        const string source = PoiCacheDefaults.OcmSource;
+        const string poiType = PoiCacheDefaults.ChargingPoiType;
+
+        var tiles = TileHelper.ComputeTiles(lat, lng, PreCacheRadiusKm);
+        var toRefresh = await repository.GetExpiredOrMissingTilesAsync(source, poiType, tiles, ct);
+
+        if (toRefresh.Count == 0)
+        {
+            logger.LogDebug("All OCM charging tiles are fresh for {Vin}", vinForLog);
+            return;
+        }
+
+        logger.LogInformation("Pre-caching {Count} OCM charging tiles for {Vin}", toRefresh.Count, vinForLog);
 
         await PoiTileFetcher.FetchAndCacheAsync(
             toRefresh,
             async (cellLat, cellLng, token) => (IReadOnlyList<PoiItem>?)await ocmClient.FetchChargingStationsAsync(cellLat, cellLng, token),
-            (cellLat, cellLng, items, token) => repository.UpsertTileAsync("ocm", "charging", cellLat, cellLng, items, Ttl, token),
+            (cellLat, cellLng, items, token) => repository.UpsertTileAsync(source, poiType, cellLat, cellLng, items, PoiCacheDefaults.Ttl, token),
             (ex, cellLat, cellLng) => logger.LogWarning(ex,
                 "Failed to pre-cache OCM charging tile ({CellLat},{CellLng}) for {Vin}",
-                cellLat, cellLng, vin),
+                cellLat, cellLng, vinForLog),
             ct);
     }
 }

@@ -1,4 +1,4 @@
-import { apiUrl, request, send } from '@/services/apiCore'
+import { apiUrl, request, requestJson, send } from '@/services/apiCore'
 
 export interface LoginResponse {
   username: string
@@ -20,11 +20,7 @@ export interface AuthConfigResponse {
 export const authApi = {
   config: () => request<AuthConfigResponse>('/api/auth/config'),
   login: (username: string, password: string, rememberMe = false) =>
-    request<LoginResponse>('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password, rememberMe }),
-    }),
+    requestJson<LoginResponse>('/api/auth/login', 'POST', { username, password, rememberMe }),
   logout: () => send('/api/auth/logout', 'POST'),
   me: () => request<MeResponse>('/api/auth/me'),
 }
