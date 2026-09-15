@@ -9,6 +9,9 @@ RUN echo "os patch date: ${OS_PATCH_DATE}" && apk upgrade --no-cache && corepack
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm config set minimum-release-age 0 && pnpm install --frozen-lockfile --ignore-scripts
 COPY . .
+# Declared after install so a new version does not bust the dependency layer cache.
+ARG APP_VERSION=0.0.0-local
+ENV VITE_APP_VERSION=$APP_VERSION
 RUN pnpm run build
 
 FROM nginx:alpine AS runtime

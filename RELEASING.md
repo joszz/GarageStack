@@ -228,14 +228,15 @@ The `stale` workflow runs every Monday at 08:00 UTC:
 
 ## Versioning (MinVer)
 
-GarageStack uses MinVer for .NET assembly version metadata.
+GarageStack uses MinVer for .NET assembly version metadata and for the version shown in the UI footer.
 
 - Source of truth is git history + tags with `v` prefix (e.g. `v1.2.3`)
-- On non-tag commits, MinVer produces prerelease versions using `preview.0` as the identifier
+- On non-tag commits, MinVer produces prerelease versions using `preview.0` as the identifier (e.g. `0.5.1-preview.0.12`, so `latest` images built from `main` show that instead of the last release)
 - If no `v*` tags exist yet, MinVer starts from `0.0.0-preview.0.<height>`
 - In CI, the workflow computes MinVer once and passes it to all Docker builds as `APP_VERSION`
+- The frontend Dockerfiles forward `APP_VERSION` to Vite as `VITE_APP_VERSION`; local Docker builds default to `0.0.0-local` and `pnpm dev` hides the version
 
-**Do not manually set `<Version>` in `*.csproj` for releases.** MinVer reads it from git.
+**Do not manually set `<Version>` in `*.csproj` or `package.json` for releases.** MinVer reads it from git.
 
 Use `0.x.y` while in active development, `1.0.0` for the first public release.
 

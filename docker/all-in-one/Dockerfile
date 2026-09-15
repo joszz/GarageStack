@@ -13,6 +13,9 @@ RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
     pnpm config set minimum-release-age 0 && \
     NODE_ENV=development NPM_CONFIG_PRODUCTION=false pnpm install --frozen-lockfile --ignore-scripts --prod=false --config.production=false
 COPY frontend/ .
+# Declared after install so a new version does not bust the dependency layer cache.
+ARG APP_VERSION=0.0.0-local
+ENV VITE_APP_VERSION=$APP_VERSION
 RUN pnpm run build
 
 # ── Stage 2: Build .NET API and Worker ────────────────────────────────────────

@@ -13,6 +13,7 @@ import DetailModal from './DetailModal.vue'
 import SettingsToggle from './SettingsToggle.vue'
 import type { VehicleTypeOverride } from '@/stores/settingsUi'
 import { CAR_COLOR_SCHEMES } from '@/stores/settingsUi'
+import { APP_VERSION } from '@/utils/appVersion'
 import {
   NOTIFICATION_CATEGORY_IDS,
   type NotificationCategoryId,
@@ -102,7 +103,7 @@ function toggleNotificationType(id: NotificationCategoryId, checked: boolean) {
       href="https://github.com/joszz/GarageStack"
       target="_blank"
       rel="noopener"
-      >&copy; 2026 GarageStack</a
+      >&copy; 2026 GarageStack<template v-if="APP_VERSION"> {{ APP_VERSION }}</template></a
     >
     <div class="app-footer__actions">
       <button
