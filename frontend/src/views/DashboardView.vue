@@ -17,6 +17,7 @@ import SkeletonCard from '@/components/SkeletonCard.vue'
 import SkeletonCarDiagram from '@/components/SkeletonCarDiagram.vue'
 import SkeletonLocationMap from '@/components/SkeletonLocationMap.vue'
 import { useVehicleAlerts } from '@/composables/useVehicleAlerts'
+import { whPerKm } from '@/utils/energy'
 
 const { t } = useI18n()
 const store = useVehicleStore()
@@ -159,7 +160,7 @@ function cardHasData(id: CardId): boolean {
       return s.mileageSinceLastCharge !== null && !isHev.value && vehicleType.value !== 'unknown'
     case 'efficiencyRatio':
       return (
-        (s.powerUsageOfDay !== null && s.mileageOfTheDay !== null && s.mileageOfTheDay > 0) ||
+        whPerKm(s.powerUsageOfDay, s.mileageOfTheDay) !== null ||
         ((isHev.value || vehicleType.value === 'phev') &&
           s.fuelRangeKm !== null &&
           s.fuelLevelPercent !== null &&

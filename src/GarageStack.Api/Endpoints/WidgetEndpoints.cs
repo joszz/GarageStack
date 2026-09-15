@@ -177,7 +177,7 @@ public record WidgetStatusDto(
             OdometerKm: s.OdometerKm,
             MileageOfTheDayKm: s.MileageOfTheDay,
             PowerUsageOfDayKwh: s.PowerUsageOfDay.HasValue
-                ? Math.Round(s.PowerUsageOfDay.Value / 1000.0, 2)
+                ? Math.Round(s.PowerUsageOfDay.Value, 2)
                 : null,
             ElectricSharePercent: electricShare,
             IsLocked: Loc(s.IsLocked, "Locked", "Unlocked", l),

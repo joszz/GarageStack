@@ -17,6 +17,7 @@ import ChargingSessionCard from './ChargingSessionCard.vue'
 import BatteryHeatingCard from './BatteryHeatingCard.vue'
 import MaintenanceSummaryCard from './MaintenanceSummaryCard.vue'
 import { formatNumber } from '@/utils/format'
+import { whPerKm } from '@/utils/energy'
 
 const props = defineProps<{ cardId: CardId }>()
 
@@ -61,6 +62,7 @@ const supportsExternalCharge = computed(
 const simpleCards = computed((): SimpleCardConfig[] => {
   const s = status.value
   if (!s) return []
+  const efficiencyWhPerKm = whPerKm(s.powerUsageOfDay, s.mileageOfTheDay)
   return [
     {
       id: 'fuelLevel',
@@ -148,8 +150,8 @@ const simpleCards = computed((): SimpleCardConfig[] => {
       match: s.powerUsageOfDay !== null,
       icon: 'plug-circle-bolt',
       label: t('vehicle.efficiency.todayEnergy'),
-      value: s.powerUsageOfDay !== null ? formatNumber(s.powerUsageOfDay, 0) : null,
-      unit: t('common.wh'),
+      value: s.powerUsageOfDay !== null ? formatNumber(s.powerUsageOfDay) : null,
+      unit: t('common.kwh'),
     },
     {
       id: 'efficiencyCharge',
@@ -162,13 +164,10 @@ const simpleCards = computed((): SimpleCardConfig[] => {
     // efficiencyRatio - Wh/km when driving data is available
     {
       id: 'efficiencyRatio',
-      match: s.powerUsageOfDay !== null && s.mileageOfTheDay !== null && s.mileageOfTheDay > 0,
+      match: efficiencyWhPerKm !== null,
       icon: 'leaf',
       label: t('vehicle.efficiency.efficiency'),
-      value:
-        s.powerUsageOfDay !== null && s.mileageOfTheDay !== null
-          ? formatNumber(s.powerUsageOfDay / s.mileageOfTheDay, 0)
-          : null,
+      value: efficiencyWhPerKm !== null ? formatNumber(efficiencyWhPerKm, 0) : null,
       unit: `${t('common.wh')}/${t('common.km')}`,
     },
     // efficiencyRatio - fuel economy estimate for HEV/PHEV from range computer

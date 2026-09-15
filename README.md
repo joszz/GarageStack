@@ -367,7 +367,7 @@ The endpoint returns a flat JSON object. Numeric fields are `null` when the vehi
 | `hvPower` | number | HV system power (W) |
 | `odometerKm` | number | Total odometer reading (km) |
 | `mileageOfTheDayKm` | number | Distance driven today (km) |
-| `powerUsageOfDayKwh` | number | Energy used today (kWh, converted from raw Wh) |
+| `powerUsageOfDayKwh` | number | Energy used today (kWh) |
 | `electricSharePercent` | number | % of today's distance driven on electric power (PHEV) |
 | `isLocked` | string | Lock state: `"Locked"` or `"Unlocked"` |
 | `engineRunning` | string | Engine state: `"Engine on"` or `"Engine off"` |
