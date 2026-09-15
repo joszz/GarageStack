@@ -176,7 +176,7 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
             LastChargeStateAt = DateTime.UtcNow.AddHours(-8),
             MileageSinceLastCharge = 32.4,
             MileageOfTheDay = 18.2,
-            PowerUsageOfDay = 2950,
+            PowerUsageOfDay = 2.95,
             ChargingScheduleMode = "Immediate",
             ChargingScheduleStartTime = "00:00",
             ChargingScheduleEndTime = "07:00",

@@ -23,6 +23,7 @@ import SkeletonChart from '@/components/SkeletonChart.vue'
 import StatusCard from '@/components/StatusCard.vue'
 import EditableCardSlot from '@/components/EditableCardSlot.vue'
 import { formatNumber } from '@/utils/format'
+import { dailyEnergyKwh } from '@/utils/energy'
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -479,40 +480,13 @@ const dailyKwhChartData = computed(() => ({
     {
       label: 'kWh',
       data: groupedHistory.value.map((d) => {
-        const vals = d.snapshots
-          .map((s) => s.powerUsageOfDay)
-          .filter((v): v is number => v !== null)
-        if (!vals.length) return null
-
-        // Historical completed days: cumulative peak = day's total
-        if (d.key !== toLocalDateKey(new Date())) {
-          return round2(Math.max(...vals) / 1000)
-        }
-
-        // Today (partial day): sort by time and detect a true counter reset so we don't
-        // show yesterday's carryover when no driving has happened yet after midnight
-        const sorted = d.snapshots
+        const readings = d.snapshots
           .slice()
           .sort((a, b) => new Date(a.recordedAt).getTime() - new Date(b.recordedAt).getTime())
           .map((s) => s.powerUsageOfDay)
           .filter((v): v is number => v !== null)
-
-        // True reset: counter drops to <5% of recent peak (min 50 Wh to ignore noise)
-        let lastResetIdx = -1
-        let peak = sorted[0] ?? 0
-        for (let i = 1; i < sorted.length; i++) {
-          peak = Math.max(peak, sorted[i - 1]!)
-          if (sorted[i]! < Math.max(peak * 0.05, 50)) lastResetIdx = i
-        }
-
-        if (lastResetIdx >= 0) {
-          const usage = Math.max(...sorted.slice(lastResetIdx))
-          return usage > 0 ? round2(usage / 1000) : null
-        }
-
-        // No reset yet: net increase only (carryover with no driving → delta 0 → null)
-        const delta = Math.max(...sorted) - Math.min(...sorted)
-        return delta > 0 ? round2(delta / 1000) : null
+        const kwh = dailyEnergyKwh(readings, d.key === toLocalDateKey(new Date()))
+        return kwh !== null ? round2(kwh) : null
       }),
       borderColor: '#f59e0b',
       backgroundColor: 'rgba(245,158,11,0.7)',

@@ -48,6 +48,7 @@ public class TelemetrySnapshot
     public double? TyrePressureRearRight { get; set; }
 
     public double? MileageOfTheDay { get; set; }
+    // kWh, as published by the gateway
     public double? PowerUsageOfDay { get; set; }
     public double? MileageSinceLastCharge { get; set; }
 
@@ -57,6 +58,7 @@ public class TelemetrySnapshot
     public double? HvPower { get; set; }
     public double? HvSocKwh { get; set; }
     public double? HvTotalCapacityKwh { get; set; }
+    // kWh, as published by the gateway
     public double? PowerUsageSinceLastCharge { get; set; }
     public bool? ChargerConnected { get; set; }
     public bool? HvBatteryActive { get; set; }
