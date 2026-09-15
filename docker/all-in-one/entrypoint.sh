@@ -96,14 +96,14 @@ export ASPNETCORE_URLS="http://127.0.0.1:9000"
 # from a fresh named volume Docker always creates as root -- reclaim them on every start.
 chown -R appuser:appuser /data/api /data/worker /data/dataprotection
 
-# Generate Mosquitto password and ACL files from SAIC credentials.
+# Generate Mosquitto password and ACL files: the internal broker login above, plus the optional
+# Home Assistant login (HA_MQTT_USERNAME / HA_MQTT_PASSWORD, see HOME_ASSISTANT.md).
 # Mosquitto 2.x refuses to load password/ACL files unless they are owned by
 # the user it runs as (it checks the literal "mosquitto" account via getpwnam,
 # not the process's actual uid) -- run the broker as that user via gosu below.
-mosquitto_passwd -b -c /etc/mosquitto/conf.d/passwd "${MQTT_BROKER_USERNAME}" "${MQTT_BROKER_PASSWORD}"
-printf 'user %s\ntopic readwrite #\n' "${MQTT_BROKER_USERNAME}" > /etc/mosquitto/conf.d/acl
-chown mosquitto:mosquitto /etc/mosquitto/conf.d/passwd /etc/mosquitto/conf.d/acl /data/db/mosquitto
-chmod 600 /etc/mosquitto/conf.d/passwd /etc/mosquitto/conf.d/acl
+MQTT_BROKER_USERNAME="${MQTT_BROKER_USERNAME}" MQTT_BROKER_PASSWORD="${MQTT_BROKER_PASSWORD}" \
+    sh /mosquitto-auth.sh /etc/mosquitto/conf.d
+chown mosquitto:mosquitto /data/db/mosquitto
 
 # ── PostgreSQL initialisation ──────────────────────────────────────────────────
 # Guard on a dedicated marker file rather than PG_VERSION so we can recover

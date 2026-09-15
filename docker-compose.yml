@@ -5,21 +5,19 @@ services:
     restart: unless-stopped
     mem_limit: 128m
     cpus: 0.5
-    entrypoint: /bin/sh
-    command: >
-      -c "
-      set -eu;
-      rm -f /mosquitto/data/passwd /mosquitto/data/acl;
-      mosquitto_passwd -b -c /mosquitto/data/passwd \"${MQTT_BROKER_USERNAME:-garagestack}\" \"${MQTT_BROKER_PASSWORD:?Set MQTT_BROKER_PASSWORD in your .env file, see .env.example}\";
-      printf 'user %s\\ntopic readwrite #\\n' \"${MQTT_BROKER_USERNAME:-garagestack}\" > /mosquitto/data/acl;
-      chown mosquitto:mosquitto /mosquitto/data/passwd /mosquitto/data/acl;
-      chmod 600 /mosquitto/data/passwd /mosquitto/data/acl;
-      exec /docker-entrypoint.sh /usr/sbin/mosquitto -c /mosquitto/config/mosquitto.conf
-      "
+    environment:
+      MQTT_BROKER_USERNAME: "${MQTT_BROKER_USERNAME:-garagestack}"
+      MQTT_BROKER_PASSWORD: "${MQTT_BROKER_PASSWORD:?Set MQTT_BROKER_PASSWORD in your .env file, see .env.example}"
+      # Optional Home Assistant login, see HOME_ASSISTANT.md. Left empty, no HA user is created.
+      HA_MQTT_USERNAME: "${HA_MQTT_USERNAME:-}"
+      HA_MQTT_PASSWORD: "${HA_MQTT_PASSWORD:-}"
+    entrypoint: ["/bin/sh", "-c"]
+    command: ["sh /mosquitto-auth.sh /mosquitto/data && exec /docker-entrypoint.sh /usr/sbin/mosquitto -c /mosquitto/config/mosquitto.conf"]
     ports:
       - "${MQTT_BIND_ADDRESS:-127.0.0.1}:${MQTT_EXTERNAL_PORT:-1883}:1883"
     volumes:
       - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf
+      - ./docker/mosquitto-auth.sh:/mosquitto-auth.sh:ro
       - mosquitto_data:/mosquitto/data/
 
   saic-mqtt-gateway:

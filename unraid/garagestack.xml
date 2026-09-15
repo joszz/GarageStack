@@ -47,7 +47,7 @@
     Target="1883"
     Default=""
     Mode="tcp"
-    Description="Host port for the internal Mosquitto MQTT broker. Leave blank (default) to keep the broker LAN-private. Only set if you need direct MQTT access from other devices."
+    Description="Host port for the internal Mosquitto MQTT broker. Leave blank (default) to keep the broker LAN-private. Only set if you need direct MQTT access from other devices, such as Home Assistant (see HOME_ASSISTANT.md)."
     Type="Port"
     Display="advanced"
     Required="false"
@@ -212,6 +212,30 @@
     Display="advanced"
     Required="false"
     Mask="false">false</Config>
+
+  <!-- ── Home Assistant ─────────────────────────────────────────────────────── -->
+
+  <Config
+    Name="Home Assistant MQTT Username"
+    Target="HA_MQTT_USERNAME"
+    Default=""
+    Mode=""
+    Description="Optional. Creates a broker login for the Home Assistant MQTT integration, limited to the car's topics. The car then appears in Home Assistant automatically. Also set the MQTT Port above so Home Assistant can reach the broker. See HOME_ASSISTANT.md."
+    Type="Variable"
+    Display="advanced"
+    Required="false"
+    Mask="false"/>
+
+  <Config
+    Name="Home Assistant MQTT Password"
+    Target="HA_MQTT_PASSWORD"
+    Default=""
+    Mode=""
+    Description="Password for the Home Assistant MQTT login. Required when Home Assistant MQTT Username is set. Generate with: openssl rand -hex 32"
+    Type="Variable"
+    Display="advanced"
+    Required="false"
+    Mask="true"/>
 
   <!-- ── Optional variables ─────────────────────────────────────────────────── -->
 

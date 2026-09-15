@@ -31,7 +31,7 @@ without a real car, see [DEMO.md](DEMO.md).
 ```
 
 - **saic-mqtt-gateway** (`saicismartapi/saic-python-mqtt-gateway`, pinned in `docker-compose.yml`) polls the SAIC/MG cloud API on GarageStack's behalf and publishes telemetry to MQTT, and relays commands published back to MQTT to the cloud API. This is the only piece of the stack that isn't part of this repo.
-- **Mosquitto** is the MQTT broker all telemetry and commands flow through. Requires auth; not exposed to the LAN by default.
+- **Mosquitto** is the MQTT broker all telemetry and commands flow through. Requires auth; not exposed to the LAN by default. Its password and ACL files are generated on every start by [docker/mosquitto-auth.sh](docker/mosquitto-auth.sh), shared by Compose and the all-in-one image. An optional, restricted second login lets Home Assistant consume the gateway's MQTT discovery directly (see [HOME_ASSISTANT.md](HOME_ASSISTANT.md)).
 - **Worker** (`GarageStack.Worker`) subscribes to MQTT and writes telemetry to Postgres. Runs on its own, no inbound HTTP.
 - **Api** (`GarageStack.Api`) serves the REST API and SignalR hub the frontend talks to, and separately publishes outbound MQTT messages for remote commands (lock, climate, etc.).
 - **Postgres** is the only datastore. The Api also uses it as a pub/sub channel (`pg_notify`/`LISTEN`) to learn about writes the Worker makes, so it can push live updates without polling the DB.
