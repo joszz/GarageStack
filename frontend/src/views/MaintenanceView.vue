@@ -14,7 +14,7 @@ const { t } = useI18n()
 const vehicleStore = useVehicleStore()
 const store = useMaintenanceStore()
 
-const vin = computed(() => vehicleStore.vehicles[0]?.vin ?? null)
+const vin = computed(() => vehicleStore.activeVin)
 
 const formOpen = ref(false)
 const detailOpen = ref(false)

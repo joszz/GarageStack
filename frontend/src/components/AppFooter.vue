@@ -29,7 +29,7 @@ const { isOpen: modalOpen, open: openModal, close: closeModal } = useModal()
 // Joined in script rather than the template, which drops a whitespace-only text node before the version
 const copyrightLabel = ['© 2026 GarageStack', APP_VERSION].filter(Boolean).join(' ')
 
-const vin = computed(() => vehicleStore.vehicles[0]?.vin ?? null)
+const vin = computed(() => vehicleStore.activeVin)
 
 const detectedLabel = computed(() => {
   const type = vehicleStore.detectedVehicleType

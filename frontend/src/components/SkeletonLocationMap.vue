@@ -11,6 +11,7 @@
   margin-bottom: 1rem;
   max-width: 5rem;
 }
+
 .map-skel__map {
   flex: 1;
   min-height: 180px;

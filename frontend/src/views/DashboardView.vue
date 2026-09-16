@@ -6,8 +6,9 @@ import { useVehicleStore } from '@/stores/vehicle'
 import { useDashboardSettingsStore } from '@/stores/settingsDashboard'
 import { useUiSettingsStore } from '@/stores/settingsUi'
 import type { VehicleType } from '@/stores/vehicle'
-import type { CardId } from '@/stores/settingsShared'
-import { defaultCards } from '@/stores/settingsShared'
+import type { CardConfig, CardId } from '@/cards/registry'
+import { cardHasData, cardIcon, defaultCards } from '@/cards/registry'
+import { useCardData } from '@/cards/useCardData'
 import DashboardCardContent from '@/components/DashboardCardContent.vue'
 import CardInfoWrap from '@/components/CardInfoWrap.vue'
 import CarDiagram from '@/components/CarDiagram.vue'
@@ -18,7 +19,6 @@ import SkeletonCarDiagram from '@/components/SkeletonCarDiagram.vue'
 import SkeletonLocationMap from '@/components/SkeletonLocationMap.vue'
 import { useVehicleAlerts } from '@/composables/useVehicleAlerts'
 import { usePush } from '@/composables/usePush'
-import { whPerKm } from '@/utils/energy'
 import { daysAgoIso } from '@/utils/dates'
 
 const { t } = useI18n()
@@ -26,12 +26,12 @@ const store = useVehicleStore()
 const settings = useDashboardSettingsStore()
 const uiSettings = useUiSettingsStore()
 
-const vin = computed(() => store.vehicles[0]?.vin ?? null)
+const vin = computed(() => store.activeVin)
 const status = computed(() => store.currentStatus)
 const editMode = ref(false)
 
 const vehicleType = computed(() => store.effectiveVehicleType)
-const isHev = computed(() => vehicleType.value === 'hev')
+const cardData = useCardData()
 
 // Shared prop set for the two <CarDiagram> invocations (edit mode + normal mode), which
 // are otherwise identical aside from their v-if guard and wrapper class.
@@ -138,81 +138,22 @@ function toggleCardVisibility(card: { id: CardId; visible: boolean }) {
   }
 }
 
-function cardHasData(id: CardId): boolean {
-  const s = status.value
-  if (!s) return false
-  switch (id) {
-    case 'fuelLevel':
-      return s.fuelLevelPercent !== null
-    case 'fuelRange':
-      return s.fuelRangeKm !== null
-    case 'evBattery':
-      return s.evSocPercent !== null
-    case 'charging':
-      return s.isCharging !== null
-    case 'sunRoof':
-      return s.sunRoofOpen !== null
-    case 'efficiencyDistance':
-      return s.mileageOfTheDay !== null
-    case 'efficiencyEnergy':
-      return s.powerUsageOfDay !== null
-    case 'efficiencyCharge':
-      return s.mileageSinceLastCharge !== null && !isHev.value && vehicleType.value !== 'unknown'
-    case 'efficiencyRatio':
-      return (
-        whPerKm(s.powerUsageOfDay, s.mileageOfTheDay) !== null ||
-        ((isHev.value || vehicleType.value === 'phev') &&
-          s.fuelRangeKm !== null &&
-          s.fuelLevelPercent !== null &&
-          s.fuelLevelPercent > 0)
-      )
-    case 'remainingCharge':
-      return s.remainingChargingTime !== null
-    case 'chargingSession':
-    case 'batteryHeating':
-      return vehicleType.value === 'phev' || vehicleType.value === 'bev'
-    case 'topSpeed': {
-      const trip = store.trips[store.trips.length - 1]
-      return trip != null && trip.points.some((p) => p.speed !== null)
-    }
-    default:
-      return true
-  }
+function hasData(id: CardId): boolean {
+  return cardData.value !== null && cardHasData(id, cardData.value)
 }
 
-const CARD_ICONS: Record<CardId, string> = {
-  fuelLevel: 'gas-pump',
-  fuelRange: 'road',
-  evBattery: 'bolt',
-  charging: 'plug',
-  odometer: 'gauge',
-  battery12v: 'battery-three-quarters',
-  doors: 'lock',
-  windows: 'car-side',
-  sunRoof: 'sun',
-  climate: 'wind',
-  hvBattery: 'battery-half',
-  findMyCar: 'car-burst',
-  lights: 'lightbulb',
-  efficiencyDistance: 'route',
-  efficiencyEnergy: 'plug-circle-bolt',
-  efficiencyCharge: 'battery-full',
-  efficiencyRatio: 'leaf',
-  speed: 'gauge-high',
-  activeTrip: 'location-arrow',
-  remainingCharge: 'clock',
-  chargingSession: 'plug-circle-bolt',
-  batteryHeating: 'temperature-arrow-up',
-  topSpeed: 'gauge-high',
-  maintenance: 'screwdriver-wrench',
+// Visible cards that have something to show come first, then visible-but-empty ones, then the
+// hidden ones. Used for a fresh layout and for the explicit reset.
+function orderByData(cards: CardConfig[]): CardConfig[] {
+  return [
+    ...cards.filter((c) => c.visible && hasData(c.id)),
+    ...cards.filter((c) => c.visible && !hasData(c.id)),
+    ...cards.filter((c) => !c.visible),
+  ]
 }
 
 function resetLayout() {
-  const fresh = defaultCards(vehicleType.value)
-  const active = fresh.filter((c) => c.visible && cardHasData(c.id))
-  const noData = fresh.filter((c) => c.visible && !cardHasData(c.id))
-  const hidden = fresh.filter((c) => !c.visible)
-  settings.cards = [...active, ...noData, ...hidden]
+  settings.cards = orderByData(defaultCards(vehicleType.value))
   settings.showTyreDiagram = true
 }
 
@@ -268,11 +209,7 @@ onMounted(async () => {
   // On a first visit (nothing saved yet), push no-data visible cards to the end. Once a
   // layout has been saved the user's ordering is theirs and is never reshuffled on mount.
   if (!settings.hasSavedLayout && status.value) {
-    const current = [...settings.cards]
-    const active = current.filter((c) => c.visible && cardHasData(c.id))
-    const noData = current.filter((c) => c.visible && !cardHasData(c.id))
-    const hidden = current.filter((c) => !c.visible)
-    settings.cards = [...active, ...noData, ...hidden]
+    settings.cards = orderByData([...settings.cards])
   }
   document.addEventListener('visibilitychange', handleVisibilityChange)
   navigator.serviceWorker?.addEventListener('message', handleSwMessage)
@@ -350,11 +287,11 @@ onUnmounted(() => {
           @toggle-visible="toggleCardVisibility(card)"
         >
           <DashboardCardContent
-            v-if="card.visible && status && cardHasData(card.id)"
+            v-if="card.visible && status && hasData(card.id)"
             :card-id="card.id"
           />
           <div v-else class="card-slot__placeholder">
-            <font-awesome-icon :icon="CARD_ICONS[card.id]" />
+            <font-awesome-icon :icon="cardIcon(card.id)" />
             <span>{{ t(`settings.cards.${card.id}`) }}</span>
           </div>
         </EditableCardSlot>
@@ -374,7 +311,7 @@ onUnmounted(() => {
           <SkeletonLocationMap v-if="settings.showLocationMap" class="overview-row__map" />
         </div>
         <div class="status-grid">
-          <SkeletonCard v-for="card in skeletonCards" :key="card.id" :icon="CARD_ICONS[card.id]" />
+          <SkeletonCard v-for="card in skeletonCards" :key="card.id" :icon="cardIcon(card.id)" />
         </div>
       </template>
 
@@ -399,7 +336,7 @@ onUnmounted(() => {
 
         <div class="status-grid">
           <template v-for="card in settings.cards" :key="card.id">
-            <template v-if="card.visible && cardHasData(card.id)">
+            <template v-if="card.visible && hasData(card.id)">
               <CardInfoWrap
                 :title="t(`settings.cards.${card.id}`)"
                 :description="t(`dashboard.cardDesc.${card.id}`)"

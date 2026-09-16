@@ -3,7 +3,9 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { useVehicleStore } from '@/stores/vehicle'
-import type { CardId } from '@/stores/settingsShared'
+import type { CardId } from '@/cards/registry'
+import { cardHasData, cardIcon, hasEnergyEfficiency, hasFuelEconomy } from '@/cards/registry'
+import { useCardData } from '@/cards/useCardData'
 import StatusCard from './StatusCard.vue'
 import DoorsCard from './DoorsCard.vue'
 import WindowsCard from './WindowsCard.vue'
@@ -25,19 +27,21 @@ const store = useVehicleStore()
 
 interface SimpleCardConfig {
   id: CardId
-  match: boolean
-  icon: string
   label: string
   value: string | number | null
+  /** Only for cards with more than one presentation; otherwise the registry decides. */
+  match?: boolean
+  /** Only when this presentation needs a different icon than the card's registry icon. */
+  icon?: string
   unit?: string
   variant?: 'success' | 'warning' | 'danger' | 'info'
 }
 
-const vin = computed(() => store.vehicles[0]?.vin ?? null)
+const vin = computed(() => store.activeVin)
 const status = computed(() => store.currentStatus)
+const cardData = useCardData()
 
 const vehicleType = computed(() => store.effectiveVehicleType)
-const isHev = computed(() => vehicleType.value === 'hev')
 const latestTrip = computed(() => store.trips[store.trips.length - 1] ?? null)
 const topSpeedKmh = computed(() => {
   if (!latestTrip.value) return null
@@ -50,16 +54,17 @@ const supportsExternalCharge = computed(
 
 // Config table for the branches that render nothing but a plain <StatusCard>. Branches that
 // dispatch to a dedicated sub-component (doors, climate, hvBattery, etc.) stay in the
-// v-else-if chain below since they aren't simple StatusCard-only cases.
+// v-else-if chain below since they aren't simple StatusCard-only cases. Whether a card has
+// anything to show, and which icon it carries, come from the card registry; an entry only
+// spells those out where one card has two presentations to choose between.
 const simpleCards = computed((): SimpleCardConfig[] => {
   const s = status.value
-  if (!s) return []
+  const ctx = cardData.value
+  if (!s || !ctx) return []
   const efficiencyWhPerKm = whPerKm(s.powerUsageOfDay, s.mileageOfTheDay)
   return [
     {
       id: 'fuelLevel',
-      match: s.fuelLevelPercent !== null,
-      icon: 'gas-pump',
       label: t('vehicle.fuel'),
       value: s.fuelLevelPercent !== null ? Math.round(s.fuelLevelPercent) : null,
       unit: '%',
@@ -74,16 +79,12 @@ const simpleCards = computed((): SimpleCardConfig[] => {
     },
     {
       id: 'fuelRange',
-      match: s.fuelRangeKm !== null,
-      icon: 'road',
       label: t('vehicle.range'),
       value: s.fuelRangeKm !== null ? Math.round(s.fuelRangeKm) : null,
       unit: t('common.km'),
     },
     {
       id: 'evBattery',
-      match: s.evSocPercent !== null,
-      icon: 'bolt',
       label: t('vehicle.evSoc'),
       value: s.evSocPercent !== null ? Math.round(s.evSocPercent) : null,
       unit: '%',
@@ -98,24 +99,18 @@ const simpleCards = computed((): SimpleCardConfig[] => {
     },
     {
       id: 'charging',
-      match: s.isCharging !== null,
-      icon: 'plug',
       label: t('vehicle.charging'),
       value: s.isCharging ? t('vehicle.chargingYes') : t('vehicle.chargingNo'),
       variant: s.isCharging ? 'info' : undefined,
     },
     {
       id: 'odometer',
-      match: true,
-      icon: 'gauge',
       label: t('vehicle.odometer'),
       value: s.odometerKm !== null ? Math.round(s.odometerKm).toLocaleString() : null,
       unit: t('common.km'),
     },
     {
       id: 'battery12v',
-      match: true,
-      icon: 'battery-three-quarters',
       label: t('vehicle.battery'),
       value: s.batteryVoltage !== null ? formatNumber(s.batteryVoltage) : null,
       unit: 'V',
@@ -123,32 +118,24 @@ const simpleCards = computed((): SimpleCardConfig[] => {
     },
     {
       id: 'sunRoof',
-      match: s.sunRoofOpen !== null,
-      icon: 'sun',
       label: t('settings.cards.sunRoof'),
       value: s.sunRoofOpen ? t('common.open') : t('common.closed'),
       variant: s.sunRoofOpen ? 'warning' : 'success',
     },
     {
       id: 'efficiencyDistance',
-      match: s.mileageOfTheDay !== null,
-      icon: 'route',
       label: t('vehicle.efficiency.todayDistance'),
       value: s.mileageOfTheDay !== null ? formatNumber(s.mileageOfTheDay) : null,
       unit: t('common.km'),
     },
     {
       id: 'efficiencyEnergy',
-      match: s.powerUsageOfDay !== null,
-      icon: 'plug-circle-bolt',
       label: t('vehicle.efficiency.todayEnergy'),
       value: s.powerUsageOfDay !== null ? formatNumber(s.powerUsageOfDay) : null,
       unit: t('common.kwh'),
     },
     {
       id: 'efficiencyCharge',
-      match: s.mileageSinceLastCharge !== null && !isHev.value,
-      icon: 'battery-full',
       label: t('vehicle.efficiency.sinceCharge'),
       value: s.mileageSinceLastCharge !== null ? formatNumber(s.mileageSinceLastCharge) : null,
       unit: t('common.km'),
@@ -156,8 +143,7 @@ const simpleCards = computed((): SimpleCardConfig[] => {
     // efficiencyRatio - Wh/km when driving data is available
     {
       id: 'efficiencyRatio',
-      match: efficiencyWhPerKm !== null,
-      icon: 'leaf',
+      match: hasEnergyEfficiency(ctx),
       label: t('vehicle.efficiency.efficiency'),
       value: efficiencyWhPerKm !== null ? formatNumber(efficiencyWhPerKm, 0) : null,
       unit: `${t('common.wh')}/${t('common.km')}`,
@@ -165,11 +151,7 @@ const simpleCards = computed((): SimpleCardConfig[] => {
     // efficiencyRatio - fuel economy estimate for HEV/PHEV from range computer
     {
       id: 'efficiencyRatio',
-      match:
-        (isHev.value || vehicleType.value === 'phev') &&
-        s.fuelRangeKm !== null &&
-        s.fuelLevelPercent !== null &&
-        s.fuelLevelPercent > 0,
+      match: hasFuelEconomy(ctx),
       icon: 'gas-pump',
       label: t('vehicle.efficiency.fuelEconomy'),
       value:
@@ -180,16 +162,12 @@ const simpleCards = computed((): SimpleCardConfig[] => {
     },
     {
       id: 'speed',
-      match: s.speed !== null,
-      icon: 'gauge-high',
       label: t('vehicle.speed'),
       value: s.speed !== null ? Math.round(s.speed) : null,
       unit: 'km/h',
     },
     {
       id: 'remainingCharge',
-      match: s.remainingChargingTime !== null && supportsExternalCharge.value,
-      icon: 'clock',
       label: t('vehicle.remainingCharge'),
       value: s.remainingChargingTime,
       unit: t('common.min'),
@@ -197,8 +175,6 @@ const simpleCards = computed((): SimpleCardConfig[] => {
     },
     {
       id: 'topSpeed',
-      match: topSpeedKmh.value !== null,
-      icon: 'gauge-high',
       label: t('vehicle.topSpeed'),
       value: topSpeedKmh.value,
       unit: 'km/h',
@@ -206,11 +182,17 @@ const simpleCards = computed((): SimpleCardConfig[] => {
   ]
 })
 
-// At most one entry can match a given cardId (efficiencyRatio has two candidate entries,
-// so this preserves the original v-else-if "first match wins" semantics).
-const activeSimpleCard = computed(
-  () => simpleCards.value.find((c) => c.id === props.cardId && c.match) ?? null,
-)
+// At most one entry renders for a given cardId (efficiencyRatio has two candidate entries, so
+// the first match wins, as the original v-else-if chain did). An entry without its own match
+// falls back to the registry: if the card is on screen at all, its data is there.
+const activeSimpleCard = computed(() => {
+  const ctx = cardData.value
+  if (!ctx) return null
+  const entry = simpleCards.value.find(
+    (c) => c.id === props.cardId && (c.match ?? cardHasData(c.id, ctx)),
+  )
+  return entry ? { ...entry, icon: entry.icon ?? cardIcon(entry.id) } : null
+})
 </script>
 
 <template>

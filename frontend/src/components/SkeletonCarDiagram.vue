@@ -18,18 +18,21 @@
   margin-bottom: 1rem;
   max-width: 5rem;
 }
+
 .tyre-skel__car {
   width: 220px;
   max-width: 100%;
   aspect-ratio: 340 / 480;
   border-radius: var(--radius);
 }
+
 .tyre-skel__legend {
   display: flex;
   gap: 1rem;
   margin-top: 1rem;
   flex-wrap: wrap;
 }
+
 .tyre-skel__legend-item {
   height: 0.9rem;
   width: 5rem;

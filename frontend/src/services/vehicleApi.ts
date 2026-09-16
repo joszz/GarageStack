@@ -1,11 +1,16 @@
 import { request, send, buildQuery } from '@/services/apiCore'
 
+/** Drivetrains the API can report, detected from the vehicle's hardware version. */
+export type VehicleType = 'hev' | 'phev' | 'bev' | 'unknown'
+
 export interface Vehicle {
   id: number
   vin: string
   model: string | null
   series: string | null
   createdAt: string
+  /** Drivetrain the API detected from the vehicle's hardware version. */
+  vehicleType: VehicleType
 }
 
 export interface TelemetrySnapshot {

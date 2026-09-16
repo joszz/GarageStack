@@ -21,7 +21,7 @@ import FiltersPanel from '@/components/FiltersPanel.vue'
 import SkeletonCard from '@/components/SkeletonCard.vue'
 import SkeletonChart from '@/components/SkeletonChart.vue'
 import StatusCard from '@/components/StatusCard.vue'
-import StatsChartCard from '@/components/StatsChartCard.vue'
+import StatsChartCard, { type StatsChartType } from '@/components/StatsChartCard.vue'
 import EditableCardSlot from '@/components/EditableCardSlot.vue'
 import { formatNumber } from '@/utils/format'
 import { dailyEnergyKwh } from '@/utils/energy'
@@ -40,7 +40,7 @@ const aggregateStats = ref<VehicleAggregateStats | null>(null)
 // directly writable, reactive binding with no computed({get, set}) wrapper needed.
 const { filterDays: days } = storeToRefs(uiSettings)
 
-const vin = computed(() => store.vehicles[0]?.vin ?? null)
+const vin = computed(() => store.activeVin)
 const status = computed(() => store.currentStatus)
 
 async function load() {
@@ -478,9 +478,9 @@ interface ChartDef {
   description: string
   vehicleApplicable: boolean
   applicable: boolean
-  isBar: boolean
-  data: ChartData<'line'>
-  options: ChartOptions<'line'>
+  type: StatsChartType
+  data: ChartData<StatsChartType>
+  options: ChartOptions<StatsChartType>
 }
 
 const chartDefs = computed((): ChartDef[] => [
@@ -491,7 +491,7 @@ const chartDefs = computed((): ChartDef[] => [
     description: t('statistics.chartDesc.evChart'),
     vehicleApplicable: hasLargeEv.value,
     applicable: hasLargeEv.value && store.history.length > 0,
-    isBar: false,
+    type: 'line',
     data: evChartData.value,
     options: percentOptions,
   },
@@ -502,7 +502,7 @@ const chartDefs = computed((): ChartDef[] => [
     description: t('statistics.chartDesc.tyreChart'),
     vehicleApplicable: true,
     applicable: store.history.length > 0,
-    isBar: false,
+    type: 'line',
     data: tyreChartData.value,
     options: pressureOptions,
   },
@@ -513,7 +513,7 @@ const chartDefs = computed((): ChartDef[] => [
     description: t('statistics.chartDesc.hybridSocChart'),
     vehicleApplicable: isHybrid.value,
     applicable: isHybrid.value && store.history.length > 0,
-    isBar: false,
+    type: 'line',
     data: hybridSocChartData.value,
     options: hybridSocOptions,
   },
@@ -524,8 +524,8 @@ const chartDefs = computed((): ChartDef[] => [
     description: t('statistics.chartDesc.dailyKwhChart'),
     vehicleApplicable: isHybrid.value,
     applicable: isHybrid.value && store.history.length > 0,
-    isBar: true,
-    data: dailyKwhChartData.value as ChartData<'line'>,
+    type: 'bar',
+    data: dailyKwhChartData.value,
     options: kwhOptions,
   },
 ])
@@ -700,7 +700,7 @@ const skeletonChartCount = computed(
               <StatsChartCard
                 v-if="chartDefMap.get(item.id)?.applicable && store.history.length"
                 :title="chartDefMap.get(item.id)!.title"
-                :is-bar="chartDefMap.get(item.id)!.isBar"
+                :type="chartDefMap.get(item.id)!.type"
                 :data="chartDefMap.get(item.id)!.data"
                 :options="chartDefMap.get(item.id)!.options"
                 :show-info="uiSettings.showCardInfoIcons"
@@ -719,7 +719,7 @@ const skeletonChartCount = computed(
               <StatsChartCard
                 v-if="item.visible && chartDefMap.get(item.id)?.applicable"
                 :title="chartDefMap.get(item.id)!.title"
-                :is-bar="chartDefMap.get(item.id)!.isBar"
+                :type="chartDefMap.get(item.id)!.type"
                 :data="chartDefMap.get(item.id)!.data"
                 :options="chartDefMap.get(item.id)!.options"
                 :show-info="uiSettings.showCardInfoIcons"
@@ -782,7 +782,7 @@ const skeletonChartCount = computed(
   overflow: hidden;
 }
 
-@media (min-width: 768px) {
+@media (width >= 768px) {
   .parking-modal-map {
     height: 420px;
   }
@@ -808,14 +808,14 @@ const skeletonChartCount = computed(
   max-width: 100% !important;
 }
 
-@media (min-width: 992px) {
+@media (width >= 992px) {
   .stats-chart-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 1.25rem;
   }
 }
 
-@media (min-width: 1500px) {
+@media (width >= 1500px) {
   .stats-chart-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }

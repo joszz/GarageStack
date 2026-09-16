@@ -10,7 +10,7 @@ const props = defineProps<{ open: boolean }>()
 const { t } = useI18n()
 const vehicleStore = useVehicleStore()
 
-const vin = computed(() => vehicleStore.vehicles[0]?.vin ?? null)
+const vin = computed(() => vehicleStore.activeVin)
 const status = computed(() => vehicleStore.currentStatus)
 
 interface ToggleButtonConfig {

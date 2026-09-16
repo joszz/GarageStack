@@ -1,4 +1,4 @@
-@import '@vueform/multiselect/themes/default.css';
+@import url('@vueform/multiselect/themes/default.css');
 
 :root {
   --color-bg: #0f1117;
@@ -24,7 +24,7 @@
 
 [data-theme='light'] {
   --color-bg: #f0f4f8;
-  --color-surface: #ffffff;
+  --color-surface: #fff;
   --color-surface-2: #e8edf3;
   --color-border: #cdd5df;
   --color-text: #1a202c;
@@ -93,7 +93,7 @@ html,
 body,
 #app {
   height: 100%;
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: Inter, system-ui, sans-serif;
   background: var(--color-bg);
   color: var(--color-text);
 }
@@ -169,7 +169,7 @@ body,
   display: none;
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgb(0 0 0 / 60%);
   z-index: 1000;
 }
 
@@ -265,9 +265,11 @@ body,
 .text-sm {
   font-size: 0.85rem;
 }
+
 .text-success {
   color: var(--color-success);
 }
+
 .text-danger {
   color: var(--color-danger);
 }
@@ -277,18 +279,23 @@ body,
 .mt-2 {
   margin-top: 0.5rem;
 }
+
 .mt-3 {
   margin-top: 1rem;
 }
+
 .mt-4 {
   margin-top: 1.5rem;
 }
+
 .mb-4 {
   margin-bottom: 1.5rem;
 }
+
 .ms-2 {
   margin-left: 0.5rem;
 }
+
 .text-xs {
   font-size: 0.75rem;
 }
@@ -336,12 +343,15 @@ body,
 .status-card--success {
   border-left: 3px solid var(--color-success);
 }
+
 .status-card--warning {
   border-left: 3px solid var(--color-warning);
 }
+
 .status-card--danger {
   border-left: 3px solid var(--color-danger);
 }
+
 .status-card--info {
   border-left: 3px solid var(--color-info);
 }
@@ -415,7 +425,7 @@ body,
   position: fixed;
   inset: 0;
   z-index: 1100;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgb(0 0 0 / 60%);
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -568,7 +578,7 @@ body,
   transform: translateY(100%);
 }
 
-@media (min-width: 768px) {
+@media (width >= 768px) {
   .detail-modal-backdrop {
     align-items: center;
   }
@@ -629,29 +639,30 @@ body,
 }
 
 .road-edge {
-  stroke: rgba(255, 255, 255, 0.35);
+  stroke: rgb(255 255 255 / 35%);
   stroke-width: 1.5;
 }
 
 [data-theme='light'] .road-edge {
-  stroke: rgba(255, 255, 255, 0.7);
+  stroke: rgb(255 255 255 / 70%);
 }
 
 .road-center-dash {
-  stroke: rgba(255, 255, 255, 0.6);
+  stroke: rgb(255 255 255 / 60%);
   stroke-width: 2.5;
   stroke-dasharray: 30 15;
   animation: road-scroll 1s linear infinite;
 }
 
 [data-theme='light'] .road-center-dash {
-  stroke: rgba(255, 255, 255, 0.85);
+  stroke: rgb(255 255 255 / 85%);
 }
 
 @keyframes road-scroll {
   from {
     stroke-dashoffset: 0;
   }
+
   to {
     stroke-dashoffset: -45;
   }
@@ -693,7 +704,7 @@ body,
   flex-direction: column;
 }
 
-@media (max-width: 767px) {
+@media (width <= 767px) {
   .overview-row {
     flex-direction: column;
   }
@@ -791,7 +802,7 @@ body,
   border-radius: 6px;
   color: var(--color-text);
   cursor: pointer;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 20%);
   transition: background 0.15s;
 }
 
@@ -902,43 +913,50 @@ body,
 .car-svg-body {
   fill: var(--car-primary, #f9b233);
 }
+
 .car-svg-accent {
   fill: var(--car-secondary, #f39200);
 }
+
 .car-svg-detail {
   fill: #3a3020;
 }
+
 .car-svg-dark {
   fill: #1d1d1b;
 }
+
 .car-svg-red {
   fill: #e6332a;
 }
+
 .car-svg-highlight {
   fill: #ededed;
   opacity: 0.7;
 }
+
 .car-svg-gloss {
-  fill: #ffffff;
+  fill: #fff;
   opacity: 0.18;
 }
 
 [data-theme='light'] .car-svg-detail {
   fill: #4a3c20;
 }
+
 [data-theme='light'] .car-svg-dark {
   fill: #2d2d2d;
 }
 
 /* Live car marker (buildCarMarkerIcon in utils/mapCarIcon.ts) - used on both MapView and the
-   dashboard's location preview, so it lives here rather than in either view's own <style>
+   dashboard's location preview, so it lives here rather than in either view's own \3c style>
    block to guarantee it's loaded regardless of which route the user opens first. */
 .trip-marker--active {
   width: 24px;
   height: 46px;
   pointer-events: none;
   transform-origin: center;
-  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.5));
+  filter: drop-shadow(0 1px 3px rgb(0 0 0 / 50%));
 }
 
 .trip-marker-car-svg {
@@ -962,6 +980,7 @@ body,
 }
 
 /* ── Pressure label positioning ──────────────────────────── */
+
 /*
   Labels float at the outer endpoints of the indicator lines.
   SVG viewBox -40 0 420 480; line ends at FL(72,131) FR(268,131) RL(72,341) RR(268,341).
@@ -993,16 +1012,19 @@ body,
   left: 26.7%;
   transform: translate(-100%, -50%);
 }
+
 .tyre-label--fr {
   top: 27.3%;
   left: 73.3%;
   transform: translate(0%, -50%);
 }
+
 .tyre-label--rl {
   top: 71%;
   left: 26.7%;
   transform: translate(-100%, -50%);
 }
+
 .tyre-label--rr {
   top: 71%;
   left: 73.3%;
@@ -1013,19 +1035,23 @@ body,
   border-color: var(--color-success);
   color: var(--color-success);
 }
+
 .tyre-label--warning {
   border-color: var(--color-warning);
   color: var(--color-warning);
 }
+
 .tyre-label--danger {
   border-color: var(--color-danger);
   color: var(--color-danger-text);
 }
+
 .tyre-label--unknown {
   color: var(--color-text-muted);
 }
 
 /* ── Fuel / battery level overlays ───────────────────────── */
+
 /*
   Car top (front) sits at ~24% from SVG top; car bottom (rear) at ~76%.
   Overlays are centered in the empty space above/below the car.
@@ -1042,7 +1068,7 @@ body,
   font-weight: 700;
   color: var(--level-color, var(--color-text));
   background: var(--color-surface);
-  border: 1px solid currentColor;
+  border: 1px solid currentcolor;
   border-radius: 20px;
   padding: 3px 10px;
   white-space: nowrap;
@@ -1082,6 +1108,7 @@ body,
   100% {
     opacity: 0;
   }
+
   50% {
     opacity: 0.38;
   }
@@ -1119,6 +1146,7 @@ body,
   from {
     stroke-dashoffset: 14;
   }
+
   to {
     stroke-dashoffset: 0;
   }
@@ -1132,17 +1160,18 @@ body,
 @keyframes badge-charge-pulse {
   0%,
   100% {
-    box-shadow: 0 0 0 1.5px rgba(34, 197, 94, 0.55);
+    box-shadow: 0 0 0 1.5px rgb(34 197 94 / 55%);
   }
+
   50% {
     box-shadow:
-      0 0 0 2.5px rgba(34, 197, 94, 0.3),
-      0 0 10px rgba(34, 197, 94, 0.45);
+      0 0 0 2.5px rgb(34 197 94 / 30%),
+      0 0 10px rgb(34 197 94 / 45%);
   }
 }
 
 .diagram-level--connected {
-  box-shadow: 0 0 0 1.5px rgba(59, 130, 246, 0.6);
+  box-shadow: 0 0 0 1.5px rgb(59 130 246 / 60%);
 }
 
 /* ── Car diagram light beams ──────────────────────────────── */
@@ -1152,34 +1181,41 @@ body,
   100% {
     opacity: 1;
   }
+
   50% {
     opacity: 0.55;
   }
 }
 
 .car-light-beam {
-  fill: url(#beam-grad-dipped);
+  fill: url('#beam-grad-dipped');
   animation: beam-shimmer 2.8s ease-in-out infinite;
 }
+
 .car-light-beam--main {
-  fill: url(#beam-grad-main);
+  fill: url('#beam-grad-main');
 }
+
 [data-theme='light'] .car-light-beam,
 [data-theme='light'] .car-light-beam--main {
   filter: saturate(2.5) brightness(0.72);
 }
+
 .car-light-beam--side-l,
 .car-light-beam--side-r {
   animation: beam-shimmer 2.8s ease-in-out infinite;
 }
+
 .car-light-beam--side-l {
-  fill: url(#beam-grad-side-l);
+  fill: url('#beam-grad-side-l');
 }
+
 .car-light-beam--side-r {
-  fill: url(#beam-grad-side-r);
+  fill: url('#beam-grad-side-r');
 }
 
 /* ── Open panel icon badges ───────────────────────────────── */
+
 /*
   Circular warning badges floating at each panel location.
   Positions derived from SVG viewBox -40 0 420 480; CSS % = (svg_x + 40) / 420.
@@ -1202,7 +1238,7 @@ body,
   pointer-events: auto;
   user-select: none;
   border: 2px solid var(--color-surface);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 40%);
 }
 
 .car-badge--bonnet {
@@ -1210,26 +1246,31 @@ body,
   left: 50%;
   transform: translate(-50%, -50%);
 }
+
 .car-badge--trunk {
   top: 75%;
   left: 50%;
   transform: translate(-50%, -50%);
 }
+
 .car-badge--door-fl {
   top: 45%;
   left: 37.4%;
   transform: translate(-50%, -50%);
 }
+
 .car-badge--door-fr {
   top: 45%;
   left: 62.6%;
   transform: translate(-50%, -50%);
 }
+
 .car-badge--door-rl {
   top: 56%;
   left: 37.4%;
   transform: translate(-50%, -50%);
 }
+
 .car-badge--door-rr {
   top: 56%;
   left: 62.6%;
@@ -1265,6 +1306,7 @@ body,
   100% {
     opacity: 0.55;
   }
+
   50% {
     opacity: 0.9;
   }
@@ -1274,6 +1316,7 @@ body,
   animation: pulse-pending 1.8s ease-in-out infinite;
   cursor: not-allowed;
 }
+
 .btn:not(:disabled):hover {
   filter: brightness(1.15);
 }
@@ -1287,22 +1330,27 @@ body,
   background: var(--color-primary);
   color: #fff;
 }
+
 .btn-success {
   background: var(--color-success);
   color: #fff;
 }
+
 .btn-warning {
   background: var(--color-warning);
   color: #000;
 }
+
 .btn-danger {
   background: var(--color-danger);
   color: #fff;
 }
+
 .btn-orange {
   background: #f97316;
   color: #fff;
 }
+
 .btn-outline-secondary {
   border-color: var(--color-border);
   color: var(--color-text);
@@ -1323,18 +1371,22 @@ body,
   background: var(--color-success);
   color: #fff;
 }
+
 .badge-warning {
   background: var(--color-warning);
   color: #000;
 }
+
 .badge-danger {
   background: var(--color-danger);
   color: #fff;
 }
+
 .badge-info {
   background: var(--color-info);
   color: #fff;
 }
+
 .badge-secondary {
   background: var(--color-surface-2);
   color: var(--color-text-muted);
@@ -1496,7 +1548,10 @@ body,
 
 /* ── Multiselect (fuel brand filter, notification type filter) ──────────── */
 
-/* --ms-* vars set on :root so they cascade to the body-teleported dropdown too */
+/* --ms-* vars set on :root so they cascade to the body-teleported dropdown too. Kept here,
+   next to the rest of the multiselect theming, rather than merged into the palette at the top
+   of the file. */
+/* stylelint-disable-next-line no-duplicate-selectors */
 :root {
   --ms-bg: var(--color-surface-2);
   --ms-bg-disabled: var(--color-surface);
@@ -1511,7 +1566,6 @@ body,
   --ms-caret-color: var(--color-text-muted);
   --ms-clear-color: var(--color-text-muted);
   --ms-clear-color-hover: var(--color-text);
-
   --ms-tag-font-size: 0.8rem;
   --ms-tag-font-weight: 500;
   --ms-tag-line-height: 1.25;
@@ -1527,14 +1581,11 @@ body,
   --ms-tag-remove-radius: 3px;
   --ms-tag-remove-py: 0.2rem;
   --ms-tag-remove-px: 0.2rem;
-
   --ms-dropdown-bg: var(--color-surface);
   --ms-dropdown-border-color: var(--color-border);
   --ms-dropdown-border-width: 1px;
   --ms-dropdown-radius: 6px;
-
   --ms-placeholder-color: var(--color-text-muted);
-
   --ms-option-font-size: 0.875rem;
   --ms-option-bg-pointed: var(--color-surface-2);
   --ms-option-color-pointed: var(--color-text);
@@ -1546,9 +1597,7 @@ body,
   --ms-option-color-disabled: var(--color-text-muted);
   --ms-option-py: 0.5rem;
   --ms-option-px: 0.75rem;
-
   --ms-empty-color: var(--color-text-muted);
-
   --ms-ring-width: 2px;
   --ms-ring-color: color-mix(in srgb, var(--color-primary) 30%, transparent);
 }
@@ -1645,7 +1694,7 @@ body,
   padding: 0;
   cursor: pointer;
   background: linear-gradient(135deg, var(--swatch-s) 50%, var(--swatch-p) 50%);
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.15);
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 15%);
   outline: 2.5px solid transparent;
   outline-offset: 3px;
   transition:
@@ -1828,6 +1877,7 @@ body,
   from {
     transform: rotate(-0.4deg);
   }
+
   to {
     transform: rotate(0.4deg);
   }
@@ -1849,12 +1899,15 @@ body,
 .card-slot:nth-child(2n) {
   animation-delay: 0.06s;
 }
+
 .card-slot:nth-child(3n) {
   animation-delay: 0.12s;
 }
+
 .card-slot:nth-child(4n) {
   animation-delay: 0.03s;
 }
+
 .card-slot:nth-child(5n) {
   animation-delay: 0.09s;
 }
@@ -1986,6 +2039,7 @@ body,
   0% {
     transform: translateX(-100%);
   }
+
   100% {
     transform: translateX(100%);
   }
@@ -2116,7 +2170,7 @@ body,
 
 /* ── Mobile breakpoint ────────────────────────────────────── */
 
-@media (max-width: 767px) {
+@media (width <= 767px) {
   /* Show topbar, hide desktop sidebar brand */
   .mobile-topbar {
     display: flex;
@@ -2153,7 +2207,7 @@ body,
     z-index: 300;
     transform: translateX(-100%);
     transition: transform 0.25s ease;
-    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.5);
+    box-shadow: 4px 0 24px rgb(0 0 0 / 50%);
   }
 
   /* Elevate above Leaflet controls (z-index 1000) only while the drawer is
@@ -2204,7 +2258,7 @@ body,
 
 /* ── Very small phones (< 400px) ─────────────────────────── */
 
-@media (max-width: 399px) {
+@media (width <= 399px) {
   .main-content {
     padding: 0.5rem;
   }
@@ -2220,7 +2274,7 @@ body,
 
 /* ── Tablet (600–1023px) ──────────────────────────────────── */
 
-@media (min-width: 600px) and (max-width: 1023px) {
+@media (width >= 600px) and (width <= 1023px) {
   .main-content {
     padding: 1.5rem;
   }
@@ -2232,7 +2286,7 @@ body,
 
 /* ── Large desktop (1440px+) ──────────────────────────────── */
 
-@media (min-width: 1440px) {
+@media (width >= 1440px) {
   .status-grid {
     grid-template-columns: repeat(6, 1fr);
   }
@@ -2245,7 +2299,7 @@ body,
 
 /* ── Full-HD and above (1920px+) ──────────────────────────── */
 
-@media (min-width: 1920px) {
+@media (width >= 1920px) {
   .status-grid {
     grid-template-columns: repeat(8, 1fr);
   }
@@ -2255,7 +2309,7 @@ body,
   }
 }
 
-@media (min-width: 2500px) {
+@media (width >= 2500px) {
   .status-grid {
     grid-template-columns: repeat(12, 1fr);
   }
@@ -2385,7 +2439,6 @@ body,
 
 .notif-bell {
   position: relative;
-  flex-shrink: 0;
   background: none;
   border: none;
   color: var(--color-text-muted);
@@ -2458,7 +2511,7 @@ body,
   margin-left: auto;
 }
 
-@media (max-width: 767px) {
+@media (width <= 767px) {
   .sidebar-notif-btn {
     display: none;
   }
@@ -2470,7 +2523,7 @@ body,
   position: fixed;
   inset: 0;
   z-index: 1100;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgb(0 0 0 / 50%);
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -2768,7 +2821,7 @@ body,
   transform: translateY(100%);
 }
 
-@media (min-width: 768px) {
+@media (width >= 768px) {
   .notif-backdrop {
     align-items: center;
   }
@@ -2837,7 +2890,7 @@ body,
   background-color: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 50%);
   padding: 1rem;
 }
 
@@ -2945,7 +2998,7 @@ body,
   transform: translateX(-8px);
 }
 
-@media (max-width: 767px) {
+@media (width <= 767px) {
   .demo-panel {
     left: 1rem;
     right: 1rem;
@@ -2967,7 +3020,7 @@ body,
   font-size: 0.875rem;
   font-weight: 500;
   z-index: 2000;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 4px 16px rgb(0 0 0 / 25%);
   pointer-events: none;
 }
 

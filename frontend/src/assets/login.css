@@ -105,7 +105,7 @@
 .login-field__input:-webkit-autofill,
 .login-field__input:-webkit-autofill:hover,
 .login-field__input:-webkit-autofill:focus {
-  -webkit-box-shadow: 0 0 0 1000px var(--color-surface-2) inset !important;
+  box-shadow: 0 0 0 1000px var(--color-surface-2) inset !important;
   -webkit-text-fill-color: var(--color-text) !important;
   caret-color: var(--color-text);
   border-color: var(--color-border) !important;
@@ -132,8 +132,8 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  background: rgba(239, 68, 68, 0.12);
-  border: 1px solid rgba(239, 68, 68, 0.3);
+  background: rgb(239 68 68 / 12%);
+  border: 1px solid rgb(239 68 68 / 30%);
   border-radius: 6px;
   color: var(--color-danger-text);
   font-size: 0.83rem;
@@ -175,8 +175,8 @@
 }
 
 .login-note--warning {
-  background: rgba(239, 68, 68, 0.12);
-  border-color: rgba(239, 68, 68, 0.3);
+  background: rgb(239 68 68 / 12%);
+  border-color: rgb(239 68 68 / 30%);
   color: var(--color-danger-text);
 }
 

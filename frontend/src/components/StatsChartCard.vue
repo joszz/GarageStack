@@ -1,6 +1,11 @@
+<script lang="ts">
+/** The chart kinds this card can draw, so bar data never has to pose as line data. */
+export type StatsChartType = 'line' | 'bar'
+</script>
+
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
-import { Line, Bar } from 'vue-chartjs'
+import { Chart } from 'vue-chartjs'
 import type { ChartData, ChartOptions } from 'chart.js'
 import {
   Chart as ChartJS,
@@ -8,6 +13,7 @@ import {
   LinearScale,
   PointElement,
   LineElement,
+  LineController,
   BarElement,
   BarController,
   Title,
@@ -22,6 +28,7 @@ ChartJS.register(
   LinearScale,
   PointElement,
   LineElement,
+  LineController,
   BarElement,
   BarController,
   Title,
@@ -32,9 +39,9 @@ ChartJS.register(
 
 defineProps<{
   title: string
-  isBar: boolean
-  data: ChartData<'line'>
-  options: ChartOptions<'line'>
+  type: StatsChartType
+  data: ChartData<StatsChartType>
+  options: ChartOptions<StatsChartType>
   showInfo: boolean
 }>()
 
@@ -54,6 +61,6 @@ const { t } = useI18n()
       <font-awesome-icon icon="circle-info" />
     </button>
     <h2>{{ title }}</h2>
-    <component :is="isBar ? Bar : Line" :data="data" :options="options" />
+    <Chart :type="type" :data="data" :options="options" />
   </div>
 </template>
