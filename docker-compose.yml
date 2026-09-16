@@ -1,3 +1,25 @@
+# Settings both .NET services need. Compose reads .env for ${...} interpolation on its own, so
+# every value a container gets is listed explicitly here: no env_file, and no secret reaching a
+# container that has no use for it (the Worker never sees the OIDC or widget credentials, the API
+# never sees the notification language).
+x-dotnet-environment: &dotnet-environment
+  ASPNETCORE_ENVIRONMENT: "Production"
+  DEBUG_LOGS: "${DEBUG_LOGS:-false}"
+  ConnectionStrings__DefaultConnection: "Host=${POSTGRES_HOST:-postgres};Port=${POSTGRES_PORT:-5432};Database=${POSTGRES_DB:-garagestack};Username=${POSTGRES_USER:-garagestack};Password=${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in your .env file, see .env.example}"
+  Mqtt__Host: "${MQTT_HOST:-mosquitto}"
+  Mqtt__Port: "${MQTT_PORT:-1883}"
+  Mqtt__Username: "${MQTT_BROKER_USERNAME:-garagestack}"
+  Mqtt__Password: "${MQTT_BROKER_PASSWORD:?Set MQTT_BROKER_PASSWORD in your .env file, see .env.example}"
+  Vapid__PublicKey: "${VAPID_PUBLIC_KEY}"
+  Vapid__PrivateKey: "${VAPID_PRIVATE_KEY}"
+  Vapid__Subject: "mailto:${SAIC_USER}"
+  # Colour-coding and notification thresholds (bar); the API paints them, the Worker alerts on
+  # them. Left unset here on purpose: the app holds the defaults, so they are not restated (and
+  # cannot drift) in the deployment files.
+  TyrePressure__LowBar: "${TYRE_PRESSURE_LOW_BAR:-}"
+  TyrePressure__GoodBar: "${TYRE_PRESSURE_GOOD_BAR:-}"
+  TyrePressure__HighBar: "${TYRE_PRESSURE_HIGH_BAR:-}"
+
 services:
   mosquitto:
     image: eclipse-mosquitto:2
@@ -83,23 +105,10 @@ services:
         condition: service_started
       api:
         condition: service_healthy
-    env_file:
-      - .env
     environment:
-      ASPNETCORE_ENVIRONMENT: "Production"
-      ConnectionStrings__DefaultConnection: "Host=${POSTGRES_HOST:-postgres};Port=${POSTGRES_PORT:-5432};Database=${POSTGRES_DB:-garagestack};Username=${POSTGRES_USER:-garagestack};Password=${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in your .env file, see .env.example}"
-      Mqtt__Host: "${MQTT_HOST:-mosquitto}"
-      Mqtt__Port: "${MQTT_PORT:-1883}"
-      Mqtt__Username: "${MQTT_BROKER_USERNAME:-garagestack}"
-      Mqtt__Password: "${MQTT_BROKER_PASSWORD:?Set MQTT_BROKER_PASSWORD in your .env file, see .env.example}"
-      Vapid__PublicKey: "${VAPID_PUBLIC_KEY}"
-      Vapid__PrivateKey: "${VAPID_PRIVATE_KEY}"
-      Vapid__Subject: "mailto:${SAIC_USER}"
+      <<: *dotnet-environment
       # Language of push notification texts (en or nl); the Worker has no browser to ask.
       Notifications__Culture: "${NOTIFICATION_LANGUAGE:-en}"
-      TyrePressure__LowBar: "${TYRE_PRESSURE_LOW_BAR:-2.2}"
-      TyrePressure__GoodBar: "${TYRE_PRESSURE_GOOD_BAR:-2.6}"
-      TyrePressure__HighBar: "${TYRE_PRESSURE_HIGH_BAR:-3.2}"
     volumes:
       - worker_logs:/app/logs
 
@@ -121,11 +130,8 @@ services:
         required: false
       mosquitto:
         condition: service_started
-    env_file:
-      - .env
     environment:
-      ASPNETCORE_ENVIRONMENT: "Production"
-      ConnectionStrings__DefaultConnection: "Host=${POSTGRES_HOST:-postgres};Port=${POSTGRES_PORT:-5432};Database=${POSTGRES_DB:-garagestack};Username=${POSTGRES_USER:-garagestack};Password=${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in your .env file, see .env.example}"
+      <<: *dotnet-environment
       Cors__Origins__0: "${CORS_ORIGIN:-http://localhost:8080}"
       SAIC_USER: "${SAIC_USER}"
       SAIC_PASSWORD: "${SAIC_PASSWORD}"
@@ -149,21 +155,13 @@ services:
       Oidc__GroupsClaim: "${OIDC_GROUPS_CLAIM:-groups}"
       Oidc__RedirectUri: "${OIDC_REDIRECT_URI:-}"
       Oidc__RequireHttpsMetadata: "${OIDC_REQUIRE_HTTPS_METADATA:-true}"
-      Mqtt__Host: "${MQTT_HOST:-mosquitto}"
-      Mqtt__Port: "${MQTT_PORT:-1883}"
-      Mqtt__Username: "${MQTT_BROKER_USERNAME:-garagestack}"
-      Mqtt__Password: "${MQTT_BROKER_PASSWORD:?Set MQTT_BROKER_PASSWORD in your .env file, see .env.example}"
-      Vapid__PublicKey: "${VAPID_PUBLIC_KEY}"
-      Vapid__PrivateKey: "${VAPID_PRIVATE_KEY}"
-      Vapid__Subject: "mailto:${SAIC_USER}"
       Widget__ApiKey: "${WIDGET_API_KEY:-}"
       OpenChargeMap__ApiKey: "${OPENCHARGEMAP_API_KEY:-}"
+      # Only worth setting when you self-host Overpass; the public endpoint needs no key.
+      Overpass__BaseUrl: "${OVERPASS__BASEURL:-https://overpass-api.de/api/interpreter}"
       Auth__CookieSecure: "${AUTH_COOKIE_SECURE:-false}"
       Auth__SessionLifetimeHours: "${AUTH_SESSION_LIFETIME_HOURS:-168}"
-      RateLimits__GlobalPerMinute: "${RATE_LIMIT_GLOBAL_PER_MINUTE:-120}"
-      TyrePressure__LowBar: "${TYRE_PRESSURE_LOW_BAR:-2.2}"
-      TyrePressure__GoodBar: "${TYRE_PRESSURE_GOOD_BAR:-2.6}"
-      TyrePressure__HighBar: "${TYRE_PRESSURE_HIGH_BAR:-3.2}"
+      RateLimits__GlobalPerMinute: "${RATE_LIMIT_GLOBAL_PER_MINUTE:-}"
     ports:
       - "127.0.0.1:${API_PORT:-5000}:8080"
     volumes:

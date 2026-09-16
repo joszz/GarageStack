@@ -5,8 +5,11 @@ ENV VITE_DEMO_MODE=$VITE_DEMO_MODE
 # OS_PATCH_DATE busts the layer cache so apk upgrade actually re-runs instead of
 # reusing a stale cached layer from before an OS package fix was published.
 ARG OS_PATCH_DATE=0
-RUN echo "os patch date: ${OS_PATCH_DATE}" && apk upgrade --no-cache && corepack enable && corepack prepare pnpm@11.1.3 --activate
+RUN echo "os patch date: ${OS_PATCH_DATE}" && apk upgrade --no-cache && corepack enable
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+# No version here: corepack takes it from package.json's packageManager field, so the pnpm
+# version is pinned in one place for local installs, CI and every image.
+RUN corepack prepare --activate
 RUN pnpm config set minimum-release-age 0 && pnpm install --frozen-lockfile --ignore-scripts
 COPY . .
 # Declared after install so a new version does not bust the dependency layer cache.

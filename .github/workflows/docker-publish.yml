@@ -94,7 +94,14 @@ jobs:
         id: minver
         shell: bash
         run: |
-          dotnet tool install --global minver-cli --version 7.0.0
+          # Same MinVer the build uses to stamp the assemblies, read from the central pin so
+          # the image tag and the version inside it can never come from different majors.
+          MINVER_VERSION=$(sed -n 's/.*Include="MinVer" Version="\([^"]*\)".*/\1/p' Directory.Packages.props)
+          if [ -z "$MINVER_VERSION" ]; then
+            echo "Could not read the MinVer version from Directory.Packages.props" >&2
+            exit 1
+          fi
+          dotnet tool install --global minver-cli --version "$MINVER_VERSION"
           VERSION=$(minver . -t v -p preview.0 | tail -n 1 | tr -d '\r')
           if [ -z "$VERSION" ]; then
             echo "MinVer produced an empty version" >&2
