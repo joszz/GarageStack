@@ -35,6 +35,18 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.HasIndex(s => new { s.VehicleId, s.Latitude, s.Longitude, s.RecordedAt })
              .HasDatabaseName("IX_TelemetrySnapshots_VehicleId_LatLon_RecordedAt")
              .HasFilter("\"Latitude\" IS NOT NULL AND \"Longitude\" IS NOT NULL");
+            // Backs GetMergedLatestAsync's schedule fallback, which looks for the newest row
+            // carrying any charging or heating schedule. Schedules are only published when the
+            // user changes one, so most vehicles have no such row at all: without this filtered
+            // index that lookup reads the entire history on every status cache miss, which is
+            // after every telemetry write. The index only holds the rare rows that match.
+            e.HasIndex(
+                s => new { s.VehicleId, s.RecordedAt },
+                "IX_TelemetrySnapshots_VehicleId_RecordedAt_Schedule")
+             .HasFilter(
+                 "\"ChargingScheduleMode\" IS NOT NULL OR \"ChargingScheduleStartTime\" IS NOT NULL " +
+                 "OR \"ChargingScheduleEndTime\" IS NOT NULL OR \"BatteryHeatingScheduleMode\" IS NOT NULL " +
+                 "OR \"BatteryHeatingScheduleStartTime\" IS NOT NULL");
             e.HasOne(s => s.Vehicle)
              .WithMany(v => v.TelemetrySnapshots)
              .HasForeignKey(s => s.VehicleId)

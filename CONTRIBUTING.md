@@ -23,6 +23,15 @@ To work against the full stack (real or self-provided credentials):
 - Run the test suite before opening a PR:
   - Backend: `dotnet test`
   - Frontend: `pnpm test:unit`
+- Touching the frontend, nginx config or the Content-Security-Policy? Run the browser smoke tests too. They drive the production bundle behind the production nginx config, which is the only place the policy applies:
+
+  ```bash
+  cp .env.demo.example .env.demo
+  docker compose -f docker-compose.demo.yml up -d --build   # repository root
+  cd frontend && pnpm exec playwright install chromium && pnpm test:e2e
+  docker compose -f docker-compose.demo.yml down             # when you are done
+  ```
+
 - Make sure linting and formatting pass:
   - Backend: `dotnet build` (analyzers run as part of the build, warnings are errors) and `dotnet format GarageStack.slnx`
   - Frontend: `pnpm lint` and `pnpm format`

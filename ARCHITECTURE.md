@@ -78,6 +78,10 @@ process-local one doesn't already provide. Two caches exist today:
   and be queried by bounding box - a job a plain in-memory cache isn't suited for anyway. The
   brand filter list is a DISTINCT over the `Brand` column, extracted from the upstream metadata
   at ingest, with a short in-memory cache on top that every tile upsert invalidates.
+- The status query's fallbacks are index-backed. Charging and heating schedules are only
+  published when the user changes one, so most vehicles have no such row at all: a filtered index
+  (`IX_TelemetrySnapshots_VehicleId_RecordedAt_Schedule`) keeps that lookup from reading the
+  entire history on every cache miss, which is after every telemetry write.
 - Session revocation (`TokenRevocation`) is checked by the cookie handler on every authenticated
   request. The answer is cached in memory: a revocation made by this process is written to the
   cache immediately, a "not revoked" answer is trusted for five minutes, so the check costs no
@@ -118,6 +122,19 @@ CI runs the second command, and the pending-model-changes warning is not suppres
 REST calls go through `frontend/src/services/` - `apiCore.ts` centralizes the `fetch` wrapper (cookie-based auth, shared 401 handling, the JSON request helpers), and each domain area (`vehicleApi.ts`, `maintenanceApi.ts`, `notificationsApi.ts`, `mapApi.ts`, etc.) builds on it. Real-time updates use `useSignalR.ts` as described above, not polling.
 
 The vehicle store owns `effectiveVehicleType` (the user's manual override, else the type detected from the gateway's `hw_version`); views derive their `isHev`/`isBev` style flags from it rather than repeating the override logic. The TypeScript interfaces in `services/` mirror the API's DTOs by hand; the history endpoint returns `TelemetryHistoryPoint` (the chart fields only), not full snapshots.
+
+## Tests
+
+Backend tests (xUnit) and frontend unit tests (Vitest) cover logic in isolation. On top of those,
+`frontend/e2e/` holds Playwright smoke tests that run against the demo stack from
+`docker-compose.demo.yml`, which is the production frontend image with the real nginx config.
+
+That distinction matters: the Content-Security-Policy is served by nginx, so it does not exist in
+the Vite dev server or in jsdom. A change that every other check accepts can still break the
+shipped app, which is exactly what happened when the policy began covering `index.html` and
+blocked FontAwesome's runtime stylesheet. The smoke tests fail on any policy violation, and they
+check the handful of things that only appear in a real browser, such as icon sizing and the
+rotated map marker. CI runs them in the `e2e` job; see CONTRIBUTING.md for running them locally.
 
 ## Build conventions
 

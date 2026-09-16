@@ -85,6 +85,10 @@ export Cors__Origins__0="${CORS_ORIGIN:-http://localhost:8080}"
 # Homepage widget API key (optional -- leave empty to disable the widget endpoint)
 export Widget__ApiKey="${WIDGET_API_KEY:-}"
 
+# API requests per minute per client IP. Optional -- raise it when several people share one
+# public address, lower it to tighten the budget.
+export RateLimits__GlobalPerMinute="${RATE_LIMIT_GLOBAL_PER_MINUTE:-120}"
+
 # Tyre pressure colour-coding / notification thresholds (bar). Optional -- defaults to
 # 2.2 / 2.6 / 3.2 (the app's built-in values) when unset.
 export TyrePressure__LowBar="${TYRE_PRESSURE_LOW_BAR:-2.2}"

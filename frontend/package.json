@@ -8,12 +8,13 @@
     "build": "pnpm run type-check && pnpm run build-only",
     "preview": "vite preview",
     "test:unit": "vitest",
+    "test:e2e": "playwright test",
     "build-only": "vite build",
     "type-check": "vue-tsc --build",
     "lint": "pnpm run lint:oxlint && pnpm run lint:eslint",
     "lint:oxlint": "oxlint . --fix",
     "lint:eslint": "eslint . --fix --cache",
-    "format": "prettier --write --experimental-cli src/"
+    "format": "prettier --write --experimental-cli src/ e2e/"
   },
   "dependencies": {
     "@fortawesome/fontawesome-svg-core": "^7.3.1",
@@ -41,6 +42,7 @@
     "workbox-window": "^7.4.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@resvg/resvg-js": "^2.6.2",
     "@tsconfig/node24": "^24.0.5",
     "@types/jsdom": "^30.0.0",

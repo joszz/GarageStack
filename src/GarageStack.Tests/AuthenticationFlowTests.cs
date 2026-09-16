@@ -408,6 +408,34 @@ public class AuthenticationFlowTests
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
+    // ── Rate limiting ─────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task GlobalRateLimit_RejectsRequests_PastTheConfiguredBudget()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var factory = CreatePasswordOnlyFactory(
+            settings => settings["RateLimits__GlobalPerMinute"] = "1");
+        using var client = CreateClient(factory);
+
+        var allowed = await client.GetAsync("/api/auth/config", ct);
+        var rejected = await client.GetAsync("/api/auth/config", ct);
+
+        Assert.Equal(HttpStatusCode.OK, allowed.StatusCode);
+        Assert.Equal(HttpStatusCode.TooManyRequests, rejected.StatusCode);
+    }
+
+    [Fact]
+    public async Task GlobalRateLimit_FailsStartup_WhenTheBudgetLocksEveryoneOut()
+    {
+        await using var factory = CreatePasswordOnlyFactory(
+            settings => settings["RateLimits__GlobalPerMinute"] = "0");
+
+        // The entry point logs the reason and exits, so the host never reaches the test server:
+        // a budget that would reject every request stops the app instead of silently breaking it.
+        Assert.Throws<InvalidOperationException>(() => CreateClient(factory));
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     /// <summary>
@@ -459,11 +487,12 @@ public class AuthenticationFlowTests
         return new TestApiFactory(settings, idp);
     }
 
-    private static TestApiFactory CreatePasswordOnlyFactory()
+    private static TestApiFactory CreatePasswordOnlyFactory(Action<Dictionary<string, string?>>? configure = null)
     {
         var settings = BaseSettings();
         settings["Auth__Username"] = DemoUsername;
         settings["Auth__Password"] = DemoPassword;
+        configure?.Invoke(settings);
 
         return new TestApiFactory(settings, idp: null);
     }

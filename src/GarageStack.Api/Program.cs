@@ -108,10 +108,20 @@ try
 
     builder.Services.AddGarageStackAuthentication(builder.Configuration, builder.Environment);
 
+    // Requests per minute per client IP across the whole API. Configurable because the right
+    // number depends on the deployment: a household sharing one NAT address, or a browser test
+    // run driving several pages in parallel, bursts well past what a single tab needs.
+    var globalPermitsPerMinute = builder.Configuration.GetValue("RateLimits:GlobalPerMinute", 120);
+    if (globalPermitsPerMinute < 1)
+    {
+        throw new InvalidOperationException(
+            $"RateLimits:GlobalPerMinute must be at least 1, but was {globalPermitsPerMinute}.");
+    }
+
     builder.Services.AddRateLimiter(opts =>
     {
         opts.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-        opts.GlobalLimiter = PartitionedRateLimiter.Create(FixedWindowPerIp(TimeSpan.FromMinutes(1), permitLimit: 120));
+        opts.GlobalLimiter = PartitionedRateLimiter.Create(FixedWindowPerIp(TimeSpan.FromMinutes(1), globalPermitsPerMinute));
 
         // Tighter, endpoint-specific limit on login to slow down credential-stuffing attempts.
         // Composes with (i.e. is enforced in addition to) the global limiter above.
@@ -124,7 +134,7 @@ try
         opts.AddPolicy("oidc-login", FixedWindowPerIp(TimeSpan.FromMinutes(5), permitLimit: 30));
 
         // Tighter limit on the widget endpoint to slow down guessing WIDGET_API_KEY, which the
-        // global limiter alone (120/min) would allow at a much higher rate. Still generous
+        // global limiter alone (120/min by default) would allow at a much higher rate. Still generous
         // enough for a handful of dashboard widgets behind the same NAT polling every 30s.
         opts.AddPolicy("widget", FixedWindowPerIp(TimeSpan.FromMinutes(5), permitLimit: 60));
     });

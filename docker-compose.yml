@@ -160,6 +160,7 @@ services:
       OpenChargeMap__ApiKey: "${OPENCHARGEMAP_API_KEY:-}"
       Auth__CookieSecure: "${AUTH_COOKIE_SECURE:-false}"
       Auth__SessionLifetimeHours: "${AUTH_SESSION_LIFETIME_HOURS:-168}"
+      RateLimits__GlobalPerMinute: "${RATE_LIMIT_GLOBAL_PER_MINUTE:-120}"
       TyrePressure__LowBar: "${TYRE_PRESSURE_LOW_BAR:-2.2}"
       TyrePressure__GoodBar: "${TYRE_PRESSURE_GOOD_BAR:-2.6}"
       TyrePressure__HighBar: "${TYRE_PRESSURE_HIGH_BAR:-3.2}"
