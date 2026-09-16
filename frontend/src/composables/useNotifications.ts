@@ -27,7 +27,13 @@ function errorMessage(err: unknown): string {
 }
 
 export function prependNotification(notification: AppNotification) {
-  notifications.value = [notification, ...notifications.value]
+  // A live notification is new, so it is never archived. Defaulting the flag keeps a payload
+  // from an older API version out of the panel's "neither tab" gap, where a missing value
+  // matches neither the active nor the archived filter.
+  notifications.value = [
+    { ...notification, isArchived: notification.isArchived ?? false },
+    ...notifications.value,
+  ]
 }
 const panelOpen = ref(false)
 const loading = ref(false)

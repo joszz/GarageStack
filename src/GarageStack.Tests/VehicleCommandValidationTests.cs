@@ -83,19 +83,29 @@ public class VehicleCommandValidationTests
     }
 
     // ── charge-limit ─────────────────────────────────────────────────────────
+    // saic-mqtt-gateway maps drivetrain/chargeCurrentLimit/set onto ChargeCurrentLimitCode,
+    // whose only members are 6A, 8A, 16A and MAX. It upper-cases the payload before the lookup,
+    // so casing does not matter. Earlier this endpoint expected a percentage, which meant every
+    // charge-limit button in the UI was answered with 400.
     [Theory]
-    [InlineData("1")]
-    [InlineData("80")]
-    [InlineData("100")]
-    public void ChargeLimit_ValidRange_ReturnsNull(string value)
+    [InlineData("6A")]
+    [InlineData("8A")]
+    [InlineData("16A")]
+    [InlineData("MAX")]
+    [InlineData("max")]
+    [InlineData("Max")]
+    public void ChargeLimit_GatewayValues_ReturnsNull(string value)
     {
         Assert.Null(VehicleEndpoints.ValidateCommandValue("charge-limit", value));
     }
 
     [Theory]
     [InlineData("0")]
-    [InlineData("101")]
-    [InlineData("max")]
+    [InlineData("80")]
+    [InlineData("100")]
+    [InlineData("12A")]
+    [InlineData("6")]
+    [InlineData("")]
     public void ChargeLimit_InvalidValues_ReturnsError(string value)
     {
         Assert.NotNull(VehicleEndpoints.ValidateCommandValue("charge-limit", value));

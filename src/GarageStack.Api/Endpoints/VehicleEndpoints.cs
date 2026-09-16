@@ -216,6 +216,9 @@ public static class VehicleEndpoints
         return app;
     }
 
+    private static readonly HashSet<string> ChargeCurrentLimits =
+        new(["6A", "8A", "16A", "MAX"], StringComparer.OrdinalIgnoreCase);
+
     internal static string? ValidateCommandValue(string command, string value) => command switch
     {
         "climate" or "rear-defroster" =>
@@ -230,10 +233,12 @@ public static class VehicleEndpoints
                 : $"'{command}' value must be an integer between 0 and 3",
         "find-my-car" =>
             value is "activate" or "stop" ? null : "'find-my-car' value must be 'activate' or 'stop'",
+        // The gateway maps this onto its ChargeCurrentLimitCode enum, which only knows these
+        // four values (it upper-cases the payload first, so any casing is accepted here).
         "charge-limit" =>
-            int.TryParse(value, out var limit) && limit is >= 1 and <= 100
+            ChargeCurrentLimits.Contains(value)
                 ? null
-                : "'charge-limit' value must be an integer between 1 and 100",
+                : $"'charge-limit' value must be one of {string.Join(", ", ChargeCurrentLimits)}",
         "lock" =>
             value is "True" or "False" ? null : "'lock' value must be 'True' or 'False'",
         "refresh" =>

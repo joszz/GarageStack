@@ -16,7 +16,10 @@ public sealed record NotificationCreatedPayload(
     DateTime CreatedAt,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Category,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] int? VehicleId,
-    int? UnreadCount)
+    int? UnreadCount,
+    // The frontend's notification panel splits the list into active and archived, so the flag
+    // has to travel with the payload: without it a live notification matches neither tab.
+    bool IsArchived)
 {
     public static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
@@ -27,7 +30,8 @@ public sealed record NotificationCreatedPayload(
         notification.CreatedAt,
         notification.Category,
         notification.VehicleId,
-        unreadCount);
+        unreadCount,
+        notification.IsArchived);
 
     public string ToJson() => JsonSerializer.Serialize(this, JsonOptions);
 
