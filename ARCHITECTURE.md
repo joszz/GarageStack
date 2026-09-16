@@ -78,6 +78,10 @@ process-local one doesn't already provide. Two caches exist today:
   and be queried by bounding box - a job a plain in-memory cache isn't suited for anyway. The
   brand filter list is a DISTINCT over the `Brand` column, extracted from the upstream metadata
   at ingest, with a short in-memory cache on top that every tile upsert invalidates.
+- The status query's fallbacks are index-backed. Charging and heating schedules are only
+  published when the user changes one, so most vehicles have no such row at all: a filtered index
+  (`IX_TelemetrySnapshots_VehicleId_RecordedAt_Schedule`) keeps that lookup from reading the
+  entire history on every cache miss, which is after every telemetry write.
 - Session revocation (`TokenRevocation`) is checked by the cookie handler on every authenticated
   request. The answer is cached in memory: a revocation made by this process is written to the
   cache immediately, a "not revoked" answer is trusted for five minutes, so the check costs no
