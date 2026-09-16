@@ -81,7 +81,7 @@ function onDismiss() {
   width: 72px;
   height: 72px;
   border-radius: 18px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 16px rgb(0 0 0 / 30%);
 }
 
 .pwa-install-modal__content {
@@ -157,7 +157,7 @@ function onDismiss() {
   cursor: pointer;
 }
 
-@media (min-width: 768px) {
+@media (width >= 768px) {
   .pwa-install-modal {
     max-width: 380px;
   }

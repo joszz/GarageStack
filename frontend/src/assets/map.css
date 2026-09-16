@@ -102,18 +102,23 @@
 .trip-list__dot--0 {
   background: #3b82f6;
 }
+
 .trip-list__dot--1 {
   background: #10b981;
 }
+
 .trip-list__dot--2 {
   background: #f59e0b;
 }
+
 .trip-list__dot--3 {
   background: #ef4444;
 }
+
 .trip-list__dot--4 {
   background: #8b5cf6;
 }
+
 .trip-list__dot--5 {
   background: #ec4899;
 }
@@ -131,7 +136,7 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   padding: 6px 8px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 20%);
   font-size: 0.7rem;
   min-width: 130px;
   pointer-events: none;
@@ -156,14 +161,14 @@
   height: 36px;
   border-radius: 50%;
   background: #16a34a;
-  border: 3px solid rgba(22, 163, 74, 0.35);
+  border: 3px solid rgb(22 163 74 / 35%);
   display: flex;
   align-items: center;
   justify-content: center;
   color: #fff;
   font-size: 12px;
   font-weight: 700;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 30%);
 }
 
 /* Charging station markers (Leaflet divIcon - cannot be scoped) */
@@ -173,7 +178,7 @@
   border-radius: 50%;
   background: #22c55e;
   border: 2px solid #fff;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 35%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -192,7 +197,7 @@
   height: 28px;
   border-radius: 50%;
   border: 2px solid #fff;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 35%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -213,24 +218,24 @@
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  border: 3px solid rgba(0, 0, 0, 0.15);
+  border: 3px solid rgb(0 0 0 / 15%);
   display: flex;
   align-items: center;
   justify-content: center;
   color: #fff;
   font-size: 12px;
   font-weight: 700;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 30%);
 }
 
 .poi-cluster--fuel {
   background: #d97706;
-  border-color: rgba(217, 119, 6, 0.35);
+  border-color: rgb(217 119 6 / 35%);
 }
 
 .poi-cluster--service-area {
   background: #7c3aed;
-  border-color: rgba(124, 58, 237, 0.35);
+  border-color: rgb(124 58 237 / 35%);
 }
 
 .poi-popup {
@@ -265,7 +270,7 @@
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 20%);
   pointer-events: none;
   white-space: nowrap;
 }
@@ -303,7 +308,7 @@
   list-style: none;
   padding: 4px 0 0;
   margin: 4px 0 0;
-  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  border-top: 1px solid rgb(0 0 0 / 10%);
 }
 
 .charging-popup__connectors li {
@@ -404,7 +409,7 @@
 /* Trips above the map: below the tablet breakpoint the nav sidebar (220px) plus the fixed
    290px trip sidebar leave too little width for a usable map, so stack them here rather than
    waiting for the general mobile breakpoint below. */
-@media (max-width: 1023px) {
+@media (width <= 1023px) {
   .map-layout {
     flex-direction: column;
   }
@@ -423,7 +428,7 @@
   }
 }
 
-@media (max-width: 767px) {
+@media (width <= 767px) {
   .map-controls {
     flex-wrap: wrap;
     gap: 0.4rem;

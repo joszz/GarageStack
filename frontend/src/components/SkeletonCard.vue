@@ -34,6 +34,7 @@ defineProps<{
   font-size: 0.72rem;
   color: transparent;
 }
+
 .card-skel__value {
   font-size: 1.05rem;
   color: transparent;

@@ -59,8 +59,8 @@ const {
   deleteAllNotifications,
 } = useNotifications()
 
-const carModel = computed(() => vehicleStore.vehicles[0]?.model ?? null)
-const vehicleId = computed(() => vehicleStore.vehicles[0]?.id ?? null)
+const carModel = computed(() => vehicleStore.activeVehicle?.model ?? null)
+const vehicleId = computed(() => vehicleStore.activeVehicle?.id ?? null)
 
 const availabilityToast = ref<'online' | 'offline' | null>(null)
 let toastTimer: ReturnType<typeof setTimeout> | null = null

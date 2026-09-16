@@ -47,21 +47,36 @@ const passwordConfig: AuthConfigResponse = {
   oidcAutoLogin: false,
 }
 
-async function mountLogin(config: AuthConfigResponse | null) {
-  if (config) {
-    vi.mocked(authApi.config).mockResolvedValue(config)
-  } else {
-    vi.mocked(authApi.config).mockRejectedValue(new Error('unreachable'))
-  }
-
-  const wrapper = mount(LoginView, {
+function mountComponent() {
+  return mount(LoginView, {
     global: {
       plugins: [createPinia(), i18n],
       stubs: { FontAwesomeIcon: FaStub },
     },
   })
+}
+
+async function mountLogin(config: AuthConfigResponse) {
+  vi.mocked(authApi.config).mockResolvedValue(config)
+
+  const wrapper = mountComponent()
   await flushPromises()
   return wrapper
+}
+
+/** Mounts with an API that never answers, and lets the page exhaust its retries. */
+async function mountWithUnreachableApi() {
+  vi.mocked(authApi.config).mockRejectedValue(new Error('unreachable'))
+  vi.useFakeTimers()
+  try {
+    const wrapper = mountComponent()
+    await flushPromises()
+    await vi.advanceTimersByTimeAsync(10_000)
+    await flushPromises()
+    return wrapper
+  } finally {
+    vi.useRealTimers()
+  }
 }
 
 describe('LoginView', () => {
@@ -103,10 +118,43 @@ describe('LoginView', () => {
     expect(wrapper.find('form').exists()).toBe(true)
   })
 
-  it('reports that nothing is available when the server offers no sign-in method', async () => {
-    const wrapper = await mountLogin(null)
+  it('reports a configuration problem when the server offers no sign-in method', async () => {
+    const wrapper = await mountLogin({
+      passwordLoginEnabled: false,
+      oidcEnabled: false,
+      oidcProviderName: null,
+      oidcAutoLogin: false,
+    })
 
-    expect(wrapper.text()).toContain('No sign-in method is available')
+    expect(wrapper.text()).toContain('No sign-in method is configured')
+  })
+
+  it('keeps trying, then offers a retry, when the API cannot be reached', async () => {
+    const wrapper = await mountWithUnreachableApi()
+
+    // One first attempt plus the retries, rather than giving up on the first failure.
+    expect(vi.mocked(authApi.config).mock.calls.length).toBeGreaterThan(1)
+    expect(wrapper.text()).toContain('Could not reach the API')
+    expect(wrapper.text()).not.toContain('No sign-in method is configured')
+    expect(wrapper.find('[data-testid="config-retry"]').exists()).toBe(true)
+  })
+
+  it('shows the sign-in methods when a retry reaches an API that was still starting', async () => {
+    vi.mocked(authApi.config)
+      .mockRejectedValueOnce(new Error('unreachable'))
+      .mockResolvedValue(passwordConfig)
+    vi.useFakeTimers()
+    try {
+      const wrapper = mountComponent()
+      await flushPromises()
+      await vi.advanceTimersByTimeAsync(10_000)
+      await flushPromises()
+
+      expect(wrapper.find('form').exists()).toBe(true)
+      expect(wrapper.text()).not.toContain('Could not reach the API')
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   // ── Return URL ────────────────────────────────────────────────────────────

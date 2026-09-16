@@ -15,56 +15,56 @@ vi.mock('@/services/vehicleApi', () => ({
   },
 }))
 
+function vehicle(vehicleType: Vehicle['vehicleType']): Vehicle {
+  return {
+    id: 1,
+    vin: 'FAKEVN00000000001',
+    model: 'MG',
+    series: null,
+    createdAt: '2026-01-01T00:00:00Z',
+    vehicleType,
+  }
+}
+
 describe('useVehicleStore - detectedVehicleType', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
   })
 
-  it('returns unknown when hw_version is absent', () => {
+  it('returns unknown before any vehicle has been fetched', () => {
     const store = useVehicleStore()
     expect(store.detectedVehicleType).toBe('unknown')
   })
 
-  it('detects phev from hw_version containing PHEV', () => {
+  it('reports the type the API detected for the active vehicle', () => {
     const store = useVehicleStore()
-    store.vehicleConfig['hw_version'] = 'MG_PHEV_1.2'
+    store.vehicles = [vehicle('phev')]
     expect(store.detectedVehicleType).toBe('phev')
   })
 
-  it('detects hev from hw_version containing HEV (not PHEV)', () => {
+  it('returns unknown when the API could not detect a type', () => {
     const store = useVehicleStore()
-    store.vehicleConfig['hw_version'] = 'MG_HEV_1.0'
-    expect(store.detectedVehicleType).toBe('hev')
-  })
-
-  it('detects bev from hw_version containing BEV', () => {
-    const store = useVehicleStore()
-    store.vehicleConfig['hw_version'] = 'MG_BEV_1.0'
-    expect(store.detectedVehicleType).toBe('bev')
-  })
-
-  it('detects bev from hw_version containing EV', () => {
-    const store = useVehicleStore()
-    store.vehicleConfig['hw_version'] = 'ZS_EV_SERIES_2'
-    expect(store.detectedVehicleType).toBe('bev')
-  })
-
-  it('returns unknown for an unrecognised hw_version string', () => {
-    const store = useVehicleStore()
-    store.vehicleConfig['hw_version'] = 'SOME_UNKNOWN_MODEL'
+    store.vehicles = [vehicle('unknown')]
     expect(store.detectedVehicleType).toBe('unknown')
   })
+})
 
-  it('is case-insensitive (lowercased input)', () => {
-    const store = useVehicleStore()
-    store.vehicleConfig['hw_version'] = 'mg_phev_1.2'
-    expect(store.detectedVehicleType).toBe('phev')
+describe('useVehicleStore - activeVehicle', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
   })
 
-  it('prefers phev over hev when hw_version contains PHEV', () => {
+  it('is null while the vehicle list is empty', () => {
     const store = useVehicleStore()
-    store.vehicleConfig['hw_version'] = 'PHEV_HEV_COMBO'
-    expect(store.detectedVehicleType).toBe('phev')
+    expect(store.activeVehicle).toBeNull()
+    expect(store.activeVin).toBeNull()
+  })
+
+  it('is the first vehicle in the list', () => {
+    const store = useVehicleStore()
+    store.vehicles = [vehicle('bev'), { ...vehicle('hev'), id: 2, vin: 'FAKEVN00000000002' }]
+    expect(store.activeVehicle?.id).toBe(1)
+    expect(store.activeVin).toBe('FAKEVN00000000001')
   })
 })
 
@@ -76,14 +76,14 @@ describe('useVehicleStore - effectiveVehicleType', () => {
 
   it('follows the detected type while the override is auto', () => {
     const store = useVehicleStore()
-    store.vehicleConfig['hw_version'] = 'MG_PHEV_1.2'
+    store.vehicles = [vehicle('phev')]
     expect(store.effectiveVehicleType).toBe('phev')
   })
 
   it('uses the manual override when one is set', () => {
     const store = useVehicleStore()
     const ui = useUiSettingsStore()
-    store.vehicleConfig['hw_version'] = 'MG_PHEV_1.2'
+    store.vehicles = [vehicle('phev')]
     ui.vehicleTypeOverride = 'hev'
     expect(store.effectiveVehicleType).toBe('hev')
   })
@@ -98,7 +98,7 @@ describe('useVehicleStore - fetchVehicles', () => {
   it('populates vehicles on success', async () => {
     const { vehicleApi } = await import('@/services/vehicleApi')
     vi.mocked(vehicleApi.list).mockResolvedValue([
-      { id: 1, vin: 'ABC123', model: 'MG ZS EV', series: null, createdAt: '' },
+      { id: 1, vin: 'ABC123', model: 'MG ZS EV', series: null, createdAt: '', vehicleType: 'bev' },
     ])
     const store = useVehicleStore()
     await store.fetchVehicles()

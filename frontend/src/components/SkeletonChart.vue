@@ -11,6 +11,7 @@
   height: 1.6rem;
   margin-bottom: 1rem;
 }
+
 /* aspect-ratio matches Chart.js aspectRatio: 2.6 so no height jump on load */
 .chart-skel__body {
   width: 100%;

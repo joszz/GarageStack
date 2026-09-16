@@ -43,8 +43,9 @@ public class MaintenanceCheckService(
         using var scope = scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var telemetry = scope.ServiceProvider.GetRequiredService<ITelemetryRepository>();
+        var vehicleRepo = scope.ServiceProvider.GetRequiredService<IVehicleRepository>();
 
-        var vehicles = await db.Vehicles.ToListAsync(ct);
+        var vehicles = await vehicleRepo.GetAllAsync(ct);
 
         // One query for every vehicle's items instead of one query per vehicle (mirrors the
         // grouped-lookup pattern PoiPreCachingService already uses for latest-location data).

@@ -65,7 +65,8 @@ public static class VehicleEndpoints
         group.MapGet("/", async (IVehicleRepository vehicles, CancellationToken ct) =>
         {
             var all = await vehicles.GetAllAsync(ct);
-            return Results.Ok(all.Select(v => new VehicleListItemDto(v.Id, v.Vin, v.Model, v.Series, v.CreatedAt)));
+            return Results.Ok(all.Select(v => new VehicleListItemDto(
+                v.Id, v.Vin, v.Model, v.Series, v.CreatedAt, VehicleTypeHelper.GetVehicleType(v))));
         })
         .WithSummary("List all vehicles");
 
@@ -249,4 +250,15 @@ public static class VehicleEndpoints
     };
 }
 
-public record VehicleListItemDto(int Id, string Vin, string? Model, string? Series, DateTime CreatedAt);
+/// <summary>
+/// A vehicle as the list endpoint returns it. <c>VehicleType</c> is the drivetrain detected from
+/// the vehicle's reported hardware version (hev, phev, bev, or unknown while nothing has reported
+/// one), served here so every client reads the same answer instead of parsing it themselves.
+/// </summary>
+public record VehicleListItemDto(
+    int Id,
+    string Vin,
+    string? Model,
+    string? Series,
+    DateTime CreatedAt,
+    string VehicleType);

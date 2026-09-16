@@ -87,13 +87,13 @@ export Widget__ApiKey="${WIDGET_API_KEY:-}"
 
 # API requests per minute per client IP. Optional -- raise it when several people share one
 # public address, lower it to tighten the budget.
-export RateLimits__GlobalPerMinute="${RATE_LIMIT_GLOBAL_PER_MINUTE:-120}"
+export RateLimits__GlobalPerMinute="${RATE_LIMIT_GLOBAL_PER_MINUTE:-}"
 
-# Tyre pressure colour-coding / notification thresholds (bar). Optional -- defaults to
-# 2.2 / 2.6 / 3.2 (the app's built-in values) when unset.
-export TyrePressure__LowBar="${TYRE_PRESSURE_LOW_BAR:-2.2}"
-export TyrePressure__GoodBar="${TYRE_PRESSURE_GOOD_BAR:-2.6}"
-export TyrePressure__HighBar="${TYRE_PRESSURE_HIGH_BAR:-3.2}"
+# Tyre pressure colour-coding / notification thresholds (bar). Optional. Empty means "use the
+# app's own defaults", so those numbers live in one place instead of being restated here.
+export TyrePressure__LowBar="${TYRE_PRESSURE_LOW_BAR:-}"
+export TyrePressure__GoodBar="${TYRE_PRESSURE_GOOD_BAR:-}"
+export TyrePressure__HighBar="${TYRE_PRESSURE_HIGH_BAR:-}"
 
 # .NET API listens on an internal port; nginx proxies port 80 to it
 export ASPNETCORE_URLS="http://127.0.0.1:9000"

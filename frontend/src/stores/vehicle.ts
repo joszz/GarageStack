@@ -3,6 +3,7 @@ import { ref, shallowRef, computed, nextTick } from 'vue'
 import {
   vehicleApi,
   type Vehicle,
+  type VehicleType,
   type TelemetrySnapshot,
   type TelemetryHistoryPoint,
   type Trip,
@@ -10,7 +11,9 @@ import {
 import { useUiSettingsStore } from '@/stores/settingsUi'
 import { useLoadingTracker } from '@/composables/useLoadingTracker'
 
-export type VehicleType = 'hev' | 'phev' | 'bev' | 'unknown'
+// Defined with the API contract it comes from; re-exported here because every view reads the
+// vehicle's type through this store.
+export type { VehicleType }
 
 export const useVehicleStore = defineStore('vehicle', () => {
   const uiSettings = useUiSettingsStore()
@@ -100,15 +103,16 @@ export const useVehicleStore = defineStore('vehicle', () => {
     })
   }
 
-  // Derived from hw_version in vehicleConfig, set by HA discovery MQTT messages. Order is
-  // load-bearing: "PHEV" contains "HEV" and "EV", so the most specific match goes first.
-  const detectedVehicleType = computed((): VehicleType => {
-    const hw = (vehicleConfig.value['hw_version'] ?? '').toUpperCase()
-    if (hw.includes('PHEV')) return 'phev'
-    if (hw.includes('HEV')) return 'hev'
-    if (hw.includes('EV')) return 'bev'
-    return 'unknown'
-  })
+  // GarageStack follows one car. Every view needs the same one, so "the first vehicle" is
+  // resolved here instead of being re-derived from the list by index in each component.
+  const activeVehicle = computed((): Vehicle | null => vehicles.value[0] ?? null)
+  const activeVin = computed((): string | null => activeVehicle.value?.vin ?? null)
+
+  // Detected by the API from the vehicle's reported hardware version, so the rule lives in one
+  // place rather than once per client. Unknown until a vehicle has been fetched.
+  const detectedVehicleType = computed(
+    (): VehicleType => activeVehicle.value?.vehicleType ?? 'unknown',
+  )
 
   // What every view should treat the car as: the user's manual override when set, otherwise
   // the detected type. Defined once here rather than in each view.
@@ -119,6 +123,8 @@ export const useVehicleStore = defineStore('vehicle', () => {
 
   return {
     vehicles,
+    activeVehicle,
+    activeVin,
     currentStatus,
     vehicleConfig,
     detectedVehicleType,

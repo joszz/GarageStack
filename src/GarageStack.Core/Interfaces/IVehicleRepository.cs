@@ -25,4 +25,10 @@ public interface IVehicleRepository
     Task SetConfigValueAsync(int vehicleId, string key, string value, CancellationToken ct = default);
 
     Task SetModelAsync(int vehicleId, string model, CancellationToken ct = default);
+
+    /// <summary>
+    /// Records when the vehicle was last parked, so the "parked recently" grace period survives
+    /// a Worker restart.
+    /// </summary>
+    Task SetLastParkedAtAsync(int vehicleId, DateTime parkedAt, CancellationToken ct = default);
 }

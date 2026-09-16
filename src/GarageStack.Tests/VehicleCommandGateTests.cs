@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using GarageStack.Api;
 
 namespace GarageStack.Tests;
@@ -23,22 +24,29 @@ public class VehicleCommandGateTests
         var holdDuration = TimeSpan.FromMilliseconds(150);
         var gate = new VehicleCommandGate(holdDuration);
 
-        var firstPublishedAt = DateTime.MinValue;
-        var secondStartedAt = DateTime.MinValue;
+        // Stopwatch, not DateTime.UtcNow: the system clock ticks about once every 15ms on
+        // Windows, so a wait of exactly the hold duration can read back as slightly less.
+        // Task.Delay rounds to that same tick and may fire just inside it, hence the slack:
+        // the point being tested is that the second command waits for the window, not that the
+        // timer is accurate to the millisecond.
+        var timerSlack = TimeSpan.FromMilliseconds(16);
+        var firstPublishedAt = 0L;
+        var secondStartedAt = 0L;
 
         await gate.RunAsync("VIN1", () =>
         {
-            firstPublishedAt = DateTime.UtcNow;
+            firstPublishedAt = Stopwatch.GetTimestamp();
             return Task.CompletedTask;
         }, ct);
 
         await gate.RunAsync("VIN1", () =>
         {
-            secondStartedAt = DateTime.UtcNow;
+            secondStartedAt = Stopwatch.GetTimestamp();
             return Task.CompletedTask;
         }, ct);
 
-        Assert.True(secondStartedAt - firstPublishedAt >= holdDuration);
+        var waited = Stopwatch.GetElapsedTime(firstPublishedAt, secondStartedAt);
+        Assert.True(waited >= holdDuration - timerSlack, $"second command ran after {waited.TotalMilliseconds}ms");
     }
 
     [Fact]

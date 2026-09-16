@@ -117,11 +117,28 @@ dotnet ef migrations has-pending-model-changes --project src/GarageStack.Data --
 
 CI runs the second command, and the pending-model-changes warning is not suppressed anywhere, so a model change without a migration fails before it reaches a real database.
 
+### Adding a telemetry field
+
+A new value arriving from the car passes through several layers, in this order:
+
+1. `TelemetrySnapshot` (the model) plus a migration, as above.
+2. `TelemetryMapper` in the Worker, which maps the MQTT topic onto the new property.
+3. The frontend's `TelemetrySnapshot` interface in `services/vehicleApi.ts`, mirrored by hand.
+4. Wherever it should show up: a card in `frontend/src/cards/registry.ts`, and the demo data in
+   `src/GarageStack.Data/Demo/` so the field is visible without a car.
+
+What it does *not* need is a mention in the repository's merge loops or its "does this row carry
+anything" filters, or in `WidgetStatusDto`: the first two are derived from the model itself, and
+the widget deliberately serves a curated subset. Charts are the same story in reverse: add the
+field to `TelemetryHistoryPoint` and the history query starts returning rows that carry it.
+
 ## Frontend
 
 REST calls go through `frontend/src/services/` - `apiCore.ts` centralizes the `fetch` wrapper (cookie-based auth, shared 401 handling, the JSON request helpers), and each domain area (`vehicleApi.ts`, `maintenanceApi.ts`, `notificationsApi.ts`, `mapApi.ts`, etc.) builds on it. Real-time updates use `useSignalR.ts` as described above, not polling.
 
-The vehicle store owns `effectiveVehicleType` (the user's manual override, else the type detected from the gateway's `hw_version`); views derive their `isHev`/`isBev` style flags from it rather than repeating the override logic. The TypeScript interfaces in `services/` mirror the API's DTOs by hand; the history endpoint returns `TelemetryHistoryPoint` (the chart fields only), not full snapshots.
+The vehicle store owns `activeVehicle`/`activeVin` (the one car this instance follows) and `effectiveVehicleType` (the user's manual override, else the drivetrain the API detected from the gateway's `hw_version`); views read those rather than indexing into the vehicle list or repeating the override logic. The TypeScript interfaces in `services/` mirror the API's DTOs by hand; the history endpoint returns `TelemetryHistoryPoint` (the chart fields only), not full snapshots.
+
+Dashboard cards are described once, in `frontend/src/cards/registry.ts`: each entry carries the card's icon, whether it is visible by default for a given drivetrain, and whether the current telemetry has anything to show. The card ids, the default layout and the "does this card have data" checks are all derived from that list, so a new card is one entry plus its markup in `DashboardCardContent.vue`. The map's point-of-interest layers work the same way: `composables/poiTileLayer.ts` holds the fetch-by-tile, cache and cluster logic, and charging stations, fuel stations and service areas are three configurations of it.
 
 ## Tests
 
@@ -138,4 +155,6 @@ rotated map marker. CI runs them in the `e2e` job; see CONTRIBUTING.md for runni
 
 ## Build conventions
 
-Backend projects share `Directory.Build.props` (analyzers on, warnings are errors, `.editorconfig` style rules enforced in the build) and `Directory.Packages.props` (central package versions). `dotnet format GarageStack.slnx` applies the formatting rules; CI verifies them. The frontend is linted by oxlint and ESLint and formatted by Prettier, also verified in CI.
+Backend projects share `Directory.Build.props` (analyzers on, warnings are errors, `.editorconfig` style rules enforced in the build) and `Directory.Packages.props` (central package versions). `dotnet format GarageStack.slnx` applies the formatting rules; CI verifies them. The frontend is linted by oxlint and ESLint, its stylesheets by Stylelint, and formatted by Prettier, all verified in CI.
+
+Versions are pinned once: package versions in `Directory.Packages.props` (the release workflow reads MinVer's version from there too, so the tag and the stamped assemblies cannot come from different MinVer majors), and pnpm in `frontend/package.json`'s `packageManager` field, which corepack and the CI action both read. Runtime defaults belong to the app rather than to the deployment files: the compose files and the all-in-one entrypoint pass a setting through only when the operator sets one, so numbers like the tyre pressure thresholds exist in exactly one place.

@@ -62,6 +62,14 @@ public class VehicleRepository(AppDbContext db) : IVehicleRepository
         await db.SaveChangesAsync(ct);
     }
 
+    public async Task SetLastParkedAtAsync(int vehicleId, DateTime parkedAt, CancellationToken ct = default)
+    {
+        var vehicle = await db.Vehicles.FindAsync([vehicleId], ct);
+        if (vehicle is null || vehicle.LastParkedAt == parkedAt) return;
+        vehicle.LastParkedAt = parkedAt;
+        await db.SaveChangesAsync(ct);
+    }
+
     public async Task SetConfigValueAsync(int vehicleId, string key, string value, CancellationToken ct = default)
     {
         var vehicle = await db.Vehicles.FindAsync([vehicleId], ct);

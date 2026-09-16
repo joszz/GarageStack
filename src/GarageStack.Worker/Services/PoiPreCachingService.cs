@@ -44,8 +44,9 @@ public sealed class PoiPreCachingService(
         using var scope = scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var repository = scope.ServiceProvider.GetRequiredService<IPoiRepository>();
+        var vehicleRepo = scope.ServiceProvider.GetRequiredService<IVehicleRepository>();
 
-        var vehicles = await db.Vehicles.ToListAsync(ct);
+        var vehicles = await vehicleRepo.GetAllAsync(ct);
 
         // Single query for the latest known location of every vehicle instead of one query per
         // vehicle: the RecordedAt == MAX(RecordedAt) correlated subquery reliably translates to SQL.

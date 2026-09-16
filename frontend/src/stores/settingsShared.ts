@@ -1,4 +1,12 @@
 import type { VehicleType } from './vehicle'
+import { ALL_CARD_IDS, defaultCards } from '@/cards/registry'
+import type { CardConfig, CardId } from '@/cards/registry'
+
+// The card registry owns what a card is (icon, defaults, data predicate); the settings stores
+// own which ones this browser shows and in what order. Re-exported so store consumers keep a
+// single import for both halves.
+export { ALL_CARD_IDS, defaultCards }
+export type { CardConfig, CardId }
 
 export type VehicleTypeOverride = 'auto' | VehicleType
 export type Theme = 'dark' | 'light'
@@ -84,71 +92,6 @@ export function loadStatsItems<T extends string>(raw: unknown, allIds: T[]): Sta
   }
   return result
 }
-
-export type CardId =
-  | 'fuelLevel'
-  | 'fuelRange'
-  | 'evBattery'
-  | 'charging'
-  | 'odometer'
-  | 'battery12v'
-  | 'doors'
-  | 'windows'
-  | 'sunRoof'
-  | 'climate'
-  | 'hvBattery'
-  | 'findMyCar'
-  | 'lights'
-  | 'efficiencyDistance'
-  | 'efficiencyEnergy'
-  | 'efficiencyCharge'
-  | 'efficiencyRatio'
-  | 'speed'
-  | 'activeTrip'
-  | 'remainingCharge'
-  | 'chargingSession'
-  | 'batteryHeating'
-  | 'topSpeed'
-  | 'maintenance'
-
-export interface CardConfig {
-  id: CardId
-  visible: boolean
-}
-
-export function defaultCards(type: VehicleType | 'unknown' = 'unknown'): CardConfig[] {
-  const all: CardConfig[] = [
-    { id: 'fuelLevel', visible: type !== 'bev' },
-    { id: 'fuelRange', visible: type !== 'bev' },
-    { id: 'evBattery', visible: type !== 'hev' },
-    { id: 'charging', visible: type === 'phev' || type === 'bev' },
-    { id: 'odometer', visible: true },
-    { id: 'battery12v', visible: true },
-    { id: 'doors', visible: true },
-    { id: 'windows', visible: true },
-    { id: 'sunRoof', visible: false },
-    { id: 'climate', visible: true },
-    { id: 'hvBattery', visible: true },
-    { id: 'findMyCar', visible: true },
-    { id: 'lights', visible: true },
-    { id: 'efficiencyDistance', visible: true },
-    { id: 'efficiencyEnergy', visible: true },
-    { id: 'efficiencyCharge', visible: type !== 'hev' },
-    { id: 'efficiencyRatio', visible: true },
-    { id: 'speed', visible: false },
-    { id: 'activeTrip', visible: true },
-    { id: 'remainingCharge', visible: type === 'phev' || type === 'bev' },
-    { id: 'chargingSession', visible: type === 'phev' || type === 'bev' },
-    { id: 'batteryHeating', visible: type === 'phev' || type === 'bev' },
-    { id: 'topSpeed', visible: true },
-    { id: 'maintenance', visible: true },
-  ]
-  return [...all.filter((c) => c.visible), ...all.filter((c) => !c.visible)]
-}
-
-// Single source of truth for "every card id that exists" - derived from defaultCards() instead
-// of a hand-maintained parallel list, so a new card only needs to be added in one place.
-export const ALL_CARD_IDS: CardId[] = defaultCards('unknown').map((c) => c.id)
 
 export function migrateCards(raw: { id: string; visible: boolean }[]): CardConfig[] {
   const expanded: CardConfig[] = []

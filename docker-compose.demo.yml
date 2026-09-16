@@ -5,11 +5,12 @@ services:
       dockerfile: src/GarageStack.Api/Dockerfile
     container_name: garagestack-api-demo
     restart: unless-stopped
-    env_file:
-      - .env.demo
     environment:
+      # Everything the container gets is listed here; compose reads .env.demo for the ${...}
+      # placeholders on its own, as the production compose file does.
       ASPNETCORE_ENVIRONMENT: "Production"
       DEMO_MODE: "true"
+      DEBUG_LOGS: "${DEBUG_LOGS:-false}"
       Cors__Origins__0: "${CORS_ORIGIN:-http://localhost:8080}"
       Auth__Username: "${AUTH_USERNAME:-demo}"
       Auth__Password: "${AUTH_PASSWORD:-demo}"

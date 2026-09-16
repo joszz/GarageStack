@@ -4,7 +4,6 @@ using GarageStack.Core.Interfaces;
 using GarageStack.Core.Models;
 using GarageStack.Data;
 using GarageStack.Data.Extensions;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Localization;
 
 namespace GarageStack.Worker.Services;
@@ -73,9 +72,11 @@ public class PushNotificationCheckService(
     {
         using var scope = scopeFactory.CreateScope();
         var telemetry = scope.ServiceProvider.GetRequiredService<ITelemetryRepository>();
+        var vehicleRepo = scope.ServiceProvider.GetRequiredService<IVehicleRepository>();
+        // Still needed directly for the notification-history lookup behind the cooldown gate.
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-        var vehicles = await db.Vehicles.ToListAsync(ct);
+        var vehicles = await vehicleRepo.GetAllAsync(ct);
 
         foreach (var vehicle in vehicles)
         {
@@ -93,10 +94,7 @@ public class PushNotificationCheckService(
             CheckChargingComplete(snapshot, vehicle.Vin, vehicleType, alerts);
             var justParked = CheckEngineStart(snapshot, vehicle.Vin, alerts);
             if (justParked)
-            {
-                vehicle.LastParkedAt = _lastParkedAt[vehicle.Vin];
-                await db.SaveChangesAsync(ct);
-            }
+                await vehicleRepo.SetLastParkedAtAsync(vehicle.Id, _lastParkedAt[vehicle.Vin], ct);
 
             var withinParkingGrace = _lastParkedAt.TryGetValue(vehicle.Vin, out var parkedAt)
                 && DateTime.UtcNow - parkedAt < _parkingGrace;

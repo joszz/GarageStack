@@ -11,7 +11,7 @@ const router = useRouter()
 const vehicleStore = useVehicleStore()
 const store = useMaintenanceStore()
 
-const vin = computed(() => vehicleStore.vehicles[0]?.vin ?? null)
+const vin = computed(() => vehicleStore.activeVin)
 
 watch(
   vin,

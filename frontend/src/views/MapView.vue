@@ -28,7 +28,7 @@ const store = useVehicleStore()
 const settingsStore = useMapSettingsStore()
 const uiSettingsStore = useUiSettingsStore()
 
-const vin = computed(() => store.vehicles[0]?.vin ?? null)
+const vin = computed(() => store.activeVin)
 const status = computed(() => store.currentStatus)
 const vehicleType = computed(() => store.effectiveVehicleType)
 const isHev = computed(() => vehicleType.value === 'hev')
@@ -67,8 +67,7 @@ const {
   brandsLoading,
   poiLoading,
   loadFuelBrands,
-  loadChargingStations,
-  loadPoiLayer,
+  loadLayers,
 } = usePoiLayers({ mapInstance, vehicleType, isHev, isBev })
 
 let heatLayer: L.Layer | null = null
@@ -389,9 +388,7 @@ function onMapReady(map: LeafletMap) {
       hasCenteredOnStatus = true
       map.setView([status.value.latitude, status.value.longitude], 14, { animate: false })
     }
-    if (chargingStationsEnabled.value) loadChargingStations(100)
-    if (fuelStationsEnabled.value) loadPoiLayer('fuel', 100)
-    if (serviceAreasEnabled.value) loadPoiLayer('service_area', 100)
+    loadLayers(100)
   })
 }
 
@@ -780,7 +777,7 @@ onUnmounted(() => {
             "
             :lat-lng="[status.latitude!, status.longitude!]"
           >
-            <LPopup>{{ store.vehicles[0]?.model ?? store.vehicles[0]?.vin }}</LPopup>
+            <LPopup>{{ store.activeVehicle?.model ?? store.activeVin }}</LPopup>
           </LMarker>
         </LMap>
 
@@ -812,10 +809,10 @@ onUnmounted(() => {
   </div>
 </template>
 
+<!-- Global on purpose: Leaflet builds marker and popup HTML itself, outside Vue's renderer,
+     so those elements never carry a scope attribute. Everything the template owns is scoped. -->
 <style>
-@import '@vueform/slider/themes/default.css';
-
-/* Leaflet injects divIcon HTML outside Vue's rendering pipeline so these cannot be scoped */
+@import url('@vueform/slider/themes/default.css');
 
 .trip-marker--start {
   width: 16px;
@@ -823,25 +820,27 @@ onUnmounted(() => {
   background: #10b981;
   border: 3px solid #fff;
   border-radius: 50%;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 35%);
   animation: trip-start-pulse 2s ease-in-out infinite;
 }
 
 @keyframes trip-start-pulse {
   0% {
     box-shadow:
-      0 0 0 0 rgba(16, 185, 129, 0.55),
-      0 1px 4px rgba(0, 0, 0, 0.35);
+      0 0 0 0 rgb(16 185 129 / 55%),
+      0 1px 4px rgb(0 0 0 / 35%);
   }
+
   70% {
     box-shadow:
-      0 0 0 10px rgba(16, 185, 129, 0),
-      0 1px 4px rgba(0, 0, 0, 0.35);
+      0 0 0 10px rgb(16 185 129 / 0%),
+      0 1px 4px rgb(0 0 0 / 35%);
   }
+
   100% {
     box-shadow:
-      0 0 0 0 rgba(16, 185, 129, 0),
-      0 1px 4px rgba(0, 0, 0, 0.35);
+      0 0 0 0 rgb(16 185 129 / 0%),
+      0 1px 4px rgb(0 0 0 / 35%);
   }
 }
 
@@ -869,7 +868,7 @@ onUnmounted(() => {
   width: 16px;
   height: 11px;
   background: repeating-conic-gradient(#111 0% 25%, #fff 0% 50%) 0 0 / 5.33px 5.5px;
-  border: 1px solid rgba(0, 0, 0, 0.4);
+  border: 1px solid rgb(0 0 0 / 40%);
   transform-origin: left center;
   animation: trip-flag-wave 1.6s ease-in-out infinite;
 }
@@ -879,14 +878,18 @@ onUnmounted(() => {
   100% {
     transform: skewY(0deg) scaleX(1);
   }
+
   30% {
     transform: skewY(-3deg) scaleX(0.97);
   }
+
   70% {
     transform: skewY(3deg) scaleX(0.97);
   }
 }
+</style>
 
+<style scoped>
 .trip-list__dot--live {
   animation: trip-start-pulse 2s ease-in-out infinite;
 }
@@ -921,7 +924,7 @@ onUnmounted(() => {
   --slider-connect-bg: #22c55e;
   --slider-tooltip-bg: #22c55e;
   --slider-tooltip-color: #fff;
-  --slider-handle-ring-color: rgba(34, 197, 94, 0.2);
+  --slider-handle-ring-color: rgb(34 197 94 / 20%);
 }
 
 /* Multiselect theme vars, dropdown z-index, and search input styling now live globally in
