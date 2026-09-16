@@ -328,7 +328,8 @@
     "loggedOut": "Je bent uitgelogd",
     "accessDenied": "Dit account mag GarageStack niet gebruiken",
     "ssoFailed": "Eenmalig inloggen is mislukt, probeer het opnieuw",
-    "noSignInMethod": "Er is geen inlogmethode beschikbaar. Controleer of de API draait en geconfigureerd is."
+    "noSignInMethod": "Er is geen aanmeldmethode ingesteld. Configureer een wachtwoordlogin of een OIDC-provider.",
+    "apiUnreachable": "Geen verbinding met de API. Mogelijk start deze nog op."
   },
   "settings": {
     "title": "Instellingen",
@@ -425,7 +426,8 @@
     "prevPage": "Vorige pagina",
     "nextPage": "Volgende pagina",
     "lastPage": "Laatste pagina",
-    "pageOf": "Pagina {n} van {total}"
+    "pageOf": "Pagina {n} van {total}",
+    "retry": "Opnieuw proberen"
   },
   "demo": {
     "banner": "Demo modus - alleen voorbeelddata wordt getoond",

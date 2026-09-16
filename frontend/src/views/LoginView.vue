@@ -7,6 +7,7 @@ import { ApiError } from '@/services/apiCore'
 import { oidcLoginUrl } from '@/services/authApi'
 import { redirectTo } from '@/utils/navigation'
 import { useAuthStore } from '@/stores/auth'
+import type { AuthConfigResponse } from '@/services/authApi'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -20,11 +21,18 @@ const submitting = ref(false)
 const errorText = ref<string | null>(null)
 const loadingConfig = ref(true)
 const redirecting = ref(false)
+// The API could not be reached at all, as opposed to answering "nothing is configured".
+const unreachable = ref(false)
 
 const config = computed(() => auth.config)
 const providerName = computed(() => config.value?.oidcProviderName ?? 'SSO')
+// The API answered and offers nothing to sign in with: a configuration problem, not a hiccup.
 const noSignInMethod = computed(
-  () => !loadingConfig.value && !config.value?.oidcEnabled && !config.value?.passwordLoginEnabled,
+  () =>
+    !loadingConfig.value &&
+    !unreachable.value &&
+    !config.value?.oidcEnabled &&
+    !config.value?.passwordLoginEnabled,
 )
 
 // Where to land after signing in. Only same-origin paths are accepted here, and the API applies
@@ -52,9 +60,28 @@ function startOidcLogin() {
   redirectTo(oidcUrl.value)
 }
 
-onMounted(async () => {
-  const cfg = await auth.ensureConfig()
+// A stack that has just been started answers nothing for a few seconds, and a login page that
+// gave up on the first try would sit there telling the user to check their API. Retry a few
+// times, then leave it to the button.
+const CONFIG_RETRIES = 3
+const CONFIG_RETRY_DELAY_MS = 1_000
+
+async function loadSignInMethods(retries = CONFIG_RETRIES): Promise<AuthConfigResponse | null> {
+  loadingConfig.value = true
+  let cfg = await auth.ensureConfig()
+
+  for (let attempt = 0; cfg === null && attempt < retries; attempt++) {
+    await new Promise((resolve) => setTimeout(resolve, CONFIG_RETRY_DELAY_MS))
+    cfg = await auth.ensureConfig()
+  }
+
+  unreachable.value = cfg === null
   loadingConfig.value = false
+  return cfg
+}
+
+onMounted(async () => {
+  const cfg = await loadSignInMethods()
 
   if (signInError.value) {
     errorText.value =
@@ -200,6 +227,19 @@ async function submitLogin() {
         <div v-if="noSignInMethod" class="login-note login-note--warning" role="alert">
           <font-awesome-icon icon="triangle-exclamation" />
           <span>{{ t('auth.noSignInMethod') }}</span>
+        </div>
+
+        <div v-else-if="unreachable" class="login-note login-note--warning" role="alert">
+          <font-awesome-icon icon="triangle-exclamation" />
+          <span>{{ t('auth.apiUnreachable') }}</span>
+          <button
+            type="button"
+            class="btn btn-sm btn-outline-secondary"
+            data-testid="config-retry"
+            @click="loadSignInMethods(0)"
+          >
+            {{ t('common.retry') }}
+          </button>
         </div>
       </template>
     </section>

@@ -75,9 +75,11 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       config.value = await authApi.config()
     } catch {
-      // Leaves the login page to render its "no sign-in method available" state rather than
-      // an empty card.
+      // The API may simply not be up yet (a container restart, a cold stack). Drop the cached
+      // attempt so the next caller asks again, instead of holding a failure for the life of the
+      // page and leaving the login form with nothing to show.
       config.value = null
+      _configPromise = null
     }
     return config.value
   }

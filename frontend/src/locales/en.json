@@ -328,7 +328,8 @@
     "loggedOut": "You have been signed out",
     "accessDenied": "This account is not allowed to use GarageStack",
     "ssoFailed": "Single sign-on failed, please try again",
-    "noSignInMethod": "No sign-in method is available. Check that the API is running and configured."
+    "noSignInMethod": "No sign-in method is configured. Set a password login or an OIDC provider.",
+    "apiUnreachable": "Could not reach the API. It may still be starting."
   },
   "settings": {
     "title": "Settings",
@@ -425,7 +426,8 @@
     "prevPage": "Previous page",
     "nextPage": "Next page",
     "lastPage": "Last page",
-    "pageOf": "Page {n} of {total}"
+    "pageOf": "Page {n} of {total}",
+    "retry": "Try again"
   },
   "demo": {
     "banner": "Demo mode - displaying sample data only",
