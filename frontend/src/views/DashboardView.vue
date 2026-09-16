@@ -17,6 +17,7 @@ import SkeletonCard from '@/components/SkeletonCard.vue'
 import SkeletonCarDiagram from '@/components/SkeletonCarDiagram.vue'
 import SkeletonLocationMap from '@/components/SkeletonLocationMap.vue'
 import { useVehicleAlerts } from '@/composables/useVehicleAlerts'
+import { usePush } from '@/composables/usePush'
 import { whPerKm } from '@/utils/energy'
 import { daysAgoIso } from '@/utils/dates'
 
@@ -111,7 +112,10 @@ watch(
   },
 )
 
-useVehicleAlerts(status, t)
+// A browser that is subscribed to push already receives these alerts from the Worker, so this
+// tab only raises its own notification when it is not subscribed.
+const { pushState } = usePush()
+useVehicleAlerts(status, t, { shouldNotify: () => pushState.value !== 'subscribed' })
 
 function toggleEditMode() {
   editMode.value = !editMode.value

@@ -55,6 +55,16 @@ function showNotification(title: string, body: string) {
   }
 }
 
+export interface VehicleAlertOptions {
+  /**
+   * Whether this tab should raise its own notification. The Worker already sends a push and an
+   * in-app notification for low tyre pressure and for doors or windows left open, so a browser
+   * that is subscribed to push would otherwise show both. Defaults to always notifying, which
+   * is what a browser without a push subscription needs.
+   */
+  shouldNotify?: () => boolean
+}
+
 // Fires `notify` once when `issues` goes from empty to non-empty, then stays quiet until
 // `issues` is empty again, at which point it resets and can fire again on the next issue.
 function useStickyAlert<T>(notify: (issues: T[]) => void) {
@@ -69,19 +79,21 @@ function useStickyAlert<T>(notify: (issues: T[]) => void) {
   }
 }
 
-export function useVehicleAlerts(status: Ref<TelemetrySnapshot | null>, t: Translate) {
+export function useVehicleAlerts(
+  status: Ref<TelemetrySnapshot | null>,
+  t: Translate,
+  options: VehicleAlertOptions = {},
+) {
   const tyreThresholds = useTyrePressureThresholds()
+  const notify = (body: string) => {
+    if (options.shouldNotify && !options.shouldNotify()) return
+    showNotification('GarageStack', body)
+  }
   const checkOpenAlert = useStickyAlert<string>((open) =>
-    showNotification(
-      'GarageStack',
-      t('vehicle.alerts.openWhileParked', { items: open.join(', ') }),
-    ),
+    notify(t('vehicle.alerts.openWhileParked', { items: open.join(', ') })),
   )
   const checkTyreAlert = useStickyAlert<string>((tyreIssues) =>
-    showNotification(
-      'GarageStack',
-      t('vehicle.alerts.tyrePressure', { items: tyreIssues.join(', ') }),
-    ),
+    notify(t('vehicle.alerts.tyrePressure', { items: tyreIssues.join(', ') })),
   )
 
   watch(status, (s) => {

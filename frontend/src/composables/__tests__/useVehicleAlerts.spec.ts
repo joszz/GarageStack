@@ -348,6 +348,22 @@ describe('useVehicleAlerts', () => {
     expect(notificationMock).not.toHaveBeenCalled()
   })
 
+  it('stays quiet when the caller says this browser already gets push notifications', async () => {
+    const status = ref<TelemetrySnapshot | null>(null)
+    useVehicleAlerts(status, t, { shouldNotify: () => false })
+    status.value = makeSnapshot({ engineRunning: false, driverDoorOpen: true })
+    await nextTick()
+    expect(notificationMock).not.toHaveBeenCalled()
+  })
+
+  it('still notifies when the caller allows it', async () => {
+    const status = ref<TelemetrySnapshot | null>(null)
+    useVehicleAlerts(status, t, { shouldNotify: () => true })
+    status.value = makeSnapshot({ engineRunning: false, driverDoorOpen: true })
+    await nextTick()
+    expect(notificationMock).toHaveBeenCalledTimes(1)
+  })
+
   it('does not fire notification when permission is not granted', async () => {
     Object.defineProperty(window.Notification, 'permission', {
       value: 'default',

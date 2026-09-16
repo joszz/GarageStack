@@ -399,6 +399,7 @@
     }
   },
   "common": {
+    "apply": "Toepassen",
     "km": "km",
     "bar": "bar",
     "wh": "Wh",

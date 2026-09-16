@@ -307,7 +307,10 @@ function onSeatRightChange(e: Event) {
         :class="anyPending ? 'btn--pending' : ''"
         :disabled="applyInProgress || !vin || !hasPendingChanges"
         @click="applyAll"
-      />
+      >
+        <font-awesome-icon v-if="isApplying" icon="spinner" spin />
+        {{ anyPending ? t('control.pending') : t('common.apply') }}
+      </button>
     </template>
   </ExpandableStatusCard>
 </template>

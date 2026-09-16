@@ -397,4 +397,22 @@ describe('useNotifications', () => {
     closePanel()
     expect(panelOpen.value).toBe(false)
   })
+
+  // The notification panel shows either the active or the archived list, filtering on this
+  // flag. A live payload that omits it used to land in neither list until the next refetch.
+  it('prependNotification() marks a live notification as not archived', async () => {
+    localStorage.setItem('garagestack-auth-username', 'testuser')
+    localStorage.setItem('garagestack-auth-expires', new Date(Date.now() + 3_600_000).toISOString())
+    vi.mocked(notificationsApi.list).mockResolvedValue([])
+
+    const { useNotifications, prependNotification } = await import('@/composables/useNotifications')
+    const { notifications } = useNotifications()
+    await nextTick()
+
+    const { isArchived: _omitted, ...withoutFlag } = makeNotification({ id: 42 })
+    prependNotification(withoutFlag as AppNotification)
+
+    expect(notifications.value[0]!.id).toBe(42)
+    expect(notifications.value[0]!.isArchived).toBe(false)
+  })
 })

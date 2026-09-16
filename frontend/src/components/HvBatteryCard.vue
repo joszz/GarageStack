@@ -159,7 +159,7 @@ function setChargeLimit(value: string) {
           :sending="sending === 'charge-limit'"
           :show-pending-label="false"
           label="Max"
-          @click="setChargeLimit('Max')"
+          @click="setChargeLimit('MAX')"
         />
       </div>
       <div v-if="isPending('charge-limit')" class="detail-list__feedback text-info">

@@ -10,13 +10,22 @@ const CAR_ICON_ANCHOR: [number, number] = [12, 23]
 // artwork). See .trip-marker--active / .trip-marker-car-svg in main.css for styling - kept
 // there (not view-scoped CSS) so it renders correctly even when MapView's own chunk hasn't
 // loaded yet.
+//
+// The icon is built as a DOM element rather than an HTML string because the rotation has to be
+// applied through the style property: the Content-Security-Policy sets style-src-attr 'none',
+// which blocks any style attribute that comes from parsed markup, and Leaflet assigns string
+// html with innerHTML. Setting the property directly goes through the CSSOM, which is allowed.
 export function buildCarMarkerIcon(headingDeg: number) {
   const heading = Number.isFinite(headingDeg) ? headingDeg : 0
+
+  const marker = document.createElement('div')
+  marker.className = 'trip-marker trip-marker--active'
+  marker.style.transform = `rotate(${heading}deg)`
+  marker.innerHTML = `<svg viewBox="${CAR_SILHOUETTE_VIEWBOX}" class="trip-marker-car-svg">${CAR_SILHOUETTE_MARKUP}</svg>`
+
   return L.divIcon({
     className: '',
-    html: `<div class="trip-marker trip-marker--active" style="transform: rotate(${heading}deg)">
-      <svg viewBox="${CAR_SILHOUETTE_VIEWBOX}" class="trip-marker-car-svg">${CAR_SILHOUETTE_MARKUP}</svg>
-    </div>`,
+    html: marker,
     iconSize: CAR_ICON_SIZE,
     iconAnchor: CAR_ICON_ANCHOR,
   })
