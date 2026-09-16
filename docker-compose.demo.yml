@@ -13,6 +13,9 @@ services:
       Cors__Origins__0: "${CORS_ORIGIN:-http://localhost:8080}"
       Auth__Username: "${AUTH_USERNAME:-demo}"
       Auth__Password: "${AUTH_PASSWORD:-demo}"
+      # The browser smoke tests drive several pages in parallel from one address, which is far
+      # more traffic than the default per-IP budget is sized for.
+      RateLimits__GlobalPerMinute: "${RATE_LIMIT_GLOBAL_PER_MINUTE:-2000}"
     ports:
       - "127.0.0.1:${API_PORT:-5001}:8080"
     volumes:

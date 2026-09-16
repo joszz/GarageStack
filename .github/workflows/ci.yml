@@ -44,7 +44,7 @@ jobs:
 
       - name: Format check
         working-directory: frontend
-        run: pnpm exec prettier --check src/
+        run: pnpm exec prettier --check src/ e2e/
 
   frontend-typecheck:
     name: Frontend type-check
@@ -97,6 +97,66 @@ jobs:
       - name: Run tests
         working-directory: frontend
         run: pnpm run test:unit --run
+
+  # Runs the production bundle behind the production nginx config, which is the only place the
+  # Content-Security-Policy applies. Unit tests and the type checker cannot see that far: a
+  # policy violation once shipped to main with every other check green.
+  e2e:
+    name: End-to-end smoke test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 11.1.3
+
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browser
+        working-directory: frontend
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Start the demo stack
+        run: |
+          cp .env.demo.example .env.demo
+          docker compose -f docker-compose.demo.yml up -d --build
+
+      - name: Wait for the app
+        run: |
+          for _ in $(seq 1 60); do
+            if curl -fsS http://localhost:8080/api/auth/config > /dev/null; then exit 0; fi
+            sleep 2
+          done
+          echo "::error::the demo stack did not become reachable"
+          docker compose -f docker-compose.demo.yml logs --tail 50
+          exit 1
+
+      - name: Run smoke tests
+        working-directory: frontend
+        run: pnpm run test:e2e
+
+      - name: Upload the Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report
+          path: frontend/playwright-report/
+          retention-days: 7
+
+      - name: Stop the demo stack
+        if: always()
+        run: docker compose -f docker-compose.demo.yml down -v
 
   backend-test:
     name: Backend tests

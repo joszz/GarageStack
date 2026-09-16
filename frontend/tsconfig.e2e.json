@@ -1,0 +1,16 @@
+{
+  "extends": "@vue/tsconfig/tsconfig.dom.json",
+
+  // Playwright drives a real browser from Node, so these files see both environments.
+  "include": ["e2e/**/*", "playwright.config.ts"],
+  "exclude": [],
+
+  "compilerOptions": {
+    "noUncheckedIndexedAccess": true,
+    "types": ["node"],
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.e2e.tsbuildinfo"
+  }
+}

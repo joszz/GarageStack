@@ -20,6 +20,8 @@ Open [http://localhost:8080](http://localhost:8080) and log in with **demo / dem
 
 The API is available at `http://localhost:5001`. Scalar API docs are not served in production mode — start the API locally (see below) if you need them.
 
+This stack is also what the Playwright smoke tests run against, in CI and locally, because it is the production frontend image with the real nginx config. See [CONTRIBUTING.md](CONTRIBUTING.md).
+
 ## Local development (no Docker)
 
 ### Quick start (Windows Terminal)

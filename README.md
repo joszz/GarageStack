@@ -180,6 +180,8 @@ Sign-in is configured separately: the built-in login reuses `SAIC_USER` / `SAIC_
 
 `TYRE_PRESSURE_LOW_BAR` / `TYRE_PRESSURE_GOOD_BAR` / `TYRE_PRESSURE_HIGH_BAR` are optional and default to `2.2` / `2.6` / `3.2` bar; override them to match your vehicle's placarded tyre pressure (see [Push notifications](#push-notifications) below).
 
+`RATE_LIMIT_GLOBAL_PER_MINUTE` is optional and defaults to `120` requests per minute per client IP. Raise it when several people reach GarageStack through one public address, or when something polls the API frequently; the tighter limits protecting login and the widget endpoint are unaffected.
+
 #### 3. Start the stack
 
 With the bundled PostgreSQL container:

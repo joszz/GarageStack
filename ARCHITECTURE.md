@@ -123,6 +123,19 @@ REST calls go through `frontend/src/services/` - `apiCore.ts` centralizes the `f
 
 The vehicle store owns `effectiveVehicleType` (the user's manual override, else the type detected from the gateway's `hw_version`); views derive their `isHev`/`isBev` style flags from it rather than repeating the override logic. The TypeScript interfaces in `services/` mirror the API's DTOs by hand; the history endpoint returns `TelemetryHistoryPoint` (the chart fields only), not full snapshots.
 
+## Tests
+
+Backend tests (xUnit) and frontend unit tests (Vitest) cover logic in isolation. On top of those,
+`frontend/e2e/` holds Playwright smoke tests that run against the demo stack from
+`docker-compose.demo.yml`, which is the production frontend image with the real nginx config.
+
+That distinction matters: the Content-Security-Policy is served by nginx, so it does not exist in
+the Vite dev server or in jsdom. A change that every other check accepts can still break the
+shipped app, which is exactly what happened when the policy began covering `index.html` and
+blocked FontAwesome's runtime stylesheet. The smoke tests fail on any policy violation, and they
+check the handful of things that only appear in a real browser, such as icon sizing and the
+rotated map marker. CI runs them in the `e2e` job; see CONTRIBUTING.md for running them locally.
+
 ## Build conventions
 
 Backend projects share `Directory.Build.props` (analyzers on, warnings are errors, `.editorconfig` style rules enforced in the build) and `Directory.Packages.props` (central package versions). `dotnet format GarageStack.slnx` applies the formatting rules; CI verifies them. The frontend is linted by oxlint and ESLint and formatted by Prettier, also verified in CI.
