@@ -149,6 +149,35 @@ public class VehicleRepositoryTests
         await new VehicleRepository(db).SetModelAsync(9999, "SomeModel", ct);
     }
 
+    // ── SetLastParkedAtAsync ──────────────────────────────────────────────────
+
+    [Fact]
+    public async Task SetLastParkedAtAsync_PersistsTheParkingTime()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var db = CreateDb();
+        var vehicle = new Vehicle { Vin = "PVIN001" };
+        db.Vehicles.Add(vehicle);
+        await db.SaveChangesAsync(ct);
+        var parkedAt = new DateTime(2026, 9, 16, 8, 30, 0, DateTimeKind.Utc);
+
+        await new VehicleRepository(db).SetLastParkedAtAsync(vehicle.Id, parkedAt, ct);
+
+        var updated = await db.Vehicles.FindAsync([vehicle.Id], ct);
+        Assert.Equal(parkedAt, updated!.LastParkedAt);
+    }
+
+    [Fact]
+    public async Task SetLastParkedAtAsync_UnknownVehicle_DoesNothing()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var db = CreateDb();
+
+        await new VehicleRepository(db).SetLastParkedAtAsync(4242, DateTime.UtcNow, ct);
+
+        Assert.Empty(db.Vehicles);
+    }
+
     // ── SetConfigValueAsync ───────────────────────────────────────────────────
 
     [Fact]

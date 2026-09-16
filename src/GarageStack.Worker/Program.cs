@@ -5,32 +5,14 @@ using GarageStack.Data.Extensions;
 using GarageStack.Worker.Mqtt;
 using GarageStack.Worker.Services;
 using Serilog;
-using Serilog.Events;
 
-Log.Logger = new LoggerConfiguration()
-    .WriteTo.Console()
-    .CreateBootstrapLogger();
+Log.Logger = HostingExtensions.CreateBootstrapLogger();
 
 try
 {
     var builder = Host.CreateApplicationBuilder(args);
 
-    var debugLogs = string.Equals(builder.Configuration["DEBUG_LOGS"], "true", StringComparison.OrdinalIgnoreCase);
-
-    builder.Services.AddSerilog((_, config) =>
-    {
-        config.ReadFrom.Configuration(builder.Configuration)
-              .WriteTo.Console()
-              .WriteTo.File(
-                  "logs/worker-.log",
-                  rollingInterval: RollingInterval.Day,
-                  retainedFileCountLimit: 30);
-
-        if (debugLogs)
-            config.MinimumLevel.Debug()
-                  .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
-                  .MinimumLevel.Override("System", LogEventLevel.Warning);
-    });
+    builder.Services.AddGarageStackSerilog(builder.Configuration, "worker");
 
     var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
         ?? throw new InvalidOperationException("DefaultConnection is not configured.");
@@ -44,8 +26,7 @@ try
 
     builder.Services.AddGarageStackData(connectionString);
     builder.Services.Configure<MqttOptions>(builder.Configuration.GetSection(MqttOptions.SectionName));
-    builder.Services.AddSingleton(builder.Configuration.GetSection("TyrePressure").Get<TyrePressureThresholds>()
-        ?? TyrePressureThresholds.Default);
+    builder.Services.AddTyrePressureThresholds(builder.Configuration);
     builder.Services.AddSingleton<IPushSender, PushSenderService>();
     builder.Services.AddHostedService<MqttConsumerService>();
     builder.Services.AddHostedService<PushNotificationCheckService>();

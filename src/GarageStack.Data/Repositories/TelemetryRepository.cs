@@ -72,11 +72,31 @@ public class TelemetryRepository(
         return new PropertyAccessor(prop.Name, getter, setter);
     }
 
-    private static readonly PropertyAccessor[] MergeableProperties = typeof(TelemetrySnapshot)
+    private static readonly PropertyInfo[] MergeablePropertyInfos = typeof(TelemetrySnapshot)
         .GetProperties(BindingFlags.Public | BindingFlags.Instance)
         .Where(p => p.CanRead && p.CanWrite && !NonMergeableProperties.Contains(p.Name))
-        .Select(BuildAccessor)
         .ToArray();
+
+    private static readonly PropertyAccessor[] MergeableProperties =
+        [.. MergeablePropertyInfos.Select(BuildAccessor)];
+
+    /// <summary>
+    /// Builds "any of these fields is set" as an expression tree EF can translate to SQL.
+    /// Non-nullable properties are left out: they always have a value, so they say nothing about
+    /// whether a row carries telemetry.
+    /// </summary>
+    private static Expression<Func<TelemetrySnapshot, bool>> AnyFieldSet(IEnumerable<PropertyInfo> properties)
+    {
+        var snapshot = Expression.Parameter(typeof(TelemetrySnapshot), "s");
+        var conditions = properties
+            .Where(p => !p.PropertyType.IsValueType || Nullable.GetUnderlyingType(p.PropertyType) is not null)
+            .Select(p => (Expression)Expression.NotEqual(
+                Expression.Property(snapshot, p),
+                Expression.Constant(null, p.PropertyType)));
+
+        return Expression.Lambda<Func<TelemetrySnapshot, bool>>(
+            conditions.Aggregate(Expression.OrElse), snapshot);
+    }
 
     // Daily counters reset at midnight - a stale value from a prior day must not be carried
     // forward into "today's" merged snapshot, so these two are merged with an extra date guard.
@@ -107,55 +127,23 @@ public class TelemetryRepository(
         }
     }
 
+    // A row is worth reading when any mergeable field carries a value. Derived from the model for
+    // the same reason the merge loops are: hand-listing seventy fields here means a new telemetry
+    // field is silently treated as empty until someone remembers to add it.
     private static readonly Expression<Func<TelemetrySnapshot, bool>> HasData =
-        s => s.FuelLevelPercent != null || s.FuelRangeKm != null ||
-             s.OdometerKm != null || s.EngineRunning != null || s.Speed != null ||
-             s.IsLocked != null || s.ClimateOn != null ||
-             s.DriverDoorOpen != null || s.PassengerDoorOpen != null ||
-             s.RearLeftDoorOpen != null || s.RearRightDoorOpen != null ||
-             s.TrunkOpen != null || s.BonnetOpen != null ||
-             s.DriverWindowOpen != null || s.PassengerWindowOpen != null ||
-             s.RearLeftWindowOpen != null || s.RearRightWindowOpen != null ||
-             s.SunRoofOpen != null ||
-             s.Latitude != null || s.Longitude != null || s.Heading != null ||
-             s.BatteryVoltage != null ||
-             s.InteriorTemperature != null || s.ExteriorTemperature != null ||
-             s.RemoteTemperature != null ||
-             s.EvSocPercent != null || s.IsCharging != null ||
-             s.TyrePressureFrontLeft != null || s.TyrePressureFrontRight != null ||
-             s.TyrePressureRearLeft != null || s.TyrePressureRearRight != null ||
-             s.MileageOfTheDay != null || s.PowerUsageOfDay != null ||
-             s.MileageSinceLastCharge != null ||
-             s.HvVoltage != null || s.HvCurrent != null || s.HvPower != null ||
-             s.HvSocKwh != null || s.HvTotalCapacityKwh != null ||
-             s.PowerUsageSinceLastCharge != null ||
-             s.ChargerConnected != null || s.HvBatteryActive != null ||
-             s.LightsMainBeam != null || s.LightsDippedBeam != null || s.LightsSide != null ||
-             s.HeatedSeatFrontLeft != null || s.HeatedSeatFrontRight != null ||
-             s.RearWindowDefroster != null ||
-             s.IsAvailable != null || s.LastVehicleStateAt != null || s.LastChargeStateAt != null ||
-             s.CurrentJourneyDistance != null ||
-             s.ChargingType != null || s.ChargingCableLock != null || s.RemainingChargingTime != null ||
-             s.BmsChargeStatus != null || s.OnboardChargerPlugStatus != null || s.OffboardChargerPlugStatus != null ||
-             s.LastChargeEndingPower != null || s.ChargingLastEndAt != null ||
-             s.ChargingScheduleMode != null || s.ChargingScheduleStartTime != null || s.ChargingScheduleEndTime != null ||
-             s.ObcCurrent != null || s.ObcVoltage != null || s.ObcPowerSinglePhase != null || s.ObcPowerThreePhase != null ||
-             s.BatteryHeating != null || s.BatteryHeatingScheduleMode != null || s.BatteryHeatingScheduleStartTime != null ||
-             s.Elevation != null;
+        AnyFieldSet(MergeablePropertyInfos);
 
     // Chart history excludes GPS-only rows: latitude/longitude arrive every minute during driving
-    // and inflate the row count, causing the stride downsampler to skip the sparser fuel/EV/kWh rows.
-    // GPS data for routes belongs to the trips endpoint, not chart history. The fields listed here
-    // are exactly the ones TelemetryHistoryPoint carries.
+    // and inflate the row count, causing the stride downsampler to skip the sparser fuel/EV/kWh
+    // rows. GPS data for routes belongs to the trips endpoint, not chart history. The fields that
+    // count are exactly the ones TelemetryHistoryPoint carries, read from that type so the two
+    // cannot drift apart.
     private static readonly Expression<Func<TelemetrySnapshot, bool>> HasChartData =
-        s => s.FuelLevelPercent != null || s.EvSocPercent != null ||
-             s.PowerUsageOfDay != null || s.BatteryVoltage != null ||
-             s.ClimateOn != null || s.IsCharging != null ||
-             s.TyrePressureFrontLeft != null || s.TyrePressureFrontRight != null ||
-             s.TyrePressureRearLeft != null || s.TyrePressureRearRight != null ||
-             s.MileageOfTheDay != null || s.MileageSinceLastCharge != null ||
-             s.HvSocKwh != null || s.HvTotalCapacityKwh != null ||
-             s.PowerUsageSinceLastCharge != null;
+        AnyFieldSet(typeof(TelemetryHistoryPoint)
+            .GetProperties(BindingFlags.Public | BindingFlags.Instance)
+            .Select(p => typeof(TelemetrySnapshot).GetProperty(p.Name)
+                ?? throw new InvalidOperationException(
+                    $"TelemetryHistoryPoint.{p.Name} has no matching TelemetrySnapshot property.")));
 
     public async Task<long> AddAsync(TelemetrySnapshot snapshot, CancellationToken ct = default)
     {

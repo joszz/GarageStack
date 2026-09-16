@@ -17,11 +17,8 @@ using Microsoft.AspNetCore.Localization;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
 using Serilog;
-using Serilog.Events;
 
-Log.Logger = new LoggerConfiguration()
-    .WriteTo.Console()
-    .CreateBootstrapLogger();
+Log.Logger = HostingExtensions.CreateBootstrapLogger();
 
 try
 {
@@ -32,22 +29,7 @@ try
     if (builder.Environment.IsEnvironment("Demo"))
         builder.Configuration.AddUserSecrets<Program>(optional: true);
 
-    var debugLogs = string.Equals(builder.Configuration["DEBUG_LOGS"], "true", StringComparison.OrdinalIgnoreCase);
-
-    builder.Services.AddSerilog((_, config) =>
-    {
-        config.ReadFrom.Configuration(builder.Configuration)
-              .WriteTo.Console()
-              .WriteTo.File(
-                  "logs/api-.log",
-                  rollingInterval: RollingInterval.Day,
-                  retainedFileCountLimit: 30);
-
-        if (debugLogs)
-            config.MinimumLevel.Debug()
-                  .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
-                  .MinimumLevel.Override("System", LogEventLevel.Warning);
-    });
+    builder.Services.AddGarageStackSerilog(builder.Configuration, "api");
 
     // Pin the key ring to a fixed, CWD-relative path (mirrors "logs/api-.log" above) instead of
     // relying on ASP.NET Core's implicit default, which resolves against the OS user profile.
@@ -96,8 +78,7 @@ try
         opts.SerializerOptions.Converters.Add(new FiniteDoubleConverter());
     });
 
-    builder.Services.AddSingleton(builder.Configuration.GetSection("TyrePressure").Get<TyrePressureThresholds>()
-        ?? TyrePressureThresholds.Default);
+    builder.Services.AddTyrePressureThresholds(builder.Configuration);
 
     builder.Services.AddMemoryCache();
     builder.Services.AddScoped<ChargingStationService>();
@@ -111,7 +92,7 @@ try
     // Requests per minute per client IP across the whole API. Configurable because the right
     // number depends on the deployment: a household sharing one NAT address, or a browser test
     // run driving several pages in parallel, bursts well past what a single tab needs.
-    var globalPermitsPerMinute = builder.Configuration.GetValue("RateLimits:GlobalPerMinute", 120);
+    var globalPermitsPerMinute = builder.Configuration.IntegerOrDefault("RateLimits:GlobalPerMinute", 120);
     if (globalPermitsPerMinute < 1)
     {
         throw new InvalidOperationException(

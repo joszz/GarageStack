@@ -6,7 +6,8 @@ namespace GarageStack.Core.Models;
 /// The slice of a <see cref="TelemetrySnapshot"/> the statistics charts actually read. The
 /// history endpoint returns these instead of full snapshots: a 90-day range can hold hundreds of
 /// points, and every field the charts ignore would otherwise be loaded from the database and
-/// serialized to the browser for nothing. Keep this in step with TelemetryRepository.HasChartData.
+/// serialized to the browser for nothing. The repository reads this type's field list to decide
+/// which rows are worth returning, so that filter follows any change made here.
 /// </summary>
 public sealed record TelemetryHistoryPoint(
     DateTime RecordedAt,
