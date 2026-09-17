@@ -1,6 +1,6 @@
 import type { TelemetrySnapshot, Trip } from '@/services/vehicleApi'
 import type { VehicleType } from '@/stores/vehicle'
-import { whPerKm } from '@/utils/energy'
+import { energyUnit, litresPer100Km, whPerKm } from '@/utils/energy'
 
 /**
  * Everything the dashboard needs to know about a card, in one place: its icon, whether it is
@@ -85,9 +85,10 @@ export const CARD_DEFINITIONS = [
   {
     id: 'efficiencyRatio',
     icon: 'leaf',
-    // Two presentations share this card: Wh/km while driving data is available, and a fuel
-    // economy estimate for vehicles that burn fuel. DashboardCardContent picks between them.
-    hasData: (ctx) => hasEnergyEfficiency(ctx) || hasFuelEconomy(ctx),
+    // Three presentations share this card: measured L/100 km on a hybrid, Wh/km on a plug-in
+    // car, and a fuel economy estimate from the range computer for anything that burns fuel but
+    // has no driving data yet. DashboardCardContent picks between them.
+    hasData: (ctx) => hasFuelConsumption(ctx) || hasEnergyEfficiency(ctx) || hasFuelEconomy(ctx),
   },
   {
     id: 'speed',
@@ -161,9 +162,20 @@ export function defaultCards(type: VehicleType = 'unknown'): CardConfig[] {
   return [...all.filter((c) => c.visible), ...all.filter((c) => !c.visible)]
 }
 
-/** Wh/km over today's driving, the efficiencyRatio card's primary presentation. */
-export function hasEnergyEfficiency({ status }: CardDataContext): boolean {
-  return whPerKm(status.powerUsageOfDay, status.mileageOfTheDay) !== null
+/** Wh/km over today's driving, the efficiencyRatio card's presentation for a plug-in car. */
+export function hasEnergyEfficiency({ status, vehicleType }: CardDataContext): boolean {
+  return (
+    energyUnit(vehicleType) === 'kwh' &&
+    whPerKm(status.powerUsageOfDay, status.mileageOfTheDay) !== null
+  )
+}
+
+/** L/100 km over today's driving, the efficiencyRatio card's presentation for a hybrid. */
+export function hasFuelConsumption({ status, vehicleType }: CardDataContext): boolean {
+  return (
+    energyUnit(vehicleType) === 'litres' &&
+    litresPer100Km(status.powerUsageOfDay, status.mileageOfTheDay) !== null
+  )
 }
 
 /** Fuel economy from the range computer, the efficiencyRatio card's fallback for fuel burners. */

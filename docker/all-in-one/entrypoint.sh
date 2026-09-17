@@ -95,6 +95,10 @@ export TyrePressure__LowBar="${TYRE_PRESSURE_LOW_BAR:-}"
 export TyrePressure__GoodBar="${TYRE_PRESSURE_GOOD_BAR:-}"
 export TyrePressure__HighBar="${TYRE_PRESSURE_HIGH_BAR:-}"
 
+# The traction battery's real capacity, which the MQTT gateway assumes rather than reads.
+# Optional; empty means "trust the gateway on a plug-in car, show a hybrid percentages only".
+export HvBattery__CapacityKwh="${HV_BATTERY_CAPACITY_KWH:-}"
+
 # .NET API listens on an internal port; nginx proxies port 80 to it
 export ASPNETCORE_URLS="http://127.0.0.1:9000"
 

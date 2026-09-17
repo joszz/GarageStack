@@ -24,7 +24,7 @@ import StatusCard from '@/components/StatusCard.vue'
 import StatsChartCard, { type StatsChartType } from '@/components/StatsChartCard.vue'
 import EditableCardSlot from '@/components/EditableCardSlot.vue'
 import { formatNumber } from '@/utils/format'
-import { dailyEnergyKwh } from '@/utils/energy'
+import { dailyCounterTotal, energyUnit, litres } from '@/utils/energy'
 import { startOfLocalDayDaysAgoIso } from '@/utils/dates'
 
 const { t } = useI18n()
@@ -426,19 +426,24 @@ const hybridSocChartData = computed(() => ({
   ],
 }))
 
-const dailyKwhChartData = computed(() => ({
+// The same counter, read in the unit this drivetrain actually reports: kWh out of the traction
+// battery on a plug-in car, litres of fuel on a plain hybrid. See utils/energy.
+const reportsFuelCounter = computed(() => energyUnit(vehicleType.value) === 'litres')
+
+const dailyEnergyChartData = computed(() => ({
   labels: chartLabels.value,
   datasets: [
     {
-      label: 'kWh',
+      label: reportsFuelCounter.value ? t('common.litre') : t('common.kwh'),
       data: groupedHistory.value.map((d) => {
         const readings = d.points
           .slice()
           .sort((a, b) => new Date(a.recordedAt).getTime() - new Date(b.recordedAt).getTime())
           .map((p) => p.powerUsageOfDay)
           .filter((v): v is number => v !== null)
-        const kwh = dailyEnergyKwh(readings, d.key === toLocalDateKey(new Date()))
-        return kwh !== null ? round2(kwh) : null
+        const total = dailyCounterTotal(readings, d.key === toLocalDateKey(new Date()))
+        const used = reportsFuelCounter.value ? litres(total) : total
+        return used !== null ? round2(used) : null
       }),
       borderColor: '#f59e0b',
       backgroundColor: 'rgba(245,158,11,0.7)',
@@ -519,13 +524,17 @@ const chartDefs = computed((): ChartDef[] => [
   },
   {
     id: 'dailyKwhChart',
-    icon: CHART_ICONS.dailyKwhChart,
-    title: t('statistics.dailyKwhChart'),
-    description: t('statistics.chartDesc.dailyKwhChart'),
+    icon: reportsFuelCounter.value ? 'gas-pump' : CHART_ICONS.dailyKwhChart,
+    title: reportsFuelCounter.value
+      ? t('statistics.dailyFuelChart')
+      : t('statistics.dailyKwhChart'),
+    description: reportsFuelCounter.value
+      ? t('statistics.chartDesc.dailyFuelChart')
+      : t('statistics.chartDesc.dailyKwhChart'),
     vehicleApplicable: isHybrid.value,
     applicable: isHybrid.value && store.history.length > 0,
     type: 'bar',
-    data: dailyKwhChartData.value,
+    data: dailyEnergyChartData.value,
     options: kwhOptions,
   },
 ])

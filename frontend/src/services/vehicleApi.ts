@@ -11,6 +11,12 @@ export interface Vehicle {
   createdAt: string
   /** Drivetrain the API detected from the vehicle's hardware version. */
   vehicleType: VehicleType
+  /**
+   * The traction battery's real usable capacity when the deployment configures one, overriding
+   * the EV-sized figure the gateway assumes. Null leaves that figure in place for a plug-in car
+   * and hides kWh entirely for a hybrid, where it is known to be wrong.
+   */
+  hvBatteryCapacityKwh: number | null
 }
 
 export interface TelemetrySnapshot {

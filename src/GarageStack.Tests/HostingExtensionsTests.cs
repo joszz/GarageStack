@@ -59,6 +59,35 @@ public class HostingExtensionsTests
         Assert.Equal(3.15, thresholds.HighBar);
     }
 
+    private static HvBatteryCapacity ResolveCapacity(IConfiguration configuration) =>
+        new ServiceCollection()
+            .AddHvBatteryCapacity(configuration)
+            .BuildServiceProvider()
+            .GetRequiredService<HvBatteryCapacity>();
+
+    [Fact]
+    public void HvBatteryCapacity_WhenConfigured_OverridesWhatTheGatewayAssumes()
+    {
+        var capacity = ResolveCapacity(Config(("HvBattery:CapacityKwh", "1.83")));
+
+        Assert.Equal(1.83, capacity.Kwh);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData("not a number")]
+    [InlineData("0")]
+    [InlineData("-5")]
+    public void HvBatteryCapacity_WithAnUnusableValue_StaysUnknown(string? configured)
+    {
+        var capacity = ResolveCapacity(Config(("HvBattery:CapacityKwh", configured)));
+
+        Assert.Equal(HvBatteryCapacity.Unknown, capacity);
+        Assert.Null(capacity.Kwh);
+    }
+
     [Theory]
     [InlineData(null, 120)]
     [InlineData("", 120)]

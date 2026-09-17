@@ -4,7 +4,13 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { useVehicleStore } from '@/stores/vehicle'
 import type { CardId } from '@/cards/registry'
-import { cardHasData, cardIcon, hasEnergyEfficiency, hasFuelEconomy } from '@/cards/registry'
+import {
+  cardHasData,
+  cardIcon,
+  hasEnergyEfficiency,
+  hasFuelConsumption,
+  hasFuelEconomy,
+} from '@/cards/registry'
 import { useCardData } from '@/cards/useCardData'
 import StatusCard from './StatusCard.vue'
 import DoorsCard from './DoorsCard.vue'
@@ -17,7 +23,7 @@ import ChargingSessionCard from './ChargingSessionCard.vue'
 import BatteryHeatingCard from './BatteryHeatingCard.vue'
 import MaintenanceSummaryCard from './MaintenanceSummaryCard.vue'
 import { formatNumber } from '@/utils/format'
-import { whPerKm } from '@/utils/energy'
+import { energyUnit, hvBatteryReading, litres, litresPer100Km, whPerKm } from '@/utils/energy'
 
 const props = defineProps<{ cardId: CardId }>()
 
@@ -52,6 +58,16 @@ const supportsExternalCharge = computed(
   () => vehicleType.value === 'phev' || vehicleType.value === 'bev',
 )
 
+// A hybrid's energy counters hold fuel, not kWh, so the same telemetry field is labelled and
+// scaled differently per drivetrain. See utils/energy.
+const reportsFuelCounter = computed(() => energyUnit(vehicleType.value) === 'litres')
+
+const hvBattery = computed(() => {
+  const s = status.value
+  if (!s) return null
+  return hvBatteryReading(s, vehicleType.value, store.hvBatteryCapacityKwh)
+})
+
 // Config table for the branches that render nothing but a plain <StatusCard>. Branches that
 // dispatch to a dedicated sub-component (doors, climate, hvBattery, etc.) stay in the
 // v-else-if chain below since they aren't simple StatusCard-only cases. Whether a card has
@@ -62,6 +78,8 @@ const simpleCards = computed((): SimpleCardConfig[] => {
   const ctx = cardData.value
   if (!s || !ctx) return []
   const efficiencyWhPerKm = whPerKm(s.powerUsageOfDay, s.mileageOfTheDay)
+  const fuelUsedLitres = litres(s.powerUsageOfDay)
+  const consumptionL100Km = litresPer100Km(s.powerUsageOfDay, s.mileageOfTheDay)
   return [
     {
       id: 'fuelLevel',
@@ -128,17 +146,36 @@ const simpleCards = computed((): SimpleCardConfig[] => {
       value: s.mileageOfTheDay !== null ? formatNumber(s.mileageOfTheDay) : null,
       unit: t('common.km'),
     },
+    // efficiencyEnergy - kWh through the traction battery on a plug-in car
     {
       id: 'efficiencyEnergy',
+      match: !reportsFuelCounter.value && s.powerUsageOfDay !== null,
       label: t('vehicle.efficiency.todayEnergy'),
       value: s.powerUsageOfDay !== null ? formatNumber(s.powerUsageOfDay) : null,
       unit: t('common.kwh'),
+    },
+    // efficiencyEnergy - litres burned on a hybrid, whose counter reports fuel
+    {
+      id: 'efficiencyEnergy',
+      match: reportsFuelCounter.value && fuelUsedLitres !== null,
+      icon: 'gas-pump',
+      label: t('vehicle.efficiency.todayFuel'),
+      value: fuelUsedLitres !== null ? formatNumber(fuelUsedLitres) : null,
+      unit: t('common.litre'),
     },
     {
       id: 'efficiencyCharge',
       label: t('vehicle.efficiency.sinceCharge'),
       value: s.mileageSinceLastCharge !== null ? formatNumber(s.mileageSinceLastCharge) : null,
       unit: t('common.km'),
+    },
+    // efficiencyRatio - measured L/100 km on a hybrid, which beats the estimate below
+    {
+      id: 'efficiencyRatio',
+      match: hasFuelConsumption(ctx),
+      label: t('vehicle.efficiency.consumption'),
+      value: consumptionL100Km !== null ? formatNumber(consumptionL100Km) : null,
+      unit: `${t('common.litre')}/100${t('common.km')}`,
     },
     // efficiencyRatio - Wh/km when driving data is available
     {
@@ -244,10 +281,11 @@ const activeSimpleCard = computed(() => {
 
     <!-- hvBattery -->
     <HvBatteryCard
-      v-else-if="cardId === 'hvBattery'"
+      v-else-if="cardId === 'hvBattery' && hvBattery"
       :vin="vin"
-      :hv-soc-kwh="status.hvSocKwh"
-      :hv-total-capacity-kwh="status.hvTotalCapacityKwh"
+      :soc-percent="hvBattery.socPercent"
+      :stored-kwh="hvBattery.storedKwh"
+      :capacity-kwh="hvBattery.capacityKwh"
       :hv-voltage="status.hvVoltage"
       :hv-current="status.hvCurrent"
       :hv-power="status.hvPower"

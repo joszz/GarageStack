@@ -9,10 +9,15 @@ import { formatNumber } from '@/utils/format'
 
 const { t } = useI18n()
 
+// Charge is taken in percent and kWh rather than derived here: how many kWh a percentage is
+// worth depends on the car's real pack size, which the gateway does not report reliably. That
+// resolution lives in utils/energy, so this card only presents what it is handed, and is handed
+// no kWh at all when the capacity is unknown.
 const props = defineProps<{
   vin: string | null
-  hvSocKwh: number | null
-  hvTotalCapacityKwh: number | null
+  socPercent: number | null
+  storedKwh: number | null
+  capacityKwh: number | null
   hvVoltage: number | null
   hvCurrent: number | null
   hvPower: number | null
@@ -24,34 +29,28 @@ const props = defineProps<{
 
 const { sending, lastResult, isPending, send } = useVehicleCommand()
 
-const socPercent = computed(() => {
-  if (
-    props.hvSocKwh === null ||
-    props.hvTotalCapacityKwh === null ||
-    props.hvTotalCapacityKwh === 0
-  )
-    return null
-  return Math.round((props.hvSocKwh / props.hvTotalCapacityKwh) * 100)
-})
+const roundedSocPercent = computed(() =>
+  props.socPercent === null ? null : Math.round(props.socPercent),
+)
 
 const summaryValue = computed((): string | null => {
   const parts: string[] = []
-  if (socPercent.value !== null) parts.push(`${socPercent.value}%`)
-  else if (props.hvSocKwh !== null) parts.push(`${formatNumber(props.hvSocKwh)} kWh`)
+  if (roundedSocPercent.value !== null) parts.push(`${roundedSocPercent.value}%`)
+  else if (props.storedKwh !== null) parts.push(`${formatNumber(props.storedKwh)} kWh`)
   if (props.hvBatteryActive !== null)
     parts.push(props.hvBatteryActive ? t('vehicle.hvBattery.active') : t('vehicle.hvBattery.idle'))
   return parts.length ? parts.join(' · ') : null
 })
 
 const summaryVariant = computed(() => {
-  if (socPercent.value === null) return undefined
-  if (socPercent.value < 20) return 'danger' as const
-  if (socPercent.value < 50) return 'warning' as const
+  if (roundedSocPercent.value === null) return undefined
+  if (roundedSocPercent.value < 20) return 'danger' as const
+  if (roundedSocPercent.value < 50) return 'warning' as const
   return 'success' as const
 })
 
 const hasAnyData = computed(
-  () => props.hvSocKwh !== null || props.hvVoltage !== null || props.hvPower !== null,
+  () => props.socPercent !== null || props.hvVoltage !== null || props.hvPower !== null,
 )
 
 function setChargeLimit(value: string) {
@@ -69,21 +68,21 @@ function setChargeLimit(value: string) {
   >
     <div class="detail-list">
       <DetailListItem
-        v-if="hvSocKwh !== null"
+        v-if="storedKwh !== null"
         icon="bolt"
-        :value="`${formatNumber(hvSocKwh)} kWh`"
+        :value="`${formatNumber(storedKwh)} kWh`"
         :label="t('vehicle.hvBattery.socKwh')"
       />
       <DetailListItem
-        v-if="hvTotalCapacityKwh !== null"
+        v-if="capacityKwh !== null"
         icon="database"
-        :value="`${formatNumber(hvTotalCapacityKwh)} kWh`"
+        :value="`${formatNumber(capacityKwh)} kWh`"
         :label="t('vehicle.hvBattery.capacity')"
       />
       <DetailListItem
-        v-if="socPercent !== null"
+        v-if="roundedSocPercent !== null"
         icon="percent"
-        :value="`${socPercent}%`"
+        :value="`${roundedSocPercent}%`"
         :label="t('vehicle.hvBattery.soc')"
       />
       <DetailListItem

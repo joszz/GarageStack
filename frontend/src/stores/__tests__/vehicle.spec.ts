@@ -23,6 +23,7 @@ function vehicle(vehicleType: Vehicle['vehicleType']): Vehicle {
     series: null,
     createdAt: '2026-01-01T00:00:00Z',
     vehicleType,
+    hvBatteryCapacityKwh: null,
   }
 }
 
@@ -89,6 +90,26 @@ describe('useVehicleStore - effectiveVehicleType', () => {
   })
 })
 
+describe('useVehicleStore - hvBatteryCapacityKwh', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  it('is null before a vehicle is fetched and when the deployment configured none', () => {
+    const store = useVehicleStore()
+    expect(store.hvBatteryCapacityKwh).toBeNull()
+
+    store.vehicles = [vehicle('hev')]
+    expect(store.hvBatteryCapacityKwh).toBeNull()
+  })
+
+  it('reports the configured capacity for the active vehicle', () => {
+    const store = useVehicleStore()
+    store.vehicles = [{ ...vehicle('hev'), hvBatteryCapacityKwh: 1.83 }]
+    expect(store.hvBatteryCapacityKwh).toBe(1.83)
+  })
+})
+
 describe('useVehicleStore - fetchVehicles', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
@@ -98,7 +119,15 @@ describe('useVehicleStore - fetchVehicles', () => {
   it('populates vehicles on success', async () => {
     const { vehicleApi } = await import('@/services/vehicleApi')
     vi.mocked(vehicleApi.list).mockResolvedValue([
-      { id: 1, vin: 'ABC123', model: 'MG ZS EV', series: null, createdAt: '', vehicleType: 'bev' },
+      {
+        id: 1,
+        vin: 'FAKEVN00000000002',
+        model: 'MG ZS EV',
+        series: null,
+        createdAt: '',
+        vehicleType: 'bev',
+        hvBatteryCapacityKwh: null,
+      },
     ])
     const store = useVehicleStore()
     await store.fetchVehicles()
@@ -106,7 +135,7 @@ describe('useVehicleStore - fetchVehicles', () => {
     const firstVehicle = store.vehicles[0]
     expect(firstVehicle).toBeDefined()
     if (!firstVehicle) throw new Error('Expected first vehicle to exist')
-    expect(firstVehicle.vin).toBe('ABC123')
+    expect(firstVehicle.vin).toBe('FAKEVN00000000002')
   })
 
   it('sets error on failure', async () => {

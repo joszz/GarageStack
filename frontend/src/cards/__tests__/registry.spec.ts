@@ -4,6 +4,8 @@ import {
   cardHasData,
   cardIcon,
   defaultCards,
+  hasEnergyEfficiency,
+  hasFuelConsumption,
   type CardDataContext,
   type CardId,
 } from '@/cards/registry'
@@ -55,14 +57,28 @@ describe('card registry', () => {
     expect(cardHasData('efficiencyCharge', context(status, 'bev'))).toBe(true)
   })
 
-  it('accepts either presentation of the efficiency ratio card', () => {
+  it('accepts any presentation of the efficiency ratio card', () => {
     const energy = context({ powerUsageOfDay: 8, mileageOfTheDay: 40 }, 'bev')
+    const consumption = context({ powerUsageOfDay: 394, mileageOfTheDay: 59 }, 'hev')
     const fuel = context({ fuelRangeKm: 400, fuelLevelPercent: 50 }, 'hev')
     const neither = context({ powerUsageOfDay: null, mileageOfTheDay: null }, 'bev')
 
     expect(cardHasData('efficiencyRatio', energy)).toBe(true)
+    expect(cardHasData('efficiencyRatio', consumption)).toBe(true)
     expect(cardHasData('efficiencyRatio', fuel)).toBe(true)
     expect(cardHasData('efficiencyRatio', neither)).toBe(false)
+  })
+
+  it('splits the efficiency ratio by what the energy counter measures', () => {
+    const driven = { powerUsageOfDay: 394, mileageOfTheDay: 59 }
+
+    // A hybrid's counter is fuel, so Wh/km would be nonsense and L/100 km is the reading
+    expect(hasEnergyEfficiency(context(driven, 'hev'))).toBe(false)
+    expect(hasFuelConsumption(context(driven, 'hev'))).toBe(true)
+
+    // A plug-in car cycles a real pack, so the counter is kWh and stays Wh/km
+    expect(hasEnergyEfficiency(context(driven, 'phev'))).toBe(true)
+    expect(hasFuelConsumption(context(driven, 'phev'))).toBe(false)
   })
 
   it('needs a trip with recorded speeds for the top speed card', () => {

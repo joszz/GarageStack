@@ -79,6 +79,7 @@ try
     });
 
     builder.Services.AddTyrePressureThresholds(builder.Configuration);
+    builder.Services.AddHvBatteryCapacity(builder.Configuration);
 
     builder.Services.AddMemoryCache();
     builder.Services.AddScoped<ChargingStationService>();

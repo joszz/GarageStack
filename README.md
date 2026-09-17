@@ -8,7 +8,7 @@ GarageStack is a free, open-source vehicle monitoring dashboard for **modern MG 
 
 - **Live dashboard** -- Real-time vehicle telemetry displayed as configurable cards. Cards are automatically shown or hidden based on your vehicle type (HEV, PHEV, BEV) and can be reordered or toggled individually in the dashboard's edit mode.
 - **Trip history** -- Browse past journeys on an interactive map with route playback and heatmap visualisation to identify frequently driven roads.
-- **Energy statistics** -- Track daily energy consumption, efficiency (Wh/km), fuel use, electric share, average driving speed, and more over a configurable time window.
+- **Energy statistics** -- Track daily energy consumption, efficiency (Wh/km on a plug-in car, L/100 km on a hybrid), fuel use, electric share, average driving speed, and more over a configurable time window.
 - **Remote commands** -- Trigger climate pre-conditioning, lock or unlock the car, and activate the horn and lights remotely from the dashboard.
 - **Push notifications** -- Browser and in-app alerts for key events: engine started, low tyre pressure, low EV battery, car left unlocked, and doors or windows left open.
 - **Homepage widget** -- A read-only API endpoint for the [gethomepage.dev](https://gethomepage.dev) Custom API widget, exposing key vehicle stats at a glance.
@@ -37,13 +37,13 @@ Cards are shown or hidden automatically based on vehicle type (HEV / PHEV / BEV)
 | Windows | Window and sunroof states | All |
 | Sunroof | Sunroof open/closed | All (off by default) |
 | Climate | Temperature, seat heating, defroster | All |
-| HV Battery | kWh, voltage, current, power | All |
+| HV Battery | State of charge, voltage, current, power (kWh too, with `HV_BATTERY_CAPACITY_KWH` set) | All |
 | Find My Car | Horn + lights to locate the car | All |
 | Lights | Main beam, low beam, sidelights | All |
 | Daily Distance | Distance driven today | All |
-| Daily Energy | Energy used today (Wh) | All |
+| Daily Energy | Energy used today (kWh), or fuel burned today (L) on an HEV | All |
 | Since Charge | Distance since last charge session | PHEV, BEV |
-| Efficiency | Energy per km (Wh/km) | All |
+| Efficiency | Energy per km (Wh/km), or fuel consumption (L/100 km) on an HEV | All |
 | Speed | Current vehicle speed | All |
 | Top Speed | Highest speed recorded in the most recent completed trip | All |
 | Active Trip | Distance covered in the current trip | All |
@@ -179,6 +179,8 @@ Then open `.env` and fill in at minimum:
 Sign-in is configured separately: the built-in login reuses `SAIC_USER` / `SAIC_PASSWORD` unless you set `AUTH_USERNAME` / `AUTH_PASSWORD`, and setting `OIDC_AUTHORITY` switches GarageStack over to your identity provider. See [`AUTHENTICATION.md`](AUTHENTICATION.md).
 
 `TYRE_PRESSURE_LOW_BAR` / `TYRE_PRESSURE_GOOD_BAR` / `TYRE_PRESSURE_HIGH_BAR` are optional and default to `2.2` / `2.6` / `3.2` bar; override them to match your vehicle's placarded tyre pressure (see [Push notifications](#push-notifications) below).
+
+`HV_BATTERY_CAPACITY_KWH` is optional and tells GarageStack how big the traction battery really is. The MQTT gateway does not read this off the pack, it scales the BMS percentage by an EV-sized default, so the kWh it reports are right for a BEV or PHEV and far too large for a plain hybrid (an MG HS Hybrid+ carries 1.83 kWh and is reported as 72.5). Left unset, a plug-in car keeps the gateway's figure and a hybrid shows state of charge as a percentage only.
 
 `RATE_LIMIT_GLOBAL_PER_MINUTE` is optional and defaults to `120` requests per minute per client IP. Raise it when several people reach GarageStack through one public address, or when something polls the API frequently; the tighter limits protecting login and the widget endpoint are unaffected.
 
@@ -371,14 +373,14 @@ The endpoint returns a flat JSON object. Numeric fields are `null` when the vehi
 | `isCharging` | string | Charging state: `"Charging"` or `"Not charging"` |
 | `chargerConnected` | string | Charger connection state: `"Plugged in"` or `"Unplugged"` |
 | `mileageSinceLastCharge` | number | Distance driven since last full charge (km) |
-| `hvSocKwh` | number | HV battery energy (kWh) |
-| `hvTotalCapacityKwh` | number | HV battery total capacity (kWh) |
+| `hvSocKwh` | number | HV battery energy (kWh), as the gateway reports it |
+| `hvTotalCapacityKwh` | number | HV battery total capacity (kWh), as the gateway reports it |
 | `hvVoltage` | number | HV system voltage (V) |
 | `hvCurrent` | number | HV system current (A) |
 | `hvPower` | number | HV system power (W) |
 | `odometerKm` | number | Total odometer reading (km) |
 | `mileageOfTheDayKm` | number | Distance driven today (km) |
-| `powerUsageOfDayKwh` | number | Energy used today (kWh) |
+| `powerUsageOfDayKwh` | number | Energy used today (kWh). On a plain hybrid this counter holds the trip computer's fuel total in hundredths of a litre instead, so divide by 100 for litres |
 | `electricSharePercent` | number | % of today's distance driven on electric power (PHEV) |
 | `isLocked` | string | Lock state: `"Locked"` or `"Unlocked"` |
 | `engineRunning` | string | Engine state: `"Engine on"` or `"Engine off"` |

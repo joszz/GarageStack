@@ -63,6 +63,7 @@ By default the web login uses the same `SAIC_USER` and `SAIC_PASSWORD` credentia
 | `OVERPASS__BASEURL` | Overpass API endpoint used for the fuel station and motorway service area map overlays. Defaults to the public endpoint (`https://overpass-api.de/api/interpreter`). Set this only if you self-host an Overpass instance. No API key is required for the default public endpoint. |
 | `RATE_LIMIT_GLOBAL_PER_MINUTE` | Requests per minute the API accepts per client IP (default: `120`). Raise it when several people share one public address; the tighter limits on login and the widget endpoint apply regardless. |
 | `TYRE_PRESSURE_LOW_BAR` / `TYRE_PRESSURE_GOOD_BAR` / `TYRE_PRESSURE_HIGH_BAR` | Colour-coding and notification thresholds (bar) for tyre pressure. Default to `2.2` / `2.6` / `3.2`. Override to match your vehicle's placarded pressure, e.g. `TYRE_PRESSURE_GOOD_BAR=2.55`. |
+| `HV_BATTERY_CAPACITY_KWH` | Usable capacity of the traction battery, in kWh. The MQTT gateway assumes an EV-sized pack rather than reading the real one, so its kWh figures are far too large on a plain hybrid (an MG HS Hybrid+ carries `1.83` and is reported as `72.5`). Leave empty to keep the gateway's figure on a BEV or PHEV and show charge as a percentage only on a hybrid. |
 | `SAIC_REST_URI` | Override for the SAIC gateway API endpoint. Only needed if your region isn't listed in the `SAIC_REGION` row above -- set it directly to your gateway's endpoint. |
 | `POSTGRES_DB` | Database name (default: `garagestack`) |
 | `POSTGRES_USER` | Database user (default: `garagestack`) |
