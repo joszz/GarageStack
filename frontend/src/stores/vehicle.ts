@@ -121,6 +121,12 @@ export const useVehicleStore = defineStore('vehicle', () => {
     return override === 'auto' ? detectedVehicleType.value : override
   })
 
+  // The deployment's answer for how big the traction battery really is, or null when it has not
+  // been told. Read alongside the snapshot's own kWh figures in utils/energy.
+  const hvBatteryCapacityKwh = computed(
+    (): number | null => activeVehicle.value?.hvBatteryCapacityKwh ?? null,
+  )
+
   return {
     vehicles,
     activeVehicle,
@@ -129,6 +135,7 @@ export const useVehicleStore = defineStore('vehicle', () => {
     vehicleConfig,
     detectedVehicleType,
     effectiveVehicleType,
+    hvBatteryCapacityKwh,
     history,
     trips,
     loading,

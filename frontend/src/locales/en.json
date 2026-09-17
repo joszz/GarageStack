@@ -28,13 +28,13 @@
       "windows": "Open or closed status of all four windows.",
       "sunRoof": "Whether the sunroof is currently open or closed.",
       "climate": "Climate control status including temperature and seat heating settings.",
-      "hvBattery": "High-voltage battery details: kWh remaining, total capacity, voltage, current and live power flow. On a PHEV or BEV it also shows the charge-current-limit control. On an HEV it lets you see regeneration and motor-assist activity in real time.",
+      "hvBattery": "High-voltage battery details: state of charge, voltage, current and live power flow. On a PHEV or BEV it also shows the charge-current-limit control. On an HEV it lets you see regeneration and motor-assist activity in real time. kWh figures appear only when the pack's real capacity is configured, because the gateway assumes an EV-sized pack for every car.",
       "findMyCar": "Activate the horn and lights to help locate your car in a parking area.",
       "lights": "On or off status of high beam, low beam and sidelights.",
       "efficiencyDistance": "Total distance driven so far today.",
-      "efficiencyEnergy": "Total electrical energy that passed through the high-voltage battery since midnight, in kilowatt-hours. On a BEV this equals battery charge consumed. On a PHEV it covers both grid charge and regeneration. On an HEV it reflects the energy cycled through the small hybrid battery.",
+      "efficiencyEnergy": "What the car has used since midnight. On a BEV or PHEV that is electrical energy through the high-voltage battery, in kilowatt-hours. On an HEV the same counter carries the trip computer's fuel total instead, so it is shown in litres.",
       "efficiencyCharge": "Distance driven since the last charge session.",
-      "efficiencyRatio": "Energy today divided by distance today (Wh/km). Lower is better. On a BEV or PHEV in EV mode this translates directly to electricity cost per km. On an HEV it shows how efficiently the hybrid system ran - motorway driving gives a lower figure than stop-start city traffic. When no driving data is available yet, HEV and PHEV fall back to showing estimated fuel economy (km/%) derived from the car's own range computer: higher is more efficient.",
+      "efficiencyRatio": "Today's usage divided by today's distance. Lower is better. On a BEV or PHEV that is Wh/km, which translates directly to electricity cost per km. On an HEV it is fuel consumption in L/100 km: motorway driving gives a lower figure than short stop-start trips from cold. When no driving data is available yet, HEV and PHEV fall back to estimated fuel economy (km/%) derived from the car's own range computer, where higher is more efficient.",
       "speed": "Current vehicle speed as reported by the gateway.",
       "topSpeed": "Highest speed recorded across all GPS points in the most recent completed trip.",
       "activeTrip": "Distance covered in the current trip while active, or the distance of the last completed trip when parked.",
@@ -73,10 +73,12 @@
       "evChart": "Daily average EV battery state-of-charge over the selected period.",
       "tyreChart": "Daily average tyre pressure per wheel over the selected period. Typical passenger-car range is 2.0 – 3.0 bar.",
       "hybridSocChart": "Daily average EV battery and fuel level over the selected period. Lets you compare how both energy sources change together.",
-      "dailyKwhChart": "Estimated kWh consumed from the EV battery per day. Past days show the cumulative peak for that day; today shows only the net increase since midnight, or since the last counter reset."
+      "dailyKwhChart": "Estimated kWh consumed from the EV battery per day. Past days show the cumulative peak for that day; today shows only the net increase since midnight, or since the last counter reset.",
+      "dailyFuelChart": "Fuel burned per day, from the trip computer's own counter. Past days show the cumulative peak for that day; today shows only the net increase since midnight, or since the last counter reset."
     },
     "hybridSocChart": "EV & Fuel Levels",
-    "dailyKwhChart": "Daily Electric Usage (kWh)"
+    "dailyKwhChart": "Daily Electric Usage (kWh)",
+    "dailyFuelChart": "Daily Fuel Use (L)"
   },
   "vehicle": {
     "diagramLabel": "Vehicle status diagram",
@@ -147,8 +149,10 @@
     "efficiency": {
       "todayDistance": "Dist. today",
       "todayEnergy": "Energy today",
+      "todayFuel": "Fuel today",
       "sinceCharge": "Since charge",
       "efficiency": "Efficiency",
+      "consumption": "Consumption",
       "fuelEconomy": "Fuel economy (est.)"
     },
     "hvBattery": {
@@ -405,6 +409,7 @@
     "bar": "bar",
     "wh": "Wh",
     "kwh": "kWh",
+    "litre": "L",
     "on": "On",
     "off": "Off",
     "loading": "Loading...",

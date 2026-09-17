@@ -28,13 +28,13 @@
       "windows": "Open of gesloten status van alle vier de ramen.",
       "sunRoof": "Of het schuifdak momenteel open of gesloten is.",
       "climate": "Klimaatbeheerstatus inclusief temperatuur en stoelverwarmingsinstellingen.",
-      "hvBattery": "Details van de hoogspanningsaccu: resterende kWh, totale capaciteit, spanning, stroom en live vermogensstroom. Op een PHEV of BEV ook de laadstroomlimietbediening. Op een HEV laat het regeneratie en motorondersteuning in realtime zien.",
+      "hvBattery": "Details van de hoogspanningsaccu: laadstatus, spanning, stroom en live vermogensstroom. Op een PHEV of BEV ook de laadstroomlimietbediening. Op een HEV laat het regeneratie en motorondersteuning in realtime zien. kWh-waarden verschijnen alleen als de werkelijke capaciteit is ingesteld, omdat de gateway voor elke auto een EV-accu veronderstelt.",
       "findMyCar": "Activeer de claxon en verlichting om de auto te vinden op de parkeerplaats.",
       "lights": "Aan/uit-status van groot licht, dimlicht en stadslichten.",
       "efficiencyDistance": "Totale afstand gereden vandaag.",
-      "efficiencyEnergy": "Totale elektrische energie die sinds middernacht door de hoogspanningsaccu is gegaan, in kilowattuur. Op een BEV staat dit gelijk aan verbruikt accuvermogen. Op een PHEV omvat het zowel netlaadvermogen als regeneratie. Op een HEV weerspiegelt het de energie die door de kleine hybride accu is gegaan.",
+      "efficiencyEnergy": "Wat de auto sinds middernacht heeft verbruikt. Op een BEV of PHEV is dat elektrische energie door de hoogspanningsaccu, in kilowattuur. Op een HEV bevat diezelfde teller het brandstoftotaal van de boordcomputer en wordt die dus in liters getoond.",
       "efficiencyCharge": "Afstand gereden sinds de laatste laadsessie.",
-      "efficiencyRatio": "Energie vandaag gedeeld door afstand vandaag (Wh/km). Lager is beter. Op een BEV of PHEV in EV-modus vertaalt dit zich direct naar elektriciteitskosten per km. Op een HEV toont het hoe efficiënt het hybridesysteem werkte -- snelwegrijden geeft een lagere waarde dan stop-and-go stadsverkeer. Als er nog geen rijgegevens beschikbaar zijn, vallen HEV en PHEV terug op een geschat brandstofverbruik (km/%) afgeleid van de rangecalculator van de auto: hoger is zuiniger.",
+      "efficiencyRatio": "Verbruik vandaag gedeeld door afstand vandaag. Lager is beter. Op een BEV of PHEV is dat Wh/km, wat zich direct vertaalt naar elektriciteitskosten per km. Op een HEV is het brandstofverbruik in L/100 km: snelwegrijden geeft een lagere waarde dan korte ritjes vanuit koude start. Als er nog geen rijgegevens beschikbaar zijn, vallen HEV en PHEV terug op een geschat brandstofverbruik (km/%) afgeleid van de rangecalculator van de auto, waarbij hoger zuiniger is.",
       "speed": "Actuele rijsnelheid zoals gerapporteerd door de gateway.",
       "topSpeed": "Hoogste gemeten snelheid over alle GPS-punten van de meest recente rit.",
       "activeTrip": "Afstand afgelegd tijdens de huidige rit, of de afstand van de laatste afgesloten rit als de auto geparkeerd staat.",
@@ -73,10 +73,12 @@
       "evChart": "Dagelijks gemiddeld EV-accuniveau in de geselecteerde periode.",
       "tyreChart": "Dagelijkse gemiddelde bandenspanning per wiel in de geselecteerde periode. Normaal bereik voor personenwagens is circa 2,0 – 3,0 bar.",
       "hybridSocChart": "Dagelijks gemiddeld EV-accuniveau en brandstofniveau in de geselecteerde periode. Geeft inzicht in hoe beide energiebronnen zich samen ontwikkelen.",
-      "dailyKwhChart": "Geschat kWh-verbruik uit de EV-accu per dag. Voltooide dagen tonen de cumulatieve piek van die dag; vandaag toont alleen de nettotoename sinds middernacht, of sinds de laatste tellerreset."
+      "dailyKwhChart": "Geschat kWh-verbruik uit de EV-accu per dag. Voltooide dagen tonen de cumulatieve piek van die dag; vandaag toont alleen de nettotoename sinds middernacht, of sinds de laatste tellerreset.",
+      "dailyFuelChart": "Verbruikte brandstof per dag, volgens de teller van de boordcomputer. Voltooide dagen tonen de cumulatieve piek van die dag; vandaag toont alleen de nettotoename sinds middernacht, of sinds de laatste tellerreset."
     },
     "hybridSocChart": "EV & Brandstofniveaus",
-    "dailyKwhChart": "Dagelijks elektrisch verbruik (kWh)"
+    "dailyKwhChart": "Dagelijks elektrisch verbruik (kWh)",
+    "dailyFuelChart": "Dagelijks brandstofverbruik (L)"
   },
   "vehicle": {
     "diagramLabel": "Voertuigstatusdiagram",
@@ -147,8 +149,10 @@
     "efficiency": {
       "todayDistance": "Afst. vandaag",
       "todayEnergy": "Energie vandaag",
+      "todayFuel": "Brandstof vandaag",
       "sinceCharge": "Sinds lading",
       "efficiency": "Verbruik",
+      "consumption": "Verbruik",
       "fuelEconomy": "Brandstofverbruik (schatting)"
     },
     "hvBattery": {
@@ -405,6 +409,7 @@
     "bar": "bar",
     "wh": "Wh",
     "kwh": "kWh",
+    "litre": "L",
     "on": "Aan",
     "off": "Uit",
     "loading": "Laden...",

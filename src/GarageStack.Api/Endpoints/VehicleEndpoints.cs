@@ -62,11 +62,16 @@ public static class VehicleEndpoints
             .WithTags("Vehicles")
             .RequireAuthorization();
 
+        // Resolved once here rather than taken as a handler parameter: it is deployment
+        // configuration, not request input.
+        var hvBatteryCapacity = app.ServiceProvider.GetRequiredService<HvBatteryCapacity>();
+
         group.MapGet("/", async (IVehicleRepository vehicles, CancellationToken ct) =>
         {
             var all = await vehicles.GetAllAsync(ct);
             return Results.Ok(all.Select(v => new VehicleListItemDto(
-                v.Id, v.Vin, v.Model, v.Series, v.CreatedAt, VehicleTypeHelper.GetVehicleType(v))));
+                v.Id, v.Vin, v.Model, v.Series, v.CreatedAt, VehicleTypeHelper.GetVehicleType(v),
+                hvBatteryCapacity.Kwh)));
         })
         .WithSummary("List all vehicles");
 
@@ -254,6 +259,8 @@ public static class VehicleEndpoints
 /// A vehicle as the list endpoint returns it. <c>VehicleType</c> is the drivetrain detected from
 /// the vehicle's reported hardware version (hev, phev, bev, or unknown while nothing has reported
 /// one), served here so every client reads the same answer instead of parsing it themselves.
+/// <c>HvBatteryCapacityKwh</c> rides along for the same reason: it decides how a client turns a
+/// state of charge into kWh, and is null when the deployment has not configured one.
 /// </summary>
 public record VehicleListItemDto(
     int Id,
@@ -261,4 +268,5 @@ public record VehicleListItemDto(
     string? Model,
     string? Series,
     DateTime CreatedAt,
-    string VehicleType);
+    string VehicleType,
+    double? HvBatteryCapacityKwh);

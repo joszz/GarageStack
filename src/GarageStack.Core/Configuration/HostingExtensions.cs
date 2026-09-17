@@ -72,6 +72,24 @@ public static class HostingExtensions
     }
 
     /// <summary>
+    /// The traction battery's real capacity from configuration, or
+    /// <see cref="HvBatteryCapacity.Unknown"/> when the deployment has not said. A value of zero
+    /// or less is treated as unset: it would make every state of charge meaningless rather than
+    /// merely unknown.
+    /// </summary>
+    public static IServiceCollection AddHvBatteryCapacity(
+        this IServiceCollection services, IConfiguration configuration)
+    {
+        var configured = configuration["HvBattery:CapacityKwh"];
+        var parsed = double.TryParse(configured, NumberStyles.Float, CultureInfo.InvariantCulture, out var kwh)
+            && kwh > 0
+                ? new HvBatteryCapacity(kwh)
+                : HvBatteryCapacity.Unknown;
+
+        return services.AddSingleton(parsed);
+    }
+
+    /// <summary>
     /// An integer setting, falling back to <paramref name="fallback"/> when it is unset, blank or
     /// unparseable. Deployments pass configuration through environment variables, where "unset"
     /// usually arrives as an empty string rather than as a missing key.
