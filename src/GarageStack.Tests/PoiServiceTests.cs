@@ -212,4 +212,22 @@ public class PoiServiceTests
     {
         Assert.Equal(expected, PoiTypePolicy.IsAllowed(poiType, vehicleType));
     }
+
+    [Theory]
+    [InlineData("fuel", PoiTypePolicy.Fuel)]
+    [InlineData("service_area", PoiTypePolicy.ServiceArea)]
+    [InlineData("Fuel", null)]
+    [InlineData("fuel\r\nforged", null)]
+    [InlineData("", null)]
+    public void NormalizePoiType_ReturnsConstantOrNull(string requested, string? expected)
+    {
+        // A fresh (non-interned) copy, like a value bound from the query string, so Assert.NotSame
+        // proves the constant comes back rather than the caller's string.
+        var requestValue = new string(requested.AsSpan());
+        var normalized = PoiTypePolicy.Normalize(requestValue);
+
+        Assert.Equal(expected, normalized);
+        if (normalized is not null)
+            Assert.NotSame(requestValue, normalized);
+    }
 }

@@ -12,7 +12,16 @@ public static class PoiTypePolicy
 
     public static readonly IReadOnlyList<string> AllOverpassTypes = [Fuel, ServiceArea];
 
-    public static bool IsKnown(string poiType) => poiType is Fuel or ServiceArea;
+    /// <summary>
+    /// Maps a requested POI type onto its constant, or null when unknown. Pass the result on
+    /// instead of the raw request value so logs and queries downstream never carry user input.
+    /// </summary>
+    public static string? Normalize(string poiType) => poiType switch
+    {
+        Fuel => Fuel,
+        ServiceArea => ServiceArea,
+        _ => null,
+    };
 
     public static bool IsAllowed(string poiType, string vehicleType) => poiType switch
     {
