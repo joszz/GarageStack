@@ -15,10 +15,8 @@ public static class MapEndpoints
             ? Results.BadRequest(new { error = $"{paramName} must be between 1 and 200" })
             : null;
 
-    private static IResult? ValidatePoiType(string type) =>
-        PoiTypePolicy.IsKnown(type)
-            ? null
-            : Results.BadRequest(new { error = $"type must be '{PoiTypePolicy.Fuel}' or '{PoiTypePolicy.ServiceArea}'" });
+    private static IResult InvalidPoiType() =>
+        Results.BadRequest(new { error = $"type must be '{PoiTypePolicy.Fuel}' or '{PoiTypePolicy.ServiceArea}'" });
 
     public static IEndpointRouteBuilder MapMapEndpoints(this IEndpointRouteBuilder app)
     {
@@ -49,13 +47,13 @@ public static class MapEndpoints
             PoiService svc,
             CancellationToken ct) =>
         {
-            var error = ValidatePoiType(type);
-            if (error is not null) return error;
+            if (PoiTypePolicy.Normalize(type) is not { } poiType)
+                return InvalidPoiType();
 
-            if (!PoiTypePolicy.IsAllowed(type, vehicleType))
+            if (!PoiTypePolicy.IsAllowed(poiType, vehicleType))
                 return Results.Ok(Array.Empty<string>());
 
-            var brands = await svc.GetBrandsAsync(type, ct);
+            var brands = await svc.GetBrandsAsync(poiType, ct);
             return Results.Ok(brands);
         })
         .WithSummary("Get distinct brand names from the cached POI dataset");
@@ -69,15 +67,18 @@ public static class MapEndpoints
             PoiService svc,
             CancellationToken ct) =>
         {
-            var error = ValidateLatLng(lat, lng) ?? ValidateRadiusKm(radiusKm, "radiusKm") ?? ValidatePoiType(type);
+            var error = ValidateLatLng(lat, lng) ?? ValidateRadiusKm(radiusKm, "radiusKm");
             if (error is not null) return error;
 
-            if (!PoiTypePolicy.IsAllowed(type, vehicleType))
+            if (PoiTypePolicy.Normalize(type) is not { } poiType)
+                return InvalidPoiType();
+
+            if (!PoiTypePolicy.IsAllowed(poiType, vehicleType))
                 return Results.Ok(new PoiResult([], false));
 
             try
             {
-                var result = await svc.GetPoisAsync(type, lat, lng, radiusKm, ct);
+                var result = await svc.GetPoisAsync(poiType, lat, lng, radiusKm, ct);
                 return Results.Ok(result);
             }
             catch (OperationCanceledException) when (ct.IsCancellationRequested)

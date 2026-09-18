@@ -29,12 +29,8 @@ public sealed class PoiService(
             (cellLat, cellLng, token) => overpassClient.FetchAsync(poiType, cellLat, cellLng, token),
             (cellLat, cellLng, items, token) => repository.UpsertTileAsync(
                 PoiCacheDefaults.OverpassSource, poiType, cellLat, cellLng, items, PoiCacheDefaults.Ttl, token),
-            (ex, cellLat, cellLng) =>
-            {
-                var safePoiType = poiType.Replace("\r", "").Replace("\n", "");
-                logger.LogWarning(ex, "On-demand Overpass fetch failed for {PoiType} ({CellLat},{CellLng})",
-                    safePoiType, cellLat, cellLng);
-            },
+            (ex, cellLat, cellLng) => logger.LogWarning(ex,
+                "On-demand Overpass fetch failed for {PoiType} ({CellLat},{CellLng})", poiType, cellLat, cellLng),
             ct);
 
         // hasMore = uncached tiles still remain after this request (either more exist beyond
