@@ -110,11 +110,19 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 # Layout in the saic image: WORKDIR=/usr/src/app, venv at /usr/src/app/.venv,
 # entry point: python ./main.py
 COPY --from=saic-source /usr/src/app /opt/saic/app
-# Nothing in this image installs Python packages at runtime, so remove pip from both the
-# gateway venv and the base interpreter. Even the newest pip vendors outdated copies of
-# msgpack and setuptools' pkg_resources that image scans keep flagging (GHSA-6v7p-g79w-8964,
+# The gateway pins anyio 4.12.1 (transitively, via httpx), which carries CVE-2026-63374
+# (TLS certificate spoofing through IDNA 2003 host name encoding) and CVE-2026-64847
+# (process-pool workers deadlock on an undrained stderr pipe). Both are fixed in 4.14.2
+# and the newest gateway release still ships 4.12.1, so patch the copied venv here.
+# httpx 0.28 accepts any anyio 4.x, so the upgrade stays inside the gateway's own bounds.
+# Drop this once the pinned gateway tag ships anyio >= 4.14.2.
+#
+# Nothing in this image installs Python packages at runtime, so remove pip afterwards from
+# both the gateway venv and the base interpreter. Even the newest pip vendors outdated copies
+# of msgpack and setuptools' pkg_resources that image scans keep flagging (GHSA-6v7p-g79w-8964,
 # CVE-2025-47273, CVE-2026-59890), and dropping it also retires the earlier pip CVE patching.
-RUN /opt/saic/app/.venv/bin/python -m pip uninstall --yes pip \
+RUN /opt/saic/app/.venv/bin/python -m pip install --no-cache-dir --upgrade "anyio==4.15.1" \
+    && /opt/saic/app/.venv/bin/python -m pip uninstall --yes pip \
     && python -m pip uninstall --yes pip \
     && chown -R appuser:appuser /opt/saic/app
 
