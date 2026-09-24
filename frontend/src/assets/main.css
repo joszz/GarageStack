@@ -716,10 +716,32 @@ body,
   line-height: 1.45;
 }
 
+/* On a phone the credits do fit on one row, but only if they get the whole width: boxed into the
+   corner they wrap onto a second line and cover the map. Leaflet's bottom-right corner is
+   stretched across the map so the credits run along the bottom edge as a single row, the optional
+   part of the basemap credit is dropped to buy the room that takes, and the row passes drags
+   through to the map so the bottom of it stays pannable. */
 @media (width <= 767px) {
+  .leaflet-container .leaflet-bottom.leaflet-right {
+    left: 0;
+    width: 100%;
+  }
+
   .leaflet-container .leaflet-control-attribution {
-    max-width: 72%;
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    padding: 2px 6px;
     font-size: 0.625rem;
+    pointer-events: none;
+  }
+
+  .leaflet-container .leaflet-control-attribution a {
+    pointer-events: auto;
+  }
+
+  .leaflet-control-attribution .map-credit-optional {
+    display: none;
   }
 }
 
