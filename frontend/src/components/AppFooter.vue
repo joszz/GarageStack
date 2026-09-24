@@ -23,7 +23,7 @@ const { t } = useI18n()
 const settings = useUiSettingsStore()
 const vehicleStore = useVehicleStore()
 const { sending, send } = useVehicleCommand()
-const { showPermissionDeniedNotice } = useNotificationPushSync()
+const { showPermissionDeniedNotice, showSubscribeFailedNotice } = useNotificationPushSync()
 const { isOpen: modalOpen, open: openModal, close: closeModal } = useModal()
 
 // Joined in script rather than the template, which drops a whitespace-only text node before the version
@@ -289,6 +289,13 @@ function toggleNotificationType(id: NotificationCategoryId, checked: boolean) {
           class="notif-type-filter__denied text-danger text-sm"
         >
           {{ t('push.permissionDenied') }}
+        </div>
+
+        <div
+          v-else-if="showSubscribeFailedNotice"
+          class="notif-type-filter__denied text-danger text-sm"
+        >
+          {{ t('push.subscribeFailed') }}
         </div>
 
         <div class="notif-type-checklist">

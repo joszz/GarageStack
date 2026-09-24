@@ -29,25 +29,7 @@ public static class PushEndpoints
                 string.IsNullOrWhiteSpace(req.AuthKey))
                 return Results.BadRequest(new { error = "Endpoint, P256DhKey and AuthKey are required" });
 
-            var existing = await db.PushSubscriptions
-                .FirstOrDefaultAsync(s => s.Endpoint == req.Endpoint, ct);
-
-            if (existing is null)
-            {
-                db.PushSubscriptions.Add(new PushSubscription
-                {
-                    Endpoint = req.Endpoint,
-                    P256DhKey = req.P256DhKey,
-                    AuthKey = req.AuthKey,
-                });
-            }
-            else if (existing.P256DhKey != req.P256DhKey || existing.AuthKey != req.AuthKey)
-            {
-                existing.P256DhKey = req.P256DhKey;
-                existing.AuthKey = req.AuthKey;
-            }
-
-            await db.SaveChangesAsync(ct);
+            await UpsertSubscriptionAsync(db, req, ct);
 
             return Results.Ok();
         })
@@ -66,6 +48,57 @@ public static class PushEndpoints
         .WithSummary("Remove a push subscription");
 
         return app;
+    }
+
+    /// <summary>
+    /// Stores <paramref name="req"/> against its endpoint, inserting or updating as needed. The app
+    /// re-registers its subscription on every load rather than only when the user opts in, so this
+    /// runs often and has to be both idempotent and safe to run twice at once.
+    /// </summary>
+    internal static async Task UpsertSubscriptionAsync(
+        AppDbContext db,
+        PushSubscribeRequest req,
+        CancellationToken ct)
+    {
+        var existing = await db.PushSubscriptions
+            .FirstOrDefaultAsync(s => s.Endpoint == req.Endpoint, ct);
+
+        if (existing is not null)
+        {
+            // Keys are rewritten only when they actually changed, so the common case (the same
+            // subscription arriving again on the next load) costs one read and no write at all.
+            if (existing.P256DhKey == req.P256DhKey && existing.AuthKey == req.AuthKey)
+                return;
+
+            existing.P256DhKey = req.P256DhKey;
+            existing.AuthKey = req.AuthKey;
+            await db.SaveChangesAsync(ct);
+            return;
+        }
+
+        db.PushSubscriptions.Add(new PushSubscription
+        {
+            Endpoint = req.Endpoint,
+            P256DhKey = req.P256DhKey,
+            AuthKey = req.AuthKey,
+        });
+
+        try
+        {
+            await db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException)
+        {
+            // Two clients (or two tabs) can reach the insert together, and the unique index on
+            // Endpoint rejects the second one. Re-read rather than assume that is what happened:
+            // if the row is there now it was that race, and the keys match anyway since a browser
+            // has exactly one key pair per endpoint. If it is not, the save failed for a real
+            // reason and the caller should hear about it.
+            var raced = await db.PushSubscriptions
+                .AsNoTracking()
+                .AnyAsync(s => s.Endpoint == req.Endpoint, ct);
+            if (!raced) throw;
+        }
     }
 }
 
