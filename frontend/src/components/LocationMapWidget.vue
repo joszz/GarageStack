@@ -2,9 +2,10 @@
 import { computed, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
-import { LMap, LTileLayer, LMarker } from '@vue-leaflet/vue-leaflet'
+import { LMap, LMarker } from '@vue-leaflet/vue-leaflet'
 import { L, type LeafletMap } from '@/utils/leaflet'
 import { useLeafletMap } from '@/composables/useLeafletMap'
+import { useBasemap } from '@/composables/useBasemap'
 import { useVehicleStore } from '@/stores/vehicle'
 import { useReverseGeocode } from '@/composables/useReverseGeocode'
 import { addressLabel } from '@/utils/places'
@@ -69,6 +70,7 @@ const mapOptions = {
 
 const mapWrapperRef = ref<HTMLElement | null>(null)
 const { mapInstance, bindMapReady } = useLeafletMap(mapWrapperRef)
+useBasemap(mapInstance)
 let routeLine: L.Polyline | null = null
 let carMarker: L.Marker | null = null
 
@@ -204,10 +206,6 @@ function openFullMap() {
           class="location-map-card__canvas"
           @ready="onMapReady"
         >
-          <LTileLayer
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            attribution="© OpenStreetMap contributors"
-          />
           <LMarker v-if="!activeTrip" :lat-lng="center" />
         </LMap>
         <div v-else class="location-map-card__empty">
