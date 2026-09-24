@@ -175,6 +175,19 @@ function toggleNotificationType(id: NotificationCategoryId, checked: boolean) {
       </div>
     </div>
 
+    <!-- Map -->
+    <div class="detail-modal__section">
+      <div class="detail-modal__section-title">{{ t('settings.map.title') }}</div>
+      <div class="settings-toggles">
+        <SettingsToggle
+          v-model="settings.placeNamesEnabled"
+          :label="t('settings.map.placeNames')"
+          :desc="t('settings.map.placeNamesDesc')"
+          input-id="footer-toggle-place-names"
+        />
+      </div>
+    </div>
+
     <!-- Language -->
     <div class="detail-modal__section">
       <div class="detail-modal__section-title">{{ t('settings.language.title') }}</div>

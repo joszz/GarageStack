@@ -78,6 +78,11 @@ process-local one doesn't already provide. Two caches exist today:
   and be queried by bounding box - a job a plain in-memory cache isn't suited for anyway. The
   brand filter list is a DISTINCT over the `Brand` column, extracted from the upstream metadata
   at ingest, with a short in-memory cache on top that every tile upsert invalidates.
+- Reverse-geocoded place names (`GeocodeCacheEntry`) are cached in Postgres for the same reason,
+  keyed by a per-precision coordinate grid plus language. Nominatim's usage policy requires
+  caching rather than re-requesting, and a 90-day TTL is honest for data that changes when a
+  street is renamed. Only the cache key is quantised to the grid; the coordinate sent upstream is
+  the caller's own, so an answer describes the real spot rather than a grid corner.
 - The status query's fallbacks are index-backed. Charging and heating schedules are only
   published when the user changes one, so most vehicles have no such row at all: a filtered index
   (`IX_TelemetrySnapshots_VehicleId_RecordedAt_Schedule`) keeps that lookup from reading the
@@ -89,7 +94,7 @@ process-local one doesn't already provide. Two caches exist today:
 
 If GarageStack ever needs to run more than one Api/Worker instance, revisit this: per-vehicle
 in-memory state (this cache, the revocation cache, `VehicleCommandGate`,
-`NotificationCooldownGate`, the shared `UpstreamRateGate` behind the Overpass/OCM clients)
+`NotificationCooldownGate`, the shared `UpstreamRateGate` behind the Overpass/OCM/Nominatim clients)
 would all need to move to something shared.
 
 ## Authentication

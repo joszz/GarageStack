@@ -102,6 +102,7 @@
     "overview": "Overview",
     "location": "Location",
     "locationUnavailable": "Location unavailable",
+    "locatingAddress": "Looking up the address",
     "diagram": {
       "infoTyreTitle": "Tyre Pressure",
       "infoTyreDesc": "Colour-coded dots at each wheel corner show the current pressure. Green means healthy ({good} – {high} bar), orange means low ({low} – {good} bar) and red means critically low (< {low} bar) or over-inflated (> {high} bar).",
@@ -263,6 +264,7 @@
     "fuelBrandPlaceholder": "Filter brands...",
     "findCar": "Find car",
     "points": "pts",
+    "resolvingPlaces": "Looking up place names",
     "inProgress": "Trip in progress",
     "durationMinutes": "{n} min",
     "durationHoursMinutes": "{h}h {m}m"
@@ -389,6 +391,11 @@
       "title": "Dashboard",
       "cardInfoIcons": "Show info icons",
       "cardInfoIconsDesc": "Show the info button on each card"
+    },
+    "map": {
+      "title": "Map",
+      "placeNames": "Show place names",
+      "placeNamesDesc": "Name trips after the cities they ran between and show the street the car is parked in. Off lists trips by date and sends no coordinates to the geocoder."
     },
     "vehicleType": {
       "title": "Vehicle type",

@@ -1,4 +1,4 @@
-import { request, buildQuery } from '@/services/apiCore'
+import { request, requestJson, buildQuery } from '@/services/apiCore'
 
 export interface Connector {
   type: string | null
@@ -33,6 +33,36 @@ export interface PoiResponse {
   hasMore: boolean
 }
 
+/** Coarse ('city', for trip labels) or fine ('address', for the parked car) reverse geocoding. */
+export type GeocodePrecision = 'city' | 'address'
+
+export interface GeoPoint {
+  lat: number
+  lng: number
+}
+
+/** A resolved place. All-null fields mean the geocoder knows no place at that coordinate. */
+export interface Place {
+  road: string | null
+  houseNumber: string | null
+  city: string | null
+  postcode: string | null
+  countryCode: string | null
+  displayName: string | null
+}
+
+export interface ReverseGeocodeResponse {
+  /** One entry per requested point, in the same order; null where the lookup has not happened yet. */
+  results: (Place | null)[]
+  /** False when the deployment has geocoding switched off, so the caller can stop asking. */
+  available: boolean
+  /** True while points remain unresolved; asking again later fills them in. */
+  hasMore: boolean
+}
+
+/** Mirrors GeocodeDefaults.MaxPointsPerRequest: the server rejects a larger batch. */
+export const MAX_GEOCODE_POINTS_PER_REQUEST = 60
+
 export const mapApi = {
   chargingStations: (
     lat: number,
@@ -52,4 +82,12 @@ export const mapApi = {
     const query = buildQuery({ type, vehicleType })
     return request<string[]>(`/api/map/poi/brands${query}`)
   },
+  // Batched on purpose: a trip list asks about dozens of coordinates, and one request per trip
+  // would eat the API's per-IP rate limit for no gain.
+  reverseGeocode: (points: GeoPoint[], precision: GeocodePrecision, language: string) =>
+    requestJson<ReverseGeocodeResponse>('/api/map/reverse', 'POST', {
+      points,
+      precision,
+      language,
+    }),
 }

@@ -20,6 +20,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IVehicleRepository, VehicleRepository>();
         services.AddScoped<ITelemetryRepository, TelemetryRepository>();
         services.AddScoped<IPoiRepository, PoiRepository>();
+        services.AddScoped<IGeocodeRepository, GeocodeRepository>();
         services.AddGarageStackPoiClients();
 
         return services;
@@ -35,6 +36,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<ITelemetryRepository, DemoTelemetryRepository>();
         services.AddSingleton<IPushSender, DemoPushSender>();
         services.AddScoped<IPoiRepository, PoiRepository>();
+        services.AddScoped<IGeocodeRepository, GeocodeRepository>();
         services.AddGarageStackPoiClients();
 
         return services;
@@ -53,8 +55,17 @@ public static class ServiceCollectionExtensions
             client.DefaultRequestHeaders.UserAgent.ParseAdd("GarageStack/1.0");
             client.Timeout = TimeSpan.FromSeconds(45);
         });
+        // Nominatim's usage policy requires a User-Agent that identifies the application well
+        // enough to contact whoever runs it, so this one carries the project URL.
+        services.AddHttpClient(NominatimApiClient.HttpClientName, client =>
+        {
+            client.DefaultRequestHeaders.UserAgent.ParseAdd(
+                "GarageStack/1.0 (+https://github.com/joszz/GarageStack)");
+            client.Timeout = TimeSpan.FromSeconds(20);
+        });
         services.AddSingleton<OverpassApiClient>();
         services.AddSingleton<OcmApiClient>();
+        services.AddSingleton<NominatimApiClient>();
 
         return services;
     }

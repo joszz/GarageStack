@@ -6,6 +6,8 @@ import { LMap, LTileLayer, LMarker } from '@vue-leaflet/vue-leaflet'
 import { L, type LeafletMap } from '@/utils/leaflet'
 import { useLeafletMap } from '@/composables/useLeafletMap'
 import { useVehicleStore } from '@/stores/vehicle'
+import { useReverseGeocode } from '@/composables/useReverseGeocode'
+import { addressLabel } from '@/utils/places'
 import CardInfoWrap from './CardInfoWrap.vue'
 import { buildCarMarkerIcon } from '@/utils/mapCarIcon'
 
@@ -30,6 +32,30 @@ const activeTrip = computed(() => {
   if (dist == null || dist <= 0 || store.trips.length === 0) return null
   return store.trips[store.trips.length - 1] ?? null
 })
+
+// The street the car is parked in, so the card says where it is rather than only showing it.
+// Only while parked: on the move this would ask for a new address on every position update, and
+// name a street the car has already left. The card draws the live route instead.
+const { requestPlaces, placeFor, placeNamesEnabled, placesResolving } = useReverseGeocode()
+
+const parkedAt = computed(() => (activeTrip.value || !hasLocation.value ? null : center.value))
+
+watch(
+  parkedAt,
+  (point) => {
+    if (point) requestPlaces([{ lat: point[0], lng: point[1] }], 'address')
+  },
+  { immediate: true },
+)
+
+const address = computed(() =>
+  addressLabel(placeFor(parkedAt.value?.[0], parkedAt.value?.[1], 'address')),
+)
+
+const addressPending = computed(
+  () =>
+    parkedAt.value !== null && !address.value && placeNamesEnabled.value && placesResolving.value,
+)
 
 const mapOptions = {
   zoomControl: false,
@@ -158,6 +184,15 @@ function openFullMap() {
       <p class="tyre-diagram__title">
         <font-awesome-icon icon="location-dot" />
         {{ t('vehicle.location') }}
+      </p>
+
+      <p v-if="address" class="location-map-card__address" :title="address">{{ address }}</p>
+      <p v-else-if="addressPending" class="location-map-card__address">
+        <span
+          class="skeleton skeleton--text skeleton--text-md"
+          role="status"
+          :aria-label="t('vehicle.locatingAddress')"
+        />
       </p>
 
       <div ref="mapWrapperRef" class="location-map-card__map" @click="openFullMap">

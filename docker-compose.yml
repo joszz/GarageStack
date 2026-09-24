@@ -159,6 +159,11 @@ services:
       OpenChargeMap__ApiKey: "${OPENCHARGEMAP_API_KEY:-}"
       # Only worth setting when you self-host Overpass; the public endpoint needs no key.
       Overpass__BaseUrl: "${OVERPASS__BASEURL:-https://overpass-api.de/api/interpreter}"
+      # Reverse geocoding for trip place names and the parked car's street. Set ENABLED to
+      # false to keep coordinates off a third-party service, or point BaseUrl at your own
+      # Nominatim. See .env.example.
+      Geocoding__Enabled: "${GEOCODING__ENABLED:-true}"
+      Geocoding__BaseUrl: "${GEOCODING__BASEURL:-https://nominatim.openstreetmap.org}"
       Auth__CookieSecure: "${AUTH_COOKIE_SECURE:-false}"
       Auth__SessionLifetimeHours: "${AUTH_SESSION_LIFETIME_HOURS:-168}"
       RateLimits__GlobalPerMinute: "${RATE_LIMIT_GLOBAL_PER_MINUTE:-}"

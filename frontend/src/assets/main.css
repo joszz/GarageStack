@@ -756,6 +756,17 @@ body,
   min-height: 0;
 }
 
+/* Where the car stands, in words, between the card title and the map. Truncated rather than
+   wrapped so the map keeps its height whatever the address turns out to be. */
+.location-map-card__address {
+  margin: -0.25rem 0 0.6rem;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .location-map-card__map {
   position: relative;
   flex: 1;

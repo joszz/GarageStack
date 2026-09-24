@@ -19,6 +19,7 @@ interface UiSettings {
   theme: Theme
   locale: Locale
   showCardInfoIcons: boolean
+  placeNamesEnabled: boolean
   carColorScheme: string
   vehicleTypeOverride: VehicleTypeOverride
   filterDays: number
@@ -30,6 +31,7 @@ function defaultsFor(): UiSettings {
     theme: osPreferredTheme(),
     locale: browserLocale(),
     showCardInfoIcons: true,
+    placeNamesEnabled: true,
     carColorScheme: 'orange',
     vehicleTypeOverride: 'auto',
     filterDays: 7,
@@ -85,6 +87,9 @@ function parseUiFields(parsed: Record<string, unknown>, fallback: UiSettings): U
     theme: oneOf(parsed.theme, THEMES, fallback.theme),
     locale: oneOf(parsed.locale, LOCALES, fallback.locale),
     showCardInfoIcons: parsed.showCardInfoIcons !== false,
+    // On unless explicitly turned off, so an install from before this setting existed keeps
+    // the behaviour it already had.
+    placeNamesEnabled: parsed.placeNamesEnabled !== false,
     carColorScheme: oneOf(parsed.carColorScheme, CAR_COLOR_SCHEME_IDS, fallback.carColorScheme),
     vehicleTypeOverride: oneOf(
       parsed.vehicleTypeOverride,
@@ -123,6 +128,7 @@ export const useUiSettingsStore = defineStore('settingsUi', () => {
   const theme = ref<Theme>(loaded.theme)
   const locale = ref<Locale>(loaded.locale)
   const showCardInfoIcons = ref<boolean>(loaded.showCardInfoIcons)
+  const placeNamesEnabled = ref<boolean>(loaded.placeNamesEnabled)
   const carColorScheme = ref<string>(loaded.carColorScheme)
   const vehicleTypeOverride = ref<VehicleTypeOverride>(loaded.vehicleTypeOverride)
   const filterDays = ref<number>(loaded.filterDays)
@@ -138,6 +144,7 @@ export const useUiSettingsStore = defineStore('settingsUi', () => {
         theme: theme.value,
         locale: locale.value,
         showCardInfoIcons: showCardInfoIcons.value,
+        placeNamesEnabled: placeNamesEnabled.value,
         carColorScheme: carColorScheme.value,
         vehicleTypeOverride: vehicleTypeOverride.value,
         filterDays: filterDays.value,
@@ -148,6 +155,7 @@ export const useUiSettingsStore = defineStore('settingsUi', () => {
   const scheduleSave = createDebouncedSave(save)
 
   watch(showCardInfoIcons, scheduleSave)
+  watch(placeNamesEnabled, scheduleSave)
   watch(vehicleTypeOverride, scheduleSave)
   watch(locale, scheduleSave)
   watch(filterDays, scheduleSave)
@@ -165,6 +173,7 @@ export const useUiSettingsStore = defineStore('settingsUi', () => {
     theme,
     locale,
     showCardInfoIcons,
+    placeNamesEnabled,
     carColorScheme,
     vehicleTypeOverride,
     filterDays,

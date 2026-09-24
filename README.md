@@ -17,6 +17,7 @@ GarageStack is a free, open-source vehicle monitoring dashboard for **modern MG 
 - **Charging stations** -- Overlay nearby EV charging stations on the map, sourced from the [Open Charge Map](https://openchargemap.org) database. Station data is cached in the database for 7 days; on page load the map immediately shows all stations within 100 km of your car that are already cached. Markers show operational status; clicking a marker displays the station name, operator, address, and available connector types with power ratings. Requires a free OCM API key (`OPENCHARGEMAP_API_KEY`). Unlike fuel stations and service areas, charging station tiles are loaded on demand as you browse the map and are not pre-populated by the background Worker.
 - **Fuel stations** -- Overlay nearby petrol and diesel stations on the map (HEV and PHEV only; not shown for BEV). Sourced from OpenStreetMap via the Overpass API -- no API key required. POI data is cached in the database for 7 days and pre-populated by the Worker for a 100 km radius around the car's last known position so the overlay is instant on first view.
 - **Motorway service areas** -- Overlay motorway service areas and rest stops on the map (all vehicle types). Same DB-backed cache and Worker pre-cache as fuel stations; useful for BEV drivers who often find fast chargers at service areas.
+- **Place names** -- Trips are listed by where they went ("Zwolle to Deventer") instead of by date alone, and the dashboard's location card names the street the car is parked in. Sourced from OpenStreetMap via [Nominatim](https://nominatim.openstreetmap.org) -- no API key required, answers are cached in the database for 90 days, and the whole feature can be switched off per browser under Settings > Map, or for the deployment with `GEOCODING__ENABLED=false`.
 - **Single sign-on** -- Sign in through your own identity provider (Authentik, Authelia, Keycloak, Pocket ID, Google, and anything else speaking OpenID Connect), with optional auto-login and group or email based access restrictions. A built-in username/password login remains available for installs without a provider. See [`AUTHENTICATION.md`](AUTHENTICATION.md).
 - **Multi-language support** -- Interface available in English and Dutch, with locale resolved from query string, cookie, or browser preference.
 - **Self-hosted** -- Runs entirely on your own infrastructure via Docker (all-in-one container or Docker Compose). No cloud account or subscription required beyond the SAIC iSmart API.
@@ -467,6 +468,18 @@ Sourced from OpenStreetMap (`highway=services`) via the Overpass API -- no API k
 - Shows motorway service areas and rest stops.
 - Available for all vehicle types; useful for BEV drivers because many service areas have fast-charger banks.
 - Same DB-backed cache and Worker pre-population as fuel stations. The same Overpass slowness applies for uncached tiles outside the pre-populated radius -- see the note in the Fuel stations section above.
+
+### Place names (reverse geocoding)
+
+Sourced from OpenStreetMap via [Nominatim](https://nominatim.openstreetmap.org) -- no API key required.
+
+- The trip list leads with the route ("Zwolle to Deventer", or one city for a round trip) and moves the date into the line below it. Until the names arrive, the row shows a placeholder; if geocoding is off or unavailable, it keeps showing the date, exactly as before.
+- The dashboard's location card and the car's map popup show the street and city the car is standing in.
+- Answers are cached in PostgreSQL for 90 days, keyed by a coordinate grid and by language, so the same parking spot is looked up once. "Nothing mapped here" is cached for a day, since OSM coverage grows.
+- The public Nominatim instance allows about one request per second, so a request resolves at most three new coordinates and the browser asks again for the rest; a cold trip list fills in over a few seconds and is instant from then on.
+- Names follow the interface language, so switching between English and Dutch looks the places up again in that language.
+- **Settings > Map > Show place names** turns the whole thing off per browser (it is on by default). Off, trips are listed by date, the location card shows no address, and no coordinates leave the browser.
+- Set `GEOCODING__ENABLED=false` to switch it off for the whole deployment instead, or point `GEOCODING__BASEURL` at your own Nominatim instance.
 
 ### Caching architecture
 

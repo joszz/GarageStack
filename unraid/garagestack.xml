@@ -427,6 +427,28 @@
     Mask="false">https://overpass-api.de/api/interpreter</Config>
 
   <Config
+    Name="Reverse Geocoding Enabled"
+    Target="GEOCODING__ENABLED"
+    Default="true"
+    Mode=""
+    Description="Turns coordinates into place names via OpenStreetMap Nominatim: city names in the trip list and the street the car is parked in. No API key required, and answers are cached for 90 days. Set to false to keep coordinates off a third-party service -- the trip list then shows dates."
+    Type="Variable"
+    Display="advanced"
+    Required="false"
+    Mask="false">true</Config>
+
+  <Config
+    Name="Nominatim Base URL"
+    Target="GEOCODING__BASEURL"
+    Default="https://nominatim.openstreetmap.org"
+    Mode=""
+    Description="Nominatim endpoint used for those place names. Defaults to the public instance -- no API key required. Change this only if you self-host Nominatim."
+    Type="Variable"
+    Display="advanced"
+    Required="false"
+    Mask="false">https://nominatim.openstreetmap.org</Config>
+
+  <Config
     Name="Tyre Pressure - Low (bar)"
     Target="TYRE_PRESSURE_LOW_BAR"
     Default="2.2"
