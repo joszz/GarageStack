@@ -21,6 +21,13 @@ public class MapMatchCacheEntry
     /// <summary>Per sent fix, its vertex in <see cref="Shape"/>, as a JSON array of integers.</summary>
     public string? PointIndexesJson { get; set; }
 
+    /// <summary>
+    /// The speed limits along <see cref="Shape"/> as a JSON array of run-length pairs; see
+    /// <c>SpeedLimitRuns</c>. Null on a row written before limits were asked for, which reads back
+    /// as "no limits known" rather than as a reason to throw the snapped line away.
+    /// </summary>
+    public string? SpeedLimitRunsJson { get; set; }
+
     /// <summary>Length of the snapped line, which is the better distance for a trip that matched.</summary>
     public double MatchedKm { get; set; }
 
@@ -36,12 +43,17 @@ public class MapMatchCacheEntry
 /// <param name="Shape">The snapped line as an encoded polyline.</param>
 /// <param name="PointIndexes">One vertex index per sent fix, in the order they were sent.</param>
 /// <param name="MatchedKm">Length of the snapped line in kilometres.</param>
+/// <param name="SpeedLimitRuns">
+/// The limits along the line as run-length pairs (see <c>SpeedLimitRuns</c>), empty when the roads
+/// it runs over carry no <c>maxspeed</c> at all.
+/// </param>
 public sealed record CachedTraceMatch(
     string? Shape,
     IReadOnlyList<int> PointIndexes,
-    double MatchedKm)
+    double MatchedKm,
+    IReadOnlyList<int> SpeedLimitRuns)
 {
-    public static readonly CachedTraceMatch NotMatched = new(null, [], 0);
+    public static readonly CachedTraceMatch NotMatched = new(null, [], 0, []);
 }
 
 /// <summary>Column limits shared between the model configuration and the code that writes the rows.</summary>

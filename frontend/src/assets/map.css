@@ -143,6 +143,10 @@
   box-shadow: 0 1px 4px rgb(0 0 0 / 20%);
   font-size: 0.7rem;
   min-width: 130px;
+
+  /* The speed-limit legend carries a sentence rather than a row of numbers, so it needs a ceiling
+     to wrap against, and a phone-width map needs that ceiling to stay inside the map. */
+  max-width: min(260px, calc(100% - 20px));
   pointer-events: none;
 }
 
@@ -156,6 +160,62 @@
 .speed-legend__labels {
   display: flex;
   justify-content: space-between;
+  color: var(--color-text-muted);
+}
+
+/* Speed-limit overlay: the line's three verdicts, and the same colours in its legend. */
+.trip-limit-line--under {
+  stroke: var(--color-success);
+}
+
+.trip-limit-line--over {
+  stroke: var(--color-danger);
+}
+
+.trip-limit-line--unknown {
+  stroke: var(--color-text-muted);
+}
+
+.speed-legend__keys {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.speed-legend__key {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.speed-legend__swatch {
+  width: 14px;
+  height: 6px;
+  border-radius: 3px;
+  flex: none;
+}
+
+.speed-legend__swatch--under {
+  background: var(--color-success);
+}
+
+.speed-legend__swatch--over {
+  background: var(--color-danger);
+}
+
+.speed-legend__swatch--unknown {
+  background: var(--color-text-muted);
+}
+
+.speed-legend__summary {
+  display: flex;
+  flex-direction: column;
+  margin-top: 5px;
+  padding-top: 5px;
+  border-top: 1px solid var(--color-border);
+}
+
+.speed-legend__coverage {
   color: var(--color-text-muted);
 }
 
@@ -505,5 +565,12 @@
   .map-controls {
     flex-wrap: wrap;
     gap: 0.4rem;
+  }
+
+  /* A phone's map is short as well as narrow, so the speed-limit key runs along one wrapped row
+     rather than stacking three, leaving the map itself visible under it. */
+  .speed-legend__keys {
+    flex-flow: row wrap;
+    gap: 2px 10px;
   }
 }

@@ -27,7 +27,14 @@ public class MapMatchRepository(AppDbContext db, ILogger<MapMatchRepository>? lo
             entry.PointIndexesJson,
             ex => logger?.LogWarning(ex, "Map match cache row {Id} has unreadable point indexes, ignoring it", entry.Id));
 
-        return indexes is null ? null : new CachedTraceMatch(entry.Shape, indexes, entry.MatchedKm);
+        if (indexes is null) return null;
+
+        // Unreadable limits cost the colouring, not the line, so the row is still worth serving.
+        var limits = SafeJson.TryDeserialize<int[]>(
+            entry.SpeedLimitRunsJson,
+            ex => logger?.LogWarning(ex, "Map match cache row {Id} has unreadable speed limits, serving it without them", entry.Id));
+
+        return new CachedTraceMatch(entry.Shape, indexes, entry.MatchedKm, limits ?? []);
     }
 
     public async Task UpsertAsync(
@@ -68,6 +75,9 @@ public class MapMatchRepository(AppDbContext db, ILogger<MapMatchRepository>? lo
         var now = DateTime.UtcNow;
         entry.Shape = match.Shape;
         entry.PointIndexesJson = match.Shape is null ? null : JsonSerializer.Serialize(match.PointIndexes);
+        entry.SpeedLimitRunsJson = match.Shape is null || match.SpeedLimitRuns.Count == 0
+            ? null
+            : JsonSerializer.Serialize(match.SpeedLimitRuns);
         entry.MatchedKm = match.MatchedKm;
         entry.CachedAt = now;
         entry.ExpiresAt = now.Add(ttl);

@@ -10,6 +10,7 @@ interface MapSettings {
   snapToRoadsEnabled: boolean
   heatmapEnabled: boolean
   speedOverlayEnabled: boolean
+  speedLimitOverlayEnabled: boolean
   chargingStationsEnabled: boolean
   chargingMinPowerKw: number
   chargingMaxPowerKw: number
@@ -24,6 +25,7 @@ const defaults: MapSettings = {
   snapToRoadsEnabled: true,
   heatmapEnabled: true,
   speedOverlayEnabled: false,
+  speedLimitOverlayEnabled: false,
   chargingStationsEnabled: false,
   chargingMinPowerKw: 0,
   chargingMaxPowerKw: 0,
@@ -39,6 +41,7 @@ function parseMapFields(parsed: Record<string, unknown>): MapSettings {
     snapToRoadsEnabled: parsed.snapToRoadsEnabled !== false,
     heatmapEnabled: parsed.heatmapEnabled !== false,
     speedOverlayEnabled: parsed.speedOverlayEnabled === true,
+    speedLimitOverlayEnabled: parsed.speedLimitOverlayEnabled === true,
     chargingStationsEnabled: parsed.chargingStationsEnabled === true,
     chargingMinPowerKw:
       typeof parsed.chargingMinPowerKw === 'number' ? parsed.chargingMinPowerKw : 0,
@@ -77,6 +80,7 @@ export const useMapSettingsStore = defineStore('settingsMap', () => {
   const snapToRoadsEnabled = ref<boolean>(loaded.snapToRoadsEnabled)
   const heatmapEnabled = ref<boolean>(loaded.heatmapEnabled)
   const speedOverlayEnabled = ref<boolean>(loaded.speedOverlayEnabled)
+  const speedLimitOverlayEnabled = ref<boolean>(loaded.speedLimitOverlayEnabled)
   const chargingStationsEnabled = ref<boolean>(loaded.chargingStationsEnabled)
   const chargingMinPowerKw = ref<number>(loaded.chargingMinPowerKw)
   const chargingMaxPowerKw = ref<number>(loaded.chargingMaxPowerKw)
@@ -93,6 +97,7 @@ export const useMapSettingsStore = defineStore('settingsMap', () => {
         snapToRoadsEnabled: snapToRoadsEnabled.value,
         heatmapEnabled: heatmapEnabled.value,
         speedOverlayEnabled: speedOverlayEnabled.value,
+        speedLimitOverlayEnabled: speedLimitOverlayEnabled.value,
         chargingStationsEnabled: chargingStationsEnabled.value,
         chargingMinPowerKw: chargingMinPowerKw.value,
         chargingMaxPowerKw: chargingMaxPowerKw.value,
@@ -109,6 +114,7 @@ export const useMapSettingsStore = defineStore('settingsMap', () => {
   watch(snapToRoadsEnabled, scheduleSave)
   watch(heatmapEnabled, scheduleSave)
   watch(speedOverlayEnabled, scheduleSave)
+  watch(speedLimitOverlayEnabled, scheduleSave)
   watch(chargingStationsEnabled, scheduleSave)
   watch(chargingMinPowerKw, scheduleSave)
   watch(chargingMaxPowerKw, scheduleSave)
@@ -122,6 +128,7 @@ export const useMapSettingsStore = defineStore('settingsMap', () => {
     snapToRoadsEnabled,
     heatmapEnabled,
     speedOverlayEnabled,
+    speedLimitOverlayEnabled,
     chargingStationsEnabled,
     chargingMinPowerKw,
     chargingMaxPowerKw,

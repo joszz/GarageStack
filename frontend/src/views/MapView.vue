@@ -27,6 +27,11 @@ import 'leaflet.heat'
 import '@/assets/map.css'
 import type { Trip } from '@/services/vehicleApi'
 import { buildCarMarkerIcon } from '@/utils/mapCarIcon'
+import {
+  speedLimitSegments,
+  speedLimitSummary,
+  OVER_LIMIT_TOLERANCE_KPH,
+} from '@/utils/speedLimits'
 import { daysAgoIso } from '@/utils/dates'
 
 const { t } = useI18n()
@@ -50,8 +55,13 @@ const displayLocale = computed(() => (uiSettingsStore.locale === 'nl' ? 'nl-NL' 
 const selectedTripIndex = ref<number | null>(null)
 // Plain refs on their stores already (Composition-API-style defineStore) - storeToRefs gives
 // directly writable, reactive bindings with no computed({get, set}) wrapper needed.
-const { heatmapEnabled, speedOverlayEnabled, routeOutlineEnabled, snapToRoadsEnabled } =
-  storeToRefs(settingsStore)
+const {
+  heatmapEnabled,
+  speedOverlayEnabled,
+  speedLimitOverlayEnabled,
+  routeOutlineEnabled,
+  snapToRoadsEnabled,
+} = storeToRefs(settingsStore)
 const { filterDays: dateRangeDays } = storeToRefs(uiSettingsStore)
 
 let shouldSelectLatest = route.query.selectLatest === '1'
@@ -221,6 +231,36 @@ watch(
   },
   { immediate: true },
 )
+
+// ── Speed limits ───────────────────────────────────────────────────────────────
+// The limits come with the snapped line: they belong to the roads the matcher found, so there is
+// nothing to show until a trip is selected and matched.
+const speedLimitSummaryOfTrip = computed(() => {
+  if (!speedLimitOverlayEnabled.value) return null
+  const match = selectedMatch.value
+  return match ? speedLimitSummary(match) : null
+})
+
+/**
+ * Whether the line is drawn in limit colours. A trip whose roads OSM holds no limit for anywhere
+ * would come out uniformly grey, which says less than the trip's own colour does, so it keeps
+ * that and the legend says why.
+ */
+const limitColoursShown = computed(
+  () => (speedLimitSummaryOfTrip.value?.knownKm ?? 0) > 0 && selectedMatch.value !== null,
+)
+
+const limitCoveragePct = computed(() => {
+  const summary = speedLimitSummaryOfTrip.value
+  if (!summary || summary.totalKm <= 0) return 0
+  return Math.round((summary.knownKm / summary.totalKm) * 100)
+})
+
+const limitOverPct = computed(() => {
+  const summary = speedLimitSummaryOfTrip.value
+  if (!summary || summary.knownKm <= 0) return 0
+  return Math.round((summary.overKm / summary.knownKm) * 100)
+})
 
 // ── Place names ────────────────────────────────────────────────────────────────
 const { requestPlaces, placeFor, placeNamesEnabled, placesResolving } = useReverseGeocode()
@@ -437,7 +477,20 @@ function buildSelectedLine() {
     routeLines.push(border)
   }
 
-  if (speedOverlayEnabled.value) {
+  if (limitColoursShown.value && match) {
+    // Colour follows the road rather than the fixes here: one layer per stretch that shares a
+    // verdict, so a trip is a handful of lines instead of one per vertex.
+    for (const { coordinates, state } of speedLimitSegments(match)) {
+      const segment = L.polyline(coordinates, {
+        className: `trip-limit-line trip-limit-line--${state}`,
+        weight: 5,
+        opacity: 1,
+        lineCap: 'square',
+      })
+      segment.addTo(map)
+      routeLines.push(segment)
+    }
+  } else if (speedOverlayEnabled.value) {
     for (const { coordinates, speed } of speedSegments(trip, match)) {
       const segment = L.polyline(coordinates, {
         color: speedToColor(speed, tripColor(idx)),
@@ -615,8 +668,16 @@ watch(heatmapEnabled, (enabled) => {
   else removeHeatLayer()
 })
 
-// Speed overlay toggle while a trip is selected
-watch(speedOverlayEnabled, () => {
+// Speed overlay toggle while a trip is selected. Only one of the two overlays can colour the same
+// line, so switching one on switches the other off rather than letting one quietly win.
+watch(speedOverlayEnabled, (on) => {
+  if (on) speedLimitOverlayEnabled.value = false
+  if (selectedTripIndex.value === null) return
+  scheduleMapUpdate(buildSelectedLine)
+})
+
+watch(speedLimitOverlayEnabled, (on) => {
+  if (on) speedOverlayEnabled.value = false
   if (selectedTripIndex.value === null) return
   scheduleMapUpdate(buildSelectedLine)
 })
@@ -761,6 +822,21 @@ onUnmounted(() => {
                 {{ t('trips.speedOverlay') }}
               </span>
               <span class="settings-toggle__desc">{{ t('trips.speedOverlayDesc') }}</span>
+            </template>
+          </SettingsToggle>
+          <!-- The limits ride along with the snapped line, so without snapping there is nothing
+               to colour the trip against. -->
+          <SettingsToggle
+            v-if="snapToRoadsEnabled"
+            v-model="speedLimitOverlayEnabled"
+            :label="t('trips.speedLimitOverlay')"
+          >
+            <template #label>
+              <span class="settings-toggle__label">
+                <font-awesome-icon icon="gauge-high" class="settings-toggle__icon" />
+                {{ t('trips.speedLimitOverlay') }}
+              </span>
+              <span class="settings-toggle__desc">{{ t('trips.speedLimitOverlayDesc') }}</span>
             </template>
           </SettingsToggle>
           <SettingsToggle v-model="serviceAreasEnabled" :label="t('trips.serviceAreas')">
@@ -1016,6 +1092,48 @@ onUnmounted(() => {
             <span>90</span>
             <span>130+ km/h</span>
           </div>
+        </div>
+
+        <div
+          v-if="speedLimitSummaryOfTrip"
+          class="speed-legend"
+          :aria-label="t('trips.speedLimitOverlay')"
+        >
+          <template v-if="limitColoursShown">
+            <div class="speed-legend__keys">
+              <span class="speed-legend__key">
+                <span class="speed-legend__swatch speed-legend__swatch--under"></span>
+                {{ t('trips.speedLimitUnder') }}
+              </span>
+              <span class="speed-legend__key">
+                <span class="speed-legend__swatch speed-legend__swatch--over"></span>
+                {{ t('trips.speedLimitOver') }}
+              </span>
+              <span class="speed-legend__key">
+                <span class="speed-legend__swatch speed-legend__swatch--unknown"></span>
+                {{ t('trips.speedLimitUnknown') }}
+              </span>
+            </div>
+            <div
+              class="speed-legend__summary"
+              :title="t('trips.speedLimitTolerance', { kph: OVER_LIMIT_TOLERANCE_KPH })"
+            >
+              <span v-if="speedLimitSummaryOfTrip.overKm > 0">
+                {{
+                  t('trips.speedLimitOverSummary', {
+                    km: speedLimitSummaryOfTrip.overKm.toFixed(1),
+                    pct: limitOverPct,
+                    max: speedLimitSummaryOfTrip.maxOverKph,
+                  })
+                }}
+              </span>
+              <span v-else>{{ t('trips.speedLimitNoneOver') }}</span>
+              <span class="speed-legend__coverage">
+                {{ t('trips.speedLimitCoverage', { pct: limitCoveragePct }) }}
+              </span>
+            </div>
+          </template>
+          <div v-else class="speed-legend__summary">{{ t('trips.speedLimitUnmapped') }}</div>
         </div>
       </div>
     </div>

@@ -67,6 +67,7 @@ public static class MapMatchDefaults
     /// <summary>
     /// Bumped when a change here would make cached matches differ from freshly requested ones, so
     /// that old rows are ignored instead of being served from settings nobody uses any more.
+    /// Version 2 asks the matcher for speed limits as well, which rows from version 1 do not hold.
     /// </summary>
-    public const int CacheVersion = 1;
+    public const int CacheVersion = 2;
 }

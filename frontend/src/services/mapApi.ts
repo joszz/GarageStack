@@ -73,6 +73,12 @@ export interface MapMatchResponse {
   pointIndexes: number[] | null
   /** Length of the snapped line, which beats the straight-line distance through the fixes. */
   matchedKm: number
+  /**
+   * The speed limits along the line as run-length pairs (segment count, then km/h), covering the
+   * shape's segments in order. A limit of 0 is a stretch OSM has no `maxspeed` for, and the whole
+   * list is empty when none of the roads the trip ran over carry one.
+   */
+  speedLimits: number[] | null
 }
 
 /** Mirrors GeocodeDefaults.MaxPointsPerRequest: the server rejects a larger batch. */

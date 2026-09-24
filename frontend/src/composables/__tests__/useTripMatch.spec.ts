@@ -40,6 +40,7 @@ function matched(overrides: Partial<MapMatchResponse> = {}): MapMatchResponse {
     shape,
     pointIndexes: [0, 1, 1],
     matchedKm: 13.1,
+    speedLimits: null,
     ...overrides,
   }
 }
@@ -82,6 +83,31 @@ describe('useTripMatch', () => {
     expect(match.pointIndexes).toEqual([0, 1, 1])
     expect(match.points).toHaveLength(3)
     expect(match.matchedKm).toBe(13.1)
+  })
+
+  it('unfolds the speed limits onto the line it came with', async () => {
+    // The shape has two vertices, so one segment, and the API sends its limit as a run.
+    mockMatchTrip.mockResolvedValue(matched({ speedLimits: [1, 80] }))
+    const { requestMatch, matchFor } = await load()
+    const ride = trip(3)
+
+    requestMatch(ride)
+    await vi.waitFor(() => expect(mockMatchTrip).toHaveBeenCalledOnce())
+    await nextTick()
+
+    expect(matchFor(ride)!.speedLimits).toEqual([80])
+  })
+
+  it('leaves a trip without limits with none, rather than guessing', async () => {
+    mockMatchTrip.mockResolvedValue(matched({ speedLimits: [] }))
+    const { requestMatch, matchFor } = await load()
+    const ride = trip(3)
+
+    requestMatch(ride)
+    await vi.waitFor(() => expect(mockMatchTrip).toHaveBeenCalledOnce())
+    await nextTick()
+
+    expect(matchFor(ride)!.speedLimits).toEqual([null])
   })
 
   it('asks about a trip once and serves the rest from its cache', async () => {
