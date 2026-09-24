@@ -17,7 +17,7 @@
          (stack overflow on circular schema refs). Stay on the 2.x line: Microsoft.OpenApi 3.x breaks
          Microsoft.AspNetCore.OpenApi at both compile time (XmlCommentGenerator) and runtime. -->
     <PackageVersion Include="Microsoft.OpenApi" Version="2.12.2" />
-    <PackageVersion Include="Microsoft.IdentityModel.Tokens" Version="8.22.0" />
+    <PackageVersion Include="Microsoft.IdentityModel.Tokens" Version="8.23.0" />
     <PackageVersion Include="Microsoft.Extensions.Configuration.Binder" Version="10.0.12" />
     <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.12" />
     <PackageVersion Include="Microsoft.Extensions.Http" Version="10.0.12" />
