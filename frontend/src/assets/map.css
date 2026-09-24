@@ -315,6 +315,19 @@
   font-size: 0.75rem;
 }
 
+/* Car marker popup: model name plus the street the car is parked in. */
+.car-popup__title {
+  display: block;
+  font-weight: 600;
+}
+
+.car-popup__address {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.75rem;
+  color: var(--color-text-muted, #888);
+}
+
 .trip-list__info {
   display: flex;
   flex-direction: column;
@@ -348,6 +361,42 @@
 .trip-list__meta {
   font-size: 0.75rem;
   color: var(--color-text-muted);
+}
+
+/* Route headline ("Zwolle -> Deventer"). A flex row rather than one text node so both city
+   names truncate on their own: whatever the sidebar's width, each end keeps a readable stub
+   instead of the second city being pushed out of sight entirely. */
+.trip-list__route {
+  display: flex;
+  align-items: baseline;
+  gap: 0.3rem;
+  overflow: hidden;
+}
+
+/* Equal shares when both names are too long, but never wider than the name itself: a short city
+   keeps its full width and leaves the rest to the long one, so only what must be cut is cut. */
+.trip-list__place {
+  flex: 1 1 0;
+  max-width: max-content;
+
+  /* Enough that a truncated name still shows a few characters plus the ellipsis. */
+  min-width: 2.75rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.trip-list__route-arrow {
+  flex-shrink: 0;
+  font-size: 0.65rem;
+  color: var(--color-text-muted);
+}
+
+/* Placeholder while the city names are being looked up: same height as the headline it
+   replaces, so rows do not shift as answers arrive. */
+.trip-list__name-skeleton {
+  align-self: center;
+  min-width: 0;
 }
 
 /* Map layer toggle buttons (header area) */

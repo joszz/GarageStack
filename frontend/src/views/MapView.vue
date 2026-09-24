@@ -12,6 +12,10 @@ import SettingsToggle from '@/components/SettingsToggle.vue'
 import { useInfiniteScroll } from '@/composables/useInfiniteScroll'
 import { usePoiLayers } from '@/composables/usePoiLayers'
 import { useLeafletMap } from '@/composables/useLeafletMap'
+import { useReverseGeocode } from '@/composables/useReverseGeocode'
+import { addressLabel, cityName } from '@/utils/places'
+import { buildTripRow } from '@/utils/tripRows'
+import type { GeoPoint } from '@/services/mapApi'
 import Slider from '@vueform/slider'
 import Multiselect from '@vueform/multiselect'
 import { L, type LeafletMap } from '@/utils/leaflet'
@@ -176,12 +180,68 @@ const activeCarLatLng = computed<[number, number] | null>(() => {
 
 const activeCarHeading = computed(() => status.value?.heading ?? 0)
 
-function formatDuration(startedAt: string, endedAt: string): string {
-  const ms = new Date(endedAt).getTime() - new Date(startedAt).getTime()
-  const mins = Math.round(ms / 60_000)
-  if (mins < 60) return t('trips.durationMinutes', { n: mins })
-  return t('trips.durationHoursMinutes', { h: Math.floor(mins / 60), m: mins % 60 })
+// ── Place names ────────────────────────────────────────────────────────────────
+const { requestPlaces, placeFor, placeNamesEnabled, placesResolving } = useReverseGeocode()
+
+function tripEnds(trip: Trip) {
+  return { start: trip.points[0], end: trip.points[trip.points.length - 1] }
 }
+
+// Only the rows the sidebar actually shows are looked up: a 90-day range would otherwise queue
+// hundreds of lookups for trips nobody has scrolled to. The list grows, so this grows with it.
+// The trip being driven contributes only its origin, because its last point is the car's live
+// position: asking about that as it moves would be a lookup every few hundred metres.
+const visibleTripEnds = computed<GeoPoint[]>(() =>
+  displayTrips.value.flatMap((trip, displayIdx) => {
+    const { start, end } = tripEnds(trip)
+    const wanted = realIndex(displayIdx) === activeTripIndex.value ? [start] : [start, end]
+    return wanted
+      .filter((p): p is NonNullable<typeof p> => p != null)
+      .map((p) => ({ lat: p.latitude, lng: p.longitude }))
+  }),
+)
+
+watch(visibleTripEnds, (points) => requestPlaces(points, 'city'), { immediate: true })
+
+// The car's own street and city, for its popup. Only while parked: on the move this would ask
+// for a new address on every position update, and name a street the car has already left.
+const parkedCarLatLng = computed<GeoPoint | null>(() => {
+  const s = status.value
+  if (activeTripIndex.value !== null) return null
+  return s?.latitude != null && s?.longitude != null ? { lat: s.latitude, lng: s.longitude } : null
+})
+
+watch(
+  parkedCarLatLng,
+  (point) => {
+    if (point) requestPlaces([point], 'address')
+  },
+  { immediate: true },
+)
+
+const carAddress = computed(() =>
+  addressLabel(placeFor(parkedCarLatLng.value?.lat, parkedCarLatLng.value?.lng, 'address')),
+)
+
+// One row model per visible trip, paired with the store index selection works on.
+const displayRows = computed(() =>
+  displayTrips.value.map((trip, displayIdx) => {
+    const { start, end } = tripEnds(trip)
+    const realIdx = realIndex(displayIdx)
+    return {
+      realIdx,
+      row: buildTripRow(trip, {
+        fromCity: cityName(placeFor(start?.latitude, start?.longitude, 'city')),
+        toCity: cityName(placeFor(end?.latitude, end?.longitude, 'city')),
+        inProgress: realIdx === activeTripIndex.value,
+        canResolve: start != null && end != null && placeNamesEnabled.value,
+        resolving: placesResolving.value,
+        locale: displayLocale.value,
+        t,
+      }),
+    }
+  }),
+)
 
 function clearRouteLines() {
   routeLines.forEach((l) => l.remove())
@@ -714,48 +774,47 @@ onUnmounted(() => {
 
         <ul v-else class="trip-list">
           <li
-            v-for="(trip, displayIdx) in displayTrips"
-            :key="displayIdx"
+            v-for="{ row, realIdx } in displayRows"
+            :key="realIdx"
             class="trip-list__item"
-            :class="{
-              'trip-list__item--active': selectedTripIndex === realIndex(displayIdx),
-            }"
-            @click="selectTrip(realIndex(displayIdx))"
+            :class="{ 'trip-list__item--active': selectedTripIndex === realIdx }"
+            @click="selectTrip(realIdx)"
           >
             <span
               class="trip-list__dot"
               :class="[
-                tripColorClass(realIndex(displayIdx)),
-                { 'trip-list__dot--live': realIndex(displayIdx) === activeTripIndex },
+                tripColorClass(realIdx),
+                { 'trip-list__dot--live': realIdx === activeTripIndex },
               ]"
             />
             <div class="trip-list__info">
               <div class="trip-list__header">
                 <span
-                  class="trip-list__name"
-                  :title="new Date(trip.startedAt).toLocaleDateString(displayLocale)"
-                  >{{ new Date(trip.startedAt).toLocaleDateString(displayLocale) }}</span
+                  v-if="row.mode === 'route'"
+                  class="trip-list__name trip-list__route"
+                  :title="row.routeTitle"
                 >
+                  <span class="trip-list__place">{{ row.from }}</span>
+                  <template v-if="row.to">
+                    <font-awesome-icon icon="arrow-right" class="trip-list__route-arrow" />
+                    <span class="trip-list__place">{{ row.to }}</span>
+                  </template>
+                </span>
                 <span
-                  v-if="realIndex(displayIdx) === activeTripIndex"
-                  class="trip-list__live-badge"
-                  >{{ t('trips.inProgress') }}</span
-                >
-                <span v-else class="trip-list__time">{{
-                  new Date(trip.startedAt).toLocaleTimeString(displayLocale, {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })
+                  v-else-if="row.mode === 'pending'"
+                  class="skeleton skeleton--text skeleton--text-lg trip-list__name-skeleton"
+                  role="status"
+                  :aria-label="t('trips.resolvingPlaces')"
+                />
+                <span v-else class="trip-list__name" :title="row.dateLabel">{{
+                  row.dateLabel
                 }}</span>
+                <span v-if="realIdx === activeTripIndex" class="trip-list__live-badge">{{
+                  t('trips.inProgress')
+                }}</span>
+                <span v-else class="trip-list__time">{{ row.timeLabel }}</span>
               </div>
-              <span
-                class="trip-list__meta"
-                :title="`${trip.distanceKm} ${t('common.km')} · ${formatDuration(trip.startedAt, trip.endedAt)} · ${trip.pointCount} ${t('trips.points')}`"
-              >
-                {{ trip.distanceKm }} {{ t('common.km') }} &middot;
-                {{ formatDuration(trip.startedAt, trip.endedAt) }} &middot; {{ trip.pointCount }}
-                {{ t('trips.points') }}
-              </span>
+              <span class="trip-list__meta" :title="row.metaTitle">{{ row.meta }}</span>
             </div>
           </li>
         </ul>
@@ -777,7 +836,12 @@ onUnmounted(() => {
             "
             :lat-lng="[status.latitude!, status.longitude!]"
           >
-            <LPopup>{{ store.activeVehicle?.model ?? store.activeVin }}</LPopup>
+            <LPopup>
+              <strong class="car-popup__title">{{
+                store.activeVehicle?.model ?? store.activeVin
+              }}</strong>
+              <span v-if="carAddress" class="car-popup__address">{{ carAddress }}</span>
+            </LPopup>
           </LMarker>
         </LMap>
 
@@ -898,6 +962,10 @@ onUnmounted(() => {
   font-size: 0.75rem;
   font-weight: 600;
   color: var(--color-success, #10b981);
+
+  /* Never squeezed by a long route headline beside it; the city names truncate instead. */
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .charging-power-filter {

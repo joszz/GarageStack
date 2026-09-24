@@ -11,6 +11,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<AppNotification> AppNotifications => Set<AppNotification>();
     public DbSet<PoiItem> PoiItems => Set<PoiItem>();
     public DbSet<PoiCacheTile> PoiCacheTiles => Set<PoiCacheTile>();
+    public DbSet<GeocodeCacheEntry> GeocodeCacheEntries => Set<GeocodeCacheEntry>();
     public DbSet<MaintenanceItem> MaintenanceItems => Set<MaintenanceItem>();
     public DbSet<MaintenanceLogEntry> MaintenanceLogEntries => Set<MaintenanceLogEntry>();
     public DbSet<RevokedToken> RevokedTokens => Set<RevokedToken>();
@@ -99,6 +100,25 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
              .HasDatabaseName("IX_PoiCacheTiles_ExpiresAt");
             e.Property(t => t.Source).HasMaxLength(32).IsRequired();
             e.Property(t => t.PoiType).HasMaxLength(32).IsRequired();
+        });
+
+        modelBuilder.Entity<GeocodeCacheEntry>(e =>
+        {
+            e.HasKey(g => g.Id);
+            // One row per cell per language, which is also the lookup GetValidAsync runs.
+            e.HasIndex(g => new { g.Precision, g.Language, g.CellLat, g.CellLng })
+             .IsUnique()
+             .HasDatabaseName("IX_GeocodeCacheEntries_Precision_Language_CellLatLng");
+            e.HasIndex(g => g.ExpiresAt)
+             .HasDatabaseName("IX_GeocodeCacheEntries_ExpiresAt");
+            e.Property(g => g.Precision).HasMaxLength(GeocodeCacheLimits.PrecisionMaxLength).IsRequired();
+            e.Property(g => g.Language).HasMaxLength(GeocodeCacheLimits.LanguageMaxLength).IsRequired();
+            e.Property(g => g.DisplayName).HasMaxLength(GeocodeCacheLimits.DisplayNameMaxLength);
+            e.Property(g => g.Road).HasMaxLength(GeocodeCacheLimits.NameMaxLength);
+            e.Property(g => g.HouseNumber).HasMaxLength(GeocodeCacheLimits.NameMaxLength);
+            e.Property(g => g.City).HasMaxLength(GeocodeCacheLimits.NameMaxLength);
+            e.Property(g => g.Postcode).HasMaxLength(GeocodeCacheLimits.PostcodeMaxLength);
+            e.Property(g => g.CountryCode).HasMaxLength(GeocodeCacheLimits.CountryCodeMaxLength);
         });
 
         modelBuilder.Entity<MaintenanceItem>(e =>

@@ -1,4 +1,5 @@
 using GarageStack.Api.Services;
+using GarageStack.Core.Configuration;
 using GarageStack.Core.Helpers;
 
 namespace GarageStack.Api.Endpoints;
@@ -88,6 +89,48 @@ public static class MapEndpoints
         })
         .WithSummary("Get nearby POIs (fuel stations, service areas) from OSM Overpass cache");
 
+        // POST rather than GET because a trip list asks about dozens of coordinates at once, and
+        // one batched request per list beats one request per trip against the global rate limit.
+        group.MapPost("/reverse", async (
+            ReverseGeocodeRequest body,
+            GeocodeService svc,
+            CancellationToken ct) =>
+        {
+            var points = body.Points;
+            if (points is null || points.Count == 0)
+                return Results.BadRequest(new { error = "points must contain at least one coordinate" });
+
+            if (points.Count > GeocodeDefaults.MaxPointsPerRequest)
+                return Results.BadRequest(new { error = $"points may not exceed {GeocodeDefaults.MaxPointsPerRequest} coordinates" });
+
+            foreach (var point in points)
+                if (ValidateLatLng(point.Lat, point.Lng) is { } coordError)
+                    return coordError;
+
+            if (GeocodePrecisionPolicy.Normalize(body.Precision) is not { } precision)
+                return Results.BadRequest(new { error = $"precision must be '{GeocodePrecisionPolicy.City}' or '{GeocodePrecisionPolicy.Address}'" });
+
+            try
+            {
+                var result = await svc.ResolveAsync(points, precision, GeocodeDefaults.NormalizeLanguage(body.Language), ct);
+                return Results.Ok(result);
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                // The browser navigated away or the panel closed; nothing left to answer to.
+                return Results.Ok(new ReverseGeocodeResult(points.Select(_ => (PlaceDto?)null).ToList(), true, true));
+            }
+        })
+        .WithSummary("Reverse geocode coordinates to street and city names via the OSM Nominatim cache");
+
         return app;
     }
 }
+
+/// <param name="Points">Coordinates to resolve, at most <see cref="GeocodeDefaults.MaxPointsPerRequest"/> of them.</param>
+/// <param name="Precision">"city" for a settlement name (trip list), "address" for street level (parked car).</param>
+/// <param name="Language">Language for the place names; anything unsupported falls back to English.</param>
+public sealed record ReverseGeocodeRequest(
+    IReadOnlyList<GeoPoint>? Points,
+    string? Precision,
+    string? Language);

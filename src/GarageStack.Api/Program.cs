@@ -84,6 +84,7 @@ try
     builder.Services.AddMemoryCache();
     builder.Services.AddScoped<ChargingStationService>();
     builder.Services.AddScoped<PoiService>();
+    builder.Services.AddScoped<GeocodeService>();
     builder.Services.AddSingleton<VehicleCommandGate>();
 
     builder.Services.AddSignalR();

@@ -102,6 +102,7 @@
     "overview": "Overzicht",
     "location": "Locatie",
     "locationUnavailable": "Locatie niet beschikbaar",
+    "locatingAddress": "Adres opzoeken",
     "diagram": {
       "infoTyreTitle": "Bandenspanning",
       "infoTyreDesc": "Kleurgecodeerde stippen bij elke wielhoek tonen de actuele spanning. Groen is goed ({good} – {high} bar), oranje is laag ({low} – {good} bar) en rood is kritiek laag (< {low} bar) of te hoog (> {high} bar).",
@@ -263,6 +264,7 @@
     "fuelBrandPlaceholder": "Merken filteren...",
     "findCar": "Vind auto",
     "points": "ptn",
+    "resolvingPlaces": "Plaatsnamen opzoeken",
     "inProgress": "Rit onderweg",
     "durationMinutes": "{n} min",
     "durationHoursMinutes": "{h} u {m} min"
@@ -389,6 +391,11 @@
       "title": "Dashboard",
       "cardInfoIcons": "Info-iconen tonen",
       "cardInfoIconsDesc": "Toon de info-knop op elke kaart"
+    },
+    "map": {
+      "title": "Kaart",
+      "placeNames": "Plaatsnamen tonen",
+      "placeNamesDesc": "Noem ritten naar de plaatsen waartussen ze liepen en toon de straat waar de auto geparkeerd staat. Uit toont ritten op datum en stuurt geen coördinaten naar de geocoder."
     },
     "vehicleType": {
       "title": "Voertuigtype",

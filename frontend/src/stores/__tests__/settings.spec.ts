@@ -126,6 +126,28 @@ describe('useUiSettingsStore', () => {
     expect(store.filterDays).toBe(14)
   })
 
+  it('defaults placeNamesEnabled to on', () => {
+    const store = useUiSettingsStore()
+    expect(store.placeNamesEnabled).toBe(true)
+  })
+
+  it('keeps place names on for a stored blob written before the setting existed', () => {
+    localStorage.setItem(UI_KEY, JSON.stringify({ theme: 'light' }))
+    const store = useUiSettingsStore()
+    expect(store.placeNamesEnabled).toBe(true)
+  })
+
+  it('persists placeNamesEnabled being turned off, and loads it back', async () => {
+    const store = useUiSettingsStore()
+    store.placeNamesEnabled = false
+    await nextTick()
+    vi.advanceTimersByTime(SAVE_DEBOUNCE_MS)
+    expect(JSON.parse(localStorage.getItem(UI_KEY)!).placeNamesEnabled).toBe(false)
+
+    setActivePinia(createPinia())
+    expect(useUiSettingsStore().placeNamesEnabled).toBe(false)
+  })
+
   it('defaults notificationTypeExclusions to an empty array (no exclusions, show all)', () => {
     const store = useUiSettingsStore()
     expect(store.notificationTypeExclusions).toEqual([])
