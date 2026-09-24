@@ -12,9 +12,10 @@ import { vehicleApi } from '@/services/vehicleApi'
 import type { TelemetryHistoryPoint, VehicleAggregateStats } from '@/services/vehicleApi'
 import type { ChartData, ChartOptions } from 'chart.js'
 import { VueDraggable } from 'vue-draggable-plus'
-import { LMap, LTileLayer, LMarker } from '@vue-leaflet/vue-leaflet'
+import { LMap, LMarker } from '@vue-leaflet/vue-leaflet'
 import { L, type LeafletMap } from '@/utils/leaflet'
 import { useLeafletMap } from '@/composables/useLeafletMap'
+import { useBasemap } from '@/composables/useBasemap'
 import CardInfoWrap from '@/components/CardInfoWrap.vue'
 import DetailModal from '@/components/DetailModal.vue'
 import FiltersPanel from '@/components/FiltersPanel.vue'
@@ -244,7 +245,8 @@ const electricShareToday = computed(() => {
 const activeChartInfo = ref<StatsChartId | null>(null)
 
 const parkingModalOpen = ref(false)
-const { bindMapReady: bindParkingMapReady } = useLeafletMap()
+const { mapInstance: parkingMapInstance, bindMapReady: bindParkingMapReady } = useLeafletMap()
+useBasemap(parkingMapInstance)
 
 const parkingMapCenter = computed<[number, number]>(() =>
   parkingCoordinates.value.length
@@ -766,10 +768,6 @@ const skeletonChartCount = computed(
         >
           <div class="parking-modal-map">
             <LMap :zoom="13" :center="parkingMapCenter" @ready="onParkingMapReady">
-              <LTileLayer
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                attribution="&copy; OpenStreetMap contributors"
-              />
               <LMarker
                 v-for="(spot, i) in parkingCoordinates"
                 :key="i"

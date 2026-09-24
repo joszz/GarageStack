@@ -145,6 +145,13 @@ The vehicle store owns `activeVehicle`/`activeVin` (the one car this instance fo
 
 Dashboard cards are described once, in `frontend/src/cards/registry.ts`: each entry carries the card's icon, whether it is visible by default for a given drivetrain, and whether the current telemetry has anything to show. The card ids, the default layout and the "does this card have data" checks are all derived from that list, so a new card is one entry plus its markup in `DashboardCardContent.vue`. The map's point-of-interest layers work the same way: `composables/poiTileLayer.ts` holds the fetch-by-tile, cache and cluster logic, and charging stations, fuel stations and service areas are three configurations of it.
 
+Every map is Leaflet, and everything drawn on one (markers, clusters, routes, the heatmap) is a
+Leaflet layer. The basemap underneath them is not: `composables/useBasemap.ts` adds a MapLibre GL
+layer to Leaflet's tile pane, which renders vector tiles themed to match the app and labelled in
+the interface language. MapLibre and its tile worker are loaded lazily through
+`utils/maplibreLayer.ts` and never reach a page without a map; if that load fails, or the browser
+has no WebGL, the same composable falls back to raster tiles, so a map view is never empty.
+
 ## Tests
 
 Backend tests (xUnit) and frontend unit tests (Vitest) cover logic in isolation. On top of those,

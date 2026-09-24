@@ -683,6 +683,70 @@ body,
   padding: 1.25rem;
 }
 
+/* ── Leaflet map chrome ───────────────────────────────────── */
+
+/* Leaflet ships a light-only frame: a pale grey canvas, white zoom buttons, white popups and a
+   white attribution strip. Over the vector basemap, which follows the theme, those read as holes
+   punched in the map, so the chrome is re-pointed at the theme tokens and now follows dark and
+   light along with everything else. Ordering matters: main.ts imports leaflet.css first so these
+   rules win without needing louder selectors. */
+.leaflet-container {
+  /* Shows through until the first tiles are painted, so the map fades in from the surface it
+     sits on rather than flashing Leaflet's near-white default. */
+  background: var(--color-surface-2);
+  font-family: inherit;
+}
+
+.leaflet-container a {
+  color: var(--color-primary-light);
+}
+
+.leaflet-control-attribution {
+  background: color-mix(in srgb, var(--color-surface) 82%, transparent);
+  color: var(--color-text-muted);
+}
+
+.leaflet-control-attribution a {
+  color: var(--color-text-muted);
+  text-decoration: underline;
+}
+
+.leaflet-bar {
+  border: 1px solid var(--color-border);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 30%);
+}
+
+.leaflet-bar a,
+.leaflet-bar a:hover {
+  background: var(--color-surface);
+  color: var(--color-text);
+  border-bottom-color: var(--color-border);
+}
+
+.leaflet-bar a:hover {
+  background: var(--color-surface-2);
+}
+
+.leaflet-bar a.leaflet-disabled {
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+}
+
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: 0 3px 14px rgb(0 0 0 / 40%);
+}
+
+.leaflet-container a.leaflet-popup-close-button {
+  color: var(--color-text-muted);
+}
+
+.leaflet-container a.leaflet-popup-close-button:hover {
+  color: var(--color-text);
+}
+
 /* ── Overview row: car diagram + location map ─────────────── */
 
 .overview-row {

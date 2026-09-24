@@ -1,5 +1,7 @@
-import './assets/main.css'
+// Leaflet first: its map chrome (zoom buttons, popups, attribution) is styled light-only, and
+// main.css re-themes those same selectors. Same specificity, so the later import has to be ours.
 import 'leaflet/dist/leaflet.css'
+import './assets/main.css'
 
 import { createApp, type Component } from 'vue'
 

@@ -6,12 +6,13 @@ import { useRoute, useRouter } from 'vue-router'
 import { useVehicleStore } from '@/stores/vehicle'
 import { useMapSettingsStore } from '@/stores/settingsMap'
 import { useUiSettingsStore } from '@/stores/settingsUi'
-import { LMap, LTileLayer, LMarker, LPopup } from '@vue-leaflet/vue-leaflet'
+import { LMap, LMarker, LPopup } from '@vue-leaflet/vue-leaflet'
 import FiltersPanel from '@/components/FiltersPanel.vue'
 import SettingsToggle from '@/components/SettingsToggle.vue'
 import { useInfiniteScroll } from '@/composables/useInfiniteScroll'
 import { usePoiLayers } from '@/composables/usePoiLayers'
 import { useLeafletMap } from '@/composables/useLeafletMap'
+import { useBasemap } from '@/composables/useBasemap'
 import { useReverseGeocode } from '@/composables/useReverseGeocode'
 import { addressLabel, cityName } from '@/utils/places'
 import { buildTripRow } from '@/utils/tripRows'
@@ -55,6 +56,10 @@ const LOAD_MORE_SIZE = 10
 const mapWrapperRef = ref<HTMLElement | null>(null)
 const tripSidebarRef = ref<HTMLElement | null>(null)
 const { mapInstance, bindMapReady } = useLeafletMap(mapWrapperRef)
+
+// Vector basemap in the tile pane: follows the theme and the UI language, and everything below
+// draws on top of it exactly as it did over the raster tiles.
+useBasemap(mapInstance)
 
 // Charging-station / fuel-station / service-area layers: settings bindings, on-demand tile
 // fetching/caching, marker clustering, and popups all live in this composable so this view only
@@ -824,11 +829,6 @@ onUnmounted(() => {
       <!-- Map -->
       <div ref="mapWrapperRef" class="map-wrapper">
         <LMap :zoom="13" :center="center" class="map-canvas" @ready="onMapReady">
-          <LTileLayer
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            attribution="© OpenStreetMap contributors"
-          />
-
           <!-- Current position marker: hidden while a trip is selected -->
           <LMarker
             v-if="

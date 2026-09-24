@@ -19,6 +19,13 @@ COPY frontend/ .
 # Declared after install so a new version does not bust the dependency layer cache.
 ARG APP_VERSION=0.0.0-local
 ENV VITE_APP_VERSION=$APP_VERSION
+# Vector basemap styles. Empty means the public OpenFreeMap styles; point these at your own tile
+# server to keep map requests off a third party, and add that host to the Content-Security-Policy
+# in frontend/nginx-security-headers.conf or the browser will block it.
+ARG MAP_STYLE_DARK=
+ARG MAP_STYLE_LIGHT=
+ENV VITE_MAP_STYLE_DARK=$MAP_STYLE_DARK
+ENV VITE_MAP_STYLE_LIGHT=$MAP_STYLE_LIGHT
 RUN pnpm run build
 
 # ── Stage 2: Build .NET API and Worker ────────────────────────────────────────
