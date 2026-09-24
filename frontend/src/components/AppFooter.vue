@@ -15,7 +15,7 @@ import type { VehicleTypeOverride } from '@/stores/settingsUi'
 import { CAR_COLOR_SCHEMES } from '@/stores/settingsUi'
 import { APP_VERSION } from '@/utils/appVersion'
 import {
-  NOTIFICATION_CATEGORY_IDS,
+  notificationCategoryIdsFor,
   type NotificationCategoryId,
 } from '@/utils/notificationCategories'
 
@@ -58,8 +58,14 @@ const NOTIFICATION_CATEGORY_LABEL_KEYS: Record<NotificationCategoryId, string> =
   maintenance: 'maintenance',
 }
 
+// Only the types this drivetrain can actually produce: a plain hybrid never charges, so offering
+// it a "charging complete" switch is a control that does nothing.
+const offeredNotificationTypes = computed(() =>
+  notificationCategoryIdsFor(vehicleStore.effectiveVehicleType),
+)
+
 const notificationTypeOptions = computed(() =>
-  NOTIFICATION_CATEGORY_IDS.map((id) => ({
+  offeredNotificationTypes.value.map((id) => ({
     value: id,
     label: t(`notifications.categories.${NOTIFICATION_CATEGORY_LABEL_KEYS[id]}`),
   })),
@@ -84,12 +90,20 @@ function refresh() {
   send(vin.value, 'refresh', 'force')
 }
 
+// Both bulk actions touch only the offered types, leaving an exclusion the user set for a type
+// this drivetrain hides untouched: switching the vehicle type back restores their choice rather
+// than silently turning that category on.
 function selectAllNotificationTypes() {
-  settings.notificationTypeExclusions = []
+  const offered = offeredNotificationTypes.value as readonly string[]
+  settings.notificationTypeExclusions = settings.notificationTypeExclusions.filter(
+    (excludedId) => !offered.includes(excludedId),
+  )
 }
 
 function deselectAllNotificationTypes() {
-  settings.notificationTypeExclusions = [...NOTIFICATION_CATEGORY_IDS]
+  settings.notificationTypeExclusions = [
+    ...new Set([...settings.notificationTypeExclusions, ...offeredNotificationTypes.value]),
+  ]
 }
 
 function toggleNotificationType(id: NotificationCategoryId, checked: boolean) {

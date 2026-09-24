@@ -5,6 +5,7 @@ import { createI18n } from 'vue-i18n'
 import AppFooter from '../AppFooter.vue'
 
 const appVersion = vi.hoisted(() => ({ value: null as string | null }))
+const vehicleType = vi.hoisted(() => ({ value: 'unknown' as string }))
 
 vi.mock('@/utils/appVersion', () => ({
   get APP_VERSION() {
@@ -16,7 +17,8 @@ vi.mock('@/stores/vehicle', () => ({
   useVehicleStore: () => ({
     vehicles: [],
     loading: false,
-    detectedVehicleType: 'unknown',
+    detectedVehicleType: vehicleType.value,
+    effectiveVehicleType: vehicleType.value,
     vehicleConfig: {},
   }),
 }))
@@ -38,13 +40,22 @@ const i18n = createI18n({ legacy: false, locale: 'en', missingWarn: false, fallb
 
 function mountFooter() {
   return shallowMount(AppFooter, {
-    global: { plugins: [i18n], stubs: { FontAwesomeIcon: true } },
+    global: {
+      plugins: [i18n],
+      // DetailModal renders the settings body in its default slot, which an auto-stub drops
+      stubs: { FontAwesomeIcon: true, DetailModal: { template: '<div><slot /></div>' } },
+    },
   })
+}
+
+function notificationTypeLabels(wrapper: ReturnType<typeof mountFooter>) {
+  return wrapper.findAll('.notif-type-checklist__label').map((el) => el.text())
 }
 
 describe('AppFooter', () => {
   beforeEach(() => {
     appVersion.value = null
+    vehicleType.value = 'unknown'
   })
 
   it('separates the project name and version with a space', () => {
@@ -54,5 +65,22 @@ describe('AppFooter', () => {
 
   it('shows only the project name when no version was injected', () => {
     expect(mountFooter().find('.app-footer__copyright').text()).toBe('© 2026 GarageStack')
+  })
+
+  it('hides the charging notification types for a hybrid', () => {
+    vehicleType.value = 'hev'
+    const labels = notificationTypeLabels(mountFooter())
+
+    expect(labels).not.toContain('notifications.categories.chargingComplete')
+    expect(labels).not.toContain('notifications.categories.lowEv')
+    expect(labels).toContain('notifications.categories.engineStart')
+  })
+
+  it('offers the charging notification types for a plug-in hybrid', () => {
+    vehicleType.value = 'phev'
+    const labels = notificationTypeLabels(mountFooter())
+
+    expect(labels).toContain('notifications.categories.chargingComplete')
+    expect(labels).toContain('notifications.categories.lowEv')
   })
 })
