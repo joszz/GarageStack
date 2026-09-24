@@ -127,11 +127,13 @@
   height: 100%;
 }
 
-/* Bottom left, because bottom right belongs to the attribution strip: the credits wrap onto a
-   second line, and the legend used to sit exactly where they grow into. */
+/* Top left, under the zoom control. The bottom edge belongs to the attribution strip, whose width
+   depends on how many sources are credited and how wide the map happens to be: on a narrow map, in
+   any layout, it reaches the bottom-left corner this legend used to sit in. Keeping the legend off
+   that edge entirely is one rule instead of a breakpoint per layout. */
 .speed-legend {
   position: absolute;
-  bottom: 10px;
+  top: 80px;
   left: 10px;
   z-index: 1000;
   background: var(--color-surface);
@@ -503,13 +505,5 @@
   .map-controls {
     flex-wrap: wrap;
     gap: 0.4rem;
-  }
-
-  /* A phone-width map is barely wider than the credits themselves, so the bottom edge has room
-     for one of the two. The legend moves up under the zoom control, where nothing else sits: the
-     status pills are centred at the top, the credits own the bottom. */
-  .speed-legend {
-    top: 80px;
-    bottom: auto;
   }
 }

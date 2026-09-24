@@ -20,11 +20,13 @@ export const OSM_ATTRIBUTION = `${link('https://www.openstreetmap.org/copyright'
  * maplibre-gl-leaflet finds nothing to copy into Leaflet's control and the map would otherwise
  * carry no credit at all; this is handed to the layer explicitly instead.
  */
-export const VECTOR_ATTRIBUTION = [
-  link('https://openfreemap.org', 'OpenFreeMap'),
-  link('https://openmaptiles.org', '&copy; OpenMapTiles'),
-  OSM_ATTRIBUTION,
-].join(' &middot; ')
+export const VECTOR_ATTRIBUTION =
+  // OpenFreeMap asks for the tile host, the schema and the data, and says of the three that its
+  // own name is the one you may leave out ("You do not need to display the OpenFreeMap part, but
+  // it is nice if you do"). That is what makes the credits fit on one row on a phone, so it is
+  // marked as the part the stylesheet drops there and nowhere else.
+  `<span class="map-credit-optional">${link('https://openfreemap.org', 'OpenFreeMap')} &middot; </span>` +
+  `${link('https://openmaptiles.org', '&copy; OpenMapTiles')} &middot; ${OSM_ATTRIBUTION}`
 
 /** Charging stations, added to the map only while that layer is on. */
 export const OCM_ATTRIBUTION = link('https://openchargemap.org', 'Open Charge Map')
