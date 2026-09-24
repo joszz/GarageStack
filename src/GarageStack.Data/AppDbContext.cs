@@ -12,6 +12,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<PoiItem> PoiItems => Set<PoiItem>();
     public DbSet<PoiCacheTile> PoiCacheTiles => Set<PoiCacheTile>();
     public DbSet<GeocodeCacheEntry> GeocodeCacheEntries => Set<GeocodeCacheEntry>();
+    public DbSet<MapMatchCacheEntry> MapMatchCacheEntries => Set<MapMatchCacheEntry>();
     public DbSet<MaintenanceItem> MaintenanceItems => Set<MaintenanceItem>();
     public DbSet<MaintenanceLogEntry> MaintenanceLogEntries => Set<MaintenanceLogEntry>();
     public DbSet<RevokedToken> RevokedTokens => Set<RevokedToken>();
@@ -119,6 +120,19 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.Property(g => g.City).HasMaxLength(GeocodeCacheLimits.NameMaxLength);
             e.Property(g => g.Postcode).HasMaxLength(GeocodeCacheLimits.PostcodeMaxLength);
             e.Property(g => g.CountryCode).HasMaxLength(GeocodeCacheLimits.CountryCodeMaxLength);
+        });
+
+        modelBuilder.Entity<MapMatchCacheEntry>(e =>
+        {
+            e.HasKey(m => m.Id);
+            // One row per trace per matcher, which is also the lookup GetValidAsync runs.
+            e.HasIndex(m => new { m.Provider, m.TraceHash })
+             .IsUnique()
+             .HasDatabaseName("IX_MapMatchCacheEntries_Provider_TraceHash");
+            e.HasIndex(m => m.ExpiresAt)
+             .HasDatabaseName("IX_MapMatchCacheEntries_ExpiresAt");
+            e.Property(m => m.Provider).HasMaxLength(MapMatchCacheLimits.ProviderMaxLength).IsRequired();
+            e.Property(m => m.TraceHash).HasMaxLength(MapMatchCacheLimits.TraceHashLength).IsRequired();
         });
 
         modelBuilder.Entity<MaintenanceItem>(e =>

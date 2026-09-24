@@ -14,8 +14,10 @@ import { usePoiLayers } from '@/composables/usePoiLayers'
 import { useLeafletMap } from '@/composables/useLeafletMap'
 import { useBasemap } from '@/composables/useBasemap'
 import { useReverseGeocode } from '@/composables/useReverseGeocode'
+import { useTripMatch, type TripMatch } from '@/composables/useTripMatch'
 import { addressLabel, cityName } from '@/utils/places'
 import { buildTripRow } from '@/utils/tripRows'
+import { downsample } from '@/utils/downsample'
 import type { GeoPoint } from '@/services/mapApi'
 import Slider from '@vueform/slider'
 import Multiselect from '@vueform/multiselect'
@@ -47,7 +49,8 @@ const displayLocale = computed(() => (uiSettingsStore.locale === 'nl' ? 'nl-NL' 
 const selectedTripIndex = ref<number | null>(null)
 // Plain refs on their stores already (Composition-API-style defineStore) - storeToRefs gives
 // directly writable, reactive bindings with no computed({get, set}) wrapper needed.
-const { heatmapEnabled, speedOverlayEnabled, routeOutlineEnabled } = storeToRefs(settingsStore)
+const { heatmapEnabled, speedOverlayEnabled, routeOutlineEnabled, snapToRoadsEnabled } =
+  storeToRefs(settingsStore)
 const { filterDays: dateRangeDays } = storeToRefs(uiSettingsStore)
 
 let shouldSelectLatest = route.query.selectLatest === '1'
@@ -185,6 +188,37 @@ const activeCarLatLng = computed<[number, number] | null>(() => {
 
 const activeCarHeading = computed(() => status.value?.heading ?? 0)
 
+// ── Snapped trip lines ─────────────────────────────────────────────────────────
+// Only the selected trip is snapped: it is the one drawn as a line rather than as part of the
+// heatmap, and matching every trip in a 90-day range would be hundreds of requests for lines
+// nobody is looking at closely.
+const { requestMatch, matchFor, snapEnabled, matching: tripMatching } = useTripMatch()
+
+const selectedTrip = computed<Trip | null>(() =>
+  selectedTripIndex.value === null ? null : (store.trips[selectedTripIndex.value] ?? null),
+)
+const selectedMatch = computed(() => matchFor(selectedTrip.value))
+
+/**
+ * What the map says about snapping right now: that it is waiting for the matcher, or how long the
+ * trip turned out to be once its fixes were put on the roads. Null while no trip is selected, or
+ * when the matcher had nothing to add, so the map stays quiet about a line that is simply raw.
+ */
+const snapStatus = computed<{ snapping: boolean; km: number } | null>(() => {
+  if (selectedTripIndex.value === null || !snapEnabled.value) return null
+  const match = selectedMatch.value
+  if (match) return { snapping: false, km: match.matchedKm }
+  return tripMatching.value ? { snapping: true, km: 0 } : null
+})
+
+watch(
+  [selectedTrip, snapEnabled],
+  ([trip, enabled]) => {
+    if (enabled) requestMatch(trip)
+  },
+  { immediate: true },
+)
+
 // ── Place names ────────────────────────────────────────────────────────────────
 const { requestPlaces, placeFor, placeNamesEnabled, placesResolving } = useReverseGeocode()
 
@@ -302,18 +336,6 @@ function buildRouteLines() {
   })
 }
 
-function downsample<T>(items: T[], max: number): T[] {
-  if (items.length <= max) return items
-  const stride = items.length / max
-  const sampled: T[] = []
-  for (let i = 0; i < max; i++) {
-    sampled.push(items[Math.floor(i * stride)]!)
-  }
-  const last = items[items.length - 1]!
-  if (sampled[sampled.length - 1] !== last) sampled.push(last)
-  return sampled
-}
-
 // Speed overlay renders one Leaflet polyline layer per segment. A long trip can have thousands
 // of GPS points, which would create thousands of DOM elements - downsample first so the map
 // stays responsive; a few hundred segments is already more color resolution than is visible.
@@ -323,6 +345,65 @@ const MAX_SPEED_OVERLAY_SEGMENTS = 500
 // points than the polyline overlay, but a 90-day range with dense GPS logging can still reach
 // tens of thousands of points across all trips - cap it so it stays responsive to rebuild.
 const MAX_HEATMAP_POINTS = 5000
+
+interface SpeedSegment {
+  coordinates: [number, number][]
+  speed: number | null
+}
+
+/**
+ * The stretches the speed overlay colours. Without a snapped line that is one straight stretch
+ * per pair of fixes, as it always was; with one, each stretch follows the road between the two
+ * fixes it spans, so the colours sit on the route that was driven rather than on the line cutting
+ * across it.
+ */
+function speedSegments(trip: Trip, match: TripMatch | null): SpeedSegment[] {
+  const segments: SpeedSegment[] = []
+
+  if (!match) {
+    const pts = downsample(trip.points, MAX_SPEED_OVERLAY_SEGMENTS)
+    for (let i = 0; i < pts.length - 1; i++) {
+      const from = pts[i]!
+      const to = pts[i + 1]!
+      segments.push({
+        coordinates: [
+          [from.latitude, from.longitude],
+          [to.latitude, to.longitude],
+        ],
+        speed: from.speed,
+      })
+    }
+    return segments
+  }
+
+  // Pair every sent fix with its vertex on the snapped line before thinning, so a fix that
+  // survives the thinning takes its place on that line with it.
+  const placed = match.points.map((point, i) => ({ point, index: match.pointIndexes[i] ?? 0 }))
+  const thinned = downsample(placed, MAX_SPEED_OVERLAY_SEGMENTS)
+
+  let cursor = thinned[0]?.index ?? 0
+  for (let i = 0; i < thinned.length - 1; i++) {
+    const next = thinned[i + 1]!.index
+    // Fixes the matcher could not place share a vertex with their neighbour. Carrying the cursor
+    // past them keeps the coloured line continuous instead of leaving gaps in it.
+    if (next <= cursor) continue
+    segments.push({
+      coordinates: match.coordinates.slice(cursor, next + 1),
+      speed: thinned[i]!.point.speed,
+    })
+    cursor = next
+  }
+
+  // Whatever the snapped line runs on past the last fix still belongs to the trip.
+  if (cursor < match.coordinates.length - 1) {
+    segments.push({
+      coordinates: match.coordinates.slice(cursor),
+      speed: thinned[thinned.length - 1]?.point.speed ?? null,
+    })
+  }
+
+  return segments
+}
 
 function buildSelectedLine() {
   const map = mapInstance.value
@@ -334,7 +415,10 @@ function buildSelectedLine() {
   const pts = trip.points
   if (pts.length < 2) return
 
-  const coords = pts.map((p) => [p.latitude, p.longitude] as [number, number])
+  // The snapped line when there is one, the raw fixes until then: the map never waits on the
+  // matcher, it redraws once the answer lands.
+  const match = selectedMatch.value
+  const coords = match?.coordinates ?? pts.map((p) => [p.latitude, p.longitude] as [number, number])
 
   if (routeOutlineEnabled.value) {
     const border = L.polyline(coords, { color: '#111', weight: 9, opacity: 0.4 })
@@ -343,18 +427,13 @@ function buildSelectedLine() {
   }
 
   if (speedOverlayEnabled.value) {
-    const speedPts = downsample(pts, MAX_SPEED_OVERLAY_SEGMENTS)
-    for (let i = 0; i < speedPts.length - 1; i++) {
-      const p0 = speedPts[i]!
-      const p1 = speedPts[i + 1]!
-      const color = speedToColor(p0.speed, tripColor(idx))
-      const segment = L.polyline(
-        [
-          [p0.latitude, p0.longitude],
-          [p1.latitude, p1.longitude],
-        ],
-        { color, weight: 5, opacity: 1, lineCap: 'square' },
-      )
+    for (const { coordinates, speed } of speedSegments(trip, match)) {
+      const segment = L.polyline(coordinates, {
+        color: speedToColor(speed, tripColor(idx)),
+        weight: 5,
+        opacity: 1,
+        lineCap: 'square',
+      })
       segment.addTo(map)
       routeLines.push(segment)
     }
@@ -491,14 +570,20 @@ watch(allPoints, async (pts) => {
   }
 })
 
-// Trip selection drives map display and popover position.
 // Leaflet operations are deferred to the next animation frame so the Vue DOM
 // update (active state CSS transition, popover enter) renders cleanly before
 // the canvas GPU layer is torn down and rebuilt.
-watch(selectedTripIndex, (idx) => {
+function scheduleMapUpdate(update: () => void) {
   if (mapUpdateRaf !== null) cancelAnimationFrame(mapUpdateRaf)
   mapUpdateRaf = requestAnimationFrame(() => {
     mapUpdateRaf = null
+    update()
+  })
+}
+
+// Trip selection drives map display and popover position.
+watch(selectedTripIndex, (idx) => {
+  scheduleMapUpdate(() => {
     if (idx === null) {
       if (heatmapEnabled.value) buildHeatLayer()
       buildRouteLines()
@@ -522,21 +607,22 @@ watch(heatmapEnabled, (enabled) => {
 // Speed overlay toggle while a trip is selected
 watch(speedOverlayEnabled, () => {
   if (selectedTripIndex.value === null) return
-  if (mapUpdateRaf !== null) cancelAnimationFrame(mapUpdateRaf)
-  mapUpdateRaf = requestAnimationFrame(() => {
-    mapUpdateRaf = null
-    buildSelectedLine()
-  })
+  scheduleMapUpdate(buildSelectedLine)
 })
 
 // Route outline toggle: rebuild whichever layer is currently active
 watch(routeOutlineEnabled, () => {
-  if (mapUpdateRaf !== null) cancelAnimationFrame(mapUpdateRaf)
-  mapUpdateRaf = requestAnimationFrame(() => {
-    mapUpdateRaf = null
+  scheduleMapUpdate(() => {
     if (selectedTripIndex.value === null) buildRouteLines()
     else buildSelectedLine()
   })
+})
+
+// The snapped line lands a moment after the trip was drawn from its raw fixes, and disappears
+// again when snapping is switched off: either way the selected trip is redrawn in place.
+watch(selectedMatch, () => {
+  if (selectedTripIndex.value === null) return
+  scheduleMapUpdate(buildSelectedLine)
 })
 
 // Date range change: reload trips and reset state
@@ -646,6 +732,15 @@ onUnmounted(() => {
                 {{ t('trips.routeOutline') }}
               </span>
               <span class="settings-toggle__desc">{{ t('trips.routeOutlineDesc') }}</span>
+            </template>
+          </SettingsToggle>
+          <SettingsToggle v-model="snapToRoadsEnabled" :label="t('trips.snapToRoads')">
+            <template #label>
+              <span class="settings-toggle__label">
+                <font-awesome-icon icon="road-circle-check" class="settings-toggle__icon" />
+                {{ t('trips.snapToRoads') }}
+              </span>
+              <span class="settings-toggle__desc">{{ t('trips.snapToRoadsDesc') }}</span>
             </template>
           </SettingsToggle>
           <SettingsToggle v-model="speedOverlayEnabled" :label="t('trips.speedOverlay')">
@@ -845,14 +940,24 @@ onUnmounted(() => {
           </LMarker>
         </LMap>
 
-        <div
-          v-if="poiLoading"
-          class="poi-loading-indicator"
-          role="status"
-          :aria-label="t('trips.poiLoading')"
-        >
-          <span class="spinner-border spinner-border-sm" aria-hidden="true" />
-          {{ t('trips.poiLoading') }}
+        <div v-if="poiLoading || snapStatus" class="map-pill-stack">
+          <div v-if="poiLoading" class="map-pill" role="status" :aria-label="t('trips.poiLoading')">
+            <span class="spinner-border spinner-border-sm" aria-hidden="true" />
+            {{ t('trips.poiLoading') }}
+          </div>
+          <div v-if="snapStatus" class="map-pill" role="status">
+            <span
+              v-if="snapStatus.snapping"
+              class="spinner-border spinner-border-sm"
+              aria-hidden="true"
+            />
+            <font-awesome-icon v-else icon="road-circle-check" />
+            {{
+              snapStatus.snapping
+                ? t('trips.snapping')
+                : t('trips.snapped', { km: snapStatus.km.toFixed(1) })
+            }}
+          </div>
         </div>
 
         <div

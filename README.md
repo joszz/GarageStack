@@ -18,6 +18,7 @@ GarageStack is a free, open-source vehicle monitoring dashboard for **modern MG 
 - **Fuel stations** -- Overlay nearby petrol and diesel stations on the map (HEV and PHEV only; not shown for BEV). Sourced from OpenStreetMap via the Overpass API -- no API key required. POI data is cached in the database for 7 days and pre-populated by the Worker for a 100 km radius around the car's last known position so the overlay is instant on first view.
 - **Motorway service areas** -- Overlay motorway service areas and rest stops on the map (all vehicle types). Same DB-backed cache and Worker pre-cache as fuel stations; useful for BEV drivers who often find fast chargers at service areas.
 - **Place names** -- Trips are listed by where they went ("Zwolle to Deventer") instead of by date alone, and the dashboard's location card names the street the car is parked in. Sourced from OpenStreetMap via [Nominatim](https://nominatim.openstreetmap.org) -- no API key required, answers are cached in the database for 90 days, and the whole feature can be switched off per browser under Settings > Map, or for the deployment with `GEOCODING__ENABLED=false`.
+- **Snapped trip lines** -- A selected trip is drawn along the roads it was driven on rather than in straight lines between GPS fixes, which also gives a truer distance than the fixes alone. Matched against OpenStreetMap by [Valhalla](https://valhalla1.openstreetmap.de) -- no API key required, snapped trips are cached in the database for 30 days, and it can be switched off in the map's filter panel or for the deployment with `MAPMATCHING__ENABLED=false`.
 - **Themed vector basemap** -- Every map is drawn from OpenStreetMap vector tiles by MapLibre GL, in a dark or light style that follows the interface theme and with labels in the interface language. Served by [OpenFreeMap](https://openfreemap.org) without an API key, point it at your own tile server if you prefer, and it falls back to raster tiles where WebGL is unavailable.
 - **Single sign-on** -- Sign in through your own identity provider (Authentik, Authelia, Keycloak, Pocket ID, Google, and anything else speaking OpenID Connect), with optional auto-login and group or email based access restrictions. A built-in username/password login remains available for installs without a provider. See [`AUTHENTICATION.md`](AUTHENTICATION.md).
 - **Multi-language support** -- Interface available in English and Dutch, with locale resolved from query string, cookie, or browser preference.
@@ -493,6 +494,19 @@ Sourced from OpenStreetMap via [Nominatim](https://nominatim.openstreetmap.org) 
 - Names follow the interface language, so switching between English and Dutch looks the places up again in that language.
 - **Settings > Map > Show place names** turns the whole thing off per browser (it is on by default). Off, trips are listed by date, the location card shows no address, and no coordinates leave the browser.
 - Set `GEOCODING__ENABLED=false` to switch it off for the whole deployment instead, or point `GEOCODING__BASEURL` at your own Nominatim instance.
+
+### Snapped trip lines (map matching)
+
+Telemetry arrives as GPS fixes tens of seconds apart, so a trip drawn straight from them cuts every corner and runs through buildings. Selecting a trip sends its fixes to [Valhalla](https://valhalla1.openstreetmap.de) -- the router behind OpenStreetMap's own directions -- which answers with the roads underneath them. No API key required.
+
+- Only the selected trip is snapped. The raw line is drawn immediately and replaced when the answer lands, so the map never waits.
+- The pill at the top of the map shows the snapped distance, which is the better figure: the straight-line distance through the fixes is always short by the corners it cut.
+- The speed overlay follows the snapped line too, so its colours sit on the route that was driven.
+- A trip with a hole in its telemetry (the gateway stopped publishing for a while) is matched in parts and stitched back together, with the hole left as the straight jump it always was. Valhalla refuses a trace containing a jump wider than 10 km, which is exactly what such a hole looks like.
+- A match whose length no longer resembles the fixes it came from is discarded and the raw line kept: with sparse fixes a router can return a plausible route that is not the one taken.
+- Snapped trips are cached in PostgreSQL for 30 days, keyed by a hash of the fixes, so a trip is matched once however often it is selected. "These fixes snap to nothing" is cached for a day.
+- **The map's filter panel > Snap to roads** turns it off per browser (it is on by default), and trips are then drawn from their raw fixes as before.
+- Set `MAPMATCHING__ENABLED=false` to switch it off for the whole deployment instead, or point `MAPMATCHING__BASEURL` at your own Valhalla instance.
 
 ### Caching architecture
 

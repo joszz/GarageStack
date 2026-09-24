@@ -164,6 +164,11 @@ services:
       # Nominatim. See .env.example.
       Geocoding__Enabled: "${GEOCODING__ENABLED:-true}"
       Geocoding__BaseUrl: "${GEOCODING__BASEURL:-https://nominatim.openstreetmap.org}"
+      # Snapping a selected trip onto the roads it was driven on. Set ENABLED to false to keep
+      # trip geometry off a third-party service, or point BaseUrl at your own Valhalla.
+      # See .env.example.
+      MapMatching__Enabled: "${MAPMATCHING__ENABLED:-true}"
+      MapMatching__BaseUrl: "${MAPMATCHING__BASEURL:-https://valhalla1.openstreetmap.de}"
       Auth__CookieSecure: "${AUTH_COOKIE_SECURE:-false}"
       Auth__SessionLifetimeHours: "${AUTH_SESSION_LIFETIME_HOURS:-168}"
       RateLimits__GlobalPerMinute: "${RATE_LIMIT_GLOBAL_PER_MINUTE:-}"

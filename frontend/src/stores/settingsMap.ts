@@ -6,6 +6,7 @@ const STORAGE_KEY = 'garagestack-settings-map'
 
 interface MapSettings {
   routeOutlineEnabled: boolean
+  snapToRoadsEnabled: boolean
   heatmapEnabled: boolean
   speedOverlayEnabled: boolean
   chargingStationsEnabled: boolean
@@ -18,6 +19,7 @@ interface MapSettings {
 
 const defaults: MapSettings = {
   routeOutlineEnabled: false,
+  snapToRoadsEnabled: true,
   heatmapEnabled: true,
   speedOverlayEnabled: false,
   chargingStationsEnabled: false,
@@ -31,6 +33,7 @@ const defaults: MapSettings = {
 function parseMapFields(parsed: Record<string, unknown>): MapSettings {
   return {
     routeOutlineEnabled: parsed.routeOutlineEnabled === true,
+    snapToRoadsEnabled: parsed.snapToRoadsEnabled !== false,
     heatmapEnabled: parsed.heatmapEnabled !== false,
     speedOverlayEnabled: parsed.speedOverlayEnabled === true,
     chargingStationsEnabled: parsed.chargingStationsEnabled === true,
@@ -61,6 +64,7 @@ function loadMapSettings(): MapSettings {
 export const useMapSettingsStore = defineStore('settingsMap', () => {
   const loaded = loadMapSettings()
   const routeOutlineEnabled = ref<boolean>(loaded.routeOutlineEnabled)
+  const snapToRoadsEnabled = ref<boolean>(loaded.snapToRoadsEnabled)
   const heatmapEnabled = ref<boolean>(loaded.heatmapEnabled)
   const speedOverlayEnabled = ref<boolean>(loaded.speedOverlayEnabled)
   const chargingStationsEnabled = ref<boolean>(loaded.chargingStationsEnabled)
@@ -75,6 +79,7 @@ export const useMapSettingsStore = defineStore('settingsMap', () => {
       STORAGE_KEY,
       JSON.stringify({
         routeOutlineEnabled: routeOutlineEnabled.value,
+        snapToRoadsEnabled: snapToRoadsEnabled.value,
         heatmapEnabled: heatmapEnabled.value,
         speedOverlayEnabled: speedOverlayEnabled.value,
         chargingStationsEnabled: chargingStationsEnabled.value,
@@ -89,6 +94,7 @@ export const useMapSettingsStore = defineStore('settingsMap', () => {
   const scheduleSave = createDebouncedSave(save)
 
   watch(routeOutlineEnabled, scheduleSave)
+  watch(snapToRoadsEnabled, scheduleSave)
   watch(heatmapEnabled, scheduleSave)
   watch(speedOverlayEnabled, scheduleSave)
   watch(chargingStationsEnabled, scheduleSave)
@@ -100,6 +106,7 @@ export const useMapSettingsStore = defineStore('settingsMap', () => {
 
   return {
     routeOutlineEnabled,
+    snapToRoadsEnabled,
     heatmapEnabled,
     speedOverlayEnabled,
     chargingStationsEnabled,

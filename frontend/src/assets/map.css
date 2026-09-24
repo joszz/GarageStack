@@ -255,13 +255,22 @@
   font-size: 0.75rem;
 }
 
-/* Loading indicator overlay on map canvas */
-.poi-loading-indicator {
+/* Status overlays on the map canvas: POI loading, trip snapping. Stacked in one column so two
+   of them never land on top of each other. */
+.map-pill-stack {
   position: absolute;
   top: 10px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  pointer-events: none;
+}
+
+.map-pill {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
@@ -271,7 +280,6 @@
   align-items: center;
   gap: 0.4rem;
   box-shadow: 0 1px 4px rgb(0 0 0 / 20%);
-  pointer-events: none;
   white-space: nowrap;
 }
 

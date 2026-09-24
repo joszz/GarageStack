@@ -83,6 +83,11 @@ process-local one doesn't already provide. Two caches exist today:
   caching rather than re-requesting, and a 90-day TTL is honest for data that changes when a
   street is renamed. Only the cache key is quantised to the grid; the coordinate sent upstream is
   the caller's own, so an answer describes the real spot rather than a grid corner.
+- Snapped trip lines (`MapMatchCacheEntry`) are cached in Postgres too, keyed by a hash of the
+  fixes that were sent rather than by vehicle or timestamp: a finished trip is the same trace
+  however often it is selected, and two browsers looking at it share one row. The line is stored
+  as an encoded polyline, which keeps a few thousand vertices to a few kilobytes both in the table
+  and on the wire.
 - The status query's fallbacks are index-backed. Charging and heating schedules are only
   published when the user changes one, so most vehicles have no such row at all: a filtered index
   (`IX_TelemetrySnapshots_VehicleId_RecordedAt_Schedule`) keeps that lookup from reading the
