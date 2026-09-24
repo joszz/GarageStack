@@ -281,7 +281,8 @@
     }
   },
   "push": {
-    "permissionDenied": "Permission denied — allow notifications in your browser settings"
+    "permissionDenied": "Permission denied, allow notifications in your browser settings",
+    "subscribeFailed": "Could not register for push notifications. Check that the server is reachable, then try again."
   },
   "notifications": {
     "title": "Notifications",

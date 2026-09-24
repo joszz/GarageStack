@@ -281,7 +281,8 @@
     }
   },
   "push": {
-    "permissionDenied": "Toestemming geweigerd — sta meldingen toe in je browserinstellingen"
+    "permissionDenied": "Toestemming geweigerd, sta meldingen toe in je browserinstellingen",
+    "subscribeFailed": "Aanmelden voor pushmeldingen is mislukt. Controleer of de server bereikbaar is en probeer het opnieuw."
   },
   "notifications": {
     "title": "Meldingen",

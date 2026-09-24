@@ -10,9 +10,10 @@ import { NOTIFICATION_CATEGORY_IDS } from '@/utils/notificationCategories'
 // is excluded is a free no-op since the count doesn't change.
 export function useNotificationPushSync() {
   const settings = useUiSettingsStore()
-  const { pushSupported, pushState, togglePush } = usePush()
+  const { pushSupported, pushState, pushError, togglePush } = usePush()
 
   const showPermissionDeniedNotice = computed(() => pushSupported && pushState.value === 'denied')
+  const showSubscribeFailedNotice = computed(() => pushSupported && pushError.value)
 
   if (pushSupported) {
     watch(
@@ -26,5 +27,5 @@ export function useNotificationPushSync() {
     )
   }
 
-  return { showPermissionDeniedNotice }
+  return { showPermissionDeniedNotice, showSubscribeFailedNotice }
 }
