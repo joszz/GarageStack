@@ -9,6 +9,7 @@ import {
   BASEMAP_STYLE_URLS,
   RASTER_FALLBACK_MAX_ZOOM,
   RASTER_FALLBACK_TILE_URL,
+  VECTOR_MAX_ZOOM,
   boostLabelContrast,
   localizeStyleLabels,
   supportsWebGl,
@@ -70,6 +71,7 @@ export function useBasemap(mapInstance: Ref<LeafletMap | null>) {
   }
 
   function addRasterFallback(map: LeafletMap) {
+    map.setMaxZoom(RASTER_FALLBACK_MAX_ZOOM)
     layer = L.tileLayer(RASTER_FALLBACK_TILE_URL, {
       attribution: OSM_ATTRIBUTION,
       maxZoom: RASTER_FALLBACK_MAX_ZOOM,
@@ -95,9 +97,7 @@ export function useBasemap(mapInstance: Ref<LeafletMap | null>) {
         // Leaflet owns panning and zooming and jumps the GL map after each change. Fading labels
         // in from scratch on every one of those jumps reads as flicker while panning.
         fadeDuration: 0,
-        // Leaflet takes its zoom limits from the layers on the map. Vector tiles overzoom
-        // cleanly, but past this the data has nothing left to add.
-        maxZoom: 20,
+        maxZoom: VECTOR_MAX_ZOOM,
       })
       glLayer.addTo(map)
       layer = glLayer
@@ -136,6 +136,13 @@ export function useBasemap(mapInstance: Ref<LeafletMap | null>) {
         addRasterFallback(map)
         return
       }
+      // Leaflet takes its zoom limits from the tile layers on the map, and the GL layer is not
+      // one: it keeps its zoom range to itself, leaving map.getMaxZoom() as Infinity. Anything
+      // asking the map how far it zooms then has no answer, and leaflet.markercluster throws
+      // ("Map has no maxZoom specified") rather than clustering, which is why every POI layer
+      // went blank when the basemap became vector. Set before the style is even fetched, so the
+      // gap between a ready map and a loaded basemap is not a window where clustering fails.
+      map.setMaxZoom(VECTOR_MAX_ZOOM)
       void addVectorBasemap(map, generation)
     },
     { immediate: true },

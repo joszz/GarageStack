@@ -50,6 +50,9 @@ export const BASEMAP_STYLE_URLS: Record<Theme, string> = {
 export const RASTER_FALLBACK_TILE_URL = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
 export const RASTER_FALLBACK_MAX_ZOOM = 19
 
+/** Vector tiles overzoom cleanly, but past this the data has nothing left to add. */
+export const VECTOR_MAX_ZOOM = 20
+
 /**
  * Rewrites label layers to prefer the name in the UI language, falling back to whatever the
  * style already asked for (which is the local name for most of the world). OpenStreetMap carries

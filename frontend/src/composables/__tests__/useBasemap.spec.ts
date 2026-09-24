@@ -85,7 +85,26 @@ function lastOfKind(kind: FakeLayer['kind']): FakeLayer | undefined {
   return [...layers].reverse().find((l) => l.kind === kind)
 }
 
-const fakeMap = () => ({ id: 'map' }) as unknown as LeafletMap
+// Only what the composable touches. setMaxZoom matters: Leaflet reads its zoom limits off tile
+// layers, and the GL basemap is not one, so the composable has to state the limit itself.
+interface FakeMap {
+  id: string
+  maxZoom: number | undefined
+  setMaxZoom: (zoom: number) => void
+}
+
+const fakeMap = () => {
+  const map: FakeMap = {
+    id: 'map',
+    maxZoom: undefined,
+    setMaxZoom(zoom: number) {
+      this.maxZoom = zoom
+    },
+  }
+  return map as unknown as LeafletMap
+}
+
+const maxZoomOf = (map: LeafletMap) => (map as unknown as FakeMap).maxZoom
 
 async function mountBasemap(map: LeafletMap | null) {
   const { useBasemap } = await import('@/composables/useBasemap')
@@ -145,6 +164,25 @@ describe('useBasemap', () => {
       DARK_LABEL,
     ])
     expect(lastOfKind('raster')).toBeUndefined()
+  })
+
+  // Regression: the GL layer registers no zoom limit with Leaflet, so map.getMaxZoom() stayed
+  // Infinity and leaflet.markercluster threw instead of clustering. Every POI layer (fuel,
+  // charging, service areas) silently drew nothing, because the layer engine treats a failed
+  // load as a best-effort miss.
+  it('gives the map a finite max zoom so clustered layers can be added', async () => {
+    const map = fakeMap()
+    await mountBasemap(map)
+
+    expect(maxZoomOf(map)).toBe(20)
+  })
+
+  it('gives the map a finite max zoom on the raster fallback too', async () => {
+    webGl = false
+    const map = fakeMap()
+    await mountBasemap(map)
+
+    expect(maxZoomOf(map)).toBe(19)
   })
 
   it('recolours the map in place when the theme changes', async () => {
