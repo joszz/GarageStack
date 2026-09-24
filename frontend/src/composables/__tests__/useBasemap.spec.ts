@@ -132,9 +132,12 @@ describe('useBasemap', () => {
     expect(fetchMock).toHaveBeenCalledWith('https://tiles.openfreemap.org/styles/dark')
     const vector = lastOfKind('vector')
     expect(vector?.addedTo).toBe(map)
-    // The tile server's own sources carry the credit it asks for, so overriding it here would
-    // replace a correct attribution with a guess.
-    expect(vector?.options.attributionControl).toBeUndefined()
+    // OpenFreeMap's styles declare no attribution on their sources, so the plugin would find
+    // nothing to credit and the map would show none at all - the credit is stated here instead.
+    const control = vector?.options.attributionControl as { customAttribution: string } | undefined
+    expect(control?.customAttribution).toContain('openstreetmap.org/copyright')
+    expect(control?.customAttribution).toContain('OpenMapTiles')
+    expect(control?.customAttribution).toContain('OpenFreeMap')
     const style = vector?.options.style as { layers: { layout: Record<string, unknown> }[] }
     expect(style.layers[0]!.layout['text-field']).toEqual([
       'coalesce',

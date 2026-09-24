@@ -267,6 +267,8 @@
     "fuelBrandNoMatch": "No matching brands.",
     "fuelBrandPlaceholder": "Filter brands...",
     "findCar": "Find car",
+    "openInMapApp": "Open in map app",
+    "showOnOsm": "Show on OpenStreetMap",
     "points": "pts",
     "resolvingPlaces": "Looking up place names",
     "inProgress": "Trip in progress",

@@ -706,6 +706,21 @@ body,
 .leaflet-container .leaflet-control-attribution {
   background: color-mix(in srgb, var(--color-surface) 82%, transparent);
   color: var(--color-text-muted);
+
+  /* The credits are required, so they can be made small but not dropped: three sources for the
+     basemap and a fourth while charging stations are on. Leaflet lets the strip run the full width
+     of the map, which on a phone means one long line across the bottom of it. Capped, it wraps
+     into the corner it already sits in, and the map keeps the rest. */
+  max-width: min(100%, 32rem);
+  text-align: right;
+  line-height: 1.45;
+}
+
+@media (width <= 767px) {
+  .leaflet-container .leaflet-control-attribution {
+    max-width: 72%;
+    font-size: 0.625rem;
+  }
 }
 
 .leaflet-container .leaflet-control-attribution a {
