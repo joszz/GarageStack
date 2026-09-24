@@ -42,11 +42,16 @@ updates:
           - "vite-plugin-pwa"
           - "workbox-*"
 
-      # Leaflet + chart.js move independently but are both visualisation libs
+      # Leaflet + chart.js move independently but are both visualisation libs.
+      # MapLibre belongs here too: it renders the basemap inside the Leaflet map through
+      # @maplibre/maplibre-gl-leaflet, whose peer range ties the two together, and it releases
+      # often enough to fill the PR limit on its own if left ungrouped.
       map-and-charts:
         patterns:
           - "leaflet"
           - "@vue-leaflet/*"
+          - "maplibre-gl"
+          - "@maplibre/*"
           - "chart.js"
 
       # FontAwesome – all three packages always update together
