@@ -4,11 +4,13 @@ import type { StyleSpecification } from 'maplibre-gl'
 import type { maplibreGL } from '@maplibre/maplibre-gl-leaflet'
 import { L, type LeafletMap } from '@/utils/leaflet'
 import { useUiSettingsStore } from '@/stores/settingsUi'
+import type { Locale } from '@/stores/settingsShared'
 import {
   BASEMAP_STYLE_URLS,
   OSM_ATTRIBUTION,
   RASTER_FALLBACK_MAX_ZOOM,
   RASTER_FALLBACK_TILE_URL,
+  boostLabelContrast,
   localizeStyleLabels,
   supportsWebGl,
   type MapStyle,
@@ -21,6 +23,11 @@ type MaplibreLayer = ReturnType<typeof maplibreGL>
 // forth should not refetch it. The response text is parsed per use, so no two maps ever hand
 // MapLibre the same style object.
 const styleTextCache = new Map<string, Promise<string>>()
+
+/** The two style rewrites every map applies: readable labels, in the interface language. */
+function prepareStyle(style: MapStyle, locale: Locale): StyleSpecification {
+  return localizeStyleLabels(boostLabelContrast(style), locale) as unknown as StyleSpecification
+}
 
 async function loadStyle(url: string): Promise<MapStyle> {
   let pending = styleTextCache.get(url)
@@ -82,7 +89,7 @@ export function useBasemap(mapInstance: Ref<LeafletMap | null>) {
       // credit the tile server asks for (OpenStreetMap, OpenMapTiles and OpenFreeMap by default)
       // and stays right for a deployment serving its own tiles.
       glLayer = maplibre.maplibreGL({
-        style: localizeStyleLabels(style, locale.value) as unknown as StyleSpecification,
+        style: prepareStyle(style, locale.value),
         // Leaflet owns panning and zooming and jumps the GL map after each change. Fading labels
         // in from scratch on every one of those jumps reads as flicker while panning.
         fadeDuration: 0,
@@ -107,7 +114,7 @@ export function useBasemap(mapInstance: Ref<LeafletMap | null>) {
       if (token !== generation || glLayer?.getMaplibreMap() !== gl) return
       // Diffing (setStyle's default) keeps the tiles already on screen when only colours change,
       // so a theme switch recolours the map in place instead of blanking it.
-      gl.setStyle(localizeStyleLabels(style, locale.value) as unknown as StyleSpecification)
+      gl.setStyle(prepareStyle(style, locale.value))
     } catch (error) {
       // Keep whatever is on screen: a failed restyle is a wrong-coloured map, not a broken one.
       console.warn('[map] could not restyle the basemap', error)

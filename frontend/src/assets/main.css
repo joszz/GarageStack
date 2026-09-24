@@ -701,12 +701,14 @@ body,
   color: var(--color-primary-light);
 }
 
-.leaflet-control-attribution {
+/* Leaflet sets this background with two classes (.leaflet-container .leaflet-control-attribution),
+   so the override has to match that specificity or the strip stays white over a dark map. */
+.leaflet-container .leaflet-control-attribution {
   background: color-mix(in srgb, var(--color-surface) 82%, transparent);
   color: var(--color-text-muted);
 }
 
-.leaflet-control-attribution a {
+.leaflet-container .leaflet-control-attribution a {
   color: var(--color-text-muted);
   text-decoration: underline;
 }
