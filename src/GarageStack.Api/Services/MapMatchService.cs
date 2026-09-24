@@ -38,6 +38,7 @@ public sealed class MapMatchService(
         var segments = TraceSegmenter.Split(trace, MapMatchDefaults.MaxGapKm);
         var shape = new List<GeoCoordinate>(trace.Count);
         var indexes = new int[trace.Count];
+        var limits = new List<int?>(trace.Count);
         var anyMatched = false;
 
         foreach (var segment in segments)
@@ -52,19 +53,28 @@ public sealed class MapMatchService(
             if (match.Status == TraceMatchStatus.Unavailable) return MapMatchResult.Retry;
 
             var offset = shape.Count;
+
+            // The straight jump from the end of one part to the start of the next is a segment of
+            // the stitched line like any other, and there is no road under it to carry a limit.
+            if (offset > 0) limits.Add(null);
+
             if (match.Status == TraceMatchStatus.Matched && IsPlausible(slice, match.Shape))
             {
-                AppendMatched(shape, indexes, segment, match, offset);
+                AppendMatched(shape, indexes, limits, segment, match, offset);
                 anyMatched = true;
             }
             else
             {
-                AppendRaw(shape, indexes, segment, slice, offset);
+                AppendRaw(shape, indexes, limits, segment, slice, offset);
             }
         }
 
         var result = anyMatched
-            ? new CachedTraceMatch(PolylineCodec.Encode(shape), indexes, Math.Round(TraceSegmenter.LengthKm(shape), 2))
+            ? new CachedTraceMatch(
+                PolylineCodec.Encode(shape),
+                indexes,
+                Math.Round(TraceSegmenter.LengthKm(shape), 2),
+                SpeedLimitRuns.Encode(limits))
             : CachedTraceMatch.NotMatched;
 
         await repository.UpsertAsync(ValhallaApiClient.Provider, hash, result,
@@ -78,9 +88,11 @@ public sealed class MapMatchService(
     }
 
     private static void AppendMatched(
-        List<GeoCoordinate> shape, int[] indexes, TraceSegment segment, TraceMatch match, int offset)
+        List<GeoCoordinate> shape, int[] indexes, List<int?> limits,
+        TraceSegment segment, TraceMatch match, int offset)
     {
         shape.AddRange(match.Shape);
+        limits.AddRange(match.SpeedLimitOfSegment);
 
         var last = offset;
         for (var i = 0; i < segment.Count; i++)
@@ -95,9 +107,14 @@ public sealed class MapMatchService(
     }
 
     private static void AppendRaw(
-        List<GeoCoordinate> shape, int[] indexes, TraceSegment segment, List<GeoCoordinate> slice, int offset)
+        List<GeoCoordinate> shape, int[] indexes, List<int?> limits,
+        TraceSegment segment, List<GeoCoordinate> slice, int offset)
     {
         shape.AddRange(slice);
+
+        // Nothing snapped this stretch onto a road, so nothing knows what is signposted along it.
+        for (var i = 1; i < slice.Count; i++) limits.Add(null);
+
         for (var i = 0; i < segment.Count; i++)
             indexes[segment.Start + i] = offset + i;
     }
@@ -126,7 +143,8 @@ public sealed class MapMatchService(
     private static MapMatchResult FromCache(CachedTraceMatch match) =>
         match.Shape is null
             ? MapMatchResult.NotMatched
-            : new MapMatchResult(true, true, false, match.Shape, match.PointIndexes, match.MatchedKm);
+            : new MapMatchResult(true, true, false, match.Shape, match.PointIndexes, match.MatchedKm,
+                match.SpeedLimitRuns);
 
     /// <summary>
     /// Addresses a trace in the cache. Coordinates are rounded to about a metre first, so the same
@@ -155,15 +173,21 @@ public sealed class MapMatchService(
 /// <param name="Shape">The snapped line as an encoded polyline (six decimals).</param>
 /// <param name="PointIndexes">One vertex index into <paramref name="Shape"/> per fix that was sent, in order.</param>
 /// <param name="MatchedKm">Length of the snapped line, which beats the straight-line distance through the fixes.</param>
+/// <param name="SpeedLimits">
+/// The limits along <paramref name="Shape"/> as run-length pairs (segment count, km/h), where a
+/// limit of 0 covers a stretch OSM has no <c>maxspeed</c> for. Empty when none of the roads the
+/// trip ran over carry one.
+/// </param>
 public sealed record MapMatchResult(
     bool Available,
     bool Matched,
     bool Pending,
     string? Shape,
     IReadOnlyList<int>? PointIndexes,
-    double MatchedKm)
+    double MatchedKm,
+    IReadOnlyList<int>? SpeedLimits)
 {
-    public static readonly MapMatchResult Unavailable = new(false, false, false, null, null, 0);
-    public static readonly MapMatchResult Retry = new(true, false, true, null, null, 0);
-    public static readonly MapMatchResult NotMatched = new(true, false, false, null, null, 0);
+    public static readonly MapMatchResult Unavailable = new(false, false, false, null, null, 0, null);
+    public static readonly MapMatchResult Retry = new(true, false, true, null, null, 0, null);
+    public static readonly MapMatchResult NotMatched = new(true, false, false, null, null, 0, null);
 }

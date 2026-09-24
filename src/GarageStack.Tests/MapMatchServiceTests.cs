@@ -123,6 +123,37 @@ public class MapMatchServiceTests
             """);
     }
 
+    /// <summary>
+    /// The same answer, but with the line split into one edge per entry of
+    /// <paramref name="limitPerEdge"/> - a null entry being a road OSM has no <c>maxspeed</c> for,
+    /// which the matcher reports by leaving the field out rather than by answering zero. The fixes
+    /// are spread evenly along the first edge, since these tests are about the limits rather than
+    /// about where the fixes landed.
+    /// </summary>
+    private static (HttpStatusCode, string) TraceResponseWithLimits(
+        IReadOnlyList<GeoCoordinate> shape, int?[] limitPerEdge, int fixCount = 2)
+    {
+        var encoded = JsonSerializer.Serialize(PolylineCodec.Encode(shape));
+        var lastVertex = shape.Count - 1;
+
+        var edges = limitPerEdge.Select((limit, e) =>
+        {
+            var begin = e * lastVertex / limitPerEdge.Length;
+            var end = (e + 1) * lastVertex / limitPerEdge.Length;
+            var speedLimit = limit is null ? "" : $$""","speed_limit":{{limit}}""";
+            return $$"""{"begin_shape_index":{{begin}},"end_shape_index":{{end}}{{speedLimit}}}""";
+        });
+
+        var matched = EvenlyAlong(fixCount).Select(along =>
+            $$"""{"edge_index":0,"distance_along_edge":{{along!.Value.ToString("0.#####", CultureInfo.InvariantCulture)}}}""");
+
+        return (HttpStatusCode.OK, $$"""
+            {"shape":{{encoded}},
+             "edges":[{{string.Join(",", edges)}}],
+             "matched_points":[{{string.Join(",", matched)}}]}
+            """);
+    }
+
     /// <summary>The share along the road each of <paramref name="count"/> evenly spread fixes sits at.</summary>
     private static double?[] EvenlyAlong(int count)
         => [.. Enumerable.Range(0, count).Select(i => (double?)i / (count - 1))];
@@ -141,7 +172,7 @@ public class MapMatchServiceTests
         await svc.MatchAsync(trace, TestContext.Current.CancellationToken);
         var road = Road(0, 1.5);
         repo.Seed(ValhallaApiClient.Provider, repo.LastRequestedHash!,
-            new CachedTraceMatch(PolylineCodec.Encode(road), [0, 13, 26, 39], 1.5));
+            new CachedTraceMatch(PolylineCodec.Encode(road), [0, 13, 26, 39], 1.5, [39, 80]));
         var callsBefore = handler.CallCount;
 
         var result = await svc.MatchAsync(trace, TestContext.Current.CancellationToken);
@@ -349,5 +380,110 @@ public class MapMatchServiceTests
         Assert.Contains("\"shape_match\":\"map_snap\"", body);
         Assert.Contains("\"costing\":\"auto\"", body);
         Assert.Contains($"\"breakage_distance\":{MapMatchDefaults.BreakageDistanceMeters}", body);
+    }
+
+    [Fact]
+    public async Task MatchAsync_AsksForSpeedLimitsInKilometres()
+    {
+        var repo = new MapMatchFakeRepository();
+        var handler = new MapMatchFakeValhallaHandler(TraceResponse(Road(0, 1.5), EvenlyAlong(4)));
+        var svc = BuildService(repo, handler);
+
+        await svc.MatchAsync(Trace(4), TestContext.Current.CancellationToken);
+
+        var body = handler.RequestBodies[0];
+        Assert.Contains("edge.speed_limit", body);
+        // Limits come back in whatever units the request asks for, so it says which.
+        Assert.Contains("\"units\":\"kilometers\"", body);
+    }
+
+    [Fact]
+    public async Task MatchAsync_SpeedLimits_CoverTheSegmentsOfTheRoadsUnderThem()
+    {
+        var repo = new MapMatchFakeRepository();
+        var road = Road(0, 0.5, vertices: 31);
+        // Three equal stretches: a 50 road, one OSM holds no limit for, and an 80 road.
+        var handler = new MapMatchFakeValhallaHandler(TraceResponseWithLimits(road, [50, null, 80]));
+        var svc = BuildService(repo, handler);
+
+        var result = await svc.MatchAsync(Trace(2), TestContext.Current.CancellationToken);
+
+        Assert.True(result.Matched);
+        var limits = SpeedLimitRuns.Decode(result.SpeedLimits);
+
+        // One limit per segment of the line, which is one fewer than it has vertices.
+        Assert.Equal(road.Count - 1, limits.Count);
+        Assert.Equal(50, limits[0]);
+        Assert.Equal(50, limits[9]);
+        Assert.Null(limits[10]);
+        Assert.Null(limits[19]);
+        Assert.Equal(80, limits[20]);
+        Assert.Equal(80, limits[^1]);
+    }
+
+    [Fact]
+    public async Task MatchAsync_UntaggedRoads_LeaveTheirSegmentsWithoutALimit()
+    {
+        var repo = new MapMatchFakeRepository();
+        var road = Road(0, 0.5, vertices: 21);
+        var handler = new MapMatchFakeValhallaHandler(TraceResponseWithLimits(road, [null]));
+        var svc = BuildService(repo, handler);
+
+        var result = await svc.MatchAsync(Trace(2), TestContext.Current.CancellationToken);
+
+        Assert.True(result.Matched);
+        // Nothing worth remembering, so nothing is written: the line still draws, uncoloured.
+        Assert.Empty(result.SpeedLimits!);
+        Assert.Empty(repo.LastUpsert!.SpeedLimitRuns);
+    }
+
+    [Fact]
+    public async Task MatchAsync_TraceWithAHole_LeavesTheJumpBetweenPartsWithoutALimit()
+    {
+        var repo = new MapMatchFakeRepository();
+        var before = Road(0, 1.0, vertices: 21);
+        var after = Road(30, 31.0, vertices: 21);
+        var handler = new MapMatchFakeValhallaHandler(
+            TraceResponseWithLimits(before, [100], fixCount: 3),
+            TraceResponseWithLimits(after, [80], fixCount: 3));
+        var svc = BuildService(repo, handler);
+
+        List<GeoPoint> trace = [Fix(0), Fix(0.5), Fix(1.0), Fix(30), Fix(30.5), Fix(31.0)];
+        var result = await svc.MatchAsync(trace, TestContext.Current.CancellationToken);
+
+        Assert.True(result.Matched);
+        var limits = SpeedLimitRuns.Decode(result.SpeedLimits);
+
+        // Both stretches keep their own limit, and the straight jump between them - which is a
+        // segment of the stitched line like any other - carries none.
+        Assert.Equal(before.Count + after.Count - 1, limits.Count);
+        Assert.Equal(100, limits[before.Count - 2]);
+        Assert.Null(limits[before.Count - 1]);
+        Assert.Equal(80, limits[before.Count]);
+    }
+
+    [Fact]
+    public async Task MatchAsync_UnsnappedStretch_CarriesNoLimitsOfItsOwn()
+    {
+        var repo = new MapMatchFakeRepository();
+        var after = Road(30, 31.0, vertices: 21);
+        var handler = new MapMatchFakeValhallaHandler(
+            // The first part snaps to a five-kilometre detour for a one-kilometre trace, so it is
+            // left as the raw fixes it always was; the second part matches normally.
+            TraceResponse(Road(0, 5), EvenlyAlong(3)),
+            TraceResponseWithLimits(after, [80], fixCount: 3));
+        var svc = BuildService(repo, handler);
+
+        List<GeoPoint> trace = [Fix(0), Fix(0.5), Fix(1.0), Fix(30), Fix(30.5), Fix(31.0)];
+        var result = await svc.MatchAsync(trace, TestContext.Current.CancellationToken);
+
+        Assert.True(result.Matched);
+        var limits = SpeedLimitRuns.Decode(result.SpeedLimits);
+
+        // Three raw fixes, then the jump, then the snapped stretch: only the last of those knows
+        // what was signposted.
+        Assert.Equal(3 + after.Count - 1, limits.Count);
+        Assert.All(limits.Take(3), limit => Assert.Null(limit));
+        Assert.Equal(80, limits[3]);
     }
 }

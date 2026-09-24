@@ -19,6 +19,7 @@ GarageStack is a free, open-source vehicle monitoring dashboard for **modern MG 
 - **Motorway service areas** -- Overlay motorway service areas and rest stops on the map (all vehicle types). Same DB-backed cache and Worker pre-cache as fuel stations; useful for BEV drivers who often find fast chargers at service areas.
 - **Place names** -- Trips are listed by where they went ("Zwolle to Deventer") instead of by date alone, and the dashboard's location card names the street the car is parked in. Sourced from OpenStreetMap via [Nominatim](https://nominatim.openstreetmap.org) -- no API key required, answers are cached in the database for 90 days, and the whole feature can be switched off per browser under Settings > Map, or for the deployment with `GEOCODING__ENABLED=false`.
 - **Snapped trip lines** -- A selected trip is drawn along the roads it was driven on rather than in straight lines between GPS fixes, which also gives a truer distance than the fixes alone. Matched against OpenStreetMap by [Valhalla](https://valhalla1.openstreetmap.de) -- no API key required, snapped trips are cached in the database for 30 days, and it can be switched off in the map's filter panel or for the deployment with `MAPMATCHING__ENABLED=false`.
+- **Speed limits** -- The selected trip can be coloured against the limits signposted along it, green within and red above, with how far over it went and over how much of the trip a limit was known. Read from OpenStreetMap's `maxspeed` tags by the same match that snapped the trip, so it costs no extra request and needs no configuration.
 - **Themed vector basemap** -- Every map is drawn from OpenStreetMap vector tiles by MapLibre GL, in a dark or light style that follows the interface theme and with labels in the interface language. Served by [OpenFreeMap](https://openfreemap.org) without an API key, point it at your own tile server if you prefer, and it falls back to raster tiles where WebGL is unavailable.
 - **Single sign-on** -- Sign in through your own identity provider (Authentik, Authelia, Keycloak, Pocket ID, Google, and anything else speaking OpenID Connect), with optional auto-login and group or email based access restrictions. A built-in username/password login remains available for installs without a provider. See [`AUTHENTICATION.md`](AUTHENTICATION.md).
 - **Multi-language support** -- Interface available in English and Dutch, with locale resolved from query string, cookie, or browser preference.
@@ -507,6 +508,17 @@ Telemetry arrives as GPS fixes tens of seconds apart, so a trip drawn straight f
 - Snapped trips are cached in PostgreSQL for 30 days, keyed by a hash of the fixes, so a trip is matched once however often it is selected. "These fixes snap to nothing" is cached for a day.
 - **The map's filter panel > Snap to roads** turns it off per browser (it is on by default), and trips are then drawn from their raw fixes as before.
 - Set `MAPMATCHING__ENABLED=false` to switch it off for the whole deployment instead, or point `MAPMATCHING__BASEURL` at your own Valhalla instance.
+
+### Speed limits
+
+The matcher also answers with the limit on each stretch of road it snapped the trip onto, from OpenStreetMap's `maxspeed` tags. **The map's filter panel > Speed limits** colours the selected trip against them: green within the limit, red above it, grey where OSM holds no limit. The legend adds how far over the limit the trip went, and over how much of its distance a limit was known at all. It needs no extra configuration, and no request beyond the one that snapped the trip.
+
+Two things it cannot know, which the legend and its tooltip say rather than hide:
+
+- **Not every road has a limit in OSM.** The share of the trip where one is known is shown, and a trip over nothing but untagged roads keeps its ordinary colour instead of drawing entirely grey.
+- **Conditional limits are not in the data.** A Dutch motorway signed 100 by day and 130 at night is tagged 100, so a night drive there reads as over the limit. The same goes for variable-limit sections.
+
+A reading counts as over the limit only past 5 km/h above it: speedometers read high by a few percent by design, and a fix is a spot sample rather than an average over the stretch it covers.
 
 ### Caching architecture
 

@@ -87,7 +87,11 @@ process-local one doesn't already provide. Two caches exist today:
   fixes that were sent rather than by vehicle or timestamp: a finished trip is the same trace
   however often it is selected, and two browsers looking at it share one row. The line is stored
   as an encoded polyline, which keeps a few thousand vertices to a few kilobytes both in the table
-  and on the wire.
+  and on the wire. The speed limits along it travel beside it as run-length pairs (`SpeedLimitRuns`)
+  for the same reason: a limit holds for a whole stretch of road, so a trip is a few dozen runs
+  rather than a value per vertex. `MapMatchDefaults.CacheVersion` is part of the trace hash, so
+  asking the matcher for something new (as the limits did) leaves the older rows unreachable instead
+  of serving answers that no longer hold everything the client expects.
 - The status query's fallbacks are index-backed. Charging and heating schedules are only
   published when the user changes one, so most vehicles have no such row at all: a filtered index
   (`IX_TelemetrySnapshots_VehicleId_RecordedAt_Schedule`) keeps that lookup from reading the

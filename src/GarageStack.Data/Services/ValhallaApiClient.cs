@@ -140,8 +140,9 @@ public sealed class ValhallaApiClient(
 
     /// <summary>
     /// Turns the matcher's answer into the shape plus, per fix we sent, its vertex along that
-    /// shape. The answer says which edge a fix landed on and how far along it; the edge in turn
-    /// says which slice of the shape it covers, so the two together place the fix on the line.
+    /// shape, and the speed limit on each of the shape's segments. The answer says which edge a fix
+    /// landed on and how far along it; the edge in turn says which slice of the shape it covers, so
+    /// the two together place the fix on the line and spread the edge's limit over that slice.
     /// </summary>
     private static TraceMatch MapResponse(TraceAttributesResponse response, int pointCount)
     {
@@ -151,6 +152,18 @@ public sealed class ValhallaApiClient(
         var edges = response.Edges ?? [];
         var matched = response.MatchedPoints ?? [];
         var indexes = new int?[pointCount];
+        var limits = new int?[shape.Count - 1];
+
+        foreach (var edge in edges)
+        {
+            // Absent rather than zero is what a road without a maxspeed tag answers with; the
+            // edge's own "speed" is a routing estimate and says nothing about what is signposted.
+            if (edge.SpeedLimit is not > 0) continue;
+
+            var from = Math.Clamp(edge.BeginShapeIndex, 0, limits.Length);
+            var to = Math.Clamp(edge.EndShapeIndex, from, limits.Length);
+            for (var i = from; i < to; i++) limits[i] = edge.SpeedLimit;
+        }
 
         for (var i = 0; i < pointCount && i < matched.Length; i++)
         {
@@ -167,7 +180,7 @@ public sealed class ValhallaApiClient(
         }
 
         return indexes.Any(i => i is not null)
-            ? new TraceMatch(TraceMatchStatus.Matched, shape, indexes)
+            ? new TraceMatch(TraceMatchStatus.Matched, shape, indexes, limits)
             : TraceMatch.NotMatched;
     }
 
@@ -183,6 +196,9 @@ public sealed class ValhallaApiClient(
         [JsonPropertyName("search_radius")] public int SearchRadius { get; init; }
         [JsonPropertyName("gps_accuracy")] public int GpsAccuracy { get; init; }
 
+        /// <summary>Kilometres is the default, but speed limits come back in whatever this says.</summary>
+        [JsonPropertyName("units")] public string Units => "kilometers";
+
         /// <summary>Only the attributes below are wanted; the full answer is many times the size.</summary>
         [JsonPropertyName("filters")] public TraceFilters Filters => new();
     }
@@ -195,6 +211,7 @@ public sealed class ValhallaApiClient(
             "shape",
             "edge.begin_shape_index",
             "edge.end_shape_index",
+            "edge.speed_limit",
             "matched.edge_index",
             "matched.distance_along_edge",
         ];
@@ -219,6 +236,9 @@ public sealed class ValhallaApiClient(
     {
         [JsonPropertyName("begin_shape_index")] public int BeginShapeIndex { get; init; }
         [JsonPropertyName("end_shape_index")] public int EndShapeIndex { get; init; }
+
+        /// <summary>The signposted limit in km/h, left out entirely for a road OSM has none for.</summary>
+        [JsonPropertyName("speed_limit")] public int? SpeedLimit { get; init; }
     }
 
     private sealed class TraceMatchedPoint

@@ -19,11 +19,20 @@ public enum TraceMatchStatus
 /// per-fix data (a speed reading, say) lined up with the snapped line instead of the raw one;
 /// it is null for a fix the matcher could not place.
 /// </summary>
+/// <param name="Status">Why the answer looks the way it does, and whether it is worth caching.</param>
+/// <param name="Shape">The road geometry the trace was snapped onto.</param>
+/// <param name="ShapeIndexOfPoint">Per sent fix, its vertex along <paramref name="Shape"/>.</param>
+/// <param name="SpeedLimitOfSegment">
+/// The limit in km/h on each segment of <paramref name="Shape"/>, so one entry fewer than there
+/// are vertices, and null where OSM carries no <c>maxspeed</c> for that stretch. Knowing the
+/// limit is what turns a speed reading into "over" or "under".
+/// </param>
 public sealed record TraceMatch(
     TraceMatchStatus Status,
     IReadOnlyList<GeoCoordinate> Shape,
-    IReadOnlyList<int?> ShapeIndexOfPoint)
+    IReadOnlyList<int?> ShapeIndexOfPoint,
+    IReadOnlyList<int?> SpeedLimitOfSegment)
 {
-    public static readonly TraceMatch Unavailable = new(TraceMatchStatus.Unavailable, [], []);
-    public static readonly TraceMatch NotMatched = new(TraceMatchStatus.NotMatched, [], []);
+    public static readonly TraceMatch Unavailable = new(TraceMatchStatus.Unavailable, [], [], []);
+    public static readonly TraceMatch NotMatched = new(TraceMatchStatus.NotMatched, [], [], []);
 }

@@ -4,6 +4,7 @@ import type { Trip, TripPoint } from '@/services/vehicleApi'
 import { useMapSettingsStore } from '@/stores/settingsMap'
 import { decodePolyline } from '@/utils/polyline'
 import { downsample } from '@/utils/downsample'
+import { expandSpeedLimits } from '@/utils/speedLimits'
 
 /**
  * Shared cache of snapped trips: a view asks for the trip it is drawing and reads the matched
@@ -24,6 +25,11 @@ export interface TripMatch {
   pointIndexes: number[]
   /** Length of the snapped line, which beats the straight-line distance through the fixes. */
   matchedKm: number
+  /**
+   * The limit in km/h on each segment of `coordinates` (so one entry fewer than there are
+   * vertices), null where OSM carries no `maxspeed` for that stretch.
+   */
+  speedLimits: (number | null)[]
 }
 
 // The matcher answers "not right now" while it is rate limited or busy; a trip is worth a couple
@@ -90,11 +96,15 @@ async function fetchMatch(trip: Trip): Promise<void> {
       }
 
       if (response.matched && response.shape && response.pointIndexes) {
+        const coordinates = decodePolyline(response.shape)
         matches.set(key, {
-          coordinates: decodePolyline(response.shape),
+          coordinates,
           points,
           pointIndexes: response.pointIndexes,
           matchedKm: response.matchedKm,
+          // Expanded once here rather than on every redraw: a trip's limits are as long as its
+          // line, and both are read segment by segment when it is drawn.
+          speedLimits: expandSpeedLimits(response.speedLimits, coordinates.length - 1),
         })
         return
       }
