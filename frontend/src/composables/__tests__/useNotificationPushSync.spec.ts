@@ -1,11 +1,16 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { ref, nextTick } from 'vue'
 import { setActivePinia, createPinia } from 'pinia'
-import { NOTIFICATION_CATEGORY_IDS } from '@/utils/notificationCategories'
+import {
+  NOTIFICATION_CATEGORY_IDS,
+  notificationCategoryIdsFor,
+} from '@/utils/notificationCategories'
 
 const mockTogglePush = vi.fn<() => Promise<void>>()
 const mockPushState = ref<'unknown' | 'subscribed' | 'unsubscribed' | 'denied'>('unknown')
 let mockPushSupported = true
+
+const mockVehicle = vi.hoisted(() => ({ effectiveVehicleType: 'unknown' as string }))
 
 vi.mock('@/composables/usePush', () => ({
   usePush: () => ({
@@ -13,6 +18,10 @@ vi.mock('@/composables/usePush', () => ({
     pushState: mockPushState,
     togglePush: mockTogglePush,
   }),
+}))
+
+vi.mock('@/stores/vehicle', () => ({
+  useVehicleStore: () => mockVehicle,
 }))
 
 describe('useNotificationPushSync', () => {
@@ -23,6 +32,7 @@ describe('useNotificationPushSync', () => {
     mockTogglePush.mockReset()
     mockPushState.value = 'unknown'
     mockPushSupported = true
+    mockVehicle.effectiveVehicleType = 'unknown'
   })
 
   it('does not call togglePush on initial mount, even if desired state disagrees with actual state', async () => {
@@ -89,6 +99,21 @@ describe('useNotificationPushSync', () => {
     const settings = useUiSettingsStore()
 
     settings.notificationTypeExclusions = []
+    await nextTick()
+
+    expect(mockTogglePush).toHaveBeenCalledOnce()
+  })
+
+  it('unsubscribes a hybrid once every type it is offered is deselected', async () => {
+    mockVehicle.effectiveVehicleType = 'hev'
+    mockPushState.value = 'subscribed'
+    const { useNotificationPushSync } = await import('@/composables/useNotificationPushSync')
+    const { useUiSettingsStore } = await import('@/stores/settingsUi')
+    useNotificationPushSync()
+    const settings = useUiSettingsStore()
+
+    // Short of the full category list: a hybrid is never offered the charging types
+    settings.notificationTypeExclusions = [...notificationCategoryIdsFor('hev')]
     await nextTick()
 
     expect(mockTogglePush).toHaveBeenCalledOnce()

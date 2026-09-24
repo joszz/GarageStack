@@ -285,7 +285,7 @@ GarageStack checks your vehicle's state every 5 minutes and sends both a browser
 | Engine started | Engine transitions from off to running |
 | Low tyre pressure | Any tyre below `TYRE_PRESSURE_LOW_BAR` (default 2.2 bar) |
 | High tyre pressure | Any tyre above `TYRE_PRESSURE_HIGH_BAR` (default 3.2 bar) |
-| Low EV battery | EV state-of-charge below 20 % |
+| Low EV battery | EV state-of-charge below 20 % (plug-in vehicles) |
 | Car left unlocked | `doors/locked = false` while engine is off |
 | Door left open | Any door, boot, or bonnet open while engine is off |
 | Window left open | Any window open while engine is off |
@@ -293,6 +293,8 @@ GarageStack checks your vehicle's state every 5 minutes and sends both a browser
 | Maintenance due | A maintenance item reaches 90 % of its interval, or passes it (checked every 6 hours, 7-day cooldown per item) |
 
 Push notifications require VAPID keys to be configured (`VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY`). Without them, alerts still appear in the in-app notification panel. The "engine started" alert is also triggered in real time when the event arrives over MQTT, independently of the 5-minute polling cycle.
+
+Settings has a per-type checklist for these alerts, which offers only the types the car's drivetrain can produce: the two plug-in alerts (low EV battery, charging complete) are left out for a plain hybrid. Deselecting every type offered unsubscribes the browser from push entirely; selecting one again resubscribes.
 
 Notification texts are written by the background worker, which has no browser to take a language from, so their language is a deployment setting: `NOTIFICATION_LANGUAGE=en` (default) or `nl`. The web UI's own language toggle does not affect them.
 
