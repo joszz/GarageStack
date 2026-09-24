@@ -449,6 +449,28 @@
     Mask="false">https://nominatim.openstreetmap.org</Config>
 
   <Config
+    Name="Map Matching Enabled"
+    Target="MAPMATCHING__ENABLED"
+    Default="true"
+    Mode=""
+    Description="Draws a selected trip along the roads it was driven on, snapped onto OpenStreetMap by Valhalla, instead of in straight lines between GPS fixes. No API key required, and snapped trips are cached for 30 days. Set to false to keep trip geometry off a third-party service -- trips are then drawn from their raw fixes."
+    Type="Variable"
+    Display="advanced"
+    Required="false"
+    Mask="false">true</Config>
+
+  <Config
+    Name="Valhalla Base URL"
+    Target="MAPMATCHING__BASEURL"
+    Default="https://valhalla1.openstreetmap.de"
+    Mode=""
+    Description="Valhalla endpoint used for that snapping. Defaults to the public instance -- no API key required. Change this only if you self-host Valhalla."
+    Type="Variable"
+    Display="advanced"
+    Required="false"
+    Mask="false">https://valhalla1.openstreetmap.de</Config>
+
+  <Config
     Name="Tyre Pressure - Low (bar)"
     Target="TYRE_PRESSURE_LOW_BAR"
     Default="2.2"

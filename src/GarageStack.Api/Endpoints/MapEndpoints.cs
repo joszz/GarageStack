@@ -123,6 +123,37 @@ public static class MapEndpoints
         })
         .WithSummary("Reverse geocode coordinates to street and city names via the OSM Nominatim cache");
 
+        // POST for the same reason as /reverse, and more so: a trip is hundreds of coordinates,
+        // which belong in a body rather than in a URL (and in nothing that gets logged).
+        group.MapPost("/match", async (
+            MapMatchRequest body,
+            MapMatchService svc,
+            CancellationToken ct) =>
+        {
+            var points = body.Points;
+            if (points is null || points.Count < MapMatchDefaults.MinPointsPerRequest)
+                return Results.BadRequest(new { error = $"points must contain at least {MapMatchDefaults.MinPointsPerRequest} coordinates" });
+
+            if (points.Count > MapMatchDefaults.MaxPointsPerRequest)
+                return Results.BadRequest(new { error = $"points may not exceed {MapMatchDefaults.MaxPointsPerRequest} coordinates" });
+
+            foreach (var point in points)
+                if (ValidateLatLng(point.Lat, point.Lng) is { } coordError)
+                    return coordError;
+
+            try
+            {
+                var result = await svc.MatchAsync(points, ct);
+                return Results.Ok(result);
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                // The browser navigated away or another trip was selected; nothing left to answer to.
+                return Results.Ok(MapMatchResult.Retry);
+            }
+        })
+        .WithSummary("Snap a trip's GPS fixes onto OSM roads via the map matching cache");
+
         return app;
     }
 }
@@ -134,3 +165,10 @@ public sealed record ReverseGeocodeRequest(
     IReadOnlyList<GeoPoint>? Points,
     string? Precision,
     string? Language);
+
+/// <param name="Points">
+/// The trip's fixes in the order they were recorded, at most
+/// <see cref="MapMatchDefaults.MaxPointsPerRequest"/> of them. A client with a denser trip thins
+/// it first: the snapped line gains nothing from fixes closer together than the screen can show.
+/// </param>
+public sealed record MapMatchRequest(IReadOnlyList<GeoPoint>? Points);

@@ -21,6 +21,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ITelemetryRepository, TelemetryRepository>();
         services.AddScoped<IPoiRepository, PoiRepository>();
         services.AddScoped<IGeocodeRepository, GeocodeRepository>();
+        services.AddScoped<IMapMatchRepository, MapMatchRepository>();
         services.AddGarageStackPoiClients();
 
         return services;
@@ -37,6 +38,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IPushSender, DemoPushSender>();
         services.AddScoped<IPoiRepository, PoiRepository>();
         services.AddScoped<IGeocodeRepository, GeocodeRepository>();
+        services.AddScoped<IMapMatchRepository, MapMatchRepository>();
         services.AddGarageStackPoiClients();
 
         return services;
@@ -63,9 +65,18 @@ public static class ServiceCollectionExtensions
                 "GarageStack/1.0 (+https://github.com/joszz/GarageStack)");
             client.Timeout = TimeSpan.FromSeconds(20);
         });
+        // Matching a long trace is real work upstream, so this one waits longer than the others
+        // before giving up on an answer.
+        services.AddHttpClient(ValhallaApiClient.HttpClientName, client =>
+        {
+            client.DefaultRequestHeaders.UserAgent.ParseAdd(
+                "GarageStack/1.0 (+https://github.com/joszz/GarageStack)");
+            client.Timeout = TimeSpan.FromSeconds(30);
+        });
         services.AddSingleton<OverpassApiClient>();
         services.AddSingleton<OcmApiClient>();
         services.AddSingleton<NominatimApiClient>();
+        services.AddSingleton<ValhallaApiClient>();
 
         return services;
     }

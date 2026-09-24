@@ -60,8 +60,26 @@ export interface ReverseGeocodeResponse {
   hasMore: boolean
 }
 
+export interface MapMatchResponse {
+  /** False when the deployment has map matching switched off, so the caller can stop asking. */
+  available: boolean
+  /** True when `shape` holds a snapped line to draw instead of the raw fixes. */
+  matched: boolean
+  /** True when the matcher could not be reached just now; asking again later may succeed. */
+  pending: boolean
+  /** The snapped line as an encoded polyline at six decimals. */
+  shape: string | null
+  /** One vertex index into the decoded shape per sent fix, in the order they were sent. */
+  pointIndexes: number[] | null
+  /** Length of the snapped line, which beats the straight-line distance through the fixes. */
+  matchedKm: number
+}
+
 /** Mirrors GeocodeDefaults.MaxPointsPerRequest: the server rejects a larger batch. */
 export const MAX_GEOCODE_POINTS_PER_REQUEST = 60
+
+/** Mirrors MapMatchDefaults.MaxPointsPerRequest: the server rejects a longer trace. */
+export const MAX_MATCH_POINTS_PER_REQUEST = 600
 
 export const mapApi = {
   chargingStations: (
@@ -90,4 +108,7 @@ export const mapApi = {
       precision,
       language,
     }),
+  // A trip is hundreds of coordinates, which belong in a body rather than a URL.
+  matchTrip: (points: GeoPoint[]) =>
+    requestJson<MapMatchResponse>('/api/map/match', 'POST', { points }),
 }
