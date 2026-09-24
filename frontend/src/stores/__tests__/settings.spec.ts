@@ -230,11 +230,22 @@ describe('useMapSettingsStore', () => {
     const store = useMapSettingsStore()
     store.routeOutlineEnabled = true
     store.chargingMinPowerKw = 50
+    store.fuelTypeFilter = ['diesel']
     await nextTick()
     vi.advanceTimersByTime(SAVE_DEBOUNCE_MS)
     const saved = JSON.parse(localStorage.getItem(MAP_KEY)!)
     expect(saved.routeOutlineEnabled).toBe(true)
     expect(saved.chargingMinPowerKw).toBe(50)
+    expect(saved.fuelTypeFilter).toEqual(['diesel'])
+  })
+
+  it('drops fuel types it does not know when restoring, so the layer cannot silently empty', () => {
+    localStorage.setItem(
+      MAP_KEY,
+      JSON.stringify({ fuelTypeFilter: ['diesel', 'kerosene', 42, 'petrol'] }),
+    )
+    const store = useMapSettingsStore()
+    expect(store.fuelTypeFilter).toEqual(['diesel', 'petrol'])
   })
 })
 

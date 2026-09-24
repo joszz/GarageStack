@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, watch } from 'vue'
 import { readLegacyBlob, createDebouncedSave } from './settingsShared'
+import { isFuelType } from '@/utils/fuelTypes'
 
 const STORAGE_KEY = 'garagestack-settings-map'
 
@@ -14,6 +15,7 @@ interface MapSettings {
   chargingMaxPowerKw: number
   fuelStationsEnabled: boolean
   fuelBrandFilter: string[]
+  fuelTypeFilter: string[]
   serviceAreasEnabled: boolean
 }
 
@@ -27,6 +29,7 @@ const defaults: MapSettings = {
   chargingMaxPowerKw: 0,
   fuelStationsEnabled: false,
   fuelBrandFilter: [],
+  fuelTypeFilter: [],
   serviceAreasEnabled: false,
 }
 
@@ -44,6 +47,13 @@ function parseMapFields(parsed: Record<string, unknown>): MapSettings {
     fuelStationsEnabled: parsed.fuelStationsEnabled === true,
     fuelBrandFilter: Array.isArray(parsed.fuelBrandFilter)
       ? (parsed.fuelBrandFilter as string[])
+      : [],
+    // Unlike brands, which are whatever OSM holds, fuel types are a fixed set. A stale or
+    // hand-edited id would match no station and silently empty the layer, so drop it here.
+    fuelTypeFilter: Array.isArray(parsed.fuelTypeFilter)
+      ? (parsed.fuelTypeFilter as unknown[]).filter(
+          (value): value is string => typeof value === 'string' && isFuelType(value),
+        )
       : [],
     serviceAreasEnabled: parsed.serviceAreasEnabled === true,
   }
@@ -72,6 +82,7 @@ export const useMapSettingsStore = defineStore('settingsMap', () => {
   const chargingMaxPowerKw = ref<number>(loaded.chargingMaxPowerKw)
   const fuelStationsEnabled = ref<boolean>(loaded.fuelStationsEnabled)
   const fuelBrandFilter = ref<string[]>(loaded.fuelBrandFilter)
+  const fuelTypeFilter = ref<string[]>(loaded.fuelTypeFilter)
   const serviceAreasEnabled = ref<boolean>(loaded.serviceAreasEnabled)
 
   function save() {
@@ -87,6 +98,7 @@ export const useMapSettingsStore = defineStore('settingsMap', () => {
         chargingMaxPowerKw: chargingMaxPowerKw.value,
         fuelStationsEnabled: fuelStationsEnabled.value,
         fuelBrandFilter: fuelBrandFilter.value,
+        fuelTypeFilter: fuelTypeFilter.value,
         serviceAreasEnabled: serviceAreasEnabled.value,
       }),
     )
@@ -102,6 +114,7 @@ export const useMapSettingsStore = defineStore('settingsMap', () => {
   watch(chargingMaxPowerKw, scheduleSave)
   watch(fuelStationsEnabled, scheduleSave)
   watch(fuelBrandFilter, scheduleSave, { deep: true })
+  watch(fuelTypeFilter, scheduleSave, { deep: true })
   watch(serviceAreasEnabled, scheduleSave)
 
   return {
@@ -114,6 +127,7 @@ export const useMapSettingsStore = defineStore('settingsMap', () => {
     chargingMaxPowerKw,
     fuelStationsEnabled,
     fuelBrandFilter,
+    fuelTypeFilter,
     serviceAreasEnabled,
   }
 })
