@@ -7,7 +7,6 @@ import { useUiSettingsStore } from '@/stores/settingsUi'
 import type { Locale } from '@/stores/settingsShared'
 import {
   BASEMAP_STYLE_URLS,
-  OSM_ATTRIBUTION,
   RASTER_FALLBACK_MAX_ZOOM,
   RASTER_FALLBACK_TILE_URL,
   boostLabelContrast,
@@ -15,6 +14,7 @@ import {
   supportsWebGl,
   type MapStyle,
 } from '@/utils/basemapStyle'
+import { OSM_ATTRIBUTION, VECTOR_ATTRIBUTION } from '@/utils/credits'
 
 type MaplibreLayer = ReturnType<typeof maplibreGL>
 
@@ -84,11 +84,13 @@ export function useBasemap(mapInstance: Ref<LeafletMap | null>) {
       ])
       if (token !== generation) return
 
-      // Note what is absent: customAttribution. Left out, the plugin copies whatever the style's
-      // own sources declare into Leaflet's attribution control once they load, which is the
-      // credit the tile server asks for (OpenStreetMap, OpenMapTiles and OpenFreeMap by default)
-      // and stays right for a deployment serving its own tiles.
+      // The credit has to be stated here. Left to itself the plugin copies whatever the style's
+      // sources declare, and OpenFreeMap's styles declare nothing, so the map carried no credit
+      // at all: not the basemap's, and not OpenStreetMap's underneath it. A deployment serving
+      // its own tiles from a style that does declare a credit still shows this one, which names
+      // the data rather than the host and so stays true either way.
       glLayer = maplibre.maplibreGL({
+        attributionControl: { customAttribution: VECTOR_ATTRIBUTION },
         style: prepareStyle(style, locale.value),
         // Leaflet owns panning and zooming and jumps the GL map after each change. Fading labels
         // in from scratch on every one of those jumps reads as flicker while panning.

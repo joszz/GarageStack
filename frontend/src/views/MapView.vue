@@ -16,6 +16,7 @@ import { useBasemap } from '@/composables/useBasemap'
 import { useReverseGeocode } from '@/composables/useReverseGeocode'
 import { useTripMatch, type TripMatch } from '@/composables/useTripMatch'
 import { addressLabel, cityName } from '@/utils/places'
+import { mapAppLink } from '@/utils/mapLinks'
 import { buildTripRow } from '@/utils/tripRows'
 import { downsample } from '@/utils/downsample'
 import type { GeoPoint } from '@/services/mapApi'
@@ -261,6 +262,14 @@ watch(
 const carAddress = computed(() =>
   addressLabel(placeFor(parkedCarLatLng.value?.lat, parkedCarLatLng.value?.lng, 'address')),
 )
+
+// Getting to the car is a job for whatever can navigate: a map app on a phone, openstreetmap.org
+// on a desktop. The popup offers whichever of the two this device can actually open.
+const carMapLink = computed(() => {
+  const s = status.value
+  if (s?.latitude == null || s?.longitude == null) return null
+  return mapAppLink(s.latitude, s.longitude, store.activeVehicle?.model ?? undefined)
+})
 
 // One row model per visible trip, paired with the store index selection works on.
 const displayRows = computed(() =>
@@ -936,6 +945,16 @@ onUnmounted(() => {
                 store.activeVehicle?.model ?? store.activeVin
               }}</strong>
               <span v-if="carAddress" class="car-popup__address">{{ carAddress }}</span>
+              <a
+                v-if="carMapLink"
+                class="car-popup__link"
+                :href="carMapLink.href"
+                :target="carMapLink.external ? '_blank' : undefined"
+                :rel="carMapLink.external ? 'noreferrer' : undefined"
+              >
+                <font-awesome-icon icon="diamond-turn-right" />
+                {{ carMapLink.external ? t('trips.showOnOsm') : t('trips.openInMapApp') }}
+              </a>
             </LPopup>
           </LMarker>
         </LMap>

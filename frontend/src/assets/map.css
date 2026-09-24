@@ -127,10 +127,12 @@
   height: 100%;
 }
 
+/* Bottom left, because bottom right belongs to the attribution strip: the credits wrap onto a
+   second line, and the legend used to sit exactly where they grow into. */
 .speed-legend {
   position: absolute;
-  bottom: 28px;
-  right: 10px;
+  bottom: 10px;
+  left: 10px;
   z-index: 1000;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
@@ -336,6 +338,18 @@
   color: var(--color-text-muted, #888);
 }
 
+.car-popup__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 6px;
+  font-size: 0.75rem;
+
+  /* Leaflet gives popup links its own blue; the popup sits on the app's surface colour, so the
+     link follows the app's accent like every other link does. */
+  color: var(--color-primary-light);
+}
+
 .trip-list__info {
   display: flex;
   flex-direction: column;
@@ -489,5 +503,13 @@
   .map-controls {
     flex-wrap: wrap;
     gap: 0.4rem;
+  }
+
+  /* A phone-width map is barely wider than the credits themselves, so the bottom edge has room
+     for one of the two. The legend moves up under the zoom control, where nothing else sits: the
+     status pills are centred at the top, the credits own the bottom. */
+  .speed-legend {
+    top: 80px;
+    bottom: auto;
   }
 }

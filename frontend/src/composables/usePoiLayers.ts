@@ -8,6 +8,8 @@ import { useMapSettingsStore } from '@/stores/settingsMap'
 import { mapApi } from '@/services/mapApi'
 import type { ChargingStation, PoiItem } from '@/services/mapApi'
 import { canonicalFuelBrand } from '@/utils/fuelBrands'
+import { OCM_ATTRIBUTION } from '@/utils/credits'
+import { useLayerCredit } from './useLayerCredit'
 
 function buildPoiPopup(item: PoiItem): string {
   const tags = item.tags ?? {}
@@ -139,6 +141,11 @@ export function usePoiLayers({ mapInstance, vehicleType, isHev, isBev }: UsePoiL
   // apply. Folding that into "enabled" keeps one reason-to-be-visible per layer.
   const chargingLayerEnabled = computed(() => chargingStationsEnabled.value && !isHev.value)
   const fuelLayerEnabled = computed(() => fuelStationsEnabled.value && !isBev.value)
+
+  // Open Charge Map is CC BY: showing its stations means crediting it. The fuel and service-area
+  // layers need no credit of their own, being the same OpenStreetMap data the basemap already
+  // credits.
+  useLayerCredit(mapInstance, chargingLayerEnabled, OCM_ATTRIBUTION)
 
   const chargingLayer = createTileLayer<ChargingStation>({
     map: mapInstance,

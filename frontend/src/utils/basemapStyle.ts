@@ -50,10 +50,6 @@ export const BASEMAP_STYLE_URLS: Record<Theme, string> = {
 export const RASTER_FALLBACK_TILE_URL = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
 export const RASTER_FALLBACK_MAX_ZOOM = 19
 
-/** ODbL requires the credit to link to the licence, which the old plain-text credit did not. */
-export const OSM_ATTRIBUTION =
-  '<a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">&copy; OpenStreetMap</a> contributors'
-
 /**
  * Rewrites label layers to prefer the name in the UI language, falling back to whatever the
  * style already asked for (which is the local name for most of the world). OpenStreetMap carries
