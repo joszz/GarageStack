@@ -8,10 +8,15 @@ import { useMapSettingsStore } from '@/stores/settingsMap'
 import { mapApi } from '@/services/mapApi'
 import type { ChargingStation, PoiItem } from '@/services/mapApi'
 import { canonicalFuelBrand } from '@/utils/fuelBrands'
+import { FUEL_TYPES, matchesFuelTypeFilter, stationFuelTypes } from '@/utils/fuelTypes'
 import { OCM_ATTRIBUTION } from '@/utils/credits'
 import { useLayerCredit } from './useLayerCredit'
 
-function buildPoiPopup(item: PoiItem): string {
+/**
+ * @param fuels The fuels this station sells, already translated, or null when it lists none.
+ *   Shown so the fuel-type filter's effect is visible on the station it kept.
+ */
+function buildPoiPopup(item: PoiItem, fuels: string | null = null): string {
   const tags = item.tags ?? {}
   const brand = tags['brand'] ?? tags['operator'] ?? null
   const openingHours = tags['opening_hours'] ?? null
@@ -19,6 +24,7 @@ function buildPoiPopup(item: PoiItem): string {
   return `<div class="poi-popup">
     <strong class="poi-popup__title">${title}</strong>
     ${brand ? `<div class="poi-popup__meta">${escapeHtml(brand)}</div>` : ''}
+    ${fuels ? `<div class="poi-popup__meta">${escapeHtml(fuels)}</div>` : ''}
     ${openingHours ? `<div class="poi-popup__meta">${escapeHtml(openingHours)}</div>` : ''}
   </div>`
 }
@@ -52,6 +58,7 @@ export function usePoiLayers({ mapInstance, vehicleType, isHev, isBev }: UsePoiL
     fuelStationsEnabled,
     serviceAreasEnabled,
     fuelBrandFilter,
+    fuelTypeFilter,
     chargingMinPowerKw,
     chargingMaxPowerKw,
   } = storeToRefs(settingsStore)
@@ -81,6 +88,19 @@ export function usePoiLayers({ mapInstance, vehicleType, isHev, isBev }: UsePoiL
     if (value === 0) return t('trips.chargingPowerAny')
     if (value >= 350) return '350+'
     return String(value)
+  }
+
+  // Fuel types are a fixed set, unlike brands, so the dropdown is built from the list itself
+  // rather than from whatever the loaded stations happen to advertise.
+  const fuelTypeOptions = computed(() =>
+    FUEL_TYPES.map((type) => ({ value: type, label: t(`trips.fuelTypes.${type}`) })),
+  )
+
+  /** The fuels a station sells, translated and in dropdown order, for its popup. */
+  function fuelSummary(item: PoiItem): string | null {
+    const types = stationFuelTypes(item.tags)
+    if (types.length === 0) return null
+    return types.map((type) => t(`trips.fuelTypes.${type}`)).join(' · ')
   }
 
   const cachedFuelBrands = ref<string[]>([])
@@ -192,7 +212,11 @@ export function usePoiLayers({ mapInstance, vehicleType, isHev, isBev }: UsePoiL
     idOf: (item) => item.externalId,
     fetchItems: (center, radiusKm) =>
       mapApi.poi('fuel', center.lat, center.lng, radiusKm, vehicleType.value),
+    // Brand and fuel type narrow the same layer from two directions, so a station has to pass
+    // both. Neither costs an API call: the tags they read arrived with the station.
     include: (item) => {
+      if (!matchesFuelTypeFilter(item.tags, fuelTypeFilter.value)) return false
+
       const selected = fuelBrandFilter.value
       if (selected.length === 0) return true
       const brand = poiBrand(item)
@@ -204,7 +228,7 @@ export function usePoiLayers({ mapInstance, vehicleType, isHev, isBev }: UsePoiL
         item.longitude,
         'poi-marker poi-marker--fuel',
         '&#9981;',
-        buildPoiPopup(item),
+        buildPoiPopup(item, fuelSummary(item)),
       ),
     // Overpass is paged and rate-limited: hasMore is the server saying it holds uncached tiles.
     // A pass that added nothing is likely a backoff window, so back off with it.
@@ -268,7 +292,7 @@ export function usePoiLayers({ mapInstance, vehicleType, isHev, isBev }: UsePoiL
     else cachedFuelBrands.value = []
   })
 
-  watch(fuelBrandFilter, () => fuelLayer.redraw())
+  watch([fuelBrandFilter, fuelTypeFilter], () => fuelLayer.redraw())
   watch([chargingMinPowerKw, chargingMaxPowerKw], () => chargingLayer.redraw())
 
   // Vehicle type transitions from unknown once fetchConfig resolves - load the layers that
@@ -299,6 +323,8 @@ export function usePoiLayers({ mapInstance, vehicleType, isHev, isBev }: UsePoiL
     fuelStationsEnabled,
     serviceAreasEnabled,
     fuelBrandFilter,
+    fuelTypeFilter,
+    fuelTypeOptions,
     chargingMinPowerKw,
     chargingMaxPowerKw,
     powerRangeSlider,

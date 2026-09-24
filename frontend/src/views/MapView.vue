@@ -73,6 +73,8 @@ const {
   fuelStationsEnabled,
   serviceAreasEnabled,
   fuelBrandFilter,
+  fuelTypeFilter,
+  fuelTypeOptions,
   powerRangeSlider,
   powerRangeLabel,
   formatPowerTooltip,
@@ -771,8 +773,31 @@ onUnmounted(() => {
             </template>
           </SettingsToggle>
           <template v-if="!isBev && fuelStationsEnabled">
-            <div class="fuel-brand-filter">
-              <div class="fuel-brand-filter__header">
+            <div class="poi-filter">
+              <div class="poi-filter__header">
+                <div class="settings-toggle__info">
+                  <span class="settings-toggle__label">
+                    <font-awesome-icon icon="gas-pump" class="settings-toggle__icon" />
+                    {{ t('trips.fuelTypeFilter') }}
+                  </span>
+                  <span class="settings-toggle__desc">{{ t('trips.fuelTypeFilterDesc') }}</span>
+                </div>
+              </div>
+              <Multiselect
+                v-model="fuelTypeFilter"
+                :options="fuelTypeOptions"
+                :placeholder="t('trips.fuelTypePlaceholder')"
+                :searchable="false"
+                :close-on-select="false"
+                :clear-on-select="false"
+                mode="tags"
+                :no-results-text="t('trips.fuelTypeNoMatch')"
+                append-to="body"
+                class="fuel-brand-multiselect"
+              />
+            </div>
+            <div class="poi-filter">
+              <div class="poi-filter__header">
                 <div class="settings-toggle__info">
                   <span class="settings-toggle__label">
                     <font-awesome-icon icon="tag" class="settings-toggle__icon" />
@@ -1123,11 +1148,12 @@ onUnmounted(() => {
    main.css (moved there so the AppFooter settings-modal notification-type multiselect is
    themed correctly even before this lazy-loaded view has ever been visited). */
 
-.fuel-brand-filter {
+/* Shared by the fuel-type and brand filters, which are the same block with a different list. */
+.poi-filter {
   padding: 0.25rem 0 0.5rem;
 }
 
-.fuel-brand-filter__header {
+.poi-filter__header {
   margin-bottom: 0.5rem;
 }
 </style>
