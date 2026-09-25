@@ -39,7 +39,7 @@ export interface SpeedLimitSummary {
   knownKm: number
   /** Of the known distance, the part driven above the limit by more than the tolerance. */
   overKm: number
-  /** The largest amount any reading was over a limit by, rounded to whole km/h. */
+  /** The largest amount any reading was over a limit by, unrounded: the display rounds in its own unit. */
   maxOverKph: number
   /** The limit that was exceeded by that much, for "27 over an 80". */
   maxOverLimitKph: number | null
@@ -139,7 +139,6 @@ export function speedLimitSummary(
     }
   }
 
-  summary.maxOverKph = Math.round(summary.maxOverKph)
   return summary
 }
 

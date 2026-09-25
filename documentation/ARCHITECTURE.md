@@ -179,6 +179,14 @@ REST calls go through `frontend/src/services/` - `apiCore.ts` centralizes the `f
 
 The vehicle store owns `activeVehicle`/`activeVin` (the one car this instance follows) and `effectiveVehicleType` (the user's manual override, else the drivetrain the API detected from the gateway's `hw_version`); views read those rather than indexing into the vehicle list or repeating the override logic. The TypeScript interfaces in `services/` mirror the API's DTOs by hand; the history endpoint returns `TelemetryHistoryPoint` (the chart fields only), not full snapshots.
 
+The API speaks metric only (km, km/h, bar, °C, litres, L/100 km), and so does the database. A
+browser's unit choice lives in the UI settings store and is applied at the last moment by
+`UnitFormatter` in `utils/units.ts`, reached through the `useUnits` composable: a value on screen
+goes through `units.format(quantity, metricValue)` (or `measure` when the number and its unit are
+styled apart), never through a hand-written `km` or `bar`. A distance typed into a form goes back
+through `useDistanceField`, which returns the untouched kilometres it loaded rather than a
+round-tripped approximation.
+
 Dashboard cards are described once, in `frontend/src/cards/registry.ts`: each entry carries the card's icon, whether it is visible by default for a given drivetrain, and whether the current telemetry has anything to show. The card ids, the default layout and the "does this card have data" checks are all derived from that list, so a new card is one entry plus its markup in `DashboardCardContent.vue`. The map's point-of-interest layers work the same way: `composables/poiTileLayer.ts` holds the fetch-by-tile, cache and cluster logic, and charging stations, fuel stations, service areas and speed cameras are four configurations of it.
 
 Every map is Leaflet, and everything drawn on one (markers, clusters, routes, the heatmap) is a

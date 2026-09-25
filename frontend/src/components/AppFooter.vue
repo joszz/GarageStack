@@ -11,6 +11,7 @@ import { useNotificationPushSync } from '@/composables/useNotificationPushSync'
 import { useModal } from '@/composables/useModal'
 import DetailModal from './DetailModal.vue'
 import SettingsToggle from './SettingsToggle.vue'
+import UnitSettings from './UnitSettings.vue'
 import type { VehicleTypeOverride } from '@/stores/settingsUi'
 import { CAR_COLOR_SCHEMES } from '@/stores/settingsUi'
 import { APP_VERSION } from '@/utils/appVersion'
@@ -233,6 +234,12 @@ function toggleNotificationType(id: NotificationCategoryId, checked: boolean) {
           </template>
         </SettingsToggle>
       </div>
+    </div>
+
+    <!-- Units -->
+    <div class="detail-modal__section">
+      <div class="detail-modal__section-title">{{ t('settings.units.title') }}</div>
+      <UnitSettings />
     </div>
 
     <!-- Car colour -->

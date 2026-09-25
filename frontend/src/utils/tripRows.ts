@@ -1,4 +1,5 @@
 import type { Trip } from '@/services/vehicleApi'
+import type { UnitFormatter } from '@/utils/units'
 
 // `t` is injected rather than obtained via useI18n() so these stay plain, directly testable
 // functions, as in useVehicleAlerts. The structural type avoids coupling to a locale's
@@ -37,6 +38,7 @@ export interface TripRowContext {
   resolving: boolean
   locale: string
   t: Translate
+  units: UnitFormatter
 }
 
 export function formatTripDuration(startedAt: string, endedAt: string, t: Translate): string {
@@ -52,7 +54,7 @@ export function formatTripDuration(startedAt: string, endedAt: string, t: Transl
  * conditionals.
  */
 export function buildTripRow(trip: Trip, ctx: TripRowContext): TripRow {
-  const { fromCity, toCity, canResolve, resolving, locale, t, inProgress = false } = ctx
+  const { fromCity, toCity, canResolve, resolving, locale, t, units, inProgress = false } = ctx
   const destination = inProgress ? null : toCity
 
   const startedAt = new Date(trip.startedAt)
@@ -60,7 +62,7 @@ export function buildTripRow(trip: Trip, ctx: TripRowContext): TripRow {
   const dateShort = startedAt.toLocaleDateString(locale, { day: 'numeric', month: 'short' })
   const timeLabel = startedAt.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
 
-  const distance = `${trip.distanceKm} ${t('common.km')}`
+  const distance = units.format('distance', trip.distanceKm)
   const duration = formatTripDuration(trip.startedAt, trip.endedAt, t)
   const points = `${trip.pointCount} ${t('trips.points')}`
 

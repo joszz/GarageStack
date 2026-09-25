@@ -7,6 +7,7 @@ import { useUiSettingsStore } from '@/stores/settingsUi'
 import { useDashboardSettingsStore } from '@/stores/settingsDashboard'
 import { useMapSettingsStore } from '@/stores/settingsMap'
 import { NOTIFICATION_CATEGORY_IDS } from '@/utils/notificationCategories'
+import { METRIC_UNITS } from '@/utils/units'
 
 // Settings persistence is debounced (see createDebouncedSave in settingsShared.ts) so a burst of
 // ref changes coalesces into one localStorage write - advance fake timers past the debounce
@@ -170,6 +171,35 @@ describe('useUiSettingsStore', () => {
     )
     const store = useUiSettingsStore()
     expect(store.notificationTypeExclusions).toEqual(['charging-complete'])
+  })
+
+  it('shows metric units until the browser asks for others', () => {
+    localStorage.setItem(UI_KEY, JSON.stringify({ theme: 'light' }))
+    expect(useUiSettingsStore().units).toEqual(METRIC_UNITS)
+  })
+
+  it('persists a unit change, and loads it back', async () => {
+    const store = useUiSettingsStore()
+    store.units.distance = 'mi'
+    await nextTick()
+    vi.advanceTimersByTime(SAVE_DEBOUNCE_MS)
+    expect(JSON.parse(localStorage.getItem(UI_KEY)!).units.distance).toBe('mi')
+
+    setActivePinia(createPinia())
+    expect(useUiSettingsStore().units).toEqual({ ...METRIC_UNITS, distance: 'mi' })
+  })
+
+  it('falls back per unit, keeping the stored units it recognises', () => {
+    localStorage.setItem(
+      UI_KEY,
+      JSON.stringify({ units: { distance: 'mi', temperature: 'kelvin', pressure: 'psi' } }),
+    )
+    expect(useUiSettingsStore().units).toEqual({
+      distance: 'mi',
+      temperature: 'celsius',
+      pressure: 'psi',
+      fuelConsumption: 'l100km',
+    })
   })
 })
 

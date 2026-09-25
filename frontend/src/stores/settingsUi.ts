@@ -9,6 +9,14 @@ import {
   createDebouncedSave,
 } from './settingsShared'
 import { NOTIFICATION_CATEGORY_IDS } from '@/utils/notificationCategories'
+import {
+  DISTANCE_UNITS,
+  FUEL_CONSUMPTION_UNITS,
+  METRIC_UNITS,
+  PRESSURE_UNITS,
+  TEMPERATURE_UNITS,
+  type UnitPreferences,
+} from '@/utils/units'
 
 export type { Theme, Locale, VehicleTypeOverride, CarColorScheme } from './settingsShared'
 export { CAR_COLOR_SCHEMES }
@@ -30,6 +38,7 @@ interface UiSettings {
   vehicleTypeOverride: VehicleTypeOverride
   filterDays: number
   notificationTypeExclusions: string[]
+  units: UnitPreferences
 }
 
 function defaultsFor(): UiSettings {
@@ -42,6 +51,9 @@ function defaultsFor(): UiSettings {
     vehicleTypeOverride: 'auto',
     filterDays: DEFAULT_FILTER_DAYS,
     notificationTypeExclusions: [],
+    // Metric for everyone rather than guessed from the browser language: plenty of people run an
+    // English browser without driving in miles, and an update must not switch an install over.
+    units: { ...METRIC_UNITS },
   }
 }
 
@@ -88,6 +100,18 @@ function positiveDays(value: unknown, fallback: number): number {
     : fallback
 }
 
+// Each unit is checked on its own, so one unknown value (a unit an older build offered, say)
+// falls back alone instead of resetting the others.
+function parseUnits(raw: unknown, fallback: UnitPreferences): UnitPreferences {
+  const units = typeof raw === 'object' && raw !== null ? (raw as Record<string, unknown>) : {}
+  return {
+    distance: oneOf(units.distance, DISTANCE_UNITS, fallback.distance),
+    temperature: oneOf(units.temperature, TEMPERATURE_UNITS, fallback.temperature),
+    pressure: oneOf(units.pressure, PRESSURE_UNITS, fallback.pressure),
+    fuelConsumption: oneOf(units.fuelConsumption, FUEL_CONSUMPTION_UNITS, fallback.fuelConsumption),
+  }
+}
+
 function parseUiFields(parsed: Record<string, unknown>, fallback: UiSettings): UiSettings {
   return {
     theme: oneOf(parsed.theme, THEMES, fallback.theme),
@@ -107,6 +131,7 @@ function parseUiFields(parsed: Record<string, unknown>, fallback: UiSettings): U
       parsed,
       fallback.notificationTypeExclusions,
     ),
+    units: parseUnits(parsed.units, fallback.units),
   }
 }
 
@@ -139,6 +164,7 @@ export const useUiSettingsStore = defineStore('settingsUi', () => {
   const vehicleTypeOverride = ref<VehicleTypeOverride>(loaded.vehicleTypeOverride)
   const filterDays = ref<number>(loaded.filterDays)
   const notificationTypeExclusions = ref<string[]>(loaded.notificationTypeExclusions)
+  const units = ref<UnitPreferences>(loaded.units)
 
   document.documentElement.dataset.theme = theme.value
   applyCarColors(carColorScheme.value)
@@ -155,6 +181,7 @@ export const useUiSettingsStore = defineStore('settingsUi', () => {
         vehicleTypeOverride: vehicleTypeOverride.value,
         filterDays: filterDays.value,
         notificationTypeExclusions: notificationTypeExclusions.value,
+        units: units.value,
       }),
     )
   }
@@ -166,6 +193,7 @@ export const useUiSettingsStore = defineStore('settingsUi', () => {
   watch(locale, scheduleSave)
   watch(filterDays, scheduleSave)
   watch(notificationTypeExclusions, scheduleSave, { deep: true })
+  watch(units, scheduleSave, { deep: true })
   watch(theme, (val) => {
     document.documentElement.dataset.theme = val
     scheduleSave()
@@ -184,5 +212,6 @@ export const useUiSettingsStore = defineStore('settingsUi', () => {
     vehicleTypeOverride,
     filterDays,
     notificationTypeExclusions,
+    units,
   }
 })

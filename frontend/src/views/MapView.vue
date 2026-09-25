@@ -37,8 +37,10 @@ import {
 import { daysAgoIso } from '@/utils/dates'
 import { intlLocale } from '@/utils/format'
 import { isPhoneViewport } from '@/utils/viewport'
+import { useUnits } from '@/composables/useUnits'
 
 const { t } = useI18n()
+const units = useUnits()
 const route = useRoute()
 const router = useRouter()
 const store = useVehicleStore()
@@ -243,6 +245,12 @@ const selectedMatch = computed(() => matchFor(selectedTrip.value))
  * trip turned out to be once its fixes were put on the roads. Null while no trip is selected, or
  * when the matcher had nothing to add, so the map stays quiet about a line that is simply raw.
  */
+// The speed key's ticks, from the km/h its colours are graded in to the unit this browser shows.
+const SPEED_LEGEND_TICKS_KMH = [0, 50, 90, 130]
+const speedLegendTicks = computed(() =>
+  SPEED_LEGEND_TICKS_KMH.map((kmh) => units.value.measure('speed', kmh)!.value),
+)
+
 const snapStatus = computed<{ snapping: boolean; km: number } | null>(() => {
   if (selectedTripIndex.value === null || !snapEnabled.value) return null
   const match = selectedMatch.value
@@ -374,6 +382,7 @@ const displayRows = computed(() =>
         resolving: placesResolving.value,
         locale: displayLocale.value,
         t,
+        units: units.value,
       }),
     }
   }),
@@ -1142,7 +1151,7 @@ onUnmounted(() => {
             {{
               snapStatus.snapping
                 ? t('trips.snapping')
-                : t('trips.snapped', { km: snapStatus.km.toFixed(1) })
+                : t('trips.snapped', { distance: units.format('distance', snapStatus.km) })
             }}
           </div>
         </div>
@@ -1154,10 +1163,9 @@ onUnmounted(() => {
         >
           <div class="speed-legend__bar"></div>
           <div class="speed-legend__labels">
-            <span>0</span>
-            <span>50</span>
-            <span>90</span>
-            <span>130+ km/h</span>
+            <span v-for="(tick, i) in speedLegendTicks" :key="i">{{
+              i === speedLegendTicks.length - 1 ? `${tick}+ ${units.symbol('speed')}` : tick
+            }}</span>
           </div>
         </MapLegend>
 
@@ -1183,14 +1191,18 @@ onUnmounted(() => {
             </div>
             <div
               class="speed-legend__summary"
-              :title="t('trips.speedLimitTolerance', { kph: OVER_LIMIT_TOLERANCE_KPH })"
+              :title="
+                t('trips.speedLimitTolerance', {
+                  speed: units.format('speed', OVER_LIMIT_TOLERANCE_KPH),
+                })
+              "
             >
               <span v-if="speedLimitSummaryOfTrip.overKm > 0">
                 {{
                   t('trips.speedLimitOverSummary', {
-                    km: speedLimitSummaryOfTrip.overKm.toFixed(1),
+                    distance: units.format('distance', speedLimitSummaryOfTrip.overKm),
                     pct: limitOverPct,
-                    max: speedLimitSummaryOfTrip.maxOverKph,
+                    speed: units.format('speed', speedLimitSummaryOfTrip.maxOverKph),
                   })
                 }}
               </span>

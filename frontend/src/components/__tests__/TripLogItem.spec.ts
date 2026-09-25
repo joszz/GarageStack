@@ -1,12 +1,19 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createI18n } from 'vue-i18n'
+import { createPinia, setActivePinia } from 'pinia'
 import TripLogItem from '../TripLogItem.vue'
 import en from '@/locales/en.json'
 import type { TripLogEntry } from '@/services/tripLogApi'
 import { deventer, logEntry, zwolle } from '@/services/__tests__/tripLogFixtures'
+import { useUiSettingsStore } from '@/stores/settingsUi'
 
 const i18n = createI18n({ legacy: false, locale: 'en', messages: { en } })
+
+beforeEach(() => {
+  localStorage.clear()
+  setActivePinia(createPinia())
+})
 
 function mountItem(
   entry: TripLogEntry,
@@ -59,6 +66,14 @@ describe('TripLogItem', () => {
 
     expect(wrapper.find('.trip-log-item__km').text()).toBe('42.5 km')
     expect(wrapper.find('.trip-log-item__distance').text()).toContain('24010.0 - 24052.5')
+  })
+
+  it('shows the distance and the readings in miles for a browser set to miles', () => {
+    useUiSettingsStore().units.distance = 'mi'
+    const wrapper = mountItem(logEntry())
+
+    expect(wrapper.find('.trip-log-item__km').text()).toBe('26.4 mi')
+    expect(wrapper.find('.trip-log-item__distance').text()).toContain('14919.1 - 14945.5')
   })
 
   it('marks the purpose the trip has', () => {
