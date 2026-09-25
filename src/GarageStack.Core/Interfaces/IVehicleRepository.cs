@@ -31,4 +31,10 @@ public interface IVehicleRepository
     /// a Worker restart.
     /// </summary>
     Task SetLastParkedAtAsync(int vehicleId, DateTime parkedAt, CancellationToken ct = default);
+
+    /// <summary>
+    /// Records the newest MG app message dealt with, so it is not pushed again when the gateway
+    /// repeats it after a restart. See <see cref="Vehicle.LastMessageId"/>.
+    /// </summary>
+    Task SetLastMessageIdAsync(int vehicleId, string messageId, CancellationToken ct = default);
 }

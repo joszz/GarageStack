@@ -43,6 +43,13 @@ describe('notificationCategoryIdsFor', () => {
     )
   })
 
+  it.each(['hev', 'phev', 'bev', 'unknown'] as const)(
+    'offers MG app messages for %s, since every drivetrain has the app',
+    (type) => {
+      expect(notificationCategoryIdsFor(type)).toContain('vehicle-message')
+    },
+  )
+
   it.each(['phev', 'bev', 'unknown'] as const)('offers every category for %s', (type) => {
     expect(notificationCategoryIdsFor(type)).toEqual([...NOTIFICATION_CATEGORY_IDS])
   })

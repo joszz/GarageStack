@@ -24,6 +24,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.HasKey(v => v.Id);
             e.HasIndex(v => v.Vin).IsUnique();
             e.Property(v => v.Vin).HasMaxLength(17).IsRequired();
+            e.Property(v => v.LastMessageId).HasMaxLength(VehicleLimits.MessageIdMaxLength);
         });
 
         modelBuilder.Entity<TelemetrySnapshot>(e =>

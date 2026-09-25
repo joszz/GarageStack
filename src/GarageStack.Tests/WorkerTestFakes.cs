@@ -10,11 +10,11 @@ namespace GarageStack.Tests;
 
 internal sealed class FakePushSender : IPushSender
 {
-    public List<(string Title, string Body)> Sent { get; } = [];
+    public List<(string Title, string Body, string? Category)> Sent { get; } = [];
 
     public Task SendToAllAsync(string title, string body, CancellationToken ct = default, string? category = null, int? vehicleId = null)
     {
-        Sent.Add((title, body));
+        Sent.Add((title, body, category));
         return Task.CompletedTask;
     }
 }

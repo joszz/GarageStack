@@ -178,6 +178,34 @@ public class VehicleRepositoryTests
         Assert.Empty(db.Vehicles);
     }
 
+    // ── SetLastMessageIdAsync ─────────────────────────────────────────────────
+
+    [Fact]
+    public async Task SetLastMessageIdAsync_ReplacesTheStoredId()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var db = CreateDb();
+        var vehicle = new Vehicle { Vin = "MVIN001", LastMessageId = "M1" };
+        db.Vehicles.Add(vehicle);
+        await db.SaveChangesAsync(ct);
+
+        await new VehicleRepository(db).SetLastMessageIdAsync(vehicle.Id, "M2", ct);
+
+        var updated = await db.Vehicles.FindAsync([vehicle.Id], ct);
+        Assert.Equal("M2", updated!.LastMessageId);
+    }
+
+    [Fact]
+    public async Task SetLastMessageIdAsync_UnknownVehicle_DoesNothing()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var db = CreateDb();
+
+        await new VehicleRepository(db).SetLastMessageIdAsync(4242, "M1", ct);
+
+        Assert.Empty(db.Vehicles);
+    }
+
     // ── SetConfigValueAsync ───────────────────────────────────────────────────
 
     [Fact]

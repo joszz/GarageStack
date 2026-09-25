@@ -117,4 +117,7 @@
   <data name="MaintenanceDueSoonBody" xml:space="preserve">
     <value>{0} is binnenkort nodig</value>
   </data>
+  <data name="VehicleMessageTitle" xml:space="preserve">
+    <value>Bericht van MG</value>
+  </data>
 </root>

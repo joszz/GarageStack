@@ -494,16 +494,14 @@ public class MqttConsumerServiceHaDiscoveryTests
 }
 
 // ---------------------------------------------------------------------------
-// Command results -- forwarding one to the Api starts by resolving the vehicle in a new scope,
-// so the fake scope factory's count tells a forwarded answer from a skipped one. The fake
-// resolves no services, so a forward then fails, which the service catches and logs.
+// Every database step starts by resolving the vehicle in a new scope, so the fake scope
+// factory's count tells a message acted on from a skipped one. The fake resolves no services,
+// so the step then fails, which the service catches and logs.
 // ---------------------------------------------------------------------------
 
-public class MqttConsumerServiceCommandResultTests
+file static class MqttConsumerHarness
 {
-    private const string LockResultTopic = "saic/user/vehicles/FAKEVN00000000001/doors/locked/result";
-
-    private static async Task<int> ScopesCreatedByAsync(string topic, string payload, bool retain)
+    public static async Task<int> ScopesCreatedByAsync(string topic, string payload, bool retain)
     {
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
         var client = new FakeMqttClient();
@@ -518,6 +516,14 @@ public class MqttConsumerServiceCommandResultTests
         try { await serviceTask; } catch (OperationCanceledException) { }
         return scopes.CreatedScopes;
     }
+}
+
+public class MqttConsumerServiceCommandResultTests
+{
+    private const string LockResultTopic = "saic/user/vehicles/FAKEVN00000000001/doors/locked/result";
+
+    private static Task<int> ScopesCreatedByAsync(string topic, string payload, bool retain) =>
+        MqttConsumerHarness.ScopesCreatedByAsync(topic, payload, retain);
 
     [Theory]
     [InlineData("Success")]
@@ -543,5 +549,43 @@ public class MqttConsumerServiceCommandResultTests
 
         Assert.Equal(0, await ScopesCreatedByAsync(
             "saic/user/vehicles/FAKEVN00000000001/command/error", payload, retain: false));
+    }
+}
+
+// MG app messages reach VehicleMessageHandler; its own decisions are in VehicleMessageHandlerTests.
+public class MqttConsumerServiceVehicleMessageTests
+{
+    private const string VehiclePrefix = "saic/user/vehicles/FAKEVN00000000001/";
+    private const string EventPayload = """{"event_type":"vehicle_message","title":"Vehicle alarm","content":"x","message_type":"301"}""";
+
+    [Fact]
+    public async Task LiveEvent_IsHandled()
+    {
+        Assert.Equal(1, await MqttConsumerHarness.ScopesCreatedByAsync(
+            VehiclePrefix + GatewayVehicleMessage.EventSubtopic, EventPayload, retain: false));
+    }
+
+    [Fact]
+    public async Task RetainedEvent_IsNotHandled()
+    {
+        Assert.Equal(0, await MqttConsumerHarness.ScopesCreatedByAsync(
+            VehiclePrefix + GatewayVehicleMessage.EventSubtopic, EventPayload, retain: true));
+    }
+
+    // Only a retained id is recorded; a live one waits for its event.
+    [Theory]
+    [InlineData(false, 0)]
+    [InlineData(true, 1)]
+    public async Task MessageId_IsRecordedOnlyWhenRetained(bool retain, int expectedScopes)
+    {
+        Assert.Equal(expectedScopes, await MqttConsumerHarness.ScopesCreatedByAsync(
+            VehiclePrefix + GatewayVehicleMessage.IdSubtopic, "1234567890123456789", retain));
+    }
+
+    [Fact]
+    public async Task MessageTime_IsOnlyTracked()
+    {
+        Assert.Equal(0, await MqttConsumerHarness.ScopesCreatedByAsync(
+            VehiclePrefix + GatewayVehicleMessage.SentAtSubtopic, "2026-09-25T10:00:00+00:00", retain: false));
     }
 }

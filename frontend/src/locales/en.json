@@ -358,6 +358,7 @@
       "unlockedParked": "Unlocked while parked",
       "doorsOpenParked": "Doors open while parked",
       "windowsOpenParked": "Windows open while parked",
+      "vehicleMessage": "MG app messages",
       "maintenance": "Maintenance reminders"
     }
   },
