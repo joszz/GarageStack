@@ -1,6 +1,6 @@
 import { onUnmounted, watch, type Ref } from 'vue'
 import { storeToRefs } from 'pinia'
-import type { StyleSpecification } from 'maplibre-gl'
+import type { Map as MaplibreMap, StyleSpecification } from 'maplibre-gl'
 import type { maplibreGL } from '@maplibre/maplibre-gl-leaflet'
 import { L, type LeafletMap } from '@/utils/leaflet'
 import { useUiSettingsStore } from '@/stores/settingsUi'
@@ -28,6 +28,20 @@ const styleTextCache = new Map<string, Promise<string>>()
 /** The two style rewrites every map applies: readable labels, in the interface language. */
 function prepareStyle(style: MapStyle, locale: Locale): StyleSpecification {
   return localizeStyleLabels(boostLabelContrast(style), locale) as unknown as StyleSpecification
+}
+
+/**
+ * OpenFreeMap's dark style fills its woods with a "wood-pattern" its own sprite does not contain,
+ * so MapLibre draws nothing there and warns in the console for every tile that asks for it. A
+ * transparent pixel in place of any missing image draws exactly the same nothing, without the
+ * warning, and covers a self-hosted style with a gap of its own too. Set on the map rather than
+ * the style, so it outlasts every restyle a theme or language switch makes.
+ */
+function standInForMissingImages(gl: MaplibreMap) {
+  gl.setMissingStyleImageResolver((id) => {
+    // Tiles decoded side by side can ask for the same image; it only needs adding once.
+    if (!gl.hasImage(id)) gl.addImage(id, { width: 1, height: 1, data: new Uint8Array(4) })
+  })
 }
 
 async function loadStyle(url: string): Promise<MapStyle> {
@@ -100,6 +114,8 @@ export function useBasemap(mapInstance: Ref<LeafletMap | null>) {
         maxZoom: VECTOR_MAX_ZOOM,
       })
       glLayer.addTo(map)
+      // The GL map exists once the layer is on the Leaflet map, and has not decoded a tile yet.
+      standInForMissingImages(glLayer.getMaplibreMap())
       layer = glLayer
       vectorActive = true
     } catch (error) {

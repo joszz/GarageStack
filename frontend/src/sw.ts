@@ -9,7 +9,16 @@ precacheAndRoute(self.__WB_MANIFEST)
 // Activate the new SW immediately instead of waiting for all tabs to close
 self.addEventListener('install', () => self.skipWaiting())
 self.addEventListener('activate', (event) => {
-  event.waitUntil(self.clients.claim())
+  event.waitUntil(
+    Promise.all([
+      self.clients.claim(),
+      // A worker from before July 2026 switched navigation preload on, and that switch belongs to
+      // the registration, so it outlived the worker: browsers that ran it still fetch every page
+      // a second time for a preload nothing reads, and log that they cancelled it. Nothing here
+      // uses preloadResponse, so it is switched off again.
+      self.registration.navigationPreload?.disable(),
+    ]),
+  )
 })
 
 type BadgingNavigator = WorkerNavigator & {
