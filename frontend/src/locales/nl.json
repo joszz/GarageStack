@@ -240,7 +240,7 @@
     "last90days": "Afgelopen 90 dagen",
     "dateRangeDesc": "Filtert de ritten op de kaart en in de lijst",
     "heatmap": "Heatmap",
-    "heatmapDesc": "Toont een dichtheidslaag van alle opgenomen routes",
+    "heatmapDesc": "Toont hoe vaak elke weg is gereden, gemeten naar afstand en niet naar stilstaan",
     "routeOutline": "Route omlijning",
     "routeOutlineDesc": "Voegt een donkere rand toe aan routelijnen voor meer contrast",
     "snapToRoads": "Op wegen leggen",
