@@ -125,7 +125,7 @@ public static class VehicleEndpoints
 
         vehicleGroup.MapGet("/trips", async (
             HttpContext httpContext,
-            ITelemetryRepository telemetry,
+            ITripRepository trips,
             DateTimeOffset? from,
             DateTimeOffset? to,
             CancellationToken ct) =>
@@ -135,10 +135,9 @@ public static class VehicleEndpoints
             var rangeError = TryResolveDateRange(from, to, TimeSpan.FromDays(30), TimeSpan.FromDays(90), out var start, out var end);
             if (rangeError is not null) return rangeError;
 
-            var trips = await telemetry.GetTripsAsync(vehicle.Id, start, end, ct);
-            return Results.Ok(trips);
+            return Results.Ok(await trips.GetTripsAsync(vehicle.Id, start, end, ct));
         })
-        .WithSummary("Get trip history");
+        .WithSummary("Get trip history (saved trips, then the ones not saved yet, including the trip being driven)");
 
         vehicleGroup.MapPost("/commands/{command}", async (
             HttpContext httpContext,

@@ -7,6 +7,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 {
     public DbSet<Vehicle> Vehicles => Set<Vehicle>();
     public DbSet<TelemetrySnapshot> TelemetrySnapshots => Set<TelemetrySnapshot>();
+    public DbSet<Trip> Trips => Set<Trip>();
     public DbSet<PushSubscription> PushSubscriptions => Set<PushSubscription>();
     public DbSet<AppNotification> AppNotifications => Set<AppNotification>();
     public DbSet<PoiItem> PoiItems => Set<PoiItem>();
@@ -53,6 +54,19 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.HasOne(s => s.Vehicle)
              .WithMany(v => v.TelemetrySnapshots)
              .HasForeignKey(s => s.VehicleId)
+             .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<Trip>(e =>
+        {
+            e.HasKey(t => t.Id);
+            // A vehicle starts one trip at a time. The recording line already keeps the Worker from
+            // saving a trip twice; this makes a slip there fail loudly instead of duplicating it.
+            e.HasIndex(t => new { t.VehicleId, t.StartedAt }).IsUnique();
+            e.Property(t => t.PointsJson).IsRequired();
+            e.HasOne(t => t.Vehicle)
+             .WithMany()
+             .HasForeignKey(t => t.VehicleId)
              .OnDelete(DeleteBehavior.Cascade);
         });
 

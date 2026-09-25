@@ -41,10 +41,14 @@ public interface ITelemetryRepository
     Task<IReadOnlyList<TelemetryHistoryPoint>> GetHistoryAsync(int vehicleId, DateTime from, DateTime to, CancellationToken ct = default);
 
     /// <summary>
-    /// Reconstructs discrete trips from GPS rows between <paramref name="from"/> and
-    /// <paramref name="to"/>, splitting on data gaps and sustained parking periods.
+    /// The GPS fixes recorded from <paramref name="from"/> up to (not including) <paramref name="to"/>,
+    /// oldest first: every row carrying a position, with the speed when that row has one. The raw
+    /// material <see cref="Helpers.TripSegmenter"/> cuts trips from.
     /// </summary>
-    Task<IReadOnlyList<TripDto>> GetTripsAsync(int vehicleId, DateTime from, DateTime to, CancellationToken ct = default);
+    Task<IReadOnlyList<TripPoint>> GetGpsFixesAsync(int vehicleId, DateTime from, DateTime to, CancellationToken ct = default);
+
+    /// <summary>When the vehicle's first GPS fix was recorded, or null when it has never reported a position.</summary>
+    Task<DateTime?> GetFirstGpsFixAtAsync(int vehicleId, CancellationToken ct = default);
 
     /// <summary>Distance and timestamp of the newest row that reported a journey in progress, or null when none exists.</summary>
     Task<LastTripSummary?> GetLastTripSummaryAsync(int vehicleId, CancellationToken ct = default);

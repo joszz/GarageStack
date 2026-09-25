@@ -1,6 +1,5 @@
 using System.Linq.Expressions;
 using System.Reflection;
-using GarageStack.Core.Helpers;
 using GarageStack.Core.Interfaces;
 using GarageStack.Core.Models;
 using GarageStack.Data.Extensions;
@@ -27,15 +26,11 @@ public class TelemetryRepository(
 
     private static string LatestCacheKey(int vehicleId) => $"telemetry-latest/{vehicleId}";
 
-    // Defensive cap on raw row counts for GetTripsAsync/GetHistoryAsync. Endpoints already cap
-    // the requestable window to 90 days, and GPS rows arrive roughly once/minute while driving,
-    // so this is far above any realistic heavy-user volume - it exists purely to bound
-    // worst-case memory rather than to affect normal queries.
+    // Defensive cap on raw row counts for GetGpsFixesAsync/GetHistoryAsync. Endpoints already cap
+    // the requestable window to 90 days, the trip recorder reads a week at a time, and GPS rows
+    // arrive roughly once/minute while driving, so this is far above any realistic heavy-user
+    // volume - it exists purely to bound worst-case memory rather than to affect normal queries.
     private const int MaxRawRowsPerQuery = 200_000;
-
-    // Consecutive GPS points implying more than this speed are treated as a positioning glitch
-    // rather than a real trip.
-    private const double MaxPlausibleSpeedKmh = 250;
 
     // All TelemetrySnapshot properties except identity/bookkeeping fields (Id, VehicleId, Vehicle,
     // RecordedAt, RawTopic) participate in field-by-field merging. Computed once and reused by both
@@ -361,103 +356,37 @@ public class TelemetryRepository(
         return result;
     }
 
-    public async Task<IReadOnlyList<TripDto>> GetTripsAsync(int vehicleId, DateTime from, DateTime to, CancellationToken ct = default)
+    public async Task<IReadOnlyList<TripPoint>> GetGpsFixesAsync(int vehicleId, DateTime from, DateTime to, CancellationToken ct = default)
     {
-        // Include speed=0 points so we can detect parking gaps between back-to-back trips.
-        // Ordered newest-first with a cap, then reversed back to chronological order below:
-        // if the cap is ever hit, it's the oldest rows in the range that get dropped, not the
-        // newest - recent trips matter more to users than the tail of a 90-day window.
-        var points = await db.TelemetrySnapshots
-            .Where(s => s.VehicleId == vehicleId && s.RecordedAt >= from && s.RecordedAt <= to
+        // Includes speed=0 fixes: the trip splitter needs them to see the car parked between
+        // back-to-back trips. Ordered newest-first with a cap, then reversed back to chronological
+        // order below: if the cap is ever hit, it's the oldest rows in the range that get dropped,
+        // not the newest - recent trips matter more to users than the tail of a 90-day window.
+        var fixes = await db.TelemetrySnapshots
+            .AsNoTracking()
+            .Where(s => s.VehicleId == vehicleId && s.RecordedAt >= from && s.RecordedAt < to
                         && s.Latitude != null && s.Longitude != null)
             .OrderByDescending(s => s.RecordedAt)
-            .Select(s => new { s.RecordedAt, s.Latitude, s.Longitude, s.Speed })
+            .Select(s => new TripPoint(s.RecordedAt, s.Latitude!.Value, s.Longitude!.Value, s.Speed))
             .Take(MaxRawRowsPerQuery)
             .ToListAsync(ct);
 
-        if (points.Count == MaxRawRowsPerQuery)
+        if (fixes.Count == MaxRawRowsPerQuery)
             logger?.LogWarning(
-                "GetTripsAsync hit the {Cap}-row cap for vehicleId={VehicleId} ({From} to {To}); oldest rows in range were dropped",
+                "GetGpsFixesAsync hit the {Cap}-row cap for vehicleId={VehicleId} ({From} to {To}); oldest rows in range were dropped",
                 MaxRawRowsPerQuery, vehicleId, from, to);
 
-        points.Reverse();
-
-        if (points.Count == 0) return [];
-
-        var trips = new List<TripDto>();
-        var current = new List<TripPoint>();
-        // Hard gap: no telemetry data at all for 30+ minutes.
-        var gapThreshold = TimeSpan.FromMinutes(30);
-        // Soft gap: car was stationary for 5+ minutes = distinct trip.
-        var parkThreshold = TimeSpan.FromMinutes(5);
-        DateTime? lastSeen = null;
-        DateTime? parkingSince = null;
-        // Last known GPS position, used to detect stationary GPS-only rows.
-        double? prevLat = null, prevLon = null;
-
-        foreach (var p in points)
-        {
-            // GPS rows from the location/position MQTT topic never carry Speed
-            // (speed arrives on a separate topic in a separate DB row).  Treat
-            // null-speed rows as stationary only when the position hasn't moved
-            // significantly from the last point - i.e. GPS drift rather than
-            // actual movement.  ~50 m is well above GPS noise but well below
-            // any real movement between consecutive updates.
-            bool isParked;
-            if (p.Speed.HasValue)
-            {
-                isParked = p.Speed.Value <= 0;
-            }
-            else
-            {
-                isParked = prevLat.HasValue &&
-                           GeoHelper.Haversine(prevLat.Value, prevLon!.Value,
-                                     p.Latitude!.Value, p.Longitude!.Value) * 1000 <= 50;
-            }
-
-            // Hard gap: no data at all - always start a new trip.
-            if (lastSeen.HasValue && p.RecordedAt - lastSeen.Value > gapThreshold)
-            {
-                TryAddTrip(trips, current);
-                current.Clear();
-                parkingSince = null;
-                prevLat = null;
-                prevLon = null;
-            }
-
-            lastSeen = p.RecordedAt;
-
-            if (isParked)
-            {
-                // Record when stationary period began; don't add to trip path.
-                parkingSince ??= p.RecordedAt;
-                prevLat = p.Latitude!.Value;
-                prevLon = p.Longitude!.Value;
-                continue;
-            }
-
-            // Moving point - split if parked long enough to count as a new trip.
-            if (parkingSince.HasValue && p.RecordedAt - parkingSince.Value >= parkThreshold)
-            {
-                TryAddTrip(trips, current);
-                current.Clear();
-            }
-            parkingSince = null;
-
-            // Skip consecutive duplicate positions (GPS cached/not updating while driving).
-            var pt = new TripPoint(p.RecordedAt, p.Latitude!.Value, p.Longitude!.Value, p.Speed);
-            if (current.Count == 0 || !SamePosition(current[^1], pt))
-                current.Add(pt);
-
-            prevLat = p.Latitude!.Value;
-            prevLon = p.Longitude!.Value;
-        }
-
-        TryAddTrip(trips, current);
-
-        // Discard segments that never went anywhere (GPS drift, brief polling bursts while stationary).
-        return trips.Where(t => t.DistanceKm >= 0.1).ToList();
+        fixes.Reverse();
+        return fixes;
     }
+
+    public Task<DateTime?> GetFirstGpsFixAtAsync(int vehicleId, CancellationToken ct = default) =>
+        db.TelemetrySnapshots
+            .AsNoTracking()
+            .Where(s => s.VehicleId == vehicleId && s.Latitude != null && s.Longitude != null)
+            .OrderBy(s => s.RecordedAt)
+            .Select(s => (DateTime?)s.RecordedAt)
+            .FirstOrDefaultAsync(ct);
 
     public Task<LastTripSummary?> GetLastTripSummaryAsync(int vehicleId, CancellationToken ct = default) =>
         db.TelemetrySnapshots
@@ -477,38 +406,6 @@ public class TelemetryRepository(
             .OrderByDescending(g => g.Count())
             .Select(g => new RawTopicStat(g.Key, g.Count(), g.Max(s => s.RecordedAt)))
             .ToListAsync(ct);
-
-    private static void TryAddTrip(List<TripDto> trips, List<TripPoint> current)
-    {
-        if (current.Count < 2) return;
-        // Pass a snapshot of current - the caller clears the list after this call, and
-        // TripDto stores a reference, so without a copy all trips would end up sharing
-        // the final segment's points.
-        var trip = BuildTrip(trips.Count, new List<TripPoint>(current));
-        if (trip is not null) trips.Add(trip);
-    }
-
-    // Two positions are considered identical when within ~1 metre of each other.
-    private static bool SamePosition(TripPoint a, TripPoint b) =>
-        Math.Abs(a.Latitude - b.Latitude) < 0.00001 &&
-        Math.Abs(a.Longitude - b.Longitude) < 0.00001;
-
-    // Sums the segment distances and, in the same pass, rejects GPS teleportation: a trip
-    // with any segment implying an impossible speed is not a real trip.
-    private static TripDto? BuildTrip(int index, List<TripPoint> points)
-    {
-        var distance = 0.0;
-        for (var i = 1; i < points.Count; i++)
-        {
-            var segKm = GeoHelper.Haversine(points[i - 1].Latitude, points[i - 1].Longitude, points[i].Latitude, points[i].Longitude);
-            var segHours = (points[i].RecordedAt - points[i - 1].RecordedAt).TotalHours;
-            if (segHours > 0 && segKm / segHours > MaxPlausibleSpeedKmh)
-                return null;
-            distance += segKm;
-        }
-
-        return new TripDto(index, points[0].RecordedAt, points[^1].RecordedAt, Math.Round(distance, 2), points.Count, points);
-    }
 
     public async Task<VehicleAggregateStats> GetAggregateStatsAsync(int vehicleId, DateTime from, DateTime to, CancellationToken ct = default)
     {

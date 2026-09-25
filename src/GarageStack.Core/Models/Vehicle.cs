@@ -21,6 +21,13 @@ public class Vehicle
     /// </summary>
     public string? LastMessageId { get; set; }
 
+    /// <summary>
+    /// How far the Worker has saved this vehicle's trips: every trip starting before this moment
+    /// is in the Trips table, and the fixes from here on have not been cut into saved trips yet.
+    /// Null until the Worker has run once.
+    /// </summary>
+    public DateTime? TripsRecordedUntil { get; set; }
+
     public ICollection<TelemetrySnapshot> TelemetrySnapshots { get; set; } = [];
 }
 

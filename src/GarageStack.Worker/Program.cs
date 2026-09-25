@@ -32,6 +32,7 @@ try
     builder.Services.AddHostedService<PushNotificationCheckService>();
     builder.Services.AddHostedService<MaintenanceCheckService>();
     builder.Services.AddHostedService<PoiPreCachingService>();
+    builder.Services.AddHostedService<TripRecorderService>();
 
     var host = builder.Build();
 
