@@ -262,6 +262,7 @@
     "speedLimitNoneOver": "Nothing over the limit",
     "speedLimitCoverage": "Limits known for {pct}% of the trip",
     "speedLimitUnmapped": "No speed limits mapped along this trip",
+    "legend": "Legend",
     "speedLimitTolerance": "Counted as over only past {kph} km/h above the limit. Limits that only apply at certain times, such as a motorway signed lower by day, are not in the data.",
     "chargingStations": "Charging stations",
     "chargingStationsDesc": "Shows charging stations near your position.",

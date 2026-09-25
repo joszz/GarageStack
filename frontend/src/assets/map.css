@@ -127,29 +127,7 @@
   height: 100%;
 }
 
-/* Top left, under the zoom control. The bottom edge belongs to the attribution strip, whose width
-   depends on how many sources are credited and how wide the map happens to be: on a narrow map, in
-   any layout, it reaches the bottom-left corner this legend used to sit in. Keeping the legend off
-   that edge entirely is one rule instead of a breakpoint per layout. */
-.speed-legend {
-  position: absolute;
-  top: 80px;
-  left: 10px;
-  z-index: 1000;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  padding: 6px 8px;
-  box-shadow: 0 1px 4px rgb(0 0 0 / 20%);
-  font-size: 0.7rem;
-  min-width: 130px;
-
-  /* The speed-limit legend carries a sentence rather than a row of numbers, so it needs a ceiling
-     to wrap against, and a phone-width map needs that ceiling to stay inside the map. */
-  max-width: min(260px, calc(100% - 20px));
-  pointer-events: none;
-}
-
+/* Contents of the two speed keys; the box around them and its toggle are MapLegend's. */
 .speed-legend__bar {
   height: 8px;
   border-radius: 4px;

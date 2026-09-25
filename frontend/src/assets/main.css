@@ -903,9 +903,11 @@ body,
   font-size: 0.85rem;
 }
 
+/* Top right: the bottom edge belongs to the attribution strip, which on a phone runs the full width
+   of the map, so no bottom corner stays clear of it. */
 .location-map-card__expand {
   position: absolute;
-  bottom: 8px;
+  top: 8px;
   right: 8px;
   z-index: 1000;
   width: 32px;

@@ -262,6 +262,7 @@
     "speedLimitNoneOver": "Niets boven de limiet",
     "speedLimitCoverage": "Limiet bekend voor {pct}% van de rit",
     "speedLimitUnmapped": "Geen snelheidslimieten bekend langs deze rit",
+    "legend": "Legenda",
     "speedLimitTolerance": "Telt pas als te snel vanaf {kph} km/h boven de limiet. Limieten die alleen op bepaalde tijden gelden, zoals een snelweg die overdag lager is, staan niet in de data.",
     "chargingStations": "Laadstations",
     "chargingStationsDesc": "Toont laadstations bij jouw locatie.",
