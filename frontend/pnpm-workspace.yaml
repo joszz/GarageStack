@@ -3,3 +3,10 @@ allowBuilds:
 
 overrides:
   undici: "^7.28.0"
+
+# Keeps pnpm-lock.yaml a single YAML document. Otherwise pnpm 12 writes an extra environment
+# document at the top, and GitHub's dependency graph reads only that one, so Dependabot alerts
+# for every frontend package silently close (dependabot/dependabot-core#15904). The trade-off is
+# that pnpm no longer switches itself to the packageManager pin; Docker (corepack) and CI
+# (pnpm/action-setup) pin the version on their own, so only a local pnpm has to match it.
+pmOnFail: ignore

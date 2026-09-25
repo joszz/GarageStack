@@ -128,7 +128,8 @@ jobs:
 
       - name: Install Cosign
         if: github.event_name != 'pull_request'
-        uses: sigstore/cosign-installer@v3
+        # Exact tag: cosign-installer stopped publishing a floating major tag after v3.
+        uses: sigstore/cosign-installer@v4.1.2
 
       - name: Extract image metadata
         id: meta

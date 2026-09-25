@@ -197,7 +197,7 @@ docker buildx imagetools inspect ghcr.io/joszz/garagestack:latest \
 
 Every pushed image is signed with [Cosign](https://docs.sigstore.dev/cosign/overview/) using keyless signing via GitHub Actions OIDC. No long-lived signing keys are stored anywhere.
 
-Verify a signature:
+Verify a signature (the workflow signs with Cosign 3, so use Cosign 3 or newer to verify):
 
 ```bash
 cosign verify \
