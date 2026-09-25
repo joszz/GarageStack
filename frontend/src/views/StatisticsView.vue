@@ -18,7 +18,7 @@ import { useLeafletMap } from '@/composables/useLeafletMap'
 import { useBasemap } from '@/composables/useBasemap'
 import CardInfoWrap from '@/components/CardInfoWrap.vue'
 import DetailModal from '@/components/DetailModal.vue'
-import FiltersPanel from '@/components/FiltersPanel.vue'
+import ToolbarPanel from '@/components/ToolbarPanel.vue'
 import SkeletonCard from '@/components/SkeletonCard.vue'
 import SkeletonChart from '@/components/SkeletonChart.vue'
 import StatusCard from '@/components/StatusCard.vue'
@@ -568,7 +568,7 @@ const skeletonChartCount = computed(
     <div class="view-header">
       <h1>{{ t('nav.statistics') }}</h1>
       <div class="view-header__actions">
-        <FiltersPanel>
+        <ToolbarPanel>
           <div class="settings-toggle">
             <div class="settings-toggle__info">
               <span class="settings-toggle__label">
@@ -585,7 +585,7 @@ const skeletonChartCount = computed(
               </select>
             </div>
           </div>
-        </FiltersPanel>
+        </ToolbarPanel>
         <button
           class="btn btn-sm"
           :class="editMode ? 'btn-primary' : 'btn-outline-secondary'"

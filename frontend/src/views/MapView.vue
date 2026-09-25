@@ -5,9 +5,9 @@ import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { useVehicleStore } from '@/stores/vehicle'
 import { useMapSettingsStore } from '@/stores/settingsMap'
-import { useUiSettingsStore } from '@/stores/settingsUi'
+import { useUiSettingsStore, DEFAULT_FILTER_DAYS } from '@/stores/settingsUi'
 import { LMap, LMarker, LPopup } from '@vue-leaflet/vue-leaflet'
-import FiltersPanel from '@/components/FiltersPanel.vue'
+import ToolbarPanel from '@/components/ToolbarPanel.vue'
 import SettingsToggle from '@/components/SettingsToggle.vue'
 import { useInfiniteScroll } from '@/composables/useInfiniteScroll'
 import { usePoiLayers } from '@/composables/usePoiLayers'
@@ -46,11 +46,15 @@ const status = computed(() => store.currentStatus)
 const vehicleType = computed(() => store.effectiveVehicleType)
 const isHev = computed(() => vehicleType.value === 'hev')
 const isBev = computed(() => vehicleType.value === 'bev')
-// Until vehicleType resolves from 'unknown', neither flag is true, which would show
-// both layer-toggle buttons and then remove one once the type is known - a visible
-// layout shift. Keep both hidden while unknown so the header never shows more
-// buttons than its final, resolved state.
+// Which of the two cars' rows either panel offers. Until vehicleType resolves from 'unknown',
+// neither flag is true, so both cars' layer rows and both their filters would appear and then
+// half of them be taken away again once the type is known - a visible shift in either panel.
+// Staying false while unknown keeps each panel from ever showing more rows than its final,
+// resolved state. The badges count off the same two, so a setting left over from another car
+// never gets counted against a row this one has no way to reach.
 const vehicleTypeKnown = computed(() => vehicleType.value !== 'unknown')
+const carTakesFuel = computed(() => vehicleTypeKnown.value && !isBev.value)
+const carTakesCharge = computed(() => vehicleTypeKnown.value && !isHev.value)
 const displayLocale = computed(() => (uiSettingsStore.locale === 'nl' ? 'nl-NL' : 'en-US'))
 const selectedTripIndex = ref<number | null>(null)
 // Plain refs on their stores already (Composition-API-style defineStore) - storeToRefs gives
@@ -85,15 +89,46 @@ const {
   fuelBrandFilter,
   fuelTypeFilter,
   fuelTypeOptions,
+  chargingMinPowerKw,
+  chargingMaxPowerKw,
   powerRangeSlider,
   powerRangeLabel,
   formatPowerTooltip,
   availableFuelBrands,
   brandsLoading,
   poiLoading,
-  loadFuelBrands,
   loadLayers,
 } = usePoiLayers({ mapInstance, vehicleType, isHev, isBev })
+
+// ── Header badges ──────────────────────────────────────────────────────────────
+// What each panel button shows over its corner, so the map can be read without opening either
+// one. A filter counts when it is narrowing something rather than merely having a value, which
+// for the period means differing from the one every view starts on.
+const activeFilterCount = computed(() => {
+  const active = [
+    dateRangeDays.value !== DEFAULT_FILTER_DAYS,
+    carTakesFuel.value && fuelTypeFilter.value.length > 0,
+    carTakesFuel.value && fuelBrandFilter.value.length > 0,
+    // One row, so one count, however many of its two ends have been moved off "any".
+    carTakesCharge.value && (chargingMinPowerKw.value > 0 || chargingMaxPowerKw.value > 0),
+  ]
+  return active.filter(Boolean).length
+})
+
+const activeLayerCount = computed(() => {
+  const active = [
+    heatmapEnabled.value,
+    routeOutlineEnabled.value,
+    snapToRoadsEnabled.value,
+    speedOverlayEnabled.value,
+    // Hidden without snapping, and inert too: the limits arrive with the snapped line.
+    snapToRoadsEnabled.value && speedLimitOverlayEnabled.value,
+    serviceAreasEnabled.value,
+    carTakesFuel.value && fuelStationsEnabled.value,
+    carTakesCharge.value && chargingStationsEnabled.value,
+  ]
+  return active.filter(Boolean).length
+})
 
 let heatLayer: L.Layer | null = null
 let routeLines: L.Polyline[] = []
@@ -751,9 +786,6 @@ onMounted(async () => {
       store.fetchTrips(vin.value, daysAgoIso(dateRangeDays.value)),
     ])
   }
-  if (fuelStationsEnabled.value) {
-    loadFuelBrands()
-  }
   nextTick(() => {
     observeTrips(tripSidebarRef.value)
   })
@@ -771,7 +803,11 @@ onUnmounted(() => {
     <div class="view-header">
       <h1>{{ t('nav.map') }}</h1>
       <div class="view-header__actions">
-        <FiltersPanel>
+        <!-- Filters narrow what the map draws; the layer panel beside it decides what it draws
+             at all. A filter belongs to what the car can use rather than to what is switched on
+             right now, so these stay put whether or not their layer is showing - the panel would
+             otherwise look half empty until the layer was found in the other one. -->
+        <ToolbarPanel :count="activeFilterCount">
           <div class="settings-toggle">
             <div class="settings-toggle__info">
               <span class="settings-toggle__label">
@@ -788,6 +824,86 @@ onUnmounted(() => {
               </select>
             </div>
           </div>
+          <template v-if="carTakesFuel">
+            <div class="poi-filter">
+              <div class="poi-filter__header">
+                <div class="settings-toggle__info">
+                  <span class="settings-toggle__label">
+                    <font-awesome-icon icon="gas-pump" class="settings-toggle__icon" />
+                    {{ t('trips.fuelTypeFilter') }}
+                  </span>
+                  <span class="settings-toggle__desc">{{ t('trips.fuelTypeFilterDesc') }}</span>
+                </div>
+              </div>
+              <Multiselect
+                v-model="fuelTypeFilter"
+                :options="fuelTypeOptions"
+                :placeholder="t('trips.fuelTypePlaceholder')"
+                :searchable="false"
+                :close-on-select="false"
+                :clear-on-select="false"
+                mode="tags"
+                :no-results-text="t('trips.fuelTypeNoMatch')"
+                append-to="body"
+                class="fuel-brand-multiselect"
+              />
+            </div>
+            <div class="poi-filter">
+              <div class="poi-filter__header">
+                <div class="settings-toggle__info">
+                  <span class="settings-toggle__label">
+                    <font-awesome-icon icon="tag" class="settings-toggle__icon" />
+                    {{ t('trips.fuelBrandFilter') }}
+                  </span>
+                  <span class="settings-toggle__desc">{{ t('trips.fuelBrandFilterDesc') }}</span>
+                </div>
+              </div>
+              <Multiselect
+                v-model="fuelBrandFilter"
+                :options="availableFuelBrands"
+                :placeholder="t('trips.fuelBrandPlaceholder')"
+                :searchable="true"
+                :close-on-select="false"
+                :clear-on-select="false"
+                mode="tags"
+                :loading="brandsLoading"
+                :no-results-text="t('trips.fuelBrandNoMatch')"
+                :no-options-text="t('trips.fuelBrandNoneLoaded')"
+                append-to="body"
+                class="fuel-brand-multiselect"
+              />
+            </div>
+          </template>
+          <template v-if="carTakesCharge">
+            <div class="charging-power-filter">
+              <div class="charging-power-filter__header">
+                <div>
+                  <span class="settings-toggle__label">
+                    <font-awesome-icon icon="bolt" class="settings-toggle__icon" />
+                    {{ t('trips.chargingPower') }}
+                  </span>
+                  <span class="settings-toggle__desc">{{ t('trips.chargingPowerDesc') }}</span>
+                </div>
+                <span class="charging-power-filter__range">{{ powerRangeLabel }}</span>
+              </div>
+              <div class="charging-power-filter__slider">
+                <Slider
+                  v-model="powerRangeSlider"
+                  :min="0"
+                  :max="350"
+                  :step="10"
+                  :tooltips="true"
+                  :format="formatPowerTooltip"
+                  :merge="50"
+                  :lazy="false"
+                  class="charging-slider"
+                  :aria-label="[t('trips.chargingMinPower'), t('trips.chargingMaxPower')]"
+                />
+              </div>
+            </div>
+          </template>
+        </ToolbarPanel>
+        <ToolbarPanel :title="t('common.layers')" icon="layer-group" :count="activeLayerCount">
           <SettingsToggle v-model="heatmapEnabled" :label="t('trips.heatmap')">
             <template #label>
               <span class="settings-toggle__label">
@@ -848,105 +964,33 @@ onUnmounted(() => {
               <span class="settings-toggle__desc">{{ t('trips.serviceAreasDesc') }}</span>
             </template>
           </SettingsToggle>
-          <template v-if="!isBev && fuelStationsEnabled">
-            <div class="poi-filter">
-              <div class="poi-filter__header">
-                <div class="settings-toggle__info">
-                  <span class="settings-toggle__label">
-                    <font-awesome-icon icon="gas-pump" class="settings-toggle__icon" />
-                    {{ t('trips.fuelTypeFilter') }}
-                  </span>
-                  <span class="settings-toggle__desc">{{ t('trips.fuelTypeFilterDesc') }}</span>
-                </div>
-              </div>
-              <Multiselect
-                v-model="fuelTypeFilter"
-                :options="fuelTypeOptions"
-                :placeholder="t('trips.fuelTypePlaceholder')"
-                :searchable="false"
-                :close-on-select="false"
-                :clear-on-select="false"
-                mode="tags"
-                :no-results-text="t('trips.fuelTypeNoMatch')"
-                append-to="body"
-                class="fuel-brand-multiselect"
-              />
-            </div>
-            <div class="poi-filter">
-              <div class="poi-filter__header">
-                <div class="settings-toggle__info">
-                  <span class="settings-toggle__label">
-                    <font-awesome-icon icon="tag" class="settings-toggle__icon" />
-                    {{ t('trips.fuelBrandFilter') }}
-                  </span>
-                  <span class="settings-toggle__desc">{{ t('trips.fuelBrandFilterDesc') }}</span>
-                </div>
-              </div>
-              <Multiselect
-                v-model="fuelBrandFilter"
-                :options="availableFuelBrands"
-                :placeholder="t('trips.fuelBrandPlaceholder')"
-                :searchable="true"
-                :close-on-select="false"
-                :clear-on-select="false"
-                mode="tags"
-                :loading="brandsLoading"
-                :no-results-text="t('trips.fuelBrandNoMatch')"
-                :no-options-text="t('trips.fuelBrandNoneLoaded')"
-                append-to="body"
-                class="fuel-brand-multiselect"
-              />
-            </div>
-          </template>
-          <template v-if="!isHev && chargingStationsEnabled">
-            <div class="charging-power-filter">
-              <div class="charging-power-filter__header">
-                <div>
-                  <span class="settings-toggle__label">
-                    <font-awesome-icon icon="bolt" class="settings-toggle__icon" />
-                    {{ t('trips.chargingPower') }}
-                  </span>
-                  <span class="settings-toggle__desc">{{ t('trips.chargingPowerDesc') }}</span>
-                </div>
-                <span class="charging-power-filter__range">{{ powerRangeLabel }}</span>
-              </div>
-              <div class="charging-power-filter__slider">
-                <Slider
-                  v-model="powerRangeSlider"
-                  :min="0"
-                  :max="350"
-                  :step="10"
-                  :tooltips="true"
-                  :format="formatPowerTooltip"
-                  :merge="50"
-                  :lazy="false"
-                  class="charging-slider"
-                  :aria-label="[t('trips.chargingMinPower'), t('trips.chargingMaxPower')]"
-                />
-              </div>
-            </div>
-          </template>
-        </FiltersPanel>
-        <button
-          v-if="vehicleTypeKnown && !isBev"
-          class="btn btn-sm map-layer-btn"
-          :class="{ 'map-layer-btn--active map-layer-btn--fuel': fuelStationsEnabled }"
-          :aria-pressed="fuelStationsEnabled"
-          @click="fuelStationsEnabled = !fuelStationsEnabled"
-        >
-          <font-awesome-icon icon="gas-pump" />
-          {{ t('trips.fuelStations') }}
-        </button>
-        <button
-          v-if="vehicleTypeKnown && !isHev"
-          class="btn btn-sm map-layer-btn"
-          :class="{ 'map-layer-btn--active map-layer-btn--charging': chargingStationsEnabled }"
-          :aria-pressed="chargingStationsEnabled"
-          @click="chargingStationsEnabled = !chargingStationsEnabled"
-        >
-          <font-awesome-icon icon="bolt" />
-          {{ t('trips.chargingStations') }}
-        </button>
+          <SettingsToggle
+            v-if="carTakesFuel"
+            v-model="fuelStationsEnabled"
+            :label="t('trips.fuelStations')"
+          >
+            <template #label>
+              <span class="settings-toggle__label">
+                <font-awesome-icon icon="gas-pump" class="settings-toggle__icon" />
+                {{ t('trips.fuelStations') }}
+              </span>
+              <span class="settings-toggle__desc">{{ t('trips.fuelStationsDesc') }}</span>
+            </template>
+          </SettingsToggle>
+          <SettingsToggle
+            v-if="carTakesCharge"
+            v-model="chargingStationsEnabled"
+            :label="t('trips.chargingStations')"
+          >
+            <template #label>
+              <span class="settings-toggle__label">
+                <font-awesome-icon icon="bolt" class="settings-toggle__icon" />
+                {{ t('trips.chargingStations') }}
+              </span>
+              <span class="settings-toggle__desc">{{ t('trips.chargingStationsDesc') }}</span>
+            </template>
+          </SettingsToggle>
+        </ToolbarPanel>
         <button
           class="btn btn-sm btn-outline-secondary"
           :disabled="status?.latitude == null || status?.longitude == null"

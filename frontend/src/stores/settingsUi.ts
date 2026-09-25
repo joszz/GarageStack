@@ -15,6 +15,12 @@ export { CAR_COLOR_SCHEMES }
 
 const STORAGE_KEY = 'garagestack-settings-ui'
 
+/**
+ * The period every view starts on. Exported because a view that badges its filters as "changed"
+ * has to compare against the same number the store defaults to, rather than its own copy of it.
+ */
+export const DEFAULT_FILTER_DAYS = 7
+
 interface UiSettings {
   theme: Theme
   locale: Locale
@@ -34,7 +40,7 @@ function defaultsFor(): UiSettings {
     placeNamesEnabled: true,
     carColorScheme: 'orange',
     vehicleTypeOverride: 'auto',
-    filterDays: 7,
+    filterDays: DEFAULT_FILTER_DAYS,
     notificationTypeExclusions: [],
   }
 }

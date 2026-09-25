@@ -483,50 +483,6 @@
   min-width: 0;
 }
 
-/* Map layer toggle buttons (header area) */
-.map-layer-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  border: 1px solid var(--color-border);
-  background: var(--color-surface);
-  color: var(--color-text);
-  transition:
-    background 0.15s,
-    border-color 0.15s,
-    color 0.15s;
-}
-
-.map-layer-btn:hover {
-  background: var(--color-surface-2);
-  border-color: var(--color-border);
-  color: var(--color-text);
-}
-
-.map-layer-btn--fuel.map-layer-btn--active {
-  background: #d97706;
-  border-color: #d97706;
-  color: #fff;
-}
-
-.map-layer-btn--fuel.map-layer-btn--active:hover {
-  background: #b45309;
-  border-color: #b45309;
-  color: #fff;
-}
-
-.map-layer-btn--charging.map-layer-btn--active {
-  background: #16a34a;
-  border-color: #16a34a;
-  color: #fff;
-}
-
-.map-layer-btn--charging.map-layer-btn--active:hover {
-  background: #15803d;
-  border-color: #15803d;
-  color: #fff;
-}
-
 .map-controls {
   display: flex;
   align-items: center;
