@@ -282,7 +282,7 @@ Repeat for `frontend` and `worker`. Leave `mosquitto` and `postgres` services un
 
 ## Unraid Community Apps
 
-The Unraid template lives at [unraid/garagestack.xml](unraid/garagestack.xml). It tracks the `:latest` tag so Unraid users receive updates automatically -- no template change is needed when cutting a new release.
+The Unraid template lives at [unraid/garagestack.xml](../unraid/garagestack.xml). It tracks the `:latest` tag so Unraid users receive updates automatically -- no template change is needed when cutting a new release.
 
 ### One-time submission to Community Apps
 

@@ -54,4 +54,4 @@ Use the issue templates provided in the repository. Include reproduction steps, 
 
 ## License
 
-By contributing you agree that your contributions will be licensed under the same [MIT License](LICENSE) that covers the project.
+By contributing you agree that your contributions will be licensed under the same [MIT License](../LICENSE) that covers the project.

@@ -13,7 +13,7 @@ Only the latest release is actively maintained and receives security fixes.
 
 **Please do not report security vulnerabilities through public GitHub issues.**
 
-Use [GitHub's private vulnerability reporting](../../security/advisories/new) to submit a report. Include:
+Use [GitHub's private vulnerability reporting](../../../security/advisories/new) to submit a report. Include:
 
 - A description of the vulnerability
 - Steps to reproduce

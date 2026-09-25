@@ -17,5 +17,5 @@
 **/*.tmp
 
 README.md
-RELEASING.md
+documentation/RELEASING.md
 example_data.txt

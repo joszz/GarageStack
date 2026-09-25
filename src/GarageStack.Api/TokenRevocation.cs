@@ -10,7 +10,7 @@ namespace GarageStack.Api;
 /// handler. The answer is cached in memory so that check does not cost a database round trip
 /// per request: a revocation made by this process is written to the cache immediately, and a
 /// "not revoked" answer is only trusted for a short while. GarageStack runs as a single Api
-/// instance (see ARCHITECTURE.md), so nothing else can revoke a session behind the cache's back.
+/// instance (see documentation/ARCHITECTURE.md), so nothing else can revoke a session behind the cache's back.
 /// </summary>
 internal static class TokenRevocation
 {

@@ -6,7 +6,7 @@
 #   MQTT_BROKER_USERNAME / MQTT_BROKER_PASSWORD  Internal login for the SAIC gateway, Api and
 #                                                Worker. Full access.
 #   HA_MQTT_USERNAME / HA_MQTT_PASSWORD          Optional Home Assistant login, skipped when
-#                                                HA_MQTT_USERNAME is empty. See HOME_ASSISTANT.md.
+#                                                HA_MQTT_USERNAME is empty. See documentation/HOME_ASSISTANT.md.
 set -eu
 
 dir="${1:?Usage: mosquitto-auth.sh <directory>}"

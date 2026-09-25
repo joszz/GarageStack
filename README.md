@@ -12,7 +12,7 @@ GarageStack is a free, open-source vehicle monitoring dashboard for **modern MG 
 - **Remote commands** -- Trigger climate pre-conditioning, lock or unlock the car, and activate the horn and lights remotely from the dashboard.
 - **Push notifications** -- Browser and in-app alerts for key events: engine started, low tyre pressure, low EV battery, car left unlocked, and doors or windows left open.
 - **Homepage widget** -- A read-only API endpoint for the [gethomepage.dev](https://gethomepage.dev) Custom API widget, exposing key vehicle stats at a glance.
-- **Home Assistant** -- Your car appears in Home Assistant automatically through MQTT discovery, sharing GarageStack's broker and MG session instead of needing a second integration. See [`HOME_ASSISTANT.md`](HOME_ASSISTANT.md).
+- **Home Assistant** -- Your car appears in Home Assistant automatically through MQTT discovery, sharing GarageStack's broker and MG session instead of needing a second integration. See [`HOME_ASSISTANT.md`](documentation/HOME_ASSISTANT.md).
 - **Progressive Web App (PWA)** -- Installable on mobile or desktop for a native app-like experience, complete with a home screen icon and push notification support.
 - **Charging stations** -- Overlay nearby EV charging stations on the map, sourced from the [Open Charge Map](https://openchargemap.org) database. Station data is cached in the database for 7 days; on page load the map immediately shows all stations within 100 km of your car that are already cached. Markers show operational status; clicking a marker displays the station name, operator, address, and available connector types with power ratings. Requires a free OCM API key (`OPENCHARGEMAP_API_KEY`). Unlike fuel stations and service areas, charging station tiles are loaded on demand as you browse the map and are not pre-populated by the background Worker.
 - **Fuel stations** -- Overlay nearby petrol and diesel stations on the map (HEV and PHEV only; not shown for BEV). Sourced from OpenStreetMap via the Overpass API -- no API key required. POI data is cached in the database for 7 days and pre-populated by the Worker for a 100 km radius around the car's last known position so the overlay is instant on first view.
@@ -21,7 +21,7 @@ GarageStack is a free, open-source vehicle monitoring dashboard for **modern MG 
 - **Snapped trip lines** -- A selected trip is drawn along the roads it was driven on rather than in straight lines between GPS fixes, which also gives a truer distance than the fixes alone. Matched against OpenStreetMap by [Valhalla](https://valhalla1.openstreetmap.de) -- no API key required, snapped trips are cached in the database for 30 days, and it can be switched off in the map's filter panel or for the deployment with `MAPMATCHING__ENABLED=false`.
 - **Speed limits** -- The selected trip can be coloured against the limits signposted along it, green within and red above, with how far over it went and over how much of the trip a limit was known. Read from OpenStreetMap's `maxspeed` tags by the same match that snapped the trip, so it costs no extra request and needs no configuration.
 - **Themed vector basemap** -- Every map is drawn from OpenStreetMap vector tiles by MapLibre GL, in a dark or light style that follows the interface theme and with labels in the interface language. Served by [OpenFreeMap](https://openfreemap.org) without an API key, point it at your own tile server if you prefer, and it falls back to raster tiles where WebGL is unavailable.
-- **Single sign-on** -- Sign in through your own identity provider (Authentik, Authelia, Keycloak, Pocket ID, Google, and anything else speaking OpenID Connect), with optional auto-login and group or email based access restrictions. A built-in username/password login remains available for installs without a provider. See [`AUTHENTICATION.md`](AUTHENTICATION.md).
+- **Single sign-on** -- Sign in through your own identity provider (Authentik, Authelia, Keycloak, Pocket ID, Google, and anything else speaking OpenID Connect), with optional auto-login and group or email based access restrictions. A built-in username/password login remains available for installs without a provider. See [`AUTHENTICATION.md`](documentation/AUTHENTICATION.md).
 - **Multi-language support** -- Interface available in English and Dutch, with locale resolved from query string, cookie, or browser preference.
 - **Self-hosted** -- Runs entirely on your own infrastructure via Docker (all-in-one container or Docker Compose). No cloud account or subscription required beyond the SAIC iSmart API.
 
@@ -95,7 +95,7 @@ GarageStack needs the vehicle **owner account**: shared or secondary accounts la
 
 This way the official app runs independently on the secondary account and GarageStack keeps its own session on the owner account.
 
-The same applies to Home Assistant: rather than adding an MG integration there, connect Home Assistant to GarageStack's MQTT broker so both share one session. See [`HOME_ASSISTANT.md`](HOME_ASSISTANT.md).
+The same applies to Home Assistant: rather than adding an MG integration there, connect Home Assistant to GarageStack's MQTT broker so both share one session. See [`HOME_ASSISTANT.md`](documentation/HOME_ASSISTANT.md).
 
 ---
 
@@ -137,7 +137,7 @@ docker run -d \
 
 > `POSTGRES_PASSWORD` is omitted -- a strong random password is auto-generated on first start and saved to `/data/.postgres_password`. Pass `-e POSTGRES_PASSWORD=yourpassword` explicitly if you need a known value (e.g. to connect with an external DB tool).
 > **HTTPS proxy:** omit `-e AUTH_COOKIE_SECURE=false` (or set it to `true`) when the container sits behind a TLS-terminating reverse proxy.
-> **Logging in:** without further configuration the web login uses your `SAIC_USER` / `SAIC_PASSWORD`. Set `AUTH_USERNAME` / `AUTH_PASSWORD` for separate credentials, or point GarageStack at your identity provider -- see [`AUTHENTICATION.md`](AUTHENTICATION.md).
+> **Logging in:** without further configuration the web login uses your `SAIC_USER` / `SAIC_PASSWORD`. Set `AUTH_USERNAME` / `AUTH_PASSWORD` for separate credentials, or point GarageStack at your identity provider -- see [`AUTHENTICATION.md`](documentation/AUTHENTICATION.md).
 
 **Unraid:** import `unraid/garagestack.xml` from Community Apps and fill in the variables in the template UI.
 
@@ -178,9 +178,9 @@ Then open `.env` and fill in at minimum:
 
 `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` are optional; leave them empty to disable push notifications.
 
-`HA_MQTT_USERNAME` / `HA_MQTT_PASSWORD` are optional and create a restricted broker login for Home Assistant. See [`HOME_ASSISTANT.md`](HOME_ASSISTANT.md).
+`HA_MQTT_USERNAME` / `HA_MQTT_PASSWORD` are optional and create a restricted broker login for Home Assistant. See [`HOME_ASSISTANT.md`](documentation/HOME_ASSISTANT.md).
 
-Sign-in is configured separately: the built-in login reuses `SAIC_USER` / `SAIC_PASSWORD` unless you set `AUTH_USERNAME` / `AUTH_PASSWORD`, and setting `OIDC_AUTHORITY` switches GarageStack over to your identity provider. See [`AUTHENTICATION.md`](AUTHENTICATION.md).
+Sign-in is configured separately: the built-in login reuses `SAIC_USER` / `SAIC_PASSWORD` unless you set `AUTH_USERNAME` / `AUTH_PASSWORD`, and setting `OIDC_AUTHORITY` switches GarageStack over to your identity provider. See [`AUTHENTICATION.md`](documentation/AUTHENTICATION.md).
 
 `TYRE_PRESSURE_LOW_BAR` / `TYRE_PRESSURE_GOOD_BAR` / `TYRE_PRESSURE_HIGH_BAR` are optional and default to `2.2` / `2.6` / `3.2` bar; override them to match your vehicle's placarded tyre pressure (see [Push notifications](#push-notifications) below).
 
@@ -534,7 +534,7 @@ All three POI types share the same tile-based PostgreSQL cache:
 ## Security defaults
 
 - API routes require login.
-- Sign-in goes through your own identity provider when `OIDC_AUTHORITY` is configured, which also disables the built-in password login unless you keep it on with `AUTH_PASSWORD_LOGIN_ENABLED=true`. Without a provider, the built-in login reuses the configured MG account credentials unless `AUTH_USERNAME`/`AUTH_PASSWORD` are set. Full reference: [`AUTHENTICATION.md`](AUTHENTICATION.md).
+- Sign-in goes through your own identity provider when `OIDC_AUTHORITY` is configured, which also disables the built-in password login unless you keep it on with `AUTH_PASSWORD_LOGIN_ENABLED=true`. Without a provider, the built-in login reuses the configured MG account credentials unless `AUTH_USERNAME`/`AUTH_PASSWORD` are set. Full reference: [`AUTHENTICATION.md`](documentation/AUTHENTICATION.md).
 - Sessions are encrypted, HTTP-only, `SameSite=Strict` cookies. Logout revokes the session server-side, not just the client-side cookie.
 - With an identity provider, restrict who may sign in -- at the provider itself or with `OIDC_ALLOWED_GROUPS` / `OIDC_ALLOWED_EMAILS`. Without a restriction, every account the provider accepts can sign in and control the car.
 - Login endpoints are rate-limited per IP address on top of the global limit.
