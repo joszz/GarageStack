@@ -34,12 +34,70 @@ internal static class DemoTrips
         }
     }
 
+    /// <summary>The odometer the demo car reports right now, partway through the trip in progress.</summary>
+    public const double CurrentOdometerKm = 24852;
+
     private static readonly Lazy<IReadOnlyList<TripDto>> _all =
         new(() => [.. BuildTrips().OrderBy(t => t.StartedAt).Select((t, i) => t with { Index = i })],
             LazyThreadSafetyMode.ExecutionAndPublication);
 
     /// <summary>Every demo trip, oldest first, ending with the one in progress.</summary>
     public static IReadOnlyList<TripDto> All => _all.Value;
+
+    private static readonly Lazy<IReadOnlyList<TripLogEntry>> _log =
+        new(BuildLog, LazyThreadSafetyMode.ExecutionAndPublication);
+
+    /// <summary>The finished demo trips as the trip log first shows them, oldest first.</summary>
+    public static IReadOnlyList<TripLogEntry> Log => _log.Value;
+
+    // A few of each purpose, with the oldest trips left unclassified so the demo shows every state
+    // a trip log line can be in.
+    private static readonly Dictionary<long, TripPurpose> Purposes = new()
+    {
+        [1] = TripPurpose.Business,
+        [2] = TripPurpose.Business,
+        [3] = TripPurpose.Private,
+        [4] = TripPurpose.Business,
+        [5] = TripPurpose.Private,
+        [6] = TripPurpose.Private,
+        [7] = TripPurpose.Commute,
+    };
+
+    private static readonly Dictionary<long, string> Notes = new()
+    {
+        [4] = "Client meeting",
+    };
+
+    // Roads wind between the fixes a trip is drawn from, so the odometer covers a little more
+    // ground than the straight lines through them.
+    private const double RoadFactor = 1.08;
+
+    // The odometer is counted back from the live reading, so the readings run on from one trip to
+    // the next and end where the car is now.
+    private static List<TripLogEntry> BuildLog()
+    {
+        var finished = All.Where(t => t.Id is not null).ToList();
+        var entries = new TripLogEntry[finished.Count];
+        var odometer = CurrentOdometerKm - InProgressDistanceKm;
+
+        for (var i = finished.Count - 1; i >= 0; i--)
+        {
+            var trip = finished[i];
+            var id = trip.Id!.Value;
+            var start = odometer - trip.DistanceKm * RoadFactor;
+            entries[i] = new TripLogEntry(
+                id, trip.StartedAt, trip.EndedAt, trip.DistanceKm,
+                trip.Points[0].Latitude, trip.Points[0].Longitude,
+                trip.Points[^1].Latitude, trip.Points[^1].Longitude,
+                Math.Round(start, 1), Math.Round(odometer, 1),
+                StartPlace: null, EndPlace: null,
+                Purposes.TryGetValue(id, out var purpose) ? purpose : null,
+                Notes.GetValueOrDefault(id));
+            odometer = start;
+        }
+
+        return [.. entries];
+    }
 
     private static List<TripDto> BuildTrips()
     {

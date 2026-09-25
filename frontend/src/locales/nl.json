@@ -3,6 +3,7 @@
     "dashboard": "Dashboard",
     "statistics": "Statistieken",
     "map": "Kaart",
+    "tripLog": "Rittenregistratie",
     "maintenance": "Onderhoud",
     "menuLabel": "Menu"
   },
@@ -518,6 +519,46 @@
     "interior": "Interieur",
     "exterior": "Exterieur",
     "speed": "Snelheid"
+  },
+  "tripLog": {
+    "title": "Rittenregistratie",
+    "subtitle": "Leg per rit vast waarvoor die was en exporteer de registratie als spreadsheet, met de adressen en kilometerstanden die een rittenregistratie vraagt. Ritten verschijnen hier een paar minuten nadat de auto geparkeerd is.",
+    "year": "Jaar",
+    "month": "Maand",
+    "wholeYear": "Heel het jaar",
+    "totalsLabel": "Afstand per doel",
+    "totalLabel": "{purpose} ({n})",
+    "classifyAll": "{n} rit heeft nog geen doel. Markeer als: | {n} ritten hebben nog geen doel. Markeer ze allemaal als:",
+    "purposeLabel": "Doel",
+    "purpose": {
+      "business": "Zakelijk",
+      "commute": "Woon-werk",
+      "private": "Privé",
+      "unclassified": "Niet ingedeeld"
+    },
+    "notesLabel": "Notities",
+    "notesPlaceholder": "Notities, bijv. bij wie je was",
+    "odometer": "Kilometerstand aan het begin en eind van de rit",
+    "distanceFromOdometer": "Afstand volgens de kilometerteller",
+    "distanceFromGps": "Afstand langs de GPS-punten; de auto gaf voor deze rit geen kilometerstand door",
+    "resolvingPlaces": "Adres wordt opgezocht",
+    "placesOff": "Plaatsnamen staan uit, dus adressen worden als coördinaten getoond. Zet ze aan onder Instellingen > Kaart.",
+    "export": "CSV exporteren",
+    "exportWhileResolving": "Sommige adressen worden nog opgezocht; die worden als coördinaten geëxporteerd",
+    "saveFailed": "Je wijziging kon niet worden opgeslagen. Probeer het opnieuw.",
+    "empty": "Geen opgeslagen ritten in deze periode.",
+    "csv": {
+      "date": "Datum",
+      "departed": "Vertrek",
+      "arrived": "Aankomst",
+      "from": "Vertrekadres",
+      "to": "Aankomstadres",
+      "odometerStart": "Beginstand (km)",
+      "odometerEnd": "Eindstand (km)",
+      "distance": "Afstand (km)",
+      "purpose": "Soort rit",
+      "notes": "Notities"
+    }
   },
   "maintenance": {
     "title": "Onderhoud",

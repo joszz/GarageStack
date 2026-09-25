@@ -388,6 +388,16 @@ public class TelemetryRepository(
             .Select(s => (DateTime?)s.RecordedAt)
             .FirstOrDefaultAsync(ct);
 
+    // Newest first rather than a MAX: this walks the (VehicleId, RecordedAt) index backwards and
+    // stops at the first row carrying a reading, where MAX would read every row before `at`.
+    public Task<double?> GetOdometerAtAsync(int vehicleId, DateTime at, CancellationToken ct = default) =>
+        db.TelemetrySnapshots
+            .AsNoTracking()
+            .Where(s => s.VehicleId == vehicleId && s.RecordedAt <= at && s.OdometerKm != null)
+            .OrderByDescending(s => s.RecordedAt)
+            .Select(s => s.OdometerKm)
+            .FirstOrDefaultAsync(ct);
+
     public Task<LastTripSummary?> GetLastTripSummaryAsync(int vehicleId, CancellationToken ct = default) =>
         db.TelemetrySnapshots
             .AsNoTracking()

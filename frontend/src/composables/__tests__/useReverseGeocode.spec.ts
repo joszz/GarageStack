@@ -14,9 +14,10 @@ const mockReverseGeocode =
 
 // The factory runs when the composable is first imported inside a test, which is after this
 // module's own initialisation, so referencing the mock here is safe.
-vi.mock('@/services/mapApi', () => ({
+// Only the requests are faked: the batch size and the retry pacing stay the real ones.
+vi.mock('@/services/mapApi', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/services/mapApi')>()),
   mapApi: { reverseGeocode: mockReverseGeocode },
-  MAX_GEOCODE_POINTS_PER_REQUEST: 60,
 }))
 
 function city(name: string): Place {

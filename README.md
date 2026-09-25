@@ -8,6 +8,7 @@ GarageStack is a free, open-source vehicle monitoring dashboard for **modern MG 
 
 - **Live dashboard** -- Real-time vehicle telemetry displayed as configurable cards. Cards are automatically shown or hidden based on your vehicle type (HEV, PHEV, BEV) and can be reordered or toggled individually in the dashboard's edit mode.
 - **Trip history** -- Browse past journeys on an interactive map with route playback and heatmap visualisation to identify frequently driven roads. Each trip is saved to the database a few minutes after the car parks. After upgrading from a version that did not save trips, the existing history is saved in the background on the Worker's first start.
+- **Trip log** -- Mark each trip as business, commute or private, add notes, and export a month or a year as a spreadsheet with the addresses and odometer readings a tax trip log (such as the Dutch *rittenregistratie*) asks for. See [Trip log](#trip-log).
 - **Energy statistics** -- Track daily energy consumption, efficiency (Wh/km on a plug-in car, L/100 km on a hybrid), fuel use, electric share, average driving speed, and more over a configurable time window.
 - **Remote commands** -- Trigger climate pre-conditioning, lock or unlock the car, and activate the horn and lights remotely from the dashboard. Each command reports whether the car carried it out, and if it refused, the reason the MG servers gave.
 - **Push notifications** -- Browser and in-app alerts for key events: engine started, low tyre pressure, low EV battery, car left unlocked, doors or windows left open, and the messages the official MG app receives.
@@ -323,6 +324,21 @@ docker run --rm node:lts-alpine npx --yes web-push generate-vapid-keys
 Copy the public key to `VAPID_PUBLIC_KEY` and the private key to `VAPID_PRIVATE_KEY` in your `.env` file (or as container environment variables). Keep the private key secret -- regenerating it invalidates all existing push subscriptions, requiring users to re-enable notifications in the browser.
 
 Note: "keys left in the car" is not currently supported because the SAIC MQTT gateway does not expose a key-in-vehicle sensor.
+
+---
+
+## Trip log
+
+**Trip log** in the sidebar lists the saved trips for a month or a whole year. For each trip it shows the date and times, the addresses it left from and arrived at, and the odometer at either end.
+
+- **Purpose.** Mark a trip as business, commute or private. Choosing the same purpose again clears it. When trips in the period have no purpose yet, one button gives them all the same one; trips that already have a purpose keep it.
+- **Notes.** Record anything a trip log should say, such as who you visited or why you took another route. Notes save when you leave the field.
+- **Totals.** The distance per purpose for the period is shown at the top.
+- **Distance.** A trip counts for the distance on its odometer when the car reported a reading at both ends. Otherwise it counts for the distance along its GPS fixes, which is a little short because the fixes cut corners.
+- **Addresses** are looked up once through the same OpenStreetMap geocoder as the map, and then kept with the trip for good, so a log exported next year still shows them. With place names switched off (Settings > Map, or `GEOCODING__ENABLED=false`), ends show as coordinates and no lookups are made.
+- **Export CSV** saves the period as a spreadsheet: date, departure and arrival time, from and to address, odometer start and end, distance, purpose and notes. The file follows the interface language: comma-separated in English, and semicolon-separated with decimal commas in Dutch, so it opens in columns in Excel either way.
+
+Only trips the Worker has saved can be logged, so the trip being driven, and one finished in the last few minutes, appear once the car has been parked for a while.
 
 ---
 

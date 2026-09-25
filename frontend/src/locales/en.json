@@ -3,6 +3,7 @@
     "dashboard": "Dashboard",
     "statistics": "Statistics",
     "map": "Map",
+    "tripLog": "Trip log",
     "maintenance": "Maintenance",
     "menuLabel": "Menu"
   },
@@ -518,6 +519,46 @@
     "interior": "Interior",
     "exterior": "Exterior",
     "speed": "Speed"
+  },
+  "tripLog": {
+    "title": "Trip log",
+    "subtitle": "Record what each trip was for and export the log as a spreadsheet, with the addresses and odometer readings a tax trip log asks for. Trips appear here a few minutes after the car parks.",
+    "year": "Year",
+    "month": "Month",
+    "wholeYear": "Whole year",
+    "totalsLabel": "Distance per purpose",
+    "totalLabel": "{purpose} ({n})",
+    "classifyAll": "{n} trip has no purpose yet. Mark it as: | {n} trips have no purpose yet. Mark them all as:",
+    "purposeLabel": "Purpose",
+    "purpose": {
+      "business": "Business",
+      "commute": "Commute",
+      "private": "Private",
+      "unclassified": "Unclassified"
+    },
+    "notesLabel": "Notes",
+    "notesPlaceholder": "Notes, e.g. who you visited",
+    "odometer": "Odometer at the start and end of the trip",
+    "distanceFromOdometer": "Distance on the odometer",
+    "distanceFromGps": "Distance along the GPS fixes; the car reported no odometer readings for this trip",
+    "resolvingPlaces": "Looking up the address",
+    "placesOff": "Place names are switched off, so addresses show as coordinates. Switch them on under Settings > Map.",
+    "export": "Export CSV",
+    "exportWhileResolving": "Some addresses are still being looked up; those export as coordinates",
+    "saveFailed": "Your change could not be saved. Try again.",
+    "empty": "No saved trips in this period.",
+    "csv": {
+      "date": "Date",
+      "departed": "Departure",
+      "arrived": "Arrival",
+      "from": "From",
+      "to": "To",
+      "odometerStart": "Odometer start (km)",
+      "odometerEnd": "Odometer end (km)",
+      "distance": "Distance (km)",
+      "purpose": "Purpose",
+      "notes": "Notes"
+    }
   },
   "maintenance": {
     "title": "Maintenance",

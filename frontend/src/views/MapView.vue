@@ -34,6 +34,7 @@ import {
   OVER_LIMIT_TOLERANCE_KPH,
 } from '@/utils/speedLimits'
 import { daysAgoIso } from '@/utils/dates'
+import { intlLocale } from '@/utils/format'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -56,7 +57,7 @@ const isBev = computed(() => vehicleType.value === 'bev')
 const vehicleTypeKnown = computed(() => vehicleType.value !== 'unknown')
 const carTakesFuel = computed(() => vehicleTypeKnown.value && !isBev.value)
 const carTakesCharge = computed(() => vehicleTypeKnown.value && !isHev.value)
-const displayLocale = computed(() => (uiSettingsStore.locale === 'nl' ? 'nl-NL' : 'en-US'))
+const displayLocale = computed(() => intlLocale(uiSettingsStore.locale))
 const selectedTripIndex = ref<number | null>(null)
 // Plain refs on their stores already (Composition-API-style defineStore) - storeToRefs gives
 // directly writable, reactive bindings with no computed({get, set}) wrapper needed.

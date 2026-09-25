@@ -1,5 +1,6 @@
 using GarageStack.Core.Helpers;
 using GarageStack.Core.Interfaces;
+using GarageStack.Core.Models;
 
 namespace GarageStack.Worker.Services;
 
@@ -52,7 +53,7 @@ public class TripRecorder(ITelemetryRepository telemetry, ITripRepository trips,
                 segmentation = TripSegmenter.Segment(fixes, DateTime.MaxValue);
             }
 
-            var closed = segmentation.Closed;
+            var closed = await WithOdometerAsync(vehicleId, segmentation.Closed, ct);
             var next = segmentation.OpenSince ?? until;
             await trips.SaveRecordedAsync(vehicleId, closed, next, ct);
             saved += closed.Count;
@@ -62,5 +63,23 @@ public class TripRecorder(ITelemetryRepository telemetry, ITripRepository trips,
         }
 
         return saved;
+    }
+
+    // The start reading is the last one before the car moved off. The end reading is taken once the
+    // car has been parked for as long as it takes to end a trip: the car reports its final mileage
+    // a poll or two after it stops, and the next trip cannot start before that much time has passed.
+    private async Task<IReadOnlyList<RecordedTrip>> WithOdometerAsync(
+        int vehicleId, IReadOnlyList<TripDto> closed, CancellationToken ct)
+    {
+        var recorded = new List<RecordedTrip>(closed.Count);
+        foreach (var trip in closed)
+        {
+            recorded.Add(new RecordedTrip(
+                trip,
+                await telemetry.GetOdometerAtAsync(vehicleId, trip.StartedAt, ct),
+                await telemetry.GetOdometerAtAsync(vehicleId, trip.EndedAt + TripSegmenter.ParkThreshold, ct)));
+        }
+
+        return recorded;
     }
 }

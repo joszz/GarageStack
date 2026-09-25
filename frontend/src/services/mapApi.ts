@@ -89,6 +89,18 @@ export interface MapMatchResponse {
 /** Mirrors GeocodeDefaults.MaxPointsPerRequest: the server rejects a larger batch. */
 export const MAX_GEOCODE_POINTS_PER_REQUEST = 60
 
+/**
+ * The pause between rounds while place names fill in. The geocoder upstream of the API answers
+ * about one lookup per second, so asking any faster only spends the API's rate limit.
+ */
+export const GEOCODE_RETRY_DELAY_MS = 900
+
+/**
+ * Rounds a place may go unanswered before it is given up on for the session, so an upstream
+ * outage cannot keep a client asking for as long as the page is open.
+ */
+export const GEOCODE_MAX_ATTEMPTS = 4
+
 /** Mirrors MapMatchDefaults.MaxPointsPerRequest: the server rejects a longer trace. */
 export const MAX_MATCH_POINTS_PER_REQUEST = 600
 

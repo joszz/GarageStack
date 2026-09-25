@@ -43,3 +43,22 @@ export function addressLabel(place: Place | null | undefined): string | null {
   if (parts.length > 0) return parts.join(', ')
   return clean(place.displayName)
 }
+
+/**
+ * The address as a letter would carry it, postcode before the city: "Grote Markt 1, 8011 PK
+ * Zwolle". For a trip log, where a street and city alone can be ambiguous.
+ */
+export function postalAddressLabel(place: Place | null | undefined): string | null {
+  if (!place) return null
+  const locality = [clean(place.postcode), cityName(place)].filter(Boolean).join(' ')
+  const parts = [streetName(place), locality || null].filter(
+    (part): part is string => part !== null,
+  )
+  if (parts.length > 0) return parts.join(', ')
+  return clean(place.displayName)
+}
+
+/** A coordinate as text, to about a metre: what a place reads as when it has no name. */
+export function coordinateLabel(lat: number, lng: number): string {
+  return `${lat.toFixed(5)}, ${lng.toFixed(5)}`
+}
