@@ -231,7 +231,8 @@
     "chargeLimit": "Laadstroomlimiet",
     "refresh": "Vernieuwen",
     "pending": "Verstuurd - wachten op auto...",
-    "error": "Commando mislukt"
+    "error": "Commando mislukt",
+    "rejected": "De auto heeft het commando niet uitgevoerd"
   },
   "trips": {
     "title": "Ritgeschiedenis",

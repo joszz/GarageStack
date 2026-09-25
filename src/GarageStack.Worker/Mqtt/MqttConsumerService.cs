@@ -181,11 +181,25 @@ public class MqttConsumerService(
             return;
         }
 
+        if (GatewayCommandResult.TryParse(subtopic, payload, out var commandResult))
+        {
+            // The gateway publishes results retained, so the broker replays the last one per
+            // command on every (re)subscribe. That is an old answer, and forwarding it would show
+            // a stale failure or release a later command's gate early.
+            if (e.ApplicationMessage.Retain)
+                logger.LogDebug("Skipping retained command result - VIN={Vin} subtopic={Subtopic}", vin, subtopic);
+            else
+                await ForwardCommandResultAsync(vin, saicUser, commandResult, ct);
+            return;
+        }
+
         var patch = new TelemetrySnapshot();
         if (!TelemetryMapper.ApplyMessage(patch, subtopic, payload))
         {
             var ns = subtopic.Split('/')[0];
-            if (ns is "info" or "refresh" or "_internal" or "available")
+            // "command" is the gateway's command/error event, which repeats the failure its
+            // {topic}/result already carried.
+            if (ns is "info" or "refresh" or "_internal" or "available" or "command")
                 logger.LogDebug("MQTT metadata (skipped) - VIN={Vin} subtopic={Subtopic}", vin, subtopic);
             else
                 logger.LogWarning("Unmapped telemetry topic - VIN={Vin} subtopic={Subtopic} payloadBytes={PayloadBytes}", vinForLog, subtopic, payload.Length);
@@ -217,6 +231,29 @@ public class MqttConsumerService(
         catch (Exception ex)
         {
             logger.LogError(ex, "Failed to persist telemetry for VIN={Vin} topic={Topic}", vinForLog, LogRedaction.MqttTopic(topic));
+        }
+    }
+
+    // Hands the gateway's answer to the Api, which releases its command gate and tells the browser.
+    private async Task ForwardCommandResultAsync(string vin, string saicUser, GatewayCommandResult result, CancellationToken ct)
+    {
+        var vinForLog = LogRedaction.Vin(vin);
+        if (result.Success)
+            logger.LogInformation("Command {Topic} succeeded for VIN={Vin}", result.Topic, vinForLog);
+        else
+            logger.LogWarning("Command {Topic} failed for VIN={Vin}: {Detail}", result.Topic, vinForLog, result.Detail);
+
+        try
+        {
+            var resolved = await ResolveVehicleInNewScopeAsync(vin, saicUser, ct);
+            using var scope = resolved.Scope;
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var payload = new CommandResultPayload(resolved.Vehicle.Id, vin, result.Topic, result.Success, result.Detail);
+            await db.Database.NotifyAsync(PgChannels.CommandResult, payload.ToJson(), ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to forward command result for VIN={Vin} topic={Topic}", vinForLog, result.Topic);
         }
     }
 

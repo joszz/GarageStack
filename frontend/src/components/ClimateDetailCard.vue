@@ -3,7 +3,9 @@ import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ExpandableStatusCard from './ExpandableStatusCard.vue'
 import DetailListItem from './DetailListItem.vue'
+import CommandFailure from './CommandFailure.vue'
 import { useVehicleCommand } from '@/composables/useVehicleCommand'
+import type { TelemetrySnapshot } from '@/services/vehicleApi'
 import { formatNumber } from '@/utils/format'
 
 const { t } = useI18n()
@@ -79,72 +81,75 @@ const commandKeys = [
 const anyPending = computed(() => commandKeys.some((k) => isPending(k)))
 const isApplying = computed(() => anyPending.value || commandKeys.some((k) => sending.value === k))
 
-const hasPendingChanges = computed(() => {
-  if (props.climateOn !== null && localClimateOn.value !== props.climateOn) return true
-  if (props.rearWindowDefroster !== null && localRearDefroster.value !== props.rearWindowDefroster)
-    return true
+interface ClimateChange {
+  command: (typeof commandKeys)[number]
+  value: string
+  isConfirmed: (s: TelemetrySnapshot) => boolean
+}
+
+// What Apply sends, in the order it sends it. The button's enabled state reads the same list, so
+// the two cannot disagree about what counts as a change.
+const pendingChanges = computed((): ClimateChange[] => {
+  const changes: ClimateChange[] = []
+  const temperature = sliderTemp.value
   if (
     (props.climateOn !== null || props.remoteTemperature !== null) &&
-    sliderTemp.value !== (props.remoteTemperature ?? 22)
+    temperature !== (props.remoteTemperature ?? 22)
   )
-    return true
-  if (props.heatedSeatFrontLeft !== null && seatLeftLocal.value !== props.heatedSeatFrontLeft)
-    return true
-  if (props.heatedSeatFrontRight !== null && seatRightLocal.value !== props.heatedSeatFrontRight)
-    return true
-  return false
+    changes.push({
+      command: 'climate-temperature',
+      value: String(temperature),
+      isConfirmed: (s) => s.remoteTemperature === temperature,
+    })
+  const climateOn = localClimateOn.value
+  if (props.climateOn !== null && climateOn !== props.climateOn)
+    changes.push({
+      command: 'climate',
+      value: climateOn ? 'on' : 'off',
+      isConfirmed: (s) => s.climateOn === climateOn,
+    })
+  const defroster = localRearDefroster.value
+  if (props.rearWindowDefroster !== null && defroster !== props.rearWindowDefroster)
+    changes.push({
+      command: 'rear-defroster',
+      value: defroster ? 'on' : 'off',
+      isConfirmed: (s) => s.rearWindowDefroster === defroster,
+    })
+  const seatLeft = seatLeftLocal.value
+  if (props.heatedSeatFrontLeft !== null && seatLeft !== props.heatedSeatFrontLeft)
+    changes.push({
+      command: 'seat-left',
+      value: String(seatLeft),
+      isConfirmed: (s) => s.heatedSeatFrontLeft === seatLeft,
+    })
+  const seatRight = seatRightLocal.value
+  if (props.heatedSeatFrontRight !== null && seatRight !== props.heatedSeatFrontRight)
+    changes.push({
+      command: 'seat-right',
+      value: String(seatRight),
+      isConfirmed: (s) => s.heatedSeatFrontRight === seatRight,
+    })
+  return changes
 })
+
+const hasPendingChanges = computed(() => pendingChanges.value.length > 0)
 
 // The real vehicle API only processes one command at a time (each can take up to ~30s
 // to reach the car), so a batch of changes must be sent one at a time, waiting for each
 // to settle before sending the next - firing them all at once queues later commands
-// behind earlier ones and makes them miss their own confirmation window.
+// behind earlier ones and makes them miss their own confirmation window. The first command
+// that fails ends the batch: a car that refused one (asleep, out of reach) refuses the rest
+// too, and the next send would clear the error before anyone read it.
 async function applyAll() {
   applyInProgress.value = true
   try {
-    if (
-      (props.climateOn !== null || props.remoteTemperature !== null) &&
-      sliderTemp.value !== (props.remoteTemperature ?? 22)
-    ) {
-      const target = sliderTemp.value
-      await send(
-        props.vin,
-        'climate-temperature',
-        String(target),
-        (s) => s.remoteTemperature === target,
-      )
-      await waitUntilSettled('climate-temperature')
-    }
-    if (props.climateOn !== null && localClimateOn.value !== props.climateOn) {
-      const target = localClimateOn.value
-      await send(props.vin, 'climate', target ? 'on' : 'off', (s) => s.climateOn === target)
-      await waitUntilSettled('climate')
-    }
-    if (
-      props.rearWindowDefroster !== null &&
-      localRearDefroster.value !== props.rearWindowDefroster
-    ) {
-      const target = localRearDefroster.value
-      await send(
-        props.vin,
-        'rear-defroster',
-        target ? 'on' : 'off',
-        (s) => s.rearWindowDefroster === target,
-      )
-      await waitUntilSettled('rear-defroster')
-    }
-    if (props.heatedSeatFrontLeft !== null && seatLeftLocal.value !== props.heatedSeatFrontLeft) {
-      const target = seatLeftLocal.value
-      await send(props.vin, 'seat-left', String(target), (s) => s.heatedSeatFrontLeft === target)
-      await waitUntilSettled('seat-left')
-    }
-    if (
-      props.heatedSeatFrontRight !== null &&
-      seatRightLocal.value !== props.heatedSeatFrontRight
-    ) {
-      const target = seatRightLocal.value
-      await send(props.vin, 'seat-right', String(target), (s) => s.heatedSeatFrontRight === target)
-      await waitUntilSettled('seat-right')
+    for (const change of pendingChanges.value) {
+      const sent = await send(props.vin, change.command, change.value, {
+        isConfirmed: change.isConfirmed,
+      })
+      if (!sent) break
+      await waitUntilSettled(change.command)
+      if (lastResult.value?.ok === false) break
     }
   } finally {
     applyInProgress.value = false
@@ -296,9 +301,11 @@ function onSeatRightChange(e: Event) {
     </div>
 
     <template #footer="{ close }">
-      <span v-if="lastResult && !lastResult.ok && !anyPending" class="text-danger me-auto">
-        {{ t('control.error') }}
-      </span>
+      <CommandFailure
+        v-if="lastResult && !lastResult.ok && !anyPending"
+        class="me-auto"
+        :detail="lastResult.detail"
+      />
       <button class="btn btn-outline-secondary" @click="close">
         {{ t('common.cancel') }}
       </button>

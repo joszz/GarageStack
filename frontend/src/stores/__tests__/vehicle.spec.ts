@@ -153,3 +153,22 @@ describe('useVehicleStore - fetchVehicles', () => {
     expect(store.loading).toBe(false)
   })
 })
+
+describe('useVehicleStore - applyCommandResult', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  it('is null before the gateway has answered anything', () => {
+    expect(useVehicleStore().lastCommandResult).toBeNull()
+  })
+
+  it('holds the latest answer for the command composables to pick up', () => {
+    const store = useVehicleStore()
+    const result = { command: 'lock', success: false, detail: 'vehicle is not online' }
+
+    store.applyCommandResult(result)
+
+    expect(store.lastCommandResult).toEqual(result)
+  })
+})

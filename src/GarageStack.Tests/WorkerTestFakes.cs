@@ -21,7 +21,15 @@ internal sealed class FakePushSender : IPushSender
 
 internal sealed class FakeServiceScopeFactory : IServiceScopeFactory
 {
-    public IServiceScope CreateScope() => new FakeScope();
+    // Every database step starts with a scope, so a count of zero means nothing was attempted.
+    private int _createdScopes;
+    public int CreatedScopes => Volatile.Read(ref _createdScopes);
+
+    public IServiceScope CreateScope()
+    {
+        Interlocked.Increment(ref _createdScopes);
+        return new FakeScope();
+    }
 
     private sealed class FakeScope : IServiceScope
     {

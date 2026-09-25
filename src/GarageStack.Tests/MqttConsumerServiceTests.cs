@@ -95,14 +95,16 @@ file sealed class FakeMqttClient : IMqttClient
     public Task WaitForConnectAsync(TimeSpan? timeout = null) =>
         _connectCalled.WaitAsync(timeout ?? TimeSpan.FromSeconds(5));
 
-    // Call from a test to simulate an incoming message on the subscribed topics.
-    public Task TriggerMessageAsync(string topic, string payload)
+    // Call from a test to simulate an incoming message on the subscribed topics. retain marks it as
+    // the broker's replay of a retained message rather than a live publish.
+    public Task TriggerMessageAsync(string topic, string payload, bool retain = false)
     {
         if (_msgHandler is null) return Task.CompletedTask;
 
         var message = new MqttApplicationMessageBuilder()
             .WithTopic(topic)
             .WithPayload(payload)
+            .WithRetainFlag(retain)
             .Build();
         var args = new MqttApplicationMessageReceivedEventArgs(
             "test-client", message, new MqttPublishPacket(), (_, _) => Task.CompletedTask);
@@ -128,8 +130,8 @@ file sealed class TestableMqttConsumerService : MqttConsumerService
 {
     private readonly FakeMqttClient _client;
 
-    public TestableMqttConsumerService(FakePushSender push, FakeMqttClient client)
-        : base(NullLogger<MqttConsumerService>.Instance, Options.Create(new MqttOptions()), new FakeServiceScopeFactory(), push, WorkerLocalizer.Notifications())
+    public TestableMqttConsumerService(FakePushSender push, FakeMqttClient client, FakeServiceScopeFactory? scopes = null)
+        : base(NullLogger<MqttConsumerService>.Instance, Options.Create(new MqttOptions()), scopes ?? new FakeServiceScopeFactory(), push, WorkerLocalizer.Notifications())
     {
         _client = client;
     }
@@ -488,5 +490,58 @@ public class MqttConsumerServiceHaDiscoveryTests
 
         await cts.CancelAsync();
         try { await serviceTask; } catch (OperationCanceledException) { }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Command results -- forwarding one to the Api starts by resolving the vehicle in a new scope,
+// so the fake scope factory's count tells a forwarded answer from a skipped one. The fake
+// resolves no services, so a forward then fails, which the service catches and logs.
+// ---------------------------------------------------------------------------
+
+public class MqttConsumerServiceCommandResultTests
+{
+    private const string LockResultTopic = "saic/user/vehicles/FAKEVN00000000001/doors/locked/result";
+
+    private static async Task<int> ScopesCreatedByAsync(string topic, string payload, bool retain)
+    {
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        var client = new FakeMqttClient();
+        var scopes = new FakeServiceScopeFactory();
+        var svc = new TestableMqttConsumerService(new FakePushSender(), client, scopes);
+        var serviceTask = svc.RunAsync(cts.Token);
+        await client.WaitForConnectAsync();
+
+        await client.TriggerMessageAsync(topic, payload, retain);
+
+        await cts.CancelAsync();
+        try { await serviceTask; } catch (OperationCanceledException) { }
+        return scopes.CreatedScopes;
+    }
+
+    [Theory]
+    [InlineData("Success")]
+    [InlineData("Failed: vehicle is not online")]
+    public async Task LiveResult_IsForwarded(string payload)
+    {
+        Assert.Equal(1, await ScopesCreatedByAsync(LockResultTopic, payload, retain: false));
+    }
+
+    // The broker replays the last retained result per command on every subscribe: forwarding it
+    // would show a browser an old failure as if it had just happened.
+    [Fact]
+    public async Task RetainedResult_IsNotForwarded()
+    {
+        Assert.Equal(0, await ScopesCreatedByAsync(LockResultTopic, "Failed: vehicle is not online", retain: true));
+    }
+
+    // The gateway repeats every failure as a command/error event; the /result topic already carried it.
+    [Fact]
+    public async Task CommandErrorEvent_IsNotForwarded()
+    {
+        const string payload = """{"event_type":"command_error","command":"doors/locked/set","detail":"vehicle is not online"}""";
+
+        Assert.Equal(0, await ScopesCreatedByAsync(
+            "saic/user/vehicles/FAKEVN00000000001/command/error", payload, retain: false));
     }
 }

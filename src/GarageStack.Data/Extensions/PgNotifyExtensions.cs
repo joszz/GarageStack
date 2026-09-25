@@ -13,8 +13,9 @@ public static class PgChannels
     public const string TelemetryUpdated = "telemetry_updated";
     public const string NotificationCreated = "notification_created";
     public const string TripCompleted = "trip_completed";
+    public const string CommandResult = "command_result";
 
-    public static readonly IReadOnlyList<string> All = [TelemetryUpdated, NotificationCreated, TripCompleted];
+    public static readonly IReadOnlyList<string> All = [TelemetryUpdated, NotificationCreated, TripCompleted, CommandResult];
 }
 
 public static class PgNotifyExtensions

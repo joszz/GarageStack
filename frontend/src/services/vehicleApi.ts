@@ -142,6 +142,17 @@ export interface Trip {
   points: TripPoint[]
 }
 
+/**
+ * The gateway's answer to a command, pushed over SignalR once the car carried it out or refused.
+ * `command` is the name it was sent under (e.g. "lock"); `detail` is the gateway's reason for a
+ * refusal, in its own words (English), or null.
+ */
+export interface CommandResult {
+  command: string
+  success: boolean
+  detail: string | null
+}
+
 export interface TyrePressureThresholds {
   lowBar: number
   goodBar: number

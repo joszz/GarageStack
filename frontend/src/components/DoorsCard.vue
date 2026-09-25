@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import ExpandableStatusCard from './ExpandableStatusCard.vue'
 import DetailListItem from './DetailListItem.vue'
 import CommandButton from './CommandButton.vue'
+import CommandFailure from './CommandFailure.vue'
 import { useVehicleCommand } from '@/composables/useVehicleCommand'
 import { useBooleanStatusList } from '@/composables/useBooleanStatusList'
 
@@ -90,7 +91,13 @@ const variant = computed(() => {
 async function handleLockToggle() {
   if (isPending('lock')) return
   const newLocked = !effectiveLocked.value
-  await send(props.vin, 'lock', newLocked ? 'True' : 'False', (s) => s.isLocked === newLocked)
+  await send(props.vin, 'lock', newLocked ? 'True' : 'False', {
+    isConfirmed: (s) => s.isLocked === newLocked,
+    // Refused, so the car is as it was: show what telemetry says again.
+    onRejected: () => {
+      localLocked.value = null
+    },
+  })
   if (lastResult.value?.ok) localLocked.value = newLocked
 }
 </script>
@@ -127,12 +134,11 @@ async function handleLockToggle() {
           @click="handleLockToggle"
         />
       </div>
-      <div
+      <CommandFailure
         v-if="lastResult?.key === 'lock' && !lastResult.ok && !isPending('lock')"
-        class="detail-list__feedback text-danger"
-      >
-        {{ t('control.error') }}
-      </div>
+        class="detail-list__feedback"
+        :detail="lastResult.detail"
+      />
     </div>
 
     <div v-if="doorList.length > 0" class="detail-list" :class="isLocked !== null ? 'mt-3' : ''">

@@ -92,6 +92,7 @@ const {
   onTelemetryUpdated: (snapshot) => vehicleStore.applyLiveStatus(snapshot),
   onNotificationReceived: (notification) => prependNotification(notification),
   onTripCompleted: () => vehicleStore.notifyTripCompleted(),
+  onCommandResult: (result) => vehicleStore.applyCommandResult(result),
 })
 
 // Only show "paused" once we've actually attempted a connection, not during the

@@ -5,6 +5,24 @@ namespace GarageStack.Tests;
 
 public class VehicleCommandGateTests
 {
+    private const string LockTopic = "doors/locked";
+    private const string ClimateTopic = "climate/remoteClimateState";
+
+    // Long enough that a test waiting on it would hit its own 2s timeout first: anything that
+    // finishes inside that timeout was released by something other than the hold running out.
+    private static readonly TimeSpan LongHold = TimeSpan.FromSeconds(30);
+
+    private static Task Publish() => Task.CompletedTask;
+
+    // Starts a second command for the VIN and reports whether it got through within 2s.
+    private static async Task<bool> NextCommandRunsAsync(VehicleCommandGate gate, string vin, CancellationToken ct)
+    {
+        var ran = false;
+        var next = gate.RunAsync(vin, LockTopic, () => { ran = true; return Task.CompletedTask; }, ct);
+        var completed = await Task.WhenAny(next, Task.Delay(TimeSpan.FromSeconds(2), ct));
+        return completed == next && ran;
+    }
+
     [Fact]
     public async Task RunAsync_InvokesPublish()
     {
@@ -12,7 +30,7 @@ public class VehicleCommandGateTests
         var gate = new VehicleCommandGate(TimeSpan.FromMilliseconds(10));
         var published = false;
 
-        await gate.RunAsync("VIN1", () => { published = true; return Task.CompletedTask; }, ct);
+        await gate.RunAsync("VIN1", LockTopic, () => { published = true; return Task.CompletedTask; }, ct);
 
         Assert.True(published);
     }
@@ -33,13 +51,13 @@ public class VehicleCommandGateTests
         var firstPublishedAt = 0L;
         var secondStartedAt = 0L;
 
-        await gate.RunAsync("VIN1", () =>
+        await gate.RunAsync("VIN1", LockTopic, () =>
         {
             firstPublishedAt = Stopwatch.GetTimestamp();
             return Task.CompletedTask;
         }, ct);
 
-        await gate.RunAsync("VIN1", () =>
+        await gate.RunAsync("VIN1", LockTopic, () =>
         {
             secondStartedAt = Stopwatch.GetTimestamp();
             return Task.CompletedTask;
@@ -53,36 +71,69 @@ public class VehicleCommandGateTests
     public async Task RunAsync_DifferentVins_AreNotSerialized()
     {
         var ct = TestContext.Current.CancellationToken;
-        // Deliberately long hold: if VIN2 incorrectly shared VIN1's gate, the second RunAsync
-        // below would still be waiting when the 2s timeout below elapses.
-        var gate = new VehicleCommandGate(TimeSpan.FromSeconds(30));
+        var gate = new VehicleCommandGate(LongHold);
 
-        await gate.RunAsync("VIN1", () => Task.CompletedTask, ct);
+        await gate.RunAsync("VIN1", LockTopic, Publish, ct);
 
-        var vin2Ran = false;
-        var vin2Task = gate.RunAsync("VIN2", () => { vin2Ran = true; return Task.CompletedTask; }, ct);
-        var completed = await Task.WhenAny(vin2Task, Task.Delay(TimeSpan.FromSeconds(2), ct));
-
-        Assert.Same(vin2Task, completed);
-        Assert.True(vin2Ran);
+        Assert.True(await NextCommandRunsAsync(gate, "VIN2", ct));
     }
 
     [Fact]
     public async Task RunAsync_PublishThrows_ReleasesGateImmediatelyAndRethrows()
     {
         var ct = TestContext.Current.CancellationToken;
-        // Deliberately long hold: if a failed publish still held the gate, the second RunAsync
-        // below would still be waiting when the 2s timeout below elapses.
-        var gate = new VehicleCommandGate(TimeSpan.FromSeconds(30));
+        var gate = new VehicleCommandGate(LongHold);
 
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            gate.RunAsync("VIN1", () => throw new InvalidOperationException("boom"), ct));
+            gate.RunAsync("VIN1", LockTopic, () => throw new InvalidOperationException("boom"), ct));
 
-        var secondRan = false;
-        var secondTask = gate.RunAsync("VIN1", () => { secondRan = true; return Task.CompletedTask; }, ct);
-        var completed = await Task.WhenAny(secondTask, Task.Delay(TimeSpan.FromSeconds(2), ct));
+        Assert.True(await NextCommandRunsAsync(gate, "VIN1", ct));
+    }
 
-        Assert.Same(secondTask, completed);
-        Assert.True(secondRan);
+    [Fact]
+    public async Task Complete_AnswerForTheHeldCommand_ReleasesTheGateEarly()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var gate = new VehicleCommandGate(LongHold);
+        await gate.RunAsync("VIN1", LockTopic, Publish, ct);
+
+        gate.Complete("VIN1", LockTopic);
+
+        Assert.True(await NextCommandRunsAsync(gate, "VIN1", ct));
+    }
+
+    // Home Assistant shares the broker, so an answer can belong to a command GarageStack never
+    // sent. The gateway is still busy with ours until its own answer arrives.
+    [Fact]
+    public async Task Complete_AnswerForAnotherCommand_KeepsTheGateHeld()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var gate = new VehicleCommandGate(LongHold);
+        await gate.RunAsync("VIN1", LockTopic, Publish, ct);
+
+        gate.Complete("VIN1", ClimateTopic);
+
+        Assert.False(await NextCommandRunsAsync(gate, "VIN1", ct));
+    }
+
+    [Fact]
+    public async Task Complete_AnswerForAnotherVin_KeepsTheGateHeld()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var gate = new VehicleCommandGate(LongHold);
+        await gate.RunAsync("VIN1", LockTopic, Publish, ct);
+
+        gate.Complete("VIN2", LockTopic);
+
+        Assert.False(await NextCommandRunsAsync(gate, "VIN1", ct));
+    }
+
+    // A late answer, arriving after the hold already ran out, must not throw or release anything.
+    [Fact]
+    public void Complete_NothingHeld_IsANoOp()
+    {
+        var gate = new VehicleCommandGate(LongHold);
+
+        gate.Complete("VIN1", LockTopic);
     }
 }
