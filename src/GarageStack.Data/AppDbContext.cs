@@ -64,6 +64,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             // saving a trip twice; this makes a slip there fail loudly instead of duplicating it.
             e.HasIndex(t => new { t.VehicleId, t.StartedAt }).IsUnique();
             e.Property(t => t.PointsJson).IsRequired();
+            e.Property(t => t.Notes).HasMaxLength(Trip.NotesMaxLength);
+            // Stored by name so the column reads the same in a query or a backup as in the API.
+            e.Property(t => t.Purpose).HasConversion<string>().HasMaxLength(16);
             e.HasOne(t => t.Vehicle)
              .WithMany()
              .HasForeignKey(t => t.VehicleId)

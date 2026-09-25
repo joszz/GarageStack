@@ -43,6 +43,12 @@ public class TripRecorderTests
             await Db.SaveChangesAsync(ct);
         }
 
+        public async Task AddOdometerAsync(DateTime at, double km, CancellationToken ct)
+        {
+            Db.TelemetrySnapshots.Add(new TelemetrySnapshot { VehicleId = Vehicle.Id, RecordedAt = at, OdometerKm = km });
+            await Db.SaveChangesAsync(ct);
+        }
+
         public Task<List<Trip>> SavedAsync(CancellationToken ct) =>
             Db.Trips.AsNoTracking().OrderBy(t => t.StartedAt).ToListAsync(ct);
 
@@ -57,6 +63,40 @@ public class TripRecorderTests
         (start.AddMinutes(10), 51.60, 50),
         (start.AddMinutes(11), 51.60, 0),
     ];
+
+    [Fact]
+    public async Task SavedTrip_CarriesTheOdometerFromBeforeItLeftToAfterItParked()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var s = new Setup();
+        await s.AddFixesAsync(Drive(T0), ct);
+        await s.AddOdometerAsync(T0.AddDays(-1), 24000.0, ct);   // stale, superseded
+        await s.AddOdometerAsync(T0.AddMinutes(-2), 24010.0, ct); // parked before leaving
+        await s.AddOdometerAsync(T0.AddMinutes(5), 24015.0, ct);  // mid-drive
+        await s.AddOdometerAsync(T0.AddMinutes(12), 24021.4, ct); // reported after parking
+        await s.AddOdometerAsync(T0.AddHours(3), 24050.0, ct);    // the next trip's, too late to count
+
+        await s.Recorder.RecordAsync(s.Vehicle.Id, T0.AddHours(4), ct);
+
+        var trip = Assert.Single(await s.SavedAsync(ct));
+        Assert.Equal(24010.0, trip.OdometerStartKm);
+        Assert.Equal(24021.4, trip.OdometerEndKm);
+        Assert.Equal((51.50, 51.60), (trip.StartLatitude, trip.EndLatitude));
+    }
+
+    [Fact]
+    public async Task SavedTrip_WithoutAnyOdometerReport_HasNone()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var s = new Setup();
+        await s.AddFixesAsync(Drive(T0), ct);
+
+        await s.Recorder.RecordAsync(s.Vehicle.Id, T0.AddHours(1), ct);
+
+        var trip = Assert.Single(await s.SavedAsync(ct));
+        Assert.Null(trip.OdometerStartKm);
+        Assert.Null(trip.OdometerEndKm);
+    }
 
     [Fact]
     public async Task NoFixes_SavesNothingAndSetsNoLine()

@@ -50,6 +50,13 @@ public interface ITelemetryRepository
     /// <summary>When the vehicle's first GPS fix was recorded, or null when it has never reported a position.</summary>
     Task<DateTime?> GetFirstGpsFixAtAsync(int vehicleId, CancellationToken ct = default);
 
+    /// <summary>
+    /// The odometer as last reported at or before <paramref name="at"/>, or null when the vehicle
+    /// had not reported one by then. The odometer only counts up, so the latest reading is the
+    /// reading at that moment.
+    /// </summary>
+    Task<double?> GetOdometerAtAsync(int vehicleId, DateTime at, CancellationToken ct = default);
+
     /// <summary>Distance and timestamp of the newest row that reported a journey in progress, or null when none exists.</summary>
     Task<LastTripSummary?> GetLastTripSummaryAsync(int vehicleId, CancellationToken ct = default);
 

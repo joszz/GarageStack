@@ -69,6 +69,17 @@ The gateway reports positions, not trips. `TripSegmenter` in Core cuts GPS fixes
 
 The frontend sees one list and can tell the two kinds apart only by `id`, which is null for a trip that has not been saved yet.
 
+### Trip log
+
+The trip log (`/trip-log`, `TripEndpoints`) shows only saved trips, because only a saved trip has somewhere to keep what the driver records about it.
+
+- **Odometer.** The recorder stores a reading for each end of a trip as it saves the trip. The start reading is the last one at or before the first fix. The end reading is the last one up to five minutes after the last moving fix. The car reports its final mileage a poll or two after it stops, and the next trip cannot start within those five minutes. The odometer only counts up, so the latest reading is the reading at that moment (`ITelemetryRepository.GetOdometerAtAsync`).
+- **Addresses.** `TripPlaceService` looks up both ends through `GeocodeService`, so it shares that cache and its budget of three upstream lookups per request. It then stores the answers on the trip (`StartPlaceJson`, `EndPlaceJson`). The geocode cache forgets a place after 90 days, which is too short for a log kept for a tax year. A "nothing mapped here" answer is shown but not stored, so the trip gets its address once OpenStreetMap has one. The browser asks in rounds until every end is known, the same way the map's trip list does, and stops when place names are switched off.
+- **Purpose and notes** are the only fields a driver changes. The purpose is stored by name and travels as `business`, `commute` or `private`. `TripPurposeJsonConverter` refuses numbers, which the stock enum converter would accept.
+- **Export** is built in the browser from the list on screen (`utils/tripLogCsv.ts`), so it matches what the driver checked. Fields are separated by commas in English and by semicolons in Dutch, where the comma is the decimal separator. The file starts with a UTF-8 byte order mark for Excel. Text that a spreadsheet would run as a formula gets a leading apostrophe.
+
+The `AddTripLog` migration clears the trips saved before it and resets the recording line, and the Worker saves them again with their new columns. Nothing is lost: until that migration, nothing a driver could enter was kept on a trip.
+
 ## Projects under `src/`
 
 | Project | Contains | Depends on |

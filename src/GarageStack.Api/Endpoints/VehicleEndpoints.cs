@@ -40,7 +40,7 @@ public static class VehicleEndpoints
     /// (end to now, start to end - defaultSpan) and clamps the span to maxSpan. Returns a 400
     /// IResult if the resulting range is inverted.
     /// </summary>
-    private static IResult? TryResolveDateRange(
+    internal static IResult? TryResolveDateRange(
         DateTimeOffset? from, DateTimeOffset? to, TimeSpan defaultSpan, TimeSpan maxSpan,
         out DateTime start, out DateTime end)
     {
@@ -122,22 +122,6 @@ public static class VehicleEndpoints
             return summary is null ? Results.NoContent() : Results.Ok(summary);
         })
         .WithSummary("Get last trip summary (distance and timestamp of most recent journey)");
-
-        vehicleGroup.MapGet("/trips", async (
-            HttpContext httpContext,
-            ITripRepository trips,
-            DateTimeOffset? from,
-            DateTimeOffset? to,
-            CancellationToken ct) =>
-        {
-            var vehicle = ResolveVehicleFilter.GetResolvedVehicle(httpContext);
-
-            var rangeError = TryResolveDateRange(from, to, TimeSpan.FromDays(30), TimeSpan.FromDays(90), out var start, out var end);
-            if (rangeError is not null) return rangeError;
-
-            return Results.Ok(await trips.GetTripsAsync(vehicle.Id, start, end, ct));
-        })
-        .WithSummary("Get trip history (saved trips, then the ones not saved yet, including the trip being driven)");
 
         vehicleGroup.MapPost("/commands/{command}", async (
             HttpContext httpContext,

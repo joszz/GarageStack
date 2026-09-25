@@ -1,0 +1,217 @@
+/* ── Period filters ───────────────────────────────────────── */
+
+.trip-log-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.trip-log-filters__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+/* ── Totals per purpose ───────────────────────────────────── */
+
+.trip-log-totals {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+/* ── Classify every unclassified trip at once ─────────────── */
+
+.trip-log-bulk {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  padding: 0.6rem 0.9rem;
+  margin-bottom: 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+}
+
+.trip-log-bulk__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+/* ── Trip list ────────────────────────────────────────────── */
+
+.trip-log-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.trip-log-item {
+  display: grid;
+  grid-template-areas:
+    'when route distance'
+    'actions actions actions';
+  grid-template-columns: 9rem minmax(0, 1fr) auto;
+  gap: 0.6rem 1rem;
+  align-items: center;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+  transition: opacity 0.15s;
+}
+
+.trip-log-item--saving {
+  opacity: 0.7;
+}
+
+.trip-log-item__when {
+  grid-area: when;
+  display: flex;
+  flex-direction: column;
+}
+
+.trip-log-item__date {
+  font-weight: 600;
+}
+
+.trip-log-item__route {
+  grid-area: route;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.trip-log-item__place {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.trip-log-item__arrow {
+  flex: none;
+  color: var(--color-text-muted);
+}
+
+.trip-log-item__distance {
+  grid-area: distance;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  white-space: nowrap;
+}
+
+.trip-log-item__km {
+  font-weight: 600;
+}
+
+.trip-log-item__actions {
+  grid-area: actions;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.trip-log-item__purpose {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.trip-log-item__notes {
+  flex: 1 1 12rem;
+  min-width: 0;
+  padding: 0.35rem 0.6rem;
+  font-size: 0.85rem;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-surface-2);
+  color: var(--color-text);
+}
+
+/* ── Purpose buttons ──────────────────────────────────────── */
+
+.trip-log-purpose {
+  --purpose-color: var(--color-primary);
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.6rem;
+  font-size: 0.78rem;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-surface-2);
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.trip-log-purpose--commute {
+  --purpose-color: var(--color-info);
+}
+
+.trip-log-purpose--private {
+  --purpose-color: var(--color-success);
+}
+
+.trip-log-purpose--active {
+  border-color: var(--purpose-color);
+  background: color-mix(in srgb, var(--purpose-color) 18%, var(--color-surface-2));
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.trip-log-purpose:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* ── Phones ───────────────────────────────────────────────── */
+
+@media (width <= 767px) {
+  .trip-log-totals {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
+  }
+
+  .trip-log-item {
+    grid-template-areas:
+      'when distance'
+      'route route'
+      'actions actions';
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  /* Half a phone's width cuts most addresses short, so they wrap here instead. */
+  .trip-log-item__route {
+    flex-wrap: wrap;
+    row-gap: 0.1rem;
+  }
+
+  .trip-log-item__place {
+    white-space: normal;
+  }
+
+  /* The three purposes share the row equally, and the notes take the next one. */
+  .trip-log-item__purpose {
+    flex: 1 1 100%;
+  }
+
+  .trip-log-purpose {
+    flex: 1;
+  }
+
+  .trip-log-item__notes {
+    flex-basis: 100%;
+  }
+}

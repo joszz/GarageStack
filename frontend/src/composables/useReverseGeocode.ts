@@ -1,6 +1,8 @@
 import { computed, reactive, ref, watch } from 'vue'
 import {
   mapApi,
+  GEOCODE_MAX_ATTEMPTS,
+  GEOCODE_RETRY_DELAY_MS,
   MAX_GEOCODE_POINTS_PER_REQUEST,
   type GeocodePrecision,
   type GeoPoint,
@@ -18,14 +20,6 @@ import { useUiSettingsStore } from '@/stores/settingsUi'
  * Module-scoped on purpose (as in useTyrePressureThresholds): the trip list and the dashboard's
  * location card share one cache and one queue instead of each running their own.
  */
-
-// The queue is drained in batches the endpoint accepts, with a pause between rounds so a cold
-// cache does not turn into a tight request loop against the API's rate limit.
-const RETRY_DELAY_MS = 900
-
-// A point the server could not resolve after this many rounds is given up on, so an upstream
-// outage cannot keep the queue spinning for the rest of the session.
-const MAX_ATTEMPTS_PER_POINT = 4
 
 // Cap on the points remembered for a language switch; browsing a long history should not grow
 // this without bound.
@@ -135,7 +129,7 @@ async function pump() {
         // than hammering a failing API. A later requestPlaces call starts the pump again.
         for (const { key, point } of batch) {
           point.attempts += 1
-          if (point.attempts >= MAX_ATTEMPTS_PER_POINT) queue.delete(key)
+          if (point.attempts >= GEOCODE_MAX_ATTEMPTS) queue.delete(key)
         }
         break
       }
@@ -163,11 +157,11 @@ async function pump() {
       if (unresolved.length === batch.length) {
         for (const { key, point } of unresolved) {
           point.attempts += 1
-          if (point.attempts >= MAX_ATTEMPTS_PER_POINT) queue.delete(key)
+          if (point.attempts >= GEOCODE_MAX_ATTEMPTS) queue.delete(key)
         }
       }
 
-      if (queue.size > 0) await delay(RETRY_DELAY_MS)
+      if (queue.size > 0) await delay(GEOCODE_RETRY_DELAY_MS)
     }
   } finally {
     pumpRunning = false

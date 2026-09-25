@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace GarageStack.Core.Models;
 
 /// <summary>
@@ -17,6 +19,8 @@ public sealed record PlaceAddress(
     /// <summary>Upstream answered, but knows no place at that coordinate (mid-sea, unmapped desert).</summary>
     public static readonly PlaceAddress Empty = new(null, null, null, null, null, null);
 
+    // Derived from the parts, so it is left out of the JSON a place is stored and served as.
+    [JsonIgnore]
     public bool IsEmpty =>
         DisplayName is null && Road is null && HouseNumber is null
         && City is null && Postcode is null && CountryCode is null;

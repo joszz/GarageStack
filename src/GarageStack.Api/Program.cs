@@ -85,6 +85,7 @@ try
     builder.Services.AddScoped<ChargingStationService>();
     builder.Services.AddScoped<PoiService>();
     builder.Services.AddScoped<GeocodeService>();
+    builder.Services.AddScoped<TripPlaceService>();
     builder.Services.AddScoped<MapMatchService>();
     builder.Services.AddSingleton<VehicleCommandGate>();
 
@@ -254,6 +255,7 @@ try
     app.MapHub<TelemetryHub>("/hubs/telemetry").RequireAuthorization();
     app.MapAuthEndpoints();
     app.MapVehicleEndpoints();
+    app.MapTripEndpoints();
     app.MapPushEndpoints();
     app.MapNotificationEndpoints();
     app.MapMaintenanceEndpoints();

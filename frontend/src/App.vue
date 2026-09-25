@@ -225,6 +225,12 @@ watch(
             </RouterLink>
           </li>
           <li>
+            <RouterLink to="/trip-log" active-class="active">
+              <font-awesome-icon icon="book" />
+              <span>{{ t('nav.tripLog') }}</span>
+            </RouterLink>
+          </li>
+          <li>
             <RouterLink to="/maintenance" active-class="active">
               <font-awesome-icon icon="screwdriver-wrench" />
               <span>{{ t('nav.maintenance') }}</span>

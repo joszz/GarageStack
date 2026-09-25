@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { addressLabel, cityName, streetName } from '../places'
+import { addressLabel, cityName, coordinateLabel, postalAddressLabel, streetName } from '../places'
 import type { Place } from '@/services/mapApi'
 
 function place(overrides: Partial<Place> = {}): Place {
@@ -69,5 +69,37 @@ describe('addressLabel', () => {
   it('returns null for an empty answer', () => {
     expect(addressLabel(place())).toBeNull()
     expect(addressLabel(null)).toBeNull()
+  })
+})
+
+describe('postalAddressLabel', () => {
+  it('puts the postcode before the city, after the street', () => {
+    expect(
+      postalAddressLabel(
+        place({ road: 'Grote Markt', houseNumber: '1', postcode: '8011 PK', city: 'Zwolle' }),
+      ),
+    ).toBe('Grote Markt 1, 8011 PK Zwolle')
+  })
+
+  it('thins out to whatever is known', () => {
+    expect(postalAddressLabel(place({ road: 'Brink', city: 'Deventer' }))).toBe('Brink, Deventer')
+    expect(postalAddressLabel(place({ postcode: '7411 BT' }))).toBe('7411 BT')
+  })
+
+  it("names a place with no street after its label's settlement, as the other labels do", () => {
+    expect(postalAddressLabel(place({ displayName: 'Wijthmen, Zwolle, Nederland' }))).toBe(
+      'Wijthmen',
+    )
+  })
+
+  it('is null for an empty place', () => {
+    expect(postalAddressLabel(place())).toBeNull()
+    expect(postalAddressLabel(null)).toBeNull()
+  })
+})
+
+describe('coordinateLabel', () => {
+  it('writes both coordinates to five decimals', () => {
+    expect(coordinateLabel(52.5, 6.0921234)).toBe('52.50000, 6.09212')
   })
 })

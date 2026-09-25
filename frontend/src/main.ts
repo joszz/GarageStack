@@ -44,6 +44,12 @@ import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 config.autoAddCss = false
 import {
   faBars,
+  faBriefcase,
+  faHouse,
+  faBuilding,
+  faBook,
+  faCircleQuestion,
+  faFileCsv,
   faXmark,
   faCar,
   faGaugeHigh,
@@ -139,6 +145,12 @@ import nl from './locales/nl.json'
 
 library.add(
   faBars,
+  faBriefcase,
+  faHouse,
+  faBuilding,
+  faBook,
+  faCircleQuestion,
+  faFileCsv,
   faXmark,
   faCar,
   faGaugeHigh,

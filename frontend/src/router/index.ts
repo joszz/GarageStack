@@ -26,6 +26,11 @@ const router = createRouter({
       component: () => import('@/views/MapView.vue'),
     },
     {
+      path: '/trip-log',
+      name: 'tripLog',
+      component: () => import('@/views/TripLogView.vue'),
+    },
+    {
       path: '/maintenance',
       name: 'maintenance',
       component: () => import('@/views/MaintenanceView.vue'),
