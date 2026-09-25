@@ -6,6 +6,9 @@ import { useMaintenanceStore } from '@/stores/maintenance'
 import { useVehicleStore } from '@/stores/vehicle'
 import type { MaintenanceItem } from '@/services/maintenanceApi'
 import { formatIntervalSummary } from '@/utils/maintenance'
+import { ODOMETER_FORMAT } from '@/utils/units'
+import { useUnits } from '@/composables/useUnits'
+import { useDistanceField } from '@/composables/useDistanceField'
 
 const props = defineProps<{
   open: boolean
@@ -18,9 +21,10 @@ const emit = defineEmits<{ (e: 'close'): void; (e: 'edit', item: MaintenanceItem
 const { t } = useI18n()
 const store = useMaintenanceStore()
 const vehicleStore = useVehicleStore()
+const units = useUnits()
 
 const performedAt = ref('')
-const odometerKm = ref<number | null>(null)
+const odometer = useDistanceField(units)
 const logNotes = ref('')
 const logSaving = ref(false)
 const logError = ref<string | null>(null)
@@ -36,7 +40,7 @@ watch(
     pendingDelete.value = false
     logError.value = null
     performedAt.value = new Date().toISOString().slice(0, 10)
-    odometerKm.value = vehicleStore.currentStatus?.odometerKm ?? null
+    odometer.load(vehicleStore.currentStatus?.odometerKm ?? null)
     logNotes.value = ''
     store.fetchLog(props.vin, props.item.id)
   },
@@ -53,7 +57,7 @@ async function submitLog() {
   try {
     await store.logService(props.vin, props.item.id, {
       performedAt: performedAt.value,
-      odometerKm: odometerKm.value,
+      odometerKm: odometer.km(),
       notes: logNotes.value.trim() || null,
     })
     if (store.actionError) {
@@ -102,12 +106,12 @@ async function confirmDelete() {
         >
           {{ t(`maintenance.status.${currentItem.dueStatus}`) }}
         </span>
-        <span class="text-muted text-sm">{{ formatIntervalSummary(currentItem, t) }}</span>
+        <span class="text-muted text-sm">{{ formatIntervalSummary(currentItem, t, units) }}</span>
       </div>
 
       <p v-if="currentItem.nextDueOdometerKm != null" class="text-sm">
         {{ t('maintenance.nextDueOdometer') }}:
-        {{ Math.round(currentItem.nextDueOdometerKm).toLocaleString() }} {{ t('common.km') }}
+        {{ units.format('distance', currentItem.nextDueOdometerKm, ODOMETER_FORMAT) }}
       </p>
       <p v-if="currentItem.nextDueDate" class="text-sm">
         {{ t('maintenance.nextDueDate') }}: {{ formatDate(currentItem.nextDueDate) }}
@@ -127,10 +131,12 @@ async function confirmDelete() {
             />
           </div>
           <div class="maintenance-field-group">
-            <label for="log-odometer">{{ t('maintenance.logForm.odometer') }}</label>
+            <label for="log-odometer">{{
+              t('maintenance.logForm.odometer', { unit: units.symbol('distance') })
+            }}</label>
             <input
               id="log-odometer"
-              v-model.number="odometerKm"
+              v-model.number="odometer.shown"
               type="number"
               min="0"
               class="maintenance-field"
@@ -161,7 +167,7 @@ async function confirmDelete() {
         <li v-for="entry in logEntries" :key="entry.id" class="maintenance-history__row">
           <span>{{ formatDate(entry.performedAt) }}</span>
           <span v-if="entry.odometerKm != null" class="text-muted">
-            {{ Math.round(entry.odometerKm).toLocaleString() }} {{ t('common.km') }}
+            {{ units.format('distance', entry.odometerKm, ODOMETER_FORMAT) }}
           </span>
           <span v-if="entry.notes" class="text-muted">{{ entry.notes }}</span>
           <button

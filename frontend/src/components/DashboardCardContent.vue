@@ -24,12 +24,15 @@ import BatteryHeatingCard from './BatteryHeatingCard.vue'
 import MaintenanceSummaryCard from './MaintenanceSummaryCard.vue'
 import { formatNumber } from '@/utils/format'
 import { energyUnit, hvBatteryReading, litres, litresPer100Km, whPerKm } from '@/utils/energy'
+import { ODOMETER_FORMAT, type Measure, type MeasureOptions, type Quantity } from '@/utils/units'
+import { useUnits } from '@/composables/useUnits'
 
 const props = defineProps<{ cardId: CardId }>()
 
 const { t } = useI18n()
 const router = useRouter()
 const store = useVehicleStore()
+const units = useUnits()
 
 interface SimpleCardConfig {
   id: CardId
@@ -52,7 +55,31 @@ const latestTrip = computed(() => store.trips[store.trips.length - 1] ?? null)
 const topSpeedKmh = computed(() => {
   if (!latestTrip.value) return null
   const speeds = latestTrip.value.points.map((p) => p.speed).filter((s): s is number => s !== null)
-  return speeds.length ? Math.round(Math.max(...speeds)) : null
+  return speeds.length ? Math.max(...speeds) : null
+})
+
+// A card's value and unit, from a metric reading in the browser's units.
+function measured(
+  quantity: Quantity,
+  metric: number | null,
+  options?: MeasureOptions,
+): Pick<SimpleCardConfig, 'value' | 'unit'> {
+  const m: Measure | null = units.value.measure(quantity, metric, options)
+  return { value: m?.value ?? null, unit: m?.unit ?? units.value.symbol(quantity) }
+}
+
+// The trip being driven, or when parked the last one, which then opens on the map.
+const activeTripCard = computed(() => {
+  const journeyKm = status.value?.currentJourneyDistance ?? null
+  const active = journeyKm !== null && journeyKm > 0
+  return {
+    active,
+    label: active ? t('vehicle.activeTrip') : t('vehicle.lastTrip'),
+    measure: units.value.measure(
+      'distance',
+      active ? journeyKm : (latestTrip.value?.distanceKm ?? null),
+    ),
+  }
 })
 const supportsExternalCharge = computed(
   () => vehicleType.value === 'phev' || vehicleType.value === 'bev',
@@ -98,8 +125,7 @@ const simpleCards = computed((): SimpleCardConfig[] => {
     {
       id: 'fuelRange',
       label: t('vehicle.range'),
-      value: s.fuelRangeKm !== null ? Math.round(s.fuelRangeKm) : null,
-      unit: t('common.km'),
+      ...measured('distance', s.fuelRangeKm, { decimals: 0 }),
     },
     {
       id: 'evBattery',
@@ -118,8 +144,7 @@ const simpleCards = computed((): SimpleCardConfig[] => {
     {
       id: 'electricRange',
       label: t('vehicle.electricRange'),
-      value: s.electricRangeKm !== null ? Math.round(s.electricRangeKm) : null,
-      unit: t('common.km'),
+      ...measured('distance', s.electricRangeKm, { decimals: 0 }),
     },
     {
       id: 'charging',
@@ -130,8 +155,7 @@ const simpleCards = computed((): SimpleCardConfig[] => {
     {
       id: 'odometer',
       label: t('vehicle.odometer'),
-      value: s.odometerKm !== null ? Math.round(s.odometerKm).toLocaleString() : null,
-      unit: t('common.km'),
+      ...measured('distance', s.odometerKm, ODOMETER_FORMAT),
     },
     {
       id: 'battery12v',
@@ -149,8 +173,7 @@ const simpleCards = computed((): SimpleCardConfig[] => {
     {
       id: 'efficiencyDistance',
       label: t('vehicle.efficiency.todayDistance'),
-      value: s.mileageOfTheDay !== null ? formatNumber(s.mileageOfTheDay) : null,
-      unit: t('common.km'),
+      ...measured('distance', s.mileageOfTheDay),
     },
     // efficiencyEnergy - kWh through the traction battery on a plug-in car
     {
@@ -166,48 +189,45 @@ const simpleCards = computed((): SimpleCardConfig[] => {
       match: reportsFuelCounter.value && fuelUsedLitres !== null,
       icon: 'gas-pump',
       label: t('vehicle.efficiency.todayFuel'),
-      value: fuelUsedLitres !== null ? formatNumber(fuelUsedLitres) : null,
-      unit: t('common.litre'),
+      ...measured('volume', fuelUsedLitres),
     },
     {
       id: 'efficiencyCharge',
       label: t('vehicle.efficiency.sinceCharge'),
-      value: s.mileageSinceLastCharge !== null ? formatNumber(s.mileageSinceLastCharge) : null,
-      unit: t('common.km'),
+      ...measured('distance', s.mileageSinceLastCharge),
     },
-    // efficiencyRatio - measured L/100 km on a hybrid, which beats the estimate below
+    // efficiencyRatio - measured fuel consumption on a hybrid, which beats the estimate below
     {
       id: 'efficiencyRatio',
       match: hasFuelConsumption(ctx),
       label: t('vehicle.efficiency.consumption'),
-      value: consumptionL100Km !== null ? formatNumber(consumptionL100Km) : null,
-      unit: `${t('common.litre')}/100${t('common.km')}`,
+      ...measured('fuelConsumption', consumptionL100Km),
     },
-    // efficiencyRatio - Wh/km when driving data is available
+    // efficiencyRatio - energy per distance when driving data is available
     {
       id: 'efficiencyRatio',
       match: hasEnergyEfficiency(ctx),
       label: t('vehicle.efficiency.efficiency'),
-      value: efficiencyWhPerKm !== null ? formatNumber(efficiencyWhPerKm, 0) : null,
-      unit: `${t('common.wh')}/${t('common.km')}`,
+      ...measured('energyPerDistance', efficiencyWhPerKm),
     },
-    // efficiencyRatio - fuel economy estimate for HEV/PHEV from range computer
+    // efficiencyRatio - fuel economy estimate for HEV/PHEV from range computer: the distance
+    // one percent of the tank is good for
     {
       id: 'efficiencyRatio',
       match: hasFuelEconomy(ctx),
       icon: 'gas-pump',
       label: t('vehicle.efficiency.fuelEconomy'),
-      value:
+      ...measured(
+        'distancePerPercent',
         s.fuelRangeKm !== null && s.fuelLevelPercent !== null
-          ? formatNumber(s.fuelRangeKm / (s.fuelLevelPercent / 100) / 100)
+          ? s.fuelRangeKm / s.fuelLevelPercent
           : null,
-      unit: 'km/%',
+      ),
     },
     {
       id: 'speed',
       label: t('vehicle.speed'),
-      value: s.speed !== null ? Math.round(s.speed) : null,
-      unit: 'km/h',
+      ...measured('speed', s.speed),
     },
     {
       id: 'remainingCharge',
@@ -219,8 +239,7 @@ const simpleCards = computed((): SimpleCardConfig[] => {
     {
       id: 'topSpeed',
       label: t('vehicle.topSpeed'),
-      value: topSpeedKmh.value,
-      unit: 'km/h',
+      ...measured('speed', topSpeedKmh.value),
     },
   ]
 })
@@ -318,33 +337,11 @@ const activeSimpleCard = computed(() => {
     <StatusCard
       v-else-if="cardId === 'activeTrip'"
       icon="location-arrow"
-      :label="
-        status.currentJourneyDistance !== null && status.currentJourneyDistance > 0
-          ? t('vehicle.activeTrip')
-          : t('vehicle.lastTrip')
-      "
-      :value="
-        status.currentJourneyDistance !== null && status.currentJourneyDistance > 0
-          ? formatNumber(status.currentJourneyDistance)
-          : latestTrip
-            ? formatNumber(latestTrip.distanceKm)
-            : t('vehicle.noTrips')
-      "
-      :unit="
-        (status.currentJourneyDistance !== null && status.currentJourneyDistance > 0) ||
-        latestTrip !== null
-          ? t('common.km')
-          : undefined
-      "
-      :variant="
-        status.currentJourneyDistance !== null && status.currentJourneyDistance > 0
-          ? 'info'
-          : undefined
-      "
-      :clickable="
-        !(status.currentJourneyDistance !== null && status.currentJourneyDistance > 0) &&
-        latestTrip !== null
-      "
+      :label="activeTripCard.label"
+      :value="activeTripCard.measure?.value ?? t('vehicle.noTrips')"
+      :unit="activeTripCard.measure?.unit"
+      :variant="activeTripCard.active ? 'info' : undefined"
+      :clickable="!activeTripCard.active && latestTrip !== null"
       @click="router.push({ name: 'map', query: { selectLatest: '1' } })"
     />
 

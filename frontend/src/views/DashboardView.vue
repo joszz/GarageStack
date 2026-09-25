@@ -18,6 +18,7 @@ import SkeletonCard from '@/components/SkeletonCard.vue'
 import SkeletonCarDiagram from '@/components/SkeletonCarDiagram.vue'
 import SkeletonLocationMap from '@/components/SkeletonLocationMap.vue'
 import { useVehicleAlerts } from '@/composables/useVehicleAlerts'
+import { useUnits } from '@/composables/useUnits'
 import { usePush } from '@/composables/usePush'
 import { daysAgoIso } from '@/utils/dates'
 
@@ -115,7 +116,22 @@ watch(
 // A browser that is subscribed to push already receives these alerts from the Worker, so this
 // tab only raises its own notification when it is not subscribed.
 const { pushState } = usePush()
-useVehicleAlerts(status, t, { shouldNotify: () => pushState.value !== 'subscribed' })
+const units = useUnits()
+useVehicleAlerts(status, t, units, { shouldNotify: () => pushState.value !== 'subscribed' })
+
+// Card descriptions that name a unit take it from here; the others ignore these parameters.
+const cardDescriptionParams = computed(() => {
+  const u = units.value
+  return {
+    distance: u.symbol('distance'),
+    energyPerDistance: u.symbol('energyPerDistance'),
+    distancePerPercent: u.symbol('distancePerPercent'),
+    fuelConsumption: u.symbol('fuelConsumption'),
+    fuelBetter: u.isReciprocal('fuelConsumption')
+      ? t('units.higherIsBetter')
+      : t('units.lowerIsBetter'),
+  }
+})
 
 function toggleEditMode() {
   editMode.value = !editMode.value
@@ -339,7 +355,7 @@ onUnmounted(() => {
             <template v-if="card.visible && hasData(card.id)">
               <CardInfoWrap
                 :title="t(`settings.cards.${card.id}`)"
-                :description="t(`dashboard.cardDesc.${card.id}`)"
+                :description="t(`dashboard.cardDesc.${card.id}`, cardDescriptionParams)"
               >
                 <DashboardCardContent :card-id="card.id" />
               </CardInfoWrap>

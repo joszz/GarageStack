@@ -1,8 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { ref, nextTick } from 'vue'
+import { ref, shallowRef, nextTick } from 'vue'
 import { createI18n } from 'vue-i18n'
 import { getOpenItems, getTyrePressureAlerts, useVehicleAlerts } from '../useVehicleAlerts'
 import type { TelemetrySnapshot } from '@/services/vehicleApi'
+import { METRIC_UNITS, UnitFormatter } from '@/utils/units'
 
 const i18n = createI18n({
   legacy: false,
@@ -25,10 +26,13 @@ const i18n = createI18n({
           rearRightWindow: 'rear right window',
         },
       },
+      units: { bar: 'bar', psi: 'psi' },
     },
   },
 })
 const t = i18n.global.t
+const metric = new UnitFormatter(METRIC_UNITS, t)
+const metricRef = shallowRef(metric)
 
 function makeSnapshot(overrides: Partial<TelemetrySnapshot> = {}): TelemetrySnapshot {
   return {
@@ -174,7 +178,7 @@ describe('getOpenItems', () => {
 
 describe('getTyrePressureAlerts', () => {
   it('returns empty array for all null pressures', () => {
-    expect(getTyrePressureAlerts(makeSnapshot())).toEqual([])
+    expect(getTyrePressureAlerts(makeSnapshot(), metric)).toEqual([])
   })
 
   it('returns empty array for normal pressures', () => {
@@ -186,19 +190,26 @@ describe('getTyrePressureAlerts', () => {
           tyrePressureRearLeft: 2.4,
           tyrePressureRearRight: 2.4,
         }),
+        metric,
       ),
     ).toEqual([])
   })
 
   it('flags FL tyre below minimum', () => {
-    const alerts = getTyrePressureAlerts(makeSnapshot({ tyrePressureFrontLeft: 1.5 }))
+    const alerts = getTyrePressureAlerts(makeSnapshot({ tyrePressureFrontLeft: 1.5 }), metric)
     expect(alerts).toHaveLength(1)
     expect(alerts[0]).toContain('FL')
     expect(alerts[0]).toContain('1.50 bar')
   })
 
+  it('reads the pressure in the unit the browser shows', () => {
+    const psi = new UnitFormatter({ ...METRIC_UNITS, pressure: 'psi' }, t)
+    const alerts = getTyrePressureAlerts(makeSnapshot({ tyrePressureFrontLeft: 1.5 }), psi)
+    expect(alerts).toEqual(['FL: 22 psi'])
+  })
+
   it('flags FR tyre above maximum', () => {
-    const alerts = getTyrePressureAlerts(makeSnapshot({ tyrePressureFrontRight: 3.5 }))
+    const alerts = getTyrePressureAlerts(makeSnapshot({ tyrePressureFrontRight: 3.5 }), metric)
     expect(alerts).toHaveLength(1)
     expect(alerts[0]).toContain('FR')
     expect(alerts[0]).toContain('3.50 bar')
@@ -210,6 +221,7 @@ describe('getTyrePressureAlerts', () => {
         tyrePressureRearLeft: 1.2,
         tyrePressureRearRight: 3.9,
       }),
+      metric,
     )
     expect(alerts).toHaveLength(2)
     expect(alerts[0]).toContain('RL')
@@ -223,12 +235,13 @@ describe('getTyrePressureAlerts', () => {
           tyrePressureFrontLeft: 2.2,
           tyrePressureFrontRight: 3.2,
         }),
+        metric,
       ),
     ).toEqual([])
   })
 
   it('uses custom thresholds when provided', () => {
-    const alerts = getTyrePressureAlerts(makeSnapshot({ tyrePressureFrontLeft: 2.3 }), {
+    const alerts = getTyrePressureAlerts(makeSnapshot({ tyrePressureFrontLeft: 2.3 }), metric, {
       lowBar: 2.4,
       goodBar: 2.55,
       highBar: 2.7,
@@ -274,14 +287,14 @@ describe('useVehicleAlerts', () => {
 
   it('does not fire when status is null', async () => {
     const status = ref<TelemetrySnapshot | null>(null)
-    useVehicleAlerts(status, t)
+    useVehicleAlerts(status, t, metricRef)
     await nextTick()
     expect(notificationMock).not.toHaveBeenCalled()
   })
 
   it('fires open-while-parked notification when door is open and engine off', async () => {
     const status = ref<TelemetrySnapshot | null>(null)
-    useVehicleAlerts(status, t)
+    useVehicleAlerts(status, t, metricRef)
     status.value = makeSnapshot({ engineRunning: false, driverDoorOpen: true })
     await nextTick()
     expect(notificationMock).toHaveBeenCalledWith(
@@ -292,7 +305,7 @@ describe('useVehicleAlerts', () => {
 
   it('does not fire open notification when engine is running', async () => {
     const status = ref<TelemetrySnapshot | null>(null)
-    useVehicleAlerts(status, t)
+    useVehicleAlerts(status, t, metricRef)
     status.value = makeSnapshot({ engineRunning: true, driverDoorOpen: true })
     await nextTick()
     expect(notificationMock).not.toHaveBeenCalled()
@@ -300,7 +313,7 @@ describe('useVehicleAlerts', () => {
 
   it('does not repeat open notification on subsequent polls while still open', async () => {
     const status = ref<TelemetrySnapshot | null>(null)
-    useVehicleAlerts(status, t)
+    useVehicleAlerts(status, t, metricRef)
     status.value = makeSnapshot({ engineRunning: false, driverDoorOpen: true })
     await nextTick()
     status.value = makeSnapshot({ engineRunning: false, driverDoorOpen: true })
@@ -310,7 +323,7 @@ describe('useVehicleAlerts', () => {
 
   it('resets and re-fires open alert after door closes then reopens', async () => {
     const status = ref<TelemetrySnapshot | null>(null)
-    useVehicleAlerts(status, t)
+    useVehicleAlerts(status, t, metricRef)
     status.value = makeSnapshot({ engineRunning: false, driverDoorOpen: true })
     await nextTick()
     status.value = makeSnapshot({ engineRunning: false, driverDoorOpen: false })
@@ -322,7 +335,7 @@ describe('useVehicleAlerts', () => {
 
   it('fires tyre pressure notification when pressure is low', async () => {
     const status = ref<TelemetrySnapshot | null>(null)
-    useVehicleAlerts(status, t)
+    useVehicleAlerts(status, t, metricRef)
     status.value = makeSnapshot({ tyrePressureFrontLeft: 1.5 })
     await nextTick()
     expect(notificationMock).toHaveBeenCalledWith(
@@ -333,7 +346,7 @@ describe('useVehicleAlerts', () => {
 
   it('does not repeat tyre alert on subsequent polls while still low', async () => {
     const status = ref<TelemetrySnapshot | null>(null)
-    useVehicleAlerts(status, t)
+    useVehicleAlerts(status, t, metricRef)
     status.value = makeSnapshot({ tyrePressureFrontLeft: 1.5 })
     await nextTick()
     status.value = makeSnapshot({ tyrePressureFrontLeft: 1.5 })
@@ -343,7 +356,7 @@ describe('useVehicleAlerts', () => {
 
   it('does not fire open notification when engineRunning is null (unknown state)', async () => {
     const status = ref<TelemetrySnapshot | null>(null)
-    useVehicleAlerts(status, t)
+    useVehicleAlerts(status, t, metricRef)
     status.value = makeSnapshot({ engineRunning: null, driverDoorOpen: true })
     await nextTick()
     expect(notificationMock).not.toHaveBeenCalled()
@@ -351,7 +364,7 @@ describe('useVehicleAlerts', () => {
 
   it('stays quiet when the caller says this browser already gets push notifications', async () => {
     const status = ref<TelemetrySnapshot | null>(null)
-    useVehicleAlerts(status, t, { shouldNotify: () => false })
+    useVehicleAlerts(status, t, metricRef, { shouldNotify: () => false })
     status.value = makeSnapshot({ engineRunning: false, driverDoorOpen: true })
     await nextTick()
     expect(notificationMock).not.toHaveBeenCalled()
@@ -359,7 +372,7 @@ describe('useVehicleAlerts', () => {
 
   it('still notifies when the caller allows it', async () => {
     const status = ref<TelemetrySnapshot | null>(null)
-    useVehicleAlerts(status, t, { shouldNotify: () => true })
+    useVehicleAlerts(status, t, metricRef, { shouldNotify: () => true })
     status.value = makeSnapshot({ engineRunning: false, driverDoorOpen: true })
     await nextTick()
     expect(notificationMock).toHaveBeenCalledTimes(1)
@@ -372,7 +385,7 @@ describe('useVehicleAlerts', () => {
       configurable: true,
     })
     const status = ref<TelemetrySnapshot | null>(null)
-    useVehicleAlerts(status, t)
+    useVehicleAlerts(status, t, metricRef)
     status.value = makeSnapshot({ engineRunning: false, driverDoorOpen: true })
     await nextTick()
     expect(notificationMock).not.toHaveBeenCalled()

@@ -4,9 +4,11 @@ import { computed } from 'vue'
 import CardInfoWrap from './CardInfoWrap.vue'
 import { CAR_SILHOUETTE_VIEWBOX, CAR_SILHOUETTE_MARKUP } from '@/assets/carSilhouette'
 import { useTyrePressureThresholds, pressureVariant } from '@/composables/useTyrePressureThresholds'
+import { useUnits } from '@/composables/useUnits'
 
 const { t } = useI18n()
 const tyreThresholds = useTyrePressureThresholds()
+const units = useUnits()
 
 const props = defineProps<{
   frontLeft: number | null
@@ -38,8 +40,23 @@ function pressureColor(bar: number | null): string {
 }
 
 function fmt(bar: number | null): string {
-  return bar !== null ? bar.toFixed(2) : '-'
+  return units.value.format('pressure', bar) ?? `- ${units.value.symbol('pressure')}`
 }
+
+// The colour bands, in the pressure unit this browser shows: the thresholds themselves are
+// configured in bar, which is what the car reports.
+const tyreLegendParams = computed(() => {
+  const u = units.value
+  const value = (bar: number) => u.measure('pressure', bar)!.value
+  return {
+    low: value(tyreThresholds.value.lowBar),
+    good: value(tyreThresholds.value.goodBar),
+    high: value(tyreThresholds.value.highBar),
+    unit: u.symbol('pressure'),
+  }
+})
+
+const speedMeasure = computed(() => units.value.measure('speed', props.speed ?? 0)!)
 
 // Tyre indicator line/dot endpoints - see the ViewBox comment above the template for how
 // these coordinates were derived from the car body bounds.
@@ -198,13 +215,7 @@ const activeLightKey = computed(() => {
             {{ t('vehicle.diagram.infoTyreTitle') }}
           </p>
           <p class="card-info-desc">
-            {{
-              t('vehicle.diagram.infoTyreDesc', {
-                low: tyreThresholds.lowBar,
-                good: tyreThresholds.goodBar,
-                high: tyreThresholds.highBar,
-              })
-            }}
+            {{ t('vehicle.diagram.infoTyreDesc', tyreLegendParams) }}
           </p>
         </div>
         <div class="card-info-section">
@@ -430,7 +441,6 @@ const activeLightKey = computed(() => {
             <g v-for="tyre in tyreIndicators" :key="tyre.key">
               <title>
                 {{ t(`vehicle.diagram.tyrePosition.${tyre.key}`) }}: {{ fmt(tyre.value) }}
-                {{ t('common.bar') }}
               </title>
               <line
                 :x1="tyre.x1"
@@ -462,7 +472,7 @@ const activeLightKey = computed(() => {
               ]"
               :title="t(`vehicle.diagram.tyrePosition.${label.key}`)"
             >
-              {{ fmt(label.value) }} {{ t('common.bar') }}
+              {{ fmt(label.value) }}
             </div>
           </div>
 
@@ -508,8 +518,8 @@ const activeLightKey = computed(() => {
             v-if="showSpeedGauge"
             class="speed-gauge"
             role="img"
-            :aria-label="`${t('vehicle.speed')}: ${Math.round(speed ?? 0)} km/h`"
-            :title="`${t('vehicle.speed')}: ${Math.round(speed ?? 0)} km/h`"
+            :aria-label="`${t('vehicle.speed')}: ${speedMeasure.value} ${speedMeasure.unit}`"
+            :title="`${t('vehicle.speed')}: ${speedMeasure.value} ${speedMeasure.unit}`"
           >
             <svg viewBox="0 0 100 92" class="speed-gauge__svg">
               <path :d="gaugeArcPath" class="speed-gauge__track" />
@@ -532,9 +542,11 @@ const activeLightKey = computed(() => {
               />
               <circle cx="50" cy="48" r="3" class="speed-gauge__pivot" />
               <text x="50" y="64" text-anchor="middle" class="speed-gauge__value">
-                {{ Math.round(speed ?? 0) }}
+                {{ speedMeasure.value }}
               </text>
-              <text x="50" y="78" text-anchor="middle" class="speed-gauge__unit">km/h</text>
+              <text x="50" y="78" text-anchor="middle" class="speed-gauge__unit">
+                {{ speedMeasure.unit }}
+              </text>
             </svg>
           </div>
         </div>

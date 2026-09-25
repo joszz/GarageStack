@@ -9,10 +9,12 @@ import MaintenanceItemFormModal from '@/components/MaintenanceItemFormModal.vue'
 import MaintenanceItemDetailModal from '@/components/MaintenanceItemDetailModal.vue'
 import type { MaintenanceItem, MaintenanceDueStatus } from '@/services/maintenanceApi'
 import { formatIntervalSummary } from '@/utils/maintenance'
+import { useUnits } from '@/composables/useUnits'
 
 const { t } = useI18n()
 const vehicleStore = useVehicleStore()
 const store = useMaintenanceStore()
+const units = useUnits()
 
 const vin = computed(() => vehicleStore.activeVin)
 
@@ -96,7 +98,7 @@ watch(vin, (v) => {
         icon="screwdriver-wrench"
         :label="item.name"
         :value="t(`maintenance.status.${item.dueStatus}`)"
-        :subtitle="formatIntervalSummary(item, t)"
+        :subtitle="formatIntervalSummary(item, t, units)"
         :variant="statusVariant(item.dueStatus)"
         clickable
         @click="openDetail(item)"

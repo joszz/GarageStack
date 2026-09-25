@@ -1,20 +1,19 @@
 import type { TripLogEntry } from '@/services/tripLogApi'
 import { csvFormatFor, toCsv, type CsvCell } from '@/utils/csv'
 import { endLabel, loggedDistanceKm, periodKey, type TripLogPeriod } from '@/utils/tripLog'
+import type { UnitFormatter } from '@/utils/units'
 
 // `t` is injected rather than obtained via useI18n() so this stays a plain, directly testable
 // function, as in tripRows.
-type Translate = (key: string) => string
+type Translate = (key: string, named?: Record<string, unknown>) => string
 
 export interface TripLogCsvContext {
   locale: string
   t: Translate
+  /** The distances are written in the unit the log is read in, and the headers say which. */
+  units: UnitFormatter
   /** False when place names are switched off: the ends are then written as coordinates. */
   placesShown: boolean
-}
-
-function oneDecimal(value: number | null): number | null {
-  return value === null ? null : Math.round(value * 10) / 10
 }
 
 /**
@@ -24,9 +23,13 @@ function oneDecimal(value: number | null): number | null {
  * purpose rather than a guess.
  */
 export function tripLogCsv(entries: readonly TripLogEntry[], ctx: TripLogCsvContext): string {
-  const { locale, t, placesShown } = ctx
+  const { locale, t, units, placesShown } = ctx
   const time = (iso: string) =>
     new Date(iso).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
+  // A number rather than text, so a spreadsheet can add the column up.
+  const distance = (km: number | null) =>
+    km === null ? null : Math.round(units.convert('distance', km) * 10) / 10
+  const unit = { unit: units.symbol('distance') }
 
   const header: CsvCell[] = [
     t('tripLog.csv.date'),
@@ -34,9 +37,9 @@ export function tripLogCsv(entries: readonly TripLogEntry[], ctx: TripLogCsvCont
     t('tripLog.csv.arrived'),
     t('tripLog.csv.from'),
     t('tripLog.csv.to'),
-    t('tripLog.csv.odometerStart'),
-    t('tripLog.csv.odometerEnd'),
-    t('tripLog.csv.distance'),
+    t('tripLog.csv.odometerStart', unit),
+    t('tripLog.csv.odometerEnd', unit),
+    t('tripLog.csv.distance', unit),
     t('tripLog.csv.purpose'),
     t('tripLog.csv.notes'),
   ]
@@ -47,9 +50,9 @@ export function tripLogCsv(entries: readonly TripLogEntry[], ctx: TripLogCsvCont
     time(entry.endedAt),
     endLabel(placesShown ? entry.startPlace : null, entry.startLatitude, entry.startLongitude),
     endLabel(placesShown ? entry.endPlace : null, entry.endLatitude, entry.endLongitude),
-    oneDecimal(entry.odometerStartKm),
-    oneDecimal(entry.odometerEndKm),
-    oneDecimal(loggedDistanceKm(entry)),
+    distance(entry.odometerStartKm),
+    distance(entry.odometerEndKm),
+    distance(loggedDistanceKm(entry)),
     entry.purpose ? t(`tripLog.purpose.${entry.purpose}`) : null,
     entry.notes,
   ])

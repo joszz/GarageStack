@@ -8,8 +8,8 @@ import {
   type TripLogEntry,
   type TripPurpose,
 } from '@/services/tripLogApi'
-import { formatNumber } from '@/utils/format'
 import { endLabel, loggedDistanceKm, odometerDistanceKm, PURPOSE_ICONS } from '@/utils/tripLog'
+import { useUnits } from '@/composables/useUnits'
 
 const props = defineProps<{
   entry: TripLogEntry
@@ -26,6 +26,7 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
+const units = useUnits()
 
 const dateLabel = computed(() =>
   new Date(props.entry.startedAt).toLocaleDateString(props.locale, {
@@ -55,13 +56,12 @@ const to = computed(() =>
   tripEnd(props.entry.endPlace, props.entry.endLatitude, props.entry.endLongitude),
 )
 
-const distanceLabel = computed(() => formatNumber(loggedDistanceKm(props.entry)))
+const distanceLabel = computed(() => units.value.format('distance', loggedDistanceKm(props.entry)))
 const fromOdometer = computed(() => odometerDistanceKm(props.entry) !== null)
 const odometerLabel = computed(() => {
-  const { odometerStartKm: start, odometerEndKm: finish } = props.entry
-  return start !== null && finish !== null
-    ? `${formatNumber(start)} - ${formatNumber(finish)}`
-    : null
+  const start = units.value.measure('distance', props.entry.odometerStartKm)
+  const finish = units.value.measure('distance', props.entry.odometerEndKm)
+  return start && finish ? `${start.value} - ${finish.value}` : null
 })
 
 // The field is edited locally and sent when it loses focus, rather than on every keystroke.
@@ -120,7 +120,7 @@ function saveNotes() {
       <span
         class="trip-log-item__km"
         :title="fromOdometer ? t('tripLog.distanceFromOdometer') : t('tripLog.distanceFromGps')"
-        >{{ distanceLabel }} {{ t('common.km') }}</span
+        >{{ distanceLabel }}</span
       >
       <span v-if="odometerLabel" class="text-xs text-muted" :title="t('tripLog.odometer')">
         <font-awesome-icon icon="gauge" aria-hidden="true" /> {{ odometerLabel }}

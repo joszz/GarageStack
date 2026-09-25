@@ -8,6 +8,7 @@ import { useDashboardSettingsStore } from '@/stores/settingsDashboard'
 import { useUiSettingsStore } from '@/stores/settingsUi'
 import { defaultStatsInsights, defaultStatsCharts } from '@/stores/settingsShared'
 import type { StatsInsightId, StatsChartId } from '@/stores/settingsShared'
+import type { Quantity } from '@/utils/units'
 import { vehicleApi } from '@/services/vehicleApi'
 import type { TelemetryHistoryPoint, VehicleAggregateStats } from '@/services/vehicleApi'
 import type { ChartData, ChartOptions } from 'chart.js'
@@ -27,11 +28,13 @@ import EditableCardSlot from '@/components/EditableCardSlot.vue'
 import { formatNumber } from '@/utils/format'
 import { dailyCounterTotal, energyUnit, litres } from '@/utils/energy'
 import { startOfLocalDayDaysAgoIso } from '@/utils/dates'
+import { useUnits } from '@/composables/useUnits'
 
 const { t } = useI18n()
 const store = useVehicleStore()
 const settings = useDashboardSettingsStore()
 const uiSettings = useUiSettingsStore()
+const units = useUnits()
 
 const editMode = ref(false)
 const loading = ref(false)
@@ -158,14 +161,15 @@ function dailyAverages(read: (p: TelemetryHistoryPoint) => number | null) {
 
 // ── Insight computed values ───────────────────────────────────
 
+// Unrounded: the unit formatter rounds once, in the unit it shows.
 const periodDistanceKm = computed(() => {
   if (!store.trips.length) return null
-  return round2(store.trips.reduce((sum, trip) => sum + trip.distanceKm, 0))
+  return store.trips.reduce((sum, trip) => sum + trip.distanceKm, 0)
 })
 
 const averageTripKm = computed(() => {
   if (!store.trips.length) return null
-  return round2(store.trips.reduce((sum, trip) => sum + trip.distanceKm, 0) / store.trips.length)
+  return store.trips.reduce((sum, trip) => sum + trip.distanceKm, 0) / store.trips.length
 })
 
 const climateUsagePct = computed(() => aggregateStats.value?.climateUsagePct ?? null)
@@ -231,7 +235,7 @@ const avgSpeedKmh = computed(() => {
     }
   }
   if (!speeds.length) return null
-  return round2(speeds.reduce((sum, s) => sum + s, 0) / speeds.length)
+  return speeds.reduce((sum, s) => sum + s, 0) / speeds.length
 })
 
 const electricShareToday = computed(() => {
@@ -273,7 +277,29 @@ function onInsightClick(id: StatsInsightId) {
 
 // ── Insight card definitions ──────────────────────────────────
 
-const insightDefs = computed(() => [
+interface InsightDef {
+  id: StatsInsightId
+  icon: string
+  title: string
+  description: string
+  value: string | null
+  unit?: string
+  vehicleApplicable: boolean
+  applicable: boolean
+  clickable?: boolean
+}
+
+// An insight's value and unit from a metric figure, in the browser's units.
+function measuredInsight(
+  quantity: Quantity,
+  metric: number | null,
+  decimals?: number,
+): Pick<InsightDef, 'value' | 'unit'> {
+  const m = units.value.measure(quantity, metric, { decimals })
+  return { value: m?.value ?? null, unit: units.value.symbol(quantity) }
+}
+
+const insightDefs = computed((): InsightDef[] => [
   {
     id: 'periodDistance' as StatsInsightId,
     icon: INSIGHT_ICONS.periodDistance,
@@ -282,8 +308,7 @@ const insightDefs = computed(() => [
         ? t('statistics.insights.monthlyMileage')
         : t('statistics.insights.distanceInRange'),
     description: t('statistics.cardDesc.distanceInRange'),
-    value: periodDistanceKm.value !== null ? String(periodDistanceKm.value) : null,
-    unit: t('common.km'),
+    ...measuredInsight('distance', periodDistanceKm.value),
     vehicleApplicable: true,
     applicable: store.history.length > 0,
   },
@@ -292,8 +317,7 @@ const insightDefs = computed(() => [
     icon: INSIGHT_ICONS.avgTripLength,
     title: t('statistics.insights.avgTripLength'),
     description: t('statistics.cardDesc.avgTripLength'),
-    value: averageTripKm.value !== null ? String(averageTripKm.value) : null,
-    unit: t('common.km'),
+    ...measuredInsight('distance', averageTripKm.value),
     vehicleApplicable: true,
     applicable: store.history.length > 0,
   },
@@ -348,8 +372,8 @@ const insightDefs = computed(() => [
     icon: INSIGHT_ICONS.avgSpeed,
     title: t('statistics.insights.avgSpeed'),
     description: t('statistics.cardDesc.avgSpeed'),
-    value: avgSpeedKmh.value !== null ? String(avgSpeedKmh.value) : null,
-    unit: 'km/h',
+    // An average earns the decimal a live speed reading does without.
+    ...measuredInsight('speed', avgSpeedKmh.value, 1),
     vehicleApplicable: true,
     applicable: store.trips.some((trip) => trip.points.some((p) => p.speed !== null)),
   },
@@ -386,31 +410,30 @@ const evChartData = computed(() => ({
   ],
 }))
 
-const tyreChartData = computed(() => ({
-  labels: chartLabels.value,
-  datasets: [
-    lineDataset(
-      `FL (${t('common.bar')})`,
-      dailyAverages((p) => p.tyrePressureFrontLeft),
-      '#f59e0b',
+const TYRE_SERIES: Array<{
+  label: string
+  read: (p: TelemetryHistoryPoint) => number | null
+  color: string
+}> = [
+  { label: 'FL', read: (p) => p.tyrePressureFrontLeft, color: '#f59e0b' },
+  { label: 'FR', read: (p) => p.tyrePressureFrontRight, color: '#ef4444' },
+  { label: 'RL', read: (p) => p.tyrePressureRearLeft, color: '#8b5cf6' },
+  { label: 'RR', read: (p) => p.tyrePressureRearRight, color: '#ec4899' },
+]
+
+const tyreChartData = computed(() => {
+  const u = units.value
+  return {
+    labels: chartLabels.value,
+    datasets: TYRE_SERIES.map(({ label, read, color }) =>
+      lineDataset(
+        `${label} (${u.symbol('pressure')})`,
+        dailyAverages(read).map((bar) => (bar === null ? null : u.convert('pressure', bar))),
+        color,
+      ),
     ),
-    lineDataset(
-      `FR (${t('common.bar')})`,
-      dailyAverages((p) => p.tyrePressureFrontRight),
-      '#ef4444',
-    ),
-    lineDataset(
-      `RL (${t('common.bar')})`,
-      dailyAverages((p) => p.tyrePressureRearLeft),
-      '#8b5cf6',
-    ),
-    lineDataset(
-      `RR (${t('common.bar')})`,
-      dailyAverages((p) => p.tyrePressureRearRight),
-      '#ec4899',
-    ),
-  ],
-}))
+  }
+})
 
 const hybridSocChartData = computed(() => ({
   labels: chartLabels.value,
@@ -436,7 +459,7 @@ const dailyEnergyChartData = computed(() => ({
   labels: chartLabels.value,
   datasets: [
     {
-      label: reportsFuelCounter.value ? t('common.litre') : t('common.kwh'),
+      label: reportsFuelCounter.value ? units.value.symbol('volume') : t('common.kwh'),
       data: groupedHistory.value.map((d) => {
         const readings = d.points
           .slice()
@@ -444,7 +467,8 @@ const dailyEnergyChartData = computed(() => ({
           .map((p) => p.powerUsageOfDay)
           .filter((v): v is number => v !== null)
         const total = dailyCounterTotal(readings, d.key === toLocalDateKey(new Date()))
-        const used = reportsFuelCounter.value ? litres(total) : total
+        const fuel = reportsFuelCounter.value ? litres(total) : null
+        const used = fuel !== null ? units.value.convert('volume', fuel) : total
         return used !== null ? round2(used) : null
       }),
       borderColor: '#f59e0b',
@@ -472,7 +496,22 @@ function chartOptions(aspectRatio: number, legend: boolean, y: { min: number; ma
 }
 
 const percentOptions = chartOptions(2.6, false, { min: 0, max: 100 })
-const pressureOptions = chartOptions(2.3, true, { min: 1.5, max: 3.5 })
+// Widens a range outward to round numbers, stepping by half its order of magnitude: 1.5 to 3.5
+// bar stays as it is, and the same range reads 20 to 55 psi or 150 to 350 kPa rather than
+// starting the axis at 21.76.
+function roundedRange(min: number, max: number) {
+  const step = 10 ** Math.floor(Math.log10(max - min)) / 2
+  return { min: Math.floor(min / step) * step, max: Math.ceil(max / step) * step }
+}
+
+const pressureOptions = computed(() => {
+  const u = units.value
+  return chartOptions(
+    2.3,
+    true,
+    roundedRange(u.convert('pressure', 1.5), u.convert('pressure', 3.5)),
+  )
+})
 const hybridSocOptions = chartOptions(2.6, true, { min: 0, max: 100 })
 const kwhOptions = chartOptions(2.6, false, { min: 0 })
 
@@ -506,12 +545,16 @@ const chartDefs = computed((): ChartDef[] => [
     id: 'tyreChart',
     icon: CHART_ICONS.tyreChart,
     title: t('vehicle.tyres'),
-    description: t('statistics.chartDesc.tyreChart'),
+    description: t('statistics.chartDesc.tyreChart', {
+      low: units.value.measure('pressure', 2)!.value,
+      high: units.value.measure('pressure', 3)!.value,
+      unit: units.value.symbol('pressure'),
+    }),
     vehicleApplicable: true,
     applicable: store.history.length > 0,
     type: 'line',
     data: tyreChartData.value,
-    options: pressureOptions,
+    options: pressureOptions.value,
   },
   {
     id: 'hybridSocChart',
@@ -528,7 +571,7 @@ const chartDefs = computed((): ChartDef[] => [
     id: 'dailyKwhChart',
     icon: reportsFuelCounter.value ? 'gas-pump' : CHART_ICONS.dailyKwhChart,
     title: reportsFuelCounter.value
-      ? t('statistics.dailyFuelChart')
+      ? t('statistics.dailyFuelChart', { unit: units.value.symbol('volume') })
       : t('statistics.dailyKwhChart'),
     description: reportsFuelCounter.value
       ? t('statistics.chartDesc.dailyFuelChart')

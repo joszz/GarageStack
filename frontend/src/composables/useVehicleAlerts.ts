@@ -6,6 +6,7 @@ import {
   DEFAULT_TYRE_PRESSURE_THRESHOLDS,
   type TyrePressureThresholds,
 } from '@/composables/useTyrePressureThresholds'
+import type { UnitFormatter } from '@/utils/units'
 
 // `t` is injected rather than obtained via useI18n() here so these stay plain, directly
 // testable functions - useI18n() requires an active component setup context, which these
@@ -31,12 +32,13 @@ export function getOpenItems(s: TelemetrySnapshot, t: Translate): string[] {
 
 export function getTyrePressureAlerts(
   s: TelemetrySnapshot,
+  units: UnitFormatter,
   thresholds: TyrePressureThresholds = DEFAULT_TYRE_PRESSURE_THRESHOLDS,
 ): string[] {
   const alerts: string[] = []
   const check = (label: string, val: number | null) => {
     if (val !== null && (val < thresholds.lowBar || val > thresholds.highBar)) {
-      alerts.push(`${label}: ${val.toFixed(2)} bar`)
+      alerts.push(`${label}: ${units.format('pressure', val)}`)
     }
   }
   check('FL', s.tyrePressureFrontLeft)
@@ -82,6 +84,7 @@ function useStickyAlert<T>(notify: (issues: T[]) => void) {
 export function useVehicleAlerts(
   status: Ref<TelemetrySnapshot | null>,
   t: Translate,
+  units: Ref<UnitFormatter>,
   options: VehicleAlertOptions = {},
 ) {
   const tyreThresholds = useTyrePressureThresholds()
@@ -105,6 +108,6 @@ export function useVehicleAlerts(
       checkOpenAlert([])
     }
 
-    checkTyreAlert(getTyrePressureAlerts(s, tyreThresholds.value))
+    checkTyreAlert(getTyrePressureAlerts(s, units.value, tyreThresholds.value))
   })
 }

@@ -4,6 +4,8 @@ import { useI18n } from 'vue-i18n'
 import DetailModal from './DetailModal.vue'
 import { useMaintenanceStore } from '@/stores/maintenance'
 import type { MaintenanceItem } from '@/services/maintenanceApi'
+import { useUnits } from '@/composables/useUnits'
+import { useDistanceField } from '@/composables/useDistanceField'
 
 const props = defineProps<{
   open: boolean
@@ -15,14 +17,16 @@ const emit = defineEmits<{ (e: 'close'): void }>()
 
 const { t } = useI18n()
 const store = useMaintenanceStore()
+const units = useUnits()
 
 const name = ref('')
 const notes = ref('')
-const intervalKm = ref<number | null>(null)
+const interval = useDistanceField(units)
 const intervalMonths = ref<number | null>(null)
 const lastServiceDate = ref('')
-const lastServiceOdometerKm = ref<number | null>(null)
+const lastServiceOdometer = useDistanceField(units)
 const validationError = ref<string | null>(null)
+const distanceUnit = computed(() => ({ unit: units.value.symbol('distance') }))
 const saving = ref(false)
 
 const isEdit = computed(() => props.item !== null)
@@ -36,10 +40,10 @@ watch(
     const item = props.item
     name.value = item?.name ?? ''
     notes.value = item?.notes ?? ''
-    intervalKm.value = item?.intervalKm ?? null
+    interval.load(item?.intervalKm ?? null)
     intervalMonths.value = item?.intervalMonths ?? null
     lastServiceDate.value = ''
-    lastServiceOdometerKm.value = null
+    lastServiceOdometer.load(null)
   },
 )
 
@@ -54,7 +58,8 @@ async function submit() {
     validationError.value = t('maintenance.form.validationNameRequired')
     return
   }
-  if (intervalKm.value == null && intervalMonths.value == null) {
+  const intervalKm = interval.km()
+  if (intervalKm == null && intervalMonths.value == null) {
     validationError.value = t('maintenance.form.validationIntervalRequired')
     return
   }
@@ -65,17 +70,17 @@ async function submit() {
       await store.updateItem(props.vin, props.item.id, {
         name: name.value.trim(),
         notes: notes.value.trim() || null,
-        intervalKm: intervalKm.value,
+        intervalKm,
         intervalMonths: intervalMonths.value,
       })
     } else {
       await store.createItem(props.vin, {
         name: name.value.trim(),
         notes: notes.value.trim() || null,
-        intervalKm: intervalKm.value,
+        intervalKm,
         intervalMonths: intervalMonths.value,
         lastServiceDate: lastServiceDate.value || null,
-        lastServiceOdometerKm: lastServiceOdometerKm.value,
+        lastServiceOdometerKm: lastServiceOdometer.km(),
       })
     }
     if (store.actionError) {
@@ -117,10 +122,12 @@ async function submit() {
 
       <div class="maintenance-field-row">
         <div class="maintenance-field-group">
-          <label for="maintenance-interval-km">{{ t('maintenance.form.intervalKm') }}</label>
+          <label for="maintenance-interval-km">{{
+            t('maintenance.form.intervalDistance', distanceUnit)
+          }}</label>
           <input
             id="maintenance-interval-km"
-            v-model.number="intervalKm"
+            v-model.number="interval.shown"
             type="number"
             min="1"
             max="1000000"
@@ -156,11 +163,11 @@ async function submit() {
           </div>
           <div class="maintenance-field-group">
             <label for="maintenance-last-odo">{{
-              t('maintenance.form.lastServiceOdometer')
+              t('maintenance.form.lastServiceOdometer', distanceUnit)
             }}</label>
             <input
               id="maintenance-last-odo"
-              v-model.number="lastServiceOdometerKm"
+              v-model.number="lastServiceOdometer.shown"
               type="number"
               min="0"
               class="maintenance-field"

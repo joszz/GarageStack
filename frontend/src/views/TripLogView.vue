@@ -9,14 +9,16 @@ import StatusCard from '@/components/StatusCard.vue'
 import TripLogItem from '@/components/TripLogItem.vue'
 import { TRIP_PURPOSES, type TripPurpose } from '@/services/tripLogApi'
 import { downloadCsv } from '@/utils/download'
-import { formatNumber, intlLocale } from '@/utils/format'
+import { intlLocale } from '@/utils/format'
 import { PURPOSE_ICONS, PURPOSE_KEYS, type TripLogPeriod } from '@/utils/tripLog'
 import { tripLogCsv, tripLogFileName } from '@/utils/tripLogCsv'
+import { useUnits } from '@/composables/useUnits'
 
 const { t } = useI18n()
 const vehicleStore = useVehicleStore()
 const store = useTripLogStore()
 const uiSettings = useUiSettingsStore()
+const units = useUnits()
 
 const vin = computed(() => vehicleStore.activeVin)
 const displayLocale = computed(() => intlLocale(uiSettings.locale))
@@ -85,6 +87,7 @@ function exportCsv() {
   const csv = tripLogCsv(store.entries, {
     locale: displayLocale.value,
     t,
+    units: units.value,
     placesShown: placesShown.value,
   })
   downloadCsv(tripLogFileName(period.value), csv)
@@ -137,8 +140,8 @@ function exportCsv() {
             n: store.totals[key].trips,
           })
         "
-        :value="formatNumber(store.totals[key].km)"
-        :unit="t('common.km')"
+        :value="units.measure('distance', store.totals[key].km)?.value ?? null"
+        :unit="units.symbol('distance')"
       />
     </section>
 

@@ -1,11 +1,12 @@
 import { describe, it, expect } from 'vitest'
 import { buildTripRow, formatTripDuration, type TripRowContext } from '../tripRows'
 import type { Trip } from '@/services/vehicleApi'
+import { METRIC_UNITS, UnitFormatter } from '@/utils/units'
 
 // Stands in for vue-i18n: returns the key's last segment with its parameters, which keeps the
 // assertions about composition rather than about a locale's wording.
 const t = (key: string, named?: Record<string, unknown>) => {
-  if (key === 'common.km') return 'km'
+  if (key.startsWith('units.')) return key.slice('units.'.length)
   if (key === 'trips.points') return 'pts'
   if (key === 'trips.durationMinutes') return `${named!.n} min`
   return `${named!.h}h ${named!.m}m`
@@ -35,6 +36,7 @@ function context(overrides: Partial<TripRowContext> = {}): TripRowContext {
     resolving: false,
     locale: 'en-US',
     t,
+    units: new UnitFormatter(METRIC_UNITS, t),
     ...overrides,
   }
 }
@@ -99,20 +101,27 @@ describe('buildTripRow', () => {
   it('moves the date into the meta line when the route takes the headline', () => {
     const row = buildTripRow(trip(), context({ fromCity: 'Zwolle', toCity: 'Deventer' }))
 
-    expect(row.meta).toBe('Sep 24 · 42 km · 34 min')
+    expect(row.meta).toBe('Sep 24 · 42.0 km · 34 min')
     expect(row.meta).not.toContain('pts')
   })
 
   it('keeps the meta line it has always shown when the date leads', () => {
     const row = buildTripRow(trip(), context())
 
-    expect(row.meta).toBe('42 km · 34 min · 56 pts')
+    expect(row.meta).toBe('42.0 km · 34 min · 56 pts')
+  })
+
+  it('gives the distance in the unit the browser shows', () => {
+    const miles = new UnitFormatter({ ...METRIC_UNITS, distance: 'mi' }, t)
+    const row = buildTripRow(trip(), context({ units: miles }))
+
+    expect(row.meta).toBe('26.1 mi · 34 min · 56 pts')
   })
 
   it('always offers the full detail as a tooltip', () => {
     const row = buildTripRow(trip(), context({ fromCity: 'Zwolle', toCity: 'Deventer' }))
 
-    expect(row.metaTitle).toContain('42 km')
+    expect(row.metaTitle).toContain('42.0 km')
     expect(row.metaTitle).toContain('34 min')
     expect(row.metaTitle).toContain('56 pts')
     expect(row.metaTitle).toContain(row.dateLabel)

@@ -6,9 +6,10 @@ import DetailListItem from './DetailListItem.vue'
 import CommandFailure from './CommandFailure.vue'
 import { useVehicleCommand } from '@/composables/useVehicleCommand'
 import type { TelemetrySnapshot } from '@/services/vehicleApi'
-import { formatNumber } from '@/utils/format'
+import { useUnits } from '@/composables/useUnits'
 
 const { t } = useI18n()
+const units = useUnits()
 
 const props = defineProps<{
   vin: string | null
@@ -25,8 +26,14 @@ const modalOpen = ref(false)
 const applyInProgress = ref(false)
 const { sending, lastResult, isPending, send, waitUntilSettled } = useVehicleCommand()
 
+// The car takes whole degrees Celsius, so the slider steps through those whatever the display
+// unit; in Fahrenheit each step is labelled with its rounded equivalent.
 const TEMP_MIN = 16
 const TEMP_MAX = 28
+
+function wholeDegrees(celsius: number): string {
+  return units.value.measure('temperature', celsius, { decimals: 0 })!.value
+}
 
 const seatLabels = computed(() => [
   t('control.seat.off'),
@@ -55,7 +62,8 @@ const summaryValue = computed((): string | null => {
   const parts: string[] = []
   if (props.climateOn !== null)
     parts.push(props.climateOn ? t('vehicle.climateOn') : t('vehicle.climateOff'))
-  if (props.interiorTemperature !== null) parts.push(`${formatNumber(props.interiorTemperature)}°C`)
+  const interior = units.value.format('temperature', props.interiorTemperature)
+  if (interior !== null) parts.push(interior)
   return parts.length ? parts.join(' · ') : null
 })
 
@@ -184,10 +192,12 @@ function onSeatRightChange(e: Event) {
         <div class="range-control range-control--grow">
           <div class="range-control__header">
             <span class="range-control__label">{{ t('control.temperature') }}</span>
-            <span class="range-control__value">{{ sliderTemp }}°C</span>
+            <span class="range-control__value"
+              >{{ wholeDegrees(sliderTemp) }} {{ units.symbol('temperature') }}</span
+            >
           </div>
           <div class="range-control__row">
-            <span>{{ TEMP_MIN }}°</span>
+            <span>{{ wholeDegrees(TEMP_MIN) }}°</span>
             <input
               v-model.number="sliderTemp"
               type="range"
@@ -196,7 +206,7 @@ function onSeatRightChange(e: Event) {
               step="1"
               :disabled="isApplying || !vin"
             />
-            <span>{{ TEMP_MAX }}°</span>
+            <span>{{ wholeDegrees(TEMP_MAX) }}°</span>
           </div>
         </div>
       </div>
@@ -237,7 +247,7 @@ function onSeatRightChange(e: Event) {
       <DetailListItem
         v-if="interiorTemperature !== null"
         icon="thermometer-half"
-        :value="`${formatNumber(interiorTemperature)} °C`"
+        :value="units.format('temperature', interiorTemperature)"
         :label="t('vehicle.temperature.interior')"
       />
 
@@ -245,7 +255,7 @@ function onSeatRightChange(e: Event) {
       <DetailListItem
         v-if="exteriorTemperature !== null"
         icon="temperature-low"
-        :value="`${formatNumber(exteriorTemperature)} °C`"
+        :value="units.format('temperature', exteriorTemperature)"
         :label="t('vehicle.temperature.exterior')"
       />
 
