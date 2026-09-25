@@ -55,6 +55,7 @@ const NOTIFICATION_CATEGORY_LABEL_KEYS: Record<NotificationCategoryId, string> =
   'unlocked-parked': 'unlockedParked',
   'doors-open-parked': 'doorsOpenParked',
   'windows-open-parked': 'windowsOpenParked',
+  'vehicle-message': 'vehicleMessage',
   maintenance: 'maintenance',
 }
 

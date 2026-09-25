@@ -9,6 +9,7 @@ export const NOTIFICATION_CATEGORY_IDS = [
   'unlocked-parked',
   'doors-open-parked',
   'windows-open-parked',
+  'vehicle-message',
   'maintenance',
 ] as const
 

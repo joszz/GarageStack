@@ -70,6 +70,14 @@ public class VehicleRepository(AppDbContext db) : IVehicleRepository
         await db.SaveChangesAsync(ct);
     }
 
+    public async Task SetLastMessageIdAsync(int vehicleId, string messageId, CancellationToken ct = default)
+    {
+        var vehicle = await db.Vehicles.FindAsync([vehicleId], ct);
+        if (vehicle is null || vehicle.LastMessageId == messageId) return;
+        vehicle.LastMessageId = messageId;
+        await db.SaveChangesAsync(ct);
+    }
+
     public async Task SetConfigValueAsync(int vehicleId, string key, string value, CancellationToken ct = default)
     {
         var vehicle = await db.Vehicles.FindAsync([vehicleId], ct);

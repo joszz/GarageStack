@@ -51,6 +51,8 @@ public class MqttConsumerService(
     internal readonly ConcurrentDictionary<int, (long RowId, DateTime RecordedAt)> _mergeState = new();
     private readonly ConcurrentDictionary<int, SemaphoreSlim> _mergeGates = new();
 
+    private readonly VehicleMessageHandler _vehicleMessages = new(logger, scopeFactory, pushSender, strings, TimeProvider.System);
+
     protected virtual IMqttClient CreateMqttClient() => new MqttClientFactory().CreateMqttClient();
     protected virtual TimeSpan RetryDelay => TimeSpan.FromSeconds(5);
 
@@ -180,6 +182,9 @@ public class MqttConsumerService(
             }
             return;
         }
+
+        if (await _vehicleMessages.TryHandleAsync(vin, saicUser, subtopic, payload, e.ApplicationMessage.Retain, ct))
+            return;
 
         if (GatewayCommandResult.TryParse(subtopic, payload, out var commandResult))
         {

@@ -358,6 +358,7 @@
       "unlockedParked": "Ontgrendeld terwijl geparkeerd",
       "doorsOpenParked": "Portier open terwijl geparkeerd",
       "windowsOpenParked": "Raam open terwijl geparkeerd",
+      "vehicleMessage": "Berichten uit de MG-app",
       "maintenance": "Onderhoudsherinneringen"
     }
   },
