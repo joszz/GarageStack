@@ -135,6 +135,8 @@ export interface TripPoint {
 
 export interface Trip {
   index: number
+  /** The saved trip's id, or null for one the Worker has not saved yet, such as the one being driven. */
+  id: number | null
   startedAt: string
   endedAt: string
   distanceKm: number

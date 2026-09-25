@@ -59,13 +59,23 @@ The gateway answers every command on the same topic with `/set` swapped for `/re
 
 Two details matter here. The gateway publishes results retained, so the broker replays the last one per command on every subscribe; the Worker drops those replays, or a restart would show an old failure as new. And an answer names a command but not a request, so a browser only takes an answer for a command it is still waiting on.
 
+## Trips
+
+The gateway reports positions, not trips. `TripSegmenter` in Core cuts GPS fixes into trips. A trip ends when the car stands still for five minutes or no fix arrives for half an hour. A trip containing a jump faster than 250 km/h is thrown out as a positioning glitch, and one under 0.1 km never went anywhere. The Worker and the Api both use this one class, so they cannot disagree about where a trip starts and ends.
+
+- **Saving.** `TripRecorderService` in the Worker runs `TripRecorder` every five minutes. It reads a vehicle's fixes from `Vehicle.TripsRecordedUntil` onwards, a week at a time, and saves every trip that no later fix can change, because the car has been parked for five minutes or nothing has arrived for half an hour. Then it moves that line up: to the first fix of the trip still being driven, or else to the end of what it read. The trips and the line are saved in one transaction. An install that has never saved a trip has no line yet, so the first run starts at the vehicle's first fix and saves its whole history.
+- **Storage.** A trip is saved together with its fixes (`Trip.PointsJson`), so showing it does not mean reading and re-cutting raw telemetry. A unique index on `(VehicleId, StartedAt)` turns any slip in the line into an error rather than a duplicate.
+- **Serving.** The Api's trips endpoint goes through `TripRepository`. It serves the saved trips from before the line, and cuts everything after the line live; the trip being driven always comes from that live part. The line is read first, and only saved trips from before it are served: otherwise a save landing between the two reads would show its trips twice.
+
+The frontend sees one list and can tell the two kinds apart only by `id`, which is null for a trip that has not been saved yet.
+
 ## Projects under `src/`
 
 | Project | Contains | Depends on |
 | --- | --- | --- |
 | `GarageStack.Core` | Domain models (`Models/`), repository/service interfaces (`Interfaces/`), and pure helpers with no I/O (`Helpers/`) - the shared vocabulary every other project builds on. | nothing (leaf project) |
 | `GarageStack.Data` | EF Core: `AppDbContext`, migrations, concrete repository implementations, and `Demo/` (in-memory fakes used when `DEMO_MODE=true`). | `Core` |
-| `GarageStack.Worker` | The MQTT-ingestion process: `Mqtt/MqttConsumerService`, plus background services for maintenance reminders, POI pre-caching, and push-notification checks. | `Core`, `Data` |
+| `GarageStack.Worker` | The MQTT-ingestion process: `Mqtt/MqttConsumerService`, plus background services for maintenance reminders, POI pre-caching, push-notification checks, and saving finished trips. | `Core`, `Data` |
 | `GarageStack.Api` | ASP.NET Core minimal APIs (`Endpoints/`), the SignalR hub (`Hubs/`), and Api-only services (outbound MQTT publishing, POI/charging-station lookups, the Postgres-LISTEN-to-SignalR bridge). | `Core`, `Data` |
 | `GarageStack.Tests` | xUnit tests across all of the above. | all four |
 

@@ -14,6 +14,7 @@ const t = (key: string, named?: Record<string, unknown>) => {
 function trip(overrides: Partial<Trip> = {}): Trip {
   return {
     index: 0,
+    id: 1,
     startedAt: '2026-09-24T14:32:00.000Z',
     endedAt: '2026-09-24T15:06:00.000Z',
     distanceKm: 42,

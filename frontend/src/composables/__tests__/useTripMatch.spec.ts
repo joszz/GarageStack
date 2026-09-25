@@ -19,6 +19,7 @@ const shape = 'qdbdcBqbzrJ_ibE_ibE'
 function trip(points: number, startedAt = '2026-09-20T08:00:00Z'): Trip {
   return {
     index: 0,
+    id: 1,
     startedAt,
     endedAt: '2026-09-20T08:30:00Z',
     distanceKm: 12.3,
