@@ -15,6 +15,11 @@ public sealed class PoiService(
         string poiType, double lat, double lng, double radiusKm,
         CancellationToken ct = default)
     {
+        // A layer the deployment has switched off answers empty and says so, which is what stops
+        // the client asking again; nothing is fetched and nothing already cached is served.
+        if (!overpassClient.IsTypeEnabled(poiType))
+            return new PoiResult([], HasMore: false, Available: false);
+
         var tiles = TileHelper.ComputeTiles(lat, lng, radiusKm);
         var uncached = await repository.GetExpiredOrMissingTilesAsync(PoiCacheDefaults.OverpassSource, poiType, tiles, ct);
 
@@ -65,4 +70,10 @@ public sealed record PoiItemDto(
     string? Name,
     Dictionary<string, string>? Tags);
 
-public sealed record PoiResult(IReadOnlyList<PoiItemDto> Items, bool HasMore);
+/// <param name="Items">The POIs within the requested bounds that are already cached.</param>
+/// <param name="HasMore">Uncached tiles remain in this viewport, so asking again brings more.</param>
+/// <param name="Available">
+/// False only when the deployment does not serve this layer at all, which tells the client to
+/// stop offering it rather than to ask again.
+/// </param>
+public sealed record PoiResult(IReadOnlyList<PoiItemDto> Items, bool HasMore, bool Available = true);

@@ -73,7 +73,7 @@ process-local one doesn't already provide. Two caches exist today:
   widget, and every SignalR broadcast) uses a short-TTL `IMemoryCache` entry, invalidated
   immediately on every telemetry write so it can never serve data older than the write that
   triggered a SignalR broadcast.
-- Map POI tiles (charging stations, fuel stations, service areas) are cached in Postgres itself
+- Map POI tiles (charging stations, fuel stations, service areas, speed cameras) are cached in Postgres itself
   (`PoiCacheTile`/`PoiItem`), not in memory, since that data needs to survive process restarts
   and be queried by bounding box - a job a plain in-memory cache isn't suited for anyway. The
   brand filter list is a DISTINCT over the `Brand` column, extracted from the upstream metadata
@@ -152,7 +152,7 @@ REST calls go through `frontend/src/services/` - `apiCore.ts` centralizes the `f
 
 The vehicle store owns `activeVehicle`/`activeVin` (the one car this instance follows) and `effectiveVehicleType` (the user's manual override, else the drivetrain the API detected from the gateway's `hw_version`); views read those rather than indexing into the vehicle list or repeating the override logic. The TypeScript interfaces in `services/` mirror the API's DTOs by hand; the history endpoint returns `TelemetryHistoryPoint` (the chart fields only), not full snapshots.
 
-Dashboard cards are described once, in `frontend/src/cards/registry.ts`: each entry carries the card's icon, whether it is visible by default for a given drivetrain, and whether the current telemetry has anything to show. The card ids, the default layout and the "does this card have data" checks are all derived from that list, so a new card is one entry plus its markup in `DashboardCardContent.vue`. The map's point-of-interest layers work the same way: `composables/poiTileLayer.ts` holds the fetch-by-tile, cache and cluster logic, and charging stations, fuel stations and service areas are three configurations of it.
+Dashboard cards are described once, in `frontend/src/cards/registry.ts`: each entry carries the card's icon, whether it is visible by default for a given drivetrain, and whether the current telemetry has anything to show. The card ids, the default layout and the "does this card have data" checks are all derived from that list, so a new card is one entry plus its markup in `DashboardCardContent.vue`. The map's point-of-interest layers work the same way: `composables/poiTileLayer.ts` holds the fetch-by-tile, cache and cluster logic, and charging stations, fuel stations, service areas and speed cameras are four configurations of it.
 
 Every map is Leaflet, and everything drawn on one (markers, clusters, routes, the heatmap) is a
 Leaflet layer. The basemap underneath them is not: `composables/useBasemap.ts` adds a MapLibre GL

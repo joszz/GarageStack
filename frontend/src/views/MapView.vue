@@ -87,6 +87,8 @@ const {
   chargingStationsEnabled,
   fuelStationsEnabled,
   serviceAreasEnabled,
+  speedCamerasEnabled,
+  speedCamerasAvailable,
   fuelBrandFilter,
   fuelTypeFilter,
   fuelTypeOptions,
@@ -125,6 +127,7 @@ const activeLayerCount = computed(() => {
     // Hidden without snapping, and inert too: the limits arrive with the snapped line.
     snapToRoadsEnabled.value && speedLimitOverlayEnabled.value,
     serviceAreasEnabled.value,
+    speedCamerasAvailable.value && speedCamerasEnabled.value,
     carTakesFuel.value && fuelStationsEnabled.value,
     carTakesCharge.value && chargingStationsEnabled.value,
   ]
@@ -980,6 +983,21 @@ onUnmounted(() => {
                 {{ t('trips.serviceAreas') }}
               </span>
               <span class="settings-toggle__desc">{{ t('trips.serviceAreasDesc') }}</span>
+            </template>
+          </SettingsToggle>
+          <!-- Left out entirely where the deployment does not serve the layer, which is how a
+               jurisdiction that restricts flagging camera positions switches it off. -->
+          <SettingsToggle
+            v-if="speedCamerasAvailable"
+            v-model="speedCamerasEnabled"
+            :label="t('trips.speedCameras')"
+          >
+            <template #label>
+              <span class="settings-toggle__label">
+                <font-awesome-icon icon="camera" class="settings-toggle__icon" />
+                {{ t('trips.speedCameras') }}
+              </span>
+              <span class="settings-toggle__desc">{{ t('trips.speedCamerasDesc') }}</span>
             </template>
           </SettingsToggle>
           <SettingsToggle

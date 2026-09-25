@@ -17,7 +17,7 @@ public static class MapEndpoints
             : null;
 
     private static IResult InvalidPoiType() =>
-        Results.BadRequest(new { error = $"type must be '{PoiTypePolicy.Fuel}' or '{PoiTypePolicy.ServiceArea}'" });
+        Results.BadRequest(new { error = $"type must be one of '{string.Join("', '", PoiTypePolicy.AllOverpassTypes)}'" });
 
     public static IEndpointRouteBuilder MapMapEndpoints(this IEndpointRouteBuilder app)
     {
@@ -87,7 +87,7 @@ public static class MapEndpoints
                 return Results.Ok(new PoiResult([], false));
             }
         })
-        .WithSummary("Get nearby POIs (fuel stations, service areas) from OSM Overpass cache");
+        .WithSummary("Get nearby POIs (fuel stations, service areas, speed cameras) from OSM Overpass cache");
 
         // POST rather than GET because a trip list asks about dozens of coordinates at once, and
         // one batched request per list beats one request per trip against the global rate limit.

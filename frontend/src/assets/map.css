@@ -278,6 +278,10 @@
   background: #7c3aed;
 }
 
+.poi-marker--speed-camera {
+  background: #dc2626;
+}
+
 .poi-cluster {
   width: 36px;
   height: 36px;
@@ -300,6 +304,11 @@
 .poi-cluster--service-area {
   background: #7c3aed;
   border-color: rgb(124 58 237 / 35%);
+}
+
+.poi-cluster--speed-camera {
+  background: #dc2626;
+  border-color: rgb(220 38 38 / 35%);
 }
 
 .poi-popup {

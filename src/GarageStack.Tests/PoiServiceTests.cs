@@ -82,13 +82,18 @@ internal sealed class PoiFakeOverpassHandler(string json, HttpStatusCode status 
 {
     public int CallCount { get; private set; }
 
-    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
+    /// <summary>The Overpass query last sent, so a test can assert what was asked for.</summary>
+    public string? LastQuery { get; private set; }
+
+    protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
     {
         CallCount++;
-        return Task.FromResult(new HttpResponseMessage(status)
+        if (request.Content is not null)
+            LastQuery = await request.Content.ReadAsStringAsync(ct);
+        return new HttpResponseMessage(status)
         {
             Content = new StringContent(json, Encoding.UTF8, "application/json"),
-        });
+        };
     }
 }
 
@@ -105,11 +110,15 @@ public class PoiServiceTests
 {
     private static IConfiguration EmptyConfig() => new ConfigurationBuilder().Build();
 
-    private static OverpassApiClient BuildOverpassClient(PoiFakeOverpassHandler handler)
+    private static IConfiguration ConfigWith(string key, string value) =>
+        new ConfigurationBuilder().AddInMemoryCollection([new KeyValuePair<string, string?>(key, value)]).Build();
+
+    private static OverpassApiClient BuildOverpassClient(
+        PoiFakeOverpassHandler handler, IConfiguration? configuration = null)
     {
         var client = new HttpClient(handler);
         var factory = new PoiFakeHttpClientFactory(client);
-        return new OverpassApiClient(factory, EmptyConfig(), NullLogger<OverpassApiClient>.Instance);
+        return new OverpassApiClient(factory, configuration ?? EmptyConfig(), NullLogger<OverpassApiClient>.Instance);
     }
 
     private static PoiService BuildPoiService(PoiFakeRepository repo, OverpassApiClient overpass)
@@ -199,6 +208,50 @@ public class PoiServiceTests
         Assert.Contains(result.Items, p => p.Name == "BP");
     }
 
+    [Fact]
+    public async Task GetPoisAsync_SpeedCameras_AsksOverpassForCameraNodes()
+    {
+        var repo = new PoiFakeRepository();
+        var handler = new PoiFakeOverpassHandler(EmptyOverpassResponse);
+        var svc = BuildPoiService(repo, BuildOverpassClient(handler));
+
+        var result = await svc.GetPoisAsync("speed_camera", 52.3, 4.9, 5.0, TestContext.Current.CancellationToken);
+
+        Assert.True(result.Available);
+        Assert.True(handler.CallCount > 0);
+        Assert.Contains("speed_camera", Uri.UnescapeDataString(handler.LastQuery ?? string.Empty));
+    }
+
+    [Fact]
+    public async Task GetPoisAsync_SpeedCamerasDisabled_ReportsUnavailableAndSkipsOverpass()
+    {
+        var repo = new PoiFakeRepository();
+        var handler = new PoiFakeOverpassHandler(OneNodeResponse);
+        var overpass = BuildOverpassClient(handler, ConfigWith("SpeedCameras:Enabled", "false"));
+        var svc = BuildPoiService(repo, overpass);
+
+        var result = await svc.GetPoisAsync("speed_camera", 52.3, 4.9, 5.0, TestContext.Current.CancellationToken);
+
+        Assert.False(result.Available);
+        Assert.False(result.HasMore);
+        Assert.Empty(result.Items);
+        Assert.Equal(0, handler.CallCount);
+    }
+
+    [Fact]
+    public async Task GetPoisAsync_SpeedCamerasDisabled_LeavesOtherLayersServed()
+    {
+        var repo = new PoiFakeRepository();
+        var handler = new PoiFakeOverpassHandler(OneNodeResponse);
+        var overpass = BuildOverpassClient(handler, ConfigWith("SpeedCameras:Enabled", "false"));
+        var svc = BuildPoiService(repo, overpass);
+
+        var result = await svc.GetPoisAsync("fuel", 52.3, 4.9, 5.0, TestContext.Current.CancellationToken);
+
+        Assert.True(result.Available);
+        Assert.Contains(result.Items, p => p.Name == "Shell");
+    }
+
     [Theory]
     [InlineData("fuel", "bev", false)]
     [InlineData("fuel", "unknown", false)]
@@ -208,6 +261,10 @@ public class PoiServiceTests
     [InlineData("service_area", "hev", true)]
     [InlineData("service_area", "phev", true)]
     [InlineData("service_area", "unknown", true)]
+    [InlineData("speed_camera", "bev", true)]
+    [InlineData("speed_camera", "hev", true)]
+    [InlineData("speed_camera", "phev", true)]
+    [InlineData("speed_camera", "unknown", true)]
     public void IsPoiTypeAllowed_ReturnsExpectedResult(string poiType, string vehicleType, bool expected)
     {
         Assert.Equal(expected, PoiTypePolicy.IsAllowed(poiType, vehicleType));
@@ -216,6 +273,7 @@ public class PoiServiceTests
     [Theory]
     [InlineData("fuel", PoiTypePolicy.Fuel)]
     [InlineData("service_area", PoiTypePolicy.ServiceArea)]
+    [InlineData("speed_camera", PoiTypePolicy.SpeedCamera)]
     [InlineData("Fuel", null)]
     [InlineData("fuel\r\nforged", null)]
     [InlineData("", null)]

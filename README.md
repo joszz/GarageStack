@@ -17,6 +17,7 @@ GarageStack is a free, open-source vehicle monitoring dashboard for **modern MG 
 - **Charging stations** -- Overlay nearby EV charging stations on the map, sourced from the [Open Charge Map](https://openchargemap.org) database. Station data is cached in the database for 7 days; on page load the map immediately shows all stations within 100 km of your car that are already cached. Markers show operational status; clicking a marker displays the station name, operator, address, and available connector types with power ratings. Requires a free OCM API key (`OPENCHARGEMAP_API_KEY`). Unlike fuel stations and service areas, charging station tiles are loaded on demand as you browse the map and are not pre-populated by the background Worker.
 - **Fuel stations** -- Overlay nearby petrol and diesel stations on the map (HEV and PHEV only; not shown for BEV). Sourced from OpenStreetMap via the Overpass API -- no API key required. POI data is cached in the database for 7 days and pre-populated by the Worker for a 100 km radius around the car's last known position so the overlay is instant on first view.
 - **Motorway service areas** -- Overlay motorway service areas and rest stops on the map (all vehicle types). Same DB-backed cache and Worker pre-cache as fuel stations; useful for BEV drivers who often find fast chargers at service areas.
+- **Speed cameras** -- Overlay the speed cameras mapped in OpenStreetMap (`highway=speed_camera`), with the limit each one enforces and the kind of camera it is where OSM records them. Same DB-backed cache and Worker pre-cache as fuel stations, off until you switch it on in the map's layer panel, and removable from the deployment with `SPEEDCAMERAS__ENABLED=false` -- see the note on jurisdictions in the Map overlays section.
 - **Place names** -- Trips are listed by where they went ("Zwolle to Deventer") instead of by date alone, and the dashboard's location card names the street the car is parked in. Sourced from OpenStreetMap via [Nominatim](https://nominatim.openstreetmap.org) -- no API key required, answers are cached in the database for 90 days, and the whole feature can be switched off per browser under Settings > Map, or for the deployment with `GEOCODING__ENABLED=false`.
 - **Snapped trip lines** -- A selected trip is drawn along the roads it was driven on rather than in straight lines between GPS fixes, which also gives a truer distance than the fixes alone. Matched against OpenStreetMap by [Valhalla](https://valhalla1.openstreetmap.de) -- no API key required, snapped trips are cached in the database for 30 days, and it can be switched off in the map's filter panel or for the deployment with `MAPMATCHING__ENABLED=false`.
 - **Speed limits** -- The selected trip can be coloured against the limits signposted along it, green within and red above, with how far over it went and over how much of the trip a limit was known. Read from OpenStreetMap's `maxspeed` tags by the same match that snapped the trip, so it costs no extra request and needs no configuration.
@@ -484,6 +485,16 @@ Sourced from OpenStreetMap (`highway=services`) via the Overpass API -- no API k
 - Available for all vehicle types; useful for BEV drivers because many service areas have fast-charger banks.
 - Same DB-backed cache and Worker pre-population as fuel stations. The same Overpass slowness applies for uncached tiles outside the pre-populated radius -- see the note in the Fuel stations section above.
 
+### Speed cameras
+
+Sourced from OpenStreetMap (`highway=speed_camera`) via the Overpass API -- no API key required.
+
+- Shows the cameras OSM holds a position for, all vehicle types. A marker's popup names the limit the camera enforces (`maxspeed`), the kind of camera (fixed, mobile site, average speed check, red light) and its operator, as far as the node is tagged for them. Coverage and accuracy are whatever OSM's mappers have entered.
+- Off by default. **The map's layer panel > Speed cameras** switches it on per browser.
+- Positions on a map, not warnings: GarageStack is a dashboard of the car's state, and nothing here alerts you to a camera ahead while driving.
+- Several countries restrict pointing a driver at camera positions, France and Germany among them. Set `SPEEDCAMERAS__ENABLED=false` to remove the layer from the deployment: the toggle then disappears from the layer panel, the endpoint serves nothing, and the Worker fetches no camera data either.
+- Same DB-backed cache and Worker pre-population as fuel stations. The same Overpass slowness applies for uncached tiles outside the pre-populated radius -- see the note in the Fuel stations section above.
+
 ### Place names (reverse geocoding)
 
 Sourced from OpenStreetMap via [Nominatim](https://nominatim.openstreetmap.org) -- no API key required.
@@ -522,11 +533,11 @@ A reading counts as over the limit only past 5 km/h above it: speedometers read 
 
 ### Caching architecture
 
-All three POI types share the same tile-based PostgreSQL cache:
+All four POI types share the same tile-based PostgreSQL cache:
 
 - The map is divided into a 0.5 deg x 0.5 deg grid (roughly 55 x 40 km at European latitudes).
 - Each tile is fetched once and stored for 7 days; subsequent requests for the same area are served from the database with no external API call.
-- The background Worker pre-populates tiles around your car on startup and every 6 hours (fuel and service areas only).
+- The background Worker pre-populates tiles around your car on startup and every 6 hours (the OpenStreetMap layers only: fuel, service areas and speed cameras, the last of these unless the deployment has switched them off).
 - The `MaxOnDemandTiles` cap (1 per API request) prevents Overpass rate-limiting when many uncached tiles are requested at once; the frontend chains requests automatically with back-off when more tiles remain.
 
 ---

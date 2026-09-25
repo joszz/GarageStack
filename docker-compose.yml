@@ -19,6 +19,10 @@ x-dotnet-environment: &dotnet-environment
   TyrePressure__LowBar: "${TYRE_PRESSURE_LOW_BAR:-}"
   TyrePressure__GoodBar: "${TYRE_PRESSURE_GOOD_BAR:-}"
   TyrePressure__HighBar: "${TYRE_PRESSURE_HIGH_BAR:-}"
+  # The speed camera map layer, which both services have to agree about: the API serves it and
+  # the Worker pre-fetches it. Set to false where showing camera positions is restricted.
+  # See .env.example.
+  SpeedCameras__Enabled: "${SPEEDCAMERAS__ENABLED:-true}"
 
 services:
   mosquitto:

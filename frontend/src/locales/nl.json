@@ -272,6 +272,15 @@
     "fuelStationsDesc": "Toont tankstations bij jouw locatie.",
     "serviceAreas": "Verzorgingsplaatsen",
     "serviceAreasDesc": "Toont verzorgingsplaatsen op de snelweg bij jouw locatie.",
+    "speedCameras": "Flitsers",
+    "speedCamerasDesc": "Toont flitsers die in OpenStreetMap staan bij jouw locatie. In sommige landen is het waarschuwen voor flitserlocaties tijdens het rijden verboden.",
+    "speedCamera": "Flitser",
+    "speedCameraTypes": {
+      "fixed": "Vaste flitser",
+      "mobile": "Mobiele flitslocatie",
+      "section": "Trajectcontrole",
+      "traffic_signals": "Roodlichtcamera"
+    },
     "poiLoading": "Live kaartgegevens ophalen...",
     "fuelBrandFilter": "Merkfilter",
     "fuelBrandFilterDesc": "Toon alleen geselecteerde tankstationmerken. Werkt zodra de laag tankstations aan staat.",
