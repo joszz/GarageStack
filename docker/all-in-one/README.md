@@ -20,7 +20,7 @@ All processes are managed by **supervisord**. Startup order is enforced via prio
 | Container port | Purpose | Expose? |
 |---------------|---------|---------|
 | **80** | Web UI (nginx) | Yes -- map to your chosen host port (default 8080) |
-| **1883** | MQTT broker | Optional -- only needed for external MQTT clients such as [Home Assistant](../../HOME_ASSISTANT.md); keep closed unless needed |
+| **1883** | MQTT broker | Optional -- only needed for external MQTT clients such as [Home Assistant](../../documentation/HOME_ASSISTANT.md); keep closed unless needed |
 
 ## Persistent data
 
@@ -48,7 +48,7 @@ Mount a single volume at `/data`. The container creates the following layout ins
 | `SAIC_REGION` | Region the car is registered in: `eu` (default), `au`, or `tr` -- automatically mapped to the right API endpoint |
 | `CORS_ORIGIN` | Exact URL you use to open the app, e.g. `http://192.168.1.100:8080` |
 
-By default the web login uses the same `SAIC_USER` and `SAIC_PASSWORD` credentials, and there is no separate signup flow. Set `AUTH_USERNAME` / `AUTH_PASSWORD` for dedicated credentials, or hand sign-in over to your own identity provider with the `OIDC_*` variables below -- see [`AUTHENTICATION.md`](../../AUTHENTICATION.md).
+By default the web login uses the same `SAIC_USER` and `SAIC_PASSWORD` credentials, and there is no separate signup flow. Set `AUTH_USERNAME` / `AUTH_PASSWORD` for dedicated credentials, or hand sign-in over to your own identity provider with the `OIDC_*` variables below -- see [`AUTHENTICATION.md`](../../documentation/AUTHENTICATION.md).
 
 ### Optional
 
@@ -80,10 +80,10 @@ By default the web login uses the same `SAIC_USER` and `SAIC_PASSWORD` credentia
 | `OIDC_ALLOWED_GROUPS` / `OIDC_ALLOWED_EMAILS` | Restrict who may sign in. Leave empty only if the provider already restricts this application. |
 | `OIDC_PROVIDER_NAME` | Name on the sign-in button (default `SSO`). |
 | `OIDC_AUTO_LOGIN` | Set to `true` to skip the login page and go straight to the provider. |
-| `OIDC_SCOPES`, `OIDC_GROUPS_CLAIM`, `OIDC_REDIRECT_URI`, `OIDC_REQUIRE_HTTPS_METADATA` | Fine-tuning for less common providers -- see [`AUTHENTICATION.md`](../../AUTHENTICATION.md). |
+| `OIDC_SCOPES`, `OIDC_GROUPS_CLAIM`, `OIDC_REDIRECT_URI`, `OIDC_REQUIRE_HTTPS_METADATA` | Fine-tuning for less common providers -- see [`AUTHENTICATION.md`](../../documentation/AUTHENTICATION.md). |
 | `MQTT_BROKER_USERNAME` | Username for the embedded Mosquitto broker (default: `garagestack`). Only matters if you expose port 1883 to the LAN. |
 | `MQTT_BROKER_PASSWORD` | Password for the embedded Mosquitto broker. If not set, a random password is auto-generated on first start. Set explicitly if you expose port 1883 and want a known value. |
-| `HA_MQTT_USERNAME` / `HA_MQTT_PASSWORD` | Optional broker login for Home Assistant, limited to the car's topics and Home Assistant discovery. Leave empty to skip it. Needs port 1883 published. See [`HOME_ASSISTANT.md`](../../HOME_ASSISTANT.md). |
+| `HA_MQTT_USERNAME` / `HA_MQTT_PASSWORD` | Optional broker login for Home Assistant, limited to the car's topics and Home Assistant discovery. Leave empty to skip it. Needs port 1883 published. See [`HOME_ASSISTANT.md`](../../documentation/HOME_ASSISTANT.md). |
 
 ## Building the image
 
@@ -240,7 +240,7 @@ Look for `[garagestack] Starting all services via supervisord...` and then all s
 
 Unless you configured something else, the web login uses your `SAIC_USER` / `SAIC_PASSWORD` environment variables directly -- there is no separate account. Check that those values match exactly what you use in the MG iSmart app. The SAIC gateway in the container will also need a few minutes to establish its first session with the MG cloud.
 
-Note that setting `OIDC_AUTHORITY` replaces this login: the page then offers only "Sign in with ...", unless `AUTH_PASSWORD_LOGIN_ENABLED=true` keeps both. See [`AUTHENTICATION.md`](../../AUTHENTICATION.md).
+Note that setting `OIDC_AUTHORITY` replaces this login: the page then offers only "Sign in with ...", unless `AUTH_PASSWORD_LOGIN_ENABLED=true` keeps both. See [`AUTHENTICATION.md`](../../documentation/AUTHENTICATION.md).
 
 ## Unraid Community Apps
 
@@ -253,6 +253,6 @@ Import the template from `unraid/garagestack.xml`. Fill in at minimum:
 
 VAPID keys are optional; leave them blank to skip push notifications.
 
-The **OIDC** fields under "Show advanced settings" are optional too. Fill them in to sign in through Authentik, Authelia, Keycloak or any other OpenID Connect provider instead of the built-in login -- see [`AUTHENTICATION.md`](../../AUTHENTICATION.md).
+The **OIDC** fields under "Show advanced settings" are optional too. Fill them in to sign in through Authentik, Authelia, Keycloak or any other OpenID Connect provider instead of the built-in login -- see [`AUTHENTICATION.md`](../../documentation/AUTHENTICATION.md).
 
 > **Note on the MG account:** see the [MG iSmart account and session limits](../../README.md#mg-ismart-account-and-session-limits) section in the main README.

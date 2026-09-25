@@ -56,7 +56,7 @@ export Vapid__Subject="${Vapid__Subject:-mailto:${SAIC_USER}}"
 export Notifications__Culture="${NOTIFICATION_LANGUAGE:-en}"
 
 # Authentication: OpenID Connect when a provider is configured, the built-in password login
-# otherwise. See AUTHENTICATION.md.
+# otherwise. See documentation/AUTHENTICATION.md.
 export Oidc__Authority="${OIDC_AUTHORITY:-}"
 export Oidc__ClientId="${OIDC_CLIENT_ID:-}"
 export Oidc__ClientSecret="${OIDC_CLIENT_SECRET:-}"
@@ -109,7 +109,7 @@ export ASPNETCORE_URLS="http://127.0.0.1:9000"
 chown -R appuser:appuser /data/api /data/worker /data/dataprotection
 
 # Generate Mosquitto password and ACL files: the internal broker login above, plus the optional
-# Home Assistant login (HA_MQTT_USERNAME / HA_MQTT_PASSWORD, see HOME_ASSISTANT.md).
+# Home Assistant login (HA_MQTT_USERNAME / HA_MQTT_PASSWORD, see documentation/HOME_ASSISTANT.md).
 # Mosquitto 2.x refuses to load password/ACL files unless they are owned by
 # the user it runs as (it checks the literal "mosquitto" account via getpwnam,
 # not the process's actual uid) -- run the broker as that user via gosu below.

@@ -2,7 +2,7 @@
 
 GarageStack and [Home Assistant](https://www.home-assistant.io) can share the same car data. The SAIC MQTT gateway inside GarageStack already publishes [Home Assistant MQTT discovery](https://www.home-assistant.io/integrations/mqtt/#mqtt-discovery) messages, so all Home Assistant needs is a login on GarageStack's Mosquitto broker. Your car then shows up as a device with sensors (battery, range, tyre pressures, doors, location and more) and controls (lock, climate, charging), with no custom component or YAML.
 
-**Don't install a separate MG / SAIC integration in Home Assistant as well.** The MG iSmart API allows one active session per account, so a second client logging in with the same account keeps kicking GarageStack out (see [MG iSmart account and session limits](README.md#mg-ismart-account-and-session-limits)). Sharing the broker means one login and one set of polls against the MG cloud, used by both.
+**Don't install a separate MG / SAIC integration in Home Assistant as well.** The MG iSmart API allows one active session per account, so a second client logging in with the same account keeps kicking GarageStack out (see [MG iSmart account and session limits](../README.md#mg-ismart-account-and-session-limits)). Sharing the broker means one login and one set of polls against the MG cloud, used by both.
 
 ---
 

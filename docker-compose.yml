@@ -30,7 +30,7 @@ services:
     environment:
       MQTT_BROKER_USERNAME: "${MQTT_BROKER_USERNAME:-garagestack}"
       MQTT_BROKER_PASSWORD: "${MQTT_BROKER_PASSWORD:?Set MQTT_BROKER_PASSWORD in your .env file, see .env.example}"
-      # Optional Home Assistant login, see HOME_ASSISTANT.md. Left empty, no HA user is created.
+      # Optional Home Assistant login, see documentation/HOME_ASSISTANT.md. Left empty, no HA user is created.
       HA_MQTT_USERNAME: "${HA_MQTT_USERNAME:-}"
       HA_MQTT_PASSWORD: "${HA_MQTT_PASSWORD:-}"
     entrypoint: ["/bin/sh", "-c"]
@@ -141,7 +141,7 @@ services:
       Auth__Username: "${AUTH_USERNAME:-}"
       Auth__Password: "${AUTH_PASSWORD:-}"
       Auth__PasswordLoginEnabled: "${AUTH_PASSWORD_LOGIN_ENABLED:-}"
-      # OpenID Connect single sign-on -- see AUTHENTICATION.md. Setting OIDC_AUTHORITY switches
+      # OpenID Connect single sign-on -- see documentation/AUTHENTICATION.md. Setting OIDC_AUTHORITY switches
       # authentication over to the provider and disables the password login above, unless
       # AUTH_PASSWORD_LOGIN_ENABLED keeps it on.
       Oidc__Authority: "${OIDC_AUTHORITY:-}"
