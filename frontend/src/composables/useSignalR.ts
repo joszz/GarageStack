@@ -1,13 +1,14 @@
 import { ref, onUnmounted } from 'vue'
 import * as signalR from '@microsoft/signalr'
 import { apiUrl } from '@/services/apiCore'
-import type { TelemetrySnapshot } from '@/services/vehicleApi'
+import type { CommandResult, TelemetrySnapshot } from '@/services/vehicleApi'
 import type { AppNotification } from '@/services/notificationsApi'
 
 export interface SignalRCallbacks {
   onTelemetryUpdated: (snapshot: TelemetrySnapshot) => void
   onNotificationReceived: (notification: AppNotification) => void
   onTripCompleted: (vehicleId: number) => void
+  onCommandResult: (result: CommandResult) => void
 }
 
 // Backoff between reconnect attempts, reused for both the automatic reconnect and our own
@@ -20,8 +21,8 @@ function retryDelay(attempt: number): number {
 
 /**
  * Owns the SignalR connection to the `/hubs/telemetry` hub: connecting, joining the given
- * vehicle's group, reconnection, and dispatching the three server-pushed events (telemetry,
- * notifications, trip-completed) to caller-supplied callbacks. This is the app's only real-time
+ * vehicle's group, reconnection, and dispatching the four server-pushed events (telemetry,
+ * notifications, trip-completed, command results) to caller-supplied callbacks. This is the app's only real-time
  * channel - there is no REST-polling fallback, so it keeps retrying indefinitely rather than
  * giving up: SignalR's default policy stops after a handful of attempts, which left the
  * dashboard stale until a manual reload after something as ordinary as an API restart.
@@ -89,6 +90,10 @@ export function useSignalR(callbacks: SignalRCallbacks) {
 
     connection.on('tripCompleted', (vid: number) => {
       callbacks.onTripCompleted(vid)
+    })
+
+    connection.on('commandResult', (result: CommandResult) => {
+      callbacks.onCommandResult(result)
     })
 
     connection.onreconnecting(() => {

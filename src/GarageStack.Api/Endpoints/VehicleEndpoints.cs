@@ -162,22 +162,8 @@ public static class VehicleEndpoints
             if (string.IsNullOrWhiteSpace(value))
                 return Results.BadRequest(new { error = "'value' must be a non-empty string" });
 
-            var topicSuffix = command switch
-            {
-                "climate" => "climate/remoteClimateState/set",
-                "climate-temperature" => "climate/remoteTemperature/set",
-                "rear-defroster" => "climate/rearWindowDefrosterHeating/set",
-                "seat-left" => "climate/heatedSeatsFrontLeftLevel/set",
-                "seat-right" => "climate/heatedSeatsFrontRightLevel/set",
-                "find-my-car" => "location/findMyCar/set",
-                "charge-limit" => "drivetrain/chargeCurrentLimit/set",
-                "scheduled-charging" => "drivetrain/scheduledCharging/set",
-                "lock" => "doors/locked/set",
-                "refresh" => "refresh/mode/set",
-                _ => null
-            };
-
-            if (topicSuffix is null)
+            var commandTopic = VehicleCommands.TopicFor(command);
+            if (commandTopic is null)
                 return Results.BadRequest(new { error = $"Unknown command '{command}'" });
 
             var validationError = ValidateCommandValue(command, value);
@@ -187,8 +173,8 @@ public static class VehicleEndpoints
 
             // The resolved vehicle's VIN, not the raw route value, so the topic always matches
             // the row the filter found.
-            var topic = $"saic/{vehicle.SaicUser}/vehicles/{vehicle.Vin}/{topicSuffix}";
-            await commandGate.RunAsync(vehicle.Vin, () => mqtt.PublishAsync(topic, value, ct), ct);
+            var topic = $"saic/{vehicle.SaicUser}/vehicles/{vehicle.Vin}/{commandTopic}/set";
+            await commandGate.RunAsync(vehicle.Vin, commandTopic, () => mqtt.PublishAsync(topic, value, ct), ct);
 
             return Results.Ok(new { topic, value });
         })

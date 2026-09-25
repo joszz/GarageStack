@@ -231,7 +231,8 @@
     "chargeLimit": "Charge current limit",
     "refresh": "Refresh",
     "pending": "Sent - waiting for car...",
-    "error": "Command failed"
+    "error": "Command failed",
+    "rejected": "The car did not carry out the command"
   },
   "trips": {
     "title": "Trip history",

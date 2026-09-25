@@ -9,10 +9,11 @@ using Npgsql;
 
 namespace GarageStack.Api.Services;
 
-public class TelemetryNotificationService(
+internal sealed class TelemetryNotificationService(
     IConfiguration config,
     IHubContext<TelemetryHub> hubContext,
     IServiceScopeFactory scopeFactory,
+    VehicleCommandGate commandGate,
     ILogger<TelemetryNotificationService> logger) : BackgroundService
 {
     // Trailing-edge debounce per vehicle: coalesces rapid MQTT bursts (multiple
@@ -48,6 +49,9 @@ public class TelemetryNotificationService(
                 case PgChannels.TripCompleted:
                     if (int.TryParse(evt.Payload, out var tripVehicleId))
                         _ = BroadcastTripCompletedAsync(tripVehicleId, stoppingToken);
+                    break;
+                case PgChannels.CommandResult:
+                    _ = HandleCommandResultAsync(evt.Payload, stoppingToken);
                     break;
             }
         }
@@ -166,6 +170,36 @@ public class TelemetryNotificationService(
         catch (Exception ex)
         {
             logger.LogError(ex, "Failed to broadcast tripCompleted for vehicleId={VehicleId}", vehicleId);
+        }
+    }
+
+    // The gateway has answered a command: it is free for the next one, and the browser that sent
+    // it can stop waiting on telemetry to find out whether it worked.
+    private async Task HandleCommandResultAsync(string json, CancellationToken ct)
+    {
+        try
+        {
+            var result = CommandResultPayload.FromJson(json);
+            if (result is null) return;
+
+            commandGate.Complete(result.Vin, result.Topic);
+
+            var message = CommandResultMessage.From(result);
+            if (message is null)
+            {
+                logger.LogDebug("Command result for {Topic} is not a command the API sends; not broadcast", result.Topic);
+                return;
+            }
+
+            await hubContext.Clients.Group($"vehicle-{result.VehicleId}")
+                .SendAsync("commandResult", message, ct);
+
+            logger.LogDebug("SignalR broadcast commandResult {Command} success={Success} for vehicleId={VehicleId}",
+                message.Command, message.Success, result.VehicleId);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to handle command result");
         }
     }
 }

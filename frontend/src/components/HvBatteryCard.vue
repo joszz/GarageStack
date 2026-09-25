@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import ExpandableStatusCard from './ExpandableStatusCard.vue'
 import DetailListItem from './DetailListItem.vue'
 import CommandButton from './CommandButton.vue'
+import CommandFailure from './CommandFailure.vue'
 import { useVehicleCommand } from '@/composables/useVehicleCommand'
 import { formatNumber } from '@/utils/format'
 
@@ -165,12 +166,11 @@ function setChargeLimit(value: string) {
         <font-awesome-icon icon="clock" />
         {{ t('control.pending') }}
       </div>
-      <div
+      <CommandFailure
         v-else-if="lastResult?.key === 'charge-limit' && !lastResult.ok"
-        class="detail-list__feedback text-danger"
-      >
-        {{ t('control.error') }}
-      </div>
+        class="detail-list__feedback"
+        :detail="lastResult.detail"
+      />
     </div>
   </ExpandableStatusCard>
 </template>

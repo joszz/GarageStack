@@ -166,14 +166,14 @@ describe('useVehicleCommand', () => {
     sendCommandMock.mockResolvedValue(undefined)
     const { send, lastResult } = useVehicleCommand()
     await send('VIN1', 'climate', 'start')
-    expect(lastResult.value).toEqual({ key: 'climate', ok: true })
+    expect(lastResult.value).toEqual({ key: 'climate', ok: true, detail: null })
   })
 
   it('sets lastResult ok:false after a failed command', async () => {
     sendCommandMock.mockRejectedValue(new Error('API error'))
     const { send, lastResult } = useVehicleCommand()
     await send('VIN1', 'climate', 'start')
-    expect(lastResult.value).toEqual({ key: 'climate', ok: false })
+    expect(lastResult.value).toEqual({ key: 'climate', ok: false, detail: null })
   })
 
   it('clears lastResult when a new command starts', async () => {
@@ -219,12 +219,12 @@ describe('useVehicleCommand', () => {
     expect(sendCommandMock).toHaveBeenCalledTimes(1)
   })
 
-  it('clears pending state after the 30s timeout', async () => {
+  it('clears pending state after the 45s timeout', async () => {
     sendCommandMock.mockResolvedValue(undefined)
     const { send, isPending } = useVehicleCommand()
     await send('VIN1', 'lock', 'True')
     expect(isPending('lock')).toBe(true)
-    vi.advanceTimersByTime(30_000)
+    vi.advanceTimersByTime(45_000)
     expect(isPending('lock')).toBe(false)
   })
 
@@ -252,7 +252,7 @@ describe('useVehicleCommand', () => {
       const store = useVehicleStore()
       const { send, isPending } = useVehicleCommand()
 
-      await send('VIN1', 'lock', 'True', (s) => s.isLocked === true)
+      await send('VIN1', 'lock', 'True', { isConfirmed: (s) => s.isLocked === true })
       expect(isPending('lock')).toBe(true)
 
       store.applyLiveStatus(makeSnapshot({ isLocked: true }))
@@ -266,7 +266,7 @@ describe('useVehicleCommand', () => {
       const store = useVehicleStore()
       const { send, isPending } = useVehicleCommand()
 
-      await send('VIN1', 'lock', 'True', (s) => s.isLocked === true)
+      await send('VIN1', 'lock', 'True', { isConfirmed: (s) => s.isLocked === true })
       expect(isPending('lock')).toBe(true)
 
       store.applyLiveStatus(makeSnapshot({ isLocked: false }))
@@ -281,7 +281,7 @@ describe('useVehicleCommand', () => {
       const { send } = useVehicleCommand()
       const onConfirmed = vi.fn<() => void>()
 
-      await send('VIN1', 'lock', 'True', (s) => s.isLocked === true, onConfirmed)
+      await send('VIN1', 'lock', 'True', { isConfirmed: (s) => s.isLocked === true, onConfirmed })
 
       store.applyLiveStatus(makeSnapshot({ isLocked: true }))
       await nextTick()
@@ -295,7 +295,7 @@ describe('useVehicleCommand', () => {
       const { send } = useVehicleCommand()
       const onConfirmed = vi.fn<() => void>()
 
-      await send('VIN1', 'lock', 'True', (s) => s.isLocked === true, onConfirmed)
+      await send('VIN1', 'lock', 'True', { isConfirmed: (s) => s.isLocked === true, onConfirmed })
 
       store.applyLiveStatus(makeSnapshot({ isLocked: false }))
       await nextTick()
@@ -307,11 +307,133 @@ describe('useVehicleCommand', () => {
       sendCommandMock.mockResolvedValue(undefined)
       const { send, isPending } = useVehicleCommand()
 
-      await send('VIN1', 'lock', 'True', (s) => s.isLocked === true)
+      await send('VIN1', 'lock', 'True', { isConfirmed: (s) => s.isLocked === true })
       expect(isPending('lock')).toBe(true)
 
-      vi.advanceTimersByTime(30_000)
+      vi.advanceTimersByTime(45_000)
       expect(isPending('lock')).toBe(false)
+    })
+  })
+
+  // The API pushes the gateway's answer through the vehicle store, as App.vue does for SignalR.
+  describe('gateway answers', () => {
+    function answer(command: string, success: boolean, detail: string | null = null) {
+      useVehicleStore().applyCommandResult({ command, success, detail })
+    }
+
+    beforeEach(() => {
+      sendCommandMock.mockResolvedValue(undefined)
+    })
+
+    it('clears pending and reports the reason when the car refuses', async () => {
+      const onRejected = vi.fn<() => void>()
+      const { send, isPending, lastResult } = useVehicleCommand()
+      await send('VIN1', 'lock', 'True', { onRejected })
+
+      answer('lock', false, 'vehicle is not online')
+
+      expect(isPending('lock')).toBe(false)
+      expect(lastResult.value).toEqual({ key: 'lock', ok: false, detail: 'vehicle is not online' })
+      expect(onRejected).toHaveBeenCalledTimes(1)
+    })
+
+    it('settles a command without a telemetry check as soon as the car carried it out', async () => {
+      const onConfirmed = vi.fn<() => void>()
+      const { send, isPending, lastResult } = useVehicleCommand()
+      await send('VIN1', 'find-my-car', 'activate', { onConfirmed })
+
+      answer('find-my-car', true)
+
+      expect(isPending('find-my-car')).toBe(false)
+      expect(lastResult.value?.ok).toBe(true)
+      expect(onConfirmed).toHaveBeenCalledTimes(1)
+    })
+
+    // Success means the car did it, but the card shows telemetry, which catches up a little later.
+    it('keeps a command with a telemetry check pending until telemetry shows it', async () => {
+      const store = useVehicleStore()
+      const onConfirmed = vi.fn<() => void>()
+      const { send, isPending } = useVehicleCommand()
+      await send('VIN1', 'lock', 'True', { isConfirmed: (s) => s.isLocked === true, onConfirmed })
+
+      answer('lock', true)
+      expect(isPending('lock')).toBe(true)
+      expect(onConfirmed).not.toHaveBeenCalled()
+
+      store.applyLiveStatus(makeSnapshot({ isLocked: true }))
+      await nextTick()
+      expect(isPending('lock')).toBe(false)
+      expect(onConfirmed).toHaveBeenCalledTimes(1)
+    })
+
+    // The gateway is free as soon as it answers, so a batch need not wait for telemetry.
+    it('lets waitUntilSettled continue once the car carried the command out', async () => {
+      const { send, waitUntilSettled } = useVehicleCommand()
+      await send('VIN1', 'climate', 'on', { isConfirmed: (s) => s.climateOn === true })
+      const settled = vi.fn<() => void>()
+      void waitUntilSettled('climate').then(settled)
+
+      await nextTick()
+      expect(settled).not.toHaveBeenCalled()
+
+      answer('climate', true)
+      await vi.waitFor(() => expect(settled).toHaveBeenCalled())
+    })
+
+    it('lets waitUntilSettled continue once the car refused the command', async () => {
+      const { send, waitUntilSettled } = useVehicleCommand()
+      await send('VIN1', 'climate', 'on', { isConfirmed: (s) => s.climateOn === true })
+      const settled = vi.fn<() => void>()
+      void waitUntilSettled('climate').then(settled)
+
+      answer('climate', false, 'vehicle is not online')
+      await vi.waitFor(() => expect(settled).toHaveBeenCalled())
+    })
+
+    // An answer names a command, not a request: another tab's lock, say, is not this one's.
+    it('ignores an answer for a command it is not waiting on', async () => {
+      const { send, isPending, lastResult } = useVehicleCommand()
+      await send('VIN1', 'lock', 'True')
+
+      answer('climate', false, 'vehicle is not online')
+
+      expect(isPending('lock')).toBe(true)
+      expect(lastResult.value).toEqual({ key: 'lock', ok: true, detail: null })
+    })
+
+    it('ignores an answer arriving after the command was given up on', async () => {
+      const onRejected = vi.fn<() => void>()
+      const { send, lastResult } = useVehicleCommand()
+      await send('VIN1', 'lock', 'True', { onRejected })
+      vi.advanceTimersByTime(45_000)
+
+      answer('lock', false, 'too late')
+
+      expect(onRejected).not.toHaveBeenCalled()
+      expect(lastResult.value?.ok).toBe(true)
+    })
+
+    it('ignores a second answer for a command already answered', async () => {
+      const { send, lastResult } = useVehicleCommand()
+      await send('VIN1', 'lock', 'True', { isConfirmed: (s) => s.isLocked === true })
+
+      answer('lock', true)
+      answer('lock', false, 'stale')
+
+      expect(lastResult.value?.ok).toBe(true)
+    })
+
+    // SignalR can deliver several messages in one frame, so two answers can land in one tick.
+    it('applies every answer arriving in the same tick', async () => {
+      const { send, isPending } = useVehicleCommand()
+      await send('VIN1', 'lock', 'True')
+      await send('VIN1', 'find-my-car', 'activate')
+
+      answer('lock', true)
+      answer('find-my-car', true)
+
+      expect(isPending('lock')).toBe(false)
+      expect(isPending('find-my-car')).toBe(false)
     })
   })
 })

@@ -7,6 +7,7 @@ import {
   type TelemetrySnapshot,
   type TelemetryHistoryPoint,
   type Trip,
+  type CommandResult,
 } from '@/services/vehicleApi'
 import { useUiSettingsStore } from '@/stores/settingsUi'
 import { useLoadingTracker } from '@/composables/useLoadingTracker'
@@ -39,6 +40,10 @@ export const useVehicleStore = defineStore('vehicle', () => {
   // Reactive one-shot flags set for a single tick when specific state transitions occur.
   const tripJustCompleted = ref(false)
   const chargingJustCompleted = ref(false)
+
+  // The gateway's latest answer to a command. Each answer is a new object, so a watcher sees it
+  // even when it repeats the previous one; useVehicleCommand picks out the ones it is waiting on.
+  const lastCommandResult = shallowRef<CommandResult | null>(null)
 
   // The vehicle list rarely changes during a session, so every view (Dashboard, Map, Statistics)
   // calling fetchVehicles() on mount would otherwise re-fetch it on every navigation. Skip the
@@ -97,6 +102,10 @@ export const useVehicleStore = defineStore('vehicle', () => {
     })
   }
 
+  function applyCommandResult(result: CommandResult) {
+    lastCommandResult.value = result
+  }
+
   async function fetchTrips(vin: string, from?: string, to?: string) {
     await withLoading(tripsError, async () => {
       trips.value = await vehicleApi.trips(vin, from, to)
@@ -148,6 +157,7 @@ export const useVehicleStore = defineStore('vehicle', () => {
     lastUpdated,
     tripJustCompleted,
     chargingJustCompleted,
+    lastCommandResult,
     fetchVehicles,
     fetchStatus,
     fetchConfig,
@@ -155,5 +165,6 @@ export const useVehicleStore = defineStore('vehicle', () => {
     fetchTrips,
     applyLiveStatus,
     notifyTripCompleted,
+    applyCommandResult,
   }
 })
