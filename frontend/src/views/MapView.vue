@@ -9,6 +9,7 @@ import { useUiSettingsStore, DEFAULT_FILTER_DAYS } from '@/stores/settingsUi'
 import { LMap, LMarker, LPopup } from '@vue-leaflet/vue-leaflet'
 import ToolbarPanel from '@/components/ToolbarPanel.vue'
 import SettingsToggle from '@/components/SettingsToggle.vue'
+import MapLegend from '@/components/MapLegend.vue'
 import { useInfiniteScroll } from '@/composables/useInfiniteScroll'
 import { usePoiLayers } from '@/composables/usePoiLayers'
 import { useLeafletMap } from '@/composables/useLeafletMap'
@@ -35,6 +36,7 @@ import {
 } from '@/utils/speedLimits'
 import { daysAgoIso } from '@/utils/dates'
 import { intlLocale } from '@/utils/format'
+import { isPhoneViewport } from '@/utils/viewport'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -301,6 +303,10 @@ const limitOverPct = computed(() => {
   if (!summary || summary.knownKm <= 0) return 0
   return Math.round((summary.overKm / summary.knownKm) * 100)
 })
+
+// Whichever speed key is showing opens and folds as one. A phone's map is too short to give the
+// key its room by default, so there it starts folded to its button.
+const legendExpanded = ref(!isPhoneViewport())
 
 // ── Place names ────────────────────────────────────────────────────────────────
 const { requestPlaces, placeFor, placeNamesEnabled, placesResolving } = useReverseGeocode()
@@ -1141,10 +1147,10 @@ onUnmounted(() => {
           </div>
         </div>
 
-        <div
+        <MapLegend
           v-if="speedOverlayEnabled && selectedTripIndex !== null"
-          class="speed-legend"
-          :aria-label="t('trips.speedOverlay')"
+          v-model:expanded="legendExpanded"
+          :label="t('trips.speedOverlay')"
         >
           <div class="speed-legend__bar"></div>
           <div class="speed-legend__labels">
@@ -1153,12 +1159,12 @@ onUnmounted(() => {
             <span>90</span>
             <span>130+ km/h</span>
           </div>
-        </div>
+        </MapLegend>
 
-        <div
+        <MapLegend
           v-if="speedLimitSummaryOfTrip"
-          class="speed-legend"
-          :aria-label="t('trips.speedLimitOverlay')"
+          v-model:expanded="legendExpanded"
+          :label="t('trips.speedLimitOverlay')"
         >
           <template v-if="limitColoursShown">
             <div class="speed-legend__keys">
@@ -1195,7 +1201,7 @@ onUnmounted(() => {
             </div>
           </template>
           <div v-else class="speed-legend__summary">{{ t('trips.speedLimitUnmapped') }}</div>
-        </div>
+        </MapLegend>
       </div>
     </div>
   </div>
