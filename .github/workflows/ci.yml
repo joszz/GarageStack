@@ -22,7 +22,8 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: pnpm/action-setup@v6
+      # Exact tag: the floating v6 tag still points at 6.0.10, which predates pnpm 12 support.
+      - uses: pnpm/action-setup@v6.1.0
         with:
           # Version comes from frontend/package.json's packageManager field.
           package_json_file: frontend/package.json
@@ -55,7 +56,8 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: pnpm/action-setup@v6
+      # Exact tag: the floating v6 tag still points at 6.0.10, which predates pnpm 12 support.
+      - uses: pnpm/action-setup@v6.1.0
         with:
           # Version comes from frontend/package.json's packageManager field.
           package_json_file: frontend/package.json
@@ -82,7 +84,8 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: pnpm/action-setup@v6
+      # Exact tag: the floating v6 tag still points at 6.0.10, which predates pnpm 12 support.
+      - uses: pnpm/action-setup@v6.1.0
         with:
           # Version comes from frontend/package.json's packageManager field.
           package_json_file: frontend/package.json
@@ -112,7 +115,8 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: pnpm/action-setup@v6
+      # Exact tag: the floating v6 tag still points at 6.0.10, which predates pnpm 12 support.
+      - uses: pnpm/action-setup@v6.1.0
         with:
           # Version comes from frontend/package.json's packageManager field.
           package_json_file: frontend/package.json

@@ -13,11 +13,12 @@ updates:
     cooldown:
       default-days: 3
     ignore:
-      # TypeScript 7 restructured its package exports and dropped the
-      # ./lib/tsc subpath vue-tsc relies on, breaking `vue-tsc --build`
-      # with ERR_PACKAGE_PATH_NOT_EXPORTED. vue-tsc has no fix yet, tracked
-      # at https://github.com/vuejs/language-tools/issues/5381. Stay on the
-      # 6.x line until vue-tsc adds TypeScript 7 support.
+      # TypeScript 7.0 ships a native compiler with no JavaScript API, which
+      # breaks `vue-tsc --build` with ERR_PACKAGE_PATH_NOT_EXPORTED, and
+      # typescript-eslint caps its peer range below 6.1. vuejs/language-tools#5381
+      # is closed, but only moved that repo's own build to TS 7; vue-tsc still
+      # needs the TS 6 API and waits for the TS 7.1 API. Stay on the 6.x line
+      # until vue-tsc and typescript-eslint both accept TypeScript 7.
       - dependency-name: "typescript"
         update-types: ["version-update:semver-major"]
     groups:

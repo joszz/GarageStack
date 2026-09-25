@@ -9,8 +9,10 @@ ARG OS_PATCH_DATE=0
 RUN echo "os patch date: ${OS_PATCH_DATE}" && apk upgrade --no-cache && corepack enable
 COPY frontend/package.json frontend/pnpm-lock.yaml frontend/pnpm-workspace.yaml ./
 # No version here: corepack takes it from package.json's packageManager field, so the pnpm
-# version is pinned in one place for local installs, CI and every image.
-RUN corepack prepare --activate
+# version is pinned in one place for local installs, CI and every image. pnpm 12+ is a native
+# binary that corepack's wrapper downloads on first use; `pnpm --version` fetches it inside this
+# cached layer and prints the version the build runs.
+RUN corepack prepare --activate && pnpm --version
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
     pnpm config set store-dir /pnpm/store && \
     pnpm config set minimum-release-age 0 && \
