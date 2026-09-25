@@ -572,6 +572,12 @@ All four POI types share the same tile-based PostgreSQL cache:
 - Login endpoints are rate-limited per IP address on top of the global limit.
 - MQTT now requires credentials and ACLs, and broker exposure defaults to localhost-only in Docker Compose.
 - The optional Home Assistant broker login can only use the car's `saic/#` topics and read Home Assistant discovery, so it cannot publish fake discovery configs or reach anything else on the broker.
+- The frontend sends a strict Content-Security-Policy with every response, which allows scripts only from GarageStack itself. See [Behind a reverse proxy or CDN](#behind-a-reverse-proxy-or-cdn) for keeping it intact.
+
+### Behind a reverse proxy or CDN
+
+- **Let GarageStack's security headers through.** A proxy that sets its own `Content-Security-Policy`, `X-Frame-Options` or `Permissions-Policy` replaces GarageStack's rather than adding to them. A Traefik headers middleware does this, for example. The page then runs without its script restrictions. Leave those three headers out of whatever headers the proxy adds for GarageStack; transport headers such as HSTS are fine.
+- **On Cloudflare, switch Rocket Loader off for this host** (Speed > Optimization, or a Configuration Rule). It rewrites every script on the page and delays the one that applies the stylesheet, which wastes the stylesheet preload and fills the console with warnings. With GarageStack's policy in place it is blocked outright. Cloudflare's injected Web Analytics beacon and bot-detection script are blocked by the policy too, so switch those off for the host if you would rather not see the console reports.
 
 ---
 

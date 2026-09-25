@@ -43,12 +43,27 @@ vi.mock('@/utils/leaflet', () => ({
 
 const setStyle = vi.fn<(style: unknown) => void>()
 
+// The images a GL map holds, and the resolver it asks about the ones its style lacks.
+type ImageResolver = (id: string) => void
+let images: Map<string, { width: number; height: number; data: Uint8Array }>
+let imageResolver: ImageResolver | null
+
 vi.mock('@/utils/maplibreLayer', () => ({
   // Assigned onto the recorded layer rather than spread into a copy, so what the composable
   // holds and what this suite inspects are the same object. Each layer keeps one GL map, the
   // way MapLibre does: the composable compares identity to spot a restyle that outlived it.
   maplibreGL: (options: Record<string, unknown>) => {
-    const glMap = { setStyle }
+    const glMap = {
+      setStyle,
+      setMissingStyleImageResolver: (resolver: ImageResolver | null) => {
+        imageResolver = resolver
+      },
+      hasImage: (id: string) => images.has(id),
+      addImage: (id: string, image: { width: number; height: number; data: Uint8Array }) => {
+        if (images.has(id)) throw new Error(`An image named "${id}" already exists.`)
+        images.set(id, image)
+      },
+    }
     return Object.assign(fakeLayer('vector', options), { getMaplibreMap: () => glMap })
   },
 }))
@@ -132,6 +147,8 @@ describe('useBasemap', () => {
     setActivePinia(createPinia())
     localStorage.clear()
     layers.length = 0
+    images = new Map()
+    imageResolver = null
     setStyle.mockReset()
     fetchMock.mockClear()
     webGl = true
@@ -213,6 +230,20 @@ describe('useBasemap', () => {
       ['get', 'name:nl'],
       DARK_LABEL,
     ])
+  })
+
+  // OpenFreeMap's dark style asks for a "wood-pattern" its sprite lacks, and MapLibre warned about
+  // it in the console for every tile that did.
+  it('stands in a transparent pixel for an image the style asks for but does not have', async () => {
+    await mountBasemap(fakeMap())
+
+    imageResolver!('wood-pattern')
+    // A second tile asking for it before the first has drawn must not add it twice.
+    imageResolver!('wood-pattern')
+
+    const standIn = images.get('wood-pattern')
+    expect(standIn).toMatchObject({ width: 1, height: 1 })
+    expect([...standIn!.data]).toEqual([0, 0, 0, 0])
   })
 
   it('falls back to raster tiles when the browser has no WebGL', async () => {

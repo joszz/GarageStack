@@ -24,7 +24,7 @@ import type { GeoPoint } from '@/services/mapApi'
 import Slider from '@vueform/slider'
 import Multiselect from '@vueform/multiselect'
 import { L, type LeafletMap } from '@/utils/leaflet'
-import 'leaflet.heat'
+import { heatLayer as createHeatLayer } from '@/utils/heatLayer'
 import '@/assets/map.css'
 import type { Trip } from '@/services/vehicleApi'
 import { buildCarMarkerIcon } from '@/utils/mapCarIcon'
@@ -141,22 +141,6 @@ let startMarker: L.Marker | null = null
 let endMarker: L.Marker | null = null
 let mapUpdateRaf: number | null = null
 let hasCenteredOnStatus = false
-
-type HeatLayerFactory = {
-  heatLayer: (
-    latlngs: Array<[number, number] | [number, number, number]>,
-    options?: {
-      minOpacity?: number
-      maxZoom?: number
-      max?: number
-      radius?: number
-      blur?: number
-      gradient?: Record<number, string>
-    },
-  ) => L.Layer
-}
-
-const leafWithHeat = L as typeof L & HeatLayerFactory
 
 const tripColors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899']
 
@@ -405,22 +389,18 @@ function clearRouteLines() {
 function buildHeatLayer() {
   const map = mapInstance.value
   if (!map || heatPoints.value.length === 0 || !heatmapEnabled.value) return
-  if (typeof leafWithHeat.heatLayer !== 'function') {
+  const layer = createHeatLayer(heatPoints.value, {
+    radius: 18,
+    blur: 22,
+    maxZoom: 17,
+    gradient: { 0.4: '#3b82f6', 0.65: '#f59e0b', 1.0: '#ef4444' },
+  })
+  if (!layer) {
     console.warn('[map] leaflet.heat plugin not available')
     return
   }
-  if (heatLayer) {
-    heatLayer.remove()
-    heatLayer = null
-  }
-  heatLayer = leafWithHeat
-    .heatLayer(heatPoints.value, {
-      radius: 18,
-      blur: 22,
-      maxZoom: 17,
-      gradient: { 0.4: '#3b82f6', 0.65: '#f59e0b', 1.0: '#ef4444' },
-    })
-    .addTo(map)
+  if (heatLayer) heatLayer.remove()
+  heatLayer = layer.addTo(map)
 }
 
 function buildRouteLines() {
