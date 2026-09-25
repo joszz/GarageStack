@@ -29,6 +29,13 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
         return total;
     }
 
+    // What the demo ZS EV covers on a full battery. The electric range is derived from the state of
+    // charge, so the two stay in step when the demo panel moves the state of charge.
+    private const double FullBatteryRangeKm = 400.0;
+
+    private static double ElectricRangeAt(double socPercent) =>
+        Math.Round(socPercent / 100.0 * FullBatteryRangeKm);
+
     private TelemetrySnapshot _current = BuildDefaultSnapshot();
 
     private static readonly Lazy<IReadOnlyList<TelemetrySnapshot>> _history =
@@ -115,6 +122,7 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
             {
                 _current.EvSocPercent = dto.EvSocPercent;
                 _current.HvSocKwh = Math.Round(dto.EvSocPercent.Value / 100.0 * 70.0, 1);
+                _current.ElectricRangeKm = ElectricRangeAt(dto.EvSocPercent.Value);
             }
             if (dto.InteriorTemperature.HasValue) _current.InteriorTemperature = dto.InteriorTemperature;
             if (dto.ExteriorTemperature.HasValue) _current.ExteriorTemperature = dto.ExteriorTemperature;
@@ -134,6 +142,7 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
             FuelLevelPercent = 68,
             FuelRangeKm = 420,
             EvSocPercent = 71,
+            ElectricRangeKm = ElectricRangeAt(71),
             HvSocKwh = Math.Round(71.0 / 100.0 * 70.0, 1),
             HvTotalCapacityKwh = 70.0,
             HvVoltage = 386.0,

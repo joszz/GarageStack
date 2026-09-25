@@ -46,6 +46,14 @@ export const CARD_DEFINITIONS = [
     hasData: ({ status }) => status.evSocPercent !== null,
   },
   {
+    id: 'electricRange',
+    icon: 'road',
+    defaultVisible: (type) => type !== 'hev',
+    // A hybrid picks its own moments to drive on electricity, so a range to plan with is not
+    // something it has, whatever the gateway reports for it.
+    hasData: ({ status, vehicleType }) => status.electricRangeKm !== null && vehicleType !== 'hev',
+  },
+  {
     id: 'charging',
     icon: 'plug',
     defaultVisible: canChargeExternally,

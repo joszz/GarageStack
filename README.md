@@ -35,6 +35,7 @@ Cards are shown or hidden automatically based on vehicle type (HEV / PHEV / BEV)
 | Fuel Level | Tank level as a percentage | HEV, PHEV |
 | Fuel Range | Estimated remaining range | HEV, PHEV |
 | EV Battery | State of charge (%) | All |
+| Electric Range | Distance the car estimates it can drive on the battery alone | PHEV, BEV |
 | Charging | Charging indicator | PHEV, BEV |
 | Odometer | Total distance driven | All |
 | 12V Battery | Auxiliary battery voltage | All |
@@ -377,6 +378,7 @@ The endpoint returns a flat JSON object. Numeric fields are `null` when the vehi
 | `fuelLevelPercent` | number | Fuel tank level (%) |
 | `fuelRangeKm` | number | Estimated fuel range (km) |
 | `evSocPercent` | number | EV / HV battery state of charge (%) |
+| `electricRangeKm` | number | Distance the car estimates it can drive on the battery alone (km), on a BEV or PHEV. Never reported as 0, so an empty battery keeps its last value |
 | `isCharging` | string | Charging state: `"Charging"` or `"Not charging"` |
 | `chargerConnected` | string | Charger connection state: `"Plugged in"` or `"Unplugged"` |
 | `mileageSinceLastCharge` | number | Distance driven since last full charge (km) |

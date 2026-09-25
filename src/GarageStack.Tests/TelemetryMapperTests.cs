@@ -87,6 +87,16 @@ public class TelemetryMapperTests
         Assert.Equal(300.5, snapshot.FuelRangeKm);
     }
 
+    [Fact]
+    public void ApplyMessage_Range_SetsElectricRangeKmNotFuelRange()
+    {
+        var snapshot = new TelemetrySnapshot();
+        var result = TelemetryMapper.ApplyMessage(snapshot, "drivetrain/range", "243.5");
+        Assert.True(result);
+        Assert.Equal(243.5, snapshot.ElectricRangeKm);
+        Assert.Null(snapshot.FuelRangeKm);
+    }
+
     [Theory]
     [InlineData("drivetrain/mileage")]
     [InlineData("drivetrain/odometer")]

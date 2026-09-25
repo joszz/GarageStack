@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { nextTick } from 'vue'
 import { defaultCards } from '@/stores/settingsShared'
+import { ALL_CARD_IDS } from '@/cards/registry'
 import { useUiSettingsStore } from '@/stores/settingsUi'
 import { useDashboardSettingsStore } from '@/stores/settingsDashboard'
 import { useMapSettingsStore } from '@/stores/settingsMap'
@@ -18,8 +19,8 @@ const DASHBOARD_KEY = 'garagestack-settings-dashboard'
 const MAP_KEY = 'garagestack-settings-map'
 
 describe('defaultCards', () => {
-  it('includes all 24 card ids', () => {
-    expect(defaultCards()).toHaveLength(24)
+  it('includes every registered card id', () => {
+    expect(defaultCards()).toHaveLength(ALL_CARD_IDS.length)
   })
 
   it('places visible cards before hidden ones', () => {
@@ -294,7 +295,7 @@ describe('useDashboardSettingsStore', () => {
 
   it('falls back to defaults when localStorage is empty', () => {
     const store = useDashboardSettingsStore()
-    expect(store.cards).toHaveLength(24)
+    expect(store.cards).toHaveLength(ALL_CARD_IDS.length)
     expect(store.cards.find((c) => c.id === 'sunRoof')!.visible).toBe(false)
   })
 
@@ -350,8 +351,8 @@ describe('useDashboardSettingsStore', () => {
         }),
       )
       const store = useDashboardSettingsStore()
-      // All 24 card ids should be present after migration fills in the gaps
-      expect(store.cards).toHaveLength(24)
+      // Every registered card id should be present after migration fills in the gaps
+      expect(store.cards).toHaveLength(ALL_CARD_IDS.length)
       expect(store.cards.find((c) => c.id === 'sunRoof')!.visible).toBe(false)
     })
   })

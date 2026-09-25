@@ -53,6 +53,7 @@ public record WidgetStatusDto(
     double? FuelRangeKm,
     // EV / HV
     double? EvSocPercent,
+    double? ElectricRangeKm,
     string? IsCharging,
     string? ChargerConnected,
     double? MileageSinceLastCharge,
@@ -164,6 +165,7 @@ public record WidgetStatusDto(
             FuelLevelPercent: s.FuelLevelPercent,
             FuelRangeKm: s.FuelRangeKm,
             EvSocPercent: s.EvSocPercent,
+            ElectricRangeKm: s.ElectricRangeKm,
             IsCharging: Loc(s.IsCharging, "ChargingYes", "ChargingNo", l),
             ChargerConnected: Loc(s.ChargerConnected, "PluggedIn", "Unplugged", l),
             MileageSinceLastCharge: s.MileageSinceLastCharge,

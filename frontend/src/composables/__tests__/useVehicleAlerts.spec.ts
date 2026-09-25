@@ -59,6 +59,7 @@ function makeSnapshot(overrides: Partial<TelemetrySnapshot> = {}): TelemetrySnap
     interiorTemperature: null,
     exteriorTemperature: null,
     evSocPercent: null,
+    electricRangeKm: null,
     isCharging: null,
     sunRoofOpen: null,
     tyrePressureFrontLeft: null,
