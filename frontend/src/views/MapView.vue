@@ -19,6 +19,7 @@ import { addressLabel, cityName } from '@/utils/places'
 import { mapAppLink } from '@/utils/mapLinks'
 import { buildTripRow } from '@/utils/tripRows'
 import { downsample } from '@/utils/downsample'
+import { distanceWeightedSamples } from '@/utils/heatSamples'
 import type { GeoPoint } from '@/services/mapApi'
 import Slider from '@vueform/slider'
 import Multiselect from '@vueform/multiselect'
@@ -267,6 +268,22 @@ watch(
   { immediate: true },
 )
 
+// ── Heatmap points ─────────────────────────────────────────────────────────────
+/**
+ * The lines the heat is sampled along: a trip's snapped line where one is already cached, its raw
+ * fixes otherwise. Nothing extra is requested for this, so the heat follows the roads for trips
+ * that have been selected at some point and cuts corners like the raw fixes do for the rest.
+ */
+const heatLines = computed<[number, number][][]>(() =>
+  store.trips.map(
+    (trip) =>
+      matchFor(trip)?.coordinates ??
+      trip.points.map((p) => [p.latitude, p.longitude] as [number, number]),
+  ),
+)
+
+const heatPoints = computed(() => distanceWeightedSamples(heatLines.value, MAX_HEATMAP_POINTS))
+
 // ── Speed limits ───────────────────────────────────────────────────────────────
 // The limits come with the snapped line: they belong to the roads the matcher found, so there is
 // nothing to show until a trip is selected and matched.
@@ -383,7 +400,7 @@ function clearRouteLines() {
 
 function buildHeatLayer() {
   const map = mapInstance.value
-  if (!map || allPoints.value.length === 0 || !heatmapEnabled.value) return
+  if (!map || heatPoints.value.length === 0 || !heatmapEnabled.value) return
   if (typeof leafWithHeat.heatLayer !== 'function') {
     console.warn('[map] leaflet.heat plugin not available')
     return
@@ -393,7 +410,7 @@ function buildHeatLayer() {
     heatLayer = null
   }
   heatLayer = leafWithHeat
-    .heatLayer(downsample(allPoints.value, MAX_HEATMAP_POINTS), {
+    .heatLayer(heatPoints.value, {
       radius: 18,
       blur: 22,
       maxZoom: 17,
@@ -427,9 +444,10 @@ function buildRouteLines() {
 // stays responsive; a few hundred segments is already more color resolution than is visible.
 const MAX_SPEED_OVERLAY_SEGMENTS = 500
 
-// Heatmap renders to a canvas rather than one DOM element per point, so it tolerates far more
-// points than the polyline overlay, but a 90-day range with dense GPS logging can still reach
-// tens of thousands of points across all trips - cap it so it stays responsive to rebuild.
+// How many samples the heatmap is drawn from. It renders to a canvas rather than one DOM element
+// per point, so it tolerates far more than the polyline overlay, but a 90-day range still has to
+// stay quick to rebuild. The spacing between samples follows from this budget and how far the
+// trips run in total, so a longer period draws coarser instead of slower.
 const MAX_HEATMAP_POINTS = 5000
 
 interface SpeedSegment {

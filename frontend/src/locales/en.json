@@ -240,7 +240,7 @@
     "last90days": "Last 90 days",
     "dateRangeDesc": "Filters trips shown on the map and in the list",
     "heatmap": "Heatmap",
-    "heatmapDesc": "Shows a density overlay of all recorded routes",
+    "heatmapDesc": "Shows how often each road was driven, measured by distance rather than by time spent standing on it",
     "routeOutline": "Route outline",
     "routeOutlineDesc": "Adds a dark border to route lines for better contrast",
     "snapToRoads": "Snap to roads",

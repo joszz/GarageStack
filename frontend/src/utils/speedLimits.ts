@@ -9,6 +9,7 @@
  * conditional limits (a Dutch motorway signed 100 by day and 130 at night) are not in the tag
  * this reads, so a night drive there reads as over the limit.
  */
+import { distanceKm } from './geo'
 
 /**
  * How far above a limit a reading has to be before it counts as over it. Speedometers read high
@@ -48,18 +49,6 @@ export interface SpeedLimitSummary {
 export interface SpeedLimitSegment {
   coordinates: [number, number][]
   state: SpeedLimitState
-}
-
-const EARTH_RADIUS_KM = 6371
-
-function distanceKm(from: [number, number], to: [number, number]): number {
-  const toRad = Math.PI / 180
-  const dLat = (to[0] - from[0]) * toRad
-  const dLng = (to[1] - from[1]) * toRad
-  const lat1 = from[0] * toRad
-  const lat2 = to[0] * toRad
-  const a = Math.sin(dLat / 2) ** 2 + Math.sin(dLng / 2) ** 2 * Math.cos(lat1) * Math.cos(lat2)
-  return 2 * EARTH_RADIUS_KM * Math.asin(Math.min(1, Math.sqrt(a)))
 }
 
 /**
