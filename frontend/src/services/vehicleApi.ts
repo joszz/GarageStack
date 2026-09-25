@@ -47,6 +47,7 @@ export interface TelemetrySnapshot {
   interiorTemperature: number | null
   exteriorTemperature: number | null
   evSocPercent: number | null
+  electricRangeKm: number | null
   isCharging: boolean | null
   sunRoofOpen: boolean | null
   tyrePressureFrontLeft: number | null

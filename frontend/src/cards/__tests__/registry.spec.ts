@@ -50,6 +50,15 @@ describe('card registry', () => {
     expect(cardHasData('batteryHeating', context({}, 'bev'))).toBe(true)
   })
 
+  it('shows an electric range on a plug-in car but never on a hybrid', () => {
+    const range = { electricRangeKm: 212 }
+    expect(cardHasData('electricRange', context(range, 'bev'))).toBe(true)
+    expect(cardHasData('electricRange', context(range, 'phev'))).toBe(true)
+    expect(cardHasData('electricRange', context(range, 'unknown'))).toBe(true)
+    expect(cardHasData('electricRange', context(range, 'hev'))).toBe(false)
+    expect(cardHasData('electricRange', context({ electricRangeKm: null }, 'bev'))).toBe(false)
+  })
+
   it('waits for the vehicle type before claiming since-charge efficiency', () => {
     const status = { mileageSinceLastCharge: 25 }
     expect(cardHasData('efficiencyCharge', context(status, 'unknown'))).toBe(false)
@@ -111,5 +120,7 @@ describe('defaultCards', () => {
     expect(visible('bev').has('charging')).toBe(true)
     expect(visible('hev').has('charging')).toBe(false)
     expect(visible('hev').has('fuelLevel')).toBe(true)
+    expect(visible('bev').has('electricRange')).toBe(true)
+    expect(visible('hev').has('electricRange')).toBe(false)
   })
 })

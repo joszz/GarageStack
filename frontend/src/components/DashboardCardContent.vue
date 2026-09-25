@@ -116,6 +116,12 @@ const simpleCards = computed((): SimpleCardConfig[] => {
           : undefined,
     },
     {
+      id: 'electricRange',
+      label: t('vehicle.electricRange'),
+      value: s.electricRangeKm !== null ? Math.round(s.electricRangeKm) : null,
+      unit: t('common.km'),
+    },
+    {
       id: 'charging',
       label: t('vehicle.charging'),
       value: s.isCharging ? t('vehicle.chargingYes') : t('vehicle.chargingNo'),

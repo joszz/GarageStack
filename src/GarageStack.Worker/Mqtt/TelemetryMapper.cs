@@ -105,6 +105,14 @@ public static class TelemetryMapper
                 s.EvSocPercent = N(numeric);
                 return true;
 
+            // The gateway also publishes drivetrain/hybrid_electrical_range, the BMS's own estimate
+            // of the same distance from the same poll. This one is what its Home Assistant
+            // discovery calls "Range", read from the car's fuelRangeElec. The gateway never sends
+            // a range of 0, so an emptied battery keeps the last value it did send.
+            case "drivetrain/range":
+                s.ElectricRangeKm = N(numeric);
+                return true;
+
             case "drivetrain/charging":
                 s.IsCharging = asBool;
                 return true;

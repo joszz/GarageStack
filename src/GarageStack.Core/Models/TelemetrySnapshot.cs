@@ -40,6 +40,8 @@ public class TelemetrySnapshot
     public double? ExteriorTemperature { get; set; }
 
     public double? EvSocPercent { get; set; }
+    // km the car estimates the traction battery alone will cover, on a BEV and a PHEV alike
+    public double? ElectricRangeKm { get; set; }
     public bool? IsCharging { get; set; }
     public bool? SunRoofOpen { get; set; }
     public double? TyrePressureFrontLeft { get; set; }
