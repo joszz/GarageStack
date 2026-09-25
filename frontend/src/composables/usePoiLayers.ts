@@ -287,19 +287,28 @@ export function usePoiLayers({ mapInstance, vehicleType, isHev, isBev }: UsePoiL
     for (const layer of layers) layer.load(overrideRadiusKm)
   }
 
-  watch(fuelLayerEnabled, (on) => {
-    if (on) loadFuelBrands()
-    else cachedFuelBrands.value = []
-  })
+  // The brand list is a catalogue of what the car's fuels are sold under, not a view of what is
+  // currently drawn, so it is fetched as soon as the car turns out to be one that takes fuel and
+  // kept when the layer goes off again: the brand filter sits in the filter panel either way and
+  // has to be able to offer its options there. Fires on its own once the type resolves, and
+  // immediately when the view is entered with it already known.
+  const fuelBrandsRelevant = computed(() => vehicleType.value !== 'unknown' && !isBev.value)
+
+  watch(
+    fuelBrandsRelevant,
+    (relevant) => {
+      if (relevant) loadFuelBrands()
+    },
+    { immediate: true },
+  )
 
   watch([fuelBrandFilter, fuelTypeFilter], () => fuelLayer.redraw())
   watch([chargingMinPowerKw, chargingMaxPowerKw], () => chargingLayer.redraw())
 
   // Vehicle type transitions from unknown once fetchConfig resolves - load the layers that
-  // were waiting for it now that the type is known.
+  // were waiting for it now that the type is known. The brand list has its own watch above.
   watch(vehicleType, (newType, oldType) => {
     if (oldType !== 'unknown' || newType === 'unknown' || !mapInstance.value) return
-    loadFuelBrands()
     fuelLayer.load()
   })
 
@@ -333,8 +342,7 @@ export function usePoiLayers({ mapInstance, vehicleType, isHev, isBev }: UsePoiL
     availableFuelBrands,
     brandsLoading,
     poiLoading,
-    // actions the view triggers directly (initial load on map-ready, brand refresh on mount)
-    loadFuelBrands,
+    // the one action the view triggers directly: the initial load once the map is ready
     loadLayers,
   }
 }

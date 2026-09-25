@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createI18n } from 'vue-i18n'
-import FiltersPanel from '../FiltersPanel.vue'
+import ToolbarPanel from '../ToolbarPanel.vue'
 
 // Stub FontAwesomeIcon so the test environment doesn't need the FA setup
 const FaStub = { template: '<span />', props: ['icon'] }
@@ -17,11 +17,14 @@ const DetailModalStub = {
 const i18n = createI18n({
   legacy: false,
   locale: 'en',
-  messages: { en: { common: { filters: 'Filters' } } },
+  messages: {
+    en: { common: { filters: 'Filters', panelWithCount: '{label}, {n} active' } },
+  },
 })
 
-function mountPanel(slotContent = '') {
-  return mount(FiltersPanel, {
+function mountPanel(slotContent = '', props: Record<string, string | number> = {}) {
+  return mount(ToolbarPanel, {
+    props,
     global: {
       plugins: [i18n],
       stubs: {
@@ -33,7 +36,7 @@ function mountPanel(slotContent = '') {
   })
 }
 
-describe('FiltersPanel', () => {
+describe('ToolbarPanel', () => {
   it('renders the trigger button', () => {
     const wrapper = mountPanel()
     expect(wrapper.find('button').exists()).toBe(true)
@@ -62,6 +65,42 @@ describe('FiltersPanel', () => {
     const wrapper = mountPanel()
     await wrapper.find('button').trigger('click')
     expect(wrapper.findComponent(DetailModalStub).props('title')).toBe('Filters')
+  })
+
+  it('defaults to the filters label and icon', () => {
+    const wrapper = mountPanel()
+    expect(wrapper.find('button').text()).toBe('Filters')
+    expect(wrapper.findComponent(FaStub).props('icon')).toBe('sliders')
+  })
+
+  it('uses the given title and icon for the button and the modal', async () => {
+    const wrapper = mountPanel('', { title: 'Layers', icon: 'layer-group' })
+    expect(wrapper.find('button').text()).toBe('Layers')
+    expect(wrapper.findComponent(FaStub).props('icon')).toBe('layer-group')
+    await wrapper.find('button').trigger('click')
+    expect(wrapper.findComponent(DetailModalStub).props('title')).toBe('Layers')
+  })
+
+  it('shows no count badge when nothing is active', () => {
+    expect(mountPanel().find('.toolbar-panel__count').exists()).toBe(false)
+    expect(mountPanel('', { count: 0 }).find('.toolbar-panel__count').exists()).toBe(false)
+  })
+
+  it('shows the active count in a badge on the button', () => {
+    const wrapper = mountPanel('', { count: 3 })
+    expect(wrapper.find('.toolbar-panel__count').text()).toBe('3')
+  })
+
+  it('names the button with its count so the badge is not read as a loose number', () => {
+    expect(mountPanel('', { count: 2 }).find('button').attributes('aria-label')).toBe(
+      'Filters, 2 active',
+    )
+    expect(mountPanel().find('button').attributes('aria-label')).toBe('Filters')
+  })
+
+  it('hides the badge from assistive tech, the button label carrying the count instead', () => {
+    const badge = mountPanel('', { count: 1 }).find('.toolbar-panel__count')
+    expect(badge.attributes('aria-hidden')).toBe('true')
   })
 
   it('renders slot content inside the modal', async () => {
