@@ -31,6 +31,11 @@ export interface PoiItem {
 export interface PoiResponse {
   items: PoiItem[]
   hasMore: boolean
+  /**
+   * False when the deployment does not serve this layer at all (speed cameras can be switched
+   * off), so the caller stops offering it rather than asking again.
+   */
+  available: boolean
 }
 
 /** Coarse ('city', for trip labels) or fine ('address', for the parked car) reverse geocoding. */

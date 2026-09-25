@@ -71,7 +71,9 @@ public sealed class PoiPreCachingService(
             var vehicleType = VehicleTypeHelper.GetVehicleType(vehicle);
             var vinForLog = LogRedaction.Vin(vehicle.Vin);
 
-            foreach (var poiType in PoiTypePolicy.AllowedOverpassTypes(vehicleType))
+            // Two questions, both of which have to say yes: the car has a use for the layer, and
+            // the deployment serves it (speed cameras can be switched off).
+            foreach (var poiType in PoiTypePolicy.AllowedOverpassTypes(vehicleType).Where(overpassClient.IsTypeEnabled))
                 await PreCacheOverpassAsync(poiType, vinForLog, lat, lng, repository, ct);
 
             if (ocmClient.IsConfigured && VehicleTypeHelper.CanCharge(vehicleType))

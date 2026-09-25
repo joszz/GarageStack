@@ -272,6 +272,15 @@
     "fuelStationsDesc": "Shows fuel stations near your position.",
     "serviceAreas": "Motorway service areas",
     "serviceAreasDesc": "Shows motorway service areas and rest stops near your position.",
+    "speedCameras": "Speed cameras",
+    "speedCamerasDesc": "Shows speed cameras mapped in OpenStreetMap near your position. Some countries restrict warning a driver about camera positions while driving.",
+    "speedCamera": "Speed camera",
+    "speedCameraTypes": {
+      "fixed": "Fixed camera",
+      "mobile": "Mobile camera site",
+      "section": "Average speed check",
+      "traffic_signals": "Red light camera"
+    },
     "poiLoading": "Fetching live map data...",
     "fuelBrandFilter": "Brand filter",
     "fuelBrandFilterDesc": "Show only selected fuel station brands. Applies once the fuel stations layer is on.",

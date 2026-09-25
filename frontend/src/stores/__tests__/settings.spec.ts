@@ -224,6 +224,7 @@ describe('useMapSettingsStore', () => {
     expect(store.heatmapEnabled).toBe(true)
     expect(store.routeOutlineEnabled).toBe(false)
     expect(store.chargingStationsEnabled).toBe(false)
+    expect(store.speedCamerasEnabled).toBe(false)
   })
 
   it('persists a field change to its own localStorage key', async () => {
@@ -231,12 +232,14 @@ describe('useMapSettingsStore', () => {
     store.routeOutlineEnabled = true
     store.chargingMinPowerKw = 50
     store.fuelTypeFilter = ['diesel']
+    store.speedCamerasEnabled = true
     await nextTick()
     vi.advanceTimersByTime(SAVE_DEBOUNCE_MS)
     const saved = JSON.parse(localStorage.getItem(MAP_KEY)!)
     expect(saved.routeOutlineEnabled).toBe(true)
     expect(saved.chargingMinPowerKw).toBe(50)
     expect(saved.fuelTypeFilter).toEqual(['diesel'])
+    expect(saved.speedCamerasEnabled).toBe(true)
   })
 
   it('drops fuel types it does not know when restoring, so the layer cannot silently empty', () => {

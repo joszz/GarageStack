@@ -34,14 +34,32 @@ public sealed class OverpassApiClient(
         "[out:json][timeout:30];(node[\"amenity\"=\"fuel\"]{bbox};way[\"amenity\"=\"fuel\"]{bbox};);out center;";
     private const string ServiceAreaQuery =
         "[out:json][timeout:30];(node[\"highway\"=\"services\"]{bbox};way[\"highway\"=\"services\"]{bbox};);out center;";
+    // Cameras are mapped as nodes, including the ones an average-speed "enforcement" relation
+    // ties together, so the nodes alone cover the layer and no way lookup is needed.
+    private const string SpeedCameraQuery =
+        "[out:json][timeout:30];node[\"highway\"=\"speed_camera\"]{bbox};out;";
 
     private string BaseUrl =>
         configuration["Overpass:BaseUrl"] ?? "https://overpass-api.de/api/interpreter";
+
+    /// <summary>
+    /// Whether this deployment serves <paramref name="poiType"/> at all. Only the speed camera
+    /// layer can be switched off (<c>SpeedCameras:Enabled=false</c>), for the jurisdictions that
+    /// restrict pointing a driver at camera positions; the other layers are always served.
+    /// Both the on-demand endpoint and the Worker's pre-caching ask, so a layer that is off
+    /// costs no Overpass request either.
+    /// </summary>
+    public bool IsTypeEnabled(string poiType) =>
+        poiType != PoiTypePolicy.SpeedCamera || SpeedCamerasEnabled;
+
+    private bool SpeedCamerasEnabled =>
+        !string.Equals(configuration["SpeedCameras:Enabled"], "false", StringComparison.OrdinalIgnoreCase);
 
     private static string QueryFor(string poiType) => poiType switch
     {
         PoiTypePolicy.Fuel => FuelQuery,
         PoiTypePolicy.ServiceArea => ServiceAreaQuery,
+        PoiTypePolicy.SpeedCamera => SpeedCameraQuery,
         _ => throw new ArgumentOutOfRangeException(nameof(poiType), poiType, "Not an Overpass POI type"),
     };
 

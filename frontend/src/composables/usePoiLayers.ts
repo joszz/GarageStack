@@ -9,8 +9,26 @@ import { mapApi } from '@/services/mapApi'
 import type { ChargingStation, PoiItem } from '@/services/mapApi'
 import { canonicalFuelBrand } from '@/utils/fuelBrands'
 import { FUEL_TYPES, matchesFuelTypeFilter, stationFuelTypes } from '@/utils/fuelTypes'
+import { speedCameraKind, speedCameraLimit } from '@/utils/speedCameras'
 import { OCM_ATTRIBUTION } from '@/utils/credits'
 import { useLayerCredit } from './useLayerCredit'
+
+/**
+ * The shape every POI popup takes: a title and the meta lines that have something to say. One
+ * place for the escaping too, since all of it comes from crowd-edited OSM tags.
+ *
+ * @param metaLines Lines in display order; null and empty ones are left out.
+ */
+function poiPopupHtml(title: string, metaLines: (string | null)[]): string {
+  const meta = metaLines
+    .filter((line): line is string => !!line)
+    .map((line) => `<div class="poi-popup__meta">${escapeHtml(line)}</div>`)
+    .join('')
+  return `<div class="poi-popup">
+    <strong class="poi-popup__title">${escapeHtml(title)}</strong>
+    ${meta}
+  </div>`
+}
 
 /**
  * @param fuels The fuels this station sells, already translated, or null when it lists none.
@@ -18,15 +36,11 @@ import { useLayerCredit } from './useLayerCredit'
  */
 function buildPoiPopup(item: PoiItem, fuels: string | null = null): string {
   const tags = item.tags ?? {}
-  const brand = tags['brand'] ?? tags['operator'] ?? null
-  const openingHours = tags['opening_hours'] ?? null
-  const title = escapeHtml(item.name ?? item.poiType)
-  return `<div class="poi-popup">
-    <strong class="poi-popup__title">${title}</strong>
-    ${brand ? `<div class="poi-popup__meta">${escapeHtml(brand)}</div>` : ''}
-    ${fuels ? `<div class="poi-popup__meta">${escapeHtml(fuels)}</div>` : ''}
-    ${openingHours ? `<div class="poi-popup__meta">${escapeHtml(openingHours)}</div>` : ''}
-  </div>`
+  return poiPopupHtml(item.name ?? item.poiType, [
+    tags['brand'] ?? tags['operator'] ?? null,
+    fuels,
+    tags['opening_hours'] ?? null,
+  ])
 }
 
 function poiBrand(item: PoiItem): string | null {
@@ -43,9 +57,10 @@ export interface UsePoiLayersOptions {
 }
 
 /**
- * Owns everything related to the charging-station, fuel-station, and service-area map layers:
- * settings bindings, on-demand tile fetching/caching, marker clustering, and popups. Reacts to
- * pan/zoom (via the map instance passed in) and to the relevant settings toggling on its own.
+ * Owns everything related to the charging-station, fuel-station, service-area and speed-camera
+ * map layers: settings bindings, on-demand tile fetching/caching, marker clustering, and popups.
+ * Reacts to pan/zoom (via the map instance passed in) and to the relevant settings toggling on
+ * its own.
  */
 export function usePoiLayers({ mapInstance, vehicleType, isHev, isBev }: UsePoiLayersOptions) {
   const { t } = useI18n()
@@ -57,6 +72,7 @@ export function usePoiLayers({ mapInstance, vehicleType, isHev, isBev }: UsePoiL
     chargingStationsEnabled,
     fuelStationsEnabled,
     serviceAreasEnabled,
+    speedCamerasEnabled,
     fuelBrandFilter,
     fuelTypeFilter,
     chargingMinPowerKw,
@@ -101,6 +117,20 @@ export function usePoiLayers({ mapInstance, vehicleType, isHev, isBev }: UsePoiL
     const types = stationFuelTypes(item.tags)
     if (types.length === 0) return null
     return types.map((type) => t(`trips.fuelTypes.${type}`)).join(' · ')
+  }
+
+  /**
+   * A camera rarely carries a name, so the popup leads with what it enforces: the limit, the kind
+   * of camera, and who operates it, in whatever detail OSM holds for that node.
+   */
+  function buildSpeedCameraPopup(item: PoiItem): string {
+    const limit = speedCameraLimit(item.tags)
+    const kind = speedCameraKind(item.tags)
+    return poiPopupHtml(item.name ?? t('trips.speedCamera'), [
+      limit ? `${limit.value} ${limit.unit}` : null,
+      kind ? t(`trips.speedCameraTypes.${kind}`) : null,
+      item.tags?.['operator'] ?? null,
+    ])
   }
 
   const cachedFuelBrands = ref<string[]>([])
@@ -257,7 +287,44 @@ export function usePoiLayers({ mapInstance, vehicleType, isHev, isBev }: UsePoiL
     onLoadingChange: trackLoading,
   })
 
-  const layers = [chargingLayer, fuelLayer, serviceAreaLayer]
+  // Unlike the other layers, this one can be absent rather than merely off: a deployment may have
+  // it switched off, which the server says on the first answer. Latched here, as the geocoding and
+  // map-matching features do, so the toggle disappears instead of sitting there doing nothing.
+  const speedCamerasAvailable = ref(true)
+  const speedCameraLayerEnabled = computed(
+    () => speedCamerasEnabled.value && speedCamerasAvailable.value,
+  )
+
+  const speedCameraLayer = createTileLayer<PoiItem>({
+    map: mapInstance,
+    enabled: speedCameraLayerEnabled,
+    clusterClassName: 'poi-cluster poi-cluster--speed-camera',
+    idOf: (item) => item.externalId,
+    fetchItems: async (center, radiusKm) => {
+      const response = await mapApi.poi(
+        'speed_camera',
+        center.lat,
+        center.lng,
+        radiusKm,
+        vehicleType.value,
+      )
+      if (!response.available) speedCamerasAvailable.value = false
+      return response
+    },
+    toMarker: (item) =>
+      createMarker(
+        item.latitude,
+        item.longitude,
+        'poi-marker poi-marker--speed-camera',
+        '&#128247;',
+        buildSpeedCameraPopup(item),
+      ),
+    moreToFetch: ({ hasMore }) => hasMore,
+    chainDelayMs: ({ newItems }) => (newItems ? 400 : 5000),
+    onLoadingChange: trackLoading,
+  })
+
+  const layers = [chargingLayer, fuelLayer, serviceAreaLayer, speedCameraLayer]
 
   // Coalesced brand names shown in the filter dropdown (e.g. "BP" covers "BP" and "BP express").
   // See canonicalFuelBrand for the raw-variant -> canonical mapping.
@@ -331,6 +398,9 @@ export function usePoiLayers({ mapInstance, vehicleType, isHev, isBev }: UsePoiL
     chargingStationsEnabled,
     fuelStationsEnabled,
     serviceAreasEnabled,
+    speedCamerasEnabled,
+    /** False when the deployment does not serve the layer, so the view leaves its toggle out. */
+    speedCamerasAvailable,
     fuelBrandFilter,
     fuelTypeFilter,
     fuelTypeOptions,

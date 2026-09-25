@@ -18,6 +18,7 @@ interface MapSettings {
   fuelBrandFilter: string[]
   fuelTypeFilter: string[]
   serviceAreasEnabled: boolean
+  speedCamerasEnabled: boolean
 }
 
 const defaults: MapSettings = {
@@ -33,6 +34,7 @@ const defaults: MapSettings = {
   fuelBrandFilter: [],
   fuelTypeFilter: [],
   serviceAreasEnabled: false,
+  speedCamerasEnabled: false,
 }
 
 function parseMapFields(parsed: Record<string, unknown>): MapSettings {
@@ -59,6 +61,7 @@ function parseMapFields(parsed: Record<string, unknown>): MapSettings {
         )
       : [],
     serviceAreasEnabled: parsed.serviceAreasEnabled === true,
+    speedCamerasEnabled: parsed.speedCamerasEnabled === true,
   }
 }
 
@@ -88,6 +91,7 @@ export const useMapSettingsStore = defineStore('settingsMap', () => {
   const fuelBrandFilter = ref<string[]>(loaded.fuelBrandFilter)
   const fuelTypeFilter = ref<string[]>(loaded.fuelTypeFilter)
   const serviceAreasEnabled = ref<boolean>(loaded.serviceAreasEnabled)
+  const speedCamerasEnabled = ref<boolean>(loaded.speedCamerasEnabled)
 
   function save() {
     localStorage.setItem(
@@ -105,6 +109,7 @@ export const useMapSettingsStore = defineStore('settingsMap', () => {
         fuelBrandFilter: fuelBrandFilter.value,
         fuelTypeFilter: fuelTypeFilter.value,
         serviceAreasEnabled: serviceAreasEnabled.value,
+        speedCamerasEnabled: speedCamerasEnabled.value,
       }),
     )
   }
@@ -122,6 +127,7 @@ export const useMapSettingsStore = defineStore('settingsMap', () => {
   watch(fuelBrandFilter, scheduleSave, { deep: true })
   watch(fuelTypeFilter, scheduleSave, { deep: true })
   watch(serviceAreasEnabled, scheduleSave)
+  watch(speedCamerasEnabled, scheduleSave)
 
   return {
     routeOutlineEnabled,
@@ -136,5 +142,6 @@ export const useMapSettingsStore = defineStore('settingsMap', () => {
     fuelBrandFilter,
     fuelTypeFilter,
     serviceAreasEnabled,
+    speedCamerasEnabled,
   }
 })

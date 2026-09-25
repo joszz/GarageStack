@@ -427,6 +427,17 @@
     Mask="false">https://overpass-api.de/api/interpreter</Config>
 
   <Config
+    Name="Speed Camera Layer Enabled"
+    Target="SPEEDCAMERAS__ENABLED"
+    Default="true"
+    Mode=""
+    Description="Offers a map layer of the speed cameras mapped in OpenStreetMap. No API key required, and the layer stays off until you switch it on in the map's layer panel. Set to false to remove it from the deployment entirely -- do that where showing a driver where the cameras are is restricted, France and Germany among others."
+    Type="Variable"
+    Display="advanced"
+    Required="false"
+    Mask="false">true</Config>
+
+  <Config
     Name="Reverse Geocoding Enabled"
     Target="GEOCODING__ENABLED"
     Default="true"
