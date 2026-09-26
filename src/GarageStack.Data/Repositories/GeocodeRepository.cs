@@ -1,8 +1,8 @@
 using GarageStack.Core.Interfaces;
 using GarageStack.Core.Models;
+using GarageStack.Data.Extensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Npgsql;
 
 namespace GarageStack.Data.Repositories;
 
@@ -41,18 +41,11 @@ public class GeocodeRepository(AppDbContext db, ILogger<GeocodeRepository>? logg
         TimeSpan ttl,
         CancellationToken ct = default)
     {
-        try
-        {
-            await UpsertAttemptAsync(precision, language, cellLat, cellLng, place, ttl, ct);
-        }
-        catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: "23505" })
-        {
-            // Another request asked about the same cell between our read and our insert. Retry
-            // once: the second attempt finds the now-committed row and updates it instead.
-            logger?.LogDebug("Geocode cache row for {Precision} was inserted concurrently, retrying as an update", precision);
-            db.ChangeTracker.Clear();
-            await UpsertAttemptAsync(precision, language, cellLat, cellLng, place, ttl, ct);
-        }
+        // Another request can ask about the same cell between our read and our insert; the retry
+        // finds the now-committed row and updates it instead.
+        await db.RetryOnceOnUniqueViolationAsync(
+            () => UpsertAttemptAsync(precision, language, cellLat, cellLng, place, ttl, ct),
+            () => logger?.LogDebug("Geocode cache row for {Precision} was inserted concurrently, retrying as an update", precision));
     }
 
     private async Task UpsertAttemptAsync(

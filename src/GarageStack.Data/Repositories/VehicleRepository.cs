@@ -2,8 +2,8 @@ using System.Text.Json;
 using GarageStack.Core.Helpers;
 using GarageStack.Core.Interfaces;
 using GarageStack.Core.Models;
+using GarageStack.Data.Extensions;
 using Microsoft.EntityFrameworkCore;
-using Npgsql;
 
 namespace GarageStack.Data.Repositories;
 
@@ -42,7 +42,7 @@ public class VehicleRepository(AppDbContext db) : IVehicleRepository
         {
             await db.SaveChangesAsync(ct);
         }
-        catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: "23505" })
+        catch (DbUpdateException ex) when (ex.IsUniqueViolation())
         {
             // The API and Worker can both call GetOrCreateByVinAsync for a brand-new VIN at
             // nearly the same time (e.g. on startup); the loser of that race hits the unique
