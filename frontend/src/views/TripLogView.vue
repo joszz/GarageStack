@@ -13,12 +13,14 @@ import { intlLocale } from '@/utils/format'
 import { PURPOSE_ICONS, PURPOSE_KEYS, type TripLogPeriod } from '@/utils/tripLog'
 import { tripLogCsv, tripLogFileName } from '@/utils/tripLogCsv'
 import { useUnits } from '@/composables/useUnits'
+import { useErrorMessage } from '@/composables/useErrorMessage'
 
 const { t } = useI18n()
 const vehicleStore = useVehicleStore()
 const store = useTripLogStore()
 const uiSettings = useUiSettingsStore()
 const units = useUnits()
+const errorMessage = useErrorMessage()
 
 const vin = computed(() => vehicleStore.activeVin)
 const displayLocale = computed(() => intlLocale(uiSettings.locale))
@@ -166,7 +168,9 @@ function exportCsv() {
       {{ t('tripLog.saveFailed') }}
     </p>
 
-    <div v-if="store.loadError" class="empty-state text-danger">{{ store.loadError }}</div>
+    <div v-if="store.loadError" class="empty-state text-danger">
+      {{ errorMessage(store.loadError) }}
+    </div>
     <div v-else-if="!store.loading && store.entries.length === 0" class="empty-state">
       {{ t('tripLog.empty') }}
     </div>

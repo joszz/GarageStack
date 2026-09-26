@@ -3,7 +3,7 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ExpandableStatusCard from './ExpandableStatusCard.vue'
 import DetailListItem from './DetailListItem.vue'
-import { formatNumber } from '@/utils/format'
+import { formatDateTime, formatNumber } from '@/utils/format'
 
 const { t } = useI18n()
 
@@ -49,7 +49,7 @@ const hasAnyData = computed(
 const lastEndFormatted = computed((): string | null => {
   if (!props.chargingLastEndAt) return null
   try {
-    return new Date(props.chargingLastEndAt).toLocaleString()
+    return formatDateTime(props.chargingLastEndAt)
   } catch {
     return null
   }

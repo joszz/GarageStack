@@ -9,14 +9,14 @@ const units = new UnitFormatter(METRIC_UNITS, t)
 describe('formatIntervalSummary', () => {
   it('joins distance and time intervals with the localized "or"', () => {
     expect(formatIntervalSummary({ intervalKm: 15000, intervalMonths: 12 }, t, units)).toBe(
-      `maintenance.everyDistance:${(15000).toLocaleString()} units.km maintenance.or maintenance.everyMonths:12`,
+      'maintenance.everyDistance:15,000 units.km maintenance.or maintenance.everyMonths:12',
     )
   })
 
   it('renders the distance in the unit the browser shows', () => {
     const miles = new UnitFormatter({ ...METRIC_UNITS, distance: 'mi' }, t)
     expect(formatIntervalSummary({ intervalKm: 15000, intervalMonths: null }, t, miles)).toBe(
-      `maintenance.everyDistance:${(9321).toLocaleString()} units.mi`,
+      'maintenance.everyDistance:9,321 units.mi',
     )
   })
 

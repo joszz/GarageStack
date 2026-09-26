@@ -1,4 +1,5 @@
 import { useI18n } from 'vue-i18n'
+import { formatDate } from '@/utils/format'
 
 export function useRelativeTime() {
   const { t } = useI18n()
@@ -11,7 +12,7 @@ export function useRelativeTime() {
     if (diffMin < 60) return t('notifications.minutesAgo', { n: diffMin })
     const diffHrs = Math.floor(diffMin / 60)
     if (diffHrs < 24) return t('notifications.hoursAgo', { n: diffHrs })
-    return d.toLocaleDateString()
+    return formatDate(d)
   }
 
   return { relativeTime }

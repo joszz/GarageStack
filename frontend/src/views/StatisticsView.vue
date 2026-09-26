@@ -25,7 +25,7 @@ import SkeletonChart from '@/components/SkeletonChart.vue'
 import StatusCard from '@/components/StatusCard.vue'
 import StatsChartCard, { type StatsChartType } from '@/components/StatsChartCard.vue'
 import EditableCardSlot from '@/components/EditableCardSlot.vue'
-import { formatNumber } from '@/utils/format'
+import { formatDate, formatNumber, intlLocale } from '@/utils/format'
 import { dailyCounterTotal, energyUnit, litres } from '@/utils/energy'
 import { startOfLocalDayDaysAgoIso } from '@/utils/dates'
 import {
@@ -37,12 +37,14 @@ import {
   totalDistanceKm,
 } from '@/utils/statistics'
 import { useUnits } from '@/composables/useUnits'
+import { useErrorMessage } from '@/composables/useErrorMessage'
 
 const { t } = useI18n()
 const store = useVehicleStore()
 const settings = useDashboardSettingsStore()
 const uiSettings = useUiSettingsStore()
 const units = useUnits()
+const errorMessage = useErrorMessage()
 
 const editMode = ref(false)
 const loading = ref(false)
@@ -155,7 +157,7 @@ const groupedHistory = computed(() => {
 
   return Array.from(buckets.entries()).map(([key, points]) => ({
     key,
-    label: new Date(`${key}T00:00:00`).toLocaleDateString(),
+    label: formatDate(new Date(`${key}T00:00:00`)),
     points,
   }))
 })
@@ -443,9 +445,10 @@ const dailyEnergyChartData = computed(() => ({
 // ── Chart options ─────────────────────────────────────────────
 
 // All charts share the same responsive/axis setup; they differ only in aspect ratio, legend
-// and y-axis range.
+// and y-axis range. The locale makes axis and tooltip numbers read like the rest of the page.
 function chartOptions(aspectRatio: number, legend: boolean, y: { min: number; max?: number }) {
   return {
+    locale: intlLocale(uiSettings.locale),
     responsive: true,
     maintainAspectRatio: true,
     aspectRatio,
@@ -458,7 +461,7 @@ function chartOptions(aspectRatio: number, legend: boolean, y: { min: number; ma
   }
 }
 
-const percentOptions = chartOptions(2.6, false, { min: 0, max: 100 })
+const percentOptions = computed(() => chartOptions(2.6, false, { min: 0, max: 100 }))
 // Widens a range outward to round numbers, stepping by half its order of magnitude: 1.5 to 3.5
 // bar stays as it is, and the same range reads 20 to 55 psi or 150 to 350 kPa rather than
 // starting the axis at 21.76.
@@ -475,8 +478,8 @@ const pressureOptions = computed(() => {
     roundedRange(u.convert('pressure', 1.5), u.convert('pressure', 3.5)),
   )
 })
-const hybridSocOptions = chartOptions(2.6, true, { min: 0, max: 100 })
-const kwhOptions = chartOptions(2.6, false, { min: 0 })
+const hybridSocOptions = computed(() => chartOptions(2.6, true, { min: 0, max: 100 }))
+const kwhOptions = computed(() => chartOptions(2.6, false, { min: 0 }))
 
 // ── Chart definitions ─────────────────────────────────────────
 
@@ -502,7 +505,7 @@ const chartDefs = computed((): ChartDef[] => [
     applicable: hasLargeEv.value && store.history.length > 0,
     type: 'line',
     data: evChartData.value,
-    options: percentOptions,
+    options: percentOptions.value,
   },
   {
     id: 'tyreChart',
@@ -528,7 +531,7 @@ const chartDefs = computed((): ChartDef[] => [
     applicable: isHybrid.value && store.history.length > 0,
     type: 'line',
     data: hybridSocChartData.value,
-    options: hybridSocOptions,
+    options: hybridSocOptions.value,
   },
   {
     id: 'dailyKwhChart',
@@ -543,7 +546,7 @@ const chartDefs = computed((): ChartDef[] => [
     applicable: isHybrid.value && store.history.length > 0,
     type: 'bar',
     data: dailyEnergyChartData.value,
-    options: kwhOptions,
+    options: kwhOptions.value,
   },
 ])
 
@@ -623,7 +626,7 @@ const skeletonChartCount = computed(
         v-if="store.historyError && !status && !store.history.length"
         class="empty-state text-danger"
       >
-        {{ store.historyError }}
+        {{ errorMessage(store.historyError) }}
       </div>
       <div v-else-if="!status && !store.history.length && !editMode" class="empty-state">
         {{ t('dashboard.noData') }}
@@ -693,7 +696,7 @@ const skeletonChartCount = computed(
         <!-- ── Charts ───────────────────────────────────── -->
         <template v-if="editMode || store.history.length">
           <div v-if="store.historyError" class="empty-state text-danger mt-2">
-            {{ store.historyError }}
+            {{ errorMessage(store.historyError) }}
           </div>
 
           <!-- Edit mode: draggable chart slots -->
