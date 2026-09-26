@@ -1,5 +1,6 @@
 import { computed, ref } from 'vue'
 import type { Ref } from 'vue'
+import { asError } from '@/utils/errors'
 
 /**
  * Counts in-flight async actions so `loading` stays true until the last one settles, and runs
@@ -11,13 +12,13 @@ export function useLoadingTracker() {
   const loadingCount = ref(0)
   const loading = computed(() => loadingCount.value > 0)
 
-  async function withLoading(errorRef: Ref<string | null>, fn: () => Promise<void>) {
+  async function withLoading(errorRef: Ref<Error | null>, fn: () => Promise<void>) {
     loadingCount.value++
     errorRef.value = null
     try {
       await fn()
     } catch (e) {
-      errorRef.value = String(e)
+      errorRef.value = asError(e)
     } finally {
       loadingCount.value--
     }

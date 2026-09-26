@@ -71,7 +71,7 @@ describe('useTripLogStore', () => {
 
     await store.fetchLog('VIN1', { year: 2026, month: 8 })
 
-    expect(store.loadError).toContain('offline')
+    expect(store.loadError?.message).toContain('offline')
   })
 
   it('replaces a trip with the saved version, keeping places the page already has', async () => {
@@ -99,7 +99,7 @@ describe('useTripLogStore', () => {
 
     expect(ok).toBe(false)
     expect(store.entries[0]!.purpose).toBeNull()
-    expect(store.actionError).toContain('500')
+    expect(store.actionError?.message).toContain('500')
   })
 
   it('classifies only the trips without a purpose', async () => {

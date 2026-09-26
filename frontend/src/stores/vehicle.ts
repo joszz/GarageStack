@@ -36,12 +36,12 @@ export const useVehicleStore = defineStore('vehicle', () => {
   const anySending = computed(() => sendingCount.value > 0)
   // Each fetch action gets its own error ref so concurrent calls (e.g. Promise.all on
   // mount) can't have one action's success silently overwrite another action's error.
-  const vehiclesError = ref<string | null>(null)
-  const statusError = ref<string | null>(null)
-  const historyError = ref<string | null>(null)
-  const tripsError = ref<string | null>(null)
-  const latestTripError = ref<string | null>(null)
-  const tripSummariesError = ref<string | null>(null)
+  const vehiclesError = ref<Error | null>(null)
+  const statusError = ref<Error | null>(null)
+  const historyError = ref<Error | null>(null)
+  const tripsError = ref<Error | null>(null)
+  const latestTripError = ref<Error | null>(null)
+  const tripSummariesError = ref<Error | null>(null)
   const lastUpdated = ref<Date | null>(null)
 
   // Reactive one-shot flags set for a single tick when specific state transitions occur.

@@ -152,7 +152,7 @@ describe('useVehicleStore - fetchVehicles', () => {
     vi.mocked(vehicleApi.list).mockRejectedValue(new Error('Network error'))
     const store = useVehicleStore()
     await store.fetchVehicles()
-    expect(store.vehiclesError).toContain('Network error')
+    expect(store.vehiclesError?.message).toContain('Network error')
     expect(store.vehicles).toHaveLength(0)
   })
 

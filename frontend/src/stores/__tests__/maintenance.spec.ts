@@ -59,7 +59,7 @@ describe('useMaintenanceStore', () => {
     vi.mocked(maintenanceApi.list).mockRejectedValue(new Error('Network error'))
     const store = useMaintenanceStore()
     await store.fetchItems('VIN1')
-    expect(store.itemsError).toContain('Network error')
+    expect(store.itemsError?.message).toContain('Network error')
     expect(store.items).toHaveLength(0)
   })
 

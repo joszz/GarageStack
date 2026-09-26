@@ -32,7 +32,6 @@ if ('serviceWorker' in navigator) {
   })
 }
 import { createPinia } from 'pinia'
-import { createI18n } from 'vue-i18n'
 import { config, library } from '@fortawesome/fontawesome-svg-core'
 // FontAwesome injects this stylesheet into <head> at runtime by default, which the
 // Content-Security-Policy blocks (style-src-elem allows only same-origin files and the one
@@ -140,8 +139,7 @@ import router from './router'
 import { useUiSettingsStore } from './stores/settingsUi'
 import { useAuthStore } from './stores/auth'
 import { setUnauthorizedHandler, clearUnauthorizedState } from './services/apiCore'
-import en from './locales/en.json'
-import nl from './locales/nl.json'
+import { i18n } from './i18n'
 
 library.add(
   faBars,
@@ -235,13 +233,6 @@ library.add(
   faMobileScreen,
   faDownload,
 )
-
-const i18n = createI18n({
-  legacy: false,
-  locale: 'en',
-  fallbackLocale: 'en',
-  messages: { en, nl },
-})
 
 const app = createApp(App)
 const pinia = createPinia()

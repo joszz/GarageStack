@@ -6,9 +6,11 @@ import { useMaintenanceStore } from '@/stores/maintenance'
 import { useVehicleStore } from '@/stores/vehicle'
 import type { MaintenanceItem } from '@/services/maintenanceApi'
 import { formatIntervalSummary } from '@/utils/maintenance'
+import { formatDate } from '@/utils/format'
 import { ODOMETER_FORMAT } from '@/utils/units'
 import { useUnits } from '@/composables/useUnits'
 import { useDistanceField } from '@/composables/useDistanceField'
+import { useErrorMessage } from '@/composables/useErrorMessage'
 
 const props = defineProps<{
   open: boolean
@@ -22,6 +24,7 @@ const { t } = useI18n()
 const store = useMaintenanceStore()
 const vehicleStore = useVehicleStore()
 const units = useUnits()
+const errorMessage = useErrorMessage()
 
 const performedAt = ref('')
 const odometer = useDistanceField(units)
@@ -46,10 +49,6 @@ watch(
   },
 )
 
-function formatDate(value: string) {
-  return new Date(value).toLocaleDateString()
-}
-
 async function submitLog() {
   if (!props.item) return
   logError.value = null
@@ -61,7 +60,7 @@ async function submitLog() {
       notes: logNotes.value.trim() || null,
     })
     if (store.actionError) {
-      logError.value = store.actionError
+      logError.value = errorMessage(store.actionError)
       return
     }
     logNotes.value = ''

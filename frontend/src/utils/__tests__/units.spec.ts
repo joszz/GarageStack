@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { createI18n } from 'vue-i18n'
 import en from '@/locales/en.json'
 import nl from '@/locales/nl.json'
+import { i18n as appI18n } from '@/i18n'
 import {
   DISTANCE_UNITS,
   FUEL_CONSUMPTION_UNITS,
@@ -110,9 +111,18 @@ describe('UnitFormatter', () => {
     const units = formatter()
 
     expect(units.format('speed', 57.26, { decimals: 1 })).toBe('57.3 km/h')
-    expect(units.format('distance', 123_456.7, ODOMETER_FORMAT)).toBe(
-      `${(123_457).toLocaleString()} km`,
-    )
+    expect(units.format('distance', 123_456.7, ODOMETER_FORMAT)).toBe('123,457 km')
+  })
+
+  it('writes numbers the way the interface language does', () => {
+    const units = formatter()
+    appI18n.global.locale.value = 'nl'
+    try {
+      expect(units.format('speed', 57.26, { decimals: 1 })).toBe('57,3 km/h')
+      expect(units.format('distance', 123_456.7, ODOMETER_FORMAT)).toBe('123.457 km')
+    } finally {
+      appI18n.global.locale.value = 'en'
+    }
   })
 
   it('has a translated symbol for every unit a browser can choose, in every language', () => {
