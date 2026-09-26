@@ -133,7 +133,8 @@ export interface TripPoint {
   speed: number | null
 }
 
-export interface Trip {
+/** A trip without its fixes, with the figures the API reads off them. */
+export interface TripSummary {
   index: number
   /** The saved trip's id, or null for one the Worker has not saved yet, such as the one being driven. */
   id: number | null
@@ -141,6 +142,18 @@ export interface Trip {
   endedAt: string
   distanceKm: number
   pointCount: number
+  /** Where the trip ended. */
+  endLatitude: number | null
+  endLongitude: number | null
+  /** The highest speed any fix reported, null when none carried a speed. */
+  maxSpeedKmh: number | null
+  /** The mean of the speeds reported while moving, null when none was. */
+  avgMovingSpeedKmh: number | null
+  /** How many fixes that average is taken over, to weigh it against other trips'. */
+  movingSpeedSamples: number
+}
+
+export interface Trip extends TripSummary {
   points: TripPoint[]
 }
 
@@ -175,6 +188,13 @@ export const vehicleApi = {
     const query = buildQuery({ from, to })
     return request<Trip[]>(`/api/vehicles/${vin}/trips${query}`)
   },
+  /** The same period of trips without their fixes, for pages that only need the figures. */
+  tripSummaries: (vin: string, from?: string, to?: string) => {
+    const query = buildQuery({ from, to, points: false })
+    return request<TripSummary[]>(`/api/vehicles/${vin}/trips${query}`)
+  },
+  /** The newest trip, or undefined when the vehicle has none (the API answers 204). */
+  latestTrip: (vin: string) => request<Trip | undefined>(`/api/vehicles/${vin}/trips/latest`),
   sendCommand: (vin: string, command: string, value: string) =>
     send(`/api/vehicles/${vin}/commands/${command}`, 'POST', { value }),
   stats: (vin: string, from?: string, to?: string) => {

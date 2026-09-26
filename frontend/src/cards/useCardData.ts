@@ -16,7 +16,7 @@ export function useCardData() {
     return {
       status,
       vehicleType: store.effectiveVehicleType,
-      latestTrip: store.trips[store.trips.length - 1] ?? null,
+      latestTrip: store.latestTrip,
     }
   })
 }

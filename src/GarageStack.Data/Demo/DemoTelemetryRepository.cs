@@ -54,9 +54,12 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
     public Task<DateTime?> GetFirstGpsFixAtAsync(int vehicleId, CancellationToken ct = default) =>
         Task.FromResult<DateTime?>(null);
 
-    // Only the Worker's recorder asks, and demo mode runs no Worker: DemoTrips carries the readings.
-    public Task<double?> GetOdometerAtAsync(int vehicleId, DateTime at, CancellationToken ct = default) =>
-        Task.FromResult<double?>(null);
+    // Maintenance asks for the reading now, which is the live snapshot's. Past readings are only
+    // asked for by the Worker's recorder, and demo mode runs no Worker: DemoTrips carries those.
+    public Task<double?> GetOdometerAtAsync(int vehicleId, DateTime at, CancellationToken ct = default)
+    {
+        lock (_lock) { return Task.FromResult(_current.OdometerKm); }
+    }
 
     // The in-progress trip is always the last entry (see DemoTrips), which is also the one the
     // live snapshot's CurrentJourneyDistance describes.

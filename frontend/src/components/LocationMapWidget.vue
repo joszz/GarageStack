@@ -25,13 +25,12 @@ const center = computed<[number, number]>(() => [
   status.value?.longitude ?? 0,
 ])
 
-// Same logic as MapView: the backend always appends the still-open segment as the last trip
-// while the car hasn't parked for 5+ minutes, so a positive currentJourneyDistance means that
-// last trip is the one currently being driven.
+// The API serves the still-open segment as the latest trip while the car hasn't parked for 5+
+// minutes, so a positive currentJourneyDistance means that trip is the one being driven.
 const activeTrip = computed(() => {
   const dist = status.value?.currentJourneyDistance
-  if (dist == null || dist <= 0 || store.trips.length === 0) return null
-  return store.trips[store.trips.length - 1] ?? null
+  if (dist == null || dist <= 0) return null
+  return store.latestTrip
 })
 
 // The street the car is parked in, so the card says where it is rather than only showing it.
@@ -70,7 +69,9 @@ const mapOptions = {
 
 const mapWrapperRef = ref<HTMLElement | null>(null)
 const { mapInstance, bindMapReady } = useLeafletMap(mapWrapperRef)
-useBasemap(mapInstance)
+// A preview that cannot be panned or zoomed: raster tiles show the same streets without pulling
+// the vector renderer into the dashboard, the page most visits start on.
+useBasemap(mapInstance, { vector: false })
 let routeLine: L.Polyline | null = null
 let carMarker: L.Marker | null = null
 

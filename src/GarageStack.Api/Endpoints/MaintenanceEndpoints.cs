@@ -24,9 +24,9 @@ public static class MaintenanceEndpoints
                 .OrderBy(m => m.Name)
                 .ToListAsync(ct);
 
-            var snapshot = await telemetry.GetMergedLatestAsync(vehicle.Id, ct);
+            var odometerKm = await telemetry.GetOdometerAtAsync(vehicle.Id, DateTime.UtcNow, ct);
 
-            return Results.Ok(items.Select(m => ToDto(m, snapshot?.OdometerKm)));
+            return Results.Ok(items.Select(m => ToDto(m, odometerKm)));
         })
         .WithSummary("List maintenance items with computed due status");
 
@@ -53,8 +53,8 @@ public static class MaintenanceEndpoints
             db.MaintenanceItems.Add(item);
             await db.SaveChangesAsync(ct);
 
-            var snapshot = await telemetry.GetMergedLatestAsync(vehicle.Id, ct);
-            return Results.Ok(ToDto(item, snapshot?.OdometerKm));
+            var odometerKm = await telemetry.GetOdometerAtAsync(vehicle.Id, DateTime.UtcNow, ct);
+            return Results.Ok(ToDto(item, odometerKm));
         })
         .WithSummary("Create a maintenance item");
 
@@ -77,8 +77,8 @@ public static class MaintenanceEndpoints
 
             await db.SaveChangesAsync(ct);
 
-            var snapshot = await telemetry.GetMergedLatestAsync(vehicle.Id, ct);
-            return Results.Ok(ToDto(item, snapshot?.OdometerKm));
+            var odometerKm = await telemetry.GetOdometerAtAsync(vehicle.Id, DateTime.UtcNow, ct);
+            return Results.Ok(ToDto(item, odometerKm));
         })
         .WithSummary("Update a maintenance item's name, notes and intervals");
 
@@ -138,10 +138,10 @@ public static class MaintenanceEndpoints
             await RecomputeBaselineAsync(item, db, ct);
             await db.SaveChangesAsync(ct);
 
-            var snapshot = await telemetry.GetMergedLatestAsync(vehicle.Id, ct);
+            var odometerKm = await telemetry.GetOdometerAtAsync(vehicle.Id, DateTime.UtcNow, ct);
             var logDto = new MaintenanceLogEntryDto(entry.Id, entry.MaintenanceItemId, entry.PerformedAt, entry.OdometerKm, entry.Notes, entry.CreatedAt);
 
-            return Results.Ok(new LogMaintenanceServiceResponse(ToDto(item, snapshot?.OdometerKm), logDto));
+            return Results.Ok(new LogMaintenanceServiceResponse(ToDto(item, odometerKm), logDto));
         })
         .WithSummary("Log a completed service, updating the item's baseline");
 
@@ -163,8 +163,8 @@ public static class MaintenanceEndpoints
             await RecomputeBaselineAsync(item, db, ct);
             await db.SaveChangesAsync(ct);
 
-            var snapshot = await telemetry.GetMergedLatestAsync(vehicle.Id, ct);
-            return Results.Ok(ToDto(item, snapshot?.OdometerKm));
+            var odometerKm = await telemetry.GetOdometerAtAsync(vehicle.Id, DateTime.UtcNow, ct);
+            return Results.Ok(ToDto(item, odometerKm));
         })
         .WithSummary("Remove a service log entry, recomputing the item's baseline");
 
