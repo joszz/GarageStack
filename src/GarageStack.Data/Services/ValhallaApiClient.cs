@@ -66,28 +66,15 @@ public sealed class ValhallaApiClient(
     {
         if (!IsEnabled || points.Count < MapMatchDefaults.MinPointsPerRequest) return TraceMatch.Unavailable;
 
-        // Pre-gate check: skip the queue entirely while a backoff window is open.
-        if (_gate.IsBackingOff)
+        using var entry = await _gate.TryEnterAsync(GateTimeout, failWhenBackingOff: true, ct);
+        if (!entry.Entered)
         {
-            logger.LogDebug("Valhalla backoff active, leaving a {Count}-point trace unsnapped", points.Count);
-            return TraceMatch.Unavailable;
-        }
-
-        if (!await _gate.WaitAsync(GateTimeout, ct))
-        {
-            logger.LogDebug("Valhalla gate busy, leaving a {Count}-point trace unsnapped", points.Count);
+            logger.LogDebug("Valhalla refused ({Refusal}), leaving a {Count}-point trace unsnapped", entry.Refusal, points.Count);
             return TraceMatch.Unavailable;
         }
 
         try
         {
-            // Re-check inside the gate: the request we queued behind may have been rate-limited.
-            if (_gate.IsBackingOff)
-            {
-                logger.LogDebug("Valhalla backoff active (inside gate), leaving a {Count}-point trace unsnapped", points.Count);
-                return TraceMatch.Unavailable;
-            }
-
             await _gate.ThrottleAsync(MinInterval, honourBackoff: true, ct);
 
             var client = httpClientFactory.CreateClient(HttpClientName);
@@ -123,10 +110,6 @@ public sealed class ValhallaApiClient(
             // car has been is not worth writing to disk on every retry.
             logger.LogWarning(ex, "Valhalla map matching failed for a {Count}-point trace", points.Count);
             return TraceMatch.Unavailable;
-        }
-        finally
-        {
-            _gate.Release();
         }
     }
 

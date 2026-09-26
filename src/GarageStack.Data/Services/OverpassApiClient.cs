@@ -83,81 +83,53 @@ public sealed class OverpassApiClient(
     {
         var query = QueryFor(poiType).Replace("{bbox}", BuildBbox(cellLat, cellLng));
 
-        if (foreground)
+        // A foreground caller respects the Worker's 429 backoff and waits for the gate only so
+        // long, so a browser request is never held for minutes. The background pass waits its turn.
+        using var entry = await _gate.TryEnterAsync(
+            foreground ? ForegroundGateTimeout : null, failWhenBackingOff: foreground, ct);
+        if (!entry.Entered)
         {
-            // Quick pre-gate check: respect the background Worker's 429 backoff window without
-            // even attempting to acquire the gate.
-            if (_gate.IsBackingOff)
+            logger.LogDebug("Overpass refused ({Refusal}) for {PoiType} ({CellLat},{CellLng}), serving from cache",
+                entry.Refusal, poiType, cellLat, cellLng);
+            return null;
+        }
+
+        await _gate.ThrottleAsync(
+            foreground ? ForegroundMinInterval : BackgroundMinInterval,
+            honourBackoff: !foreground,
+            ct);
+
+        var client = httpClientFactory.CreateClient(HttpClientName);
+        using var content = new FormUrlEncodedContent([new KeyValuePair<string, string>("data", query)]);
+        _gate.MarkRequestSent();
+        using var response = await client.PostAsync(BaseUrl, content, ct);
+
+        if (UpstreamRateGate.IsThrottlingStatus((int)response.StatusCode))
+        {
+            if (foreground)
             {
-                logger.LogDebug("Overpass backoff active for {PoiType} ({CellLat},{CellLng}), serving from cache",
-                    poiType, cellLat, cellLng);
+                // Short backoff so subsequent pans don't immediately retry the same
+                // rate-limited tile and keep getting 429 forever ("area stays blank").
+                _gate.SetBackoff(ForegroundRetryAfter429);
+                logger.LogDebug("Overpass {Status} for {PoiType} ({CellLat},{CellLng}) on foreground path, backing off {Seconds}s",
+                    (int)response.StatusCode, poiType, cellLat, cellLng, (int)ForegroundRetryAfter429.TotalSeconds);
                 return null;
             }
 
-            // Hard timeout on gate acquisition so the HTTP request is never held for minutes.
-            if (!await _gate.WaitAsync(ForegroundGateTimeout, ct))
-            {
-                logger.LogDebug("Overpass gate busy for {PoiType} ({CellLat},{CellLng}), serving from cache",
-                    poiType, cellLat, cellLng);
-                return null;
-            }
-        }
-        else
-        {
-            await _gate.WaitAsync(ct);
+            // Background: record backoff window so the foreground path skips Overpass for
+            // the next BackgroundRetryAfter429 seconds.
+            _gate.SetBackoff(BackgroundRetryAfter429);
+            throw new HttpRequestException(
+                $"Overpass rate-limited ({(int)response.StatusCode}) for {poiType} ({cellLat},{cellLng})");
         }
 
-        try
-        {
-            // Re-check inside the gate: the Worker may have set a backoff while we were waiting.
-            if (foreground && _gate.IsBackingOff)
-            {
-                logger.LogDebug("Overpass backoff active (inside gate) for {PoiType} ({CellLat},{CellLng}), serving from cache",
-                    poiType, cellLat, cellLng);
-                return null;
-            }
+        response.EnsureSuccessStatusCode();
 
-            await _gate.ThrottleAsync(
-                foreground ? ForegroundMinInterval : BackgroundMinInterval,
-                honourBackoff: !foreground,
-                ct);
-
-            var client = httpClientFactory.CreateClient(HttpClientName);
-            using var content = new FormUrlEncodedContent([new KeyValuePair<string, string>("data", query)]);
-            _gate.MarkRequestSent();
-            using var response = await client.PostAsync(BaseUrl, content, ct);
-
-            if (UpstreamRateGate.IsThrottlingStatus((int)response.StatusCode))
-            {
-                if (foreground)
-                {
-                    // Short backoff so subsequent pans don't immediately retry the same
-                    // rate-limited tile and keep getting 429 forever ("area stays blank").
-                    _gate.SetBackoff(ForegroundRetryAfter429);
-                    logger.LogDebug("Overpass {Status} for {PoiType} ({CellLat},{CellLng}) on foreground path, backing off {Seconds}s",
-                        (int)response.StatusCode, poiType, cellLat, cellLng, (int)ForegroundRetryAfter429.TotalSeconds);
-                    return null;
-                }
-
-                // Background: record backoff window so the foreground path skips Overpass for
-                // the next BackgroundRetryAfter429 seconds.
-                _gate.SetBackoff(BackgroundRetryAfter429);
-                throw new HttpRequestException(
-                    $"Overpass rate-limited ({(int)response.StatusCode}) for {poiType} ({cellLat},{cellLng})");
-            }
-
-            response.EnsureSuccessStatusCode();
-
-            await using var stream = await response.Content.ReadAsStreamAsync(ct);
-            var result = await JsonSerializer.DeserializeAsync<OverpassResponse>(stream, cancellationToken: ct);
-            return result?.Elements
-                .Select(e => MapElement(e, poiType))
-                .ToList() ?? [];
-        }
-        finally
-        {
-            _gate.Release();
-        }
+        await using var stream = await response.Content.ReadAsStreamAsync(ct);
+        var result = await JsonSerializer.DeserializeAsync<OverpassResponse>(stream, cancellationToken: ct);
+        return result?.Elements
+            .Select(e => MapElement(e, poiType))
+            .ToList() ?? [];
     }
 
     // Tile (cellLat, cellLng) covers [cellLat/2, (cellLat+1)/2) degrees, see TileHelper.CellOf.

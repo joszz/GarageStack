@@ -39,13 +39,13 @@ public sealed class OcmApiClient(
         var centerLat = ((cellLat + 0.5) / 2.0).ToString(CultureInfo.InvariantCulture);
         var centerLng = ((cellLng + 0.5) / 2.0).ToString(CultureInfo.InvariantCulture);
 
-        await _gate.WaitAsync(ct);
+        using var entry = await _gate.TryEnterAsync(waitAtMost: null, failWhenBackingOff: true, ct);
         try
         {
             // Fail fast without hitting the network if a prior request was rate-limited, so a
             // sustained rate limit is not hammered every MinInterval by every remaining tile in
             // the Worker's current pass.
-            if (_gate.IsBackingOff)
+            if (!entry.Entered)
                 throw new HttpRequestException($"OCM rate-limited, backing off until {_gate.BackoffUntil:O}");
 
             await _gate.ThrottleAsync(MinInterval, honourBackoff: false, ct);
@@ -81,10 +81,6 @@ public sealed class OcmApiClient(
         {
             logger.LogWarning(ex, "OCM fetch failed for charging tile ({CellLat},{CellLng})", cellLat, cellLng);
             throw;
-        }
-        finally
-        {
-            _gate.Release();
         }
     }
 

@@ -59,28 +59,15 @@ public sealed class NominatimApiClient(
     {
         if (!IsEnabled) return null;
 
-        // Pre-gate check: skip the queue entirely while a backoff window is open.
-        if (_gate.IsBackingOff)
+        using var entry = await _gate.TryEnterAsync(GateTimeout, failWhenBackingOff: true, ct);
+        if (!entry.Entered)
         {
-            logger.LogDebug("Nominatim backoff active, leaving {Precision} lookup unresolved", precision);
-            return null;
-        }
-
-        if (!await _gate.WaitAsync(GateTimeout, ct))
-        {
-            logger.LogDebug("Nominatim gate busy, leaving {Precision} lookup unresolved", precision);
+            logger.LogDebug("Nominatim refused ({Refusal}), leaving {Precision} lookup unresolved", entry.Refusal, precision);
             return null;
         }
 
         try
         {
-            // Re-check inside the gate: the request we queued behind may have been rate-limited.
-            if (_gate.IsBackingOff)
-            {
-                logger.LogDebug("Nominatim backoff active (inside gate), leaving {Precision} lookup unresolved", precision);
-                return null;
-            }
-
             await _gate.ThrottleAsync(MinInterval, honourBackoff: true, ct);
 
             var url = BuildReverseUrl(lat, lng, precision, language);
@@ -108,10 +95,6 @@ public sealed class NominatimApiClient(
             // car's position is not worth writing to disk on every retry.
             logger.LogWarning(ex, "Nominatim reverse lookup failed for a {Precision} coordinate", precision);
             return null;
-        }
-        finally
-        {
-            _gate.Release();
         }
     }
 
