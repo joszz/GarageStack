@@ -535,3 +535,81 @@ describe('useDashboardSettingsStore - hasSavedLayout', () => {
     expect(dashboard.hasSavedLayout).toBe(true)
   })
 })
+
+describe('useDashboardSettingsStore - layout', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    setActivePinia(createPinia())
+  })
+
+  const ids = (cards: { id: string }[]) => cards.map((c) => c.id)
+  const visible = (cards: { id: string; visible: boolean }[]) => ids(cards.filter((c) => c.visible))
+
+  it('hides the cards a drivetrain has no use for, and leaves the rest alone', () => {
+    const dashboard = useDashboardSettingsStore()
+    dashboard.cards = defaultCards('unknown').map((c) =>
+      c.id === 'speed' ? { ...c, visible: true } : c,
+    )
+
+    dashboard.hideCardsNotApplicable('bev')
+
+    expect(visible(dashboard.cards)).not.toContain('fuelLevel')
+    // Off by default for every type, but switched on by the user: that choice stays.
+    expect(visible(dashboard.cards)).toContain('speed')
+  })
+
+  it('gives the drivetrain-dependent cards the new type defaults when the type changes', () => {
+    const dashboard = useDashboardSettingsStore()
+    dashboard.cards = defaultCards('bev')
+
+    dashboard.applyTypeDefaults('hev')
+
+    expect(visible(dashboard.cards)).toContain('fuelLevel')
+    expect(visible(dashboard.cards)).not.toContain('charging')
+    const firstHidden = dashboard.cards.findIndex((c) => !c.visible)
+    expect(dashboard.cards.slice(firstHidden).every((c) => !c.visible)).toBe(true)
+  })
+
+  it('moves a hidden card behind the visible ones and a shown one to the end of them', () => {
+    const dashboard = useDashboardSettingsStore()
+    dashboard.cards = [
+      { id: 'odometer', visible: true },
+      { id: 'doors', visible: true },
+      { id: 'sunRoof', visible: false },
+    ]
+
+    dashboard.toggleCard('odometer')
+    expect(dashboard.cards).toEqual([
+      { id: 'doors', visible: true },
+      { id: 'sunRoof', visible: false },
+      { id: 'odometer', visible: false },
+    ])
+
+    dashboard.toggleCard('sunRoof')
+    expect(ids(dashboard.cards)).toEqual(['doors', 'sunRoof', 'odometer'])
+    expect(visible(dashboard.cards)).toEqual(['doors', 'sunRoof'])
+  })
+
+  it('keeps the cards that do not apply behind a reordered edit grid', () => {
+    const dashboard = useDashboardSettingsStore()
+    dashboard.cards = defaultCards('bev')
+    const offered = dashboard.applicableCards('bev')
+    expect(ids(offered)).not.toContain('fuelLevel')
+
+    dashboard.setApplicableCards('bev', [...offered].reverse())
+
+    expect(ids(dashboard.cards).slice(0, offered.length)).toEqual(ids(offered).reverse())
+    expect(ids(dashboard.cards).slice(offered.length)).toContain('fuelLevel')
+  })
+
+  it('resets to the drivetrain defaults with cards that have data first and the tyre diagram on', () => {
+    const dashboard = useDashboardSettingsStore()
+    dashboard.showTyreDiagram = false
+    const withData = new Set(['doors', 'odometer'])
+
+    dashboard.resetLayout('bev', (id) => withData.has(id))
+
+    expect(ids(dashboard.cards).slice(0, 2).sort()).toEqual(['doors', 'odometer'])
+    expect(dashboard.showTyreDiagram).toBe(true)
+  })
+})
