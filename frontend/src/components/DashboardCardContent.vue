@@ -24,6 +24,7 @@ import BatteryHeatingCard from './BatteryHeatingCard.vue'
 import MaintenanceSummaryCard from './MaintenanceSummaryCard.vue'
 import { formatNumber } from '@/utils/format'
 import { energyUnit, hvBatteryReading, litres, litresPer100Km, whPerKm } from '@/utils/energy'
+import { evLevelVariant, fuelLevelVariant } from '@/utils/levels'
 import { ODOMETER_FORMAT, type Measure, type MeasureOptions, type Quantity } from '@/utils/units'
 import { useUnits } from '@/composables/useUnits'
 
@@ -113,14 +114,7 @@ const simpleCards = computed((): SimpleCardConfig[] => {
       label: t('vehicle.fuel'),
       value: s.fuelLevelPercent !== null ? Math.round(s.fuelLevelPercent) : null,
       unit: '%',
-      variant:
-        s.fuelLevelPercent !== null
-          ? s.fuelLevelPercent < 15
-            ? 'danger'
-            : s.fuelLevelPercent < 30
-              ? 'warning'
-              : 'success'
-          : undefined,
+      variant: fuelLevelVariant(s.fuelLevelPercent),
     },
     {
       id: 'fuelRange',
@@ -132,14 +126,7 @@ const simpleCards = computed((): SimpleCardConfig[] => {
       label: t('vehicle.evSoc'),
       value: s.evSocPercent !== null ? Math.round(s.evSocPercent) : null,
       unit: '%',
-      variant:
-        s.evSocPercent !== null
-          ? s.evSocPercent < 20
-            ? 'danger'
-            : s.evSocPercent < 50
-              ? 'warning'
-              : 'success'
-          : undefined,
+      variant: evLevelVariant(s.evSocPercent),
     },
     {
       id: 'electricRange',

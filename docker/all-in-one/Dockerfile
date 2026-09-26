@@ -160,11 +160,12 @@ COPY docker/all-in-one/supervisord.conf /etc/supervisor/supervisord.conf
 COPY docker/all-in-one/entrypoint.sh   /entrypoint.sh
 COPY docker/all-in-one/wait-for-postgres.sh  /wait-for-postgres.sh
 COPY docker/all-in-one/wait-for-mosquitto.sh /wait-for-mosquitto.sh
+COPY docker/all-in-one/wait-for-api.sh /wait-for-api.sh
 COPY docker/resolve-saic-rest-uri.sh /resolve-saic-rest-uri.sh
 COPY docker/mosquitto-auth.sh /mosquitto-auth.sh
 
 RUN rm -f /etc/nginx/sites-enabled/default \
-    && chmod +x /entrypoint.sh /wait-for-postgres.sh /wait-for-mosquitto.sh /resolve-saic-rest-uri.sh /mosquitto-auth.sh \
+    && chmod +x /entrypoint.sh /wait-for-postgres.sh /wait-for-mosquitto.sh /wait-for-api.sh /resolve-saic-rest-uri.sh /mosquitto-auth.sh \
     && mkdir -p /data/db/postgres /data/db/mosquitto /data/logs /data/dataprotection /data/api /data/worker
 
 # Port 80  -- nginx (web UI + API proxy)
