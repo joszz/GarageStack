@@ -96,6 +96,17 @@ describe('useUiSettingsStore', () => {
     expect(saved.theme).toBe('light')
   })
 
+  it('applies the theme to the document at once, before it is saved', async () => {
+    const store = useUiSettingsStore()
+    expect(document.documentElement.dataset.theme).toBe('dark')
+
+    store.theme = 'light'
+    await nextTick()
+
+    expect(document.documentElement.dataset.theme).toBe('light')
+    expect(localStorage.getItem(UI_KEY)).toBeNull()
+  })
+
   it('persists locale change to its own localStorage key', async () => {
     const store = useUiSettingsStore()
     store.locale = 'nl'
@@ -271,6 +282,22 @@ describe('useMapSettingsStore', () => {
     expect(saved.chargingMinPowerKw).toBe(50)
     expect(saved.fuelTypeFilter).toEqual(['diesel'])
     expect(saved.speedCamerasEnabled).toBe(true)
+  })
+
+  it('persists a change made inside a list, and writes a burst of changes once', async () => {
+    const store = useMapSettingsStore()
+    const setItem = vi.spyOn(Storage.prototype, 'setItem')
+    store.fuelBrandFilter.push('Shell')
+    store.chargingMinPowerKw = 50
+    store.chargingMaxPowerKw = 150
+    await nextTick()
+    vi.advanceTimersByTime(SAVE_DEBOUNCE_MS)
+
+    expect(setItem.mock.calls.filter(([key]) => key === MAP_KEY)).toHaveLength(1)
+    const saved = JSON.parse(localStorage.getItem(MAP_KEY)!)
+    expect(saved.fuelBrandFilter).toEqual(['Shell'])
+    expect(saved.chargingMaxPowerKw).toBe(150)
+    setItem.mockRestore()
   })
 
   it('drops fuel types it does not know when restoring, so the layer cannot silently empty', () => {

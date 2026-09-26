@@ -1,3 +1,4 @@
+import { watch } from 'vue'
 import type { VehicleType } from './vehicle'
 import { ALL_CARD_IDS, defaultCards } from '@/cards/registry'
 import type { CardConfig, CardId } from '@/cards/registry'
@@ -203,4 +204,18 @@ export function createDebouncedSave(save: () => void, delayMs = 300): () => void
     }
   })
   return scheduleSave
+}
+
+/**
+ * Keeps a settings store's `state` in localStorage under `key`: any change, however deep, is
+ * written whole once the burst it belongs to is over.
+ *
+ * @param onSave Runs after each write.
+ */
+export function persistSettings(key: string, state: object, onSave?: () => void): void {
+  const scheduleSave = createDebouncedSave(() => {
+    localStorage.setItem(key, JSON.stringify(state))
+    onSave?.()
+  })
+  watch(state, scheduleSave, { deep: true })
 }

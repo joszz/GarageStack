@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, watch } from 'vue'
+import { reactive, ref, toRefs } from 'vue'
 import type { VehicleType } from './vehicle'
 import type {
   CardConfig,
@@ -17,7 +17,7 @@ import {
   ALL_STATS_INSIGHT_IDS,
   ALL_STATS_CHART_IDS,
   readLegacyBlob,
-  createDebouncedSave,
+  persistSettings,
 } from './settingsShared'
 
 export type {
@@ -118,46 +118,19 @@ function hasPersistedLayout(): boolean {
 }
 
 export const useDashboardSettingsStore = defineStore('settingsDashboard', () => {
-  const loaded = loadDashboardSettings()
+  const settings = reactive(loadDashboardSettings())
   const hasSavedLayout = ref(hasPersistedLayout())
-  const cards = ref<CardConfig[]>(loaded.cards)
-  const statsInsights = ref<StatsItemConfig<StatsInsightId>[]>(loaded.statsInsights)
-  const statsCharts = ref<StatsItemConfig<StatsChartId>[]>(loaded.statsCharts)
-  const showTyreDiagram = ref<boolean>(loaded.showTyreDiagram)
-  const showLocationMap = ref<boolean>(loaded.showLocationMap)
-
-  function save() {
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify({
-        cards: cards.value,
-        statsInsights: statsInsights.value,
-        statsCharts: statsCharts.value,
-        showTyreDiagram: showTyreDiagram.value,
-        showLocationMap: showLocationMap.value,
-      }),
-    )
+  persistSettings(STORAGE_KEY, settings, () => {
     hasSavedLayout.value = true
-  }
-  const scheduleSave = createDebouncedSave(save)
-
-  watch(cards, scheduleSave, { deep: true })
-  watch(statsInsights, scheduleSave, { deep: true })
-  watch(statsCharts, scheduleSave, { deep: true })
-  watch(showTyreDiagram, scheduleSave)
-  watch(showLocationMap, scheduleSave)
+  })
 
   function resetCards(type: VehicleType | 'unknown' = 'unknown') {
-    cards.value = defaultCards(type)
+    settings.cards = defaultCards(type)
   }
 
   return {
+    ...toRefs(settings),
     hasSavedLayout,
-    cards,
-    statsInsights,
-    statsCharts,
-    showTyreDiagram,
-    showLocationMap,
     resetCards,
   }
 })

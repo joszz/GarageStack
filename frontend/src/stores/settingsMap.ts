@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
-import { ref, watch } from 'vue'
-import { readLegacyBlob, createDebouncedSave } from './settingsShared'
+import { reactive, toRefs } from 'vue'
+import { persistSettings, readLegacyBlob } from './settingsShared'
 import { isFuelType } from '@/utils/fuelTypes'
 
 const STORAGE_KEY = 'garagestack-settings-map'
@@ -21,20 +21,24 @@ interface MapSettings {
   speedCamerasEnabled: boolean
 }
 
-const defaults: MapSettings = {
-  routeOutlineEnabled: false,
-  snapToRoadsEnabled: true,
-  heatmapEnabled: true,
-  speedOverlayEnabled: false,
-  speedLimitOverlayEnabled: false,
-  chargingStationsEnabled: false,
-  chargingMinPowerKw: 0,
-  chargingMaxPowerKw: 0,
-  fuelStationsEnabled: false,
-  fuelBrandFilter: [],
-  fuelTypeFilter: [],
-  serviceAreasEnabled: false,
-  speedCamerasEnabled: false,
+// A function rather than a constant: the lists in it are the store's own once loaded, and a
+// shared array would let one store's edit show up in every other store built from the defaults.
+function defaultsFor(): MapSettings {
+  return {
+    routeOutlineEnabled: false,
+    snapToRoadsEnabled: true,
+    heatmapEnabled: true,
+    speedOverlayEnabled: false,
+    speedLimitOverlayEnabled: false,
+    chargingStationsEnabled: false,
+    chargingMinPowerKw: 0,
+    chargingMaxPowerKw: 0,
+    fuelStationsEnabled: false,
+    fuelBrandFilter: [],
+    fuelTypeFilter: [],
+    serviceAreasEnabled: false,
+    speedCamerasEnabled: false,
+  }
 }
 
 function parseMapFields(parsed: Record<string, unknown>): MapSettings {
@@ -74,74 +78,11 @@ function loadMapSettings(): MapSettings {
   }
   const legacy = readLegacyBlob()
   if (legacy) return parseMapFields(legacy)
-  return { ...defaults }
+  return defaultsFor()
 }
 
 export const useMapSettingsStore = defineStore('settingsMap', () => {
-  const loaded = loadMapSettings()
-  const routeOutlineEnabled = ref<boolean>(loaded.routeOutlineEnabled)
-  const snapToRoadsEnabled = ref<boolean>(loaded.snapToRoadsEnabled)
-  const heatmapEnabled = ref<boolean>(loaded.heatmapEnabled)
-  const speedOverlayEnabled = ref<boolean>(loaded.speedOverlayEnabled)
-  const speedLimitOverlayEnabled = ref<boolean>(loaded.speedLimitOverlayEnabled)
-  const chargingStationsEnabled = ref<boolean>(loaded.chargingStationsEnabled)
-  const chargingMinPowerKw = ref<number>(loaded.chargingMinPowerKw)
-  const chargingMaxPowerKw = ref<number>(loaded.chargingMaxPowerKw)
-  const fuelStationsEnabled = ref<boolean>(loaded.fuelStationsEnabled)
-  const fuelBrandFilter = ref<string[]>(loaded.fuelBrandFilter)
-  const fuelTypeFilter = ref<string[]>(loaded.fuelTypeFilter)
-  const serviceAreasEnabled = ref<boolean>(loaded.serviceAreasEnabled)
-  const speedCamerasEnabled = ref<boolean>(loaded.speedCamerasEnabled)
-
-  function save() {
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify({
-        routeOutlineEnabled: routeOutlineEnabled.value,
-        snapToRoadsEnabled: snapToRoadsEnabled.value,
-        heatmapEnabled: heatmapEnabled.value,
-        speedOverlayEnabled: speedOverlayEnabled.value,
-        speedLimitOverlayEnabled: speedLimitOverlayEnabled.value,
-        chargingStationsEnabled: chargingStationsEnabled.value,
-        chargingMinPowerKw: chargingMinPowerKw.value,
-        chargingMaxPowerKw: chargingMaxPowerKw.value,
-        fuelStationsEnabled: fuelStationsEnabled.value,
-        fuelBrandFilter: fuelBrandFilter.value,
-        fuelTypeFilter: fuelTypeFilter.value,
-        serviceAreasEnabled: serviceAreasEnabled.value,
-        speedCamerasEnabled: speedCamerasEnabled.value,
-      }),
-    )
-  }
-  const scheduleSave = createDebouncedSave(save)
-
-  watch(routeOutlineEnabled, scheduleSave)
-  watch(snapToRoadsEnabled, scheduleSave)
-  watch(heatmapEnabled, scheduleSave)
-  watch(speedOverlayEnabled, scheduleSave)
-  watch(speedLimitOverlayEnabled, scheduleSave)
-  watch(chargingStationsEnabled, scheduleSave)
-  watch(chargingMinPowerKw, scheduleSave)
-  watch(chargingMaxPowerKw, scheduleSave)
-  watch(fuelStationsEnabled, scheduleSave)
-  watch(fuelBrandFilter, scheduleSave, { deep: true })
-  watch(fuelTypeFilter, scheduleSave, { deep: true })
-  watch(serviceAreasEnabled, scheduleSave)
-  watch(speedCamerasEnabled, scheduleSave)
-
-  return {
-    routeOutlineEnabled,
-    snapToRoadsEnabled,
-    heatmapEnabled,
-    speedOverlayEnabled,
-    speedLimitOverlayEnabled,
-    chargingStationsEnabled,
-    chargingMinPowerKw,
-    chargingMaxPowerKw,
-    fuelStationsEnabled,
-    fuelBrandFilter,
-    fuelTypeFilter,
-    serviceAreasEnabled,
-    speedCamerasEnabled,
-  }
+  const settings = reactive(loadMapSettings())
+  persistSettings(STORAGE_KEY, settings)
+  return toRefs(settings)
 })

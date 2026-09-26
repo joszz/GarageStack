@@ -1,12 +1,12 @@
 import { defineStore } from 'pinia'
-import { ref, watch } from 'vue'
+import { reactive, toRefs, watch } from 'vue'
 import type { Theme, Locale, VehicleTypeOverride } from './settingsShared'
 import {
   osPreferredTheme,
   browserLocale,
   CAR_COLOR_SCHEMES,
   readLegacyBlob,
-  createDebouncedSave,
+  persistSettings,
 } from './settingsShared'
 import { NOTIFICATION_CATEGORY_IDS } from '@/utils/notificationCategories'
 import {
@@ -155,63 +155,18 @@ function applyCarColors(id: string) {
 }
 
 export const useUiSettingsStore = defineStore('settingsUi', () => {
-  const loaded = loadUiSettings()
-  const theme = ref<Theme>(loaded.theme)
-  const locale = ref<Locale>(loaded.locale)
-  const showCardInfoIcons = ref<boolean>(loaded.showCardInfoIcons)
-  const placeNamesEnabled = ref<boolean>(loaded.placeNamesEnabled)
-  const carColorScheme = ref<string>(loaded.carColorScheme)
-  const vehicleTypeOverride = ref<VehicleTypeOverride>(loaded.vehicleTypeOverride)
-  const filterDays = ref<number>(loaded.filterDays)
-  const notificationTypeExclusions = ref<string[]>(loaded.notificationTypeExclusions)
-  const units = ref<UnitPreferences>(loaded.units)
+  const settings = reactive(loadUiSettings())
+  persistSettings(STORAGE_KEY, settings)
 
-  document.documentElement.dataset.theme = theme.value
-  applyCarColors(carColorScheme.value)
+  // The theme and the car's colours live on the document, so they follow the setting at once.
+  watch(
+    () => settings.theme,
+    (theme) => {
+      document.documentElement.dataset.theme = theme
+    },
+    { immediate: true },
+  )
+  watch(() => settings.carColorScheme, applyCarColors, { immediate: true })
 
-  function save() {
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify({
-        theme: theme.value,
-        locale: locale.value,
-        showCardInfoIcons: showCardInfoIcons.value,
-        placeNamesEnabled: placeNamesEnabled.value,
-        carColorScheme: carColorScheme.value,
-        vehicleTypeOverride: vehicleTypeOverride.value,
-        filterDays: filterDays.value,
-        notificationTypeExclusions: notificationTypeExclusions.value,
-        units: units.value,
-      }),
-    )
-  }
-  const scheduleSave = createDebouncedSave(save)
-
-  watch(showCardInfoIcons, scheduleSave)
-  watch(placeNamesEnabled, scheduleSave)
-  watch(vehicleTypeOverride, scheduleSave)
-  watch(locale, scheduleSave)
-  watch(filterDays, scheduleSave)
-  watch(notificationTypeExclusions, scheduleSave, { deep: true })
-  watch(units, scheduleSave, { deep: true })
-  watch(theme, (val) => {
-    document.documentElement.dataset.theme = val
-    scheduleSave()
-  })
-  watch(carColorScheme, (val) => {
-    applyCarColors(val)
-    scheduleSave()
-  })
-
-  return {
-    theme,
-    locale,
-    showCardInfoIcons,
-    placeNamesEnabled,
-    carColorScheme,
-    vehicleTypeOverride,
-    filterDays,
-    notificationTypeExclusions,
-    units,
-  }
+  return toRefs(settings)
 })
