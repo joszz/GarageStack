@@ -703,6 +703,17 @@ body,
   color: var(--color-primary-light);
 }
 
+/* Raster tiles only come in light, so in the dark theme they are inverted to sit in it like the
+   vector basemap does, with the hue turned back so water stays blue and parks stay green. Used by
+   the dashboard's map card and by any map on a browser without WebGL. */
+.basemap--raster .leaflet-tile-pane {
+  filter: invert(1) hue-rotate(180deg) brightness(0.95) contrast(0.9);
+}
+
+[data-theme='light'] .basemap--raster .leaflet-tile-pane {
+  filter: none;
+}
+
 /* Leaflet sets this background with two classes (.leaflet-container .leaflet-control-attribution),
    so the override has to match that specificity or the strip stays white over a dark map. */
 .leaflet-container .leaflet-control-attribution {

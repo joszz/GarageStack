@@ -9,21 +9,19 @@ import {
   type CardDataContext,
   type CardId,
 } from '@/cards/registry'
-import type { TelemetrySnapshot, Trip } from '@/services/vehicleApi'
+import type { TelemetrySnapshot, TripSummary } from '@/services/vehicleApi'
 import type { VehicleType } from '@/stores/vehicle'
 
 function context(
   status: Partial<TelemetrySnapshot>,
   vehicleType: VehicleType = 'phev',
-  latestTrip: Trip | null = null,
+  latestTrip: TripSummary | null = null,
 ): CardDataContext {
   return { status: status as TelemetrySnapshot, vehicleType, latestTrip }
 }
 
-function trip(speeds: (number | null)[]): Trip {
-  return {
-    points: speeds.map((speed) => ({ speed })),
-  } as Trip
+function trip(maxSpeedKmh: number | null): TripSummary {
+  return { maxSpeedKmh } as TripSummary
 }
 
 describe('card registry', () => {
@@ -92,8 +90,8 @@ describe('card registry', () => {
 
   it('needs a trip with recorded speeds for the top speed card', () => {
     expect(cardHasData('topSpeed', context({}, 'bev', null))).toBe(false)
-    expect(cardHasData('topSpeed', context({}, 'bev', trip([null, null])))).toBe(false)
-    expect(cardHasData('topSpeed', context({}, 'bev', trip([null, 88])))).toBe(true)
+    expect(cardHasData('topSpeed', context({}, 'bev', trip(null)))).toBe(false)
+    expect(cardHasData('topSpeed', context({}, 'bev', trip(88)))).toBe(true)
   })
 })
 

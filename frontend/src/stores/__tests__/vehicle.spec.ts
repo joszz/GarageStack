@@ -2,7 +2,14 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { useVehicleStore } from '@/stores/vehicle'
 import { useUiSettingsStore } from '@/stores/settingsUi'
-import type { Vehicle, TelemetrySnapshot, TelemetryHistoryPoint, Trip } from '@/services/vehicleApi'
+import { vehicleApi } from '@/services/vehicleApi'
+import type {
+  Vehicle,
+  TelemetrySnapshot,
+  TelemetryHistoryPoint,
+  Trip,
+  TripSummary,
+} from '@/services/vehicleApi'
 
 vi.mock('@/services/vehicleApi', () => ({
   vehicleApi: {
@@ -11,6 +18,8 @@ vi.mock('@/services/vehicleApi', () => ({
     config: vi.fn<() => Promise<Record<string, string>>>().mockResolvedValue({}),
     history: vi.fn<() => Promise<TelemetryHistoryPoint[]>>().mockResolvedValue([]),
     trips: vi.fn<() => Promise<Trip[]>>().mockResolvedValue([]),
+    tripSummaries: vi.fn<() => Promise<TripSummary[]>>().mockResolvedValue([]),
+    latestTrip: vi.fn<() => Promise<Trip | undefined>>().mockResolvedValue(undefined),
     sendCommand: vi.fn<() => Promise<void>>().mockResolvedValue(undefined),
   },
 }))
@@ -170,5 +179,35 @@ describe('useVehicleStore - applyCommandResult', () => {
     store.applyCommandResult(result)
 
     expect(store.lastCommandResult).toEqual(result)
+  })
+})
+
+describe('useVehicleStore - trips for the dashboard and statistics', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  it('keeps the latest trip, and none when the vehicle has none', async () => {
+    const store = useVehicleStore()
+    const latest = { index: 0, id: null, points: [] } as unknown as Trip
+    vi.mocked(vehicleApi.latestTrip).mockResolvedValueOnce(latest)
+
+    await store.fetchLatestTrip('FAKEVN00000000001')
+    expect(store.latestTrip).toEqual(latest)
+
+    vi.mocked(vehicleApi.latestTrip).mockResolvedValueOnce(undefined)
+    await store.fetchLatestTrip('FAKEVN00000000001')
+    expect(store.latestTrip).toBeNull()
+  })
+
+  it('keeps trip summaries apart from the map trips', async () => {
+    const store = useVehicleStore()
+    const summaries = [{ index: 0, id: 1, distanceKm: 12 }] as unknown as TripSummary[]
+    vi.mocked(vehicleApi.tripSummaries).mockResolvedValueOnce(summaries)
+
+    await store.fetchTripSummaries('FAKEVN00000000001', '2026-01-01T00:00:00Z')
+
+    expect(store.tripSummaries).toEqual(summaries)
+    expect(store.trips).toEqual([])
   })
 })

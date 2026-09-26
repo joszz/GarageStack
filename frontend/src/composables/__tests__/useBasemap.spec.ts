@@ -105,29 +105,40 @@ function lastOfKind(kind: FakeLayer['kind']): FakeLayer | undefined {
 interface FakeMap {
   id: string
   maxZoom: number | undefined
+  container: HTMLElement
   setMaxZoom: (zoom: number) => void
+  getContainer: () => HTMLElement
 }
 
 const fakeMap = () => {
   const map: FakeMap = {
     id: 'map',
     maxZoom: undefined,
+    container: document.createElement('div'),
     setMaxZoom(zoom: number) {
       this.maxZoom = zoom
+    },
+    getContainer() {
+      return this.container
     },
   }
   return map as unknown as LeafletMap
 }
 
+const containerOf = (map: LeafletMap) => (map as unknown as FakeMap).container
+
 const maxZoomOf = (map: LeafletMap) => (map as unknown as FakeMap).maxZoom
 
-async function mountBasemap(map: LeafletMap | null) {
+async function mountBasemap(
+  map: LeafletMap | null,
+  options?: import('@/composables/useBasemap').BasemapOptions,
+) {
   const { useBasemap } = await import('@/composables/useBasemap')
   const mapRef = shallowRef<LeafletMap | null>(map)
   const wrapper = mount(
     defineComponent({
       setup() {
-        useBasemap(mapRef)
+        useBasemap(mapRef, options)
         return () => h('div')
       },
     }),
@@ -192,6 +203,25 @@ describe('useBasemap', () => {
     await mountBasemap(map)
 
     expect(maxZoomOf(map)).toBe(20)
+  })
+
+  it('stays on raster tiles without loading the renderer when asked to', async () => {
+    const map = fakeMap()
+    await mountBasemap(map, { vector: false })
+
+    expect(lastOfKind('raster')?.addedTo).toBe(map)
+    expect(lastOfKind('vector')).toBeUndefined()
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('marks a raster map for the stylesheet, and unmarks it when it goes', async () => {
+    const map = fakeMap()
+    const { wrapper } = await mountBasemap(map, { vector: false })
+    expect(containerOf(map).classList.contains('basemap--raster')).toBe(true)
+
+    wrapper.unmount()
+
+    expect(containerOf(map).classList.contains('basemap--raster')).toBe(false)
   })
 
   it('gives the map a finite max zoom on the raster fallback too', async () => {
