@@ -17,9 +17,7 @@ import EditableCardGrid from '@/components/EditableCardGrid.vue'
 import SkeletonCard from '@/components/SkeletonCard.vue'
 import SkeletonCarDiagram from '@/components/SkeletonCarDiagram.vue'
 import SkeletonLocationMap from '@/components/SkeletonLocationMap.vue'
-import { useVehicleAlerts } from '@/composables/useVehicleAlerts'
 import { useUnits } from '@/composables/useUnits'
-import { usePush } from '@/composables/usePush'
 import { mayBurnFuel } from '@/utils/vehicleType'
 
 const { t } = useI18n()
@@ -113,11 +111,7 @@ watch(
   },
 )
 
-// A browser that is subscribed to push already receives these alerts from the Worker, so this
-// tab only raises its own notification when it is not subscribed.
-const { pushState } = usePush()
 const units = useUnits()
-useVehicleAlerts(status, t, units, { shouldNotify: () => pushState.value !== 'subscribed' })
 
 // Card descriptions that name a unit take it from here; the others ignore these parameters.
 const cardDescriptionParams = computed(() => {

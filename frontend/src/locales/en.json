@@ -136,20 +136,6 @@
       "bonnet": "Bonnet",
       "boot": "Boot"
     },
-    "alerts": {
-      "openWhileParked": "Open while parked: {items}",
-      "tyrePressure": "Tyre pressure: {items}",
-      "driverDoor": "driver door",
-      "passengerDoor": "passenger door",
-      "rearLeftDoor": "rear left door",
-      "rearRightDoor": "rear right door",
-      "boot": "boot",
-      "bonnet": "bonnet",
-      "driverWindow": "driver window",
-      "passengerWindow": "passenger window",
-      "rearLeftWindow": "rear left window",
-      "rearRightWindow": "rear right window"
-    },
     "efficiency": {
       "todayDistance": "Dist. today",
       "todayEnergy": "Energy today",

@@ -2,8 +2,7 @@ import type { Trip } from '@/services/vehicleApi'
 import type { UnitFormatter } from '@/utils/units'
 
 // `t` is injected rather than obtained via useI18n() so these stay plain, directly testable
-// functions, as in useVehicleAlerts. The structural type avoids coupling to a locale's
-// message-key generics.
+// functions. The structural type avoids coupling to a locale's message-key generics.
 type Translate = (key: string, named?: Record<string, unknown>) => string
 
 /** Whether a trip row leads with its route, a placeholder, or falls back to its date. */

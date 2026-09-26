@@ -12,6 +12,7 @@ import PwaInstallModal from '@/components/PwaInstallModal.vue'
 
 const DemoControlPanel = defineAsyncComponent(() => import('@/components/DemoControlPanel.vue'))
 import { useNotifications, prependNotification } from '@/composables/useNotifications'
+import { useBrowserNotifications } from '@/composables/useBrowserNotifications'
 import { useSignalR } from '@/composables/useSignalR'
 import { useFavicon } from '@/composables/useFavicon'
 import { useRelativeTime } from '@/composables/useRelativeTime'
@@ -84,6 +85,7 @@ onBeforeUnmount(() => {
 })
 
 useFavicon()
+const browserNotifications = useBrowserNotifications()
 
 const {
   connected: signalRConnected,
@@ -91,7 +93,10 @@ const {
   stop: stopSignalR,
 } = useSignalR({
   onTelemetryUpdated: (snapshot) => vehicleStore.applyLiveStatus(snapshot),
-  onNotificationReceived: (notification) => prependNotification(notification),
+  onNotificationReceived: (notification) => {
+    prependNotification(notification)
+    void browserNotifications.show(notification)
+  },
   onTripCompleted: () => vehicleStore.notifyTripCompleted(),
   onCommandResult: (result) => vehicleStore.applyCommandResult(result),
 })
