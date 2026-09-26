@@ -5,6 +5,7 @@ import DetailModal from './DetailModal.vue'
 import { useMaintenanceStore } from '@/stores/maintenance'
 import type { MaintenanceItem } from '@/services/maintenanceApi'
 import { useUnits } from '@/composables/useUnits'
+import { useErrorMessage } from '@/composables/useErrorMessage'
 import { useDistanceField } from '@/composables/useDistanceField'
 
 const props = defineProps<{
@@ -18,6 +19,7 @@ const emit = defineEmits<{ (e: 'close'): void }>()
 const { t } = useI18n()
 const store = useMaintenanceStore()
 const units = useUnits()
+const errorMessage = useErrorMessage()
 
 const name = ref('')
 const notes = ref('')
@@ -84,7 +86,7 @@ async function submit() {
       })
     }
     if (store.actionError) {
-      validationError.value = store.actionError
+      validationError.value = errorMessage(store.actionError)
       return
     }
     emit('close')

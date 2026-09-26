@@ -17,7 +17,7 @@ public static class PushEndpoints
         {
             var key = config["Vapid:PublicKey"];
             return string.IsNullOrWhiteSpace(key)
-                ? Results.Problem("VAPID keys not configured")
+                ? ApiProblems.Problem(StatusCodes.Status503ServiceUnavailable, "push.notConfigured", "VAPID keys not configured")
                 : Results.Ok(new { publicKey = key });
         })
         .WithSummary("Get VAPID public key for push subscription");
@@ -27,7 +27,7 @@ public static class PushEndpoints
             if (string.IsNullOrWhiteSpace(req.Endpoint) ||
                 string.IsNullOrWhiteSpace(req.P256DhKey) ||
                 string.IsNullOrWhiteSpace(req.AuthKey))
-                return Results.BadRequest(new { error = "Endpoint, P256DhKey and AuthKey are required" });
+                return ApiProblems.BadRequest("push.subscriptionIncomplete", "Endpoint, P256DhKey and AuthKey are required");
 
             await UpsertSubscriptionAsync(db, req, ct);
 

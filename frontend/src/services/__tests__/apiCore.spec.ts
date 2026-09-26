@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach, vi } from 'vitest'
-import { requestJson, send } from '@/services/apiCore'
+import { ApiError, request, requestJson, send } from '@/services/apiCore'
 
 function makeResponse(status: number, body?: unknown) {
   return {
@@ -42,5 +42,57 @@ describe('apiCore JSON helpers', () => {
     expect(options!.method).toBe('POST')
     expect(options!.body).toBeUndefined()
     expect(json).not.toHaveBeenCalled()
+  })
+})
+
+describe('apiCore errors', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  async function failure(response: unknown): Promise<ApiError> {
+    vi.stubGlobal('fetch', vi.fn<() => Promise<unknown>>().mockResolvedValue(response))
+    const error = await request('/api/x').catch((e: unknown) => e)
+    expect(error).toBeInstanceOf(ApiError)
+    return error as ApiError
+  }
+
+  it('keeps the code and detail of a problem answer', async () => {
+    const error = await failure(
+      makeResponse(400, {
+        status: 400,
+        code: 'maintenance.nameRequired',
+        detail: 'Name is required',
+      }),
+    )
+
+    expect(error.status).toBe(400)
+    expect(error.code).toBe('maintenance.nameRequired')
+    expect(error.detail).toBe('Name is required')
+  })
+
+  it('has no code when the answer is not a problem body', async () => {
+    const error = await failure({
+      ok: false,
+      status: 502,
+      json: () => Promise.reject(new SyntaxError('Unexpected token <')),
+    })
+
+    expect(error.status).toBe(502)
+    expect(error.code).toBeNull()
+    expect(error.detail).toBeNull()
+  })
+
+  it('reads the problem on a send too', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn<() => Promise<unknown>>()
+        .mockResolvedValue(makeResponse(403, { code: 'csrf.originNotAllowed' })),
+    )
+
+    const error = await send('/api/x', 'POST').catch((e: unknown) => e)
+
+    expect((error as ApiError).code).toBe('csrf.originNotAllowed')
   })
 })

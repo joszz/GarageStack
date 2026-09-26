@@ -646,5 +646,43 @@
       "allOk": "All maintenance items are up to date",
       "moreCount": "+{count} more"
     }
+  },
+  "errors": {
+    "badRequest": "The request was not accepted.",
+    "unauthorized": "Your session has ended. Sign in again.",
+    "forbidden": "This is not allowed.",
+    "notFound": "That could not be found.",
+    "conflict": "That cannot be done right now.",
+    "rateLimited": "Too many requests. Wait a moment and try again.",
+    "server": "Something went wrong on the server. Try again later.",
+    "offline": "GarageStack cannot be reached. Check your connection and try again.",
+    "unknown": "Something went wrong.",
+    "codes": {
+      "csrf": {
+        "originNotAllowed": "This address is not allowed. Set CORS_ORIGIN to the address you open GarageStack on."
+      },
+      "vehicle": {
+        "accountUnknown": "The car has not reported its MG account yet. Try again once it has sent data."
+      },
+      "command": {
+        "invalidValue": "The car does not accept this value."
+      },
+      "maintenance": {
+        "nameRequired": "Name is required",
+        "nameTooLong": "The name can be at most 200 characters.",
+        "notesTooLong": "The notes can be at most 1000 characters.",
+        "intervalRequired": "Set at least one interval (distance or time)",
+        "intervalKmOutOfRange": "The distance interval is outside the range GarageStack accepts.",
+        "intervalMonthsOutOfRange": "The time interval must be between 1 and 120 months.",
+        "serviceDateInFuture": "The service date cannot be in the future.",
+        "odometerNegative": "The odometer reading cannot be negative."
+      },
+      "trip": {
+        "notesTooLong": "The notes can be at most 500 characters."
+      },
+      "push": {
+        "notConfigured": "Push notifications are not set up on this server."
+      }
+    }
   }
 }

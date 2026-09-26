@@ -10,11 +10,13 @@ import MaintenanceItemDetailModal from '@/components/MaintenanceItemDetailModal.
 import type { MaintenanceItem, MaintenanceDueStatus } from '@/services/maintenanceApi'
 import { formatIntervalSummary } from '@/utils/maintenance'
 import { useUnits } from '@/composables/useUnits'
+import { useErrorMessage } from '@/composables/useErrorMessage'
 
 const { t } = useI18n()
 const vehicleStore = useVehicleStore()
 const store = useMaintenanceStore()
 const units = useUnits()
+const errorMessage = useErrorMessage()
 
 const vin = computed(() => vehicleStore.activeVin)
 
@@ -86,7 +88,7 @@ watch(vin, (v) => {
     <p class="text-muted mb-4">{{ t('maintenance.subtitle') }}</p>
 
     <div v-if="store.itemsError" class="empty-state text-danger">
-      {{ store.itemsError }}
+      {{ errorMessage(store.itemsError) }}
     </div>
     <div v-else-if="!store.loading && sortedItems.length === 0" class="empty-state">
       {{ t('maintenance.empty') }}

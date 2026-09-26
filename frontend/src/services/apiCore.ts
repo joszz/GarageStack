@@ -17,23 +17,50 @@ export function apiUrl(path: string): string {
   return `${BASE_URL}${path}`
 }
 
+interface ProblemBody {
+  code?: string | null
+  detail?: string | null
+}
+
 export class ApiError extends Error {
   status: number
   path: string
+  /** Why the API refused, as a stable code a translated message is looked up by, when it said. */
+  code: string | null
+  /** The API's own explanation, in English: for the console, not for the page. */
+  detail: string | null
 
-  constructor(status: number, path: string) {
+  constructor(status: number, path: string, problem: ProblemBody = {}) {
     super(`API error ${status}: ${path}`)
     this.status = status
     this.path = path
+    this.code = problem.code ?? null
+    this.detail = problem.detail ?? null
   }
 }
 
-function handleResponse(res: Response, path: string) {
+// The API answers an error with a ProblemDetails body. A proxy in front of it may answer with
+// anything else, so a body of another shape only means there is no code to go on.
+async function readProblem(res: Response): Promise<ProblemBody> {
+  try {
+    const body: unknown = await res.json()
+    if (typeof body !== 'object' || body === null) return {}
+    const { code, detail } = body as Record<string, unknown>
+    return {
+      code: typeof code === 'string' ? code : null,
+      detail: typeof detail === 'string' ? detail : null,
+    }
+  } catch {
+    return {}
+  }
+}
+
+async function handleResponse(res: Response, path: string) {
   if (res.status === 401 && !handlingUnauthorized) {
     handlingUnauthorized = true
     unauthorizedHandler?.()
   }
-  if (!res.ok) throw new ApiError(res.status, path)
+  if (!res.ok) throw new ApiError(res.status, path, await readProblem(res))
 }
 
 // The one place that knows how a JSON body travels: every POST/PUT/PATCH goes through here.
@@ -52,7 +79,7 @@ export async function request<T>(path: string, options?: RequestInit): Promise<T
     credentials: 'include',
   })
 
-  handleResponse(res, path)
+  await handleResponse(res, path)
   if (res.status === 204) return undefined as T
   return res.json() as Promise<T>
 }
@@ -69,7 +96,7 @@ export async function send(path: string, method: string, body?: unknown): Promis
     credentials: 'include',
   })
 
-  handleResponse(res, path)
+  await handleResponse(res, path)
 }
 
 // Builds a query string from scalar params, skipping undefined values. Returns an empty
