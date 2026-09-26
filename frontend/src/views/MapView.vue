@@ -9,6 +9,7 @@ import { useUiSettingsStore, DEFAULT_FILTER_DAYS } from '@/stores/settingsUi'
 import { LMap, LMarker, LPopup } from '@vue-leaflet/vue-leaflet'
 import ToolbarPanel from '@/components/ToolbarPanel.vue'
 import SettingsToggle from '@/components/SettingsToggle.vue'
+import DateRangeFilter from '@/components/DateRangeFilter.vue'
 import MapLegend from '@/components/MapLegend.vue'
 import { useInfiniteScroll } from '@/composables/useInfiniteScroll'
 import { usePoiLayers } from '@/composables/usePoiLayers'
@@ -24,7 +25,7 @@ import { distanceWeightedSamples } from '@/utils/heatSamples'
 import type { GeoPoint } from '@/services/mapApi'
 import Slider from '@vueform/slider'
 import Multiselect from '@vueform/multiselect'
-import { L, type LeafletMap } from '@/utils/leaflet'
+import { DEFAULT_MAP_CENTER, L, fitToPoints, type LeafletMap } from '@/utils/leaflet'
 import { heatLayer as createHeatLayer } from '@/utils/heatLayer'
 import '@/assets/map.css'
 import type { Trip } from '@/services/vehicleApi'
@@ -38,6 +39,7 @@ import { daysAgoIso } from '@/utils/dates'
 import { intlLocale } from '@/utils/format'
 import { isPhoneViewport } from '@/utils/viewport'
 import { useUnits } from '@/composables/useUnits'
+import { burnsFuel, plugsIn } from '@/utils/vehicleType'
 
 const { t } = useI18n()
 const units = useUnits()
@@ -50,17 +52,14 @@ const uiSettingsStore = useUiSettingsStore()
 const vin = computed(() => store.activeVin)
 const status = computed(() => store.currentStatus)
 const vehicleType = computed(() => store.effectiveVehicleType)
-const isHev = computed(() => vehicleType.value === 'hev')
-const isBev = computed(() => vehicleType.value === 'bev')
 // Which of the two cars' rows either panel offers. Until vehicleType resolves from 'unknown',
 // neither flag is true, so both cars' layer rows and both their filters would appear and then
 // half of them be taken away again once the type is known - a visible shift in either panel.
 // Staying false while unknown keeps each panel from ever showing more rows than its final,
 // resolved state. The badges count off the same two, so a setting left over from another car
 // never gets counted against a row this one has no way to reach.
-const vehicleTypeKnown = computed(() => vehicleType.value !== 'unknown')
-const carTakesFuel = computed(() => vehicleTypeKnown.value && !isBev.value)
-const carTakesCharge = computed(() => vehicleTypeKnown.value && !isHev.value)
+const carTakesFuel = computed(() => burnsFuel(vehicleType.value))
+const carTakesCharge = computed(() => plugsIn(vehicleType.value))
 const displayLocale = computed(() => intlLocale(uiSettingsStore.locale))
 const selectedTripIndex = ref<number | null>(null)
 // Plain refs on their stores already (Composition-API-style defineStore) - storeToRefs gives
@@ -106,7 +105,7 @@ const {
   brandsLoading,
   poiLoading,
   loadLayers,
-} = usePoiLayers({ mapInstance, vehicleType, isHev, isBev })
+} = usePoiLayers({ mapInstance, vehicleType })
 
 // ── Header badges ──────────────────────────────────────────────────────────────
 // What each panel button shows over its corner, so the map can be read without opening either
@@ -186,7 +185,7 @@ function speedToColor(speed: number | null, fallback: string): string {
 }
 
 // Static initial centre - controlled by fitAll/flyToStatus after data loads.
-const center: [number, number] = [52.3676, 4.9041]
+const center = DEFAULT_MAP_CENTER
 
 // Trips displayed newest-first in the sidebar; selectedTripIndex is always the real store.trips index.
 const newestFirstTrips = computed(() => [...store.trips].reverse())
@@ -604,14 +603,7 @@ function removeHeatLayer() {
 }
 
 function fitBoundsSafe(pts: [number, number][]) {
-  const map = mapInstance.value
-  if (!map || pts.length === 0) return
-  const bounds = L.latLngBounds(pts)
-  if (bounds.getNorthEast().equals(bounds.getSouthWest())) {
-    map.setView(bounds.getCenter(), 15, { animate: false })
-  } else {
-    map.fitBounds(bounds, { padding: [32, 32], animate: false })
-  }
+  if (mapInstance.value) fitToPoints(mapInstance.value, pts, 32)
 }
 
 function fitAll() {
@@ -825,22 +817,7 @@ onUnmounted(() => {
              right now, so these stay put whether or not their layer is showing - the panel would
              otherwise look half empty until the layer was found in the other one. -->
         <ToolbarPanel :count="activeFilterCount">
-          <div class="settings-toggle">
-            <div class="settings-toggle__info">
-              <span class="settings-toggle__label">
-                <font-awesome-icon icon="calendar-check" class="settings-toggle__icon" />
-                {{ t('trips.dateRange') }}
-              </span>
-              <span class="settings-toggle__desc">{{ t('trips.dateRangeDesc') }}</span>
-            </div>
-            <div class="settings-toggle__control">
-              <select v-model="dateRangeDays" class="form-select form-select-sm">
-                <option :value="7">{{ t('trips.last7days') }}</option>
-                <option :value="30">{{ t('trips.last30days') }}</option>
-                <option :value="90">{{ t('trips.last90days') }}</option>
-              </select>
-            </div>
-          </div>
+          <DateRangeFilter />
           <template v-if="carTakesFuel">
             <div class="poi-filter">
               <div class="poi-filter__header">
@@ -921,107 +898,68 @@ onUnmounted(() => {
           </template>
         </ToolbarPanel>
         <ToolbarPanel :title="t('common.layers')" icon="layer-group" :count="activeLayerCount">
-          <SettingsToggle v-model="heatmapEnabled" :label="t('trips.heatmap')">
-            <template #label>
-              <span class="settings-toggle__label">
-                <font-awesome-icon icon="fire" class="settings-toggle__icon" />
-                {{ t('trips.heatmap') }}
-              </span>
-              <span class="settings-toggle__desc">{{ t('trips.heatmapDesc') }}</span>
-            </template>
-          </SettingsToggle>
-          <SettingsToggle v-model="routeOutlineEnabled" :label="t('trips.routeOutline')">
-            <template #label>
-              <span class="settings-toggle__label">
-                <font-awesome-icon icon="route" class="settings-toggle__icon" />
-                {{ t('trips.routeOutline') }}
-              </span>
-              <span class="settings-toggle__desc">{{ t('trips.routeOutlineDesc') }}</span>
-            </template>
-          </SettingsToggle>
-          <SettingsToggle v-model="snapToRoadsEnabled" :label="t('trips.snapToRoads')">
-            <template #label>
-              <span class="settings-toggle__label">
-                <font-awesome-icon icon="road-circle-check" class="settings-toggle__icon" />
-                {{ t('trips.snapToRoads') }}
-              </span>
-              <span class="settings-toggle__desc">{{ t('trips.snapToRoadsDesc') }}</span>
-            </template>
-          </SettingsToggle>
-          <SettingsToggle v-model="speedOverlayEnabled" :label="t('trips.speedOverlay')">
-            <template #label>
-              <span class="settings-toggle__label">
-                <font-awesome-icon icon="gauge" class="settings-toggle__icon" />
-                {{ t('trips.speedOverlay') }}
-              </span>
-              <span class="settings-toggle__desc">{{ t('trips.speedOverlayDesc') }}</span>
-            </template>
-          </SettingsToggle>
+          <SettingsToggle
+            v-model="heatmapEnabled"
+            :label="t('trips.heatmap')"
+            :desc="t('trips.heatmapDesc')"
+            icon="fire"
+          />
+          <SettingsToggle
+            v-model="routeOutlineEnabled"
+            :label="t('trips.routeOutline')"
+            :desc="t('trips.routeOutlineDesc')"
+            icon="route"
+          />
+          <SettingsToggle
+            v-model="snapToRoadsEnabled"
+            :label="t('trips.snapToRoads')"
+            :desc="t('trips.snapToRoadsDesc')"
+            icon="road-circle-check"
+          />
+          <SettingsToggle
+            v-model="speedOverlayEnabled"
+            :label="t('trips.speedOverlay')"
+            :desc="t('trips.speedOverlayDesc')"
+            icon="gauge"
+          />
           <!-- The limits ride along with the snapped line, so without snapping there is nothing
                to colour the trip against. -->
           <SettingsToggle
             v-if="snapToRoadsEnabled"
             v-model="speedLimitOverlayEnabled"
             :label="t('trips.speedLimitOverlay')"
-          >
-            <template #label>
-              <span class="settings-toggle__label">
-                <font-awesome-icon icon="gauge-high" class="settings-toggle__icon" />
-                {{ t('trips.speedLimitOverlay') }}
-              </span>
-              <span class="settings-toggle__desc">{{ t('trips.speedLimitOverlayDesc') }}</span>
-            </template>
-          </SettingsToggle>
-          <SettingsToggle v-model="serviceAreasEnabled" :label="t('trips.serviceAreas')">
-            <template #label>
-              <span class="settings-toggle__label">
-                <font-awesome-icon icon="road" class="settings-toggle__icon" />
-                {{ t('trips.serviceAreas') }}
-              </span>
-              <span class="settings-toggle__desc">{{ t('trips.serviceAreasDesc') }}</span>
-            </template>
-          </SettingsToggle>
+            :desc="t('trips.speedLimitOverlayDesc')"
+            icon="gauge-high"
+          />
+          <SettingsToggle
+            v-model="serviceAreasEnabled"
+            :label="t('trips.serviceAreas')"
+            :desc="t('trips.serviceAreasDesc')"
+            icon="road"
+          />
           <!-- Left out entirely where the deployment does not serve the layer, which is how a
                jurisdiction that restricts flagging camera positions switches it off. -->
           <SettingsToggle
             v-if="speedCamerasAvailable"
             v-model="speedCamerasEnabled"
             :label="t('trips.speedCameras')"
-          >
-            <template #label>
-              <span class="settings-toggle__label">
-                <font-awesome-icon icon="camera" class="settings-toggle__icon" />
-                {{ t('trips.speedCameras') }}
-              </span>
-              <span class="settings-toggle__desc">{{ t('trips.speedCamerasDesc') }}</span>
-            </template>
-          </SettingsToggle>
+            :desc="t('trips.speedCamerasDesc')"
+            icon="camera"
+          />
           <SettingsToggle
             v-if="carTakesFuel"
             v-model="fuelStationsEnabled"
             :label="t('trips.fuelStations')"
-          >
-            <template #label>
-              <span class="settings-toggle__label">
-                <font-awesome-icon icon="gas-pump" class="settings-toggle__icon" />
-                {{ t('trips.fuelStations') }}
-              </span>
-              <span class="settings-toggle__desc">{{ t('trips.fuelStationsDesc') }}</span>
-            </template>
-          </SettingsToggle>
+            :desc="t('trips.fuelStationsDesc')"
+            icon="gas-pump"
+          />
           <SettingsToggle
             v-if="carTakesCharge"
             v-model="chargingStationsEnabled"
             :label="t('trips.chargingStations')"
-          >
-            <template #label>
-              <span class="settings-toggle__label">
-                <font-awesome-icon icon="bolt" class="settings-toggle__icon" />
-                {{ t('trips.chargingStations') }}
-              </span>
-              <span class="settings-toggle__desc">{{ t('trips.chargingStationsDesc') }}</span>
-            </template>
-          </SettingsToggle>
+            :desc="t('trips.chargingStationsDesc')"
+            icon="bolt"
+          />
         </ToolbarPanel>
         <button
           class="btn btn-sm btn-outline-secondary"

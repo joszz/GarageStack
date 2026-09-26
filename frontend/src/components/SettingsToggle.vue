@@ -3,6 +3,8 @@ defineProps<{
   label: string
   desc?: string
   inputId?: string
+  /** FontAwesome icon shown before the label. */
+  icon?: string
 }>()
 
 const model = defineModel<boolean>()
@@ -12,7 +14,10 @@ const model = defineModel<boolean>()
   <div class="settings-toggle">
     <div class="settings-toggle__info">
       <slot name="label">
-        <span class="settings-toggle__label">{{ label }}</span>
+        <span class="settings-toggle__label">
+          <font-awesome-icon v-if="icon" :icon="icon" class="settings-toggle__icon" />
+          {{ label }}
+        </span>
       </slot>
       <span v-if="desc" class="settings-toggle__desc text-muted">{{ desc }}</span>
     </div>

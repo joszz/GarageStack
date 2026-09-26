@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { VueDraggable } from 'vue-draggable-plus'
 import { useVehicleStore } from '@/stores/vehicle'
 import { useDashboardSettingsStore } from '@/stores/settingsDashboard'
 import { useUiSettingsStore } from '@/stores/settingsUi'
@@ -14,12 +13,14 @@ import CardInfoWrap from '@/components/CardInfoWrap.vue'
 import CarDiagram from '@/components/CarDiagram.vue'
 import LocationMapWidget from '@/components/LocationMapWidget.vue'
 import EditableCardSlot from '@/components/EditableCardSlot.vue'
+import EditableCardGrid from '@/components/EditableCardGrid.vue'
 import SkeletonCard from '@/components/SkeletonCard.vue'
 import SkeletonCarDiagram from '@/components/SkeletonCarDiagram.vue'
 import SkeletonLocationMap from '@/components/SkeletonLocationMap.vue'
 import { useVehicleAlerts } from '@/composables/useVehicleAlerts'
 import { useUnits } from '@/composables/useUnits'
 import { usePush } from '@/composables/usePush'
+import { mayBurnFuel } from '@/utils/vehicleType'
 
 const { t } = useI18n()
 const store = useVehicleStore()
@@ -52,7 +53,7 @@ const carDiagramProps = computed(() => {
     lightsDippedBeam: s?.lightsDippedBeam ?? null,
     lightsSide: s?.lightsSide ?? null,
     evSocPercent: s?.evSocPercent ?? null,
-    fuelLevelPercent: vehicleType.value === 'bev' ? null : (s?.fuelLevelPercent ?? null),
+    fuelLevelPercent: mayBurnFuel(vehicleType.value) ? (s?.fuelLevelPercent ?? null) : null,
     chargerConnected: s?.chargerConnected ?? null,
     isCharging: s?.isCharging ?? null,
     speed: s?.speed ?? null,
@@ -292,20 +293,12 @@ onUnmounted(() => {
         </EditableCardSlot>
       </div>
 
-      <VueDraggable
+      <EditableCardGrid
         v-model="editableCards"
         class="status-grid status-grid--edit"
-        :animation="200"
-        ghost-class="card-slot--ghost"
-        chosen-class="card-slot--chosen"
-        handle=".card-slot__handle"
+        @toggle-visible="toggleCardVisibility"
       >
-        <EditableCardSlot
-          v-for="card in editableCards"
-          :key="card.id"
-          :visible="card.visible"
-          @toggle-visible="toggleCardVisibility(card)"
-        >
+        <template #default="{ item: card }">
           <DashboardCardContent
             v-if="card.visible && status && hasData(card.id)"
             :card-id="card.id"
@@ -314,8 +307,8 @@ onUnmounted(() => {
             <font-awesome-icon :icon="cardIcon(card.id)" />
             <span>{{ t(`settings.cards.${card.id}`) }}</span>
           </div>
-        </EditableCardSlot>
-      </VueDraggable>
+        </template>
+      </EditableCardGrid>
 
       <button class="btn btn-outline-secondary mt-3" @click="resetLayout">
         <font-awesome-icon icon="rotate-left" />

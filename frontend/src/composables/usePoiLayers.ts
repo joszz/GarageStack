@@ -12,6 +12,7 @@ import { FUEL_TYPES, matchesFuelTypeFilter, stationFuelTypes } from '@/utils/fue
 import { speedCameraKind, speedCameraLimit } from '@/utils/speedCameras'
 import { OCM_ATTRIBUTION } from '@/utils/credits'
 import { useLayerCredit } from './useLayerCredit'
+import { burnsFuel, mayBurnFuel, mayPlugIn } from '@/utils/vehicleType'
 
 /**
  * The shape every POI popup takes: a title and the meta lines that have something to say. One
@@ -52,8 +53,6 @@ function poiBrand(item: PoiItem): string | null {
 export interface UsePoiLayersOptions {
   mapInstance: Ref<LeafletMap | null>
   vehicleType: ComputedRef<VehicleType>
-  isHev: ComputedRef<boolean>
-  isBev: ComputedRef<boolean>
 }
 
 /**
@@ -62,7 +61,7 @@ export interface UsePoiLayersOptions {
  * Reacts to pan/zoom (via the map instance passed in) and to the relevant settings toggling on
  * its own.
  */
-export function usePoiLayers({ mapInstance, vehicleType, isHev, isBev }: UsePoiLayersOptions) {
+export function usePoiLayers({ mapInstance, vehicleType }: UsePoiLayersOptions) {
   const { t } = useI18n()
   const settingsStore = useMapSettingsStore()
   // These are plain refs on the store already (Composition-API-style defineStore), so
@@ -189,8 +188,12 @@ export function usePoiLayers({ mapInstance, vehicleType, isHev, isBev }: UsePoiL
 
   // An HEV has no plug and a BEV has no tank, so those layers are not merely off, they do not
   // apply. Folding that into "enabled" keeps one reason-to-be-visible per layer.
-  const chargingLayerEnabled = computed(() => chargingStationsEnabled.value && !isHev.value)
-  const fuelLayerEnabled = computed(() => fuelStationsEnabled.value && !isBev.value)
+  const chargingLayerEnabled = computed(
+    () => chargingStationsEnabled.value && mayPlugIn(vehicleType.value),
+  )
+  const fuelLayerEnabled = computed(
+    () => fuelStationsEnabled.value && mayBurnFuel(vehicleType.value),
+  )
 
   // Open Charge Map is CC BY: showing its stations means crediting it. The fuel and service-area
   // layers need no credit of their own, being the same OpenStreetMap data the basemap already
@@ -355,7 +358,7 @@ export function usePoiLayers({ mapInstance, vehicleType, isHev, isBev }: UsePoiL
   // kept when the layer goes off again: the brand filter sits in the filter panel either way and
   // has to be able to offer its options there. Fires on its own once the type resolves, and
   // immediately when the view is entered with it already known.
-  const fuelBrandsRelevant = computed(() => vehicleType.value !== 'unknown' && !isBev.value)
+  const fuelBrandsRelevant = computed(() => burnsFuel(vehicleType.value))
 
   watch(
     fuelBrandsRelevant,

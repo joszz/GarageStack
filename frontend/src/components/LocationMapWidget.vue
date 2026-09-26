@@ -3,7 +3,7 @@ import { computed, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { LMap, LMarker } from '@vue-leaflet/vue-leaflet'
-import { L, type LeafletMap } from '@/utils/leaflet'
+import { L, fitToBounds, fitToPoints, type LeafletMap } from '@/utils/leaflet'
 import { useLeafletMap } from '@/composables/useLeafletMap'
 import { useBasemap } from '@/composables/useBasemap'
 import { useVehicleStore } from '@/stores/vehicle'
@@ -99,14 +99,6 @@ function buildActiveTripLayers() {
   }).addTo(map)
 }
 
-function fitBoundsSafe(map: LeafletMap, bounds: ReturnType<typeof L.latLngBounds>) {
-  if (bounds.getNorthEast().equals(bounds.getSouthWest())) {
-    map.setView(bounds.getCenter(), 15, { animate: false })
-  } else {
-    map.fitBounds(bounds, { padding: [24, 24], animate: false })
-  }
-}
-
 // While a trip is in progress, fit the view to the entire route travelled so far (start to
 // current position) while keeping the car centered, so the whole trip stays visible as it
 // grows without the view drifting off the car. Built by taking the largest lat/lng offset from
@@ -124,17 +116,19 @@ function updateMapView() {
       maxLatDelta = Math.max(maxLatDelta, Math.abs(p.latitude - car[0]))
       maxLngDelta = Math.max(maxLngDelta, Math.abs(p.longitude - car[1]))
     }
-    fitBoundsSafe(
+    fitToBounds(
       map,
       L.latLngBounds(
         [car[0] - maxLatDelta, car[1] - maxLngDelta],
         [car[0] + maxLatDelta, car[1] + maxLngDelta],
       ),
+      24,
     )
   } else if (trip && trip.points.length > 0) {
-    fitBoundsSafe(
+    fitToPoints(
       map,
-      L.latLngBounds(trip.points.map((p) => [p.latitude, p.longitude] as [number, number])),
+      trip.points.map((p) => [p.latitude, p.longitude] as [number, number]),
+      24,
     )
   } else if (hasLocation.value) {
     map.setView(center.value, 14, { animate: false })

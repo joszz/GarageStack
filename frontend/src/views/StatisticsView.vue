@@ -12,19 +12,19 @@ import type { Quantity } from '@/utils/units'
 import { vehicleApi } from '@/services/vehicleApi'
 import type { TelemetryHistoryPoint, VehicleAggregateStats } from '@/services/vehicleApi'
 import type { ChartData, ChartOptions } from 'chart.js'
-import { VueDraggable } from 'vue-draggable-plus'
 import { LMap, LMarker } from '@vue-leaflet/vue-leaflet'
-import { L, type LeafletMap } from '@/utils/leaflet'
+import { DEFAULT_MAP_CENTER, fitToPoints, type LeafletMap } from '@/utils/leaflet'
 import { useLeafletMap } from '@/composables/useLeafletMap'
 import { useBasemap } from '@/composables/useBasemap'
 import CardInfoWrap from '@/components/CardInfoWrap.vue'
 import DetailModal from '@/components/DetailModal.vue'
 import ToolbarPanel from '@/components/ToolbarPanel.vue'
+import DateRangeFilter from '@/components/DateRangeFilter.vue'
 import SkeletonCard from '@/components/SkeletonCard.vue'
 import SkeletonChart from '@/components/SkeletonChart.vue'
 import StatusCard from '@/components/StatusCard.vue'
 import StatsChartCard, { type StatsChartType } from '@/components/StatsChartCard.vue'
-import EditableCardSlot from '@/components/EditableCardSlot.vue'
+import EditableCardGrid from '@/components/EditableCardGrid.vue'
 import { formatDate, formatNumber, intlLocale } from '@/utils/format'
 import { dailyCounterTotal, energyUnit, litres } from '@/utils/energy'
 import { startOfLocalDayDaysAgoIso } from '@/utils/dates'
@@ -38,6 +38,7 @@ import {
 } from '@/utils/statistics'
 import { useUnits } from '@/composables/useUnits'
 import { useErrorMessage } from '@/composables/useErrorMessage'
+import { burnsFuel, mayPlugIn } from '@/utils/vehicleType'
 
 const { t } = useI18n()
 const store = useVehicleStore()
@@ -88,11 +89,8 @@ watch(
 )
 
 const vehicleType = computed(() => store.effectiveVehicleType)
-const hasLargeEv = computed(
-  () =>
-    vehicleType.value === 'phev' || vehicleType.value === 'bev' || vehicleType.value === 'unknown',
-)
-const isHybrid = computed(() => vehicleType.value === 'hev' || vehicleType.value === 'phev')
+const hasLargeEv = computed(() => mayPlugIn(vehicleType.value))
+const isHybrid = computed(() => burnsFuel(vehicleType.value))
 const isPhev = computed(() => vehicleType.value === 'phev')
 
 // ── Icons ────────────────────────────────────────────────────
@@ -220,19 +218,16 @@ useBasemap(parkingMapInstance)
 const parkingMapCenter = computed<[number, number]>(() =>
   parkingCoordinates.value.length
     ? [parkingCoordinates.value[0]!.lat, parkingCoordinates.value[0]!.lng]
-    : [52.3676, 4.9041],
+    : DEFAULT_MAP_CENTER,
 )
 
 function onParkingMapReady(map: LeafletMap) {
   bindParkingMapReady(map, () => {
-    const pts = parkingCoordinates.value
-    if (!pts.length) return
-    const bounds = L.latLngBounds(pts.map((c) => [c.lat, c.lng] as [number, number]))
-    if (bounds.getNorthEast().equals(bounds.getSouthWest())) {
-      map.setView(bounds.getCenter(), 15, { animate: false })
-    } else {
-      map.fitBounds(bounds, { padding: [24, 24], animate: false })
-    }
+    fitToPoints(
+      map,
+      parkingCoordinates.value.map((c) => [c.lat, c.lng] as [number, number]),
+      24,
+    )
   })
 }
 
@@ -578,22 +573,7 @@ const skeletonChartCount = computed(
       <h1>{{ t('nav.statistics') }}</h1>
       <div class="view-header__actions">
         <ToolbarPanel>
-          <div class="settings-toggle">
-            <div class="settings-toggle__info">
-              <span class="settings-toggle__label">
-                <font-awesome-icon icon="calendar-check" class="settings-toggle__icon" />
-                {{ t('trips.dateRange') }}
-              </span>
-              <span class="settings-toggle__desc">{{ t('trips.dateRangeDesc') }}</span>
-            </div>
-            <div class="settings-toggle__control">
-              <select v-model="days" class="form-select form-select-sm">
-                <option :value="7">{{ t('trips.last7days') }}</option>
-                <option :value="30">{{ t('trips.last30days') }}</option>
-                <option :value="90">{{ t('trips.last90days') }}</option>
-              </select>
-            </div>
-          </div>
+          <DateRangeFilter />
         </ToolbarPanel>
         <button
           class="btn btn-sm"
@@ -636,41 +616,30 @@ const skeletonChartCount = computed(
         <!-- ── Insights ──────────────────────────────────── -->
         <section class="stats-insights" :aria-label="t('statistics.insightsSectionLabel')">
           <!-- Edit mode: draggable card slots -->
-          <VueDraggable
+          <EditableCardGrid
             v-if="editMode"
             v-model="settings.statsInsights"
             class="status-grid status-grid--edit"
-            :animation="200"
-            ghost-class="card-slot--ghost"
-            chosen-class="card-slot--chosen"
-            handle=".card-slot__handle"
+            :is-shown="(item) => insightDefMap.get(item.id)?.vehicleApplicable !== false"
+            @toggle-visible="(item) => (item.visible = !item.visible)"
           >
-            <EditableCardSlot
-              v-for="item in settings.statsInsights"
-              v-show="insightDefMap.get(item.id)?.vehicleApplicable !== false"
-              :key="item.id"
-              :visible="item.visible"
-              @toggle-visible="item.visible = !item.visible"
-            >
-              <template
+            <template #default="{ item }">
+              <StatusCard
                 v-if="
                   insightDefMap.get(item.id)?.applicable &&
                   insightDefMap.get(item.id)?.value !== null
                 "
-              >
-                <StatusCard
-                  :icon="insightDefMap.get(item.id)!.icon"
-                  :label="insightDefMap.get(item.id)!.title"
-                  :value="insightDefMap.get(item.id)!.value"
-                  :unit="insightDefMap.get(item.id)!.unit"
-                />
-              </template>
+                :icon="insightDefMap.get(item.id)!.icon"
+                :label="insightDefMap.get(item.id)!.title"
+                :value="insightDefMap.get(item.id)!.value"
+                :unit="insightDefMap.get(item.id)!.unit"
+              />
               <div v-else class="card-slot__placeholder">
                 <font-awesome-icon :icon="insightDefMap.get(item.id)?.icon ?? 'circle-info'" />
                 <span>{{ insightDefMap.get(item.id)?.title }}</span>
               </div>
-            </EditableCardSlot>
-          </VueDraggable>
+            </template>
+          </EditableCardGrid>
 
           <!-- Normal mode: visible + applicable insights -->
           <div v-else class="status-grid">
@@ -700,23 +669,15 @@ const skeletonChartCount = computed(
           </div>
 
           <!-- Edit mode: draggable chart slots -->
-          <VueDraggable
+          <EditableCardGrid
             v-if="editMode"
             v-model="settings.statsCharts"
             class="stats-chart-grid"
-            :animation="200"
-            ghost-class="card-slot--ghost"
-            chosen-class="card-slot--chosen"
-            handle=".card-slot__handle"
+            slot-class="card-slot--chart"
+            :is-shown="(item) => chartDefMap.get(item.id)?.vehicleApplicable !== false"
+            @toggle-visible="(item) => (item.visible = !item.visible)"
           >
-            <EditableCardSlot
-              v-for="item in settings.statsCharts"
-              v-show="chartDefMap.get(item.id)?.vehicleApplicable !== false"
-              :key="item.id"
-              class="card-slot--chart"
-              :visible="item.visible"
-              @toggle-visible="item.visible = !item.visible"
-            >
+            <template #default="{ item }">
               <StatsChartCard
                 v-if="chartDefMap.get(item.id)?.applicable && store.history.length"
                 :title="chartDefMap.get(item.id)!.title"
@@ -730,8 +691,8 @@ const skeletonChartCount = computed(
                 <font-awesome-icon :icon="chartDefMap.get(item.id)?.icon ?? 'chart-line'" />
                 <span>{{ chartDefMap.get(item.id)?.title }}</span>
               </div>
-            </EditableCardSlot>
-          </VueDraggable>
+            </template>
+          </EditableCardGrid>
 
           <!-- Normal mode: visible + applicable charts -->
           <div v-else class="stats-chart-grid">

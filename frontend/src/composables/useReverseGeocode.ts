@@ -9,6 +9,7 @@ import {
   type Place,
 } from '@/services/mapApi'
 import { useUiSettingsStore } from '@/stores/settingsUi'
+import { delay } from '@/utils/async'
 
 /**
  * Shared reverse-geocoding cache: components ask for the places they want to label and read them
@@ -101,10 +102,6 @@ function takeBatch(): { key: string; point: QueuedPoint }[] {
     if (batch.length >= MAX_GEOCODE_POINTS_PER_REQUEST) break
   }
   return batch
-}
-
-function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
 async function pump() {

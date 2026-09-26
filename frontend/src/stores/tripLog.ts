@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { computed, ref, shallowRef } from 'vue'
 import { useLoadingTracker } from '@/composables/useLoadingTracker'
 import { asError } from '@/utils/errors'
+import { delay } from '@/utils/async'
 import { GEOCODE_MAX_ATTEMPTS, GEOCODE_RETRY_DELAY_MS } from '@/services/mapApi'
 import {
   tripLogApi,
@@ -12,10 +13,6 @@ import {
   type TripPurpose,
 } from '@/services/tripLogApi'
 import { missingPlaces, periodRange, purposeTotals, type TripLogPeriod } from '@/utils/tripLog'
-
-function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms))
-}
 
 export const useTripLogStore = defineStore('tripLog', () => {
   // shallowRef: entries are only ever replaced, never mutated in place.

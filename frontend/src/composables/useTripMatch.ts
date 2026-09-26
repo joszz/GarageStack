@@ -5,6 +5,7 @@ import { useMapSettingsStore } from '@/stores/settingsMap'
 import { decodePolyline } from '@/utils/polyline'
 import { downsample } from '@/utils/downsample'
 import { expandSpeedLimits } from '@/utils/speedLimits'
+import { delay } from '@/utils/async'
 
 /**
  * Shared cache of snapped trips: a view asks for the trip it is drawing and reads the matched
@@ -59,10 +60,6 @@ const enabled = computed(() => available.value && wanted.value)
  */
 function keyOf(trip: Trip): string {
   return `${trip.startedAt}|${trip.endedAt}|${trip.pointCount}`
-}
-
-function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
 async function fetchMatch(trip: Trip): Promise<void> {
