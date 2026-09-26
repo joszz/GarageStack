@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { computed, ref, shallowRef } from 'vue'
 import { useLoadingTracker } from '@/composables/useLoadingTracker'
 import { asError } from '@/utils/errors'
-import { delay } from '@/utils/async'
+import { resolveInRounds } from '@/utils/resolveInRounds'
 import { GEOCODE_MAX_ATTEMPTS, GEOCODE_RETRY_DELAY_MS } from '@/services/mapApi'
 import {
   tripLogApi,
@@ -141,38 +141,37 @@ export const useTripLogStore = defineStore('tripLog', () => {
       missingPlaces(entry) && (attempts.get(entry.id) ?? 0) < GEOCODE_MAX_ATTEMPTS
 
     try {
-      while (!placesStopped) {
-        const batch = entries.value.filter(wanted).slice(0, MAX_TRIPS_PER_PLACES_REQUEST)
-        if (batch.length === 0) break
-
-        const result = await tripLogApi.resolvePlaces(
-          vin,
-          batch.map((entry) => entry.id),
-          language,
-        )
-        if (!result.available) {
-          placesAvailable.value = false
-          break
-        }
-        applyPlaces(result.trips)
-
-        // Only a round that resolved nothing counts against its trips: a server working through
-        // its upstream budget answers some of each batch, and that is progress, not failure.
-        const current = new Map(entries.value.map((entry) => [entry.id, entry]))
-        const unanswered = batch.filter((entry) => {
-          const now = current.get(entry.id)
-          return now !== undefined && missingPlaces(now)
-        })
-        if (unanswered.length === batch.length) {
-          for (const entry of unanswered) attempts.set(entry.id, (attempts.get(entry.id) ?? 0) + 1)
-        }
-
-        if (entries.value.some(wanted)) await delay(GEOCODE_RETRY_DELAY_MS)
-      }
+      await resolveInRounds<TripLogEntry>(
+        {
+          active: () => !placesStopped,
+          nextBatch: () => entries.value.filter(wanted).slice(0, MAX_TRIPS_PER_PLACES_REQUEST),
+          ask: async (batch) => {
+            const result = await tripLogApi.resolvePlaces(
+              vin,
+              batch.map((entry) => entry.id),
+              language,
+            )
+            if (!result.available) {
+              placesAvailable.value = false
+              return null
+            }
+            applyPlaces(result.trips)
+            const current = new Map(entries.value.map((entry) => [entry.id, entry]))
+            return batch.filter((entry) => {
+              const now = current.get(entry.id)
+              return now !== undefined && missingPlaces(now)
+            })
+          },
+          countAttempt: (entry) => attempts.set(entry.id, (attempts.get(entry.id) ?? 0) + 1),
+          hasMore: () => entries.value.some(wanted),
+          onEnd: () => {
+            placesResolving.value = false
+          },
+        },
+        GEOCODE_RETRY_DELAY_MS,
+      )
     } catch {
       // Offline or signed out: the addresses fill in on the next visit instead.
-    } finally {
-      placesResolving.value = false
     }
   }
 

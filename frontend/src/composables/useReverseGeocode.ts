@@ -9,7 +9,7 @@ import {
   type Place,
 } from '@/services/mapApi'
 import { useUiSettingsStore } from '@/stores/settingsUi'
-import { delay } from '@/utils/async'
+import { resolveInRounds } from '@/utils/resolveInRounds'
 
 /**
  * Shared reverse-geocoding cache: components ask for the places they want to label and read them
@@ -36,6 +36,8 @@ interface QueuedPoint {
   precision: GeocodePrecision
   attempts: number
 }
+
+type QueueEntry = { key: string; point: QueuedPoint }
 
 interface TrackedPoint {
   lat: number
@@ -87,7 +89,7 @@ function enqueue(point: TrackedPoint, lang: string) {
  * Precisions take turns, so the one address behind a long list of trip cities is not starved
  * for the dozen rounds that list needs.
  */
-function takeBatch(): { key: string; point: QueuedPoint }[] {
+function takeBatch(): QueueEntry[] {
   const queued = [...queue]
   if (queued.length === 0) return []
 
@@ -95,7 +97,7 @@ function takeBatch(): { key: string; point: QueuedPoint }[] {
   const precision = next[1].precision
   lastPrecision = precision
 
-  const batch: { key: string; point: QueuedPoint }[] = []
+  const batch: QueueEntry[] = []
   for (const [key, point] of queued) {
     if (point.precision !== precision) continue
     batch.push({ key, point })
@@ -104,73 +106,72 @@ function takeBatch(): { key: string; point: QueuedPoint }[] {
   return batch
 }
 
-async function pump() {
+function countAttempt({ key, point }: QueueEntry) {
+  point.attempts += 1
+  if (point.attempts >= GEOCODE_MAX_ATTEMPTS) queue.delete(key)
+}
+
+async function askAbout(batch: QueueEntry[]): Promise<QueueEntry[] | null> {
+  let response
+  try {
+    response = await mapApi.reverseGeocode(
+      batch.map(({ point }) => ({ lat: point.lat, lng: point.lng }) as GeoPoint),
+      batch[0]!.point.precision,
+      language.value,
+    )
+  } catch (e) {
+    // Offline, unauthenticated, or rate-limited: count the attempt and stop this run rather
+    // than hammering a failing API. A later requestPlaces call starts the pump again.
+    for (const entry of batch) countAttempt(entry)
+    throw e
+  }
+
+  if (!response.available) {
+    available.value = false
+    queue.clear()
+    return null
+  }
+
+  const unresolved: QueueEntry[] = []
+  for (const [index, entry] of batch.entries()) {
+    const place = response.results[index]
+    if (place) {
+      places.set(entry.key, place)
+      queue.delete(entry.key)
+    } else {
+      unresolved.push(entry)
+    }
+  }
+  return unresolved
+}
+
+function pump() {
   if (pumpRunning) return
   pumpRunning = true
   resolving.value = true
-  try {
-    while (queue.size > 0 && enabled.value) {
-      const lang = language.value
-      const batch = takeBatch()
-      if (batch.length === 0) break
-
-      let response
-      try {
-        response = await mapApi.reverseGeocode(
-          batch.map(({ point }) => ({ lat: point.lat, lng: point.lng }) as GeoPoint),
-          batch[0]!.point.precision,
-          lang,
-        )
-      } catch {
-        // Offline, unauthenticated, or rate-limited: count the attempt and stop this run rather
-        // than hammering a failing API. A later requestPlaces call starts the pump again.
-        for (const { key, point } of batch) {
-          point.attempts += 1
-          if (point.attempts >= GEOCODE_MAX_ATTEMPTS) queue.delete(key)
-        }
-        break
-      }
-
-      if (!response.available) {
-        available.value = false
-        queue.clear()
-        break
-      }
-
-      const unresolved: { key: string; point: QueuedPoint }[] = []
-      for (const [index, entry] of batch.entries()) {
-        const place = response.results[index]
-        if (place) {
-          places.set(entry.key, place)
-          queue.delete(entry.key)
-        } else {
-          unresolved.push(entry)
-        }
-      }
-
-      // A server answering some of the batch is working through its own upstream budget, not
-      // failing: only a round that resolved nothing counts as an attempt, otherwise a long list
-      // would abandon most of its coordinates after a few rounds of normal progress.
-      if (unresolved.length === batch.length) {
-        for (const { key, point } of unresolved) {
-          point.attempts += 1
-          if (point.attempts >= GEOCODE_MAX_ATTEMPTS) queue.delete(key)
-        }
-      }
-
-      if (queue.size > 0) await delay(GEOCODE_RETRY_DELAY_MS)
-    }
-  } finally {
-    pumpRunning = false
-    resolving.value = false
-  }
+  resolveInRounds(
+    {
+      active: () => enabled.value,
+      nextBatch: takeBatch,
+      ask: askAbout,
+      countAttempt,
+      hasMore: () => queue.size > 0,
+      onEnd: () => {
+        pumpRunning = false
+        resolving.value = false
+      },
+    },
+    GEOCODE_RETRY_DELAY_MS,
+  ).catch(() => {
+    // The failed round has been counted; the queue waits for the next requestPlaces call.
+  })
 }
 
 /** Re-asks for everything still on screen, after a change that invalidated the pending work. */
 function refill(lang: string) {
   queue.clear()
   for (const point of tracked.values()) enqueue(point, lang)
-  void pump()
+  pump()
 }
 
 export function useReverseGeocode() {
@@ -217,7 +218,7 @@ export function useReverseGeocode() {
       added ||= queue.size > before
     }
 
-    if (added) void pump()
+    if (added) pump()
   }
 
   /** The place for a coordinate, or null while it is unknown. Reactive: fills in as answers land. */
