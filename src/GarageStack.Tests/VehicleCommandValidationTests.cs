@@ -1,4 +1,4 @@
-using GarageStack.Api.Endpoints;
+using GarageStack.Api;
 
 namespace GarageStack.Tests;
 
@@ -12,7 +12,7 @@ public class VehicleCommandValidationTests
     [InlineData("rear-defroster", "off")]
     public void OnOffCommands_ValidValues_ReturnsNull(string command, string value)
     {
-        Assert.Null(VehicleEndpoints.ValidateCommandValue(command, value));
+        Assert.Null(VehicleCommands.Validate(command, value));
     }
 
     [Theory]
@@ -21,7 +21,7 @@ public class VehicleCommandValidationTests
     [InlineData("rear-defroster", "true")]
     public void OnOffCommands_InvalidValues_ReturnsError(string command, string value)
     {
-        Assert.NotNull(VehicleEndpoints.ValidateCommandValue(command, value));
+        Assert.NotNull(VehicleCommands.Validate(command, value));
     }
 
     // ── climate-temperature ───────────────────────────────────────────────────
@@ -31,7 +31,7 @@ public class VehicleCommandValidationTests
     [InlineData("28")]
     public void ClimateTemperature_ValidRange_ReturnsNull(string value)
     {
-        Assert.Null(VehicleEndpoints.ValidateCommandValue("climate-temperature", value));
+        Assert.Null(VehicleCommands.Validate("climate-temperature", value));
     }
 
     [Theory]
@@ -41,7 +41,7 @@ public class VehicleCommandValidationTests
     [InlineData("22.5")]
     public void ClimateTemperature_InvalidValues_ReturnsError(string value)
     {
-        Assert.NotNull(VehicleEndpoints.ValidateCommandValue("climate-temperature", value));
+        Assert.NotNull(VehicleCommands.Validate("climate-temperature", value));
     }
 
     // ── seat-left / seat-right ───────────────────────────────────────────────
@@ -52,7 +52,7 @@ public class VehicleCommandValidationTests
     [InlineData("seat-right", "2")]
     public void SeatCommands_ValidRange_ReturnsNull(string command, string value)
     {
-        Assert.Null(VehicleEndpoints.ValidateCommandValue(command, value));
+        Assert.Null(VehicleCommands.Validate(command, value));
     }
 
     [Theory]
@@ -61,7 +61,7 @@ public class VehicleCommandValidationTests
     [InlineData("seat-right", "high")]
     public void SeatCommands_InvalidValues_ReturnsError(string command, string value)
     {
-        Assert.NotNull(VehicleEndpoints.ValidateCommandValue(command, value));
+        Assert.NotNull(VehicleCommands.Validate(command, value));
     }
 
     // ── find-my-car ───────────────────────────────────────────────────────────
@@ -70,7 +70,7 @@ public class VehicleCommandValidationTests
     [InlineData("stop")]
     public void FindMyCar_ValidValues_ReturnsNull(string value)
     {
-        Assert.Null(VehicleEndpoints.ValidateCommandValue("find-my-car", value));
+        Assert.Null(VehicleCommands.Validate("find-my-car", value));
     }
 
     [Theory]
@@ -79,7 +79,7 @@ public class VehicleCommandValidationTests
     [InlineData("on")]
     public void FindMyCar_InvalidValues_ReturnsError(string value)
     {
-        Assert.NotNull(VehicleEndpoints.ValidateCommandValue("find-my-car", value));
+        Assert.NotNull(VehicleCommands.Validate("find-my-car", value));
     }
 
     // ── charge-limit ─────────────────────────────────────────────────────────
@@ -96,7 +96,7 @@ public class VehicleCommandValidationTests
     [InlineData("Max")]
     public void ChargeLimit_GatewayValues_ReturnsNull(string value)
     {
-        Assert.Null(VehicleEndpoints.ValidateCommandValue("charge-limit", value));
+        Assert.Null(VehicleCommands.Validate("charge-limit", value));
     }
 
     [Theory]
@@ -108,7 +108,7 @@ public class VehicleCommandValidationTests
     [InlineData("")]
     public void ChargeLimit_InvalidValues_ReturnsError(string value)
     {
-        Assert.NotNull(VehicleEndpoints.ValidateCommandValue("charge-limit", value));
+        Assert.NotNull(VehicleCommands.Validate("charge-limit", value));
     }
 
     // ── lock ─────────────────────────────────────────────────────────────────
@@ -117,7 +117,7 @@ public class VehicleCommandValidationTests
     [InlineData("False")]
     public void Lock_ValidValues_ReturnsNull(string value)
     {
-        Assert.Null(VehicleEndpoints.ValidateCommandValue("lock", value));
+        Assert.Null(VehicleCommands.Validate("lock", value));
     }
 
     [Theory]
@@ -127,14 +127,14 @@ public class VehicleCommandValidationTests
     [InlineData("1")]
     public void Lock_InvalidValues_ReturnsError(string value)
     {
-        Assert.NotNull(VehicleEndpoints.ValidateCommandValue("lock", value));
+        Assert.NotNull(VehicleCommands.Validate("lock", value));
     }
 
     // ── refresh ───────────────────────────────────────────────────────────────
     [Fact]
     public void Refresh_ForceValue_ReturnsNull()
     {
-        Assert.Null(VehicleEndpoints.ValidateCommandValue("refresh", "force"));
+        Assert.Null(VehicleCommands.Validate("refresh", "force"));
     }
 
     [Theory]
@@ -142,7 +142,7 @@ public class VehicleCommandValidationTests
     [InlineData("full")]
     public void Refresh_InvalidValues_ReturnsError(string value)
     {
-        Assert.NotNull(VehicleEndpoints.ValidateCommandValue("refresh", value));
+        Assert.NotNull(VehicleCommands.Validate("refresh", value));
     }
 
     // ── scheduled-charging (passthrough) ─────────────────────────────────────
@@ -151,20 +151,20 @@ public class VehicleCommandValidationTests
     [InlineData("scheduled-charging", "{}")]
     public void ScheduledCharging_AnyNonEmptyString_ReturnsNull(string command, string value)
     {
-        Assert.Null(VehicleEndpoints.ValidateCommandValue(command, value));
+        Assert.Null(VehicleCommands.Validate(command, value));
     }
 
     [Fact]
     public void ScheduledCharging_ValueOver500Chars_ReturnsError()
     {
         var value = new string('a', 501);
-        Assert.NotNull(VehicleEndpoints.ValidateCommandValue("scheduled-charging", value));
+        Assert.NotNull(VehicleCommands.Validate("scheduled-charging", value));
     }
 
     [Fact]
     public void ScheduledCharging_ValueExactly500Chars_ReturnsNull()
     {
         var value = new string('a', 500);
-        Assert.Null(VehicleEndpoints.ValidateCommandValue("scheduled-charging", value));
+        Assert.Null(VehicleCommands.Validate("scheduled-charging", value));
     }
 }
