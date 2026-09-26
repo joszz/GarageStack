@@ -16,9 +16,8 @@ public static class WidgetEndpoints
                 var config = ctx.HttpContext.RequestServices.GetRequiredService<IConfiguration>();
                 var configuredKey = config["Widget:ApiKey"];
                 if (string.IsNullOrWhiteSpace(configuredKey))
-                    return Results.Problem(
-                        "Widget API key is not configured. Set the WIDGET_API_KEY environment variable.",
-                        statusCode: StatusCodes.Status503ServiceUnavailable);
+                    return ApiProblems.Problem(StatusCodes.Status503ServiceUnavailable, "widget.notConfigured",
+                        "Widget API key is not configured. Set the WIDGET_API_KEY environment variable.");
 
                 var providedKey = ctx.HttpContext.Request.Headers["X-Widget-Key"].ToString();
                 if (!AuthEndpoints.FixedTimeEquals(providedKey, configuredKey))

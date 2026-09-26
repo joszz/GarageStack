@@ -408,6 +408,46 @@ public class AuthenticationFlowTests
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
+    // ── Error answers ─────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task ForeignOrigin_IsRefusedWithACodedProblem()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var factory = CreatePasswordOnlyFactory();
+        using var client = CreateClient(factory);
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/api/auth/logout");
+        request.Headers.Add("Origin", "https://evil.example.com");
+
+        var response = await client.SendAsync(request, ct);
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+        Assert.Equal("application/problem+json", response.Content.Headers.ContentType?.MediaType);
+        using var problem = System.Text.Json.JsonDocument.Parse(await response.Content.ReadAsStringAsync(ct));
+        Assert.Equal("csrf.originNotAllowed", problem.RootElement.GetProperty("code").GetString());
+        Assert.Equal(403, problem.RootElement.GetProperty("status").GetInt32());
+    }
+
+    [Fact]
+    public async Task InvalidRequest_IsRefusedWithACodedProblem()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var factory = CreatePasswordOnlyFactory();
+        using var client = CreateClient(factory);
+        await client.PostAsJsonAsync(
+            "/api/auth/login",
+            new { username = DemoUsername, password = DemoPassword, rememberMe = false },
+            ct);
+
+        var response = await client.PostAsJsonAsync("/api/map/reverse", new { points = Array.Empty<object>() }, ct);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Equal("application/problem+json", response.Content.Headers.ContentType?.MediaType);
+        using var problem = System.Text.Json.JsonDocument.Parse(await response.Content.ReadAsStringAsync(ct));
+        Assert.Equal("map.pointsRequired", problem.RootElement.GetProperty("code").GetString());
+        Assert.Equal("points must contain at least one coordinate", problem.RootElement.GetProperty("detail").GetString());
+    }
+
     // ── Rate limiting ─────────────────────────────────────────────────────────
 
     [Fact]
