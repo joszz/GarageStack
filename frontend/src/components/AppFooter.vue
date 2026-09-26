@@ -40,12 +40,13 @@ const detectedLabel = computed(() => {
 
 const hwVersion = computed(() => vehicleStore.vehicleConfig['hw_version'] ?? null)
 
-const typeOptions: { value: VehicleTypeOverride; label: string }[] = [
+// Computed so the labels follow a language switch made in this same dialog.
+const typeOptions = computed((): { value: VehicleTypeOverride; label: string }[] => [
   { value: 'auto', label: t('settings.vehicleType.auto') },
   { value: 'hev', label: t('settings.vehicleType.hev') },
   { value: 'phev', label: t('settings.vehicleType.phev') },
   { value: 'bev', label: t('settings.vehicleType.bev') },
-]
+])
 
 const NOTIFICATION_CATEGORY_LABEL_KEYS: Record<NotificationCategoryId, string> = {
   'low-tyre': 'lowTyre',

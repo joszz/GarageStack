@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 
+const { t } = useI18n()
 const props = defineProps<{ title: string; open: boolean; wide?: boolean }>()
 const emit = defineEmits<{ (e: 'close'): void }>()
 
@@ -24,7 +26,11 @@ onUnmounted(() => document.removeEventListener('keydown', onKey))
         >
           <div class="detail-modal__header">
             <h3 class="detail-modal__title">{{ title }}</h3>
-            <button class="detail-modal__close" aria-label="Close" @click="emit('close')">
+            <button
+              class="detail-modal__close"
+              :aria-label="t('common.close')"
+              @click="emit('close')"
+            >
               <font-awesome-icon icon="xmark" />
             </button>
           </div>

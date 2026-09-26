@@ -5,6 +5,7 @@ import CardInfoWrap from './CardInfoWrap.vue'
 import { CAR_SILHOUETTE_VIEWBOX, CAR_SILHOUETTE_MARKUP } from '@/assets/carSilhouette'
 import { useTyrePressureThresholds, pressureVariant } from '@/composables/useTyrePressureThresholds'
 import { useUnits } from '@/composables/useUnits'
+import { evLevelVariant, fuelLevelVariant } from '@/utils/levels'
 
 const { t } = useI18n()
 const tyreThresholds = useTyrePressureThresholds()
@@ -131,19 +132,9 @@ const hasLights = computed(() => props.lightsMainBeam || props.lightsDippedBeam 
 const showBattery = computed(() => props.evSocPercent != null)
 const showFuel = computed(() => props.fuelLevelPercent != null)
 
-const batteryColor = computed(() => {
-  const soc = props.evSocPercent ?? 0
-  if (soc >= 60) return 'var(--color-success)'
-  if (soc >= 25) return 'var(--color-warning)'
-  return 'var(--color-danger)'
-})
-
-const fuelColor = computed(() => {
-  const pct = props.fuelLevelPercent ?? 0
-  if (pct >= 30) return 'var(--color-success)'
-  if (pct >= 15) return 'var(--color-warning)'
-  return 'var(--color-danger)'
-})
+// The same thresholds as the dashboard's fuel and battery cards, so both colour a level alike.
+const batteryColor = computed(() => `var(--color-${evLevelVariant(props.evSocPercent ?? 0)})`)
+const fuelColor = computed(() => `var(--color-${fuelLevelVariant(props.fuelLevelPercent ?? 0)})`)
 
 const isMoving = computed(() => (props.speed ?? 0) > 0)
 
