@@ -33,7 +33,7 @@ public sealed class VehicleMessageHandler(
     IServiceScopeFactory scopeFactory,
     IPushSender pushSender,
     IStringLocalizer<NotificationStrings> strings,
-    TimeProvider timeProvider)
+    TimeProvider timeProvider) : IMqttMessageHandler
 {
     // Generous because SAIC's timestamps carry no zone and the gateway takes them for UTC, so a
     // message can look up to half a day older or newer than it is.
@@ -59,6 +59,11 @@ public sealed class VehicleMessageHandler(
             return VehicleMessageVerdict.TooOld;
         return VehicleMessageVerdict.Push;
     }
+
+    public Task<bool> TryHandleAsync(MqttMessage message, CancellationToken ct) =>
+        message.Vehicle is { } topic
+            ? TryHandleAsync(topic.Vin, topic.User, topic.Subtopic, message.Payload, message.Retain, ct)
+            : Task.FromResult(false);
 
     /// <returns>true when <paramref name="subtopic"/> belongs to MG app messages, whether or not anything was pushed.</returns>
     public async Task<bool> TryHandleAsync(
