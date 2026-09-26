@@ -9,22 +9,29 @@ import { L, type LeafletMap } from '@/utils/leaflet'
 import 'leaflet.markercluster'
 import 'leaflet.markercluster/dist/MarkerCluster.css'
 
+type MarkerClusterGroup = L.FeatureGroup & {
+  addLayers: (layers: L.Layer[]) => MarkerClusterGroup
+}
 type ClusterFactory = {
   markerClusterGroup: (options?: {
     iconCreateFunction?: (cluster: { getChildCount: () => number }) => L.DivIcon
     maxClusterRadius?: number
     animate?: boolean
-  }) => L.FeatureGroup
+    chunkedLoading?: boolean
+  }) => MarkerClusterGroup
 }
 const leafWithCluster = L as typeof L & ClusterFactory
 
 const MARKER_SIZE: L.PointExpression = [28, 28]
 const MARKER_ANCHOR: L.PointExpression = [14, 14]
 
-function createMarkerCluster(clusterClassName: string): L.FeatureGroup {
+function createMarkerCluster(clusterClassName: string): MarkerClusterGroup {
   return leafWithCluster.markerClusterGroup({
     maxClusterRadius: 60,
     animate: true,
+    // A viewport can hold thousands of stations; clustering them in slices keeps the page
+    // responsive while a large layer is drawn.
+    chunkedLoading: true,
     iconCreateFunction: (cluster) => {
       const count = cluster.getChildCount()
       return L.divIcon({
@@ -37,12 +44,16 @@ function createMarkerCluster(clusterClassName: string): L.FeatureGroup {
   })
 }
 
+/**
+ * @param popupHtml Built when the popup first opens rather than for every marker up front: most
+ *   of a layer's markers are never clicked.
+ */
 export function createMarker(
   latitude: number,
   longitude: number,
   markerClassName: string,
   glyph: string,
-  popupHtml: string,
+  popupHtml: () => string,
 ): L.Marker {
   const icon = L.divIcon({
     className: '',
@@ -50,7 +61,7 @@ export function createMarker(
     iconSize: MARKER_SIZE,
     iconAnchor: MARKER_ANCHOR,
   })
-  return L.marker([latitude, longitude], { icon }).bindPopup(popupHtml)
+  return L.marker([latitude, longitude], { icon }).bindPopup(() => popupHtml())
 }
 
 function createDebouncer() {
@@ -141,31 +152,66 @@ export interface TileLayerOptions<T> {
 export function createTileLayer<T>(options: TileLayerOptions<T>) {
   const { map, enabled, clusterClassName, idOf, fetchItems, toMarker, include } = options
   const items = new Map<string, T>()
+  // One marker per item, made the first time it is drawn and reused by every redraw after it: a
+  // filter change or a newly fetched tile then only changes which markers the cluster holds.
+  const markers = new Map<string, L.Marker>()
   const loadedTiles = new Set<string>()
   const debouncer = createDebouncer()
-  let cluster: L.FeatureGroup | null = null
+  let cluster: MarkerClusterGroup | null = null
+  let clusterMap: LeafletMap | null = null
   let fetchId = 0
 
-  function clear() {
+  function removeCluster() {
     cluster?.remove()
     cluster = null
+    clusterMap = null
+  }
+
+  function clear() {
+    removeCluster()
     loadedTiles.clear()
     items.clear()
+    markers.clear()
+  }
+
+  function markerFor(id: string, item: T): L.Marker {
+    let marker = markers.get(id)
+    if (!marker) {
+      marker = toMarker(item)
+      markers.set(id, marker)
+    }
+    return marker
   }
 
   function redraw() {
     const instance = map.value
     if (!instance) return
-    cluster?.remove()
-    cluster = null
-    if (!enabled.value || items.size === 0) return
-
-    cluster = createMarkerCluster(clusterClassName)
-    cluster.addTo(instance)
-    for (const item of items.values()) {
-      if (include && !include(item)) continue
-      cluster.addLayer(toMarker(item))
+    if (!enabled.value || items.size === 0) {
+      removeCluster()
+      return
     }
+
+    const visible: L.Marker[] = []
+    for (const [id, item] of items) {
+      if (include && !include(item)) continue
+      visible.push(markerFor(id, item))
+    }
+
+    // Always one bulk add: the cluster group reclusters once for the whole set, where adding
+    // markers one at a time reclusters and redraws after every single one.
+    if (cluster && clusterMap === instance) {
+      cluster.clearLayers()
+      cluster.addLayers(visible)
+      return
+    }
+
+    // A new group is filled before it goes on the map, so the markers are clustered without the
+    // page being touched until the result is shown.
+    removeCluster()
+    cluster = createMarkerCluster(clusterClassName)
+    cluster.addLayers(visible)
+    cluster.addTo(instance)
+    clusterMap = instance
   }
 
   function boundsRadiusKm(instance: LeafletMap): number {
