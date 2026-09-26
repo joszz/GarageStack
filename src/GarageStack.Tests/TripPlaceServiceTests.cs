@@ -36,15 +36,15 @@ public class TripPlaceServiceTests
         public Vehicle Vehicle { get; } = new() { Vin = "FAKEVN00000000001" };
         public TripRepository Trips { get; }
         public GeocodeFakeRepository GeocodeCache { get; } = new();
-        public GeocodeFakeNominatimHandler Upstream { get; }
+        public FakeHttpHandler Upstream { get; }
         public TripPlaceService Service { get; }
 
         public Setup(string upstreamBody = ZwolleResponse, bool geocodingEnabled = true)
         {
             Trips = new TripRepository(Db, new TelemetryRepository(Db));
-            Upstream = new GeocodeFakeNominatimHandler(upstreamBody);
+            Upstream = new FakeHttpHandler(upstreamBody);
             var client = new NominatimApiClient(
-                new PoiFakeHttpClientFactory(new HttpClient(Upstream)),
+                new FakeHttpClientFactory(Upstream),
                 new GeocodingOptions { Enabled = geocodingEnabled },
                 NullLogger<NominatimApiClient>.Instance);
             Service = new TripPlaceService(Trips, new GeocodeService(GeocodeCache, client, NullLogger<GeocodeService>.Instance));

@@ -1,5 +1,4 @@
 using System.Net;
-using System.Text;
 using GarageStack.Api.Services;
 using GarageStack.Core.Configuration;
 using GarageStack.Core.Helpers;
@@ -76,27 +75,6 @@ internal sealed class GeocodeFakeRepository : IGeocodeRepository
     }
 }
 
-internal sealed class GeocodeFakeNominatimHandler : HttpMessageHandler
-{
-    private readonly Func<int, (HttpStatusCode Status, string Body)> _responder;
-
-    public GeocodeFakeNominatimHandler(string body, HttpStatusCode status = HttpStatusCode.OK)
-        => _responder = _ => (status, body);
-
-    public List<string> RequestUris { get; } = [];
-    public int CallCount => RequestUris.Count;
-
-    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
-    {
-        RequestUris.Add(request.RequestUri!.ToString());
-        var (status, body) = _responder(RequestUris.Count - 1);
-        return Task.FromResult(new HttpResponseMessage(status)
-        {
-            Content = new StringContent(body, Encoding.UTF8, "application/json"),
-        });
-    }
-}
-
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -113,12 +91,12 @@ public class GeocodeServiceTests
         """;
     private const string UnmappableResponse = """{"error":"Unable to geocode"}""";
 
-    private static NominatimApiClient BuildClient(GeocodeFakeNominatimHandler handler, GeocodingOptions? options = null)
-        => new(new PoiFakeHttpClientFactory(new HttpClient(handler)),
+    private static NominatimApiClient BuildClient(FakeHttpHandler handler, GeocodingOptions? options = null)
+        => new(new FakeHttpClientFactory(handler),
             options ?? new GeocodingOptions(),
             NullLogger<NominatimApiClient>.Instance);
 
-    private static GeocodeService BuildService(GeocodeFakeRepository repo, GeocodeFakeNominatimHandler handler,
+    private static GeocodeService BuildService(GeocodeFakeRepository repo, FakeHttpHandler handler,
         GeocodingOptions? options = null)
         => new(repo, BuildClient(handler, options), NullLogger<GeocodeService>.Instance);
 
@@ -134,7 +112,7 @@ public class GeocodeServiceTests
         var (cellLat, cellLng) = GeocodePrecisionPolicy.CellOf(52.512, 6.092, GeocodePrecisionPolicy.City);
         repo.Seed(GeocodePrecisionPolicy.City, "nl", cellLat, cellLng, "Zwolle");
 
-        var handler = new GeocodeFakeNominatimHandler(ZwolleResponse);
+        var handler = new FakeHttpHandler(ZwolleResponse);
         var svc = BuildService(repo, handler);
 
         var result = await svc.ResolveAsync(Points((52.512, 6.092)), GeocodePrecisionPolicy.City, "nl",
@@ -150,7 +128,7 @@ public class GeocodeServiceTests
     public async Task ResolveAsync_CacheMiss_FetchesAndCachesForTheFullTtl()
     {
         var repo = new GeocodeFakeRepository();
-        var handler = new GeocodeFakeNominatimHandler(ZwolleResponse);
+        var handler = new FakeHttpHandler(ZwolleResponse);
         var svc = BuildService(repo, handler);
 
         var result = await svc.ResolveAsync(Points((52.512, 6.092)), GeocodePrecisionPolicy.Address, "nl",
@@ -173,7 +151,7 @@ public class GeocodeServiceTests
     public async Task ResolveAsync_SettlementTaggedAsVillage_StillYieldsACityName()
     {
         var repo = new GeocodeFakeRepository();
-        var handler = new GeocodeFakeNominatimHandler(VillageResponse);
+        var handler = new FakeHttpHandler(VillageResponse);
         var svc = BuildService(repo, handler);
 
         var result = await svc.ResolveAsync(Points((52.49, 6.23)), GeocodePrecisionPolicy.City, "nl",
@@ -186,7 +164,7 @@ public class GeocodeServiceTests
     public async Task ResolveAsync_PointsInOneCityCell_ShareASingleLookup()
     {
         var repo = new GeocodeFakeRepository();
-        var handler = new GeocodeFakeNominatimHandler(ZwolleResponse);
+        var handler = new FakeHttpHandler(ZwolleResponse);
         var svc = BuildService(repo, handler);
 
         // Two stops ~100m apart: the same city cell, so one answer serves both.
@@ -203,7 +181,7 @@ public class GeocodeServiceTests
     public async Task ResolveAsync_SendsTheCallersCoordinateAndThePrecisionsZoom()
     {
         var repo = new GeocodeFakeRepository();
-        var handler = new GeocodeFakeNominatimHandler(ZwolleResponse);
+        var handler = new FakeHttpHandler(ZwolleResponse);
         var svc = BuildService(repo, handler);
 
         await svc.ResolveAsync(Points((52.5123456, 6.0987654)), GeocodePrecisionPolicy.Address, "nl",
@@ -220,7 +198,7 @@ public class GeocodeServiceTests
     public async Task ResolveAsync_MoreMissesThanTheBudget_StopsAndReportsHasMore()
     {
         var repo = new GeocodeFakeRepository();
-        var handler = new GeocodeFakeNominatimHandler(ZwolleResponse);
+        var handler = new FakeHttpHandler(ZwolleResponse);
         var svc = BuildService(repo, handler);
 
         // Five separate cities: upstream is capped at one request per second, so the request
@@ -238,7 +216,7 @@ public class GeocodeServiceTests
     public async Task ResolveAsync_UnmappableCoordinate_CachesAnEmptyPlaceBriefly()
     {
         var repo = new GeocodeFakeRepository();
-        var handler = new GeocodeFakeNominatimHandler(UnmappableResponse);
+        var handler = new FakeHttpHandler(UnmappableResponse);
         var svc = BuildService(repo, handler);
 
         var result = await svc.ResolveAsync(Points((0.0, 0.0)), GeocodePrecisionPolicy.City, "en",
@@ -255,7 +233,7 @@ public class GeocodeServiceTests
     public async Task ResolveAsync_UpstreamRateLimited_LeavesPointUnresolvedAndCachesNothing()
     {
         var repo = new GeocodeFakeRepository();
-        var handler = new GeocodeFakeNominatimHandler("", HttpStatusCode.TooManyRequests);
+        var handler = new FakeHttpHandler("", HttpStatusCode.TooManyRequests);
         var svc = BuildService(repo, handler);
 
         var result = await svc.ResolveAsync(Points((52.1, 5.1)), GeocodePrecisionPolicy.City, "en",
@@ -271,7 +249,7 @@ public class GeocodeServiceTests
     public async Task ResolveAsync_GeocodingDisabled_ReportsUnavailableWithoutAskingUpstream()
     {
         var repo = new GeocodeFakeRepository();
-        var handler = new GeocodeFakeNominatimHandler(ZwolleResponse);
+        var handler = new FakeHttpHandler(ZwolleResponse);
         var svc = BuildService(repo, handler, new GeocodingOptions { Enabled = false });
 
         var result = await svc.ResolveAsync(Points((52.1, 5.1)), GeocodePrecisionPolicy.City, "en",
@@ -287,7 +265,7 @@ public class GeocodeServiceTests
     public async Task ResolveAsync_SelfHostedBaseUrl_IsUsedInsteadOfThePublicInstance()
     {
         var repo = new GeocodeFakeRepository();
-        var handler = new GeocodeFakeNominatimHandler(ZwolleResponse);
+        var handler = new FakeHttpHandler(ZwolleResponse);
         var svc = BuildService(repo, handler, new GeocodingOptions { BaseUrl = "http://nominatim.local:8080/" });
 
         await svc.ResolveAsync(Points((52.1, 5.1)), GeocodePrecisionPolicy.City, "en",

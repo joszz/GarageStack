@@ -13,11 +13,6 @@ namespace GarageStack.Tests;
 // VAPID-not-configured fallback path, which is the only path that completes without
 // ever needing a real scope.
 
-file sealed class NoopHttpClientFactory : IHttpClientFactory
-{
-    public HttpClient CreateClient(string name) => new();
-}
-
 public class PushSenderServiceTests
 {
     private static PushSenderService BuildService(string? publicKey = null, string? privateKey = null) =>
@@ -25,7 +20,7 @@ public class PushSenderServiceTests
             NullLogger<PushSenderService>.Instance,
             new FakeServiceScopeFactory(),
             new VapidOptions { PublicKey = publicKey, PrivateKey = privateKey },
-            new NoopHttpClientFactory());
+            new FakeHttpClientFactory(new HttpClient()));
 
     // VapidAuthentication validates key shape eagerly (65-byte uncompressed P-256 public
     // key, 32-byte private scalar), so "both keys set" needs a real - if freshly generated

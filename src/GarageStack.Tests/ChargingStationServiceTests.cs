@@ -12,8 +12,8 @@ public class ChargingStationServiceTests
 {
     private static OcmApiClient BuildOcmClient(string json, string? apiKey = "test-key")
     {
-        var handler = new PoiFakeOverpassHandler(json);
-        var factory = new PoiFakeHttpClientFactory(new System.Net.Http.HttpClient(handler));
+        var handler = new FakeHttpHandler(json);
+        var factory = new FakeHttpClientFactory(handler);
         return new OcmApiClient(factory, new OpenChargeMapOptions { ApiKey = apiKey }, NullLogger<OcmApiClient>.Instance);
     }
 
