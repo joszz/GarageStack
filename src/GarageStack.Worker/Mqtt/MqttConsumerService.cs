@@ -131,16 +131,33 @@ public class MqttConsumerService(
         }
     }
 
+    // The vehicle id per VIN, with the account it was last seen under. Every MQTT message names
+    // its VIN, and a poll is several messages: remembering the id spares each of them a lookup.
+    // A message under another account goes through GetOrCreateByVinAsync again, which records it.
+    private readonly ConcurrentDictionary<string, (int VehicleId, string? SaicUser)> _vehicleIds = new();
+
     // Resolves (creating on first sight) the vehicle for `vin` within a fresh DI scope. The
     // caller owns disposal of the returned scope and can resolve further scoped services
     // (e.g. ITelemetryRepository, AppDbContext) from the same ServiceProvider before disposing it.
-    private async Task<(IServiceScope Scope, IVehicleRepository VehicleRepo, Vehicle Vehicle)> ResolveVehicleInNewScopeAsync(
+    private async Task<(IServiceScope Scope, IVehicleRepository VehicleRepo, int VehicleId)> ResolveVehicleInNewScopeAsync(
         string vin, string? saicUser, CancellationToken ct)
     {
         var scope = scopeFactory.CreateScope();
-        var vehicleRepo = scope.ServiceProvider.GetRequiredService<IVehicleRepository>();
-        var vehicle = await vehicleRepo.GetOrCreateByVinAsync(vin, saicUser, ct);
-        return (scope, vehicleRepo, vehicle);
+        try
+        {
+            var vehicleRepo = scope.ServiceProvider.GetRequiredService<IVehicleRepository>();
+            if (_vehicleIds.TryGetValue(vin, out var known) && (saicUser is null || saicUser == known.SaicUser))
+                return (scope, vehicleRepo, known.VehicleId);
+
+            var vehicle = await vehicleRepo.GetOrCreateByVinAsync(vin, saicUser, ct);
+            _vehicleIds[vin] = (vehicle.Id, vehicle.SaicUser);
+            return (scope, vehicleRepo, vehicle.Id);
+        }
+        catch
+        {
+            scope.Dispose();
+            throw;
+        }
     }
 
     private async Task HandleMessageAsync(MqttApplicationMessageReceivedEventArgs e, CancellationToken ct)
@@ -174,7 +191,7 @@ public class MqttConsumerService(
             {
                 var resolved = await ResolveVehicleInNewScopeAsync(vin, saicUser, ct);
                 using var scope = resolved.Scope;
-                await resolved.VehicleRepo.SetConfigValueAsync(resolved.Vehicle.Id, configKey, payload, ct);
+                await resolved.VehicleRepo.SetConfigValueAsync(resolved.VehicleId, configKey, payload, ct);
             }
             catch (Exception ex)
             {
@@ -217,14 +234,14 @@ public class MqttConsumerService(
         {
             var resolved = await ResolveVehicleInNewScopeAsync(vin, saicUser, ct);
             using var scope = resolved.Scope;
-            var vehicle = resolved.Vehicle;
+            var vehicleId = resolved.VehicleId;
             var telemetryRepo = scope.ServiceProvider.GetRequiredService<ITelemetryRepository>();
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-            patch.VehicleId = vehicle.Id;
+            patch.VehicleId = vehicleId;
             patch.RecordedAt = DateTime.UtcNow;
 
-            await MergeOrAddTelemetryAsync(vehicle.Id, patch, topic, telemetryRepo, ct);
+            await MergeOrAddTelemetryAsync(vehicleId, patch, topic, telemetryRepo, ct);
 
             var tripCompleted = await CheckEngineStartAsync(vin, patch, db, ct);
             if (tripCompleted && patch.VehicleId > 0)
@@ -253,7 +270,7 @@ public class MqttConsumerService(
             var resolved = await ResolveVehicleInNewScopeAsync(vin, saicUser, ct);
             using var scope = resolved.Scope;
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-            var payload = new CommandResultPayload(resolved.Vehicle.Id, vin, result.Topic, result.Success, result.Detail);
+            var payload = new CommandResultPayload(resolved.VehicleId, vin, result.Topic, result.Success, result.Detail);
             await db.Database.NotifyAsync(PgChannels.CommandResult, payload.ToJson(), ct);
         }
         catch (Exception ex)
@@ -358,9 +375,9 @@ public class MqttConsumerService(
 
             var resolved = await ResolveVehicleInNewScopeAsync(vin, null, ct);
             using var scope = resolved.Scope;
-            await resolved.VehicleRepo.SetConfigValueAsync(resolved.Vehicle.Id, "hw_version", hwVersion, ct);
+            await resolved.VehicleRepo.SetConfigValueAsync(resolved.VehicleId, "hw_version", hwVersion, ct);
             if (!string.IsNullOrWhiteSpace(model))
-                await resolved.VehicleRepo.SetModelAsync(resolved.Vehicle.Id, model, ct);
+                await resolved.VehicleRepo.SetModelAsync(resolved.VehicleId, model, ct);
         }
         catch (Exception ex)
         {
