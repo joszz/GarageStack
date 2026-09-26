@@ -48,7 +48,7 @@ public static class VehicleEndpoints
         start = from?.UtcDateTime ?? end - defaultSpan;
 
         if (start >= end)
-            return Results.BadRequest(new { error = "from must be before to" });
+            return ApiProblems.BadRequest("range.inverted", "from must be before to");
 
         if (end - start > maxSpan)
             start = end - maxSpan;
@@ -132,27 +132,28 @@ public static class VehicleEndpoints
             CancellationToken ct) =>
         {
             var vehicle = ResolveVehicleFilter.GetResolvedVehicle(httpContext);
+            // The account arrives with the vehicle's first telemetry; until then the gateway
+            // topic a command travels on cannot be named.
             if (vehicle.SaicUser is null)
-                return Results.Problem("SAIC username not yet known for this vehicle");
+                return ApiProblems.Problem(StatusCodes.Status409Conflict, "vehicle.accountUnknown",
+                    "SAIC username not yet known for this vehicle");
 
             if (!body.TryGetProperty("value", out var valueEl))
-                return Results.BadRequest(new { error = "Missing 'value' in request body" });
+                return ApiProblems.BadRequest("command.valueMissing", "Missing 'value' in request body");
 
             if (valueEl.ValueKind != JsonValueKind.String)
-                return Results.BadRequest(new { error = "'value' must be a string" });
+                return ApiProblems.BadRequest("command.valueNotText", "'value' must be a string");
 
             var value = valueEl.GetString();
             if (string.IsNullOrWhiteSpace(value))
-                return Results.BadRequest(new { error = "'value' must be a non-empty string" });
+                return ApiProblems.BadRequest("command.valueEmpty", "'value' must be a non-empty string");
 
             var commandTopic = VehicleCommands.TopicFor(command);
             if (commandTopic is null)
-                return Results.BadRequest(new { error = $"Unknown command '{command}'" });
+                return ApiProblems.BadRequest("command.unknown", $"Unknown command '{command}'");
 
-            var validationError = ValidateCommandValue(command, value);
-
-            if (validationError is not null)
-                return Results.BadRequest(new { error = validationError });
+            if (ValidateCommandValue(command, value) is { } validationError)
+                return ApiProblems.BadRequest(validationError);
 
             // The resolved vehicle's VIN, not the raw route value, so the topic always matches
             // the row the filter found.
@@ -194,34 +195,39 @@ public static class VehicleEndpoints
     private static readonly HashSet<string> ChargeCurrentLimits =
         new(["6A", "8A", "16A", "MAX"], StringComparer.OrdinalIgnoreCase);
 
-    internal static string? ValidateCommandValue(string command, string value) => command switch
+    internal static ValidationError? ValidateCommandValue(string command, string value)
     {
-        "climate" or "rear-defroster" =>
-            value is "on" or "off" ? null : $"'{command}' value must be 'on' or 'off'",
-        "climate-temperature" =>
-            int.TryParse(value, out var temp) && temp is >= 16 and <= 28
-                ? null
-                : "'climate-temperature' value must be an integer between 16 and 28",
-        "seat-left" or "seat-right" =>
-            int.TryParse(value, out var seat) && seat is >= 0 and <= 3
-                ? null
-                : $"'{command}' value must be an integer between 0 and 3",
-        "find-my-car" =>
-            value is "activate" or "stop" ? null : "'find-my-car' value must be 'activate' or 'stop'",
-        // The gateway maps this onto its ChargeCurrentLimitCode enum, which only knows these
-        // four values (it upper-cases the payload first, so any casing is accepted here).
-        "charge-limit" =>
-            ChargeCurrentLimits.Contains(value)
-                ? null
-                : $"'charge-limit' value must be one of {string.Join(", ", ChargeCurrentLimits)}",
-        "lock" =>
-            value is "True" or "False" ? null : "'lock' value must be 'True' or 'False'",
-        "refresh" =>
-            value == "force" ? null : "'refresh' value must be 'force'",
-        // scheduled-charging: the SAIC API expects a JSON blob (mode + start/end time), whose
-        // shape isn't validated here; just cap the length forwarded to MQTT.
-        _ => value.Length <= 500 ? null : "value is too long"
-    };
+        var message = command switch
+        {
+            "climate" or "rear-defroster" =>
+                value is "on" or "off" ? null : $"'{command}' value must be 'on' or 'off'",
+            "climate-temperature" =>
+                int.TryParse(value, out var temp) && temp is >= 16 and <= 28
+                    ? null
+                    : "'climate-temperature' value must be an integer between 16 and 28",
+            "seat-left" or "seat-right" =>
+                int.TryParse(value, out var seat) && seat is >= 0 and <= 3
+                    ? null
+                    : $"'{command}' value must be an integer between 0 and 3",
+            "find-my-car" =>
+                value is "activate" or "stop" ? null : "'find-my-car' value must be 'activate' or 'stop'",
+            // The gateway maps this onto its ChargeCurrentLimitCode enum, which only knows these
+            // four values (it upper-cases the payload first, so any casing is accepted here).
+            "charge-limit" =>
+                ChargeCurrentLimits.Contains(value)
+                    ? null
+                    : $"'charge-limit' value must be one of {string.Join(", ", ChargeCurrentLimits)}",
+            "lock" =>
+                value is "True" or "False" ? null : "'lock' value must be 'True' or 'False'",
+            "refresh" =>
+                value == "force" ? null : "'refresh' value must be 'force'",
+            // scheduled-charging: the SAIC API expects a JSON blob (mode + start/end time), whose
+            // shape isn't validated here; just cap the length forwarded to MQTT.
+            _ => value.Length <= 500 ? null : "value is too long"
+        };
+
+        return message is null ? null : new ValidationError("command.invalidValue", message);
+    }
 }
 
 /// <summary>

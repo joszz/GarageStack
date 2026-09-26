@@ -8,16 +8,16 @@ public static class MapEndpoints
 {
     private static IResult? ValidateLatLng(double lat, double lng) =>
         lat is < -90 or > 90 || lng is < -180 or > 180
-            ? Results.BadRequest(new { error = "lat must be between -90 and 90, lng between -180 and 180" })
+            ? ApiProblems.BadRequest("map.coordinatesOutOfRange", "lat must be between -90 and 90, lng between -180 and 180")
             : null;
 
     private static IResult? ValidateRadiusKm(double radiusKm, string paramName) =>
         radiusKm is < 1 or > 200
-            ? Results.BadRequest(new { error = $"{paramName} must be between 1 and 200" })
+            ? ApiProblems.BadRequest("map.radiusOutOfRange", $"{paramName} must be between 1 and 200")
             : null;
 
     private static IResult InvalidPoiType() =>
-        Results.BadRequest(new { error = $"type must be one of '{string.Join("', '", PoiTypePolicy.AllOverpassTypes)}'" });
+        ApiProblems.BadRequest("map.unknownPoiType", $"type must be one of '{string.Join("', '", PoiTypePolicy.AllOverpassTypes)}'");
 
     public static IEndpointRouteBuilder MapMapEndpoints(this IEndpointRouteBuilder app)
     {
@@ -98,17 +98,17 @@ public static class MapEndpoints
         {
             var points = body.Points;
             if (points is null || points.Count == 0)
-                return Results.BadRequest(new { error = "points must contain at least one coordinate" });
+                return ApiProblems.BadRequest("map.pointsRequired", "points must contain at least one coordinate");
 
             if (points.Count > GeocodeDefaults.MaxPointsPerRequest)
-                return Results.BadRequest(new { error = $"points may not exceed {GeocodeDefaults.MaxPointsPerRequest} coordinates" });
+                return ApiProblems.BadRequest("map.tooManyPoints", $"points may not exceed {GeocodeDefaults.MaxPointsPerRequest} coordinates");
 
             foreach (var point in points)
                 if (ValidateLatLng(point.Lat, point.Lng) is { } coordError)
                     return coordError;
 
             if (GeocodePrecisionPolicy.Normalize(body.Precision) is not { } precision)
-                return Results.BadRequest(new { error = $"precision must be '{GeocodePrecisionPolicy.City}' or '{GeocodePrecisionPolicy.Address}'" });
+                return ApiProblems.BadRequest("map.unknownPrecision", $"precision must be '{GeocodePrecisionPolicy.City}' or '{GeocodePrecisionPolicy.Address}'");
 
             try
             {
@@ -132,10 +132,10 @@ public static class MapEndpoints
         {
             var points = body.Points;
             if (points is null || points.Count < MapMatchDefaults.MinPointsPerRequest)
-                return Results.BadRequest(new { error = $"points must contain at least {MapMatchDefaults.MinPointsPerRequest} coordinates" });
+                return ApiProblems.BadRequest("map.tooFewPoints", $"points must contain at least {MapMatchDefaults.MinPointsPerRequest} coordinates");
 
             if (points.Count > MapMatchDefaults.MaxPointsPerRequest)
-                return Results.BadRequest(new { error = $"points may not exceed {MapMatchDefaults.MaxPointsPerRequest} coordinates" });
+                return ApiProblems.BadRequest("map.tooManyPoints", $"points may not exceed {MapMatchDefaults.MaxPointsPerRequest} coordinates");
 
             foreach (var point in points)
                 if (ValidateLatLng(point.Lat, point.Lng) is { } coordError)

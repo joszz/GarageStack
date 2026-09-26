@@ -72,6 +72,8 @@ try
             return Task.CompletedTask;
         });
     });
+    // Every error answer is a ProblemDetails body; refusals add a `code` the browser translates.
+    builder.Services.AddProblemDetails();
     builder.Services.ConfigureHttpJsonOptions(opts =>
     {
         opts.SerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
@@ -151,12 +153,7 @@ try
             await db.Database.MigrateAsync();
     }
 
-    app.UseExceptionHandler(errorApp => errorApp.Run(async ctx =>
-    {
-        ctx.Response.StatusCode = 500;
-        ctx.Response.ContentType = "application/json";
-        await ctx.Response.WriteAsync("{\"error\":\"Internal server error\"}");
-    }));
+    app.UseExceptionHandler();
 
     var forwardedOptions = new ForwardedHeadersOptions
     {
@@ -220,10 +217,9 @@ try
                     "CSRF origin check failed: request Origin '{Origin}' not in allowed list ({Allowed}). " +
                     "If you are accessing from a LAN device, set CORS_ORIGIN to match the address in your browser.",
                     origin, allowedOriginsForLog);
-                ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
-                ctx.Response.ContentType = "application/json";
-                await ctx.Response.WriteAsync(
-                    "{\"error\":\"Origin not allowed. Set CORS_ORIGIN to the address you use to reach the app.\"}");
+                await ApiProblems.Problem(StatusCodes.Status403Forbidden, "csrf.originNotAllowed",
+                        "Origin not allowed. Set CORS_ORIGIN to the address you use to reach the app.")
+                    .ExecuteAsync(ctx);
                 return;
             }
         }
