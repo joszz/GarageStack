@@ -7,6 +7,7 @@ import {
   type TelemetrySnapshot,
   type TelemetryHistoryPoint,
   type Trip,
+  type TripSummary,
   type CommandResult,
 } from '@/services/vehicleApi'
 import { useUiSettingsStore } from '@/stores/settingsUi'
@@ -26,6 +27,10 @@ export const useVehicleStore = defineStore('vehicle', () => {
   // field-by-field, so deep reactivity on every GPS point/telemetry snapshot is wasted work.
   const history = shallowRef<TelemetryHistoryPoint[]>([])
   const trips = shallowRef<Trip[]>([])
+  // Separate from `trips`, which the map fills with a period of trips and all their fixes: the
+  // dashboard needs only the newest trip, and the statistics page only the figures of a period.
+  const latestTrip = shallowRef<Trip | null>(null)
+  const tripSummaries = shallowRef<TripSummary[]>([])
   const { loading, withLoading } = useLoadingTracker()
   const sendingCount = ref(0)
   const anySending = computed(() => sendingCount.value > 0)
@@ -35,6 +40,8 @@ export const useVehicleStore = defineStore('vehicle', () => {
   const statusError = ref<string | null>(null)
   const historyError = ref<string | null>(null)
   const tripsError = ref<string | null>(null)
+  const latestTripError = ref<string | null>(null)
+  const tripSummariesError = ref<string | null>(null)
   const lastUpdated = ref<Date | null>(null)
 
   // Reactive one-shot flags set for a single tick when specific state transitions occur.
@@ -112,6 +119,18 @@ export const useVehicleStore = defineStore('vehicle', () => {
     })
   }
 
+  async function fetchLatestTrip(vin: string) {
+    await withLoading(latestTripError, async () => {
+      latestTrip.value = (await vehicleApi.latestTrip(vin)) ?? null
+    })
+  }
+
+  async function fetchTripSummaries(vin: string, from?: string, to?: string) {
+    await withLoading(tripSummariesError, async () => {
+      tripSummaries.value = await vehicleApi.tripSummaries(vin, from, to)
+    })
+  }
+
   // GarageStack follows one car. Every view needs the same one, so "the first vehicle" is
   // resolved here instead of being re-derived from the list by index in each component.
   const activeVehicle = computed((): Vehicle | null => vehicles.value[0] ?? null)
@@ -147,6 +166,8 @@ export const useVehicleStore = defineStore('vehicle', () => {
     hvBatteryCapacityKwh,
     history,
     trips,
+    latestTrip,
+    tripSummaries,
     loading,
     anySending,
     sendingCount,
@@ -154,6 +175,8 @@ export const useVehicleStore = defineStore('vehicle', () => {
     statusError,
     historyError,
     tripsError,
+    latestTripError,
+    tripSummariesError,
     lastUpdated,
     tripJustCompleted,
     chargingJustCompleted,
@@ -163,6 +186,8 @@ export const useVehicleStore = defineStore('vehicle', () => {
     fetchConfig,
     fetchHistory,
     fetchTrips,
+    fetchLatestTrip,
+    fetchTripSummaries,
     applyLiveStatus,
     notifyTripCompleted,
     applyCommandResult,

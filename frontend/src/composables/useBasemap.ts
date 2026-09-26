@@ -59,6 +59,17 @@ async function loadStyle(url: string): Promise<MapStyle> {
   return JSON.parse(await pending) as MapStyle
 }
 
+export interface BasemapOptions {
+  /**
+   * False keeps the map on raster tiles and never loads MapLibre. For a small preview that cannot
+   * be panned or zoomed, the vector renderer (well over a megabyte) buys nothing that is visible.
+   */
+  vector?: boolean
+}
+
+/** Marks a map drawn from raster tiles, which the stylesheet darkens in the dark theme. */
+const RASTER_CLASS = 'basemap--raster'
+
 /**
  * Puts a vector basemap under a Leaflet map. MapLibre GL draws OpenStreetMap vector tiles into
  * Leaflet's tile pane, so the basemap follows the app's dark/light theme and its labels follow
@@ -66,7 +77,7 @@ async function loadStyle(url: string): Promise<MapStyle> {
  * ordinary Leaflet. Both libraries are loaded lazily, so a page without a map never pays for the
  * renderer, and a browser without WebGL falls back to the raster tiles this replaced.
  */
-export function useBasemap(mapInstance: Ref<LeafletMap | null>) {
+export function useBasemap(mapInstance: Ref<LeafletMap | null>, options: BasemapOptions = {}) {
   const { theme, locale } = storeToRefs(useUiSettingsStore())
 
   let vectorActive = false
@@ -76,15 +87,21 @@ export function useBasemap(mapInstance: Ref<LeafletMap | null>) {
   // world moved on (theme switched twice, view unmounted mid-fetch) knows to drop its result.
   let generation = 0
 
+  let rasterMap: LeafletMap | null = null
+
   function detach() {
     generation += 1
     layer?.remove()
     layer = null
     glLayer = null
     vectorActive = false
+    rasterMap?.getContainer().classList.remove(RASTER_CLASS)
+    rasterMap = null
   }
 
   function addRasterFallback(map: LeafletMap) {
+    rasterMap = map
+    map.getContainer().classList.add(RASTER_CLASS)
     map.setMaxZoom(RASTER_FALLBACK_MAX_ZOOM)
     layer = L.tileLayer(RASTER_FALLBACK_TILE_URL, {
       attribution: OSM_ATTRIBUTION,
@@ -148,7 +165,7 @@ export function useBasemap(mapInstance: Ref<LeafletMap | null>) {
       // prefix wraps onto a second line and swallows a quarter of the dashboard's map card.
       // The data credits have to stay; Leaflet's does not (BSD, no attribution clause).
       if (map.attributionControl) map.attributionControl.setPrefix('')
-      if (!supportsWebGl()) {
+      if (options.vector === false || !supportsWebGl()) {
         addRasterFallback(map)
         return
       }

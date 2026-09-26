@@ -52,12 +52,8 @@ const status = computed(() => store.currentStatus)
 const cardData = useCardData()
 
 const vehicleType = computed(() => store.effectiveVehicleType)
-const latestTrip = computed(() => store.trips[store.trips.length - 1] ?? null)
-const topSpeedKmh = computed(() => {
-  if (!latestTrip.value) return null
-  const speeds = latestTrip.value.points.map((p) => p.speed).filter((s): s is number => s !== null)
-  return speeds.length ? Math.max(...speeds) : null
-})
+const latestTrip = computed(() => store.latestTrip)
+const topSpeedKmh = computed(() => latestTrip.value?.maxSpeedKmh ?? null)
 
 // A card's value and unit, from a metric reading in the browser's units.
 function measured(

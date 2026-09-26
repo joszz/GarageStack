@@ -24,6 +24,11 @@ function trip(points: number, startedAt = '2026-09-20T08:00:00Z'): Trip {
     endedAt: '2026-09-20T08:30:00Z',
     distanceKm: 12.3,
     pointCount: points,
+    endLatitude: null,
+    endLongitude: null,
+    maxSpeedKmh: null,
+    avgMovingSpeedKmh: null,
+    movingSpeedSamples: 0,
     points: Array.from({ length: points }, (_, i) => ({
       recordedAt: new Date(Date.parse(startedAt) + i * 60_000).toISOString(),
       latitude: 52.5 + i * 0.001,

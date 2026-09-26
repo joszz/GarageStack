@@ -20,6 +20,11 @@ function trip(overrides: Partial<Trip> = {}): Trip {
     endedAt: '2026-09-24T15:06:00.000Z',
     distanceKm: 42,
     pointCount: 56,
+    endLatitude: 52.2554,
+    endLongitude: 6.1639,
+    maxSpeedKmh: 0,
+    avgMovingSpeedKmh: null,
+    movingSpeedSamples: 0,
     points: [
       { recordedAt: '2026-09-24T14:32:00.000Z', latitude: 52.5123, longitude: 6.0921, speed: 0 },
       { recordedAt: '2026-09-24T15:06:00.000Z', latitude: 52.2554, longitude: 6.1639, speed: 0 },
