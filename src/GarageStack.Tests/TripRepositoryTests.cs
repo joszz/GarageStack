@@ -166,6 +166,73 @@ public class TripRepositoryTests
         Assert.Empty(await repo.GetTripsAsync(vehicle.Id, T0.AddDays(-1), T0.AddDays(1), ct));
     }
 
+    // ── Latest trip ──────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task GetLatest_PrefersTheTripPastTheLine()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (db, repo, vehicle) = await SetupAsync(ct);
+        await using var _ = db;
+        var savedDrive = Drive(vehicle.Id, T0);
+        db.TelemetrySnapshots.AddRange([.. savedDrive, .. Drive(vehicle.Id, T0.AddHours(2))]);
+        await db.SaveChangesAsync(ct);
+        await repo.SaveRecordedAsync(vehicle.Id, [Recorded(CutOne(savedDrive))], T0.AddHours(1), ct);
+
+        var latest = await repo.GetLatestAsync(vehicle.Id, T0.AddHours(3), ct);
+
+        Assert.NotNull(latest);
+        Assert.Null(latest.Id);
+        Assert.Equal(T0.AddHours(2), latest.StartedAt);
+        Assert.Equal(0, latest.Index);
+    }
+
+    [Fact]
+    public async Task GetLatest_WithNothingPastTheLine_ServesTheNewestSavedTrip()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (db, repo, vehicle) = await SetupAsync(ct);
+        await using var _ = db;
+        await repo.SaveRecordedAsync(vehicle.Id,
+            [Recorded(CutOne(Drive(vehicle.Id, T0))), Recorded(CutOne(Drive(vehicle.Id, T0.AddDays(1))))],
+            T0.AddDays(1).AddHours(1), ct);
+
+        // Weeks later: the saved trips are older than the lookback, and still the answer.
+        var latest = await repo.GetLatestAsync(vehicle.Id, T0.AddDays(30), ct);
+
+        Assert.NotNull(latest);
+        Assert.NotNull(latest.Id);
+        Assert.Equal(T0.AddDays(1), latest.StartedAt);
+        Assert.Equal(3, latest.Points.Count);
+    }
+
+    [Fact]
+    public async Task GetLatest_SkipsASavedTripWithUnreadableFixes()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (db, repo, vehicle) = await SetupAsync(ct);
+        await using var _ = db;
+        await repo.SaveRecordedAsync(vehicle.Id,
+            [Recorded(CutOne(Drive(vehicle.Id, T0))), Recorded(CutOne(Drive(vehicle.Id, T0.AddDays(1))))],
+            T0.AddDays(1).AddHours(1), ct);
+        (await db.Trips.SingleAsync(t => t.StartedAt == T0.AddDays(1), ct)).PointsJson = "not json";
+        await db.SaveChangesAsync(ct);
+
+        var latest = await repo.GetLatestAsync(vehicle.Id, T0.AddDays(2), ct);
+
+        Assert.Equal(T0, latest?.StartedAt);
+    }
+
+    [Fact]
+    public async Task GetLatest_WithoutAnyTrip_IsNull()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (db, repo, vehicle) = await SetupAsync(ct);
+        await using var _ = db;
+
+        Assert.Null(await repo.GetLatestAsync(vehicle.Id, T0, ct));
+    }
+
     // ── Trip log ─────────────────────────────────────────────────────────────
 
     private static readonly PlaceAddress Home = new("Grote Markt 1, Zwolle", "Grote Markt", "1", "Zwolle", "8011 LW", "nl");

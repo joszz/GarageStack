@@ -15,6 +15,12 @@ public interface ITripRepository
     /// </summary>
     Task<IReadOnlyList<TripDto>> GetTripsAsync(int vehicleId, DateTime from, DateTime to, CancellationToken ct = default);
 
+    /// <summary>
+    /// The vehicle's newest trip at <paramref name="now"/>: the one being driven or finished but not
+    /// saved yet when there is one, otherwise the newest saved trip. Null when it has none.
+    /// </summary>
+    Task<TripDto?> GetLatestAsync(int vehicleId, DateTime now, CancellationToken ct = default);
+
     /// <summary>The vehicle's <see cref="Vehicle.TripsRecordedUntil"/>, or null when nothing has been recorded.</summary>
     Task<DateTime?> GetRecordedUntilAsync(int vehicleId, CancellationToken ct = default);
 
