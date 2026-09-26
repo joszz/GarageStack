@@ -57,14 +57,14 @@ public class MaintenanceCheckService(
         {
             if (!itemsByVehicle.TryGetValue(vehicle.Id, out var items) || items.Count == 0) continue;
 
-            var snapshot = await telemetry.GetMergedLatestAsync(vehicle.Id, ct);
+            var odometerKm = await telemetry.GetOdometerAtAsync(vehicle.Id, DateTime.UtcNow, ct);
 
             foreach (var item in items)
             {
                 var result = MaintenanceDueCalculator.Calculate(
                     item.IntervalKm, item.IntervalMonths,
                     item.LastServiceDate, item.LastServiceOdometerKm,
-                    snapshot?.OdometerKm, DateTime.UtcNow);
+                    odometerKm, DateTime.UtcNow);
 
                 var alert = BuildAlert(item, result, strings);
                 if (alert is null) continue;
