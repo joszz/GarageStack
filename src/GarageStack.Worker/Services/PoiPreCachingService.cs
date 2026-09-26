@@ -12,34 +12,17 @@ public sealed class PoiPreCachingService(
     ILogger<PoiPreCachingService> logger,
     IServiceScopeFactory scopeFactory,
     OverpassApiClient overpassClient,
-    OcmApiClient ocmClient) : BackgroundService
+    OcmApiClient ocmClient) : PeriodicBackgroundService(logger)
 {
-    private static readonly TimeSpan InitialDelay = TimeSpan.FromMinutes(2);
-    private static readonly TimeSpan Interval = TimeSpan.FromHours(6);
     private const double PreCacheRadiusKm = 100.0;
 
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-    {
-        logger.LogInformation("POI pre-caching service started");
+    protected override string Name => "POI pre-caching";
 
-        await Task.Delay(InitialDelay, stoppingToken);
+    protected override TimeSpan InitialDelay => TimeSpan.FromMinutes(2);
 
-        while (!stoppingToken.IsCancellationRequested)
-        {
-            try
-            {
-                await PreCacheAllVehiclesAsync(stoppingToken);
-            }
-            catch (Exception ex) when (!stoppingToken.IsCancellationRequested)
-            {
-                logger.LogError(ex, "POI pre-caching encountered an error");
-            }
+    protected override TimeSpan Interval => TimeSpan.FromHours(6);
 
-            await Task.Delay(Interval, stoppingToken);
-        }
-    }
-
-    private async Task PreCacheAllVehiclesAsync(CancellationToken ct)
+    protected override async Task RunOnceAsync(CancellationToken ct)
     {
         using var scope = scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();

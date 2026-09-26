@@ -13,7 +13,7 @@ public class PushNotificationCheckService(
     IServiceScopeFactory scopeFactory,
     IPushSender pushSender,
     TyrePressureThresholds tyrePressureThresholds,
-    IStringLocalizer<NotificationStrings> strings) : BackgroundService
+    IStringLocalizer<NotificationStrings> strings) : PeriodicBackgroundService(logger)
 {
     private readonly NotificationCooldownGate _cooldownGate = new(TimeSpan.FromHours(1));
     internal readonly VinStateTracker<bool?> _engineRunningTracker = new();
@@ -49,26 +49,13 @@ public class PushNotificationCheckService(
         ("PositionRearRight", s => s.RearRightWindowOpen),
     ];
 
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-    {
-        logger.LogInformation("Push notification check service started");
+    protected override string Name => "Push notification check";
 
-        while (!stoppingToken.IsCancellationRequested)
-        {
-            await Task.Delay(TimeSpan.FromMinutes(5), stoppingToken);
+    protected override TimeSpan InitialDelay => TimeSpan.FromMinutes(5);
 
-            try
-            {
-                await CheckAndNotifyAsync(stoppingToken);
-            }
-            catch (Exception ex) when (!stoppingToken.IsCancellationRequested)
-            {
-                logger.LogError(ex, "Error during push notification check");
-            }
-        }
-    }
+    protected override TimeSpan Interval => TimeSpan.FromMinutes(5);
 
-    private async Task CheckAndNotifyAsync(CancellationToken ct)
+    protected override async Task RunOnceAsync(CancellationToken ct)
     {
         using var scope = scopeFactory.CreateScope();
         var telemetry = scope.ServiceProvider.GetRequiredService<ITelemetryRepository>();

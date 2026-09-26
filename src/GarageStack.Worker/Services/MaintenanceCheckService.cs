@@ -12,33 +12,17 @@ public class MaintenanceCheckService(
     ILogger<MaintenanceCheckService> logger,
     IServiceScopeFactory scopeFactory,
     IPushSender pushSender,
-    IStringLocalizer<NotificationStrings> strings) : BackgroundService
+    IStringLocalizer<NotificationStrings> strings) : PeriodicBackgroundService(logger)
 {
-    private readonly TimeSpan _checkInterval = TimeSpan.FromHours(6);
     private readonly NotificationCooldownGate _cooldownGate = new(TimeSpan.FromDays(7));
 
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-    {
-        logger.LogInformation("Maintenance check service started");
+    protected override string Name => "Maintenance check";
 
-        while (!stoppingToken.IsCancellationRequested)
-        {
-            try
-            {
-                await CheckAndNotifyAsync(stoppingToken);
-            }
-            catch (Exception ex) when (!stoppingToken.IsCancellationRequested)
-            {
-                logger.LogError(ex, "Error during maintenance check");
-            }
+    // No initial delay: a fresh restart checks immediately rather than waiting a full interval
+    // before the first reminder can go out.
+    protected override TimeSpan Interval => TimeSpan.FromHours(6);
 
-            // Delay at the end (not the start) so a fresh restart checks immediately rather
-            // than waiting a full interval before the first reminder can go out.
-            await Task.Delay(_checkInterval, stoppingToken);
-        }
-    }
-
-    private async Task CheckAndNotifyAsync(CancellationToken ct)
+    protected override async Task RunOnceAsync(CancellationToken ct)
     {
         using var scope = scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
