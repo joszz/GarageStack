@@ -19,7 +19,7 @@ public static class DemoEndpoints
             .RequireAuthorization();
 
         group.MapGroup("/status/{vin}")
-            .AddEndpointFilter<VehicleEndpoints.ResolveVehicleFilter>()
+            .AddEndpointFilter<ResolveVehicleFilter>()
             .MapPost("/", (DemoStatusOverrideDto dto) =>
             {
                 demoRepo.ApplyOverride(dto);

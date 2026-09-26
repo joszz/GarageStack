@@ -1,9 +1,9 @@
 using System.Globalization;
 using System.Text.Json.Serialization;
-using System.Threading.RateLimiting;
 using GarageStack.Api;
 using GarageStack.Api.Authentication;
 using GarageStack.Api.Endpoints;
+using GarageStack.Api.Hosting;
 using GarageStack.Api.Hubs;
 using GarageStack.Api.Services;
 using GarageStack.Core.Configuration;
@@ -12,7 +12,6 @@ using GarageStack.Data;
 using GarageStack.Data.Demo;
 using GarageStack.Data.Extensions;
 using Microsoft.AspNetCore.DataProtection;
-using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
@@ -94,53 +93,12 @@ try
     builder.Services.AddSignalR();
 
     builder.Services.AddGarageStackAuthentication(builder.Configuration, builder.Environment);
-
-    // Requests per minute per client IP across the whole API. Configurable because the right
-    // number depends on the deployment: a household sharing one NAT address, or a browser test
-    // run driving several pages in parallel, bursts well past what a single tab needs.
-    var globalPermitsPerMinute = builder.Configuration.IntegerOrDefault("RateLimits:GlobalPerMinute", 120);
-    if (globalPermitsPerMinute < 1)
-    {
-        throw new InvalidOperationException(
-            $"RateLimits:GlobalPerMinute must be at least 1, but was {globalPermitsPerMinute}.");
-    }
-
-    builder.Services.AddRateLimiter(opts =>
-    {
-        opts.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-        opts.GlobalLimiter = PartitionedRateLimiter.Create(FixedWindowPerIp(TimeSpan.FromMinutes(1), globalPermitsPerMinute));
-
-        // Tighter, endpoint-specific limit on login to slow down credential-stuffing attempts.
-        // Composes with (i.e. is enforced in addition to) the global limiter above.
-        opts.AddPolicy("login", FixedWindowPerIp(TimeSpan.FromMinutes(5), permitLimit: 10));
-
-        // Starting an OIDC sign-in submits no credentials, so it needs no brute-force limit --
-        // but it does redirect to the identity provider, and a redirect loop caused by a
-        // misconfiguration should not hammer it. Loose enough that auto-login plus a few page
-        // reloads never trips it.
-        opts.AddPolicy("oidc-login", FixedWindowPerIp(TimeSpan.FromMinutes(5), permitLimit: 30));
-
-        // Tighter limit on the widget endpoint to slow down guessing WIDGET_API_KEY, which the
-        // global limiter alone (120/min by default) would allow at a much higher rate. Still generous
-        // enough for a handful of dashboard widgets behind the same NAT polling every 30s.
-        opts.AddPolicy("widget", FixedWindowPerIp(TimeSpan.FromMinutes(5), permitLimit: 60));
-    });
+    builder.Services.AddGarageStackRateLimiting(builder.Configuration);
 
     // The browser origins allowed to call the API: CORS for cross-origin deployments and the
     // CSRF origin check below. Read once here; it is fixed for the process lifetime.
     var allowedOrigins = builder.Configuration.GetSection("Cors:Origins").Get<string[]>() ?? [];
-
-    builder.Services.AddCors(opts =>
-        opts.AddDefaultPolicy(p =>
-        {
-            if (builder.Environment.IsDevelopment())
-                p.SetIsOriginAllowed(_ => true).AllowAnyHeader().AllowAnyMethod().AllowCredentials();
-            else
-                p.WithOrigins(allowedOrigins)
-                 .AllowAnyHeader()
-                 .AllowAnyMethod()
-                 .AllowCredentials();
-        }));
+    builder.Services.AddGarageStackCors(allowedOrigins, builder.Environment);
 
     var app = builder.Build();
 
@@ -154,77 +112,15 @@ try
     }
 
     app.UseExceptionHandler();
-
-    var forwardedOptions = new ForwardedHeadersOptions
-    {
-        ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
-    };
-    var trustedProxies = app.Configuration.GetSection("ForwardedHeaders:TrustedProxies").Get<string[]>();
-    if (trustedProxies is { Length: > 0 })
-    {
-        // Prefer explicit proxy IPs to limit header-spoofing surface.
-        foreach (var proxyIp in trustedProxies)
-            if (System.Net.IPAddress.TryParse(proxyIp, out var ip))
-                forwardedOptions.KnownProxies.Add(ip);
-    }
-    else
-    {
-        // Fallback: trust all RFC 1918 ranges so nginx in a Docker network is recognised.
-        // Set ForwardedHeaders:TrustedProxies in production to restrict to the actual proxy IP.
-        if (!app.Environment.IsDevelopment())
-            Log.Warning("ForwardedHeaders:TrustedProxies is not configured -- trusting all RFC 1918 ranges. " +
-                        "Set this to your proxy IP(s) to prevent forwarded-header spoofing.");
-#pragma warning disable ASPDEPR005
-        forwardedOptions.KnownNetworks.Add(new IPNetwork(System.Net.IPAddress.Parse("10.0.0.0"), 8));
-        forwardedOptions.KnownNetworks.Add(new IPNetwork(System.Net.IPAddress.Parse("172.16.0.0"), 12));
-        forwardedOptions.KnownNetworks.Add(new IPNetwork(System.Net.IPAddress.Parse("192.168.0.0"), 16));
-#pragma warning restore ASPDEPR005
-    }
-    app.UseForwardedHeaders(forwardedOptions);
+    app.UseGarageStackForwardedHeaders();
     app.UseSerilogRequestLogging();
     app.UseCors();
 
     // Rate limiting runs before the CSRF origin check so that a flood of requests with a
     // spoofed/mismatched Origin gets throttled instead of generating unbounded warning-log
-    // volume below.
+    // volume in the check.
     app.UseRateLimiter();
-
-    // Defense-in-depth: when an Origin header is present on a state-changing request,
-    // verify it matches a configured allowed origin. SameSite=Strict is the primary CSRF
-    // protection; this adds an explicit server-side check for deployments where that alone
-    // is not sufficient (e.g., same-site subdomain compromise).
-    if (!app.Environment.IsDevelopment() &&
-        allowedOrigins.Any(o => o.Contains("localhost", StringComparison.OrdinalIgnoreCase)))
-    {
-        Log.Warning(
-            "CORS_ORIGIN contains 'localhost' ({Origins}). " +
-            "Requests from other devices on the LAN will be rejected with 403. " +
-            "Set CORS_ORIGIN to the address you use to reach the app from those devices, " +
-            "e.g. http://192.168.1.100:8080",
-            string.Join(", ", allowedOrigins));
-    }
-
-    var enforceOriginCheck = !app.Environment.IsDevelopment();
-    var allowedOriginsForLog = string.Join(", ", allowedOrigins);
-    app.Use(async (ctx, next) =>
-    {
-        if (enforceOriginCheck && IsStateChanging(ctx.Request.Method))
-        {
-            var origin = ctx.Request.Headers.Origin.ToString();
-            if (!string.IsNullOrEmpty(origin) && !CsrfPolicy.IsOriginAllowed(origin, allowedOrigins))
-            {
-                Log.Warning(
-                    "CSRF origin check failed: request Origin '{Origin}' not in allowed list ({Allowed}). " +
-                    "If you are accessing from a LAN device, set CORS_ORIGIN to match the address in your browser.",
-                    origin, allowedOriginsForLog);
-                await ApiProblems.Problem(StatusCodes.Status403Forbidden, "csrf.originNotAllowed",
-                        "Origin not allowed. Set CORS_ORIGIN to the address you use to reach the app.")
-                    .ExecuteAsync(ctx);
-                return;
-            }
-        }
-        await next(ctx);
-    });
+    app.UseCsrfOriginCheck(allowedOrigins);
 
     app.UseRequestLocalization(new RequestLocalizationOptions
     {
@@ -274,18 +170,3 @@ finally
 {
     Log.CloseAndFlush();
 }
-
-// One fixed-window limiter per client IP. Every policy above differs only in window and limit.
-static Func<HttpContext, RateLimitPartition<string>> FixedWindowPerIp(TimeSpan window, int permitLimit) =>
-    httpContext => RateLimitPartition.GetFixedWindowLimiter(
-        partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-        factory: _ => new FixedWindowRateLimiterOptions
-        {
-            Window = window,
-            PermitLimit = permitLimit,
-            QueueLimit = 0,
-            AutoReplenishment = true,
-        });
-
-static bool IsStateChanging(string method) =>
-    HttpMethods.IsPost(method) || HttpMethods.IsPut(method) || HttpMethods.IsPatch(method) || HttpMethods.IsDelete(method);

@@ -1,6 +1,5 @@
-using System.Security.Cryptography;
-using System.Text;
 using GarageStack.Api.Authentication;
+using GarageStack.Api.Security;
 using GarageStack.Data;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -113,8 +112,8 @@ public static class AuthEndpoints
             var providedUsername = req.Username?.Trim() ?? string.Empty;
             var providedPassword = req.Password ?? string.Empty;
 
-            var validUser = FixedTimeEquals(providedUsername, passwordLogin.Username);
-            var validPassword = FixedTimeEquals(providedPassword, passwordLogin.Password);
+            var validUser = SecretComparer.FixedTimeEquals(providedUsername, passwordLogin.Username);
+            var validPassword = SecretComparer.FixedTimeEquals(providedPassword, passwordLogin.Password);
 
             if (!validUser || !validPassword)
             {
@@ -146,15 +145,6 @@ public static class AuthEndpoints
         .WithSummary("Authenticate with the built-in password login");
 
         return app;
-    }
-
-    internal static bool FixedTimeEquals(string left, string right)
-    {
-        // Hash both values first so the compared buffers always have identical length.
-        var leftBytes = SHA256.HashData(Encoding.UTF8.GetBytes(left));
-        var rightBytes = SHA256.HashData(Encoding.UTF8.GetBytes(right));
-
-        return CryptographicOperations.FixedTimeEquals(leftBytes, rightBytes);
     }
 }
 

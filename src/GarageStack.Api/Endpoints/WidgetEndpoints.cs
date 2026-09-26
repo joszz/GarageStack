@@ -1,3 +1,4 @@
+using GarageStack.Api.Security;
 using GarageStack.Core.Interfaces;
 using GarageStack.Core.Models;
 using Microsoft.Extensions.Localization;
@@ -20,21 +21,21 @@ public static class WidgetEndpoints
                         "Widget API key is not configured. Set the WIDGET_API_KEY environment variable.");
 
                 var providedKey = ctx.HttpContext.Request.Headers["X-Widget-Key"].ToString();
-                if (!AuthEndpoints.FixedTimeEquals(providedKey, configuredKey))
+                if (!SecretComparer.FixedTimeEquals(providedKey, configuredKey))
                     return Results.Unauthorized();
 
                 return await next(ctx);
             });
 
         group.MapGroup("/{vin}")
-            .AddEndpointFilter<VehicleEndpoints.ResolveVehicleFilter>()
+            .AddEndpointFilter<ResolveVehicleFilter>()
             .MapGet("/status", async (
                 HttpContext httpContext,
                 ITelemetryRepository telemetry,
                 IStringLocalizer<WidgetStrings> localizer,
                 CancellationToken ct) =>
             {
-                var vehicle = VehicleEndpoints.ResolveVehicleFilter.GetResolvedVehicle(httpContext);
+                var vehicle = httpContext.ResolvedVehicle();
                 var snapshot = await telemetry.GetMergedLatestAsync(vehicle.Id, ct);
                 return snapshot is null ? Results.NoContent() : Results.Ok(WidgetStatusDto.FromSnapshot(snapshot, localizer));
             })

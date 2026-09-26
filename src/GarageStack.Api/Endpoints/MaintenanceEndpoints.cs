@@ -13,11 +13,11 @@ public static class MaintenanceEndpoints
         var group = app.MapGroup("/api/vehicles/{vin}/maintenance")
             .WithTags("Maintenance")
             .RequireAuthorization()
-            .AddEndpointFilter<VehicleEndpoints.ResolveVehicleFilter>();
+            .AddEndpointFilter<ResolveVehicleFilter>();
 
         group.MapGet("/", async (HttpContext httpContext, AppDbContext db, ITelemetryRepository telemetry, CancellationToken ct) =>
         {
-            var vehicle = VehicleEndpoints.ResolveVehicleFilter.GetResolvedVehicle(httpContext);
+            var vehicle = httpContext.ResolvedVehicle();
 
             var items = await db.MaintenanceItems.AsNoTracking()
                 .Where(m => m.VehicleId == vehicle.Id)
@@ -34,7 +34,7 @@ public static class MaintenanceEndpoints
             HttpContext httpContext, CreateMaintenanceItemRequest req,
             AppDbContext db, ITelemetryRepository telemetry, CancellationToken ct) =>
         {
-            var vehicle = VehicleEndpoints.ResolveVehicleFilter.GetResolvedVehicle(httpContext);
+            var vehicle = httpContext.ResolvedVehicle();
 
             if (ValidateItem(req.Name, req.Notes, req.IntervalKm, req.IntervalMonths) is { } error)
                 return ApiProblems.BadRequest(error);
@@ -62,7 +62,7 @@ public static class MaintenanceEndpoints
             HttpContext httpContext, int id, UpdateMaintenanceItemRequest req,
             AppDbContext db, ITelemetryRepository telemetry, CancellationToken ct) =>
         {
-            var vehicle = VehicleEndpoints.ResolveVehicleFilter.GetResolvedVehicle(httpContext);
+            var vehicle = httpContext.ResolvedVehicle();
 
             var item = await db.MaintenanceItems.FirstOrDefaultAsync(m => m.Id == id && m.VehicleId == vehicle.Id, ct);
             if (item is null) return Results.NotFound();
@@ -84,7 +84,7 @@ public static class MaintenanceEndpoints
 
         group.MapDelete("/{id:int}", async (HttpContext httpContext, int id, AppDbContext db, CancellationToken ct) =>
         {
-            var vehicle = VehicleEndpoints.ResolveVehicleFilter.GetResolvedVehicle(httpContext);
+            var vehicle = httpContext.ResolvedVehicle();
 
             var item = await db.MaintenanceItems.FirstOrDefaultAsync(m => m.Id == id && m.VehicleId == vehicle.Id, ct);
             if (item is null) return Results.NotFound();
@@ -98,7 +98,7 @@ public static class MaintenanceEndpoints
 
         group.MapGet("/{id:int}/log", async (HttpContext httpContext, int id, AppDbContext db, CancellationToken ct) =>
         {
-            var vehicle = VehicleEndpoints.ResolveVehicleFilter.GetResolvedVehicle(httpContext);
+            var vehicle = httpContext.ResolvedVehicle();
 
             var itemExists = await db.MaintenanceItems.AnyAsync(m => m.Id == id && m.VehicleId == vehicle.Id, ct);
             if (!itemExists) return Results.NotFound();
@@ -117,7 +117,7 @@ public static class MaintenanceEndpoints
             HttpContext httpContext, int id, LogMaintenanceServiceRequest req,
             AppDbContext db, ITelemetryRepository telemetry, CancellationToken ct) =>
         {
-            var vehicle = VehicleEndpoints.ResolveVehicleFilter.GetResolvedVehicle(httpContext);
+            var vehicle = httpContext.ResolvedVehicle();
 
             var item = await db.MaintenanceItems.FirstOrDefaultAsync(m => m.Id == id && m.VehicleId == vehicle.Id, ct);
             if (item is null) return Results.NotFound();
@@ -149,7 +149,7 @@ public static class MaintenanceEndpoints
             HttpContext httpContext, int id, int logId,
             AppDbContext db, ITelemetryRepository telemetry, CancellationToken ct) =>
         {
-            var vehicle = VehicleEndpoints.ResolveVehicleFilter.GetResolvedVehicle(httpContext);
+            var vehicle = httpContext.ResolvedVehicle();
 
             var item = await db.MaintenanceItems.FirstOrDefaultAsync(m => m.Id == id && m.VehicleId == vehicle.Id, ct);
             if (item is null) return Results.NotFound();
