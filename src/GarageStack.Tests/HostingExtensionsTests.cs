@@ -99,4 +99,30 @@ public class HostingExtensionsTests
 
         Assert.Equal(expected, configuration.IntegerOrDefault("RateLimits:GlobalPerMinute", 120));
     }
+
+    [Theory]
+    [InlineData(null, true)]
+    [InlineData("", true)]
+    [InlineData("nonsense", true)]
+    [InlineData("false", false)]
+    [InlineData("FALSE", false)]
+    [InlineData("true", true)]
+    public void SwitchOrDefault_OnlyAnExplicitValueOverridesTheFallback(string? configured, bool expected)
+    {
+        var configuration = Config(("Geocoding:Enabled", configured));
+
+        Assert.Equal(expected, configuration.SwitchOrDefault("Geocoding:Enabled", fallback: true));
+    }
+
+    [Theory]
+    [InlineData(null, "fallback")]
+    [InlineData("", "fallback")]
+    [InlineData("   ", "fallback")]
+    [InlineData("http://nominatim.lan", "http://nominatim.lan")]
+    public void TextOrDefault_FallsBackForBlankValues(string? configured, string expected)
+    {
+        var configuration = Config(("Geocoding:BaseUrl", configured));
+
+        Assert.Equal(expected, configuration.TextOrDefault("Geocoding:BaseUrl", "fallback"));
+    }
 }

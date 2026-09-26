@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using GarageStack.Api;
 using GarageStack.Api.Authentication;
 using GarageStack.Api.Endpoints;
+using GarageStack.Core.Configuration;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -382,6 +383,26 @@ public class AuthenticationFlowTests
     }
 
     [Fact]
+    public async Task PasswordLogin_TakesItsCredentialsFromTheDeploymentsVariables()
+    {
+        // AUTH_USERNAME and AUTH_PASSWORD as compose and the Unraid template pass them, with no
+        // Auth__Username form anywhere: the host reads the deployment's own names.
+        var ct = TestContext.Current.CancellationToken;
+        var settings = BaseSettings();
+        settings["AUTH_USERNAME"] = DemoUsername;
+        settings["AUTH_PASSWORD"] = DemoPassword;
+        await using var factory = new TestApiFactory(settings, idp: null);
+        using var client = CreateClient(factory);
+
+        var login = await client.PostAsJsonAsync(
+            "/api/auth/login",
+            new { username = DemoUsername, password = DemoPassword, rememberMe = false },
+            ct);
+
+        Assert.Equal(HttpStatusCode.OK, login.StatusCode);
+    }
+
+    [Fact]
     public async Task PasswordLogin_WithWrongPassword_IsUnauthorized()
     {
         var ct = TestContext.Current.CancellationToken;
@@ -541,7 +562,19 @@ public class AuthenticationFlowTests
     /// Keys are in environment-variable form ("__" for ":") because that is how the factory
     /// feeds them to the app; a null value clears the variable for the duration of the test.
     /// </summary>
-    private static Dictionary<string, string?> BaseSettings() => new()
+    private static Dictionary<string, string?> BaseSettings()
+    {
+        var settings = BaseSettingsByKey();
+
+        // The deployment's own names (AUTH_USERNAME, OIDC_AUTHORITY, ...) fill the same settings,
+        // so one set in the developer's shell would change the behaviour under test as well.
+        foreach (var variable in EnvironmentAliases.Map.Keys)
+            settings[variable] = null;
+
+        return settings;
+    }
+
+    private static Dictionary<string, string?> BaseSettingsByKey() => new()
     {
         ["ASPNETCORE_ENVIRONMENT"] = "Production",
         // Per-request info logging from a host started for every test drowns the test output.

@@ -28,6 +28,8 @@ try
     if (builder.Environment.IsEnvironment("Demo"))
         builder.Configuration.AddUserSecrets<Program>(optional: true);
 
+    builder.Configuration.AddGarageStackEnvironment();
+
     builder.Services.AddGarageStackSerilog(builder.Configuration, "api");
 
     // Pin the key ring to a fixed, CWD-relative path (mirrors "logs/api-.log" above) instead of
@@ -81,6 +83,7 @@ try
 
     builder.Services.AddTyrePressureThresholds(builder.Configuration);
     builder.Services.AddHvBatteryCapacity(builder.Configuration);
+    builder.Services.AddSingleton(VapidOptions.From(builder.Configuration));
 
     builder.Services.AddMemoryCache();
     builder.Services.AddScoped<ChargingStationService>();

@@ -1,6 +1,6 @@
 using System.Security.Cryptography;
+using GarageStack.Core.Configuration;
 using GarageStack.Worker.Services;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace GarageStack.Tests;
@@ -20,19 +20,11 @@ file sealed class NoopHttpClientFactory : IHttpClientFactory
 
 public class PushSenderServiceTests
 {
-    private static IConfiguration BuildConfig(string? publicKey = null, string? privateKey = null)
-    {
-        var dict = new Dictionary<string, string?>();
-        if (publicKey is not null) dict["Vapid:PublicKey"] = publicKey;
-        if (privateKey is not null) dict["Vapid:PrivateKey"] = privateKey;
-        return new ConfigurationBuilder().AddInMemoryCollection(dict).Build();
-    }
-
     private static PushSenderService BuildService(string? publicKey = null, string? privateKey = null) =>
         new(
             NullLogger<PushSenderService>.Instance,
             new FakeServiceScopeFactory(),
-            BuildConfig(publicKey, privateKey),
+            new VapidOptions { PublicKey = publicKey, PrivateKey = privateKey },
             new NoopHttpClientFactory());
 
     // VapidAuthentication validates key shape eagerly (65-byte uncompressed P-256 public

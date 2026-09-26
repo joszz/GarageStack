@@ -9,13 +9,14 @@ public static class WidgetEndpoints
 {
     public static IEndpointRouteBuilder MapWidgetEndpoints(this IEndpointRouteBuilder app)
     {
+        // WIDGET_API_KEY, fixed for the process lifetime.
+        var configuredKey = app.ServiceProvider.GetRequiredService<IConfiguration>()["Widget:ApiKey"];
+
         var group = app.MapGroup("/api/widget")
             .WithTags("Widget")
             .RequireRateLimiting("widget")
             .AddEndpointFilter(async (ctx, next) =>
             {
-                var config = ctx.HttpContext.RequestServices.GetRequiredService<IConfiguration>();
-                var configuredKey = config["Widget:ApiKey"];
                 if (string.IsNullOrWhiteSpace(configuredKey))
                     return ApiProblems.Problem(StatusCodes.Status503ServiceUnavailable, "widget.notConfigured",
                         "Widget API key is not configured. Set the WIDGET_API_KEY environment variable.");

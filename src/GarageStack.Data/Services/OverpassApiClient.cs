@@ -3,14 +3,13 @@ using System.Text.Json.Serialization;
 using GarageStack.Core.Configuration;
 using GarageStack.Core.Helpers;
 using GarageStack.Core.Models;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace GarageStack.Data.Services;
 
 public sealed class OverpassApiClient(
     IHttpClientFactory httpClientFactory,
-    IConfiguration configuration,
+    OverpassOptions options,
     ILogger<OverpassApiClient> logger)
 {
     public const string HttpClientName = "overpass";
@@ -39,21 +38,15 @@ public sealed class OverpassApiClient(
     private const string SpeedCameraQuery =
         "[out:json][timeout:30];node[\"highway\"=\"speed_camera\"]{bbox};out;";
 
-    private string BaseUrl =>
-        configuration["Overpass:BaseUrl"] ?? "https://overpass-api.de/api/interpreter";
-
     /// <summary>
     /// Whether this deployment serves <paramref name="poiType"/> at all. Only the speed camera
-    /// layer can be switched off (<c>SpeedCameras:Enabled=false</c>), for the jurisdictions that
-    /// restrict pointing a driver at camera positions; the other layers are always served.
-    /// Both the on-demand endpoint and the Worker's pre-caching ask, so a layer that is off
-    /// costs no Overpass request either.
+    /// layer can be switched off (<see cref="OverpassOptions.SpeedCamerasEnabled"/>), for the
+    /// jurisdictions that restrict pointing a driver at camera positions; the other layers are
+    /// always served. Both the on-demand endpoint and the Worker's pre-caching ask, so a layer
+    /// that is off costs no Overpass request either.
     /// </summary>
     public bool IsTypeEnabled(string poiType) =>
-        poiType != PoiTypePolicy.SpeedCamera || SpeedCamerasEnabled;
-
-    private bool SpeedCamerasEnabled =>
-        !string.Equals(configuration["SpeedCameras:Enabled"], "false", StringComparison.OrdinalIgnoreCase);
+        poiType != PoiTypePolicy.SpeedCamera || options.SpeedCamerasEnabled;
 
     private static string QueryFor(string poiType) => poiType switch
     {
@@ -102,7 +95,7 @@ public sealed class OverpassApiClient(
         var client = httpClientFactory.CreateClient(HttpClientName);
         using var content = new FormUrlEncodedContent([new KeyValuePair<string, string>("data", query)]);
         _gate.MarkRequestSent();
-        using var response = await client.PostAsync(BaseUrl, content, ct);
+        using var response = await client.PostAsync(options.BaseUrl, content, ct);
 
         if (UpstreamRateGate.IsThrottlingStatus((int)response.StatusCode))
         {

@@ -8,7 +8,6 @@ using GarageStack.Core.Helpers;
 using GarageStack.Core.Interfaces;
 using GarageStack.Core.Models;
 using GarageStack.Data.Services;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace GarageStack.Tests;
@@ -76,16 +75,11 @@ internal sealed class MapMatchFakeValhallaHandler(params (HttpStatusCode Status,
 
 public class MapMatchServiceTests
 {
-    private static IConfiguration Config(params (string Key, string Value)[] values) =>
-        new ConfigurationBuilder()
-            .AddInMemoryCollection(values.Select(v => new KeyValuePair<string, string?>(v.Key, v.Value)))
-            .Build();
-
     private static MapMatchService BuildService(
-        MapMatchFakeRepository repo, MapMatchFakeValhallaHandler handler, IConfiguration? configuration = null)
+        MapMatchFakeRepository repo, MapMatchFakeValhallaHandler handler, MapMatchingOptions? options = null)
         => new(repo,
             new ValhallaApiClient(new PoiFakeHttpClientFactory(new HttpClient(handler)),
-                configuration ?? Config(), NullLogger<ValhallaApiClient>.Instance),
+                options ?? new MapMatchingOptions(), NullLogger<ValhallaApiClient>.Instance),
             NullLogger<MapMatchService>.Instance);
 
     /// <summary>A fix <paramref name="km"/> north of the same starting point; longitude never moves.</summary>
@@ -253,7 +247,7 @@ public class MapMatchServiceTests
     {
         var repo = new MapMatchFakeRepository();
         var handler = new MapMatchFakeValhallaHandler();
-        var svc = BuildService(repo, handler, Config(("MapMatching:Enabled", "false")));
+        var svc = BuildService(repo, handler, new MapMatchingOptions { Enabled = false });
 
         var result = await svc.MatchAsync(Trace(4), TestContext.Current.CancellationToken);
 
@@ -269,7 +263,7 @@ public class MapMatchServiceTests
     {
         var repo = new MapMatchFakeRepository();
         var handler = new MapMatchFakeValhallaHandler(TraceResponse(Road(0, 1.5), EvenlyAlong(4)));
-        var svc = BuildService(repo, handler, Config(("MapMatching:BaseUrl", "http://valhalla.local:8002/")));
+        var svc = BuildService(repo, handler, new MapMatchingOptions { BaseUrl = "http://valhalla.local:8002/" });
 
         await svc.MatchAsync(Trace(4), TestContext.Current.CancellationToken);
 

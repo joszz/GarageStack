@@ -1,11 +1,11 @@
 using GarageStack.Api.Services;
+using GarageStack.Core.Configuration;
 using GarageStack.Core.Helpers;
 using GarageStack.Core.Models;
 using GarageStack.Data;
 using GarageStack.Data.Repositories;
 using GarageStack.Data.Services;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace GarageStack.Tests;
@@ -43,11 +43,10 @@ public class TripPlaceServiceTests
         {
             Trips = new TripRepository(Db, new TelemetryRepository(Db));
             Upstream = new GeocodeFakeNominatimHandler(upstreamBody);
-            var config = new ConfigurationBuilder()
-                .AddInMemoryCollection([new("Geocoding:Enabled", geocodingEnabled ? "true" : "false")])
-                .Build();
             var client = new NominatimApiClient(
-                new PoiFakeHttpClientFactory(new HttpClient(Upstream)), config, NullLogger<NominatimApiClient>.Instance);
+                new PoiFakeHttpClientFactory(new HttpClient(Upstream)),
+                new GeocodingOptions { Enabled = geocodingEnabled },
+                NullLogger<NominatimApiClient>.Instance);
             Service = new TripPlaceService(Trips, new GeocodeService(GeocodeCache, client, NullLogger<GeocodeService>.Instance));
             Db.Vehicles.Add(Vehicle);
             Db.SaveChanges();

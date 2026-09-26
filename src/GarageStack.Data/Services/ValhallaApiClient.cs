@@ -4,16 +4,15 @@ using System.Text.Json.Serialization;
 using GarageStack.Core.Configuration;
 using GarageStack.Core.Helpers;
 using GarageStack.Core.Models;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace GarageStack.Data.Services;
 
 /// <summary>
 /// Map matching against Valhalla (the router behind OpenStreetMap's own directions, or a
-/// self-hosted instance via <c>MapMatching:BaseUrl</c>). Its <c>trace_attributes</c> action takes
-/// a trip's GPS fixes and answers with the roads underneath them, which is what turns a line that
-/// cuts corners between sparse fixes into the route that was actually driven.
+/// self-hosted instance via <see cref="MapMatchingOptions.BaseUrl"/>). Its <c>trace_attributes</c>
+/// action takes a trip's GPS fixes and answers with the roads underneath them, which is what turns
+/// a line that cuts corners between sparse fixes into the route that was actually driven.
 /// <para>
 /// The public instance is shared infrastructure, so requests go out one at a time and every
 /// answer is cached by <see cref="GarageStack.Core.Interfaces.IMapMatchRepository"/>; this client
@@ -22,7 +21,7 @@ namespace GarageStack.Data.Services;
 /// </summary>
 public sealed class ValhallaApiClient(
     IHttpClientFactory httpClientFactory,
-    IConfiguration configuration,
+    MapMatchingOptions options,
     ILogger<ValhallaApiClient> logger)
 {
     public const string HttpClientName = "valhalla";
@@ -42,18 +41,10 @@ public sealed class ValhallaApiClient(
     private static readonly TimeSpan GateTimeout = TimeSpan.FromSeconds(8);
     private static readonly TimeSpan RetryAfter429 = TimeSpan.FromSeconds(60);
 
-    private const string DefaultBaseUrl = "https://valhalla1.openstreetmap.de";
+    /// <summary>Whether this deployment lets trip geometry go to a matcher at all (<see cref="MapMatchingOptions.Enabled"/>).</summary>
+    public bool IsEnabled => options.Enabled;
 
-    /// <summary>
-    /// Deployments that would rather not send trip geometry to a third party can set
-    /// <c>MapMatching:Enabled=false</c> (and keep snapped trips by pointing BaseUrl at their own
-    /// Valhalla). Anything other than an explicit "false" leaves matching on.
-    /// </summary>
-    public bool IsEnabled =>
-        !string.Equals(configuration["MapMatching:Enabled"], "false", StringComparison.OrdinalIgnoreCase);
-
-    private string BaseUrl =>
-        (configuration["MapMatching:BaseUrl"] ?? DefaultBaseUrl).TrimEnd('/');
+    private string BaseUrl => options.BaseUrl.TrimEnd('/');
 
     /// <summary>
     /// Snaps one trace onto roads. Returns <see cref="TraceMatch.NotMatched"/> when the matcher

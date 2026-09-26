@@ -1,11 +1,11 @@
 using System.Net;
 using System.Text;
 using GarageStack.Api.Services;
+using GarageStack.Core.Configuration;
 using GarageStack.Core.Helpers;
 using GarageStack.Core.Interfaces;
 using GarageStack.Core.Models;
 using GarageStack.Data.Services;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace GarageStack.Tests;
@@ -108,17 +108,12 @@ internal sealed class PoiFakeHttpClientFactory(HttpClient client) : IHttpClientF
 
 public class PoiServiceTests
 {
-    private static IConfiguration EmptyConfig() => new ConfigurationBuilder().Build();
-
-    private static IConfiguration ConfigWith(string key, string value) =>
-        new ConfigurationBuilder().AddInMemoryCollection([new KeyValuePair<string, string?>(key, value)]).Build();
-
     private static OverpassApiClient BuildOverpassClient(
-        PoiFakeOverpassHandler handler, IConfiguration? configuration = null)
+        PoiFakeOverpassHandler handler, OverpassOptions? options = null)
     {
         var client = new HttpClient(handler);
         var factory = new PoiFakeHttpClientFactory(client);
-        return new OverpassApiClient(factory, configuration ?? EmptyConfig(), NullLogger<OverpassApiClient>.Instance);
+        return new OverpassApiClient(factory, options ?? new OverpassOptions(), NullLogger<OverpassApiClient>.Instance);
     }
 
     private static PoiService BuildPoiService(PoiFakeRepository repo, OverpassApiClient overpass)
@@ -227,7 +222,7 @@ public class PoiServiceTests
     {
         var repo = new PoiFakeRepository();
         var handler = new PoiFakeOverpassHandler(OneNodeResponse);
-        var overpass = BuildOverpassClient(handler, ConfigWith("SpeedCameras:Enabled", "false"));
+        var overpass = BuildOverpassClient(handler, new OverpassOptions { SpeedCamerasEnabled = false });
         var svc = BuildPoiService(repo, overpass);
 
         var result = await svc.GetPoisAsync("speed_camera", 52.3, 4.9, 5.0, TestContext.Current.CancellationToken);
@@ -243,7 +238,7 @@ public class PoiServiceTests
     {
         var repo = new PoiFakeRepository();
         var handler = new PoiFakeOverpassHandler(OneNodeResponse);
-        var overpass = BuildOverpassClient(handler, ConfigWith("SpeedCameras:Enabled", "false"));
+        var overpass = BuildOverpassClient(handler, new OverpassOptions { SpeedCamerasEnabled = false });
         var svc = BuildPoiService(repo, overpass);
 
         var result = await svc.GetPoisAsync("fuel", 52.3, 4.9, 5.0, TestContext.Current.CancellationToken);

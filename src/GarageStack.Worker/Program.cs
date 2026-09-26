@@ -11,6 +11,7 @@ Log.Logger = HostingExtensions.CreateBootstrapLogger();
 try
 {
     var builder = Host.CreateApplicationBuilder(args);
+    builder.Configuration.AddGarageStackEnvironment();
 
     builder.Services.AddGarageStackSerilog(builder.Configuration, "worker");
 
@@ -19,14 +20,15 @@ try
 
     // Push notification titles and bodies come from Resources/NotificationStrings*.resx. The
     // Worker has no browser request to take a language from, so the language is a deployment
-    // setting (NOTIFICATION_LANGUAGE). Only the UI culture is changed: number and date parsing
-    // of gateway payloads stays culture-invariant.
-    ApplyNotificationCulture(builder.Configuration["Notifications:Culture"]);
+    // setting (NOTIFICATION_LANGUAGE, English unless it says otherwise). Only the UI culture is
+    // changed: number and date parsing of gateway payloads stays culture-invariant.
+    ApplyNotificationCulture(builder.Configuration.TextOrDefault("Notifications:Culture", "en"));
     builder.Services.AddLocalization(opts => opts.ResourcesPath = "Resources");
 
     builder.Services.AddGarageStackData(connectionString);
     builder.Services.Configure<MqttOptions>(builder.Configuration.GetSection(MqttOptions.SectionName));
     builder.Services.AddTyrePressureThresholds(builder.Configuration);
+    builder.Services.AddSingleton(VapidOptions.From(builder.Configuration));
     builder.Services.AddSingleton<IPushSender, PushSenderService>();
     builder.Services.AddHostedService<MqttConsumerService>();
     builder.Services.AddHostedService<PushNotificationCheckService>();
@@ -48,11 +50,8 @@ finally
     Log.CloseAndFlush();
 }
 
-static void ApplyNotificationCulture(string? cultureName)
+static void ApplyNotificationCulture(string cultureName)
 {
-    if (string.IsNullOrWhiteSpace(cultureName))
-        return;
-
     try
     {
         var culture = CultureInfo.GetCultureInfo(cultureName);

@@ -6,7 +6,6 @@ using GarageStack.Core.Helpers;
 using GarageStack.Core.Interfaces;
 using GarageStack.Core.Models;
 using GarageStack.Data.Services;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace GarageStack.Tests;
@@ -114,19 +113,14 @@ public class GeocodeServiceTests
         """;
     private const string UnmappableResponse = """{"error":"Unable to geocode"}""";
 
-    private static IConfiguration Config(params (string Key, string Value)[] values) =>
-        new ConfigurationBuilder()
-            .AddInMemoryCollection(values.Select(v => new KeyValuePair<string, string?>(v.Key, v.Value)))
-            .Build();
-
-    private static NominatimApiClient BuildClient(GeocodeFakeNominatimHandler handler, IConfiguration? configuration = null)
+    private static NominatimApiClient BuildClient(GeocodeFakeNominatimHandler handler, GeocodingOptions? options = null)
         => new(new PoiFakeHttpClientFactory(new HttpClient(handler)),
-            configuration ?? Config(),
+            options ?? new GeocodingOptions(),
             NullLogger<NominatimApiClient>.Instance);
 
     private static GeocodeService BuildService(GeocodeFakeRepository repo, GeocodeFakeNominatimHandler handler,
-        IConfiguration? configuration = null)
-        => new(repo, BuildClient(handler, configuration), NullLogger<GeocodeService>.Instance);
+        GeocodingOptions? options = null)
+        => new(repo, BuildClient(handler, options), NullLogger<GeocodeService>.Instance);
 
     private static List<GeoPoint> Points(params (double Lat, double Lng)[] coords)
         => coords.Select(c => new GeoPoint(c.Lat, c.Lng)).ToList();
@@ -278,7 +272,7 @@ public class GeocodeServiceTests
     {
         var repo = new GeocodeFakeRepository();
         var handler = new GeocodeFakeNominatimHandler(ZwolleResponse);
-        var svc = BuildService(repo, handler, Config(("Geocoding:Enabled", "false")));
+        var svc = BuildService(repo, handler, new GeocodingOptions { Enabled = false });
 
         var result = await svc.ResolveAsync(Points((52.1, 5.1)), GeocodePrecisionPolicy.City, "en",
             TestContext.Current.CancellationToken);
@@ -294,7 +288,7 @@ public class GeocodeServiceTests
     {
         var repo = new GeocodeFakeRepository();
         var handler = new GeocodeFakeNominatimHandler(ZwolleResponse);
-        var svc = BuildService(repo, handler, Config(("Geocoding:BaseUrl", "http://nominatim.local:8080/")));
+        var svc = BuildService(repo, handler, new GeocodingOptions { BaseUrl = "http://nominatim.local:8080/" });
 
         await svc.ResolveAsync(Points((52.1, 5.1)), GeocodePrecisionPolicy.City, "en",
             TestContext.Current.CancellationToken);

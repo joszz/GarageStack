@@ -4,14 +4,13 @@ using System.Text.Json.Serialization;
 using GarageStack.Core.Configuration;
 using GarageStack.Core.Helpers;
 using GarageStack.Core.Models;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace GarageStack.Data.Services;
 
 public sealed class OcmApiClient(
     IHttpClientFactory httpClientFactory,
-    IConfiguration configuration,
+    OpenChargeMapOptions options,
     ILogger<OcmApiClient> logger)
 {
     public const string HttpClientName = "ocm";
@@ -25,12 +24,12 @@ public sealed class OcmApiClient(
 
     private const string BaseUrl = "https://api.openchargemap.io/v3/poi/";
 
-    public bool IsConfigured => !string.IsNullOrWhiteSpace(configuration["OpenChargeMap:ApiKey"]);
+    public bool IsConfigured => options.IsConfigured;
 
     public async Task<IReadOnlyList<PoiItem>> FetchChargingStationsAsync(
         int cellLat, int cellLng, CancellationToken ct = default)
     {
-        var apiKey = configuration["OpenChargeMap:ApiKey"];
+        var apiKey = options.ApiKey;
         if (string.IsNullOrWhiteSpace(apiKey)) return [];
 
         // Tile center + half-diagonal radius.

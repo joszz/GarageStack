@@ -1,8 +1,10 @@
+using GarageStack.Core.Configuration;
 using GarageStack.Core.Interfaces;
 using GarageStack.Data.Demo;
 using GarageStack.Data.Repositories;
 using GarageStack.Data.Services;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace GarageStack.Data.Extensions;
@@ -75,6 +77,10 @@ public static class ServiceCollectionExtensions
                 "GarageStack/1.0 (+https://github.com/joszz/GarageStack)");
             client.Timeout = TimeSpan.FromSeconds(30);
         });
+        services.AddSingleton(sp => OverpassOptions.From(sp.GetRequiredService<IConfiguration>()));
+        services.AddSingleton(sp => OpenChargeMapOptions.From(sp.GetRequiredService<IConfiguration>()));
+        services.AddSingleton(sp => GeocodingOptions.From(sp.GetRequiredService<IConfiguration>()));
+        services.AddSingleton(sp => MapMatchingOptions.From(sp.GetRequiredService<IConfiguration>()));
         services.AddSingleton<OverpassApiClient>();
         services.AddSingleton<OcmApiClient>();
         services.AddSingleton<NominatimApiClient>();
