@@ -646,5 +646,43 @@
       "allOk": "Alle onderhoudsitems zijn up-to-date",
       "moreCount": "+{count} meer"
     }
+  },
+  "errors": {
+    "badRequest": "Het verzoek is niet geaccepteerd.",
+    "unauthorized": "Je sessie is verlopen. Log opnieuw in.",
+    "forbidden": "Dit is niet toegestaan.",
+    "notFound": "Dat kon niet worden gevonden.",
+    "conflict": "Dat kan nu niet.",
+    "rateLimited": "Te veel verzoeken. Wacht even en probeer het opnieuw.",
+    "server": "Er ging iets mis op de server. Probeer het later opnieuw.",
+    "offline": "GarageStack is niet bereikbaar. Controleer je verbinding en probeer het opnieuw.",
+    "unknown": "Er is iets misgegaan.",
+    "codes": {
+      "csrf": {
+        "originNotAllowed": "Dit adres is niet toegestaan. Stel CORS_ORIGIN in op het adres waarop je GarageStack opent."
+      },
+      "vehicle": {
+        "accountUnknown": "De auto heeft zijn MG-account nog niet doorgegeven. Probeer het opnieuw zodra hij gegevens heeft gestuurd."
+      },
+      "command": {
+        "invalidValue": "De auto accepteert deze waarde niet."
+      },
+      "maintenance": {
+        "nameRequired": "Naam is verplicht",
+        "nameTooLong": "De naam mag hoogstens 200 tekens lang zijn.",
+        "notesTooLong": "De notities mogen hoogstens 1000 tekens lang zijn.",
+        "intervalRequired": "Stel minstens één interval in (afstand of tijd)",
+        "intervalKmOutOfRange": "Het afstandsinterval valt buiten wat GarageStack accepteert.",
+        "intervalMonthsOutOfRange": "Het tijdsinterval moet tussen 1 en 120 maanden liggen.",
+        "serviceDateInFuture": "De servicedatum kan niet in de toekomst liggen.",
+        "odometerNegative": "De kilometerstand kan niet negatief zijn."
+      },
+      "trip": {
+        "notesTooLong": "De notities mogen hoogstens 500 tekens lang zijn."
+      },
+      "push": {
+        "notConfigured": "Pushmeldingen zijn op deze server niet ingesteld."
+      }
+    }
   }
 }

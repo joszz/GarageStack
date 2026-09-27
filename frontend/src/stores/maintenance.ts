@@ -14,8 +14,8 @@ export const useMaintenanceStore = defineStore('maintenance', () => {
   const items = ref<MaintenanceItem[]>([])
   const logEntries = ref<Record<number, MaintenanceLogEntry[]>>({})
   const { loading, withLoading } = useLoadingTracker()
-  const itemsError = ref<string | null>(null)
-  const actionError = ref<string | null>(null)
+  const itemsError = ref<Error | null>(null)
+  const actionError = ref<Error | null>(null)
 
   async function fetchItems(vin: string) {
     await withLoading(itemsError, async () => {

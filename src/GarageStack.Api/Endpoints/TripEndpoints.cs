@@ -74,7 +74,7 @@ public static class TripEndpoints
 
             var notes = NormalizeNotes(req.Notes);
             if (notes is { Length: > Trip.NotesMaxLength })
-                return Results.BadRequest(new { error = $"Notes must be {Trip.NotesMaxLength} characters or fewer" });
+                return ApiProblems.BadRequest("trip.notesTooLong", $"Notes must be {Trip.NotesMaxLength} characters or fewer");
 
             var entry = await trips.SetPurposeAndNotesAsync(vehicle.Id, id, req.Purpose, notes, ct);
             return entry is null ? Results.NotFound() : Results.Ok(entry);
@@ -90,9 +90,9 @@ public static class TripEndpoints
             var vehicle = VehicleEndpoints.ResolveVehicleFilter.GetResolvedVehicle(httpContext);
 
             if (req.Ids is not { Count: > 0 })
-                return Results.BadRequest(new { error = "ids must contain at least one trip" });
+                return ApiProblems.BadRequest("trip.idsRequired", "ids must contain at least one trip");
             if (req.Ids.Count > MaxTripsPerPurposeChange)
-                return Results.BadRequest(new { error = $"ids may not exceed {MaxTripsPerPurposeChange} trips" });
+                return ApiProblems.BadRequest("trip.tooManyIds", $"ids may not exceed {MaxTripsPerPurposeChange} trips");
 
             var changed = await trips.SetPurposeAsync(vehicle.Id, req.Ids, req.Purpose, ct);
             return Results.Ok(new TripPurposeResult(changed));
@@ -110,9 +110,9 @@ public static class TripEndpoints
             var vehicle = VehicleEndpoints.ResolveVehicleFilter.GetResolvedVehicle(httpContext);
 
             if (req.Ids is not { Count: > 0 })
-                return Results.BadRequest(new { error = "ids must contain at least one trip" });
+                return ApiProblems.BadRequest("trip.idsRequired", "ids must contain at least one trip");
             if (req.Ids.Count > TripPlaceService.MaxTripsPerRequest)
-                return Results.BadRequest(new { error = $"ids may not exceed {TripPlaceService.MaxTripsPerRequest} trips" });
+                return ApiProblems.BadRequest("trip.tooManyIds", $"ids may not exceed {TripPlaceService.MaxTripsPerRequest} trips");
 
             try
             {

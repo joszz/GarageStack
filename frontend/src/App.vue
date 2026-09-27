@@ -15,6 +15,7 @@ import { useNotifications, prependNotification } from '@/composables/useNotifica
 import { useSignalR } from '@/composables/useSignalR'
 import { useFavicon } from '@/composables/useFavicon'
 import { useRelativeTime } from '@/composables/useRelativeTime'
+import { formatDateTime, formatTime } from '@/utils/format'
 
 const isDemoMode = import.meta.env.VITE_DEMO_MODE === 'true'
 const demoControlsOpen = ref(false)
@@ -117,13 +118,13 @@ const isInitialLoading = computed(() => vehicleStore.loading && !vehicleStore.cu
 const lastFetched = computed(() => {
   const d = vehicleStore.lastUpdated
   if (!d) return null
-  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  return formatTime(d, { hour: '2-digit', minute: '2-digit' })
 })
 
 const lastRecorded = computed(() => {
   const ts = vehicleStore.currentStatus?.recordedAt
   if (!ts) return null
-  return new Date(ts).toLocaleString([], {
+  return formatDateTime(ts, {
     month: 'short',
     day: 'numeric',
     hour: '2-digit',

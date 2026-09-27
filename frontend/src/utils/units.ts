@@ -218,13 +218,10 @@ export class UnitFormatter {
     const converted = this.convert(quantity, metric)
     if (!Number.isFinite(converted)) return null
     const decimals = options.decimals ?? this.decimals(quantity)
-    const value = options.grouped
-      ? converted.toLocaleString(undefined, {
-          minimumFractionDigits: decimals,
-          maximumFractionDigits: decimals,
-        })
-      : formatNumber(converted, decimals)
-    return { value, unit: this.symbol(quantity) }
+    return {
+      value: formatNumber(converted, decimals, options.grouped),
+      unit: this.symbol(quantity),
+    }
   }
 
   /** "12.3 km", or null when there is nothing to show. */

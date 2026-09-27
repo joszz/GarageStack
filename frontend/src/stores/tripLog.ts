@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { computed, ref, shallowRef } from 'vue'
 import { useLoadingTracker } from '@/composables/useLoadingTracker'
+import { asError } from '@/utils/errors'
 import { GEOCODE_MAX_ATTEMPTS, GEOCODE_RETRY_DELAY_MS } from '@/services/mapApi'
 import {
   tripLogApi,
@@ -20,8 +21,8 @@ export const useTripLogStore = defineStore('tripLog', () => {
   // shallowRef: entries are only ever replaced, never mutated in place.
   const entries = shallowRef<TripLogEntry[]>([])
   const { loading, withLoading } = useLoadingTracker()
-  const loadError = ref<string | null>(null)
-  const actionError = ref<string | null>(null)
+  const loadError = ref<Error | null>(null)
+  const actionError = ref<Error | null>(null)
   /** Trips with a change on its way to the server, so their controls can wait for it. */
   const saving = ref<ReadonlySet<number>>(new Set())
   const placesResolving = ref(false)
@@ -81,7 +82,7 @@ export const useTripLogStore = defineStore('tripLog', () => {
       )
       return true
     } catch (e) {
-      actionError.value = String(e)
+      actionError.value = asError(e)
       return false
     } finally {
       markSaving([id], false)
@@ -104,7 +105,7 @@ export const useTripLogStore = defineStore('tripLog', () => {
       }
       return true
     } catch (e) {
-      actionError.value = String(e)
+      actionError.value = asError(e)
       return false
     } finally {
       markSaving(ids, false)
