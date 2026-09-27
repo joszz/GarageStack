@@ -24,3 +24,4 @@ Closes #
 - [ ] No secrets or personal data committed
 - [ ] Responsive on mobile
 - [ ] i18n keys added for any new UI strings
+- [ ] If `unraid/garagestack.xml` changed: copied to `joszz/unraid-community-apps` after merge (see "Keeping the Community Apps copy in sync" in `documentation/RELEASING.md`)

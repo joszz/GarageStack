@@ -1,5 +1,11 @@
 <?xml version="1.0"?>
 <Container version="2">
+  <!-- This template exists twice: unraid/garagestack.xml in joszz/garagestack, and
+       templates/garagestack.xml in joszz/unraid-community-apps, the copy Community Apps installs
+       from. Change the first, then copy it over the second in the same sitting, keeping only that
+       copy's own TemplateURL. See "Unraid Community Apps" in joszz/garagestack's
+       documentation/RELEASING.md. -->
+
   <Name>GarageStack</Name>
   <Repository>ghcr.io/joszz/garagestack:latest</Repository>
   <Registry>https://ghcr.io/</Registry>
@@ -21,6 +27,7 @@
   <WebUI>http://[IP]:[PORT:80]/</WebUI>
   <TemplateURL>https://raw.githubusercontent.com/joszz/garagestack/main/unraid/garagestack.xml</TemplateURL>
   <Icon>https://raw.githubusercontent.com/joszz/garagestack/main/frontend/public/pwa-192x192.png</Icon>
+  <License>MIT</License>
   <ExtraParams/>
   <PostArgs/>
   <CPUset/>
@@ -257,8 +264,6 @@
     Required="false"
     Mask="false">false</Config>
 
-  <!-- ── Home Assistant ─────────────────────────────────────────────────────── -->
-
   <Config
     Name="OIDC Scopes"
     Target="OIDC_SCOPES"
@@ -302,6 +307,8 @@
     Display="advanced"
     Required="false"
     Mask="false">true</Config>
+
+  <!-- ── Home Assistant ─────────────────────────────────────────────────────── -->
 
   <Config
     Name="Home Assistant MQTT Username"
