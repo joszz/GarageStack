@@ -22,21 +22,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      # Exact tag: the floating v6 tag still points at 6.0.10, which predates pnpm 12 support.
-      - uses: pnpm/action-setup@v6.1.0
-        with:
-          # Version comes from frontend/package.json's packageManager field.
-          package_json_file: frontend/package.json
-
-      - uses: actions/setup-node@v7.0.0
-        with:
-          node-version: 24
-          cache: pnpm
-          cache-dependency-path: frontend/pnpm-lock.yaml
-
-      - name: Install dependencies
-        working-directory: frontend
-        run: pnpm install --frozen-lockfile
+      - uses: ./.github/actions/setup-frontend
 
       - name: Lint
         working-directory: frontend
@@ -56,21 +42,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      # Exact tag: the floating v6 tag still points at 6.0.10, which predates pnpm 12 support.
-      - uses: pnpm/action-setup@v6.1.0
-        with:
-          # Version comes from frontend/package.json's packageManager field.
-          package_json_file: frontend/package.json
-
-      - uses: actions/setup-node@v7.0.0
-        with:
-          node-version: 24
-          cache: pnpm
-          cache-dependency-path: frontend/pnpm-lock.yaml
-
-      - name: Install dependencies
-        working-directory: frontend
-        run: pnpm install --frozen-lockfile
+      - uses: ./.github/actions/setup-frontend
 
       - name: Type-check
         working-directory: frontend
@@ -84,21 +56,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      # Exact tag: the floating v6 tag still points at 6.0.10, which predates pnpm 12 support.
-      - uses: pnpm/action-setup@v6.1.0
-        with:
-          # Version comes from frontend/package.json's packageManager field.
-          package_json_file: frontend/package.json
-
-      - uses: actions/setup-node@v7.0.0
-        with:
-          node-version: 24
-          cache: pnpm
-          cache-dependency-path: frontend/pnpm-lock.yaml
-
-      - name: Install dependencies
-        working-directory: frontend
-        run: pnpm install --frozen-lockfile
+      - uses: ./.github/actions/setup-frontend
 
       - name: Run tests
         working-directory: frontend
@@ -115,21 +73,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      # Exact tag: the floating v6 tag still points at 6.0.10, which predates pnpm 12 support.
-      - uses: pnpm/action-setup@v6.1.0
-        with:
-          # Version comes from frontend/package.json's packageManager field.
-          package_json_file: frontend/package.json
-
-      - uses: actions/setup-node@v7.0.0
-        with:
-          node-version: 24
-          cache: pnpm
-          cache-dependency-path: frontend/pnpm-lock.yaml
-
-      - name: Install dependencies
-        working-directory: frontend
-        run: pnpm install --frozen-lockfile
+      - uses: ./.github/actions/setup-frontend
 
       - name: Install Playwright browser
         working-directory: frontend
@@ -138,7 +82,7 @@ jobs:
       - name: Start the demo stack
         run: |
           cp .env.demo.example .env.demo
-          docker compose -f docker-compose.demo.yml up -d --build
+          docker compose --env-file .env.demo -f docker-compose.demo.yml up -d --build
 
       - name: Wait for the app
         run: |
@@ -147,7 +91,7 @@ jobs:
             sleep 2
           done
           echo "::error::the demo stack did not become reachable"
-          docker compose -f docker-compose.demo.yml logs --tail 50
+          docker compose --env-file .env.demo -f docker-compose.demo.yml logs --tail 50
           exit 1
 
       - name: Run smoke tests
@@ -164,7 +108,7 @@ jobs:
 
       - name: Stop the demo stack
         if: always()
-        run: docker compose -f docker-compose.demo.yml down -v
+        run: docker compose --env-file .env.demo -f docker-compose.demo.yml down -v
 
   backend-test:
     name: Backend tests
@@ -211,7 +155,7 @@ jobs:
       # database. The Data project carries its own design-time factory, so no API config is needed.
       - name: EF model matches migrations
         run: |
-          dotnet tool install --global dotnet-ef
+          dotnet tool restore
           dotnet ef migrations has-pending-model-changes --project src/GarageStack.Data --startup-project src/GarageStack.Data --no-build --configuration Release
 
   container-build:

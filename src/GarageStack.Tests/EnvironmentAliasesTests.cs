@@ -120,6 +120,7 @@ public class EnvironmentAliasesTests
     [Theory]
     [InlineData(".env.example")]
     [InlineData("unraid/garagestack.xml")]
+    [InlineData("documentation/CONFIGURATION.md")]
     public void EveryDocumentedVariable_IsOneTheAppOrTheDeploymentReads(string file)
     {
         var unknown = DocumentedVariables(file)
@@ -127,6 +128,15 @@ public class EnvironmentAliasesTests
             .ToList();
 
         Assert.Empty(unknown);
+    }
+
+    [Fact]
+    public void TheConfigurationReference_ListsEveryVariableTheAppTranslates()
+    {
+        var documented = DocumentedVariables("documentation/CONFIGURATION.md").ToHashSet();
+        var missing = EnvironmentAliases.Map.Keys.Where(v => !documented.Contains(v)).ToList();
+
+        Assert.Empty(missing);
     }
 
     [Theory]
@@ -142,15 +152,20 @@ public class EnvironmentAliasesTests
     }
 
     /// <summary>
-    /// The variables a file documents: Target="NAME" in the Unraid template, and set or
-    /// commented-out assignments ("NAME=value", "# NAME=value") in .env.example.
+    /// The variables a file documents: Target="NAME" in the Unraid template, names in code spans
+    /// in a Markdown page, and set or commented-out assignments ("NAME=value", "# NAME=value") in
+    /// .env.example.
     /// </summary>
     private static IEnumerable<string> DocumentedVariables(string file)
     {
         var text = File.ReadAllText(RepositoryFile(file));
-        var pattern = file.EndsWith(".xml", StringComparison.Ordinal)
-            ? @"Target=""([A-Z][A-Z0-9_]*)"""
-            : @"(?m)^#?\s*([A-Z][A-Z0-9_]*)=";
+        var pattern = Path.GetExtension(file) switch
+        {
+            ".xml" => @"Target=""([A-Z][A-Z0-9_]*)""",
+            // Values such as SSO share the capitals, but every variable name has an underscore.
+            ".md" => @"`([A-Z][A-Z0-9]*_[A-Z0-9_]*)`",
+            _ => @"(?m)^#?\s*([A-Z][A-Z0-9_]*)=",
+        };
 
         return Regex.Matches(text, pattern).Select(m => m.Groups[1].Value).Distinct();
     }

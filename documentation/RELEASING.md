@@ -36,13 +36,13 @@ All images live on GitHub Container Registry (`ghcr.io`). Replace `joszz` with t
 
 ---
 
-## Automated Release Pipeline
+## Pipeline
 
 ### Overview
 
 ```
 PR opened
-  CI (lint, typecheck, test, build, container-build)
+  CI (lint, typecheck, test, build, e2e, container-build)
   CodeQL (actions, C#, JS/TS analysis)
   Security (Trivy filesystem scan)
 
@@ -51,14 +51,12 @@ Merge to main
   CodeQL
   Security (Trivy filesystem + image scan after publish)
   Dependency submission (graph snapshot to GitHub)
-  Release Please (update release PR)
   docker-publish (push images with short SHA + latest tags)
     Sign with Cosign
     Attach SBOM + provenance
 
-Release PR merged
-  Release Please (create GitHub Release + vX.Y.Z tag)
-  docker-publish (push versioned tags + latest)
+Release tag pushed (vX.Y.Z)
+  docker-publish (push X.Y.Z, X.Y, X and latest tags)
     Sign with Cosign
     Attach SBOM + provenance
 
@@ -72,41 +70,60 @@ Weekly (Mondays)
 
 ## Release Process
 
+A release is cut by hand: tag a commit on `main`, then publish a GitHub release with notes written for the people upgrading. Pushing the tag is what publishes the versioned images; nothing else has to happen for the release to reach users.
+
+### Before tagging
+
+- **CI is green on the commit you release.** `gh run list --branch main --limit 5` shows the latest runs.
+- **Pick the version.** A release that carries upgrade notes, new configuration options or database migrations is a minor bump (`0.x.0`), even when every commit in it is a fix or a refactor. A patch (`0.x.y`) is for fix-only releases that drop in without anyone doing anything. `1.0.0` is for the first public release.
+
+### Tag and publish
+
+Tag the commit by its SHA, so nothing has to be checked out and uncommitted work in your tree does not matter:
+
+```bash
+git fetch origin
+git tag -a v1.2.3 <commit-on-origin/main> -m "v1.2.3"
+git push origin v1.2.3
+gh release create v1.2.3 --verify-tag --latest --notes-file release-notes.md
+```
+
+Watch the image builds at `https://github.com/joszz/garagestack/actions`.
+
+The tag build publishes `X.Y.Z`, `X.Y`, `X` **and** `latest`. If the publish for the same commit on `main` failed earlier, do not re-run it after the tag build: it would overwrite `latest` with a build that reports a `-preview` version. Re-run the tag run's failed job instead.
+
+### Release notes
+
+Notes are written by hand from the descriptions of the pull requests merged since the last release. Group them under these headings, leaving out the ones that are empty, and end each line with its PR number in parentheses:
+
+1. **Upgrade Notes** - only when something has to be done or changes behaviour on upgrade
+2. **Features**
+3. **Bug Fixes**
+4. **Security**
+5. **Performance**
+6. **Documentation**
+7. **Internal**
+8. **Dependencies**
+9. **Full Changelog** - the compare link between the two tags
+
+`gh release view <previous tag>` shows the last release's notes to copy the format from.
+
 ### Commit Convention
 
-All commits to `main` must follow [Conventional Commits](https://www.conventionalcommits.org/):
+Commits to `main` follow [Conventional Commits](https://www.conventionalcommits.org/). They set no version (you pick it), but the type is what places a change under a heading in the release notes:
 
 ```
 <type>(<optional scope>): <description>
 ```
 
-| Type | Version effect | Example |
-|------|---------------|---------|
-| `feat` | Minor bump | `feat: add trip heatmap export` |
-| `fix` | Patch bump | `fix: correct kWh calculation` |
-| `feat!` or `BREAKING CHANGE` footer | Major bump | `feat!: rename API routes` |
-| `chore`, `ci`, `docs`, `test`, `build` | No bump | `chore: update dependencies` |
-
-### Automated Release PRs (Release Please)
-
-[Release Please](https://github.com/googleapis/release-please) monitors commits on `main`. When releasable commits accumulate, it:
-
-1. Opens or updates a **Release PR** containing an updated `CHANGELOG.md` and version bump
-2. The PR is kept up-to-date as new commits land on `main`
-
-**To trigger a release: merge the Release PR.** Release Please will create a GitHub Release and tag the commit as `vX.Y.Z`. The `docker-publish` workflow fires automatically on the tag.
-
-### Manual Tagging (fallback)
-
-If Release Please is not yet active or you need an out-of-band release:
-
-```bash
-git checkout main && git pull origin main
-git tag v1.2.3
-git push origin v1.2.3
-```
-
-Watch progress at `https://github.com/joszz/garagestack/actions`.
+| Type | Release notes heading | Example |
+|------|-----------------------|---------|
+| `feat` | Features | `feat: add trip heatmap export` |
+| `fix` | Bug Fixes | `fix: correct kWh calculation` |
+| `perf` | Performance | `perf: load the map card without the vector basemap` |
+| `docs` | Documentation | `docs: add a configuration reference` |
+| `refactor`, `test`, `ci`, `build`, `chore` | Internal | `refactor: split MapView into its parts` |
+| `feat!` or a `BREAKING CHANGE` footer | Also under Upgrade Notes | `feat!: rename API routes` |
 
 ---
 
@@ -119,7 +136,8 @@ The `ci` workflow runs on every PR and push to `main`. All jobs must pass before
 | `frontend-lint` | oxlint + ESLint (no fixable issues left uncommitted), Prettier format |
 | `frontend-typecheck` | `vue-tsc --build` (zero type errors) |
 | `frontend-test` | Vitest unit tests |
-| `backend-build` | `dotnet build --configuration Release` |
+| `e2e` | The production bundle behind the production nginx config (the only place the Content-Security-Policy applies), driven by the Playwright smoke tests against the demo stack |
+| `backend-build` | `dotnet build --configuration Release` with warnings as errors, `dotnet format --verify-no-changes`, and a check that the EF model has no change without a migration |
 | `backend-test` | `dotnet test` (all xUnit tests) |
 | `container-build` | Docker build (no push) for all four images |
 
@@ -247,7 +265,7 @@ Use `0.x.y` while in active development, `1.0.0` for the first public release.
 
 | Secret / Permission | Where | Purpose |
 |--------------------|-------|---------|
-| `GITHUB_TOKEN` | Auto-provided | GHCR login, PR merge, release creation |
+| `GITHUB_TOKEN` | Auto-provided | GHCR login, Dependabot auto-merge |
 | `GHCR_PAT` | Optional repo secret | Override GITHUB_TOKEN for GHCR push |
 | `DOCKERHUB_USERNAME` | Repo secret | Avoid Docker Hub pull rate limits during builds |
 | `DOCKERHUB_TOKEN` | Repo secret | Avoid Docker Hub pull rate limits during builds |
@@ -308,13 +326,13 @@ Unraid users can install directly without waiting for CA approval:
 
 ### Per-release checklist
 
-The template uses `:latest` so no file changes are needed for normal releases. Only update `unraid/garagestack.xml` (and mirror the change to `templates/garagestack.xml` in the CA repo) if:
+The template uses `:latest` so no file changes are needed for normal releases. Only update `unraid/garagestack.xml` if:
 
 - A new required environment variable is added
 - A port or volume mapping changes
 - The container name or description changes
 
-If the template changes, commit it alongside the release so users who refresh their template get the updated fields.
+If the template changes, commit it alongside the release so users who refresh their template get the updated fields, and copy it to `templates/garagestack.xml` in the Community Apps repository (`joszz/unraid-community-apps`), keeping that copy's own `<TemplateURL>`. Community Apps reads only that repository, so a change made here alone never reaches users who installed from there.
 
 ---
 

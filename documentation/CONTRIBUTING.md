@@ -27,26 +27,35 @@ To work against the full stack (real or self-provided credentials):
 
   ```bash
   cp .env.demo.example .env.demo
-  docker compose -f docker-compose.demo.yml up -d --build   # repository root
+  docker compose --env-file .env.demo -f docker-compose.demo.yml up -d --build   # repository root
   cd frontend && pnpm exec playwright install chromium && pnpm test:e2e
-  docker compose -f docker-compose.demo.yml down             # when you are done
+  docker compose --env-file .env.demo -f docker-compose.demo.yml down             # when you are done
   ```
 
 - Make sure linting and formatting pass:
   - Backend: `dotnet build` (analyzers run as part of the build, warnings are errors) and `dotnet format GarageStack.slnx`
   - Frontend: `pnpm lint` (oxlint, ESLint and Stylelint, each with `--fix`) and `pnpm format`
-- Changed an EF Core entity? Add a migration from the repository root (no Api configuration needed):
+- Changed an EF Core entity? Add a migration from the repository root (no Api configuration needed). `dotnet tool restore` installs the pinned `dotnet-ef` first:
   `dotnet ef migrations add <Name> --project src/GarageStack.Data --startup-project src/GarageStack.Data`
 
 ## Commit Style
 
-Use short, imperative commit messages: `Add trip heatmap filter`, `Fix battery percentage rounding`.
+Commits follow [Conventional Commits](https://www.conventionalcommits.org/), with a short imperative description after the type: `feat: add trip heatmap filter`, `fix(frontend): round the battery percentage`. The type decides which heading of the release notes a change goes under; see [RELEASING.md](RELEASING.md#commit-convention).
 
 ## Pull Requests
 
 - Fill in the PR template fully.
 - Link any related issues with `Closes #<number>`.
 - PRs require at least one approving review before merge.
+
+## CI on a fork
+
+The Docker build workflow requires two repository secrets to avoid Docker Hub anonymous pull rate limits (GitHub runners share IPs and exhaust the limit quickly):
+
+- **`DOCKERHUB_USERNAME`** - Your Docker Hub username
+- **`DOCKERHUB_TOKEN`** - A Docker Hub access token (hub.docker.com > Account Settings > Security > New Access Token)
+
+Add them under **Settings > Secrets and variables > Actions** in your fork. A free Docker Hub account is sufficient.
 
 ## Reporting Issues
 

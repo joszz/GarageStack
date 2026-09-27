@@ -122,6 +122,8 @@ updates:
           - "Microsoft.EntityFrameworkCore.Relational"
           - "Microsoft.Extensions.*"
           - "Npgsql.EntityFrameworkCore.*"
+          # The EF tooling pinned in .config/dotnet-tools.json moves with the EF packages.
+          - "dotnet-ef"
 
       # IdentityModel ships as a single release train separate from .NET
       identity-model:
@@ -215,7 +217,10 @@ updates:
 
   # ── GitHub Actions ───────────────────────────────────────────────────────────
   - package-ecosystem: github-actions
-    directory: /
+    # The workflows, and the composite action the frontend jobs share.
+    directories:
+      - /
+      - /.github/actions/*
     schedule:
       interval: weekly
       day: monday

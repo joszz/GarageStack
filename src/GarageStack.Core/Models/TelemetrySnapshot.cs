@@ -50,7 +50,8 @@ public class TelemetrySnapshot
     public double? TyrePressureRearRight { get; set; }
 
     public double? MileageOfTheDay { get; set; }
-    // kWh, as published by the gateway
+    // The day's energy counter as the gateway publishes it: kWh out of the traction battery on a
+    // plug-in car, but the trip computer's fuel in hundredths of a litre on a plain hybrid.
     public double? PowerUsageOfDay { get; set; }
     public double? MileageSinceLastCharge { get; set; }
 
