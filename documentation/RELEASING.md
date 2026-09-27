@@ -324,15 +324,23 @@ Unraid users can install directly without waiting for CA approval:
 
 > Unraid UI -> Apps -> Install from URL -> `https://raw.githubusercontent.com/joszz/garagestack/main/unraid/garagestack.xml`
 
-### Per-release checklist
+### Keeping the Community Apps copy in sync
 
-The template uses `:latest` so no file changes are needed for normal releases. Only update `unraid/garagestack.xml` if:
+The template uses `:latest`, so a release on its own needs no template change. `unraid/garagestack.xml` changes when a variable, port, volume, name or description changes, and **every such change has to be copied to the Community Apps repository as well**. Community Apps installs only from [`joszz/unraid-community-apps`](https://github.com/joszz/unraid-community-apps), so a change made here alone never reaches the users who installed from there. The comment at the top of the template says the same, for whoever edits it next.
 
-- A new required environment variable is added
-- A port or volume mapping changes
-- The container name or description changes
+The two copies differ only in `<TemplateURL>`: each one points at itself. Copy the whole file across and restore that one line:
 
-If the template changes, commit it alongside the release so users who refresh their template get the updated fields, and copy it to `templates/garagestack.xml` in the Community Apps repository (`joszz/unraid-community-apps`), keeping that copy's own `<TemplateURL>`. Community Apps reads only that repository, so a change made here alone never reaches users who installed from there.
+```bash
+cd unraid-community-apps
+git pull
+curl -fsSL https://raw.githubusercontent.com/joszz/garagestack/main/unraid/garagestack.xml \
+  | sed 's#raw.githubusercontent.com/joszz/garagestack/main/unraid/garagestack.xml#raw.githubusercontent.com/joszz/unraid-community-apps/main/templates/garagestack.xml#' \
+  > templates/garagestack.xml
+git diff   # only the template's own changes, never the TemplateURL
+git commit -am "Sync garagestack.xml with joszz/garagestack" && git push
+```
+
+Do this once the template change is on `main` here, so both copies describe the same image. When the app's description changes, update `ca_profile.xml` and `README.md` in that repository too.
 
 ---
 
