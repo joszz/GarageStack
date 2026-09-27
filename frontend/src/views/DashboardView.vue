@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, computed, ref, watch } from 'vue'
+import { onMounted, onUnmounted, computed, defineAsyncComponent, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useVehicleStore } from '@/stores/vehicle'
 import { cardsHiddenByType, useDashboardSettingsStore } from '@/stores/settingsDashboard'
@@ -12,12 +12,19 @@ import CardInfoWrap from '@/components/CardInfoWrap.vue'
 import CarDiagram from '@/components/CarDiagram.vue'
 import LocationMapWidget from '@/components/LocationMapWidget.vue'
 import EditableCardSlot from '@/components/EditableCardSlot.vue'
-import EditableCardGrid from '@/components/EditableCardGrid.vue'
+import type EditableCardGridComponent from '@/components/EditableCardGrid.vue'
 import SkeletonCard from '@/components/SkeletonCard.vue'
 import SkeletonCarDiagram from '@/components/SkeletonCarDiagram.vue'
 import SkeletonLocationMap from '@/components/SkeletonLocationMap.vue'
 import { useUnits } from '@/composables/useUnits'
 import { mayBurnFuel } from '@/utils/vehicleType'
+
+// Only edit mode drags cards around, and the drag-and-drop library is the size of every card on
+// this page together, so it loads when the layout editor opens rather than with the dashboard.
+// The cast restores the grid's generic item type, which defineAsyncComponent does not carry over.
+const EditableCardGrid = defineAsyncComponent(
+  () => import('@/components/EditableCardGrid.vue'),
+) as unknown as typeof EditableCardGridComponent
 
 const { t } = useI18n()
 const store = useVehicleStore()
