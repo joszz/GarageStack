@@ -1,4 +1,4 @@
-import type { TelemetrySnapshot, Trip } from '@/services/vehicleApi'
+import type { TelemetrySnapshot, TripSummary } from '@/services/vehicleApi'
 import type { VehicleType } from '@/stores/vehicle'
 import { energyUnit, litresPer100Km, whPerKm } from '@/utils/energy'
 
@@ -11,7 +11,7 @@ import { energyUnit, litresPer100Km, whPerKm } from '@/utils/energy'
 export interface CardDataContext {
   status: TelemetrySnapshot
   vehicleType: VehicleType
-  latestTrip: Trip | null
+  latestTrip: TripSummary | null
 }
 
 interface CardDefinition {
@@ -127,8 +127,7 @@ export const CARD_DEFINITIONS = [
   {
     id: 'topSpeed',
     icon: 'gauge-high',
-    hasData: ({ latestTrip }) =>
-      latestTrip !== null && latestTrip.points.some((p) => p.speed !== null),
+    hasData: ({ latestTrip }) => latestTrip !== null && latestTrip.maxSpeedKmh !== null,
   },
   { id: 'maintenance', icon: 'screwdriver-wrench' },
 ] as const satisfies readonly CardDefinition[]

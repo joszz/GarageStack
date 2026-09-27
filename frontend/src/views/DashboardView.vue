@@ -20,7 +20,6 @@ import SkeletonLocationMap from '@/components/SkeletonLocationMap.vue'
 import { useVehicleAlerts } from '@/composables/useVehicleAlerts'
 import { useUnits } from '@/composables/useUnits'
 import { usePush } from '@/composables/usePush'
-import { daysAgoIso } from '@/utils/dates'
 
 const { t } = useI18n()
 const store = useVehicleStore()
@@ -174,27 +173,32 @@ function resetLayout() {
 }
 
 // Everything the dashboard shows: vehicle list (cached after the first call), live status,
-// capability config and the recent trips behind the active-trip and top-speed cards.
+// capability config and the newest trip behind the active-trip and top-speed cards.
 async function refresh() {
   await store.fetchVehicles()
   if (vin.value) {
     await Promise.all([
       store.fetchStatus(vin.value),
       store.fetchConfig(vin.value),
-      store.fetchTrips(vin.value, daysAgoIso(uiSettings.filterDays)),
+      store.fetchLatestTrip(vin.value),
     ])
   }
 }
 
 // Only what can have changed while the tab was hidden: the live status and, since a trip may
-// have ended meanwhile, the trip list. The vehicle list and capability config do not drift.
+// have ended meanwhile, the newest trip. The vehicle list and capability config do not drift.
 async function refreshLive() {
   if (!vin.value) return
-  await Promise.all([
-    store.fetchStatus(vin.value),
-    store.fetchTrips(vin.value, daysAgoIso(uiSettings.filterDays)),
-  ])
+  await Promise.all([store.fetchStatus(vin.value), store.fetchLatestTrip(vin.value)])
 }
+
+// A trip just ended: the last-trip and top-speed cards describe it now.
+watch(
+  () => store.tripJustCompleted,
+  (completed) => {
+    if (completed && vin.value) store.fetchLatestTrip(vin.value)
+  },
+)
 
 function handleVisibilityChange() {
   if (document.visibilityState === 'visible') {

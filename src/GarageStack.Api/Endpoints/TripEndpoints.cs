@@ -22,6 +22,7 @@ public static class TripEndpoints
             ITripRepository trips,
             DateTimeOffset? from,
             DateTimeOffset? to,
+            bool? points,
             CancellationToken ct) =>
         {
             var vehicle = VehicleEndpoints.ResolveVehicleFilter.GetResolvedVehicle(httpContext);
@@ -29,9 +30,21 @@ public static class TripEndpoints
             var rangeError = VehicleEndpoints.TryResolveDateRange(from, to, TimeSpan.FromDays(30), TimeSpan.FromDays(90), out var start, out var end);
             if (rangeError is not null) return rangeError;
 
-            return Results.Ok(await trips.GetTripsAsync(vehicle.Id, start, end, ct));
+            var found = await trips.GetTripsAsync(vehicle.Id, start, end, ct);
+            return points == false
+                ? Results.Ok(found.Select(trip => trip.ToSummary()).ToList())
+                : Results.Ok(found);
         })
-        .WithSummary("Get trip history (saved trips, then the ones not saved yet, including the trip being driven)");
+        .WithSummary("Get trip history (saved trips, then the ones not saved yet, including the trip being driven); points=false leaves out the fixes");
+
+        // The dashboard shows one trip, so it asks for that one rather than a period of them.
+        group.MapGet("/latest", async (HttpContext httpContext, ITripRepository trips, CancellationToken ct) =>
+        {
+            var vehicle = VehicleEndpoints.ResolveVehicleFilter.GetResolvedVehicle(httpContext);
+            var latest = await trips.GetLatestAsync(vehicle.Id, DateTime.UtcNow, ct);
+            return latest is null ? Results.NoContent() : Results.Ok(latest);
+        })
+        .WithSummary("Get the newest trip: the one being driven, or else the last one driven");
 
         // Without the fixes, so a whole tax year fits in one answer.
         group.MapGet("/log", async (

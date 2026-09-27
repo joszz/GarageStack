@@ -33,6 +33,35 @@ public class TripRepository(
         return [.. saved.Concat(live).Select((trip, i) => trip with { Index = i })];
     }
 
+    // How far back the newest unsaved trip is looked for. The Worker saves a finished trip within
+    // minutes, so the fixes past the recording line only span more than this while it is down.
+    private static readonly TimeSpan LatestTripLookback = TimeSpan.FromDays(7);
+
+    public async Task<TripDto?> GetLatestAsync(int vehicleId, DateTime now, CancellationToken ct = default)
+    {
+        // Past the recording line lie the trip being driven and any finished trip the Worker has
+        // not saved yet; both are newer than every saved trip.
+        var lookbackStart = now - LatestTripLookback;
+        var liveFrom = await GetRecordedUntilAsync(vehicleId, ct) is { } line && line > lookbackStart ? line : lookbackStart;
+        var live = TripSegmenter.Segment(await telemetry.GetGpsFixesAsync(vehicleId, liveFrom, now, ct), now).Trips;
+        if (live.Count > 0) return live[^1] with { Index = 0 };
+
+        // Newest first, one row at a time: a saved trip whose fixes cannot be read is passed over
+        // rather than reported as the latest.
+        var rows = db.Trips
+            .AsNoTracking()
+            .Where(t => t.VehicleId == vehicleId)
+            .OrderByDescending(t => t.StartedAt)
+            .AsAsyncEnumerable();
+
+        await foreach (var row in rows.WithCancellation(ct))
+        {
+            if (ToDto(row) is { } trip) return trip;
+        }
+
+        return null;
+    }
+
     public Task<DateTime?> GetRecordedUntilAsync(int vehicleId, CancellationToken ct = default) =>
         db.Vehicles
             .AsNoTracking()
@@ -166,17 +195,23 @@ public class TripRepository(
         var trips = new List<TripDto>(rows.Count);
         foreach (var row in rows)
         {
-            // Every view draws a trip from its fixes, so a row whose fixes cannot be read is left
-            // out rather than served as a trip that has nowhere to be drawn.
-            var points = SafeJson.TryDeserialize<List<TripPoint>>(
-                row.PointsJson,
-                ex => logger?.LogWarning(ex, "Trip {Id} has unreadable fixes, leaving it out", row.Id));
-            if (points is not { Count: > 0 }) continue;
-
-            trips.Add(new TripDto(0, row.StartedAt, row.EndedAt, row.DistanceKm, row.PointCount, points, row.Id));
+            if (ToDto(row) is { } trip) trips.Add(trip);
         }
 
         return trips;
+    }
+
+    // Every view draws a trip from its fixes, so a row whose fixes cannot be read is left out
+    // rather than served as a trip that has nowhere to be drawn.
+    private TripDto? ToDto(Trip row)
+    {
+        var points = SafeJson.TryDeserialize<List<TripPoint>>(
+            row.PointsJson,
+            ex => logger?.LogWarning(ex, "Trip {Id} has unreadable fixes, leaving it out", row.Id));
+
+        return points is { Count: > 0 }
+            ? new TripDto(0, row.StartedAt, row.EndedAt, row.DistanceKm, row.PointCount, points, row.Id)
+            : null;
     }
 
     private static DateTime Min(DateTime a, DateTime b) => a < b ? a : b;

@@ -28,6 +28,14 @@ import EditableCardSlot from '@/components/EditableCardSlot.vue'
 import { formatNumber } from '@/utils/format'
 import { dailyCounterTotal, energyUnit, litres } from '@/utils/energy'
 import { startOfLocalDayDaysAgoIso } from '@/utils/dates'
+import {
+  averageMovingSpeedKmh,
+  averageTripKm as averageTripDistanceKm,
+  hasSpeedReadings,
+  parkingSpots,
+  peakDriveHour as peakTripHour,
+  totalDistanceKm,
+} from '@/utils/statistics'
 import { useUnits } from '@/composables/useUnits'
 
 const { t } = useI18n()
@@ -55,7 +63,7 @@ async function load() {
     const from = startOfLocalDayDaysAgoIso(days.value)
     const [, , , , stats] = await Promise.all([
       store.fetchHistory(vin.value, from),
-      store.fetchTrips(vin.value, from),
+      store.fetchTripSummaries(vin.value, from),
       store.fetchStatus(vin.value),
       store.fetchConfig(vin.value),
       vehicleApi.stats(vin.value, from),
@@ -162,55 +170,19 @@ function dailyAverages(read: (p: TelemetryHistoryPoint) => number | null) {
 // ── Insight computed values ───────────────────────────────────
 
 // Unrounded: the unit formatter rounds once, in the unit it shows.
-const periodDistanceKm = computed(() => {
-  if (!store.trips.length) return null
-  return store.trips.reduce((sum, trip) => sum + trip.distanceKm, 0)
-})
-
-const averageTripKm = computed(() => {
-  if (!store.trips.length) return null
-  return store.trips.reduce((sum, trip) => sum + trip.distanceKm, 0) / store.trips.length
-})
+const periodDistanceKm = computed(() => totalDistanceKm(store.tripSummaries))
+const averageTripKm = computed(() => averageTripDistanceKm(store.tripSummaries))
 
 const climateUsagePct = computed(() => aggregateStats.value?.climateUsagePct ?? null)
 
-const peakDriveHour = computed(() => {
-  if (!store.trips.length) return null
-  const counts = new Map<number, number>()
-  for (const trip of store.trips) {
-    const hour = new Date(trip.startedAt).getHours()
-    counts.set(hour, (counts.get(hour) ?? 0) + 1)
-  }
-  let bestHour = 0,
-    bestCount = 0
-  for (const [hour, count] of counts.entries()) {
-    if (count > bestCount) {
-      bestHour = hour
-      bestCount = count
-    }
-  }
-  return `${String(bestHour).padStart(2, '0')}:00`
-})
+const peakDriveHour = computed(() => peakTripHour(store.tripSummaries))
 
-// Deduplicated by 3-decimal lat/lng so repeat visits to the same spot count once. Shared with
-// the parking-locations modal below - parkingLocations is just this list's count.
-const parkingCoordinates = computed<Array<{ lat: number; lng: number }>>(() => {
-  if (!store.trips.length) return []
-  const spots = new Map<string, { lat: number; lng: number }>()
-  for (const trip of store.trips) {
-    const last = trip.points[trip.points.length - 1]
-    if (last) {
-      const key = `${last.latitude.toFixed(3)},${last.longitude.toFixed(3)}`
-      if (!spots.has(key)) spots.set(key, { lat: last.latitude, lng: last.longitude })
-    }
-  }
-  return Array.from(spots.values())
-})
+// Shared with the parking-locations modal below - parkingLocations is just this list's count.
+const parkingCoordinates = computed(() => parkingSpots(store.tripSummaries))
 
-const parkingLocations = computed(() => {
-  if (!store.trips.length) return null
-  return parkingCoordinates.value.length
-})
+const parkingLocations = computed(() =>
+  store.tripSummaries.length ? parkingCoordinates.value.length : null,
+)
 
 const batteryVoltageTrend = computed(() => {
   const dailyAvg = dailyAverages((p) => p.batteryVoltage).filter((v): v is number => v !== null)
@@ -227,16 +199,7 @@ const batteryVoltageDisplay = computed(() => {
   return v != null ? `${formatNumber(v)} V` : null
 })
 
-const avgSpeedKmh = computed(() => {
-  const speeds: number[] = []
-  for (const trip of store.trips) {
-    for (const point of trip.points) {
-      if (point.speed !== null && point.speed > 0) speeds.push(point.speed)
-    }
-  }
-  if (!speeds.length) return null
-  return speeds.reduce((sum, s) => sum + s, 0) / speeds.length
-})
+const avgSpeedKmh = computed(() => averageMovingSpeedKmh(store.tripSummaries))
 
 const electricShareToday = computed(() => {
   const s = status.value
@@ -375,7 +338,7 @@ const insightDefs = computed((): InsightDef[] => [
     // An average earns the decimal a live speed reading does without.
     ...measuredInsight('speed', avgSpeedKmh.value, 1),
     vehicleApplicable: true,
-    applicable: store.trips.some((trip) => trip.points.some((p) => p.speed !== null)),
+    applicable: hasSpeedReadings(store.tripSummaries),
   },
 ])
 

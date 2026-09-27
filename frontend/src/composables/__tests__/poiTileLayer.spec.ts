@@ -3,11 +3,20 @@ import { ref, shallowRef, nextTick } from 'vue'
 import type { LeafletMap } from '@/utils/leaflet'
 
 // Leaflet is stubbed: this suite is about the fetch/cache/redraw bookkeeping, not about what
-// the markers look like. The cluster records what was added so drawing can still be asserted.
+// the markers look like. Each cluster records what it holds, and every cluster call is logged in
+// order, so drawing can still be asserted.
 const clusterLayers: unknown[][] = []
+const clusterCalls: string[] = []
 
 vi.mock('@/utils/leaflet', () => {
-  const marker = (id: string) => ({ id })
+  const marker = (latLng: [number, number]) => ({
+    latLng,
+    popup: null as unknown,
+    bindPopup(content: unknown) {
+      this.popup = content
+      return this
+    },
+  })
   return {
     L: {
       divIcon: () => ({}),
@@ -16,9 +25,16 @@ vi.mock('@/utils/leaflet', () => {
         const layers: unknown[] = []
         clusterLayers.push(layers)
         return {
-          addTo: () => undefined,
-          addLayer: (layer: unknown) => layers.push(layer),
-          remove: () => undefined,
+          addTo: () => clusterCalls.push('addTo'),
+          addLayers: (added: unknown[]) => {
+            clusterCalls.push('addLayers')
+            layers.push(...added)
+          },
+          clearLayers: () => {
+            clusterCalls.push('clearLayers')
+            layers.length = 0
+          },
+          remove: () => clusterCalls.push('remove'),
         }
       },
     },
@@ -27,7 +43,7 @@ vi.mock('@/utils/leaflet', () => {
 vi.mock('leaflet.markercluster', () => ({}))
 vi.mock('leaflet.markercluster/dist/MarkerCluster.css', () => ({}))
 
-const { createTileLayer } = await import('../poiTileLayer')
+const { createMarker, createTileLayer } = await import('../poiTileLayer')
 
 interface Poi {
   id: string
@@ -77,6 +93,38 @@ function setup(
 describe('createTileLayer', () => {
   beforeEach(() => {
     clusterLayers.length = 0
+    clusterCalls.length = 0
+  })
+
+  it('fills a new cluster before putting it on the map', async () => {
+    const { layer } = setup([{ items: [{ id: 'a' }, { id: 'b' }], hasMore: false }])
+
+    await layer.load()
+
+    expect(clusterCalls).toEqual(['addLayers', 'addTo'])
+    expect(clusterLayers[0]).toEqual([{ id: 'a' }, { id: 'b' }])
+  })
+
+  it('refills the cluster on the map instead of building another', async () => {
+    const { layer } = setup([{ items: [{ id: 'a' }], hasMore: false }])
+    await layer.load()
+    clusterCalls.length = 0
+
+    layer.redraw()
+
+    expect(clusterLayers).toHaveLength(1)
+    expect(clusterCalls).toEqual(['clearLayers', 'addLayers'])
+  })
+
+  it('builds each marker once however often the layer redraws', async () => {
+    const toMarker = vi.fn<(item: Poi) => never>((item) => ({ id: item.id }) as never)
+    const { layer } = setup([{ items: [{ id: 'a' }, { id: 'b' }], hasMore: false }], { toMarker })
+    await layer.load()
+
+    layer.redraw()
+    layer.redraw()
+
+    expect(toMarker).toHaveBeenCalledTimes(2)
   })
 
   it('caches items and skips a viewport it has already covered', async () => {
@@ -201,5 +249,18 @@ describe('createTileLayer', () => {
     await layer.load()
 
     expect(fetchItems).not.toHaveBeenCalled()
+  })
+})
+
+describe('createMarker', () => {
+  it('builds its popup only when the popup is opened', () => {
+    const html = vi.fn<() => string>(() => '<strong>Station</strong>')
+
+    const marker = createMarker(52.1, 5.1, 'poi-marker', 'x', html) as unknown as {
+      popup: () => string
+    }
+
+    expect(html).not.toHaveBeenCalled()
+    expect(marker.popup()).toBe('<strong>Station</strong>')
   })
 })

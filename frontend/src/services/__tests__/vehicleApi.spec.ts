@@ -130,6 +130,24 @@ describe('vehicleApi', () => {
     expect(url).not.toContain('to=')
   })
 
+  it('tripSummaries() asks for the trips without their fixes', async () => {
+    const fetchSpy = vi.fn<FetchSpy>().mockResolvedValue(makeResponse(200, []))
+    vi.stubGlobal('fetch', fetchSpy)
+    await vehicleApi.tripSummaries('VIN1', '2024-01-01')
+    const [url] = fetchSpy.mock.calls[0] ?? []
+    expect(url).toContain('/api/vehicles/VIN1/trips?')
+    expect(url).toContain('from=2024-01-01')
+    expect(url).toContain('points=false')
+  })
+
+  it('latestTrip() returns undefined when the vehicle has no trip', async () => {
+    const fetchSpy = vi.fn<FetchSpy>().mockResolvedValue(makeResponse(204))
+    vi.stubGlobal('fetch', fetchSpy)
+    expect(await vehicleApi.latestTrip('VIN1')).toBeUndefined()
+    const [url] = fetchSpy.mock.calls[0] ?? []
+    expect(url).toContain('/api/vehicles/VIN1/trips/latest')
+  })
+
   it('sendCommand() posts the value as a JSON body', async () => {
     const fetchSpy = vi.fn<FetchSpy>().mockResolvedValue(makeResponse(200))
     vi.stubGlobal('fetch', fetchSpy)

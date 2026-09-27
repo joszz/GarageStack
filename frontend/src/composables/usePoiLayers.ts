@@ -223,7 +223,7 @@ export function usePoiLayers({ mapInstance, vehicleType, isHev, isBev }: UsePoiL
         station.longitude,
         `charging-marker${station.isOperational === false ? ' charging-marker--unknown' : ''}`,
         '&#9889;',
-        buildChargingPopup(station),
+        () => buildChargingPopup(station),
       ),
     // OCM answers in full per request, so "nothing new arrived" is what says the viewport is
     // covered. An empty first answer still chains, since it may be a gap rather than the end.
@@ -253,11 +253,7 @@ export function usePoiLayers({ mapInstance, vehicleType, isHev, isBev }: UsePoiL
       return brand !== null && selected.includes(brand)
     },
     toMarker: (item) =>
-      createMarker(
-        item.latitude,
-        item.longitude,
-        'poi-marker poi-marker--fuel',
-        '&#9981;',
+      createMarker(item.latitude, item.longitude, 'poi-marker poi-marker--fuel', '&#9981;', () =>
         buildPoiPopup(item, fuelSummary(item)),
       ),
     // Overpass is paged and rate-limited: hasMore is the server saying it holds uncached tiles.
@@ -280,7 +276,7 @@ export function usePoiLayers({ mapInstance, vehicleType, isHev, isBev }: UsePoiL
         item.longitude,
         'poi-marker poi-marker--service-area',
         '&#9654;',
-        buildPoiPopup(item),
+        () => buildPoiPopup(item),
       ),
     moreToFetch: ({ hasMore }) => hasMore,
     chainDelayMs: ({ newItems }) => (newItems ? 400 : 5000),
@@ -317,7 +313,7 @@ export function usePoiLayers({ mapInstance, vehicleType, isHev, isBev }: UsePoiL
         item.longitude,
         'poi-marker poi-marker--speed-camera',
         '&#128247;',
-        buildSpeedCameraPopup(item),
+        () => buildSpeedCameraPopup(item),
       ),
     moreToFetch: ({ hasMore }) => hasMore,
     chainDelayMs: ({ newItems }) => (newItems ? 400 : 5000),

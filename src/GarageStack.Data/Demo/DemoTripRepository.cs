@@ -19,6 +19,10 @@ public sealed class DemoTripRepository : ITripRepository
                 .Where(t => t.StartedAt >= from && t.StartedAt < to)
                 .Select((t, i) => t with { Index = i })]);
 
+    // The demo's fixed timeline ends with the trip it is driving, whatever the clock says.
+    public Task<TripDto?> GetLatestAsync(int vehicleId, DateTime now, CancellationToken ct = default) =>
+        Task.FromResult<TripDto?>(DemoTrips.All.Count > 0 ? DemoTrips.All[^1] with { Index = 0 } : null);
+
     public Task<DateTime?> GetRecordedUntilAsync(int vehicleId, CancellationToken ct = default) =>
         Task.FromResult<DateTime?>(null);
 
