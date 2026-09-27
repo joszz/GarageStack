@@ -48,6 +48,9 @@ export function useTripLayers(o: TripLayersOptions) {
   let endMarker: L.Marker | null = null
   let mapUpdateRaf: number | null = null
   let hasCenteredOnStatus = false
+  // Where the redraw after a deselection centres instead of framing every trip, when the car
+  // was asked for.
+  let carToShow: [number, number] | null = null
 
   const allPoints = computed<[number, number][]>(() =>
     o.trips.value.flatMap((trip) =>
@@ -236,6 +239,19 @@ export function useTripLayers(o: TripLayersOptions) {
     }
   }
 
+  /**
+   * Centres on the car at street level, dropping any selected trip. The redraw that dropping the
+   * selection sets off would otherwise frame every trip, a frame after the car was shown.
+   */
+  function showCar(latLng: [number, number]) {
+    if (o.selectedIndex.value === null) {
+      o.map.value?.setView(latLng, 14, { animate: false })
+      return
+    }
+    carToShow = latLng
+    o.selectedIndex.value = null
+  }
+
   // Leaflet operations are deferred to the next animation frame so the Vue DOM
   // update (active state CSS transition, popover enter) renders cleanly before
   // the canvas GPU layer is torn down and rebuilt.
@@ -283,7 +299,9 @@ export function useTripLayers(o: TripLayersOptions) {
       if (idx === null) {
         if (heatmapEnabled.value) buildHeatLayer()
         buildRouteLines()
-        fitAll()
+        if (carToShow) o.map.value?.setView(carToShow, 14, { animate: false })
+        else fitAll()
+        carToShow = null
       } else {
         removeHeatLayer()
         buildSelectedLine()
@@ -334,5 +352,5 @@ export function useTripLayers(o: TripLayersOptions) {
     removeHeatLayer()
   })
 
-  return { drawInitial }
+  return { drawInitial, showCar }
 }

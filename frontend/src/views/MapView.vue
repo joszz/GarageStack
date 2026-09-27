@@ -278,12 +278,8 @@ const displayRows = computed(() =>
 )
 
 function flyToStatus() {
-  const map = mapInstance.value
   const s = status.value
-  if (map && s?.latitude != null && s?.longitude != null) {
-    selectedTripIndex.value = null
-    map.setView([s.latitude, s.longitude], 14, { animate: false })
-  }
+  if (s?.latitude != null && s?.longitude != null) tripLayers.showCar([s.latitude, s.longitude])
 }
 
 function onMapReady(map: LeafletMap) {
