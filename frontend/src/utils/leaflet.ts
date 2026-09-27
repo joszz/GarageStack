@@ -1,5 +1,8 @@
 import * as LModule from 'leaflet'
 import type { LatLngBounds, Map as LeafletMap } from 'leaflet'
+import markerIconUrl from 'leaflet/dist/images/marker-icon.png'
+import markerIcon2xUrl from 'leaflet/dist/images/marker-icon-2x.png'
+import markerShadowUrl from 'leaflet/dist/images/marker-shadow.png'
 
 // Vite wraps CJS modules in a frozen ESM namespace - `import * as LModule` gives that frozen
 // namespace. Plugins like leaflet.heat and leaflet.markercluster patch the actual mutable CJS
@@ -7,6 +10,18 @@ import type { LatLngBounds, Map as LeafletMap } from 'leaflet'
 // rather than re-importing 'leaflet' directly, or plugin-added methods won't be visible on it.
 export const L = ((LModule as unknown as { default?: typeof LModule }).default ??
   LModule) as typeof LModule
+
+// Leaflet locates its default marker images through a stylesheet path a bundler cannot follow.
+// vue-leaflet's <LMap> repairs that itself, but it fetches the three images with import() and
+// waits for them before it creates the map, so as chunks of their own they were one more round
+// trip in front of every map's first tiles (the dashboard's largest paint). Importing them here
+// puts them in the chunk every map has already loaded, and that import() resolves at once.
+delete (L.Icon.Default.prototype as { _getIconUrl?: unknown })._getIconUrl
+L.Icon.Default.mergeOptions({
+  iconUrl: markerIconUrl,
+  iconRetinaUrl: markerIcon2xUrl,
+  shadowUrl: markerShadowUrl,
+})
 
 export type { Map as LeafletMap } from 'leaflet'
 

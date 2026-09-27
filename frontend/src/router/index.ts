@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHistory, type RouteLocationNormalized } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
 const router = createRouter({
@@ -40,11 +40,33 @@ const router = createRouter({
   // App.vue scrolls it to the top on every route change itself.
 })
 
+/**
+ * Starts downloading the lazy view(s) a navigation is headed for. The router only fetches them
+ * once every beforeEach guard has settled, and the guard below waits on a session check, so on a
+ * cold load the view's chunks queued behind that round trip. The module loader shares the
+ * download with the router's own import() of the same chunk later, so it is never fetched twice.
+ */
+export function preloadRouteComponents(to: RouteLocationNormalized): void {
+  for (const record of to.matched) {
+    for (const component of Object.values(record.components ?? {})) {
+      // Views are declared as () => import(...); a component already resolved is an object.
+      if (typeof component === 'function') {
+        void (component as () => Promise<unknown>)().catch(() => {
+          // The router's own import surfaces a failed download; nothing to add here.
+        })
+      }
+    }
+  }
+}
+
 router.beforeEach(async (to) => {
   const auth = useAuthStore()
-  await auth.ensureVerified()
-
   const isPublic = to.meta.public === true
+
+  // Only when the session held in storage makes it likely the guard lets this navigation
+  // through: a visitor about to be sent to the login page has no use for the dashboard's code.
+  if (isPublic || auth.isAuthenticated) preloadRouteComponents(to)
+  await auth.ensureVerified()
 
   if (isPublic) {
     if (to.name === 'login' && auth.isAuthenticated) {
