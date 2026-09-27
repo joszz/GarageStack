@@ -220,7 +220,14 @@ and the panels, trip list and legends around it are components in `components/ma
 layer to Leaflet's tile pane, which renders vector tiles themed to match the app and labelled in
 the interface language. MapLibre and its tile worker are loaded lazily through
 `utils/maplibreLayer.ts` and never reach a page without a map; if that load fails, or the browser
-has no WebGL, the same composable falls back to raster tiles, so a map view is never empty.
+has no WebGL, the same composable falls back to raster tiles, so a map view is never empty. The
+dashboard's location card asks for those raster tiles directly, since a preview that cannot be
+panned gains nothing from the vector renderer.
+
+How a map looks (dark, light, or full colour with the **Colourful maps** setting) is decided once,
+by `basemapVariant()` in `utils/basemapStyle.ts`, and applied by `useBasemap` to every map. A
+vector map gets that variant's style; a raster map gets a `data-raster-basemap` attribute, which
+`main.css` turns into a filter that greys the full-colour tiles toward the dark or light style.
 
 ## Tests
 

@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest'
-import { boostLabelContrast, localizeStyleLabels, type MapStyle } from '../basemapStyle'
+import {
+  BASEMAP_STYLE_URLS,
+  basemapVariant,
+  boostLabelContrast,
+  localizeStyleLabels,
+  type MapStyle,
+} from '../basemapStyle'
 
 // The shape OpenFreeMap's styles use: a case expression that falls back to the local name.
 const openMapTilesTextField = [
@@ -12,6 +18,26 @@ const openMapTilesTextField = [
 function styleWith(layers: MapStyle['layers']): MapStyle {
   return { version: 8, name: 'test', layers }
 }
+
+describe('basemapVariant', () => {
+  it('follows the theme unless colourful maps are on', () => {
+    expect(basemapVariant('dark', false)).toBe('dark')
+    expect(basemapVariant('light', false)).toBe('light')
+  })
+
+  it('is colourful in either theme when colourful maps are on', () => {
+    expect(basemapVariant('dark', true)).toBe('colorful')
+    expect(basemapVariant('light', true)).toBe('colorful')
+  })
+
+  it('has a style for every variant, on the host the CSP allows', () => {
+    expect(BASEMAP_STYLE_URLS).toEqual({
+      dark: 'https://tiles.openfreemap.org/styles/dark',
+      light: 'https://tiles.openfreemap.org/styles/positron',
+      colorful: 'https://tiles.openfreemap.org/styles/liberty',
+    })
+  })
+})
 
 describe('localizeStyleLabels', () => {
   it('prefers the name in the UI language and keeps the original as fallback', () => {
