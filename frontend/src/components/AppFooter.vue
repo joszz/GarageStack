@@ -1,16 +1,30 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, nextTick, shallowRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useVehicleStore } from '@/stores/vehicle'
 import { useVehicleCommand } from '@/composables/useVehicleCommand'
 import { useModal } from '@/composables/useModal'
-import SettingsModal from './settings/SettingsModal.vue'
 import { APP_VERSION } from '@/utils/appVersion'
+import type SettingsModalComponent from './settings/SettingsModal.vue'
 
 const { t } = useI18n()
 const vehicleStore = useVehicleStore()
 const { sending, send } = useVehicleCommand()
-const { isOpen: modalOpen, open: openModal, close: closeModal } = useModal()
+const { isOpen: modalOpen, open: showModal, close: closeModal } = useModal()
+
+// The settings modal, and the dropdown library behind its vehicle-type picker, used to ship with
+// the footer on every page for a dialog most visits never open. It loads on first use instead.
+const settingsModal = shallowRef<typeof SettingsModalComponent | null>(null)
+
+async function openModal() {
+  if (!settingsModal.value) {
+    settingsModal.value = (await import('./settings/SettingsModal.vue')).default
+    // Mount it closed first: its transition only plays for a change of `open`, not for a
+    // dialog that arrives already open.
+    await nextTick()
+  }
+  showModal()
+}
 
 // Joined in script rather than the template, which drops a whitespace-only text node before the version
 const copyrightLabel = ['© 2026 GarageStack', APP_VERSION].filter(Boolean).join(' ')
@@ -49,5 +63,5 @@ function refresh() {
     </div>
   </footer>
 
-  <SettingsModal :open="modalOpen" @close="closeModal" />
+  <component :is="settingsModal" v-if="settingsModal" :open="modalOpen" @close="closeModal" />
 </template>

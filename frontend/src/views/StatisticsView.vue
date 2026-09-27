@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import '@/assets/statistics.css'
-import { onMounted, computed, ref, watch } from 'vue'
+import { onMounted, computed, defineAsyncComponent, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useI18n } from 'vue-i18n'
 import { useVehicleStore } from '@/stores/vehicle'
@@ -23,7 +23,7 @@ import SkeletonCard from '@/components/SkeletonCard.vue'
 import SkeletonChart from '@/components/SkeletonChart.vue'
 import StatusCard from '@/components/StatusCard.vue'
 import StatsChartCard from '@/components/StatsChartCard.vue'
-import EditableCardGrid from '@/components/EditableCardGrid.vue'
+import type EditableCardGridComponent from '@/components/EditableCardGrid.vue'
 import { formatNumber } from '@/utils/format'
 import { startOfLocalDayDaysAgoIso } from '@/utils/dates'
 import {
@@ -39,6 +39,12 @@ import {
 import { useUnits } from '@/composables/useUnits'
 import { useErrorMessage } from '@/composables/useErrorMessage'
 import { useStatisticsCharts } from '@/composables/useStatisticsCharts'
+
+// Only edit mode rearranges the cards; the drag-and-drop library loads when it opens. The cast
+// restores the grid's generic item type, which defineAsyncComponent does not carry over.
+const EditableCardGrid = defineAsyncComponent(
+  () => import('@/components/EditableCardGrid.vue'),
+) as unknown as typeof EditableCardGridComponent
 
 const { t } = useI18n()
 const store = useVehicleStore()
