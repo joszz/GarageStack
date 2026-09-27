@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { ref } from 'vue'
+import { nextTick, ref } from 'vue'
 import { shallowMount } from '@vue/test-utils'
 import { createI18n } from 'vue-i18n'
+import Multiselect from '@vueform/multiselect'
 import AppFooter from '../AppFooter.vue'
 
 const appVersion = vi.hoisted(() => ({ value: null as string | null }))
@@ -82,5 +83,35 @@ describe('AppFooter', () => {
 
     expect(labels).toContain('notifications.categories.chargingComplete')
     expect(labels).toContain('notifications.categories.lowEv')
+  })
+
+  it('relabels the vehicle type options when the language changes', async () => {
+    const translated = createI18n({
+      legacy: false,
+      locale: 'en',
+      missingWarn: false,
+      fallbackWarn: false,
+      messages: {
+        en: { settings: { vehicleType: { auto: 'Automatic' } } },
+        nl: { settings: { vehicleType: { auto: 'Automatisch' } } },
+      },
+    })
+    const wrapper = shallowMount(AppFooter, {
+      global: {
+        plugins: [translated],
+        stubs: { FontAwesomeIcon: true, DetailModal: { template: '<div><slot /></div>' } },
+      },
+    })
+    const autoLabel = () =>
+      (
+        wrapper.findComponent(Multiselect).props('options') as { value: string; label: string }[]
+      ).find((option) => option.value === 'auto')?.label
+
+    expect(autoLabel()).toBe('Automatic')
+
+    translated.global.locale.value = 'nl'
+    await nextTick()
+
+    expect(autoLabel()).toBe('Automatisch')
   })
 })

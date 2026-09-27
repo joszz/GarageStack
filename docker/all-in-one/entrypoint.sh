@@ -85,6 +85,9 @@ export Cors__Origins__0="${CORS_ORIGIN:-http://localhost:8080}"
 # Homepage widget API key (optional -- leave empty to disable the widget endpoint)
 export Widget__ApiKey="${WIDGET_API_KEY:-}"
 
+# Open Charge Map API key for the charging station map layer (optional -- leave empty to hide it)
+export OpenChargeMap__ApiKey="${OPENCHARGEMAP_API_KEY:-}"
+
 # API requests per minute per client IP. Optional -- raise it when several people share one
 # public address, lower it to tighten the budget.
 export RateLimits__GlobalPerMinute="${RATE_LIMIT_GLOBAL_PER_MINUTE:-}"
@@ -139,16 +142,19 @@ if [ ! -f "$DB_INIT_MARKER" ]; then
     gosu postgres /usr/lib/postgresql/18/bin/pg_ctl -D "$PGDATA" \
         -l /data/logs/postgres-init.log start -w
 
-    # IF NOT EXISTS makes these idempotent when recovering a partial init.
-    # ALTER ROLE ensures the password matches .postgres_password even when the
-    # role already existed from a prior partial run with a different password.
+    # PostgreSQL has no IF NOT EXISTS for roles or databases, so each CREATE is generated only
+    # when the catalog lacks the object and run through \gexec. That keeps a rerun after a
+    # partial init idempotent. ALTER ROLE ensures the password matches .postgres_password even
+    # when the role already existed from a prior partial run with a different password.
     gosu postgres psql -v ON_ERROR_STOP=1 \
         -v pguser="${POSTGRES_USER}" \
         -v pgpassword="${POSTGRES_PASSWORD}" \
         -v pgdb="${POSTGRES_DB}" <<-'EOSQL'
-        CREATE ROLE :"pguser" IF NOT EXISTS WITH LOGIN PASSWORD :'pgpassword';
+        SELECT format('CREATE ROLE %I WITH LOGIN PASSWORD %L', :'pguser', :'pgpassword')
+        WHERE NOT EXISTS (SELECT FROM pg_roles WHERE rolname = :'pguser') \gexec
         ALTER ROLE :"pguser" WITH PASSWORD :'pgpassword';
-        CREATE DATABASE :"pgdb" IF NOT EXISTS OWNER :"pguser";
+        SELECT format('CREATE DATABASE %I OWNER %I', :'pgdb', :'pguser')
+        WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = :'pgdb') \gexec
         GRANT ALL PRIVILEGES ON DATABASE :"pgdb" TO :"pguser";
 EOSQL
 
