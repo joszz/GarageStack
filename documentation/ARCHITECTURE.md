@@ -40,7 +40,7 @@ without a real car, see [DEMO.md](DEMO.md).
 ## Data flow: a telemetry update reaching the browser
 
 1. `saic-mqtt-gateway` polls the SAIC cloud and publishes one MQTT message per changed field to a topic like `saic/{user}/vehicles/{vin}/drivetrain/soc`.
-2. `MqttConsumerService` ([src/GarageStack.Worker/Mqtt/MqttConsumerService.cs](../src/GarageStack.Worker/Mqtt/MqttConsumerService.cs)) is subscribed to `saic/#`. It extracts the VIN and subtopic, maps the payload onto a `TelemetrySnapshot` field via `TelemetryMapper`, and writes it to Postgres. A single poll cycle produces several MQTT messages in quick succession, so messages arriving within a 15s window are merged into one row instead of one row per field (see the comments on `MergeOrAddTelemetryAsync` in that file for why this needs a per-vehicle lock).
+2. `MqttConsumerService` ([src/GarageStack.Worker/Mqtt/MqttConsumerService.cs](../src/GarageStack.Worker/Mqtt/MqttConsumerService.cs)) is subscribed to `saic/#`. It keeps the connection alive and offers every message to a chain of handlers, the first one to claim it winning: Home Assistant discovery, the car's capability configuration, MG app messages, command results, and telemetry last. `TelemetryHandler` ([src/GarageStack.Worker/Mqtt/TelemetryHandler.cs](../src/GarageStack.Worker/Mqtt/TelemetryHandler.cs)) maps the payload onto a `TelemetrySnapshot` field via `TelemetryMapper` and writes it to Postgres. A single poll cycle produces several MQTT messages in quick succession, so messages arriving within a 15s window are merged into one row instead of one row per field (see the comments on `MergeOrAddTelemetryAsync` in that file for why this needs a per-vehicle lock). The handlers share a `VehicleResolver`, which caches the vehicle id per VIN.
 3. Each write calls `pg_notify('telemetry_updated', vehicleId)`.
 4. `TelemetryNotificationService` ([src/GarageStack.Api/Services/TelemetryNotificationService.cs](../src/GarageStack.Api/Services/TelemetryNotificationService.cs)), a background service in the Api process, holds a `LISTEN telemetry_updated` connection. On notification it debounces briefly (to coalesce a poll cycle's several writes into one update), re-reads the merged latest snapshot, and broadcasts it over SignalR to browsers subscribed to that vehicle's group.
 5. The frontend's `useSignalR` composable ([frontend/src/composables/useSignalR.ts](../frontend/src/composables/useSignalR.ts)) receives the `telemetryUpdated` event and updates the UI. There is no polling fallback - if the SignalR connection drops, the dashboard goes stale until it reconnects.
@@ -50,6 +50,8 @@ The same `pg_notify`/`LISTEN`/SignalR pattern also carries `notification_created
 Push notification texts are written by the Worker, which has no browser request to take a language from; they come from `Resources/NotificationStrings*.resx` in the Worker project and the language is the `NOTIFICATION_LANGUAGE` deployment setting. The marker types for these resources (`NotificationStrings`, and `WidgetStrings` in the Api) must stay in their assembly's root namespace: the resource localizer maps a marker in a sub-namespace to a resource path that does not exist and silently falls back to the keys.
 
 Messages from the official MG app are the one notification the Worker does not write itself: `VehicleMessageHandler` ([src/GarageStack.Worker/Mqtt/VehicleMessageHandler.cs](../src/GarageStack.Worker/Mqtt/VehicleMessageHandler.cs)) passes on SAIC's own text from the gateway's `events/vehicleMessage` event. The gateway publishes its latest message again every time it starts, so the handler remembers the newest message id per vehicle (`Vehicle.LastMessageId`) and pushes each message once; its summary explains how it pairs the event with that id.
+
+`TelemetryHandler` is also the one place that watches the engine. A start sends the engine-start notification at once (with a one-hour cooldown). A stop ends the trip: it raises `trip_completed` and writes `Vehicle.LastParkedAt`, which the five-minute notification check reads to give a driver ten minutes to unload before it warns about an open door or window.
 
 ## Sending a command to the car (the reverse path)
 
@@ -66,6 +68,7 @@ The gateway reports positions, not trips. `TripSegmenter` in Core cuts GPS fixes
 - **Saving.** `TripRecorderService` in the Worker runs `TripRecorder` every five minutes. It reads a vehicle's fixes from `Vehicle.TripsRecordedUntil` onwards, a week at a time, and saves every trip that no later fix can change, because the car has been parked for five minutes or nothing has arrived for half an hour. Then it moves that line up: to the first fix of the trip still being driven, or else to the end of what it read. The trips and the line are saved in one transaction. An install that has never saved a trip has no line yet, so the first run starts at the vehicle's first fix and saves its whole history.
 - **Storage.** A trip is saved together with its fixes (`Trip.PointsJson`), so showing it does not mean reading and re-cutting raw telemetry. A unique index on `(VehicleId, StartedAt)` turns any slip in the line into an error rather than a duplicate.
 - **Serving.** The Api's trips endpoint goes through `TripRepository`. It serves the saved trips from before the line, and cuts everything after the line live; the trip being driven always comes from that live part. The line is read first, and only saved trips from before it are served: otherwise a save landing between the two reads would show its trips twice.
+- **Summaries.** Every trip carries the figures read off its fixes (where it ended, top speed, average speed while moving and how many readings that average covers), so a caller that only needs those asks for `?points=false` and gets no fixes at all. The statistics page works from these. `GET .../trips/latest` answers with the newest trip alone, the one being driven if there is one, and is what the dashboard asks for.
 
 The frontend sees one list and can tell the two kinds apart only by `id`, which is null for a trip that has not been saved yet.
 
@@ -86,15 +89,25 @@ The `AddTripLog` migration clears the trips saved before it and resets the recor
 | --- | --- | --- |
 | `GarageStack.Core` | Domain models (`Models/`), repository/service interfaces (`Interfaces/`), and pure helpers with no I/O (`Helpers/`) - the shared vocabulary every other project builds on. | nothing (leaf project) |
 | `GarageStack.Data` | EF Core: `AppDbContext`, migrations, concrete repository implementations, and `Demo/` (in-memory fakes used when `DEMO_MODE=true`). | `Core` |
-| `GarageStack.Worker` | The MQTT-ingestion process: `Mqtt/MqttConsumerService`, plus background services for maintenance reminders, POI pre-caching, push-notification checks, and saving finished trips. | `Core`, `Data` |
+| `GarageStack.Worker` | The MQTT-ingestion process: `Mqtt/MqttConsumerService` and the message handlers beside it, plus the periodic jobs (maintenance reminders, POI pre-caching, push-notification checks, saving finished trips), each a `PeriodicBackgroundService`. | `Core`, `Data` |
 | `GarageStack.Api` | ASP.NET Core minimal APIs (`Endpoints/`), the SignalR hub (`Hubs/`), and Api-only services (outbound MQTT publishing, POI/charging-station lookups, the Postgres-LISTEN-to-SignalR bridge). | `Core`, `Data` |
 | `GarageStack.Tests` | xUnit tests across all of the above. | all four |
+
+## Configuration
+
+Deployments configure GarageStack through environment variables named for people (`MQTT_HOST`, `OIDC_AUTHORITY`), not in .NET's `Section__Key` form. `EnvironmentAliases` ([src/GarageStack.Core/Configuration/EnvironmentAliases.cs](../src/GarageStack.Core/Configuration/EnvironmentAliases.cs)) is the one table that maps each name onto its setting; both hosts add it as their last configuration source. An empty variable counts as unset, and a setting given by its own key wins over the name, which is how the all-in-one entrypoint passes the values it derives. The compose files therefore pass the variables straight through, and the defaults live in the code. `EnvironmentAliasesTests` fails when `.env.example`, the Unraid template or a compose file mentions a variable that is neither in the table nor consumed by the deployment itself.
+
+The upstream clients and the push sender take typed options (`GeocodingOptions`, `MapMatchingOptions`, `OverpassOptions`, `OpenChargeMapOptions`, `VapidOptions` in `Core/Configuration`), each built once by a `From(IConfiguration)` that reads blank values as defaults. The operator-facing list of every variable is [CONFIGURATION.md](CONFIGURATION.md).
+
+## Errors
+
+Every error the API answers with is a ProblemDetails body. Refusals the browser can explain carry a `code` beside the English `detail` (`maintenance.nameRequired`, `command.invalidValue`, `csrf.originNotAllowed`), built through `ApiProblems` in the Api. The frontend's `ApiError` keeps that code, and `useErrorMessage` shows the translation under `errors.codes.<code>` when there is one, else a message for the status, so a validation message reaches the user in their own language. A new refusal needs its code in both `en.json` and `nl.json`.
 
 ## Caching
 
 There's no Redis (or other external cache) in the stack, by design rather than oversight: this
 is a single-instance, single-user deployment, so a distributed cache buys nothing a
-process-local one doesn't already provide. Two caches exist today:
+process-local one doesn't already provide. The caches, each in memory or in Postgres:
 
 - `ITelemetryRepository.GetMergedLatestAsync` (the hot path behind `/status`, the homepage
   widget, and every SignalR broadcast) uses a short-TTL `IMemoryCache` entry, invalidated
@@ -128,6 +141,15 @@ process-local one doesn't already provide. Two caches exist today:
   cache immediately, a "not revoked" answer is trusted for five minutes, so the check costs no
   database round trip per request.
 
+### Map POI tiles
+
+All four POI types share the same tile-based PostgreSQL cache:
+
+- The map is divided into a 0.5 deg x 0.5 deg grid (roughly 55 x 40 km at European latitudes).
+- Each tile is fetched once and stored for 7 days; subsequent requests for the same area are served from the database with no external API call.
+- The background Worker pre-populates tiles around the car two minutes after it starts and every 6 hours after that: the OpenStreetMap layers the car has a use for (fuel, service areas, and speed cameras unless the deployment switched them off), and, for a plug-in car, charging stations when an Open Charge Map key is set.
+- The `MaxOnDemandTiles` cap (1 per API request) prevents Overpass rate-limiting when many uncached tiles are requested at once; the frontend chains requests automatically with back-off when more tiles remain.
+
 If GarageStack ever needs to run more than one Api/Worker instance, revisit this: per-vehicle
 in-memory state (this cache, the revocation cache, `VehicleCommandGate`,
 `NotificationCooldownGate`, the shared `UpstreamRateGate` behind the Overpass/OCM/Nominatim clients)
@@ -152,9 +174,12 @@ Code-first EF Core migrations live in `src/GarageStack.Data/Migrations/`. `Progr
 The Data project has its own `DesignTimeDbContextFactory`, so the EF tooling never needs the Api's configuration:
 
 ```sh
+dotnet tool restore
 dotnet ef migrations add <Name> --project src/GarageStack.Data --startup-project src/GarageStack.Data
 dotnet ef migrations has-pending-model-changes --project src/GarageStack.Data --startup-project src/GarageStack.Data
 ```
+
+`dotnet tool restore` installs the `dotnet-ef` version pinned in `.config/dotnet-tools.json`, which matches the EF Core packages.
 
 CI runs the second command, and the pending-model-changes warning is not suppressed anywhere, so a model change without a migration fails before it reaches a real database.
 
@@ -190,7 +215,8 @@ round-tripped approximation.
 Dashboard cards are described once, in `frontend/src/cards/registry.ts`: each entry carries the card's icon, whether it is visible by default for a given drivetrain, and whether the current telemetry has anything to show. The card ids, the default layout and the "does this card have data" checks are all derived from that list, so a new card is one entry plus its markup in `DashboardCardContent.vue`. The map's point-of-interest layers work the same way: `composables/poiTileLayer.ts` holds the fetch-by-tile, cache and cluster logic, and charging stations, fuel stations, service areas and speed cameras are four configurations of it.
 
 Every map is Leaflet, and everything drawn on one (markers, clusters, routes, the heatmap) is a
-Leaflet layer. The basemap underneath them is not: `composables/useBasemap.ts` adds a MapLibre GL
+Leaflet layer. On the map view, `composables/useTripLayers.ts` draws the trips and frames the map,
+and the panels, trip list and legends around it are components in `components/map/`. The basemap underneath them is not: `composables/useBasemap.ts` adds a MapLibre GL
 layer to Leaflet's tile pane, which renders vector tiles themed to match the app and labelled in
 the interface language. MapLibre and its tile worker are loaded lazily through
 `utils/maplibreLayer.ts` and never reach a page without a map; if that load fails, or the browser

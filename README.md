@@ -145,7 +145,7 @@ docker run -d \
 
 **Unraid:** import `unraid/garagestack.xml` from Community Apps and fill in the variables in the template UI.
 
-See [`docker/all-in-one/README.md`](docker/all-in-one/README.md) for the full variable reference, volume layout, and Unraid setup steps.
+See [`docker/all-in-one/README.md`](docker/all-in-one/README.md) for the volume layout and Unraid setup steps, and [`CONFIGURATION.md`](documentation/CONFIGURATION.md) for every variable.
 
 ---
 
@@ -180,17 +180,7 @@ Then open `.env` and fill in at minimum:
 
 `docker compose up` refuses to start until both `POSTGRES_PASSWORD` and `MQTT_BROKER_PASSWORD` are set.
 
-`VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` are optional; leave them empty to disable push notifications.
-
-`HA_MQTT_USERNAME` / `HA_MQTT_PASSWORD` are optional and create a restricted broker login for Home Assistant. See [`HOME_ASSISTANT.md`](documentation/HOME_ASSISTANT.md).
-
-Sign-in is configured separately: the built-in login reuses `SAIC_USER` / `SAIC_PASSWORD` unless you set `AUTH_USERNAME` / `AUTH_PASSWORD`, and setting `OIDC_AUTHORITY` switches GarageStack over to your identity provider. See [`AUTHENTICATION.md`](documentation/AUTHENTICATION.md).
-
-`TYRE_PRESSURE_LOW_BAR` / `TYRE_PRESSURE_GOOD_BAR` / `TYRE_PRESSURE_HIGH_BAR` are optional and default to `2.2` / `2.6` / `3.2` bar; override them to match your vehicle's placarded tyre pressure (see [Push notifications](#push-notifications) below).
-
-`HV_BATTERY_CAPACITY_KWH` is optional and tells GarageStack how big the traction battery really is. The MQTT gateway does not read this off the pack, it scales the BMS percentage by an EV-sized default, so the kWh it reports are right for a BEV or PHEV and far too large for a plain hybrid (an MG HS Hybrid+ carries 1.83 kWh and is reported as 72.5). Left unset, a plug-in car keeps the gateway's figure and a hybrid shows state of charge as a percentage only.
-
-`RATE_LIMIT_GLOBAL_PER_MINUTE` is optional and defaults to `120` requests per minute per client IP. Raise it when several people reach GarageStack through one public address, or when something polls the API frequently; the tighter limits protecting login and the widget endpoint are unaffected.
+Everything else is optional: push notifications, a Home Assistant broker login, single sign-on, tyre pressure bands, the traction battery's real size, the rate limit and the map's data sources. Every variable, with its default, is in [`CONFIGURATION.md`](documentation/CONFIGURATION.md); sign-in has its own guide in [`AUTHENTICATION.md`](documentation/AUTHENTICATION.md).
 
 #### 3. Start the stack
 
@@ -285,7 +275,7 @@ To restore, stop the container, replace `garagestack-data` with the backup, and 
 
 ## Push notifications
 
-GarageStack checks your vehicle's state every 5 minutes and sends both a browser push notification and an in-app notification (bell icon) when any of the following conditions are detected. Each alert has a 1-hour cooldown per vehicle to avoid repeated notifications.
+GarageStack checks your vehicle's state every 5 minutes and sends both a browser push notification and an in-app notification (bell icon) when any of the following conditions are detected. "Engine started" and MG app messages go out the moment they arrive over MQTT instead. Each alert has a 1-hour cooldown per vehicle to avoid repeated notifications.
 
 | Alert | Condition |
 | ------- | --------- |
@@ -300,7 +290,7 @@ GarageStack checks your vehicle's state every 5 minutes and sends both a browser
 | Maintenance due | A maintenance item reaches 90 % of its interval, or passes it (checked every 6 hours, 7-day cooldown per item) |
 | MG app message | The official MG app receives a message, such as an alarm or a reminder (sent as it arrives, once per message) |
 
-Push notifications require VAPID keys to be configured (`VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY`). Without them, alerts still appear in the in-app notification panel. The "engine started" alert is also triggered in real time when the event arrives over MQTT, independently of the 5-minute polling cycle.
+Push notifications require VAPID keys to be configured (`VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY`). Without them, alerts still appear in the in-app notification panel. While GarageStack is open in a browser that allowed notifications but is not subscribed to push, the same alerts show up as system notifications too; a subscribed browser gets them through push instead, so nothing arrives twice.
 
 Settings has a per-type checklist for these alerts, which offers only the types the car's drivetrain can produce: the two plug-in alerts (low EV battery, charging complete) are left out for a plain hybrid. Deselecting every type offered unsubscribes the browser from push entirely; selecting one again resubscribes.
 
@@ -308,7 +298,7 @@ Notification texts are written by the background worker, which has no browser to
 
 MG app messages are the exception: they are passed on as SAIC wrote them, in the language of your MG account. Each one is sent once, even though the gateway repeats its latest message every time it starts, because GarageStack remembers which message it last saw. Two kinds are left out: the "vehicle started" message, which the engine started alert already covers, and any message sent more than a day ago, so a new install does not announce whatever the account last received. A message that arrives while the worker is not running is not sent afterwards.
 
-The tyre pressure thresholds (`TYRE_PRESSURE_LOW_BAR` / `TYRE_PRESSURE_GOOD_BAR` / `TYRE_PRESSURE_HIGH_BAR`) also drive the colour-coded dots on the dashboard's vehicle diagram and the in-browser low/high pressure alert -- set them once in your `.env` (or container environment) to match your vehicle's placarded pressure instead of the app's generic defaults.
+The tyre pressure thresholds (`TYRE_PRESSURE_LOW_BAR` / `TYRE_PRESSURE_GOOD_BAR` / `TYRE_PRESSURE_HIGH_BAR`) also drive the colour-coded dots on the dashboard's vehicle diagram. Set them once in your `.env` (or container environment) to match your vehicle's placarded pressure instead of the app's generic defaults.
 
 To generate a VAPID key pair (requires Node.js):
 
@@ -345,120 +335,7 @@ Only trips the Worker has saved can be logged, so the trip being driven, and one
 
 ## Homepage dashboard widget
 
-GarageStack exposes a dedicated read-only endpoint for the [gethomepage.dev](https://gethomepage.dev) [Custom API widget](https://gethomepage.dev/widgets/services/customapi/). No fork or custom widget code is required.
-
-### 1. Generate an API key
-
-```bash
-openssl rand -base64 32
-```
-
-Set `WIDGET_API_KEY` to the generated value in your `.env` file (Docker Compose) or as a container environment variable (all-in-one / Unraid). Leave it empty to keep the endpoint disabled.
-
-### 2. Find your VIN
-
-Log in to GarageStack, open the browser developer tools (Network tab) and reload: the VIN is the `vin` field in the `/api/vehicles` response. It is also the 17-character segment in the MQTT topics the gateway logs, `saic/<account>/vehicles/<VIN>/...`.
-
-### 3. Configure Homepage
-
-Add the following block to your Homepage `services.yaml`, replacing `YOUR_GARAGESTACK_URL`, `YOUR_VIN`, and `YOUR_WIDGET_API_KEY`:
-
-```yaml
-- GarageStack:
-    href: https://YOUR_GARAGESTACK_URL
-    description: MG Vehicle Status
-    widget:
-      type: customapi
-      url: https://YOUR_GARAGESTACK_URL/api/widget/YOUR_VIN/status
-      headers:
-        X-Widget-Key: "YOUR_WIDGET_API_KEY"
-      mappings:
-        - field: evSocPercent
-          label: Battery
-          format: percent
-        - field: isCharging
-          label: Charging
-          format: text
-        - field: exteriorTemperature
-          label: Ext. Temp
-          format: float
-          suffix: "°C"
-        - field: isLocked
-          label: Locked
-          format: text
-```
-
-### Available fields
-
-The endpoint returns a flat JSON object. Numeric fields are `null` when the vehicle has not reported that value yet. String state fields are also `null` when unreported, except `anyDoorOpen` and `anyWindowOpen` which are always present. String values are localized: the language is resolved from the request in this order: query string, cookie, `Accept-Language` header, falling back to `en`. Supported languages are `en` and `nl`. To pin a language regardless of the Homepage container's locale, append `?culture=nl&ui-culture=nl` (or `en`) to the widget URL.
-
-| Field | Type | Description |
-| ------- | ------ | ----------- |
-| `recordedAt` | string (ISO 8601) | Timestamp of the most recent telemetry |
-| `fuelLevelPercent` | number | Fuel tank level (%) |
-| `fuelRangeKm` | number | Estimated fuel range (km) |
-| `evSocPercent` | number | EV / HV battery state of charge (%) |
-| `electricRangeKm` | number | Distance the car estimates it can drive on the battery alone (km), on a BEV or PHEV. Never reported as 0, so an empty battery keeps its last value |
-| `isCharging` | string | Charging state: `"Charging"` or `"Not charging"` |
-| `chargerConnected` | string | Charger connection state: `"Plugged in"` or `"Unplugged"` |
-| `mileageSinceLastCharge` | number | Distance driven since last full charge (km) |
-| `hvSocKwh` | number | HV battery energy (kWh), as the gateway reports it |
-| `hvTotalCapacityKwh` | number | HV battery total capacity (kWh), as the gateway reports it |
-| `hvVoltage` | number | HV system voltage (V) |
-| `hvCurrent` | number | HV system current (A) |
-| `hvPower` | number | HV system power (W) |
-| `odometerKm` | number | Total odometer reading (km) |
-| `mileageOfTheDayKm` | number | Distance driven today (km) |
-| `powerUsageOfDayKwh` | number | Energy used today (kWh). On a plain hybrid this counter holds the trip computer's fuel total in hundredths of a litre instead, so divide by 100 for litres |
-| `electricSharePercent` | number | % of today's distance driven on electric power (PHEV) |
-| `isLocked` | string | Lock state: `"Locked"` or `"Unlocked"` |
-| `engineRunning` | string | Engine state: `"Engine on"` or `"Engine off"` |
-| `climateOn` | string | Remote climate state: `"On"` or `"Off"` |
-| `driverDoorOpen` | string | Driver door state: `"Open"` or `"Closed"` |
-| `passengerDoorOpen` | string | Passenger door state: `"Open"` or `"Closed"` |
-| `rearLeftDoorOpen` | string | Rear left door state: `"Open"` or `"Closed"` |
-| `rearRightDoorOpen` | string | Rear right door state: `"Open"` or `"Closed"` |
-| `trunkOpen` | string | Boot / trunk state: `"Open"` or `"Closed"` |
-| `bonnetOpen` | string | Bonnet / hood state: `"Open"` or `"Closed"` |
-| `anyDoorOpen` | string | `"Open"` if any door, boot, or bonnet is open, otherwise `"Closed"` (never null) |
-| `driverWindowOpen` | string | Driver window state: `"Open"` or `"Closed"` |
-| `passengerWindowOpen` | string | Passenger window state: `"Open"` or `"Closed"` |
-| `rearLeftWindowOpen` | string | Rear left window state: `"Open"` or `"Closed"` |
-| `rearRightWindowOpen` | string | Rear right window state: `"Open"` or `"Closed"` |
-| `sunRoofOpen` | string | Sunroof state: `"Open"` or `"Closed"` |
-| `anyWindowOpen` | string | `"Open"` if any window or sunroof is open, otherwise `"Closed"` (never null) |
-| `batteryVoltage` | number | 12V auxiliary battery voltage (V) |
-| `interiorTemperature` | number | Interior temperature (°C) |
-| `exteriorTemperature` | number | Exterior temperature (°C) |
-| `tyrePressureFrontLeft` | number | Front-left tyre pressure (bar) |
-| `tyrePressureFrontRight` | number | Front-right tyre pressure (bar) |
-| `tyrePressureRearLeft` | number | Rear-left tyre pressure (bar) |
-| `tyrePressureRearRight` | number | Rear-right tyre pressure (bar) |
-| `lightsMainBeam` | string | Main beam headlights state: `"On"` or `"Off"` |
-| `lightsDippedBeam` | string | Dipped beam headlights state: `"On"` or `"Off"` |
-| `lightsSide` | string | Side / parking lights state: `"On"` or `"Off"` |
-| `speedKmh` | number | Current vehicle speed (km/h) |
-| `currentJourneyDistanceKm` | number | Distance driven in the current trip (km) |
-| `isAvailable` | string | Cloud reachability: `"Online"` or `"Offline"` |
-| `lastVehicleStateAt` | string (ISO 8601) | Timestamp the car last pushed state to SAIC cloud |
-| `lastChargeStateAt` | string (ISO 8601) | Timestamp the car last pushed charge state to SAIC cloud |
-| `remainingChargingTime` | number | Estimated minutes remaining to reach charge limit |
-| `chargingType` | string | Charging type as reported by the gateway (e.g. `"AC"`, `"DC"`) |
-| `chargingCableLock` | string | Cable lock state: `"Locked"` or `"Unlocked"` |
-| `obcPowerSinglePhase` | number | Onboard charger single-phase AC power (kW) |
-| `obcPowerThreePhase` | number | Onboard charger three-phase AC power (kW) |
-| `batteryHeating` | string | Battery pre-heating state: `"On"` or `"Off"` |
-| `batteryHeatingScheduleMode` | string | Battery heating schedule mode (e.g. `"off"`) |
-| `batteryHeatingScheduleStartTime` | string | Battery heating schedule start time (HH:MM) |
-| `elevation` | number | Vehicle elevation above sea level (m) |
-| `bmsChargeStatus` | string | BMS charge status string (e.g. `"UNPLUGGED"`, `"CHARGING"`) |
-| `lastChargeEndingPower` | number | State of charge (%) when the last charge session ended |
-| `chargingLastEndAt` | string (ISO 8601) | Timestamp the last charge session ended |
-| `chargingScheduleMode` | string | Scheduled charging mode (e.g. `"DISABLED"`, `"UNTIL_CONFIGURED_TIME"`) |
-| `chargingScheduleStartTime` | string | Scheduled charge start time (HH:MM) |
-| `chargingScheduleEndTime` | string | Scheduled charge end time (HH:MM) |
-| `onboardChargerPlugStatus` | number | Onboard charger plug presence status (raw integer) |
-| `offboardChargerPlugStatus` | number | Offboard (DC) charger plug presence status (raw integer) |
+GarageStack has a read-only endpoint for the [gethomepage.dev](https://gethomepage.dev) Custom API widget, switched on by setting `WIDGET_API_KEY`. The setup and every field it returns are in [`WIDGET.md`](documentation/WIDGET.md).
 
 ---
 
@@ -553,15 +430,6 @@ Two things it cannot know, which the legend and its tooltip say rather than hide
 
 A reading counts as over the limit only past 5 km/h above it: speedometers read high by a few percent by design, and a fix is a spot sample rather than an average over the stretch it covers.
 
-### Caching architecture
-
-All four POI types share the same tile-based PostgreSQL cache:
-
-- The map is divided into a 0.5 deg x 0.5 deg grid (roughly 55 x 40 km at European latitudes).
-- Each tile is fetched once and stored for 7 days; subsequent requests for the same area are served from the database with no external API call.
-- The background Worker pre-populates tiles around your car on startup and every 6 hours (the OpenStreetMap layers only: fuel, service areas and speed cameras, the last of these unless the deployment has switched them off).
-- The `MaxOnDemandTiles` cap (1 per API request) prevents Overpass rate-limiting when many uncached tiles are requested at once; the frontend chains requests automatically with back-off when more tiles remain.
-
 ---
 
 ## Security defaults
@@ -579,17 +447,6 @@ All four POI types share the same tile-based PostgreSQL cache:
 
 - **Let GarageStack's security headers through.** A proxy that sets its own `Content-Security-Policy`, `X-Frame-Options` or `Permissions-Policy` replaces GarageStack's rather than adding to them. A Traefik headers middleware does this, for example. The page then runs without its script restrictions. Leave those three headers out of whatever headers the proxy adds for GarageStack; transport headers such as HSTS are fine.
 - **On Cloudflare, switch Rocket Loader off for this host** (Speed > Optimization, or a Configuration Rule). It rewrites every script on the page and delays the one that applies the stylesheet, which wastes the stylesheet preload and fills the console with warnings. With GarageStack's policy in place it is blocked outright. Cloudflare's injected Web Analytics beacon and bot-detection script are blocked by the policy too, so switch those off for the host if you would rather not see the console reports.
-
----
-
-## GitHub Actions / CI
-
-The Docker build workflow requires two repository secrets to avoid Docker Hub anonymous pull rate limits (GitHub runners share IPs and exhaust the limit quickly):
-
-- **`DOCKERHUB_USERNAME`** - Your Docker Hub username
-- **`DOCKERHUB_TOKEN`** - A Docker Hub access token (hub.docker.com > Account Settings > Security > New Access Token)
-
-Add them under **Settings > Secrets and variables > Actions** in your fork. A free Docker Hub account is sufficient.
 
 ---
 

@@ -52,39 +52,14 @@ By default the web login uses the same `SAIC_USER` and `SAIC_PASSWORD` credentia
 
 ### Optional
 
-| Variable | Description |
-|----------|-------------|
-| `POSTGRES_PASSWORD` | Password for the embedded database. If not set, a random password is auto-generated on first start and saved to `/data/.postgres_password`. Set explicitly if you need a known value (e.g. for external tools that connect directly to the database). |
-| `VAPID_PUBLIC_KEY` | Web Push VAPID public key. Leave empty to disable push notifications. Generate: `npx web-push generate-vapid-keys` |
-| `VAPID_PRIVATE_KEY` | Web Push VAPID private key |
-| `NOTIFICATION_LANGUAGE` | Language of the push notification texts: `en` (default) or `nl`. A deployment setting, since the worker that writes them has no browser to ask. |
-| `WIDGET_API_KEY` | Static API key for the Homepage dashboard widget endpoint (`/api/widget/{vin}/status`). Leave empty to disable. Generate: `openssl rand -base64 32` |
-| `OPENCHARGEMAP_API_KEY` | API key for the EV charging station map overlay, sourced from [Open Charge Map](https://openchargemap.org/site/develop). Free to obtain. Leave empty to disable the feature. |
-| `OVERPASS__BASEURL` | Overpass API endpoint used for the fuel station, motorway service area and speed camera map overlays. Defaults to the public endpoint (`https://overpass-api.de/api/interpreter`). Set this only if you self-host an Overpass instance. No API key is required for the default public endpoint. |
-| `GEOCODING__ENABLED` | Whether coordinates are turned into place names (city names in the trip list, the street the car is parked in) via OpenStreetMap Nominatim. Defaults to `true`; set to `false` to keep coordinates off a third-party service, and the trip list falls back to dates. No API key is required. |
-| `GEOCODING__BASEURL` | Nominatim endpoint used for those place names. Defaults to the public instance (`https://nominatim.openstreetmap.org`). Set this only if you self-host Nominatim. Answers are cached in the database for 90 days, so the same spot is looked up once. |
-| `MAPMATCHING__ENABLED` | Whether a selected trip is drawn along the roads it was driven on, snapped onto OpenStreetMap by Valhalla, instead of in straight lines between GPS fixes. Defaults to `true`; set to `false` to keep trip geometry off a third-party service, and trips keep being drawn from their raw fixes. No API key is required. |
-| `MAPMATCHING__BASEURL` | Valhalla endpoint used for that snapping. Defaults to the public instance (`https://valhalla1.openstreetmap.de`). Set this only if you self-host Valhalla. Snapped trips are cached in the database for 30 days, so a trip is matched once. |
-| `SPEEDCAMERAS__ENABLED` | Whether the map offers a layer of the speed cameras mapped in OpenStreetMap. Defaults to `true`, and the layer itself is off until a browser switches it on under the map's layer panel. Set to `false` to remove the layer from the deployment entirely, which is what to do where showing a driver where the cameras are is restricted (France and Germany among others); the Worker then fetches no camera data either. No API key is required. |
-| `RATE_LIMIT_GLOBAL_PER_MINUTE` | Requests per minute the API accepts per client IP (default: `120`). Raise it when several people share one public address; the tighter limits on login and the widget endpoint apply regardless. |
-| `TYRE_PRESSURE_LOW_BAR` / `TYRE_PRESSURE_GOOD_BAR` / `TYRE_PRESSURE_HIGH_BAR` | Colour-coding and notification thresholds (bar) for tyre pressure. Default to `2.2` / `2.6` / `3.2`. Override to match your vehicle's placarded pressure, e.g. `TYRE_PRESSURE_GOOD_BAR=2.55`. |
-| `HV_BATTERY_CAPACITY_KWH` | Usable capacity of the traction battery, in kWh. The MQTT gateway assumes an EV-sized pack rather than reading the real one, so its kWh figures are far too large on a plain hybrid (an MG HS Hybrid+ carries `1.83` and is reported as `72.5`). Leave empty to keep the gateway's figure on a BEV or PHEV and show charge as a percentage only on a hybrid. |
-| `SAIC_REST_URI` | Override for the SAIC gateway API endpoint. Only needed if your region isn't listed in the `SAIC_REGION` row above -- set it directly to your gateway's endpoint. |
-| `POSTGRES_DB` | Database name (default: `garagestack`) |
-| `POSTGRES_USER` | Database user (default: `garagestack`) |
-| `AUTH_COOKIE_SECURE` | Set to `true` when serving behind a TLS-terminating reverse proxy. Defaults to `false` so plain-HTTP LAN installs work out of the box. |
-| `AUTH_USERNAME` / `AUTH_PASSWORD` | Credentials for the built-in login. Default to `SAIC_USER` / `SAIC_PASSWORD`. Ignored once OIDC is configured, unless `AUTH_PASSWORD_LOGIN_ENABLED=true`. |
-| `AUTH_PASSWORD_LOGIN_ENABLED` | Set to `true` to keep the built-in login available alongside OIDC (break-glass access), or to `false` to switch it off entirely. Defaults to on only while no OIDC provider is configured. |
-| `AUTH_SESSION_LIFETIME_HOURS` | How long a single sign-on session lasts before the provider is consulted again (default `168`). |
-| `OIDC_AUTHORITY` | Issuer URL of your identity provider. Setting it enables single sign-on and disables the built-in password login. Register `<CORS_ORIGIN>/api/auth/oidc/callback` as the redirect URI. |
-| `OIDC_CLIENT_ID` / `OIDC_CLIENT_SECRET` | Client credentials from your provider. The secret may be empty for a public (PKCE-only) client. |
-| `OIDC_ALLOWED_GROUPS` / `OIDC_ALLOWED_EMAILS` | Restrict who may sign in. Leave empty only if the provider already restricts this application. |
-| `OIDC_PROVIDER_NAME` | Name on the sign-in button (default `SSO`). |
-| `OIDC_AUTO_LOGIN` | Set to `true` to skip the login page and go straight to the provider. |
-| `OIDC_SCOPES`, `OIDC_GROUPS_CLAIM`, `OIDC_REDIRECT_URI`, `OIDC_REQUIRE_HTTPS_METADATA` | Fine-tuning for less common providers -- see [`AUTHENTICATION.md`](../../documentation/AUTHENTICATION.md). |
-| `MQTT_BROKER_USERNAME` | Username for the embedded Mosquitto broker (default: `garagestack`). Only matters if you expose port 1883 to the LAN. |
-| `MQTT_BROKER_PASSWORD` | Password for the embedded Mosquitto broker. If not set, a random password is auto-generated on first start. Set explicitly if you expose port 1883 and want a known value. |
-| `HA_MQTT_USERNAME` / `HA_MQTT_PASSWORD` | Optional broker login for Home Assistant, limited to the car's topics and Home Assistant discovery. Leave empty to skip it. Needs port 1883 published. See [`HOME_ASSISTANT.md`](../../documentation/HOME_ASSISTANT.md). |
+Every other variable works here as well, under the same name as in Docker Compose. They are all listed, with their defaults, in [`CONFIGURATION.md`](../../documentation/CONFIGURATION.md): push notifications, single sign-on, the map's data sources, tyre pressure bands, the traction battery's real size, the rate limit and the Home Assistant broker login. A few behave differently in this image:
+
+| Variable | In this image |
+|----------|---------------|
+| `POSTGRES_PASSWORD` | Generated on first start and saved to `/data/.postgres_password` when not set. Set it only if you need a known value, for example to connect an external tool to the database. |
+| `MQTT_BROKER_PASSWORD` | Generated on every start when not set. Set it if you publish port 1883 and connect other clients. |
+| `MQTT_HOST` / `MQTT_PORT` | Ignored: the services always use the broker inside the container. |
+| `AUTH_COOKIE_SECURE` | Defaults to `false`, so a plain-HTTP LAN install works. Set it to `true` behind a TLS-terminating proxy. |
 
 ## Building the image
 
