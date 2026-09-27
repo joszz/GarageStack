@@ -25,13 +25,25 @@ function configured(value: string | undefined, fallback: string): string {
 }
 
 /**
- * Vector basemap styles, one per app theme, so the map follows the UI instead of staying bright
- * while everything around it is dark. OpenFreeMap serves OpenStreetMap-derived vector tiles for
- * free without an API key and can be self-hosted; a deployment pointing at its own tile server
- * overrides these at build time (VITE_MAP_STYLE_DARK / VITE_MAP_STYLE_LIGHT) and must add that
- * host to connect-src and img-src in nginx-security-headers.conf, or the browser blocks it.
+ * How every map in the app looks: toned to the app theme (dark or light), or the full-colour map
+ * whatever the theme. One value for all of them, so the dashboard's card and the map page can
+ * never disagree.
  */
-export const BASEMAP_STYLE_URLS: Record<Theme, string> = {
+export type BasemapVariant = Theme | 'colorful'
+
+export function basemapVariant(theme: Theme, colorful: boolean): BasemapVariant {
+  return colorful ? 'colorful' : theme
+}
+
+/**
+ * Vector basemap styles, one per variant, so the map follows the UI instead of staying bright
+ * while everything around it is dark, unless the user asked for colour. OpenFreeMap serves
+ * OpenStreetMap-derived vector tiles for free without an API key and can be self-hosted; a
+ * deployment pointing at its own tile server overrides these at build time (VITE_MAP_STYLE_DARK /
+ * VITE_MAP_STYLE_LIGHT / VITE_MAP_STYLE_COLORFUL) and must add that host to connect-src and
+ * img-src in nginx-security-headers.conf, or the browser blocks it.
+ */
+export const BASEMAP_STYLE_URLS: Record<BasemapVariant, string> = {
   dark: configured(
     import.meta.env.VITE_MAP_STYLE_DARK,
     'https://tiles.openfreemap.org/styles/dark',
@@ -39,6 +51,13 @@ export const BASEMAP_STYLE_URLS: Record<Theme, string> = {
   light: configured(
     import.meta.env.VITE_MAP_STYLE_LIGHT,
     'https://tiles.openfreemap.org/styles/positron',
+  ),
+  // Liberty is OpenFreeMap's take on the standard OpenStreetMap map: the same greens, blues and
+  // road colours the raster tiles show, so a colourful vector map and a colourful raster card
+  // look like the same map.
+  colorful: configured(
+    import.meta.env.VITE_MAP_STYLE_COLORFUL,
+    'https://tiles.openfreemap.org/styles/liberty',
   ),
 }
 

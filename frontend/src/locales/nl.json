@@ -429,7 +429,9 @@
     "map": {
       "title": "Kaart",
       "placeNames": "Plaatsnamen tonen",
-      "placeNamesDesc": "Noem ritten naar de plaatsen waartussen ze liepen en toon de straat waar de auto geparkeerd staat. Uit toont ritten op datum en stuurt geen coördinaten naar de geocoder."
+      "placeNamesDesc": "Noem ritten naar de plaatsen waartussen ze liepen en toon de straat waar de auto geparkeerd staat. Uit toont ritten op datum en stuurt geen coördinaten naar de geocoder.",
+      "colorful": "Kleurrijke kaarten",
+      "colorfulDesc": "Toon elke kaart in volle kleur. Uit past de kaarten aan het donkere of lichte thema aan."
     },
     "vehicleType": {
       "title": "Voertuigtype",

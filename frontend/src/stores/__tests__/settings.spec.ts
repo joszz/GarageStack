@@ -161,6 +161,22 @@ describe('useUiSettingsStore', () => {
     expect(useUiSettingsStore().placeNamesEnabled).toBe(false)
   })
 
+  it('keeps maps themed unless colourful maps were turned on', () => {
+    localStorage.setItem(UI_KEY, JSON.stringify({ theme: 'light' }))
+    expect(useUiSettingsStore().colorfulMaps).toBe(false)
+  })
+
+  it('persists colourful maps being turned on, and loads it back', async () => {
+    const store = useUiSettingsStore()
+    store.colorfulMaps = true
+    await nextTick()
+    vi.advanceTimersByTime(SAVE_DEBOUNCE_MS)
+    expect(JSON.parse(localStorage.getItem(UI_KEY)!).colorfulMaps).toBe(true)
+
+    setActivePinia(createPinia())
+    expect(useUiSettingsStore().colorfulMaps).toBe(true)
+  })
+
   it('defaults notificationTypeExclusions to an empty array (no exclusions, show all)', () => {
     const store = useUiSettingsStore()
     expect(store.notificationTypeExclusions).toEqual([])

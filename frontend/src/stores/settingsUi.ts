@@ -34,6 +34,7 @@ interface UiSettings {
   locale: Locale
   showCardInfoIcons: boolean
   placeNamesEnabled: boolean
+  colorfulMaps: boolean
   carColorScheme: string
   vehicleTypeOverride: VehicleTypeOverride
   filterDays: number
@@ -47,6 +48,7 @@ function defaultsFor(): UiSettings {
     locale: browserLocale(),
     showCardInfoIcons: true,
     placeNamesEnabled: true,
+    colorfulMaps: false,
     carColorScheme: 'orange',
     vehicleTypeOverride: 'auto',
     filterDays: DEFAULT_FILTER_DAYS,
@@ -120,6 +122,7 @@ function parseUiFields(parsed: Record<string, unknown>, fallback: UiSettings): U
     // On unless explicitly turned off, so an install from before this setting existed keeps
     // the behaviour it already had.
     placeNamesEnabled: parsed.placeNamesEnabled !== false,
+    colorfulMaps: parsed.colorfulMaps === true,
     carColorScheme: oneOf(parsed.carColorScheme, CAR_COLOR_SCHEME_IDS, fallback.carColorScheme),
     vehicleTypeOverride: oneOf(
       parsed.vehicleTypeOverride,

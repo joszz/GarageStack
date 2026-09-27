@@ -217,11 +217,55 @@ describe('useBasemap', () => {
   it('marks a raster map for the stylesheet, and unmarks it when it goes', async () => {
     const map = fakeMap()
     const { wrapper } = await mountBasemap(map, { vector: false })
-    expect(containerOf(map).classList.contains('basemap--raster')).toBe(true)
+    expect(containerOf(map).dataset.rasterBasemap).toBe('dark')
 
     wrapper.unmount()
 
-    expect(containerOf(map).classList.contains('basemap--raster')).toBe(false)
+    expect(containerOf(map).dataset.rasterBasemap).toBeUndefined()
+  })
+
+  // The dashboard's card is raster and the map page is vector; both have to follow the one
+  // setting, or the card goes colourful while the map page stays themed.
+  it('keeps a raster map marked with the current variant as the settings change', async () => {
+    const map = fakeMap()
+    await mountBasemap(map, { vector: false })
+    const ui = await uiStore()
+
+    ui.theme = 'light'
+    await nextTick()
+    expect(containerOf(map).dataset.rasterBasemap).toBe('light')
+
+    ui.colorfulMaps = true
+    await nextTick()
+    expect(containerOf(map).dataset.rasterBasemap).toBe('colorful')
+  })
+
+  it('draws the colourful style in either theme when colourful maps are on', async () => {
+    ;(await uiStore()).colorfulMaps = true
+    await mountBasemap(fakeMap())
+
+    expect(fetchMock).toHaveBeenCalledWith('https://tiles.openfreemap.org/styles/liberty')
+
+    const ui = await uiStore()
+    ui.theme = 'light'
+    await flushPromises()
+
+    // The map already looks the way it should, so a theme switch fetches and restyles nothing.
+    expect(setStyle).not.toHaveBeenCalled()
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('goes back to the themed style when colourful maps are turned off', async () => {
+    ;(await uiStore()).colorfulMaps = true
+    await mountBasemap(fakeMap())
+
+    const ui = await uiStore()
+    ui.colorfulMaps = false
+    await flushPromises()
+
+    expect(fetchMock).toHaveBeenLastCalledWith('https://tiles.openfreemap.org/styles/dark')
+    expect(setStyle).toHaveBeenCalledTimes(1)
+    expect(setStyle.mock.calls[0]![0]).toMatchObject({ name: 'dark' })
   })
 
   it('gives the map a finite max zoom on the raster fallback too', async () => {
@@ -245,6 +289,16 @@ describe('useBasemap', () => {
     expect(setStyle.mock.calls[0]![0]).toMatchObject({ name: 'light' })
     // Restyling rather than rebuilding is the point: the layer on the map is the original one.
     expect(layers.filter((l) => l.kind === 'vector')).toHaveLength(vectorLayers)
+  })
+
+  it('marks the raster fallback with the theme it stands in for', async () => {
+    webGl = false
+    const ui = await uiStore()
+    ui.theme = 'light'
+    const map = fakeMap()
+    await mountBasemap(map)
+
+    expect(containerOf(map).dataset.rasterBasemap).toBe('light')
   })
 
   it('relabels the map when the UI language changes', async () => {

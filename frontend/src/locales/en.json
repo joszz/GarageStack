@@ -429,7 +429,9 @@
     "map": {
       "title": "Map",
       "placeNames": "Show place names",
-      "placeNamesDesc": "Name trips after the cities they ran between and show the street the car is parked in. Off lists trips by date and sends no coordinates to the geocoder."
+      "placeNamesDesc": "Name trips after the cities they ran between and show the street the car is parked in. Off lists trips by date and sends no coordinates to the geocoder.",
+      "colorful": "Colourful maps",
+      "colorfulDesc": "Show every map in full colour. Off matches the maps to the dark or light theme."
     },
     "vehicleType": {
       "title": "Vehicle type",

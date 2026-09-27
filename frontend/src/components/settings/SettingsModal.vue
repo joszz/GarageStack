@@ -69,6 +69,12 @@ const isNL = computed({
           :desc="t('settings.map.placeNamesDesc')"
           input-id="footer-toggle-place-names"
         />
+        <SettingsToggle
+          v-model="settings.colorfulMaps"
+          :label="t('settings.map.colorful')"
+          :desc="t('settings.map.colorfulDesc')"
+          input-id="footer-toggle-colorful-maps"
+        />
       </div>
     </SettingsSection>
 

@@ -26,8 +26,10 @@ ENV VITE_APP_VERSION=$APP_VERSION
 # in frontend/nginx-security-headers.conf or the browser will block it.
 ARG MAP_STYLE_DARK=
 ARG MAP_STYLE_LIGHT=
+ARG MAP_STYLE_COLORFUL=
 ENV VITE_MAP_STYLE_DARK=$MAP_STYLE_DARK
 ENV VITE_MAP_STYLE_LIGHT=$MAP_STYLE_LIGHT
+ENV VITE_MAP_STYLE_COLORFUL=$MAP_STYLE_COLORFUL
 RUN pnpm run build
 
 # ── Stage 2: Build .NET API and Worker ────────────────────────────────────────

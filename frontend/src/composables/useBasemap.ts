@@ -1,4 +1,4 @@
-import { onUnmounted, watch, type Ref } from 'vue'
+import { computed, onUnmounted, watch, type Ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import type { Map as MaplibreMap, StyleSpecification } from 'maplibre-gl'
 import type { maplibreGL } from '@maplibre/maplibre-gl-leaflet'
@@ -10,6 +10,7 @@ import {
   RASTER_FALLBACK_MAX_ZOOM,
   RASTER_FALLBACK_TILE_URL,
   VECTOR_MAX_ZOOM,
+  basemapVariant,
   boostLabelContrast,
   localizeStyleLabels,
   supportsWebGl,
@@ -67,18 +68,20 @@ export interface BasemapOptions {
   vector?: boolean
 }
 
-/** Marks a map drawn from raster tiles, which the stylesheet darkens in the dark theme. */
-const RASTER_CLASS = 'basemap--raster'
-
 /**
  * Puts a vector basemap under a Leaflet map. MapLibre GL draws OpenStreetMap vector tiles into
- * Leaflet's tile pane, so the basemap follows the app's dark/light theme and its labels follow
- * the UI language, while everything above it (markers, clusters, routes, the heatmap) stays
- * ordinary Leaflet. Both libraries are loaded lazily, so a page without a map never pays for the
- * renderer, and a browser without WebGL falls back to the raster tiles this replaced.
+ * Leaflet's tile pane, so the basemap follows the app's dark/light theme (or stays in full colour
+ * when the user asked for that) and its labels follow the UI language, while everything above it
+ * (markers, clusters, routes, the heatmap) stays ordinary Leaflet. Both libraries are loaded
+ * lazily, so a page without a map never pays for the renderer, and a browser without WebGL falls
+ * back to the raster tiles this replaced.
+ *
+ * Every map in the app goes through here, so this is the one place that decides how a map looks.
  */
 export function useBasemap(mapInstance: Ref<LeafletMap | null>, options: BasemapOptions = {}) {
-  const { theme, locale } = storeToRefs(useUiSettingsStore())
+  const { theme, locale, colorfulMaps } = storeToRefs(useUiSettingsStore())
+  // A theme switch while colourful maps are on changes nothing on the map, and so fetches nothing.
+  const variant = computed(() => basemapVariant(theme.value, colorfulMaps.value))
 
   let vectorActive = false
   let layer: L.Layer | null = null
@@ -89,19 +92,28 @@ export function useBasemap(mapInstance: Ref<LeafletMap | null>, options: Basemap
 
   let rasterMap: LeafletMap | null = null
 
+  /**
+   * Raster tiles only come in full colour, so a raster map carries the variant it should look
+   * like as `data-raster-basemap`, and the stylesheet filters the tiles toward the dark or light
+   * vector style to match.
+   */
+  function markRaster() {
+    if (rasterMap) rasterMap.getContainer().dataset.rasterBasemap = variant.value
+  }
+
   function detach() {
     generation += 1
     layer?.remove()
     layer = null
     glLayer = null
     vectorActive = false
-    rasterMap?.getContainer().classList.remove(RASTER_CLASS)
+    if (rasterMap) delete rasterMap.getContainer().dataset.rasterBasemap
     rasterMap = null
   }
 
   function addRasterFallback(map: LeafletMap) {
     rasterMap = map
-    map.getContainer().classList.add(RASTER_CLASS)
+    markRaster()
     map.setMaxZoom(RASTER_FALLBACK_MAX_ZOOM)
     layer = L.tileLayer(RASTER_FALLBACK_TILE_URL, {
       attribution: OSM_ATTRIBUTION,
@@ -112,7 +124,7 @@ export function useBasemap(mapInstance: Ref<LeafletMap | null>, options: Basemap
   async function addVectorBasemap(map: LeafletMap, token: number) {
     try {
       const [style, maplibre] = await Promise.all([
-        loadStyle(BASEMAP_STYLE_URLS[theme.value]),
+        loadStyle(BASEMAP_STYLE_URLS[variant.value]),
         import('@/utils/maplibreLayer'),
       ])
       if (token !== generation) return
@@ -145,10 +157,10 @@ export function useBasemap(mapInstance: Ref<LeafletMap | null>, options: Basemap
     const gl = glLayer?.getMaplibreMap()
     if (!gl) return
     try {
-      const style = await loadStyle(BASEMAP_STYLE_URLS[theme.value])
+      const style = await loadStyle(BASEMAP_STYLE_URLS[variant.value])
       if (token !== generation || glLayer?.getMaplibreMap() !== gl) return
       // Diffing (setStyle's default) keeps the tiles already on screen when only colours change,
-      // so a theme switch recolours the map in place instead of blanking it.
+      // so a variant switch recolours the map in place instead of blanking it.
       gl.setStyle(prepareStyle(style, locale.value))
     } catch (error) {
       // Keep whatever is on screen: a failed restyle is a wrong-coloured map, not a broken one.
@@ -181,9 +193,11 @@ export function useBasemap(mapInstance: Ref<LeafletMap | null>, options: Basemap
     { immediate: true },
   )
 
-  // A theme switch recolours the existing map; a language switch relabels it. Both are the same
-  // operation - hand MapLibre a freshly localized style for the current theme.
-  watch([theme, locale], () => {
+  // A variant switch recolours the existing map; a language switch relabels it. On a vector map
+  // both are the same operation - hand MapLibre a freshly localized style for the current
+  // variant. Raster tiles carry their labels baked in, so there only the colours follow.
+  watch([variant, locale], () => {
+    markRaster()
     if (!vectorActive) return
     generation += 1
     void applyStyle(generation)
