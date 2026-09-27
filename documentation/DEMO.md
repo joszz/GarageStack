@@ -13,7 +13,7 @@ Demo mode runs GarageStack with realistic fake data and requires no MG iSmart cr
 
 ```bash
 cp .env.demo.example .env.demo
-docker compose -f docker-compose.demo.yml up --build
+docker compose --env-file .env.demo -f docker-compose.demo.yml up --build
 ```
 
 Open [http://localhost:8080](http://localhost:8080) and log in with **demo / demo**.

@@ -1,0 +1,22 @@
+name: Set up the frontend
+description: pnpm, Node with the pnpm store cached, and the frontend's dependencies from the lockfile.
+
+runs:
+  using: composite
+  steps:
+    # Exact tag: the floating v6 tag still points at 6.0.10, which predates pnpm 12 support.
+    - uses: pnpm/action-setup@v6.1.0
+      with:
+        # Version comes from frontend/package.json's packageManager field.
+        package_json_file: frontend/package.json
+
+    - uses: actions/setup-node@v7.0.0
+      with:
+        node-version: 24
+        cache: pnpm
+        cache-dependency-path: frontend/pnpm-lock.yaml
+
+    - name: Install dependencies
+      shell: bash
+      working-directory: frontend
+      run: pnpm install --frozen-lockfile
