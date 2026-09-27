@@ -12,9 +12,17 @@ export function useInfiniteScroll<T>(items: Ref<T[]>, pageSize: number) {
     displayCount.value = pageSize
   }
 
-  function observe(scrollRoot: HTMLElement | null) {
+  /**
+   * Starts growing the list whenever the sentinel scrolls into view inside `scrollRoot`. The
+   * sentinel is the element bound to `sentinelRef`, unless one is given, for a list rendered by
+   * a child component that exposes its own.
+   */
+  function observe(
+    scrollRoot: HTMLElement | null,
+    sentinel: HTMLElement | null = sentinelRef.value,
+  ) {
     observer?.disconnect()
-    if (!sentinelRef.value) return
+    if (!sentinel) return
     observer = new IntersectionObserver(
       ([entry]) => {
         if (entry?.isIntersecting && displayCount.value < items.value.length) {
@@ -23,7 +31,7 @@ export function useInfiniteScroll<T>(items: Ref<T[]>, pageSize: number) {
       },
       { root: scrollRoot },
     )
-    observer.observe(sentinelRef.value)
+    observer.observe(sentinel)
   }
 
   function disconnect() {

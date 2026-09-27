@@ -8,7 +8,7 @@ import { useMapSettingsStore } from '@/stores/settingsMap'
 import { mapApi } from '@/services/mapApi'
 import type { ChargingStation, PoiItem } from '@/services/mapApi'
 import { canonicalFuelBrand } from '@/utils/fuelBrands'
-import { FUEL_TYPES, matchesFuelTypeFilter, stationFuelTypes } from '@/utils/fuelTypes'
+import { matchesFuelTypeFilter, stationFuelTypes } from '@/utils/fuelTypes'
 import { speedCameraKind, speedCameraLimit } from '@/utils/speedCameras'
 import { OCM_ATTRIBUTION } from '@/utils/credits'
 import { useLayerCredit } from './useLayerCredit'
@@ -77,39 +77,6 @@ export function usePoiLayers({ mapInstance, vehicleType }: UsePoiLayersOptions) 
     chargingMinPowerKw,
     chargingMaxPowerKw,
   } = storeToRefs(settingsStore)
-
-  // Slider value: [minKw, maxKw] where max=350 means "no upper limit" (stored as 0 in settings)
-  const powerRangeSlider = computed({
-    get: (): [number, number] => [
-      chargingMinPowerKw.value,
-      chargingMaxPowerKw.value === 0 ? 350 : chargingMaxPowerKw.value,
-    ],
-    set: (value: number[]) => {
-      chargingMinPowerKw.value = value[0]!
-      chargingMaxPowerKw.value = (value[1] ?? 350) >= 350 ? 0 : value[1]!
-    },
-  })
-
-  const powerRangeLabel = computed(() => {
-    const min = chargingMinPowerKw.value
-    const max = chargingMaxPowerKw.value
-    if (min === 0 && max === 0) return t('trips.chargingPowerAny')
-    const minStr = min === 0 ? t('trips.chargingPowerAny') : `${min} kW`
-    const maxStr = max === 0 ? '350+ kW' : `${max} kW`
-    return `${minStr} - ${maxStr}`
-  })
-
-  function formatPowerTooltip(value: number): string {
-    if (value === 0) return t('trips.chargingPowerAny')
-    if (value >= 350) return '350+'
-    return String(value)
-  }
-
-  // Fuel types are a fixed set, unlike brands, so the dropdown is built from the list itself
-  // rather than from whatever the loaded stations happen to advertise.
-  const fuelTypeOptions = computed(() =>
-    FUEL_TYPES.map((type) => ({ value: type, label: t(`trips.fuelTypes.${type}`) })),
-  )
 
   /** The fuels a station sells, translated and in dropdown order, for its popup. */
   function fuelSummary(item: PoiItem): string | null {
@@ -393,21 +360,9 @@ export function usePoiLayers({ mapInstance, vehicleType }: UsePoiLayersOptions) 
   })
 
   return {
-    // settings-backed bindings for the filter panel
-    chargingStationsEnabled,
-    fuelStationsEnabled,
-    serviceAreasEnabled,
-    speedCamerasEnabled,
     /** False when the deployment does not serve the layer, so the view leaves its toggle out. */
     speedCamerasAvailable,
-    fuelBrandFilter,
-    fuelTypeFilter,
-    fuelTypeOptions,
-    chargingMinPowerKw,
-    chargingMaxPowerKw,
-    powerRangeSlider,
-    powerRangeLabel,
-    formatPowerTooltip,
+    /** The brands the filter panel offers: the ones loaded for this car, and any drawn. */
     availableFuelBrands,
     brandsLoading,
     poiLoading,
