@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useUiSettingsStore } from '@/stores/settingsUi'
 import { useVehicleStore } from '@/stores/vehicle'
+import { mayBurnFuel } from '@/utils/vehicleType'
 import SettingsToggle from './SettingsToggle.vue'
 import {
   DISTANCE_UNITS,
@@ -24,13 +25,13 @@ interface UnitChoice {
 
 // Fuel consumption means nothing to a car that burns none. While the drivetrain is still unknown
 // it is offered, as the dashboard offers its fuel cards then too.
-const burnsFuel = computed(() => vehicleStore.effectiveVehicleType !== 'bev')
+const offersFuelConsumption = computed(() => mayBurnFuel(vehicleStore.effectiveVehicleType))
 
 const choices = computed((): UnitChoice[] => [
   { key: 'distance', options: DISTANCE_UNITS, desc: t('settings.units.distanceDesc') },
   { key: 'temperature', options: TEMPERATURE_UNITS },
   { key: 'pressure', options: PRESSURE_UNITS },
-  ...(burnsFuel.value
+  ...(offersFuelConsumption.value
     ? [
         {
           key: 'fuelConsumption' as const,

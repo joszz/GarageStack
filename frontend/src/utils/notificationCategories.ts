@@ -1,4 +1,5 @@
 import type { VehicleType } from '@/services/vehicleApi'
+import { mayPlugIn } from '@/utils/vehicleType'
 
 export const NOTIFICATION_CATEGORY_IDS = [
   'low-tyre',
@@ -27,7 +28,7 @@ const PLUG_IN_ONLY_CATEGORY_IDS: readonly NotificationCategoryId[] = ['low-ev', 
 export function notificationCategoryIdsFor(
   vehicleType: VehicleType,
 ): readonly NotificationCategoryId[] {
-  if (vehicleType !== 'hev') return NOTIFICATION_CATEGORY_IDS
+  if (mayPlugIn(vehicleType)) return NOTIFICATION_CATEGORY_IDS
   return NOTIFICATION_CATEGORY_IDS.filter((id) => !PLUG_IN_ONLY_CATEGORY_IDS.includes(id))
 }
 

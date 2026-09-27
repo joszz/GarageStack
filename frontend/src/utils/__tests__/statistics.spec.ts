@@ -1,11 +1,16 @@
 import { describe, it, expect } from 'vitest'
-import type { TripSummary } from '@/services/vehicleApi'
+import type { TelemetryHistoryPoint, TripSummary } from '@/services/vehicleApi'
 import {
   averageMovingSpeedKmh,
   averageTripKm,
+  batteryVoltageChange,
+  dailyAverages,
+  dailyCounterTotals,
   hasSpeedReadings,
+  historyByDay,
   parkingSpots,
   peakDriveHour,
+  roundedRange,
   totalDistanceKm,
 } from '@/utils/statistics'
 
@@ -78,5 +83,88 @@ describe('trip statistics', () => {
   it('knows whether any trip reported a speed', () => {
     expect(hasSpeedReadings([trip({ maxSpeedKmh: null })])).toBe(false)
     expect(hasSpeedReadings([trip({ maxSpeedKmh: null }), trip({ maxSpeedKmh: 0 })])).toBe(true)
+  })
+})
+
+function reading(at: Date, overrides: Partial<TelemetryHistoryPoint> = {}): TelemetryHistoryPoint {
+  return {
+    recordedAt: at.toISOString(),
+    fuelLevelPercent: null,
+    evSocPercent: null,
+    powerUsageOfDay: null,
+    batteryVoltage: null,
+    climateOn: null,
+    isCharging: null,
+    tyrePressureFrontLeft: null,
+    tyrePressureFrontRight: null,
+    tyrePressureRearLeft: null,
+    tyrePressureRearRight: null,
+    mileageOfTheDay: null,
+    mileageSinceLastCharge: null,
+    hvSocKwh: null,
+    hvTotalCapacityKwh: null,
+    powerUsageSinceLastCharge: null,
+    ...overrides,
+  }
+}
+
+describe('daily history', () => {
+  const now = new Date(2026, 8, 26, 15, 0)
+
+  it('has a day for every date in the period, also the ones without readings', () => {
+    const days = historyByDay([reading(new Date(2026, 8, 25, 9, 0))], 3, now)
+
+    expect(days.map((d) => d.key)).toEqual(['2026-09-23', '2026-09-24', '2026-09-25', '2026-09-26'])
+    expect(days.map((d) => d.points.length)).toEqual([0, 0, 1, 0])
+  })
+
+  it('averages a reading per day, leaving days without one empty', () => {
+    const days = historyByDay(
+      [
+        reading(new Date(2026, 8, 25, 9, 0), { evSocPercent: 60 }),
+        reading(new Date(2026, 8, 25, 18, 0), { evSocPercent: 80 }),
+        reading(new Date(2026, 8, 26, 9, 0), { evSocPercent: null }),
+      ],
+      1,
+      now,
+    )
+
+    expect(dailyAverages(days, (p) => p.evSocPercent)).toEqual([70, null])
+  })
+
+  it('tracks the 12 V battery from its first day to its last', () => {
+    const days = historyByDay(
+      [
+        reading(new Date(2026, 8, 24, 9, 0), { batteryVoltage: 12.6 }),
+        reading(new Date(2026, 8, 26, 9, 0), { batteryVoltage: 12.45 }),
+      ],
+      3,
+      now,
+    )
+
+    expect(batteryVoltageChange(days)).toBe(-0.15)
+    expect(batteryVoltageChange(historyByDay([], 3, now))).toBeNull()
+  })
+
+  it('reads a finished day off the counter peak and today with its reset in mind', () => {
+    const days = historyByDay(
+      [
+        reading(new Date(2026, 8, 25, 9, 0), { powerUsageOfDay: 2 }),
+        reading(new Date(2026, 8, 25, 18, 0), { powerUsageOfDay: 5.5 }),
+        // Yesterday's figure still standing just after midnight, then the reset and a drive.
+        reading(new Date(2026, 8, 26, 0, 5), { powerUsageOfDay: 5.5 }),
+        reading(new Date(2026, 8, 26, 9, 0), { powerUsageOfDay: 0.1 }),
+        reading(new Date(2026, 8, 26, 10, 0), { powerUsageOfDay: 1.5 }),
+      ],
+      1,
+      now,
+    )
+
+    expect(dailyCounterTotals(days, now)).toEqual([5.5, 1.5])
+  })
+
+  it('widens a chart range to round numbers in the unit shown', () => {
+    expect(roundedRange(1.5, 3.5)).toEqual({ min: 1.5, max: 3.5 })
+    expect(roundedRange(21.76, 50.76)).toEqual({ min: 20, max: 55 })
   })
 })

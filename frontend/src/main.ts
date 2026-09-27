@@ -3,137 +3,10 @@
 import 'leaflet/dist/leaflet.css'
 import './assets/main.css'
 
-import { createApp, type Component } from 'vue'
-
-if ('serviceWorker' in navigator) {
-  let refreshing = false
-  navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (refreshing) return
-    refreshing = true
-    window.location.reload()
-  })
-
-  // If a SW install fails (e.g. stale precache manifest after deploy while
-  // sw.js was HTTP-cached as immutable), unregister and reload so the next
-  // load fetches a fresh sw.js and installs cleanly.
-  const watchInstalling = (sw: ServiceWorker, reg: ServiceWorkerRegistration) =>
-    sw.addEventListener('statechange', () => {
-      if (sw.state === 'redundant') reg.unregister().then(() => window.location.reload())
-    })
-
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.getRegistration('/').then((reg) => {
-      if (!reg) return
-      if (reg.installing) watchInstalling(reg.installing, reg)
-      reg.addEventListener('updatefound', () => {
-        if (reg.installing) watchInstalling(reg.installing, reg)
-      })
-    })
-  })
-}
+import { createApp } from 'vue'
 import { createPinia } from 'pinia'
-import { config, library } from '@fortawesome/fontawesome-svg-core'
-// FontAwesome injects this stylesheet into <head> at runtime by default, which the
-// Content-Security-Policy blocks (style-src-elem allows only same-origin files and the one
-// hashed inline style). Without it every icon renders at its container's size, so the CSS is
-// imported here instead and the runtime injection switched off.
-import '@fortawesome/fontawesome-svg-core/styles.css'
-import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
-
-config.autoAddCss = false
-import {
-  faBars,
-  faBriefcase,
-  faHouse,
-  faBuilding,
-  faBook,
-  faCircleQuestion,
-  faFileCsv,
-  faXmark,
-  faCar,
-  faGaugeHigh,
-  faChartLine,
-  faMap,
-  faRotate,
-  faGear,
-  faRotateLeft,
-  faBell,
-  faBellSlash,
-  faMessage,
-  faSpinner,
-  faTriangleExclamation,
-  faGasPump,
-  faRoad,
-  faRoadCircleCheck,
-  faCamera,
-  faDiamondTurnRight,
-  faBolt,
-  faPlug,
-  faGauge,
-  faBatteryThreeQuarters,
-  faRoute,
-  faPlugCircleBolt,
-  faBatteryFull,
-  faLeaf,
-  faWind,
-  faTemperatureHalf,
-  faCheck,
-  faCarRear,
-  faThermometerHalf,
-  faTemperatureLow,
-  faCouch,
-  faCarBurst,
-  faBullhorn,
-  faLockOpen,
-  faLock,
-  faWindowMaximize,
-  faDoorOpen,
-  faDatabase,
-  faPercent,
-  faWaveSquare,
-  faBoltLightning,
-  faPlugCircleCheck,
-  faChevronRight,
-  faChevronLeft,
-  faAnglesLeft,
-  faAnglesRight,
-  faLightbulb,
-  faCircle,
-  faUser,
-  faEye,
-  faEyeSlash,
-  faArrowRight,
-  faArrowRightFromBracket,
-  faArrowRightToBracket,
-  faPlus,
-  faPenToSquare,
-  faBatteryHalf,
-  faSun,
-  faMoon,
-  faCarSide,
-  faFire,
-  faLocationDot,
-  faCircleInfo,
-  faSliders,
-  faLayerGroup,
-  faBoxArchive,
-  faTrash,
-  faClock,
-  faLocationArrow,
-  faWifi,
-  faTemperatureArrowUp,
-  faCalendarCheck,
-  faChargingStation,
-  faFlask,
-  faGripLines,
-  faTag,
-  faScrewdriverWrench,
-  faCircleExclamation,
-  faBatteryQuarter,
-  faMobileScreen,
-  faDownload,
-} from '@fortawesome/free-solid-svg-icons'
-
+import { installFontAwesome } from './plugins/fontAwesome'
+import { watchServiceWorkerUpdates } from './plugins/serviceWorker'
 import App from './App.vue'
 import router from './router'
 import { useUiSettingsStore } from './stores/settingsUi'
@@ -141,98 +14,7 @@ import { useAuthStore } from './stores/auth'
 import { setUnauthorizedHandler, clearUnauthorizedState } from './services/apiCore'
 import { i18n } from './i18n'
 
-library.add(
-  faBars,
-  faBriefcase,
-  faHouse,
-  faBuilding,
-  faBook,
-  faCircleQuestion,
-  faFileCsv,
-  faXmark,
-  faCar,
-  faGaugeHigh,
-  faChartLine,
-  faMap,
-  faRotate,
-  faGear,
-  faRotateLeft,
-  faBell,
-  faBellSlash,
-  faMessage,
-  faSpinner,
-  faTriangleExclamation,
-  faGasPump,
-  faRoad,
-  faRoadCircleCheck,
-  faCamera,
-  faDiamondTurnRight,
-  faBolt,
-  faPlug,
-  faGauge,
-  faBatteryThreeQuarters,
-  faRoute,
-  faPlugCircleBolt,
-  faBatteryFull,
-  faLeaf,
-  faWind,
-  faTemperatureHalf,
-  faCheck,
-  faCarRear,
-  faThermometerHalf,
-  faTemperatureLow,
-  faCouch,
-  faCarBurst,
-  faBullhorn,
-  faLockOpen,
-  faLock,
-  faWindowMaximize,
-  faDoorOpen,
-  faDatabase,
-  faPercent,
-  faWaveSquare,
-  faBoltLightning,
-  faPlugCircleCheck,
-  faChevronRight,
-  faChevronLeft,
-  faAnglesLeft,
-  faAnglesRight,
-  faLightbulb,
-  faCircle,
-  faUser,
-  faEye,
-  faEyeSlash,
-  faArrowRight,
-  faArrowRightFromBracket,
-  faArrowRightToBracket,
-  faPlus,
-  faPenToSquare,
-  faBatteryHalf,
-  faSun,
-  faMoon,
-  faCarSide,
-  faFire,
-  faLocationDot,
-  faCircleInfo,
-  faSliders,
-  faLayerGroup,
-  faBoxArchive,
-  faTrash,
-  faClock,
-  faLocationArrow,
-  faWifi,
-  faTemperatureArrowUp,
-  faCalendarCheck,
-  faChargingStation,
-  faFlask,
-  faGripLines,
-  faTag,
-  faScrewdriverWrench,
-  faCircleExclamation,
-  faBatteryQuarter,
-  faMobileScreen,
-  faDownload,
-)
+watchServiceWorkerUpdates()
 
 const app = createApp(App)
 const pinia = createPinia()
@@ -243,7 +25,7 @@ i18n.global.locale.value = settings.locale
 
 app.use(router)
 app.use(i18n)
-app.component('FontAwesomeIcon', FontAwesomeIcon as unknown as Component)
+installFontAwesome(app)
 
 setUnauthorizedHandler(() => {
   const auth = useAuthStore()

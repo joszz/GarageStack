@@ -136,20 +136,6 @@
       "bonnet": "Motorkap",
       "boot": "Kofferruimte"
     },
-    "alerts": {
-      "openWhileParked": "Open terwijl geparkeerd: {items}",
-      "tyrePressure": "Bandenspanning: {items}",
-      "driverDoor": "bestuurdersdeur",
-      "passengerDoor": "passagiersdeur",
-      "rearLeftDoor": "linkerachterdeur",
-      "rearRightDoor": "rechterachterdeur",
-      "boot": "kofferbak",
-      "bonnet": "motorkap",
-      "driverWindow": "bestuurdersraam",
-      "passengerWindow": "passagiersraam",
-      "rearLeftWindow": "linkerachterraam",
-      "rearRightWindow": "rechterachterraam"
-    },
     "efficiency": {
       "todayDistance": "Afst. vandaag",
       "todayEnergy": "Energie vandaag",

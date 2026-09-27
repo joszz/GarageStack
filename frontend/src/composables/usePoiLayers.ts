@@ -8,10 +8,11 @@ import { useMapSettingsStore } from '@/stores/settingsMap'
 import { mapApi } from '@/services/mapApi'
 import type { ChargingStation, PoiItem } from '@/services/mapApi'
 import { canonicalFuelBrand } from '@/utils/fuelBrands'
-import { FUEL_TYPES, matchesFuelTypeFilter, stationFuelTypes } from '@/utils/fuelTypes'
+import { matchesFuelTypeFilter, stationFuelTypes } from '@/utils/fuelTypes'
 import { speedCameraKind, speedCameraLimit } from '@/utils/speedCameras'
 import { OCM_ATTRIBUTION } from '@/utils/credits'
 import { useLayerCredit } from './useLayerCredit'
+import { burnsFuel, mayBurnFuel, mayPlugIn } from '@/utils/vehicleType'
 
 /**
  * The shape every POI popup takes: a title and the meta lines that have something to say. One
@@ -52,8 +53,6 @@ function poiBrand(item: PoiItem): string | null {
 export interface UsePoiLayersOptions {
   mapInstance: Ref<LeafletMap | null>
   vehicleType: ComputedRef<VehicleType>
-  isHev: ComputedRef<boolean>
-  isBev: ComputedRef<boolean>
 }
 
 /**
@@ -62,7 +61,7 @@ export interface UsePoiLayersOptions {
  * Reacts to pan/zoom (via the map instance passed in) and to the relevant settings toggling on
  * its own.
  */
-export function usePoiLayers({ mapInstance, vehicleType, isHev, isBev }: UsePoiLayersOptions) {
+export function usePoiLayers({ mapInstance, vehicleType }: UsePoiLayersOptions) {
   const { t } = useI18n()
   const settingsStore = useMapSettingsStore()
   // These are plain refs on the store already (Composition-API-style defineStore), so
@@ -78,39 +77,6 @@ export function usePoiLayers({ mapInstance, vehicleType, isHev, isBev }: UsePoiL
     chargingMinPowerKw,
     chargingMaxPowerKw,
   } = storeToRefs(settingsStore)
-
-  // Slider value: [minKw, maxKw] where max=350 means "no upper limit" (stored as 0 in settings)
-  const powerRangeSlider = computed({
-    get: (): [number, number] => [
-      chargingMinPowerKw.value,
-      chargingMaxPowerKw.value === 0 ? 350 : chargingMaxPowerKw.value,
-    ],
-    set: (value: number[]) => {
-      chargingMinPowerKw.value = value[0]!
-      chargingMaxPowerKw.value = (value[1] ?? 350) >= 350 ? 0 : value[1]!
-    },
-  })
-
-  const powerRangeLabel = computed(() => {
-    const min = chargingMinPowerKw.value
-    const max = chargingMaxPowerKw.value
-    if (min === 0 && max === 0) return t('trips.chargingPowerAny')
-    const minStr = min === 0 ? t('trips.chargingPowerAny') : `${min} kW`
-    const maxStr = max === 0 ? '350+ kW' : `${max} kW`
-    return `${minStr} - ${maxStr}`
-  })
-
-  function formatPowerTooltip(value: number): string {
-    if (value === 0) return t('trips.chargingPowerAny')
-    if (value >= 350) return '350+'
-    return String(value)
-  }
-
-  // Fuel types are a fixed set, unlike brands, so the dropdown is built from the list itself
-  // rather than from whatever the loaded stations happen to advertise.
-  const fuelTypeOptions = computed(() =>
-    FUEL_TYPES.map((type) => ({ value: type, label: t(`trips.fuelTypes.${type}`) })),
-  )
 
   /** The fuels a station sells, translated and in dropdown order, for its popup. */
   function fuelSummary(item: PoiItem): string | null {
@@ -189,8 +155,12 @@ export function usePoiLayers({ mapInstance, vehicleType, isHev, isBev }: UsePoiL
 
   // An HEV has no plug and a BEV has no tank, so those layers are not merely off, they do not
   // apply. Folding that into "enabled" keeps one reason-to-be-visible per layer.
-  const chargingLayerEnabled = computed(() => chargingStationsEnabled.value && !isHev.value)
-  const fuelLayerEnabled = computed(() => fuelStationsEnabled.value && !isBev.value)
+  const chargingLayerEnabled = computed(
+    () => chargingStationsEnabled.value && mayPlugIn(vehicleType.value),
+  )
+  const fuelLayerEnabled = computed(
+    () => fuelStationsEnabled.value && mayBurnFuel(vehicleType.value),
+  )
 
   // Open Charge Map is CC BY: showing its stations means crediting it. The fuel and service-area
   // layers need no credit of their own, being the same OpenStreetMap data the basemap already
@@ -355,7 +325,7 @@ export function usePoiLayers({ mapInstance, vehicleType, isHev, isBev }: UsePoiL
   // kept when the layer goes off again: the brand filter sits in the filter panel either way and
   // has to be able to offer its options there. Fires on its own once the type resolves, and
   // immediately when the view is entered with it already known.
-  const fuelBrandsRelevant = computed(() => vehicleType.value !== 'unknown' && !isBev.value)
+  const fuelBrandsRelevant = computed(() => burnsFuel(vehicleType.value))
 
   watch(
     fuelBrandsRelevant,
@@ -390,21 +360,9 @@ export function usePoiLayers({ mapInstance, vehicleType, isHev, isBev }: UsePoiL
   })
 
   return {
-    // settings-backed bindings for the filter panel
-    chargingStationsEnabled,
-    fuelStationsEnabled,
-    serviceAreasEnabled,
-    speedCamerasEnabled,
     /** False when the deployment does not serve the layer, so the view leaves its toggle out. */
     speedCamerasAvailable,
-    fuelBrandFilter,
-    fuelTypeFilter,
-    fuelTypeOptions,
-    chargingMinPowerKw,
-    chargingMaxPowerKw,
-    powerRangeSlider,
-    powerRangeLabel,
-    formatPowerTooltip,
+    /** The brands the filter panel offers: the ones loaded for this car, and any drawn. */
     availableFuelBrands,
     brandsLoading,
     poiLoading,

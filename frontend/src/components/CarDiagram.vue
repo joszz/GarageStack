@@ -1,11 +1,17 @@
 <script setup lang="ts">
+import '@/assets/carDiagram.css'
 import { useI18n } from 'vue-i18n'
 import { computed } from 'vue'
 import CardInfoWrap from './CardInfoWrap.vue'
+import CarLightBeams from './carDiagram/CarLightBeams.vue'
+import LevelBadge from './carDiagram/LevelBadge.vue'
+import SpeedGauge from './carDiagram/SpeedGauge.vue'
+import TyreIndicators from './carDiagram/TyreIndicators.vue'
+import TyreLabels from './carDiagram/TyreLabels.vue'
 import { CAR_SILHOUETTE_VIEWBOX, CAR_SILHOUETTE_MARKUP } from '@/assets/carSilhouette'
-import { useTyrePressureThresholds, pressureVariant } from '@/composables/useTyrePressureThresholds'
+import { useTyrePressureThresholds } from '@/composables/useTyrePressureThresholds'
 import { useUnits } from '@/composables/useUnits'
-import { evLevelVariant, fuelLevelVariant } from '@/utils/levels'
+import { evLevelVariant, fuelLevelVariant, type LevelVariant } from '@/utils/levels'
 
 const { t } = useI18n()
 const tyreThresholds = useTyrePressureThresholds()
@@ -32,17 +38,12 @@ const props = defineProps<{
   speed?: number | null
 }>()
 
-function pressureColor(bar: number | null): string {
-  const v = pressureVariant(bar, tyreThresholds.value)
-  if (v === 'danger') return 'var(--tyre-danger, #dc3545)'
-  if (v === 'warning') return 'var(--tyre-warning, #fd7e14)'
-  if (v === 'ok') return 'var(--tyre-ok, #198754)'
-  return 'var(--tyre-unknown, #6c757d)'
-}
-
-function fmt(bar: number | null): string {
-  return units.value.format('pressure', bar) ?? `- ${units.value.symbol('pressure')}`
-}
+const tyrePressures = computed(() => ({
+  frontLeft: props.frontLeft,
+  frontRight: props.frontRight,
+  rearLeft: props.rearLeft,
+  rearRight: props.rearRight,
+}))
 
 // The colour bands, in the pressure unit this browser shows: the thresholds themselves are
 // configured in bar, which is what the car reports.
@@ -56,42 +57,6 @@ const tyreLegendParams = computed(() => {
     unit: u.symbol('pressure'),
   }
 })
-
-const speedMeasure = computed(() => units.value.measure('speed', props.speed ?? 0)!)
-
-// Tyre indicator line/dot endpoints - see the ViewBox comment above the template for how
-// these coordinates were derived from the car body bounds.
-const tyreIndicators = computed(() => [
-  { key: 'frontLeft', value: props.frontLeft, x1: 110, y1: 145, x2: 72, y2: 131, cx: 110, cy: 145 },
-  {
-    key: 'frontRight',
-    value: props.frontRight,
-    x1: 230,
-    y1: 145,
-    x2: 268,
-    y2: 131,
-    cx: 230,
-    cy: 145,
-  },
-  { key: 'rearLeft', value: props.rearLeft, x1: 110, y1: 327, x2: 72, y2: 341, cx: 110, cy: 327 },
-  {
-    key: 'rearRight',
-    value: props.rearRight,
-    x1: 230,
-    y1: 327,
-    x2: 268,
-    y2: 341,
-    cx: 230,
-    cy: 327,
-  },
-])
-
-const tyreLabels = computed(() => [
-  { key: 'frontLeft', suffix: 'fl', value: props.frontLeft },
-  { key: 'frontRight', suffix: 'fr', value: props.frontRight },
-  { key: 'rearLeft', suffix: 'rl', value: props.rearLeft },
-  { key: 'rearRight', suffix: 'rr', value: props.rearRight },
-])
 
 const doorBadges = computed(() => [
   {
@@ -129,51 +94,20 @@ const doorBadges = computed(() => [
 
 const hasLights = computed(() => props.lightsMainBeam || props.lightsDippedBeam || props.lightsSide)
 
-const showBattery = computed(() => props.evSocPercent != null)
-const showFuel = computed(() => props.fuelLevelPercent != null)
-
-// The same thresholds as the dashboard's fuel and battery cards, so both colour a level alike.
-const batteryColor = computed(() => `var(--color-${evLevelVariant(props.evSocPercent ?? 0)})`)
-const fuelColor = computed(() => `var(--color-${fuelLevelVariant(props.fuelLevelPercent ?? 0)})`)
-
-const isMoving = computed(() => (props.speed ?? 0) > 0)
-
-// Speedometer gauge: 270° arc opening at the bottom, needle sweeps from
-// -135deg (0 km/h) to +135deg (MAX_SPEED_KMH) through the top of the dial.
-const MAX_SPEED_KMH = 200
-const GAUGE_CX = 50
-const GAUGE_CY = 48
-const GAUGE_R = 36
-const GAUGE_ARC_LENGTH = 1.5 * Math.PI * GAUGE_R
-
-function polarToCartesian(cx: number, cy: number, r: number, bearingDeg: number) {
-  const rad = (bearingDeg * Math.PI) / 180
-  return { x: cx + r * Math.sin(rad), y: cy - r * Math.cos(rad) }
+// A level to show on the diagram, or null when the car reports none. The same bands as the
+// dashboard's fuel and battery cards, so both colour a level alike.
+function level(
+  percent: number | null | undefined,
+  variantOf: (pct: number | null) => LevelVariant | undefined,
+): { percent: number; variant: LevelVariant } | null {
+  const variant = variantOf(percent ?? null)
+  return percent != null && variant ? { percent, variant } : null
 }
 
-const gaugeArcPath = (() => {
-  const start = polarToCartesian(GAUGE_CX, GAUGE_CY, GAUGE_R, -135)
-  const end = polarToCartesian(GAUGE_CX, GAUGE_CY, GAUGE_R, 135)
-  return `M ${start.x} ${start.y} A ${GAUGE_R} ${GAUGE_R} 0 1 1 ${end.x} ${end.y}`
-})()
+const fuelLevel = computed(() => level(props.fuelLevelPercent, fuelLevelVariant))
+const batteryLevel = computed(() => level(props.evSocPercent, evLevelVariant))
 
-const showSpeedGauge = computed(() => (props.speed ?? 0) > 0)
-
-const speedFraction = computed(() => {
-  const s = props.speed ?? 0
-  return Math.min(1, Math.max(0, s / MAX_SPEED_KMH))
-})
-
-const needleRotation = computed(() => -135 + speedFraction.value * 270)
-
-const gaugeDashOffset = computed(() => GAUGE_ARC_LENGTH * (1 - speedFraction.value))
-
-const gaugeColor = computed(() => {
-  const s = props.speed ?? 0
-  if (s >= 140) return 'var(--color-danger)'
-  if (s >= 100) return 'var(--color-warning)'
-  return 'var(--color-primary-light)'
-})
+const isMoving = computed(() => (props.speed ?? 0) > 0)
 
 const roadAnimDuration = computed(() => {
   const s = props.speed ?? 0
@@ -185,12 +119,6 @@ const motionBlurAmount = computed(() => {
   const s = props.speed ?? 0
   if (s <= 100) return 0
   return Math.min(10, (s - 100) / 5)
-})
-
-const activeLightKey = computed(() => {
-  if (props.lightsMainBeam) return 'vehicle.lights.mainBeam'
-  if (props.lightsDippedBeam) return 'vehicle.lights.dippedBeam'
-  return 'vehicle.lights.side'
 })
 </script>
 
@@ -266,57 +194,6 @@ const activeLightKey = computed(() => {
             :aria-label="t('vehicle.diagramLabel')"
           >
             <defs>
-              <!--
-                Beam gradients use userSpaceOnUse so the bright end is anchored at the car's
-                front edge (y≈138) where the beam becomes visible, fading toward the tip.
-                The polygon bases sit under the car body (y≈140-145) and are masked by the
-                car SVG layer on top, giving the effect of light emerging from the headlights.
-              -->
-              <linearGradient
-                id="beam-grad-main"
-                gradientUnits="userSpaceOnUse"
-                x1="170"
-                y1="138"
-                x2="170"
-                y2="52"
-              >
-                <stop offset="0%" stop-color="#fef9c3" stop-opacity="0.72" />
-                <stop offset="65%" stop-color="#fef9c3" stop-opacity="0.20" />
-                <stop offset="100%" stop-color="#fef9c3" stop-opacity="0" />
-              </linearGradient>
-              <linearGradient
-                id="beam-grad-dipped"
-                gradientUnits="userSpaceOnUse"
-                x1="170"
-                y1="138"
-                x2="170"
-                y2="80"
-              >
-                <stop offset="0%" stop-color="#fde047" stop-opacity="0.65" />
-                <stop offset="65%" stop-color="#fde047" stop-opacity="0.18" />
-                <stop offset="100%" stop-color="#fde047" stop-opacity="0" />
-              </linearGradient>
-              <!-- Side light gradients: radial from front-fender car body edge, fading outward -->
-              <radialGradient
-                id="beam-grad-side-l"
-                gradientUnits="userSpaceOnUse"
-                cx="119"
-                cy="140"
-                r="18"
-              >
-                <stop offset="0%" stop-color="#fb923c" stop-opacity="0.70" />
-                <stop offset="100%" stop-color="#fb923c" stop-opacity="0" />
-              </radialGradient>
-              <radialGradient
-                id="beam-grad-side-r"
-                gradientUnits="userSpaceOnUse"
-                cx="221"
-                cy="140"
-                r="18"
-              >
-                <stop offset="0%" stop-color="#fb923c" stop-opacity="0.70" />
-                <stop offset="100%" stop-color="#fb923c" stop-opacity="0" />
-              </radialGradient>
               <!-- Motion blur above 100 km/h: ghost is shifted toward the rear (downward)
                    and blurred, then the sharp original is composited on top so the
                    blur trails behind the car rather than spreading symmetrically. -->
@@ -360,45 +237,12 @@ const activeLightKey = computed(() => {
               />
             </g>
 
-            <!--
-              Light beams drawn behind car. Polygon bases extend into the car body area (y≈140-145)
-              so the car SVG layer on top masks them, making beams appear to emerge from the headlights.
-              Gradient anchored at y=138 (car front edge) fades toward each tip.
-            -->
-            <g v-if="hasLights">
-              <title>{{ t(activeLightKey) }}</title>
-              <template v-if="lightsMainBeam">
-                <polygon
-                  points="132,145 162,140 148,52 102,62"
-                  class="car-light-beam car-light-beam--main"
-                />
-                <polygon
-                  points="208,145 178,140 192,52 238,62"
-                  class="car-light-beam car-light-beam--main"
-                />
-              </template>
-              <template v-else-if="lightsDippedBeam">
-                <polygon points="130,145 148,140 144,80 118,85" class="car-light-beam" />
-                <polygon points="210,145 192,140 196,80 222,85" class="car-light-beam" />
-              </template>
-              <!--
-                Side marker pie-sectors. Centers sit inside car body (y=145) so the car SVG masks
-                the source; only the outward crescent is visible. Positioned on the front fender,
-                angled forward-and-outward. R=14. 170° arc sweep.
-                Lower arm at SVG 90° (straight down from center) lands inside the car body so the
-                arc is naturally clipped by the car layer, giving a wide visible crescent.
-                Left  – center (121,145), upper arm 260° → (119,131), lower arm 90° → (121,159), CCW sweep=0.
-                Right – center (219,145), upper arm 280° → (221,131), lower arm 90° → (219,159), CW  sweep=1.
-              -->
-              <path
-                d="M 121,145 L 119,131 A 14,14 0 0 0 121,159 Z"
-                class="car-light-beam--side-l"
-              />
-              <path
-                d="M 219,145 L 221,131 A 14,14 0 0 1 219,159 Z"
-                class="car-light-beam--side-r"
-              />
-            </g>
+            <!-- Light beams drawn behind the car, which masks where they start. -->
+            <CarLightBeams
+              v-if="hasLights"
+              :main-beam="!!lightsMainBeam"
+              :dipped-beam="!!lightsDippedBeam"
+            />
 
             <!-- Orange car illustration (top-view) -->
             <g :filter="motionBlurAmount > 0 ? 'url(#motion-blur)' : undefined">
@@ -428,44 +272,10 @@ const activeLightKey = computed(() => {
               <path d="M 170,440 L 170,370" class="charge-cable" />
             </g>
 
-            <!-- Tyre pressure indicator lines -->
-            <g v-for="tyre in tyreIndicators" :key="tyre.key">
-              <title>
-                {{ t(`vehicle.diagram.tyrePosition.${tyre.key}`) }}: {{ fmt(tyre.value) }}
-              </title>
-              <line
-                :x1="tyre.x1"
-                :y1="tyre.y1"
-                :x2="tyre.x2"
-                :y2="tyre.y2"
-                class="tyre-indicator-line"
-                :stroke="pressureColor(tyre.value)"
-              />
-              <circle
-                :cx="tyre.cx"
-                :cy="tyre.cy"
-                r="5"
-                class="tyre-indicator-dot"
-                :fill="pressureColor(tyre.value)"
-              />
-            </g>
+            <TyreIndicators :pressures="tyrePressures" />
           </svg>
 
-          <!-- Tyre pressure labels -->
-          <div class="tyre-labels">
-            <div
-              v-for="label in tyreLabels"
-              :key="label.key"
-              :class="[
-                'tyre-label',
-                `tyre-label--${label.suffix}`,
-                `tyre-label--${pressureVariant(label.value, tyreThresholds)}`,
-              ]"
-              :title="t(`vehicle.diagram.tyrePosition.${label.key}`)"
-            >
-              {{ fmt(label.value) }}
-            </div>
-          </div>
+          <TyreLabels :pressures="tyrePressures" />
 
           <!-- Open panel icon badges – positioned over SVG at each panel location -->
           <template v-for="badge in doorBadges" :key="badge.key">
@@ -480,66 +290,30 @@ const activeLightKey = computed(() => {
           </template>
 
           <!-- Fuel level (front) -->
-          <div
-            v-if="showFuel"
-            class="diagram-level diagram-level--fuel"
-            :style="{ '--level-color': fuelColor }"
-            :title="`${t('vehicle.fuel')}: ${Math.round(fuelLevelPercent ?? 0)}%`"
-          >
-            <font-awesome-icon icon="gas-pump" />
-            <span>{{ Math.round(fuelLevelPercent ?? 0) }}%</span>
-          </div>
+          <LevelBadge
+            v-if="fuelLevel"
+            class="diagram-level--fuel"
+            icon="gas-pump"
+            :label="t('vehicle.fuel')"
+            :percent="fuelLevel.percent"
+            :variant="fuelLevel.variant"
+          />
 
           <!-- EV battery (rear) -->
-          <div
-            v-if="showBattery"
-            class="diagram-level diagram-level--battery"
+          <LevelBadge
+            v-if="batteryLevel"
+            class="diagram-level--battery"
             :class="{
               'diagram-level--charging': isCharging,
               'diagram-level--connected': chargerConnected && !isCharging,
             }"
-            :style="{ '--level-color': batteryColor }"
-            :title="`${t('vehicle.evSoc')}: ${Math.round(evSocPercent ?? 0)}%`"
-          >
-            <font-awesome-icon icon="bolt" />
-            <span>{{ Math.round(evSocPercent ?? 0) }}%</span>
-          </div>
+            icon="bolt"
+            :label="t('vehicle.evSoc')"
+            :percent="batteryLevel.percent"
+            :variant="batteryLevel.variant"
+          />
 
-          <div
-            v-if="showSpeedGauge"
-            class="speed-gauge"
-            role="img"
-            :aria-label="`${t('vehicle.speed')}: ${speedMeasure.value} ${speedMeasure.unit}`"
-            :title="`${t('vehicle.speed')}: ${speedMeasure.value} ${speedMeasure.unit}`"
-          >
-            <svg viewBox="0 0 100 92" class="speed-gauge__svg">
-              <path :d="gaugeArcPath" class="speed-gauge__track" />
-              <path
-                :d="gaugeArcPath"
-                class="speed-gauge__progress"
-                :style="{
-                  strokeDasharray: GAUGE_ARC_LENGTH,
-                  strokeDashoffset: gaugeDashOffset,
-                  stroke: gaugeColor,
-                }"
-              />
-              <line
-                x1="50"
-                y1="48"
-                x2="50"
-                y2="20"
-                class="speed-gauge__needle"
-                :style="{ transform: `rotate(${needleRotation}deg)` }"
-              />
-              <circle cx="50" cy="48" r="3" class="speed-gauge__pivot" />
-              <text x="50" y="64" text-anchor="middle" class="speed-gauge__value">
-                {{ speedMeasure.value }}
-              </text>
-              <text x="50" y="78" text-anchor="middle" class="speed-gauge__unit">
-                {{ speedMeasure.unit }}
-              </text>
-            </svg>
-          </div>
+          <SpeedGauge v-if="isMoving" :speed-kmh="speed ?? 0" />
         </div>
       </div>
     </div>

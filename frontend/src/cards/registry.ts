@@ -1,6 +1,7 @@
 import type { TelemetrySnapshot, TripSummary } from '@/services/vehicleApi'
 import type { VehicleType } from '@/stores/vehicle'
 import { energyUnit, litresPer100Km, whPerKm } from '@/utils/energy'
+import { burnsFuel, mayBurnFuel, mayPlugIn, plugsIn } from '@/utils/vehicleType'
 
 /**
  * Everything the dashboard needs to know about a card, in one place: its icon, whether it is
@@ -24,39 +25,37 @@ interface CardDefinition {
   hasData?: (ctx: CardDataContext) => boolean
 }
 
-const canChargeExternally = (type: VehicleType) => type === 'phev' || type === 'bev'
-
 export const CARD_DEFINITIONS = [
   {
     id: 'fuelLevel',
     icon: 'gas-pump',
-    defaultVisible: (type) => type !== 'bev',
+    defaultVisible: mayBurnFuel,
     hasData: ({ status }) => status.fuelLevelPercent !== null,
   },
   {
     id: 'fuelRange',
     icon: 'road',
-    defaultVisible: (type) => type !== 'bev',
+    defaultVisible: mayBurnFuel,
     hasData: ({ status }) => status.fuelRangeKm !== null,
   },
   {
     id: 'evBattery',
     icon: 'bolt',
-    defaultVisible: (type) => type !== 'hev',
+    defaultVisible: mayPlugIn,
     hasData: ({ status }) => status.evSocPercent !== null,
   },
   {
     id: 'electricRange',
     icon: 'road',
-    defaultVisible: (type) => type !== 'hev',
+    defaultVisible: mayPlugIn,
     // A hybrid picks its own moments to drive on electricity, so a range to plan with is not
     // something it has, whatever the gateway reports for it.
-    hasData: ({ status, vehicleType }) => status.electricRangeKm !== null && vehicleType !== 'hev',
+    hasData: ({ status, vehicleType }) => status.electricRangeKm !== null && mayPlugIn(vehicleType),
   },
   {
     id: 'charging',
     icon: 'plug',
-    defaultVisible: canChargeExternally,
+    defaultVisible: plugsIn,
     hasData: ({ status }) => status.isCharging !== null,
   },
   { id: 'odometer', icon: 'gauge' },
@@ -86,9 +85,9 @@ export const CARD_DEFINITIONS = [
   {
     id: 'efficiencyCharge',
     icon: 'battery-full',
-    defaultVisible: (type) => type !== 'hev',
+    defaultVisible: mayPlugIn,
     hasData: ({ status, vehicleType }) =>
-      status.mileageSinceLastCharge !== null && vehicleType !== 'hev' && vehicleType !== 'unknown',
+      status.mileageSinceLastCharge !== null && plugsIn(vehicleType),
   },
   {
     id: 'efficiencyRatio',
@@ -108,21 +107,21 @@ export const CARD_DEFINITIONS = [
   {
     id: 'remainingCharge',
     icon: 'clock',
-    defaultVisible: canChargeExternally,
+    defaultVisible: plugsIn,
     hasData: ({ status, vehicleType }) =>
-      status.remainingChargingTime !== null && canChargeExternally(vehicleType),
+      status.remainingChargingTime !== null && plugsIn(vehicleType),
   },
   {
     id: 'chargingSession',
     icon: 'plug-circle-bolt',
-    defaultVisible: canChargeExternally,
-    hasData: ({ vehicleType }) => canChargeExternally(vehicleType),
+    defaultVisible: plugsIn,
+    hasData: ({ vehicleType }) => plugsIn(vehicleType),
   },
   {
     id: 'batteryHeating',
     icon: 'temperature-arrow-up',
-    defaultVisible: canChargeExternally,
-    hasData: ({ vehicleType }) => canChargeExternally(vehicleType),
+    defaultVisible: plugsIn,
+    hasData: ({ vehicleType }) => plugsIn(vehicleType),
   },
   {
     id: 'topSpeed',
@@ -188,7 +187,7 @@ export function hasFuelConsumption({ status, vehicleType }: CardDataContext): bo
 /** Fuel economy from the range computer, the efficiencyRatio card's fallback for fuel burners. */
 export function hasFuelEconomy({ status, vehicleType }: CardDataContext): boolean {
   return (
-    (vehicleType === 'hev' || vehicleType === 'phev') &&
+    burnsFuel(vehicleType) &&
     status.fuelRangeKm !== null &&
     status.fuelLevelPercent !== null &&
     status.fuelLevelPercent > 0

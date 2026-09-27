@@ -10,34 +10,35 @@ import { defaultStatsInsights, defaultStatsCharts } from '@/stores/settingsShare
 import type { StatsInsightId, StatsChartId } from '@/stores/settingsShared'
 import type { Quantity } from '@/utils/units'
 import { vehicleApi } from '@/services/vehicleApi'
-import type { TelemetryHistoryPoint, VehicleAggregateStats } from '@/services/vehicleApi'
-import type { ChartData, ChartOptions } from 'chart.js'
-import { VueDraggable } from 'vue-draggable-plus'
+import type { VehicleAggregateStats } from '@/services/vehicleApi'
 import { LMap, LMarker } from '@vue-leaflet/vue-leaflet'
-import { L, type LeafletMap } from '@/utils/leaflet'
+import { DEFAULT_MAP_CENTER, fitToPoints, type LeafletMap } from '@/utils/leaflet'
 import { useLeafletMap } from '@/composables/useLeafletMap'
 import { useBasemap } from '@/composables/useBasemap'
 import CardInfoWrap from '@/components/CardInfoWrap.vue'
 import DetailModal from '@/components/DetailModal.vue'
 import ToolbarPanel from '@/components/ToolbarPanel.vue'
+import DateRangeFilter from '@/components/DateRangeFilter.vue'
 import SkeletonCard from '@/components/SkeletonCard.vue'
 import SkeletonChart from '@/components/SkeletonChart.vue'
 import StatusCard from '@/components/StatusCard.vue'
-import StatsChartCard, { type StatsChartType } from '@/components/StatsChartCard.vue'
-import EditableCardSlot from '@/components/EditableCardSlot.vue'
-import { formatDate, formatNumber, intlLocale } from '@/utils/format'
-import { dailyCounterTotal, energyUnit, litres } from '@/utils/energy'
+import StatsChartCard from '@/components/StatsChartCard.vue'
+import EditableCardGrid from '@/components/EditableCardGrid.vue'
+import { formatNumber } from '@/utils/format'
 import { startOfLocalDayDaysAgoIso } from '@/utils/dates'
 import {
   averageMovingSpeedKmh,
   averageTripKm as averageTripDistanceKm,
+  batteryVoltageChange,
   hasSpeedReadings,
+  historyByDay,
   parkingSpots,
   peakDriveHour as peakTripHour,
   totalDistanceKm,
 } from '@/utils/statistics'
 import { useUnits } from '@/composables/useUnits'
 import { useErrorMessage } from '@/composables/useErrorMessage'
+import { useStatisticsCharts } from '@/composables/useStatisticsCharts'
 
 const { t } = useI18n()
 const store = useVehicleStore()
@@ -88,11 +89,6 @@ watch(
 )
 
 const vehicleType = computed(() => store.effectiveVehicleType)
-const hasLargeEv = computed(
-  () =>
-    vehicleType.value === 'phev' || vehicleType.value === 'bev' || vehicleType.value === 'unknown',
-)
-const isHybrid = computed(() => vehicleType.value === 'hev' || vehicleType.value === 'phev')
 const isPhev = computed(() => vehicleType.value === 'phev')
 
 // ── Icons ────────────────────────────────────────────────────
@@ -108,66 +104,8 @@ const INSIGHT_ICONS: Record<StatsInsightId, string> = {
   avgSpeed: 'gauge-high',
 }
 
-const CHART_ICONS: Record<StatsChartId, string> = {
-  evChart: 'bolt',
-  tyreChart: 'gauge',
-  hybridSocChart: 'wave-square',
-  dailyKwhChart: 'bolt-lightning',
-}
-
-// ── History grouping ─────────────────────────────────────────
-
-function toLocalDateKey(date: Date) {
-  const y = date.getFullYear()
-  const m = String(date.getMonth() + 1).padStart(2, '0')
-  const d = String(date.getDate()).padStart(2, '0')
-  return `${y}-${m}-${d}`
-}
-
-function avg(values: Array<number | null>) {
-  const valid = values.filter((v): v is number => v !== null)
-  if (!valid.length) return null
-  return valid.reduce((sum, v) => sum + v, 0) / valid.length
-}
-
-function round2(value: number) {
-  return Math.round(value * 100) / 100
-}
-
-const groupedHistory = computed(() => {
-  const buckets = new Map<string, TelemetryHistoryPoint[]>()
-
-  const startDay = new Date()
-  startDay.setDate(startDay.getDate() - days.value)
-  const endDay = new Date()
-  for (
-    let d = new Date(startDay.getFullYear(), startDay.getMonth(), startDay.getDate());
-    d <= endDay;
-    d.setDate(d.getDate() + 1)
-  ) {
-    buckets.set(toLocalDateKey(d), [])
-  }
-
-  for (const point of store.history) {
-    const key = toLocalDateKey(new Date(point.recordedAt))
-    const existing = buckets.get(key)
-    if (existing) existing.push(point)
-    else buckets.set(key, [point])
-  }
-
-  return Array.from(buckets.entries()).map(([key, points]) => ({
-    key,
-    label: formatDate(new Date(`${key}T00:00:00`)),
-    points,
-  }))
-})
-
-const chartLabels = computed(() => groupedHistory.value.map((d) => d.label))
-
-// Daily average of one history field, in chart order.
-function dailyAverages(read: (p: TelemetryHistoryPoint) => number | null) {
-  return groupedHistory.value.map((d) => avg(d.points.map(read)))
-}
+// The period's readings by local day, which the voltage trend and every chart are drawn from.
+const historyDays = computed(() => historyByDay(store.history, days.value))
 
 // ── Insight computed values ───────────────────────────────────
 
@@ -187,12 +125,8 @@ const parkingLocations = computed(() =>
 )
 
 const batteryVoltageTrend = computed(() => {
-  const dailyAvg = dailyAverages((p) => p.batteryVoltage).filter((v): v is number => v !== null)
-  if (dailyAvg.length < 2) return null
-  const first = dailyAvg[0]!,
-    last = dailyAvg[dailyAvg.length - 1]!
-  const delta = round2(last - first)
-  return `${delta > 0 ? '+' : ''}${delta} V`
+  const delta = batteryVoltageChange(historyDays.value)
+  return delta === null ? null : `${delta > 0 ? '+' : ''}${delta} V`
 })
 
 const batteryVoltageDisplay = computed(() => {
@@ -220,19 +154,16 @@ useBasemap(parkingMapInstance)
 const parkingMapCenter = computed<[number, number]>(() =>
   parkingCoordinates.value.length
     ? [parkingCoordinates.value[0]!.lat, parkingCoordinates.value[0]!.lng]
-    : [52.3676, 4.9041],
+    : DEFAULT_MAP_CENTER,
 )
 
 function onParkingMapReady(map: LeafletMap) {
   bindParkingMapReady(map, () => {
-    const pts = parkingCoordinates.value
-    if (!pts.length) return
-    const bounds = L.latLngBounds(pts.map((c) => [c.lat, c.lng] as [number, number]))
-    if (bounds.getNorthEast().equals(bounds.getSouthWest())) {
-      map.setView(bounds.getCenter(), 15, { animate: false })
-    } else {
-      map.fitBounds(bounds, { padding: [24, 24], animate: false })
-    }
+    fitToPoints(
+      map,
+      parkingCoordinates.value.map((c) => [c.lat, c.lng] as [number, number]),
+      24,
+    )
   })
 }
 
@@ -346,211 +277,20 @@ const insightDefs = computed((): InsightDef[] => [
 
 const insightDefMap = computed(() => new Map(insightDefs.value.map((d) => [d.id, d])))
 
-// ── Chart data ────────────────────────────────────────────────
+// Each insight in the user's order, with what it shows.
+const insightRows = computed(() =>
+  settings.statsInsights.map((item) => ({ item, def: insightDefMap.value.get(item.id)! })),
+)
 
-// Every line series shares the same shape and styling; only label, data and colour differ.
-function lineDataset(label: string, data: Array<number | null>, color: string, fillColor?: string) {
-  return {
-    label,
-    data,
-    borderColor: color,
-    backgroundColor: fillColor ?? 'transparent',
-    fill: fillColor !== undefined,
-    tension: 0.3,
-    spanGaps: true,
-    pointRadius: 2,
-    pointHoverRadius: 4,
-  }
-}
+// ── Charts ────────────────────────────────────────────────
 
-const evChartData = computed(() => ({
-  labels: chartLabels.value,
-  datasets: [
-    lineDataset(
-      `${t('vehicle.evSoc')} (%)`,
-      dailyAverages((p) => p.evSocPercent),
-      '#10b981',
-      'rgba(16,185,129,0.1)',
-    ),
-  ],
-}))
-
-const TYRE_SERIES: Array<{
-  label: string
-  read: (p: TelemetryHistoryPoint) => number | null
-  color: string
-}> = [
-  { label: 'FL', read: (p) => p.tyrePressureFrontLeft, color: '#f59e0b' },
-  { label: 'FR', read: (p) => p.tyrePressureFrontRight, color: '#ef4444' },
-  { label: 'RL', read: (p) => p.tyrePressureRearLeft, color: '#8b5cf6' },
-  { label: 'RR', read: (p) => p.tyrePressureRearRight, color: '#ec4899' },
-]
-
-const tyreChartData = computed(() => {
-  const u = units.value
-  return {
-    labels: chartLabels.value,
-    datasets: TYRE_SERIES.map(({ label, read, color }) =>
-      lineDataset(
-        `${label} (${u.symbol('pressure')})`,
-        dailyAverages(read).map((bar) => (bar === null ? null : u.convert('pressure', bar))),
-        color,
-      ),
-    ),
-  }
-})
-
-const hybridSocChartData = computed(() => ({
-  labels: chartLabels.value,
-  datasets: [
-    lineDataset(
-      `${t('vehicle.evSoc')} (%)`,
-      dailyAverages((p) => p.evSocPercent),
-      '#10b981',
-    ),
-    lineDataset(
-      `${t('vehicle.fuel')} (%)`,
-      dailyAverages((p) => p.fuelLevelPercent),
-      '#3b82f6',
-    ),
-  ],
-}))
-
-// The same counter, read in the unit this drivetrain actually reports: kWh out of the traction
-// battery on a plug-in car, litres of fuel on a plain hybrid. See utils/energy.
-const reportsFuelCounter = computed(() => energyUnit(vehicleType.value) === 'litres')
-
-const dailyEnergyChartData = computed(() => ({
-  labels: chartLabels.value,
-  datasets: [
-    {
-      label: reportsFuelCounter.value ? units.value.symbol('volume') : t('common.kwh'),
-      data: groupedHistory.value.map((d) => {
-        const readings = d.points
-          .slice()
-          .sort((a, b) => new Date(a.recordedAt).getTime() - new Date(b.recordedAt).getTime())
-          .map((p) => p.powerUsageOfDay)
-          .filter((v): v is number => v !== null)
-        const total = dailyCounterTotal(readings, d.key === toLocalDateKey(new Date()))
-        const fuel = reportsFuelCounter.value ? litres(total) : null
-        const used = fuel !== null ? units.value.convert('volume', fuel) : total
-        return used !== null ? round2(used) : null
-      }),
-      borderColor: '#f59e0b',
-      backgroundColor: 'rgba(245,158,11,0.7)',
-    },
-  ],
-}))
-
-// ── Chart options ─────────────────────────────────────────────
-
-// All charts share the same responsive/axis setup; they differ only in aspect ratio, legend
-// and y-axis range. The locale makes axis and tooltip numbers read like the rest of the page.
-function chartOptions(aspectRatio: number, legend: boolean, y: { min: number; max?: number }) {
-  return {
-    locale: intlLocale(uiSettings.locale),
-    responsive: true,
-    maintainAspectRatio: true,
-    aspectRatio,
-    animation: false as const,
-    plugins: { legend: { display: legend } },
-    scales: {
-      x: { ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 8 } },
-      y,
-    },
-  }
-}
-
-const percentOptions = computed(() => chartOptions(2.6, false, { min: 0, max: 100 }))
-// Widens a range outward to round numbers, stepping by half its order of magnitude: 1.5 to 3.5
-// bar stays as it is, and the same range reads 20 to 55 psi or 150 to 350 kPa rather than
-// starting the axis at 21.76.
-function roundedRange(min: number, max: number) {
-  const step = 10 ** Math.floor(Math.log10(max - min)) / 2
-  return { min: Math.floor(min / step) * step, max: Math.ceil(max / step) * step }
-}
-
-const pressureOptions = computed(() => {
-  const u = units.value
-  return chartOptions(
-    2.3,
-    true,
-    roundedRange(u.convert('pressure', 1.5), u.convert('pressure', 3.5)),
-  )
-})
-const hybridSocOptions = computed(() => chartOptions(2.6, true, { min: 0, max: 100 }))
-const kwhOptions = computed(() => chartOptions(2.6, false, { min: 0 }))
-
-// ── Chart definitions ─────────────────────────────────────────
-
-interface ChartDef {
-  id: StatsChartId
-  icon: string
-  title: string
-  description: string
-  vehicleApplicable: boolean
-  applicable: boolean
-  type: StatsChartType
-  data: ChartData<StatsChartType>
-  options: ChartOptions<StatsChartType>
-}
-
-const chartDefs = computed((): ChartDef[] => [
-  {
-    id: 'evChart',
-    icon: CHART_ICONS.evChart,
-    title: t('vehicle.evSoc'),
-    description: t('statistics.chartDesc.evChart'),
-    vehicleApplicable: hasLargeEv.value,
-    applicable: hasLargeEv.value && store.history.length > 0,
-    type: 'line',
-    data: evChartData.value,
-    options: percentOptions.value,
-  },
-  {
-    id: 'tyreChart',
-    icon: CHART_ICONS.tyreChart,
-    title: t('vehicle.tyres'),
-    description: t('statistics.chartDesc.tyreChart', {
-      low: units.value.measure('pressure', 2)!.value,
-      high: units.value.measure('pressure', 3)!.value,
-      unit: units.value.symbol('pressure'),
-    }),
-    vehicleApplicable: true,
-    applicable: store.history.length > 0,
-    type: 'line',
-    data: tyreChartData.value,
-    options: pressureOptions.value,
-  },
-  {
-    id: 'hybridSocChart',
-    icon: CHART_ICONS.hybridSocChart,
-    title: t('statistics.hybridSocChart'),
-    description: t('statistics.chartDesc.hybridSocChart'),
-    vehicleApplicable: isHybrid.value,
-    applicable: isHybrid.value && store.history.length > 0,
-    type: 'line',
-    data: hybridSocChartData.value,
-    options: hybridSocOptions.value,
-  },
-  {
-    id: 'dailyKwhChart',
-    icon: reportsFuelCounter.value ? 'gas-pump' : CHART_ICONS.dailyKwhChart,
-    title: reportsFuelCounter.value
-      ? t('statistics.dailyFuelChart', { unit: units.value.symbol('volume') })
-      : t('statistics.dailyKwhChart'),
-    description: reportsFuelCounter.value
-      ? t('statistics.chartDesc.dailyFuelChart')
-      : t('statistics.chartDesc.dailyKwhChart'),
-    vehicleApplicable: isHybrid.value,
-    applicable: isHybrid.value && store.history.length > 0,
-    type: 'bar',
-    data: dailyEnergyChartData.value,
-    options: kwhOptions.value,
-  },
-])
-
+const chartDefs = useStatisticsCharts(historyDays, vehicleType)
 const chartDefMap = computed(() => new Map(chartDefs.value.map((d) => [d.id, d])))
+
+// Each chart in the user's order, with what it shows.
+const chartRows = computed(() =>
+  settings.statsCharts.map((item) => ({ item, def: chartDefMap.value.get(item.id)! })),
+)
 
 // ── Layout reset ──────────────────────────────────────────────
 
@@ -578,22 +318,7 @@ const skeletonChartCount = computed(
       <h1>{{ t('nav.statistics') }}</h1>
       <div class="view-header__actions">
         <ToolbarPanel>
-          <div class="settings-toggle">
-            <div class="settings-toggle__info">
-              <span class="settings-toggle__label">
-                <font-awesome-icon icon="calendar-check" class="settings-toggle__icon" />
-                {{ t('trips.dateRange') }}
-              </span>
-              <span class="settings-toggle__desc">{{ t('trips.dateRangeDesc') }}</span>
-            </div>
-            <div class="settings-toggle__control">
-              <select v-model="days" class="form-select form-select-sm">
-                <option :value="7">{{ t('trips.last7days') }}</option>
-                <option :value="30">{{ t('trips.last30days') }}</option>
-                <option :value="90">{{ t('trips.last90days') }}</option>
-              </select>
-            </div>
-          </div>
+          <DateRangeFilter />
         </ToolbarPanel>
         <button
           class="btn btn-sm"
@@ -636,56 +361,45 @@ const skeletonChartCount = computed(
         <!-- ── Insights ──────────────────────────────────── -->
         <section class="stats-insights" :aria-label="t('statistics.insightsSectionLabel')">
           <!-- Edit mode: draggable card slots -->
-          <VueDraggable
+          <EditableCardGrid
             v-if="editMode"
             v-model="settings.statsInsights"
             class="status-grid status-grid--edit"
-            :animation="200"
-            ghost-class="card-slot--ghost"
-            chosen-class="card-slot--chosen"
-            handle=".card-slot__handle"
+            :is-shown="(item) => insightDefMap.get(item.id)?.vehicleApplicable !== false"
+            @toggle-visible="(item) => (item.visible = !item.visible)"
           >
-            <EditableCardSlot
-              v-for="item in settings.statsInsights"
-              v-show="insightDefMap.get(item.id)?.vehicleApplicable !== false"
-              :key="item.id"
-              :visible="item.visible"
-              @toggle-visible="item.visible = !item.visible"
-            >
-              <template
+            <template #default="{ item }">
+              <StatusCard
                 v-if="
                   insightDefMap.get(item.id)?.applicable &&
                   insightDefMap.get(item.id)?.value !== null
                 "
-              >
-                <StatusCard
-                  :icon="insightDefMap.get(item.id)!.icon"
-                  :label="insightDefMap.get(item.id)!.title"
-                  :value="insightDefMap.get(item.id)!.value"
-                  :unit="insightDefMap.get(item.id)!.unit"
-                />
-              </template>
+                :icon="insightDefMap.get(item.id)!.icon"
+                :label="insightDefMap.get(item.id)!.title"
+                :value="insightDefMap.get(item.id)!.value"
+                :unit="insightDefMap.get(item.id)!.unit"
+              />
               <div v-else class="card-slot__placeholder">
                 <font-awesome-icon :icon="insightDefMap.get(item.id)?.icon ?? 'circle-info'" />
                 <span>{{ insightDefMap.get(item.id)?.title }}</span>
               </div>
-            </EditableCardSlot>
-          </VueDraggable>
+            </template>
+          </EditableCardGrid>
 
           <!-- Normal mode: visible + applicable insights -->
           <div v-else class="status-grid">
-            <template v-for="item in settings.statsInsights" :key="item.id">
+            <template v-for="{ item, def } in insightRows" :key="item.id">
               <CardInfoWrap
-                v-if="item.visible && insightDefMap.get(item.id)?.applicable"
-                :title="insightDefMap.get(item.id)!.title"
-                :description="insightDefMap.get(item.id)!.description"
+                v-if="item.visible && def.applicable"
+                :title="def.title"
+                :description="def.description"
               >
                 <StatusCard
-                  :icon="insightDefMap.get(item.id)!.icon"
-                  :label="insightDefMap.get(item.id)!.title"
-                  :value="insightDefMap.get(item.id)!.value"
-                  :unit="insightDefMap.get(item.id)!.unit"
-                  :clickable="insightDefMap.get(item.id)!.clickable === true"
+                  :icon="def.icon"
+                  :label="def.title"
+                  :value="def.value"
+                  :unit="def.unit"
+                  :clickable="def.clickable === true"
                   @click="onInsightClick(item.id)"
                 />
               </CardInfoWrap>
@@ -700,23 +414,15 @@ const skeletonChartCount = computed(
           </div>
 
           <!-- Edit mode: draggable chart slots -->
-          <VueDraggable
+          <EditableCardGrid
             v-if="editMode"
             v-model="settings.statsCharts"
             class="stats-chart-grid"
-            :animation="200"
-            ghost-class="card-slot--ghost"
-            chosen-class="card-slot--chosen"
-            handle=".card-slot__handle"
+            slot-class="card-slot--chart"
+            :is-shown="(item) => chartDefMap.get(item.id)?.vehicleApplicable !== false"
+            @toggle-visible="(item) => (item.visible = !item.visible)"
           >
-            <EditableCardSlot
-              v-for="item in settings.statsCharts"
-              v-show="chartDefMap.get(item.id)?.vehicleApplicable !== false"
-              :key="item.id"
-              class="card-slot--chart"
-              :visible="item.visible"
-              @toggle-visible="item.visible = !item.visible"
-            >
+            <template #default="{ item }">
               <StatsChartCard
                 v-if="chartDefMap.get(item.id)?.applicable && store.history.length"
                 :title="chartDefMap.get(item.id)!.title"
@@ -730,18 +436,18 @@ const skeletonChartCount = computed(
                 <font-awesome-icon :icon="chartDefMap.get(item.id)?.icon ?? 'chart-line'" />
                 <span>{{ chartDefMap.get(item.id)?.title }}</span>
               </div>
-            </EditableCardSlot>
-          </VueDraggable>
+            </template>
+          </EditableCardGrid>
 
           <!-- Normal mode: visible + applicable charts -->
           <div v-else class="stats-chart-grid">
-            <template v-for="item in settings.statsCharts" :key="item.id">
+            <template v-for="{ item, def } in chartRows" :key="item.id">
               <StatsChartCard
-                v-if="item.visible && chartDefMap.get(item.id)?.applicable"
-                :title="chartDefMap.get(item.id)!.title"
-                :type="chartDefMap.get(item.id)!.type"
-                :data="chartDefMap.get(item.id)!.data"
-                :options="chartDefMap.get(item.id)!.options"
+                v-if="item.visible && def.applicable"
+                :title="def.title"
+                :type="def.type"
+                :data="def.data"
+                :options="def.options"
                 :show-info="uiSettings.showCardInfoIcons"
                 @info="activeChartInfo = item.id"
               />

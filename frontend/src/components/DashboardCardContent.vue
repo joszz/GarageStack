@@ -25,6 +25,7 @@ import MaintenanceSummaryCard from './MaintenanceSummaryCard.vue'
 import { formatNumber } from '@/utils/format'
 import { energyUnit, hvBatteryReading, litres, litresPer100Km, whPerKm } from '@/utils/energy'
 import { evLevelVariant, fuelLevelVariant } from '@/utils/levels'
+import { plugsIn } from '@/utils/vehicleType'
 import { ODOMETER_FORMAT, type Measure, type MeasureOptions, type Quantity } from '@/utils/units'
 import { useUnits } from '@/composables/useUnits'
 
@@ -78,9 +79,7 @@ const activeTripCard = computed(() => {
     ),
   }
 })
-const supportsExternalCharge = computed(
-  () => vehicleType.value === 'phev' || vehicleType.value === 'bev',
-)
+const supportsExternalCharge = computed(() => plugsIn(vehicleType.value))
 
 // A hybrid's energy counters hold fuel, not kWh, so the same telemetry field is labelled and
 // scaled differently per drivetrain. See utils/energy.
