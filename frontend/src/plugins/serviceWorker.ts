@@ -1,14 +1,20 @@
 /**
- * Keeps the page on the service worker's current version: a new worker taking control reloads
- * the page once, and a worker that fails to install is unregistered so the next load starts
- * clean.
+ * Keeps the page on the service worker's current version: a new worker replacing the one in
+ * control reloads the page once, and a worker that fails to install is unregistered so the next
+ * load starts clean.
  */
 export function watchServiceWorkerUpdates(): void {
   if (!('serviceWorker' in navigator)) return
 
   let refreshing = false
+  let controller = navigator.serviceWorker.controller
   navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (refreshing) return
+    const previous = controller
+    controller = navigator.serviceWorker.controller
+    // A first visit has no controller until the fresh worker claims the page, and that worker
+    // serves the very build the page already runs. Reloading for it loaded every first visit
+    // twice, which Lighthouse (it clears service workers before each run) scored as a redirect.
+    if (!previous || refreshing) return
     refreshing = true
     window.location.reload()
   })
