@@ -15,7 +15,7 @@ public static class TripEndpoints
         var group = app.MapGroup("/api/vehicles/{vin}/trips")
             .WithTags("Trips")
             .RequireAuthorization()
-            .AddEndpointFilter<VehicleEndpoints.ResolveVehicleFilter>();
+            .AddEndpointFilter<ResolveVehicleFilter>();
 
         group.MapGet("/", async (
             HttpContext httpContext,
@@ -25,9 +25,9 @@ public static class TripEndpoints
             bool? points,
             CancellationToken ct) =>
         {
-            var vehicle = VehicleEndpoints.ResolveVehicleFilter.GetResolvedVehicle(httpContext);
+            var vehicle = httpContext.ResolvedVehicle();
 
-            var rangeError = VehicleEndpoints.TryResolveDateRange(from, to, TimeSpan.FromDays(30), TimeSpan.FromDays(90), out var start, out var end);
+            var rangeError = DateRange.TryResolve(from, to, TimeSpan.FromDays(30), TimeSpan.FromDays(90), out var start, out var end);
             if (rangeError is not null) return rangeError;
 
             var found = await trips.GetTripsAsync(vehicle.Id, start, end, ct);
@@ -40,7 +40,7 @@ public static class TripEndpoints
         // The dashboard shows one trip, so it asks for that one rather than a period of them.
         group.MapGet("/latest", async (HttpContext httpContext, ITripRepository trips, CancellationToken ct) =>
         {
-            var vehicle = VehicleEndpoints.ResolveVehicleFilter.GetResolvedVehicle(httpContext);
+            var vehicle = httpContext.ResolvedVehicle();
             var latest = await trips.GetLatestAsync(vehicle.Id, DateTime.UtcNow, ct);
             return latest is null ? Results.NoContent() : Results.Ok(latest);
         })
@@ -54,9 +54,9 @@ public static class TripEndpoints
             DateTimeOffset? to,
             CancellationToken ct) =>
         {
-            var vehicle = VehicleEndpoints.ResolveVehicleFilter.GetResolvedVehicle(httpContext);
+            var vehicle = httpContext.ResolvedVehicle();
 
-            var rangeError = VehicleEndpoints.TryResolveDateRange(from, to, TimeSpan.FromDays(31), TimeSpan.FromDays(366), out var start, out var end);
+            var rangeError = DateRange.TryResolve(from, to, TimeSpan.FromDays(31), TimeSpan.FromDays(366), out var start, out var end);
             if (rangeError is not null) return rangeError;
 
             return Results.Ok(await trips.GetLogAsync(vehicle.Id, start, end, ct));
@@ -70,7 +70,7 @@ public static class TripEndpoints
             ITripRepository trips,
             CancellationToken ct) =>
         {
-            var vehicle = VehicleEndpoints.ResolveVehicleFilter.GetResolvedVehicle(httpContext);
+            var vehicle = httpContext.ResolvedVehicle();
 
             var notes = NormalizeNotes(req.Notes);
             if (notes is { Length: > Trip.NotesMaxLength })
@@ -87,7 +87,7 @@ public static class TripEndpoints
             ITripRepository trips,
             CancellationToken ct) =>
         {
-            var vehicle = VehicleEndpoints.ResolveVehicleFilter.GetResolvedVehicle(httpContext);
+            var vehicle = httpContext.ResolvedVehicle();
 
             if (req.Ids is not { Count: > 0 })
                 return ApiProblems.BadRequest("trip.idsRequired", "ids must contain at least one trip");
@@ -107,7 +107,7 @@ public static class TripEndpoints
             TripPlaceService places,
             CancellationToken ct) =>
         {
-            var vehicle = VehicleEndpoints.ResolveVehicleFilter.GetResolvedVehicle(httpContext);
+            var vehicle = httpContext.ResolvedVehicle();
 
             if (req.Ids is not { Count: > 0 })
                 return ApiProblems.BadRequest("trip.idsRequired", "ids must contain at least one trip");

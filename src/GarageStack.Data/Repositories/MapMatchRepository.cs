@@ -2,9 +2,9 @@ using System.Text.Json;
 using GarageStack.Core.Helpers;
 using GarageStack.Core.Interfaces;
 using GarageStack.Core.Models;
+using GarageStack.Data.Extensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Npgsql;
 
 namespace GarageStack.Data.Repositories;
 
@@ -43,18 +43,11 @@ public class MapMatchRepository(AppDbContext db, ILogger<MapMatchRepository>? lo
         TimeSpan ttl,
         CancellationToken ct = default)
     {
-        try
-        {
-            await UpsertAttemptAsync(provider, traceHash, match, ttl, ct);
-        }
-        catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: "23505" })
-        {
-            // Two browsers selected the same trip at once and both missed the cache. Retry once:
-            // the second attempt finds the now-committed row and updates it instead.
-            logger?.LogDebug("Map match cache row for {Provider} was inserted concurrently, retrying as an update", provider);
-            db.ChangeTracker.Clear();
-            await UpsertAttemptAsync(provider, traceHash, match, ttl, ct);
-        }
+        // Two browsers can select the same trip at once and both miss the cache; the retry finds
+        // the now-committed row and updates it instead.
+        await db.RetryOnceOnUniqueViolationAsync(
+            () => UpsertAttemptAsync(provider, traceHash, match, ttl, ct),
+            () => logger?.LogDebug("Map match cache row for {Provider} was inserted concurrently, retrying as an update", provider));
     }
 
     private async Task UpsertAttemptAsync(

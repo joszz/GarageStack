@@ -1,4 +1,4 @@
-namespace GarageStack.Api;
+namespace GarageStack.Api.Security;
 
 internal static class CsrfPolicy
 {

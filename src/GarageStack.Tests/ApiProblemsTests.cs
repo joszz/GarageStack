@@ -1,3 +1,4 @@
+using GarageStack.Api;
 using GarageStack.Api.Endpoints;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -41,6 +42,6 @@ public class ApiProblemsTests
     [Fact]
     public void CommandValidation_NamesTheRuleThatFailed()
     {
-        Assert.Equal("command.invalidValue", VehicleEndpoints.ValidateCommandValue("climate", "start")?.Code);
+        Assert.Equal("command.invalidValue", VehicleCommands.Validate("climate", "start")?.Code);
     }
 }

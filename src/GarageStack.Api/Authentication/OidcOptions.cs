@@ -1,8 +1,8 @@
 namespace GarageStack.Api.Authentication;
 
 /// <summary>
-/// Bound from the "Oidc" configuration section, which docker-compose, the all-in-one
-/// entrypoint and the Unraid template fill from OIDC_* environment variables.
+/// Bound from the "Oidc" configuration section, which the OIDC_* environment variables fill
+/// (see <see cref="GarageStack.Core.Configuration.EnvironmentAliases"/>).
 /// OIDC is considered configured as soon as <see cref="Authority"/> is set; everything else
 /// either has a usable default or is optional.
 /// </summary>

@@ -34,6 +34,11 @@ if [ -z "${MQTT_BROKER_PASSWORD:-}" ]; then
     MQTT_BROKER_PASSWORD="$(openssl rand -hex 32)"
 fi
 
+# The .NET services read the template's variables (OIDC_AUTHORITY, WIDGET_API_KEY, ...) under
+# the names the template uses (src/GarageStack.Core/Configuration/EnvironmentAliases.cs), and
+# treat an empty one as "use the default". Only what this container derives is set here, under
+# each setting's own key, which wins over the template's variable of the same meaning.
+
 # Derived connection string for .NET services
 export ConnectionStrings__DefaultConnection="Host=127.0.0.1;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
 
@@ -47,60 +52,14 @@ export MQTT_USER="${MQTT_BROKER_USERNAME}"
 export MQTT_PASSWORD="${MQTT_BROKER_PASSWORD}"
 
 # VAPID subject defaults to the SAIC account email
-export Vapid__PublicKey="${VAPID_PUBLIC_KEY:-}"
-export Vapid__PrivateKey="${VAPID_PRIVATE_KEY:-}"
 export Vapid__Subject="${Vapid__Subject:-mailto:${SAIC_USER}}"
 
-# Language of push notification texts (en or nl). The Worker has no browser request to take
-# a language from, so it is a deployment setting.
-export Notifications__Culture="${NOTIFICATION_LANGUAGE:-en}"
-
-# Authentication: OpenID Connect when a provider is configured, the built-in password login
-# otherwise. See documentation/AUTHENTICATION.md.
-export Oidc__Authority="${OIDC_AUTHORITY:-}"
-export Oidc__ClientId="${OIDC_CLIENT_ID:-}"
-export Oidc__ClientSecret="${OIDC_CLIENT_SECRET:-}"
-export Oidc__Scopes="${OIDC_SCOPES:-openid profile email}"
-export Oidc__ProviderName="${OIDC_PROVIDER_NAME:-SSO}"
-export Oidc__AutoLogin="${OIDC_AUTO_LOGIN:-false}"
-export Oidc__AllowedGroups="${OIDC_ALLOWED_GROUPS:-}"
-export Oidc__AllowedEmails="${OIDC_ALLOWED_EMAILS:-}"
-export Oidc__GroupsClaim="${OIDC_GROUPS_CLAIM:-groups}"
-export Oidc__RedirectUri="${OIDC_REDIRECT_URI:-}"
-export Oidc__RequireHttpsMetadata="${OIDC_REQUIRE_HTTPS_METADATA:-true}"
-
-# Password login falls back to the MG account credentials when no dedicated ones are given.
-# It switches off automatically once OIDC is configured, unless explicitly enabled here.
-export Auth__Username="${AUTH_USERNAME:-${SAIC_USER}}"
-export Auth__Password="${AUTH_PASSWORD:-${SAIC_PASSWORD}}"
-export Auth__PasswordLoginEnabled="${AUTH_PASSWORD_LOGIN_ENABLED:-}"
 # Default false so plain-HTTP LAN installs work out of the box.
 # Set AUTH_COOKIE_SECURE=true when the app is served behind a TLS-terminating proxy.
 export Auth__CookieSecure="${AUTH_COOKIE_SECURE:-false}"
-export Auth__SessionLifetimeHours="${AUTH_SESSION_LIFETIME_HOURS:-168}"
 
 # CORS: the URL users open in their browser
 export Cors__Origins__0="${CORS_ORIGIN:-http://localhost:8080}"
-
-# Homepage widget API key (optional -- leave empty to disable the widget endpoint)
-export Widget__ApiKey="${WIDGET_API_KEY:-}"
-
-# Open Charge Map API key for the charging station map layer (optional -- leave empty to hide it)
-export OpenChargeMap__ApiKey="${OPENCHARGEMAP_API_KEY:-}"
-
-# API requests per minute per client IP. Optional -- raise it when several people share one
-# public address, lower it to tighten the budget.
-export RateLimits__GlobalPerMinute="${RATE_LIMIT_GLOBAL_PER_MINUTE:-}"
-
-# Tyre pressure colour-coding / notification thresholds (bar). Optional. Empty means "use the
-# app's own defaults", so those numbers live in one place instead of being restated here.
-export TyrePressure__LowBar="${TYRE_PRESSURE_LOW_BAR:-}"
-export TyrePressure__GoodBar="${TYRE_PRESSURE_GOOD_BAR:-}"
-export TyrePressure__HighBar="${TYRE_PRESSURE_HIGH_BAR:-}"
-
-# The traction battery's real capacity, which the MQTT gateway assumes rather than reads.
-# Optional; empty means "trust the gateway on a plug-in car, show a hybrid percentages only".
-export HvBattery__CapacityKwh="${HV_BATTERY_CAPACITY_KWH:-}"
 
 # .NET API listens on an internal port; nginx proxies port 80 to it
 export ASPNETCORE_URLS="http://127.0.0.1:9000"

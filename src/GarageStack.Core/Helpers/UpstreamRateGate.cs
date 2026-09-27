@@ -1,11 +1,25 @@
 namespace GarageStack.Core.Helpers;
 
+/// <summary>Why a request did not get to go upstream just now.</summary>
+public enum GateRefusal
+{
+    /// <summary>The request holds the gate.</summary>
+    None,
+
+    /// <summary>The upstream asked to slow down, and its backoff window is still open.</summary>
+    BackingOff,
+
+    /// <summary>Another request held the gate for longer than this one was willing to wait.</summary>
+    Busy,
+}
+
 /// <summary>
-/// The politeness rules every third-party map API client (Open Charge Map, Overpass) needs:
-/// one request in flight at a time, a minimum interval between requests, and a backoff window
-/// after the upstream answers 429/503/504. Callers acquire the gate, call
-/// <see cref="ThrottleAsync"/>, send their request, and <see cref="MarkRequestSent"/>; the
-/// backoff can be read outside the gate so a foreground caller can fail fast without waiting.
+/// The politeness rules every third-party API client (Open Charge Map, Overpass, Nominatim,
+/// Valhalla) needs: one request in flight at a time, a minimum interval between requests, and a
+/// backoff window after the upstream answers 429/503/504. A client takes the gate with
+/// <see cref="TryEnterAsync"/>, calls <see cref="ThrottleAsync"/> and <see cref="MarkRequestSent"/>
+/// around its request, and disposes the entry; the backoff can be read outside the gate so a
+/// foreground caller fails fast without waiting.
 /// </summary>
 public sealed class UpstreamRateGate
 {
@@ -20,13 +34,39 @@ public sealed class UpstreamRateGate
 
     public bool IsBackingOff => BackoffUntil > DateTimeOffset.UtcNow;
 
-    /// <summary>Waits for exclusive access; the Worker's background paths use this form.</summary>
-    public Task WaitAsync(CancellationToken ct) => _gate.WaitAsync(ct);
+    /// <summary>
+    /// Takes the gate for one request. With <paramref name="failWhenBackingOff"/>, an open backoff
+    /// window refuses the request, checked before waiting and again once the gate is held, since
+    /// the request queued behind may have been rate-limited. <paramref name="waitAtMost"/> bounds
+    /// the wait for a caller that has a browser waiting on it; null waits as long as it takes.
+    /// </summary>
+    /// <returns>
+    /// An entry that holds the gate until it is disposed, or, when refused, one that holds nothing
+    /// and says why in <see cref="GateEntry.Refusal"/>.
+    /// </returns>
+    public async Task<GateEntry> TryEnterAsync(TimeSpan? waitAtMost, bool failWhenBackingOff, CancellationToken ct)
+    {
+        if (failWhenBackingOff && IsBackingOff)
+            return GateEntry.Refused(GateRefusal.BackingOff);
 
-    /// <summary>Waits at most <paramref name="timeout"/>; returns false when the gate stays busy.</summary>
-    public Task<bool> WaitAsync(TimeSpan timeout, CancellationToken ct) => _gate.WaitAsync(timeout, ct);
+        if (waitAtMost is { } timeout)
+        {
+            if (!await _gate.WaitAsync(timeout, ct))
+                return GateEntry.Refused(GateRefusal.Busy);
+        }
+        else
+        {
+            await _gate.WaitAsync(ct);
+        }
 
-    public void Release() => _gate.Release();
+        if (failWhenBackingOff && IsBackingOff)
+        {
+            _gate.Release();
+            return GateEntry.Refused(GateRefusal.BackingOff);
+        }
+
+        return new GateEntry(_gate);
+    }
 
     /// <summary>
     /// Call while holding the gate. Delays until <paramref name="minInterval"/> has passed since
@@ -52,4 +92,30 @@ public sealed class UpstreamRateGate
 
     /// <summary>True for the upstream status codes that mean "slow down", not "your request is wrong".</summary>
     public static bool IsThrottlingStatus(int statusCode) => statusCode is 429 or 503 or 504;
+}
+
+/// <summary>
+/// One request's hold on an <see cref="UpstreamRateGate"/>: released when disposed. A refused
+/// entry holds nothing, so disposing it is always safe.
+/// </summary>
+public sealed class GateEntry : IDisposable
+{
+    private SemaphoreSlim? _held;
+
+    internal GateEntry(SemaphoreSlim held) => _held = held;
+
+    private GateEntry(GateRefusal refusal) => Refusal = refusal;
+
+    internal static GateEntry Refused(GateRefusal refusal) => new(refusal);
+
+    /// <summary>Why the request may not go out now, or <see cref="GateRefusal.None"/> when it holds the gate.</summary>
+    public GateRefusal Refusal { get; }
+
+    public bool Entered => Refusal == GateRefusal.None;
+
+    public void Dispose()
+    {
+        _held?.Release();
+        _held = null;
+    }
 }

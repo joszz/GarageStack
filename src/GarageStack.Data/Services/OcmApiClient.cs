@@ -4,14 +4,13 @@ using System.Text.Json.Serialization;
 using GarageStack.Core.Configuration;
 using GarageStack.Core.Helpers;
 using GarageStack.Core.Models;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace GarageStack.Data.Services;
 
 public sealed class OcmApiClient(
     IHttpClientFactory httpClientFactory,
-    IConfiguration configuration,
+    OpenChargeMapOptions options,
     ILogger<OcmApiClient> logger)
 {
     public const string HttpClientName = "ocm";
@@ -25,12 +24,12 @@ public sealed class OcmApiClient(
 
     private const string BaseUrl = "https://api.openchargemap.io/v3/poi/";
 
-    public bool IsConfigured => !string.IsNullOrWhiteSpace(configuration["OpenChargeMap:ApiKey"]);
+    public bool IsConfigured => options.IsConfigured;
 
     public async Task<IReadOnlyList<PoiItem>> FetchChargingStationsAsync(
         int cellLat, int cellLng, CancellationToken ct = default)
     {
-        var apiKey = configuration["OpenChargeMap:ApiKey"];
+        var apiKey = options.ApiKey;
         if (string.IsNullOrWhiteSpace(apiKey)) return [];
 
         // Tile center + half-diagonal radius.
@@ -39,13 +38,13 @@ public sealed class OcmApiClient(
         var centerLat = ((cellLat + 0.5) / 2.0).ToString(CultureInfo.InvariantCulture);
         var centerLng = ((cellLng + 0.5) / 2.0).ToString(CultureInfo.InvariantCulture);
 
-        await _gate.WaitAsync(ct);
+        using var entry = await _gate.TryEnterAsync(waitAtMost: null, failWhenBackingOff: true, ct);
         try
         {
             // Fail fast without hitting the network if a prior request was rate-limited, so a
             // sustained rate limit is not hammered every MinInterval by every remaining tile in
             // the Worker's current pass.
-            if (_gate.IsBackingOff)
+            if (!entry.Entered)
                 throw new HttpRequestException($"OCM rate-limited, backing off until {_gate.BackoffUntil:O}");
 
             await _gate.ThrottleAsync(MinInterval, honourBackoff: false, ct);
@@ -81,10 +80,6 @@ public sealed class OcmApiClient(
         {
             logger.LogWarning(ex, "OCM fetch failed for charging tile ({CellLat},{CellLng})", cellLat, cellLng);
             throw;
-        }
-        finally
-        {
-            _gate.Release();
         }
     }
 

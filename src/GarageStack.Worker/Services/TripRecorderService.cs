@@ -10,31 +10,14 @@ namespace GarageStack.Worker.Services;
 /// </summary>
 public class TripRecorderService(
     ILogger<TripRecorderService> logger,
-    IServiceScopeFactory scopeFactory) : BackgroundService
+    IServiceScopeFactory scopeFactory) : PeriodicBackgroundService(logger)
 {
-    private readonly TimeSpan _interval = TimeSpan.FromMinutes(5);
+    protected override string Name => "Trip recorder";
 
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-    {
-        logger.LogInformation("Trip recorder started");
+    // No initial delay, so a fresh install saves its history right away.
+    protected override TimeSpan Interval => TimeSpan.FromMinutes(5);
 
-        while (!stoppingToken.IsCancellationRequested)
-        {
-            try
-            {
-                await RecordAllAsync(stoppingToken);
-            }
-            catch (Exception ex) when (!stoppingToken.IsCancellationRequested)
-            {
-                logger.LogError(ex, "Error while recording trips");
-            }
-
-            // Delay at the end (not the start) so a fresh install saves its history right away.
-            await Task.Delay(_interval, stoppingToken);
-        }
-    }
-
-    private async Task RecordAllAsync(CancellationToken ct)
+    protected override async Task RunOnceAsync(CancellationToken ct)
     {
         using var scope = scopeFactory.CreateScope();
         var vehicles = await scope.ServiceProvider.GetRequiredService<IVehicleRepository>().GetAllAsync(ct);

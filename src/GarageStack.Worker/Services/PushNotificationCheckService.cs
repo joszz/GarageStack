@@ -13,12 +13,10 @@ public class PushNotificationCheckService(
     IServiceScopeFactory scopeFactory,
     IPushSender pushSender,
     TyrePressureThresholds tyrePressureThresholds,
-    IStringLocalizer<NotificationStrings> strings) : BackgroundService
+    IStringLocalizer<NotificationStrings> strings) : PeriodicBackgroundService(logger)
 {
     private readonly NotificationCooldownGate _cooldownGate = new(TimeSpan.FromHours(1));
-    internal readonly VinStateTracker<bool?> _engineRunningTracker = new();
     internal readonly VinStateTracker<bool?> _isChargingTracker = new();
-    internal readonly Dictionary<string, DateTime> _lastParkedAt = new();
     private readonly TimeSpan _parkingGrace = TimeSpan.FromMinutes(10);
 
     // The positions each check reads, in the order they are listed in an alert body. Tyres keep
@@ -49,26 +47,13 @@ public class PushNotificationCheckService(
         ("PositionRearRight", s => s.RearRightWindowOpen),
     ];
 
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-    {
-        logger.LogInformation("Push notification check service started");
+    protected override string Name => "Push notification check";
 
-        while (!stoppingToken.IsCancellationRequested)
-        {
-            await Task.Delay(TimeSpan.FromMinutes(5), stoppingToken);
+    protected override TimeSpan InitialDelay => TimeSpan.FromMinutes(5);
 
-            try
-            {
-                await CheckAndNotifyAsync(stoppingToken);
-            }
-            catch (Exception ex) when (!stoppingToken.IsCancellationRequested)
-            {
-                logger.LogError(ex, "Error during push notification check");
-            }
-        }
-    }
+    protected override TimeSpan Interval => TimeSpan.FromMinutes(5);
 
-    private async Task CheckAndNotifyAsync(CancellationToken ct)
+    protected override async Task RunOnceAsync(CancellationToken ct)
     {
         using var scope = scopeFactory.CreateScope();
         var telemetry = scope.ServiceProvider.GetRequiredService<ITelemetryRepository>();
@@ -83,21 +68,16 @@ public class PushNotificationCheckService(
             var snapshot = await telemetry.GetMergedLatestAsync(vehicle.Id, ct);
             if (snapshot is null) continue;
 
-            // Seed in-memory parking time from DB on first sight of this VIN after a restart
-            if (!_lastParkedAt.ContainsKey(vehicle.Vin) && vehicle.LastParkedAt.HasValue)
-                _lastParkedAt[vehicle.Vin] = vehicle.LastParkedAt.Value;
-
             var vehicleType = VehicleTypeHelper.GetVehicleType(vehicle);
             var alerts = new List<(string key, string title, string body)>();
             CheckTyrePressure(snapshot, alerts);
             CheckEvSoc(snapshot, vehicleType, alerts);
             CheckChargingComplete(snapshot, vehicle.Vin, vehicleType, alerts);
-            var justParked = CheckEngineStart(snapshot, vehicle.Vin, alerts);
-            if (justParked)
-                await vehicleRepo.SetLastParkedAtAsync(vehicle.Id, _lastParkedAt[vehicle.Vin], ct);
 
-            var withinParkingGrace = _lastParkedAt.TryGetValue(vehicle.Vin, out var parkedAt)
-                && DateTime.UtcNow - parkedAt < _parkingGrace;
+            // The MQTT consumer records when the engine last stopped (it also sends the
+            // engine-start push, the moment the car reports it). A car parked a moment ago is
+            // being unloaded, not left open, so the parked alerts wait out a grace period.
+            var withinParkingGrace = IsWithinParkingGrace(vehicle.LastParkedAt, DateTime.UtcNow);
 
             CheckUnlockedWhileParked(snapshot, alerts, withinParkingGrace);
             CheckDoorsOpenWhileParked(snapshot, alerts, withinParkingGrace);
@@ -106,9 +86,7 @@ public class PushNotificationCheckService(
             foreach (var (key, title, body) in alerts)
             {
                 // VehicleId is included in the DB check so one vehicle's alert cannot suppress
-                // another vehicle's same-category alert; this also lets MQTT-emitted notifications
-                // (e.g. engine-start, sent directly from MqttConsumerService) suppress a repeated
-                // checker alert for the same category.
+                // another vehicle's same-category alert.
                 var shouldNotify = await _cooldownGate.ShouldNotifyAsync(vehicle.Vin, key, cutoff =>
                     db.WasNotificationSentSinceAsync(key, vehicle.Id, cutoff, ct));
                 if (!shouldNotify) continue;
@@ -164,28 +142,8 @@ public class PushNotificationCheckService(
         }
     }
 
-    internal bool CheckEngineStart(TelemetrySnapshot s, string vin, List<(string, string, string)> alerts)
-    {
-        if (s.EngineRunning is null) return false;
-
-        var current = s.EngineRunning.Value;
-        var hadPrevious = _engineRunningTracker.TryUpdate(vin, current, out var previous);
-
-        // First observation after startup is skipped: no baseline to compare against.
-        switch (BoolTransitionDetector.Detect(hadPrevious, previous, current))
-        {
-            case StateTransition.TurnedOn:
-                alerts.Add((NotificationCategories.EngineStart, strings["EngineStartTitle"], strings["EngineStartBody"]));
-                return false;
-
-            case StateTransition.TurnedOff:
-                _lastParkedAt[vin] = DateTime.UtcNow;
-                return true;
-
-            default:
-                return false;
-        }
-    }
+    internal bool IsWithinParkingGrace(DateTime? lastParkedAt, DateTime now) =>
+        lastParkedAt is { } parkedAt && now - parkedAt < _parkingGrace;
 
     private static bool IsParked(TelemetrySnapshot s)
         => s.EngineRunning == false;

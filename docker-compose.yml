@@ -2,27 +2,31 @@
 # every value a container gets is listed explicitly here: no env_file, and no secret reaching a
 # container that has no use for it (the Worker never sees the OIDC or widget credentials, the API
 # never sees the notification language).
+#
+# The variables go through under the names .env uses; the services map each one onto its setting
+# (src/GarageStack.Core/Configuration/EnvironmentAliases.cs). Unset ones arrive empty, which the
+# services read as "use the default", so the defaults live in the app and are not restated here.
+# The few defaults below are this deployment's own: its service names and plain HTTP.
 x-dotnet-environment: &dotnet-environment
   ASPNETCORE_ENVIRONMENT: "Production"
-  DEBUG_LOGS: "${DEBUG_LOGS:-false}"
+  DEBUG_LOGS: "${DEBUG_LOGS:-}"
   ConnectionStrings__DefaultConnection: "Host=${POSTGRES_HOST:-postgres};Port=${POSTGRES_PORT:-5432};Database=${POSTGRES_DB:-garagestack};Username=${POSTGRES_USER:-garagestack};Password=${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in your .env file, see .env.example}"
-  Mqtt__Host: "${MQTT_HOST:-mosquitto}"
-  Mqtt__Port: "${MQTT_PORT:-1883}"
-  Mqtt__Username: "${MQTT_BROKER_USERNAME:-garagestack}"
-  Mqtt__Password: "${MQTT_BROKER_PASSWORD:?Set MQTT_BROKER_PASSWORD in your .env file, see .env.example}"
-  Vapid__PublicKey: "${VAPID_PUBLIC_KEY}"
-  Vapid__PrivateKey: "${VAPID_PRIVATE_KEY}"
+  MQTT_HOST: "${MQTT_HOST:-mosquitto}"
+  MQTT_PORT: "${MQTT_PORT:-}"
+  MQTT_BROKER_USERNAME: "${MQTT_BROKER_USERNAME:-garagestack}"
+  MQTT_BROKER_PASSWORD: "${MQTT_BROKER_PASSWORD:?Set MQTT_BROKER_PASSWORD in your .env file, see .env.example}"
+  VAPID_PUBLIC_KEY: "${VAPID_PUBLIC_KEY:-}"
+  VAPID_PRIVATE_KEY: "${VAPID_PRIVATE_KEY:-}"
   Vapid__Subject: "mailto:${SAIC_USER}"
-  # Colour-coding and notification thresholds (bar); the API paints them, the Worker alerts on
-  # them. Left unset here on purpose: the app holds the defaults, so they are not restated (and
-  # cannot drift) in the deployment files.
-  TyrePressure__LowBar: "${TYRE_PRESSURE_LOW_BAR:-}"
-  TyrePressure__GoodBar: "${TYRE_PRESSURE_GOOD_BAR:-}"
-  TyrePressure__HighBar: "${TYRE_PRESSURE_HIGH_BAR:-}"
-  # The speed camera map layer, which both services have to agree about: the API serves it and
-  # the Worker pre-fetches it. Set to false where showing camera positions is restricted.
-  # See .env.example.
-  SpeedCameras__Enabled: "${SPEEDCAMERAS__ENABLED:-true}"
+  # Colour-coding and notification thresholds (bar); the API paints them, the Worker alerts on them.
+  TYRE_PRESSURE_LOW_BAR: "${TYRE_PRESSURE_LOW_BAR:-}"
+  TYRE_PRESSURE_GOOD_BAR: "${TYRE_PRESSURE_GOOD_BAR:-}"
+  TYRE_PRESSURE_HIGH_BAR: "${TYRE_PRESSURE_HIGH_BAR:-}"
+  # The POI map layers: the API serves them and the Worker pre-fetches them around the car, so
+  # both need the same endpoint, key and speed camera switch. See .env.example.
+  OVERPASS__BASEURL: "${OVERPASS__BASEURL:-}"
+  SPEEDCAMERAS__ENABLED: "${SPEEDCAMERAS__ENABLED:-}"
+  OPENCHARGEMAP_API_KEY: "${OPENCHARGEMAP_API_KEY:-}"
 
 services:
   mosquitto:
@@ -112,7 +116,7 @@ services:
     environment:
       <<: *dotnet-environment
       # Language of push notification texts (en or nl); the Worker has no browser to ask.
-      Notifications__Culture: "${NOTIFICATION_LANGUAGE:-en}"
+      NOTIFICATION_LANGUAGE: "${NOTIFICATION_LANGUAGE:-}"
     volumes:
       - worker_logs:/app/logs
 
@@ -136,50 +140,45 @@ services:
         condition: service_started
     environment:
       <<: *dotnet-environment
-      Cors__Origins__0: "${CORS_ORIGIN:-http://localhost:8080}"
+      CORS_ORIGIN: "${CORS_ORIGIN:-http://localhost:8080}"
       SAIC_USER: "${SAIC_USER}"
       SAIC_PASSWORD: "${SAIC_PASSWORD}"
       # Built-in password login, used only when no OIDC provider is configured below. Left
       # empty, the API falls back to the MG account credentials above. Set
       # AUTH_PASSWORD_LOGIN_ENABLED=true to keep it available alongside OIDC as well.
-      Auth__Username: "${AUTH_USERNAME:-}"
-      Auth__Password: "${AUTH_PASSWORD:-}"
-      Auth__PasswordLoginEnabled: "${AUTH_PASSWORD_LOGIN_ENABLED:-}"
+      AUTH_USERNAME: "${AUTH_USERNAME:-}"
+      AUTH_PASSWORD: "${AUTH_PASSWORD:-}"
+      AUTH_PASSWORD_LOGIN_ENABLED: "${AUTH_PASSWORD_LOGIN_ENABLED:-}"
+      # False keeps plain-HTTP installs working out of the box; set it to true behind HTTPS.
+      AUTH_COOKIE_SECURE: "${AUTH_COOKIE_SECURE:-false}"
+      AUTH_SESSION_LIFETIME_HOURS: "${AUTH_SESSION_LIFETIME_HOURS:-}"
       # OpenID Connect single sign-on -- see documentation/AUTHENTICATION.md. Setting OIDC_AUTHORITY switches
       # authentication over to the provider and disables the password login above, unless
       # AUTH_PASSWORD_LOGIN_ENABLED keeps it on.
-      Oidc__Authority: "${OIDC_AUTHORITY:-}"
-      Oidc__ClientId: "${OIDC_CLIENT_ID:-}"
-      Oidc__ClientSecret: "${OIDC_CLIENT_SECRET:-}"
-      Oidc__Scopes: "${OIDC_SCOPES:-openid profile email}"
-      Oidc__ProviderName: "${OIDC_PROVIDER_NAME:-SSO}"
-      Oidc__AutoLogin: "${OIDC_AUTO_LOGIN:-false}"
-      Oidc__AllowedGroups: "${OIDC_ALLOWED_GROUPS:-}"
-      Oidc__AllowedEmails: "${OIDC_ALLOWED_EMAILS:-}"
-      Oidc__GroupsClaim: "${OIDC_GROUPS_CLAIM:-groups}"
-      Oidc__RedirectUri: "${OIDC_REDIRECT_URI:-}"
-      Oidc__RequireHttpsMetadata: "${OIDC_REQUIRE_HTTPS_METADATA:-true}"
-      Widget__ApiKey: "${WIDGET_API_KEY:-}"
-      OpenChargeMap__ApiKey: "${OPENCHARGEMAP_API_KEY:-}"
-      # Only worth setting when you self-host Overpass; the public endpoint needs no key.
-      Overpass__BaseUrl: "${OVERPASS__BASEURL:-https://overpass-api.de/api/interpreter}"
-      # Reverse geocoding for trip place names and the parked car's street. Set ENABLED to
-      # false to keep coordinates off a third-party service, or point BaseUrl at your own
-      # Nominatim. See .env.example.
-      Geocoding__Enabled: "${GEOCODING__ENABLED:-true}"
-      Geocoding__BaseUrl: "${GEOCODING__BASEURL:-https://nominatim.openstreetmap.org}"
-      # Snapping a selected trip onto the roads it was driven on. Set ENABLED to false to keep
-      # trip geometry off a third-party service, or point BaseUrl at your own Valhalla.
-      # See .env.example.
-      MapMatching__Enabled: "${MAPMATCHING__ENABLED:-true}"
-      MapMatching__BaseUrl: "${MAPMATCHING__BASEURL:-https://valhalla1.openstreetmap.de}"
-      Auth__CookieSecure: "${AUTH_COOKIE_SECURE:-false}"
-      Auth__SessionLifetimeHours: "${AUTH_SESSION_LIFETIME_HOURS:-168}"
-      RateLimits__GlobalPerMinute: "${RATE_LIMIT_GLOBAL_PER_MINUTE:-}"
+      OIDC_AUTHORITY: "${OIDC_AUTHORITY:-}"
+      OIDC_CLIENT_ID: "${OIDC_CLIENT_ID:-}"
+      OIDC_CLIENT_SECRET: "${OIDC_CLIENT_SECRET:-}"
+      OIDC_SCOPES: "${OIDC_SCOPES:-}"
+      OIDC_PROVIDER_NAME: "${OIDC_PROVIDER_NAME:-}"
+      OIDC_AUTO_LOGIN: "${OIDC_AUTO_LOGIN:-}"
+      OIDC_ALLOWED_GROUPS: "${OIDC_ALLOWED_GROUPS:-}"
+      OIDC_ALLOWED_EMAILS: "${OIDC_ALLOWED_EMAILS:-}"
+      OIDC_GROUPS_CLAIM: "${OIDC_GROUPS_CLAIM:-}"
+      OIDC_REDIRECT_URI: "${OIDC_REDIRECT_URI:-}"
+      OIDC_REQUIRE_HTTPS_METADATA: "${OIDC_REQUIRE_HTTPS_METADATA:-}"
+      WIDGET_API_KEY: "${WIDGET_API_KEY:-}"
+      # Reverse geocoding for trip place names and the parked car's street, and snapping a
+      # selected trip onto the roads it was driven on. Set ENABLED to false to keep coordinates
+      # off a third-party service, or point BASEURL at your own instance. See .env.example.
+      GEOCODING__ENABLED: "${GEOCODING__ENABLED:-}"
+      GEOCODING__BASEURL: "${GEOCODING__BASEURL:-}"
+      MAPMATCHING__ENABLED: "${MAPMATCHING__ENABLED:-}"
+      MAPMATCHING__BASEURL: "${MAPMATCHING__BASEURL:-}"
+      RATE_LIMIT_GLOBAL_PER_MINUTE: "${RATE_LIMIT_GLOBAL_PER_MINUTE:-}"
       # The traction battery's real capacity, which the MQTT gateway assumes rather than reads.
       # Left unset, a plug-in car keeps the gateway's figure and a hybrid shows charge as a
       # percentage only. See .env.example.
-      HvBattery__CapacityKwh: "${HV_BATTERY_CAPACITY_KWH:-}"
+      HV_BATTERY_CAPACITY_KWH: "${HV_BATTERY_CAPACITY_KWH:-}"
     ports:
       - "127.0.0.1:${API_PORT:-5000}:8080"
     volumes:

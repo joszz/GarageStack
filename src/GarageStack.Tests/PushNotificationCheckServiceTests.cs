@@ -26,57 +26,23 @@ public class PushNotificationCheckServiceTests
     }
 
     // ---------------------------------------------------------------------------
-    // CheckEngineStart — parking transition detection
+    // Parking grace: the MQTT consumer records when the engine stopped
     // ---------------------------------------------------------------------------
 
     [Fact]
-    public void CheckEngineStart_ParkingTransition_SetsLastParkedAt()
+    public void ParkingGrace_CoversTheTenMinutesAfterTheEngineStopped()
     {
         var svc = CreateService();
-        var alerts = new List<(string, string, string)>();
+        var now = DateTime.UtcNow;
 
-        svc.CheckEngineStart(new TelemetrySnapshot { EngineRunning = true }, "VIN1", alerts);
-        svc.CheckEngineStart(new TelemetrySnapshot { EngineRunning = false }, "VIN1", alerts);
-
-        Assert.True(svc._lastParkedAt.ContainsKey("VIN1"));
-        Assert.True(DateTime.UtcNow - svc._lastParkedAt["VIN1"] < TimeSpan.FromSeconds(5));
+        Assert.True(svc.IsWithinParkingGrace(now.AddMinutes(-9), now));
+        Assert.False(svc.IsWithinParkingGrace(now.AddMinutes(-11), now));
     }
 
     [Fact]
-    public void CheckEngineStart_StartTransition_DoesNotSetLastParkedAt()
+    public void ParkingGrace_WithoutARecordedStop_DoesNotHoldAlertsBack()
     {
-        var svc = CreateService();
-        var alerts = new List<(string, string, string)>();
-
-        svc.CheckEngineStart(new TelemetrySnapshot { EngineRunning = false }, "VIN1", alerts);
-        svc.CheckEngineStart(new TelemetrySnapshot { EngineRunning = true }, "VIN1", alerts);
-
-        Assert.False(svc._lastParkedAt.ContainsKey("VIN1"));
-    }
-
-    [Fact]
-    public void CheckEngineStart_FirstObservationStopped_NoGraceSet()
-    {
-        var svc = CreateService();
-        var alerts = new List<(string, string, string)>();
-
-        svc.CheckEngineStart(new TelemetrySnapshot { EngineRunning = false }, "VIN1", alerts);
-
-        Assert.False(svc._lastParkedAt.ContainsKey("VIN1"));
-    }
-
-    [Fact]
-    public void CheckEngineStart_MultipleVins_GraceTrackedIndependently()
-    {
-        var svc = CreateService();
-        var alerts = new List<(string, string, string)>();
-
-        svc.CheckEngineStart(new TelemetrySnapshot { EngineRunning = true }, "VIN1", alerts);
-        svc.CheckEngineStart(new TelemetrySnapshot { EngineRunning = true }, "VIN2", alerts);
-        svc.CheckEngineStart(new TelemetrySnapshot { EngineRunning = false }, "VIN1", alerts);
-
-        Assert.True(svc._lastParkedAt.ContainsKey("VIN1"));
-        Assert.False(svc._lastParkedAt.ContainsKey("VIN2"));
+        Assert.False(CreateService().IsWithinParkingGrace(null, DateTime.UtcNow));
     }
 
     // ---------------------------------------------------------------------------

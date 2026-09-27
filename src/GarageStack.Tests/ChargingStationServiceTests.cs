@@ -1,29 +1,20 @@
 using System.Text.Json;
 using GarageStack.Api.Services;
+using GarageStack.Core.Configuration;
 using GarageStack.Core.Helpers;
 using GarageStack.Core.Models;
 using GarageStack.Data.Services;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace GarageStack.Tests;
 
 public class ChargingStationServiceTests
 {
-    private static IConfiguration EmptyConfig() =>
-        new ConfigurationBuilder().Build();
-
-    private static IConfiguration ConfigWithKey(string key) =>
-        new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?> { ["OpenChargeMap:ApiKey"] = key })
-            .Build();
-
     private static OcmApiClient BuildOcmClient(string json, string? apiKey = "test-key")
     {
-        var handler = new PoiFakeOverpassHandler(json);
-        var factory = new PoiFakeHttpClientFactory(new System.Net.Http.HttpClient(handler));
-        var config = apiKey is null ? EmptyConfig() : ConfigWithKey(apiKey);
-        return new OcmApiClient(factory, config, NullLogger<OcmApiClient>.Instance);
+        var handler = new FakeHttpHandler(json);
+        var factory = new FakeHttpClientFactory(handler);
+        return new OcmApiClient(factory, new OpenChargeMapOptions { ApiKey = apiKey }, NullLogger<OcmApiClient>.Instance);
     }
 
     private static ChargingStationService Build(PoiFakeRepository repo, OcmApiClient ocm)

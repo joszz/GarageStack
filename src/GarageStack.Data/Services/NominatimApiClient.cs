@@ -1,23 +1,23 @@
 using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using GarageStack.Core.Configuration;
 using GarageStack.Core.Helpers;
 using GarageStack.Core.Models;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace GarageStack.Data.Services;
 
 /// <summary>
 /// Reverse geocoding against Nominatim (OpenStreetMap's own geocoder, or a self-hosted instance
-/// via <c>Geocoding:BaseUrl</c>). The public instance allows at most one request per second and
-/// expects answers to be cached, which is why every caller goes through
+/// via <see cref="GeocodingOptions.BaseUrl"/>). The public instance allows at most one request
+/// per second and expects answers to be cached, which is why every caller goes through
 /// <see cref="GarageStack.Core.Interfaces.IGeocodeRepository"/> first and only reaches this
 /// client for a coordinate nothing has asked about yet.
 /// </summary>
 public sealed class NominatimApiClient(
     IHttpClientFactory httpClientFactory,
-    IConfiguration configuration,
+    GeocodingOptions options,
     ILogger<NominatimApiClient> logger)
 {
     public const string HttpClientName = "nominatim";
@@ -35,18 +35,10 @@ public sealed class NominatimApiClient(
     private static readonly TimeSpan GateTimeout = TimeSpan.FromSeconds(4);
     private static readonly TimeSpan RetryAfter429 = TimeSpan.FromSeconds(60);
 
-    private const string DefaultBaseUrl = "https://nominatim.openstreetmap.org";
+    /// <summary>Whether this deployment lets coordinates go to a geocoder at all (<see cref="GeocodingOptions.Enabled"/>).</summary>
+    public bool IsEnabled => options.Enabled;
 
-    /// <summary>
-    /// Deployments that would rather not send coordinates to a third party can set
-    /// <c>Geocoding:Enabled=false</c> (and keep place names by pointing BaseUrl at their own
-    /// Nominatim). Anything other than an explicit "false" leaves geocoding on.
-    /// </summary>
-    public bool IsEnabled =>
-        !string.Equals(configuration["Geocoding:Enabled"], "false", StringComparison.OrdinalIgnoreCase);
-
-    private string BaseUrl =>
-        (configuration["Geocoding:BaseUrl"] ?? DefaultBaseUrl).TrimEnd('/');
+    private string BaseUrl => options.BaseUrl.TrimEnd('/');
 
     /// <summary>
     /// Looks up one coordinate. Returns <see cref="PlaceAddress.Empty"/> when upstream answered
@@ -59,28 +51,15 @@ public sealed class NominatimApiClient(
     {
         if (!IsEnabled) return null;
 
-        // Pre-gate check: skip the queue entirely while a backoff window is open.
-        if (_gate.IsBackingOff)
+        using var entry = await _gate.TryEnterAsync(GateTimeout, failWhenBackingOff: true, ct);
+        if (!entry.Entered)
         {
-            logger.LogDebug("Nominatim backoff active, leaving {Precision} lookup unresolved", precision);
-            return null;
-        }
-
-        if (!await _gate.WaitAsync(GateTimeout, ct))
-        {
-            logger.LogDebug("Nominatim gate busy, leaving {Precision} lookup unresolved", precision);
+            logger.LogDebug("Nominatim refused ({Refusal}), leaving {Precision} lookup unresolved", entry.Refusal, precision);
             return null;
         }
 
         try
         {
-            // Re-check inside the gate: the request we queued behind may have been rate-limited.
-            if (_gate.IsBackingOff)
-            {
-                logger.LogDebug("Nominatim backoff active (inside gate), leaving {Precision} lookup unresolved", precision);
-                return null;
-            }
-
             await _gate.ThrottleAsync(MinInterval, honourBackoff: true, ct);
 
             var url = BuildReverseUrl(lat, lng, precision, language);
@@ -108,10 +87,6 @@ public sealed class NominatimApiClient(
             // car's position is not worth writing to disk on every retry.
             logger.LogWarning(ex, "Nominatim reverse lookup failed for a {Precision} coordinate", precision);
             return null;
-        }
-        finally
-        {
-            _gate.Release();
         }
     }
 

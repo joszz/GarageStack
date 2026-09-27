@@ -1,3 +1,4 @@
+using GarageStack.Api.Security;
 using GarageStack.Core.Interfaces;
 using GarageStack.Core.Models;
 using Microsoft.Extensions.Localization;
@@ -8,33 +9,34 @@ public static class WidgetEndpoints
 {
     public static IEndpointRouteBuilder MapWidgetEndpoints(this IEndpointRouteBuilder app)
     {
+        // WIDGET_API_KEY, fixed for the process lifetime.
+        var configuredKey = app.ServiceProvider.GetRequiredService<IConfiguration>()["Widget:ApiKey"];
+
         var group = app.MapGroup("/api/widget")
             .WithTags("Widget")
             .RequireRateLimiting("widget")
             .AddEndpointFilter(async (ctx, next) =>
             {
-                var config = ctx.HttpContext.RequestServices.GetRequiredService<IConfiguration>();
-                var configuredKey = config["Widget:ApiKey"];
                 if (string.IsNullOrWhiteSpace(configuredKey))
                     return ApiProblems.Problem(StatusCodes.Status503ServiceUnavailable, "widget.notConfigured",
                         "Widget API key is not configured. Set the WIDGET_API_KEY environment variable.");
 
                 var providedKey = ctx.HttpContext.Request.Headers["X-Widget-Key"].ToString();
-                if (!AuthEndpoints.FixedTimeEquals(providedKey, configuredKey))
+                if (!SecretComparer.FixedTimeEquals(providedKey, configuredKey))
                     return Results.Unauthorized();
 
                 return await next(ctx);
             });
 
         group.MapGroup("/{vin}")
-            .AddEndpointFilter<VehicleEndpoints.ResolveVehicleFilter>()
+            .AddEndpointFilter<ResolveVehicleFilter>()
             .MapGet("/status", async (
                 HttpContext httpContext,
                 ITelemetryRepository telemetry,
                 IStringLocalizer<WidgetStrings> localizer,
                 CancellationToken ct) =>
             {
-                var vehicle = VehicleEndpoints.ResolveVehicleFilter.GetResolvedVehicle(httpContext);
+                var vehicle = httpContext.ResolvedVehicle();
                 var snapshot = await telemetry.GetMergedLatestAsync(vehicle.Id, ct);
                 return snapshot is null ? Results.NoContent() : Results.Ok(WidgetStatusDto.FromSnapshot(snapshot, localizer));
             })

@@ -1,11 +1,5 @@
-using System.Collections.Concurrent;
-using System.Text.Json;
 using GarageStack.Core.Configuration;
-using GarageStack.Core.Helpers;
 using GarageStack.Core.Interfaces;
-using GarageStack.Core.Models;
-using GarageStack.Data;
-using GarageStack.Data.Extensions;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Options;
 using MQTTnet;
@@ -13,45 +7,37 @@ using MQTTnet.Protocol;
 
 namespace GarageStack.Worker.Mqtt;
 
-public class MqttConsumerService(
-    ILogger<MqttConsumerService> logger,
-    IOptions<MqttOptions> options,
-    IServiceScopeFactory scopeFactory,
-    IPushSender pushSender,
-    IStringLocalizer<NotificationStrings> strings) : BackgroundService
+/// <summary>
+/// Holds the Worker's MQTT connection and hands every message to the first handler that claims
+/// it: Home Assistant discovery, capability config, MG app messages, command results, and last
+/// the telemetry itself. Reconnects for as long as the Worker runs.
+/// </summary>
+public class MqttConsumerService : BackgroundService
 {
-    private readonly MqttOptions _options = options.Value;
-    // Tracks last known EngineRunning state per VIN to detect start events. The first
-    // observation for a VIN only seeds the tracker; it never fires a notification,
-    // preventing bogus "engine started" alerts after a deploy or crash.
-    internal readonly VinStateTracker<bool> _engineRunningTracker = new();
+    private readonly ILogger<MqttConsumerService> _logger;
+    private readonly MqttOptions _options;
+    private readonly IReadOnlyList<IMqttMessageHandler> _handlers;
 
-    // Same cooldown and "engine-start" category PushNotificationCheckService uses for its own
-    // (slower, polled) engine-start detection - this path fires immediately on the MQTT event
-    // for low-latency delivery, but still needs its own gate: a flapping EngineRunning signal
-    // (reconnect/replay noise) would otherwise send an ungated push on every observed
-    // false->true transition. The two services' gates are separate instances, but both check
-    // AppNotifications via the same category key, so either one seeing a recent send suppresses
-    // the other.
-    private readonly NotificationCooldownGate _engineStartCooldownGate = new(TimeSpan.FromHours(1));
+    public MqttConsumerService(
+        ILogger<MqttConsumerService> logger,
+        IOptions<MqttOptions> options,
+        IServiceScopeFactory scopeFactory,
+        IPushSender pushSender,
+        IStringLocalizer<NotificationStrings> strings)
+    {
+        _logger = logger;
+        _options = options.Value;
 
-    // MQTT polling cycles emit several messages within ~2 seconds (one per topic).
-    // Messages arriving within this window are merged into the same DB row so that
-    // each row represents a complete poll rather than a single field, reducing row
-    // count by ~9x and ensuring all chart fields land in the same sample.
-    //
-    // Unlike _engineRunningTracker, this state is read, awaited on (the DB call in
-    // MergeOrAddTelemetryAsync), then written back - a plain lock can't cover that critical
-    // section without blocking across an await. Each vehicle gets its own SemaphoreSlim instead
-    // (same pattern as VehicleCommandGate), rather than relying on MQTTnet invoking
-    // ApplicationMessageReceivedAsync for one message at a time on this client, which is an
-    // implementation detail this class shouldn't assume. The dictionary itself is concurrent for
-    // the same reason: two different vehicles may write it at once.
-    private static readonly TimeSpan MergeWindow = TimeSpan.FromSeconds(15);
-    internal readonly ConcurrentDictionary<int, (long RowId, DateTime RecordedAt)> _mergeState = new();
-    private readonly ConcurrentDictionary<int, SemaphoreSlim> _mergeGates = new();
-
-    private readonly VehicleMessageHandler _vehicleMessages = new(logger, scopeFactory, pushSender, strings, TimeProvider.System);
+        var vehicles = new VehicleResolver(scopeFactory);
+        _handlers =
+        [
+            new HaDiscoveryHandler(logger, vehicles),
+            new VehicleConfigHandler(logger, vehicles),
+            new VehicleMessageHandler(logger, scopeFactory, pushSender, strings, TimeProvider.System),
+            new CommandResultHandler(logger, vehicles),
+            new TelemetryHandler(logger, vehicles, pushSender, strings),
+        ];
+    }
 
     protected virtual IMqttClient CreateMqttClient() => new MqttClientFactory().CreateMqttClient();
     protected virtual TimeSpan RetryDelay => TimeSpan.FromSeconds(5);
@@ -91,17 +77,17 @@ public class MqttConsumerService(
             try
             {
                 await client.ConnectAsync(mqttOptions, stoppingToken);
-                logger.LogInformation("Connected to MQTT broker at {Host}:{Port}", _options.Host, _options.Port);
+                _logger.LogInformation("Connected to MQTT broker at {Host}:{Port}", _options.Host, _options.Port);
 
                 await client.SubscribeAsync(new MqttClientSubscribeOptionsBuilder()
                     .WithTopicFilter("saic/#", MqttQualityOfServiceLevel.AtLeastOnce)
                     .WithTopicFilter("homeassistant/#", MqttQualityOfServiceLevel.AtLeastOnce)
                     .Build(), stoppingToken);
-                logger.LogInformation("Subscribed to saic/# and homeassistant/#");
+                _logger.LogInformation("Subscribed to saic/# and homeassistant/#");
 
                 // Waits until the broker disconnects or the host is shutting down.
                 await disconnectedTcs.Task.WaitAsync(stoppingToken);
-                logger.LogWarning("MQTT broker disconnected, will reconnect...");
+                _logger.LogWarning("MQTT broker disconnected, will reconnect...");
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
@@ -109,7 +95,7 @@ public class MqttConsumerService(
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "MQTT connection error, reconnecting in 5s...");
+                _logger.LogError(ex, "MQTT connection error, reconnecting in 5s...");
             }
             finally
             {
@@ -131,257 +117,19 @@ public class MqttConsumerService(
         }
     }
 
-    // The vehicle id per VIN, with the account it was last seen under. Every MQTT message names
-    // its VIN, and a poll is several messages: remembering the id spares each of them a lookup.
-    // A message under another account goes through GetOrCreateByVinAsync again, which records it.
-    private readonly ConcurrentDictionary<string, (int VehicleId, string? SaicUser)> _vehicleIds = new();
-
-    // Resolves (creating on first sight) the vehicle for `vin` within a fresh DI scope. The
-    // caller owns disposal of the returned scope and can resolve further scoped services
-    // (e.g. ITelemetryRepository, AppDbContext) from the same ServiceProvider before disposing it.
-    private async Task<(IServiceScope Scope, IVehicleRepository VehicleRepo, int VehicleId)> ResolveVehicleInNewScopeAsync(
-        string vin, string? saicUser, CancellationToken ct)
-    {
-        var scope = scopeFactory.CreateScope();
-        try
-        {
-            var vehicleRepo = scope.ServiceProvider.GetRequiredService<IVehicleRepository>();
-            if (_vehicleIds.TryGetValue(vin, out var known) && (saicUser is null || saicUser == known.SaicUser))
-                return (scope, vehicleRepo, known.VehicleId);
-
-            var vehicle = await vehicleRepo.GetOrCreateByVinAsync(vin, saicUser, ct);
-            _vehicleIds[vin] = (vehicle.Id, vehicle.SaicUser);
-            return (scope, vehicleRepo, vehicle.Id);
-        }
-        catch
-        {
-            scope.Dispose();
-            throw;
-        }
-    }
-
     private async Task HandleMessageAsync(MqttApplicationMessageReceivedEventArgs e, CancellationToken ct)
     {
-        var topic = e.ApplicationMessage.Topic;
-        var payload = e.ApplicationMessage.ConvertPayloadToString() ?? string.Empty;
+        var message = new MqttMessage(
+            e.ApplicationMessage.Topic,
+            e.ApplicationMessage.ConvertPayloadToString() ?? string.Empty,
+            e.ApplicationMessage.Retain);
 
-        // Home Assistant discovery payloads carry hw_version inside device JSON - use it for vehicle-type detection
-        if (topic.StartsWith("homeassistant/", StringComparison.OrdinalIgnoreCase))
+        foreach (var handler in _handlers)
         {
-            await HandleHaDiscoveryAsync(payload, ct);
-            return;
+            if (await handler.TryHandleAsync(message, ct))
+                return;
         }
 
-        if (!MqttTopicParser.TryParse(topic, out var parsed))
-        {
-            logger.LogDebug("Skipping non-vehicle topic: {Topic}", topic);
-            return;
-        }
-
-        var (saicUser, vin, subtopic) = parsed;
-        // VIN and account email identify one person; only the Debug lines carry them in full.
-        var vinForLog = LogRedaction.Vin(vin);
-
-        // Capability config messages - store as JSON on the vehicle record
-        if (subtopic.StartsWith("info/configuration/", StringComparison.OrdinalIgnoreCase))
-        {
-            var configKey = subtopic["info/configuration/".Length..];
-            logger.LogInformation("MQTT config - VIN={Vin} key={Key} payloadBytes={PayloadBytes}", vinForLog, configKey, payload.Length);
-            try
-            {
-                var resolved = await ResolveVehicleInNewScopeAsync(vin, saicUser, ct);
-                using var scope = resolved.Scope;
-                await resolved.VehicleRepo.SetConfigValueAsync(resolved.VehicleId, configKey, payload, ct);
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Failed to persist config for VIN={Vin} key={Key}", vinForLog, configKey);
-            }
-            return;
-        }
-
-        if (await _vehicleMessages.TryHandleAsync(vin, saicUser, subtopic, payload, e.ApplicationMessage.Retain, ct))
-            return;
-
-        if (GatewayCommandResult.TryParse(subtopic, payload, out var commandResult))
-        {
-            // The gateway publishes results retained, so the broker replays the last one per
-            // command on every (re)subscribe. That is an old answer, and forwarding it would show
-            // a stale failure or release a later command's gate early.
-            if (e.ApplicationMessage.Retain)
-                logger.LogDebug("Skipping retained command result - VIN={Vin} subtopic={Subtopic}", vin, subtopic);
-            else
-                await ForwardCommandResultAsync(vin, saicUser, commandResult, ct);
-            return;
-        }
-
-        var patch = new TelemetrySnapshot();
-        if (!TelemetryMapper.ApplyMessage(patch, subtopic, payload))
-        {
-            var ns = subtopic.Split('/')[0];
-            // "command" is the gateway's command/error event, which repeats the failure its
-            // {topic}/result already carried.
-            if (ns is "info" or "refresh" or "_internal" or "available" or "command")
-                logger.LogDebug("MQTT metadata (skipped) - VIN={Vin} subtopic={Subtopic}", vin, subtopic);
-            else
-                logger.LogWarning("Unmapped telemetry topic - VIN={Vin} subtopic={Subtopic} payloadBytes={PayloadBytes}", vinForLog, subtopic, payload.Length);
-            return;
-        }
-
-        logger.LogDebug("MQTT mapped - VIN={Vin} subtopic={Subtopic} payloadBytes={PayloadBytes}", vin, subtopic, payload.Length);
-
-        try
-        {
-            var resolved = await ResolveVehicleInNewScopeAsync(vin, saicUser, ct);
-            using var scope = resolved.Scope;
-            var vehicleId = resolved.VehicleId;
-            var telemetryRepo = scope.ServiceProvider.GetRequiredService<ITelemetryRepository>();
-            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-
-            patch.VehicleId = vehicleId;
-            patch.RecordedAt = DateTime.UtcNow;
-
-            await MergeOrAddTelemetryAsync(vehicleId, patch, topic, telemetryRepo, ct);
-
-            var tripCompleted = await CheckEngineStartAsync(vin, patch, db, ct);
-            if (tripCompleted && patch.VehicleId > 0)
-            {
-                await db.Database.NotifyAsync(PgChannels.TripCompleted, patch.VehicleId.ToString(), ct);
-                logger.LogInformation("Trip completed for vehicleId={VehicleId} - notifying SignalR clients", patch.VehicleId);
-            }
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Failed to persist telemetry for VIN={Vin} topic={Topic}", vinForLog, LogRedaction.MqttTopic(topic));
-        }
-    }
-
-    // Hands the gateway's answer to the Api, which releases its command gate and tells the browser.
-    private async Task ForwardCommandResultAsync(string vin, string saicUser, GatewayCommandResult result, CancellationToken ct)
-    {
-        var vinForLog = LogRedaction.Vin(vin);
-        if (result.Success)
-            logger.LogInformation("Command {Topic} succeeded for VIN={Vin}", result.Topic, vinForLog);
-        else
-            logger.LogWarning("Command {Topic} failed for VIN={Vin}: {Detail}", result.Topic, vinForLog, result.Detail);
-
-        try
-        {
-            var resolved = await ResolveVehicleInNewScopeAsync(vin, saicUser, ct);
-            using var scope = resolved.Scope;
-            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-            var payload = new CommandResultPayload(resolved.VehicleId, vin, result.Topic, result.Success, result.Detail);
-            await db.Database.NotifyAsync(PgChannels.CommandResult, payload.ToJson(), ct);
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Failed to forward command result for VIN={Vin} topic={Topic}", vinForLog, result.Topic);
-        }
-    }
-
-    // Serializes read-await-write access to _mergeState per vehicle so two concurrently
-    // dispatched messages for the same vehicle can't race on which row they merge into.
-    internal async Task MergeOrAddTelemetryAsync(
-        int vehicleId, TelemetrySnapshot patch, string topic, ITelemetryRepository telemetryRepo, CancellationToken ct)
-    {
-        var gate = _mergeGates.GetOrAdd(vehicleId, static _ => new SemaphoreSlim(1, 1));
-        await gate.WaitAsync(ct);
-        try
-        {
-            if (_mergeState.TryGetValue(vehicleId, out var last) &&
-                patch.RecordedAt - last.RecordedAt <= MergeWindow)
-            {
-                await telemetryRepo.MergeIntoAsync(last.RowId, patch, ct);
-                _mergeState[vehicleId] = (last.RowId, patch.RecordedAt);
-            }
-            else
-            {
-                patch.RawTopic = topic;
-                var newId = await telemetryRepo.AddAsync(patch, ct);
-                _mergeState[vehicleId] = (newId, patch.RecordedAt);
-            }
-        }
-        finally
-        {
-            gate.Release();
-        }
-    }
-
-    internal async Task<bool> CheckEngineStartAsync(string vin, TelemetrySnapshot snapshot, AppDbContext db, CancellationToken ct)
-    {
-        if (snapshot.EngineRunning is null) return false;
-
-        var current = snapshot.EngineRunning.Value;
-        var hadPrevious = _engineRunningTracker.TryUpdate(vin, current, out var wasRunning);
-
-        // First observation after startup is treated as a no-op to avoid false "engine started"
-        // alerts when the worker restarts while driving.
-        switch (BoolTransitionDetector.Detect(hadPrevious, wasRunning, current))
-        {
-            case StateTransition.TurnedOn:
-                var shouldNotify = await _engineStartCooldownGate.ShouldNotifyAsync(vin, NotificationCategories.EngineStart, cutoff =>
-                    db.WasNotificationSentSinceAsync(NotificationCategories.EngineStart, snapshot.VehicleId, cutoff, ct));
-                if (shouldNotify)
-                {
-                    logger.LogInformation("Engine started for VIN={Vin} - sending push notification", LogRedaction.Vin(vin));
-                    await pushSender.SendToAllAsync(
-                        strings["EngineStartTitle"], strings["EngineStartBody"], ct,
-                        NotificationCategories.EngineStart, snapshot.VehicleId);
-                }
-                return false;
-
-            case StateTransition.TurnedOff:
-                // A trip just completed
-                return true;
-
-            default:
-                return false;
-        }
-    }
-
-    private async Task HandleHaDiscoveryAsync(string payload, CancellationToken ct)
-    {
-        if (!payload.Contains("hw_version") || !payload.Contains("identifiers"))
-            return;
-
-        try
-        {
-            using var doc = JsonDocument.Parse(payload);
-            var root = doc.RootElement;
-
-            if (!root.TryGetProperty("device", out var device)) return;
-            if (!device.TryGetProperty("hw_version", out var hwVersionEl)) return;
-            if (!device.TryGetProperty("identifiers", out var identifiers)) return;
-
-            var hwVersion = hwVersionEl.GetString();
-            if (string.IsNullOrWhiteSpace(hwVersion)) return;
-
-            device.TryGetProperty("model", out var modelEl);
-            var model = modelEl.ValueKind == JsonValueKind.String ? modelEl.GetString() : null;
-
-            // VIN is the first string in the identifiers array
-            string? vin = null;
-            foreach (var id in identifiers.EnumerateArray())
-            {
-                if (id.ValueKind == JsonValueKind.String)
-                {
-                    vin = id.GetString();
-                    break;
-                }
-            }
-            if (string.IsNullOrWhiteSpace(vin)) return;
-
-            logger.LogInformation("HA discovery - VIN={Vin} hw_version={HwVersion} model={Model}", LogRedaction.Vin(vin), hwVersion, model);
-
-            var resolved = await ResolveVehicleInNewScopeAsync(vin, null, ct);
-            using var scope = resolved.Scope;
-            await resolved.VehicleRepo.SetConfigValueAsync(resolved.VehicleId, "hw_version", hwVersion, ct);
-            if (!string.IsNullOrWhiteSpace(model))
-                await resolved.VehicleRepo.SetModelAsync(resolved.VehicleId, model, ct);
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Failed to parse HA discovery payload");
-        }
+        _logger.LogDebug("Skipping non-vehicle topic: {Topic}", message.Topic);
     }
 }

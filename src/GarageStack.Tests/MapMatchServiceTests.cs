@@ -1,6 +1,5 @@
 using System.Globalization;
 using System.Net;
-using System.Text;
 using System.Text.Json;
 using GarageStack.Api.Services;
 using GarageStack.Core.Configuration;
@@ -8,7 +7,6 @@ using GarageStack.Core.Helpers;
 using GarageStack.Core.Interfaces;
 using GarageStack.Core.Models;
 using GarageStack.Data.Services;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace GarageStack.Tests;
@@ -49,43 +47,17 @@ internal sealed class MapMatchFakeRepository : IMapMatchRepository
     }
 }
 
-internal sealed class MapMatchFakeValhallaHandler(params (HttpStatusCode Status, string Body)[] responses) : HttpMessageHandler
-{
-    private readonly Queue<(HttpStatusCode Status, string Body)> _responses = new(responses);
-
-    public List<string> RequestUris { get; } = [];
-    public List<string> RequestBodies { get; } = [];
-    public int CallCount => RequestUris.Count;
-
-    protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
-    {
-        RequestUris.Add(request.RequestUri!.ToString());
-        RequestBodies.Add(request.Content is null ? "" : await request.Content.ReadAsStringAsync(ct));
-
-        var (status, body) = _responses.Count > 0 ? _responses.Dequeue() : (HttpStatusCode.OK, "{}");
-        return new HttpResponseMessage(status)
-        {
-            Content = new StringContent(body, Encoding.UTF8, "application/json"),
-        };
-    }
-}
-
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 
 public class MapMatchServiceTests
 {
-    private static IConfiguration Config(params (string Key, string Value)[] values) =>
-        new ConfigurationBuilder()
-            .AddInMemoryCollection(values.Select(v => new KeyValuePair<string, string?>(v.Key, v.Value)))
-            .Build();
-
     private static MapMatchService BuildService(
-        MapMatchFakeRepository repo, MapMatchFakeValhallaHandler handler, IConfiguration? configuration = null)
+        MapMatchFakeRepository repo, FakeHttpHandler handler, MapMatchingOptions? options = null)
         => new(repo,
-            new ValhallaApiClient(new PoiFakeHttpClientFactory(new HttpClient(handler)),
-                configuration ?? Config(), NullLogger<ValhallaApiClient>.Instance),
+            new ValhallaApiClient(new FakeHttpClientFactory(handler),
+                options ?? new MapMatchingOptions(), NullLogger<ValhallaApiClient>.Instance),
             NullLogger<MapMatchService>.Instance);
 
     /// <summary>A fix <paramref name="km"/> north of the same starting point; longitude never moves.</summary>
@@ -164,7 +136,7 @@ public class MapMatchServiceTests
     public async Task MatchAsync_CachedTrace_DoesNotCallUpstream()
     {
         var repo = new MapMatchFakeRepository();
-        var handler = new MapMatchFakeValhallaHandler();
+        var handler = new FakeHttpHandler();
         var svc = BuildService(repo, handler);
         var trace = Trace(4);
 
@@ -188,7 +160,7 @@ public class MapMatchServiceTests
     {
         var repo = new MapMatchFakeRepository();
         var road = Road(0, 1.5);
-        var handler = new MapMatchFakeValhallaHandler(TraceResponse(road, EvenlyAlong(4)));
+        var handler = new FakeHttpHandler(TraceResponse(road, EvenlyAlong(4)));
         var svc = BuildService(repo, handler);
 
         var result = await svc.MatchAsync(Trace(4), TestContext.Current.CancellationToken);
@@ -219,7 +191,7 @@ public class MapMatchServiceTests
     public async Task MatchAsync_MatcherRecognisesNoRoad_CachesTheMissBriefly()
     {
         var repo = new MapMatchFakeRepository();
-        var handler = new MapMatchFakeValhallaHandler(
+        var handler = new FakeHttpHandler(
             (HttpStatusCode.BadRequest, """{"error_code":171,"error":"No suitable edges near location"}"""));
         var svc = BuildService(repo, handler);
 
@@ -237,7 +209,7 @@ public class MapMatchServiceTests
     public async Task MatchAsync_UpstreamRateLimited_AsksForARetryAndCachesNothing()
     {
         var repo = new MapMatchFakeRepository();
-        var handler = new MapMatchFakeValhallaHandler((HttpStatusCode.TooManyRequests, ""));
+        var handler = new FakeHttpHandler((HttpStatusCode.TooManyRequests, ""));
         var svc = BuildService(repo, handler);
 
         var result = await svc.MatchAsync(Trace(4), TestContext.Current.CancellationToken);
@@ -252,8 +224,8 @@ public class MapMatchServiceTests
     public async Task MatchAsync_MatchingDisabled_ReportsUnavailableWithoutAskingUpstream()
     {
         var repo = new MapMatchFakeRepository();
-        var handler = new MapMatchFakeValhallaHandler();
-        var svc = BuildService(repo, handler, Config(("MapMatching:Enabled", "false")));
+        var handler = new FakeHttpHandler();
+        var svc = BuildService(repo, handler, new MapMatchingOptions { Enabled = false });
 
         var result = await svc.MatchAsync(Trace(4), TestContext.Current.CancellationToken);
 
@@ -268,8 +240,8 @@ public class MapMatchServiceTests
     public async Task MatchAsync_SelfHostedBaseUrl_IsUsedInsteadOfThePublicInstance()
     {
         var repo = new MapMatchFakeRepository();
-        var handler = new MapMatchFakeValhallaHandler(TraceResponse(Road(0, 1.5), EvenlyAlong(4)));
-        var svc = BuildService(repo, handler, Config(("MapMatching:BaseUrl", "http://valhalla.local:8002/")));
+        var handler = new FakeHttpHandler(TraceResponse(Road(0, 1.5), EvenlyAlong(4)));
+        var svc = BuildService(repo, handler, new MapMatchingOptions { BaseUrl = "http://valhalla.local:8002/" });
 
         await svc.MatchAsync(Trace(4), TestContext.Current.CancellationToken);
 
@@ -282,7 +254,7 @@ public class MapMatchServiceTests
         var repo = new MapMatchFakeRepository();
         var before = Road(0, 1.0, vertices: 20);
         var after = Road(30, 31.0, vertices: 20);
-        var handler = new MapMatchFakeValhallaHandler(
+        var handler = new FakeHttpHandler(
             TraceResponse(before, EvenlyAlong(3)),
             TraceResponse(after, EvenlyAlong(3)));
         var svc = BuildService(repo, handler);
@@ -312,7 +284,7 @@ public class MapMatchServiceTests
         var repo = new MapMatchFakeRepository();
         // The matcher answered with a five-kilometre detour for a one-and-a-half kilometre trace:
         // a plausible route, but not the one that was driven.
-        var handler = new MapMatchFakeValhallaHandler(TraceResponse(Road(0, 5), EvenlyAlong(4)));
+        var handler = new FakeHttpHandler(TraceResponse(Road(0, 5), EvenlyAlong(4)));
         var svc = BuildService(repo, handler);
 
         var result = await svc.MatchAsync(Trace(4), TestContext.Current.CancellationToken);
@@ -328,7 +300,7 @@ public class MapMatchServiceTests
         var repo = new MapMatchFakeRepository();
         // Four fixes three kilometres apart, and a road of sixteen kilometres through them: in a
         // city with one-way streets that is an ordinary route, not a detour.
-        var handler = new MapMatchFakeValhallaHandler(TraceResponse(Road(0, 16), EvenlyAlong(4)));
+        var handler = new FakeHttpHandler(TraceResponse(Road(0, 16), EvenlyAlong(4)));
         var svc = BuildService(repo, handler);
 
         var result = await svc.MatchAsync(Trace(4, spacingKm: 3), TestContext.Current.CancellationToken);
@@ -343,7 +315,7 @@ public class MapMatchServiceTests
         var repo = new MapMatchFakeRepository();
         // The same proportions between a hundred metres apart: with fixes that dense the road has
         // nowhere to wander, so a route half as long again is the matcher losing the trace.
-        var handler = new MapMatchFakeValhallaHandler(TraceResponse(Road(0, 0.53), EvenlyAlong(4)));
+        var handler = new FakeHttpHandler(TraceResponse(Road(0, 0.53), EvenlyAlong(4)));
         var svc = BuildService(repo, handler);
 
         var result = await svc.MatchAsync(Trace(4, spacingKm: 0.1), TestContext.Current.CancellationToken);
@@ -357,7 +329,7 @@ public class MapMatchServiceTests
         var repo = new MapMatchFakeRepository();
         var road = Road(0, 1.5);
         // The third of four fixes is unplaceable (a tunnel, a parallel service road).
-        var handler = new MapMatchFakeValhallaHandler(TraceResponse(road, 0, 0.5, null, 1));
+        var handler = new FakeHttpHandler(TraceResponse(road, 0, 0.5, null, 1));
         var svc = BuildService(repo, handler);
 
         var result = await svc.MatchAsync(Trace(4), TestContext.Current.CancellationToken);
@@ -371,7 +343,7 @@ public class MapMatchServiceTests
     public async Task MatchAsync_SendsTheFixesAsSnappingHintsRatherThanWaypoints()
     {
         var repo = new MapMatchFakeRepository();
-        var handler = new MapMatchFakeValhallaHandler(TraceResponse(Road(0, 1.5), EvenlyAlong(4)));
+        var handler = new FakeHttpHandler(TraceResponse(Road(0, 1.5), EvenlyAlong(4)));
         var svc = BuildService(repo, handler);
 
         await svc.MatchAsync(Trace(4), TestContext.Current.CancellationToken);
@@ -386,7 +358,7 @@ public class MapMatchServiceTests
     public async Task MatchAsync_AsksForSpeedLimitsInKilometres()
     {
         var repo = new MapMatchFakeRepository();
-        var handler = new MapMatchFakeValhallaHandler(TraceResponse(Road(0, 1.5), EvenlyAlong(4)));
+        var handler = new FakeHttpHandler(TraceResponse(Road(0, 1.5), EvenlyAlong(4)));
         var svc = BuildService(repo, handler);
 
         await svc.MatchAsync(Trace(4), TestContext.Current.CancellationToken);
@@ -403,7 +375,7 @@ public class MapMatchServiceTests
         var repo = new MapMatchFakeRepository();
         var road = Road(0, 0.5, vertices: 31);
         // Three equal stretches: a 50 road, one OSM holds no limit for, and an 80 road.
-        var handler = new MapMatchFakeValhallaHandler(TraceResponseWithLimits(road, [50, null, 80]));
+        var handler = new FakeHttpHandler(TraceResponseWithLimits(road, [50, null, 80]));
         var svc = BuildService(repo, handler);
 
         var result = await svc.MatchAsync(Trace(2), TestContext.Current.CancellationToken);
@@ -426,7 +398,7 @@ public class MapMatchServiceTests
     {
         var repo = new MapMatchFakeRepository();
         var road = Road(0, 0.5, vertices: 21);
-        var handler = new MapMatchFakeValhallaHandler(TraceResponseWithLimits(road, [null]));
+        var handler = new FakeHttpHandler(TraceResponseWithLimits(road, [null]));
         var svc = BuildService(repo, handler);
 
         var result = await svc.MatchAsync(Trace(2), TestContext.Current.CancellationToken);
@@ -443,7 +415,7 @@ public class MapMatchServiceTests
         var repo = new MapMatchFakeRepository();
         var before = Road(0, 1.0, vertices: 21);
         var after = Road(30, 31.0, vertices: 21);
-        var handler = new MapMatchFakeValhallaHandler(
+        var handler = new FakeHttpHandler(
             TraceResponseWithLimits(before, [100], fixCount: 3),
             TraceResponseWithLimits(after, [80], fixCount: 3));
         var svc = BuildService(repo, handler);
@@ -467,7 +439,7 @@ public class MapMatchServiceTests
     {
         var repo = new MapMatchFakeRepository();
         var after = Road(30, 31.0, vertices: 21);
-        var handler = new MapMatchFakeValhallaHandler(
+        var handler = new FakeHttpHandler(
             // The first part snaps to a five-kilometre detour for a one-kilometre trace, so it is
             // left as the raw fixes it always was; the second part matches normally.
             TraceResponse(Road(0, 5), EvenlyAlong(3)),

@@ -1,3 +1,4 @@
+using GarageStack.Core.Configuration;
 using GarageStack.Core.Models;
 using GarageStack.Data;
 using Microsoft.EntityFrameworkCore;
@@ -9,17 +10,16 @@ public static class PushEndpoints
 {
     public static IEndpointRouteBuilder MapPushEndpoints(this IEndpointRouteBuilder app)
     {
+        var vapid = app.ServiceProvider.GetRequiredService<VapidOptions>();
+
         var push = app.MapGroup("/api/push")
             .WithTags("Push Notifications")
             .RequireAuthorization();
 
-        push.MapGet("/vapid-public-key", (IConfiguration config) =>
-        {
-            var key = config["Vapid:PublicKey"];
-            return string.IsNullOrWhiteSpace(key)
+        push.MapGet("/vapid-public-key", () =>
+            string.IsNullOrWhiteSpace(vapid.PublicKey)
                 ? ApiProblems.Problem(StatusCodes.Status503ServiceUnavailable, "push.notConfigured", "VAPID keys not configured")
-                : Results.Ok(new { publicKey = key });
-        })
+                : Results.Ok(new { publicKey = vapid.PublicKey }))
         .WithSummary("Get VAPID public key for push subscription");
 
         push.MapPost("/subscribe", async (PushSubscribeRequest req, AppDbContext db, CancellationToken ct) =>

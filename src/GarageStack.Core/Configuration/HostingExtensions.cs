@@ -98,4 +98,15 @@ public static class HostingExtensions
         int.TryParse(configuration[key], NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed)
             ? parsed
             : fallback;
+
+    /// <summary>
+    /// An on/off setting: "true" or "false" in any casing, <paramref name="fallback"/> for anything
+    /// else. A switch that defaults to on therefore only goes off for an explicit "false".
+    /// </summary>
+    public static bool SwitchOrDefault(this IConfiguration configuration, string key, bool fallback) =>
+        bool.TryParse(configuration[key], out var parsed) ? parsed : fallback;
+
+    /// <summary>A text setting, falling back to <paramref name="fallback"/> when it is unset or blank.</summary>
+    public static string TextOrDefault(this IConfiguration configuration, string key, string fallback) =>
+        configuration[key] is { } value && !string.IsNullOrWhiteSpace(value) ? value : fallback;
 }

@@ -2,60 +2,11 @@ using System.Text.Json;
 using GarageStack.Core.Configuration;
 using GarageStack.Core.Helpers;
 using GarageStack.Core.Interfaces;
-using GarageStack.Core.Models;
 
 namespace GarageStack.Api.Endpoints;
 
 public static class VehicleEndpoints
 {
-    /// <summary>
-    /// Resolves the {vin} route value to a Vehicle before the handler runs, short-circuiting
-    /// with 404 if no such vehicle exists. Shared by every endpoint group that takes a {vin}
-    /// route parameter (vehicles, widget, demo). Handlers retrieve the result via
-    /// <see cref="GetResolvedVehicle"/>.
-    /// </summary>
-    public sealed class ResolveVehicleFilter : IEndpointFilter
-    {
-        private const string VehicleItemKey = "GarageStack.ResolvedVehicle";
-
-        public async ValueTask<object?> InvokeAsync(EndpointFilterInvocationContext context, EndpointFilterDelegate next)
-        {
-            var vin = context.HttpContext.Request.RouteValues["vin"] as string
-                ?? throw new InvalidOperationException($"{nameof(ResolveVehicleFilter)} requires a {{vin}} route parameter.");
-
-            var vehicles = context.HttpContext.RequestServices.GetRequiredService<IVehicleRepository>();
-            var vehicle = await vehicles.GetByVinAsync(vin, context.HttpContext.RequestAborted);
-            if (vehicle is null) return Results.NotFound();
-
-            context.HttpContext.Items[VehicleItemKey] = vehicle;
-            return await next(context);
-        }
-
-        public static Vehicle GetResolvedVehicle(HttpContext httpContext) =>
-            (Vehicle)httpContext.Items[VehicleItemKey]!;
-    }
-
-    /// <summary>
-    /// Resolves the [start, end) UTC range for a from/to query: defaults the missing bound
-    /// (end to now, start to end - defaultSpan) and clamps the span to maxSpan. Returns a 400
-    /// IResult if the resulting range is inverted.
-    /// </summary>
-    internal static IResult? TryResolveDateRange(
-        DateTimeOffset? from, DateTimeOffset? to, TimeSpan defaultSpan, TimeSpan maxSpan,
-        out DateTime start, out DateTime end)
-    {
-        end = to?.UtcDateTime ?? DateTime.UtcNow;
-        start = from?.UtcDateTime ?? end - defaultSpan;
-
-        if (start >= end)
-            return ApiProblems.BadRequest("range.inverted", "from must be before to");
-
-        if (end - start > maxSpan)
-            start = end - maxSpan;
-
-        return null;
-    }
-
     public static IEndpointRouteBuilder MapVehicleEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/vehicles")
@@ -82,7 +33,7 @@ public static class VehicleEndpoints
 
         vehicleGroup.MapGet("/config", (HttpContext httpContext) =>
         {
-            var vehicle = ResolveVehicleFilter.GetResolvedVehicle(httpContext);
+            var vehicle = httpContext.ResolvedVehicle();
             if (vehicle.ConfigJson is null) return Results.Ok(new Dictionary<string, string>());
             var config = SafeJson.TryDeserialize<Dictionary<string, string>>(vehicle.ConfigJson)
                 ?? new Dictionary<string, string>();
@@ -92,7 +43,7 @@ public static class VehicleEndpoints
 
         vehicleGroup.MapGet("/status", async (HttpContext httpContext, ITelemetryRepository telemetry, CancellationToken ct) =>
         {
-            var vehicle = ResolveVehicleFilter.GetResolvedVehicle(httpContext);
+            var vehicle = httpContext.ResolvedVehicle();
             var snapshot = await telemetry.GetMergedLatestAsync(vehicle.Id, ct);
             return snapshot is null ? Results.NoContent() : Results.Ok(snapshot);
         })
@@ -105,9 +56,9 @@ public static class VehicleEndpoints
             DateTimeOffset? to,
             CancellationToken ct) =>
         {
-            var vehicle = ResolveVehicleFilter.GetResolvedVehicle(httpContext);
+            var vehicle = httpContext.ResolvedVehicle();
 
-            var rangeError = TryResolveDateRange(from, to, TimeSpan.FromDays(7), TimeSpan.FromDays(90), out var start, out var end);
+            var rangeError = DateRange.TryResolve(from, to, TimeSpan.FromDays(7), TimeSpan.FromDays(90), out var start, out var end);
             if (rangeError is not null) return rangeError;
 
             var history = await telemetry.GetHistoryAsync(vehicle.Id, start, end, ct);
@@ -117,7 +68,7 @@ public static class VehicleEndpoints
 
         vehicleGroup.MapGet("/trips/last", async (HttpContext httpContext, ITelemetryRepository telemetry, CancellationToken ct) =>
         {
-            var vehicle = ResolveVehicleFilter.GetResolvedVehicle(httpContext);
+            var vehicle = httpContext.ResolvedVehicle();
             var summary = await telemetry.GetLastTripSummaryAsync(vehicle.Id, ct);
             return summary is null ? Results.NoContent() : Results.Ok(summary);
         })
@@ -131,7 +82,7 @@ public static class VehicleEndpoints
             VehicleCommandGate commandGate,
             CancellationToken ct) =>
         {
-            var vehicle = ResolveVehicleFilter.GetResolvedVehicle(httpContext);
+            var vehicle = httpContext.ResolvedVehicle();
             // The account arrives with the vehicle's first telemetry; until then the gateway
             // topic a command travels on cannot be named.
             if (vehicle.SaicUser is null)
@@ -152,7 +103,7 @@ public static class VehicleEndpoints
             if (commandTopic is null)
                 return ApiProblems.BadRequest("command.unknown", $"Unknown command '{command}'");
 
-            if (ValidateCommandValue(command, value) is { } validationError)
+            if (VehicleCommands.Validate(command, value) is { } validationError)
                 return ApiProblems.BadRequest(validationError);
 
             // The resolved vehicle's VIN, not the raw route value, so the topic always matches
@@ -171,9 +122,9 @@ public static class VehicleEndpoints
             ITelemetryRepository telemetry,
             CancellationToken ct) =>
         {
-            var vehicle = ResolveVehicleFilter.GetResolvedVehicle(httpContext);
+            var vehicle = httpContext.ResolvedVehicle();
 
-            var rangeError = TryResolveDateRange(from, to, TimeSpan.FromDays(30), TimeSpan.FromDays(90), out var start, out var end);
+            var rangeError = DateRange.TryResolve(from, to, TimeSpan.FromDays(30), TimeSpan.FromDays(90), out var start, out var end);
             if (rangeError is not null) return rangeError;
 
             var stats = await telemetry.GetAggregateStatsAsync(vehicle.Id, start, end, ct);
@@ -183,50 +134,13 @@ public static class VehicleEndpoints
 
         vehicleGroup.MapGet("/topics", async (HttpContext httpContext, ITelemetryRepository telemetry, CancellationToken ct) =>
         {
-            var vehicle = ResolveVehicleFilter.GetResolvedVehicle(httpContext);
+            var vehicle = httpContext.ResolvedVehicle();
             var topics = await telemetry.GetRawTopicStatsAsync(vehicle.Id, ct);
             return Results.Ok(topics);
         })
         .WithSummary("Distinct raw MQTT topics seen for a vehicle (one entry per 15-second merge window; topics arriving mid-window are not recorded)");
 
         return app;
-    }
-
-    private static readonly HashSet<string> ChargeCurrentLimits =
-        new(["6A", "8A", "16A", "MAX"], StringComparer.OrdinalIgnoreCase);
-
-    internal static ValidationError? ValidateCommandValue(string command, string value)
-    {
-        var message = command switch
-        {
-            "climate" or "rear-defroster" =>
-                value is "on" or "off" ? null : $"'{command}' value must be 'on' or 'off'",
-            "climate-temperature" =>
-                int.TryParse(value, out var temp) && temp is >= 16 and <= 28
-                    ? null
-                    : "'climate-temperature' value must be an integer between 16 and 28",
-            "seat-left" or "seat-right" =>
-                int.TryParse(value, out var seat) && seat is >= 0 and <= 3
-                    ? null
-                    : $"'{command}' value must be an integer between 0 and 3",
-            "find-my-car" =>
-                value is "activate" or "stop" ? null : "'find-my-car' value must be 'activate' or 'stop'",
-            // The gateway maps this onto its ChargeCurrentLimitCode enum, which only knows these
-            // four values (it upper-cases the payload first, so any casing is accepted here).
-            "charge-limit" =>
-                ChargeCurrentLimits.Contains(value)
-                    ? null
-                    : $"'charge-limit' value must be one of {string.Join(", ", ChargeCurrentLimits)}",
-            "lock" =>
-                value is "True" or "False" ? null : "'lock' value must be 'True' or 'False'",
-            "refresh" =>
-                value == "force" ? null : "'refresh' value must be 'force'",
-            // scheduled-charging: the SAIC API expects a JSON blob (mode + start/end time), whose
-            // shape isn't validated here; just cap the length forwarded to MQTT.
-            _ => value.Length <= 500 ? null : "value is too long"
-        };
-
-        return message is null ? null : new ValidationError("command.invalidValue", message);
     }
 }
 

@@ -1,11 +1,10 @@
 using System.Net;
-using System.Text;
 using GarageStack.Api.Services;
+using GarageStack.Core.Configuration;
 using GarageStack.Core.Helpers;
 using GarageStack.Core.Interfaces;
 using GarageStack.Core.Models;
 using GarageStack.Data.Services;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace GarageStack.Tests;
@@ -77,48 +76,17 @@ internal sealed class PoiFakeRepository : IPoiRepository
     }
 }
 
-internal sealed class PoiFakeOverpassHandler(string json, HttpStatusCode status = HttpStatusCode.OK)
-    : HttpMessageHandler
-{
-    public int CallCount { get; private set; }
-
-    /// <summary>The Overpass query last sent, so a test can assert what was asked for.</summary>
-    public string? LastQuery { get; private set; }
-
-    protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
-    {
-        CallCount++;
-        if (request.Content is not null)
-            LastQuery = await request.Content.ReadAsStringAsync(ct);
-        return new HttpResponseMessage(status)
-        {
-            Content = new StringContent(json, Encoding.UTF8, "application/json"),
-        };
-    }
-}
-
-internal sealed class PoiFakeHttpClientFactory(HttpClient client) : IHttpClientFactory
-{
-    public HttpClient CreateClient(string name) => client;
-}
-
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 
 public class PoiServiceTests
 {
-    private static IConfiguration EmptyConfig() => new ConfigurationBuilder().Build();
-
-    private static IConfiguration ConfigWith(string key, string value) =>
-        new ConfigurationBuilder().AddInMemoryCollection([new KeyValuePair<string, string?>(key, value)]).Build();
-
     private static OverpassApiClient BuildOverpassClient(
-        PoiFakeOverpassHandler handler, IConfiguration? configuration = null)
+        FakeHttpHandler handler, OverpassOptions? options = null)
     {
-        var client = new HttpClient(handler);
-        var factory = new PoiFakeHttpClientFactory(client);
-        return new OverpassApiClient(factory, configuration ?? EmptyConfig(), NullLogger<OverpassApiClient>.Instance);
+        var factory = new FakeHttpClientFactory(handler);
+        return new OverpassApiClient(factory, options ?? new OverpassOptions(), NullLogger<OverpassApiClient>.Instance);
     }
 
     private static PoiService BuildPoiService(PoiFakeRepository repo, OverpassApiClient overpass)
@@ -137,7 +105,7 @@ public class PoiServiceTests
     public async Task GetPoisAsync_AllTilesCached_DoesNotCallOverpass()
     {
         var repo = new PoiFakeRepository();
-        var handler = new PoiFakeOverpassHandler(EmptyOverpassResponse);
+        var handler = new FakeHttpHandler(EmptyOverpassResponse);
         var svc = BuildPoiService(repo, BuildOverpassClient(handler));
 
         // Pre-seed every tile that ComputeTiles would return for this request
@@ -155,7 +123,7 @@ public class PoiServiceTests
     public async Task GetPoisAsync_CacheMiss_FetchesFromOverpassAndCaches()
     {
         var repo = new PoiFakeRepository();
-        var handler = new PoiFakeOverpassHandler(OneNodeResponse);
+        var handler = new FakeHttpHandler(OneNodeResponse);
         var svc = BuildPoiService(repo, BuildOverpassClient(handler));
 
         var result = await svc.GetPoisAsync("fuel", 52.3, 4.9, 5.0, TestContext.Current.CancellationToken);
@@ -169,7 +137,7 @@ public class PoiServiceTests
     public async Task GetPoisAsync_CacheMiss_StoresBrandExtractedFromTags()
     {
         var repo = new PoiFakeRepository();
-        var handler = new PoiFakeOverpassHandler(OneNodeResponse);
+        var handler = new FakeHttpHandler(OneNodeResponse);
         var svc = BuildPoiService(repo, BuildOverpassClient(handler));
 
         await svc.GetPoisAsync("fuel", 52.3, 4.9, 5.0, TestContext.Current.CancellationToken);
@@ -199,7 +167,7 @@ public class PoiServiceTests
             CellLng = firstTile.CellLng,
         });
 
-        var handler = new PoiFakeOverpassHandler("", HttpStatusCode.ServiceUnavailable);
+        var handler = new FakeHttpHandler("", HttpStatusCode.ServiceUnavailable);
         var svc = BuildPoiService(repo, BuildOverpassClient(handler));
 
         // Should not throw even with HTTP errors for uncached tiles
@@ -212,22 +180,22 @@ public class PoiServiceTests
     public async Task GetPoisAsync_SpeedCameras_AsksOverpassForCameraNodes()
     {
         var repo = new PoiFakeRepository();
-        var handler = new PoiFakeOverpassHandler(EmptyOverpassResponse);
+        var handler = new FakeHttpHandler(EmptyOverpassResponse);
         var svc = BuildPoiService(repo, BuildOverpassClient(handler));
 
         var result = await svc.GetPoisAsync("speed_camera", 52.3, 4.9, 5.0, TestContext.Current.CancellationToken);
 
         Assert.True(result.Available);
         Assert.True(handler.CallCount > 0);
-        Assert.Contains("speed_camera", Uri.UnescapeDataString(handler.LastQuery ?? string.Empty));
+        Assert.Contains("speed_camera", Uri.UnescapeDataString(handler.LastRequestBody ?? string.Empty));
     }
 
     [Fact]
     public async Task GetPoisAsync_SpeedCamerasDisabled_ReportsUnavailableAndSkipsOverpass()
     {
         var repo = new PoiFakeRepository();
-        var handler = new PoiFakeOverpassHandler(OneNodeResponse);
-        var overpass = BuildOverpassClient(handler, ConfigWith("SpeedCameras:Enabled", "false"));
+        var handler = new FakeHttpHandler(OneNodeResponse);
+        var overpass = BuildOverpassClient(handler, new OverpassOptions { SpeedCamerasEnabled = false });
         var svc = BuildPoiService(repo, overpass);
 
         var result = await svc.GetPoisAsync("speed_camera", 52.3, 4.9, 5.0, TestContext.Current.CancellationToken);
@@ -242,8 +210,8 @@ public class PoiServiceTests
     public async Task GetPoisAsync_SpeedCamerasDisabled_LeavesOtherLayersServed()
     {
         var repo = new PoiFakeRepository();
-        var handler = new PoiFakeOverpassHandler(OneNodeResponse);
-        var overpass = BuildOverpassClient(handler, ConfigWith("SpeedCameras:Enabled", "false"));
+        var handler = new FakeHttpHandler(OneNodeResponse);
+        var overpass = BuildOverpassClient(handler, new OverpassOptions { SpeedCamerasEnabled = false });
         var svc = BuildPoiService(repo, overpass);
 
         var result = await svc.GetPoisAsync("fuel", 52.3, 4.9, 5.0, TestContext.Current.CancellationToken);

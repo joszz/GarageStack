@@ -23,20 +23,19 @@ public sealed class PasswordLoginOptions
     public bool ExplicitlyConfigured { get; init; }
 
     /// <summary>
-    /// Reads the credentials, preferring dedicated AUTH_* values and falling back to the MG
-    /// account so existing installs keep working without touching their .env.
+    /// Reads the credentials, preferring dedicated ones (AUTH_USERNAME and AUTH_PASSWORD fill
+    /// Auth:Username and Auth:Password) and falling back to the MG account so existing installs
+    /// keep working without touching their .env.
     /// </summary>
     internal static PasswordLoginOptions Resolve(IConfiguration config, bool oidcEnabled)
     {
         var username = FirstNonEmpty(
             config["Auth:Username"],
-            config["AUTH_USERNAME"],
             config["SAIC_USER"],
             config["Saic:User"]);
 
         var password = FirstNonEmpty(
             config["Auth:Password"],
-            config["AUTH_PASSWORD"],
             config["SAIC_PASSWORD"],
             config["Saic:Password"]);
 

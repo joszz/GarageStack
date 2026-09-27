@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Text.Json;
+using GarageStack.Core.Configuration;
 using GarageStack.Core.Interfaces;
 using GarageStack.Core.Models;
 using GarageStack.Data;
@@ -24,22 +25,18 @@ public sealed class PushSenderService : IPushSender, IDisposable
     public PushSenderService(
         ILogger<PushSenderService> logger,
         IServiceScopeFactory scopeFactory,
-        IConfiguration config,
+        VapidOptions vapid,
         IHttpClientFactory httpClientFactory)
     {
         _logger = logger;
         _scopeFactory = scopeFactory;
         _httpClient = httpClientFactory.CreateClient(nameof(PushSenderService));
 
-        var publicKey = config["Vapid:PublicKey"];
-        var privateKey = config["Vapid:PrivateKey"];
-        var subject = config["Vapid:Subject"] ?? "mailto:admin@garagestack.local";
-
-        if (!string.IsNullOrWhiteSpace(publicKey) && !string.IsNullOrWhiteSpace(privateKey))
+        if (vapid.IsConfigured)
         {
             _pushClient = new PushServiceClient(_httpClient)
             {
-                DefaultAuthentication = new VapidAuthentication(publicKey, privateKey) { Subject = subject }
+                DefaultAuthentication = new VapidAuthentication(vapid.PublicKey, vapid.PrivateKey) { Subject = vapid.Subject }
             };
         }
         else

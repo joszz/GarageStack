@@ -1,4 +1,4 @@
-using GarageStack.Api;
+using GarageStack.Api.Security;
 
 namespace GarageStack.Tests;
 

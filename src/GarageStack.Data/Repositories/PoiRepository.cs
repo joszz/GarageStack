@@ -1,9 +1,9 @@
 using GarageStack.Core.Interfaces;
 using GarageStack.Core.Models;
+using GarageStack.Data.Extensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
-using Npgsql;
 
 namespace GarageStack.Data.Repositories;
 
@@ -57,18 +57,11 @@ public class PoiRepository(AppDbContext db, IMemoryCache cache, ILogger<PoiRepos
     {
         // A concurrent writer (e.g. API on-demand + Worker pre-cache racing on the same tile) can
         // insert overlapping rows between our SELECT and INSERT, which fails the whole batch with a
-        // unique-violation and rolls back this transaction. Retry once: the second attempt re-reads
-        // the now-committed rows as "existing" and updates them instead of re-inserting, so this
-        // request's own items are actually persisted rather than silently dropped.
-        try
-        {
-            await UpsertTileAttemptAsync(source, poiType, cellLat, cellLng, items, ttl, ct);
-        }
-        catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: "23505" })
-        {
-            db.ChangeTracker.Clear();
-            await UpsertTileAttemptAsync(source, poiType, cellLat, cellLng, items, ttl, ct);
-        }
+        // unique-violation and rolls back this transaction. The retry re-reads the now-committed
+        // rows as "existing" and updates them instead of re-inserting, so this request's own items
+        // are actually persisted rather than silently dropped.
+        await db.RetryOnceOnUniqueViolationAsync(
+            () => UpsertTileAttemptAsync(source, poiType, cellLat, cellLng, items, ttl, ct));
 
         // A fresh tile may carry brands the cached filter list has not seen yet.
         cache.Remove(BrandsCacheKey(source, poiType));
