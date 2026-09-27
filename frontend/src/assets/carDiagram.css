@@ -1,0 +1,473 @@
+/* The dashboard's car diagram (CarDiagram.vue and its parts in components/carDiagram/): the
+   road it drives on, the speed gauge, tyre pressures, levels, the charging cable, lights and
+   open panels. The car silhouette's own colours stay in main.css, since the map marker draws
+   the same car. */
+
+/* ── Tyre diagram ─────────────────────────────────────────── */
+
+/* ── Road driving animation ───────────────────────────── */
+
+.road-surface {
+  fill: #2a2a2a;
+  opacity: 0.5;
+}
+
+[data-theme='light'] .road-surface {
+  fill: #a0a0a0;
+  opacity: 0.35;
+}
+
+.road-edge {
+  stroke: rgb(255 255 255 / 35%);
+  stroke-width: 1.5;
+}
+
+[data-theme='light'] .road-edge {
+  stroke: rgb(255 255 255 / 70%);
+}
+
+.road-center-dash {
+  stroke: rgb(255 255 255 / 60%);
+  stroke-width: 2.5;
+  stroke-dasharray: 30 15;
+  animation: road-scroll 1s linear infinite;
+}
+
+[data-theme='light'] .road-center-dash {
+  stroke: rgb(255 255 255 / 85%);
+}
+
+@keyframes road-scroll {
+  from {
+    stroke-dashoffset: 0;
+  }
+
+  to {
+    stroke-dashoffset: -45;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .road-center-dash {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+}
+
+.tyre-diagram {
+  position: relative;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+}
+
+/* ── Speedometer gauge ───────────────────────────────────── */
+
+.speed-gauge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 80px;
+  pointer-events: auto;
+  user-select: none;
+  z-index: 1;
+}
+
+.speed-gauge__svg {
+  width: 100%;
+  display: block;
+  overflow: visible;
+}
+
+.speed-gauge__track {
+  fill: none;
+  stroke: var(--color-border);
+  stroke-width: 7;
+  stroke-linecap: round;
+}
+
+.speed-gauge__progress {
+  fill: none;
+  stroke-width: 7;
+  stroke-linecap: round;
+  transition:
+    stroke-dashoffset 0.7s cubic-bezier(0.4, 0, 0.2, 1),
+    stroke 0.5s ease;
+}
+
+.speed-gauge__needle {
+  stroke: var(--color-primary-light);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  transform-origin: 50px 48px;
+  transition: transform 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.speed-gauge__pivot {
+  fill: var(--color-text-muted);
+}
+
+.speed-gauge__value {
+  font-size: 24px;
+  font-weight: 700;
+  fill: var(--color-text);
+}
+
+.speed-gauge__unit {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  fill: var(--color-text-muted);
+  text-transform: uppercase;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .speed-gauge__progress,
+  .speed-gauge__needle {
+    transition: none;
+  }
+}
+
+.tyre-diagram__title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.tyre-diagram__wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* SVG viewBox is 420×480 (widened for 3-lane road); max-width keeps it on small screens */
+.tyre-car-wrap {
+  position: relative;
+  display: inline-block;
+  width: 300px;
+  max-width: 100%;
+}
+
+.tyre-diagram__svg {
+  width: 100%;
+  display: block;
+}
+
+/* ── Tyre pressure indicator lines ───────────────────────── */
+
+.tyre-indicator-line {
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  opacity: 0.85;
+}
+
+.tyre-indicator-dot {
+  opacity: 0.95;
+  stroke: var(--color-surface);
+  stroke-width: 1.5;
+}
+
+/* ── Pressure label positioning ──────────────────────────── */
+
+/*
+  Labels float at the outer endpoints of the indicator lines.
+  SVG viewBox -40 0 420 480; line ends at FL(72,131) FR(268,131) RL(72,341) RR(268,341).
+  CSS % = (svg_x + 40) / 420: x=72→26.7%  x=268→73.3%
+  y unchanged: 131/480=27.3%  341/480=71%
+*/
+
+.tyre-labels {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.tyre-label {
+  position: absolute;
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 2px 5px;
+  border-radius: 4px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  white-space: nowrap;
+  pointer-events: auto;
+  user-select: none;
+}
+
+.tyre-label--fl {
+  top: 27.3%;
+  left: 26.7%;
+  transform: translate(-100%, -50%);
+}
+
+.tyre-label--fr {
+  top: 27.3%;
+  left: 73.3%;
+  transform: translate(0%, -50%);
+}
+
+.tyre-label--rl {
+  top: 71%;
+  left: 26.7%;
+  transform: translate(-100%, -50%);
+}
+
+.tyre-label--rr {
+  top: 71%;
+  left: 73.3%;
+  transform: translate(0%, -50%);
+}
+
+.tyre-label--ok {
+  border-color: var(--color-success);
+  color: var(--color-success);
+}
+
+.tyre-label--warning {
+  border-color: var(--color-warning);
+  color: var(--color-warning);
+}
+
+.tyre-label--danger {
+  border-color: var(--color-danger);
+  color: var(--color-danger-text);
+}
+
+.tyre-label--unknown {
+  color: var(--color-text-muted);
+}
+
+/* ── Fuel / battery level overlays ───────────────────────── */
+
+/*
+  Car top (front) sits at ~24% from SVG top; car bottom (rear) at ~76%.
+  Overlays are centered in the empty space above/below the car.
+*/
+
+.diagram-level {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--level-color, var(--color-text));
+  background: var(--color-surface);
+  border: 1px solid currentcolor;
+  border-radius: 20px;
+  padding: 3px 10px;
+  white-space: nowrap;
+  pointer-events: auto;
+  user-select: none;
+}
+
+.diagram-level--fuel {
+  top: 5%;
+}
+
+.diagram-level--battery {
+  top: 88%;
+}
+
+/* ── Charging cable animation ─────────────────────────────── */
+
+.charge-group {
+  --charge-color: #3b82f6;
+}
+
+.charge-group--active {
+  --charge-color: #22c55e;
+}
+
+.charge-entry-glow {
+  fill: var(--charge-color);
+  opacity: 0;
+}
+
+.charge-group--active .charge-entry-glow {
+  animation: charge-glow-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes charge-glow-pulse {
+  0%,
+  100% {
+    opacity: 0;
+  }
+
+  50% {
+    opacity: 0.38;
+  }
+}
+
+.charge-socket {
+  fill: none;
+  stroke: var(--charge-color);
+  stroke-width: 1.5;
+  opacity: 0.65;
+}
+
+.charge-group--active .charge-socket {
+  opacity: 1;
+}
+
+/* Path goes from y=480 (charger, off-screen) to y=370 (car port).
+   dashoffset 14→0 moves the pattern forward along that direction = upward into car. */
+.charge-cable {
+  fill: none;
+  stroke: var(--charge-color);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-dasharray: 3 7;
+  opacity: 0.45;
+}
+
+.charge-group--active .charge-cable {
+  stroke-dasharray: 8 6;
+  animation: charge-flow 0.9s linear infinite;
+  opacity: 1;
+}
+
+@keyframes charge-flow {
+  from {
+    stroke-dashoffset: 14;
+  }
+
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Battery badge glow when charging / connected */
+.diagram-level--charging {
+  animation: badge-charge-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes badge-charge-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 1.5px rgb(34 197 94 / 55%);
+  }
+
+  50% {
+    box-shadow:
+      0 0 0 2.5px rgb(34 197 94 / 30%),
+      0 0 10px rgb(34 197 94 / 45%);
+  }
+}
+
+.diagram-level--connected {
+  box-shadow: 0 0 0 1.5px rgb(59 130 246 / 60%);
+}
+
+/* ── Car diagram light beams ──────────────────────────────── */
+
+@keyframes beam-shimmer {
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.55;
+  }
+}
+
+.car-light-beam {
+  fill: url('#beam-grad-dipped');
+  animation: beam-shimmer 2.8s ease-in-out infinite;
+}
+
+.car-light-beam--main {
+  fill: url('#beam-grad-main');
+}
+
+[data-theme='light'] .car-light-beam,
+[data-theme='light'] .car-light-beam--main {
+  filter: saturate(2.5) brightness(0.72);
+}
+
+.car-light-beam--side-l,
+.car-light-beam--side-r {
+  animation: beam-shimmer 2.8s ease-in-out infinite;
+}
+
+.car-light-beam--side-l {
+  fill: url('#beam-grad-side-l');
+}
+
+.car-light-beam--side-r {
+  fill: url('#beam-grad-side-r');
+}
+
+/* ── Open panel icon badges ───────────────────────────────── */
+
+/*
+  Circular warning badges floating at each panel location.
+  Positions derived from SVG viewBox -40 0 420 480; CSS % = (svg_x + 40) / 420.
+  Left doors  x≈117 → 37.4%, right doors x≈223 → 62.6%
+  Bonnet/Trunk x=170 → 50%
+  Top values are y-based and unchanged.
+*/
+
+.car-badge {
+  position: absolute;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--color-warning);
+  color: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  pointer-events: auto;
+  user-select: none;
+  border: 2px solid var(--color-surface);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 40%);
+}
+
+.car-badge--bonnet {
+  top: 25%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.car-badge--trunk {
+  top: 75%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.car-badge--door-fl {
+  top: 45%;
+  left: 37.4%;
+  transform: translate(-50%, -50%);
+}
+
+.car-badge--door-fr {
+  top: 45%;
+  left: 62.6%;
+  transform: translate(-50%, -50%);
+}
+
+.car-badge--door-rl {
+  top: 56%;
+  left: 37.4%;
+  transform: translate(-50%, -50%);
+}
+
+.car-badge--door-rr {
+  top: 56%;
+  left: 62.6%;
+  transform: translate(-50%, -50%);
+}

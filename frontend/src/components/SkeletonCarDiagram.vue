@@ -1,3 +1,7 @@
+<script setup lang="ts">
+import '@/assets/carDiagram.css'
+</script>
+
 <template>
   <div class="tyre-diagram">
     <div class="tyre-skel__title skeleton skeleton--text skeleton--text-sm"></div>

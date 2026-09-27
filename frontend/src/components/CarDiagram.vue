@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import '@/assets/carDiagram.css'
 import { useI18n } from 'vue-i18n'
 import { computed } from 'vue'
 import CardInfoWrap from './CardInfoWrap.vue'
