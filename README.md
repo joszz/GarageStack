@@ -1,8 +1,44 @@
 # GarageStack
 
-GarageStack is a free, open-source vehicle monitoring dashboard for **modern MG cars** -- vehicles manufactured by SAIC Motor (China) such as the MG4, MG5, ZS EV, HS PHEV, and similar models. It connects to the SAIC iSmart API (the same backend as the official MG iSmart app) and presents your car's live telemetry in a clean, self-hosted web app. The project is designed to work across HEV, PHEV, and BEV variants of the MG lineup - cards that are not relevant to your vehicle type are automatically hidden or adapted.
+**A self-hosted dashboard, trip log and map for your MG.**
+
+[![Latest release](https://img.shields.io/github/v/release/joszz/GarageStack)](https://github.com/joszz/GarageStack/releases/latest)
+[![Docker image build](https://github.com/joszz/GarageStack/actions/workflows/docker-publish.yml/badge.svg?branch=main)](https://github.com/joszz/GarageStack/actions/workflows/docker-publish.yml)
+[![MIT licence](https://img.shields.io/github/license/joszz/GarageStack)](LICENSE)
+
+![The GarageStack dashboard: the car on the road with its speed, tyre pressures and charge, a map of where it is, and cards for the battery, range, doors, windows, climate and today's driving](documentation/screenshots/desktop-dashboard.webp)
+
+GarageStack is a free, open-source web app for **modern MG cars**, the ones built by SAIC Motor such as the MG4, MG5, ZS EV and HS PHEV. It signs in to the SAIC iSmart API, the same backend the official MG iSmart app uses, and turns what your car reports into something worth opening:
+
+- **See the car at a glance.** Fuel, battery, tyre pressures, doors, windows and climate on one live dashboard, with cards that adapt to your hybrid, plug-in hybrid or full electric car.
+- **Relive every drive.** Trips are saved automatically, named by where they went and drawn on the map along the roads you took, with heatmaps and the speed limits along the way.
+- **Keep a trip log for the taxman.** Mark trips as business, commute or private, add notes, and export a month or a year as a spreadsheet.
+- **Control it from anywhere.** Pre-condition the cabin, lock the car or flash its lights to find it, and see whether the car actually carried the command out.
+- **Hear about it when something is off.** Push notifications for low tyre pressure, a car left unlocked, a window left open, charging complete and more.
+- **Fit it into your homelab.** Home Assistant through MQTT discovery, a gethomepage.dev widget, and single sign-on through Authentik, Authelia, Keycloak or any other OpenID Connect provider.
+- **Keep it yours.** Everything runs in Docker on your own hardware, as one all-in-one container or a Compose stack. No subscription, and no account needed beyond your MG login.
 
 > **Note:** GarageStack only works with the current MG brand owned by SAIC Motor. It is **not** compatible with classic British-built MG cars (MGB, Midget, MGF, etc.) produced before SAIC's acquisition of the brand. If your car does not use the MG iSmart app, GarageStack will not work with it.
+
+## Screenshots
+
+Every trip on one map, listed by where it went and drawn along the roads you took, over a heatmap of the roads you drive most:
+
+![The map: a month of trips listed by where they went, drawn along the roads between Amsterdam, Haarlem, Almere, Utrecht and Amersfoort over a heatmap of the most driven roads](documentation/screenshots/desktop-map.webp)
+
+And on a phone, with a single trip snapped to the roads and coloured against the speed limits:
+
+<!-- markdownlint-disable MD033 -->
+
+| Dashboard | Map | A single trip |
+| --------- | --- | ------------- |
+| <img src="documentation/screenshots/mobile-dashboard.webp" alt="The dashboard on a phone" width="240"> | <img src="documentation/screenshots/mobile-map.webp" alt="The map on a phone" width="240"> | <img src="documentation/screenshots/mobile-map-trip.webp" alt="One trip from Amsterdam to Utrecht on a phone, green where it kept to the speed limit and red where it went over" width="240"> |
+
+<!-- markdownlint-enable MD033 -->
+
+The statistics, trip log, maintenance list and light theme are in the [screenshot gallery](documentation/screenshots/README.md).
+
+**Want to try it?** Read [MG iSmart account and session limits](#mg-ismart-account-and-session-limits) first, because GarageStack and the MG app cannot be signed in to the same account at once, then pick an [installation option](#installation). A single `docker run` is enough to get going.
 
 ## Features
 
@@ -74,15 +110,6 @@ The Statistics view shows insight cards and charts for a configurable period (7,
 | Parking locations | Number of distinct parking spots (rounded GPS) |
 | Electric share today | Estimated share of today's driving on electric power (PHEV only) |
 | Avg speed | Average moving speed across all GPS points in the period, excluding stopped moments |
-
-## Screenshots
-
-| Desktop          | Mobile         |
-| ---------------- | -------------- |
-| ![Desktop][desk] | ![Mobile][mob] |
-
-[desk]: frontend/public/screenshot-desktop-home.webp "Desktop dashboard"
-[mob]: frontend/public/screenshot-mobile-home.webp "Mobile dashboard"
 
 ---
 
