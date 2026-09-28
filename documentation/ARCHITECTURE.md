@@ -240,7 +240,8 @@ the Vite dev server or in jsdom. A change that every other check accepts can sti
 shipped app, which is exactly what happened when the policy began covering `index.html` and
 blocked FontAwesome's runtime stylesheet. The smoke tests fail on any policy violation, and they
 check the handful of things that only appear in a real browser, such as icon sizing and the
-rotated map marker. CI runs them in the `e2e` job; see CONTRIBUTING.md for running them locally.
+rotated map marker. CI runs them in the `e2e` job; see
+[CONTRIBUTING.md](../.github/CONTRIBUTING.md) for running them locally.
 
 ## Build conventions
 
