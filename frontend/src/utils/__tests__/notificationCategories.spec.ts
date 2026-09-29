@@ -28,16 +28,7 @@ describe('notificationCategoryId', () => {
 })
 
 describe('notificationCategoryIdsFor', () => {
-  it('drops the plug-in only categories for a plain hybrid', () => {
-    const ids = notificationCategoryIdsFor('hev')
-
-    expect(ids).not.toContain('charging-complete')
-    expect(ids).not.toContain('low-ev')
-    expect(ids).toContain('engine-start')
-    expect(ids).toHaveLength(NOTIFICATION_CATEGORY_IDS.length - 2)
-  })
-
-  it('keeps the order of the remaining categories', () => {
+  it('drops the plug-in only categories for a plain hybrid, keeping the order of the rest', () => {
     expect(notificationCategoryIdsFor('hev')).toEqual(
       NOTIFICATION_CATEGORY_IDS.filter((id) => id !== 'low-ev' && id !== 'charging-complete'),
     )

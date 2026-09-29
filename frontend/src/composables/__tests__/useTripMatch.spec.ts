@@ -3,6 +3,7 @@ import { setActivePinia, createPinia } from 'pinia'
 import { nextTick } from 'vue'
 import type { GeoPoint, MapMatchResponse } from '@/services/mapApi'
 import type { Trip } from '@/services/vehicleApi'
+import { trip as makeTrip, tripSummary } from '@/services/__tests__/tripFixtures'
 
 const mockMatchTrip = vi.fn<(points: GeoPoint[]) => Promise<MapMatchResponse>>()
 
@@ -16,26 +17,17 @@ vi.mock('@/services/mapApi', () => ({
 // Two vertices a kilometre apart, as the API encodes them (six decimals).
 const shape = 'qdbdcBqbzrJ_ibE_ibE'
 
-function trip(points: number, startedAt = '2026-09-20T08:00:00Z'): Trip {
-  return {
-    index: 0,
-    id: 1,
-    startedAt,
-    endedAt: '2026-09-20T08:30:00Z',
-    distanceKm: 12.3,
-    pointCount: points,
-    endLatitude: null,
-    endLongitude: null,
-    maxSpeedKmh: null,
-    avgMovingSpeedKmh: null,
-    movingSpeedSamples: 0,
-    points: Array.from({ length: points }, (_, i) => ({
-      recordedAt: new Date(Date.parse(startedAt) + i * 60_000).toISOString(),
+// A trip of `count` fixes a minute apart, stepping north-east from 52.5 / 6.09.
+function trip(count: number): Trip {
+  const startedAt = Date.parse(tripSummary().startedAt)
+  return makeTrip({
+    points: Array.from({ length: count }, (_, i) => ({
+      recordedAt: new Date(startedAt + i * 60_000).toISOString(),
       latitude: 52.5 + i * 0.001,
       longitude: 6.09 + i * 0.001,
       speed: 50 + i,
     })),
-  }
+  })
 }
 
 function matched(overrides: Partial<MapMatchResponse> = {}): MapMatchResponse {

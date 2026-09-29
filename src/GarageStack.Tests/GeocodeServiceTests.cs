@@ -31,9 +31,6 @@ internal sealed class GeocodeFakeRepository : IGeocodeRepository
             ExpiresAt = DateTime.UtcNow.Add(validFor ?? TimeSpan.FromDays(1)),
         };
 
-    public GeocodeCacheEntry? Find(string precision, string language, int cellLat, int cellLng)
-        => _entries.GetValueOrDefault((precision, language, cellLat, cellLng));
-
     public Task<IReadOnlyList<GeocodeCacheEntry>> GetValidAsync(
         string precision, string language,
         IReadOnlyList<(int CellLat, int CellLng)> cells,

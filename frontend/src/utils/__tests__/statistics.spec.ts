@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import type { TelemetryHistoryPoint, TripSummary } from '@/services/vehicleApi'
+import type { TelemetryHistoryPoint } from '@/services/vehicleApi'
+import { tripSummary } from '@/services/__tests__/tripFixtures'
 import {
   averageMovingSpeedKmh,
   averageTripKm,
@@ -14,23 +15,6 @@ import {
   totalDistanceKm,
 } from '@/utils/statistics'
 
-function trip(overrides: Partial<TripSummary> = {}): TripSummary {
-  return {
-    index: 0,
-    id: 1,
-    startedAt: new Date(2026, 0, 1, 8, 15).toISOString(),
-    endedAt: new Date(2026, 0, 1, 8, 45).toISOString(),
-    distanceKm: 10,
-    pointCount: 20,
-    endLatitude: 52.1,
-    endLongitude: 5.1,
-    maxSpeedKmh: 80,
-    avgMovingSpeedKmh: 50,
-    movingSpeedSamples: 10,
-    ...overrides,
-  }
-}
-
 describe('trip statistics', () => {
   it('has nothing to say without trips', () => {
     expect(totalDistanceKm([])).toBeNull()
@@ -42,7 +26,7 @@ describe('trip statistics', () => {
   })
 
   it('adds up and averages the distance', () => {
-    const trips = [trip({ distanceKm: 12.5 }), trip({ distanceKm: 7.5 })]
+    const trips = [tripSummary({ distanceKm: 12.5 }), tripSummary({ distanceKm: 7.5 })]
 
     expect(totalDistanceKm(trips)).toBe(20)
     expect(averageTripKm(trips)).toBe(10)
@@ -50,18 +34,20 @@ describe('trip statistics', () => {
 
   it('finds the hour most trips start in, the one seen first winning a tie', () => {
     const at = (hour: number) => new Date(2026, 0, 1, hour, 30).toISOString()
-    const trips = [at(17), at(8), at(8), at(17), at(9)].map((startedAt) => trip({ startedAt }))
+    const trips = [at(17), at(8), at(8), at(17), at(9)].map((startedAt) =>
+      tripSummary({ startedAt }),
+    )
 
     expect(peakDriveHour(trips)).toBe('17:00')
-    expect(peakDriveHour([trip({ startedAt: at(7) })])).toBe('07:00')
+    expect(peakDriveHour([tripSummary({ startedAt: at(7) })])).toBe('07:00')
   })
 
   it('counts a spot visited again once and skips trips without an end', () => {
     const spots = parkingSpots([
-      trip({ endLatitude: 52.10001, endLongitude: 5.10001 }),
-      trip({ endLatitude: 52.10002, endLongitude: 5.10004 }),
-      trip({ endLatitude: 52.2, endLongitude: 5.3 }),
-      trip({ endLatitude: null, endLongitude: null }),
+      tripSummary({ endLatitude: 52.10001, endLongitude: 5.10001 }),
+      tripSummary({ endLatitude: 52.10002, endLongitude: 5.10004 }),
+      tripSummary({ endLatitude: 52.2, endLongitude: 5.3 }),
+      tripSummary({ endLatitude: null, endLongitude: null }),
     ])
 
     expect(spots).toEqual([
@@ -72,17 +58,19 @@ describe('trip statistics', () => {
 
   it('weighs each trip by the readings behind its average speed', () => {
     const trips = [
-      trip({ avgMovingSpeedKmh: 30, movingSpeedSamples: 30 }),
-      trip({ avgMovingSpeedKmh: 110, movingSpeedSamples: 10 }),
-      trip({ avgMovingSpeedKmh: null, movingSpeedSamples: 0 }),
+      tripSummary({ avgMovingSpeedKmh: 30, movingSpeedSamples: 30 }),
+      tripSummary({ avgMovingSpeedKmh: 110, movingSpeedSamples: 10 }),
+      tripSummary({ avgMovingSpeedKmh: null, movingSpeedSamples: 0 }),
     ]
 
     expect(averageMovingSpeedKmh(trips)).toBe(50)
   })
 
   it('knows whether any trip reported a speed', () => {
-    expect(hasSpeedReadings([trip({ maxSpeedKmh: null })])).toBe(false)
-    expect(hasSpeedReadings([trip({ maxSpeedKmh: null }), trip({ maxSpeedKmh: 0 })])).toBe(true)
+    expect(hasSpeedReadings([tripSummary({ maxSpeedKmh: null })])).toBe(false)
+    expect(
+      hasSpeedReadings([tripSummary({ maxSpeedKmh: null }), tripSummary({ maxSpeedKmh: 0 })]),
+    ).toBe(true)
   })
 })
 

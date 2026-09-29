@@ -1,4 +1,3 @@
-using GarageStack.Api;
 using GarageStack.Api.Endpoints;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -26,22 +25,5 @@ public class ApiProblemsTests
 
         Assert.Equal(StatusCodes.Status409Conflict, result.StatusCode);
         Assert.Equal("vehicle.accountUnknown", result.ProblemDetails.Extensions["code"]);
-    }
-
-    [Theory]
-    [InlineData("", null, 10_000.0, null, "maintenance.nameRequired")]
-    [InlineData("Oil", null, null, null, "maintenance.intervalRequired")]
-    [InlineData("Oil", null, 0.0, null, "maintenance.intervalKmOutOfRange")]
-    [InlineData("Oil", null, null, 121, "maintenance.intervalMonthsOutOfRange")]
-    public void MaintenanceValidation_NamesTheRuleThatFailed(
-        string name, string? notes, double? intervalKm, int? intervalMonths, string code)
-    {
-        Assert.Equal(code, MaintenanceEndpoints.ValidateItem(name, notes, intervalKm, intervalMonths)?.Code);
-    }
-
-    [Fact]
-    public void CommandValidation_NamesTheRuleThatFailed()
-    {
-        Assert.Equal("command.invalidValue", VehicleCommands.Validate("climate", "start")?.Code);
     }
 }

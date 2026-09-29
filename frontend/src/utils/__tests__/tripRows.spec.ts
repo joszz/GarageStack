@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { buildTripRow, formatTripDuration, type TripRowContext } from '../tripRows'
-import type { Trip } from '@/services/vehicleApi'
+import { trip as makeTrip } from '@/services/__tests__/tripFixtures'
 import { METRIC_UNITS, UnitFormatter } from '@/utils/units'
 
 // Stands in for vue-i18n: returns the key's last segment with its parameters, which keeps the
@@ -12,26 +12,8 @@ const t = (key: string, named?: Record<string, unknown>) => {
   return `${named!.h}h ${named!.m}m`
 }
 
-function trip(overrides: Partial<Trip> = {}): Trip {
-  return {
-    index: 0,
-    id: 1,
-    startedAt: '2026-09-24T14:32:00.000Z',
-    endedAt: '2026-09-24T15:06:00.000Z',
-    distanceKm: 42,
-    pointCount: 56,
-    endLatitude: 52.2554,
-    endLongitude: 6.1639,
-    maxSpeedKmh: 0,
-    avgMovingSpeedKmh: null,
-    movingSpeedSamples: 0,
-    points: [
-      { recordedAt: '2026-09-24T14:32:00.000Z', latitude: 52.5123, longitude: 6.0921, speed: 0 },
-      { recordedAt: '2026-09-24T15:06:00.000Z', latitude: 52.2554, longitude: 6.1639, speed: 0 },
-    ],
-    ...overrides,
-  }
-}
+// 42 km, 14:32 to 15:06 UTC, with the point count the meta line shows.
+const trip = () => makeTrip({ pointCount: 56 })
 
 function context(overrides: Partial<TripRowContext> = {}): TripRowContext {
   return {

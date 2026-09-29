@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { authApi } from '@/services/authApi'
 import type { MeResponse, LoginResponse, AuthConfigResponse } from '@/services/authApi'
+import { useAuthStore } from '@/stores/auth'
 
 vi.mock('@/services/authApi', () => ({
   authApi: {
@@ -39,34 +40,30 @@ describe('useAuthStore', () => {
 
   // ── isAuthenticated ───────────────────────────────────────────────────────
 
-  it('isAuthenticated is false when username is empty', async () => {
-    const { useAuthStore } = await import('@/stores/auth')
+  it('isAuthenticated is false when username is empty', () => {
     const store = useAuthStore()
     expect(store.isAuthenticated).toBe(false)
   })
 
-  it('isAuthenticated is false when expiry is in the past', async () => {
+  it('isAuthenticated is false when expiry is in the past', () => {
     localStorage.setItem(AUTH_USERNAME_KEY, 'testuser')
     localStorage.setItem(AUTH_EXPIRES_KEY, pastExpiry())
 
-    const { useAuthStore } = await import('@/stores/auth')
     const store = useAuthStore()
     expect(store.isAuthenticated).toBe(false)
   })
 
-  it('isAuthenticated is true when username is set and expiry is in the future', async () => {
+  it('isAuthenticated is true when username is set and expiry is in the future', () => {
     localStorage.setItem(AUTH_USERNAME_KEY, 'testuser')
     localStorage.setItem(AUTH_EXPIRES_KEY, futureExpiry())
 
-    const { useAuthStore } = await import('@/stores/auth')
     const store = useAuthStore()
     expect(store.isAuthenticated).toBe(true)
   })
 
-  it('isAuthenticated is false when username is set but expiry is empty', async () => {
+  it('isAuthenticated is false when username is set but expiry is empty', () => {
     localStorage.setItem(AUTH_USERNAME_KEY, 'testuser')
 
-    const { useAuthStore } = await import('@/stores/auth')
     const store = useAuthStore()
     expect(store.isAuthenticated).toBe(false)
   })
@@ -77,7 +74,6 @@ describe('useAuthStore', () => {
     const expiry = futureExpiry()
     vi.mocked(authApi.login).mockResolvedValue({ username: 'alice', expiresAtUtc: expiry })
 
-    const { useAuthStore } = await import('@/stores/auth')
     const store = useAuthStore()
     await store.login('alice', 'secret')
 
@@ -89,7 +85,6 @@ describe('useAuthStore', () => {
     const expiry = futureExpiry()
     vi.mocked(authApi.login).mockResolvedValue({ username: 'alice', expiresAtUtc: expiry })
 
-    const { useAuthStore } = await import('@/stores/auth')
     const store = useAuthStore()
     await store.login('alice', 'secret')
 
@@ -100,7 +95,6 @@ describe('useAuthStore', () => {
     const expiry = futureExpiry()
     vi.mocked(authApi.login).mockResolvedValue({ username: 'bob', expiresAtUtc: expiry })
 
-    const { useAuthStore } = await import('@/stores/auth')
     const store = useAuthStore()
     await store.login('bob', 'password', true)
 
@@ -114,7 +108,6 @@ describe('useAuthStore', () => {
     localStorage.setItem(AUTH_EXPIRES_KEY, futureExpiry())
     vi.mocked(authApi.logout).mockResolvedValue(undefined)
 
-    const { useAuthStore } = await import('@/stores/auth')
     const store = useAuthStore()
     expect(store.isAuthenticated).toBe(true)
 
@@ -129,7 +122,6 @@ describe('useAuthStore', () => {
     localStorage.setItem(AUTH_EXPIRES_KEY, futureExpiry())
     vi.mocked(authApi.logout).mockResolvedValue(undefined)
 
-    const { useAuthStore } = await import('@/stores/auth')
     const store = useAuthStore()
     await store.logout()
 
@@ -140,7 +132,6 @@ describe('useAuthStore', () => {
   it('logout() calls the API', async () => {
     vi.mocked(authApi.logout).mockResolvedValue(undefined)
 
-    const { useAuthStore } = await import('@/stores/auth')
     const store = useAuthStore()
     await store.logout()
 
@@ -153,7 +144,6 @@ describe('useAuthStore', () => {
     const expiry = futureExpiry()
     vi.mocked(authApi.me).mockResolvedValue({ username: 'charlie', expiresAtUtc: expiry })
 
-    const { useAuthStore } = await import('@/stores/auth')
     const store = useAuthStore()
     await store.verifySession()
 
@@ -161,29 +151,16 @@ describe('useAuthStore', () => {
     expect(localStorage.getItem(AUTH_USERNAME_KEY)).toBe('charlie')
   })
 
-  it('verifySession() on API failure clears username', async () => {
+  it('verifySession() on API failure clears the session from the store and localStorage', async () => {
     localStorage.setItem(AUTH_USERNAME_KEY, 'testuser')
     localStorage.setItem(AUTH_EXPIRES_KEY, futureExpiry())
     vi.mocked(authApi.me).mockRejectedValue(new Error('Unauthorized'))
 
-    const { useAuthStore } = await import('@/stores/auth')
     const store = useAuthStore()
     await store.verifySession()
 
     expect(store.username).toBe('')
     expect(store.isAuthenticated).toBe(false)
-    expect(localStorage.getItem(AUTH_USERNAME_KEY)).toBeNull()
-  })
-
-  it('verifySession() on API failure clears localStorage', async () => {
-    localStorage.setItem(AUTH_USERNAME_KEY, 'testuser')
-    localStorage.setItem(AUTH_EXPIRES_KEY, futureExpiry())
-    vi.mocked(authApi.me).mockRejectedValue(new Error('Unauthorized'))
-
-    const { useAuthStore } = await import('@/stores/auth')
-    const store = useAuthStore()
-    await store.verifySession()
-
     expect(localStorage.getItem(AUTH_USERNAME_KEY)).toBeNull()
     expect(localStorage.getItem(AUTH_EXPIRES_KEY)).toBeNull()
   })
@@ -191,7 +168,6 @@ describe('useAuthStore', () => {
   it('verifySession() does not authenticate when API returns null expiresAtUtc', async () => {
     vi.mocked(authApi.me).mockResolvedValue({ username: 'dave', expiresAtUtc: null })
 
-    const { useAuthStore } = await import('@/stores/auth')
     const store = useAuthStore()
     await store.verifySession()
 
@@ -206,7 +182,6 @@ describe('useAuthStore', () => {
   it('ensureVerified() calls verifySession only once across multiple calls', async () => {
     vi.mocked(authApi.me).mockResolvedValue({ username: 'eve', expiresAtUtc: futureExpiry() })
 
-    const { useAuthStore } = await import('@/stores/auth')
     const store = useAuthStore()
     await Promise.all([store.ensureVerified(), store.ensureVerified(), store.ensureVerified()])
 
@@ -224,7 +199,6 @@ describe('useAuthStore', () => {
     }
     vi.mocked(authApi.config).mockResolvedValue(serverConfig)
 
-    const { useAuthStore } = await import('@/stores/auth')
     const store = useAuthStore()
     const result = await store.ensureConfig()
 
@@ -240,7 +214,6 @@ describe('useAuthStore', () => {
       oidcAutoLogin: false,
     })
 
-    const { useAuthStore } = await import('@/stores/auth')
     const store = useAuthStore()
     await Promise.all([store.ensureConfig(), store.ensureConfig()])
 
@@ -250,7 +223,6 @@ describe('useAuthStore', () => {
   it('ensureConfig() returns null when the server cannot be reached', async () => {
     vi.mocked(authApi.config).mockRejectedValue(new Error('offline'))
 
-    const { useAuthStore } = await import('@/stores/auth')
     const store = useAuthStore()
 
     expect(await store.ensureConfig()).toBeNull()

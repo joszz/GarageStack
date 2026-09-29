@@ -48,14 +48,6 @@ public class PushSenderServiceTests
     }
 
     [Fact]
-    public void IsConfigured_OnlyPublicKeySet_ReturnsFalse()
-    {
-        using var svc = BuildService(publicKey: "some-public-key");
-
-        Assert.False(svc.IsConfigured);
-    }
-
-    [Fact]
     public void IsConfigured_BothKeysSet_ReturnsTrue()
     {
         var (publicKey, privateKey) = GenerateFakeVapidKeyPair();

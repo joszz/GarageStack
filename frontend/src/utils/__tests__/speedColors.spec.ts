@@ -1,27 +1,11 @@
 import { describe, it, expect } from 'vitest'
 import type { TripMatch } from '@/composables/useTripMatch'
-import type { Trip, TripPoint } from '@/services/vehicleApi'
+import type { TripPoint } from '@/services/vehicleApi'
+import { trip } from '@/services/__tests__/tripFixtures'
 import { speedSegments, speedToColor, tripColor, tripColorClass } from '@/utils/speedColors'
 
 function point(latitude: number, speed: number | null): TripPoint {
   return { recordedAt: '2026-09-26T10:00:00Z', latitude, longitude: 5, speed }
-}
-
-function trip(points: TripPoint[]): Trip {
-  return {
-    index: 0,
-    id: 1,
-    startedAt: '2026-09-26T10:00:00Z',
-    endedAt: '2026-09-26T10:10:00Z',
-    distanceKm: 1,
-    pointCount: points.length,
-    endLatitude: null,
-    endLongitude: null,
-    maxSpeedKmh: null,
-    avgMovingSpeedKmh: null,
-    movingSpeedSamples: 0,
-    points,
-  }
 }
 
 describe('tripColor', () => {
@@ -50,7 +34,10 @@ describe('speedToColor', () => {
 
 describe('speedSegments', () => {
   it('joins consecutive fixes when there is no snapped line', () => {
-    const segments = speedSegments(trip([point(52, 10), point(52.1, 20), point(52.2, 30)]), null)
+    const segments = speedSegments(
+      trip({ points: [point(52, 10), point(52.1, 20), point(52.2, 30)] }),
+      null,
+    )
 
     expect(segments).toEqual([
       {
@@ -87,7 +74,7 @@ describe('speedSegments', () => {
       speedLimits: [],
     }
 
-    const segments = speedSegments(trip(fixes), match)
+    const segments = speedSegments(trip({ points: fixes }), match)
 
     expect(segments.map((s) => s.coordinates.length)).toEqual([3, 3, 2])
     expect(segments.map((s) => s.speed)).toEqual([10, 20, 30])
@@ -107,7 +94,7 @@ describe('speedSegments', () => {
       speedLimits: [],
     }
 
-    const segments = speedSegments(trip(fixes), match)
+    const segments = speedSegments(trip({ points: fixes }), match)
 
     expect(segments).toHaveLength(1)
     expect(segments[0]!.coordinates).toHaveLength(3)
