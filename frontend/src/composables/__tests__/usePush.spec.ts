@@ -215,12 +215,20 @@ describe('usePush togglePush', () => {
     const sub = makeSubscription()
     pushManager.subscribe.mockResolvedValue(sub)
     setPermission('default')
+    subscribeMock.mockRejectedValueOnce(new Error('API error 503'))
 
     const { api } = mountUsePush()
     await flush()
     await api().togglePush()
+    expect(api().pushError.value).toBe(true)
 
-    expect(subscribeMock).toHaveBeenCalledWith('https://push.example/abc', 'p256dh-key', 'auth-key')
+    await api().togglePush()
+
+    expect(subscribeMock).toHaveBeenLastCalledWith(
+      'https://push.example/abc',
+      'p256dh-key',
+      'auth-key',
+    )
     expect(api().pushState.value).toBe('subscribed')
     expect(api().pushError.value).toBe(false)
   })

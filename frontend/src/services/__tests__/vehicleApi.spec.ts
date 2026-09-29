@@ -151,7 +151,7 @@ describe('vehicleApi', () => {
   it('sendCommand() posts the value as a JSON body', async () => {
     const fetchSpy = vi.fn<FetchSpy>().mockResolvedValue(makeResponse(200))
     vi.stubGlobal('fetch', fetchSpy)
-    await vehicleApi.sendCommand('VIN1', 'lock', 'lock')
+    await vehicleApi.sendCommand('VIN1', 'lock', 'True')
     const firstCall = fetchSpy.mock.calls[0]
     expect(firstCall).toBeDefined()
     if (!firstCall) throw new Error('Expected first fetch call to exist')
@@ -159,6 +159,6 @@ describe('vehicleApi', () => {
     expect(url).toContain('/api/vehicles/VIN1/commands/lock')
     if (!options) throw new Error('Expected fetch options to exist')
     expect(options.method).toBe('POST')
-    expect(JSON.parse(options.body as string)).toEqual({ value: 'lock' })
+    expect(JSON.parse(options.body as string)).toEqual({ value: 'True' })
   })
 })

@@ -49,30 +49,8 @@ function defaultsFor(): DashboardSettings {
   }
 }
 
-// Ancient pre-"cards array" format, kept only so users who haven't opened the app since before
-// that migration existed don't lose their card visibility on this second migration.
-function cardsFromLegacyBlob(parsed: Record<string, unknown>): CardConfig[] {
-  if (parsed.panels && !parsed.cards) {
-    const p = parsed.panels as Record<string, boolean | undefined>
-    const visMap: Partial<Record<CardId, boolean>> = {
-      fuelLevel: p.showFuel,
-      fuelRange: p.showFuel,
-      evBattery: p.showEvBattery,
-      charging: p.showCharging,
-      sunRoof: p.showSunRoof,
-      hvBattery: p.showHvPower,
-      lights: p.showLights,
-      efficiencyDistance: p.showEfficiency,
-      efficiencyEnergy: p.showEfficiency,
-      efficiencyCharge: p.showEfficiency,
-      efficiencyRatio: p.showEfficiency,
-    }
-    return defaultCards('unknown').map((c) => ({ id: c.id, visible: visMap[c.id] ?? c.visible }))
-  }
-  if (Array.isArray(parsed.cards)) {
-    return migrateCards(parsed.cards)
-  }
-  return defaultCards('unknown')
+function storedCards(parsed: Record<string, unknown>): CardConfig[] {
+  return Array.isArray(parsed.cards) ? migrateCards(parsed.cards) : defaultCards('unknown')
 }
 
 function loadDashboardSettings(): DashboardSettings {
@@ -81,7 +59,7 @@ function loadDashboardSettings(): DashboardSettings {
     if (raw) {
       const parsed = JSON.parse(raw)
       return {
-        cards: Array.isArray(parsed.cards) ? migrateCards(parsed.cards) : defaultCards('unknown'),
+        cards: storedCards(parsed),
         statsInsights: loadStatsItems(parsed.statsInsights, ALL_STATS_INSIGHT_IDS),
         statsCharts: loadStatsItems(parsed.statsCharts, ALL_STATS_CHART_IDS),
         showTyreDiagram: parsed.showTyreDiagram !== false,
@@ -95,7 +73,7 @@ function loadDashboardSettings(): DashboardSettings {
   const legacy = readLegacyBlob()
   if (legacy) {
     return {
-      cards: cardsFromLegacyBlob(legacy),
+      cards: storedCards(legacy),
       statsInsights: loadStatsItems(legacy.statsInsights, ALL_STATS_INSIGHT_IDS),
       statsCharts: loadStatsItems(legacy.statsCharts, ALL_STATS_CHART_IDS),
       showTyreDiagram: legacy.showTyreDiagram !== false,

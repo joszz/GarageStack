@@ -8,7 +8,6 @@ import {
   readLegacyBlob,
   persistSettings,
 } from './settingsShared'
-import { NOTIFICATION_CATEGORY_IDS } from '@/utils/notificationCategories'
 import {
   DISTANCE_UNITS,
   FUEL_CONSUMPTION_UNITS,
@@ -57,26 +56,6 @@ function defaultsFor(): UiSettings {
     // English browser without driving in miles, and an update must not switch an install over.
     units: { ...METRIC_UNITS },
   }
-}
-
-// One-time migration: an earlier version stored `notificationTypeFilter` with whitelist
-// semantics (empty = show all, non-empty = show only listed types). It was replaced by
-// `notificationTypeExclusions` (blacklist semantics: empty = show all, non-empty = hide listed
-// types) - a much better fit for "everything on, opt a couple out" - before seeing meaningful
-// adoption, but it already shipped, so convert any stored whitelist into the equivalent
-// exclusion list so a user's effective visible-category set doesn't change under them.
-function migrateNotificationTypeExclusions(
-  parsed: Record<string, unknown>,
-  fallback: string[],
-): string[] {
-  if (Array.isArray(parsed.notificationTypeExclusions)) {
-    return parsed.notificationTypeExclusions as string[]
-  }
-  if (Array.isArray(parsed.notificationTypeFilter) && parsed.notificationTypeFilter.length > 0) {
-    const oldWhitelist = parsed.notificationTypeFilter as string[]
-    return NOTIFICATION_CATEGORY_IDS.filter((id) => !oldWhitelist.includes(id))
-  }
-  return fallback
 }
 
 const THEMES: readonly Theme[] = ['dark', 'light']
@@ -130,10 +109,9 @@ function parseUiFields(parsed: Record<string, unknown>, fallback: UiSettings): U
       fallback.vehicleTypeOverride,
     ),
     filterDays: positiveDays(parsed.filterDays, fallback.filterDays),
-    notificationTypeExclusions: migrateNotificationTypeExclusions(
-      parsed,
-      fallback.notificationTypeExclusions,
-    ),
+    notificationTypeExclusions: Array.isArray(parsed.notificationTypeExclusions)
+      ? (parsed.notificationTypeExclusions as string[])
+      : fallback.notificationTypeExclusions,
     units: parseUnits(parsed.units, fallback.units),
   }
 }

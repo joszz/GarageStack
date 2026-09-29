@@ -94,60 +94,25 @@ export function loadStatsItems<T extends string>(raw: unknown, allIds: T[]): Sta
   return result
 }
 
+/**
+ * Brings a stored card list up to date with the registry: keeps the known cards in their stored
+ * order and visibility, drops ids that no longer exist, and appends cards added since the list was
+ * saved with their default visibility.
+ */
 export function migrateCards(raw: { id: string; visible: boolean }[]): CardConfig[] {
   const expanded: CardConfig[] = []
-  const usedNewIds = new Set<CardId>()
-  const rawIds = new Set(raw.map((c) => c.id))
+  const usedIds = new Set<CardId>()
   const defaultVisibility = new Map(defaultCards('unknown').map((c) => [c.id, c.visible]))
 
   for (const c of raw) {
-    switch (c.id) {
-      case 'fuel':
-        if (!rawIds.has('fuelLevel')) {
-          expanded.push({ id: 'fuelLevel', visible: c.visible })
-          usedNewIds.add('fuelLevel')
-        }
-        if (!rawIds.has('fuelRange')) {
-          expanded.push({ id: 'fuelRange', visible: c.visible })
-          usedNewIds.add('fuelRange')
-        }
-        break
-      case 'doors':
-        expanded.push({ id: 'doors', visible: c.visible })
-        usedNewIds.add('doors')
-        if (!rawIds.has('windows')) {
-          expanded.push({ id: 'windows', visible: c.visible })
-          usedNewIds.add('windows')
-        }
-        break
-      case 'efficiency':
-        if (!rawIds.has('efficiencyDistance')) {
-          expanded.push({ id: 'efficiencyDistance', visible: c.visible })
-          usedNewIds.add('efficiencyDistance')
-        }
-        if (!rawIds.has('efficiencyEnergy')) {
-          expanded.push({ id: 'efficiencyEnergy', visible: c.visible })
-          usedNewIds.add('efficiencyEnergy')
-        }
-        if (!rawIds.has('efficiencyCharge')) {
-          expanded.push({ id: 'efficiencyCharge', visible: c.visible })
-          usedNewIds.add('efficiencyCharge')
-        }
-        if (!rawIds.has('efficiencyRatio')) {
-          expanded.push({ id: 'efficiencyRatio', visible: c.visible })
-          usedNewIds.add('efficiencyRatio')
-        }
-        break
-      default:
-        if ((ALL_CARD_IDS as string[]).includes(c.id)) {
-          expanded.push({ id: c.id as CardId, visible: c.visible })
-          usedNewIds.add(c.id as CardId)
-        }
+    if ((ALL_CARD_IDS as string[]).includes(c.id)) {
+      expanded.push({ id: c.id as CardId, visible: c.visible })
+      usedIds.add(c.id as CardId)
     }
   }
 
   for (const id of ALL_CARD_IDS) {
-    if (!usedNewIds.has(id)) {
+    if (!usedIds.has(id)) {
       expanded.push({ id, visible: defaultVisibility.get(id) ?? true })
     }
   }

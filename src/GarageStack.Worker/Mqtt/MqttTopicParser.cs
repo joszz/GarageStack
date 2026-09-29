@@ -30,33 +30,4 @@ public static partial class MqttTopicParser
         parsed = default;
         return false;
     }
-
-    public static bool TryExtractVin(string topic, out string vin)
-    {
-        if (TryParse(topic, out var parsed))
-        {
-            vin = parsed.Vin;
-            return true;
-        }
-        vin = string.Empty;
-        return false;
-    }
-
-    public static string ExtractSubtopic(string topic)
-    {
-        var parts = topic.Split('/');
-        return parts.Length > 4 ? string.Join('/', parts[4..]) : string.Empty;
-    }
-
-    public static bool TryExtractUser(string topic, out string user)
-    {
-        var parts = topic.Split('/');
-        if (parts.Length >= 2 && parts[0] == "saic" && !string.IsNullOrWhiteSpace(parts[1]))
-        {
-            user = parts[1];
-            return true;
-        }
-        user = string.Empty;
-        return false;
-    }
 }

@@ -43,6 +43,8 @@ public class MaintenanceDueCalculatorTests
     [Fact]
     public void KmOnly_AtOrPastInterval_ReturnsOverdue()
     {
+        // No IntervalMonths at all (item was created km-only) - the date dimension is
+        // inapplicable by design, not "missing data", and must not drag the result to Unknown.
         var result = MaintenanceDueCalculator.Calculate(
             intervalKm: 10_000, intervalMonths: null,
             lastServiceDate: null, lastServiceOdometerKm: 0,
@@ -144,19 +146,6 @@ public class MaintenanceDueCalculatorTests
             currentOdometerKm: 15_000, nowUtc: Now);
 
         Assert.Equal(MaintenanceDueStatus.Unknown, result.Status);
-    }
-
-    [Fact]
-    public void OnlyKmIntervalSet_NoMonthsInterval_ResolvesFromKmAloneNotUnknown()
-    {
-        // No IntervalMonths at all (item was created km-only) - the date dimension is
-        // inapplicable by design, not "missing data", and must not drag the result to Unknown.
-        var result = MaintenanceDueCalculator.Calculate(
-            intervalKm: 10_000, intervalMonths: null,
-            lastServiceDate: null, lastServiceOdometerKm: 0,
-            currentOdometerKm: 10_500, nowUtc: Now);
-
-        Assert.Equal(MaintenanceDueStatus.Overdue, result.Status);
     }
 
     [Fact]

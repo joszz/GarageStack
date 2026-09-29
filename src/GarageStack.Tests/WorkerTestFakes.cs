@@ -5,8 +5,8 @@ using Microsoft.Extensions.Localization;
 
 namespace GarageStack.Tests;
 
-// Shared across MqttConsumerServiceTests and PushNotificationCheckServiceTests, which both
-// construct a worker BackgroundService that needs an IServiceScopeFactory and an IPushSender.
+// Shared by the Worker tests, whose services and MQTT handlers need an IServiceScopeFactory
+// and an IPushSender.
 
 internal sealed class FakePushSender : IPushSender
 {
