@@ -146,9 +146,10 @@ updates:
           - "coverlet.*"
 
   # ── Docker base images ───────────────────────────────────────────────────────
-  # Covers both Dockerfile FROM lines and docker-compose.yml image: references
-  # (e.g. the pinned saicismartapi/saic-python-mqtt-gateway tag) in each directory.
-  - package-ecosystem: docker
+  # The image: references in docker-compose.yml (Mosquitto, PostgreSQL and the pinned
+  # saicismartapi/saic-python-mqtt-gateway tag). The docker ecosystem only reads
+  # Dockerfiles, so compose files need their own; the Dockerfile blocks follow below.
+  - package-ecosystem: docker-compose
     directory: /
     schedule:
       interval: weekly
@@ -158,6 +159,12 @@ updates:
     open-pull-requests-limit: 4
     cooldown:
       default-days: 3
+    ignore:
+      # A PostgreSQL major can't open an older major's data directory, so existing volumes
+      # need a dump and restore (or pg_upgrade), and the all-in-one image installs
+      # postgresql-18 from apt. Move to a new major by hand, in both places at once.
+      - dependency-name: "postgres"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: docker
     directory: /src/GarageStack.Api
