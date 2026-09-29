@@ -20,13 +20,13 @@ public class VehicleRepositoryTests
     {
         var ct = TestContext.Current.CancellationToken;
         await using var db = CreateDb();
-        db.Vehicles.Add(new Vehicle { Vin = "VIN001" });
+        db.Vehicles.Add(new Vehicle { Vin = "FAKEVN00000000001" });
         await db.SaveChangesAsync(ct);
 
-        var result = await new VehicleRepository(db).GetByVinAsync("VIN001", ct);
+        var result = await new VehicleRepository(db).GetByVinAsync("FAKEVN00000000001", ct);
 
         Assert.NotNull(result);
-        Assert.Equal("VIN001", result.Vin);
+        Assert.Equal("FAKEVN00000000001", result.Vin);
     }
 
     [Fact]
@@ -35,7 +35,7 @@ public class VehicleRepositoryTests
         var ct = TestContext.Current.CancellationToken;
         await using var db = CreateDb();
 
-        var result = await new VehicleRepository(db).GetByVinAsync("MISSING", ct);
+        var result = await new VehicleRepository(db).GetByVinAsync("FAKEVN00000000002", ct);
 
         Assert.Null(result);
     }
@@ -48,10 +48,10 @@ public class VehicleRepositoryTests
         var ct = TestContext.Current.CancellationToken;
         await using var db = CreateDb();
 
-        var result = await new VehicleRepository(db).GetOrCreateByVinAsync("NEWVIN", null, ct);
+        var result = await new VehicleRepository(db).GetOrCreateByVinAsync("FAKEVN00000000001", null, ct);
 
         Assert.NotNull(result);
-        Assert.Equal("NEWVIN", result.Vin);
+        Assert.Equal("FAKEVN00000000001", result.Vin);
         Assert.Equal(1, await db.Vehicles.CountAsync(ct));
     }
 
@@ -61,7 +61,7 @@ public class VehicleRepositoryTests
         var ct = TestContext.Current.CancellationToken;
         await using var db = CreateDb();
 
-        var result = await new VehicleRepository(db).GetOrCreateByVinAsync("NEWVIN2", "alice@example.com", ct);
+        var result = await new VehicleRepository(db).GetOrCreateByVinAsync("FAKEVN00000000001", "alice@example.com", ct);
 
         Assert.Equal("alice@example.com", result.SaicUser);
     }
@@ -71,12 +71,12 @@ public class VehicleRepositoryTests
     {
         var ct = TestContext.Current.CancellationToken;
         await using var db = CreateDb();
-        db.Vehicles.Add(new Vehicle { Vin = "EXIST001" });
+        db.Vehicles.Add(new Vehicle { Vin = "FAKEVN00000000001" });
         await db.SaveChangesAsync(ct);
 
-        var result = await new VehicleRepository(db).GetOrCreateByVinAsync("EXIST001", null, ct);
+        var result = await new VehicleRepository(db).GetOrCreateByVinAsync("FAKEVN00000000001", null, ct);
 
-        Assert.Equal("EXIST001", result.Vin);
+        Assert.Equal("FAKEVN00000000001", result.Vin);
         Assert.Equal(1, await db.Vehicles.CountAsync(ct));
     }
 
@@ -85,10 +85,10 @@ public class VehicleRepositoryTests
     {
         var ct = TestContext.Current.CancellationToken;
         await using var db = CreateDb();
-        db.Vehicles.Add(new Vehicle { Vin = "EXIST002", SaicUser = "old@example.com" });
+        db.Vehicles.Add(new Vehicle { Vin = "FAKEVN00000000001", SaicUser = "old@example.com" });
         await db.SaveChangesAsync(ct);
 
-        var result = await new VehicleRepository(db).GetOrCreateByVinAsync("EXIST002", "new@example.com", ct);
+        var result = await new VehicleRepository(db).GetOrCreateByVinAsync("FAKEVN00000000001", "new@example.com", ct);
 
         Assert.Equal("new@example.com", result.SaicUser);
     }
@@ -98,10 +98,10 @@ public class VehicleRepositoryTests
     {
         var ct = TestContext.Current.CancellationToken;
         await using var db = CreateDb();
-        db.Vehicles.Add(new Vehicle { Vin = "EXIST003", SaicUser = "keep@example.com" });
+        db.Vehicles.Add(new Vehicle { Vin = "FAKEVN00000000001", SaicUser = "keep@example.com" });
         await db.SaveChangesAsync(ct);
 
-        var result = await new VehicleRepository(db).GetOrCreateByVinAsync("EXIST003", null, ct);
+        var result = await new VehicleRepository(db).GetOrCreateByVinAsync("FAKEVN00000000001", null, ct);
 
         Assert.Equal("keep@example.com", result.SaicUser);
     }
@@ -113,7 +113,7 @@ public class VehicleRepositoryTests
     {
         var ct = TestContext.Current.CancellationToken;
         await using var db = CreateDb();
-        var vehicle = new Vehicle { Vin = "MVIN001" };
+        var vehicle = new Vehicle { Vin = "FAKEVN00000000001" };
         db.Vehicles.Add(vehicle);
         await db.SaveChangesAsync(ct);
 
@@ -128,7 +128,7 @@ public class VehicleRepositoryTests
     {
         var ct = TestContext.Current.CancellationToken;
         await using var db = CreateDb();
-        var vehicle = new Vehicle { Vin = "MVIN002", Model = "MG ZS EV" };
+        var vehicle = new Vehicle { Vin = "FAKEVN00000000001", Model = "MG ZS EV" };
         db.Vehicles.Add(vehicle);
         await db.SaveChangesAsync(ct);
 
@@ -156,7 +156,7 @@ public class VehicleRepositoryTests
     {
         var ct = TestContext.Current.CancellationToken;
         await using var db = CreateDb();
-        var vehicle = new Vehicle { Vin = "PVIN001" };
+        var vehicle = new Vehicle { Vin = "FAKEVN00000000001" };
         db.Vehicles.Add(vehicle);
         await db.SaveChangesAsync(ct);
         var parkedAt = new DateTime(2026, 9, 16, 8, 30, 0, DateTimeKind.Utc);
@@ -185,7 +185,7 @@ public class VehicleRepositoryTests
     {
         var ct = TestContext.Current.CancellationToken;
         await using var db = CreateDb();
-        var vehicle = new Vehicle { Vin = "MVIN001", LastMessageId = "M1" };
+        var vehicle = new Vehicle { Vin = "FAKEVN00000000001", LastMessageId = "M1" };
         db.Vehicles.Add(vehicle);
         await db.SaveChangesAsync(ct);
 
@@ -213,7 +213,7 @@ public class VehicleRepositoryTests
     {
         var ct = TestContext.Current.CancellationToken;
         await using var db = CreateDb();
-        var vehicle = new Vehicle { Vin = "CVIN001" };
+        var vehicle = new Vehicle { Vin = "FAKEVN00000000001" };
         db.Vehicles.Add(vehicle);
         await db.SaveChangesAsync(ct);
 
@@ -232,7 +232,7 @@ public class VehicleRepositoryTests
         await using var db = CreateDb();
         var vehicle = new Vehicle
         {
-            Vin = "CVIN002",
+            Vin = "FAKEVN00000000001",
             ConfigJson = """{"hw_version":"OLD"}"""
         };
         db.Vehicles.Add(vehicle);
@@ -252,7 +252,7 @@ public class VehicleRepositoryTests
         await using var db = CreateDb();
         var vehicle = new Vehicle
         {
-            Vin = "CVIN003",
+            Vin = "FAKEVN00000000001",
             ConfigJson = """{"key1":"val1"}"""
         };
         db.Vehicles.Add(vehicle);

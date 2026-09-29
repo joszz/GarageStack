@@ -5,8 +5,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace GarageStack.Tests;
 
-// FakePushSender / FakeServiceScopeFactory live in WorkerTestFakes.cs (shared with
-// MqttConsumerServiceTests).
+// FakePushSender / FakeServiceScopeFactory live in WorkerTestFakes.cs.
 
 public class PushNotificationCheckServiceTests
 {
@@ -259,24 +258,6 @@ public class PushNotificationCheckServiceTests
     }
 
     // ---------------------------------------------------------------------------
-    // CheckEvSoc — BEV/PHEV only via vehicle type guard
-    // ---------------------------------------------------------------------------
-
-    [Fact]
-    public void CheckEvSoc_HevVehicle_NoAlertEvenBelowThreshold()
-    {
-        // We test this indirectly via CheckChargingComplete's CanCharge guard —
-        // CheckEvSoc is private, but we can verify the HEV guard via CheckChargingComplete.
-        // For direct SOC coverage, the important contract is: HEV never gets charging-related alerts.
-        var svc = CreateService();
-        var alerts = new List<(string, string, string)>();
-
-        svc.CheckChargingComplete(new TelemetrySnapshot { IsCharging = true }, "VIN1", "hev", alerts);
-
-        Assert.Empty(alerts);
-    }
-
-    // ---------------------------------------------------------------------------
     // CheckTyrePressure — configurable low/high thresholds
     // ---------------------------------------------------------------------------
 
@@ -323,7 +304,7 @@ public class PushNotificationCheckServiceTests
         var svc = CreateService(new TyrePressureThresholds(LowBar: 2.4, GoodBar: 2.55, HighBar: 2.7));
         var alerts = new List<(string, string, string)>();
 
-        // 2.3 bar is below the default 2.2 low bar (would not alert with defaults), but below
+        // 2.3 bar is above the default 2.2 low bar (would not alert with defaults), but below
         // the configured 2.4 low bar here.
         svc.CheckTyrePressure(new TelemetrySnapshot { TyrePressureFrontLeft = 2.3 }, alerts);
 

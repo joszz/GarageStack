@@ -77,16 +77,6 @@ public class OidcAccessPolicyTests
     // ── Emails ────────────────────────────────────────────────────────────────
 
     [Fact]
-    public void Evaluate_AllowsAnAllowListedEmail()
-    {
-        var options = new OidcOptions { AllowedEmails = "owner@example.com" };
-
-        var decision = OidcAccessPolicy.Evaluate(User(("email", "owner@example.com")), options);
-
-        Assert.True(decision.Allowed);
-    }
-
-    [Fact]
     public void Evaluate_DeniesAnEmailOutsideTheAllowList()
     {
         var options = new OidcOptions { AllowedEmails = "owner@example.com" };

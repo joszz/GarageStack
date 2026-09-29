@@ -1,3 +1,4 @@
+using System.Globalization;
 using GarageStack.Core.Configuration;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -54,9 +55,19 @@ public class HostingExtensionsTests
     [Fact]
     public void TyrePressureThresholds_ReadsDecimalsThesameWayInEveryLocale()
     {
-        var thresholds = Resolve(Config(("TyrePressure:HighBar", "3.15")));
+        // Dutch writes a decimal comma, so a culture-sensitive parse would read "3.15" as 315.
+        var previous = CultureInfo.CurrentCulture;
+        CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("nl-NL");
+        try
+        {
+            var thresholds = Resolve(Config(("TyrePressure:HighBar", "3.15")));
 
-        Assert.Equal(3.15, thresholds.HighBar);
+            Assert.Equal(3.15, thresholds.HighBar);
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = previous;
+        }
     }
 
     private static HvBatteryCapacity ResolveCapacity(IConfiguration configuration) =>

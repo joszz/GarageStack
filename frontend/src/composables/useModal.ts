@@ -1,7 +1,7 @@
 import { ref } from 'vue'
 
-export function useModal(initialOpen = false) {
-  const isOpen = ref(initialOpen)
+export function useModal() {
+  const isOpen = ref(false)
 
   function open() {
     isOpen.value = true
@@ -11,14 +11,9 @@ export function useModal(initialOpen = false) {
     isOpen.value = false
   }
 
-  function toggle() {
-    isOpen.value = !isOpen.value
-  }
-
   return {
     isOpen,
     open,
     close,
-    toggle,
   }
 }

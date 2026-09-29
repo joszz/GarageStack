@@ -1,15 +1,13 @@
-import { describe, it, expect, afterEach, vi } from 'vitest'
-import { ApiError, request, requestJson, send } from '@/services/apiCore'
-
-function makeResponse(status: number, body?: unknown) {
-  return {
-    ok: status >= 200 && status < 300,
-    status,
-    json: () => Promise.resolve(body),
-  }
-}
-
-type FetchSpy = (...args: Parameters<typeof fetch>) => Promise<ReturnType<typeof makeResponse>>
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import {
+  ApiError,
+  clearUnauthorizedState,
+  request,
+  requestJson,
+  send,
+  setUnauthorizedHandler,
+} from '@/services/apiCore'
+import { makeResponse, type FetchSpy } from './fetchStub'
 
 describe('apiCore JSON helpers', () => {
   afterEach(() => {
@@ -57,6 +55,12 @@ describe('apiCore errors', () => {
     return error as ApiError
   }
 
+  it('names the status in the message of a failed request', async () => {
+    vi.stubGlobal('fetch', vi.fn<FetchSpy>().mockResolvedValue(makeResponse(500)))
+
+    await expect(request('/api/x')).rejects.toThrow('API error 500')
+  })
+
   it('keeps the code and detail of a problem answer', async () => {
     const error = await failure(
       makeResponse(400, {
@@ -94,5 +98,49 @@ describe('apiCore errors', () => {
     const error = await send('/api/x', 'POST').catch((e: unknown) => e)
 
     expect((error as ApiError).code).toBe('csrf.originNotAllowed')
+  })
+})
+
+describe('apiCore unauthorized handler', () => {
+  beforeEach(() => {
+    clearUnauthorizedState()
+    vi.stubGlobal('fetch', vi.fn<FetchSpy>().mockResolvedValue(makeResponse(401)))
+  })
+
+  afterEach(() => {
+    setUnauthorizedHandler(null)
+    clearUnauthorizedState()
+    vi.unstubAllGlobals()
+  })
+
+  it('calls the handler once on a 401 response', async () => {
+    const handler = vi.fn<() => void>()
+    setUnauthorizedHandler(handler)
+    await request('/api/x').catch(() => {})
+    expect(handler).toHaveBeenCalledOnce()
+  })
+
+  it('does not call the handler a second time when already handling a 401', async () => {
+    const handler = vi.fn<() => void>()
+    setUnauthorizedHandler(handler)
+    await Promise.all([request('/api/x').catch(() => {}), request('/api/x').catch(() => {})])
+    expect(handler).toHaveBeenCalledOnce()
+  })
+
+  it('calls the handler again after clearUnauthorizedState', async () => {
+    const handler = vi.fn<() => void>()
+    setUnauthorizedHandler(handler)
+    await request('/api/x').catch(() => {})
+    clearUnauthorizedState()
+    await request('/api/x').catch(() => {})
+    expect(handler).toHaveBeenCalledTimes(2)
+  })
+
+  it('does not call a removed handler', async () => {
+    const handler = vi.fn<() => void>()
+    setUnauthorizedHandler(handler)
+    setUnauthorizedHandler(null)
+    await request('/api/x').catch(() => {})
+    expect(handler).not.toHaveBeenCalled()
   })
 })

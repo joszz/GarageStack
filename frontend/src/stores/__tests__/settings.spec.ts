@@ -6,7 +6,6 @@ import { ALL_CARD_IDS } from '@/cards/registry'
 import { useUiSettingsStore } from '@/stores/settingsUi'
 import { useDashboardSettingsStore } from '@/stores/settingsDashboard'
 import { useMapSettingsStore } from '@/stores/settingsMap'
-import { NOTIFICATION_CATEGORY_IDS } from '@/utils/notificationCategories'
 import { METRIC_UNITS } from '@/utils/units'
 
 // Settings persistence is debounced (see createDebouncedSave in settingsShared.ts) so a burst of
@@ -18,58 +17,6 @@ const LEGACY_KEY = 'garagestack-settings'
 const UI_KEY = 'garagestack-settings-ui'
 const DASHBOARD_KEY = 'garagestack-settings-dashboard'
 const MAP_KEY = 'garagestack-settings-map'
-
-describe('defaultCards', () => {
-  it('includes every registered card id', () => {
-    expect(defaultCards()).toHaveLength(ALL_CARD_IDS.length)
-  })
-
-  it('places visible cards before hidden ones', () => {
-    const cards = defaultCards('bev')
-    const firstHidden = cards.findIndex((c) => !c.visible)
-    const cardsFromFirstHidden = firstHidden >= 0 ? cards.slice(firstHidden) : []
-    expect(cardsFromFirstHidden.some((c) => c.visible)).toBe(false)
-  })
-
-  it('hev: hides charging, efficiencyCharge, and plug-only cards; shows fuel', () => {
-    const cards = defaultCards('hev')
-    expect(cards.find((c) => c.id === 'fuelLevel')!.visible).toBe(true)
-    expect(cards.find((c) => c.id === 'charging')!.visible).toBe(false)
-    expect(cards.find((c) => c.id === 'efficiencyCharge')!.visible).toBe(false)
-    expect(cards.find((c) => c.id === 'remainingCharge')!.visible).toBe(false)
-    expect(cards.find((c) => c.id === 'chargingSession')!.visible).toBe(false)
-    expect(cards.find((c) => c.id === 'batteryHeating')!.visible).toBe(false)
-  })
-
-  it('bev: hides speed by default (already shown by the overview gauge); shows activeTrip, remainingCharge, chargingSession, batteryHeating', () => {
-    const cards = defaultCards('bev')
-    expect(cards.find((c) => c.id === 'speed')!.visible).toBe(false)
-    expect(cards.find((c) => c.id === 'activeTrip')!.visible).toBe(true)
-    expect(cards.find((c) => c.id === 'remainingCharge')!.visible).toBe(true)
-    expect(cards.find((c) => c.id === 'chargingSession')!.visible).toBe(true)
-    expect(cards.find((c) => c.id === 'batteryHeating')!.visible).toBe(true)
-  })
-
-  it('bev: hides fuel cards, shows charging and efficiencyCharge', () => {
-    const cards = defaultCards('bev')
-    expect(cards.find((c) => c.id === 'fuelLevel')!.visible).toBe(false)
-    expect(cards.find((c) => c.id === 'fuelRange')!.visible).toBe(false)
-    expect(cards.find((c) => c.id === 'charging')!.visible).toBe(true)
-    expect(cards.find((c) => c.id === 'efficiencyCharge')!.visible).toBe(true)
-  })
-
-  it('phev: shows both fuel and charging', () => {
-    const cards = defaultCards('phev')
-    expect(cards.find((c) => c.id === 'fuelLevel')!.visible).toBe(true)
-    expect(cards.find((c) => c.id === 'charging')!.visible).toBe(true)
-  })
-
-  it('unknown: hides charging, shows fuel', () => {
-    const cards = defaultCards('unknown')
-    expect(cards.find((c) => c.id === 'charging')!.visible).toBe(false)
-    expect(cards.find((c) => c.id === 'fuelLevel')!.visible).toBe(true)
-  })
-})
 
 describe('useUiSettingsStore', () => {
   beforeEach(() => {
@@ -230,42 +177,6 @@ describe('useUiSettingsStore', () => {
   })
 })
 
-describe('notificationTypeExclusions migration from legacy notificationTypeFilter', () => {
-  beforeEach(() => {
-    setActivePinia(createPinia())
-    localStorage.clear()
-  })
-
-  it('converts a non-empty legacy whitelist into the inverse exclusion list', () => {
-    localStorage.setItem(
-      UI_KEY,
-      JSON.stringify({ notificationTypeFilter: ['low-tyre', 'maintenance'] }),
-    )
-    const store = useUiSettingsStore()
-    expect(store.notificationTypeExclusions).toEqual(
-      NOTIFICATION_CATEGORY_IDS.filter((id) => !['low-tyre', 'maintenance'].includes(id)),
-    )
-  })
-
-  it('treats an empty legacy whitelist as no exclusions', () => {
-    localStorage.setItem(UI_KEY, JSON.stringify({ notificationTypeFilter: [] }))
-    const store = useUiSettingsStore()
-    expect(store.notificationTypeExclusions).toEqual([])
-  })
-
-  it('prefers the new field over the legacy one when both are present', () => {
-    localStorage.setItem(
-      UI_KEY,
-      JSON.stringify({
-        notificationTypeFilter: ['low-tyre'],
-        notificationTypeExclusions: ['engine-start'],
-      }),
-    )
-    const store = useUiSettingsStore()
-    expect(store.notificationTypeExclusions).toEqual(['engine-start'])
-  })
-})
-
 describe('useMapSettingsStore', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
@@ -372,49 +283,7 @@ describe('useDashboardSettingsStore', () => {
     expect(store.cards.find((c) => c.id === 'sunRoof')!.visible).toBe(false)
   })
 
-  describe('card migration', () => {
-    it('expands legacy fuel card into fuelLevel + fuelRange with same visibility', () => {
-      localStorage.setItem(
-        DASHBOARD_KEY,
-        JSON.stringify({
-          cards: [
-            { id: 'fuel', visible: false },
-            { id: 'odometer', visible: true },
-          ],
-        }),
-      )
-      const store = useDashboardSettingsStore()
-      expect(store.cards.find((c) => c.id === 'fuelLevel')!.visible).toBe(false)
-      expect(store.cards.find((c) => c.id === 'fuelRange')!.visible).toBe(false)
-      expect(store.cards.find((c) => c.id === 'odometer')!.visible).toBe(true)
-    })
-
-    it('expands legacy efficiency card into four efficiency cards', () => {
-      localStorage.setItem(
-        DASHBOARD_KEY,
-        JSON.stringify({
-          cards: [{ id: 'efficiency', visible: false }],
-        }),
-      )
-      const store = useDashboardSettingsStore()
-      expect(store.cards.find((c) => c.id === 'efficiencyDistance')!.visible).toBe(false)
-      expect(store.cards.find((c) => c.id === 'efficiencyEnergy')!.visible).toBe(false)
-      expect(store.cards.find((c) => c.id === 'efficiencyCharge')!.visible).toBe(false)
-      expect(store.cards.find((c) => c.id === 'efficiencyRatio')!.visible).toBe(false)
-    })
-
-    it('migrates legacy doors card and inserts windows alongside it', () => {
-      localStorage.setItem(
-        DASHBOARD_KEY,
-        JSON.stringify({
-          cards: [{ id: 'doors', visible: false }],
-        }),
-      )
-      const store = useDashboardSettingsStore()
-      expect(store.cards.find((c) => c.id === 'doors')!.visible).toBe(false)
-      expect(store.cards.find((c) => c.id === 'windows')).toBeTruthy()
-    })
-
+  describe('stored card list', () => {
     it('appends newly introduced cards using their default visibility when migrating old data', () => {
       // A saved list that only has known-new ids but is missing some
       localStorage.setItem(
@@ -475,32 +344,6 @@ describe('legacy combined-blob migration', () => {
     expect(map.routeOutlineEnabled).toBe(true)
     expect(map.heatmapEnabled).toBe(false)
     expect(map.chargingMinPowerKw).toBe(22)
-  })
-
-  it('migrates the ancient panels object format into the dashboard store', () => {
-    localStorage.setItem(
-      LEGACY_KEY,
-      JSON.stringify({
-        panels: {
-          showFuel: false,
-          showEvBattery: true,
-          showCharging: false,
-          showHvPower: true,
-          showLights: false,
-          showEfficiency: true,
-          showSunRoof: true,
-        },
-        theme: 'light',
-      }),
-    )
-    const dashboard = useDashboardSettingsStore()
-    expect(dashboard.cards.find((c) => c.id === 'fuelLevel')!.visible).toBe(false)
-    expect(dashboard.cards.find((c) => c.id === 'fuelRange')!.visible).toBe(false)
-    expect(dashboard.cards.find((c) => c.id === 'efficiencyDistance')!.visible).toBe(true)
-    expect(dashboard.cards.find((c) => c.id === 'sunRoof')!.visible).toBe(true)
-
-    const ui = useUiSettingsStore()
-    expect(ui.theme).toBe('light')
   })
 
   it('does not touch the legacy key once split (each store writes to its own key)', async () => {

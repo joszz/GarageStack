@@ -10,7 +10,8 @@ public class WidgetStatusDtoTests
     [Fact]
     public void FromSnapshot_PowerUsageOfDay_PassesKwhThrough()
     {
-        // The gateway already publishes kWh; dividing by 1000 turned 16.34 kWh into 0.02 (issue #284)
+        // The counter goes out as the gateway publishes it (kWh on a plug-in car, hundredths of a
+        // litre on a plain hybrid); dividing by 1000 turned 16.34 kWh into 0.02 (issue #284)
         var snapshot = new TelemetrySnapshot { PowerUsageOfDay = 16.337 };
 
         var dto = WidgetStatusDto.FromSnapshot(snapshot, new KeyEchoLocalizer());

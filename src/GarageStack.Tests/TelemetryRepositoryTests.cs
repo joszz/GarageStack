@@ -78,7 +78,7 @@ public class TelemetryRepositoryTests
     {
         var ct = TestContext.Current.CancellationToken;
         await using var db = CreateDb();
-        var vehicle = new Vehicle { Vin = "TEST00000000000001" };
+        var vehicle = new Vehicle { Vin = "FAKEVN00000000001" };
         db.Vehicles.Add(vehicle);
         await db.SaveChangesAsync(ct);
 
@@ -101,7 +101,7 @@ public class TelemetryRepositoryTests
     {
         var ct = TestContext.Current.CancellationToken;
         await using var db = CreateDb();
-        var vehicle = new Vehicle { Vin = "TEST00000000000003" };
+        var vehicle = new Vehicle { Vin = "FAKEVN00000000003" };
         db.Vehicles.Add(vehicle);
         await db.SaveChangesAsync(ct);
 
@@ -124,7 +124,7 @@ public class TelemetryRepositoryTests
     {
         var ct = TestContext.Current.CancellationToken;
         await using var db = CreateDb();
-        var vehicle = new Vehicle { Vin = "TEST00000000000004" };
+        var vehicle = new Vehicle { Vin = "FAKEVN00000000004" };
         db.Vehicles.Add(vehicle);
         await db.SaveChangesAsync(ct);
 
@@ -163,7 +163,7 @@ public class TelemetryRepositoryTests
     {
         var ct = TestContext.Current.CancellationToken;
         await using var db = CreateDb();
-        var vehicle = new Vehicle { Vin = "TEST00000000000005" };
+        var vehicle = new Vehicle { Vin = "FAKEVN00000000005" };
         db.Vehicles.Add(vehicle);
         await db.SaveChangesAsync(ct);
 
@@ -185,7 +185,7 @@ public class TelemetryRepositoryTests
     {
         var ct = TestContext.Current.CancellationToken;
         await using var db = CreateDb();
-        var vehicle = new Vehicle { Vin = "TEST00000000000007" };
+        var vehicle = new Vehicle { Vin = "FAKEVN00000000007" };
         db.Vehicles.Add(vehicle);
         await db.SaveChangesAsync(ct);
 
@@ -207,7 +207,7 @@ public class TelemetryRepositoryTests
     {
         var ct = TestContext.Current.CancellationToken;
         await using var db = CreateDb();
-        var vehicle = new Vehicle { Vin = "TEST00000000000006" };
+        var vehicle = new Vehicle { Vin = "FAKEVN00000000006" };
         db.Vehicles.Add(vehicle);
         await db.SaveChangesAsync(ct);
 
@@ -228,7 +228,7 @@ public class TelemetryRepositoryTests
     {
         var ct = TestContext.Current.CancellationToken;
         await using var db = CreateDb();
-        var vehicle = new Vehicle { Vin = "TEST00000000000002" };
+        var vehicle = new Vehicle { Vin = "FAKEVN00000000002" };
         db.Vehicles.Add(vehicle);
         await db.SaveChangesAsync(ct);
 
@@ -263,7 +263,7 @@ public class TelemetryRepositoryTests
         // Take window. The fallback query must recover it.
         var ct = TestContext.Current.CancellationToken;
         await using var db = CreateDb();
-        var vehicle = new Vehicle { Vin = "TEST00000000000008" };
+        var vehicle = new Vehicle { Vin = "FAKEVN00000000008" };
         db.Vehicles.Add(vehicle);
         await db.SaveChangesAsync(ct);
 
@@ -311,7 +311,7 @@ public class TelemetryRepositoryTests
         var ct = TestContext.Current.CancellationToken;
         await using var db = CreateDb();
         using var cache = new MemoryCache(new MemoryCacheOptions());
-        var vehicle = new Vehicle { Vin = "CACHE0000000000001" };
+        var vehicle = new Vehicle { Vin = "FAKEVN00000000001" };
         db.Vehicles.Add(vehicle);
         await db.SaveChangesAsync(ct);
 
@@ -338,7 +338,7 @@ public class TelemetryRepositoryTests
         var ct = TestContext.Current.CancellationToken;
         await using var db = CreateDb();
         using var cache = new MemoryCache(new MemoryCacheOptions());
-        var vehicle = new Vehicle { Vin = "CACHE0000000000002" };
+        var vehicle = new Vehicle { Vin = "FAKEVN00000000002" };
         db.Vehicles.Add(vehicle);
         await db.SaveChangesAsync(ct);
 
@@ -364,7 +364,7 @@ public class TelemetryRepositoryTests
     {
         var ct = TestContext.Current.CancellationToken;
         await using var db = CreateDb();
-        var vehicle = new Vehicle { Vin = "STAT00000000000001" };
+        var vehicle = new Vehicle { Vin = "FAKEVN00000000001" };
         db.Vehicles.Add(vehicle);
         await db.SaveChangesAsync(ct);
 
@@ -384,7 +384,7 @@ public class TelemetryRepositoryTests
     {
         var ct = TestContext.Current.CancellationToken;
         await using var db = CreateDb();
-        var vehicle = new Vehicle { Vin = "STAT00000000000002" };
+        var vehicle = new Vehicle { Vin = "FAKEVN00000000002" };
         db.Vehicles.Add(vehicle);
         await db.SaveChangesAsync(ct);
 
@@ -409,7 +409,7 @@ public class TelemetryRepositoryTests
     {
         var ct = TestContext.Current.CancellationToken;
         await using var db = CreateDb();
-        var vehicle = new Vehicle { Vin = "STAT00000000000003" };
+        var vehicle = new Vehicle { Vin = "FAKEVN00000000003" };
         db.Vehicles.Add(vehicle);
         await db.SaveChangesAsync(ct);
 
@@ -432,7 +432,7 @@ public class TelemetryRepositoryMergeTests
         var db = new AppDbContext(new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options);
-        var vehicle = new Vehicle { Vin = "MERGE0000000000001" };
+        var vehicle = new Vehicle { Vin = "FAKEVN00000000001" };
         db.Vehicles.Add(vehicle);
         await db.SaveChangesAsync();
         return (db, new TelemetryRepository(db), vehicle);

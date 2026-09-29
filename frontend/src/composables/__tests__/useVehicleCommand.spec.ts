@@ -109,7 +109,7 @@ describe('useVehicleCommand', () => {
 
   it('does nothing when vin is null', async () => {
     const { send, sending, lastResult } = useVehicleCommand()
-    await send(null, 'lock', 'lock')
+    await send(null, 'lock', 'True')
     expect(sending.value).toBeNull()
     expect(lastResult.value).toBeNull()
     expect(sendCommandMock).not.toHaveBeenCalled()
@@ -117,7 +117,7 @@ describe('useVehicleCommand', () => {
 
   it('returns false when vin is null', async () => {
     const { send } = useVehicleCommand()
-    expect(await send(null, 'lock', 'lock')).toBe(false)
+    expect(await send(null, 'lock', 'True')).toBe(false)
   })
 
   it('returns true after a successful command', async () => {
@@ -134,7 +134,7 @@ describe('useVehicleCommand', () => {
 
   it('does nothing when vin is undefined', async () => {
     const { send, sending } = useVehicleCommand()
-    await send(undefined, 'lock', 'lock')
+    await send(undefined, 'lock', 'True')
     expect(sending.value).toBeNull()
   })
 
@@ -144,57 +144,57 @@ describe('useVehicleCommand', () => {
     sendCommandMock.mockImplementation(async () => {
       sendingDuringCall = sending.value
     })
-    await send('VIN1', 'climate', 'start')
+    await send('VIN1', 'climate', 'on')
     expect(sendingDuringCall).toBe('climate')
   })
 
   it('resets sending to null after a successful command', async () => {
     sendCommandMock.mockResolvedValue(undefined)
     const { send, sending } = useVehicleCommand()
-    await send('VIN1', 'lock', 'lock')
+    await send('VIN1', 'lock', 'True')
     expect(sending.value).toBeNull()
   })
 
   it('resets sending to null after a failed command', async () => {
     sendCommandMock.mockRejectedValue(new Error('API error'))
     const { send, sending } = useVehicleCommand()
-    await send('VIN1', 'lock', 'lock')
+    await send('VIN1', 'lock', 'True')
     expect(sending.value).toBeNull()
   })
 
   it('sets lastResult ok:true after a successful command', async () => {
     sendCommandMock.mockResolvedValue(undefined)
     const { send, lastResult } = useVehicleCommand()
-    await send('VIN1', 'climate', 'start')
+    await send('VIN1', 'climate', 'on')
     expect(lastResult.value).toEqual({ key: 'climate', ok: true, detail: null })
   })
 
   it('sets lastResult ok:false after a failed command', async () => {
     sendCommandMock.mockRejectedValue(new Error('API error'))
     const { send, lastResult } = useVehicleCommand()
-    await send('VIN1', 'climate', 'start')
+    await send('VIN1', 'climate', 'on')
     expect(lastResult.value).toEqual({ key: 'climate', ok: false, detail: null })
   })
 
   it('clears lastResult when a new command starts', async () => {
     sendCommandMock.mockResolvedValue(undefined)
     const { send, lastResult } = useVehicleCommand()
-    await send('VIN1', 'lock', 'lock')
+    await send('VIN1', 'lock', 'True')
     expect(lastResult.value?.ok).toBe(true)
 
     let resultDuringSecondCall: typeof lastResult.value = undefined as never
     sendCommandMock.mockImplementation(async () => {
       resultDuringSecondCall = lastResult.value
     })
-    await send('VIN1', 'unlock', 'unlock')
+    await send('VIN1', 'find-my-car', 'activate')
     expect(resultDuringSecondCall).toBeNull()
   })
 
   it('passes vin, command and value through to the API', async () => {
     sendCommandMock.mockResolvedValue(undefined)
     const { send } = useVehicleCommand()
-    await send('MYVIN', 'charge-limit', '80')
-    expect(sendCommandMock).toHaveBeenCalledWith('MYVIN', 'charge-limit', '80')
+    await send('MYVIN', 'charge-limit', '16A')
+    expect(sendCommandMock).toHaveBeenCalledWith('MYVIN', 'charge-limit', '16A')
   })
 
   it('marks a command as pending after success', async () => {

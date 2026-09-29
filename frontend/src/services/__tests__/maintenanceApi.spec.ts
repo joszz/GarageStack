@@ -1,16 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 
 import { maintenanceApi } from '@/services/maintenanceApi'
-
-function makeResponse(status: number, body?: unknown) {
-  return {
-    ok: status >= 200 && status < 300,
-    status,
-    json: () => Promise.resolve(body),
-  }
-}
-
-type FetchSpy = (...args: Parameters<typeof fetch>) => Promise<ReturnType<typeof makeResponse>>
+import { makeResponse, type FetchSpy } from './fetchStub'
 
 describe('maintenanceApi', () => {
   beforeEach(() => {
@@ -91,10 +82,5 @@ describe('maintenanceApi', () => {
     const [url, options] = fetchSpy.mock.calls[0]!
     expect(url).toBe('/api/vehicles/VIN1/maintenance/1/log/5')
     expect(options!.method).toBe('DELETE')
-  })
-
-  it('throws on a non-200 error status', async () => {
-    vi.stubGlobal('fetch', vi.fn<FetchSpy>().mockResolvedValue(makeResponse(500)))
-    await expect(maintenanceApi.list('VIN1')).rejects.toThrow('API error 500')
   })
 })

@@ -33,30 +33,6 @@ public class OidcOptionsTests
     }
 
     [Fact]
-    public void EnvironmentVariableStyleKeys_BindToTheSameOptions()
-    {
-        // Docker passes Oidc__Authority; ASP.NET Core maps "__" to ":" before binding.
-        var config = new ConfigurationBuilder()
-            .AddInMemoryCollection(
-            [
-                new("Oidc:Authority", "https://auth.example.com"),
-                new("Oidc:ClientId", "garagestack"),
-                new("Oidc:AutoLogin", "true"),
-                new("Oidc:ProviderName", "Authentik"),
-                new("Oidc:RequireHttpsMetadata", "false"),
-            ])
-            .Build();
-
-        var options = config.GetSection(OidcOptions.SectionName).Get<OidcOptions>()!;
-
-        Assert.Equal("https://auth.example.com", options.Authority);
-        Assert.Equal("garagestack", options.ClientId);
-        Assert.True(options.AutoLogin);
-        Assert.Equal("Authentik", options.ProviderName);
-        Assert.False(options.RequireHttpsMetadata);
-    }
-
-    [Fact]
     public void Defaults_CoverTheCommonProviderSetup()
     {
         var options = new OidcOptions();

@@ -10,6 +10,7 @@ import {
   type CardId,
 } from '@/cards/registry'
 import type { TelemetrySnapshot, TripSummary } from '@/services/vehicleApi'
+import { tripSummary } from '@/services/__tests__/tripFixtures'
 import type { VehicleType } from '@/stores/vehicle'
 
 function context(
@@ -18,10 +19,6 @@ function context(
   latestTrip: TripSummary | null = null,
 ): CardDataContext {
   return { status: status as TelemetrySnapshot, vehicleType, latestTrip }
-}
-
-function trip(maxSpeedKmh: number | null): TripSummary {
-  return { maxSpeedKmh } as TripSummary
 }
 
 describe('card registry', () => {
@@ -90,8 +87,10 @@ describe('card registry', () => {
 
   it('needs a trip with recorded speeds for the top speed card', () => {
     expect(cardHasData('topSpeed', context({}, 'bev', null))).toBe(false)
-    expect(cardHasData('topSpeed', context({}, 'bev', trip(null)))).toBe(false)
-    expect(cardHasData('topSpeed', context({}, 'bev', trip(88)))).toBe(true)
+    expect(cardHasData('topSpeed', context({}, 'bev', tripSummary({ maxSpeedKmh: null })))).toBe(
+      false,
+    )
+    expect(cardHasData('topSpeed', context({}, 'bev', tripSummary({ maxSpeedKmh: 88 })))).toBe(true)
   })
 })
 
@@ -106,19 +105,33 @@ describe('defaultCards', () => {
     expect(visibility).toEqual([...visibility].sort((a, b) => Number(b) - Number(a)))
   })
 
-  it('leaves fuel cards out for a BEV and charge cards out for an HEV', () => {
-    const visible = (type: VehicleType) =>
-      new Set(
-        defaultCards(type)
-          .filter((c) => c.visible)
-          .map((c) => c.id as CardId),
-      )
+  const PLUG_IN_CARDS: CardId[] = [
+    'charging',
+    'efficiencyCharge',
+    'remainingCharge',
+    'chargingSession',
+    'batteryHeating',
+    'electricRange',
+  ]
 
-    expect(visible('bev').has('fuelLevel')).toBe(false)
-    expect(visible('bev').has('charging')).toBe(true)
-    expect(visible('hev').has('charging')).toBe(false)
-    expect(visible('hev').has('fuelLevel')).toBe(true)
-    expect(visible('bev').has('electricRange')).toBe(true)
-    expect(visible('hev').has('electricRange')).toBe(false)
+  it.each<[VehicleType, CardId[], CardId[]]>([
+    ['hev', ['fuelLevel', 'fuelRange'], PLUG_IN_CARDS],
+    ['phev', ['fuelLevel', 'fuelRange', ...PLUG_IN_CARDS], []],
+    ['bev', ['activeTrip', ...PLUG_IN_CARDS], ['fuelLevel', 'fuelRange']],
+    ['unknown', ['fuelLevel'], ['charging']],
+  ])('shows and hides the drivetrain-dependent cards for %s', (type, shown, hidden) => {
+    const visible = defaultCards(type)
+      .filter((c) => c.visible)
+      .map((c) => c.id)
+
+    for (const id of shown) expect(visible).toContain(id)
+    for (const id of hidden) expect(visible).not.toContain(id)
   })
+
+  it.each<VehicleType>(['hev', 'phev', 'bev', 'unknown'])(
+    'leaves speed off for %s, since the overview gauge already shows it',
+    (type) => {
+      expect(defaultCards(type).find((c) => c.id === 'speed')!.visible).toBe(false)
+    },
+  )
 })
