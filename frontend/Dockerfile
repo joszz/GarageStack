@@ -1,17 +1,19 @@
-FROM node:24-alpine AS build
+FROM node:26-alpine AS build
 WORKDIR /app
 ARG VITE_DEMO_MODE=false
 ENV VITE_DEMO_MODE=$VITE_DEMO_MODE
 # OS_PATCH_DATE busts the layer cache so apk upgrade actually re-runs instead of
 # reusing a stale cached layer from before an OS package fix was published.
 ARG OS_PATCH_DATE=0
-RUN echo "os patch date: ${OS_PATCH_DATE}" && apk upgrade --no-cache && corepack enable
+RUN echo "os patch date: ${OS_PATCH_DATE}" && apk upgrade --no-cache
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-# No version here: corepack takes it from package.json's packageManager field, so the pnpm
-# version is pinned in one place for local installs, CI and every image. pnpm 12+ is a native
-# binary that corepack's wrapper downloads on first use; `pnpm --version` fetches it and prints
+# No version here: npm installs the one in package.json's packageManager field, so the pnpm
+# version is pinned in one place for local installs, CI and every image. Node 25+ images no
+# longer bundle corepack. The pnpm package's install script links the native binary for this
+# platform (musl), so npm's allowScripts policy has to let it run, and `pnpm --version` prints
 # the version the build runs.
-RUN corepack prepare --activate && pnpm --version \
+RUN npm install --global --no-fund --no-audit --allow-scripts=pnpm "$(node -p "require('./package.json').packageManager.split('+')[0]")" \
+    && pnpm --version \
     && pnpm config set minimum-release-age 0 \
     && pnpm install --frozen-lockfile --ignore-scripts
 COPY . .

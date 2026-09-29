@@ -1,19 +1,21 @@
 # syntax=docker/dockerfile:1.7
 
 # ── Stage 1: Build frontend ───────────────────────────────────────────────────
-FROM node:24-alpine AS frontend-build
+FROM node:26-alpine AS frontend-build
 WORKDIR /app
 # OS_PATCH_DATE busts the layer cache so apk upgrade actually re-runs instead of
 # reusing a stale cached layer from before an OS package fix was published.
 ARG OS_PATCH_DATE=0
-RUN echo "os patch date: ${OS_PATCH_DATE}" && apk upgrade --no-cache && corepack enable
+RUN echo "os patch date: ${OS_PATCH_DATE}" && apk upgrade --no-cache
 COPY frontend/package.json frontend/pnpm-lock.yaml frontend/pnpm-workspace.yaml ./
-# No version here: corepack takes it from package.json's packageManager field, so the pnpm
-# version is pinned in one place for local installs, CI and every image. pnpm 12+ is a native
-# binary that corepack's wrapper downloads on first use; `pnpm --version` fetches it and prints
+# No version here: npm installs the one in package.json's packageManager field, so the pnpm
+# version is pinned in one place for local installs, CI and every image. Node 25+ images no
+# longer bundle corepack. The pnpm package's install script links the native binary for this
+# platform (musl), so npm's allowScripts policy has to let it run, and `pnpm --version` prints
 # the version the build runs.
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
-    corepack prepare --activate && pnpm --version && \
+    npm install --global --no-fund --no-audit --allow-scripts=pnpm "$(node -p "require('./package.json').packageManager.split('+')[0]")" && \
+    pnpm --version && \
     pnpm config set store-dir /pnpm/store && \
     pnpm config set minimum-release-age 0 && \
     NODE_ENV=development NPM_CONFIG_PRODUCTION=false pnpm install --frozen-lockfile --ignore-scripts --prod=false --config.production=false

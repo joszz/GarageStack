@@ -11,7 +11,7 @@ Don't have a real MG vehicle or SAIC account to test against? See [DEMO.md](../d
 To work against the full stack (real or self-provided credentials):
 
 1. Fork the repository and clone it locally.
-2. Install prerequisites: .NET (latest LTS), Node.js, PNPM, PostgreSQL, Docker (optional). Use the PNPM version in the `packageManager` field of `frontend/package.json`: `pnpm self-update <version>` installs it, or `corepack enable` picks it up on its own. PNPM does not switch to it by itself in this repo (see the note in `frontend/pnpm-workspace.yaml`).
+2. Install prerequisites: .NET (latest LTS), Node.js 26 (what CI and the images build with), PNPM, PostgreSQL, Docker (optional). Use the PNPM version in the `packageManager` field of `frontend/package.json`: `pnpm self-update <version>` installs it. Node 25 and later no longer bundle corepack, so `corepack enable` only works after `npm install --global corepack`. PNPM does not switch to it by itself in this repo (see the note in `frontend/pnpm-workspace.yaml`).
 3. Copy `.env.example` to `.env` and fill in your values.
 4. Run `pnpm install` inside the `frontend/` directory.
 5. Run `dotnet restore` from the repository root (the solution spans multiple projects under `src/`).
