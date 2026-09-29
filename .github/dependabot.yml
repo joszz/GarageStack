@@ -192,11 +192,11 @@ updates:
     cooldown:
       default-days: 3
     ignore:
-      # Node 25 is an odd-numbered "Current" release, not LTS. Node 26 doesn't
-      # become LTS until October 2026. Stay on the 24-alpine LTS line until
-      # 26 actually goes LTS, then update this ignore rule.
+      # Track the LTS line. From Node 27 on every major becomes LTS: released in April,
+      # promoted to LTS in October. Raise this floor by one each October, to ">=28" once
+      # Node 27 goes LTS (October 2027).
       - dependency-name: "node"
-        versions: [">=25"]
+        versions: [">=27"]
 
   - package-ecosystem: docker
     directory: /docker/all-in-one
@@ -209,11 +209,11 @@ updates:
     cooldown:
       default-days: 3
     ignore:
-      # Node 25 is an odd-numbered "Current" release, not LTS. Node 26 doesn't
-      # become LTS until October 2026. Stay on the 24-alpine LTS line until
-      # 26 actually goes LTS, then update this ignore rule.
+      # Track the LTS line. From Node 27 on every major becomes LTS: released in April,
+      # promoted to LTS in October. Raise this floor by one each October, to ">=28" once
+      # Node 27 goes LTS (October 2027).
       - dependency-name: "node"
-        versions: [">=25"]
+        versions: [">=27"]
 
   # ── GitHub Actions ───────────────────────────────────────────────────────────
   - package-ecosystem: github-actions
