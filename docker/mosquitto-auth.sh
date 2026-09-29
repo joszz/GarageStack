@@ -32,10 +32,15 @@ if [ -n "$HA_MQTT_USERNAME" ]; then
         exit 1
     fi
     mosquitto_passwd -b "$passwd_file" "$HA_MQTT_USERNAME" "$HA_MQTT_PASSWORD"
-    # saic/#: gateway telemetry plus the /set command topics. homeassistant/#: the gateway's
-    # retained discovery configs. homeassistant/status: Home Assistant's own online/offline
-    # message, which makes the gateway re-publish discovery after an HA restart.
-    printf '\nuser %s\ntopic readwrite saic/#\ntopic read homeassistant/#\ntopic write homeassistant/status\n' \
+    # saic/#: gateway telemetry, read only. Writes are limited to the /set command topics at the
+    # two depths the gateway subscribes to (e.g. doors/locked/set, refresh/period/active/set).
+    # A Mosquitto bridge configured with `topic saic/# both` sends every retained message it
+    # holds on each connect, so write access to all of saic/# would let a restarted Home
+    # Assistant broker overwrite fresh state here with its stale copies (the gateway's LWT
+    # among them, which leaves every entity Unavailable).
+    # homeassistant/#: the gateway's retained discovery configs. homeassistant/status: Home
+    # Assistant's own online/offline message, which makes the gateway re-publish discovery.
+    printf '\nuser %s\ntopic read saic/#\ntopic write saic/+/vehicles/+/+/+/set\ntopic write saic/+/vehicles/+/+/+/+/set\ntopic read homeassistant/#\ntopic write homeassistant/status\n' \
         "$HA_MQTT_USERNAME" >> "$acl_file"
 fi
 
