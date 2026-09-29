@@ -26,8 +26,7 @@ RUN echo "os patch date: ${OS_PATCH_DATE}" \
 	&& apt-get install -y --no-install-recommends libgssapi-krb5-2 gosu procps \
 	&& rm -rf /var/lib/apt/lists/*
 COPY --from=build /app .
-COPY src/GarageStack.Worker/docker-entrypoint.sh /docker-entrypoint.sh
-RUN chmod +x /docker-entrypoint.sh
+COPY --chmod=755 src/GarageStack.Worker/docker-entrypoint.sh /docker-entrypoint.sh
 # The Worker has no HTTP listener to probe (unlike Api/frontend), so this only checks the
 # dotnet process is still alive - weaker than a real liveness signal (can't detect a hang),
 # but still correctly flips unhealthy if the process crashes or exits.
