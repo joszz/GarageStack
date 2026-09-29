@@ -5,7 +5,9 @@
 set -u
 
 for _ in $(seq 1 30); do
-    timeout 1 bash -c 'cat < /dev/tcp/127.0.0.1/1883' 2>/dev/null && exit 0
+    # Only open the connection: an MQTT broker never speaks first, so reading from it would
+    # block until the timeout and fail even when the broker is up.
+    timeout 1 bash -c '</dev/tcp/127.0.0.1/1883' 2>/dev/null && exit 0
     sleep 1
 done
 
