@@ -45,9 +45,12 @@ This login is deliberately limited. It cannot see or publish anything else on th
 
 | Topic | Access | Why |
 | --- | --- | --- |
-| `saic/#` | read and write | Car telemetry, plus the `/set` command topics behind the controls |
+| `saic/#` | read | Car telemetry and the gateway's online/offline state |
+| `saic/+/vehicles/+/+/+/set`, `saic/+/vehicles/+/+/+/+/set` | write | The command topics behind the controls, such as `doors/locked/set` |
 | `homeassistant/#` | read | The gateway's discovery configs |
 | `homeassistant/status` | write | Home Assistant's online/offline message |
+
+Home Assistant can send commands but never overwrite the car's state. That keeps GarageStack's data correct even when an older copy of that state comes back from Home Assistant's side, for example through a bridge (see below).
 
 ### 2. Make the broker reachable from Home Assistant
 
@@ -84,12 +87,16 @@ address 192.168.1.100:1883
 remote_username homeassistant
 remote_password <HA_MQTT_PASSWORD>
 remote_clientid ha-bridge-garagestack
-topic saic/# both 0
+topic saic/# in 0
+topic saic/+/vehicles/+/+/+/set out 0
+topic saic/+/vehicles/+/+/+/+/set out 0
 topic homeassistant/# in 0
 topic homeassistant/status out 0
 ```
 
-Your existing broker's own discovery messages stay local: only `homeassistant/status` is sent to GarageStack.
+The car's data only flows in. Only the command topics and `homeassistant/status` go out to GarageStack, so your existing broker's own discovery messages stay local.
+
+Don't shorten this to `topic saic/# both`. A bridge sends every retained message it holds for its outgoing topics each time it connects, so the two brokers would swap their stored copies of the car's state on every reconnect. After a GarageStack restart, Home Assistant's copy includes the gateway's `offline`. One reconnect moves it to GarageStack's broker, and the next, typically a restart of the Mosquitto add-on, brings it back, leaving every car entity Unavailable until the gateway restarts. GarageStack only lets Home Assistant write the command topics, so its broker ignores those copies, but the configuration above avoids sending them at all.
 
 ### With the Mosquitto broker add-on
 
@@ -142,6 +149,10 @@ With Docker Compose, `MQTT_BIND_ADDRESS` defaults to `127.0.0.1`, so the broker 
 ### The bridge keeps reconnecting
 
 The Mosquitto add-on's log repeats `Connecting bridge garagestack` with a growing backoff. If it also says `Connection Refused: not authorised`, the `remote_username` or `remote_password` in the bridge file doesn't match `HA_MQTT_USERNAME` / `HA_MQTT_PASSWORD`. If GarageStack's Mosquitto log shows no connection from Home Assistant at all, the connection never arrives: `address` points at the wrong machine, or `MQTT_BIND_ADDRESS` is still `127.0.0.1`.
+
+### Every car entity is Unavailable after Home Assistant or its broker restarts
+
+This happens with a bridge that uses `topic saic/# both` and a GarageStack version from before the command-only write access above: the two brokers trade their retained messages on every bridge connect (see [Home Assistant already has a broker](#home-assistant-already-has-a-broker)). Update GarageStack, switch the bridge file to the configuration above and restart the Mosquitto broker add-on. To bring the entities back straight away, restart the `saic-mqtt-gateway` container (all-in-one: the whole container) so it announces itself again.
 
 ### Two "SAIC Python MQTT Gateway" devices
 
