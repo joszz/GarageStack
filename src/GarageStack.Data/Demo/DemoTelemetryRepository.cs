@@ -69,6 +69,10 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
         return Task.FromResult<LastTripSummary?>(new LastTripSummary(trip.DistanceKm, trip.EndedAt));
     }
 
+    // Only the Worker's parked alerts weigh past polls, and demo mode runs no Worker.
+    public Task<IReadOnlyList<StatusReading>> GetStatusReadingsAsync(int vehicleId, int count, CancellationToken ct = default) =>
+        Task.FromResult<IReadOnlyList<StatusReading>>([]);
+
     // Demo data is not ingested from MQTT, so there are no raw topics to report.
     public Task<IReadOnlyList<RawTopicStat>> GetRawTopicStatsAsync(int vehicleId, CancellationToken ct = default) =>
         Task.FromResult<IReadOnlyList<RawTopicStat>>([]);

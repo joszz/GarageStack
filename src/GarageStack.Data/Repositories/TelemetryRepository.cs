@@ -406,6 +406,26 @@ public class TelemetryRepository(
             .Select(s => new LastTripSummary(s.CurrentJourneyDistance!.Value, s.RecordedAt))
             .FirstOrDefaultAsync(ct);
 
+    public async Task<IReadOnlyList<StatusReading>> GetStatusReadingsAsync(int vehicleId, int count, CancellationToken ct = default)
+    {
+        // Twice the rows asked for: a delivered-again poll takes a row of its own, folded away below.
+        var rows = await db.TelemetrySnapshots
+            .AsNoTracking()
+            .Where(s => s.VehicleId == vehicleId && s.IsLocked != null)
+            .OrderByDescending(s => s.RecordedAt)
+            .Take(count * 2)
+            .ToListAsync(ct);
+
+        // The gateway stamps every poll (LastVehicleStateAt), and a poll delivered again carries the
+        // stamp of the one it repeats, so the stamp tells an old poll in a new row from a new poll.
+        return [.. rows
+            .GroupBy(r => r.LastVehicleStateAt ?? r.RecordedAt)
+            .Select(poll => poll.MinBy(r => r.RecordedAt)!)
+            .OrderByDescending(r => r.RecordedAt)
+            .Take(count)
+            .Select(r => new StatusReading(r.RecordedAt, r))];
+    }
+
     // Ordered on the group before projecting: EF cannot translate an OrderBy on a property of a
     // record built through its constructor, so sorting after the Select fails at runtime.
     public async Task<IReadOnlyList<RawTopicStat>> GetRawTopicStatsAsync(int vehicleId, CancellationToken ct = default) =>
