@@ -19,6 +19,10 @@ public class PushNotificationCheckService(
     internal readonly VinStateTracker<bool?> _isChargingTracker = new();
     private readonly TimeSpan _parkingGrace = TimeSpan.FromMinutes(10);
 
+    // Enough polls to span ParkedProblem.MinimumDuration even from a drive, when the gateway polls
+    // every forty seconds or so: a window left open counts from before the car parked.
+    private const int StatusReadingsToWeigh = 20;
+
     // The positions each check reads, in the order they are listed in an alert body. Tyres keep
     // their conventional abbreviations; door and window positions are localized by resource key.
     private static readonly (string Label, Func<TelemetrySnapshot, double?> Read)[] TyrePositions =
@@ -73,27 +77,52 @@ public class PushNotificationCheckService(
             CheckTyrePressure(snapshot, alerts);
             CheckEvSoc(snapshot, vehicleType, alerts);
             CheckChargingComplete(snapshot, vehicle.Vin, vehicleType, alerts);
+            await SendAsync(vehicle, alerts, db, ct);
 
-            // The MQTT consumer records when the engine last stopped (it also sends the
-            // engine-start push, the moment the car reports it). A car parked a moment ago is
-            // being unloaded, not left open, so the parked alerts wait out a grace period.
-            var withinParkingGrace = IsWithinParkingGrace(vehicle.LastParkedAt, DateTime.UtcNow);
+            await CheckParkedAsync(vehicle, snapshot, telemetry, db, DateTime.UtcNow, ct);
+        }
+    }
 
-            CheckUnlockedWhileParked(snapshot, alerts, withinParkingGrace);
-            CheckDoorsOpenWhileParked(snapshot, alerts, withinParkingGrace);
-            CheckWindowsOpenWhileParked(snapshot, alerts, withinParkingGrace);
+    /// <summary>
+    /// Warns about a car parked unlocked or with a door or window open, once its polls have shown
+    /// it for a while. Every warning rests on the newest poll and goes out once for it: a car
+    /// asleep overnight would otherwise be reported every hour on the one poll it last sent.
+    /// </summary>
+    internal async Task CheckParkedAsync(
+        Vehicle vehicle, TelemetrySnapshot snapshot, ITelemetryRepository telemetry, AppDbContext db, DateTime now, CancellationToken ct)
+    {
+        // The MQTT consumer records when the engine last stopped (it also sends the
+        // engine-start push, the moment the car reports it). A car parked a moment ago is
+        // being unloaded, not left open, so the parked alerts wait out a grace period.
+        if (!IsParked(snapshot) || IsWithinParkingGrace(vehicle.LastParkedAt, now)) return;
 
-            foreach (var (key, title, body) in alerts)
-            {
-                // VehicleId is included in the DB check so one vehicle's alert cannot suppress
-                // another vehicle's same-category alert.
-                var shouldNotify = await _cooldownGate.ShouldNotifyAsync(vehicle.Vin, key, cutoff =>
-                    db.WasNotificationSentSinceAsync(key, vehicle.Id, cutoff, ct));
-                if (!shouldNotify) continue;
+        var readings = await telemetry.GetStatusReadingsAsync(vehicle.Id, StatusReadingsToWeigh, ct);
+        var alerts = new List<(string key, string title, string body)>();
+        CheckUnlockedWhileParked(readings, alerts);
+        CheckDoorsOpenWhileParked(readings, alerts);
+        CheckWindowsOpenWhileParked(readings, alerts);
+        if (alerts.Count == 0) return;
 
-                await pushSender.SendToAllAsync(title, body, ct, key, vehicle.Id);
-                logger.LogInformation("Push sent: {Vin}/{Key} - {Title}", LogRedaction.Vin(vehicle.Vin), key, title);
-            }
+        await SendAsync(vehicle, alerts, db, ct, onceSince: readings[0].ArrivedAt);
+    }
+
+    // With onceSince, an alert is held back when one of its kind already went out after that moment.
+    private async Task SendAsync(
+        Vehicle vehicle, List<(string key, string title, string body)> alerts, AppDbContext db, CancellationToken ct, DateTime? onceSince = null)
+    {
+        foreach (var (key, title, body) in alerts)
+        {
+            if (onceSince is { } since && await db.WasNotificationSentSinceAsync(key, vehicle.Id, since, ct))
+                continue;
+
+            // VehicleId is included in the DB check so one vehicle's alert cannot suppress
+            // another vehicle's same-category alert.
+            var shouldNotify = await _cooldownGate.ShouldNotifyAsync(vehicle.Vin, key, cutoff =>
+                db.WasNotificationSentSinceAsync(key, vehicle.Id, cutoff, ct));
+            if (!shouldNotify) continue;
+
+            await pushSender.SendToAllAsync(title, body, ct, key, vehicle.Id);
+            logger.LogInformation("Push sent: {Vin}/{Key} - {Title}", LogRedaction.Vin(vehicle.Vin), key, title);
         }
     }
 
@@ -148,29 +177,31 @@ public class PushNotificationCheckService(
     private static bool IsParked(TelemetrySnapshot s)
         => s.EngineRunning == false;
 
-    internal void CheckUnlockedWhileParked(TelemetrySnapshot s, List<(string, string, string)> alerts, bool withinParkingGrace)
+    internal void CheckUnlockedWhileParked(IReadOnlyList<StatusReading> readings, List<(string, string, string)> alerts)
     {
-        if (!IsParked(s) || withinParkingGrace) return;
-        if (s.IsLocked is false)
+        if (ParkedProblem.Persists(readings, s => s.IsLocked is false))
             alerts.Add((NotificationCategories.UnlockedParked, strings["UnlockedParkedTitle"], strings["UnlockedParkedBody"]));
     }
 
-    internal void CheckDoorsOpenWhileParked(TelemetrySnapshot s, List<(string, string, string)> alerts, bool withinParkingGrace)
+    internal void CheckDoorsOpenWhileParked(IReadOnlyList<StatusReading> readings, List<(string, string, string)> alerts) =>
+        CheckOpenWhileParked(readings, DoorPositions, alerts, NotificationCategories.DoorsOpenParked, "DoorsOpenTitle", "DoorsOpenBody");
+
+    internal void CheckWindowsOpenWhileParked(IReadOnlyList<StatusReading> readings, List<(string, string, string)> alerts) =>
+        CheckOpenWhileParked(readings, WindowPositions, alerts, NotificationCategories.WindowsOpenParked, "WindowsOpenTitle", "WindowsOpenBody");
+
+    // The body names what the newest poll shows open: a door shut since the first poll is not listed.
+    private void CheckOpenWhileParked(
+        IReadOnlyList<StatusReading> readings,
+        (string ResourceKey, Func<TelemetrySnapshot, bool?> Read)[] positions,
+        List<(string, string, string)> alerts,
+        string category,
+        string titleKey,
+        string bodyKey)
     {
-        if (!IsParked(s) || withinParkingGrace) return;
+        if (!ParkedProblem.Persists(readings, s => positions.Any(p => p.Read(s) == true))) return;
 
-        var open = OpenPositions(s, DoorPositions);
-        if (open.Count > 0)
-            alerts.Add((NotificationCategories.DoorsOpenParked, strings["DoorsOpenTitle"], strings["DoorsOpenBody", string.Join(", ", open)]));
-    }
-
-    internal void CheckWindowsOpenWhileParked(TelemetrySnapshot s, List<(string, string, string)> alerts, bool withinParkingGrace)
-    {
-        if (!IsParked(s) || withinParkingGrace) return;
-
-        var open = OpenPositions(s, WindowPositions);
-        if (open.Count > 0)
-            alerts.Add((NotificationCategories.WindowsOpenParked, strings["WindowsOpenTitle"], strings["WindowsOpenBody", string.Join(", ", open)]));
+        var open = OpenPositions(readings[0].State, positions);
+        alerts.Add((category, strings[titleKey], strings[bodyKey, string.Join(", ", open)]));
     }
 
     private List<string> OpenPositions(TelemetrySnapshot s, (string ResourceKey, Func<TelemetrySnapshot, bool?> Read)[] positions) =>

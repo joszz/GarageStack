@@ -1,6 +1,9 @@
 using GarageStack.Core.Configuration;
 using GarageStack.Core.Models;
+using GarageStack.Data;
+using GarageStack.Data.Repositories;
 using GarageStack.Worker.Services;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace GarageStack.Tests;
@@ -9,11 +12,12 @@ namespace GarageStack.Tests;
 
 public class PushNotificationCheckServiceTests
 {
-    private static PushNotificationCheckService CreateService(TyrePressureThresholds? thresholds = null) =>
+    private static PushNotificationCheckService CreateService(
+        TyrePressureThresholds? thresholds = null, FakePushSender? push = null) =>
         new(
             NullLogger<PushNotificationCheckService>.Instance,
             new FakeServiceScopeFactory(),
-            new FakePushSender(),
+            push ?? new FakePushSender(),
             thresholds ?? TyrePressureThresholds.Default,
             WorkerLocalizer.Notifications());
 
@@ -23,6 +27,19 @@ public class PushNotificationCheckServiceTests
         configure?.Invoke(s);
         return s;
     }
+
+    private static TelemetrySnapshot Locked(Action<TelemetrySnapshot>? configure = null) =>
+        Parked(s => { s.IsLocked = true; configure?.Invoke(s); });
+
+    private static TelemetrySnapshot Unlocked(Action<TelemetrySnapshot>? configure = null) =>
+        Parked(s => { s.IsLocked = false; configure?.Invoke(s); });
+
+    private static readonly DateTime ParkedAt = new(2026, 9, 23, 14, 57, 0, DateTimeKind.Utc);
+
+    // The gateway's polls after the car parks, two and a half minutes apart. Written oldest first
+    // and handed over newest first, the way the repository returns them.
+    private static List<StatusReading> Polls(params TelemetrySnapshot[] oldestFirst) =>
+        [.. oldestFirst.Select((state, i) => new StatusReading(ParkedAt.AddSeconds(150 * i), state)).Reverse()];
 
     // ---------------------------------------------------------------------------
     // Parking grace: the MQTT consumer records when the engine stopped
@@ -45,129 +62,174 @@ public class PushNotificationCheckServiceTests
     }
 
     // ---------------------------------------------------------------------------
-    // CheckDoorsOpenWhileParked — grace flag suppression
+    // Parked checks: a problem counts once the polls keep showing it
     // ---------------------------------------------------------------------------
 
     [Fact]
-    public void CheckDoorsOpenWhileParked_WithinGrace_NoAlert()
+    public void CheckUnlockedWhileParked_UnlockedOnEveryPoll_FiresAlert()
     {
         var alerts = new List<(string, string, string)>();
+
+        CreateService().CheckUnlockedWhileParked(Polls(Unlocked(), Unlocked(), Unlocked(), Unlocked(), Unlocked()), alerts);
+
+        Assert.Equal("unlocked-parked", Assert.Single(alerts).Item1);
+    }
+
+    [Fact]
+    public void CheckUnlockedWhileParked_Locked_NoAlert()
+    {
+        var alerts = new List<(string, string, string)>();
+
+        CreateService().CheckUnlockedWhileParked(Polls(Locked(), Locked(), Locked(), Locked()), alerts);
+
+        Assert.Empty(alerts);
+    }
+
+    // Locked on the way out, then caught on the last poll by the driver coming back for something:
+    // the car sleeps on that poll until the next drive.
+    [Fact]
+    public void ParkedChecks_DriverBackAtTheCarOnTheLastPoll_NoAlert()
+    {
+        var svc = CreateService();
+        var alerts = new List<(string, string, string)>();
+        var polls = Polls(
+            Unlocked(s => s.DriverDoorOpen = true), Locked(), Locked(), Locked(), Unlocked(s => s.DriverDoorOpen = true));
+
+        svc.CheckUnlockedWhileParked(polls, alerts);
+        svc.CheckDoorsOpenWhileParked(polls, alerts);
+
+        Assert.Empty(alerts);
+    }
+
+    [Fact]
+    public void CheckDoorsOpenWhileParked_OpenOnEveryPoll_AlertListsTheDoorsOpenNow()
+    {
+        var alerts = new List<(string, string, string)>();
+        void DriverAndBoot(TelemetrySnapshot s) { s.DriverDoorOpen = true; s.TrunkOpen = true; }
 
         CreateService().CheckDoorsOpenWhileParked(
-            Parked(s => s.DriverDoorOpen = true), alerts, withinParkingGrace: true);
+            Polls(Unlocked(DriverAndBoot), Unlocked(DriverAndBoot), Unlocked(DriverAndBoot), Unlocked(s => s.TrunkOpen = true)),
+            alerts);
 
-        Assert.Empty(alerts);
+        var (category, _, body) = Assert.Single(alerts);
+        Assert.Equal("doors-open-parked", category);
+        Assert.Contains("boot", body);
+        Assert.DoesNotContain("driver", body);
     }
 
     [Fact]
-    public void CheckDoorsOpenWhileParked_AfterGrace_FiresAlert()
+    public void CheckWindowsOpenWhileParked_OpenOnEveryPoll_FiresAlert()
     {
         var alerts = new List<(string, string, string)>();
-
-        CreateService().CheckDoorsOpenWhileParked(
-            Parked(s => s.DriverDoorOpen = true), alerts, withinParkingGrace: false);
-
-        Assert.Single(alerts);
-        Assert.Equal("doors-open-parked", alerts[0].Item1);
-    }
-
-    [Fact]
-    public void CheckDoorsOpenWhileParked_EngineRunning_NoAlertRegardlessOfGrace()
-    {
-        var alerts = new List<(string, string, string)>();
-        var snap = new TelemetrySnapshot { EngineRunning = true, DriverDoorOpen = true };
-
-        CreateService().CheckDoorsOpenWhileParked(snap, alerts, withinParkingGrace: false);
-
-        Assert.Empty(alerts);
-    }
-
-    [Fact]
-    public void CheckDoorsOpenWhileParked_MultipleDoors_AlertListsAll()
-    {
-        var alerts = new List<(string, string, string)>();
-
-        CreateService().CheckDoorsOpenWhileParked(
-            Parked(s =>
-            {
-                s.DriverDoorOpen = true;
-                s.TrunkOpen = true;
-            }),
-            alerts,
-            withinParkingGrace: false);
-
-        Assert.Single(alerts);
-        Assert.Contains("driver", alerts[0].Item3);
-        Assert.Contains("boot", alerts[0].Item3);
-    }
-
-    // ---------------------------------------------------------------------------
-    // CheckUnlockedWhileParked — grace flag suppression
-    // ---------------------------------------------------------------------------
-
-    [Fact]
-    public void CheckUnlockedWhileParked_WithinGrace_NoAlert()
-    {
-        var alerts = new List<(string, string, string)>();
-
-        CreateService().CheckUnlockedWhileParked(
-            Parked(s => s.IsLocked = false), alerts, withinParkingGrace: true);
-
-        Assert.Empty(alerts);
-    }
-
-    [Fact]
-    public void CheckUnlockedWhileParked_AfterGrace_FiresAlert()
-    {
-        var alerts = new List<(string, string, string)>();
-
-        CreateService().CheckUnlockedWhileParked(
-            Parked(s => s.IsLocked = false), alerts, withinParkingGrace: false);
-
-        Assert.Single(alerts);
-        Assert.Equal("unlocked-parked", alerts[0].Item1);
-    }
-
-    [Fact]
-    public void CheckUnlockedWhileParked_IsLockedTrue_NoAlert()
-    {
-        var alerts = new List<(string, string, string)>();
-
-        CreateService().CheckUnlockedWhileParked(
-            Parked(s => s.IsLocked = true), alerts, withinParkingGrace: false);
-
-        Assert.Empty(alerts);
-    }
-
-    // ---------------------------------------------------------------------------
-    // CheckWindowsOpenWhileParked — grace flag suppression
-    // ---------------------------------------------------------------------------
-
-    [Fact]
-    public void CheckWindowsOpenWhileParked_WithinGrace_NoAlert()
-    {
-        var alerts = new List<(string, string, string)>();
+        void DriverWindow(TelemetrySnapshot s) => s.DriverWindowOpen = true;
 
         CreateService().CheckWindowsOpenWhileParked(
-            Parked(s => s.DriverWindowOpen = true), alerts, withinParkingGrace: true);
+            Polls(Locked(DriverWindow), Locked(DriverWindow), Locked(DriverWindow), Locked(DriverWindow)), alerts);
 
-        Assert.Empty(alerts);
-    }
-
-    [Fact]
-    public void CheckWindowsOpenWhileParked_AfterGrace_FiresAlert()
-    {
-        var alerts = new List<(string, string, string)>();
-
-        CreateService().CheckWindowsOpenWhileParked(
-            Parked(s => s.DriverWindowOpen = true), alerts, withinParkingGrace: false);
-
-        Assert.Single(alerts);
-        Assert.Equal("windows-open-parked", alerts[0].Item1);
+        Assert.Equal("windows-open-parked", Assert.Single(alerts).Item1);
     }
 
     // ---------------------------------------------------------------------------
-    // CheckChargingComplete — BEV/PHEV only, transition detection
+    // CheckParkedAsync: the grace period, and one alert per poll
+    // ---------------------------------------------------------------------------
+
+    private static AppDbContext CreateDb() =>
+        new(new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options);
+
+    // A car left unlocked at parkedAt: the gateway polled it every two and a half minutes for
+    // the next ten, then let it sleep.
+    private static async Task<(Vehicle Vehicle, DateTime LastPollAt)> LeftUnlockedAsync(
+        AppDbContext db, DateTime parkedAt, CancellationToken ct, int polls = 5)
+    {
+        var vehicle = new Vehicle { Vin = "FAKEVN00000000001", LastParkedAt = parkedAt };
+        db.Vehicles.Add(vehicle);
+        await db.SaveChangesAsync(ct);
+
+        var pollTimes = Enumerable.Range(0, polls).Select(i => parkedAt.AddSeconds(150 * i)).ToList();
+        db.TelemetrySnapshots.AddRange(pollTimes.Select(at => new TelemetrySnapshot
+        {
+            VehicleId = vehicle.Id,
+            RecordedAt = at,
+            LastVehicleStateAt = at,
+            IsLocked = false,
+            EngineRunning = false,
+        }));
+        await db.SaveChangesAsync(ct);
+
+        return (vehicle, pollTimes[^1]);
+    }
+
+    [Fact]
+    public async Task CheckParkedAsync_LeftUnlocked_SendsTheAlert()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var now = DateTime.UtcNow;
+        await using var db = CreateDb();
+        var (vehicle, _) = await LeftUnlockedAsync(db, now.AddHours(-1), ct);
+        var push = new FakePushSender();
+
+        await CreateService(push: push).CheckParkedAsync(vehicle, Parked(), new TelemetryRepository(db), db, now, ct);
+
+        Assert.Equal("unlocked-parked", Assert.Single(push.Sent).Category);
+    }
+
+    // The overnight case: the alert went out after the car's last poll, over an hour ago, and the
+    // car has sent nothing since. The cooldown has run out, but there is nothing new to report.
+    [Fact]
+    public async Task CheckParkedAsync_AlreadyAlertedOnTheLastPoll_SendsNothing()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var now = DateTime.UtcNow;
+        await using var db = CreateDb();
+        var (vehicle, lastPollAt) = await LeftUnlockedAsync(db, now.AddHours(-3), ct);
+        db.AppNotifications.Add(new AppNotification
+        {
+            Title = "Car unlocked",
+            Category = NotificationCategories.UnlockedParked,
+            VehicleId = vehicle.Id,
+            CreatedAt = lastPollAt.AddMinutes(2),
+        });
+        await db.SaveChangesAsync(ct);
+        var push = new FakePushSender();
+
+        await CreateService(push: push).CheckParkedAsync(vehicle, Parked(), new TelemetryRepository(db), db, now, ct);
+
+        Assert.Empty(push.Sent);
+    }
+
+    [Fact]
+    public async Task CheckParkedAsync_WithinTheParkingGrace_SendsNothing()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var now = DateTime.UtcNow;
+        await using var db = CreateDb();
+        var (vehicle, _) = await LeftUnlockedAsync(db, now.AddMinutes(-8), ct, polls: 4);
+        var push = new FakePushSender();
+
+        await CreateService(push: push).CheckParkedAsync(vehicle, Parked(), new TelemetryRepository(db), db, now, ct);
+
+        Assert.Empty(push.Sent);
+    }
+
+    [Fact]
+    public async Task CheckParkedAsync_EngineRunning_SendsNothing()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var now = DateTime.UtcNow;
+        await using var db = CreateDb();
+        var (vehicle, _) = await LeftUnlockedAsync(db, now.AddHours(-1), ct);
+        var push = new FakePushSender();
+
+        await CreateService(push: push).CheckParkedAsync(
+            vehicle, new TelemetrySnapshot { EngineRunning = true }, new TelemetryRepository(db), db, now, ct);
+
+        Assert.Empty(push.Sent);
+    }
+
+    // ---------------------------------------------------------------------------
+    // CheckChargingComplete: BEV/PHEV only, transition detection
     // ---------------------------------------------------------------------------
 
     [Fact]
@@ -258,7 +320,7 @@ public class PushNotificationCheckServiceTests
     }
 
     // ---------------------------------------------------------------------------
-    // CheckTyrePressure — configurable low/high thresholds
+    // CheckTyrePressure: configurable low/high thresholds
     // ---------------------------------------------------------------------------
 
     [Fact]

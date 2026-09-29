@@ -421,6 +421,57 @@ public class TelemetryRepositoryTests
 
         Assert.Equal(0, result.TotalClimateSnapshots);
     }
+
+    // ── Status readings ──────────────────────────────────────────────────────
+
+    private static TelemetrySnapshot MakeStatusPoll(int vehicleId, DateTime arrivedAt, bool locked, DateTime? polledAt = null) =>
+        new() { VehicleId = vehicleId, RecordedAt = arrivedAt, LastVehicleStateAt = polledAt ?? arrivedAt, IsLocked = locked };
+
+    [Fact]
+    public async Task GetStatusReadings_ReturnsTheNewestStatusPolls_NewestFirst()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var db = CreateDb();
+        var vehicle = new Vehicle { Vin = "FAKEVN00000000001" };
+        db.Vehicles.Add(vehicle);
+        await db.SaveChangesAsync(ct);
+
+        var t0 = new DateTime(2026, 9, 23, 15, 0, 0, DateTimeKind.Utc);
+        db.TelemetrySnapshots.AddRange(
+            MakeStatusPoll(vehicle.Id, t0, locked: true),
+            MakeStatusPoll(vehicle.Id, t0.AddMinutes(2.5), locked: true),
+            // A row without a lock reading is not a status poll.
+            new TelemetrySnapshot { VehicleId = vehicle.Id, RecordedAt = t0.AddMinutes(3), InteriorTemperature = 20 },
+            MakeStatusPoll(vehicle.Id, t0.AddMinutes(5), locked: false));
+        await db.SaveChangesAsync(ct);
+
+        var readings = await new TelemetryRepository(db).GetStatusReadingsAsync(vehicle.Id, 2, ct);
+
+        Assert.Equal([t0.AddMinutes(5), t0.AddMinutes(2.5)], readings.Select(r => r.ArrivedAt));
+        Assert.False(readings[0].State.IsLocked);
+    }
+
+    // A reconnecting consumer is handed every retained message again, so the car's last poll
+    // lands in a new row hours later. It is still that one poll, from when it first arrived.
+    [Fact]
+    public async Task GetStatusReadings_APollDeliveredAgain_ComesBackOnceAtItsFirstArrival()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var db = CreateDb();
+        var vehicle = new Vehicle { Vin = "FAKEVN00000000001" };
+        db.Vehicles.Add(vehicle);
+        await db.SaveChangesAsync(ct);
+
+        var polledAt = new DateTime(2026, 9, 23, 15, 7, 0, DateTimeKind.Utc);
+        db.TelemetrySnapshots.AddRange(
+            MakeStatusPoll(vehicle.Id, polledAt, locked: false),
+            MakeStatusPoll(vehicle.Id, polledAt.AddHours(6), locked: false, polledAt: polledAt));
+        await db.SaveChangesAsync(ct);
+
+        var readings = await new TelemetryRepository(db).GetStatusReadingsAsync(vehicle.Id, 5, ct);
+
+        Assert.Equal(polledAt, Assert.Single(readings).ArrivedAt);
+    }
 }
 
 // ── MergeIntoAsync tests ─────────────────────────────────────────────────────
