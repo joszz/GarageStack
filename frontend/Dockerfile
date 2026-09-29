@@ -9,10 +9,11 @@ RUN echo "os patch date: ${OS_PATCH_DATE}" && apk upgrade --no-cache && corepack
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 # No version here: corepack takes it from package.json's packageManager field, so the pnpm
 # version is pinned in one place for local installs, CI and every image. pnpm 12+ is a native
-# binary that corepack's wrapper downloads on first use; `pnpm --version` fetches it inside this
-# cached layer and prints the version the build runs.
-RUN corepack prepare --activate && pnpm --version
-RUN pnpm config set minimum-release-age 0 && pnpm install --frozen-lockfile --ignore-scripts
+# binary that corepack's wrapper downloads on first use; `pnpm --version` fetches it and prints
+# the version the build runs.
+RUN corepack prepare --activate && pnpm --version \
+    && pnpm config set minimum-release-age 0 \
+    && pnpm install --frozen-lockfile --ignore-scripts
 COPY . .
 # Declared after install so a new version does not bust the dependency layer cache.
 ARG APP_VERSION=0.0.0-local

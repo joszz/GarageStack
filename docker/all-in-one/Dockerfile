@@ -10,10 +10,10 @@ RUN echo "os patch date: ${OS_PATCH_DATE}" && apk upgrade --no-cache && corepack
 COPY frontend/package.json frontend/pnpm-lock.yaml frontend/pnpm-workspace.yaml ./
 # No version here: corepack takes it from package.json's packageManager field, so the pnpm
 # version is pinned in one place for local installs, CI and every image. pnpm 12+ is a native
-# binary that corepack's wrapper downloads on first use; `pnpm --version` fetches it inside this
-# cached layer and prints the version the build runs.
-RUN corepack prepare --activate && pnpm --version
+# binary that corepack's wrapper downloads on first use; `pnpm --version` fetches it and prints
+# the version the build runs.
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
+    corepack prepare --activate && pnpm --version && \
     pnpm config set store-dir /pnpm/store && \
     pnpm config set minimum-release-age 0 && \
     NODE_ENV=development NPM_CONFIG_PRODUCTION=false pnpm install --frozen-lockfile --ignore-scripts --prod=false --config.production=false
@@ -43,8 +43,7 @@ COPY src/GarageStack.Core/GarageStack.Core.csproj GarageStack.Core/
 COPY src/GarageStack.Data/GarageStack.Data.csproj GarageStack.Data/
 COPY src/GarageStack.Api/GarageStack.Api.csproj GarageStack.Api/
 COPY src/GarageStack.Worker/GarageStack.Worker.csproj GarageStack.Worker/
-RUN --mount=type=cache,id=nuget-packages,target=/root/.nuget/packages \
-    dotnet restore GarageStack.Api/GarageStack.Api.csproj \
+RUN dotnet restore GarageStack.Api/GarageStack.Api.csproj \
     && dotnet restore GarageStack.Worker/GarageStack.Worker.csproj
 COPY src/GarageStack.Core/ GarageStack.Core/
 COPY src/GarageStack.Data/ GarageStack.Data/
@@ -77,16 +76,16 @@ ARG OS_PATCH_DATE=0
 
 # bash          -- required by entrypoint.sh and dotnet-install.sh (slim images ship dash only)
 # libgssapi-krb5-2 -- required by the .NET runtime
-# libicu-dev    -- required by .NET globalization (UseRequestLocalization uses CultureInfo)
-RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
-    echo "os patch date: ${OS_PATCH_DATE}" \
+# libicu76      -- required by .NET globalization (UseRequestLocalization uses CultureInfo).
+#                  The library alone, not libicu-dev, whose headers add ~74 MB. 76 is trixie's
+#                  ICU version, so it moves with the base image like the pgdg suite below.
+RUN echo "os patch date: ${OS_PATCH_DATE}" \
     && apt-get update \
     && apt-get upgrade -y --no-install-recommends \
     && apt-get install -y --no-install-recommends \
-        bash curl gnupg ca-certificates gosu supervisor \
+        bash curl ca-certificates gosu supervisor \
         nginx mosquitto mosquitto-clients \
-        libgssapi-krb5-2 libicu-dev \
+        libgssapi-krb5-2 libicu76 \
     && rm -rf /var/lib/apt/lists/*
 
 # Dedicated non-root user for the .NET API/Worker and the SAIC gateway. Postgres and
@@ -103,23 +102,21 @@ RUN curl -sSL https://dot.net/v1/dotnet-install.sh -o /tmp/dotnet-install.sh \
 
 ENV PATH="/usr/local/dotnet:$PATH"
 
-# PostgreSQL 18 -- official apt repo, trixie suite.
-RUN curl -sSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
-        | gpg --dearmor > /usr/share/keyrings/postgresql.gpg \
-    && echo "deb [signed-by=/usr/share/keyrings/postgresql.gpg] http://apt.postgresql.org/pub/repos/apt trixie-pgdg main" \
+# PostgreSQL 18 -- official apt repo, trixie suite. apt reads the ASCII-armored key as is.
+RUN curl -sSL https://www.postgresql.org/media/keys/ACCC4CF8.asc -o /usr/share/keyrings/postgresql.asc \
+    && echo "deb [signed-by=/usr/share/keyrings/postgresql.asc] http://apt.postgresql.org/pub/repos/apt trixie-pgdg main" \
         > /etc/apt/sources.list.d/pgdg.list \
     && mkdir -p /etc/postgresql-common \
-    && printf "create_main_cluster = false\n" > /etc/postgresql-common/createcluster.conf
-
-RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
-    apt-get update \
+    && printf "create_main_cluster = false\n" > /etc/postgresql-common/createcluster.conf \
+    && apt-get update \
     && apt-get install -y --no-install-recommends postgresql-18 \
     && rm -rf /var/lib/apt/lists/*
 
 # SAIC MQTT Gateway: copy the pre-built venv and source from the official image.
 # Layout in the saic image: WORKDIR=/usr/src/app, venv at /usr/src/app/.venv,
 # entry point: python ./main.py
+# The files stay root-owned: appuser only reads them, like the upstream image's own
+# non-root user does.
 COPY --from=saic-source /usr/src/app /opt/saic/app
 # The gateway pins anyio 4.12.1 (transitively, via httpx), which carries CVE-2026-63374
 # (TLS certificate spoofing through IDNA 2003 host name encoding) and CVE-2026-64847
@@ -134,8 +131,7 @@ COPY --from=saic-source /usr/src/app /opt/saic/app
 # CVE-2025-47273, CVE-2026-59890), and dropping it also retires the earlier pip CVE patching.
 RUN /opt/saic/app/.venv/bin/python -m pip install --no-cache-dir --upgrade "anyio==4.15.1" \
     && /opt/saic/app/.venv/bin/python -m pip uninstall --yes pip \
-    && python -m pip uninstall --yes pip \
-    && chown -R appuser:appuser /opt/saic/app
+    && python -m pip uninstall --yes pip
 
 # Frontend SPA
 COPY --from=frontend-build /app/dist /usr/share/nginx/html
@@ -144,30 +140,30 @@ COPY --from=frontend-build /app/dist /usr/share/nginx/html
 COPY --from=dotnet-build /publish/api    /app/api
 COPY --from=dotnet-build /publish/worker /app/worker
 
-# The API/Worker resolve "logs" and "keys" relative to their working directory (which
-# supervisord pins to /app/api and /app/worker, see supervisord.conf), so symlink those
-# names to the persisted /data volume the same way postgres/mosquitto already are. Reuses
-# /data/dataprotection so upgrades from older images keep the same DataProtection keys
-# (and therefore the same auth cookies) instead of silently invalidating every login.
-RUN ln -sfn /data/api /app/api/logs \
- && ln -sfn /data/dataprotection /app/api/keys \
- && ln -sfn /data/worker /app/worker/logs
-
 # Configuration
 COPY docker/all-in-one/nginx.conf       /etc/nginx/conf.d/default.conf
 # Same security-header snippet the frontend image uses, so the two never drift apart.
 COPY frontend/nginx-security-headers.conf /etc/nginx/snippets/garagestack-security-headers.conf
 COPY docker/all-in-one/mosquitto.conf   /etc/mosquitto/conf.d/garagestack.conf
 COPY docker/all-in-one/supervisord.conf /etc/supervisor/supervisord.conf
-COPY docker/all-in-one/entrypoint.sh   /entrypoint.sh
-COPY docker/all-in-one/wait-for-postgres.sh  /wait-for-postgres.sh
-COPY docker/all-in-one/wait-for-mosquitto.sh /wait-for-mosquitto.sh
-COPY docker/all-in-one/wait-for-api.sh /wait-for-api.sh
-COPY docker/resolve-saic-rest-uri.sh /resolve-saic-rest-uri.sh
-COPY docker/mosquitto-auth.sh /mosquitto-auth.sh
+COPY --chmod=755 \
+    docker/all-in-one/entrypoint.sh \
+    docker/all-in-one/wait-for-postgres.sh \
+    docker/all-in-one/wait-for-mosquitto.sh \
+    docker/all-in-one/wait-for-api.sh \
+    docker/resolve-saic-rest-uri.sh \
+    docker/mosquitto-auth.sh \
+    /
 
+# The API/Worker resolve "logs" and "keys" relative to their working directory (which
+# supervisord pins to /app/api and /app/worker, see supervisord.conf), so symlink those
+# names to the persisted /data volume the same way postgres/mosquitto already are. Reuses
+# /data/dataprotection so upgrades from older images keep the same DataProtection keys
+# (and therefore the same auth cookies) instead of silently invalidating every login.
 RUN rm -f /etc/nginx/sites-enabled/default \
-    && chmod +x /entrypoint.sh /wait-for-postgres.sh /wait-for-mosquitto.sh /wait-for-api.sh /resolve-saic-rest-uri.sh /mosquitto-auth.sh \
+    && ln -sfn /data/api /app/api/logs \
+    && ln -sfn /data/dataprotection /app/api/keys \
+    && ln -sfn /data/worker /app/worker/logs \
     && mkdir -p /data/db/postgres /data/db/mosquitto /data/logs /data/dataprotection /data/api /data/worker
 
 # Port 80  -- nginx (web UI + API proxy)
