@@ -1,5 +1,6 @@
 using System.Linq.Expressions;
 using System.Reflection;
+using GarageStack.Core.Helpers;
 using GarageStack.Core.Interfaces;
 using GarageStack.Core.Models;
 using GarageStack.Data.Extensions;
@@ -32,49 +33,6 @@ public class TelemetryRepository(
     // volume - it exists purely to bound worst-case memory rather than to affect normal queries.
     private const int MaxRawRowsPerQuery = 200_000;
 
-    // All TelemetrySnapshot properties except identity/bookkeeping fields (Id, VehicleId, Vehicle,
-    // RecordedAt, RawTopic) participate in field-by-field merging. Computed once and reused by both
-    // MergeIntoAsync (last-write-wins) and GetMergedLatestAsync (first-non-null-wins) so a new
-    // telemetry field only needs to be added to the model - not hand-copied into two merge loops.
-    private static readonly HashSet<string> NonMergeableProperties =
-    [
-        nameof(TelemetrySnapshot.Id), nameof(TelemetrySnapshot.VehicleId),
-        nameof(TelemetrySnapshot.Vehicle), nameof(TelemetrySnapshot.RecordedAt),
-        nameof(TelemetrySnapshot.RawTopic),
-    ];
-
-    // Compiled expression-tree accessors instead of live reflection (PropertyInfo.GetValue/
-    // SetValue): this runs on every MQTT message merge, multiple times per second per vehicle,
-    // and reflection's per-call overhead is avoidable since the property set is fixed at
-    // startup. Built once here, then invoked like a regular delegate call from then on.
-    private sealed record PropertyAccessor(string Name, Func<TelemetrySnapshot, object?> Get, Action<TelemetrySnapshot, object?> Set);
-
-    private static PropertyAccessor BuildAccessor(PropertyInfo prop)
-    {
-        var instance = Expression.Parameter(typeof(TelemetrySnapshot), "instance");
-        var value = Expression.Parameter(typeof(object), "value");
-
-        var getter = Expression.Lambda<Func<TelemetrySnapshot, object?>>(
-            Expression.Convert(Expression.Property(instance, prop), typeof(object)),
-            instance).Compile();
-
-        var setter = Expression.Lambda<Action<TelemetrySnapshot, object?>>(
-            Expression.Assign(
-                Expression.Property(instance, prop),
-                Expression.Convert(value, prop.PropertyType)),
-            instance, value).Compile();
-
-        return new PropertyAccessor(prop.Name, getter, setter);
-    }
-
-    private static readonly PropertyInfo[] MergeablePropertyInfos = typeof(TelemetrySnapshot)
-        .GetProperties(BindingFlags.Public | BindingFlags.Instance)
-        .Where(p => p.CanRead && p.CanWrite && !NonMergeableProperties.Contains(p.Name))
-        .ToArray();
-
-    private static readonly PropertyAccessor[] MergeableProperties =
-        [.. MergeablePropertyInfos.Select(BuildAccessor)];
-
     /// <summary>
     /// Builds "any of these fields is set" as an expression tree EF can translate to SQL.
     /// Non-nullable properties are left out: they always have a value, so they say nothing about
@@ -100,33 +58,11 @@ public class TelemetryRepository(
         nameof(TelemetrySnapshot.MileageOfTheDay), nameof(TelemetrySnapshot.PowerUsageOfDay),
     ];
 
-    /// <summary>Overwrites every field on <paramref name="target"/> with the non-null value from <paramref name="source"/>, if any.</summary>
-    private static void ApplyNonNullFields(TelemetrySnapshot target, TelemetrySnapshot source)
-    {
-        foreach (var prop in MergeableProperties)
-        {
-            var value = prop.Get(source);
-            if (value is not null) prop.Set(target, value);
-        }
-    }
-
-    /// <summary>Fills any still-empty field on <paramref name="target"/> from <paramref name="source"/>, leaving already-set fields untouched.</summary>
-    private static void ApplyFirstNonNullFields(TelemetrySnapshot target, TelemetrySnapshot source, ISet<string>? skip = null)
-    {
-        foreach (var prop in MergeableProperties)
-        {
-            if (skip is not null && skip.Contains(prop.Name)) continue;
-            if (prop.Get(target) is not null) continue;
-            var value = prop.Get(source);
-            if (value is not null) prop.Set(target, value);
-        }
-    }
-
     // A row is worth reading when any mergeable field carries a value. Derived from the model for
     // the same reason the merge loops are: hand-listing seventy fields here means a new telemetry
     // field is silently treated as empty until someone remembers to add it.
     private static readonly Expression<Func<TelemetrySnapshot, bool>> HasData =
-        AnyFieldSet(MergeablePropertyInfos);
+        AnyFieldSet(TelemetryFields.Mergeable);
 
     // Chart history excludes GPS-only rows: latitude/longitude arrive every minute during driving
     // and inflate the row count, causing the stride downsampler to skip the sparser fuel/EV/kWh
@@ -160,7 +96,7 @@ public class TelemetryRepository(
         }
 
         // Last-write-wins per field: overwrite with any non-null value from the patch.
-        ApplyNonNullFields(existing, patch);
+        TelemetryFields.ApplyNonNullFields(existing, patch);
 
         await db.SaveChangesAsync(ct);
         await NotifyUpdatedAsync(existing.VehicleId, ct);
@@ -213,7 +149,7 @@ public class TelemetryRepository(
         var merged = new TelemetrySnapshot { VehicleId = vehicleId, RecordedAt = rows[0].RecordedAt };
         foreach (var row in rows)
         {
-            ApplyFirstNonNullFields(merged, row, skip: DailyCounterFields);
+            TelemetryFields.ApplyFirstNonNullFields(merged, row, skip: DailyCounterFields);
 
             // Daily counters are only meaningful from today - don't carry yesterday's values forward
             if (row.RecordedAt >= todayStart)

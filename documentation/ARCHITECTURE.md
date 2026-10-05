@@ -83,13 +83,24 @@ The trip log (`/trip-log`, `TripEndpoints`) shows only saved trips, because only
 
 The `AddTripLog` migration clears the trips saved before it and resets the recording line, and the Worker saves them again with their new columns. Nothing is lost: until that migration, nothing a driver could enter was kept on a trip.
 
+## Data kept over time
+
+Telemetry is the one table that grows with every poll. The Worker's `HousekeepingService` runs every six hours and keeps it in check.
+
+- **Compaction.** Telemetry older than `TELEMETRY_FULL_DETAIL_DAYS` (a year by default) is folded into one row per quarter of an hour by `TelemetryCompaction` in Core. It is the same last-value-wins merge that folds a poll's messages into one row, over a longer window. Each window keeps its last row, filled in with the newest earlier value of every field that row lacks. "The latest reading at or before a moment" (the odometer, the last position, a schedule the car reported once) therefore answers the same at the end of every window, and never with a reading taken later. A window is cut in two where a counter that starts again from zero drops (the day's distance and energy, the counters since the last charge, the journey distance), so the total of each day and each charge survives. A quarter of an hour divides every UTC offset, so a window never spans the car's local midnight.
+- **The line.** `TelemetryCompactor` works through a whole UTC day at a time from `Vehicle.TelemetryCompactedUntil`, and saves each day together with the line in one transaction, so a run can stop anywhere and the next one carries on. It never passes `TripsRecordedUntil`: the trip recorder still needs every fix it has not cut into trips. A vehicle that has never recorded a trip is not compacted at all. Saved trips keep their own fixes (`Trip.PointsJson`), so compaction changes nothing about them. It does mean old trips can no longer be cut again from telemetry, one more reason never to clear saved trips in a migration.
+- **What it costs.** Nothing in the app reads finer detail than this past 90 days: the statistics page and the map ask for 90 days at most, and the history query thins 90 days to a few points a day anyway. That is why a lower setting is raised to 90. What is lost is the order of events within a quarter of an hour, such as a short charge that started and stopped inside one.
+- **Caches and deleted notifications.** The same job removes place names and snapped trips a day after they expire: nothing reads an expired one, and a lookup may be refreshing it at that moment. It removes notifications the user deleted once they are 30 days old; the notification cooldowns read that history, deleted rows included, at most a week back. Map POI tiles are left alone, because the map shows an expired tile's stations while it fetches the tile again.
+
+PostgreSQL reuses the space of removed rows for new ones rather than handing it back to the disk. To shrink the database files after the first compaction of a long history, run `VACUUM FULL "TelemetrySnapshots";` once. It locks the table for as long as it runs, so pick a quiet moment.
+
 ## Projects under `src/`
 
 | Project | Contains | Depends on |
 | --- | --- | --- |
 | `GarageStack.Core` | Domain models (`Models/`), repository/service interfaces (`Interfaces/`), and pure helpers with no I/O (`Helpers/`) - the shared vocabulary every other project builds on. | nothing (leaf project) |
 | `GarageStack.Data` | EF Core: `AppDbContext`, migrations, concrete repository implementations, and `Demo/` (in-memory fakes used when `DEMO_MODE=true`). | `Core` |
-| `GarageStack.Worker` | The MQTT-ingestion process: `Mqtt/MqttConsumerService` and the message handlers beside it, plus the periodic jobs (maintenance reminders, POI pre-caching, push-notification checks, saving finished trips), each a `PeriodicBackgroundService`. | `Core`, `Data` |
+| `GarageStack.Worker` | The MQTT-ingestion process: `Mqtt/MqttConsumerService` and the message handlers beside it, plus the periodic jobs (maintenance reminders, POI pre-caching, push-notification checks, saving finished trips, housekeeping), each a `PeriodicBackgroundService`. | `Core`, `Data` |
 | `GarageStack.Api` | ASP.NET Core minimal APIs (`Endpoints/`), the SignalR hub (`Hubs/`), and Api-only services (outbound MQTT publishing, POI/charging-station lookups, the Postgres-LISTEN-to-SignalR bridge). | `Core`, `Data` |
 | `GarageStack.Tests` | xUnit tests across all of the above. | all four |
 
@@ -192,9 +203,12 @@ A new value arriving from the car passes through several layers, in this order:
 3. The frontend's `TelemetrySnapshot` interface in `services/vehicleApi.ts`, mirrored by hand.
 4. Wherever it should show up: a card in `frontend/src/cards/registry.ts`, and the demo data in
    `src/GarageStack.Data/Demo/` so the field is visible without a car.
+5. Only for a counter that starts again from zero (per day, per charge, per journey): its entry in
+   `TelemetryCompaction`'s resetting counters, so compaction keeps the total it reached before
+   each reset.
 
-What it does *not* need is a mention in the repository's merge loops or its "does this row carry
-anything" filters, or in `WidgetStatusDto`: the first two are derived from the model itself, and
+What it does *not* need is a mention in the merge loops (`TelemetryFields`) or the repository's
+"does this row carry anything" filters, or in `WidgetStatusDto`: the first two are derived from the model itself, and
 the widget deliberately serves a curated subset. Charts are the same story in reverse: add the
 field to `TelemetryHistoryPoint` and the history query starts returning rows that carry it.
 

@@ -98,6 +98,12 @@ The full guide, with provider examples, is [`AUTHENTICATION.md`](AUTHENTICATION.
 | `TYRE_PRESSURE_LOW_BAR` / `TYRE_PRESSURE_GOOD_BAR` / `TYRE_PRESSURE_HIGH_BAR` | `2.2` / `2.6` / `3.2` | Tyre pressure bands in bar, for the diagram's colours and the tyre notifications. Set them from your car's placard. |
 | `HV_BATTERY_CAPACITY_KWH` | none | Usable size of the traction battery in kWh. The gateway assumes an EV-sized pack, so its kWh figures are far too large on a plain hybrid (an MG HS Hybrid+ carries 1.83 and is reported as 72.5). Empty keeps the gateway's figure on a plug-in car and shows a hybrid's charge as a percentage only. |
 
+## Stored data
+
+| Variable | Default | What it does |
+| --- | --- | --- |
+| `TELEMETRY_FULL_DETAIL_DAYS` | `365` | Days of telemetry kept exactly as the car reported it. Older telemetry is folded into one row per quarter of an hour, keeping the latest value of every reading, each day's totals and the saved trips. Below `90` is raised to `90`, the furthest back the statistics page and the map read. `0` keeps every row. See [Data kept over time](ARCHITECTURE.md#data-kept-over-time). |
+
 ## API, logging and ports
 
 | Variable | Default | What it does |

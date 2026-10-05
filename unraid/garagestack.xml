@@ -533,6 +533,17 @@
     Mask="false"></Config>
 
   <Config
+    Name="Telemetry Full Detail (days)"
+    Target="TELEMETRY_FULL_DETAIL_DAYS"
+    Default="365"
+    Mode=""
+    Description="Days of telemetry kept exactly as the car reported it. Older telemetry is folded into one row per quarter of an hour, which keeps every reading's latest value, each day's totals and your saved trips while the database stops growing as fast. Values below 90 are raised to 90. Set to 0 to keep every row."
+    Type="Variable"
+    Display="advanced"
+    Required="false"
+    Mask="false">365</Config>
+
+  <Config
     Name="Database Name"
     Target="POSTGRES_DB"
     Default="garagestack"

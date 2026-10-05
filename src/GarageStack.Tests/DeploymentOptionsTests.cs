@@ -90,4 +90,16 @@ public class DeploymentOptionsTests
     {
         Assert.Equal(expected, VapidOptions.From(Config(("Vapid:Subject", subject))).Subject);
     }
+
+    [Theory]
+    [InlineData(null, 365)]
+    [InlineData("", 365)]
+    [InlineData("400", 400)]
+    [InlineData("30", 90)]
+    [InlineData("0", null)]
+    [InlineData("-1", null)]
+    public void TelemetryRetention_KeepsAYear_GoesOffAtZero_AndNeverDropsBelowNinetyDays(string? configured, int? expected)
+    {
+        Assert.Equal(expected, TelemetryRetentionOptions.From(Config(("TelemetryRetention:FullDetailDays", configured))).FullDetailDays);
+    }
 }

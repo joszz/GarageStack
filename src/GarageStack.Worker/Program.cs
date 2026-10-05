@@ -36,6 +36,14 @@ try
     builder.Services.AddHostedService<PoiPreCachingService>();
     builder.Services.AddHostedService<TripRecorderService>();
 
+    var retention = TelemetryRetentionOptions.From(builder.Configuration);
+    if (retention.FullDetailDays is { } fullDetailDays)
+        Log.Information("Telemetry keeps full detail for {Days} days, then is compacted into quarter-hour rows", fullDetailDays);
+    else
+        Log.Information("Telemetry compaction is off; every row is kept");
+    builder.Services.AddSingleton(retention);
+    builder.Services.AddHostedService<HousekeepingService>();
+
     var host = builder.Build();
 
     host.Run();
