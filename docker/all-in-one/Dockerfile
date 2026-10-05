@@ -128,7 +128,7 @@ COPY --from=saic-source /usr/src/app /opt/saic/app
 # Drop this once the pinned gateway tag ships anyio >= 4.14.2.
 #
 # The upstream image runs a plain `poetry install`, so the venv also carries the gateway's dev
-# group (pytest, mypy, pylint, pre-commit, ...), 32 packages at 0.12.0 that never run. Image
+# group (pytest, mypy, pylint, pre-commit, ...), 31 packages at 0.12.0 that never run. Image
 # scans flag them all the same (virtualenv, via pre-commit: CVE-2026-102925/30/37/38),
 # so prune-venv.py keeps only what the runtime dependencies below resolve to. They mirror
 # [project].dependencies in the gateway's pyproject.toml at the pinned tag: compare them on every
