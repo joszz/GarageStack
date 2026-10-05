@@ -149,6 +149,7 @@ try
     app.MapHealthEndpoints();
     app.MapHub<TelemetryHub>("/hubs/telemetry").RequireAuthorization();
     app.MapAuthEndpoints();
+    app.MapSettingsEndpoints();
     app.MapVehicleEndpoints();
     app.MapTripEndpoints();
     app.MapPushEndpoints();

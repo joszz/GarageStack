@@ -17,6 +17,7 @@ import {
   ALL_STATS_INSIGHT_IDS,
   ALL_STATS_CHART_IDS,
   readLegacyBlob,
+  hasStoredCopy,
   persistSettings,
 } from './settingsShared'
 
@@ -53,33 +54,26 @@ function storedCards(parsed: Record<string, unknown>): CardConfig[] {
   return Array.isArray(parsed.cards) ? migrateCards(parsed.cards) : defaultCards('unknown')
 }
 
+function parseDashboardFields(parsed: Record<string, unknown>): DashboardSettings {
+  return {
+    cards: storedCards(parsed),
+    statsInsights: loadStatsItems(parsed.statsInsights, ALL_STATS_INSIGHT_IDS),
+    statsCharts: loadStatsItems(parsed.statsCharts, ALL_STATS_CHART_IDS),
+    showTyreDiagram: parsed.showTyreDiagram !== false,
+    showLocationMap: parsed.showLocationMap !== false,
+  }
+}
+
 function loadDashboardSettings(): DashboardSettings {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    if (raw) {
-      const parsed = JSON.parse(raw)
-      return {
-        cards: storedCards(parsed),
-        statsInsights: loadStatsItems(parsed.statsInsights, ALL_STATS_INSIGHT_IDS),
-        statsCharts: loadStatsItems(parsed.statsCharts, ALL_STATS_CHART_IDS),
-        showTyreDiagram: parsed.showTyreDiagram !== false,
-        showLocationMap: parsed.showLocationMap !== false,
-      }
-    }
+    if (raw) return parseDashboardFields(JSON.parse(raw))
   } catch {
     // ignore parse errors
   }
 
   const legacy = readLegacyBlob()
-  if (legacy) {
-    return {
-      cards: storedCards(legacy),
-      statsInsights: loadStatsItems(legacy.statsInsights, ALL_STATS_INSIGHT_IDS),
-      statsCharts: loadStatsItems(legacy.statsCharts, ALL_STATS_CHART_IDS),
-      showTyreDiagram: legacy.showTyreDiagram !== false,
-      showLocationMap: legacy.showLocationMap !== false,
-    }
-  }
+  if (legacy) return parseDashboardFields(legacy)
 
   return defaultsFor()
 }
@@ -125,22 +119,22 @@ function byData(cards: CardConfig[], hasData: (id: CardId) => boolean): CardConf
   ]
 }
 
-// Whether this browser has ever stored a dashboard layout, under the current key or the
-// pre-split blob. The dashboard uses it to tell a first visit (where it may order cards by
-// which ones have data) from a returning user whose ordering must be left alone.
-function hasPersistedLayout(): boolean {
-  try {
-    return localStorage.getItem(STORAGE_KEY) !== null || readLegacyBlob() !== null
-  } catch {
-    return false
-  }
-}
-
 export const useDashboardSettingsStore = defineStore('settingsDashboard', () => {
   const settings = reactive(loadDashboardSettings())
-  const hasSavedLayout = ref(hasPersistedLayout())
-  persistSettings(STORAGE_KEY, settings, () => {
+  // Whether a layout was ever saved, in this browser or on the account. The dashboard uses it to
+  // tell a first visit (where it may order cards by which ones have data) from a returning user
+  // whose ordering must be left alone.
+  const hasSavedLayout = ref(hasStoredCopy(STORAGE_KEY))
+  const markSaved = () => {
     hasSavedLayout.value = true
+  }
+  persistSettings({
+    storageKey: STORAGE_KEY,
+    section: 'dashboard',
+    state: settings,
+    parse: parseDashboardFields,
+    onSave: markSaved,
+    onAdopted: markSaved,
   })
 
   function resetCards(type: VehicleType | 'unknown' = 'unknown') {

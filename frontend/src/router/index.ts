@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory, type RouteLocationNormalized } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useSettingsSyncStore } from '@/stores/settingsSync'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -61,12 +62,19 @@ export function preloadRouteComponents(to: RouteLocationNormalized): void {
 
 router.beforeEach(async (to) => {
   const auth = useAuthStore()
+  const settingsSync = useSettingsSyncStore()
   const isPublic = to.meta.public === true
 
   // Only when the session held in storage makes it likely the guard lets this navigation
   // through: a visitor about to be sent to the login page has no use for the dashboard's code.
+  // The account's settings are asked for alongside the session check for the same reason, so a
+  // cold load waits on one round trip rather than two.
   if (isPublic || auth.isAuthenticated) preloadRouteComponents(to)
+  if (auth.isAuthenticated) void settingsSync.start()
   await auth.ensureVerified()
+
+  // Signed out, or the stored session turned out to be stale: nothing more goes to the account.
+  if (!auth.isAuthenticated) settingsSync.stop()
 
   if (isPublic) {
     if (to.name === 'login' && auth.isAuthenticated) {
@@ -82,6 +90,10 @@ router.beforeEach(async (to) => {
     }
   }
 
+  // Views read the settings as they mount, and some write them back (the dashboard arranges its
+  // cards on a first visit), so none may mount before the account's copy has been taken in.
+  // Right after signing in, this is where it is first asked for.
+  await settingsSync.start()
   return true
 })
 

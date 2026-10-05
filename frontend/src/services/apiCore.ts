@@ -89,10 +89,20 @@ export function requestJson<T>(path: string, method: string, body?: unknown): Pr
   return request<T>(path, jsonInit(method, body))
 }
 
-/** Sends a JSON body (or none) and ignores the response body, for endpoints that answer with an empty 200. */
-export async function send(path: string, method: string, body?: unknown): Promise<void> {
+/**
+ * Sends a JSON body (or none) and ignores the response body, for endpoints that answer with an
+ * empty 200 or 204. `init` adds fetch options, such as `keepalive` for a request that has to
+ * arrive even when the page is closing.
+ */
+export async function send(
+  path: string,
+  method: string,
+  body?: unknown,
+  init?: RequestInit,
+): Promise<void> {
   const res = await fetch(`${BASE_URL}${path}`, {
     ...jsonInit(method, body),
+    ...init,
     credentials: 'include',
   })
 

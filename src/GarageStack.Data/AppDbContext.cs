@@ -17,6 +17,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<MaintenanceItem> MaintenanceItems => Set<MaintenanceItem>();
     public DbSet<MaintenanceLogEntry> MaintenanceLogEntries => Set<MaintenanceLogEntry>();
     public DbSet<RevokedToken> RevokedTokens => Set<RevokedToken>();
+    public DbSet<UserSettings> UserSettings => Set<UserSettings>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -179,6 +180,17 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.HasKey(r => r.Id);
             e.HasIndex(r => r.Jti).IsUnique();
             e.Property(r => r.Jti).HasMaxLength(64).IsRequired();
+        });
+
+        modelBuilder.Entity<UserSettings>(e =>
+        {
+            e.HasKey(s => s.Id);
+            // One row per section per account, which is also the lookup every save runs.
+            e.HasIndex(s => new { s.AccountKey, s.Section }).IsUnique();
+            e.Property(s => s.AccountKey).HasMaxLength(UserSettingsLimits.AccountKeyLength).IsRequired();
+            e.Property(s => s.Section).HasMaxLength(UserSettingsLimits.SectionMaxLength).IsRequired();
+            e.Property(s => s.Json).IsRequired();
+            e.Property(s => s.Version).IsConcurrencyToken();
         });
     }
 }

@@ -178,6 +178,15 @@ Both `/api/auth/oidc/login` and the callback answer failures with a redirect to 
 
 The callback lives at `/api/auth/oidc/callback` rather than the handler's default `/signin-oidc` because nginx only proxies `/api/` and `/hubs/` to the API. Operator-facing documentation is in [`AUTHENTICATION.md`](AUTHENTICATION.md); `AuthenticationFlowTests` drives the whole round-trip against a fake provider.
 
+## Settings
+
+A user's settings (theme, language, units, the dashboard layout, the map's layers and filters) belong to the account they sign in with and follow it to every device. The browser owns what they mean; the server only keeps them.
+
+- **Stores.** `settingsUi`, `settingsDashboard` and `settingsMap` each hold one section. `persistSettings` in `settingsShared.ts` keeps a section in localStorage, which is what a page starts with and all there is while signed out, and hands it to `settingsSync`.
+- **Sync.** `settingsSync` reads `GET /api/settings` alongside the router guard's session check, and the guard lets no protected view mount until it has been taken in (the dashboard arranges its cards on a first visit, and must not do so over a layout saved elsewhere). From then on each local write sends only the keys that differ from what the account was last known to hold (`PATCH /api/settings/{section}`). A key changed on this page wins over the account's copy; every other key takes the account's. The page reads again when it comes back into view (at most every 30 seconds) or back online, and an account with no copy of a section yet is filled from this browser's own.
+- **Server.** `UserSettings` holds one row per account per section: a JSON object the server does not interpret beyond the fixed section list, key names, and a 16 KB cap. `UserSettingsRepository.MergeAsync` merges a save key by key, with a version column and a short randomised retry, so devices saving at the same moment keep each other's keys. Accounts are keyed by `SessionPrincipal.ResolveAccountKey`, a SHA-256 of the sign-in method and subject: no user name or email address is stored, and a password account and a provider account of the same name stay apart.
+- **A new setting** needs no backend change: a field in its store's interface, defaults and parse function travels with the section. The parse function is what reads the account's copy too, so it must fall back on values it does not know, which an older or newer build on another device may have saved.
+
 ## Database
 
 Code-first EF Core migrations live in `src/GarageStack.Data/Migrations/`. `Program.cs` runs `db.Database.MigrateAsync()` on Api startup in normal operation; in `DEMO_MODE` it calls `DemoSeeder.SeedAsync()` instead, which creates the in-memory schema and seeds fake data, bypassing a real Postgres server entirely.
@@ -218,8 +227,8 @@ REST calls go through `frontend/src/services/` - `apiCore.ts` centralizes the `f
 
 The vehicle store owns `activeVehicle`/`activeVin` (the one car this instance follows) and `effectiveVehicleType` (the user's manual override, else the drivetrain the API detected from the gateway's `hw_version` series code and the car's `BType` configuration code, in `VehicleTypeHelper`); views read those rather than indexing into the vehicle list or repeating the override logic. The TypeScript interfaces in `services/` mirror the API's DTOs by hand; the history endpoint returns `TelemetryHistoryPoint` (the chart fields only), not full snapshots.
 
-The API speaks metric only (km, km/h, bar, °C, litres, L/100 km), and so does the database. A
-browser's unit choice lives in the UI settings store and is applied at the last moment by
+The API speaks metric only (km, km/h, bar, °C, litres, L/100 km), and so does the database. The
+chosen units live in the UI settings store and are applied at the last moment by
 `UnitFormatter` in `utils/units.ts`, reached through the `useUnits` composable: a value on screen
 goes through `units.format(quantity, metricValue)` (or `measure` when the number and its unit are
 styled apart), never through a hand-written `km` or `bar`. A distance typed into a form goes back
