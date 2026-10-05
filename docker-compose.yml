@@ -117,6 +117,8 @@ services:
       <<: *dotnet-environment
       # Language of push notification texts (en or nl); the Worker has no browser to ask.
       NOTIFICATION_LANGUAGE: "${NOTIFICATION_LANGUAGE:-}"
+      # Days of telemetry kept at full detail before the Worker compacts it. See .env.example.
+      TELEMETRY_FULL_DETAIL_DAYS: "${TELEMETRY_FULL_DETAIL_DAYS:-}"
     volumes:
       - worker_logs:/app/logs
 

@@ -298,6 +298,10 @@ docker start garagestack
 
 To restore, stop the container, replace `garagestack-data` with the backup, and start it again.
 
+### Database size
+
+Telemetry older than a year is folded into one row per quarter of an hour, so the database keeps growing, but far more slowly. Saved trips, each day's totals and the latest value of every reading are kept; only the order of events within a quarter of an hour is lost. Compaction cannot be undone, so take a backup first if you want to keep the raw rows. Set `TELEMETRY_FULL_DETAIL_DAYS` to change the period, or to `0` to keep every row. See [Data kept over time](documentation/ARCHITECTURE.md#data-kept-over-time).
+
 ---
 
 ## Push notifications

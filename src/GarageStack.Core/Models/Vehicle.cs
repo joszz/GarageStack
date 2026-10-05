@@ -28,6 +28,12 @@ public class Vehicle
     /// </summary>
     public DateTime? TripsRecordedUntil { get; set; }
 
+    /// <summary>
+    /// How far the Worker has compacted this vehicle's telemetry into quarter-hour rows: every row
+    /// before this moment is compacted. Null until the first compaction.
+    /// </summary>
+    public DateTime? TelemetryCompactedUntil { get; set; }
+
     public ICollection<TelemetrySnapshot> TelemetrySnapshots { get; set; } = [];
 }
 

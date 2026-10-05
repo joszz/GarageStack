@@ -25,6 +25,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IPoiRepository, PoiRepository>();
         services.AddScoped<IGeocodeRepository, GeocodeRepository>();
         services.AddScoped<IMapMatchRepository, MapMatchRepository>();
+        services.AddScoped<IHousekeepingRepository, HousekeepingRepository>();
         services.AddGarageStackPoiClients();
 
         return services;

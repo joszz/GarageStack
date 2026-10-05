@@ -34,6 +34,9 @@ public static class EnvironmentAliases
         ["TYRE_PRESSURE_HIGH_BAR"] = "TyrePressure:HighBar",
         ["HV_BATTERY_CAPACITY_KWH"] = "HvBattery:CapacityKwh",
 
+        // How much detail old telemetry keeps.
+        ["TELEMETRY_FULL_DETAIL_DAYS"] = "TelemetryRetention:FullDetailDays",
+
         // Who may call the API, and how often.
         ["CORS_ORIGIN"] = "Cors:Origins:0",
         ["RATE_LIMIT_GLOBAL_PER_MINUTE"] = "RateLimits:GlobalPerMinute",
