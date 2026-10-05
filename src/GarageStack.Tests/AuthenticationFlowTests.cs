@@ -497,7 +497,101 @@ public class AuthenticationFlowTests
         Assert.Throws<InvalidOperationException>(() => CreateClient(factory));
     }
 
+    // ── Settings kept for the account ─────────────────────────────────────────
+
+    // The demo database outlives each host, so every test saves values of its own rather than
+    // counting on an account that has never saved anything.
+
+    [Fact]
+    public async Task Settings_FollowTheAccountToItsOtherDevices_KeyByKey()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var factory = CreatePasswordOnlyFactory();
+        using var laptop = CreateClient(factory);
+        using var phone = CreateClient(factory);
+        await PasswordLoginAsync(laptop, ct);
+        await PasswordLoginAsync(phone, ct);
+        var theme = $"theme-{Guid.NewGuid():N}";
+        var locale = $"locale-{Guid.NewGuid():N}";
+
+        var laptopSave = await laptop.PatchAsJsonAsync("/api/settings/ui", new { theme }, ct);
+        var phoneSave = await phone.PatchAsJsonAsync("/api/settings/ui", new { locale }, ct);
+
+        Assert.Equal(HttpStatusCode.NoContent, laptopSave.StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, phoneSave.StatusCode);
+        // Each device saved one key, and neither save dropped the other's.
+        Assert.Equal(theme, await SavedSettingAsync(laptop, "ui", "theme", ct));
+        Assert.Equal(locale, await SavedSettingAsync(laptop, "ui", "locale", ct));
+    }
+
+    [Fact]
+    public async Task Settings_OfAProviderAccount_StayApartFromAPasswordAccountOfTheSameName()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        using var idp = new FakeIdentityProvider { Subject = DemoUsername };
+        await using var factory = CreateOidcFactory(idp, settings =>
+        {
+            settings["Auth__Username"] = DemoUsername;
+            settings["Auth__Password"] = DemoPassword;
+            settings["Auth__PasswordLoginEnabled"] = "true";
+        });
+        using var provider = CreateClient(factory);
+        using var password = CreateClient(factory);
+        await SignInAsync(provider, idp, "/", ct);
+        await PasswordLoginAsync(password, ct);
+        var theme = $"theme-{Guid.NewGuid():N}";
+
+        var save = await provider.PatchAsJsonAsync("/api/settings/ui", new { theme }, ct);
+
+        Assert.Equal(HttpStatusCode.NoContent, save.StatusCode);
+        Assert.Equal(theme, await SavedSettingAsync(provider, "ui", "theme", ct));
+        Assert.NotEqual(theme, await SavedSettingAsync(password, "ui", "theme", ct));
+    }
+
+    [Fact]
+    public async Task Settings_RefuseVisitorsAndUnknownSections()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var factory = CreatePasswordOnlyFactory();
+        using var visitor = CreateClient(factory);
+        using var client = CreateClient(factory);
+        await PasswordLoginAsync(client, ct);
+
+        var anonymous = await visitor.GetAsync("/api/settings", ct);
+        var unknown = await client.PatchAsJsonAsync("/api/settings/secrets", new { theme = "light" }, ct);
+        var notAnObject = await client.PatchAsJsonAsync("/api/settings/ui", new[] { "light" }, ct);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, anonymous.StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, unknown.StatusCode);
+        Assert.Equal("settings.unknownSection", await ProblemCodeAsync(unknown, ct));
+        Assert.Equal(HttpStatusCode.BadRequest, notAnObject.StatusCode);
+        Assert.Equal("settings.notAnObject", await ProblemCodeAsync(notAnObject, ct));
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
+
+    private static async Task PasswordLoginAsync(HttpClient client, CancellationToken ct)
+    {
+        var login = await client.PostAsJsonAsync(
+            "/api/auth/login",
+            new { username = DemoUsername, password = DemoPassword, rememberMe = false },
+            ct);
+        login.EnsureSuccessStatusCode();
+    }
+
+    private static async Task<string?> SavedSettingAsync(HttpClient client, string section, string key, CancellationToken ct)
+    {
+        var sections = await client.GetFromJsonAsync<Dictionary<string, System.Text.Json.JsonElement>>("/api/settings", ct);
+        return sections!.TryGetValue(section, out var saved) && saved.TryGetProperty(key, out var value)
+            ? value.GetString()
+            : null;
+    }
+
+    private static async Task<string?> ProblemCodeAsync(HttpResponseMessage response, CancellationToken ct)
+    {
+        using var problem = System.Text.Json.JsonDocument.Parse(await response.Content.ReadAsStringAsync(ct));
+        return problem.RootElement.GetProperty("code").GetString();
+    }
 
     /// <summary>
     /// Walks the whole sign-in: challenge, copy the nonce the handler generated into the fake

@@ -1,4 +1,6 @@
 using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace GarageStack.Api.Authentication;
 
@@ -53,6 +55,22 @@ internal static class SessionPrincipal
 
     internal static string? ResolveSubject(ClaimsPrincipal principal) =>
         principal.FindFirst(SubjectClaimType)?.Value ?? principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+    /// <summary>
+    /// Who owns what the server keeps for a session (its settings), or null for a session that
+    /// names no subject. The sign-in method is part of it, so a password account and a provider
+    /// account that happen to share a name stay apart. Hashed, so the database holds no user name
+    /// or email address: the password login's subject is often the MG account's email.
+    /// </summary>
+    internal static string? ResolveAccountKey(ClaimsPrincipal principal)
+    {
+        var subject = ResolveSubject(principal);
+        var method = principal.Identity?.AuthenticationType;
+        if (string.IsNullOrWhiteSpace(subject) || string.IsNullOrWhiteSpace(method))
+            return null;
+
+        return Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes($"{method}\n{subject}")));
+    }
 
     internal static string NewSessionId() => Guid.NewGuid().ToString("N");
 }

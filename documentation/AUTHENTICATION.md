@@ -259,6 +259,12 @@ The usual reason to want it: your identity provider runs on the same machine as 
 
 Set `AUTH_COOKIE_SECURE=true` whenever GarageStack is reachable over HTTPS. It defaults to `false` so plain-HTTP LAN installs work out of the box.
 
+### Settings belong to the account
+
+Theme, language, units, the dashboard layout and the map settings are saved per account, identified by the sign-in method and the account's subject (the provider's `sub`, or the password login's user name). Everyone signing in through your provider gets their own settings, and a password account never shares settings with a provider account, even one of the same name.
+
+Switching from the password login to a provider, or changing `AUTH_USERNAME`, therefore starts a new, empty account. Nothing is lost: the first device to sign in to it fills it from the settings that browser already had.
+
 ---
 
 ## Upgrading from the previous login

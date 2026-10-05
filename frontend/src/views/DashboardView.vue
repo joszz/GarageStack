@@ -3,7 +3,6 @@ import { onMounted, onUnmounted, computed, defineAsyncComponent, ref, watch } fr
 import { useI18n } from 'vue-i18n'
 import { useVehicleStore } from '@/stores/vehicle'
 import { cardsHiddenByType, useDashboardSettingsStore } from '@/stores/settingsDashboard'
-import { useUiSettingsStore } from '@/stores/settingsUi'
 import type { CardId } from '@/cards/registry'
 import { cardHasData, cardIcon } from '@/cards/registry'
 import { useCardData } from '@/cards/useCardData'
@@ -29,7 +28,6 @@ const EditableCardGrid = defineAsyncComponent(
 const { t } = useI18n()
 const store = useVehicleStore()
 const settings = useDashboardSettingsStore()
-const uiSettings = useUiSettingsStore()
 
 const vin = computed(() => store.activeVin)
 const status = computed(() => store.currentStatus)
@@ -73,11 +71,6 @@ const editableCards = computed({
   get: () => settings.applicableCards(vehicleType.value),
   set: (cards) => settings.setApplicableCards(vehicleType.value, cards),
 })
-
-watch(
-  () => uiSettings.vehicleTypeOverride,
-  () => settings.applyTypeDefaults(vehicleType.value),
-)
 
 const units = useUnits()
 

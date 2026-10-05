@@ -83,6 +83,11 @@ function loadMapSettings(): MapSettings {
 
 export const useMapSettingsStore = defineStore('settingsMap', () => {
   const settings = reactive(loadMapSettings())
-  persistSettings(STORAGE_KEY, settings)
+  persistSettings({
+    storageKey: STORAGE_KEY,
+    section: 'map',
+    state: settings,
+    parse: parseMapFields,
+  })
   return toRefs(settings)
 })

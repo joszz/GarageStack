@@ -3,10 +3,18 @@ import { createPinia, setActivePinia } from 'pinia'
 import { defineComponent } from 'vue'
 import type { RouteLocationNormalized } from 'vue-router'
 import { authApi, type MeResponse } from '@/services/authApi'
+import { settingsApi, type AccountSettings } from '@/services/settingsApi'
 import router, { preloadRouteComponents } from '@/router'
 
 vi.mock('@/services/authApi', () => ({
   authApi: { me: vi.fn<() => Promise<MeResponse>>() },
+}))
+
+vi.mock('@/services/settingsApi', () => ({
+  settingsApi: {
+    load: vi.fn<() => Promise<AccountSettings>>(),
+    save: vi.fn<() => Promise<void>>(),
+  },
 }))
 
 const AUTH_USERNAME_KEY = 'garagestack-auth-username'
@@ -39,6 +47,7 @@ beforeEach(() => {
   localStorage.clear()
   setActivePinia(createPinia())
   vi.mocked(authApi.me).mockReset()
+  vi.mocked(settingsApi.load).mockReset().mockResolvedValue({})
 })
 
 afterEach(() => {
@@ -83,6 +92,30 @@ describe('router guard', () => {
     answerSession()
     await navigation
     expect(router.currentRoute.value.path).toBe('/preload-probe')
+  })
+
+  it("asks for the account's settings alongside the session check, and enters once they are in", async () => {
+    storeSession()
+    const answerSession = holdSessionCheck()
+    let answerSettings!: (settings: AccountSettings) => void
+    vi.mocked(settingsApi.load).mockReturnValue(
+      new Promise<AccountSettings>((resolve) => (answerSettings = resolve)),
+    )
+    router.addRoute({ path: '/settings-probe', component: View })
+
+    const navigation = router.push('/settings-probe')
+
+    // Both on their way at once, rather than one after the other.
+    await vi.waitFor(() => expect(settingsApi.load).toHaveBeenCalledOnce())
+    expect(authApi.me).toHaveBeenCalledOnce()
+
+    answerSession()
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    expect(router.currentRoute.value.path).not.toBe('/settings-probe')
+
+    answerSettings({})
+    await navigation
+    expect(router.currentRoute.value.path).toBe('/settings-probe')
   })
 
   it('does not download a protected view for a visitor without a session', async () => {

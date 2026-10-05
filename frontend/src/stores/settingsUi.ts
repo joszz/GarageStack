@@ -66,8 +66,9 @@ const CAR_COLOR_SCHEME_IDS = CAR_COLOR_SCHEMES.map((s) => s.id)
 // build's stored value is not thrown away.
 const MAX_FILTER_DAYS = 365
 
-// localStorage is user-editable and survives old builds: an unknown value would otherwise be
-// applied verbatim (an unstyled theme, a select with no matching option).
+// localStorage is user-editable and survives old builds, and the account's copy may have been
+// saved by an older or newer build on another device: an unknown value would otherwise be applied
+// verbatim (an unstyled theme, a select with no matching option).
 function oneOf<T>(value: unknown, allowed: readonly T[], fallback: T): T {
   return (allowed as readonly unknown[]).includes(value) ? (value as T) : fallback
 }
@@ -137,7 +138,16 @@ function applyCarColors(id: string) {
 
 export const useUiSettingsStore = defineStore('settingsUi', () => {
   const settings = reactive(loadUiSettings())
-  persistSettings(STORAGE_KEY, settings)
+  persistSettings({
+    storageKey: STORAGE_KEY,
+    section: 'ui',
+    state: settings,
+    parse: (raw) => parseUiFields(raw, defaultsFor()),
+    // The notification checklist decides whether this browser is subscribed to push
+    // (useNotificationPushSync), so it stays with the device: unticking everything on one
+    // computer must not unsubscribe a phone, or subscribe it without a tap there.
+    localKeys: ['notificationTypeExclusions'],
+  })
 
   // The theme and the car's colours live on the document, so they follow the setting at once.
   watch(

@@ -1,10 +1,12 @@
 import { watch } from 'vue'
 import type { VehicleType } from './vehicle'
+import { useSettingsSyncStore } from './settingsSync'
+import type { SettingsSection } from '@/services/settingsApi'
 import { ALL_CARD_IDS, defaultCards } from '@/cards/registry'
 import type { CardConfig, CardId } from '@/cards/registry'
 
 // The card registry owns what a card is (icon, defaults, data predicate); the settings stores
-// own which ones this browser shows and in what order. Re-exported so store consumers keep a
+// own which ones are shown and in what order. Re-exported so store consumers keep a
 // single import for both halves.
 export { ALL_CARD_IDS, defaultCards }
 export type { CardConfig, CardId }
@@ -149,6 +151,15 @@ export function readLegacyBlob(): Record<string, unknown> | null {
   }
 }
 
+/** Whether this browser has stored settings under `key`, or before the split, in the legacy blob. */
+export function hasStoredCopy(key: string): boolean {
+  try {
+    return localStorage.getItem(key) !== null || readLegacyBlob() !== null
+  } catch {
+    return false
+  }
+}
+
 // Coalesces bursts of ref changes (drag-reordering, dragging a slider that sets two refs in the
 // same tick) into a single localStorage write instead of one write per ref per tick. Registers a
 // pagehide flush so a change made right before closing the tab is never lost.
@@ -171,16 +182,42 @@ export function createDebouncedSave(save: () => void, delayMs = 300): () => void
   return scheduleSave
 }
 
+export interface PersistOptions<T extends object> {
+  /** Where this browser keeps its own copy: what the page starts with, and all there is while signed out. */
+  storageKey: string
+  /** Where the signed-in account keeps its copy. */
+  section: SettingsSection
+  state: T
+  /** Reads the account's copy the way the store reads its own: unknown values fall back. */
+  parse: (raw: Record<string, unknown>) => T
+  /** Runs after each write to this browser's copy. */
+  onSave?: () => void
+  /** Runs when the account's copy has been taken in. */
+  onAdopted?: () => void
+  /** Keys kept in this browser only, never on the account. */
+  localKeys?: readonly (keyof T & string)[]
+}
+
 /**
- * Keeps a settings store's `state` in localStorage under `key`: any change, however deep, is
- * written whole once the burst it belongs to is over.
- *
- * @param onSave Runs after each write.
+ * Keeps a settings store's `state` in this browser and on the signed-in account. Any change,
+ * however deep, is written whole to localStorage once the burst it belongs to is over, and the
+ * keys it touched then go to the account (see settingsSync).
  */
-export function persistSettings(key: string, state: object, onSave?: () => void): void {
+export function persistSettings<T extends object>(options: PersistOptions<T>): void {
+  const { storageKey, section, state, parse, onSave, onAdopted, localKeys } = options
+  const sync = useSettingsSyncStore()
   const scheduleSave = createDebouncedSave(() => {
-    localStorage.setItem(key, JSON.stringify(state))
+    localStorage.setItem(storageKey, JSON.stringify(state))
     onSave?.()
+    sync.push(section)
   })
   watch(state, scheduleSave, { deep: true })
+  sync.register({
+    section,
+    state,
+    parse,
+    hasOwnCopy: () => hasStoredCopy(storageKey),
+    onAdopted,
+    localKeys,
+  })
 }
