@@ -1181,6 +1181,22 @@ textarea.form-control {
   font-family: inherit;
 }
 
+/* A time of day as selects (TimeOfDaySelect): hour, minute and, on a 12-hour clock, AM or PM. */
+.time-select {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.time-select .form-control {
+  flex: 1;
+  min-width: 0;
+}
+
+.time-select__separator {
+  color: var(--color-text-muted);
+}
+
 /* ── Toggle chips (one-of-N or several-of-N choices) ──────── */
 
 .toggle-chip-group {

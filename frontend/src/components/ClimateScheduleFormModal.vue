@@ -8,6 +8,7 @@ import ChipGroup from './ChipGroup.vue'
 import RangeControl from './RangeControl.vue'
 import DetailListSwitch from './DetailListSwitch.vue'
 import WeekdayPicker from './WeekdayPicker.vue'
+import TimeOfDaySelect from './TimeOfDaySelect.vue'
 import { useClimateSchedulesStore } from '@/stores/climateSchedules'
 import { useVehicleStore } from '@/stores/vehicle'
 import type {
@@ -173,7 +174,6 @@ function close() {
 }
 
 function validate(): string | null {
-  if (!startTime.value) return t('climateSchedules.form.validationTime')
   if (!conditionOn.value) return null
   const below = colderThan.metric()
   const above = warmerThan.metric()
@@ -263,13 +263,7 @@ async function confirmDelete() {
           <div class="form-row">
             <div class="form-group">
               <label for="climate-schedule-time">{{ t('climateSchedules.form.startTime') }}</label>
-              <input
-                id="climate-schedule-time"
-                v-model="startTime"
-                type="time"
-                class="form-control"
-                required
-              />
+              <TimeOfDaySelect id="climate-schedule-time" v-model="startTime" />
             </div>
             <div class="form-group">
               <label for="climate-schedule-name">{{ t('climateSchedules.form.name') }}</label>

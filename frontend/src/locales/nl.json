@@ -526,7 +526,10 @@
     "nextPage": "Volgende pagina",
     "lastPage": "Laatste pagina",
     "pageOf": "Pagina {n} van {total}",
-    "retry": "Opnieuw proberen"
+    "retry": "Opnieuw proberen",
+    "hour": "Uur",
+    "minute": "Minuut",
+    "dayPeriod": "AM of PM"
   },
   "demo": {
     "banner": "Demo modus - alleen voorbeelddata wordt getoond",
@@ -703,7 +706,6 @@
       "warmerThan": "Warmer dan ({unit})",
       "timingHint": "Start binnen een minuut na de ingestelde tijd. De auto doet tot 30 seconden over elke instelling, dus stoelverwarming en achterruitverwarming volgen kort daarna.",
       "zoneHint": "Draait op de tijd van {zone}, waar dit schema is gemaakt.",
-      "validationTime": "Kies een starttijd.",
       "validationCondition": "Vul minstens één buitentemperatuur in.",
       "save": "Schema opslaan"
     }

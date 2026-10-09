@@ -526,7 +526,10 @@
     "nextPage": "Next page",
     "lastPage": "Last page",
     "pageOf": "Page {n} of {total}",
-    "retry": "Try again"
+    "retry": "Try again",
+    "hour": "Hour",
+    "minute": "Minute",
+    "dayPeriod": "AM or PM"
   },
   "demo": {
     "banner": "Demo mode - displaying sample data only",
@@ -703,7 +706,6 @@
       "warmerThan": "Warmer than ({unit})",
       "timingHint": "Starts within a minute of the set time. The car takes up to 30 seconds per setting, so seat heating and the defroster follow shortly after.",
       "zoneHint": "Runs on {zone} time, where this schedule was made.",
-      "validationTime": "Choose a start time.",
       "validationCondition": "Enter at least one outside temperature.",
       "save": "Save schedule"
     }
