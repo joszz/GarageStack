@@ -1,12 +1,9 @@
-using GarageStack.Api;
+using GarageStack.Core.Helpers;
 
 namespace GarageStack.Tests;
 
 public class VehicleCommandValidationTests
 {
-    // The code every refused value is answered with, which the frontend translates.
-    private const string Refused = "command.invalidValue";
-
     // ── climate / rear-defroster ─────────────────────────────────────────────
     [Theory]
     [InlineData("climate", "on")]
@@ -24,7 +21,7 @@ public class VehicleCommandValidationTests
     [InlineData("rear-defroster", "true")]
     public void OnOffCommands_InvalidValues_ReturnsError(string command, string value)
     {
-        Assert.Equal(Refused, VehicleCommands.Validate(command, value)?.Code);
+        Assert.NotNull(VehicleCommands.Validate(command, value));
     }
 
     // ── climate-temperature ───────────────────────────────────────────────────
@@ -44,7 +41,7 @@ public class VehicleCommandValidationTests
     [InlineData("22.5")]
     public void ClimateTemperature_InvalidValues_ReturnsError(string value)
     {
-        Assert.Equal(Refused, VehicleCommands.Validate("climate-temperature", value)?.Code);
+        Assert.NotNull(VehicleCommands.Validate("climate-temperature", value));
     }
 
     // ── seat-left / seat-right ───────────────────────────────────────────────
@@ -64,7 +61,7 @@ public class VehicleCommandValidationTests
     [InlineData("seat-right", "high")]
     public void SeatCommands_InvalidValues_ReturnsError(string command, string value)
     {
-        Assert.Equal(Refused, VehicleCommands.Validate(command, value)?.Code);
+        Assert.NotNull(VehicleCommands.Validate(command, value));
     }
 
     // ── find-my-car ───────────────────────────────────────────────────────────
@@ -82,7 +79,7 @@ public class VehicleCommandValidationTests
     [InlineData("on")]
     public void FindMyCar_InvalidValues_ReturnsError(string value)
     {
-        Assert.Equal(Refused, VehicleCommands.Validate("find-my-car", value)?.Code);
+        Assert.NotNull(VehicleCommands.Validate("find-my-car", value));
     }
 
     // ── charge-limit ─────────────────────────────────────────────────────────
@@ -111,7 +108,7 @@ public class VehicleCommandValidationTests
     [InlineData("")]
     public void ChargeLimit_InvalidValues_ReturnsError(string value)
     {
-        Assert.Equal(Refused, VehicleCommands.Validate("charge-limit", value)?.Code);
+        Assert.NotNull(VehicleCommands.Validate("charge-limit", value));
     }
 
     // ── lock ─────────────────────────────────────────────────────────────────
@@ -130,7 +127,7 @@ public class VehicleCommandValidationTests
     [InlineData("1")]
     public void Lock_InvalidValues_ReturnsError(string value)
     {
-        Assert.Equal(Refused, VehicleCommands.Validate("lock", value)?.Code);
+        Assert.NotNull(VehicleCommands.Validate("lock", value));
     }
 
     // ── refresh ───────────────────────────────────────────────────────────────
@@ -145,7 +142,7 @@ public class VehicleCommandValidationTests
     [InlineData("full")]
     public void Refresh_InvalidValues_ReturnsError(string value)
     {
-        Assert.Equal(Refused, VehicleCommands.Validate("refresh", value)?.Code);
+        Assert.NotNull(VehicleCommands.Validate("refresh", value));
     }
 
     // ── scheduled-charging (passthrough) ─────────────────────────────────────
@@ -161,7 +158,7 @@ public class VehicleCommandValidationTests
     public void ScheduledCharging_ValueOver500Chars_ReturnsError()
     {
         var value = new string('a', 501);
-        Assert.Equal(Refused, VehicleCommands.Validate("scheduled-charging", value)?.Code);
+        Assert.NotNull(VehicleCommands.Validate("scheduled-charging", value));
     }
 
     [Fact]

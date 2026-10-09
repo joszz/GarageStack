@@ -92,6 +92,7 @@ try
     builder.Services.AddScoped<TripPlaceService>();
     builder.Services.AddScoped<MapMatchService>();
     builder.Services.AddSingleton<VehicleCommandGate>();
+    builder.Services.AddSingleton<VehicleCommandSender>();
 
     builder.Services.AddSignalR();
 

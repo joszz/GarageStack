@@ -3,6 +3,8 @@ import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ExpandableStatusCard from './ExpandableStatusCard.vue'
 import DetailListItem from './DetailListItem.vue'
+import DetailListSwitch from './DetailListSwitch.vue'
+import RangeControl from './RangeControl.vue'
 import CommandFailure from './CommandFailure.vue'
 import { useVehicleCommand } from '@/composables/useVehicleCommand'
 import type { TelemetrySnapshot } from '@/services/vehicleApi'
@@ -164,12 +166,17 @@ async function applyAll() {
   }
 }
 
-function onSeatLeftChange(e: Event) {
-  seatLeftLocal.value = Number((e.target as HTMLInputElement).value)
-}
+const temperatureText = computed(
+  () => `${wholeDegrees(sliderTemp.value)} ${units.value.symbol('temperature')}`,
+)
+const temperatureEdges = computed((): [string, string] => [
+  `${wholeDegrees(TEMP_MIN)}°`,
+  `${wholeDegrees(TEMP_MAX)}°`,
+])
+const controlsDisabled = computed(() => isApplying.value || !props.vin)
 
-function onSeatRightChange(e: Event) {
-  seatRightLocal.value = Number((e.target as HTMLInputElement).value)
+function seatText(level: number): string {
+  return seatLabels.value[level] ?? ''
 }
 </script>
 
@@ -183,65 +190,33 @@ function onSeatRightChange(e: Event) {
     v-model:open="modalOpen"
   >
     <div class="detail-list">
-      <!-- AC temperature slider -->
-      <div
+      <RangeControl
         v-if="climateOn !== null || remoteTemperature !== null"
-        class="detail-list__item detail-list__item--range"
-      >
-        <font-awesome-icon icon="temperature-half" class="detail-list__item-icon" />
-        <div class="range-control range-control--grow">
-          <div class="range-control__header">
-            <span class="range-control__label">{{ t('control.temperature') }}</span>
-            <span class="range-control__value"
-              >{{ wholeDegrees(sliderTemp) }} {{ units.symbol('temperature') }}</span
-            >
-          </div>
-          <div class="range-control__row">
-            <span>{{ wholeDegrees(TEMP_MIN) }}°</span>
-            <input
-              v-model.number="sliderTemp"
-              type="range"
-              :min="TEMP_MIN"
-              :max="TEMP_MAX"
-              step="1"
-              :disabled="isApplying || !vin"
-            />
-            <span>{{ wholeDegrees(TEMP_MAX) }}°</span>
-          </div>
-        </div>
-      </div>
+        v-model="sliderTemp"
+        icon="temperature-half"
+        :label="t('control.temperature')"
+        :value-text="temperatureText"
+        :min="TEMP_MIN"
+        :max="TEMP_MAX"
+        :edge-labels="temperatureEdges"
+        :disabled="controlsDisabled"
+      />
 
-      <!-- Climate on/off toggle -->
-      <div v-if="climateOn !== null" class="detail-list__item detail-list__item--control">
-        <font-awesome-icon icon="wind" class="detail-list__item-icon" />
-        <span class="detail-list__item-label">{{ t('control.climate') }}</span>
-        <div class="form-check form-switch">
-          <input
-            class="form-check-input"
-            type="checkbox"
-            role="switch"
-            :checked="localClimateOn ?? false"
-            :disabled="isApplying || !vin"
-            @change="localClimateOn = !localClimateOn"
-          />
-        </div>
-      </div>
+      <DetailListSwitch
+        v-if="climateOn !== null"
+        v-model="localClimateOn"
+        icon="wind"
+        :label="t('control.climate')"
+        :disabled="controlsDisabled"
+      />
 
-      <!-- Rear defroster toggle -->
-      <div v-if="rearWindowDefroster !== null" class="detail-list__item detail-list__item--control">
-        <font-awesome-icon icon="car-rear" class="detail-list__item-icon" />
-        <span class="detail-list__item-label">{{ t('control.rearDefroster') }}</span>
-        <div class="form-check form-switch">
-          <input
-            class="form-check-input"
-            type="checkbox"
-            role="switch"
-            :checked="localRearDefroster ?? false"
-            :disabled="isApplying || !vin"
-            @change="localRearDefroster = !localRearDefroster"
-          />
-        </div>
-      </div>
+      <DetailListSwitch
+        v-if="rearWindowDefroster !== null"
+        v-model="localRearDefroster"
+        icon="car-rear"
+        :label="t('control.rearDefroster')"
+        :disabled="controlsDisabled"
+      />
 
       <!-- Interior temperature (read-only) -->
       <DetailListItem
@@ -259,55 +234,29 @@ function onSeatRightChange(e: Event) {
         :label="t('vehicle.temperature.exterior')"
       />
 
-      <!-- Driver seat slider -->
-      <div v-if="heatedSeatFrontLeft !== null" class="detail-list__item detail-list__item--range">
-        <font-awesome-icon icon="couch" class="detail-list__item-icon" />
-        <div class="range-control range-control--grow">
-          <div class="range-control__header">
-            <span class="range-control__label">{{ t('vehicle.climateDetail.seatLeft') }}</span>
-            <span class="range-control__value">{{ seatLabels[seatLeftLocal] }}</span>
-          </div>
-          <div class="range-control__row">
-            <input
-              type="range"
-              min="0"
-              max="3"
-              step="1"
-              :value="seatLeftLocal"
-              :disabled="isApplying || !vin"
-              @change="onSeatLeftChange"
-            />
-          </div>
-          <div class="range-control__labels">
-            <span v-for="label in seatLabels" :key="label">{{ label }}</span>
-          </div>
-        </div>
-      </div>
+      <RangeControl
+        v-if="heatedSeatFrontLeft !== null"
+        v-model="seatLeftLocal"
+        icon="couch"
+        :label="t('vehicle.climateDetail.seatLeft')"
+        :value-text="seatText(seatLeftLocal)"
+        :min="0"
+        :max="3"
+        :tick-labels="seatLabels"
+        :disabled="controlsDisabled"
+      />
 
-      <!-- Passenger seat slider -->
-      <div v-if="heatedSeatFrontRight !== null" class="detail-list__item detail-list__item--range">
-        <font-awesome-icon icon="couch" class="detail-list__item-icon" />
-        <div class="range-control range-control--grow">
-          <div class="range-control__header">
-            <span class="range-control__label">{{ t('vehicle.climateDetail.seatRight') }}</span>
-            <span class="range-control__value">{{ seatLabels[seatRightLocal] }}</span>
-          </div>
-          <div class="range-control__row">
-            <input
-              type="range"
-              min="0"
-              max="3"
-              step="1"
-              :value="seatRightLocal"
-              :disabled="isApplying || !vin"
-              @change="onSeatRightChange"
-            />
-          </div>
-          <div class="range-control__labels">
-            <span v-for="label in seatLabels" :key="label">{{ label }}</span>
-          </div>
-        </div>
-      </div>
+      <RangeControl
+        v-if="heatedSeatFrontRight !== null"
+        v-model="seatRightLocal"
+        icon="couch"
+        :label="t('vehicle.climateDetail.seatRight')"
+        :value-text="seatText(seatRightLocal)"
+        :min="0"
+        :max="3"
+        :tick-labels="seatLabels"
+        :disabled="controlsDisabled"
+      />
     </div>
 
     <template #footer="{ close }">
@@ -331,9 +280,3 @@ function onSeatRightChange(e: Event) {
     </template>
   </ExpandableStatusCard>
 </template>
-
-<style scoped>
-.range-control--grow {
-  flex: 1;
-}
-</style>

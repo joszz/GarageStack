@@ -93,7 +93,7 @@ watch(vin, (v) => {
     <div v-else-if="!store.loading && sortedItems.length === 0" class="empty-state">
       {{ t('maintenance.empty') }}
     </div>
-    <div v-else class="maintenance-list">
+    <div v-else class="status-card-list">
       <StatusCard
         v-for="item in sortedItems"
         :key="item.id"
