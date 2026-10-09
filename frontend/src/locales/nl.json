@@ -528,8 +528,7 @@
     "pageOf": "Pagina {n} van {total}",
     "retry": "Opnieuw proberen",
     "hour": "Uur",
-    "minute": "Minuut",
-    "dayPeriod": "AM of PM"
+    "minute": "Minuut"
   },
   "demo": {
     "banner": "Demo modus - alleen voorbeelddata wordt getoond",

@@ -1181,7 +1181,7 @@ textarea.form-control {
   font-family: inherit;
 }
 
-/* A time of day as selects (TimeOfDaySelect): hour, minute and, on a 12-hour clock, AM or PM. */
+/* A time of day as selects (TimeOfDaySelect): hour and minute on a 24-hour clock. */
 .time-select {
   display: flex;
   align-items: center;

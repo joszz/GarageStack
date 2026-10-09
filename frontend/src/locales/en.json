@@ -528,8 +528,7 @@
     "pageOf": "Page {n} of {total}",
     "retry": "Try again",
     "hour": "Hour",
-    "minute": "Minute",
-    "dayPeriod": "AM or PM"
+    "minute": "Minute"
   },
   "demo": {
     "banner": "Demo mode - displaying sample data only",
