@@ -5,6 +5,8 @@ const props = defineProps<{
   value: string | number | null
   unit?: string
   subtitle?: string
+  /** A short line under the value, shown on the card itself (subtitle is only a tooltip). */
+  note?: string
   variant?: 'success' | 'warning' | 'danger' | 'info'
   clickable?: boolean
 }>()
@@ -41,6 +43,7 @@ function valueTitle(): string {
         {{ value ?? '-'
         }}<span v-if="unit && value !== null" class="status-card__unit"> {{ unit }}</span>
       </span>
+      <span v-if="note" class="status-card__note" :title="note">{{ note }}</span>
     </div>
     <font-awesome-icon
       v-if="clickable"

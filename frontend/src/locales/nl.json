@@ -4,6 +4,7 @@
     "statistics": "Statistieken",
     "map": "Kaart",
     "tripLog": "Rittenregistratie",
+    "climateSchedules": "Klimaatschema's",
     "maintenance": "Onderhoud",
     "menuLabel": "Menu"
   },
@@ -45,7 +46,8 @@
       "chargingSession": "Live gegevens van de boordlader: AC-vermogen (één of driefasig), kabelslot en laadtype. Alleen relevant voor PHEV en BEV.",
       "batteryHeating": "Voorverwarmingsstatus en schema van de hoogspanningsaccu. Opwarmen voor een laadsessie verbetert de laadsnelheid bij koud weer. Alleen relevant voor PHEV en BEV.",
       "vehicleDiagram": "Bovenaanzicht van het voertuig. Bandenpressiepunten zijn kleurgecodeerd: groen is goed, oranje is laag, rood is kritiek laag. Open portieren, de motorkap en de kofferbak worden aangegeven met een open-slot-icoon. Lichtbundels worden getoond wanneer er verlichting aan is. Brandstofniveau en EV-accupercentage verschijnen respectievelijk voor- en achterin wanneer gegevens beschikbaar zijn.",
-      "maintenance": "Aankomende en verlopen onderhoudsitems op basis van de servicetermijnen die je zelf instelt. Klik door naar de onderhoudspagina om items toe te voegen of een uitgevoerde service te registreren."
+      "maintenance": "Aankomende en verlopen onderhoudsitems op basis van de servicetermijnen die je zelf instelt. Klik door naar de onderhoudspagina om items toe te voegen of een uitgevoerde service te registreren.",
+      "climateSchedule": "Wanneer een klimaatschema de auto weer voorverwarmt of koelt"
     }
   },
   "statistics": {
@@ -353,6 +355,7 @@
       "doorsOpenParked": "Portier open terwijl geparkeerd",
       "windowsOpenParked": "Raam open terwijl geparkeerd",
       "vehicleMessage": "Berichten uit de MG-app",
+      "climateSchedule": "Geplande klimaatregeling",
       "maintenance": "Onderhoudsherinneringen"
     }
   },
@@ -414,7 +417,8 @@
       "remainingCharge": "Laadtijd",
       "chargingSession": "Laadsessie",
       "batteryHeating": "Accuverwarming",
-      "maintenance": "Onderhoud"
+      "maintenance": "Onderhoud",
+      "climateSchedule": "Volgende klimaatstart"
     },
     "carColor": {
       "title": "Autokleur",
@@ -641,6 +645,69 @@
       "moreCount": "+{count} meer"
     }
   },
+  "climateSchedules": {
+    "title": "Klimaatschema's",
+    "subtitle": "Verwarm of koel de auto voordat je vertrekt. Schema's draaien op de GarageStack-server, dus je telefoon mag uit.",
+    "addSchedule": "Schema toevoegen",
+    "editSchedule": "Schema bewerken",
+    "delete": "Verwijderen",
+    "deleteConfirm": "Dit schema verwijderen?",
+    "empty": "Nog geen schema's. Voeg er een toe zodat de auto klaarstaat als je vertrekt.",
+    "off": "Uitgeschakeld",
+    "notPlanned": "Niets gepland",
+    "nextRun": "Volgende: {when}",
+    "seatHeating": "Stoelverwarming",
+    "activeCount": "Geen actief | 1 actief | {n} actief",
+    "days": {
+      "once": "Eenmalig",
+      "everyDay": "Elke dag",
+      "weekdays": "Werkdagen",
+      "weekend": "Weekend"
+    },
+    "when": {
+      "today": "Vandaag {time}",
+      "tomorrow": "Morgen {time}",
+      "yesterday": "Gisteren {time}"
+    },
+    "outcome": {
+      "running": "Bezig",
+      "started": "Gestart",
+      "failed": "Mislukt",
+      "unconfirmed": "Geen antwoord",
+      "skippedDriving": "Overgeslagen: auto in gebruik",
+      "skippedTemperature": "Overgeslagen: mild weer",
+      "missed": "Gemist"
+    },
+    "lastRun": {
+      "extraFailed": "{what} werkte niet"
+    },
+    "dashboard": {
+      "label": "Klimaat aan",
+      "add": "Voeg een schema toe om de auto voor te verwarmen"
+    },
+    "form": {
+      "status": "Status",
+      "enabled": "Ingeschakeld",
+      "when": "Wanneer",
+      "startTime": "Starttijd",
+      "name": "Naam (optioneel)",
+      "namePlaceholder": "bijv. Werk",
+      "repeat": "Herhalen",
+      "onceHint": "Geen dag gekozen: draait één keer en schakelt zichzelf daarna uit.",
+      "repeatsOn": "Herhaalt: {days}",
+      "climate": "Klimaat",
+      "condition": "Voorwaarde",
+      "onlyColdOrHot": "Alleen als het koud of warm is",
+      "onlyColdOrHotDesc": "Slaat milde dagen over, op basis van de buitentemperatuur van de auto uit de laatste 3 uur. Zonder recente meting draait het schema gewoon.",
+      "colderThan": "Kouder dan ({unit})",
+      "warmerThan": "Warmer dan ({unit})",
+      "timingHint": "Start binnen een minuut na de ingestelde tijd. De auto doet tot 30 seconden over elke instelling, dus stoelverwarming en achterruitverwarming volgen kort daarna.",
+      "zoneHint": "Draait op de tijd van {zone}, waar dit schema is gemaakt.",
+      "validationTime": "Kies een starttijd.",
+      "validationCondition": "Vul minstens één buitentemperatuur in.",
+      "save": "Schema opslaan"
+    }
+  },
   "errors": {
     "badRequest": "Het verzoek is niet geaccepteerd.",
     "unauthorized": "Je sessie is verlopen. Log opnieuw in.",
@@ -670,6 +737,17 @@
         "intervalMonthsOutOfRange": "Het tijdsinterval moet tussen 1 en 120 maanden liggen.",
         "serviceDateInFuture": "De servicedatum kan niet in de toekomst liggen.",
         "odometerNegative": "De kilometerstand kan niet negatief zijn."
+      },
+      "climateSchedule": {
+        "limitReached": "Een auto kan hooguit 20 schema's hebben.",
+        "nameTooLong": "De naam mag hooguit 50 tekens zijn.",
+        "startTimeInvalid": "Kies een starttijd.",
+        "daysInvalid": "Kies dagen van maandag tot en met zondag.",
+        "timeZoneUnknown": "De tijdzone van je browser is niet bekend bij de server.",
+        "temperatureOutOfRange": "De auto neemt een temperatuur van 16 tot 28 °C.",
+        "seatLevelOutOfRange": "Stoelverwarming gaat van uit tot hoog.",
+        "thresholdOutOfRange": "Buitentemperaturen moeten tussen -40 en 50 °C liggen.",
+        "conditionAlwaysTrue": "De 'kouder dan'-temperatuur moet lager zijn dan de 'warmer dan'-temperatuur."
       },
       "trip": {
         "notesTooLong": "De notities mogen hoogstens 500 tekens lang zijn."

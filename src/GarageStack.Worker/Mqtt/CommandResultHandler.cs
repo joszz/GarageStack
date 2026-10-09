@@ -7,9 +7,9 @@ namespace GarageStack.Worker.Mqtt;
 
 /// <summary>
 /// Hands the gateway's answer to a command to the Api, which releases its command gate and tells
-/// the browser that sent it.
+/// the browser that sent it, and to a climate schedule in this process that is waiting for it.
 /// </summary>
-public sealed class CommandResultHandler(ILogger logger, VehicleResolver vehicles) : IMqttMessageHandler
+public sealed class CommandResultHandler(ILogger logger, VehicleResolver vehicles, CommandAnswerWaiter answers) : IMqttMessageHandler
 {
     public async Task<bool> TryHandleAsync(MqttMessage message, CancellationToken ct)
     {
@@ -20,9 +20,16 @@ public sealed class CommandResultHandler(ILogger logger, VehicleResolver vehicle
         // on every (re)subscribe. That is an old answer, and forwarding it would show a stale
         // failure or release a later command's gate early.
         if (message.Retain)
+        {
             logger.LogDebug("Skipping retained command result - VIN={Vin} subtopic={Subtopic}", topic.Vin, topic.Subtopic);
+        }
         else
+        {
             await ForwardAsync(topic, result, ct);
+            // After the Api has had it, so its gate is free by the time a waiting schedule sends
+            // its next command.
+            answers.Complete(topic.Vin, result);
+        }
 
         return true;
     }

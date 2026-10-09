@@ -4,6 +4,7 @@
     "statistics": "Statistics",
     "map": "Map",
     "tripLog": "Trip log",
+    "climateSchedules": "Climate schedules",
     "maintenance": "Maintenance",
     "menuLabel": "Menu"
   },
@@ -45,7 +46,8 @@
       "chargingSession": "Live onboard-charger data: AC power (single or three-phase), cable lock status and charging type. Only relevant for PHEV and BEV.",
       "batteryHeating": "High-voltage battery pre-heating status and schedule. Warming the battery before a charge session improves charging speed in cold weather. Only relevant for PHEV and BEV.",
       "vehicleDiagram": "Top-down overview of the vehicle. Tyre pressure dots are colour-coded: green is healthy, orange is low, red is critically low. Open doors, the bonnet and the boot are marked with a lock-open icon. Light beams are shown when any lights are on. Fuel level and EV battery percentage appear at the front and rear respectively when data is available.",
-      "maintenance": "Upcoming and overdue maintenance items based on the service intervals you define. Click through to the Maintenance page to add items or log a completed service."
+      "maintenance": "Upcoming and overdue maintenance items based on the service intervals you define. Click through to the Maintenance page to add items or log a completed service.",
+      "climateSchedule": "When a climate schedule warms or cools the car next"
     }
   },
   "statistics": {
@@ -353,6 +355,7 @@
       "doorsOpenParked": "Doors open while parked",
       "windowsOpenParked": "Windows open while parked",
       "vehicleMessage": "MG app messages",
+      "climateSchedule": "Scheduled climate",
       "maintenance": "Maintenance reminders"
     }
   },
@@ -414,7 +417,8 @@
       "remainingCharge": "Charge Time",
       "chargingSession": "Charging Session",
       "batteryHeating": "Battery Heating",
-      "maintenance": "Maintenance"
+      "maintenance": "Maintenance",
+      "climateSchedule": "Next climate start"
     },
     "carColor": {
       "title": "Car colour",
@@ -641,6 +645,69 @@
       "moreCount": "+{count} more"
     }
   },
+  "climateSchedules": {
+    "title": "Climate schedules",
+    "subtitle": "Warm or cool the car before you leave. Schedules run on the GarageStack server, so your phone can stay off.",
+    "addSchedule": "Add schedule",
+    "editSchedule": "Edit schedule",
+    "delete": "Delete",
+    "deleteConfirm": "Delete this schedule?",
+    "empty": "No schedules yet. Add one to have the car ready when you leave.",
+    "off": "Switched off",
+    "notPlanned": "Nothing planned",
+    "nextRun": "Next: {when}",
+    "seatHeating": "Seat heating",
+    "activeCount": "None active | 1 active | {n} active",
+    "days": {
+      "once": "Once",
+      "everyDay": "Every day",
+      "weekdays": "Weekdays",
+      "weekend": "Weekend"
+    },
+    "when": {
+      "today": "Today {time}",
+      "tomorrow": "Tomorrow {time}",
+      "yesterday": "Yesterday {time}"
+    },
+    "outcome": {
+      "running": "Running",
+      "started": "Started",
+      "failed": "Failed",
+      "unconfirmed": "No answer",
+      "skippedDriving": "Skipped: car in use",
+      "skippedTemperature": "Skipped: mild weather",
+      "missed": "Missed"
+    },
+    "lastRun": {
+      "extraFailed": "{what} did not work"
+    },
+    "dashboard": {
+      "label": "Climate on",
+      "add": "Add a schedule to warm the car before you leave"
+    },
+    "form": {
+      "status": "Status",
+      "enabled": "Switched on",
+      "when": "When",
+      "startTime": "Start time",
+      "name": "Name (optional)",
+      "namePlaceholder": "e.g. Work",
+      "repeat": "Repeat",
+      "onceHint": "No day chosen: runs once, then switches itself off.",
+      "repeatsOn": "Repeats: {days}",
+      "climate": "Climate",
+      "condition": "Condition",
+      "onlyColdOrHot": "Only when it is cold or hot",
+      "onlyColdOrHotDesc": "Skips mild days, going by the car's outside temperature from the last 3 hours. Without a recent reading it runs anyway.",
+      "colderThan": "Colder than ({unit})",
+      "warmerThan": "Warmer than ({unit})",
+      "timingHint": "Starts within a minute of the set time. The car takes up to 30 seconds per setting, so seat heating and the defroster follow shortly after.",
+      "zoneHint": "Runs on {zone} time, where this schedule was made.",
+      "validationTime": "Choose a start time.",
+      "validationCondition": "Enter at least one outside temperature.",
+      "save": "Save schedule"
+    }
+  },
   "errors": {
     "badRequest": "The request was not accepted.",
     "unauthorized": "Your session has ended. Sign in again.",
@@ -670,6 +737,17 @@
         "intervalMonthsOutOfRange": "The time interval must be between 1 and 120 months.",
         "serviceDateInFuture": "The service date cannot be in the future.",
         "odometerNegative": "The odometer reading cannot be negative."
+      },
+      "climateSchedule": {
+        "limitReached": "A car can have at most 20 schedules.",
+        "nameTooLong": "The name can be at most 50 characters.",
+        "startTimeInvalid": "Choose a start time.",
+        "daysInvalid": "Choose days from Monday to Sunday.",
+        "timeZoneUnknown": "Your browser's time zone is not known to the server.",
+        "temperatureOutOfRange": "The car takes a temperature from 16 to 28 °C.",
+        "seatLevelOutOfRange": "Seat heating runs from off to high.",
+        "thresholdOutOfRange": "Outside temperatures must be between -40 and 50 °C.",
+        "conditionAlwaysTrue": "The 'colder than' temperature must be below the 'warmer than' one."
       },
       "trip": {
         "notesTooLong": "The notes can be at most 500 characters."

@@ -10,11 +10,6 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace GarageStack.Tests;
 
-file sealed class FixedTimeProvider(DateTimeOffset now) : TimeProvider
-{
-    public override DateTimeOffset GetUtcNow() => now;
-}
-
 public class VehicleMessageJudgeTests
 {
     private static readonly DateTimeOffset Now = new(2026, 9, 25, 12, 0, 0, TimeSpan.Zero);

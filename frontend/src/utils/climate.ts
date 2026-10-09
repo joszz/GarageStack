@@ -6,7 +6,8 @@ export type ClimateOnMode = Exclude<ClimateMode, 'off'>
 
 export const CLIMATE_ON_MODES: readonly ClimateOnMode[] = ['on', 'blowingonly', 'front']
 
-const MODE_ICONS: Record<ClimateOnMode, string> = {
+/** The icon each mode shows with, on its chip and on a schedule's card. */
+export const CLIMATE_MODE_ICONS: Readonly<Record<ClimateOnMode, string>> = {
   on: 'wind',
   blowingonly: 'fan',
   front: 'snowflake',
@@ -31,7 +32,7 @@ export function climateModeOptions(t: (key: string) => string): ChipOption<Clima
   return CLIMATE_ON_MODES.map((mode) => ({
     value: mode,
     label: t(`control.mode.${mode}`),
-    icon: MODE_ICONS[mode],
+    icon: CLIMATE_MODE_ICONS[mode],
   }))
 }
 

@@ -23,7 +23,8 @@ public class MqttConsumerService : BackgroundService
         IOptions<MqttOptions> options,
         IServiceScopeFactory scopeFactory,
         IPushSender pushSender,
-        IStringLocalizer<NotificationStrings> strings)
+        IStringLocalizer<NotificationStrings> strings,
+        CommandAnswerWaiter answers)
     {
         _logger = logger;
         _options = options.Value;
@@ -34,7 +35,7 @@ public class MqttConsumerService : BackgroundService
             new HaDiscoveryHandler(logger, vehicles),
             new VehicleConfigHandler(logger, vehicles),
             new VehicleMessageHandler(logger, scopeFactory, pushSender, strings, TimeProvider.System),
-            new CommandResultHandler(logger, vehicles),
+            new CommandResultHandler(logger, vehicles, answers),
             new TelemetryHandler(logger, vehicles, pushSender, strings),
         ];
     }

@@ -23,7 +23,7 @@ ARG OS_PATCH_DATE=0
 RUN echo "os patch date: ${OS_PATCH_DATE}" \
 	&& apt-get update \
 	&& apt-get upgrade -y \
-	&& apt-get install -y --no-install-recommends libgssapi-krb5-2 gosu curl \
+	&& apt-get install -y --no-install-recommends libgssapi-krb5-2 gosu curl tzdata \
 	&& rm -rf /var/lib/apt/lists/*
 COPY --from=build /app .
 COPY --chmod=755 src/GarageStack.Api/docker-entrypoint.sh /docker-entrypoint.sh

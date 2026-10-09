@@ -18,6 +18,7 @@ const CATEGORY_ICONS: Record<string, string[]> = {
   'doors-open-parked': ['fas', 'door-open'],
   'windows-open-parked': ['fas', 'wind'],
   'vehicle-message': ['fas', 'message'],
+  'climate-schedule': ['fas', 'calendar-days'],
 }
 
 function categoryIcon(category: string | null): string[] {

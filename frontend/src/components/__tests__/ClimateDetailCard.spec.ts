@@ -7,6 +7,18 @@ import en from '@/locales/en.json'
 import ClimateDetailCard from '../ClimateDetailCard.vue'
 
 const send = vi.fn<(...args: unknown[]) => Promise<boolean>>().mockResolvedValue(true)
+const push = vi.fn<(to: unknown) => void>()
+
+vi.mock('vue-router', () => ({ useRouter: () => ({ push }) }))
+
+vi.mock('@/services/climateScheduleApi', () => ({
+  climateScheduleApi: {
+    list: vi.fn<() => Promise<unknown[]>>().mockResolvedValue([
+      { id: 1, enabled: true, startTime: '07:30', nextRunUtc: null },
+      { id: 2, enabled: false, startTime: '08:00', nextRunUtc: null },
+    ]),
+  },
+}))
 
 vi.mock('@/composables/useVehicleCommand', () => ({
   useVehicleCommand: () => ({
@@ -60,6 +72,7 @@ describe('ClimateDetailCard', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     send.mockClear()
+    push.mockClear()
   })
 
   it('names a running climate mode other than normal climate on the card', () => {
@@ -115,5 +128,18 @@ describe('ClimateDetailCard', () => {
     }
     expect(isConfirmed({ climateOn: true, climateMode: 'on' })).toBe(false)
     expect(isConfirmed({ climateOn: true, climateMode: 'front' })).toBe(true)
+  })
+
+  it('links to the schedules, with how many are switched on', async () => {
+    const wrapper = mountCard()
+    await open(wrapper)
+    await flushPromises()
+
+    const link = wrapper.find('.detail-list__item--link')
+    expect(link.text()).toContain('Climate schedules')
+    expect(link.text()).toContain('1 active')
+
+    await link.trigger('click')
+    expect(push).toHaveBeenCalledWith({ name: 'climateSchedules' })
   })
 })

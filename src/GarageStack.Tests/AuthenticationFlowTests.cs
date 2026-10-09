@@ -568,6 +568,42 @@ public class AuthenticationFlowTests
         Assert.Equal("settings.notAnObject", await ProblemCodeAsync(notAnObject, ct));
     }
 
+    [Fact]
+    public async Task ClimateSchedules_RoundTripThroughTheApi()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var factory = CreatePasswordOnlyFactory();
+        using var client = CreateClient(factory);
+        await PasswordLoginAsync(client, ct);
+        const string schedules = "/api/vehicles/DEMOVIN0000012345/climate-schedules";
+        var request = new
+        {
+            name = (string?)null, enabled = true, startTime = "06:45", days = new[] { 6, 7 },
+            timeZoneId = "Europe/Amsterdam", mode = "front", temperatureC = 21, rearDefroster = true,
+            seatLeftLevel = 0, seatRightLevel = 0, onlyBelowC = 2.5, onlyAboveC = (double?)null,
+        };
+
+        var created = await client.PostAsJsonAsync(schedules, request, ct);
+        using var body = System.Text.Json.JsonDocument.Parse(await created.Content.ReadAsStringAsync(ct));
+        var schedule = body.RootElement;
+        var id = schedule.GetProperty("id").GetInt32();
+        var switchedOff = await client.PutAsJsonAsync($"{schedules}/{id}", request with { enabled = false }, ct);
+        using var off = System.Text.Json.JsonDocument.Parse(await switchedOff.Content.ReadAsStringAsync(ct));
+        var numericMode = await client.PostAsJsonAsync(schedules, new { request.startTime, request.timeZoneId, mode = 2, temperatureC = 21 }, ct);
+        var deleted = await client.DeleteAsync($"{schedules}/{id}", ct);
+        var deletedAgain = await client.DeleteAsync($"{schedules}/{id}", ct);
+
+        Assert.Equal(HttpStatusCode.OK, created.StatusCode);
+        Assert.Equal("front", schedule.GetProperty("mode").GetString());
+        Assert.Equal("06:45", schedule.GetProperty("startTime").GetString());
+        Assert.EndsWith("Z", schedule.GetProperty("nextRunUtc").GetString());
+        Assert.Equal(HttpStatusCode.OK, switchedOff.StatusCode);
+        Assert.Equal(System.Text.Json.JsonValueKind.Null, off.RootElement.GetProperty("nextRunUtc").ValueKind);
+        Assert.Equal(HttpStatusCode.BadRequest, numericMode.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, deleted.StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, deletedAgain.StatusCode);
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private static async Task PasswordLoginAsync(HttpClient client, CancellationToken ct)

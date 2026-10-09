@@ -398,6 +398,14 @@ body,
   overflow: hidden;
 }
 
+.status-card__note {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .status-card__unit {
   font-size: 0.78rem;
   color: var(--color-text-muted);
@@ -528,6 +536,21 @@ body,
 
 .detail-list__item--alert {
   border-color: var(--color-warning);
+}
+
+/* A row that leads somewhere else: the whole row is the button. */
+.detail-list__item--link {
+  width: 100%;
+  font-family: inherit;
+  color: var(--color-text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.detail-list__item--link:hover,
+.detail-list__item--link:focus-visible {
+  border-color: var(--color-primary);
+  outline: none;
 }
 
 .detail-list__item-icon {
@@ -1131,7 +1154,8 @@ body,
   gap: 0.3rem;
 }
 
-.form-group label {
+.form-group label,
+.form-group__label {
   font-size: 0.78rem;
   color: var(--color-text-muted);
 }
@@ -1185,6 +1209,29 @@ textarea.form-control {
 .toggle-chip:disabled {
   cursor: not-allowed;
   opacity: 0.6;
+}
+
+/* Seven day chips share the row evenly, so they fit a phone without wrapping. */
+.weekday-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.weekday-picker .toggle-chip-group {
+  flex-wrap: nowrap;
+}
+
+.weekday-picker .toggle-chip {
+  flex: 1;
+  min-width: 0;
+  padding-inline: 0.2rem;
+}
+
+.weekday-picker__presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
 }
 
 /* ── Settings ─────────────────────────────────────────────── */
@@ -1514,6 +1561,11 @@ textarea.form-control {
   background: var(--color-primary);
   cursor: pointer;
   border: 2px solid var(--color-surface);
+}
+
+.range-control input[type='range']:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
 }
 
 .range-control__labels {

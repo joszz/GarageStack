@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRouter } from 'vue-router'
 import ExpandableStatusCard from './ExpandableStatusCard.vue'
 import DetailListItem from './DetailListItem.vue'
 import DetailListSwitch from './DetailListSwitch.vue'
@@ -11,6 +12,7 @@ import { useVehicleCommand } from '@/composables/useVehicleCommand'
 import type { ClimateMode, TelemetrySnapshot } from '@/services/vehicleApi'
 import { useUnits } from '@/composables/useUnits'
 import { useClimateLabels } from '@/composables/useClimateLabels'
+import { useClimateSchedulesStore } from '@/stores/climateSchedules'
 import {
   CLIMATE_TEMPERATURE_MAX_C,
   CLIMATE_TEMPERATURE_MIN_C,
@@ -20,7 +22,9 @@ import {
 } from '@/utils/climate'
 
 const { t } = useI18n()
+const router = useRouter()
 const units = useUnits()
+const schedules = useClimateSchedulesStore()
 const { temperatureText, temperatureEdges, seatLabels, seatText, modeOptions } = useClimateLabels()
 
 const props = defineProps<{
@@ -61,8 +65,14 @@ watch(modalOpen, (open) => {
     sliderTemp.value = props.remoteTemperature ?? 22
     seatLeftLocal.value = props.heatedSeatFrontLeft ?? 0
     seatRightLocal.value = props.heatedSeatFrontRight ?? 0
+    if (props.vin) schedules.fetchSchedules(props.vin)
   }
 })
+
+function openSchedules() {
+  modalOpen.value = false
+  router.push({ name: 'climateSchedules' })
+}
 
 const summaryValue = computed((): string | null => {
   const parts: string[] = []
@@ -267,6 +277,21 @@ const controlsDisabled = computed(() => isApplying.value || !props.vin)
         :tick-labels="seatLabels"
         :disabled="controlsDisabled"
       />
+    </div>
+
+    <div class="detail-list mt-3">
+      <button
+        type="button"
+        class="detail-list__item detail-list__item--link"
+        @click="openSchedules"
+      >
+        <font-awesome-icon icon="calendar-days" class="detail-list__item-icon" />
+        <span class="detail-list__item-label">{{ t('climateSchedules.title') }}</span>
+        <span class="text-muted">{{
+          t('climateSchedules.activeCount', schedules.activeSchedules.length)
+        }}</span>
+        <font-awesome-icon icon="chevron-right" class="status-card__chevron" aria-hidden="true" />
+      </button>
     </div>
 
     <template #footer="{ close }">

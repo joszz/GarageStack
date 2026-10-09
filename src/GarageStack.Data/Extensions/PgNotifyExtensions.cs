@@ -6,7 +6,8 @@ namespace GarageStack.Data.Extensions;
 /// <summary>
 /// Channel names for the PostgreSQL pub/sub bridge between the Worker (publisher) and the Api
 /// (LISTENer, see TelemetryNotificationService). Declared once so a typo cannot silently split
-/// the two sides.
+/// the two sides. Every channel tells the Api something happened, except
+/// <see cref="VehicleCommandRequested"/>, which asks it to send a command.
 /// </summary>
 public static class PgChannels
 {
@@ -14,8 +15,10 @@ public static class PgChannels
     public const string NotificationCreated = "notification_created";
     public const string TripCompleted = "trip_completed";
     public const string CommandResult = "command_result";
+    public const string VehicleCommandRequested = "vehicle_command_requested";
 
-    public static readonly IReadOnlyList<string> All = [TelemetryUpdated, NotificationCreated, TripCompleted, CommandResult];
+    public static readonly IReadOnlyList<string> All =
+        [TelemetryUpdated, NotificationCreated, TripCompleted, CommandResult, VehicleCommandRequested];
 }
 
 public static class PgNotifyExtensions

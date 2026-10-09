@@ -14,6 +14,7 @@ internal sealed class TelemetryNotificationService(
     IHubContext<TelemetryHub> hubContext,
     IServiceScopeFactory scopeFactory,
     VehicleCommandGate commandGate,
+    VehicleCommandRequestHandler commandRequests,
     ILogger<TelemetryNotificationService> logger) : BackgroundService
 {
     // Trailing-edge debounce per vehicle: coalesces rapid MQTT bursts (multiple
@@ -52,6 +53,11 @@ internal sealed class TelemetryNotificationService(
                     break;
                 case PgChannels.CommandResult:
                     _ = HandleCommandResultAsync(evt.Payload, stoppingToken);
+                    break;
+                case PgChannels.VehicleCommandRequested:
+                    // Detached like the rest: a request can wait up to its deadline for the
+                    // command gate, and the command_result that frees the gate has to get past it.
+                    _ = commandRequests.HandleAsync(evt.Payload, stoppingToken);
                     break;
             }
         }

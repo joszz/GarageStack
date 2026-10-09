@@ -237,6 +237,12 @@ watch(
             </RouterLink>
           </li>
           <li>
+            <RouterLink to="/climate-schedules" active-class="active">
+              <font-awesome-icon icon="calendar-days" />
+              <span>{{ t('nav.climateSchedules') }}</span>
+            </RouterLink>
+          </li>
+          <li>
             <RouterLink to="/maintenance" active-class="active">
               <font-awesome-icon icon="screwdriver-wrench" />
               <span>{{ t('nav.maintenance') }}</span>

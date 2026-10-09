@@ -18,6 +18,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<MaintenanceLogEntry> MaintenanceLogEntries => Set<MaintenanceLogEntry>();
     public DbSet<RevokedToken> RevokedTokens => Set<RevokedToken>();
     public DbSet<UserSettings> UserSettings => Set<UserSettings>();
+    public DbSet<ClimateSchedule> ClimateSchedules => Set<ClimateSchedule>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -191,6 +192,26 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.Property(s => s.Section).HasMaxLength(UserSettingsLimits.SectionMaxLength).IsRequired();
             e.Property(s => s.Json).IsRequired();
             e.Property(s => s.Version).IsConcurrencyToken();
+        });
+
+        modelBuilder.Entity<ClimateSchedule>(e =>
+        {
+            e.HasKey(s => s.Id);
+            // The Worker looks for due runs across all vehicles; the table holds a few rows per car,
+            // so the vehicle index the API's lookups use is all it needs.
+            e.HasIndex(s => s.VehicleId);
+            e.Property(s => s.Name).HasMaxLength(ClimateScheduleLimits.NameMaxLength);
+            e.Property(s => s.TimeZoneId).HasMaxLength(ClimateScheduleLimits.TimeZoneIdMaxLength).IsRequired();
+            // Stored by name so the columns read the same in a query or a backup as in the API.
+            e.Property(s => s.Mode).HasConversion<string>().HasMaxLength(16);
+            e.Property(s => s.LastRunOutcome).HasConversion<string>().HasMaxLength(24);
+            e.Property(s => s.LastRunFailedCommand).HasMaxLength(ClimateScheduleLimits.FailedCommandMaxLength);
+            e.Property(s => s.LastRunDetail).HasMaxLength(ClimateScheduleLimits.DetailMaxLength);
+            e.Property(s => s.Version).IsConcurrencyToken();
+            e.HasOne(s => s.Vehicle)
+             .WithMany()
+             .HasForeignKey(s => s.VehicleId)
+             .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

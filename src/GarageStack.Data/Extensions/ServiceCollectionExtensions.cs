@@ -27,6 +27,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IMapMatchRepository, MapMatchRepository>();
         services.AddScoped<IHousekeepingRepository, HousekeepingRepository>();
         services.AddScoped<IUserSettingsRepository, UserSettingsRepository>();
+        services.AddScoped<IClimateScheduleRepository, ClimateScheduleRepository>();
         services.AddGarageStackPoiClients();
 
         return services;
@@ -47,6 +48,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IMapMatchRepository, MapMatchRepository>();
         // The real one: demo settings live in the in-memory database like everything else there.
         services.AddScoped<IUserSettingsRepository, UserSettingsRepository>();
+        services.AddScoped<IClimateScheduleRepository, ClimateScheduleRepository>();
         services.AddGarageStackPoiClients();
 
         return services;

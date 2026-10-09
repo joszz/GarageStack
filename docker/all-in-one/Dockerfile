@@ -6,6 +6,8 @@ WORKDIR /app
 # OS_PATCH_DATE busts the layer cache so apk upgrade actually re-runs instead of
 # reusing a stale cached layer from before an OS package fix was published.
 ARG OS_PATCH_DATE=0
+# tzdata        -- IANA time zones, which climate schedules keep their start time in. Named
+#                  explicitly: trixie no longer counts it as a required package.
 RUN echo "os patch date: ${OS_PATCH_DATE}" && apk upgrade --no-cache
 COPY frontend/package.json frontend/pnpm-lock.yaml frontend/pnpm-workspace.yaml ./
 # No version here: npm installs the one in package.json's packageManager field, so the pnpm
@@ -87,7 +89,7 @@ RUN echo "os patch date: ${OS_PATCH_DATE}" \
     && apt-get install -y --no-install-recommends \
         bash curl ca-certificates gosu supervisor \
         nginx mosquitto mosquitto-clients \
-        libgssapi-krb5-2 libicu76 \
+        libgssapi-krb5-2 libicu76 tzdata \
     && rm -rf /var/lib/apt/lists/*
 
 # Dedicated non-root user for the .NET API/Worker and the SAIC gateway. Postgres and

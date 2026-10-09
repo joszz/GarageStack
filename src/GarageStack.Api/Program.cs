@@ -58,6 +58,7 @@ try
         builder.Services.AddSingleton<MqttPublisher>();
         builder.Services.AddSingleton<IMqttPublisher>(sp => sp.GetRequiredService<MqttPublisher>());
         builder.Services.AddHostedService(sp => sp.GetRequiredService<MqttPublisher>());
+        builder.Services.AddSingleton<VehicleCommandRequestHandler>();
         builder.Services.AddHostedService<TelemetryNotificationService>();
     }
     builder.Services.AddOpenApi(opts =>
@@ -156,6 +157,7 @@ try
     app.MapPushEndpoints();
     app.MapNotificationEndpoints();
     app.MapMaintenanceEndpoints();
+    app.MapClimateScheduleEndpoints();
     app.MapWidgetEndpoints();
     app.MapMapEndpoints();
 

@@ -19,6 +19,16 @@ internal sealed class FakePushSender : IPushSender
     }
 }
 
+// A clock that stands still until a test moves it on.
+internal sealed class FixedTimeProvider(DateTimeOffset now) : TimeProvider
+{
+    private DateTimeOffset _now = now;
+
+    public override DateTimeOffset GetUtcNow() => _now;
+
+    public void Advance(TimeSpan by) => _now += by;
+}
+
 internal sealed class FakeServiceScopeFactory : IServiceScopeFactory
 {
     // Every database step starts with a scope, so a count of zero means nothing was attempted.
