@@ -1,6 +1,10 @@
 @import url('@vueform/multiselect/themes/default.css');
 
 :root {
+  /* Tells the browser which palette its own widgets use: the time and date pickers, select
+     dropdowns and the clock and calendar icons inside inputs. */
+  color-scheme: dark;
+
   --color-bg: #0f1117;
   --color-surface: #1a1d27;
   --color-surface-2: #252836;
@@ -23,6 +27,8 @@
 }
 
 [data-theme='light'] {
+  color-scheme: light;
+
   --color-bg: #f0f4f8;
   --color-surface: #fff;
   --color-surface-2: #e8edf3;
