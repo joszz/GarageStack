@@ -21,7 +21,12 @@ public static class VehicleCommands
 
     private static readonly Dictionary<string, Command> ByName = new(StringComparer.Ordinal)
     {
-        ["climate"] = new("climate/remoteClimateState", value => OnOff("climate", value)),
+        // Besides on and off the gateway takes "front" (front window defrost) and "blowingonly"
+        // (fan only), each a remote climate mode of its own.
+        ["climate"] = new("climate/remoteClimateState", value =>
+            value is "on" or "off" or "front" or "blowingonly"
+                ? null
+                : "'climate' value must be 'on', 'off', 'front' or 'blowingonly'"),
         ["climate-temperature"] = new("climate/remoteTemperature", value => IntegerBetween("climate-temperature", value, 16, 28)),
         ["rear-defroster"] = new("climate/rearWindowDefrosterHeating", value => OnOff("rear-defroster", value)),
         ["seat-left"] = new("climate/heatedSeatsFrontLeftLevel", value => IntegerBetween("seat-left", value, 0, 3)),

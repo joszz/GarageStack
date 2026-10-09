@@ -17,6 +17,9 @@ public class TelemetrySnapshot
     public bool? IsLocked { get; set; }
     public bool? EngineRunning { get; set; }
     public bool? ClimateOn { get; set; }
+    // The gateway's remote climate state as it sends it: "on", "off", "front" (front window
+    // defrost) or "blowingonly" (fan only). ClimateOn folds the last two into on.
+    public string? ClimateMode { get; set; }
 
     public bool? DriverDoorOpen { get; set; }
     public bool? PassengerDoorOpen { get; set; }

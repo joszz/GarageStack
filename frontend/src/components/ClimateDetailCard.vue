@@ -6,16 +6,27 @@ import DetailListItem from './DetailListItem.vue'
 import DetailListSwitch from './DetailListSwitch.vue'
 import RangeControl from './RangeControl.vue'
 import CommandFailure from './CommandFailure.vue'
+import ChipGroup from './ChipGroup.vue'
 import { useVehicleCommand } from '@/composables/useVehicleCommand'
-import type { TelemetrySnapshot } from '@/services/vehicleApi'
+import type { ClimateMode, TelemetrySnapshot } from '@/services/vehicleApi'
 import { useUnits } from '@/composables/useUnits'
+import { useClimateLabels } from '@/composables/useClimateLabels'
+import {
+  CLIMATE_TEMPERATURE_MAX_C,
+  CLIMATE_TEMPERATURE_MIN_C,
+  SEAT_LEVEL_MAX,
+  climateModeOf,
+  type ClimateOnMode,
+} from '@/utils/climate'
 
 const { t } = useI18n()
 const units = useUnits()
+const { temperatureText, temperatureEdges, seatLabels, seatText, modeOptions } = useClimateLabels()
 
 const props = defineProps<{
   vin: string | null
   climateOn: boolean | null
+  climateMode: ClimateMode | null
   remoteTemperature: number | null
   interiorTemperature: number | null
   exteriorTemperature: number | null
@@ -28,23 +39,15 @@ const modalOpen = ref(false)
 const applyInProgress = ref(false)
 const { sending, lastResult, isPending, send, waitUntilSettled } = useVehicleCommand()
 
-// The car takes whole degrees Celsius, so the slider steps through those whatever the display
-// unit; in Fahrenheit each step is labelled with its rounded equivalent.
-const TEMP_MIN = 16
-const TEMP_MAX = 28
-
-function wholeDegrees(celsius: number): string {
-  return units.value.measure('temperature', celsius, { decimals: 0 })!.value
+// What climate is doing now, and the mode the chips start on: the running one, else normal.
+const currentMode = computed(() => climateModeOf(props))
+function runningMode(): ClimateOnMode {
+  const mode = currentMode.value
+  return mode && mode !== 'off' ? mode : 'on'
 }
 
-const seatLabels = computed(() => [
-  t('control.seat.off'),
-  t('control.seat.low'),
-  t('control.seat.medium'),
-  t('control.seat.high'),
-])
-
 const localClimateOn = ref<boolean | null>(props.climateOn)
+const localMode = ref<ClimateOnMode>(runningMode())
 const localRearDefroster = ref<boolean | null>(props.rearWindowDefroster)
 const sliderTemp = ref<number>(props.remoteTemperature ?? 22)
 const seatLeftLocal = ref<number>(props.heatedSeatFrontLeft ?? 0)
@@ -53,6 +56,7 @@ const seatRightLocal = ref<number>(props.heatedSeatFrontRight ?? 0)
 watch(modalOpen, (open) => {
   if (open) {
     localClimateOn.value = props.climateOn
+    localMode.value = runningMode()
     localRearDefroster.value = props.rearWindowDefroster
     sliderTemp.value = props.remoteTemperature ?? 22
     seatLeftLocal.value = props.heatedSeatFrontLeft ?? 0
@@ -62,8 +66,10 @@ watch(modalOpen, (open) => {
 
 const summaryValue = computed((): string | null => {
   const parts: string[] = []
-  if (props.climateOn !== null)
-    parts.push(props.climateOn ? t('vehicle.climateOn') : t('vehicle.climateOff'))
+  const mode = currentMode.value
+  if (mode === 'off') parts.push(t('vehicle.climateOff'))
+  else if (mode === 'on') parts.push(t('vehicle.climateOn'))
+  else if (mode !== null) parts.push(t(`control.mode.${mode}`))
   const interior = units.value.format('temperature', props.interiorTemperature)
   if (interior !== null) parts.push(interior)
   return parts.length ? parts.join(' · ') : null
@@ -91,6 +97,8 @@ const commandKeys = [
 const anyPending = computed(() => commandKeys.some((k) => isPending(k)))
 const isApplying = computed(() => anyPending.value || commandKeys.some((k) => sending.value === k))
 
+const temperatureApplies = computed(() => !localClimateOn.value || localMode.value === 'on')
+
 interface ClimateChange {
   command: (typeof commandKeys)[number]
   value: string
@@ -101,8 +109,12 @@ interface ClimateChange {
 // the two cannot disagree about what counts as a change.
 const pendingChanges = computed((): ClimateChange[] => {
   const changes: ClimateChange[] = []
+  const targetMode: ClimateMode = localClimateOn.value ? localMode.value : 'off'
   const temperature = sliderTemp.value
+  // Fan only and front defrost take no temperature; the gateway would restart normal climate
+  // to apply one while either is running.
   if (
+    temperatureApplies.value &&
     (props.climateOn !== null || props.remoteTemperature !== null) &&
     temperature !== (props.remoteTemperature ?? 22)
   )
@@ -111,12 +123,11 @@ const pendingChanges = computed((): ClimateChange[] => {
       value: String(temperature),
       isConfirmed: (s) => s.remoteTemperature === temperature,
     })
-  const climateOn = localClimateOn.value
-  if (props.climateOn !== null && climateOn !== props.climateOn)
+  if (props.climateOn !== null && targetMode !== currentMode.value)
     changes.push({
       command: 'climate',
-      value: climateOn ? 'on' : 'off',
-      isConfirmed: (s) => s.climateOn === climateOn,
+      value: targetMode,
+      isConfirmed: (s) => climateModeOf(s) === targetMode,
     })
   const defroster = localRearDefroster.value
   if (props.rearWindowDefroster !== null && defroster !== props.rearWindowDefroster)
@@ -166,18 +177,7 @@ async function applyAll() {
   }
 }
 
-const temperatureText = computed(
-  () => `${wholeDegrees(sliderTemp.value)} ${units.value.symbol('temperature')}`,
-)
-const temperatureEdges = computed((): [string, string] => [
-  `${wholeDegrees(TEMP_MIN)}°`,
-  `${wholeDegrees(TEMP_MAX)}°`,
-])
 const controlsDisabled = computed(() => isApplying.value || !props.vin)
-
-function seatText(level: number): string {
-  return seatLabels.value[level] ?? ''
-}
 </script>
 
 <template>
@@ -195,11 +195,11 @@ function seatText(level: number): string {
         v-model="sliderTemp"
         icon="temperature-half"
         :label="t('control.temperature')"
-        :value-text="temperatureText"
-        :min="TEMP_MIN"
-        :max="TEMP_MAX"
+        :value-text="temperatureText(sliderTemp)"
+        :min="CLIMATE_TEMPERATURE_MIN_C"
+        :max="CLIMATE_TEMPERATURE_MAX_C"
         :edge-labels="temperatureEdges"
-        :disabled="controlsDisabled"
+        :disabled="controlsDisabled || !temperatureApplies"
       />
 
       <DetailListSwitch
@@ -209,6 +209,16 @@ function seatText(level: number): string {
         :label="t('control.climate')"
         :disabled="controlsDisabled"
       />
+
+      <div v-if="climateOn !== null && localClimateOn" class="detail-list__item">
+        <font-awesome-icon icon="sliders" class="detail-list__item-icon" />
+        <ChipGroup
+          v-model="localMode"
+          :options="modeOptions"
+          :group-label="t('control.mode.label')"
+          :disabled="controlsDisabled"
+        />
+      </div>
 
       <DetailListSwitch
         v-if="rearWindowDefroster !== null"
@@ -241,7 +251,7 @@ function seatText(level: number): string {
         :label="t('vehicle.climateDetail.seatLeft')"
         :value-text="seatText(seatLeftLocal)"
         :min="0"
-        :max="3"
+        :max="SEAT_LEVEL_MAX"
         :tick-labels="seatLabels"
         :disabled="controlsDisabled"
       />
@@ -253,7 +263,7 @@ function seatText(level: number): string {
         :label="t('vehicle.climateDetail.seatRight')"
         :value-text="seatText(seatRightLocal)"
         :min="0"
-        :max="3"
+        :max="SEAT_LEVEL_MAX"
         :tick-labels="seatLabels"
         :disabled="controlsDisabled"
       />

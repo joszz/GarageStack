@@ -278,6 +278,7 @@ const activeSimpleCard = computed(() => {
       v-else-if="cardId === 'climate'"
       :vin="vin"
       :climate-on="status.climateOn"
+      :climate-mode="status.climateMode"
       :remote-temperature="status.remoteTemperature"
       :interior-temperature="status.interiorTemperature"
       :exterior-temperature="status.exteriorTemperature"

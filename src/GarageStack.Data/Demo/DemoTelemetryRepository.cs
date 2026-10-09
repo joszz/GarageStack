@@ -93,7 +93,11 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
         {
             if (dto.IsLocked.HasValue) _current.IsLocked = dto.IsLocked;
             if (dto.EngineRunning.HasValue) _current.EngineRunning = dto.EngineRunning;
-            if (dto.ClimateOn.HasValue) _current.ClimateOn = dto.ClimateOn;
+            if (dto.ClimateOn.HasValue)
+            {
+                _current.ClimateOn = dto.ClimateOn;
+                _current.ClimateMode = dto.ClimateOn.Value ? "on" : "off";
+            }
             if (dto.DriverDoorOpen.HasValue) _current.DriverDoorOpen = dto.DriverDoorOpen;
             if (dto.PassengerDoorOpen.HasValue) _current.PassengerDoorOpen = dto.PassengerDoorOpen;
             if (dto.RearLeftDoorOpen.HasValue) _current.RearLeftDoorOpen = dto.RearLeftDoorOpen;
@@ -160,6 +164,7 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
             CurrentJourneyDistance = Math.Round(DemoTrips.InProgressDistanceKm, 1),
             IsLocked = true,
             ClimateOn = false,
+            ClimateMode = "off",
             BatteryHeating = false,
             DriverDoorOpen = false,
             PassengerDoorOpen = false,

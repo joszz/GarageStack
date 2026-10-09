@@ -19,6 +19,12 @@ export interface Vehicle {
   hvBatteryCapacityKwh: number | null
 }
 
+/**
+ * The remote climate state as the gateway reports it: off, on (normal climate), front (front
+ * window defrost) or blowingonly (fan only).
+ */
+export type ClimateMode = 'on' | 'off' | 'front' | 'blowingonly'
+
 export interface TelemetrySnapshot {
   id: number
   vehicleId: number
@@ -29,6 +35,8 @@ export interface TelemetrySnapshot {
   isLocked: boolean | null
   engineRunning: boolean | null
   climateOn: boolean | null
+  /** Only the gateway's remoteClimateState names the mode, so it can be null while climateOn is set. */
+  climateMode: ClimateMode | null
   driverDoorOpen: boolean | null
   passengerDoorOpen: boolean | null
   rearLeftDoorOpen: boolean | null

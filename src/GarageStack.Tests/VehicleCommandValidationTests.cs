@@ -15,10 +15,21 @@ public class VehicleCommandValidationTests
         Assert.Null(VehicleCommands.Validate(command, value));
     }
 
+    // The gateway's two other remote climate modes: front window defrost and fan only.
+    [Theory]
+    [InlineData("front")]
+    [InlineData("blowingonly")]
+    public void Climate_GatewayModes_ReturnsNull(string value)
+    {
+        Assert.Null(VehicleCommands.Validate("climate", value));
+    }
+
     [Theory]
     [InlineData("climate", "start")]
     [InlineData("climate", "ON")]
+    [InlineData("climate", "Front")]
     [InlineData("rear-defroster", "true")]
+    [InlineData("rear-defroster", "front")]
     public void OnOffCommands_InvalidValues_ReturnsError(string command, string value)
     {
         Assert.NotNull(VehicleCommands.Validate(command, value));

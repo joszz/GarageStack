@@ -210,6 +210,12 @@
     "unlock": "Ontgrendelen",
     "temperature": "AC temperatuur",
     "rearDefroster": "Achterruitsverwarming",
+    "mode": {
+      "label": "Klimaatstand",
+      "on": "Klimaat",
+      "blowingonly": "Alleen ventilator",
+      "front": "Voorruit ontdooien"
+    },
     "findMyCar": "Zoek mijn auto",
     "findMyCarActivate": "Activeren",
     "findMyCarStop": "Stoppen",
