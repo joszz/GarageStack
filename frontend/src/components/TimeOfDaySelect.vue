@@ -72,17 +72,17 @@ const minuteOptions = computed(() => {
 
 <template>
   <div class="time-select">
-    <select :id="id" v-model.number="shownHour" class="form-control" :aria-label="t('common.hour')">
+    <select :id="id" v-model.number="shownHour" class="form-select" :aria-label="t('common.hour')">
       <option v-for="h in hourOptions" :key="h.value" :value="h.value">{{ h.label }}</option>
     </select>
     <span class="time-select__separator" aria-hidden="true">:</span>
-    <select v-model.number="minute" class="form-control" :aria-label="t('common.minute')">
+    <select v-model.number="minute" class="form-select" :aria-label="t('common.minute')">
       <option v-for="m in minuteOptions" :key="m" :value="m">{{ pad(m) }}</option>
     </select>
     <select
       v-if="twelveHour"
       v-model="afternoon"
-      class="form-control"
+      class="form-select"
       :aria-label="t('common.dayPeriod')"
     >
       <option v-for="period in dayPeriods" :key="period.label" :value="period.value">

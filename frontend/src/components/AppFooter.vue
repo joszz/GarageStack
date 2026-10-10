@@ -12,8 +12,8 @@ const vehicleStore = useVehicleStore()
 const { sending, send } = useVehicleCommand()
 const { isOpen: modalOpen, open: showModal, close: closeModal } = useModal()
 
-// The settings modal, and the dropdown library behind its vehicle-type picker, used to ship with
-// the footer on every page for a dialog most visits never open. It loads on first use instead.
+// The settings modal used to ship with the footer on every page, for a dialog most visits never
+// open. It loads on first use instead.
 const settingsModal = shallowRef<typeof SettingsModalComponent | null>(null)
 
 async function openModal() {

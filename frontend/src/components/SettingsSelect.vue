@@ -23,7 +23,7 @@ const model = defineModel<T>({ required: true })
       <select
         :id="id"
         v-model="model"
-        class="form-select form-select-sm settings-toggle__select"
+        class="form-select settings-toggle__select"
         :aria-label="label"
       >
         <option v-for="option in options" :key="option.value" :value="option.value">

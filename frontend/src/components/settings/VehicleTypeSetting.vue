@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import Multiselect from '@vueform/multiselect'
 import { useUiSettingsStore, type VehicleTypeOverride } from '@/stores/settingsUi'
 import { useDashboardSettingsStore } from '@/stores/settingsDashboard'
 import { useVehicleStore } from '@/stores/vehicle'
+import SettingsToggle from '../SettingsToggle.vue'
+import SettingsSelect, { type SettingsSelectOption } from '../SettingsSelect.vue'
 
 // What the gateway says the car is, and the override for when it gets that wrong.
 const { t } = useI18n()
@@ -29,7 +30,7 @@ const detectedLabel = computed(() => {
 const hwVersion = computed(() => vehicleStore.vehicleConfig['hw_version'] ?? null)
 
 // Computed so the labels follow a language switch made in this same dialog.
-const typeOptions = computed((): { value: VehicleTypeOverride; label: string }[] => [
+const typeOptions = computed((): SettingsSelectOption<VehicleTypeOverride>[] => [
   { value: 'auto', label: t('settings.vehicleType.auto') },
   { value: 'hev', label: t('settings.vehicleType.hev') },
   { value: 'phev', label: t('settings.vehicleType.phev') },
@@ -38,27 +39,22 @@ const typeOptions = computed((): { value: VehicleTypeOverride; label: string }[]
 </script>
 
 <template>
-  <div class="vehicle-type-row">
-    <div class="vehicle-type-detected">
-      <span class="text-muted">{{ t('settings.vehicleType.detected') }}:</span>
-      <span v-if="detectedLabel" class="badge badge-info ms-2">{{ detectedLabel }}</span>
-      <span v-if="hwVersion" class="text-muted ms-2 text-xs">({{ hwVersion }})</span>
-      <span v-if="!detectedLabel" class="text-muted ms-2">{{
-        t('settings.vehicleType.notDetected')
-      }}</span>
-    </div>
-    <div class="vehicle-type-override">
-      <label class="text-muted">{{ t('settings.vehicleType.override') }}</label>
-      <Multiselect
-        :model-value="settings.vehicleTypeOverride"
-        :options="typeOptions"
-        :searchable="false"
-        :can-clear="false"
-        :can-deselect="false"
-        append-to="body"
-        class="vehicle-type-select"
-        @update:model-value="chooseType"
-      />
-    </div>
+  <div class="settings-toggles">
+    <SettingsToggle
+      :label="t('settings.vehicleType.detected')"
+      :desc="detectedLabel ? undefined : t('settings.vehicleType.notDetected')"
+    >
+      <template #control>
+        <span v-if="hwVersion" class="text-muted text-xs">{{ hwVersion }}</span>
+        <span v-if="detectedLabel" class="badge badge-info">{{ detectedLabel }}</span>
+      </template>
+    </SettingsToggle>
+    <SettingsSelect
+      id="settings-vehicle-type"
+      :model-value="settings.vehicleTypeOverride"
+      :label="t('settings.vehicleType.override')"
+      :options="typeOptions"
+      @update:model-value="chooseType"
+    />
   </div>
 </template>
