@@ -5,7 +5,7 @@ import { PULL_INTERVAL_MS, useSettingsSyncStore } from '@/stores/settingsSync'
 import { useUiSettingsStore } from '@/stores/settingsUi'
 import { useMapSettingsStore } from '@/stores/settingsMap'
 import { useDashboardSettingsStore } from '@/stores/settingsDashboard'
-import { METRIC_UNITS } from '@/utils/units'
+import { AUTO_UNITS } from '@/utils/units'
 
 vi.mock('@/services/settingsApi', () => ({
   settingsApi: {
@@ -111,7 +111,7 @@ describe('settings kept on the account', () => {
     await settle()
 
     expect(save).toHaveBeenCalledExactlyOnceWith('ui', {
-      units: { ...METRIC_UNITS, distance: 'mi' },
+      units: { ...AUTO_UNITS, distance: 'mi' },
     })
   })
 

@@ -457,7 +457,15 @@
       "title": "Notification types"
     },
     "units": {
-      "title": "Units",
+      "title": "Region and units",
+      "auto": "Automatic: {value}",
+      "region": "Region",
+      "regionDesc": "Sets the date order, and the clock and units left on automatic",
+      "clock": "Clock",
+      "clockOptions": {
+        "h23": "24-hour ({example})",
+        "h12": "12-hour ({example})"
+      },
       "distance": "Distance and speed",
       "distanceDesc": "Also energy use per distance",
       "temperature": "Temperature",
@@ -528,7 +536,8 @@
     "pageOf": "Page {n} of {total}",
     "retry": "Try again",
     "hour": "Hour",
-    "minute": "Minute"
+    "minute": "Minute",
+    "dayPeriod": "AM or PM"
   },
   "demo": {
     "banner": "Demo mode - displaying sample data only",

@@ -4,11 +4,14 @@ import en from '@/locales/en.json'
 import nl from '@/locales/nl.json'
 import { i18n as appI18n } from '@/i18n'
 import {
+  AUTO_UNITS,
   DISTANCE_UNITS,
   FUEL_CONSUMPTION_UNITS,
   METRIC_UNITS,
   ODOMETER_FORMAT,
   PRESSURE_UNITS,
+  regionUnits,
+  resolveUnits,
   TEMPERATURE_UNITS,
   UnitFormatter,
   type Quantity,
@@ -152,5 +155,47 @@ describe('UnitFormatter', () => {
     ]
     for (const messages of [en, nl])
       expect(Object.keys(messages.settings.units.options).sort()).toEqual([...units].sort())
+  })
+})
+
+describe('regionUnits', () => {
+  it('is metric with bar on most of the map', () => {
+    expect(regionUnits('NL')).toEqual(METRIC_UNITS)
+    expect(regionUnits('DE')).toEqual(METRIC_UNITS)
+  })
+
+  it('counts in miles, Fahrenheit, psi and US gallons in the United States', () => {
+    expect(regionUnits('US')).toEqual({
+      distance: 'mi',
+      temperature: 'fahrenheit',
+      pressure: 'psi',
+      fuelConsumption: 'mpgUs',
+    })
+  })
+
+  it('counts in miles, psi and UK gallons but Celsius in the United Kingdom', () => {
+    expect(regionUnits('GB')).toEqual({
+      distance: 'mi',
+      temperature: 'celsius',
+      pressure: 'psi',
+      fuelConsumption: 'mpgUk',
+    })
+  })
+
+  it('pumps tyres in psi in Australia and in kPa in Japan, with everything else metric', () => {
+    expect(regionUnits('AU')).toEqual({ ...METRIC_UNITS, pressure: 'psi' })
+    expect(regionUnits('JP')).toEqual({ ...METRIC_UNITS, pressure: 'kpa' })
+  })
+})
+
+describe('resolveUnits', () => {
+  it('takes each unit left on automatic from the region and keeps every chosen one', () => {
+    expect(resolveUnits(AUTO_UNITS, 'US')).toEqual(regionUnits('US'))
+    expect(resolveUnits({ ...AUTO_UNITS, distance: 'km', pressure: 'bar' }, 'US')).toEqual({
+      distance: 'km',
+      temperature: 'fahrenheit',
+      pressure: 'bar',
+      fuelConsumption: 'mpgUs',
+    })
   })
 })

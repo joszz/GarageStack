@@ -8,6 +8,7 @@ import {
   type TripLogEntry,
   type TripPurpose,
 } from '@/services/tripLogApi'
+import { formatDate, formatTime } from '@/utils/format'
 import { endLabel, loggedDistanceKm, odometerDistanceKm, PURPOSE_ICONS } from '@/utils/tripLog'
 import { useUnits } from '@/composables/useUnits'
 import ChipGroup from './ChipGroup.vue'
@@ -15,7 +16,6 @@ import type { ChipOption } from '@/utils/chips'
 
 const props = defineProps<{
   entry: TripLogEntry
-  locale: string
   /** False when place names are switched off: the ends then read as coordinates. */
   placesShown: boolean
   /** True while addresses are being looked up, so a missing one shows a placeholder. */
@@ -31,18 +31,12 @@ const { t } = useI18n()
 const units = useUnits()
 
 const dateLabel = computed(() =>
-  new Date(props.entry.startedAt).toLocaleDateString(props.locale, {
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short',
-  }),
+  formatDate(props.entry.startedAt, { weekday: 'short', day: 'numeric', month: 'short' }),
 )
 
-const timeLabel = computed(() => {
-  const time = (iso: string) =>
-    new Date(iso).toLocaleTimeString(props.locale, { hour: '2-digit', minute: '2-digit' })
-  return `${time(props.entry.startedAt)} - ${time(props.entry.endedAt)}`
-})
+const timeLabel = computed(
+  () => `${formatTime(props.entry.startedAt)} - ${formatTime(props.entry.endedAt)}`,
+)
 
 // A placeholder while the address is on its way, then the address, or the coordinates when
 // there is none to be had.

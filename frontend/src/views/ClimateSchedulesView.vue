@@ -7,14 +7,9 @@ import { useClimateSchedulesStore } from '@/stores/climateSchedules'
 import StatusCard from '@/components/StatusCard.vue'
 import ClimateScheduleFormModal from '@/components/ClimateScheduleFormModal.vue'
 import type { ClimateSchedule } from '@/services/climateScheduleApi'
-import {
-  daysSummary,
-  needsAttention,
-  runLabel,
-  settingsSummary,
-  startTimeLabel,
-} from '@/utils/climateSchedule'
+import { daysSummary, needsAttention, runLabel, settingsSummary } from '@/utils/climateSchedule'
 import { CLIMATE_MODE_ICONS } from '@/utils/climate'
+import { formatTimeOfDay } from '@/utils/format'
 import { useUnits } from '@/composables/useUnits'
 import { useErrorMessage } from '@/composables/useErrorMessage'
 
@@ -94,7 +89,7 @@ function variant(schedule: ClimateSchedule): 'info' | 'warning' | undefined {
         :key="schedule.id"
         :icon="CLIMATE_MODE_ICONS[schedule.mode]"
         :label="label(schedule)"
-        :value="startTimeLabel(schedule.startTime)"
+        :value="formatTimeOfDay(schedule.startTime)"
         :note="note(schedule)"
         :variant="variant(schedule)"
         clickable

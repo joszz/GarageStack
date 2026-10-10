@@ -6,6 +6,7 @@ import { useMaintenanceStore } from '@/stores/maintenance'
 import { useVehicleStore } from '@/stores/vehicle'
 import type { MaintenanceItem } from '@/services/maintenanceApi'
 import { formatIntervalSummary } from '@/utils/maintenance'
+import { localDateKey } from '@/utils/dates'
 import { formatDate } from '@/utils/format'
 import { ODOMETER_FORMAT } from '@/utils/units'
 import { useUnits } from '@/composables/useUnits'
@@ -42,7 +43,7 @@ watch(
     if (!isOpen || !props.item) return
     pendingDelete.value = false
     logError.value = null
-    performedAt.value = new Date().toISOString().slice(0, 10)
+    performedAt.value = localDateKey(new Date())
     odometer.load(vehicleStore.currentStatus?.odometerKm ?? null)
     logNotes.value = ''
     store.fetchLog(props.vin, props.item.id)

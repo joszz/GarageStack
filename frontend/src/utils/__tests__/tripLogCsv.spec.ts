@@ -1,4 +1,6 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, afterEach } from 'vitest'
+import { i18n } from '@/i18n'
+import { setRegionalFormat } from '@/utils/format'
 import { deventer, logEntry, zwolle } from '@/services/__tests__/tripLogFixtures'
 import { tripLogCsv, tripLogFileName } from '../tripLogCsv'
 import { METRIC_UNITS, UnitFormatter } from '../units'
@@ -15,6 +17,11 @@ function lines(csv: string): string[] {
 }
 
 describe('tripLogCsv', () => {
+  afterEach(() => {
+    i18n.global.locale.value = 'en'
+    setRegionalFormat({ region: null, hourCycle: 'h23' })
+  })
+
   const entry = logEntry({
     startedAt: new Date(2026, 8, 24, 14, 32).toISOString(),
     endedAt: new Date(2026, 8, 24, 15, 6).toISOString(),
@@ -25,9 +32,8 @@ describe('tripLogCsv', () => {
   })
 
   it('writes a header, then one line per trip in the columns a trip log asks for', () => {
-    const [header, row] = lines(
-      tripLogCsv([entry], { locale: 'en-US', t, units, placesShown: true }),
-    )
+    setRegionalFormat({ region: 'NL', hourCycle: 'h23' })
+    const [header, row] = lines(tripLogCsv([entry], { t, units, placesShown: true }))
 
     expect(header).toBe(
       [
@@ -44,14 +50,21 @@ describe('tripLogCsv', () => {
       ].join(','),
     )
     expect(row).toBe(
-      '9/24/2026,02:32 PM,03:06 PM,"Grote Markt 1, 8011 PK Zwolle","Brink 2, 7411 BT Deventer",24010,24052.5,42.5,tripLog.purpose.business,Client visit',
+      '24/09/2026,14:32,15:06,"Grote Markt 1, 8011 PK Zwolle","Brink 2, 7411 BT Deventer",24010,24052.5,42.5,tripLog.purpose.business,Client visit',
     )
   })
 
+  it('writes the date and times as the region and clock have them', () => {
+    setRegionalFormat({ region: 'US', hourCycle: 'h12' })
+    const [, row] = lines(tripLogCsv([entry], { t, units, placesShown: true }))
+
+    // ICU puts a narrow no-break space before PM.
+    const cells = row!.split(',').map((cell) => cell.replace(/\s/g, ' '))
+    expect(cells.slice(0, 3)).toEqual(['9/24/2026', '2:32 PM', '3:06 PM'])
+  })
+
   it('writes the distances in miles, and says so in the headers, for a log read in miles', () => {
-    const [header, row] = lines(
-      tripLogCsv([entry], { locale: 'en-US', t, units: miles, placesShown: true }),
-    )
+    const [header, row] = lines(tripLogCsv([entry], { t, units: miles, placesShown: true }))
 
     expect(header!.split(',').slice(5, 8)).toEqual([
       'tripLog.csv.odometerStart(units.mi)',
@@ -62,7 +75,9 @@ describe('tripLogCsv', () => {
   })
 
   it('follows Dutch spreadsheet conventions in Dutch', () => {
-    const [, row] = lines(tripLogCsv([entry], { locale: 'nl-NL', t, units, placesShown: true }))
+    i18n.global.locale.value = 'nl'
+    setRegionalFormat({ region: 'NL', hourCycle: 'h23' })
+    const [, row] = lines(tripLogCsv([entry], { t, units, placesShown: true }))
 
     expect(row).toBe(
       '24-9-2026;14:32;15:06;Grote Markt 1, 8011 PK Zwolle;Brink 2, 7411 BT Deventer;24010;24052,5;42,5;tripLog.purpose.business;Client visit',
@@ -70,9 +85,9 @@ describe('tripLogCsv', () => {
   })
 
   it('writes coordinates when place names are switched off, and a blank for no purpose', () => {
+    i18n.global.locale.value = 'nl'
     const [, row] = lines(
       tripLogCsv([{ ...entry, purpose: null, notes: null }], {
-        locale: 'nl-NL',
         t,
         units,
         placesShown: false,
@@ -87,7 +102,6 @@ describe('tripLogCsv', () => {
   it('rounds the distance to a decimal', () => {
     const [, row] = lines(
       tripLogCsv([logEntry({ odometerStartKm: null, distanceKm: 12.3456 })], {
-        locale: 'en-US',
         t,
         units,
         placesShown: false,

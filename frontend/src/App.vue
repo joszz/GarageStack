@@ -123,7 +123,7 @@ const isInitialLoading = computed(() => vehicleStore.loading && !vehicleStore.cu
 const lastFetched = computed(() => {
   const d = vehicleStore.lastUpdated
   if (!d) return null
-  return formatTime(d, { hour: '2-digit', minute: '2-digit' })
+  return formatTime(d)
 })
 
 const lastRecorded = computed(() => {

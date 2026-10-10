@@ -1,4 +1,6 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, afterEach } from 'vitest'
+import { i18n } from '@/i18n'
+import { setRegionalFormat } from '@/utils/format'
 import { buildTripRow, formatTripDuration, type TripRowContext } from '../tripRows'
 import { trip as makeTrip } from '@/services/__tests__/tripFixtures'
 import { METRIC_UNITS, UnitFormatter } from '@/utils/units'
@@ -21,7 +23,6 @@ function context(overrides: Partial<TripRowContext> = {}): TripRowContext {
     toCity: null,
     canResolve: true,
     resolving: false,
-    locale: 'en-US',
     t,
     units: new UnitFormatter(METRIC_UNITS, t),
     ...overrides,
@@ -29,6 +30,11 @@ function context(overrides: Partial<TripRowContext> = {}): TripRowContext {
 }
 
 describe('buildTripRow', () => {
+  afterEach(() => {
+    i18n.global.locale.value = 'en'
+    setRegionalFormat({ region: null, hourCycle: 'h23' })
+  })
+
   it('leads with the route once both cities are known', () => {
     const row = buildTripRow(trip(), context({ fromCity: 'Zwolle', toCity: 'Deventer' }))
 
@@ -115,11 +121,19 @@ describe('buildTripRow', () => {
     expect(row.metaTitle).toContain(row.timeLabel)
   })
 
-  it('formats the date and time in the given locale', () => {
-    const dutch = buildTripRow(trip(), context({ locale: 'nl-NL' }))
-    const english = buildTripRow(trip(), context({ locale: 'en-US' }))
+  it('formats the date in the interface language', () => {
+    const english = buildTripRow(trip(), context())
+    i18n.global.locale.value = 'nl'
+    const dutch = buildTripRow(trip(), context())
 
     expect(dutch.dateLabel).not.toBe(english.dateLabel)
+  })
+
+  it('gives the time on the chosen clock', () => {
+    expect(buildTripRow(trip(), context()).timeLabel).toMatch(/^\d{2}:\d{2}$/)
+
+    setRegionalFormat({ region: 'US', hourCycle: 'h12' })
+    expect(buildTripRow(trip(), context()).timeLabel).toMatch(/^\d{1,2}:\d{2}\s[AP]M$/)
   })
 })
 

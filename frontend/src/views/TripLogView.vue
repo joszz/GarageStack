@@ -9,7 +9,7 @@ import StatusCard from '@/components/StatusCard.vue'
 import TripLogItem from '@/components/TripLogItem.vue'
 import { TRIP_PURPOSES, type TripPurpose } from '@/services/tripLogApi'
 import { downloadCsv } from '@/utils/download'
-import { intlLocale } from '@/utils/format'
+import { formatDate } from '@/utils/format'
 import { PURPOSE_ICONS, PURPOSE_KEYS, type TripLogPeriod } from '@/utils/tripLog'
 import { tripLogCsv, tripLogFileName } from '@/utils/tripLogCsv'
 import { useUnits } from '@/composables/useUnits'
@@ -23,7 +23,6 @@ const units = useUnits()
 const errorMessage = useErrorMessage()
 
 const vin = computed(() => vehicleStore.activeVin)
-const displayLocale = computed(() => intlLocale(uiSettings.locale))
 
 // The current month to start with: the one a driver is most likely filling in.
 const today = new Date()
@@ -40,7 +39,7 @@ const years = computed(() =>
 const months = computed(() =>
   Array.from({ length: 12 }, (_, m) => ({
     value: m,
-    label: new Date(2000, m, 1).toLocaleDateString(displayLocale.value, { month: 'long' }),
+    label: formatDate(new Date(2000, m, 1), { month: 'long' }),
   })),
 )
 
@@ -87,7 +86,6 @@ function classifyAll(purpose: TripPurpose) {
 
 function exportCsv() {
   const csv = tripLogCsv(store.entries, {
-    locale: displayLocale.value,
     t,
     units: units.value,
     placesShown: placesShown.value,
@@ -179,7 +177,6 @@ function exportCsv() {
         v-for="entry in newestFirst"
         :key="entry.id"
         :entry="entry"
-        :locale="displayLocale"
         :places-shown="placesShown"
         :places-resolving="store.placesResolving"
         :saving="store.saving.has(entry.id)"

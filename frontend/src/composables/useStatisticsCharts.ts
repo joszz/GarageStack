@@ -4,10 +4,9 @@ import type { ChartData, ChartOptions } from 'chart.js'
 import type { StatsChartType } from '@/components/StatsChartCard.vue'
 import type { TelemetryHistoryPoint } from '@/services/vehicleApi'
 import type { StatsChartId } from '@/stores/settingsShared'
-import { useUiSettingsStore } from '@/stores/settingsUi'
 import type { VehicleType } from '@/stores/vehicle'
 import { energyUnit, litres } from '@/utils/energy'
-import { formatDate, intlLocale } from '@/utils/format'
+import { formatDate, numberLocale } from '@/utils/format'
 import {
   dailyAverages,
   dailyCounterTotals,
@@ -76,7 +75,6 @@ export function useStatisticsCharts(
 ): Ref<ChartDef[]> {
   const { t } = useI18n()
   const units = useUnits()
-  const uiSettings = useUiSettingsStore()
 
   const hasLargeEv = computed(() => mayPlugIn(vehicleType.value))
   const isHybrid = computed(() => burnsFuel(vehicleType.value))
@@ -152,7 +150,7 @@ export function useStatisticsCharts(
   // and y-axis range. The locale makes axis and tooltip numbers read like the rest of the page.
   function chartOptions(aspectRatio: number, legend: boolean, y: { min: number; max?: number }) {
     return {
-      locale: intlLocale(uiSettings.locale),
+      locale: numberLocale(),
       responsive: true,
       maintainAspectRatio: true,
       aspectRatio,

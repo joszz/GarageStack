@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ExpandableStatusCard from './ExpandableStatusCard.vue'
 import DetailListItem from './DetailListItem.vue'
+import { formatTimeOfDay } from '@/utils/format'
 
 const { t } = useI18n()
 
@@ -16,7 +17,7 @@ const summaryValue = computed((): string | null => {
   if (props.batteryHeating === null) return null
   const state = props.batteryHeating ? t('common.on') : t('common.off')
   if (props.scheduleMode && props.scheduleMode !== 'off' && props.scheduleStartTime)
-    return `${state} · ${props.scheduleStartTime}`
+    return `${state} · ${formatTimeOfDay(props.scheduleStartTime)}`
   return state
 })
 
@@ -58,7 +59,7 @@ const hasModal = computed(() => props.scheduleMode !== null || props.scheduleSta
       <DetailListItem
         v-if="scheduleStartTime !== null"
         icon="clock"
-        :value="scheduleStartTime"
+        :value="formatTimeOfDay(scheduleStartTime)"
         :label="t('vehicle.batteryHeating.startTime')"
       />
     </div>

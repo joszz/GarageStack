@@ -6,7 +6,7 @@ import nlFlag from 'flag-icons/flags/4x3/nl.svg'
 import { useUiSettingsStore } from '@/stores/settingsUi'
 import DetailModal from '../DetailModal.vue'
 import SettingsToggle from '../SettingsToggle.vue'
-import UnitSettings from '../UnitSettings.vue'
+import RegionalSettings from '../RegionalSettings.vue'
 import SettingsSection from './SettingsSection.vue'
 import SideIconSwitch from './SideIconSwitch.vue'
 import CarColorPicker from './CarColorPicker.vue'
@@ -97,7 +97,7 @@ const isNL = computed({
     </SettingsSection>
 
     <SettingsSection :title="t('settings.units.title')">
-      <UnitSettings />
+      <RegionalSettings />
     </SettingsSection>
 
     <SettingsSection :title="t('settings.carColor.title')">

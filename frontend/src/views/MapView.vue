@@ -29,7 +29,6 @@ import '@/assets/map.css'
 import type { Trip } from '@/services/vehicleApi'
 import { speedLimitSummary } from '@/utils/speedLimits'
 import { daysAgoIso } from '@/utils/dates'
-import { intlLocale } from '@/utils/format'
 import { isPhoneViewport } from '@/utils/viewport'
 import { useUnits } from '@/composables/useUnits'
 import { burnsFuel, plugsIn } from '@/utils/vehicleType'
@@ -54,7 +53,6 @@ const vehicleType = computed(() => store.effectiveVehicleType)
 // never gets counted against a row this one has no way to reach.
 const carTakesFuel = computed(() => burnsFuel(vehicleType.value))
 const carTakesCharge = computed(() => plugsIn(vehicleType.value))
-const displayLocale = computed(() => intlLocale(uiSettingsStore.locale))
 const selectedTripIndex = ref<number | null>(null)
 const { speedOverlayEnabled, speedLimitOverlayEnabled } = storeToRefs(settingsStore)
 const { filterDays: dateRangeDays } = storeToRefs(uiSettingsStore)
@@ -269,7 +267,6 @@ const displayRows = computed(() =>
         inProgress: realIdx === activeTripIndex.value,
         canResolve: start != null && end != null && placeNamesEnabled.value,
         resolving: placesResolving.value,
-        locale: displayLocale.value,
         t,
         units: units.value,
       }),

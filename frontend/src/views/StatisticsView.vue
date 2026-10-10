@@ -24,7 +24,7 @@ import SkeletonChart from '@/components/SkeletonChart.vue'
 import StatusCard from '@/components/StatusCard.vue'
 import StatsChartCard from '@/components/StatsChartCard.vue'
 import type EditableCardGridComponent from '@/components/EditableCardGrid.vue'
-import { formatNumber } from '@/utils/format'
+import { formatHour, formatNumber } from '@/utils/format'
 import { startOfLocalDayDaysAgoIso } from '@/utils/dates'
 import {
   averageMovingSpeedKmh,
@@ -121,7 +121,10 @@ const averageTripKm = computed(() => averageTripDistanceKm(store.tripSummaries))
 
 const climateUsagePct = computed(() => aggregateStats.value?.climateUsagePct ?? null)
 
-const peakDriveHour = computed(() => peakTripHour(store.tripSummaries))
+const peakDriveHour = computed(() => {
+  const hour = peakTripHour(store.tripSummaries)
+  return hour === null ? null : formatHour(hour)
+})
 
 // Shared with the parking-locations modal below - parkingLocations is just this list's count.
 const parkingCoordinates = computed(() => parkingSpots(store.tripSummaries))

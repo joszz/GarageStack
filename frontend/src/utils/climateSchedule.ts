@@ -12,8 +12,6 @@ export const WEEKDAYS: readonly IsoWeekday[] = [1, 2, 3, 4, 5, 6, 7]
 export const WORKWEEK: readonly IsoWeekday[] = [1, 2, 3, 4, 5]
 export const WEEKEND: readonly IsoWeekday[] = [6, 7]
 
-const TIME_FORMAT: Intl.DateTimeFormatOptions = { hour: '2-digit', minute: '2-digit' }
-
 /** The name of an ISO weekday in the interface language. 1 January 2024 was a Monday. */
 export function weekdayName(day: IsoWeekday, style: 'short' | 'long' = 'short'): string {
   return formatDate(new Date(Date.UTC(2024, 0, day)), { weekday: style, timeZone: 'UTC' })
@@ -35,12 +33,6 @@ export function daysSummary(days: readonly IsoWeekday[], t: Translate): string {
     .join(', ')
 }
 
-/** A schedule's "HH:mm" start time on the interface's clock (12-hour in English). */
-export function startTimeLabel(startTime: string): string {
-  const [hours = 0, minutes = 0] = startTime.split(':').map(Number)
-  return formatTime(new Date(2024, 0, 1, hours, minutes), TIME_FORMAT)
-}
-
 function localDay(date: Date): number {
   return Math.round(
     new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime() / 86_400_000,
@@ -50,7 +42,7 @@ function localDay(date: Date): number {
 /** When a run is or was, from where the browser stands: "Today 07:30", "Tomorrow 07:30", "Monday 07:30" or a date. */
 export function runLabel(iso: string, now: Date, t: Translate): string {
   const at = new Date(iso)
-  const time = formatTime(at, TIME_FORMAT)
+  const time = formatTime(at)
   const days = localDay(at) - localDay(now)
   if (days === 0) return t('climateSchedules.when.today', { time })
   if (days === 1) return t('climateSchedules.when.tomorrow', { time })

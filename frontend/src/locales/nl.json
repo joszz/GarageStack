@@ -457,7 +457,15 @@
       "title": "Meldingstypen"
     },
     "units": {
-      "title": "Eenheden",
+      "title": "Regio en eenheden",
+      "auto": "Automatisch: {value}",
+      "region": "Regio",
+      "regionDesc": "Bepaalt de datumnotatie, en de klok en eenheden die op automatisch staan",
+      "clock": "Klok",
+      "clockOptions": {
+        "h23": "24-uurs ({example})",
+        "h12": "12-uurs ({example})"
+      },
       "distance": "Afstand en snelheid",
       "distanceDesc": "Ook energieverbruik per afstand",
       "temperature": "Temperatuur",
@@ -528,7 +536,8 @@
     "pageOf": "Pagina {n} van {total}",
     "retry": "Opnieuw proberen",
     "hour": "Uur",
-    "minute": "Minuut"
+    "minute": "Minuut",
+    "dayPeriod": "Ochtend of middag"
   },
   "demo": {
     "banner": "Demo modus - alleen voorbeelddata wordt getoond",

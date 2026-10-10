@@ -1,9 +1,11 @@
 import { formatNumber } from '@/utils/format'
+import type { Region } from '@/utils/region'
 
 // The API speaks metric and nothing else: kilometres, bar, degrees Celsius, litres. The interface
 // converts at the last moment, when a value is shown or typed, so a preference never reaches the
-// database and switching it back and forth loses nothing. This file holds the conversions and the
-// unit each preference implies; composables/useUnits binds them to the settings and the language.
+// database and switching it back and forth loses nothing. This file holds the conversions, the
+// unit each preference implies and the units each region uses; composables/useUnits binds them
+// to the settings and the language.
 
 export type DistanceUnit = 'km' | 'mi'
 export type TemperatureUnit = 'celsius' | 'fahrenheit'
@@ -27,6 +29,58 @@ export const METRIC_UNITS: Readonly<UnitPreferences> = {
   temperature: 'celsius',
   pressure: 'bar',
   fuelConsumption: 'l100km',
+}
+
+/** The units as chosen in the settings: each one a unit, or "auto" for the one the region uses. */
+export type UnitSettings = { [K in keyof UnitPreferences]: UnitPreferences[K] | 'auto' }
+
+export const AUTO_UNITS: Readonly<UnitSettings> = {
+  distance: 'auto',
+  temperature: 'auto',
+  pressure: 'auto',
+  fuelConsumption: 'auto',
+}
+
+// The United States and the territories that sign their roads the same way.
+const US_ROADS: readonly Region[] = ['US', 'AS', 'GU', 'MP', 'UM', 'VI']
+// The United Kingdom and the Crown Dependencies, which share its road signs and its gallon.
+const UK_ROADS: readonly Region[] = ['GB', 'GG', 'IM', 'JE']
+
+const MILE_REGIONS = new Set([...US_ROADS, ...UK_ROADS])
+// Where the weather forecast is in Fahrenheit (CLDR): Puerto Rico signs its roads in kilometres.
+const FAHRENHEIT_REGIONS = new Set([...US_ROADS, 'BS', 'BZ', 'KY', 'PR', 'PW'])
+// What a forecourt air pump reads, rather than the door sticker: psi in these, kPa in Japan, and
+// bar everywhere else.
+const PSI_REGIONS = new Set([...US_ROADS, ...UK_ROADS, 'AU', 'CA', 'IN', 'NZ'])
+const KPA_REGIONS = new Set(['JP'])
+
+/** The units drivers in a region use, which an "auto" setting stands for. */
+export function regionUnits(region: Region): UnitPreferences {
+  return {
+    distance: MILE_REGIONS.has(region) ? 'mi' : 'km',
+    temperature: FAHRENHEIT_REGIONS.has(region) ? 'fahrenheit' : 'celsius',
+    pressure: PSI_REGIONS.has(region) ? 'psi' : KPA_REGIONS.has(region) ? 'kpa' : 'bar',
+    fuelConsumption: US_ROADS.includes(region)
+      ? 'mpgUs'
+      : UK_ROADS.includes(region)
+        ? 'mpgUk'
+        : 'l100km',
+  }
+}
+
+/** The units to show: each chosen one as it is, each "auto" one as the region has it. */
+export function resolveUnits(settings: Readonly<UnitSettings>, region: Region): UnitPreferences {
+  const regional = regionUnits(region)
+  function chosen<K extends keyof UnitPreferences>(key: K): UnitPreferences[K] {
+    const value = settings[key]
+    return value === 'auto' ? regional[key] : (value as UnitPreferences[K])
+  }
+  return {
+    distance: chosen('distance'),
+    temperature: chosen('temperature'),
+    pressure: chosen('pressure'),
+    fuelConsumption: chosen('fuelConsumption'),
+  }
 }
 
 /**

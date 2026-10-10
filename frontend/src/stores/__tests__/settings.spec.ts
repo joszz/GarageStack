@@ -6,7 +6,8 @@ import { ALL_CARD_IDS } from '@/cards/registry'
 import { useUiSettingsStore } from '@/stores/settingsUi'
 import { useDashboardSettingsStore } from '@/stores/settingsDashboard'
 import { useMapSettingsStore } from '@/stores/settingsMap'
-import { METRIC_UNITS } from '@/utils/units'
+import { formatTime, setRegionalFormat } from '@/utils/format'
+import { AUTO_UNITS, METRIC_UNITS } from '@/utils/units'
 
 // Settings persistence is debounced (see createDebouncedSave in settingsShared.ts) so a burst of
 // ref changes coalesces into one localStorage write - advance fake timers past the debounce
@@ -27,6 +28,7 @@ describe('useUiSettingsStore', () => {
 
   afterEach(() => {
     vi.useRealTimers()
+    setRegionalFormat({ region: null, hourCycle: 'h23' })
   })
 
   it('defaults to dark theme when matchMedia reports no light preference', () => {
@@ -147,9 +149,65 @@ describe('useUiSettingsStore', () => {
     expect(store.notificationTypeExclusions).toEqual(['charging-complete'])
   })
 
-  it('shows metric units until the browser asks for others', () => {
+  it('leaves the region, the clock and every unit on automatic until one is chosen', () => {
     localStorage.setItem(UI_KEY, JSON.stringify({ theme: 'light' }))
+    const store = useUiSettingsStore()
+
+    expect(store.region).toBe('auto')
+    expect(store.clock).toBe('auto')
+    expect(store.units).toEqual(AUTO_UNITS)
+  })
+
+  it('keeps the units an install stored before automatic existed', () => {
+    localStorage.setItem(UI_KEY, JSON.stringify({ units: METRIC_UNITS }))
     expect(useUiSettingsStore().units).toEqual(METRIC_UNITS)
+  })
+
+  it('shows what the detected region uses for everything left on automatic', () => {
+    const store = useUiSettingsStore()
+
+    expect(store.detectedRegion).toBe('NL')
+    expect(store.effectiveRegion).toBe('NL')
+    expect(store.effectiveHourCycle).toBe('h23')
+    expect(store.effectiveUnits).toEqual(METRIC_UNITS)
+  })
+
+  it('follows a chosen region, except where a clock or unit is chosen too', () => {
+    const store = useUiSettingsStore()
+    store.region = 'US'
+
+    expect(store.effectiveHourCycle).toBe('h12')
+    expect(store.effectiveUnits).toEqual({
+      distance: 'mi',
+      temperature: 'fahrenheit',
+      pressure: 'psi',
+      fuelConsumption: 'mpgUs',
+    })
+
+    store.clock = 'h23'
+    store.units.distance = 'km'
+    expect(store.effectiveHourCycle).toBe('h23')
+    expect(store.effectiveUnits.distance).toBe('km')
+  })
+
+  it('hands the region and the clock to every date and time at once', async () => {
+    const store = useUiSettingsStore()
+    const moment = new Date(2026, 8, 26, 14, 5)
+    store.region = 'US'
+    await nextTick()
+    expect(formatTime(moment).replace(/\s/g, ' ')).toBe('2:05 PM')
+
+    store.clock = 'h23'
+    await nextTick()
+    expect(formatTime(moment)).toBe('14:05')
+  })
+
+  it('falls back to automatic for a region or clock it does not know', () => {
+    localStorage.setItem(UI_KEY, JSON.stringify({ region: 'XX', clock: 'h11' }))
+    const store = useUiSettingsStore()
+
+    expect(store.region).toBe('auto')
+    expect(store.clock).toBe('auto')
   })
 
   it('persists a unit change, and loads it back', async () => {
@@ -160,7 +218,7 @@ describe('useUiSettingsStore', () => {
     expect(JSON.parse(localStorage.getItem(UI_KEY)!).units.distance).toBe('mi')
 
     setActivePinia(createPinia())
-    expect(useUiSettingsStore().units).toEqual({ ...METRIC_UNITS, distance: 'mi' })
+    expect(useUiSettingsStore().units).toEqual({ ...AUTO_UNITS, distance: 'mi' })
   })
 
   it('falls back per unit, keeping the stored units it recognises', () => {
@@ -170,9 +228,9 @@ describe('useUiSettingsStore', () => {
     )
     expect(useUiSettingsStore().units).toEqual({
       distance: 'mi',
-      temperature: 'celsius',
+      temperature: 'auto',
       pressure: 'psi',
-      fuelConsumption: 'l100km',
+      fuelConsumption: 'auto',
     })
   })
 })
