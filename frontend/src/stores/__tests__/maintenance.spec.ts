@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { useMaintenanceStore } from '@/stores/maintenance'
+import { maintenanceItem } from '@/services/__tests__/maintenanceFixtures'
 import type {
   MaintenanceItem,
   MaintenanceLogEntry,
@@ -19,26 +20,6 @@ vi.mock('@/services/maintenanceApi', () => ({
   },
 }))
 
-function item(overrides: Partial<MaintenanceItem> = {}): MaintenanceItem {
-  return {
-    id: 1,
-    vehicleId: 1,
-    name: 'Oil change',
-    notes: null,
-    intervalKm: 10000,
-    intervalMonths: null,
-    lastServiceDate: null,
-    lastServiceOdometerKm: null,
-    dueStatus: 'ok',
-    nextDueDate: null,
-    nextDueOdometerKm: null,
-    daysRemaining: null,
-    kmRemaining: null,
-    createdAt: '2026-01-01',
-    ...overrides,
-  }
-}
-
 describe('useMaintenanceStore', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
@@ -47,7 +28,7 @@ describe('useMaintenanceStore', () => {
 
   it('fetchItems populates items on success', async () => {
     const { maintenanceApi } = await import('@/services/maintenanceApi')
-    vi.mocked(maintenanceApi.list).mockResolvedValue([item()])
+    vi.mocked(maintenanceApi.list).mockResolvedValue([maintenanceItem()])
     const store = useMaintenanceStore()
     await store.fetchItems('VIN1')
     expect(store.items).toHaveLength(1)
@@ -65,7 +46,9 @@ describe('useMaintenanceStore', () => {
 
   it('createItem appends the created item', async () => {
     const { maintenanceApi } = await import('@/services/maintenanceApi')
-    vi.mocked(maintenanceApi.create).mockResolvedValue(item({ id: 2, name: 'Tyre rotation' }))
+    vi.mocked(maintenanceApi.create).mockResolvedValue(
+      maintenanceItem({ id: 2, name: 'Tyre rotation' }),
+    )
     const store = useMaintenanceStore()
     await store.createItem('VIN1', { name: 'Tyre rotation', intervalKm: 10000 })
     expect(store.items).toHaveLength(1)
@@ -74,11 +57,15 @@ describe('useMaintenanceStore', () => {
 
   it('updateItem replaces the matching item in place', async () => {
     const { maintenanceApi } = await import('@/services/maintenanceApi')
-    vi.mocked(maintenanceApi.list).mockResolvedValue([item({ id: 1, name: 'Oil change' })])
+    vi.mocked(maintenanceApi.list).mockResolvedValue([
+      maintenanceItem({ id: 1, name: 'Oil change' }),
+    ])
     const store = useMaintenanceStore()
     await store.fetchItems('VIN1')
 
-    vi.mocked(maintenanceApi.update).mockResolvedValue(item({ id: 1, name: 'Oil change (5w30)' }))
+    vi.mocked(maintenanceApi.update).mockResolvedValue(
+      maintenanceItem({ id: 1, name: 'Oil change (5w30)' }),
+    )
     await store.updateItem('VIN1', 1, { name: 'Oil change (5w30)' })
 
     expect(store.items).toHaveLength(1)
@@ -87,7 +74,7 @@ describe('useMaintenanceStore', () => {
 
   it('deleteItem removes the item and its cached log entries', async () => {
     const { maintenanceApi } = await import('@/services/maintenanceApi')
-    vi.mocked(maintenanceApi.list).mockResolvedValue([item({ id: 1 })])
+    vi.mocked(maintenanceApi.list).mockResolvedValue([maintenanceItem({ id: 1 })])
     const store = useMaintenanceStore()
     await store.fetchItems('VIN1')
     store.logEntries[1] = [
@@ -109,13 +96,15 @@ describe('useMaintenanceStore', () => {
 
   it('logService updates the item and prepends the log entry when history is loaded', async () => {
     const { maintenanceApi } = await import('@/services/maintenanceApi')
-    vi.mocked(maintenanceApi.list).mockResolvedValue([item({ id: 1, dueStatus: 'overdue' })])
+    vi.mocked(maintenanceApi.list).mockResolvedValue([
+      maintenanceItem({ id: 1, dueStatus: 'overdue' }),
+    ])
     const store = useMaintenanceStore()
     await store.fetchItems('VIN1')
     store.logEntries[1] = []
 
     vi.mocked(maintenanceApi.logService).mockResolvedValue({
-      item: item({ id: 1, dueStatus: 'ok', lastServiceDate: '2026-07-10' }),
+      item: maintenanceItem({ id: 1, dueStatus: 'ok', lastServiceDate: '2026-07-10' }),
       logEntry: {
         id: 3,
         maintenanceItemId: 1,
@@ -135,9 +124,9 @@ describe('useMaintenanceStore', () => {
   it('overdueItems and attentionItems order overdue before dueSoon', async () => {
     const { maintenanceApi } = await import('@/services/maintenanceApi')
     vi.mocked(maintenanceApi.list).mockResolvedValue([
-      item({ id: 1, dueStatus: 'ok' }),
-      item({ id: 2, dueStatus: 'dueSoon' }),
-      item({ id: 3, dueStatus: 'overdue' }),
+      maintenanceItem({ id: 1, dueStatus: 'ok' }),
+      maintenanceItem({ id: 2, dueStatus: 'dueSoon' }),
+      maintenanceItem({ id: 3, dueStatus: 'overdue' }),
     ])
     const store = useMaintenanceStore()
     await store.fetchItems('VIN1')

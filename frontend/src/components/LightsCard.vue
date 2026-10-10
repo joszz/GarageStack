@@ -34,7 +34,7 @@ const summary = computed((): string | null => {
     icon="lightbulb"
     :title="t('vehicle.lights.title')"
     :value="summary"
-    :variant="activeLights.length > 0 ? 'success' : 'danger'"
+    :variant="activeLights.length > 0 ? 'success' : undefined"
   >
     <div class="detail-list">
       <DetailListItem

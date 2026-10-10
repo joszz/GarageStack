@@ -32,7 +32,7 @@ async function request(target: boolean) {
   <ExpandableStatusCard
     icon="car-burst"
     :title="t('control.findMyCar')"
-    :value="active ? t('control.findMyCarActive') : '-'"
+    :value="active ? t('control.findMyCarActive') : t('common.off')"
     :variant="active ? 'warning' : undefined"
   >
     <p class="card-info-desc">{{ t('control.findMyCarConfirm') }}</p>
