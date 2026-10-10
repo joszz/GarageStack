@@ -10,7 +10,7 @@ runs:
         # Version comes from frontend/package.json's packageManager field.
         package_json_file: frontend/package.json
 
-    - uses: actions/setup-node@v7.0.0
+    - uses: actions/setup-node@v7.1.0
       with:
         node-version: 26
         cache: pnpm
