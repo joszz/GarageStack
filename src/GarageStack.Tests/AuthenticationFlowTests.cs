@@ -578,9 +578,18 @@ public class AuthenticationFlowTests
         const string schedules = "/api/vehicles/DEMOVIN0000012345/climate-schedules";
         var request = new
         {
-            name = (string?)null, enabled = true, startTime = "06:45", days = new[] { 6, 7 },
-            timeZoneId = "Europe/Amsterdam", mode = "front", temperatureC = 21, rearDefroster = true,
-            seatLeftLevel = 0, seatRightLevel = 0, onlyBelowC = 2.5, onlyAboveC = (double?)null,
+            name = (string?)null,
+            enabled = true,
+            startTime = "06:45",
+            days = new[] { 6, 7 },
+            timeZoneId = "Europe/Amsterdam",
+            mode = "front",
+            temperatureC = 21,
+            rearDefroster = true,
+            seatLeftLevel = 0,
+            seatRightLevel = 0,
+            onlyBelowC = 2.5,
+            onlyAboveC = (double?)null,
         };
 
         var created = await client.PostAsJsonAsync(schedules, request, ct);
