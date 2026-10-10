@@ -1,4 +1,5 @@
 import type { TelemetryHistoryPoint, TripSummary } from '@/services/vehicleApi'
+import { localDateKey } from '@/utils/dates'
 import { dailyCounterTotal } from '@/utils/energy'
 
 /**
@@ -22,8 +23,8 @@ export function averageTripKm(trips: readonly TripSummary[]): number | null {
   return total === null ? null : total / trips.length
 }
 
-/** The local hour most trips started in, as "HH:00". On a tie, the hour an earlier trip started in wins. */
-export function peakDriveHour(trips: readonly TripSummary[]): string | null {
+/** The local hour (0 to 23) most trips started in. On a tie, the hour an earlier trip started in wins. */
+export function peakDriveHour(trips: readonly TripSummary[]): number | null {
   if (trips.length === 0) return null
   const counts = new Map<number, number>()
   for (const trip of trips) {
@@ -38,7 +39,7 @@ export function peakDriveHour(trips: readonly TripSummary[]): string | null {
       bestCount = count
     }
   }
-  return `${String(bestHour).padStart(2, '0')}:00`
+  return bestHour
 }
 
 /**
@@ -81,13 +82,6 @@ export function hasSpeedReadings(trips: readonly TripSummary[]): boolean {
 export interface HistoryDay {
   key: string
   points: TelemetryHistoryPoint[]
-}
-
-export function localDateKey(date: Date): string {
-  const y = date.getFullYear()
-  const m = String(date.getMonth() + 1).padStart(2, '0')
-  const d = String(date.getDate()).padStart(2, '0')
-  return `${y}-${m}-${d}`
 }
 
 /**

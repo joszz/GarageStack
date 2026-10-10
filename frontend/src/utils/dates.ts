@@ -1,6 +1,17 @@
 const MS_PER_DAY = 86_400_000
 
 /**
+ * The local calendar day as "YYYY-MM-DD", which is also what a date input takes. Not
+ * toISOString(): that is the day in UTC, which in Europe is still yesterday just after midnight.
+ */
+export function localDateKey(date: Date): string {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
+/**
  * ISO timestamp for exactly `days` days before now. The "from" bound the dashboard and map use
  * for their trip queries.
  */

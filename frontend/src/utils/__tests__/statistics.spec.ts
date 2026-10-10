@@ -38,8 +38,8 @@ describe('trip statistics', () => {
       tripSummary({ startedAt }),
     )
 
-    expect(peakDriveHour(trips)).toBe('17:00')
-    expect(peakDriveHour([tripSummary({ startedAt: at(7) })])).toBe('07:00')
+    expect(peakDriveHour(trips)).toBe(17)
+    expect(peakDriveHour([tripSummary({ startedAt: at(7) })])).toBe(7)
   })
 
   it('counts a spot visited again once and skips trips without an end', () => {

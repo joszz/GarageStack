@@ -1181,7 +1181,7 @@ textarea.form-control {
   font-family: inherit;
 }
 
-/* A time of day as selects (TimeOfDaySelect): hour and minute on a 24-hour clock. */
+/* A time of day as selects (TimeOfDaySelect): hour and minute, plus AM or PM on a 12-hour clock. */
 .time-select {
   display: flex;
   align-items: center;
@@ -1332,6 +1332,18 @@ textarea.form-control {
   align-items: center;
   gap: 0.5rem;
   flex-shrink: 0;
+}
+
+/* A choice from a list goes under its label, at full width: its options are too long to sit
+   beside the label, in a modal as narrow as a phone. */
+.settings-toggle--select {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.5rem;
+}
+
+.settings-toggle__select {
+  width: 100%;
 }
 
 .settings-toggle__side-icon {

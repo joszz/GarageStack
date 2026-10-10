@@ -22,7 +22,6 @@ function mountItem(
   return mount(TripLogItem, {
     props: {
       entry,
-      locale: 'en-US',
       placesShown: true,
       placesResolving: false,
       saving: false,

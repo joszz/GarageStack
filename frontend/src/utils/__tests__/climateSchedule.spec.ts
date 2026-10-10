@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, afterEach } from 'vitest'
 import {
   commandLabel,
   daysSummary,
@@ -6,15 +6,20 @@ import {
   runLabel,
   runParts,
   settingsSummary,
-  startTimeLabel,
   weekdayName,
 } from '../climateSchedule'
+import { setRegionalFormat } from '@/utils/format'
 import { METRIC_UNITS, UnitFormatter } from '@/utils/units'
 import { schedule } from '@/services/__tests__/climateScheduleFixtures'
 
 const t = (key: string, named?: Record<string, unknown>) =>
   named ? `${key}(${Object.values(named).join(',')})` : key
 const celsius = new UnitFormatter(METRIC_UNITS, (k) => (k === 'units.celsius' ? '°C' : k))
+
+// ICU puts a narrow no-break space before AM and PM.
+const plain = (text: string) => text.replace(/\s/g, ' ')
+
+afterEach(() => setRegionalFormat({ region: null, hourCycle: 'h23' }))
 
 describe('daysSummary', () => {
   it('names the common choices', () => {
@@ -29,15 +34,10 @@ describe('daysSummary', () => {
   })
 })
 
-describe('weekdayName and startTimeLabel', () => {
+describe('weekdayName', () => {
   it('reads ISO weekdays from Monday', () => {
     expect(weekdayName(1)).toBe('Mon')
     expect(weekdayName(7, 'long')).toBe('Sunday')
-  })
-
-  it('shows the start time on the interface clock', () => {
-    expect(startTimeLabel('07:30')).toBe('07:30 AM')
-    expect(startTimeLabel('18:05')).toBe('06:05 PM')
   })
 })
 
@@ -46,19 +46,24 @@ describe('runLabel', () => {
 
   it('says today, tomorrow or yesterday for runs close by', () => {
     expect(runLabel(new Date(2026, 9, 9, 18, 0).toISOString(), now, t)).toBe(
-      'climateSchedules.when.today(06:00 PM)',
+      'climateSchedules.when.today(18:00)',
     )
     expect(runLabel(new Date(2026, 9, 10, 7, 30).toISOString(), now, t)).toBe(
-      'climateSchedules.when.tomorrow(07:30 AM)',
+      'climateSchedules.when.tomorrow(07:30)',
     )
     expect(runLabel(new Date(2026, 9, 8, 7, 30).toISOString(), now, t)).toBe(
-      'climateSchedules.when.yesterday(07:30 AM)',
+      'climateSchedules.when.yesterday(07:30)',
     )
   })
 
   it('names the weekday within the week, and the date beyond it', () => {
-    expect(runLabel(new Date(2026, 9, 12, 7, 30).toISOString(), now, t)).toBe('Monday 07:30 AM')
-    expect(runLabel(new Date(2026, 9, 20, 7, 30).toISOString(), now, t)).toBe('Oct 20 07:30 AM')
+    expect(runLabel(new Date(2026, 9, 12, 7, 30).toISOString(), now, t)).toBe('Monday 07:30')
+    expect(runLabel(new Date(2026, 9, 20, 7, 30).toISOString(), now, t)).toBe('Oct 20 07:30')
+  })
+
+  it('writes the date in the order of the region', () => {
+    setRegionalFormat({ region: 'NL', hourCycle: 'h23' })
+    expect(runLabel(new Date(2026, 9, 20, 7, 30).toISOString(), now, t)).toBe('20 Oct 07:30')
   })
 })
 
@@ -66,18 +71,24 @@ describe('runParts', () => {
   const now = new Date(2026, 9, 9, 12, 0)
 
   it('leaves the day out today, and names it otherwise', () => {
+    setRegionalFormat({ region: 'NL', hourCycle: 'h23' })
     expect(runParts(new Date(2026, 9, 9, 18, 0).toISOString(), now)).toEqual({
-      time: '6:00 PM',
+      time: '18:00',
       day: null,
     })
     expect(runParts(new Date(2026, 9, 10, 7, 30).toISOString(), now)).toEqual({
-      time: '7:30 AM',
+      time: '7:30',
       day: 'Sat',
     })
     expect(runParts(new Date(2026, 9, 20, 7, 30).toISOString(), now)).toEqual({
-      time: '7:30 AM',
-      day: 'Oct 20',
+      time: '7:30',
+      day: '20 Oct',
     })
+  })
+
+  it('shows the time on a 12-hour clock when that is the chosen one', () => {
+    setRegionalFormat({ region: 'US', hourCycle: 'h12' })
+    expect(plain(runParts(new Date(2026, 9, 9, 18, 0).toISOString(), now).time)).toBe('6:00 PM')
   })
 })
 

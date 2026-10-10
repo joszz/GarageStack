@@ -3,7 +3,7 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ExpandableStatusCard from './ExpandableStatusCard.vue'
 import DetailListItem from './DetailListItem.vue'
-import { formatDateTime, formatNumber } from '@/utils/format'
+import { formatDateTime, formatNumber, formatTimeOfDay } from '@/utils/format'
 
 const { t } = useI18n()
 
@@ -142,10 +142,14 @@ const lastEndFormatted = computed((): string | null => {
         <template #value>
           <span class="badge badge-info">{{ chargingScheduleMode }}</span>
           <template v-if="chargingScheduleStartTime">
-            <span class="detail-list__item-value">{{ chargingScheduleStartTime }}</span>
+            <span class="detail-list__item-value">{{
+              formatTimeOfDay(chargingScheduleStartTime)
+            }}</span>
             <template v-if="chargingScheduleEndTime">
               <span class="detail-list__item-sep">-</span>
-              <span class="detail-list__item-value">{{ chargingScheduleEndTime }}</span>
+              <span class="detail-list__item-value">{{
+                formatTimeOfDay(chargingScheduleEndTime)
+              }}</span>
             </template>
           </template>
         </template>

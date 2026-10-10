@@ -1,7 +1,8 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, afterEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createI18n } from 'vue-i18n'
 import en from '@/locales/en.json'
+import { setRegionalFormat } from '@/utils/format'
 import TimeOfDaySelect from '../TimeOfDaySelect.vue'
 
 const i18n = createI18n({ legacy: false, locale: 'en', messages: { en } })
@@ -19,6 +20,8 @@ function lastValue(wrapper: ReturnType<typeof mountSelect>) {
 }
 
 describe('TimeOfDaySelect', () => {
+  afterEach(() => setRegionalFormat({ region: null, hourCycle: 'h23' }))
+
   it('shows the time on a 24-hour clock, also in English', () => {
     const wrapper = mountSelect('19:05')
     const [hour, minute] = wrapper.findAll('select')
@@ -42,6 +45,31 @@ describe('TimeOfDaySelect', () => {
     await wrapper.setProps({ modelValue: '07:05' })
     await minute!.setValue('45')
     expect(lastValue(wrapper)).toEqual(['07:45'])
+  })
+
+  it('splits the hour into 12 and the half of the day on a 12-hour clock', () => {
+    setRegionalFormat({ region: 'US', hourCycle: 'h12' })
+    const wrapper = mountSelect('19:05')
+    const [hour, , period] = wrapper.findAll('select')
+
+    expect(wrapper.findAll('select')).toHaveLength(3)
+    expect((hour!.element as HTMLSelectElement).value).toBe('7')
+    expect(period!.find('option:checked').text()).toBe('PM')
+    const hours = hour!.findAll('option').map((o) => o.text())
+    expect([hours[0], hours[11]]).toEqual(['12', '11'])
+  })
+
+  it('writes back a 12-hour time as HH:mm on the 24-hour clock', async () => {
+    setRegionalFormat({ region: 'US', hourCycle: 'h12' })
+    const wrapper = mountSelect('19:05')
+    const [hour, , period] = wrapper.findAll('select')
+
+    await hour!.setValue('12')
+    expect(lastValue(wrapper)).toEqual(['12:05'])
+
+    await wrapper.setProps({ modelValue: '12:05' })
+    await period!.setValue('false')
+    expect(lastValue(wrapper)).toEqual(['00:05'])
   })
 
   it('offers minutes in steps of five, keeping a saved minute between them', () => {

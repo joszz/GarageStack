@@ -1,4 +1,5 @@
 import type { Trip } from '@/services/vehicleApi'
+import { formatDate, formatTime } from '@/utils/format'
 import type { UnitFormatter } from '@/utils/units'
 
 // `t` is injected rather than obtained via useI18n() so these stay plain, directly testable
@@ -35,7 +36,6 @@ export interface TripRowContext {
   canResolve: boolean
   /** True while lookups are in flight, which is what a placeholder means rather than a fallback. */
   resolving: boolean
-  locale: string
   t: Translate
   units: UnitFormatter
 }
@@ -53,13 +53,12 @@ export function formatTripDuration(startedAt: string, endedAt: string, t: Transl
  * conditionals.
  */
 export function buildTripRow(trip: Trip, ctx: TripRowContext): TripRow {
-  const { fromCity, toCity, canResolve, resolving, locale, t, units, inProgress = false } = ctx
+  const { fromCity, toCity, canResolve, resolving, t, units, inProgress = false } = ctx
   const destination = inProgress ? null : toCity
 
-  const startedAt = new Date(trip.startedAt)
-  const dateLabel = startedAt.toLocaleDateString(locale)
-  const dateShort = startedAt.toLocaleDateString(locale, { day: 'numeric', month: 'short' })
-  const timeLabel = startedAt.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
+  const dateLabel = formatDate(trip.startedAt)
+  const dateShort = formatDate(trip.startedAt, { day: 'numeric', month: 'short' })
+  const timeLabel = formatTime(trip.startedAt)
 
   const distance = units.format('distance', trip.distanceKm)
   const duration = formatTripDuration(trip.startedAt, trip.endedAt, t)

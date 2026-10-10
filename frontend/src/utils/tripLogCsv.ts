@@ -1,5 +1,6 @@
 import type { TripLogEntry } from '@/services/tripLogApi'
 import { csvFormatFor, toCsv, type CsvCell } from '@/utils/csv'
+import { formatDate, formatTime, numberLocale } from '@/utils/format'
 import { endLabel, loggedDistanceKm, periodKey, type TripLogPeriod } from '@/utils/tripLog'
 import type { UnitFormatter } from '@/utils/units'
 
@@ -8,7 +9,6 @@ import type { UnitFormatter } from '@/utils/units'
 type Translate = (key: string, named?: Record<string, unknown>) => string
 
 export interface TripLogCsvContext {
-  locale: string
   t: Translate
   /** The distances are written in the unit the log is read in, and the headers say which. */
   units: UnitFormatter
@@ -23,9 +23,7 @@ export interface TripLogCsvContext {
  * purpose rather than a guess.
  */
 export function tripLogCsv(entries: readonly TripLogEntry[], ctx: TripLogCsvContext): string {
-  const { locale, t, units, placesShown } = ctx
-  const time = (iso: string) =>
-    new Date(iso).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
+  const { t, units, placesShown } = ctx
   // A number rather than text, so a spreadsheet can add the column up.
   const distance = (km: number | null) =>
     km === null ? null : Math.round(units.convert('distance', km) * 10) / 10
@@ -45,9 +43,9 @@ export function tripLogCsv(entries: readonly TripLogEntry[], ctx: TripLogCsvCont
   ]
 
   const rows = entries.map((entry): CsvCell[] => [
-    new Date(entry.startedAt).toLocaleDateString(locale),
-    time(entry.startedAt),
-    time(entry.endedAt),
+    formatDate(entry.startedAt),
+    formatTime(entry.startedAt),
+    formatTime(entry.endedAt),
     endLabel(placesShown ? entry.startPlace : null, entry.startLatitude, entry.startLongitude),
     endLabel(placesShown ? entry.endPlace : null, entry.endLatitude, entry.endLongitude),
     distance(entry.odometerStartKm),
@@ -57,7 +55,7 @@ export function tripLogCsv(entries: readonly TripLogEntry[], ctx: TripLogCsvCont
     entry.notes,
   ])
 
-  return toCsv([header, ...rows], csvFormatFor(locale))
+  return toCsv([header, ...rows], csvFormatFor(numberLocale()))
 }
 
 /** "trip-log-2026-09.csv": sorts by period in a folder, whatever the interface language. */
