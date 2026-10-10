@@ -22,10 +22,11 @@
   --sidebar-width: 220px;
   --topbar-height: 56px;
 
-  /* The main column's padding, which the sidebar takes as its top padding, and the page title's
-     line, which the sidebar brand takes as its height: together they put the logo level with the
-     title on every page. */
+  /* The main column's padding, and how far down the page title and the sidebar logo start. Both
+     sit on a line as tall as the title's, so they share a middle, 20px down on desktop: the height
+     the logo always had. */
   --content-padding: 2rem;
+  --title-top: 0.25rem;
   --page-title-height: 2rem;
   --footer-height: 48px;
   --radius: 10px;
@@ -224,7 +225,7 @@ body,
   flex-direction: column;
 
   /* Less its top border, so the brand inside starts exactly where the main column's title does. */
-  padding: calc(var(--content-padding) - 1px) 0.5rem 0.5rem;
+  padding: calc(var(--title-top) - 1px) 0.5rem 0.5rem;
   flex-shrink: 0;
   overflow-y: auto;
 }
@@ -282,7 +283,7 @@ body,
 .main-content {
   flex: 1;
   overflow-y: auto;
-  padding: var(--content-padding);
+  padding: var(--title-top) var(--content-padding) var(--content-padding);
   min-width: 0;
 }
 
@@ -1936,9 +1937,11 @@ textarea.form-control {
   }
 
   /* The same gutter as the topbar, so the page title and cards line up under the menu button and
-     the footer under both. */
+     the footer under both. The title starts a gutter below the topbar, and the drawer's logo opens
+     level with the topbar's. */
   :root {
     --content-padding: 0.75rem;
+    --title-top: 0.75rem;
   }
 
   .main-content {
