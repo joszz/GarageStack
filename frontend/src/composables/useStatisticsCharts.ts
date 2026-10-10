@@ -10,6 +10,8 @@ import { formatDate, numberLocale } from '@/utils/format'
 import {
   dailyAverages,
   dailyCounterTotals,
+  dayTickFormat,
+  historyDayDate,
   roundedRange,
   roundTo2,
   type HistoryDay,
@@ -80,7 +82,14 @@ export function useStatisticsCharts(
   const isHybrid = computed(() => burnsFuel(vehicleType.value))
   const hasData = computed(() => days.value.some((day) => day.points.length > 0))
 
-  const labels = computed(() => days.value.map((d) => formatDate(new Date(`${d.key}T00:00:00`))))
+  const dates = computed(() => days.value.map(historyDayDate))
+  const labels = computed(() => dates.value.map((d) => formatDate(d)))
+  // The axis names each day briefly, since a month of full dates crowds a phone's chart; the
+  // tooltip keeps the full date from the labels.
+  const tickLabels = computed(() => {
+    const options = dayTickFormat(days.value)
+    return dates.value.map((d) => formatDate(d, options))
+  })
 
   const evChartData = computed(() => ({
     labels: labels.value,
@@ -157,7 +166,15 @@ export function useStatisticsCharts(
       animation: false as const,
       plugins: { legend: { display: legend } },
       scales: {
-        x: { ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 8 } },
+        x: {
+          ticks: {
+            maxRotation: 0,
+            autoSkip: true,
+            maxTicksLimit: 8,
+            // On a category axis a tick's value is the index of its label.
+            callback: (value: string | number) => tickLabels.value[Number(value)] ?? value,
+          },
+        },
         y,
       },
     }

@@ -7,8 +7,10 @@ import {
   batteryVoltageChange,
   dailyAverages,
   dailyCounterTotals,
+  dayTickFormat,
   hasSpeedReadings,
   historyByDay,
+  historyDayDate,
   parkingSpots,
   peakDriveHour,
   roundedRange,
@@ -154,5 +156,19 @@ describe('daily history', () => {
   it('widens a chart range to round numbers in the unit shown', () => {
     expect(roundedRange(1.5, 3.5)).toEqual({ min: 1.5, max: 3.5 })
     expect(roundedRange(21.76, 50.76)).toEqual({ min: 20, max: 55 })
+  })
+
+  it('puts a day at its local midnight', () => {
+    expect(historyDayDate({ key: '2026-09-25', points: [] })).toEqual(new Date(2026, 8, 25))
+  })
+
+  it('names the days on a chart axis without the year while the period stays in one', () => {
+    expect(dayTickFormat(historyByDay([], 30, now))).toEqual({ day: 'numeric', month: 'short' })
+  })
+
+  it('adds the year to the axis once the period runs into another one', () => {
+    const days = historyByDay([], 30, new Date(2027, 0, 10, 12, 0))
+
+    expect(dayTickFormat(days)).toEqual({ day: 'numeric', month: 'short', year: 'numeric' })
   })
 })

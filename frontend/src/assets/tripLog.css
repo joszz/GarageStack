@@ -36,6 +36,7 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   background: var(--color-surface);
+  box-shadow: var(--shadow-card);
 }
 
 .trip-log-bulk__actions {
@@ -67,6 +68,7 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   background: var(--color-surface);
+  box-shadow: var(--shadow-card);
   transition: opacity 0.15s;
 }
 
@@ -78,6 +80,7 @@
   grid-area: when;
   display: flex;
   flex-direction: column;
+  font-variant-numeric: tabular-nums;
 }
 
 .trip-log-item__date {
@@ -110,6 +113,7 @@
   flex-direction: column;
   align-items: flex-end;
   white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 
 .trip-log-item__km {
@@ -146,12 +150,14 @@
   --chip-color: var(--color-success);
 }
 
-/* ── Phones ───────────────────────────────────────────────── */
+/* ── Tablets and phones ───────────────────────────────────── */
 
-@media (width <= 767px) {
+/* Beside the sidebar, a tablet leaves the content column barely wider than a phone: four totals
+   in a row cut their labels short, and the route squeezed between date and distance cuts most
+   addresses down to a street name. */
+@media (width <= 1023px) {
   .trip-log-totals {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.5rem;
   }
 
   .trip-log-item {
@@ -162,7 +168,7 @@
     grid-template-columns: minmax(0, 1fr) auto;
   }
 
-  /* Half a phone's width cuts most addresses short, so they wrap here instead. */
+  /* With the route on a row of its own, a long address wraps rather than ending in an ellipsis. */
   .trip-log-item__route {
     flex-wrap: wrap;
     row-gap: 0.1rem;
@@ -170,6 +176,14 @@
 
   .trip-log-item__place {
     white-space: normal;
+  }
+}
+
+/* ── Phones ───────────────────────────────────────────────── */
+
+@media (width <= 767px) {
+  .trip-log-totals {
+    gap: 0.5rem;
   }
 
   /* The three purposes share the row equally, and the notes take the next one. */

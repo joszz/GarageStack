@@ -115,6 +115,23 @@ export function historyByDay(
   return Array.from(buckets.entries()).map(([key, points]) => ({ key, points }))
 }
 
+/** The day a history bucket stands for, at local midnight. */
+export function historyDayDate(day: HistoryDay): Date {
+  return new Date(`${day.key}T00:00:00`)
+}
+
+/**
+ * How a chart's axis names the period's days: day and short month ("10 Sep"), with the year only
+ * when the period runs into another one, where two "3 Jan" ticks a year apart would read the same.
+ */
+export function dayTickFormat(days: readonly HistoryDay[]): Intl.DateTimeFormatOptions {
+  const firstYear = days[0]?.key.slice(0, 4)
+  const lastYear = days[days.length - 1]?.key.slice(0, 4)
+  return firstYear === lastYear
+    ? { day: 'numeric', month: 'short' }
+    : { day: 'numeric', month: 'short', year: 'numeric' }
+}
+
 function average(values: readonly (number | null)[]): number | null {
   const valid = values.filter((v): v is number => v !== null)
   if (!valid.length) return null

@@ -21,17 +21,13 @@ watch(
   { immediate: true },
 )
 
-const variant = computed((): 'success' | 'warning' | 'danger' => {
-  if (store.overdueItems.length > 0) return 'danger'
-  if (store.dueSoonItems.length > 0) return 'warning'
-  return 'success'
+// The card names the worst state in the words the maintenance page uses, rather than a bare count
+// of items needing attention; the tooltip lists which ones.
+const state = computed(() => {
+  if (store.overdueItems.length > 0) return { variant: 'danger', status: 'overdue' } as const
+  if (store.dueSoonItems.length > 0) return { variant: 'warning', status: 'dueSoon' } as const
+  return { variant: 'success', status: 'ok' } as const
 })
-
-const value = computed(() =>
-  store.attentionItems.length === 0
-    ? t('maintenance.status.ok')
-    : String(store.attentionItems.length),
-)
 
 const subtitle = computed(() => {
   if (store.attentionItems.length === 0) return t('maintenance.dashboard.allOk')
@@ -51,9 +47,9 @@ function goToPage() {
   <StatusCard
     icon="screwdriver-wrench"
     :label="t('maintenance.title')"
-    :value="value"
+    :value="t(`maintenance.status.${state.status}`)"
     :subtitle="subtitle"
-    :variant="variant"
+    :variant="state.variant"
     clickable
     @click="goToPage"
   />
