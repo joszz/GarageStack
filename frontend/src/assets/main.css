@@ -61,6 +61,15 @@
 /* Firefox */
 * {
   scrollbar-width: thin;
+/* Form controls take the system font from the browser rather than the page (Arial on Windows),
+   so every button, field and select would otherwise set itself apart from the text around it. */
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
   scrollbar-color: var(--color-border) transparent;
 }
 
@@ -202,7 +211,9 @@ body,
   color: var(--color-primary);
   text-decoration: none;
   margin-bottom: 2rem;
-  padding-left: 0.5rem;
+
+  /* The nav links' own inline padding, so the logo sits in the same column as their icons. */
+  padding-left: 0.75rem;
 }
 
 .sidebar-nav {
@@ -276,6 +287,12 @@ body,
 .text-success {
   color: var(--color-success);
 }
+/* A line about the page, tucked under its title rather than spaced like a section of its own. */
+.view-subtitle {
+  margin-top: -1rem;
+  margin-bottom: 1.5rem;
+}
+
 
 .text-danger {
   color: var(--color-danger);
@@ -548,7 +565,6 @@ body,
 /* A row that leads somewhere else: the whole row is the button. */
 .detail-list__item--link {
   width: 100%;
-  font-family: inherit;
   color: var(--color-text);
   text-align: left;
   cursor: pointer;
@@ -639,17 +655,7 @@ body,
   }
 }
 
-/* ── Card component ───────────────────────────────────────── */
-
-.card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-}
-
-.card-body {
-  padding: 1rem 1.25rem;
-}
+/* ── Card title ───────────────────────────────────────────── */
 
 .card-title {
   font-size: 0.85rem;
@@ -657,7 +663,7 @@ body,
   color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  margin-bottom: 0.75rem;
+  margin-bottom: 1rem;
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -665,6 +671,8 @@ body,
 
 /* ── Leaflet map chrome ───────────────────────────────────── */
 
+/* The heading of every card that has one (overview, location, trip history, the statistics
+   charts): small muted capitals with the card's icon in front. */
 /* Leaflet ships a light-only frame: a pale grey canvas, white zoom buttons, white popups and a
    white attribution strip. Over the vector basemap, which follows the theme, those read as holes
    punched in the map, so the chrome is re-pointed at the theme tokens and now follows dark and
@@ -1021,7 +1029,7 @@ body,
 
 .btn-sm {
   font-size: 0.78rem;
-  padding: 0.3rem;
+  padding: 0.3rem 0.6rem;
 }
 
 .btn-primary {
@@ -1169,6 +1177,11 @@ body,
 
 .form-control {
   width: 100%;
+/* A button in the stack keeps its own width instead of stretching into a bar across the form. */
+.form-stack > .btn {
+  align-self: flex-start;
+}
+
   padding: 0.4rem 0.6rem;
   font-size: 0.85rem;
   border-radius: 6px;
@@ -1179,7 +1192,6 @@ body,
 
 textarea.form-control {
   resize: vertical;
-  font-family: inherit;
 }
 
 /* A time of day as selects (TimeOfDaySelect): hour and minute, plus AM or PM on a 12-hour clock. */
@@ -1896,11 +1908,17 @@ textarea.form-control {
 
   .main-content {
     padding: 0.75rem;
+  /* The same gutter as the topbar, so the page title and cards line up under the menu button and
+     the footer under both. */
     overflow-x: hidden;
   }
 
   /* Icon sits flush at button left so it aligns with card left edge */
   .hamburger {
+  .app-footer {
+    padding: 0 0.75rem;
+  }
+
     justify-content: flex-start;
   }
 
@@ -1930,22 +1948,6 @@ textarea.form-control {
 
   .status-card__value {
     font-size: 0.95rem;
-  }
-}
-
-/* ── Very small phones (< 400px) ─────────────────────────── */
-
-@media (width <= 399px) {
-  .main-content {
-    padding: 0.5rem;
-  }
-
-  .status-grid {
-    gap: 0.4rem;
-  }
-
-  .status-card {
-    padding: 0.65rem 0.75rem;
   }
 }
 
@@ -2261,7 +2263,8 @@ textarea.form-control {
   gap: 0.4rem;
 }
 
-.demo-panel-section {
+/* Between sections only, so the panel's padding is the same at the bottom as at the top. */
+.demo-panel-section:not(:last-child) {
   margin-bottom: 0.75rem;
 }
 
@@ -2283,7 +2286,7 @@ textarea.form-control {
 .demo-toggle-btn {
   padding: 0.25rem 0.6rem;
   font-size: 0.75rem;
-  border-radius: 4px;
+  border-radius: 6px;
   border: 1px solid var(--color-border);
   background-color: var(--color-surface-2);
   color: var(--color-text);
@@ -2334,7 +2337,7 @@ textarea.form-control {
   width: 100%;
   padding: 0.3rem 0.5rem;
   font-size: 0.8rem;
-  border-radius: 4px;
+  border-radius: 6px;
   border: 1px solid var(--color-border);
   background-color: var(--color-surface-2);
   color: var(--color-text);

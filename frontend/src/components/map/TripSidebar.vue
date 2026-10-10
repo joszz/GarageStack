@@ -56,7 +56,10 @@ watch(
 <template>
   <aside ref="root" class="trip-sidebar">
     <div class="trip-sidebar__header">
-      <h2 class="trip-sidebar__title">{{ t('trips.title') }}</h2>
+      <h2 class="card-title trip-sidebar__title">
+        <font-awesome-icon icon="route" />
+        {{ t('trips.title') }}
+      </h2>
     </div>
 
     <div v-if="loading" class="trip-list">

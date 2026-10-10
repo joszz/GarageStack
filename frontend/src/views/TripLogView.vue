@@ -111,7 +111,7 @@ function exportCsv() {
       </div>
     </div>
 
-    <p class="text-muted mb-4">{{ t('tripLog.subtitle') }}</p>
+    <p class="text-muted view-subtitle">{{ t('tripLog.subtitle') }}</p>
 
     <div class="trip-log-filters">
       <label class="trip-log-filters__field">

@@ -75,7 +75,7 @@ function variant(schedule: ClimateSchedule): 'info' | 'warning' | undefined {
       </div>
     </div>
 
-    <p class="text-muted mb-4">{{ t('climateSchedules.subtitle') }}</p>
+    <p class="text-muted view-subtitle">{{ t('climateSchedules.subtitle') }}</p>
 
     <div v-if="store.itemsError" class="empty-state text-danger">
       {{ errorMessage(store.itemsError) }}

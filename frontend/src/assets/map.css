@@ -53,12 +53,9 @@
   border-bottom: 1px solid var(--color-border);
 }
 
-.trip-sidebar__title {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--color-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+/* The header's border does the separating here, so the title keeps none of its own margin. */
+.trip-sidebar__header .trip-sidebar__title {
+  margin-bottom: 0;
 }
 
 .trip-list {

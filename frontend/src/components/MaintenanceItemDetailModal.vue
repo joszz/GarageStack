@@ -98,83 +98,89 @@ async function confirmDelete() {
     wide
     @close="emit('close')"
   >
-    <div v-if="currentItem" class="maintenance-detail">
-      <div class="maintenance-detail__summary">
-        <span
-          class="badge"
-          :class="`badge-${currentItem.dueStatus === 'dueSoon' ? 'warning' : currentItem.dueStatus === 'overdue' ? 'danger' : currentItem.dueStatus === 'ok' ? 'success' : 'secondary'}`"
-        >
-          {{ t(`maintenance.status.${currentItem.dueStatus}`) }}
-        </span>
-        <span class="text-muted text-sm">{{ formatIntervalSummary(currentItem, t, units) }}</span>
-      </div>
+    <div v-if="currentItem">
+      <section class="detail-modal__section maintenance-detail">
+        <div class="maintenance-detail__summary">
+          <span
+            class="badge"
+            :class="`badge-${currentItem.dueStatus === 'dueSoon' ? 'warning' : currentItem.dueStatus === 'overdue' ? 'danger' : currentItem.dueStatus === 'ok' ? 'success' : 'secondary'}`"
+          >
+            {{ t(`maintenance.status.${currentItem.dueStatus}`) }}
+          </span>
+          <span class="text-muted text-sm">{{ formatIntervalSummary(currentItem, t, units) }}</span>
+        </div>
 
-      <p v-if="currentItem.nextDueOdometerKm != null" class="text-sm">
-        {{ t('maintenance.nextDueOdometer') }}:
-        {{ units.format('distance', currentItem.nextDueOdometerKm, ODOMETER_FORMAT) }}
-      </p>
-      <p v-if="currentItem.nextDueDate" class="text-sm">
-        {{ t('maintenance.nextDueDate') }}: {{ formatDate(currentItem.nextDueDate) }}
-      </p>
-      <p v-if="currentItem.notes" class="text-muted text-sm">{{ currentItem.notes }}</p>
+        <p v-if="currentItem.nextDueOdometerKm != null" class="text-sm">
+          {{ t('maintenance.nextDueOdometer') }}:
+          {{ units.format('distance', currentItem.nextDueOdometerKm, ODOMETER_FORMAT) }}
+        </p>
+        <p v-if="currentItem.nextDueDate" class="text-sm">
+          {{ t('maintenance.nextDueDate') }}: {{ formatDate(currentItem.nextDueDate) }}
+        </p>
+        <p v-if="currentItem.notes" class="text-muted text-sm">{{ currentItem.notes }}</p>
+      </section>
 
-      <h4 class="maintenance-detail__heading">{{ t('maintenance.logService') }}</h4>
-      <form class="form-stack maintenance-log-form" @submit.prevent="submitLog">
-        <div class="form-row">
-          <div class="form-group">
-            <label for="log-performed-at">{{ t('maintenance.logForm.performedAt') }}</label>
-            <input id="log-performed-at" v-model="performedAt" type="date" class="form-control" />
+      <section class="detail-modal__section">
+        <h4 class="detail-modal__section-title">{{ t('maintenance.logService') }}</h4>
+        <form class="form-stack maintenance-log-form" @submit.prevent="submitLog">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="log-performed-at">{{ t('maintenance.logForm.performedAt') }}</label>
+              <input id="log-performed-at" v-model="performedAt" type="date" class="form-control" />
+            </div>
+            <div class="form-group">
+              <label for="log-odometer">{{
+                t('maintenance.logForm.odometer', { unit: units.symbol('distance') })
+              }}</label>
+              <input
+                id="log-odometer"
+                v-model.number="odometer.shown"
+                type="number"
+                min="0"
+                class="form-control"
+              />
+            </div>
           </div>
           <div class="form-group">
-            <label for="log-odometer">{{
-              t('maintenance.logForm.odometer', { unit: units.symbol('distance') })
-            }}</label>
+            <label for="log-notes">{{ t('maintenance.logForm.notes') }}</label>
             <input
-              id="log-odometer"
-              v-model.number="odometer.shown"
-              type="number"
-              min="0"
+              id="log-notes"
+              v-model="logNotes"
+              type="text"
               class="form-control"
+              maxlength="1000"
             />
           </div>
-        </div>
-        <div class="form-group">
-          <label for="log-notes">{{ t('maintenance.logForm.notes') }}</label>
-          <input
-            id="log-notes"
-            v-model="logNotes"
-            type="text"
-            class="form-control"
-            maxlength="1000"
-          />
-        </div>
-        <p v-if="logError" class="text-danger text-sm">{{ logError }}</p>
-        <button type="submit" class="btn btn-primary btn-sm" :disabled="logSaving">
-          {{ t('maintenance.logForm.submit') }}
-        </button>
-      </form>
-
-      <h4 class="maintenance-detail__heading">{{ t('maintenance.history') }}</h4>
-      <p v-if="logEntries.length === 0" class="text-muted text-sm">
-        {{ t('maintenance.noHistory') }}
-      </p>
-      <ul v-else class="maintenance-history">
-        <li v-for="entry in logEntries" :key="entry.id" class="maintenance-history__row">
-          <span>{{ formatDate(entry.performedAt) }}</span>
-          <span v-if="entry.odometerKm != null" class="text-muted">
-            {{ units.format('distance', entry.odometerKm, ODOMETER_FORMAT) }}
-          </span>
-          <span v-if="entry.notes" class="text-muted">{{ entry.notes }}</span>
-          <button
-            type="button"
-            class="btn btn-sm btn-outline-secondary maintenance-history__delete"
-            :aria-label="t('maintenance.deleteLogEntry')"
-            @click="removeLogEntry(entry.id)"
-          >
-            <font-awesome-icon icon="trash" />
+          <p v-if="logError" class="text-danger text-sm">{{ logError }}</p>
+          <button type="submit" class="btn btn-primary btn-sm" :disabled="logSaving">
+            {{ t('maintenance.logForm.submit') }}
           </button>
-        </li>
-      </ul>
+        </form>
+      </section>
+
+      <section class="detail-modal__section">
+        <h4 class="detail-modal__section-title">{{ t('maintenance.history') }}</h4>
+        <p v-if="logEntries.length === 0" class="text-muted text-sm">
+          {{ t('maintenance.noHistory') }}
+        </p>
+        <ul v-else class="maintenance-history">
+          <li v-for="entry in logEntries" :key="entry.id" class="maintenance-history__row">
+            <span>{{ formatDate(entry.performedAt) }}</span>
+            <span v-if="entry.odometerKm != null" class="text-muted">
+              {{ units.format('distance', entry.odometerKm, ODOMETER_FORMAT) }}
+            </span>
+            <span v-if="entry.notes" class="text-muted">{{ entry.notes }}</span>
+            <button
+              type="button"
+              class="btn btn-sm btn-outline-secondary maintenance-history__delete"
+              :aria-label="t('maintenance.deleteLogEntry')"
+              @click="removeLogEntry(entry.id)"
+            >
+              <font-awesome-icon icon="trash" />
+            </button>
+          </li>
+        </ul>
+      </section>
     </div>
 
     <template #footer>
