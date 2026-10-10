@@ -200,6 +200,7 @@ body,
   font-size: 1.1rem;
   font-weight: 700;
   color: var(--color-primary);
+  text-decoration: none;
   margin-bottom: 2rem;
   padding-left: 0.5rem;
 }
