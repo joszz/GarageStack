@@ -120,4 +120,46 @@
   <data name="VehicleMessageTitle" xml:space="preserve">
     <value>Message from MG</value>
   </data>
+  <data name="ClimateScheduleRef" xml:space="preserve">
+    <value>your {0} schedule</value>
+  </data>
+  <data name="ClimateScheduleRefNamed" xml:space="preserve">
+    <value>your schedule "{0}" ({1})</value>
+  </data>
+  <data name="ClimateScheduleStartedTitle" xml:space="preserve">
+    <value>Climate is on</value>
+  </data>
+  <data name="ClimateScheduleStartedBody" xml:space="preserve">
+    <value>Started by {0}.</value>
+  </data>
+  <data name="ClimateScheduleStartedPartlyBody" xml:space="preserve">
+    <value>Started by {0}, but {1} did not work.</value>
+  </data>
+  <data name="ClimateScheduleFailedTitle" xml:space="preserve">
+    <value>Climate did not start</value>
+  </data>
+  <data name="ClimateScheduleFailedBody" xml:space="preserve">
+    <value>The car refused {0}.</value>
+  </data>
+  <data name="ClimateScheduleFailedBodyWithDetail" xml:space="preserve">
+    <value>The car refused {0}: {1}</value>
+  </data>
+  <data name="ClimateScheduleNoAnswerTitle" xml:space="preserve">
+    <value>Climate may not have started</value>
+  </data>
+  <data name="ClimateScheduleNoAnswerBody" xml:space="preserve">
+    <value>The car did not answer {0}.</value>
+  </data>
+  <data name="ClimateScheduleCommandTemperature" xml:space="preserve">
+    <value>setting the temperature</value>
+  </data>
+  <data name="ClimateScheduleCommandRearDefroster" xml:space="preserve">
+    <value>the rear defroster</value>
+  </data>
+  <data name="ClimateScheduleCommandSeatLeft" xml:space="preserve">
+    <value>driver seat heating</value>
+  </data>
+  <data name="ClimateScheduleCommandSeatRight" xml:space="preserve">
+    <value>passenger seat heating</value>
+  </data>
 </root>

@@ -62,6 +62,90 @@ namespace GarageStack.Data.Migrations
                     b.ToTable("AppNotifications");
                 });
 
+            modelBuilder.Entity("GarageStack.Core.Models.ClimateSchedule", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Days")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("Enabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("LastRunAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("LastRunDetail")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<string>("LastRunFailedCommand")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("LastRunOutcome")
+                        .HasMaxLength(24)
+                        .HasColumnType("character varying(24)");
+
+                    b.Property<string>("Mode")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<string>("Name")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime?>("NextRunUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<double?>("OnlyAboveC")
+                        .HasColumnType("double precision");
+
+                    b.Property<double?>("OnlyBelowC")
+                        .HasColumnType("double precision");
+
+                    b.Property<bool>("RearDefroster")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("SeatLeftLevel")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("SeatRightLevel")
+                        .HasColumnType("integer");
+
+                    b.Property<TimeOnly>("StartTime")
+                        .HasColumnType("time without time zone");
+
+                    b.Property<int>("TemperatureC")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("TimeZoneId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<int>("VehicleId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("VehicleId");
+
+                    b.ToTable("ClimateSchedules");
+                });
+
             modelBuilder.Entity("GarageStack.Core.Models.GeocodeCacheEntry", b =>
                 {
                     b.Property<int>("Id")
@@ -462,6 +546,9 @@ namespace GarageStack.Data.Migrations
                     b.Property<string>("ChargingType")
                         .HasColumnType("text");
 
+                    b.Property<string>("ClimateMode")
+                        .HasColumnType("text");
+
                     b.Property<bool?>("ClimateOn")
                         .HasColumnType("boolean");
 
@@ -816,6 +903,17 @@ namespace GarageStack.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("Vehicles");
+                });
+
+            modelBuilder.Entity("GarageStack.Core.Models.ClimateSchedule", b =>
+                {
+                    b.HasOne("GarageStack.Core.Models.Vehicle", "Vehicle")
+                        .WithMany()
+                        .HasForeignKey("VehicleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Vehicle");
                 });
 
             modelBuilder.Entity("GarageStack.Core.Models.MaintenanceItem", b =>

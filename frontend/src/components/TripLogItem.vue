@@ -10,6 +10,8 @@ import {
 } from '@/services/tripLogApi'
 import { endLabel, loggedDistanceKm, odometerDistanceKm, PURPOSE_ICONS } from '@/utils/tripLog'
 import { useUnits } from '@/composables/useUnits'
+import ChipGroup from './ChipGroup.vue'
+import type { ChipOption } from '@/utils/chips'
 
 const props = defineProps<{
   entry: TripLogEntry
@@ -78,10 +80,19 @@ function normalizedNotes(): string | null {
   return trimmed === '' ? null : trimmed
 }
 
+// Each purpose's modifier class sets its own chip colour (tripLog.css).
+const purposeOptions = computed((): ChipOption<TripPurpose>[] =>
+  TRIP_PURPOSES.map((purpose) => ({
+    value: purpose,
+    label: t(`tripLog.purpose.${purpose}`),
+    icon: PURPOSE_ICONS[purpose],
+    class: `trip-log-purpose trip-log-purpose--${purpose}`,
+  })),
+)
+
 // Choosing the purpose a trip already has clears it again, back to unclassified.
-function choosePurpose(purpose: TripPurpose) {
-  const next = props.entry.purpose === purpose ? null : purpose
-  emit('save', next, props.entry.notes)
+function choosePurpose(purpose: TripPurpose | null) {
+  emit('save', purpose, props.entry.notes)
 }
 
 function saveNotes() {
@@ -128,24 +139,15 @@ function saveNotes() {
     </div>
 
     <div class="trip-log-item__actions">
-      <div class="trip-log-item__purpose" role="group" :aria-label="t('tripLog.purposeLabel')">
-        <button
-          v-for="purpose in TRIP_PURPOSES"
-          :key="purpose"
-          type="button"
-          class="trip-log-purpose"
-          :class="[
-            `trip-log-purpose--${purpose}`,
-            { 'trip-log-purpose--active': entry.purpose === purpose },
-          ]"
-          :aria-pressed="entry.purpose === purpose"
-          :disabled="saving"
-          @click="choosePurpose(purpose)"
-        >
-          <font-awesome-icon :icon="PURPOSE_ICONS[purpose]" aria-hidden="true" />
-          <span>{{ t(`tripLog.purpose.${purpose}`) }}</span>
-        </button>
-      </div>
+      <ChipGroup
+        class="trip-log-item__purpose"
+        :options="purposeOptions"
+        :model-value="entry.purpose"
+        :group-label="t('tripLog.purposeLabel')"
+        :disabled="saving"
+        deselectable
+        @update:model-value="choosePurpose"
+      />
 
       <input
         v-model="notesDraft"

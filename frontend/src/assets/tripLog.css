@@ -122,11 +122,6 @@
   align-items: center;
 }
 
-.trip-log-item__purpose {
-  display: flex;
-  gap: 0.35rem;
-}
-
 .trip-log-item__notes {
   flex: 1 1 12rem;
   min-width: 0;
@@ -138,42 +133,15 @@
   color: var(--color-text);
 }
 
-/* ── Purpose buttons ──────────────────────────────────────── */
+/* ── Purpose chips (ChipGroup, main.css) ─────────────────── */
 
-.trip-log-purpose {
-  --purpose-color: var(--color-primary);
-
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.35rem;
-  padding: 0.3rem 0.6rem;
-  font-size: 0.78rem;
-  border: 1px solid var(--color-border);
-  border-radius: 6px;
-  background: var(--color-surface-2);
-  color: var(--color-text-muted);
-  cursor: pointer;
+/* Two classes, so the colour wins over .toggle-chip whichever stylesheet loads last. */
+.toggle-chip.trip-log-purpose--commute {
+  --chip-color: var(--color-info);
 }
 
-.trip-log-purpose--commute {
-  --purpose-color: var(--color-info);
-}
-
-.trip-log-purpose--private {
-  --purpose-color: var(--color-success);
-}
-
-.trip-log-purpose--active {
-  border-color: var(--purpose-color);
-  background: color-mix(in srgb, var(--purpose-color) 18%, var(--color-surface-2));
-  color: var(--color-text);
-  font-weight: 600;
-}
-
-.trip-log-purpose:disabled {
-  cursor: not-allowed;
-  opacity: 0.6;
+.toggle-chip.trip-log-purpose--private {
+  --chip-color: var(--color-success);
 }
 
 /* ── Phones ───────────────────────────────────────────────── */

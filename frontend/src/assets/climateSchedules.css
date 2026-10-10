@@ -1,0 +1,14 @@
+/* ── Last run, in the schedule form ───────────────────────── */
+
+.climate-schedule-last-run {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+}
+
+/* The car's reason takes its own line under the badge. */
+.climate-schedule-last-run__detail {
+  flex-basis: 100%;
+}

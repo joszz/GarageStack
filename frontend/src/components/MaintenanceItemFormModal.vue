@@ -6,7 +6,7 @@ import { useMaintenanceStore } from '@/stores/maintenance'
 import type { MaintenanceItem } from '@/services/maintenanceApi'
 import { useUnits } from '@/composables/useUnits'
 import { useErrorMessage } from '@/composables/useErrorMessage'
-import { useDistanceField } from '@/composables/useDistanceField'
+import { useMeasureField } from '@/composables/useMeasureField'
 
 const props = defineProps<{
   open: boolean
@@ -23,10 +23,10 @@ const errorMessage = useErrorMessage()
 
 const name = ref('')
 const notes = ref('')
-const interval = useDistanceField(units)
+const interval = useMeasureField(units, 'distance')
 const intervalMonths = ref<number | null>(null)
 const lastServiceDate = ref('')
-const lastServiceOdometer = useDistanceField(units)
+const lastServiceOdometer = useMeasureField(units, 'distance')
 const validationError = ref<string | null>(null)
 const distanceUnit = computed(() => ({ unit: units.value.symbol('distance') }))
 const saving = ref(false)
@@ -60,7 +60,7 @@ async function submit() {
     validationError.value = t('maintenance.form.validationNameRequired')
     return
   }
-  const intervalKm = interval.km()
+  const intervalKm = interval.metric()
   if (intervalKm == null && intervalMonths.value == null) {
     validationError.value = t('maintenance.form.validationIntervalRequired')
     return
@@ -82,7 +82,7 @@ async function submit() {
         intervalKm,
         intervalMonths: intervalMonths.value,
         lastServiceDate: lastServiceDate.value || null,
-        lastServiceOdometerKm: lastServiceOdometer.km(),
+        lastServiceOdometerKm: lastServiceOdometer.metric(),
       })
     }
     if (store.actionError) {
@@ -98,32 +98,32 @@ async function submit() {
 
 <template>
   <DetailModal :open="open" :title="title" @close="close">
-    <form class="maintenance-form" @submit.prevent="submit">
-      <div class="maintenance-field-group">
+    <form class="form-stack" @submit.prevent="submit">
+      <div class="form-group">
         <label for="maintenance-name">{{ t('maintenance.form.name') }}</label>
         <input
           id="maintenance-name"
           v-model="name"
           type="text"
-          class="maintenance-field"
+          class="form-control"
           :placeholder="t('maintenance.form.namePlaceholder')"
           maxlength="200"
         />
       </div>
 
-      <div class="maintenance-field-group">
+      <div class="form-group">
         <label for="maintenance-notes">{{ t('maintenance.form.notes') }}</label>
         <textarea
           id="maintenance-notes"
           v-model="notes"
-          class="maintenance-field maintenance-field--textarea"
+          class="form-control"
           rows="2"
           maxlength="1000"
         />
       </div>
 
-      <div class="maintenance-field-row">
-        <div class="maintenance-field-group">
+      <div class="form-row">
+        <div class="form-group">
           <label for="maintenance-interval-km">{{
             t('maintenance.form.intervalDistance', distanceUnit)
           }}</label>
@@ -133,10 +133,10 @@ async function submit() {
             type="number"
             min="1"
             max="1000000"
-            class="maintenance-field"
+            class="form-control"
           />
         </div>
-        <div class="maintenance-field-group">
+        <div class="form-group">
           <label for="maintenance-interval-months">{{
             t('maintenance.form.intervalMonths')
           }}</label>
@@ -146,24 +146,24 @@ async function submit() {
             type="number"
             min="1"
             max="120"
-            class="maintenance-field"
+            class="form-control"
           />
         </div>
       </div>
       <p class="text-muted text-xs">{{ t('maintenance.form.intervalHint') }}</p>
 
       <template v-if="!isEdit">
-        <div class="maintenance-field-row">
-          <div class="maintenance-field-group">
+        <div class="form-row">
+          <div class="form-group">
             <label for="maintenance-last-date">{{ t('maintenance.form.lastServiceDate') }}</label>
             <input
               id="maintenance-last-date"
               v-model="lastServiceDate"
               type="date"
-              class="maintenance-field"
+              class="form-control"
             />
           </div>
-          <div class="maintenance-field-group">
+          <div class="form-group">
             <label for="maintenance-last-odo">{{
               t('maintenance.form.lastServiceOdometer', distanceUnit)
             }}</label>
@@ -172,7 +172,7 @@ async function submit() {
               v-model.number="lastServiceOdometer.shown"
               type="number"
               min="0"
-              class="maintenance-field"
+              class="form-control"
             />
           </div>
         </div>

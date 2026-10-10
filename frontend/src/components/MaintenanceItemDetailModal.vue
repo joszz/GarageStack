@@ -9,7 +9,7 @@ import { formatIntervalSummary } from '@/utils/maintenance'
 import { formatDate } from '@/utils/format'
 import { ODOMETER_FORMAT } from '@/utils/units'
 import { useUnits } from '@/composables/useUnits'
-import { useDistanceField } from '@/composables/useDistanceField'
+import { useMeasureField } from '@/composables/useMeasureField'
 import { useErrorMessage } from '@/composables/useErrorMessage'
 
 const props = defineProps<{
@@ -27,7 +27,7 @@ const units = useUnits()
 const errorMessage = useErrorMessage()
 
 const performedAt = ref('')
-const odometer = useDistanceField(units)
+const odometer = useMeasureField(units, 'distance')
 const logNotes = ref('')
 const logSaving = ref(false)
 const logError = ref<string | null>(null)
@@ -56,7 +56,7 @@ async function submitLog() {
   try {
     await store.logService(props.vin, props.item.id, {
       performedAt: performedAt.value,
-      odometerKm: odometer.km(),
+      odometerKm: odometer.metric(),
       notes: logNotes.value.trim() || null,
     })
     if (store.actionError) {
@@ -118,18 +118,13 @@ async function confirmDelete() {
       <p v-if="currentItem.notes" class="text-muted text-sm">{{ currentItem.notes }}</p>
 
       <h4 class="maintenance-detail__heading">{{ t('maintenance.logService') }}</h4>
-      <form class="maintenance-form maintenance-log-form" @submit.prevent="submitLog">
-        <div class="maintenance-field-row">
-          <div class="maintenance-field-group">
+      <form class="form-stack maintenance-log-form" @submit.prevent="submitLog">
+        <div class="form-row">
+          <div class="form-group">
             <label for="log-performed-at">{{ t('maintenance.logForm.performedAt') }}</label>
-            <input
-              id="log-performed-at"
-              v-model="performedAt"
-              type="date"
-              class="maintenance-field"
-            />
+            <input id="log-performed-at" v-model="performedAt" type="date" class="form-control" />
           </div>
-          <div class="maintenance-field-group">
+          <div class="form-group">
             <label for="log-odometer">{{
               t('maintenance.logForm.odometer', { unit: units.symbol('distance') })
             }}</label>
@@ -138,17 +133,17 @@ async function confirmDelete() {
               v-model.number="odometer.shown"
               type="number"
               min="0"
-              class="maintenance-field"
+              class="form-control"
             />
           </div>
         </div>
-        <div class="maintenance-field-group">
+        <div class="form-group">
           <label for="log-notes">{{ t('maintenance.logForm.notes') }}</label>
           <input
             id="log-notes"
             v-model="logNotes"
             type="text"
-            class="maintenance-field"
+            class="form-control"
             maxlength="1000"
           />
         </div>

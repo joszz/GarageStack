@@ -22,6 +22,7 @@ import LightsCard from './LightsCard.vue'
 import ChargingSessionCard from './ChargingSessionCard.vue'
 import BatteryHeatingCard from './BatteryHeatingCard.vue'
 import MaintenanceSummaryCard from './MaintenanceSummaryCard.vue'
+import ClimateScheduleSummaryCard from './ClimateScheduleSummaryCard.vue'
 import { formatNumber } from '@/utils/format'
 import { energyUnit, hvBatteryReading, litres, litresPer100Km, whPerKm } from '@/utils/energy'
 import { evLevelVariant, fuelLevelVariant } from '@/utils/levels'
@@ -278,6 +279,7 @@ const activeSimpleCard = computed(() => {
       v-else-if="cardId === 'climate'"
       :vin="vin"
       :climate-on="status.climateOn"
+      :climate-mode="status.climateMode"
       :remote-temperature="status.remoteTemperature"
       :interior-temperature="status.interiorTemperature"
       :exterior-temperature="status.exteriorTemperature"
@@ -353,5 +355,6 @@ const activeSimpleCard = computed(() => {
 
     <!-- maintenance -->
     <MaintenanceSummaryCard v-else-if="cardId === 'maintenance'" />
+    <ClimateScheduleSummaryCard v-else-if="cardId === 'climateSchedule'" />
   </template>
 </template>

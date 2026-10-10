@@ -1,14 +1,14 @@
-using GarageStack.Api.Endpoints;
-
-namespace GarageStack.Api;
+namespace GarageStack.Core.Helpers;
 
 /// <summary>
-/// The commands the API accepts, each with the gateway topic it travels on and the values the
+/// The commands GarageStack sends, each with the gateway topic it travels on and the values the
 /// gateway takes for it. A command is published on {topic}/set and the gateway answers on
 /// {topic}/result, so one table serves both directions: sending a command, and naming the command
-/// an answer belongs to. Adding a command means adding one entry here.
+/// an answer belongs to. Adding a command means adding one entry here. It lives in Core because
+/// both processes need it: the Api sends commands, and the Worker's climate schedules wait for the
+/// answer on the command's topic.
 /// </summary>
-internal static class VehicleCommands
+public static class VehicleCommands
 {
     /// <param name="Topic">The topic as saic-python-mqtt-gateway's handlers register it (src/mqtt_topics.py).</param>
     /// <param name="Check">Why a value is refused, or null when the gateway takes it.</param>
@@ -21,7 +21,12 @@ internal static class VehicleCommands
 
     private static readonly Dictionary<string, Command> ByName = new(StringComparer.Ordinal)
     {
-        ["climate"] = new("climate/remoteClimateState", value => OnOff("climate", value)),
+        // Besides on and off the gateway takes "front" (front window defrost) and "blowingonly"
+        // (fan only), each a remote climate mode of its own.
+        ["climate"] = new("climate/remoteClimateState", value =>
+            value is "on" or "off" or "front" or "blowingonly"
+                ? null
+                : "'climate' value must be 'on', 'off', 'front' or 'blowingonly'"),
         ["climate-temperature"] = new("climate/remoteTemperature", value => IntegerBetween("climate-temperature", value, 16, 28)),
         ["rear-defroster"] = new("climate/rearWindowDefrosterHeating", value => OnOff("rear-defroster", value)),
         ["seat-left"] = new("climate/heatedSeatsFrontLeftLevel", value => IntegerBetween("seat-left", value, 0, 3)),
@@ -53,21 +58,20 @@ internal static class VehicleCommands
             ? null
             : $"'{command}' value must be an integer between {min} and {max}";
 
-    /// <summary>The gateway topic for <paramref name="command"/>, or null for a command the API does not know.</summary>
-    internal static string? TopicFor(string command) => ByName.GetValueOrDefault(command)?.Topic;
+    /// <summary>The gateway topic for <paramref name="command"/>, or null for a command GarageStack does not know.</summary>
+    public static string? TopicFor(string command) => ByName.GetValueOrDefault(command)?.Topic;
 
     /// <summary>
-    /// The command sent on <paramref name="topic"/>, or null when it is not one the API sends,
+    /// The command sent on <paramref name="topic"/>, or null when it is not one GarageStack sends,
     /// such as a command Home Assistant sent through the same broker.
     /// </summary>
-    internal static string? CommandFor(string topic) => CommandsByTopic.GetValueOrDefault(topic);
+    public static string? CommandFor(string topic) => CommandsByTopic.GetValueOrDefault(topic);
 
     /// <summary>
-    /// Why the gateway would refuse <paramref name="value"/> for <paramref name="command"/>, or
-    /// null when it takes it. A command the API does not know is refused by <see cref="TopicFor"/>.
+    /// Why the gateway would refuse <paramref name="value"/> for <paramref name="command"/> (an
+    /// English message), or null when it takes it. A command GarageStack does not know is refused
+    /// by <see cref="TopicFor"/>.
     /// </summary>
-    internal static ValidationError? Validate(string command, string value) =>
-        ByName.GetValueOrDefault(command)?.Check(value) is { } message
-            ? new ValidationError("command.invalidValue", message)
-            : null;
+    public static string? Validate(string command, string value) =>
+        ByName.GetValueOrDefault(command)?.Check(value);
 }

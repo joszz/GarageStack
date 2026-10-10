@@ -32,6 +32,11 @@ const router = createRouter({
       component: () => import('@/views/TripLogView.vue'),
     },
     {
+      path: '/climate-schedules',
+      name: 'climateSchedules',
+      component: () => import('@/views/ClimateSchedulesView.vue'),
+    },
+    {
       path: '/maintenance',
       name: 'maintenance',
       component: () => import('@/views/MaintenanceView.vue'),

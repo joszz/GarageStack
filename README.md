@@ -14,6 +14,7 @@ GarageStack is a free, open-source web app for **modern MG cars**, the ones buil
 - **Relive every drive.** Trips are saved automatically, named by where they went and drawn on the map along the roads you took, with heatmaps and the speed limits along the way.
 - **Keep a trip log for the taxman.** Mark trips as business, commute or private, add notes, and export a month or a year as a spreadsheet.
 - **Control it from anywhere.** Pre-condition the cabin, lock the car or flash its lights to find it, and see whether the car actually carried the command out.
+- **Have it warm when you leave.** Schedule climate for weekday mornings or a one-off trip, with seat heating, the defrosters, and a skip for mild days.
 - **Hear about it when something is off.** Push notifications for low tyre pressure, a car left unlocked, a window left open, charging complete and more.
 - **Fit it into your homelab.** Home Assistant through MQTT discovery, a gethomepage.dev widget, and single sign-on through Authentik, Authelia, Keycloak or any other OpenID Connect provider.
 - **Keep it yours.** Everything runs in Docker on your own hardware, as one all-in-one container or a Compose stack. No subscription, and no account needed beyond your MG login.
@@ -46,8 +47,9 @@ The statistics, trip log, maintenance list and light theme are in the [screensho
 - **Trip history** -- Browse past journeys on an interactive map with route playback and heatmap visualisation to identify frequently driven roads. Each trip is saved to the database a few minutes after the car parks. After upgrading from a version that did not save trips, the existing history is saved in the background on the Worker's first start.
 - **Trip log** -- Mark each trip as business, commute or private, add notes, and export a month or a year as a spreadsheet with the addresses and odometer readings a tax trip log (such as the Dutch *rittenregistratie*) asks for. See [Trip log](#trip-log).
 - **Energy statistics** -- Track daily energy consumption, efficiency (Wh/km on a plug-in car, L/100 km on a hybrid), fuel use, electric share, average driving speed, and more over a configurable time window.
-- **Remote commands** -- Trigger climate pre-conditioning, lock or unlock the car, and activate the horn and lights remotely from the dashboard. Each command reports whether the car carried it out, and if it refused, the reason the MG servers gave.
-- **Push notifications** -- Browser and in-app alerts for key events: engine started, low tyre pressure, low EV battery, car left unlocked, doors or windows left open, and the messages the official MG app receives.
+- **Remote commands** -- Trigger climate pre-conditioning (normal climate, fan only or front defrost), lock or unlock the car, and activate the horn and lights remotely from the dashboard. Each command reports whether the car carried it out, and if it refused, the reason the MG servers gave.
+- **Climate schedules** -- Switch climate on at a set time on chosen weekdays, or once. A schedule sets the temperature or mode, seat heating and the rear defroster, and can skip mild days by the car's outside temperature. Schedules run on the server, so no browser needs to be open, and each run sends a push notification saying whether the car started climate.
+- **Push notifications** -- Browser and in-app alerts for key events: engine started, low tyre pressure, low EV battery, car left unlocked, doors or windows left open, a climate schedule that ran, and the messages the official MG app receives.
 - **Homepage widget** -- A read-only API endpoint for the [gethomepage.dev](https://gethomepage.dev) Custom API widget, exposing key vehicle stats at a glance.
 - **Home Assistant** -- Your car appears in Home Assistant automatically through MQTT discovery, sharing GarageStack's broker and MG session instead of needing a second integration. See [`HOME_ASSISTANT.md`](documentation/HOME_ASSISTANT.md).
 - **Progressive Web App (PWA)** -- Installable on mobile or desktop for a native app-like experience, complete with a home screen icon and push notification support.
@@ -321,6 +323,7 @@ GarageStack checks your vehicle's state every 5 minutes and sends both a browser
 | Charging complete | Charging stops while the cable is still connected (plug-in vehicles) |
 | Maintenance due | A maintenance item reaches 90 % of its interval, or passes it (checked every 6 hours, 7-day cooldown per item) |
 | MG app message | The official MG app receives a message, such as an alarm or a reminder (sent as it arrives, once per message) |
+| Scheduled climate | A climate schedule ran: climate started, the car refused, or it did not answer (nothing is sent for a run skipped because the car was in use or the day was mild) |
 
 Push notifications require VAPID keys to be configured (`VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY`). Without them, alerts still appear in the in-app notification panel. While GarageStack is open in a browser that allowed notifications but is not subscribed to push, the same alerts show up as system notifications too; a subscribed browser gets them through push instead, so nothing arrives twice.
 

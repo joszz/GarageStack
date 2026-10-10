@@ -17,6 +17,8 @@ public static class NotificationCategories
     public const string WindowsOpenParked = "windows-open-parked";
     // A message from the official MG app, passed on as SAIC wrote it.
     public const string VehicleMessage = "vehicle-message";
+    // A climate schedule started climate, or could not.
+    public const string ClimateSchedule = "climate-schedule";
 
     /// <summary>Maintenance categories carry the item id so one item's alert cannot suppress another's.</summary>
     public static string MaintenanceOverdue(int itemId) => $"maintenance-overdue-{itemId}";

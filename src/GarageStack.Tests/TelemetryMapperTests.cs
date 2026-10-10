@@ -121,6 +121,35 @@ public class TelemetryMapperTests
         Assert.Null(snapshot.IsLocked);
     }
 
+    // The gateway names the remote climate mode on remoteClimateState; fan only and front
+    // defrost still count as climate on.
+    [Theory]
+    [InlineData("on", true)]
+    [InlineData("off", false)]
+    [InlineData("front", true)]
+    [InlineData("blowingonly", true)]
+    public void ApplyMessage_RemoteClimateState_SetsModeAndOnOff(string payload, bool climateOn)
+    {
+        var snapshot = new TelemetrySnapshot();
+
+        Assert.True(TelemetryMapper.ApplyMessage(snapshot, "climate/remoteClimateState", payload));
+        Assert.Equal(payload, snapshot.ClimateMode);
+        Assert.Equal(climateOn, snapshot.ClimateOn);
+    }
+
+    [Theory]
+    [InlineData("climate/remoteClimateState", "true")]
+    [InlineData("climate/remoteClimateState", "unknown (3)")]
+    [InlineData("climate/on", "on")]
+    public void ApplyMessage_ClimatePayloadWithoutAMode_LeavesModeUnset(string subtopic, string payload)
+    {
+        var snapshot = new TelemetrySnapshot();
+
+        TelemetryMapper.ApplyMessage(snapshot, subtopic, payload);
+
+        Assert.Null(snapshot.ClimateMode);
+    }
+
     [Fact]
     public void ApplyMessage_Range_SetsElectricRangeKmNotFuelRange()
     {

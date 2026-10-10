@@ -26,6 +26,7 @@ function makeSnapshot(overrides: Partial<TelemetrySnapshot> = {}): TelemetrySnap
     isLocked: null,
     engineRunning: null,
     climateOn: null,
+    climateMode: null,
     driverDoorOpen: null,
     passengerDoorOpen: null,
     rearLeftDoorOpen: null,

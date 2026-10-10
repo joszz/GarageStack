@@ -36,6 +36,13 @@ try
     builder.Services.AddHostedService<PoiPreCachingService>();
     builder.Services.AddHostedService<TripRecorderService>();
 
+    // Climate schedules: the Worker decides when, the Api sends the commands (see VehicleCommandClient).
+    builder.Services.AddSingleton(TimeProvider.System);
+    builder.Services.AddSingleton<CommandAnswerWaiter>();
+    builder.Services.AddSingleton<IVehicleCommandClient, VehicleCommandClient>();
+    builder.Services.AddSingleton<ClimateScheduleRunner>();
+    builder.Services.AddHostedService<ClimateScheduleService>();
+
     var retention = TelemetryRetentionOptions.From(builder.Configuration);
     if (retention.FullDetailDays is { } fullDetailDays)
         Log.Information("Telemetry keeps full detail for {Days} days, then is compacted into quarter-hour rows", fullDetailDays);

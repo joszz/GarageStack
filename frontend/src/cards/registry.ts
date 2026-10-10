@@ -129,6 +129,8 @@ export const CARD_DEFINITIONS = [
     hasData: ({ latestTrip }) => latestTrip !== null && latestTrip.maxSpeedKmh !== null,
   },
   { id: 'maintenance', icon: 'screwdriver-wrench' },
+  // Off until asked for: most cars have no schedule, and the climate card links to them anyway.
+  { id: 'climateSchedule', icon: 'calendar-days', defaultVisible: () => false },
 ] as const satisfies readonly CardDefinition[]
 
 export type CardId = (typeof CARD_DEFINITIONS)[number]['id']

@@ -78,15 +78,14 @@ public static class VehicleEndpoints
             HttpContext httpContext,
             string command,
             JsonElement body,
-            IMqttPublisher mqtt,
-            VehicleCommandGate commandGate,
+            VehicleCommandSender sender,
             CancellationToken ct) =>
         {
             var vehicle = httpContext.ResolvedVehicle();
-            // The account arrives with the vehicle's first telemetry; until then the gateway
-            // topic a command travels on cannot be named.
+            // Checked before the body, so a car whose account is not known yet answers 409 whatever
+            // was sent. The sender checks it again for callers that skip this endpoint.
             if (vehicle.SaicUser is null)
-                return ApiProblems.Problem(StatusCodes.Status409Conflict, "vehicle.accountUnknown",
+                return ApiProblems.Problem(StatusCodes.Status409Conflict, VehicleCommandSender.AccountUnknownCode,
                     "SAIC username not yet known for this vehicle");
 
             if (!body.TryGetProperty("value", out var valueEl))
@@ -99,19 +98,13 @@ public static class VehicleEndpoints
             if (string.IsNullOrWhiteSpace(value))
                 return ApiProblems.BadRequest("command.valueEmpty", "'value' must be a non-empty string");
 
-            var commandTopic = VehicleCommands.TopicFor(command);
-            if (commandTopic is null)
-                return ApiProblems.BadRequest("command.unknown", $"Unknown command '{command}'");
+            // The resolved vehicle, not the raw route value, so the topic always matches the row
+            // the filter found.
+            var outcome = await sender.SendAsync(vehicle, command, value, ct);
+            if (outcome.Refusal is { } refusal)
+                return ApiProblems.BadRequest(refusal);
 
-            if (VehicleCommands.Validate(command, value) is { } validationError)
-                return ApiProblems.BadRequest(validationError);
-
-            // The resolved vehicle's VIN, not the raw route value, so the topic always matches
-            // the row the filter found.
-            var topic = $"saic/{vehicle.SaicUser}/vehicles/{vehicle.Vin}/{commandTopic}/set";
-            await commandGate.RunAsync(vehicle.Vin, commandTopic, () => mqtt.PublishAsync(topic, value, ct), ct);
-
-            return Results.Ok(new { topic, value });
+            return Results.Ok(new { topic = outcome.Topic, value });
         })
         .WithSummary("Send a command to the vehicle via MQTT");
 

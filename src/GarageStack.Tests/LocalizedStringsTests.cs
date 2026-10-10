@@ -50,6 +50,18 @@ public class LocalizedStringsTests
     }
 
     [Fact]
+    public void ClimateScheduleNotifications_ResolveDutch_WhenUiCultureIsDutch()
+    {
+        var strings = WorkerLocalizer.Notifications();
+
+        var (title, reference) = WithUiCulture("nl", () =>
+            (strings["ClimateScheduleStartedTitle"], strings["ClimateScheduleRef", "07:30"]));
+
+        Assert.Equal("Klimaatregeling staat aan", title.Value);
+        Assert.Equal("je schema van 07:30", reference.Value);
+    }
+
+    [Fact]
     public void WidgetStrings_ResolveDutch_WhenUiCultureIsDutch()
     {
         var strings = Resolve<WidgetStrings>();

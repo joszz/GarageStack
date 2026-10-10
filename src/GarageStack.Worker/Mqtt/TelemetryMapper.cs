@@ -35,7 +35,7 @@ public static class TelemetryMapper
             ?? ApplyDoors(snapshot, subtopic, asBool)
             ?? ApplyWindows(snapshot, subtopic, asBool)
             ?? ApplyLocation(snapshot, subtopic, payload, numeric)
-            ?? ApplyClimate(snapshot, subtopic, numeric, asBool)
+            ?? ApplyClimate(snapshot, subtopic, payload, numeric, asBool)
             ?? ApplyTyres(snapshot, subtopic, numeric)
             ?? ApplyHvDrivetrainAndEfficiency(snapshot, subtopic, numeric, asBool)
             ?? ApplyLights(snapshot, subtopic, asBool)
@@ -214,11 +214,15 @@ public static class TelemetryMapper
         }
     }
 
-    private static bool? ApplyClimate(TelemetrySnapshot s, string subtopic, double numeric, bool? asBool)
+    private static bool? ApplyClimate(TelemetrySnapshot s, string subtopic, string payload, double numeric, bool? asBool)
     {
         switch (subtopic)
         {
+            // Only this topic names the mode; the older aliases below say on or off.
             case "climate/remoteClimateState":
+                s.ClimateOn = asBool;
+                s.ClimateMode = payload is "on" or "off" or "front" or "blowingonly" ? payload : null;
+                return true;
             case "climate/on":
             case "climate/active":
                 s.ClimateOn = asBool;
