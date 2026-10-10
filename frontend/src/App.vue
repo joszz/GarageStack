@@ -207,10 +207,10 @@ watch(
     <div class="app-body">
       <!-- Sidebar / drawer -->
       <nav class="sidebar" :class="{ 'sidebar--open': menuOpen }">
-        <div class="sidebar-brand">
+        <RouterLink to="/" class="sidebar-brand">
           <font-awesome-icon icon="car" />
           <span>GarageStack</span>
-        </div>
+        </RouterLink>
         <ul class="sidebar-nav">
           <li>
             <RouterLink to="/" active-class="active">
