@@ -24,6 +24,19 @@
   --footer-height: 48px;
   --radius: 10px;
   --demo-banner-height: 2.2rem;
+
+  /* One size for every field, text box, native select and multiselect alike, so a form or a panel
+     that mixes them lines up. */
+  --field-py: 0.375rem;
+  --field-px: 0.625rem;
+  --field-font-size: 0.875rem;
+  --field-line-height: 1.375;
+  --field-radius: 6px;
+  --field-ring: color-mix(in srgb, var(--color-primary) 30%, transparent);
+
+  /* The multiselect's own caret, filled with --color-text-muted: a data URI cannot read a custom
+     property, so each theme spells out its colour. */
+  --field-caret: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 320 512'%3E%3Cpath fill='%238892a4' d='M31.3 192h257.3c17.8 0 26.7 21.5 14.1 34.1L174.1 354.8c-7.8 7.8-20.5 7.8-28.3 0L17.2 226.1C4.6 213.5 13.5 192 31.3 192z'/%3E%3C/svg%3E");
 }
 
 [data-theme='light'] {
@@ -37,6 +50,7 @@
   --color-text-muted: #5a6a7e;
   --color-primary-light: #1d4ed8;
   --color-danger-text: #dc2626;
+  --field-caret: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 320 512'%3E%3Cpath fill='%235a6a7e' d='M31.3 192h257.3c17.8 0 26.7 21.5 14.1 34.1L174.1 354.8c-7.8 7.8-20.5 7.8-28.3 0L17.2 226.1C4.6 213.5 13.5 192 31.3 192z'/%3E%3C/svg%3E");
 }
 
 *,
@@ -45,6 +59,15 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+}
+
+/* Form controls take the system font from the browser rather than the page (Arial on Windows),
+   so every button, field and select would otherwise set itself apart from the text around it. */
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
 }
 
 /* The browser UA stylesheet gives [popover] { border: solid; padding: 0.25em; margin: auto }.
@@ -202,7 +225,9 @@ body,
   color: var(--color-primary);
   text-decoration: none;
   margin-bottom: 2rem;
-  padding-left: 0.5rem;
+
+  /* The nav links' own inline padding, so the logo sits in the same column as their icons. */
+  padding-left: 0.75rem;
 }
 
 .sidebar-nav {
@@ -260,6 +285,12 @@ body,
 .view-header h1 {
   font-size: 1.5rem;
   font-weight: 700;
+}
+
+/* A line about the page, tucked under its title rather than spaced like a section of its own. */
+.view-subtitle {
+  margin-top: -1rem;
+  margin-bottom: 1.5rem;
 }
 
 /* ── Typography helpers ───────────────────────────────────── */
@@ -548,7 +579,6 @@ body,
 /* A row that leads somewhere else: the whole row is the button. */
 .detail-list__item--link {
   width: 100%;
-  font-family: inherit;
   color: var(--color-text);
   text-align: left;
   cursor: pointer;
@@ -639,25 +669,17 @@ body,
   }
 }
 
-/* ── Card component ───────────────────────────────────────── */
+/* ── Card title ───────────────────────────────────────────── */
 
-.card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-}
-
-.card-body {
-  padding: 1rem 1.25rem;
-}
-
+/* The heading of every card that has one (overview, location, trip history, the statistics
+   charts): small muted capitals with the card's icon in front. */
 .card-title {
   font-size: 0.85rem;
   font-weight: 600;
   color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  margin-bottom: 0.75rem;
+  margin-bottom: 1rem;
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -1021,7 +1043,7 @@ body,
 
 .btn-sm {
   font-size: 0.78rem;
-  padding: 0.3rem;
+  padding: 0.3rem 0.6rem;
 }
 
 .btn-primary {
@@ -1093,18 +1115,24 @@ body,
 
 /* ── Form controls ────────────────────────────────────────── */
 
+/* A native select drawn like the multiselect: the same box, caret and focus ring, with room on
+   the right for the caret between two of its paddings. */
 .form-select {
-  background: var(--color-surface-2);
+  appearance: none;
+  background: var(--color-surface-2) var(--field-caret) no-repeat right var(--field-px) center /
+    0.625rem 1.125rem;
   border: 1px solid var(--color-border);
-  border-radius: 6px;
+  border-radius: var(--field-radius);
   color: var(--color-text);
-  padding: 0.3rem 0.6rem;
-  font-size: 0.85rem;
+  padding: var(--field-py) calc(var(--field-px) * 2 + 0.625rem) var(--field-py) var(--field-px);
+  font-size: var(--field-font-size);
+  line-height: var(--field-line-height);
+  cursor: pointer;
 }
 
-.form-select-sm {
-  padding: 0.2rem 0.5rem;
-  font-size: 0.8rem;
+.form-select:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--field-ring);
 }
 
 /* form-switch toggle */
@@ -1149,6 +1177,11 @@ body,
   gap: 0.9rem;
 }
 
+/* A button in the stack keeps its own width instead of stretching into a bar across the form. */
+.form-stack > .btn {
+  align-self: flex-start;
+}
+
 .form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1169,9 +1202,10 @@ body,
 
 .form-control {
   width: 100%;
-  padding: 0.4rem 0.6rem;
-  font-size: 0.85rem;
-  border-radius: 6px;
+  padding: var(--field-py) var(--field-px);
+  font-size: var(--field-font-size);
+  line-height: var(--field-line-height);
+  border-radius: var(--field-radius);
   border: 1px solid var(--color-border);
   background-color: var(--color-surface-2);
   color: var(--color-text);
@@ -1179,7 +1213,6 @@ body,
 
 textarea.form-control {
   resize: vertical;
-  font-family: inherit;
 }
 
 /* A time of day as selects (TimeOfDaySelect): hour and minute, plus AM or PM on a 12-hour clock. */
@@ -1189,7 +1222,7 @@ textarea.form-control {
   gap: 0.35rem;
 }
 
-.time-select .form-control {
+.time-select .form-select {
   flex: 1;
   min-width: 0;
 }
@@ -1261,31 +1294,6 @@ textarea.form-control {
 
 .settings-section {
   max-width: 640px;
-}
-
-.vehicle-type-row {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  margin-top: 0.75rem;
-}
-
-.vehicle-type-detected {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 0.25rem;
-  font-size: 0.85rem;
-}
-
-.vehicle-type-override {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.vehicle-type-override .vehicle-type-select {
-  flex: 1;
 }
 
 .settings-toggles {
@@ -1372,7 +1380,7 @@ textarea.form-control {
   color: var(--color-primary);
 }
 
-/* ── Multiselect (fuel brand filter, notification type filter) ──────────── */
+/* ── Multiselect (map fuel type and brand filters) ──────────── */
 
 /* --ms-* vars set on :root so they cascade to the body-teleported dropdown too. Kept here,
    next to the rest of the multiselect theming, rather than merged into the palette at the top
@@ -1383,11 +1391,11 @@ textarea.form-control {
   --ms-bg-disabled: var(--color-surface);
   --ms-border-color: var(--color-border);
   --ms-border-width: 1px;
-  --ms-radius: 6px;
-  --ms-py: 0.375rem;
-  --ms-px: 0.625rem;
-  --ms-font-size: 0.875rem;
-  --ms-line-height: 1.375;
+  --ms-radius: var(--field-radius);
+  --ms-py: var(--field-py);
+  --ms-px: var(--field-px);
+  --ms-font-size: var(--field-font-size);
+  --ms-line-height: var(--field-line-height);
   --ms-spinner-color: var(--color-primary);
   --ms-caret-color: var(--color-text-muted);
   --ms-clear-color: var(--color-text-muted);
@@ -1412,7 +1420,7 @@ textarea.form-control {
   --ms-dropdown-border-width: 1px;
   --ms-dropdown-radius: 6px;
   --ms-placeholder-color: var(--color-text-muted);
-  --ms-option-font-size: 0.875rem;
+  --ms-option-font-size: var(--field-font-size);
   --ms-option-bg-pointed: var(--color-surface-2);
   --ms-option-color-pointed: var(--color-text);
   --ms-option-bg-selected: var(--color-primary);
@@ -1425,7 +1433,13 @@ textarea.form-control {
   --ms-option-px: 0.75rem;
   --ms-empty-color: var(--color-text-muted);
   --ms-ring-width: 2px;
-  --ms-ring-color: color-mix(in srgb, var(--color-primary) 30%, transparent);
+  --ms-ring-color: var(--field-ring);
+}
+
+/* The library gives the inner wrapper the whole field's height, its border included, inside that
+   border: every multiselect came out 2px taller than a text box or native select. */
+.multiselect-wrapper {
+  min-height: calc(var(--ms-font-size) * var(--ms-line-height) + var(--ms-py) * 2);
 }
 
 /* Teleported dropdown must sit above the modal (z-index 1100) */
@@ -1894,9 +1908,15 @@ textarea.form-control {
     z-index: 1001;
   }
 
+  /* The same gutter as the topbar, so the page title and cards line up under the menu button and
+     the footer under both. */
   .main-content {
     padding: 0.75rem;
     overflow-x: hidden;
+  }
+
+  .app-footer {
+    padding: 0 0.75rem;
   }
 
   /* Icon sits flush at button left so it aligns with card left edge */
@@ -1930,22 +1950,6 @@ textarea.form-control {
 
   .status-card__value {
     font-size: 0.95rem;
-  }
-}
-
-/* ── Very small phones (< 400px) ─────────────────────────── */
-
-@media (width <= 399px) {
-  .main-content {
-    padding: 0.5rem;
-  }
-
-  .status-grid {
-    gap: 0.4rem;
-  }
-
-  .status-card {
-    padding: 0.65rem 0.75rem;
   }
 }
 
@@ -2261,7 +2265,8 @@ textarea.form-control {
   gap: 0.4rem;
 }
 
-.demo-panel-section {
+/* Between sections only, so the panel's padding is the same at the bottom as at the top. */
+.demo-panel-section:not(:last-child) {
   margin-bottom: 0.75rem;
 }
 
@@ -2283,7 +2288,7 @@ textarea.form-control {
 .demo-toggle-btn {
   padding: 0.25rem 0.6rem;
   font-size: 0.75rem;
-  border-radius: 4px;
+  border-radius: 6px;
   border: 1px solid var(--color-border);
   background-color: var(--color-surface-2);
   color: var(--color-text);
@@ -2334,7 +2339,7 @@ textarea.form-control {
   width: 100%;
   padding: 0.3rem 0.5rem;
   font-size: 0.8rem;
-  border-radius: 4px;
+  border-radius: 6px;
   border: 1px solid var(--color-border);
   background-color: var(--color-surface-2);
   color: var(--color-text);

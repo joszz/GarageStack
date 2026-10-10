@@ -178,7 +178,7 @@ function openFullMap() {
 <template>
   <CardInfoWrap :title="t('vehicle.location')" :description="t('dashboard.cardDesc.location')">
     <div class="location-map-card">
-      <p class="tyre-diagram__title">
+      <p class="card-title">
         <font-awesome-icon icon="location-dot" />
         {{ t('vehicle.location') }}
       </p>

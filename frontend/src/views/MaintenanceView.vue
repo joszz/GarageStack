@@ -85,7 +85,7 @@ watch(vin, (v) => {
       </div>
     </div>
 
-    <p class="text-muted mb-4">{{ t('maintenance.subtitle') }}</p>
+    <p class="text-muted view-subtitle">{{ t('maintenance.subtitle') }}</p>
 
     <div v-if="store.itemsError" class="empty-state text-danger">
       {{ errorMessage(store.itemsError) }}

@@ -39,6 +39,7 @@ ChartJS.register(
 
 defineProps<{
   title: string
+  icon: string
   type: StatsChartType
   data: ChartData<StatsChartType>
   options: ChartOptions<StatsChartType>
@@ -60,7 +61,10 @@ const { t } = useI18n()
     >
       <font-awesome-icon icon="circle-info" />
     </button>
-    <h2>{{ title }}</h2>
+    <h2 class="card-title">
+      <font-awesome-icon :icon="icon" />
+      {{ title }}
+    </h2>
     <Chart :type="type" :data="data" :options="options" />
   </div>
 </template>

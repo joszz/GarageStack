@@ -131,7 +131,7 @@ const activeCount = computed(() => {
     <template v-if="carTakesCharge">
       <div class="charging-power-filter">
         <div class="charging-power-filter__header">
-          <div>
+          <div class="settings-toggle__info">
             <span class="settings-toggle__label">
               <font-awesome-icon icon="bolt" class="settings-toggle__icon" />
               {{ t('trips.chargingPower') }}
@@ -168,11 +168,14 @@ const activeCount = computed(() => {
   padding: 0.25rem 0 0.5rem;
 }
 
+/* The slider's value tooltips always show, above its handles: the margin keeps them clear of the
+   description. */
 .charging-power-filter__header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.9rem;
+  gap: 1rem;
+  margin-bottom: 3rem;
 }
 
 .charging-power-filter__range {

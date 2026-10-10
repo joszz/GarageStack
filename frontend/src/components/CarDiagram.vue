@@ -168,7 +168,7 @@ const motionBlurAmount = computed(() => {
       </div>
     </template>
     <div class="tyre-diagram">
-      <p class="tyre-diagram__title">
+      <p class="card-title">
         <font-awesome-icon icon="car-side" />
         {{ t('vehicle.overview') }}
       </p>

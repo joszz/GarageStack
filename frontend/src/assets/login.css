@@ -88,7 +88,6 @@
   font-size: 0.9rem;
   padding: 0.65rem 0.75rem 0.65rem 2.25rem;
   transition: border-color 0.15s;
-  font-family: inherit;
 }
 
 .login-field__input:focus {

@@ -13,13 +13,6 @@
   margin-bottom: 0.3rem;
 }
 
-.maintenance-detail__heading {
-  font-size: 0.85rem;
-  color: var(--color-text-muted);
-  margin-top: 1rem;
-  margin-bottom: 0.2rem;
-}
-
 .maintenance-log-form {
   gap: 0.6rem;
 }

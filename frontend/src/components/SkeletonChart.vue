@@ -6,9 +6,9 @@
 </template>
 
 <style scoped>
-/* Height matches h2 font-size (1rem) × base line-height (1.6) + same margin-bottom as .chart-container h2 */
+/* Stands in for the card title, the same way the overview and location skeletons do. */
 .chart-skel__title {
-  height: 1.6rem;
+  height: 0.85rem;
   margin-bottom: 1rem;
 }
 

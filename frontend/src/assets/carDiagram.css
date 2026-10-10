@@ -129,18 +129,6 @@
   }
 }
 
-.tyre-diagram__title {
-  font-size: 0.85rem;
-  font-weight: 600;
-  margin-bottom: 1rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  color: var(--color-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
 .tyre-diagram__wrap {
   display: flex;
   align-items: center;

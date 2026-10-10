@@ -435,6 +435,7 @@ const skeletonChartCount = computed(
               <StatsChartCard
                 v-if="chartDefMap.get(item.id)?.applicable && store.history.length"
                 :title="chartDefMap.get(item.id)!.title"
+                :icon="chartDefMap.get(item.id)!.icon"
                 :type="chartDefMap.get(item.id)!.type"
                 :data="chartDefMap.get(item.id)!.data"
                 :options="chartDefMap.get(item.id)!.options"
@@ -454,6 +455,7 @@ const skeletonChartCount = computed(
               <StatsChartCard
                 v-if="item.visible && def.applicable"
                 :title="def.title"
+                :icon="def.icon"
                 :type="def.type"
                 :data="def.data"
                 :options="def.options"
@@ -509,7 +511,7 @@ const skeletonChartCount = computed(
 .parking-modal-map {
   height: 280px;
   width: 100%;
-  border-radius: var(--radius-sm, 4px);
+  border-radius: var(--radius);
   overflow: hidden;
 }
 
@@ -520,7 +522,7 @@ const skeletonChartCount = computed(
 }
 
 .stats-insights {
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
 }
 
 .stats-chart-grid {
@@ -542,7 +544,6 @@ const skeletonChartCount = computed(
 @media (width >= 992px) {
   .stats-chart-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 1.25rem;
   }
 }
 

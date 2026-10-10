@@ -17,11 +17,7 @@ const { filterDays } = storeToRefs(useUiSettingsStore())
     icon="calendar-check"
   >
     <template #control>
-      <select
-        v-model="filterDays"
-        class="form-select form-select-sm"
-        :aria-label="t('trips.dateRange')"
-      >
+      <select v-model="filterDays" class="form-select" :aria-label="t('trips.dateRange')">
         <option :value="7">{{ t('trips.last7days') }}</option>
         <option :value="30">{{ t('trips.last30days') }}</option>
         <option :value="90">{{ t('trips.last90days') }}</option>
