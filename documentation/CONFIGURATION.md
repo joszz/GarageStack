@@ -96,6 +96,10 @@ The full guide, with provider examples, is [`AUTHENTICATION.md`](AUTHENTICATION.
 | Variable | Default | What it does |
 | --- | --- | --- |
 | `TYRE_PRESSURE_LOW_BAR` / `TYRE_PRESSURE_GOOD_BAR` / `TYRE_PRESSURE_HIGH_BAR` | `2.2` / `2.6` / `3.2` | Tyre pressure bands in bar, for the diagram's colours and the tyre notifications. Set them from your car's placard. |
+| `AUX_BATTERY_LOW_VOLT` | `12.0` | 12V battery voltage a parked car is warned below, once several polls in a row show it. `0` switches the alert off. |
+| `LOW_FUEL_PERCENT` | `15` | Fuel level, in percent, a hybrid or plug-in hybrid is warned below. `0` switches the alert off. |
+| `LOW_EV_PERCENT` | `20` | Charge level, in percent, a plug-in car is warned below. `0` switches the alert off. |
+| `STALE_DATA_HOURS` | `48` | Hours without a report from the car before GarageStack warns that data has stopped arriving. Keep it above the gateway's poll of a sleeping car, once a day by default. `0` switches the alert off. |
 | `HV_BATTERY_CAPACITY_KWH` | none | Usable size of the traction battery in kWh. The gateway assumes an EV-sized pack, so its kWh figures are far too large on a plain hybrid (an MG HS Hybrid+ carries 1.83 and is reported as 72.5). Empty keeps the gateway's figure on a plug-in car and shows a hybrid's charge as a percentage only. |
 
 ## Stored data

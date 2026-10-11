@@ -63,15 +63,23 @@ public static class PushEndpoints
         var existing = await db.PushSubscriptions
             .FirstOrDefaultAsync(s => s.Endpoint == req.Endpoint, ct);
 
+        // A request without the list comes from a page that predates it: it says nothing about
+        // which types the device wants, so whatever the row holds stays.
+        var excluded = req.ExcludedCategories is { } requested ? KnownGroups(requested) : null;
+
         if (existing is not null)
         {
-            // Keys are rewritten only when they actually changed, so the common case (the same
+            // Rewritten only when something actually changed, so the common case (the same
             // subscription arriving again on the next load) costs one read and no write at all.
-            if (existing.P256DhKey == req.P256DhKey && existing.AuthKey == req.AuthKey)
+            var keysChanged = existing.P256DhKey != req.P256DhKey || existing.AuthKey != req.AuthKey;
+            var exclusionsChanged = excluded is not null && !excluded.SequenceEqual(existing.ExcludedCategories);
+            if (!keysChanged && !exclusionsChanged)
                 return;
 
             existing.P256DhKey = req.P256DhKey;
             existing.AuthKey = req.AuthKey;
+            if (excluded is not null)
+                existing.ExcludedCategories = excluded;
             await db.SaveChangesAsync(ct);
             return;
         }
@@ -81,6 +89,7 @@ public static class PushEndpoints
             Endpoint = req.Endpoint,
             P256DhKey = req.P256DhKey,
             AuthKey = req.AuthKey,
+            ExcludedCategories = excluded ?? [],
         });
 
         try
@@ -100,7 +109,13 @@ public static class PushEndpoints
             if (!raced) throw;
         }
     }
+
+    // Only the types the checklist offers, once each and in one order, so an unchanged list
+    // compares equal to the stored one whatever order the page sent it in.
+    private static List<string> KnownGroups(IEnumerable<string> requested) =>
+        [.. requested.Where(NotificationCategories.Groups.Contains).Distinct().Order(StringComparer.Ordinal)];
 }
 
-public record PushSubscribeRequest(string Endpoint, string P256DhKey, string AuthKey);
+// ExcludedCategories: the notification types this device switched off. Null leaves the stored list as it is.
+public record PushSubscribeRequest(string Endpoint, string P256DhKey, string AuthKey, IReadOnlyList<string>? ExcludedCategories = null);
 public record PushUnsubscribeRequest(string Endpoint);

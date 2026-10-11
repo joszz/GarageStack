@@ -41,7 +41,13 @@ describe('notificationCategoryIdsFor', () => {
     },
   )
 
-  it.each(['phev', 'bev', 'unknown'] as const)('offers every category for %s', (type) => {
+  it('drops low fuel for a BEV, keeping the order of the rest', () => {
+    expect(notificationCategoryIdsFor('bev')).toEqual(
+      NOTIFICATION_CATEGORY_IDS.filter((id) => id !== 'low-fuel'),
+    )
+  })
+
+  it.each(['phev', 'unknown'] as const)('offers every category for %s', (type) => {
     expect(notificationCategoryIdsFor(type)).toEqual([...NOTIFICATION_CATEGORY_IDS])
   })
 })

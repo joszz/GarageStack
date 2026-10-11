@@ -162,4 +162,28 @@
   <data name="ClimateScheduleCommandSeatRight" xml:space="preserve">
     <value>passenger seat heating</value>
   </data>
+  <data name="Low12VTitle" xml:space="preserve">
+    <value>Low 12V Battery</value>
+  </data>
+  <data name="Low12VBody" xml:space="preserve">
+    <value>12V battery at {0} V while parked</value>
+  </data>
+  <data name="LowFuelTitle" xml:space="preserve">
+    <value>Low Fuel</value>
+  </data>
+  <data name="LowFuelBody" xml:space="preserve">
+    <value>Fuel tank at {0}%</value>
+  </data>
+  <data name="GatewayLoginTitle" xml:space="preserve">
+    <value>MG Sign-in Failed</value>
+  </data>
+  <data name="GatewayLoginBody" xml:space="preserve">
+    <value>The gateway could not sign in to your MG account, so no new data arrives. Check the MG account password.</value>
+  </data>
+  <data name="DataStaleTitle" xml:space="preserve">
+    <value>No Data From the Car</value>
+  </data>
+  <data name="DataStaleBody" xml:space="preserve">
+    <value>The car has not reported for {0} hours. Check the gateway and the MG account.</value>
+  </data>
 </root>

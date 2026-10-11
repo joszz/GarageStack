@@ -77,6 +77,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         {
             e.HasKey(p => p.Id);
             e.HasIndex(p => p.Endpoint).IsUnique();
+            // Subscriptions from before devices could switch types off want every type.
+            e.PrimitiveCollection(p => p.ExcludedCategories).HasDefaultValueSql("'{}'::text[]");
         });
 
         modelBuilder.Entity<AppNotification>(e =>

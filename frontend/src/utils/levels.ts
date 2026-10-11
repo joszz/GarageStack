@@ -1,7 +1,8 @@
 /**
  * How a tank or battery level reads at a glance. Every place that colours a level goes through
  * here, so the dashboard card and the car diagram cannot disagree about when a battery counts as
- * low. The battery's danger line matches the Worker's low-battery notification (below 20 %).
+ * low. The danger lines match the Worker's default notification levels (LOW_FUEL_PERCENT and
+ * LOW_EV_PERCENT), which a deployment can move.
  */
 export type LevelVariant = 'success' | 'warning' | 'danger'
 

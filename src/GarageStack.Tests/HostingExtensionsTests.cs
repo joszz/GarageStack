@@ -70,6 +70,26 @@ public class HostingExtensionsTests
         }
     }
 
+    private static AlertThresholds ResolveAlerts(IConfiguration configuration) =>
+        new ServiceCollection()
+            .AddAlertThresholds(configuration)
+            .BuildServiceProvider()
+            .GetRequiredService<AlertThresholds>();
+
+    [Fact]
+    public void AlertThresholds_WithNothingConfigured_UsesTheBuiltInDefaults()
+    {
+        Assert.Equal(AlertThresholds.Default, ResolveAlerts(Config()));
+    }
+
+    [Fact]
+    public void AlertThresholds_OverridesOnlyTheValuesThatAreSet()
+    {
+        var thresholds = ResolveAlerts(Config(("Alerts:AuxBatteryLowVolt", "11.8"), ("Alerts:StaleDataHours", "")));
+
+        Assert.Equal(AlertThresholds.Default with { AuxBatteryLowVolt = 11.8 }, thresholds);
+    }
+
     private static HvBatteryCapacity ResolveCapacity(IConfiguration configuration) =>
         new ServiceCollection()
             .AddHvBatteryCapacity(configuration)

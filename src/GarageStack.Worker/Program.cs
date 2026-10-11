@@ -28,6 +28,7 @@ try
     builder.Services.AddGarageStackData(connectionString);
     builder.Services.Configure<MqttOptions>(builder.Configuration.GetSection(MqttOptions.SectionName));
     builder.Services.AddTyrePressureThresholds(builder.Configuration);
+    builder.Services.AddAlertThresholds(builder.Configuration);
     builder.Services.AddSingleton(VapidOptions.From(builder.Configuration));
     builder.Services.AddSingleton<IPushSender, PushSenderService>();
     builder.Services.AddHostedService<MqttConsumerService>();

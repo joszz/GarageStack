@@ -1,3 +1,4 @@
+using System.Globalization;
 using GarageStack.Core.Configuration;
 using GarageStack.Core.Helpers;
 using GarageStack.Core.Interfaces;
@@ -13,6 +14,7 @@ public class PushNotificationCheckService(
     IServiceScopeFactory scopeFactory,
     IPushSender pushSender,
     TyrePressureThresholds tyrePressureThresholds,
+    AlertThresholds alertThresholds,
     IStringLocalizer<NotificationStrings> strings) : PeriodicBackgroundService(logger)
 {
     private readonly NotificationCooldownGate _cooldownGate = new(TimeSpan.FromHours(1));
@@ -72,21 +74,50 @@ public class PushNotificationCheckService(
             var snapshot = await telemetry.GetMergedLatestAsync(vehicle.Id, ct);
             if (snapshot is null) continue;
 
-            var vehicleType = VehicleTypeHelper.GetVehicleType(vehicle);
-            var alerts = new List<(string key, string title, string body)>();
-            CheckTyrePressure(snapshot, alerts);
-            CheckEvSoc(snapshot, vehicleType, alerts);
-            CheckChargingComplete(snapshot, vehicle.Vin, vehicleType, alerts);
-            await SendAsync(vehicle, alerts, db, ct);
-
-            await CheckParkedAsync(vehicle, snapshot, telemetry, db, DateTime.UtcNow, ct);
+            var now = DateTime.UtcNow;
+            await CheckLevelsAsync(vehicle, snapshot, db, now, ct);
+            await CheckParkedAsync(vehicle, snapshot, telemetry, db, now, ct);
         }
     }
 
     /// <summary>
-    /// Warns about a car parked unlocked or with a door or window open, once its polls have shown
-    /// it for a while. Every warning rests on the newest poll and goes out once for it: a car
-    /// asleep overnight would otherwise be reported every hour on the one poll it last sent.
+    /// Warns about tyres, fuel and charge out of bounds, a finished charge, and a car gone quiet.
+    /// Each warning goes out once per report: a car asleep overnight would otherwise be reported
+    /// every hour on the one reading it last sent.
+    /// </summary>
+    internal async Task CheckLevelsAsync(Vehicle vehicle, TelemetrySnapshot snapshot, AppDbContext db, DateTime now, CancellationToken ct)
+    {
+        var vehicleType = VehicleTypeHelper.GetVehicleType(vehicle);
+        var alerts = new List<(string key, string title, string body)>();
+        CheckTyrePressure(snapshot, alerts);
+        CheckEvSoc(snapshot, vehicleType, alerts);
+        CheckFuelLevel(snapshot, vehicleType, alerts);
+        CheckChargingComplete(snapshot, vehicle.Vin, vehicleType, alerts);
+        CheckDataStale(snapshot, now, alerts);
+        if (alerts.Count == 0) return;
+
+        await SendAsync(vehicle, alerts, db, ct, onceSince: NewestReportAt(snapshot));
+    }
+
+    /// <summary>
+    /// When the car last reported, by the gateway's stamps on its polls. A message the broker
+    /// replays on reconnect carries its old stamp, so it does not count as a new report the way
+    /// the time its row was written would.
+    /// </summary>
+    internal static DateTime NewestReportAt(TelemetrySnapshot s) =>
+        (s.LastVehicleStateAt, s.LastChargeStateAt) switch
+        {
+            ({ } vehicleState, { } chargeState) => vehicleState > chargeState ? vehicleState : chargeState,
+            ({ } vehicleState, null) => vehicleState,
+            (null, { } chargeState) => chargeState,
+            _ => s.RecordedAt,
+        };
+
+    /// <summary>
+    /// Warns about a car parked unlocked, with a door or window open, or with a low 12V battery,
+    /// once its polls have shown it for a while. Every warning rests on the newest poll and goes
+    /// out once for it: a car asleep overnight would otherwise be reported every hour on the one
+    /// poll it last sent.
     /// </summary>
     internal async Task CheckParkedAsync(
         Vehicle vehicle, TelemetrySnapshot snapshot, ITelemetryRepository telemetry, AppDbContext db, DateTime now, CancellationToken ct)
@@ -101,6 +132,7 @@ public class PushNotificationCheckService(
         CheckUnlockedWhileParked(readings, alerts);
         CheckDoorsOpenWhileParked(readings, alerts);
         CheckWindowsOpenWhileParked(readings, alerts);
+        CheckAuxBatteryWhileParked(readings, alerts);
         if (alerts.Count == 0) return;
 
         await SendAsync(vehicle, alerts, db, ct, onceSince: readings[0].ArrivedAt);
@@ -143,11 +175,34 @@ public class PushNotificationCheckService(
             alerts.Add((NotificationCategories.HighTyre, strings["HighTyreTitle"], strings["HighTyreBody", string.Join(", ", high)]));
     }
 
-    private void CheckEvSoc(TelemetrySnapshot s, string vehicleType, List<(string, string, string)> alerts)
+    internal void CheckEvSoc(TelemetrySnapshot s, string vehicleType, List<(string, string, string)> alerts)
     {
         if (!VehicleTypeHelper.CanCharge(vehicleType)) return;
-        if (s.EvSocPercent is not null && s.EvSocPercent < 20)
-            alerts.Add((NotificationCategories.LowEv, strings["LowEvTitle"], strings["LowEvBody", $"{s.EvSocPercent:F0}"]));
+        if (s.EvSocPercent is { } soc && soc < alertThresholds.LowEvPercent)
+            alerts.Add((NotificationCategories.LowEv, strings["LowEvTitle"], strings["LowEvBody", $"{soc:F0}"]));
+    }
+
+    // A car without a combustion engine can still report a fuel level of zero.
+    internal void CheckFuelLevel(TelemetrySnapshot s, string vehicleType, List<(string, string, string)> alerts)
+    {
+        if (!VehicleTypeHelper.HasCombustionEngine(vehicleType)) return;
+        if (s.FuelLevelPercent is { } fuel && fuel < alertThresholds.LowFuelPercent)
+            alerts.Add((NotificationCategories.LowFuel, strings["LowFuelTitle"], strings["LowFuelBody", $"{fuel:F0}"]));
+    }
+
+    /// <summary>
+    /// Warns when the car has gone quiet for longer than the gateway's daily poll of a sleeping
+    /// car explains: the MG session has lapsed, the gateway is down, or the car is out of reach.
+    /// Fresh data moves the newest report on and re-arms it.
+    /// </summary>
+    internal void CheckDataStale(TelemetrySnapshot s, DateTime now, List<(string, string, string)> alerts)
+    {
+        if (alertThresholds.StaleDataHours <= 0) return;
+
+        var silentFor = now - NewestReportAt(s);
+        if (silentFor.TotalHours < alertThresholds.StaleDataHours) return;
+
+        alerts.Add((NotificationCategories.DataStale, strings["DataStaleTitle"], strings["DataStaleBody", $"{silentFor.TotalHours:F0}"]));
     }
 
     internal void CheckChargingComplete(TelemetrySnapshot s, string vin, string vehicleType, List<(string, string, string)> alerts)
@@ -181,6 +236,16 @@ public class PushNotificationCheckService(
     {
         if (ParkedProblem.Persists(readings, s => s.IsLocked is false))
             alerts.Add((NotificationCategories.UnlockedParked, strings["UnlockedParkedTitle"], strings["UnlockedParkedBody"]));
+    }
+
+    // While the car is on, the traction battery tops the 12V battery up, so only a parked car's
+    // voltage says how the battery is doing. Several polls in a row keep one dip from counting.
+    internal void CheckAuxBatteryWhileParked(IReadOnlyList<StatusReading> readings, List<(string, string, string)> alerts)
+    {
+        if (!ParkedProblem.Persists(readings, s => s.BatteryVoltage < alertThresholds.AuxBatteryLowVolt)) return;
+
+        var voltage = readings[0].State.BatteryVoltage!.Value.ToString("0.0", CultureInfo.CurrentUICulture);
+        alerts.Add((NotificationCategories.Low12V, strings["Low12VTitle"], strings["Low12VBody", voltage]));
     }
 
     internal void CheckDoorsOpenWhileParked(IReadOnlyList<StatusReading> readings, List<(string, string, string)> alerts) =>

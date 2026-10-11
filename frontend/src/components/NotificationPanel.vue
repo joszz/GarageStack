@@ -19,6 +19,10 @@ const CATEGORY_ICONS: Record<string, string[]> = {
   'windows-open-parked': ['fas', 'wind'],
   'vehicle-message': ['fas', 'message'],
   'climate-schedule': ['fas', 'calendar-days'],
+  'low-12v': ['fas', 'car-battery'],
+  'low-fuel': ['fas', 'gas-pump'],
+  'gateway-login': ['fas', 'triangle-exclamation'],
+  'data-stale': ['fas', 'clock'],
 }
 
 function categoryIcon(category: string | null): string[] {

@@ -8,6 +8,9 @@ public sealed record MqttMessage(string Topic, string Payload, bool Retain)
     /// other topic (Home Assistant discovery, a malformed VIN).
     /// </summary>
     public ParsedSaicTopic? Vehicle { get; } = MqttTopicParser.TryParse(Topic, out var parsed) ? parsed : null;
+
+    /// <summary>The account and subtopic of a saic/{user}/account/... topic, or null for any other topic.</summary>
+    public ParsedAccountTopic? Account { get; } = MqttTopicParser.TryParseAccount(Topic, out var account) ? account : null;
 }
 
 /// <summary>

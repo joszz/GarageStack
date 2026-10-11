@@ -324,7 +324,9 @@
   },
   "push": {
     "permissionDenied": "Toestemming geweigerd, sta meldingen toe in je browserinstellingen",
-    "subscribeFailed": "Aanmelden voor pushmeldingen is mislukt. Controleer of de server bereikbaar is en probeer het opnieuw."
+    "subscribeFailed": "Aanmelden voor pushmeldingen is mislukt. Controleer of de server bereikbaar is en probeer het opnieuw.",
+    "enable": "Pushmeldingen op dit apparaat",
+    "enableDesc": "Meldingen komen binnen als systeemmelding, ook als GarageStack gesloten is."
   },
   "notifications": {
     "title": "Meldingen",
@@ -342,7 +344,7 @@
     "minutesAgo": "{n} min geleden",
     "hoursAgo": "{n}u geleden",
     "typeFilter": "Typefilter",
-    "typeFilterDesc": "Kies voor welke meldingstypen je meldingen in de app en pushmeldingen wilt ontvangen. Deselecteer alles om pushmeldingen volledig uit te schakelen.",
+    "typeFilterDesc": "Kies welke meldingstypen dit apparaat toont en als pushmelding krijgt.",
     "selectAll": "Alles selecteren",
     "deselectAll": "Alles deselecteren",
     "categories": {
@@ -356,7 +358,11 @@
       "windowsOpenParked": "Raam open terwijl geparkeerd",
       "vehicleMessage": "Berichten uit de MG-app",
       "climateSchedule": "Geplande klimaatregeling",
-      "maintenance": "Onderhoudsherinneringen"
+      "maintenance": "Onderhoudsherinneringen",
+      "low12v": "Lage 12V-accu",
+      "lowFuel": "Weinig brandstof",
+      "gatewayLogin": "Inloggen bij MG mislukt",
+      "dataStale": "Geen data van de auto"
     }
   },
   "auth": {
@@ -454,7 +460,7 @@
       "bev": "BEV (Volledig elektrisch)"
     },
     "notificationTypes": {
-      "title": "Meldingstypen"
+      "title": "Meldingen"
     },
     "units": {
       "title": "Regio en eenheden",

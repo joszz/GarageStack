@@ -84,7 +84,11 @@ public sealed class PushSenderService : IPushSender, IDisposable
 
         using var scope = _scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var subscriptions = await db.PushSubscriptions.AsNoTracking().ToListAsync(ct);
+        // Each device switched its own types off. The in-app record above is shared and kept
+        // regardless; only the push to a device that does not want this type is left out.
+        var subscriptions = (await db.PushSubscriptions.AsNoTracking().ToListAsync(ct))
+            .Where(s => NotificationCategories.IsWanted(category, s.ExcludedCategories))
+            .ToList();
         if (subscriptions.Count == 0) return;
 
         // Only re-queried if persistence above failed before it could compute this itself.

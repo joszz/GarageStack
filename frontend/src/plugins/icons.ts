@@ -22,6 +22,7 @@ export {
   faCalendarDays,
   faCamera,
   faCar,
+  faCarBattery,
   faCarBurst,
   faCarRear,
   faCarSide,

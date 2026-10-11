@@ -5,6 +5,7 @@ defineProps<{
   inputId?: string
   /** FontAwesome icon shown before the label. */
   icon?: string
+  disabled?: boolean
 }>()
 
 const model = defineModel<boolean>()
@@ -31,6 +32,7 @@ const model = defineModel<boolean>()
             type="checkbox"
             role="switch"
             :aria-label="label"
+            :disabled="disabled"
           />
         </div>
       </slot>

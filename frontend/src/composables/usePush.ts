@@ -12,19 +12,30 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array<ArrayBuffer> {
 
 export type PushState = 'unknown' | 'subscribed' | 'unsubscribed' | 'denied'
 
-// Hands a browser subscription to the server. The API upserts on the endpoint, so sending one it
-// already holds is a no-op and this can safely run on every load.
-function registerWithServer(sub: PushSubscription): Promise<void> {
-  const json = sub.toJSON()
-  return pushApi.subscribe(sub.endpoint, json.keys?.['p256dh'] ?? '', json.keys?.['auth'] ?? '')
+export interface UsePushOptions {
+  /** The notification types this device switched off, so the server leaves them out of its pushes. */
+  excludedCategories?: () => readonly string[]
 }
 
-export function usePush() {
+export function usePush(options: UsePushOptions = {}) {
   const pushSupported = 'serviceWorker' in navigator && 'PushManager' in window
   const pushState = ref<PushState>('unknown')
   // Set when an explicit subscribe attempt failed for any reason other than a refused permission.
   // Without it the UI would just show "off" again and give no hint that anything went wrong.
   const pushError = ref(false)
+
+  // Hands a browser subscription to the server, with the types this device switched off. The API
+  // upserts on the endpoint, so sending one it already holds is a no-op and this can safely run on
+  // every load.
+  function registerWithServer(sub: PushSubscription): Promise<void> {
+    const json = sub.toJSON()
+    return pushApi.subscribe(
+      sub.endpoint,
+      json.keys?.['p256dh'] ?? '',
+      json.keys?.['auth'] ?? '',
+      options.excludedCategories?.(),
+    )
+  }
 
   // Subscribes against the server's current VAPID key. A subscription left over from an earlier
   // key pair makes subscribe() reject with InvalidStateError, which would otherwise leave the
@@ -118,7 +129,16 @@ export function usePush() {
     }
   }
 
+  // Tells the server which types this device now switched off. Nothing is surfaced on failure:
+  // every load registers the subscription again, so the server only learns the change later.
+  async function syncExclusions() {
+    if (!pushSupported || pushState.value !== 'subscribed') return
+    const reg = await navigator.serviceWorker.ready
+    const sub = await reg.pushManager.getSubscription()
+    if (sub) await registerWithServer(sub).catch(() => {})
+  }
+
   onMounted(initPushState)
 
-  return { pushSupported, pushState, pushError, togglePush }
+  return { pushSupported, pushState, pushError, togglePush, syncExclusions }
 }

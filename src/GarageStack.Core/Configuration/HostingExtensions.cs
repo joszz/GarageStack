@@ -61,15 +61,32 @@ public static class HostingExtensions
         var defaults = TyrePressureThresholds.Default;
 
         return services.AddSingleton(new TyrePressureThresholds(
-            Value(section, "LowBar", defaults.LowBar),
-            Value(section, "GoodBar", defaults.GoodBar),
-            Value(section, "HighBar", defaults.HighBar)));
-
-        static double Value(IConfiguration section, string key, double fallback) =>
-            double.TryParse(section[key], NumberStyles.Float, CultureInfo.InvariantCulture, out var parsed)
-                ? parsed
-                : fallback;
+            DoubleOrDefault(section, "LowBar", defaults.LowBar),
+            DoubleOrDefault(section, "GoodBar", defaults.GoodBar),
+            DoubleOrDefault(section, "HighBar", defaults.HighBar)));
     }
+
+    /// <summary>
+    /// The levels the Worker's alerts fire at, from configuration, falling back per value to
+    /// <see cref="AlertThresholds.Default"/>.
+    /// </summary>
+    public static IServiceCollection AddAlertThresholds(
+        this IServiceCollection services, IConfiguration configuration)
+    {
+        var section = configuration.GetSection("Alerts");
+        var defaults = AlertThresholds.Default;
+
+        return services.AddSingleton(new AlertThresholds(
+            DoubleOrDefault(section, "AuxBatteryLowVolt", defaults.AuxBatteryLowVolt),
+            DoubleOrDefault(section, "LowFuelPercent", defaults.LowFuelPercent),
+            DoubleOrDefault(section, "LowEvPercent", defaults.LowEvPercent),
+            DoubleOrDefault(section, "StaleDataHours", defaults.StaleDataHours)));
+    }
+
+    private static double DoubleOrDefault(IConfiguration section, string key, double fallback) =>
+        double.TryParse(section[key], NumberStyles.Float, CultureInfo.InvariantCulture, out var parsed)
+            ? parsed
+            : fallback;
 
     /// <summary>
     /// The traction battery's real capacity from configuration, or

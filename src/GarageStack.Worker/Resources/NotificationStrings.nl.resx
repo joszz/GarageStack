@@ -162,4 +162,28 @@
   <data name="ClimateScheduleCommandSeatRight" xml:space="preserve">
     <value>de stoelverwarming van de passagier</value>
   </data>
+  <data name="Low12VTitle" xml:space="preserve">
+    <value>Lage 12V-accu</value>
+  </data>
+  <data name="Low12VBody" xml:space="preserve">
+    <value>12V-accu op {0} V terwijl de auto geparkeerd staat</value>
+  </data>
+  <data name="LowFuelTitle" xml:space="preserve">
+    <value>Weinig brandstof</value>
+  </data>
+  <data name="LowFuelBody" xml:space="preserve">
+    <value>Brandstoftank op {0}%</value>
+  </data>
+  <data name="GatewayLoginTitle" xml:space="preserve">
+    <value>Inloggen bij MG mislukt</value>
+  </data>
+  <data name="GatewayLoginBody" xml:space="preserve">
+    <value>De gateway kan niet inloggen op je MG-account, dus er komt geen nieuwe data binnen. Controleer het wachtwoord van het MG-account.</value>
+  </data>
+  <data name="DataStaleTitle" xml:space="preserve">
+    <value>Geen data van de auto</value>
+  </data>
+  <data name="DataStaleBody" xml:space="preserve">
+    <value>De auto heeft al {0} uur niets gemeld. Controleer de gateway en het MG-account.</value>
+  </data>
 </root>

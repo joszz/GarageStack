@@ -324,7 +324,9 @@
   },
   "push": {
     "permissionDenied": "Permission denied, allow notifications in your browser settings",
-    "subscribeFailed": "Could not register for push notifications. Check that the server is reachable, then try again."
+    "subscribeFailed": "Could not register for push notifications. Check that the server is reachable, then try again.",
+    "enable": "Push notifications on this device",
+    "enableDesc": "Alerts arrive as system notifications, even while GarageStack is closed."
   },
   "notifications": {
     "title": "Notifications",
@@ -342,7 +344,7 @@
     "minutesAgo": "{n} min ago",
     "hoursAgo": "{n}h ago",
     "typeFilter": "Type filter",
-    "typeFilterDesc": "Choose which notification types to show and receive push alerts for. Deselect all to turn push notifications off completely.",
+    "typeFilterDesc": "Choose which notification types this device shows and gets pushed.",
     "selectAll": "Select all",
     "deselectAll": "Deselect all",
     "categories": {
@@ -356,7 +358,11 @@
       "windowsOpenParked": "Windows open while parked",
       "vehicleMessage": "MG app messages",
       "climateSchedule": "Scheduled climate",
-      "maintenance": "Maintenance reminders"
+      "maintenance": "Maintenance reminders",
+      "low12v": "Low 12V battery",
+      "lowFuel": "Low fuel",
+      "gatewayLogin": "MG sign-in failed",
+      "dataStale": "No data from the car"
     }
   },
   "auth": {
@@ -454,7 +460,7 @@
       "bev": "BEV (Full Electric)"
     },
     "notificationTypes": {
-      "title": "Notification types"
+      "title": "Notifications"
     },
     "units": {
       "title": "Region and units",

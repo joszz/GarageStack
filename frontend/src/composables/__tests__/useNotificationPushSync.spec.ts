@@ -1,28 +1,33 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { ref, nextTick } from 'vue'
 import { setActivePinia, createPinia } from 'pinia'
-import {
-  NOTIFICATION_CATEGORY_IDS,
-  notificationCategoryIdsFor,
-} from '@/utils/notificationCategories'
 
 const mockTogglePush = vi.fn<() => Promise<void>>()
+const mockSyncExclusions = vi.fn<() => Promise<void>>()
 const mockPushState = ref<'unknown' | 'subscribed' | 'unsubscribed' | 'denied'>('unknown')
+const mockPushError = ref(false)
 let mockPushSupported = true
-
-const mockVehicle = vi.hoisted(() => ({ effectiveVehicleType: 'unknown' as string }))
+let passedOptions: { excludedCategories?: () => readonly string[] } | undefined
 
 vi.mock('@/composables/usePush', () => ({
-  usePush: () => ({
-    pushSupported: mockPushSupported,
-    pushState: mockPushState,
-    togglePush: mockTogglePush,
-  }),
+  usePush: (options?: { excludedCategories?: () => readonly string[] }) => {
+    passedOptions = options
+    return {
+      pushSupported: mockPushSupported,
+      pushState: mockPushState,
+      pushError: mockPushError,
+      togglePush: mockTogglePush,
+      syncExclusions: mockSyncExclusions,
+    }
+  },
 }))
 
-vi.mock('@/stores/vehicle', () => ({
-  useVehicleStore: () => mockVehicle,
-}))
+async function setUp() {
+  const { useNotificationPushSync } = await import('@/composables/useNotificationPushSync')
+  const { useUiSettingsStore } = await import('@/stores/settingsUi')
+  const sync = useNotificationPushSync()
+  return { sync, settings: useUiSettingsStore() }
+}
 
 describe('useNotificationPushSync', () => {
   beforeEach(() => {
@@ -30,123 +35,103 @@ describe('useNotificationPushSync', () => {
     setActivePinia(createPinia())
     localStorage.clear()
     mockTogglePush.mockReset()
+    mockSyncExclusions.mockReset()
     mockPushState.value = 'unknown'
+    mockPushError.value = false
     mockPushSupported = true
-    mockVehicle.effectiveVehicleType = 'unknown'
+    passedOptions = undefined
   })
 
-  it('does not call togglePush on initial mount, even if desired state disagrees with actual state', async () => {
+  it('switching push on subscribes, the one way a permission prompt can come up', async () => {
     mockPushState.value = 'unsubscribed'
-    const { useNotificationPushSync } = await import('@/composables/useNotificationPushSync')
-    useNotificationPushSync()
+    const { sync } = await setUp()
+
+    sync.pushEnabled.value = true
+
+    expect(mockTogglePush).toHaveBeenCalledOnce()
+  })
+
+  it('switching push off unsubscribes', async () => {
+    mockPushState.value = 'subscribed'
+    const { sync } = await setUp()
+
+    sync.pushEnabled.value = false
+
+    expect(mockTogglePush).toHaveBeenCalledOnce()
+  })
+
+  it('reads as on only while subscribed', async () => {
+    const { sync } = await setUp()
+
+    mockPushState.value = 'subscribed'
+    expect(sync.pushEnabled.value).toBe(true)
+    mockPushState.value = 'unsubscribed'
+    expect(sync.pushEnabled.value).toBe(false)
+  })
+
+  it.each(['unknown', 'denied'] as const)('disables the switch while push is %s', async (state) => {
+    mockPushState.value = state
+    const { sync } = await setUp()
+
+    expect(sync.pushSwitchDisabled.value).toBe(true)
+  })
+
+  it('never subscribes or unsubscribes from the checklist', async () => {
+    mockPushState.value = 'unsubscribed'
+    const { settings } = await setUp()
+
+    settings.notificationTypeExclusions = ['low-tyre']
+    await nextTick()
+    settings.notificationTypeExclusions = []
     await nextTick()
 
     expect(mockTogglePush).not.toHaveBeenCalled()
   })
 
-  it('calls togglePush on the very first checklist interaction, regardless of which box', async () => {
-    mockPushState.value = 'unsubscribed'
-    const { useNotificationPushSync } = await import('@/composables/useNotificationPushSync')
-    const { useUiSettingsStore } = await import('@/stores/settingsUi')
-    useNotificationPushSync()
-    const settings = useUiSettingsStore()
-
-    settings.notificationTypeExclusions = ['low-tyre']
-    await nextTick()
-
-    expect(mockTogglePush).toHaveBeenCalledOnce()
-  })
-
-  it('does not call togglePush again for changes that keep the same exclusion count', async () => {
+  it('tells the server whenever a different set of types is switched off', async () => {
     mockPushState.value = 'subscribed'
-    const { useNotificationPushSync } = await import('@/composables/useNotificationPushSync')
-    const { useUiSettingsStore } = await import('@/stores/settingsUi')
-    useNotificationPushSync()
-    const settings = useUiSettingsStore()
+    const { settings } = await setUp()
 
     settings.notificationTypeExclusions = ['low-tyre']
     await nextTick()
     settings.notificationTypeExclusions = ['engine-start']
     await nextTick()
+
+    expect(mockSyncExclusions).toHaveBeenCalledTimes(2)
+  })
+
+  it('leaves the server alone when the same types arrive in another order', async () => {
+    localStorage.setItem(
+      'garagestack-settings-ui',
+      JSON.stringify({ notificationTypeExclusions: ['engine-start', 'low-tyre'] }),
+    )
+    const { settings } = await setUp()
+
     settings.notificationTypeExclusions = ['low-tyre', 'engine-start']
     await nextTick()
 
-    expect(mockTogglePush).not.toHaveBeenCalled()
+    expect(mockSyncExclusions).not.toHaveBeenCalled()
   })
 
-  it('calls togglePush to unsubscribe when deselecting every type', async () => {
-    mockPushState.value = 'subscribed'
-    const { useNotificationPushSync } = await import('@/composables/useNotificationPushSync')
-    const { useUiSettingsStore } = await import('@/stores/settingsUi')
-    useNotificationPushSync()
-    const settings = useUiSettingsStore()
+  it('hands usePush the checklist, so every registration carries it', async () => {
+    const { settings } = await setUp()
 
-    settings.notificationTypeExclusions = [...NOTIFICATION_CATEGORY_IDS]
-    await nextTick()
+    settings.notificationTypeExclusions = ['maintenance']
 
-    expect(mockTogglePush).toHaveBeenCalledOnce()
-  })
-
-  it('calls togglePush to resubscribe when selecting at least one type after deselect-all', async () => {
-    localStorage.setItem(
-      'garagestack-settings-ui',
-      JSON.stringify({ notificationTypeExclusions: [...NOTIFICATION_CATEGORY_IDS] }),
-    )
-    mockPushState.value = 'unsubscribed'
-    const { useNotificationPushSync } = await import('@/composables/useNotificationPushSync')
-    const { useUiSettingsStore } = await import('@/stores/settingsUi')
-    useNotificationPushSync()
-    const settings = useUiSettingsStore()
-
-    settings.notificationTypeExclusions = []
-    await nextTick()
-
-    expect(mockTogglePush).toHaveBeenCalledOnce()
-  })
-
-  it('unsubscribes a hybrid once every type it is offered is deselected', async () => {
-    mockVehicle.effectiveVehicleType = 'hev'
-    mockPushState.value = 'subscribed'
-    const { useNotificationPushSync } = await import('@/composables/useNotificationPushSync')
-    const { useUiSettingsStore } = await import('@/stores/settingsUi')
-    useNotificationPushSync()
-    const settings = useUiSettingsStore()
-
-    // Short of the full category list: a hybrid is never offered the charging types
-    settings.notificationTypeExclusions = [...notificationCategoryIdsFor('hev')]
-    await nextTick()
-
-    expect(mockTogglePush).toHaveBeenCalledOnce()
-  })
-
-  it('does not call togglePush while pushState is denied', async () => {
-    mockPushState.value = 'denied'
-    const { useNotificationPushSync } = await import('@/composables/useNotificationPushSync')
-    const { useUiSettingsStore } = await import('@/stores/settingsUi')
-    useNotificationPushSync()
-    const settings = useUiSettingsStore()
-
-    settings.notificationTypeExclusions = ['low-tyre']
-    await nextTick()
-
-    expect(mockTogglePush).not.toHaveBeenCalled()
+    expect(passedOptions?.excludedCategories?.()).toEqual(['maintenance'])
   })
 
   it('registers no push side effects when pushSupported is false', async () => {
     mockPushSupported = false
-    const { useNotificationPushSync } = await import('@/composables/useNotificationPushSync')
-    const { useUiSettingsStore } = await import('@/stores/settingsUi')
-    useNotificationPushSync()
-    const settings = useUiSettingsStore()
+    const { settings } = await setUp()
 
-    settings.notificationTypeExclusions = [...NOTIFICATION_CATEGORY_IDS]
+    settings.notificationTypeExclusions = ['low-tyre']
     await nextTick()
 
-    expect(mockTogglePush).not.toHaveBeenCalled()
+    expect(mockSyncExclusions).not.toHaveBeenCalled()
   })
 
   it('showPermissionDeniedNotice is true only when push is supported and permission was denied', async () => {
-    mockPushSupported = true
     mockPushState.value = 'denied'
     const { useNotificationPushSync } = await import('@/composables/useNotificationPushSync')
     expect(useNotificationPushSync().showPermissionDeniedNotice.value).toBe(true)
@@ -157,18 +142,5 @@ describe('useNotificationPushSync', () => {
     mockPushSupported = false
     mockPushState.value = 'denied'
     expect(useNotificationPushSync().showPermissionDeniedNotice.value).toBe(false)
-  })
-
-  it('still attempts togglePush on first interaction if pushState is still unknown (async initPushState race)', async () => {
-    mockPushState.value = 'unknown'
-    const { useNotificationPushSync } = await import('@/composables/useNotificationPushSync')
-    const { useUiSettingsStore } = await import('@/stores/settingsUi')
-    useNotificationPushSync()
-    const settings = useUiSettingsStore()
-
-    settings.notificationTypeExclusions = ['low-tyre']
-    await nextTick()
-
-    expect(mockTogglePush).toHaveBeenCalledOnce()
   })
 })

@@ -34,4 +34,22 @@ public class MqttTopicParserTests
     {
         Assert.False(MqttTopicParser.TryParse(topic, out _));
     }
+
+    [Fact]
+    public void TryParseAccount_AccountTopic_ReturnsUserAndSubtopic()
+    {
+        Assert.True(MqttTopicParser.TryParseAccount("saic/user@example.com/account/lastLoginError", out var parsed));
+
+        Assert.Equal("user@example.com", parsed.User);
+        Assert.Equal("lastLoginError", parsed.Subtopic);
+    }
+
+    [Theory]
+    [InlineData("saic/user/vehicles/FAKEVN00000000001/drivetrain/soc")]
+    [InlineData("saic/user/account")]
+    [InlineData("homeassistant/sensor/account/state")]
+    public void TryParseAccount_NotAnAccountTopic_ReturnsFalse(string topic)
+    {
+        Assert.False(MqttTopicParser.TryParseAccount(topic, out _));
+    }
 }

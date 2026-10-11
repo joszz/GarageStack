@@ -14,8 +14,13 @@ vi.mock('@/stores/settingsUi', () => ({
   useUiSettingsStore: () => ({ notificationTypeExclusions: [] }),
 }))
 
+const pushSupported = vi.hoisted(() => ({ value: true }))
+
 vi.mock('@/composables/useNotificationPushSync', () => ({
   useNotificationPushSync: () => ({
+    pushSupported: pushSupported.value,
+    pushEnabled: ref(false),
+    pushSwitchDisabled: ref(false),
     showPermissionDeniedNotice: ref(false),
     showSubscribeFailedNotice: ref(false),
   }),
@@ -23,8 +28,12 @@ vi.mock('@/composables/useNotificationPushSync', () => ({
 
 const i18n = createI18n({ legacy: false, locale: 'en', missingWarn: false, fallbackWarn: false })
 
-function labels() {
+function mountSettings() {
   return shallowMount(NotificationTypeSettings, { global: { plugins: [i18n] } })
+}
+
+function labels() {
+  return mountSettings()
     .findAll('.notif-type-checklist__label')
     .map((el) => el.text())
 }
@@ -32,6 +41,7 @@ function labels() {
 describe('NotificationTypeSettings', () => {
   beforeEach(() => {
     vehicleType.value = 'unknown'
+    pushSupported.value = true
   })
 
   it('hides the charging notification types for a hybrid', () => {
@@ -47,5 +57,22 @@ describe('NotificationTypeSettings', () => {
 
     expect(labels()).toContain('notifications.categories.chargingComplete')
     expect(labels()).toContain('notifications.categories.lowEv')
+  })
+
+  it('hides low fuel for a BEV', () => {
+    vehicleType.value = 'bev'
+
+    expect(labels()).not.toContain('notifications.categories.lowFuel')
+    expect(labels()).toContain('notifications.categories.low12v')
+  })
+
+  it('offers the push switch where the browser supports push', () => {
+    expect(mountSettings().findComponent({ name: 'SettingsToggle' }).exists()).toBe(true)
+  })
+
+  it('leaves the push switch out where the browser has no push', () => {
+    pushSupported.value = false
+
+    expect(mountSettings().findComponent({ name: 'SettingsToggle' }).exists()).toBe(false)
   })
 })

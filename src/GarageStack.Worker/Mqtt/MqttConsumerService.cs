@@ -9,7 +9,8 @@ namespace GarageStack.Worker.Mqtt;
 
 /// <summary>
 /// Holds the Worker's MQTT connection and hands every message to the first handler that claims
-/// it: Home Assistant discovery, capability config, MG app messages, command results, and last
+/// it: the gateway's sign-in state, Home Assistant discovery, capability config, MG app messages,
+/// command results, and last
 /// the telemetry itself. Reconnects for as long as the Worker runs.
 /// </summary>
 public class MqttConsumerService : BackgroundService
@@ -32,6 +33,7 @@ public class MqttConsumerService : BackgroundService
         var vehicles = new VehicleResolver(scopeFactory);
         _handlers =
         [
+            new AccountStatusHandler(logger, scopeFactory, pushSender, strings, TimeProvider.System),
             new HaDiscoveryHandler(logger, vehicles),
             new VehicleConfigHandler(logger, vehicles),
             new VehicleMessageHandler(logger, scopeFactory, pushSender, strings, TimeProvider.System),

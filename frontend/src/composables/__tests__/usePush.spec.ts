@@ -2,12 +2,12 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
 import { defineComponent, h, nextTick } from 'vue'
 import { mount } from '@vue/test-utils'
 import { pushApi } from '@/services/pushApi'
-import { usePush } from '@/composables/usePush'
+import { usePush, type UsePushOptions } from '@/composables/usePush'
 
 vi.mock('@/services/pushApi', () => ({
   pushApi: {
     getVapidPublicKey: vi.fn<() => Promise<{ publicKey: string }>>(),
-    subscribe: vi.fn<(e: string, p: string, a: string) => Promise<void>>(),
+    subscribe: vi.fn<(e: string, p: string, a: string, x?: readonly string[]) => Promise<void>>(),
     unsubscribe: vi.fn<(e: string) => Promise<void>>(),
   },
 }))
@@ -41,12 +41,12 @@ function setPermission(permission: NotificationPermission) {
 
 // usePush registers initPushState with onMounted, so the composable has to run inside a real
 // component for the load-time path to be exercised at all.
-function mountUsePush() {
+function mountUsePush(options?: UsePushOptions) {
   const state: { api: ReturnType<typeof usePush> | null } = { api: null }
   const wrapper = mount(
     defineComponent({
       setup() {
-        state.api = usePush()
+        state.api = usePush(options)
         return () => h('div')
       },
     }),
@@ -95,7 +95,12 @@ describe('usePush on load', () => {
     const { api } = mountUsePush()
     await flush()
 
-    expect(subscribeMock).toHaveBeenCalledWith('https://push.example/abc', 'p256dh-key', 'auth-key')
+    expect(subscribeMock).toHaveBeenCalledWith(
+      'https://push.example/abc',
+      'p256dh-key',
+      'auth-key',
+      undefined,
+    )
     expect(pushManager.subscribe).not.toHaveBeenCalled()
     expect(api().pushState.value).toBe('subscribed')
   })
@@ -111,7 +116,12 @@ describe('usePush on load', () => {
     await flush()
 
     expect(pushManager.subscribe).toHaveBeenCalledOnce()
-    expect(subscribeMock).toHaveBeenCalledWith('https://push.example/abc', 'p256dh-key', 'auth-key')
+    expect(subscribeMock).toHaveBeenCalledWith(
+      'https://push.example/abc',
+      'p256dh-key',
+      'auth-key',
+      undefined,
+    )
     expect(api().pushState.value).toBe('subscribed')
   })
 
@@ -172,6 +182,7 @@ describe('usePush on load', () => {
       'https://push.example/fresh',
       'p256dh-key',
       'auth-key',
+      undefined,
     )
     expect(api().pushState.value).toBe('subscribed')
   })
@@ -228,6 +239,7 @@ describe('usePush togglePush', () => {
       'https://push.example/abc',
       'p256dh-key',
       'auth-key',
+      undefined,
     )
     expect(api().pushState.value).toBe('subscribed')
     expect(api().pushError.value).toBe(false)
@@ -247,5 +259,50 @@ describe('usePush togglePush', () => {
 
     expect(sub.unsubscribe).toHaveBeenCalledOnce()
     expect(api().pushState.value).toBe('unsubscribed')
+  })
+})
+
+describe('usePush and the types this device switched off', () => {
+  it('sends them along whenever the subscription is registered', async () => {
+    pushManager.getSubscription.mockResolvedValue(makeSubscription())
+    setPermission('granted')
+
+    mountUsePush({ excludedCategories: () => ['engine-start'] })
+    await flush()
+
+    expect(subscribeMock).toHaveBeenCalledWith(
+      'https://push.example/abc',
+      'p256dh-key',
+      'auth-key',
+      ['engine-start'],
+    )
+  })
+
+  it('registers the subscription again when they change', async () => {
+    pushManager.getSubscription.mockResolvedValue(makeSubscription())
+    setPermission('granted')
+    let excluded = ['engine-start']
+
+    const { api } = mountUsePush({ excludedCategories: () => excluded })
+    await flush()
+    excluded = ['engine-start', 'maintenance']
+    await api().syncExclusions()
+
+    expect(subscribeMock).toHaveBeenLastCalledWith(
+      'https://push.example/abc',
+      'p256dh-key',
+      'auth-key',
+      ['engine-start', 'maintenance'],
+    )
+  })
+
+  it('leaves the server alone while this device is not subscribed', async () => {
+    setPermission('default')
+
+    const { api } = mountUsePush({ excludedCategories: () => ['engine-start'] })
+    await flush()
+    await api().syncExclusions()
+
+    expect(subscribeMock).not.toHaveBeenCalled()
   })
 })

@@ -1528,7 +1528,7 @@ textarea.form-control {
 /* Own internal scroll so a long category list never pushes the rest of the settings modal's
    sections down. minmax(170px, 1fr) against .detail-modal's actual width budget: the mobile
    bottom-sheet content is ~300-335px wide -> 1 column; the desktop dialog is capped at
-   max-width: 440px -> 2 columns, where all 9 categories fit in 5 rows with no scrollbar at all.
+   max-width: 440px -> 2 columns, where the up to 15 categories take 8 rows and scroll a little.
    max-height keeps the 1-column mobile case to ~5-6 visible rows before scrolling. */
 .notif-type-checklist {
   display: grid;
