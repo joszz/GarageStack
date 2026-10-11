@@ -34,6 +34,12 @@ public static class EnvironmentAliases
         ["TYRE_PRESSURE_HIGH_BAR"] = "TyrePressure:HighBar",
         ["HV_BATTERY_CAPACITY_KWH"] = "HvBattery:CapacityKwh",
 
+        // When the Worker's level alerts fire.
+        ["AUX_BATTERY_LOW_VOLT"] = "Alerts:AuxBatteryLowVolt",
+        ["LOW_FUEL_PERCENT"] = "Alerts:LowFuelPercent",
+        ["LOW_EV_PERCENT"] = "Alerts:LowEvPercent",
+        ["STALE_DATA_HOURS"] = "Alerts:StaleDataHours",
+
         // How much detail old telemetry keeps.
         ["TELEMETRY_FULL_DETAIL_DAYS"] = "TelemetryRetention:FullDetailDays",
 

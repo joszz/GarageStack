@@ -119,6 +119,11 @@ services:
       NOTIFICATION_LANGUAGE: "${NOTIFICATION_LANGUAGE:-}"
       # Days of telemetry kept at full detail before the Worker compacts it. See .env.example.
       TELEMETRY_FULL_DETAIL_DAYS: "${TELEMETRY_FULL_DETAIL_DAYS:-}"
+      # When the Worker's level alerts fire. See .env.example.
+      AUX_BATTERY_LOW_VOLT: "${AUX_BATTERY_LOW_VOLT:-}"
+      LOW_FUEL_PERCENT: "${LOW_FUEL_PERCENT:-}"
+      LOW_EV_PERCENT: "${LOW_EV_PERCENT:-}"
+      STALE_DATA_HOURS: "${STALE_DATA_HOURS:-}"
     volumes:
       - worker_logs:/app/logs
 

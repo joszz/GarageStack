@@ -88,4 +88,46 @@ public class PushSubscriptionUpsertTests
             .SingleAsync(s => s.Endpoint == "https://push.example/other", ct);
         Assert.Equal("other-p256dh", other.P256DhKey);
     }
+
+    // ── The types each device switched off ─────────────────────────────────────
+
+    [Fact]
+    public async Task StoresTheTypesTheDeviceSwitchedOff_KnownOnesOnlyAndInOneOrder()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var db = CreateDb();
+
+        await PushEndpoints.UpsertSubscriptionAsync(
+            db, new PushSubscribeRequest(Endpoint, "p256dh", "auth", ["low-tyre", "engine-start", "not-a-type", "low-tyre"]), ct);
+
+        var stored = await db.PushSubscriptions.SingleAsync(ct);
+        Assert.Equal(["engine-start", "low-tyre"], stored.ExcludedCategories);
+    }
+
+    [Fact]
+    public async Task UpdatesTheTypesWhenTheDeviceChangedThem()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var db = CreateDb();
+        await PushEndpoints.UpsertSubscriptionAsync(db, new PushSubscribeRequest(Endpoint, "p256dh", "auth", ["engine-start"]), ct);
+
+        await PushEndpoints.UpsertSubscriptionAsync(db, new PushSubscribeRequest(Endpoint, "p256dh", "auth", ["maintenance"]), ct);
+
+        var stored = await db.PushSubscriptions.SingleAsync(ct);
+        Assert.Equal(["maintenance"], stored.ExcludedCategories);
+    }
+
+    // A page that predates the list sends none: that says nothing about the device's choice.
+    [Fact]
+    public async Task ARequestWithoutTheList_KeepsTheStoredTypes()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var db = CreateDb();
+        await PushEndpoints.UpsertSubscriptionAsync(db, new PushSubscribeRequest(Endpoint, "p256dh", "auth", ["engine-start"]), ct);
+
+        await PushEndpoints.UpsertSubscriptionAsync(db, new PushSubscribeRequest(Endpoint, "p256dh", "auth"), ct);
+
+        var stored = await db.PushSubscriptions.SingleAsync(ct);
+        Assert.Equal(["engine-start"], stored.ExcludedCategories);
+    }
 }

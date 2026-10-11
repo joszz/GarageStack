@@ -4,17 +4,23 @@ import { useI18n } from 'vue-i18n'
 import { useUiSettingsStore } from '@/stores/settingsUi'
 import { useVehicleStore } from '@/stores/vehicle'
 import { useNotificationPushSync } from '@/composables/useNotificationPushSync'
+import SettingsToggle from '../SettingsToggle.vue'
 import {
   notificationCategoryIdsFor,
   type NotificationCategoryId,
 } from '@/utils/notificationCategories'
 
-// The notification types to show and to be pushed. This also drives the push subscription:
-// deselecting every type unsubscribes, selecting at least one (re)subscribes.
+// Push for this device, and the notification types it shows and gets pushed.
 const { t } = useI18n()
 const settings = useUiSettingsStore()
 const vehicleStore = useVehicleStore()
-const { showPermissionDeniedNotice, showSubscribeFailedNotice } = useNotificationPushSync()
+const {
+  pushSupported,
+  pushEnabled,
+  pushSwitchDisabled,
+  showPermissionDeniedNotice,
+  showSubscribeFailedNotice,
+} = useNotificationPushSync()
 
 const NOTIFICATION_CATEGORY_LABEL_KEYS: Record<NotificationCategoryId, string> = {
   'low-tyre': 'lowTyre',
@@ -27,6 +33,10 @@ const NOTIFICATION_CATEGORY_LABEL_KEYS: Record<NotificationCategoryId, string> =
   'windows-open-parked': 'windowsOpenParked',
   'vehicle-message': 'vehicleMessage',
   'climate-schedule': 'climateSchedule',
+  'low-12v': 'low12v',
+  'low-fuel': 'lowFuel',
+  'gateway-login': 'gatewayLogin',
+  'data-stale': 'dataStale',
   maintenance: 'maintenance',
 }
 
@@ -67,6 +77,24 @@ function toggleNotificationType(id: NotificationCategoryId, checked: boolean) {
 </script>
 
 <template>
+  <div v-if="pushSupported" class="settings-toggles">
+    <SettingsToggle
+      v-model="pushEnabled"
+      :label="t('push.enable')"
+      :desc="t('push.enableDesc')"
+      :disabled="pushSwitchDisabled"
+      input-id="settings-toggle-push"
+    />
+  </div>
+
+  <div v-if="showPermissionDeniedNotice" class="notif-type-filter__denied text-danger text-sm">
+    {{ t('push.permissionDenied') }}
+  </div>
+
+  <div v-else-if="showSubscribeFailedNotice" class="notif-type-filter__denied text-danger text-sm">
+    {{ t('push.subscribeFailed') }}
+  </div>
+
   <div class="notif-type-filter">
     <div class="notif-type-filter__header">
       <div class="settings-toggle__info">
@@ -89,17 +117,6 @@ function toggleNotificationType(id: NotificationCategoryId, checked: boolean) {
           {{ t('notifications.deselectAll') }}
         </button>
       </div>
-    </div>
-
-    <div v-if="showPermissionDeniedNotice" class="notif-type-filter__denied text-danger text-sm">
-      {{ t('push.permissionDenied') }}
-    </div>
-
-    <div
-      v-else-if="showSubscribeFailedNotice"
-      class="notif-type-filter__denied text-danger text-sm"
-    >
-      {{ t('push.subscribeFailed') }}
     </div>
 
     <div class="notif-type-checklist">

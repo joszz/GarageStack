@@ -309,14 +309,18 @@ Telemetry older than a year is folded into one row per quarter of an hour, so th
 
 ## Push notifications
 
-GarageStack checks your vehicle's state every 5 minutes and sends both a browser push notification and an in-app notification (bell icon) when any of the following conditions are detected. "Engine started" and MG app messages go out the moment they arrive over MQTT instead. Each alert has a 1-hour cooldown per vehicle to avoid repeated notifications.
+GarageStack checks your vehicle's state every 5 minutes and sends both a browser push notification and an in-app notification (bell icon) when any of the following conditions are detected. "Engine started", MG app messages and a failed MG sign-in go out the moment they arrive over MQTT instead. Each alert has a 1-hour cooldown per vehicle to avoid repeated notifications, and goes out once per report from the car: a car that sleeps for days with a soft tyre is reported once, not every hour.
 
 | Alert | Condition |
 | ------- | --------- |
 | Engine started | Engine transitions from off to running |
 | Low tyre pressure | Any tyre below `TYRE_PRESSURE_LOW_BAR` (default 2.2 bar) |
 | High tyre pressure | Any tyre above `TYRE_PRESSURE_HIGH_BAR` (default 3.2 bar) |
-| Low EV battery | EV state-of-charge below 20 % (plug-in vehicles) |
+| Low EV battery | EV state-of-charge below `LOW_EV_PERCENT` (default 20 %, plug-in vehicles) |
+| Low fuel | Fuel level below `LOW_FUEL_PERCENT` (default 15 %, hybrids and plug-in hybrids) |
+| Low 12V battery | 12V battery below `AUX_BATTERY_LOW_VOLT` (default 12.0 V) on several polls in a row while the engine is off |
+| No data from the car | Nothing reported for `STALE_DATA_HOURS` (default 48 hours): the MG session, the gateway or the car's connection needs a look |
+| MG sign-in failed | The gateway could not sign in to the MG account, so no new data arrives (sent once per outage, as it happens) |
 | Car left unlocked | `doors/locked = false` while engine is off |
 | Door left open | Any door, boot, or bonnet open while engine is off |
 | Window left open | Any window open while engine is off |
@@ -327,7 +331,7 @@ GarageStack checks your vehicle's state every 5 minutes and sends both a browser
 
 Push notifications require VAPID keys to be configured (`VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY`). Without them, alerts still appear in the in-app notification panel. While GarageStack is open in a browser that allowed notifications but is not subscribed to push, the same alerts show up as system notifications too; a subscribed browser gets them through push instead, so nothing arrives twice.
 
-Settings has a per-type checklist for these alerts, which offers only the types the car's drivetrain can produce: the two plug-in alerts (low EV battery, charging complete) are left out for a plain hybrid. Deselecting every type offered unsubscribes the browser from push entirely; selecting one again resubscribes.
+Settings has a push switch for the device you are on and a per-type checklist for these alerts, which offers only the types the car's drivetrain can produce: the two plug-in alerts (low EV battery, charging complete) are left out for a plain hybrid. Both are kept per device: a type switched off on your phone still reaches your laptop, and still shows up in the notification panel. Only the switch turns push on or off; the checklist never asks the browser for permission.
 
 Notification texts are written by the background worker, which has no browser to take a language from, so their language is a deployment setting: `NOTIFICATION_LANGUAGE=en` (default) or `nl`. The web UI's own language toggle does not affect them.
 

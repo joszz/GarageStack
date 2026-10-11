@@ -1,3 +1,4 @@
+using System.Globalization;
 using GarageStack.Core.Configuration;
 using GarageStack.Core.Models;
 using GarageStack.Data;
@@ -13,12 +14,13 @@ namespace GarageStack.Tests;
 public class PushNotificationCheckServiceTests
 {
     private static PushNotificationCheckService CreateService(
-        TyrePressureThresholds? thresholds = null, FakePushSender? push = null) =>
+        TyrePressureThresholds? thresholds = null, FakePushSender? push = null, AlertThresholds? alertThresholds = null) =>
         new(
             NullLogger<PushNotificationCheckService>.Instance,
             new FakeServiceScopeFactory(),
             push ?? new FakePushSender(),
             thresholds ?? TyrePressureThresholds.Default,
+            alertThresholds ?? AlertThresholds.Default,
             WorkerLocalizer.Notifications());
 
     private static TelemetrySnapshot Parked(Action<TelemetrySnapshot>? configure = null)
@@ -372,5 +374,245 @@ public class PushNotificationCheckServiceTests
 
         Assert.Single(alerts);
         Assert.Equal("low-tyre", alerts[0].Item1);
+    }
+
+    // ---------------------------------------------------------------------------
+    // CheckEvSoc and CheckFuelLevel: configurable levels, per drivetrain
+    // ---------------------------------------------------------------------------
+
+    [Fact]
+    public void CheckEvSoc_BelowTheConfiguredLevel_FiresAlert()
+    {
+        var svc = CreateService(alertThresholds: AlertThresholds.Default with { LowEvPercent = 30 });
+        var alerts = new List<(string, string, string)>();
+
+        // 25 % is above the default 20 % (no alert with defaults) but below the configured 30 %.
+        svc.CheckEvSoc(new TelemetrySnapshot { EvSocPercent = 25 }, "bev", alerts);
+
+        Assert.Equal("low-ev", Assert.Single(alerts).Item1);
+    }
+
+    [Fact]
+    public void CheckEvSoc_ThresholdZero_NeverFires()
+    {
+        var svc = CreateService(alertThresholds: AlertThresholds.Default with { LowEvPercent = 0 });
+        var alerts = new List<(string, string, string)>();
+
+        svc.CheckEvSoc(new TelemetrySnapshot { EvSocPercent = 0 }, "bev", alerts);
+
+        Assert.Empty(alerts);
+    }
+
+    [Theory]
+    [InlineData("hev")]
+    [InlineData("phev")]
+    public void CheckFuelLevel_CarThatBurnsFuel_BelowTheLevel_FiresAlertWithTheLevel(string vehicleType)
+    {
+        var alerts = new List<(string, string, string)>();
+
+        CreateService().CheckFuelLevel(new TelemetrySnapshot { FuelLevelPercent = 9 }, vehicleType, alerts);
+
+        var (category, _, body) = Assert.Single(alerts);
+        Assert.Equal("low-fuel", category);
+        Assert.Contains("9%", body);
+    }
+
+    [Fact]
+    public void CheckFuelLevel_AtTheLevel_NoAlert()
+    {
+        var alerts = new List<(string, string, string)>();
+
+        CreateService().CheckFuelLevel(new TelemetrySnapshot { FuelLevelPercent = 15 }, "hev", alerts);
+
+        Assert.Empty(alerts);
+    }
+
+    // A full EV can report a fuel level of zero, and a car not yet detected has no known tank.
+    [Theory]
+    [InlineData("bev")]
+    [InlineData("unknown")]
+    public void CheckFuelLevel_CarWithoutAKnownTank_NoAlert(string vehicleType)
+    {
+        var alerts = new List<(string, string, string)>();
+
+        CreateService().CheckFuelLevel(new TelemetrySnapshot { FuelLevelPercent = 0 }, vehicleType, alerts);
+
+        Assert.Empty(alerts);
+    }
+
+    // ---------------------------------------------------------------------------
+    // CheckDataStale and NewestReportAt: the gateway's poll stamps
+    // ---------------------------------------------------------------------------
+
+    private static readonly DateTime Now = new(2026, 10, 11, 12, 0, 0, DateTimeKind.Utc);
+
+    [Fact]
+    public void NewestReportAt_TakesTheLaterOfTheTwoPollStamps()
+    {
+        var s = new TelemetrySnapshot { RecordedAt = Now, LastVehicleStateAt = Now.AddHours(-5), LastChargeStateAt = Now.AddHours(-3) };
+
+        Assert.Equal(Now.AddHours(-3), PushNotificationCheckService.NewestReportAt(s));
+    }
+
+    [Fact]
+    public void NewestReportAt_WithoutPollStamps_FallsBackToWhenTheRowWasWritten()
+    {
+        Assert.Equal(Now, PushNotificationCheckService.NewestReportAt(new TelemetrySnapshot { RecordedAt = Now }));
+    }
+
+    [Fact]
+    public void CheckDataStale_SilentLongerThanTheThreshold_FiresAlertWithTheHours()
+    {
+        var alerts = new List<(string, string, string)>();
+
+        CreateService().CheckDataStale(new TelemetrySnapshot { LastVehicleStateAt = Now.AddHours(-50) }, Now, alerts);
+
+        var (category, _, body) = Assert.Single(alerts);
+        Assert.Equal("data-stale", category);
+        Assert.Contains("50", body);
+    }
+
+    // The gateway polls a sleeping car once a day, so a day of silence is normal.
+    [Fact]
+    public void CheckDataStale_ADayOfSilence_NoAlert()
+    {
+        var alerts = new List<(string, string, string)>();
+
+        CreateService().CheckDataStale(new TelemetrySnapshot { LastVehicleStateAt = Now.AddHours(-25) }, Now, alerts);
+
+        Assert.Empty(alerts);
+    }
+
+    // A message replayed on reconnect is written now but carries the poll stamp it was sent with.
+    [Fact]
+    public void CheckDataStale_ReplayedOldPoll_StillCountsAsSilent()
+    {
+        var alerts = new List<(string, string, string)>();
+
+        CreateService().CheckDataStale(new TelemetrySnapshot { RecordedAt = Now, LastVehicleStateAt = Now.AddDays(-3) }, Now, alerts);
+
+        Assert.Equal("data-stale", Assert.Single(alerts).Item1);
+    }
+
+    [Fact]
+    public void CheckDataStale_ThresholdZero_NeverFires()
+    {
+        var svc = CreateService(alertThresholds: AlertThresholds.Default with { StaleDataHours = 0 });
+        var alerts = new List<(string, string, string)>();
+
+        svc.CheckDataStale(new TelemetrySnapshot { LastVehicleStateAt = Now.AddDays(-30) }, Now, alerts);
+
+        Assert.Empty(alerts);
+    }
+
+    // ---------------------------------------------------------------------------
+    // CheckAuxBatteryWhileParked: low on poll after poll, not one dip
+    // ---------------------------------------------------------------------------
+
+    private static TelemetrySnapshot Volts(double? voltage) => Locked(s => s.BatteryVoltage = voltage);
+
+    [Fact]
+    public void CheckAuxBatteryWhileParked_LowOnEveryPoll_FiresAlertWithTheNewestVoltage()
+    {
+        var alerts = new List<(string, string, string)>();
+
+        CreateService().CheckAuxBatteryWhileParked(Polls(Volts(11.9), Volts(11.8), Volts(11.8), Volts(11.7)), alerts);
+
+        var (category, _, body) = Assert.Single(alerts);
+        Assert.Equal("low-12v", category);
+        Assert.Contains(11.7.ToString("0.0", CultureInfo.CurrentUICulture), body);
+    }
+
+    [Fact]
+    public void CheckAuxBatteryWhileParked_OneLowPoll_NoAlert()
+    {
+        var alerts = new List<(string, string, string)>();
+
+        CreateService().CheckAuxBatteryWhileParked(Polls(Volts(12.4), Volts(12.4), Volts(12.4), Volts(11.6)), alerts);
+
+        Assert.Empty(alerts);
+    }
+
+    [Fact]
+    public void CheckAuxBatteryWhileParked_NoVoltageReported_NoAlert()
+    {
+        var alerts = new List<(string, string, string)>();
+
+        CreateService().CheckAuxBatteryWhileParked(Polls(Volts(null), Volts(null), Volts(null), Volts(null)), alerts);
+
+        Assert.Empty(alerts);
+    }
+
+    [Fact]
+    public void CheckAuxBatteryWhileParked_UsesTheConfiguredVoltage()
+    {
+        var svc = CreateService(alertThresholds: AlertThresholds.Default with { AuxBatteryLowVolt = 12.3 });
+        var alerts = new List<(string, string, string)>();
+
+        svc.CheckAuxBatteryWhileParked(Polls(Volts(12.2), Volts(12.2), Volts(12.2), Volts(12.2)), alerts);
+
+        Assert.Equal("low-12v", Assert.Single(alerts).Item1);
+    }
+
+    // ---------------------------------------------------------------------------
+    // CheckLevelsAsync: one alert per report, however long the car sleeps
+    // ---------------------------------------------------------------------------
+
+    private static async Task<Vehicle> AddVehicleAsync(AppDbContext db, CancellationToken ct)
+    {
+        var vehicle = new Vehicle { Vin = "FAKEVN00000000001" };
+        db.Vehicles.Add(vehicle);
+        await db.SaveChangesAsync(ct);
+        return vehicle;
+    }
+
+    private static TelemetrySnapshot SoftTyreReportedAt(DateTime polledAt) =>
+        new() { RecordedAt = polledAt, LastVehicleStateAt = polledAt, TyrePressureFrontLeft = 1.9 };
+
+    // The overnight case: the alert went out after the last poll, over an hour ago, and the car
+    // has sent nothing since. The cooldown has run out, but there is nothing new to report.
+    [Fact]
+    public async Task CheckLevelsAsync_AlreadyAlertedOnTheLastReport_SendsNothing()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var now = DateTime.UtcNow;
+        await using var db = CreateDb();
+        var vehicle = await AddVehicleAsync(db, ct);
+        var polledAt = now.AddHours(-6);
+        db.AppNotifications.Add(new AppNotification
+        {
+            Title = "Low tyre",
+            Category = NotificationCategories.LowTyre,
+            VehicleId = vehicle.Id,
+            CreatedAt = polledAt.AddMinutes(4),
+        });
+        await db.SaveChangesAsync(ct);
+        var push = new FakePushSender();
+
+        await CreateService(push: push).CheckLevelsAsync(vehicle, SoftTyreReportedAt(polledAt), db, now, ct);
+
+        Assert.Empty(push.Sent);
+    }
+
+    [Fact]
+    public async Task CheckLevelsAsync_NewReportStillLow_SendsAgainOnceTheCooldownHasPassed()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var now = DateTime.UtcNow;
+        await using var db = CreateDb();
+        var vehicle = await AddVehicleAsync(db, ct);
+        db.AppNotifications.Add(new AppNotification
+        {
+            Title = "Low tyre",
+            Category = NotificationCategories.LowTyre,
+            VehicleId = vehicle.Id,
+            CreatedAt = now.AddHours(-3),
+        });
+        await db.SaveChangesAsync(ct);
+        var push = new FakePushSender();
+
+        await CreateService(push: push).CheckLevelsAsync(vehicle, SoftTyreReportedAt(now.AddMinutes(-2)), db, now, ct);
+
+        Assert.Equal("low-tyre", Assert.Single(push.Sent).Category);
     }
 }

@@ -19,9 +19,47 @@ public static class NotificationCategories
     public const string VehicleMessage = "vehicle-message";
     // A climate schedule started climate, or could not.
     public const string ClimateSchedule = "climate-schedule";
+    public const string Low12V = "low-12v";
+    public const string LowFuel = "low-fuel";
+    // The gateway could not sign in to the MG account, so no data arrives until it can.
+    public const string GatewayLogin = "gateway-login";
+    // The car has not reported for longer than it should.
+    public const string DataStale = "data-stale";
+
+    // What the maintenance categories below are grouped as wherever the user picks types.
+    public const string Maintenance = "maintenance";
 
     /// <summary>Maintenance categories carry the item id so one item's alert cannot suppress another's.</summary>
     public static string MaintenanceOverdue(int itemId) => $"maintenance-overdue-{itemId}";
 
     public static string MaintenanceDueSoon(int itemId) => $"maintenance-due-soon-{itemId}";
+
+    /// <summary>The types a user can switch off, as the frontend's notification checklist offers them.</summary>
+    public static readonly IReadOnlySet<string> Groups = new HashSet<string>(StringComparer.Ordinal)
+    {
+        LowTyre, HighTyre, LowEv, ChargingComplete, EngineStart, UnlockedParked, DoorsOpenParked,
+        WindowsOpenParked, VehicleMessage, ClimateSchedule, Low12V, LowFuel, GatewayLogin, DataStale,
+        Maintenance,
+    };
+
+    /// <summary>
+    /// The type <paramref name="category"/> is switched off as: itself, or "maintenance" for the
+    /// per-item maintenance categories. Mirrors notificationCategoryId in the frontend.
+    /// </summary>
+    public static string? GroupOf(string? category) =>
+        category switch
+        {
+            null => null,
+            _ when category.StartsWith(Maintenance + "-", StringComparison.Ordinal) => Maintenance,
+            _ when Groups.Contains(category) => category,
+            _ => null,
+        };
+
+    /// <summary>
+    /// Whether a device that switched off <paramref name="excludedGroups"/> still wants a
+    /// <paramref name="category"/> notification. One without a known type always goes out: the
+    /// checklist offers no way to switch it off.
+    /// </summary>
+    public static bool IsWanted(string? category, IReadOnlyCollection<string> excludedGroups) =>
+        GroupOf(category) is not { } group || !excludedGroups.Contains(group);
 }

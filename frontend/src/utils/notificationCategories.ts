@@ -1,5 +1,5 @@
 import type { VehicleType } from '@/services/vehicleApi'
-import { mayPlugIn } from '@/utils/vehicleType'
+import { mayBurnFuel, mayPlugIn } from '@/utils/vehicleType'
 
 export const NOTIFICATION_CATEGORY_IDS = [
   'low-tyre',
@@ -12,6 +12,10 @@ export const NOTIFICATION_CATEGORY_IDS = [
   'windows-open-parked',
   'vehicle-message',
   'climate-schedule',
+  'low-12v',
+  'low-fuel',
+  'gateway-login',
+  'data-stale',
   'maintenance',
 ] as const
 
@@ -22,6 +26,9 @@ export type NotificationCategoryId = (typeof NOTIFICATION_CATEGORY_IDS)[number]
 // plain hybrid these are checklist rows that can never match a notification.
 const PLUG_IN_ONLY_CATEGORY_IDS: readonly NotificationCategoryId[] = ['low-ev', 'charging-complete']
 
+// The Worker's CheckFuelLevel only runs for a car with a combustion engine.
+const FUEL_ONLY_CATEGORY_IDS: readonly NotificationCategoryId[] = ['low-fuel']
+
 /**
  * The categories worth offering for a drivetrain. 'unknown' keeps the full list: while detection
  * is still pending, hiding a type the car does support is worse than offering one it doesn't.
@@ -29,8 +36,11 @@ const PLUG_IN_ONLY_CATEGORY_IDS: readonly NotificationCategoryId[] = ['low-ev', 
 export function notificationCategoryIdsFor(
   vehicleType: VehicleType,
 ): readonly NotificationCategoryId[] {
-  if (mayPlugIn(vehicleType)) return NOTIFICATION_CATEGORY_IDS
-  return NOTIFICATION_CATEGORY_IDS.filter((id) => !PLUG_IN_ONLY_CATEGORY_IDS.includes(id))
+  return NOTIFICATION_CATEGORY_IDS.filter(
+    (id) =>
+      (mayPlugIn(vehicleType) || !PLUG_IN_ONLY_CATEGORY_IDS.includes(id)) &&
+      (mayBurnFuel(vehicleType) || !FUEL_ONLY_CATEGORY_IDS.includes(id)),
+  )
 }
 
 // Maintenance notifications carry a dynamic per-item suffix (maintenance-<id>) rather than a
