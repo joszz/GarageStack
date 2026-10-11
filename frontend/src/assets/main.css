@@ -386,10 +386,29 @@ body,
   gap: 0.6rem;
 }
 
+/* Beside the sidebar, as many tiles to a row as fit at 13rem or wider: room for a reading such as
+   "Off · 21.0 °C" or "71% · Active" on one line, so a row is rarely taller than its neighbours. */
 .status-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
   gap: 1rem;
+}
+
+/* A grid row stretches its items to the tallest, but on the dashboard and statistics the item is
+   a wrapper (the info button's, and in edit mode the slot's) rather than the card. The height is
+   passed down through them, so every tile in a row is as tall as the one with the longest label. */
+.status-grid > .card-info-wrap,
+.status-grid > .card-slot,
+.status-grid > .card-slot > .card-slot__content {
+  display: flex;
+  flex-direction: column;
+}
+
+.status-grid > .card-slot > .card-slot__content,
+.status-grid > .card-info-wrap > .status-card,
+.status-grid > .card-slot > .card-slot__content > .status-card,
+.status-grid > .card-slot > .card-slot__content > .card-slot__placeholder {
+  flex: 1;
 }
 
 .status-card {
@@ -1992,19 +2011,11 @@ textarea.form-control {
   :root {
     --content-padding: 1.5rem;
   }
-
-  .status-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
 }
 
 /* ── Large desktop (1440px+) ──────────────────────────────── */
 
 @media (width >= 1440px) {
-  .status-grid {
-    grid-template-columns: repeat(6, 1fr);
-  }
-
   .overview-row__map {
     flex: 1.4 1 420px;
     max-width: 560px;
@@ -2014,18 +2025,8 @@ textarea.form-control {
 /* ── Full-HD and above (1920px+) ──────────────────────────── */
 
 @media (width >= 1920px) {
-  .status-grid {
-    grid-template-columns: repeat(8, 1fr);
-  }
-
   .overview-row__map {
     max-width: 680px;
-  }
-}
-
-@media (width >= 2500px) {
-  .status-grid {
-    grid-template-columns: repeat(12, 1fr);
   }
 }
 
