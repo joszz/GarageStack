@@ -5,6 +5,7 @@ import type { RouteLocationNormalized } from 'vue-router'
 import { authApi, type MeResponse } from '@/services/authApi'
 import { settingsApi, type AccountSettings } from '@/services/settingsApi'
 import router, { preloadRouteComponents } from '@/router'
+import { RASTER_TILE_ORIGIN } from '@/utils/rasterTiles'
 
 vi.mock('@/services/authApi', () => ({
   authApi: { me: vi.fn<() => Promise<MeResponse>>() },
@@ -128,4 +129,43 @@ describe('router guard', () => {
     expect(load).not.toHaveBeenCalled()
     expect(router.currentRoute.value.name).toBe('login')
   })
+
+  it("opens the connection to the view's other origins while the session check is in flight", async () => {
+    storeSession()
+    const answerSession = holdSessionCheck()
+    router.addRoute({
+      path: '/preconnect-probe',
+      component: View,
+      meta: { preconnect: ['https://tiles.probe.test'] },
+    })
+
+    const navigation = router.push('/preconnect-probe')
+
+    await vi.waitFor(() => expect(preconnectLink('https://tiles.probe.test')).not.toBeNull())
+    answerSession()
+    await navigation
+  })
+
+  it('opens no connection for a visitor without a session', async () => {
+    vi.mocked(authApi.me).mockRejectedValue(new Error('401'))
+    router.addRoute({
+      path: '/preconnect-protected-probe',
+      component: View,
+      meta: { preconnect: ['https://tiles.protected.test'] },
+    })
+
+    await router.push('/preconnect-protected-probe')
+
+    expect(preconnectLink('https://tiles.protected.test')).toBeNull()
+  })
+
+  it("has the dashboard warm up its map card's tile server", () => {
+    const dashboard = router.getRoutes().find((route) => route.name === 'dashboard')
+
+    expect(dashboard?.meta.preconnect).toContain(RASTER_TILE_ORIGIN)
+  })
 })
+
+function preconnectLink(origin: string): Element | null {
+  return document.head.querySelector(`link[rel="preconnect"][href="${origin}"]`)
+}

@@ -357,6 +357,7 @@
   },
   "notifications": {
     "title": "Notifications",
+    "titleUnread": "Notifications, {count} unread",
     "empty": "No notifications",
     "active": "Active",
     "archived": "Archived",

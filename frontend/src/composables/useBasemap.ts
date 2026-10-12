@@ -7,8 +7,6 @@ import { useUiSettingsStore } from '@/stores/settingsUi'
 import type { Locale } from '@/stores/settingsShared'
 import {
   BASEMAP_STYLE_URLS,
-  RASTER_FALLBACK_MAX_ZOOM,
-  RASTER_FALLBACK_TILE_URL,
   VECTOR_MAX_ZOOM,
   basemapVariant,
   boostLabelContrast,
@@ -16,6 +14,7 @@ import {
   supportsWebGl,
   type MapStyle,
 } from '@/utils/basemapStyle'
+import { RASTER_FALLBACK_MAX_ZOOM, RASTER_FALLBACK_TILE_URL } from '@/utils/rasterTiles'
 import { OSM_ATTRIBUTION, VECTOR_ATTRIBUTION } from '@/utils/credits'
 
 type MaplibreLayer = ReturnType<typeof maplibreGL>

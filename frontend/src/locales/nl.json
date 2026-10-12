@@ -357,6 +357,7 @@
   },
   "notifications": {
     "title": "Meldingen",
+    "titleUnread": "Meldingen, {count} ongelezen",
     "empty": "Geen meldingen",
     "active": "Actief",
     "archived": "Gearchiveerd",

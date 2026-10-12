@@ -2,7 +2,6 @@
 import { computed, ref, watch, onBeforeUnmount, defineAsyncComponent } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { useUiSettingsStore } from '@/stores/settingsUi'
 import { useAuthStore } from '@/stores/auth'
 import { useVehicleStore } from '@/stores/vehicle'
 import AppFooter from '@/components/AppFooter.vue'
@@ -21,10 +20,9 @@ import { formatDateTime, formatTime } from '@/utils/format'
 const isDemoMode = import.meta.env.VITE_DEMO_MODE === 'true'
 const demoControlsOpen = ref(false)
 
-const { t, locale } = useI18n()
+const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
-const settings = useUiSettingsStore()
 const auth = useAuthStore()
 const vehicleStore = useVehicleStore()
 const vehicleStatus = computed(() => vehicleStore.currentStatus)
@@ -60,6 +58,15 @@ const {
   deleteNotification,
   deleteAllNotifications,
 } = useNotifications()
+
+// The unread badge is visible text inside both notification buttons, so their names carry the
+// count as well: a screen reader announces it (the badge itself is hidden from them, or it would
+// be read twice), and someone using voice control can say what they see.
+const notificationsLabel = computed(() =>
+  unreadCount.value > 0
+    ? t('notifications.titleUnread', { count: unreadCount.value })
+    : t('notifications.title'),
+)
 
 const carModel = computed(() => vehicleStore.activeVehicle?.model ?? null)
 const vehicleId = computed(() => vehicleStore.activeVehicle?.id ?? null)
@@ -164,12 +171,6 @@ watch(
     mainContent.value?.scrollTo({ top: 0 })
   },
 )
-watch(
-  () => settings.locale,
-  (val) => {
-    locale.value = val
-  },
-)
 </script>
 
 <template>
@@ -192,7 +193,7 @@ watch(
         <font-awesome-icon icon="car" />
         GarageStack
       </RouterLink>
-      <button class="notif-bell" :aria-label="t('notifications.title')" @click="togglePanel">
+      <button class="notif-bell" :aria-label="notificationsLabel" @click="togglePanel">
         <font-awesome-icon icon="bell" />
         <span v-if="unreadCount > 0" class="notif-bell__badge" aria-hidden="true">{{
           unreadCount
@@ -325,7 +326,7 @@ watch(
             <font-awesome-icon :icon="['fas', 'flask']" />
             <span>{{ t('demo.controlPanel') }}</span>
           </button>
-          <button class="sidebar-notif-btn" @click="togglePanel">
+          <button class="sidebar-notif-btn" :aria-label="notificationsLabel" @click="togglePanel">
             <font-awesome-icon icon="bell" />
             <span>{{ t('notifications.title') }}</span>
             <span v-if="unreadCount > 0" class="notif-bell__badge" aria-hidden="true">{{

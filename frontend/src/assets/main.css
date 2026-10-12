@@ -1,5 +1,3 @@
-@import url('@vueform/multiselect/themes/default.css');
-
 :root {
   /* Tells the browser which palette its own widgets use: the time and date pickers, select
      dropdowns and the clock and calendar icons inside inputs. */
@@ -1425,80 +1423,6 @@ textarea.form-control {
 
 .settings-toggle__side-icon--active {
   color: var(--color-primary);
-}
-
-/* ── Multiselect (map fuel type and brand filters) ──────────── */
-
-/* --ms-* vars set on :root so they cascade to the body-teleported dropdown too. Kept here,
-   next to the rest of the multiselect theming, rather than merged into the palette at the top
-   of the file. */
-/* stylelint-disable-next-line no-duplicate-selectors */
-:root {
-  --ms-bg: var(--color-surface-2);
-  --ms-bg-disabled: var(--color-surface);
-  --ms-border-color: var(--color-border);
-  --ms-border-width: 1px;
-  --ms-radius: var(--field-radius);
-  --ms-py: var(--field-py);
-  --ms-px: var(--field-px);
-  --ms-font-size: var(--field-font-size);
-  --ms-line-height: var(--field-line-height);
-  --ms-spinner-color: var(--color-primary);
-  --ms-caret-color: var(--color-text-muted);
-  --ms-clear-color: var(--color-text-muted);
-  --ms-clear-color-hover: var(--color-text);
-  --ms-tag-font-size: 0.8rem;
-  --ms-tag-font-weight: 500;
-  --ms-tag-line-height: 1.25;
-  --ms-tag-py: 0.2rem;
-  --ms-tag-px: 0.5rem;
-  --ms-tag-my: 0.2rem;
-  --ms-tag-mx: 0.2rem;
-  --ms-tag-bg: var(--color-primary);
-  --ms-tag-bg-disabled: var(--color-surface);
-  --ms-tag-color: #fff;
-  --ms-tag-color-disabled: var(--color-text-muted);
-  --ms-tag-radius: 4px;
-  --ms-tag-remove-radius: 3px;
-  --ms-tag-remove-py: 0.2rem;
-  --ms-tag-remove-px: 0.2rem;
-  --ms-dropdown-bg: var(--color-surface);
-  --ms-dropdown-border-color: var(--color-border);
-  --ms-dropdown-border-width: 1px;
-  --ms-dropdown-radius: 6px;
-  --ms-placeholder-color: var(--color-text-muted);
-  --ms-option-font-size: var(--field-font-size);
-  --ms-option-bg-pointed: var(--color-surface-2);
-  --ms-option-color-pointed: var(--color-text);
-  --ms-option-bg-selected: var(--color-primary);
-  --ms-option-color-selected: #fff;
-  --ms-option-bg-selected-pointed: color-mix(in srgb, var(--color-primary) 85%, #000);
-  --ms-option-color-selected-pointed: #fff;
-  --ms-option-bg-disabled: transparent;
-  --ms-option-color-disabled: var(--color-text-muted);
-  --ms-option-py: 0.5rem;
-  --ms-option-px: 0.75rem;
-  --ms-empty-color: var(--color-text-muted);
-  --ms-ring-width: 2px;
-  --ms-ring-color: var(--field-ring);
-}
-
-/* The library gives the inner wrapper the whole field's height, its border included, inside that
-   border: every multiselect came out 2px taller than a text box or native select. */
-.multiselect-wrapper {
-  min-height: calc(var(--ms-font-size) * var(--ms-line-height) + var(--ms-py) * 2);
-}
-
-/* Teleported dropdown must sit above the modal (z-index 1100) */
-.multiselect-dropdown {
-  z-index: 1200;
-}
-
-/* Ensure the search input inside the multiselect also uses the theme background */
-.multiselect-search,
-.multiselect-tags-search {
-  background: var(--color-surface-2);
-  color: var(--color-text);
 }
 
 .notif-type-filter {
