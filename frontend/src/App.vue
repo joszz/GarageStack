@@ -59,6 +59,15 @@ const {
   deleteAllNotifications,
 } = useNotifications()
 
+// The unread badge is visible text inside both notification buttons, so their names carry the
+// count as well: a screen reader announces it (the badge itself is hidden from them, or it would
+// be read twice), and someone using voice control can say what they see.
+const notificationsLabel = computed(() =>
+  unreadCount.value > 0
+    ? t('notifications.titleUnread', { count: unreadCount.value })
+    : t('notifications.title'),
+)
+
 const carModel = computed(() => vehicleStore.activeVehicle?.model ?? null)
 const vehicleId = computed(() => vehicleStore.activeVehicle?.id ?? null)
 
@@ -184,7 +193,7 @@ watch(
         <font-awesome-icon icon="car" />
         GarageStack
       </RouterLink>
-      <button class="notif-bell" :aria-label="t('notifications.title')" @click="togglePanel">
+      <button class="notif-bell" :aria-label="notificationsLabel" @click="togglePanel">
         <font-awesome-icon icon="bell" />
         <span v-if="unreadCount > 0" class="notif-bell__badge" aria-hidden="true">{{
           unreadCount
@@ -317,7 +326,7 @@ watch(
             <font-awesome-icon :icon="['fas', 'flask']" />
             <span>{{ t('demo.controlPanel') }}</span>
           </button>
-          <button class="sidebar-notif-btn" @click="togglePanel">
+          <button class="sidebar-notif-btn" :aria-label="notificationsLabel" @click="togglePanel">
             <font-awesome-icon icon="bell" />
             <span>{{ t('notifications.title') }}</span>
             <span v-if="unreadCount > 0" class="notif-bell__badge" aria-hidden="true">{{
