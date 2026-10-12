@@ -57,9 +57,6 @@ public interface ITelemetryRepository
     /// </summary>
     Task<double?> GetOdometerAtAsync(int vehicleId, DateTime at, CancellationToken ct = default);
 
-    /// <summary>Distance and timestamp of the newest row that reported a journey in progress, or null when none exists.</summary>
-    Task<LastTripSummary?> GetLastTripSummaryAsync(int vehicleId, CancellationToken ct = default);
-
     /// <summary>
     /// The car's last <paramref name="count"/> status polls (lock, doors, windows), newest first.
     /// A poll the broker delivers again, as it does with retained messages on a reconnect, is still

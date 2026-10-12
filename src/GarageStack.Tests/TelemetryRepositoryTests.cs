@@ -616,21 +616,4 @@ public class TelemetryRepositoryMergeTests
         Assert.Equal(new RawTopicStat("b", 2, t0.AddMinutes(2)), stats[0]);
         Assert.Equal(new RawTopicStat("a", 1, t0), stats[1]);
     }
-
-    [Fact]
-    public async Task GetLastTripSummaryAsync_ReturnsNewestRowWithAJourneyDistance()
-    {
-        var ct = TestContext.Current.CancellationToken;
-        var (db, repo, vehicle) = await SetupAsync();
-        var t0 = new DateTime(2026, 1, 1, 10, 0, 0, DateTimeKind.Utc);
-        db.TelemetrySnapshots.AddRange(
-            new TelemetrySnapshot { VehicleId = vehicle.Id, RecordedAt = t0, CurrentJourneyDistance = 4.2 },
-            new TelemetrySnapshot { VehicleId = vehicle.Id, RecordedAt = t0.AddHours(1), CurrentJourneyDistance = 9.5 },
-            new TelemetrySnapshot { VehicleId = vehicle.Id, RecordedAt = t0.AddHours(2), CurrentJourneyDistance = 0 });
-        await db.SaveChangesAsync(ct);
-
-        var summary = await repo.GetLastTripSummaryAsync(vehicle.Id, ct);
-
-        Assert.Equal(new LastTripSummary(9.5, t0.AddHours(1)), summary);
-    }
 }

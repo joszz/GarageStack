@@ -334,14 +334,6 @@ public class TelemetryRepository(
             .Select(s => s.OdometerKm)
             .FirstOrDefaultAsync(ct);
 
-    public Task<LastTripSummary?> GetLastTripSummaryAsync(int vehicleId, CancellationToken ct = default) =>
-        db.TelemetrySnapshots
-            .AsNoTracking()
-            .Where(s => s.VehicleId == vehicleId && s.CurrentJourneyDistance > 0)
-            .OrderByDescending(s => s.RecordedAt)
-            .Select(s => new LastTripSummary(s.CurrentJourneyDistance!.Value, s.RecordedAt))
-            .FirstOrDefaultAsync(ct);
-
     public async Task<IReadOnlyList<StatusReading>> GetStatusReadingsAsync(int vehicleId, int count, CancellationToken ct = default)
     {
         // Twice the rows asked for: a delivered-again poll takes a row of its own, folded away below.
