@@ -7,6 +7,8 @@ import { useTripLogStore } from '@/stores/tripLog'
 import { useUiSettingsStore } from '@/stores/settingsUi'
 import StatusCard from '@/components/StatusCard.vue'
 import TripLogItem from '@/components/TripLogItem.vue'
+import CommutePlacesModal from '@/components/CommutePlacesModal.vue'
+import { useCommutePlacesStore } from '@/stores/commutePlaces'
 import { TRIP_PURPOSES, type TripPurpose } from '@/services/tripLogApi'
 import { downloadCsv } from '@/utils/download'
 import { formatDate } from '@/utils/format'
@@ -18,6 +20,7 @@ import { useErrorMessage } from '@/composables/useErrorMessage'
 const { t } = useI18n()
 const vehicleStore = useVehicleStore()
 const store = useTripLogStore()
+const commutePlaces = useCommutePlacesStore()
 const uiSettings = useUiSettingsStore()
 const units = useUnits()
 const errorMessage = useErrorMessage()
@@ -55,6 +58,31 @@ function lookUpPlaces() {
 
 async function load() {
   await vehicleStore.fetchVehicles()
+  if (!vin.value) return
+  void commutePlaces.fetchPlaces(vin.value)
+  await store.fetchLog(vin.value, period.value)
+  lookUpPlaces()
+}
+
+// ── Home and work ─────────────────────────────────────────
+
+const placesOpen = ref(false)
+const pick = ref<{ latitude: number; longitude: number } | null>(null)
+
+const carPosition = computed<[number, number] | null>(() => {
+  const status = vehicleStore.currentStatus
+  return status?.latitude != null && status.longitude != null
+    ? [status.latitude, status.longitude]
+    : null
+})
+
+function openPlaces(latitude?: number, longitude?: number) {
+  pick.value = latitude === undefined || longitude === undefined ? null : { latitude, longitude }
+  placesOpen.value = true
+}
+
+// A place changed, so trips may have been labelled or unlabelled: show the log as it is now.
+async function reloadLog() {
   if (!vin.value) return
   await store.fetchLog(vin.value, period.value)
   lookUpPlaces()
@@ -99,6 +127,9 @@ function exportCsv() {
     <div class="view-header">
       <h1>{{ t('tripLog.title') }}</h1>
       <div class="view-header__actions">
+        <button type="button" class="btn btn-outline-secondary btn-sm" @click="openPlaces()">
+          <font-awesome-icon icon="house" />{{ t('tripLog.places.button') }}
+        </button>
         <button
           type="button"
           class="btn btn-primary btn-sm"
@@ -180,8 +211,19 @@ function exportCsv() {
         :places-shown="placesShown"
         :places-resolving="store.placesResolving"
         :saving="store.saving.has(entry.id)"
+        :commute-places="commutePlaces.places"
         @save="(purpose, notes) => save(entry.id, purpose, notes)"
+        @pick-place="openPlaces"
       />
     </ul>
+
+    <CommutePlacesModal
+      :open="placesOpen"
+      :vin="vin"
+      :pick="pick"
+      :fallback-center="carPosition"
+      @close="placesOpen = false"
+      @changed="reloadLog"
+    />
   </div>
 </template>

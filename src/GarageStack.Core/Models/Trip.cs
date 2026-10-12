@@ -44,6 +44,13 @@ public class Trip
     public string? EndPlaceJson { get; set; }
 
     public TripPurpose? Purpose { get; set; }
+
+    /// <summary>
+    /// Whether someone chose <see cref="Purpose"/>, including choosing none. Only trips nobody chose
+    /// for are labelled automatically, and moving home or work re-labels only those.
+    /// </summary>
+    public bool PurposeIsManual { get; set; }
+
     public string? Notes { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

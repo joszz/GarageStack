@@ -634,6 +634,40 @@
       "distance": "Afstand ({unit})",
       "purpose": "Soort rit",
       "notes": "Notities"
+    },
+    "places": {
+      "button": "Thuis en werk",
+      "title": "Thuis en werk",
+      "addTitle": "Plaats toevoegen",
+      "editTitle": "Plaats bewerken",
+      "intro": "Ritten tussen thuis en een werkplek worden als woon-werk gemarkeerd, ook ritten die al in het logboek staan. Ritten die je zelf hebt ingedeeld blijven zoals ze zijn.",
+      "empty": "Nog geen thuis of werk ingesteld.",
+      "addHome": "Thuis toevoegen",
+      "addWork": "Werk toevoegen",
+      "kindLabel": "Soort plaats",
+      "kind": {
+        "home": "Thuis",
+        "work": "Werk"
+      },
+      "label": "Naam (optioneel)",
+      "labelPlaceholder": {
+        "home": "bijv. Thuis",
+        "work": "bijv. Kantoor Utrecht"
+      },
+      "mapHint": "Klik op de kaart of sleep de speld naar waar de auto parkeert.",
+      "radius": "Straal",
+      "radiusHint": "Een rit die binnen deze afstand van de speld eindigt, telt als hier geëindigd.",
+      "within": "Ritten die eindigen binnen {distance}",
+      "editPlace": "{place} bewerken",
+      "save": "Opslaan",
+      "remove": "Verwijderen",
+      "removeConfirm": "Deze plaats verwijderen? Ritten die hierdoor als woon-werk gemarkeerd zijn, worden weer niet ingedeeld.",
+      "marked": "{n} rit als woon-werk gemarkeerd. | {n} ritten als woon-werk gemarkeerd.",
+      "cleared": "{n} rit niet meer als woon-werk gemarkeerd. | {n} ritten niet meer als woon-werk gemarkeerd.",
+      "noChange": "Geen ritten gewijzigd.",
+      "automatic": "Automatisch",
+      "automaticHint": "Als woon-werk gemarkeerd omdat de rit tussen thuis en werk loopt. Kies een ander doel om dit te wijzigen.",
+      "useEnd": "{place} instellen als thuis of werk"
     }
   },
   "maintenance": {
@@ -792,6 +826,13 @@
       },
       "push": {
         "notConfigured": "Pushmeldingen zijn op deze server niet ingesteld."
+      },
+      "commutePlace": {
+        "limitReached": "Een auto kan maximaal 10 plaatsen voor thuis en werk hebben.",
+        "kindRequired": "Kies thuis of werk.",
+        "invalidPosition": "Zet de speld op de kaart.",
+        "invalidRadius": "De straal moet tussen 50 en 1000 meter liggen.",
+        "labelTooLong": "De naam mag maximaal 60 tekens zijn."
       }
     }
   }

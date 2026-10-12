@@ -7,6 +7,7 @@ import en from '@/locales/en.json'
 import type { TripLogEntry } from '@/services/tripLogApi'
 import { deventer, logEntry, zwolle } from '@/services/__tests__/tripLogFixtures'
 import { useUiSettingsStore } from '@/stores/settingsUi'
+import type { CommutePlace } from '@/services/commutePlacesApi'
 
 const i18n = createI18n({ legacy: false, locale: 'en', messages: { en } })
 
@@ -17,7 +18,12 @@ beforeEach(() => {
 
 function mountItem(
   entry: TripLogEntry,
-  props: Partial<{ placesShown: boolean; placesResolving: boolean; saving: boolean }> = {},
+  props: Partial<{
+    placesShown: boolean
+    placesResolving: boolean
+    saving: boolean
+    commutePlaces: CommutePlace[]
+  }> = {},
 ) {
   return mount(TripLogItem, {
     props: {
@@ -25,6 +31,7 @@ function mountItem(
       placesShown: true,
       placesResolving: false,
       saving: false,
+      commutePlaces: [],
       ...props,
     },
     global: { plugins: [i18n], stubs: { FontAwesomeIcon: true } },
@@ -126,5 +133,42 @@ describe('TripLogItem', () => {
       wrapper.findAll('.trip-log-purpose').every((b) => b.attributes('disabled') !== undefined),
     ).toBe(true)
     expect(wrapper.find('input.trip-log-item__notes').attributes('disabled')).toBeDefined()
+  })
+
+  // ── Home and work ──────────────────────────────────────────
+
+  const home: CommutePlace = {
+    id: 1,
+    kind: 'home',
+    label: null,
+    latitude: 52.5123,
+    longitude: 6.0921,
+    radiusMeters: 250,
+  }
+
+  it('marks the end that is at home', () => {
+    const wrapper = mountItem(logEntry({ startPlace: zwolle, endPlace: deventer }), {
+      commutePlaces: [home],
+    })
+
+    const [from, to] = wrapper.findAll('.trip-log-item__place')
+    expect(from!.find('.trip-log-item__place-icon').attributes('icon')).toBe('house')
+    expect(to!.find('.trip-log-item__place-icon').exists()).toBe(false)
+  })
+
+  it('offers a trip end to set as home or work', async () => {
+    const wrapper = mountItem(logEntry({ startPlace: zwolle, endPlace: deventer }))
+
+    await wrapper.findAll('.trip-log-item__place')[1]!.trigger('click')
+
+    expect(wrapper.emitted('pickPlace')).toEqual([[52.2554, 6.1639]])
+  })
+
+  it('says when a commute was marked automatically', () => {
+    const automatic = mountItem(logEntry({ purpose: 'commute', purposeIsAutomatic: true }))
+    const chosen = mountItem(logEntry({ purpose: 'commute' }))
+
+    expect(automatic.find('.trip-log-item__auto').text()).toBe('Automatic')
+    expect(chosen.find('.trip-log-item__auto').exists()).toBe(false)
   })
 })

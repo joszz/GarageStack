@@ -173,6 +173,7 @@ try
     app.MapNotificationEndpoints();
     app.MapMaintenanceEndpoints();
     app.MapClimateScheduleEndpoints();
+    app.MapCommutePlaceEndpoints();
     app.MapWidgetEndpoints();
     app.MapUpdateEndpoints();
     app.MapMapEndpoints();

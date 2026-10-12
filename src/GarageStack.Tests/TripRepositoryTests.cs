@@ -371,4 +371,121 @@ public class TripRepositoryTests
         Assert.Null(entry.StartPlace);
         Assert.Equal(Office, entry.EndPlace);
     }
+
+    // ── Commutes ──────────────────────────────────────────────────────────────
+
+    // Drive() runs from 51.50 N to 51.60 N along the meridian.
+    private static CommutePlace At(int vehicleId, CommutePlaceKind kind, double latitude) =>
+        new() { VehicleId = vehicleId, Kind = kind, Latitude = latitude, Longitude = 0.0 };
+
+    private static async Task<List<CommutePlace>> HomeAndWorkAsync(AppDbContext db, Vehicle vehicle, CancellationToken ct)
+    {
+        List<CommutePlace> places = [At(vehicle.Id, CommutePlaceKind.Home, 51.50), At(vehicle.Id, CommutePlaceKind.Work, 51.60)];
+        db.CommutePlaces.AddRange(places);
+        await db.SaveChangesAsync(ct);
+        return places;
+    }
+
+    private static async Task<TripLogEntry> EntryAsync(TripRepository repo, Vehicle vehicle, long id, CancellationToken ct) =>
+        Assert.Single(await repo.GetLogEntriesAsync(vehicle.Id, [id], ct));
+
+    [Fact]
+    public async Task SaveRecorded_TripBetweenHomeAndWork_IsSavedAsAnAutomaticCommute()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (db, repo, vehicle) = await SetupAsync(ct);
+        await using var _ = db;
+        await HomeAndWorkAsync(db, vehicle, ct);
+
+        var entry = await EntryAsync(repo, vehicle, await SaveOneAsync(repo, vehicle, T0, ct), ct);
+
+        Assert.Equal(TripPurpose.Commute, entry.Purpose);
+        Assert.True(entry.PurposeIsAutomatic);
+    }
+
+    [Fact]
+    public async Task SaveRecorded_WithoutHomeAndWork_LeavesThePurposeOpen()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (db, repo, vehicle) = await SetupAsync(ct);
+        await using var _ = db;
+
+        var entry = await EntryAsync(repo, vehicle, await SaveOneAsync(repo, vehicle, T0, ct), ct);
+
+        Assert.Null(entry.Purpose);
+        Assert.False(entry.PurposeIsAutomatic);
+    }
+
+    // Setting home and work for the first time labels the history too, but never a trip someone
+    // classified, not even one deliberately left unclassified.
+    [Fact]
+    public async Task RelabelCommutes_MarksTripsNobodyChoseFor_AndLeavesChosenOnesAlone()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (db, repo, vehicle) = await SetupAsync(ct);
+        await using var _ = db;
+        var open = await SaveOneAsync(repo, vehicle, T0, ct);
+        var chosen = await SaveOneAsync(repo, vehicle, T0.AddDays(1), ct);
+        var leftOpen = await SaveOneAsync(repo, vehicle, T0.AddDays(2), ct);
+        await repo.SetPurposeAndNotesAsync(vehicle.Id, chosen, TripPurpose.Private, null, ct);
+        await repo.SetPurposeAsync(vehicle.Id, [leftOpen], null, ct);
+
+        var relabel = await repo.RelabelCommutesAsync(vehicle.Id, await HomeAndWorkAsync(db, vehicle, ct), ct);
+
+        Assert.Equal(new CommuteRelabel(Marked: 1, Cleared: 0), relabel);
+        Assert.Equal(TripPurpose.Commute, (await EntryAsync(repo, vehicle, open, ct)).Purpose);
+        Assert.Equal(TripPurpose.Private, (await EntryAsync(repo, vehicle, chosen, ct)).Purpose);
+        Assert.Null((await EntryAsync(repo, vehicle, leftOpen, ct)).Purpose);
+    }
+
+    [Fact]
+    public async Task RelabelCommutes_WorkMovedAway_UnmarksWhatItHadMarked()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (db, repo, vehicle) = await SetupAsync(ct);
+        await using var _ = db;
+        await HomeAndWorkAsync(db, vehicle, ct);
+        var id = await SaveOneAsync(repo, vehicle, T0, ct);
+
+        var relabel = await repo.RelabelCommutesAsync(vehicle.Id,
+            [At(vehicle.Id, CommutePlaceKind.Home, 51.50), At(vehicle.Id, CommutePlaceKind.Work, 51.90)], ct);
+
+        Assert.Equal(new CommuteRelabel(Marked: 0, Cleared: 1), relabel);
+        var entry = await EntryAsync(repo, vehicle, id, ct);
+        Assert.Null(entry.Purpose);
+        Assert.False(entry.PurposeIsAutomatic);
+    }
+
+    // The trip log sends the purpose back with every notes edit; that is no choice about it.
+    [Fact]
+    public async Task SetPurposeAndNotes_OnlyNotesEdited_KeepsTheLabelAutomatic()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (db, repo, vehicle) = await SetupAsync(ct);
+        await using var _ = db;
+        await HomeAndWorkAsync(db, vehicle, ct);
+        var id = await SaveOneAsync(repo, vehicle, T0, ct);
+
+        var entry = await repo.SetPurposeAndNotesAsync(vehicle.Id, id, TripPurpose.Commute, "Early start", ct);
+
+        Assert.True(entry!.PurposeIsAutomatic);
+        Assert.Equal("Early start", entry.Notes);
+    }
+
+    [Fact]
+    public async Task SetPurposeAndNotes_PurposeChanged_IsNoLongerRelabelled()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (db, repo, vehicle) = await SetupAsync(ct);
+        await using var _ = db;
+        var places = await HomeAndWorkAsync(db, vehicle, ct);
+        var id = await SaveOneAsync(repo, vehicle, T0, ct);
+
+        var entry = await repo.SetPurposeAndNotesAsync(vehicle.Id, id, TripPurpose.Business, null, ct);
+        var relabel = await repo.RelabelCommutesAsync(vehicle.Id, places, ct);
+
+        Assert.False(entry!.PurposeIsAutomatic);
+        Assert.Equal(new CommuteRelabel(0, 0), relabel);
+        Assert.Equal(TripPurpose.Business, (await EntryAsync(repo, vehicle, id, ct)).Purpose);
+    }
 }

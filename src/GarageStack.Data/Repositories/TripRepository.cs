@@ -74,9 +74,14 @@ public class TripRepository(
         var vehicle = await db.Vehicles.FindAsync([vehicleId], ct);
         if (vehicle is null) return;
 
+        // A new trip between home and work is a commute from the moment it is saved.
+        var places = await db.CommutePlaces.AsNoTracking().Where(p => p.VehicleId == vehicleId).ToListAsync(ct);
+
         db.Trips.AddRange(trips.Select(recorded =>
         {
             var trip = recorded.Trip;
+            var start = trip.Points[0];
+            var end = trip.Points[^1];
             return new Trip
             {
                 VehicleId = vehicleId,
@@ -91,6 +96,7 @@ public class TripRepository(
                 EndLongitude = trip.Points[^1].Longitude,
                 OdometerStartKm = recorded.OdometerStartKm,
                 OdometerEndKm = recorded.OdometerEndKm,
+                Purpose = CommuteRule.AutomaticPurpose(start.Latitude, start.Longitude, end.Latitude, end.Longitude, places),
             };
         }));
         vehicle.TripsRecordedUntil = recordedUntil;
@@ -125,7 +131,12 @@ public class TripRepository(
         var trip = await db.Trips.FirstOrDefaultAsync(t => t.Id == id && t.VehicleId == vehicleId, ct);
         if (trip is null) return null;
 
-        trip.Purpose = purpose;
+        // Editing only the notes sends the purpose back as it was; that is no choice about it.
+        if (trip.Purpose != purpose)
+        {
+            trip.Purpose = purpose;
+            trip.PurposeIsManual = true;
+        }
         trip.Notes = notes;
         await db.SaveChangesAsync(ct);
 
@@ -135,9 +146,38 @@ public class TripRepository(
     public async Task<int> SetPurposeAsync(int vehicleId, IReadOnlyCollection<long> ids, TripPurpose? purpose, CancellationToken ct = default)
     {
         var trips = await db.Trips.Where(t => t.VehicleId == vehicleId && ids.Contains(t.Id)).ToListAsync(ct);
-        foreach (var trip in trips) trip.Purpose = purpose;
+        foreach (var trip in trips)
+        {
+            trip.Purpose = purpose;
+            trip.PurposeIsManual = true;
+        }
         await db.SaveChangesAsync(ct);
         return trips.Count;
+    }
+
+    public async Task<CommuteRelabel> RelabelCommutesAsync(int vehicleId, IReadOnlyList<CommutePlace> places, CancellationToken ct = default)
+    {
+        // Ends and purposes only: reading every trip's fixes to look at two coordinates would read
+        // the whole GPS history. Only the trips whose label changes are loaded in full.
+        var automatic = await db.Trips
+            .AsNoTracking()
+            .Where(t => t.VehicleId == vehicleId && !t.PurposeIsManual)
+            .Select(t => new { t.Id, t.StartLatitude, t.StartLongitude, t.EndLatitude, t.EndLongitude, t.Purpose })
+            .ToListAsync(ct);
+
+        var changes = automatic
+            .Select(t => (t.Id, Purpose: CommuteRule.AutomaticPurpose(t.StartLatitude, t.StartLongitude, t.EndLatitude, t.EndLongitude, places), Was: t.Purpose))
+            .Where(t => t.Purpose != t.Was)
+            .ToDictionary(t => t.Id, t => t.Purpose);
+        if (changes.Count == 0) return new CommuteRelabel(0, 0);
+
+        var ids = changes.Keys.ToList();
+        var trips = await db.Trips.Where(t => t.VehicleId == vehicleId && ids.Contains(t.Id)).ToListAsync(ct);
+        foreach (var trip in trips) trip.Purpose = changes[trip.Id];
+        await db.SaveChangesAsync(ct);
+
+        var marked = changes.Values.Count(p => p == TripPurpose.Commute);
+        return new CommuteRelabel(marked, changes.Count - marked);
     }
 
     public async Task SavePlacesAsync(int vehicleId, IReadOnlyList<TripPlaces> places, CancellationToken ct = default)
@@ -163,20 +203,20 @@ public class TripRepository(
         t.Id, t.StartedAt, t.EndedAt, t.DistanceKm,
         t.StartLatitude, t.StartLongitude, t.EndLatitude, t.EndLongitude,
         t.OdometerStartKm, t.OdometerEndKm,
-        t.StartPlaceJson, t.EndPlaceJson, t.Purpose, t.Notes);
+        t.StartPlaceJson, t.EndPlaceJson, t.Purpose, t.Notes, t.PurposeIsManual);
 
     private sealed record LogRow(
         long Id, DateTime StartedAt, DateTime EndedAt, double DistanceKm,
         double StartLatitude, double StartLongitude, double EndLatitude, double EndLongitude,
         double? OdometerStartKm, double? OdometerEndKm,
-        string? StartPlaceJson, string? EndPlaceJson, TripPurpose? Purpose, string? Notes);
+        string? StartPlaceJson, string? EndPlaceJson, TripPurpose? Purpose, string? Notes, bool PurposeIsManual);
 
     private TripLogEntry ToEntry(LogRow r) => new(
         r.Id, r.StartedAt, r.EndedAt, r.DistanceKm,
         r.StartLatitude, r.StartLongitude, r.EndLatitude, r.EndLongitude,
         r.OdometerStartKm, r.OdometerEndKm,
         ReadPlace(r.Id, r.StartPlaceJson), ReadPlace(r.Id, r.EndPlaceJson),
-        r.Purpose, r.Notes);
+        r.Purpose, r.Notes, PurposeIsAutomatic: r.Purpose is not null && !r.PurposeIsManual);
 
     // An unreadable place is as good as none: the trip log looks it up again.
     private PlaceAddress? ReadPlace(long tripId, string? json) =>

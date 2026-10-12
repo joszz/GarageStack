@@ -21,7 +21,12 @@ public sealed record TripLogEntry(
     PlaceAddress? StartPlace,
     PlaceAddress? EndPlace,
     TripPurpose? Purpose,
-    string? Notes);
+    string? Notes,
+    // Set from home and work rather than by someone (Trip.PurposeIsManual).
+    bool PurposeIsAutomatic = false);
+
+/// <summary>How many trips a re-label marked as commutes, and how many it unmarked.</summary>
+public sealed record CommuteRelabel(int Marked, int Cleared);
 
 /// <summary>The places now known for one trip. Either may still be null when it is not resolved yet.</summary>
 public sealed record TripPlaces(long Id, PlaceAddress? StartPlace, PlaceAddress? EndPlace);

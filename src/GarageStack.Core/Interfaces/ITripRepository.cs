@@ -40,16 +40,24 @@ public interface ITripRepository
     Task<IReadOnlyList<TripLogEntry>> GetLogEntriesAsync(int vehicleId, IReadOnlyCollection<long> ids, CancellationToken ct = default);
 
     /// <summary>
-    /// Records what a trip was for and any notes, replacing what was there. Returns the updated
+    /// Records what a trip was for and any notes, replacing what was there. A purpose that changes
+    /// counts as chosen by hand, and is no longer labelled automatically. Returns the updated
     /// entry, or null when the vehicle has no such trip.
     /// </summary>
     Task<TripLogEntry?> SetPurposeAndNotesAsync(int vehicleId, long id, TripPurpose? purpose, string? notes, CancellationToken ct = default);
 
     /// <summary>
-    /// Sets the purpose of every trip in <paramref name="ids"/> that belongs to the vehicle, leaving
-    /// its notes alone. Returns how many trips were changed.
+    /// Sets the purpose of every trip in <paramref name="ids"/> that belongs to the vehicle, by
+    /// hand, leaving its notes alone. Returns how many trips were changed.
     /// </summary>
     Task<int> SetPurposeAsync(int vehicleId, IReadOnlyCollection<long> ids, TripPurpose? purpose, CancellationToken ct = default);
+
+    /// <summary>
+    /// Labels every trip nobody chose a purpose for against <paramref name="places"/>: a commute
+    /// when it runs between home and work, unlabelled otherwise. Trips someone chose for are left
+    /// alone, so moving home or work re-labels only what was labelled automatically.
+    /// </summary>
+    Task<CommuteRelabel> RelabelCommutesAsync(int vehicleId, IReadOnlyList<CommutePlace> places, CancellationToken ct = default);
 
     /// <summary>
     /// Keeps the places now known for these trips. A null place leaves what is stored alone, so a

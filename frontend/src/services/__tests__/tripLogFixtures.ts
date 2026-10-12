@@ -23,6 +23,7 @@ export function logEntry(overrides: Partial<TripLogEntry> = {}): TripLogEntry {
     endPlace: null,
     purpose: null,
     notes: null,
+    purposeIsAutomatic: false,
     ...overrides,
   }
 }
