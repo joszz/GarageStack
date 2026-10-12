@@ -147,6 +147,45 @@ namespace GarageStack.Data.Migrations
                     b.ToTable("ClimateSchedules");
                 });
 
+            modelBuilder.Entity("GarageStack.Core.Models.CommutePlace", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)");
+
+                    b.Property<string>("Label")
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)");
+
+                    b.Property<double>("Latitude")
+                        .HasColumnType("double precision");
+
+                    b.Property<double>("Longitude")
+                        .HasColumnType("double precision");
+
+                    b.Property<int>("RadiusMeters")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("VehicleId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("VehicleId");
+
+                    b.ToTable("CommutePlaces");
+                });
+
             modelBuilder.Entity("GarageStack.Core.Models.GeocodeCacheEntry", b =>
                 {
                     b.Property<int>("Id")
@@ -815,6 +854,9 @@ namespace GarageStack.Data.Migrations
                         .HasMaxLength(16)
                         .HasColumnType("character varying(16)");
 
+                    b.Property<bool>("PurposeIsManual")
+                        .HasColumnType("boolean");
+
                     b.Property<double>("StartLatitude")
                         .HasColumnType("double precision");
 
@@ -925,6 +967,17 @@ namespace GarageStack.Data.Migrations
                 });
 
             modelBuilder.Entity("GarageStack.Core.Models.ClimateSchedule", b =>
+                {
+                    b.HasOne("GarageStack.Core.Models.Vehicle", "Vehicle")
+                        .WithMany()
+                        .HasForeignKey("VehicleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Vehicle");
+                });
+
+            modelBuilder.Entity("GarageStack.Core.Models.CommutePlace", b =>
                 {
                     b.HasOne("GarageStack.Core.Models.Vehicle", "Vehicle")
                         .WithMany()

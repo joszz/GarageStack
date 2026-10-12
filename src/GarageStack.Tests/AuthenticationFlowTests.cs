@@ -1,10 +1,12 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
 using GarageStack.Api;
 using GarageStack.Api.Authentication;
 using GarageStack.Api.Endpoints;
 using GarageStack.Api.Services;
 using GarageStack.Core.Configuration;
+using GarageStack.Core.Models;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -316,6 +318,54 @@ public class AuthenticationFlowTests
         Assert.Equal(
             """{"status":"healthy","checks":{"database":"healthy"}}""",
             await response.Content.ReadAsStringAsync(ct));
+    }
+
+    // Through the whole stack: setting home and work labels an unclassified demo trip between them
+    // straight away, and removing them takes the label off again. Places are removed at the end,
+    // since the demo database is shared by every host in this run.
+    [Fact]
+    public async Task CommutePlaces_LabelTheTripBetweenThem_AndRemovingThemUndoesIt()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var factory = CreatePasswordOnlyFactory();
+        using var client = CreateClient(factory);
+        var login = await client.PostAsJsonAsync(
+            "/api/auth/login",
+            new { username = DemoUsername, password = DemoPassword, rememberMe = false },
+            ct);
+        Assert.Equal(HttpStatusCode.OK, login.StatusCode);
+
+        var vehicles = await client.GetFromJsonAsync<JsonElement>("/api/vehicles", ct);
+        var vin = vehicles[0].GetProperty("vin").GetString();
+        var logUrl = $"/api/vehicles/{vin}/trips/log?from={DateTimeOffset.UtcNow.AddDays(-60):O}&to={DateTimeOffset.UtcNow:O}"
+            .Replace("+", "%2B", StringComparison.Ordinal);
+        async Task<TripLogEntry> EntryAsync(long id) =>
+            (await client.GetFromJsonAsync<List<TripLogEntry>>(logUrl, ct))!.Single(e => e.Id == id);
+
+        var open = (await client.GetFromJsonAsync<List<TripLogEntry>>(logUrl, ct))!.First(e => e.Purpose is null);
+        var placesUrl = $"/api/vehicles/{vin}/commute-places";
+
+        var home = await (await client.PostAsJsonAsync(placesUrl,
+            new { kind = "home", latitude = open.StartLatitude, longitude = open.StartLongitude }, ct))
+            .Content.ReadFromJsonAsync<CommutePlaceChange>(ct);
+        var work = await (await client.PostAsJsonAsync(placesUrl,
+            new { kind = "work", label = "Office", latitude = open.EndLatitude, longitude = open.EndLongitude, radiusMeters = 300 }, ct))
+            .Content.ReadFromJsonAsync<CommutePlaceChange>(ct);
+
+        Assert.Equal(0, home!.Marked);
+        Assert.True(work!.Marked >= 1);
+        Assert.Equal(new CommutePlaceDto(work.Place!.Id, CommutePlaceKind.Work, "Office", open.EndLatitude, open.EndLongitude, 300), work.Place);
+        var labelled = await EntryAsync(open.Id);
+        Assert.Equal(TripPurpose.Commute, labelled.Purpose);
+        Assert.True(labelled.PurposeIsAutomatic);
+
+        await client.DeleteAsync($"{placesUrl}/{home.Place!.Id}", ct);
+        var removed = await (await client.DeleteAsync($"{placesUrl}/{work.Place.Id}", ct))
+            .Content.ReadFromJsonAsync<CommutePlaceChange>(ct);
+
+        Assert.Null(removed!.Place);
+        Assert.Null((await EntryAsync(open.Id)).Purpose);
+        Assert.Empty((await client.GetFromJsonAsync<List<CommutePlaceDto>>(placesUrl, ct))!);
     }
 
     [Fact]

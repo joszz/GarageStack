@@ -88,6 +88,7 @@ export {
   faTrash,
   faTriangleExclamation,
   faUser,
+  faWandMagicSparkles,
   faWaveSquare,
   faWifi,
   faWind,

@@ -32,6 +32,8 @@ export interface TripLogEntry {
   endPlace: Place | null
   purpose: TripPurpose | null
   notes: string | null
+  /** Marked a commute from home and work, rather than chosen by someone. */
+  purposeIsAutomatic: boolean
 }
 
 export interface TripPlaces {

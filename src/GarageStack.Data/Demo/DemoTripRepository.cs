@@ -1,3 +1,4 @@
+using GarageStack.Core.Helpers;
 using GarageStack.Core.Interfaces;
 using GarageStack.Core.Models;
 
@@ -12,6 +13,9 @@ public sealed class DemoTripRepository : ITripRepository
 {
     private readonly Lock _lock = new();
     private readonly Dictionary<long, TripLogEntry> _log = DemoTrips.Log.ToDictionary(e => e.Id);
+
+    // The trips a visitor chose a purpose for, as Trip.PurposeIsManual records it for real trips.
+    private readonly HashSet<long> _manual = [.. DemoTrips.Log.Where(e => e.Purpose is not null).Select(e => e.Id)];
 
     public Task<IReadOnlyList<TripDto>> GetTripsAsync(int vehicleId, DateTime from, DateTime to, CancellationToken ct = default) =>
         Task.FromResult<IReadOnlyList<TripDto>>(
@@ -52,7 +56,12 @@ public sealed class DemoTripRepository : ITripRepository
         lock (_lock)
         {
             if (!_log.TryGetValue(id, out var entry)) return Task.FromResult<TripLogEntry?>(null);
-            var updated = entry with { Purpose = purpose, Notes = notes };
+            var updated = entry with { Notes = notes };
+            if (entry.Purpose != purpose)
+            {
+                _manual.Add(id);
+                updated = updated with { Purpose = purpose, PurposeIsAutomatic = false };
+            }
             _log[id] = updated;
             return Task.FromResult<TripLogEntry?>(updated);
         }
@@ -66,11 +75,32 @@ public sealed class DemoTripRepository : ITripRepository
             foreach (var id in ids.Distinct())
             {
                 if (!_log.TryGetValue(id, out var entry)) continue;
-                _log[id] = entry with { Purpose = purpose };
+                _log[id] = entry with { Purpose = purpose, PurposeIsAutomatic = false };
+                _manual.Add(id);
                 changed++;
             }
 
             return Task.FromResult(changed);
+        }
+    }
+
+    public Task<CommuteRelabel> RelabelCommutesAsync(int vehicleId, IReadOnlyList<CommutePlace> places, CancellationToken ct = default)
+    {
+        lock (_lock)
+        {
+            int marked = 0, cleared = 0;
+            foreach (var entry in _log.Values.Where(e => !_manual.Contains(e.Id)).ToList())
+            {
+                var purpose = CommuteRule.AutomaticPurpose(
+                    entry.StartLatitude, entry.StartLongitude, entry.EndLatitude, entry.EndLongitude, places);
+                if (purpose == entry.Purpose) continue;
+
+                _log[entry.Id] = entry with { Purpose = purpose, PurposeIsAutomatic = purpose is not null };
+                if (purpose is null) cleared++;
+                else marked++;
+            }
+
+            return Task.FromResult(new CommuteRelabel(marked, cleared));
         }
     }
 

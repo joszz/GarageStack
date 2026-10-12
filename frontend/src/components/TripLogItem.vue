@@ -10,6 +10,8 @@ import {
 } from '@/services/tripLogApi'
 import { formatDate, formatTime } from '@/utils/format'
 import { endLabel, loggedDistanceKm, odometerDistanceKm, PURPOSE_ICONS } from '@/utils/tripLog'
+import { COMMUTE_PLACE_ICONS, commutePlaceAt } from '@/utils/commutePlaces'
+import type { CommutePlace } from '@/services/commutePlacesApi'
 import { useUnits } from '@/composables/useUnits'
 import ChipGroup from './ChipGroup.vue'
 import type { ChipOption } from '@/utils/chips'
@@ -21,10 +23,14 @@ const props = defineProps<{
   /** True while addresses are being looked up, so a missing one shows a placeholder. */
   placesResolving: boolean
   saving: boolean
+  /** Home and work, to mark the ends that are at one of them. */
+  commutePlaces: readonly CommutePlace[]
 }>()
 
 const emit = defineEmits<{
   (e: 'save', purpose: TripPurpose | null, notes: string | null): void
+  /** One of the trip's ends, to set as home or work. */
+  (e: 'pickPlace', latitude: number, longitude: number): void
 }>()
 
 const { t } = useI18n()
@@ -39,10 +45,16 @@ const timeLabel = computed(
 )
 
 // A placeholder while the address is on its way, then the address, or the coordinates when
-// there is none to be had.
+// there is none to be had; and the home or work place it is at, if any.
 function tripEnd(place: Place | null, lat: number, lng: number) {
   const pending = props.placesShown && place === null && props.placesResolving
-  return { pending, label: pending ? null : endLabel(props.placesShown ? place : null, lat, lng) }
+  return {
+    pending,
+    label: pending ? null : endLabel(props.placesShown ? place : null, lat, lng),
+    commutePlace: commutePlaceAt(props.commutePlaces, lat, lng),
+    lat,
+    lng,
+  }
 }
 
 const from = computed(() =>
@@ -109,16 +121,40 @@ function saveNotes() {
         class="skeleton skeleton--text skeleton--text-md"
         :aria-label="t('tripLog.resolvingPlaces')"
       />
-      <span v-else class="trip-log-item__place" :title="from.label ?? undefined">{{
-        from.label
-      }}</span>
+      <button
+        v-else
+        type="button"
+        class="trip-log-item__place"
+        :title="from.label ?? undefined"
+        :aria-label="t('tripLog.places.useEnd', { place: from.label })"
+        @click="emit('pickPlace', from.lat, from.lng)"
+      >
+        <font-awesome-icon
+          v-if="from.commutePlace"
+          :icon="COMMUTE_PLACE_ICONS[from.commutePlace.kind]"
+          class="trip-log-item__place-icon"
+        />{{ from.label }}
+      </button>
       <font-awesome-icon icon="arrow-right" class="trip-log-item__arrow" aria-hidden="true" />
       <span
         v-if="to.pending"
         class="skeleton skeleton--text skeleton--text-md"
         :aria-label="t('tripLog.resolvingPlaces')"
       />
-      <span v-else class="trip-log-item__place" :title="to.label ?? undefined">{{ to.label }}</span>
+      <button
+        v-else
+        type="button"
+        class="trip-log-item__place"
+        :title="to.label ?? undefined"
+        :aria-label="t('tripLog.places.useEnd', { place: to.label })"
+        @click="emit('pickPlace', to.lat, to.lng)"
+      >
+        <font-awesome-icon
+          v-if="to.commutePlace"
+          :icon="COMMUTE_PLACE_ICONS[to.commutePlace.kind]"
+          class="trip-log-item__place-icon"
+        />{{ to.label }}
+      </button>
     </div>
 
     <div class="trip-log-item__distance">
@@ -142,6 +178,13 @@ function saveNotes() {
         deselectable
         @update:model-value="choosePurpose"
       />
+      <span
+        v-if="entry.purposeIsAutomatic"
+        class="trip-log-item__auto text-xs text-muted"
+        :title="t('tripLog.places.automaticHint')"
+      >
+        <font-awesome-icon icon="wand-magic-sparkles" />{{ t('tripLog.places.automatic') }}
+      </span>
 
       <input
         v-model="notesDraft"

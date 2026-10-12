@@ -19,6 +19,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<RevokedToken> RevokedTokens => Set<RevokedToken>();
     public DbSet<UserSettings> UserSettings => Set<UserSettings>();
     public DbSet<ClimateSchedule> ClimateSchedules => Set<ClimateSchedule>();
+    public DbSet<CommutePlace> CommutePlaces => Set<CommutePlace>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -194,6 +195,19 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.Property(s => s.Section).HasMaxLength(UserSettingsLimits.SectionMaxLength).IsRequired();
             e.Property(s => s.Json).IsRequired();
             e.Property(s => s.Version).IsConcurrencyToken();
+        });
+
+        modelBuilder.Entity<CommutePlace>(e =>
+        {
+            e.HasKey(p => p.Id);
+            e.HasIndex(p => p.VehicleId);
+            // Stored by name so the column reads the same in a query or a backup as in the API.
+            e.Property(p => p.Kind).HasConversion<string>().HasMaxLength(8);
+            e.Property(p => p.Label).HasMaxLength(CommutePlaceLimits.LabelMaxLength);
+            e.HasOne(p => p.Vehicle)
+             .WithMany()
+             .HasForeignKey(p => p.VehicleId)
+             .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<ClimateSchedule>(e =>

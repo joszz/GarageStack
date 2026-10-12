@@ -634,6 +634,40 @@
       "distance": "Distance ({unit})",
       "purpose": "Purpose",
       "notes": "Notes"
+    },
+    "places": {
+      "button": "Home and work",
+      "title": "Home and work",
+      "addTitle": "Add a place",
+      "editTitle": "Edit place",
+      "intro": "Trips between home and a work place are marked as commutes, including trips already in the log. Trips you classified yourself stay as they are.",
+      "empty": "No home or work set yet.",
+      "addHome": "Add home",
+      "addWork": "Add work",
+      "kindLabel": "Kind of place",
+      "kind": {
+        "home": "Home",
+        "work": "Work"
+      },
+      "label": "Name (optional)",
+      "labelPlaceholder": {
+        "home": "e.g. Home",
+        "work": "e.g. Office Utrecht"
+      },
+      "mapHint": "Click the map or drag the pin to where the car parks.",
+      "radius": "Radius",
+      "radiusHint": "A trip ending within this distance of the pin counts as ending here.",
+      "within": "Trips ending within {distance}",
+      "editPlace": "Edit {place}",
+      "save": "Save",
+      "remove": "Remove",
+      "removeConfirm": "Remove this place? Trips it marked as commutes go back to unclassified.",
+      "marked": "{n} trip marked as commute. | {n} trips marked as commute.",
+      "cleared": "{n} trip no longer marked as commute. | {n} trips no longer marked as commute.",
+      "noChange": "No trips changed.",
+      "automatic": "Automatic",
+      "automaticHint": "Marked as commute because the trip runs between home and work. Choose another purpose to override it.",
+      "useEnd": "Set {place} as home or work"
     }
   },
   "maintenance": {
@@ -792,6 +826,13 @@
       },
       "push": {
         "notConfigured": "Push notifications are not set up on this server."
+      },
+      "commutePlace": {
+        "limitReached": "A car can have at most 10 home and work places.",
+        "kindRequired": "Choose home or work.",
+        "invalidPosition": "Place the pin on the map.",
+        "invalidRadius": "The radius must be between 50 and 1000 metres.",
+        "labelTooLong": "The name can be at most 60 characters."
       }
     }
   }

@@ -45,6 +45,35 @@
   gap: 0.4rem;
 }
 
+/* ── Home and work ────────────────────────────────────────── */
+
+.commute-places__intro {
+  margin-bottom: 0.75rem;
+}
+
+.commute-places__change {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.75rem;
+  color: var(--color-success);
+}
+
+/* As tall as the statistics page's parking map. */
+.commute-places__map {
+  height: 280px;
+  width: 100%;
+  margin-top: 0.35rem;
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+@media (width >= 768px) {
+  .commute-places__map {
+    height: 360px;
+  }
+}
+
 /* ── Trip list ────────────────────────────────────────────── */
 
 .trip-log-list {
@@ -95,11 +124,34 @@
   min-width: 0;
 }
 
+/* A button, so a trip end can be set as home or work, that still reads as the address. */
 .trip-log-item__place {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.trip-log-item__place:hover {
+  text-decoration: underline;
+}
+
+.trip-log-item__place-icon {
+  margin-right: 0.35rem;
+  color: var(--color-text-muted);
+}
+
+.trip-log-item__auto {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
 }
 
 .trip-log-item__arrow {
