@@ -231,94 +231,136 @@ public class PushNotificationCheckServiceTests
     }
 
     // ---------------------------------------------------------------------------
-    // CheckChargingComplete: BEV/PHEV only, transition detection
+    // CheckChargingStopped: BEV/PHEV only, transition detection
     // ---------------------------------------------------------------------------
 
     [Fact]
-    public void CheckChargingComplete_TransitionToNotCharging_CableConnected_FiresAlert()
+    public void CheckChargingStopped_TransitionToNotCharging_CableConnected_FiresAlert()
     {
         var svc = CreateService();
         var alerts = new List<(string, string, string)>();
 
-        svc.CheckChargingComplete(new TelemetrySnapshot { IsCharging = true, ChargerConnected = true }, "VIN1", "bev", alerts);
-        svc.CheckChargingComplete(new TelemetrySnapshot { IsCharging = false, ChargerConnected = true }, "VIN1", "bev", alerts);
+        svc.CheckChargingStopped(new TelemetrySnapshot { IsCharging = true, ChargerConnected = true }, "VIN1", "bev", null, alerts);
+        svc.CheckChargingStopped(new TelemetrySnapshot { IsCharging = false, ChargerConnected = true }, "VIN1", "bev", null, alerts);
 
         Assert.Single(alerts);
         Assert.Equal("charging-complete", alerts[0].Item1);
     }
 
     [Fact]
-    public void CheckChargingComplete_IncludesSocInBody_WhenAvailable()
+    public void CheckChargingStopped_IncludesSocInBody_WhenAvailable()
     {
         var svc = CreateService();
         var alerts = new List<(string, string, string)>();
 
-        svc.CheckChargingComplete(new TelemetrySnapshot { IsCharging = true, ChargerConnected = true }, "VIN1", "bev", alerts);
-        svc.CheckChargingComplete(new TelemetrySnapshot { IsCharging = false, ChargerConnected = true, EvSocPercent = 98 }, "VIN1", "bev", alerts);
+        svc.CheckChargingStopped(new TelemetrySnapshot { IsCharging = true, ChargerConnected = true }, "VIN1", "bev", null, alerts);
+        svc.CheckChargingStopped(new TelemetrySnapshot { IsCharging = false, ChargerConnected = true, EvSocPercent = 98 }, "VIN1", "bev", null, alerts);
 
         Assert.Contains("98%", alerts[0].Item3);
     }
 
     [Fact]
-    public void CheckChargingComplete_CableDisconnected_NoAlert()
+    public void CheckChargingStopped_CableDisconnected_NoAlert()
     {
         var svc = CreateService();
         var alerts = new List<(string, string, string)>();
 
-        svc.CheckChargingComplete(new TelemetrySnapshot { IsCharging = true, ChargerConnected = true }, "VIN1", "bev", alerts);
-        svc.CheckChargingComplete(new TelemetrySnapshot { IsCharging = false, ChargerConnected = false }, "VIN1", "bev", alerts);
+        svc.CheckChargingStopped(new TelemetrySnapshot { IsCharging = true, ChargerConnected = true }, "VIN1", "bev", null, alerts);
+        svc.CheckChargingStopped(new TelemetrySnapshot { IsCharging = false, ChargerConnected = false }, "VIN1", "bev", null, alerts);
 
         Assert.Empty(alerts);
     }
 
     [Fact]
-    public void CheckChargingComplete_HevVehicle_NoAlert()
+    public void CheckChargingStopped_HevVehicle_NoAlert()
     {
         var svc = CreateService();
         var alerts = new List<(string, string, string)>();
 
-        svc.CheckChargingComplete(new TelemetrySnapshot { IsCharging = true, ChargerConnected = true }, "VIN1", "hev", alerts);
-        svc.CheckChargingComplete(new TelemetrySnapshot { IsCharging = false, ChargerConnected = true }, "VIN1", "hev", alerts);
+        svc.CheckChargingStopped(new TelemetrySnapshot { IsCharging = true, ChargerConnected = true }, "VIN1", "hev", null, alerts);
+        svc.CheckChargingStopped(new TelemetrySnapshot { IsCharging = false, ChargerConnected = true }, "VIN1", "hev", null, alerts);
 
         Assert.Empty(alerts);
     }
 
     [Fact]
-    public void CheckChargingComplete_PhevVehicle_FiresAlert()
+    public void CheckChargingStopped_PhevVehicle_FiresAlert()
     {
         var svc = CreateService();
         var alerts = new List<(string, string, string)>();
 
-        svc.CheckChargingComplete(new TelemetrySnapshot { IsCharging = true, ChargerConnected = true }, "VIN1", "phev", alerts);
-        svc.CheckChargingComplete(new TelemetrySnapshot { IsCharging = false, ChargerConnected = true }, "VIN1", "phev", alerts);
+        svc.CheckChargingStopped(new TelemetrySnapshot { IsCharging = true, ChargerConnected = true }, "VIN1", "phev", null, alerts);
+        svc.CheckChargingStopped(new TelemetrySnapshot { IsCharging = false, ChargerConnected = true }, "VIN1", "phev", null, alerts);
 
         Assert.Single(alerts);
         Assert.Equal("charging-complete", alerts[0].Item1);
     }
 
     [Fact]
-    public void CheckChargingComplete_FirstObservation_NoAlert()
+    public void CheckChargingStopped_FirstObservation_NoAlert()
     {
         var svc = CreateService();
         var alerts = new List<(string, string, string)>();
 
-        svc.CheckChargingComplete(new TelemetrySnapshot { IsCharging = false, ChargerConnected = true }, "VIN1", "bev", alerts);
+        svc.CheckChargingStopped(new TelemetrySnapshot { IsCharging = false, ChargerConnected = true }, "VIN1", "bev", null, alerts);
 
         Assert.Empty(alerts);
     }
 
     [Fact]
-    public void CheckChargingComplete_MultipleVins_TrackedIndependently()
+    public void CheckChargingStopped_MultipleVins_TrackedIndependently()
     {
         var svc = CreateService();
         var alerts = new List<(string, string, string)>();
 
-        svc.CheckChargingComplete(new TelemetrySnapshot { IsCharging = true, ChargerConnected = true }, "VIN1", "bev", alerts);
-        svc.CheckChargingComplete(new TelemetrySnapshot { IsCharging = true, ChargerConnected = true }, "VIN2", "bev", alerts);
-        svc.CheckChargingComplete(new TelemetrySnapshot { IsCharging = false, ChargerConnected = true }, "VIN1", "bev", alerts);
+        svc.CheckChargingStopped(new TelemetrySnapshot { IsCharging = true, ChargerConnected = true }, "VIN1", "bev", null, alerts);
+        svc.CheckChargingStopped(new TelemetrySnapshot { IsCharging = true, ChargerConnected = true }, "VIN2", "bev", null, alerts);
+        svc.CheckChargingStopped(new TelemetrySnapshot { IsCharging = false, ChargerConnected = true }, "VIN1", "bev", null, alerts);
 
         Assert.Single(alerts);
         Assert.Equal("charging-complete", alerts[0].Item1);
+    }
+
+    // A charge the car broke off: the stop reason comes from the poll that showed it stop.
+    private static List<(string, string, string)> StopCharging(string? stopReason, bool? cableConnected)
+    {
+        var svc = CreateService();
+        var alerts = new List<(string, string, string)>();
+        svc.CheckChargingStopped(new TelemetrySnapshot { IsCharging = true, ChargerConnected = true }, "VIN1", "bev", null, alerts);
+        svc.CheckChargingStopped(
+            new TelemetrySnapshot { IsCharging = false, ChargerConnected = cableConnected, EvSocPercent = 64 }, "VIN1", "bev", stopReason, alerts);
+        return alerts;
+    }
+
+    [Fact]
+    public void CheckChargingStopped_FaultTheCarNames_ReportsItAsInterrupted()
+    {
+        var (category, _, body) = Assert.Single(StopCharging("CHARGER_PORT_OVER_TEMPERATURE", cableConnected: true));
+
+        Assert.Equal("charging-interrupted", category);
+        Assert.Contains("too hot", body);
+        Assert.Contains("64%", body);
+    }
+
+    // A plug not fully in can read as no cable at all, and that is exactly when it matters.
+    [Fact]
+    public void CheckChargingStopped_FaultWithTheCableReadAsOut_IsStillReported()
+    {
+        Assert.Equal("charging-interrupted", Assert.Single(StopCharging("CHARGING_GUN_NOT_PROPERLY_PLUGGED_IN", cableConnected: false)).Item1);
+    }
+
+    [Theory]
+    [InlineData("OTHER_REASON")]
+    [InlineData("UNKNOWN 9")]
+    public void CheckChargingStopped_ReasonNotKnownToBeAFault_ReadsAsComplete(string stopReason)
+    {
+        Assert.Equal("charging-complete", Assert.Single(StopCharging(stopReason, cableConnected: true)).Item1);
+    }
+
+    [Fact]
+    public void CheckChargingStopped_UnpluggedWithoutAFault_SendsNothing()
+    {
+        Assert.Empty(StopCharging(null, cableConnected: false));
     }
 
     // ---------------------------------------------------------------------------
@@ -589,7 +631,7 @@ public class PushNotificationCheckServiceTests
         await db.SaveChangesAsync(ct);
         var push = new FakePushSender();
 
-        await CreateService(push: push).CheckLevelsAsync(vehicle, SoftTyreReportedAt(polledAt), db, now, ct);
+        await CreateService(push: push).CheckLevelsAsync(vehicle, SoftTyreReportedAt(polledAt), new TelemetryRepository(db), db, now, ct);
 
         Assert.Empty(push.Sent);
     }
@@ -611,7 +653,7 @@ public class PushNotificationCheckServiceTests
         await db.SaveChangesAsync(ct);
         var push = new FakePushSender();
 
-        await CreateService(push: push).CheckLevelsAsync(vehicle, SoftTyreReportedAt(now.AddMinutes(-2)), db, now, ct);
+        await CreateService(push: push).CheckLevelsAsync(vehicle, SoftTyreReportedAt(now.AddMinutes(-2)), new TelemetryRepository(db), db, now, ct);
 
         Assert.Equal("low-tyre", Assert.Single(push.Sent).Category);
     }

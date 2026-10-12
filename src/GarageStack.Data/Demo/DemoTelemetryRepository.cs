@@ -73,6 +73,9 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
     public Task<IReadOnlyList<StatusReading>> GetStatusReadingsAsync(int vehicleId, int count, CancellationToken ct = default) =>
         Task.FromResult<IReadOnlyList<StatusReading>>([]);
 
+    public Task<string?> GetChargingStopReasonAsync(int vehicleId, CancellationToken ct = default) =>
+        Task.FromResult<string?>(null);
+
     // Demo data is not ingested from MQTT, so there are no raw topics to report.
     public Task<IReadOnlyList<RawTopicStat>> GetRawTopicStatsAsync(int vehicleId, CancellationToken ct = default) =>
         Task.FromResult<IReadOnlyList<RawTopicStat>>([]);
@@ -150,7 +153,9 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
             ChargerConnected = false,
             ChargingType = "AC",
             ChargingCableLock = false,
-            BmsChargeStatus = "NotCharging",
+            BmsChargeStatus = "UNPLUGGED",
+            SocTargetPercent = 80,
+            ChargeCurrentLimit = "Max",
             OnboardChargerPlugStatus = 0,
             OffboardChargerPlugStatus = 0,
             ObcVoltage = 0.0,
@@ -197,7 +202,7 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
             MileageSinceLastCharge = 32.4,
             MileageOfTheDay = 18.2,
             PowerUsageOfDay = 2.95,
-            ChargingScheduleMode = "Immediate",
+            ChargingScheduleMode = "UNTIL_CONFIGURED_TIME",
             ChargingScheduleStartTime = "00:00",
             ChargingScheduleEndTime = "07:00",
         };

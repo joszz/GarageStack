@@ -4,7 +4,7 @@ Demo mode runs GarageStack with realistic fake data and requires no MG iSmart cr
 
 ## What you get
 
-- MG ZS EV with 30 days of realistic SOC history, 5 pre-built trips around Amsterdam
+- MG ZS EV with 30 days of realistic SOC history, ten finished trips from the last five weeks (most around Amsterdam, a few further afield) and one in progress
 - Dashboard, Statistics, and Map views fully populated
 - A **Demo Controls** panel (bottom-right button) to toggle vehicle states live: doors, windows, lights, lock, engine, charging, SOC, temperature
 - A demo banner across the top reminding you that data is not real
@@ -85,12 +85,15 @@ Click the flask icon in the bottom-right corner to open the panel. Changes take 
 
 ## How it works
 
-`DEMO_MODE=true` swaps in three in-memory implementations at startup:
+`DEMO_MODE=true` swaps in demo implementations at startup:
 
 | Interface | Demo implementation |
 | --- | --- |
+| `AppDbContext` | An in-memory database for everything you add yourself: settings, maintenance, climate schedules, notifications |
 | `IVehicleRepository` | Returns one static MG ZS EV |
-| `ITelemetryRepository` | Serves pre-built snapshots and 5 trips; mutable via `/api/demo/status/{vin}` |
+| `ITelemetryRepository` | Serves pre-built snapshots; mutable via `/api/demo/status/{vin}` |
+| `ITripRepository` | Serves the pre-built trips |
+| `IPushSender` | Logs notifications instead of sending them |
 | `IMqttPublisher` | No-op (vehicle commands are accepted but not sent) |
 
 No PostgreSQL, Mosquitto, Worker, or SAIC gateway containers are started.

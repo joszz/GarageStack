@@ -43,6 +43,15 @@ public sealed class TelemetryHandler(
     // it just sent.
     private readonly NotificationCooldownGate _engineStartCooldownGate = new(TimeSpan.FromHours(1));
 
+    // Topics the gateway publishes that are left out on purpose, so they are no news either:
+    // hybrid_electrical_range repeats drivetrain/range (see TelemetryMapper), and nothing reads why
+    // battery heating stopped.
+    private static readonly HashSet<string> NotStoredSubtopics = new(StringComparer.Ordinal)
+    {
+        "drivetrain/hybrid_electrical_range",
+        "drivetrain/batteryHeatingStopReason",
+    };
+
     public async Task<bool> TryHandleAsync(MqttMessage message, CancellationToken ct)
     {
         if (message.Vehicle is not { } topic)
@@ -58,8 +67,11 @@ public sealed class TelemetryHandler(
         {
             var ns = subtopic.Split('/')[0];
             // "command" is the gateway's command/error event, which repeats the failure its
-            // {topic}/result already carried.
-            if (ns is "info" or "refresh" or "_internal" or "available" or "command")
+            // {topic}/result already carried. A {topic}/set is a command the Api published, which
+            // the broker hands back to this subscriber too.
+            if (ns is "info" or "refresh" or "_internal" or "available" or "command"
+                || NotStoredSubtopics.Contains(subtopic)
+                || subtopic.EndsWith("/set", StringComparison.Ordinal))
                 logger.LogDebug("MQTT metadata (skipped) - VIN={Vin} subtopic={Subtopic}", vin, subtopic);
             else
                 logger.LogWarning("Unmapped telemetry topic - VIN={Vin} subtopic={Subtopic} payloadBytes={PayloadBytes}", vinForLog, subtopic, payload.Length);

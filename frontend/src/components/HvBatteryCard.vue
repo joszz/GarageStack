@@ -25,6 +25,10 @@ const props = defineProps<{
   hvBatteryActive: boolean | null
   chargerConnected: boolean | null
   powerUsageSinceLastCharge: number | null
+  /** The charge level the car stops at; null on a car that does not plug in, or before it reports one. */
+  socTargetPercent: number | null
+  /** The current the car draws as the gateway spells it (6A, 8A, 16A, Max); null while unknown. */
+  chargeCurrentLimit: string | null
   canSetChargeLimit: boolean
 }>()
 
@@ -53,6 +57,19 @@ const summaryVariant = computed(() => {
 const hasAnyData = computed(
   () => props.socPercent !== null || props.hvVoltage !== null || props.hvPower !== null,
 )
+
+// The values the charge-limit command takes, in the order the buttons show them.
+const chargeLimits = computed(() => [
+  { value: '6A', label: '6 A' },
+  { value: '8A', label: '8 A' },
+  { value: '16A', label: '16 A' },
+  { value: 'MAX', label: t('control.chargeLimitMax') },
+])
+
+// The gateway reports "Max" where the command takes "MAX".
+function isActiveLimit(value: string): boolean {
+  return props.chargeCurrentLimit?.toUpperCase() === value
+}
 
 function setChargeLimit(value: string) {
   send(props.vin, 'charge-limit', value)
@@ -111,6 +128,12 @@ function setChargeLimit(value: string) {
         :label="t('vehicle.hvBattery.usedSinceCharge')"
       />
       <DetailListItem
+        v-if="socTargetPercent !== null"
+        icon="battery-full"
+        :value="`${socTargetPercent}%`"
+        :label="t('vehicle.hvBattery.chargeTarget')"
+      />
+      <DetailListItem
         v-if="chargerConnected !== null"
         icon="plug-circle-check"
         :label="t('vehicle.hvBattery.charger')"
@@ -130,36 +153,15 @@ function setChargeLimit(value: string) {
       <div class="detail-modal__section-title">{{ t('control.chargeLimit') }}</div>
       <div class="modal-btn-group">
         <CommandButton
-          class="btn-outline-secondary"
+          v-for="limit in chargeLimits"
+          :key="limit.value"
+          :class="isActiveLimit(limit.value) ? 'btn-success' : 'btn-outline-secondary'"
+          :aria-pressed="isActiveLimit(limit.value)"
           :pending="isPending('charge-limit')"
           :sending="sending === 'charge-limit'"
           :show-pending-label="false"
-          label="6 A"
-          @click="setChargeLimit('6A')"
-        />
-        <CommandButton
-          class="btn-outline-secondary"
-          :pending="isPending('charge-limit')"
-          :sending="sending === 'charge-limit'"
-          :show-pending-label="false"
-          label="8 A"
-          @click="setChargeLimit('8A')"
-        />
-        <CommandButton
-          class="btn-outline-secondary"
-          :pending="isPending('charge-limit')"
-          :sending="sending === 'charge-limit'"
-          :show-pending-label="false"
-          label="16 A"
-          @click="setChargeLimit('16A')"
-        />
-        <CommandButton
-          class="btn-success"
-          :pending="isPending('charge-limit')"
-          :sending="sending === 'charge-limit'"
-          :show-pending-label="false"
-          label="Max"
-          @click="setChargeLimit('MAX')"
+          :label="limit.label"
+          @click="setChargeLimit(limit.value)"
         />
       </div>
       <div v-if="isPending('charge-limit')" class="detail-list__feedback text-info">

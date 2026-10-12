@@ -396,10 +396,28 @@ public static class TelemetryMapper
                 s.LastChargeEndingPower = N(numeric);
                 return true;
 
+            case "drivetrain/charging/lastStart":
+                // Unix epoch seconds
+                if (double.IsFinite(numeric))
+                    s.ChargingLastStartAt = DateTimeOffset.FromUnixTimeSeconds((long)numeric).UtcDateTime;
+                return true;
+
             case "drivetrain/charging/lastEnd":
                 // Unix epoch seconds
                 if (double.IsFinite(numeric))
                     s.ChargingLastEndAt = DateTimeOffset.FromUnixTimeSeconds((long)numeric).UtcDateTime;
+                return true;
+
+            case "drivetrain/chargingStopReason":
+                s.ChargingStopReason = payload;
+                return true;
+
+            case "drivetrain/socTarget":
+                s.SocTargetPercent = double.IsFinite(numeric) ? (int)numeric : (int?)null;
+                return true;
+
+            case "drivetrain/chargeCurrentLimit":
+                s.ChargeCurrentLimit = payload;
                 return true;
 
             case "drivetrain/chargingSchedule":

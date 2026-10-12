@@ -13,6 +13,7 @@ const CATEGORY_ICONS: Record<string, string[]> = {
   'high-tyre': ['fas', 'circle-exclamation'],
   'low-ev': ['fas', 'battery-quarter'],
   'charging-complete': ['fas', 'plug-circle-check'],
+  'charging-interrupted': ['fas', 'plug-circle-exclamation'],
   'engine-start': ['fas', 'car'],
   'unlocked-parked': ['fas', 'lock-open'],
   'doors-open-parked': ['fas', 'door-open'],

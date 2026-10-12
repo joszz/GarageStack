@@ -5,6 +5,7 @@ using GarageStack.Core.Interfaces;
 using GarageStack.Core.Models;
 using GarageStack.Data;
 using GarageStack.Data.Extensions;
+using GarageStack.Worker.Mqtt;
 using Microsoft.Extensions.Localization;
 
 namespace GarageStack.Worker.Services;
@@ -75,24 +76,28 @@ public class PushNotificationCheckService(
             if (snapshot is null) continue;
 
             var now = DateTime.UtcNow;
-            await CheckLevelsAsync(vehicle, snapshot, db, now, ct);
+            await CheckLevelsAsync(vehicle, snapshot, telemetry, db, now, ct);
             await CheckParkedAsync(vehicle, snapshot, telemetry, db, now, ct);
         }
     }
 
     /// <summary>
-    /// Warns about tyres, fuel and charge out of bounds, a finished charge, and a car gone quiet.
-    /// Each warning goes out once per report: a car asleep overnight would otherwise be reported
-    /// every hour on the one reading it last sent.
+    /// Warns about tyres, fuel and charge out of bounds, a charge that stopped, and a car gone
+    /// quiet. Each warning goes out once per report: a car asleep overnight would otherwise be
+    /// reported every hour on the one reading it last sent.
     /// </summary>
-    internal async Task CheckLevelsAsync(Vehicle vehicle, TelemetrySnapshot snapshot, AppDbContext db, DateTime now, CancellationToken ct)
+    internal async Task CheckLevelsAsync(
+        Vehicle vehicle, TelemetrySnapshot snapshot, ITelemetryRepository telemetry, AppDbContext db, DateTime now, CancellationToken ct)
     {
         var vehicleType = VehicleTypeHelper.GetVehicleType(vehicle);
+        var stopReason = VehicleTypeHelper.CanCharge(vehicleType)
+            ? await telemetry.GetChargingStopReasonAsync(vehicle.Id, ct)
+            : null;
         var alerts = new List<(string key, string title, string body)>();
         CheckTyrePressure(snapshot, alerts);
         CheckEvSoc(snapshot, vehicleType, alerts);
         CheckFuelLevel(snapshot, vehicleType, alerts);
-        CheckChargingComplete(snapshot, vehicle.Vin, vehicleType, alerts);
+        CheckChargingStopped(snapshot, vehicle.Vin, vehicleType, stopReason, alerts);
         CheckDataStale(snapshot, now, alerts);
         if (alerts.Count == 0) return;
 
@@ -205,7 +210,14 @@ public class PushNotificationCheckService(
         alerts.Add((NotificationCategories.DataStale, strings["DataStaleTitle"], strings["DataStaleBody", $"{silentFor.TotalHours:F0}"]));
     }
 
-    internal void CheckChargingComplete(TelemetrySnapshot s, string vin, string vehicleType, List<(string, string, string)> alerts)
+    /// <summary>
+    /// Tells a finished charge from one the car broke off. A fault the car names is reported
+    /// whatever the cable says, since a plug not fully in can read as no cable at all; without one,
+    /// a stop with the cable still in is a finished charge, and one without it was unplugged by
+    /// whoever is standing at the car.
+    /// </summary>
+    internal void CheckChargingStopped(
+        TelemetrySnapshot s, string vin, string vehicleType, string? stopReason, List<(string, string, string)> alerts)
     {
         if (!VehicleTypeHelper.CanCharge(vehicleType)) return;
         if (s.IsCharging is null) return;
@@ -216,8 +228,15 @@ public class PushNotificationCheckService(
         if (BoolTransitionDetector.Detect(hadPrevious, previous, current) != StateTransition.TurnedOff)
             return;
 
-        // Charging finished while cable is still connected (session complete, not unplugged mid-charge)
-        if (s.ChargerConnected == true)
+        if (GatewayChargingStopReason.IsFault(stopReason))
+        {
+            var reason = strings[GatewayChargingStopReason.ResourceKey(stopReason!)].Value;
+            var body = s.EvSocPercent is not null
+                ? strings["ChargingInterruptedBodyWithSoc", reason, $"{s.EvSocPercent:F0}"]
+                : strings["ChargingInterruptedBody", reason];
+            alerts.Add((NotificationCategories.ChargingInterrupted, strings["ChargingInterruptedTitle"], body));
+        }
+        else if (s.ChargerConnected == true)
         {
             var body = s.EvSocPercent is not null
                 ? strings["ChargingCompleteBodyWithSoc", $"{s.EvSocPercent:F0}"]

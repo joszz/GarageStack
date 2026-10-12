@@ -67,6 +67,13 @@ public interface ITelemetryRepository
     /// </summary>
     Task<IReadOnlyList<StatusReading>> GetStatusReadingsAsync(int vehicleId, int count, CancellationToken ct = default);
 
+    /// <summary>
+    /// Why the car stopped charging, as its newest charge poll says, or null when that poll gave no
+    /// reason. Read from that one poll: the gateway sends a reason only while the car reports one,
+    /// so the newest reason on record can belong to a charge that ended long ago.
+    /// </summary>
+    Task<string?> GetChargingStopReasonAsync(int vehicleId, CancellationToken ct = default);
+
     /// <summary>The raw MQTT topics that started telemetry rows for <paramref name="vehicleId"/>, most frequent first.</summary>
     Task<IReadOnlyList<RawTopicStat>> GetRawTopicStatsAsync(int vehicleId, CancellationToken ct = default);
 

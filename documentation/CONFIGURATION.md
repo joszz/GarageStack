@@ -121,7 +121,16 @@ The full guide, with provider examples, is [`AUTHENTICATION.md`](AUTHENTICATION.
 
 ## Settings without a variable
 
-These are set by their .NET key in environment form.
+These are set by their .NET key in environment form. Docker Compose hands a container only the variables `docker-compose.yml` lists, so a line in `.env` does not reach these. Add them in a `docker-compose.override.yml` next to it instead:
+
+```yaml
+services:
+  api:
+    environment:
+      ForwardedHeaders__TrustedProxies__0: "192.168.1.10"
+```
+
+In the all-in-one container, including Unraid, add them as extra variables on the container.
 
 | Key | Default | What it does |
 | --- | --- | --- |

@@ -97,7 +97,13 @@ export interface TelemetrySnapshot {
   elevation: number | null
   bmsChargeStatus: string | null
   lastChargeEndingPower: number | null
+  chargingLastStartAt: string | null
   chargingLastEndAt: string | null
+  // The newest reason on record, which can belong to a charge that ended long ago; the Worker
+  // judges a stop by its own poll, so nothing here should present it as current.
+  chargingStopReason: string | null
+  socTargetPercent: number | null
+  chargeCurrentLimit: string | null
   chargingScheduleMode: string | null
   chargingScheduleStartTime: string | null
   chargingScheduleEndTime: string | null

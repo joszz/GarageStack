@@ -532,6 +532,9 @@ namespace GarageStack.Data.Migrations
                     b.Property<bool?>("BonnetOpen")
                         .HasColumnType("boolean");
 
+                    b.Property<string>("ChargeCurrentLimit")
+                        .HasColumnType("text");
+
                     b.Property<bool?>("ChargerConnected")
                         .HasColumnType("boolean");
 
@@ -541,6 +544,9 @@ namespace GarageStack.Data.Migrations
                     b.Property<DateTime?>("ChargingLastEndAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("ChargingLastStartAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("ChargingScheduleEndTime")
                         .HasColumnType("text");
 
@@ -548,6 +554,9 @@ namespace GarageStack.Data.Migrations
                         .HasColumnType("text");
 
                     b.Property<string>("ChargingScheduleStartTime")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ChargingStopReason")
                         .HasColumnType("text");
 
                     b.Property<string>("ChargingType")
@@ -717,6 +726,9 @@ namespace GarageStack.Data.Migrations
 
                     b.Property<double?>("RemoteTemperature")
                         .HasColumnType("double precision");
+
+                    b.Property<int?>("SocTargetPercent")
+                        .HasColumnType("integer");
 
                     b.Property<double?>("Speed")
                         .HasColumnType("double precision");

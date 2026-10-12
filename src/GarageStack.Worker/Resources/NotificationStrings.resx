@@ -186,4 +186,25 @@
   <data name="DataStaleBody" xml:space="preserve">
     <value>The car has not reported for {0} hours. Check the gateway and the MG account.</value>
   </data>
+  <data name="ChargingInterruptedTitle" xml:space="preserve">
+    <value>Charging Interrupted</value>
+  </data>
+  <data name="ChargingInterruptedBody" xml:space="preserve">
+    <value>Charging stopped: {0}.</value>
+  </data>
+  <data name="ChargingInterruptedBodyWithSoc" xml:space="preserve">
+    <value>Charging stopped at {1}%: {0}.</value>
+  </data>
+  <data name="ChargingStopReason_CHARGER_STATUS_ABNORMAL" xml:space="preserve">
+    <value>the charger reported a fault</value>
+  </data>
+  <data name="ChargingStopReason_CHARGER_PORT_OVER_TEMPERATURE" xml:space="preserve">
+    <value>the charging port got too hot</value>
+  </data>
+  <data name="ChargingStopReason_CHARGING_GUN_NOT_PROPERLY_PLUGGED_IN" xml:space="preserve">
+    <value>the plug is not fully in</value>
+  </data>
+  <data name="ChargingStopReason_CHARGER_VOLTAGE_MISMATCH" xml:space="preserve">
+    <value>the charger's voltage does not match the car</value>
+  </data>
 </root>
