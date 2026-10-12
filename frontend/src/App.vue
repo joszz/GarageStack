@@ -2,7 +2,6 @@
 import { computed, ref, watch, onBeforeUnmount, defineAsyncComponent } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { useUiSettingsStore } from '@/stores/settingsUi'
 import { useAuthStore } from '@/stores/auth'
 import { useVehicleStore } from '@/stores/vehicle'
 import AppFooter from '@/components/AppFooter.vue'
@@ -21,10 +20,9 @@ import { formatDateTime, formatTime } from '@/utils/format'
 const isDemoMode = import.meta.env.VITE_DEMO_MODE === 'true'
 const demoControlsOpen = ref(false)
 
-const { t, locale } = useI18n()
+const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
-const settings = useUiSettingsStore()
 const auth = useAuthStore()
 const vehicleStore = useVehicleStore()
 const vehicleStatus = computed(() => vehicleStore.currentStatus)
@@ -162,12 +160,6 @@ watch(
   () => {
     menuOpen.value = false
     mainContent.value?.scrollTo({ top: 0 })
-  },
-)
-watch(
-  () => settings.locale,
-  (val) => {
-    locale.value = val
   },
 )
 </script>
