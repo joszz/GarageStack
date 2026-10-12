@@ -1,6 +1,17 @@
 import { createRouter, createWebHistory, type RouteLocationNormalized } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useSettingsSyncStore } from '@/stores/settingsSync'
+import { RASTER_TILE_ORIGIN } from '@/utils/rasterTiles'
+import { preconnect } from '@/utils/preconnect'
+
+declare module 'vue-router' {
+  interface RouteMeta {
+    /** Reachable without a session: the guard lets anyone through. */
+    public?: boolean
+    /** Other origins the view fetches from as it first renders (see preconnectRouteOrigins). */
+    preconnect?: readonly string[]
+  }
+}
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -15,6 +26,8 @@ const router = createRouter({
       path: '/',
       name: 'dashboard',
       component: () => import('@/views/DashboardView.vue'),
+      // The map card's first raster tile is the dashboard's largest paint.
+      meta: { preconnect: [RASTER_TILE_ORIGIN] },
     },
     {
       path: '/statistics',
@@ -65,16 +78,29 @@ export function preloadRouteComponents(to: RouteLocationNormalized): void {
   }
 }
 
+/**
+ * Opens the connections to other origins that a navigation's view will need, on the same cue as
+ * preloadRouteComponents. The view only asks for its first resource there once its own code, the
+ * session check and its data have arrived, and by then the handshake is already done.
+ */
+export function preconnectRouteOrigins(to: RouteLocationNormalized): void {
+  to.meta.preconnect?.forEach(preconnect)
+}
+
 router.beforeEach(async (to) => {
   const auth = useAuthStore()
   const settingsSync = useSettingsSyncStore()
   const isPublic = to.meta.public === true
 
   // Only when the session held in storage makes it likely the guard lets this navigation
-  // through: a visitor about to be sent to the login page has no use for the dashboard's code.
+  // through: a visitor about to be sent to the login page has no use for the dashboard's code,
+  // and no reason to contact its tile server.
   // The account's settings are asked for alongside the session check for the same reason, so a
   // cold load waits on one round trip rather than two.
-  if (isPublic || auth.isAuthenticated) preloadRouteComponents(to)
+  if (isPublic || auth.isAuthenticated) {
+    preloadRouteComponents(to)
+    preconnectRouteOrigins(to)
+  }
   if (auth.isAuthenticated) void settingsSync.start()
   await auth.ensureVerified()
 

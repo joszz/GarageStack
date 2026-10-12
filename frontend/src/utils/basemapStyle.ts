@@ -61,14 +61,6 @@ export const BASEMAP_STYLE_URLS: Record<BasemapVariant, string> = {
   ),
 }
 
-/**
- * Used when WebGL is unavailable or the style cannot be fetched: the classic OSM raster tiles,
- * which need no WebGL context and no style document. Served from the plain host rather than the
- * deprecated {s}.tile.openstreetmap.org subdomain rotation, and capped at the zoom OSM renders.
- */
-export const RASTER_FALLBACK_TILE_URL = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
-export const RASTER_FALLBACK_MAX_ZOOM = 19
-
 /** Vector tiles overzoom cleanly, but past this the data has nothing left to add. */
 export const VECTOR_MAX_ZOOM = 20
 
