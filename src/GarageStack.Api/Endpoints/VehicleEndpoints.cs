@@ -66,14 +66,6 @@ public static class VehicleEndpoints
         })
         .WithSummary("Get chart history for a vehicle (only the fields the statistics charts use)");
 
-        vehicleGroup.MapGet("/trips/last", async (HttpContext httpContext, ITelemetryRepository telemetry, CancellationToken ct) =>
-        {
-            var vehicle = httpContext.ResolvedVehicle();
-            var summary = await telemetry.GetLastTripSummaryAsync(vehicle.Id, ct);
-            return summary is null ? Results.NoContent() : Results.Ok(summary);
-        })
-        .WithSummary("Get last trip summary (distance and timestamp of most recent journey)");
-
         vehicleGroup.MapPost("/commands/{command}", async (
             HttpContext httpContext,
             string command,

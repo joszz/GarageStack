@@ -61,14 +61,6 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
         lock (_lock) { return Task.FromResult(_current.OdometerKm); }
     }
 
-    // The in-progress trip is always the last entry (see DemoTrips), which is also the one the
-    // live snapshot's CurrentJourneyDistance describes.
-    public Task<LastTripSummary?> GetLastTripSummaryAsync(int vehicleId, CancellationToken ct = default)
-    {
-        var trip = DemoTrips.All[^1];
-        return Task.FromResult<LastTripSummary?>(new LastTripSummary(trip.DistanceKm, trip.EndedAt));
-    }
-
     // Only the Worker's parked alerts weigh past polls, and demo mode runs no Worker.
     public Task<IReadOnlyList<StatusReading>> GetStatusReadingsAsync(int vehicleId, int count, CancellationToken ct = default) =>
         Task.FromResult<IReadOnlyList<StatusReading>>([]);
