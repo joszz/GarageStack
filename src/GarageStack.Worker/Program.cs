@@ -31,7 +31,9 @@ try
     builder.Services.AddAlertThresholds(builder.Configuration);
     builder.Services.AddSingleton(VapidOptions.From(builder.Configuration));
     builder.Services.AddSingleton<IPushSender, PushSenderService>();
+    builder.Services.AddSingleton<MqttConnectionState>();
     builder.Services.AddHostedService<MqttConsumerService>();
+    builder.Services.AddHostedService<WorkerHeartbeatService>();
     builder.Services.AddHostedService<PushNotificationCheckService>();
     builder.Services.AddHostedService<MaintenanceCheckService>();
     builder.Services.AddHostedService<PoiPreCachingService>();

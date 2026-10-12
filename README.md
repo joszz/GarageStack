@@ -251,6 +251,22 @@ docker stop garagestack && docker rm garagestack
 # Re-run your original docker run command
 ```
 
+When a newer release is out, the footer says so and links to its release notes. GarageStack asks GitHub once a day; set `UPDATE_CHECK_ENABLED=false` to stop it. A Compose build only knows its own version when you pass one, so build with `APP_VERSION=$(git describe --tags) docker compose up -d --build` to get the notice.
+
+### Monitoring
+
+Point an uptime monitor (Uptime Kuma, Home Assistant, ...) at `/api/health` on the web interface's address, for example `http://192.168.1.100:8080/api/health`. It needs no sign-in, and answers `200` while everything works and `503` when something does not, naming each part:
+
+```json
+{ "status": "healthy", "checks": { "database": "healthy", "mqtt": "healthy", "worker": "healthy" } }
+```
+
+- `database`: the API reaches PostgreSQL.
+- `mqtt`: the API reaches the broker it sends car commands through.
+- `worker`: the Worker is running and subscribed to the broker. Right after the API starts it reads `degraded` (still `200`) until the Worker's first heartbeat arrives.
+
+The car's side (an MG session that expired, a car out of reach) shows up as the "No data from the car" and "MG sign-in failed" notifications instead. Docker's own healthchecks follow the same signals: the Worker's container turns unhealthy when it loses the broker or the database, and so does the all-in-one container.
+
 ---
 
 ## Backup and restore

@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Threading.Channels;
+using GarageStack.Api.Health;
 using GarageStack.Api.Hubs;
 using GarageStack.Core.Interfaces;
 using GarageStack.Core.Models;
@@ -15,6 +16,7 @@ internal sealed class TelemetryNotificationService(
     IServiceScopeFactory scopeFactory,
     VehicleCommandGate commandGate,
     VehicleCommandRequestHandler commandRequests,
+    WorkerHeartbeatMonitor workerHeartbeats,
     ILogger<TelemetryNotificationService> logger) : BackgroundService
 {
     // Trailing-edge debounce per vehicle: coalesces rapid MQTT bursts (multiple
@@ -58,6 +60,10 @@ internal sealed class TelemetryNotificationService(
                     // Detached like the rest: a request can wait up to its deadline for the
                     // command gate, and the command_result that frees the gate has to get past it.
                     _ = commandRequests.HandleAsync(evt.Payload, stoppingToken);
+                    break;
+                case PgChannels.WorkerHeartbeat:
+                    if (WorkerHeartbeatPayload.FromJson(evt.Payload) is { } heartbeat)
+                        workerHeartbeats.Record(heartbeat);
                     break;
             }
         }

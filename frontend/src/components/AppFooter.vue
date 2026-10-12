@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useVehicleStore } from '@/stores/vehicle'
 import { useVehicleCommand } from '@/composables/useVehicleCommand'
 import { useModal } from '@/composables/useModal'
+import { useUpdateNotice } from '@/composables/useUpdateNotice'
 import { APP_VERSION } from '@/utils/appVersion'
 import type SettingsModalComponent from './settings/SettingsModal.vue'
 
@@ -11,6 +12,7 @@ const { t } = useI18n()
 const vehicleStore = useVehicleStore()
 const { sending, send } = useVehicleCommand()
 const { isOpen: modalOpen, open: showModal, close: closeModal } = useModal()
+const { notice: updateNotice } = useUpdateNotice()
 
 // The settings modal used to ship with the footer on every page, for a dialog most visits never
 // open. It loads on first use instead.
@@ -39,13 +41,29 @@ function refresh() {
 
 <template>
   <footer class="app-footer">
-    <a
-      class="app-footer__copyright"
-      href="https://github.com/joszz/GarageStack"
-      target="_blank"
-      rel="noopener"
-      >{{ copyrightLabel }}</a
-    >
+    <div class="app-footer__meta">
+      <a
+        class="app-footer__copyright"
+        href="https://github.com/joszz/GarageStack"
+        target="_blank"
+        rel="noopener"
+        >{{ copyrightLabel }}</a
+      >
+      <a
+        v-if="updateNotice"
+        class="app-footer__update"
+        :href="updateNotice.releaseUrl"
+        target="_blank"
+        rel="noopener noreferrer"
+        :aria-label="t('updates.availableLabel', { version: updateNotice.version })"
+        :title="t('updates.availableLabel', { version: updateNotice.version })"
+      >
+        <font-awesome-icon icon="circle-up" />
+        <span class="app-footer__update-text">{{
+          t('updates.available', { version: updateNotice.version })
+        }}</span>
+      </a>
+    </div>
     <div class="app-footer__actions">
       <button
         class="app-footer__btn"

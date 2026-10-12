@@ -1,9 +1,11 @@
 using System.Net;
 using System.Threading.RateLimiting;
+using GarageStack.Api.Endpoints;
 using GarageStack.Api.Security;
 using GarageStack.Core.Configuration;
 using Microsoft.AspNetCore.HttpOverrides;
 using Serilog;
+using Serilog.Events;
 
 namespace GarageStack.Api.Hosting;
 
@@ -82,6 +84,26 @@ internal static class ApiHostingExtensions
                      .AllowAnyMethod()
                      .AllowCredentials();
             }));
+
+    /// <summary>
+    /// One log line per request, except for the health probes Docker and uptime monitors send
+    /// every few seconds: those would fill the log files with nothing. A failing readiness check
+    /// answers 503 on every probe; whatever failed is logged where it fails.
+    /// </summary>
+    public static WebApplication UseGarageStackRequestLogging(this WebApplication app)
+    {
+        app.UseSerilogRequestLogging(opts => opts.GetLevel = RequestLogLevel);
+        return app;
+    }
+
+    internal static LogEventLevel RequestLogLevel(HttpContext context, double elapsedMs, Exception? ex)
+    {
+        if (ex is not null) return LogEventLevel.Error;
+        if (HealthEndpoints.IsHealthProbe(context.Request.Path)) return LogEventLevel.Verbose;
+        return context.Response.StatusCode >= StatusCodes.Status500InternalServerError
+            ? LogEventLevel.Error
+            : LogEventLevel.Information;
+    }
 
     /// <summary>
     /// Trusts X-Forwarded-For/-Proto from the configured proxies, or from the private address

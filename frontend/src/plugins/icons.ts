@@ -34,6 +34,7 @@ export {
   faCircleExclamation,
   faCircleInfo,
   faCircleQuestion,
+  faCircleUp,
   faClock,
   faCouch,
   faDatabase,

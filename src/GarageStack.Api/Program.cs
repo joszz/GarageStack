@@ -7,6 +7,7 @@ using GarageStack.Api.Hosting;
 using GarageStack.Api.Hubs;
 using GarageStack.Api.Services;
 using GarageStack.Core.Configuration;
+using GarageStack.Core.Helpers;
 using GarageStack.Core.Interfaces;
 using GarageStack.Data;
 using GarageStack.Data.Demo;
@@ -96,6 +97,20 @@ try
     builder.Services.AddSingleton<VehicleCommandSender>();
 
     builder.Services.AddSignalR();
+    builder.Services.AddGarageStackHealthChecks(isDemoMode);
+
+    // Asks GitHub once a day for the latest release, for the footer's update notice.
+    builder.Services.AddHttpClient(GitHubReleaseClient.HttpClientName, client =>
+    {
+        client.DefaultRequestHeaders.UserAgent.ParseAdd("GarageStack/1.0 (+https://github.com/joszz/GarageStack)");
+        client.Timeout = TimeSpan.FromSeconds(15);
+    });
+    builder.Services.AddSingleton(new UpdateCheckOptions(
+        builder.Configuration.SwitchOrDefault("UpdateCheck:Enabled", true),
+        ReleaseVersion.Of(typeof(ApiEntryPoint).Assembly)));
+    builder.Services.AddSingleton<GitHubReleaseClient>();
+    builder.Services.AddSingleton<UpdateCheckService>();
+    builder.Services.AddHostedService(sp => sp.GetRequiredService<UpdateCheckService>());
 
     builder.Services.AddGarageStackAuthentication(builder.Configuration, builder.Environment);
     builder.Services.AddGarageStackRateLimiting(builder.Configuration);
@@ -118,7 +133,7 @@ try
 
     app.UseExceptionHandler();
     app.UseGarageStackForwardedHeaders();
-    app.UseSerilogRequestLogging();
+    app.UseGarageStackRequestLogging();
     app.UseCors();
 
     // Rate limiting runs before the CSRF origin check so that a flood of requests with a
@@ -159,6 +174,7 @@ try
     app.MapMaintenanceEndpoints();
     app.MapClimateScheduleEndpoints();
     app.MapWidgetEndpoints();
+    app.MapUpdateEndpoints();
     app.MapMapEndpoints();
 
     if (isDemoMode)

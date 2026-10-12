@@ -127,8 +127,9 @@ file sealed class TestableMqttConsumerService : MqttConsumerService
 {
     private readonly FakeMqttClient _client;
 
-    public TestableMqttConsumerService(FakePushSender push, FakeMqttClient client, FakeServiceScopeFactory? scopes = null)
-        : base(NullLogger<MqttConsumerService>.Instance, Options.Create(new MqttOptions()), scopes ?? new FakeServiceScopeFactory(), push, WorkerLocalizer.Notifications(), new CommandAnswerWaiter())
+    public TestableMqttConsumerService(
+        FakePushSender push, FakeMqttClient client, FakeServiceScopeFactory? scopes = null, MqttConnectionState? connection = null)
+        : base(NullLogger<MqttConsumerService>.Instance, Options.Create(new MqttOptions()), scopes ?? new FakeServiceScopeFactory(), push, WorkerLocalizer.Notifications(), new CommandAnswerWaiter(), connection ?? new MqttConnectionState())
     {
         _client = client;
     }
@@ -379,5 +380,29 @@ public class MqttConsumerServiceVehicleMessageTests
     {
         Assert.Equal(0, await MqttConsumerHarness.ScopesCreatedByAsync(
             VehiclePrefix + GatewayVehicleMessage.SentAtSubtopic, "2026-09-25T10:00:00+00:00", retain: false));
+    }
+}
+
+// The heartbeat reads this state; it has to follow the broker link both ways.
+public class MqttConsumerServiceConnectionStateTests
+{
+    [Fact]
+    public async Task ConnectionState_FollowsTheBrokerLink()
+    {
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        var client = new FakeMqttClient();
+        var state = new MqttConnectionState();
+        var svc = new TestableMqttConsumerService(new FakePushSender(), client, connection: state);
+
+        var serviceTask = svc.RunAsync(cts.Token);
+        await client.WaitForConnectAsync();
+        Assert.True(SpinWait.SpinUntil(() => state.IsConnected, TimeSpan.FromSeconds(5)), "connected after subscribing");
+
+        await client.TriggerDisconnectAsync();
+        Assert.False(state.IsConnected);
+
+        await cts.CancelAsync();
+        try { await serviceTask; } catch (OperationCanceledException) { }
+        Assert.False(state.IsConnected);
     }
 }
