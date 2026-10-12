@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import '@/assets/multiselect.css'
 import { computed } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useI18n } from 'vue-i18n'
