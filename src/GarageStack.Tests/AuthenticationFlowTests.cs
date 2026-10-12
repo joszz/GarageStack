@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using GarageStack.Api;
 using GarageStack.Api.Authentication;
 using GarageStack.Api.Endpoints;
+using GarageStack.Api.Services;
 using GarageStack.Core.Configuration;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Hosting;
@@ -298,6 +299,44 @@ public class AuthenticationFlowTests
         Assert.True(config.OidcAutoLogin);
         Assert.Equal("Authentik", config.OidcProviderName);
         Assert.False(config.PasswordLoginEnabled);
+    }
+
+    // An uptime monitor has no session: readiness answers without one, and in demo mode it checks
+    // the in-memory database only, since there is no broker and no Worker.
+    [Fact]
+    public async Task Readiness_AnswersWithoutSignIn_NamingEachCheck()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var factory = CreatePasswordOnlyFactory();
+        using var client = CreateClient(factory);
+
+        var response = await client.GetAsync(HealthEndpoints.ReadinessPath, ct);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(
+            """{"status":"healthy","checks":{"database":"healthy"}}""",
+            await response.Content.ReadAsStringAsync(ct));
+    }
+
+    [Fact]
+    public async Task UpdateNotice_NeedsASignedInUser()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var factory = CreatePasswordOnlyFactory();
+        using var anonymous = CreateClient(factory);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, (await anonymous.GetAsync("/api/updates", ct)).StatusCode);
+
+        using var client = CreateClient(factory);
+        var login = await client.PostAsJsonAsync(
+            "/api/auth/login",
+            new { username = DemoUsername, password = DemoPassword, rememberMe = false },
+            ct);
+        Assert.Equal(HttpStatusCode.OK, login.StatusCode);
+
+        // The test host never asks GitHub, so there is nothing to offer.
+        var update = await client.GetFromJsonAsync<UpdateInfo>("/api/updates", ct);
+        Assert.Equal(UpdateInfo.None, update);
     }
 
     [Fact]
@@ -720,6 +759,8 @@ public class AuthenticationFlowTests
         ["Serilog__MinimumLevel__Default"] = "Warning",
         // No database, MQTT or SAIC gateway needed.
         ["DEMO_MODE"] = "true",
+        // A test never asks GitHub for the latest release.
+        ["UpdateCheck__Enabled"] = "false",
         // The test server speaks plain HTTP, so Secure cookies would never come back.
         ["Auth__CookieSecure"] = "false",
         ["Cors__Origins__0"] = "http://localhost",

@@ -16,9 +16,11 @@ public static class PgChannels
     public const string TripCompleted = "trip_completed";
     public const string CommandResult = "command_result";
     public const string VehicleCommandRequested = "vehicle_command_requested";
+    // The Worker telling the API it is alive, for the API's health check.
+    public const string WorkerHeartbeat = "worker_heartbeat";
 
     public static readonly IReadOnlyList<string> All =
-        [TelemetryUpdated, NotificationCreated, TripCompleted, CommandResult, VehicleCommandRequested];
+        [TelemetryUpdated, NotificationCreated, TripCompleted, CommandResult, VehicleCommandRequested, WorkerHeartbeat];
 }
 
 public static class PgNotifyExtensions

@@ -401,6 +401,17 @@
     Mask="false">en</Config>
 
   <Config
+    Name="Update Check"
+    Target="UPDATE_CHECK_ENABLED"
+    Default="true"
+    Mode=""
+    Description="Once a day GarageStack asks GitHub for the latest release, and the footer links to it when it is newer. Only the release number is fetched. Set to false to keep GarageStack from contacting GitHub."
+    Type="Variable"
+    Display="advanced"
+    Required="false"
+    Mask="false">true</Config>
+
+  <Config
     Name="Homepage Widget API Key"
     Target="WIDGET_API_KEY"
     Default=""

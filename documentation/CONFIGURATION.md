@@ -113,6 +113,7 @@ The full guide, with provider examples, is [`AUTHENTICATION.md`](AUTHENTICATION.
 | Variable | Default | What it does |
 | --- | --- | --- |
 | `RATE_LIMIT_GLOBAL_PER_MINUTE` | `120` | Requests per minute the API accepts from one address. Raise it when several people share one public address. Login and the widget keep their own, tighter limits. |
+| `UPDATE_CHECK_ENABLED` | `true` | Once a day the API asks GitHub for the latest release, and the footer links to it when it is newer than the running version. `false` keeps the API from contacting GitHub. A build without a version (from source without `APP_VERSION`) never asks. |
 | `WIDGET_API_KEY` | none | Key for the Homepage dashboard widget endpoint. Empty switches the endpoint off. See [`WIDGET.md`](WIDGET.md). |
 | `DEBUG_LOGS` | `false` | `true` turns on debug logging in the API and the Worker. |
 | `FRONTEND_PORT` | `8080` | Host port of the web interface (Docker Compose). |

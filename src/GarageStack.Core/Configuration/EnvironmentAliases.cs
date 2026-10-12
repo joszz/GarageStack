@@ -65,6 +65,9 @@ public static class EnvironmentAliases
         ["OIDC_REDIRECT_URI"] = "Oidc:RedirectUri",
         ["OIDC_REQUIRE_HTTPS_METADATA"] = "Oidc:RequireHttpsMetadata",
 
+        // Asking GitHub once a day whether a newer release is out.
+        ["UPDATE_CHECK_ENABLED"] = "UpdateCheck:Enabled",
+
         // Optional extras, each off until given a key.
         ["WIDGET_API_KEY"] = "Widget:ApiKey",
         ["OPENCHARGEMAP_API_KEY"] = "OpenChargeMap:ApiKey",

@@ -182,6 +182,9 @@ services:
       MAPMATCHING__ENABLED: "${MAPMATCHING__ENABLED:-}"
       MAPMATCHING__BASEURL: "${MAPMATCHING__BASEURL:-}"
       RATE_LIMIT_GLOBAL_PER_MINUTE: "${RATE_LIMIT_GLOBAL_PER_MINUTE:-}"
+      # Asks GitHub once a day whether a newer release is out, for a notice in the footer. Set to
+      # false to keep the API from contacting GitHub. See .env.example.
+      UPDATE_CHECK_ENABLED: "${UPDATE_CHECK_ENABLED:-}"
       # The traction battery's real capacity, which the MQTT gateway assumes rather than reads.
       # Left unset, a plug-in car keeps the gateway's figure and a hybrid shows charge as a
       # percentage only. See .env.example.

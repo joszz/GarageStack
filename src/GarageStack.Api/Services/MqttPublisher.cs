@@ -13,6 +13,9 @@ public class MqttPublisher(IOptions<MqttOptions> options, ILogger<MqttPublisher>
     private readonly MqttOptions _options = options.Value;
     private IMqttClient? _client;
     private MqttClientOptions? _clientOptions;
+    // A command and a health check can both find the client disconnected at once; MQTTnet throws
+    // when a second connect starts while the first is still running.
+    private readonly SemaphoreSlim _connectGate = new(1, 1);
 
     public async Task StartAsync(CancellationToken ct)
     {
@@ -40,20 +43,38 @@ public class MqttPublisher(IOptions<MqttOptions> options, ILogger<MqttPublisher>
         }
     }
 
+    /// <summary>
+    /// Connects again when the link dropped, which it otherwise only does when the next command is
+    /// sent. The health check calls this too, so a broker that came back is noticed before then.
+    /// </summary>
+    /// <returns>Whether the publisher is connected.</returns>
+    public async Task<bool> EnsureConnectedAsync(CancellationToken ct)
+    {
+        if (_client is null || _clientOptions is null) return false;
+        if (_client.IsConnected) return true;
+
+        await _connectGate.WaitAsync(ct);
+        try
+        {
+            if (!_client.IsConnected)
+                await _client.ConnectAsync(_clientOptions, ct);
+            return true;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException || !ct.IsCancellationRequested)
+        {
+            logger.LogWarning(ex, "MQTT publisher reconnect failed");
+            return false;
+        }
+        finally
+        {
+            _connectGate.Release();
+        }
+    }
+
     public async Task PublishAsync(string topic, string payload, CancellationToken ct = default)
     {
-        if (_client is null || _clientOptions is null)
+        if (_client is null || !await EnsureConnectedAsync(ct))
             throw new InvalidOperationException("MQTT broker not reachable");
-
-        if (!_client.IsConnected)
-        {
-            try { await _client.ConnectAsync(_clientOptions, ct); }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "MQTT publisher reconnect failed");
-                throw new InvalidOperationException("MQTT broker not reachable", ex);
-            }
-        }
 
         var message = new MqttApplicationMessageBuilder()
             .WithTopic(topic)

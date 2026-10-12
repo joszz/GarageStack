@@ -18,6 +18,7 @@ public class MqttConsumerService : BackgroundService
     private readonly ILogger<MqttConsumerService> _logger;
     private readonly MqttOptions _options;
     private readonly IReadOnlyList<IMqttMessageHandler> _handlers;
+    private readonly MqttConnectionState _connection;
 
     public MqttConsumerService(
         ILogger<MqttConsumerService> logger,
@@ -25,10 +26,12 @@ public class MqttConsumerService : BackgroundService
         IServiceScopeFactory scopeFactory,
         IPushSender pushSender,
         IStringLocalizer<NotificationStrings> strings,
-        CommandAnswerWaiter answers)
+        CommandAnswerWaiter answers,
+        MqttConnectionState connection)
     {
         _logger = logger;
         _options = options.Value;
+        _connection = connection;
 
         var vehicles = new VehicleResolver(scopeFactory);
         _handlers =
@@ -72,6 +75,7 @@ public class MqttConsumerService : BackgroundService
             var disconnectedTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             Func<MqttClientDisconnectedEventArgs, Task> onDisconnected = _ =>
             {
+                _connection.Set(false);
                 disconnectedTcs.TrySetResult();
                 return Task.CompletedTask;
             };
@@ -87,6 +91,7 @@ public class MqttConsumerService : BackgroundService
                     .WithTopicFilter("homeassistant/#", MqttQualityOfServiceLevel.AtLeastOnce)
                     .Build(), stoppingToken);
                 _logger.LogInformation("Subscribed to saic/# and homeassistant/#");
+                _connection.Set(true);
 
                 // Waits until the broker disconnects or the host is shutting down.
                 await disconnectedTcs.Task.WaitAsync(stoppingToken);
@@ -102,6 +107,7 @@ public class MqttConsumerService : BackgroundService
             }
             finally
             {
+                _connection.Set(false);
                 client.DisconnectedAsync -= onDisconnected;
                 if (client.IsConnected)
                     await client.DisconnectAsync(cancellationToken: CancellationToken.None);

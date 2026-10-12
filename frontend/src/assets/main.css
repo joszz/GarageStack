@@ -1839,10 +1839,32 @@ textarea.form-control {
   z-index: 100;
 }
 
+.app-footer__meta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
 .app-footer__copyright {
   font-size: 0.75rem;
   color: var(--color-text-muted);
   text-decoration: none;
+}
+
+/* A newer release: the one footer link worth noticing, so it takes the accent colour. */
+.app-footer__update {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  color: var(--color-primary);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.app-footer__update:hover {
+  text-decoration: underline;
 }
 
 .app-footer__actions {
@@ -1969,6 +1991,11 @@ textarea.form-control {
 
   .app-footer {
     padding: 0 0.75rem;
+  }
+
+  /* The buttons keep their labels on a phone, so the update link shrinks to its icon. */
+  .app-footer__update-text {
+    display: none;
   }
 
   /* Icon sits flush at button left so it aligns with card left edge */

@@ -351,6 +351,10 @@
     "enable": "Push notifications on this device",
     "enableDesc": "Alerts arrive as system notifications, even while GarageStack is closed."
   },
+  "updates": {
+    "available": "v{version} available",
+    "availableLabel": "GarageStack v{version} is available: read what changed"
+  },
   "notifications": {
     "title": "Notifications",
     "empty": "No notifications",

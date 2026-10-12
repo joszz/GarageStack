@@ -27,9 +27,10 @@ RUN echo "os patch date: ${OS_PATCH_DATE}" \
 	&& rm -rf /var/lib/apt/lists/*
 COPY --from=build /app .
 COPY --chmod=755 src/GarageStack.Worker/docker-entrypoint.sh /docker-entrypoint.sh
-# The Worker has no HTTP listener to probe (unlike Api/frontend), so this only checks the
-# dotnet process is still alive - weaker than a real liveness signal (can't detect a hang),
-# but still correctly flips unhealthy if the process crashes or exits.
-HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
-	CMD pgrep -f GarageStack.Worker.dll || exit 1
+# The Worker has no HTTP listener to probe (unlike Api/frontend). Its heartbeat
+# (WorkerHeartbeatService) touches this file every 15 seconds while it is subscribed to the
+# broker and reaches the database, so a file older than a minute means it lost one of them,
+# hangs, or stopped.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
+	CMD test -n "$(find /tmp/garagestack-worker.heartbeat -mmin -1 2>/dev/null)" || exit 1
 ENTRYPOINT ["/docker-entrypoint.sh"]

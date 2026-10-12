@@ -186,8 +186,12 @@ RUN rm -f /etc/nginx/sites-enabled/default \
 # Port 1883 -- Mosquitto MQTT broker
 EXPOSE 80 1883
 
-HEALTHCHECK --interval=10s --timeout=5s --start-period=30s --retries=5 \
-    CMD curl -fsS http://127.0.0.1:9000/health || exit 1
+# The readiness check: the database, the broker and the Worker's heartbeat. The separate images
+# keep the API's healthcheck on /health, since there the Worker waits for the API to be healthy;
+# nothing waits on this container's health. The longer start period covers a first run, which
+# initialises PostgreSQL before anything else starts.
+HEALTHCHECK --interval=10s --timeout=5s --start-period=120s --retries=5 \
+    CMD curl -fsS http://127.0.0.1:9000/api/health || exit 1
 
 VOLUME ["/data"]
 

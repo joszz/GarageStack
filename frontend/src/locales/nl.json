@@ -351,6 +351,10 @@
     "enable": "Pushmeldingen op dit apparaat",
     "enableDesc": "Meldingen komen binnen als systeemmelding, ook als GarageStack gesloten is."
   },
+  "updates": {
+    "available": "v{version} beschikbaar",
+    "availableLabel": "GarageStack v{version} is beschikbaar: lees wat er nieuw is"
+  },
   "notifications": {
     "title": "Meldingen",
     "empty": "Geen meldingen",
