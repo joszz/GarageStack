@@ -96,7 +96,15 @@ public class TelemetrySnapshot
     public int? OnboardChargerPlugStatus { get; set; }
     public int? OffboardChargerPlugStatus { get; set; }
     public double? LastChargeEndingPower { get; set; }
+    public DateTime? ChargingLastStartAt { get; set; }
     public DateTime? ChargingLastEndAt { get; set; }
+    // Why the car stopped charging, as the gateway names it (CHARGER_PORT_OVER_TEMPERATURE). The
+    // gateway sends it only while the car reports one, so the newest value on record can belong
+    // to a charge that ended long ago: read it from one poll (GetChargingStopReasonAsync).
+    public string? ChargingStopReason { get; set; }
+    // The charge level the car stops at, in percent, and the current it draws: 6A, 8A, 16A or Max.
+    public int? SocTargetPercent { get; set; }
+    public string? ChargeCurrentLimit { get; set; }
     public string? ChargingScheduleMode { get; set; }
     public string? ChargingScheduleStartTime { get; set; }
     public string? ChargingScheduleEndTime { get; set; }

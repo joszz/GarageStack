@@ -16,7 +16,7 @@ import {
   roundTo2,
   type HistoryDay,
 } from '@/utils/statistics'
-import { burnsFuel, mayPlugIn } from '@/utils/vehicleType'
+import { burnsFuel, mayPlugIn, plugsIn } from '@/utils/vehicleType'
 import { useUnits } from './useUnits'
 
 export interface ChartDef {
@@ -80,6 +80,11 @@ export function useStatisticsCharts(
 
   const hasLargeEv = computed(() => mayPlugIn(vehicleType.value))
   const isHybrid = computed(() => burnsFuel(vehicleType.value))
+  // Every known drivetrain counts its daily energy: a plain hybrid in litres of fuel, a plug-in
+  // in kWh. Only an undetected car is left out, since its counter could be either.
+  const countsDailyEnergy = computed(
+    () => burnsFuel(vehicleType.value) || plugsIn(vehicleType.value),
+  )
   const hasData = computed(() => days.value.some((day) => day.points.length > 0))
 
   const dates = computed(() => days.value.map(historyDayDate))
@@ -239,8 +244,8 @@ export function useStatisticsCharts(
       description: reportsFuelCounter.value
         ? t('statistics.chartDesc.dailyFuelChart')
         : t('statistics.chartDesc.dailyKwhChart'),
-      vehicleApplicable: isHybrid.value,
-      applicable: isHybrid.value && hasData.value,
+      vehicleApplicable: countsDailyEnergy.value,
+      applicable: countsDailyEnergy.value && hasData.value,
       type: 'bar',
       data: dailyEnergyChartData.value,
       options: kwhOptions.value,

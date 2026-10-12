@@ -186,4 +186,25 @@
   <data name="DataStaleBody" xml:space="preserve">
     <value>De auto heeft al {0} uur niets gemeld. Controleer de gateway en het MG-account.</value>
   </data>
+  <data name="ChargingInterruptedTitle" xml:space="preserve">
+    <value>Laden onderbroken</value>
+  </data>
+  <data name="ChargingInterruptedBody" xml:space="preserve">
+    <value>Laden gestopt: {0}.</value>
+  </data>
+  <data name="ChargingInterruptedBodyWithSoc" xml:space="preserve">
+    <value>Laden gestopt op {1}%: {0}.</value>
+  </data>
+  <data name="ChargingStopReason_CHARGER_STATUS_ABNORMAL" xml:space="preserve">
+    <value>de laadpaal meldde een storing</value>
+  </data>
+  <data name="ChargingStopReason_CHARGER_PORT_OVER_TEMPERATURE" xml:space="preserve">
+    <value>de laadpoort werd te heet</value>
+  </data>
+  <data name="ChargingStopReason_CHARGING_GUN_NOT_PROPERLY_PLUGGED_IN" xml:space="preserve">
+    <value>de stekker zit er niet goed in</value>
+  </data>
+  <data name="ChargingStopReason_CHARGER_VOLTAGE_MISMATCH" xml:space="preserve">
+    <value>de spanning van de laadpaal past niet bij de auto</value>
+  </data>
 </root>

@@ -6,6 +6,7 @@ export const NOTIFICATION_CATEGORY_IDS = [
   'high-tyre',
   'low-ev',
   'charging-complete',
+  'charging-interrupted',
   'engine-start',
   'unlocked-parked',
   'doors-open-parked',
@@ -22,9 +23,13 @@ export const NOTIFICATION_CATEGORY_IDS = [
 export type NotificationCategoryId = (typeof NOTIFICATION_CATEGORY_IDS)[number]
 
 // Categories the Worker only emits for a car that charges from an external charger: both
-// CheckEvSoc and CheckChargingComplete return early unless VehicleTypeHelper.CanCharge, so on a
+// CheckEvSoc and CheckChargingStopped return early unless VehicleTypeHelper.CanCharge, so on a
 // plain hybrid these are checklist rows that can never match a notification.
-const PLUG_IN_ONLY_CATEGORY_IDS: readonly NotificationCategoryId[] = ['low-ev', 'charging-complete']
+const PLUG_IN_ONLY_CATEGORY_IDS: readonly NotificationCategoryId[] = [
+  'low-ev',
+  'charging-complete',
+  'charging-interrupted',
+]
 
 // The Worker's CheckFuelLevel only runs for a car with a combustion engine.
 const FUEL_ONLY_CATEGORY_IDS: readonly NotificationCategoryId[] = ['low-fuel']

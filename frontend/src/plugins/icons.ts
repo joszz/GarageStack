@@ -66,6 +66,7 @@ export {
   faPlug,
   faPlugCircleBolt,
   faPlugCircleCheck,
+  faPlugCircleExclamation,
   faPlus,
   faPowerOff,
   faRoad,

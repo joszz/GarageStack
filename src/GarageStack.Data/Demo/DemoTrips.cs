@@ -4,7 +4,7 @@ using GarageStack.Core.Models;
 namespace GarageStack.Data.Demo;
 
 /// <summary>
-/// The demo vehicle's trips: nine finished ones, and the one it is driving right now. Shared by
+/// The demo vehicle's trips: ten finished ones, and the one it is driving right now. Shared by
 /// the demo telemetry, whose live position is where that trip has got to, and the demo trip list.
 /// </summary>
 internal static class DemoTrips

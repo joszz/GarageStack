@@ -6,6 +6,7 @@ using GarageStack.Data.Repositories;
 using GarageStack.Worker.Mqtt;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace GarageStack.Tests;
@@ -48,6 +49,7 @@ file sealed class SlowFakeTelemetryRepository : ITelemetryRepository
     public Task<LastTripSummary?> GetLastTripSummaryAsync(int vehicleId, CancellationToken ct = default) => throw new NotImplementedException();
     public Task<IReadOnlyList<StatusReading>> GetStatusReadingsAsync(int vehicleId, int count, CancellationToken ct = default) => throw new NotImplementedException();
     public Task<IReadOnlyList<RawTopicStat>> GetRawTopicStatsAsync(int vehicleId, CancellationToken ct = default) => throw new NotImplementedException();
+    public Task<string?> GetChargingStopReasonAsync(int vehicleId, CancellationToken ct = default) => throw new NotImplementedException();
     public Task<VehicleAggregateStats> GetAggregateStatsAsync(int vehicleId, DateTime from, DateTime to, CancellationToken ct = default) => throw new NotImplementedException();
 }
 
@@ -253,5 +255,40 @@ public class TelemetryHandlerTests
         var vehicle = await scope.ServiceProvider.GetRequiredService<AppDbContext>().Vehicles.SingleAsync(ct);
         Assert.NotNull(vehicle.LastParkedAt);
         Assert.True(vehicle.LastParkedAt >= before);
+    }
+}
+
+// The broker hands the Api's own commands back to the Worker, and the gateway publishes a few
+// topics GarageStack leaves out on purpose. Neither should read as a topic nobody maps.
+public class TelemetryHandlerLoggingTests
+{
+    private sealed class RecordingLogger : ILogger
+    {
+        public List<(LogLevel Level, string Message)> Entries { get; } = [];
+
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter) =>
+            Entries.Add((logLevel, formatter(state, exception)));
+    }
+
+    [Theory]
+    [InlineData("climate/remoteClimateState/set", false)]
+    [InlineData("drivetrain/socTarget/set", false)]
+    [InlineData("drivetrain/hybrid_electrical_range", false)]
+    [InlineData("drivetrain/batteryHeatingStopReason", false)]
+    [InlineData("drivetrain/somethingNew", true)]
+    public async Task UnmappedTopic_WarnsOnlyWhenItIsNews(string subtopic, bool warns)
+    {
+        var logger = new RecordingLogger();
+        var handler = new TelemetryHandler(
+            logger, new VehicleResolver(new FakeServiceScopeFactory()), new FakePushSender(), WorkerLocalizer.Notifications());
+
+        await handler.TryHandleAsync(
+            new MqttMessage($"saic/user/vehicles/FAKEVN00000000001/{subtopic}", "1", Retain: false),
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(warns, logger.Entries.Any(e => e.Level == LogLevel.Warning));
     }
 }

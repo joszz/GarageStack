@@ -303,6 +303,8 @@ const activeSimpleCard = computed(() => {
       :power-usage-since-last-charge="
         supportsExternalCharge ? status.powerUsageSinceLastCharge : null
       "
+      :soc-target-percent="supportsExternalCharge ? status.socTargetPercent : null"
+      :charge-current-limit="supportsExternalCharge ? status.chargeCurrentLimit : null"
       :can-set-charge-limit="supportsExternalCharge"
     />
 
@@ -339,6 +341,7 @@ const activeSimpleCard = computed(() => {
       :remaining-charging-time="status.remainingChargingTime"
       :bms-charge-status="status.bmsChargeStatus"
       :last-charge-ending-power="status.lastChargeEndingPower"
+      :charging-last-start-at="status.chargingLastStartAt"
       :charging-last-end-at="status.chargingLastEndAt"
       :charging-schedule-mode="status.chargingScheduleMode"
       :charging-schedule-start-time="status.chargingScheduleStartTime"

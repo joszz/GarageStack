@@ -221,6 +221,30 @@ public class TelemetryMapperTests
         Assert.Equal(new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc), snapshot.ChargingLastEndAt);
     }
 
+    [Fact]
+    public void ApplyMessage_ChargingLastStart_ConvertsFromUnixEpoch()
+    {
+        var snapshot = new TelemetrySnapshot();
+        Assert.True(TelemetryMapper.ApplyMessage(snapshot, "drivetrain/charging/lastStart", "1704067200"));
+        Assert.Equal(new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc), snapshot.ChargingLastStartAt);
+    }
+
+    // Payloads as saic-python-mqtt-gateway 0.12.0 publishes them: the SAIC client's enum names for
+    // the stop reason, a whole percentage for the target, and its own spelling of the limit.
+    [Fact]
+    public void ApplyMessage_ChargingDetails_AreStoredAsTheGatewaySendsThem()
+    {
+        var snapshot = new TelemetrySnapshot();
+
+        Assert.True(TelemetryMapper.ApplyMessage(snapshot, "drivetrain/chargingStopReason", "CHARGER_VOLTAGE_MISMATCH"));
+        Assert.True(TelemetryMapper.ApplyMessage(snapshot, "drivetrain/socTarget", "80"));
+        Assert.True(TelemetryMapper.ApplyMessage(snapshot, "drivetrain/chargeCurrentLimit", "Max"));
+
+        Assert.Equal("CHARGER_VOLTAGE_MISMATCH", snapshot.ChargingStopReason);
+        Assert.Equal(80, snapshot.SocTargetPercent);
+        Assert.Equal("Max", snapshot.ChargeCurrentLimit);
+    }
+
     // ── Compound JSON payloads ────────────────────────────────────────────────
 
     [Fact]

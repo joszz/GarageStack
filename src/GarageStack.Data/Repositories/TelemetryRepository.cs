@@ -362,6 +362,16 @@ public class TelemetryRepository(
             .Select(r => new StatusReading(r.RecordedAt, r))];
     }
 
+    // A charge poll always says whether the car is charging, and its stop reason, if any, arrives
+    // within the same few seconds, so it lands on the same row.
+    public Task<string?> GetChargingStopReasonAsync(int vehicleId, CancellationToken ct = default) =>
+        db.TelemetrySnapshots
+            .AsNoTracking()
+            .Where(s => s.VehicleId == vehicleId && s.IsCharging != null)
+            .OrderByDescending(s => s.RecordedAt)
+            .Select(s => s.ChargingStopReason)
+            .FirstOrDefaultAsync(ct);
+
     // Ordered on the group before projecting: EF cannot translate an OrderBy on a property of a
     // record built through its constructor, so sorting after the Select fails at runtime.
     public async Task<IReadOnlyList<RawTopicStat>> GetRawTopicStatsAsync(int vehicleId, CancellationToken ct = default) =>

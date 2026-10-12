@@ -22,6 +22,13 @@ const summaryValue = computed((): string | null => {
 })
 
 const hasModal = computed(() => props.scheduleMode !== null || props.scheduleStartTime !== null)
+
+// The gateway sends the schedule as "on" or "off".
+const scheduleModeLabel = computed(() => {
+  if (props.scheduleMode === 'on') return t('common.on')
+  if (props.scheduleMode === 'off') return t('common.off')
+  return props.scheduleMode
+})
 </script>
 
 <template>
@@ -52,7 +59,7 @@ const hasModal = computed(() => props.scheduleMode !== null || props.scheduleSta
       >
         <template #value>
           <span class="badge" :class="scheduleMode !== 'off' ? 'badge-info' : 'badge-secondary'">
-            {{ scheduleMode }}
+            {{ scheduleModeLabel }}
           </span>
         </template>
       </DetailListItem>

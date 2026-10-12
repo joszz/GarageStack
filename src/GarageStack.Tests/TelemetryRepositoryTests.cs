@@ -472,6 +472,48 @@ public class TelemetryRepositoryTests
 
         Assert.Equal(polledAt, Assert.Single(readings).ArrivedAt);
     }
+
+    private static async Task<int> ChargePollsAsync(AppDbContext db, CancellationToken ct, params (DateTime At, string? Reason)[] polls)
+    {
+        var vehicle = new Vehicle { Vin = "FAKEVN00000000001" };
+        db.Vehicles.Add(vehicle);
+        await db.SaveChangesAsync(ct);
+        db.TelemetrySnapshots.AddRange(polls.Select(p => new TelemetrySnapshot
+        {
+            VehicleId = vehicle.Id,
+            RecordedAt = p.At,
+            IsCharging = false,
+            ChargingStopReason = p.Reason,
+        }));
+        // A newer row from another poll, which says nothing about charging.
+        db.TelemetrySnapshots.Add(new TelemetrySnapshot { VehicleId = vehicle.Id, RecordedAt = polls.Max(p => p.At).AddMinutes(1), IsLocked = true });
+        await db.SaveChangesAsync(ct);
+        return vehicle.Id;
+    }
+
+    [Fact]
+    public async Task GetChargingStopReason_ReadsTheNewestChargePoll()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var db = CreateDb();
+        var t0 = new DateTime(2026, 10, 11, 20, 0, 0, DateTimeKind.Utc);
+        var vehicleId = await ChargePollsAsync(db, ct, (t0, null), (t0.AddMinutes(5), "CHARGER_PORT_OVER_TEMPERATURE"));
+
+        Assert.Equal("CHARGER_PORT_OVER_TEMPERATURE", await new TelemetryRepository(db).GetChargingStopReasonAsync(vehicleId, ct));
+    }
+
+    // The gateway never sends "no reason", so an old fault stays on record: a newer poll without
+    // one means the car gives none now.
+    [Fact]
+    public async Task GetChargingStopReason_OldFaultBehindANewerPoll_IsNotReturned()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var db = CreateDb();
+        var t0 = new DateTime(2026, 10, 1, 20, 0, 0, DateTimeKind.Utc);
+        var vehicleId = await ChargePollsAsync(db, ct, (t0, "CHARGER_STATUS_ABNORMAL"), (t0.AddDays(10), null));
+
+        Assert.Null(await new TelemetryRepository(db).GetChargingStopReasonAsync(vehicleId, ct));
+    }
 }
 
 // ── MergeIntoAsync tests ─────────────────────────────────────────────────────

@@ -588,6 +588,28 @@
     Mask="false">365</Config>
 
   <Config
+    Name="API Rate Limit (per minute)"
+    Target="RATE_LIMIT_GLOBAL_PER_MINUTE"
+    Default="120"
+    Mode=""
+    Description="Requests per minute the API accepts from one address. Raise it when several people share one public address. Login and the widget keep their own, tighter limits."
+    Type="Variable"
+    Display="advanced"
+    Required="false"
+    Mask="false">120</Config>
+
+  <Config
+    Name="Debug Logs"
+    Target="DEBUG_LOGS"
+    Default="false"
+    Mode=""
+    Description="true turns on debug logging in the API and the Worker."
+    Type="Variable"
+    Display="advanced"
+    Required="false"
+    Mask="false">false</Config>
+
+  <Config
     Name="Database Name"
     Target="POSTGRES_DB"
     Default="garagestack"

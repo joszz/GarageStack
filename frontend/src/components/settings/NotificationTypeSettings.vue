@@ -27,6 +27,7 @@ const NOTIFICATION_CATEGORY_LABEL_KEYS: Record<NotificationCategoryId, string> =
   'high-tyre': 'highTyre',
   'low-ev': 'lowEv',
   'charging-complete': 'chargingComplete',
+  'charging-interrupted': 'chargingInterrupted',
   'engine-start': 'engineStart',
   'unlocked-parked': 'unlockedParked',
   'doors-open-parked': 'doorsOpenParked',
