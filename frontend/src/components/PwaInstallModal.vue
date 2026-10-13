@@ -34,7 +34,7 @@ function onDismiss() {
             <ul class="pwa-install-modal__features">
               <li>
                 <font-awesome-icon icon="bolt" class="pwa-install-modal__feature-icon" />
-                {{ t('pwa.install.featureOffline') }}
+                {{ t('pwa.install.featureQuickStart') }}
               </li>
               <li>
                 <font-awesome-icon icon="bell" class="pwa-install-modal__feature-icon" />

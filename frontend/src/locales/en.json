@@ -337,7 +337,7 @@
       "title": "Install GarageStack",
       "description": "Add GarageStack to your home screen for the best experience.",
       "iconAlt": "GarageStack app icon",
-      "featureOffline": "Fast access, even offline",
+      "featureQuickStart": "Opens in a tap from your home screen",
       "featureNotifications": "Push notifications for vehicle events",
       "featureNative": "Full-screen native app feel",
       "install": "Install app",
