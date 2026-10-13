@@ -148,9 +148,14 @@ onMounted(async () => {
 
   // Hidden now, so they stay out of the skeleton on the next load too.
   settings.hideCardsNotApplicable(vehicleType.value)
-  // On a first visit (nothing saved yet), push no-data visible cards to the end. Once a
-  // layout has been saved the user's ordering is theirs and is never reshuffled on mount.
-  if (!settings.hasSavedLayout && status.value) settings.orderByData(hasData)
+  // On a first visit (nothing saved yet) the layout began as the defaults for a car not known
+  // yet, which leave the plug-in cards (charging session, battery heating) off: take the
+  // drivetrain's own defaults, then push no-data visible cards to the end. Once a layout has
+  // been saved the user's choices and ordering are theirs and are never touched on mount.
+  if (!settings.hasSavedLayout) {
+    settings.applyTypeDefaults(vehicleType.value)
+    if (status.value) settings.orderByData(hasData)
+  }
   document.addEventListener('visibilitychange', handleVisibilityChange)
   navigator.serviceWorker?.addEventListener('message', handleSwMessage)
 })
