@@ -41,3 +41,13 @@ export function browserTimeZone(): string {
     return 'UTC'
   }
 }
+
+const TIME_OF_DAY = /^([01]\d|2[0-3]):[0-5]\d/
+
+/**
+ * A time of day as "HH:mm", from one with or without seconds, so times the car reports compare
+ * with the ones a form holds; null for anything that is not one.
+ */
+export function timeOfDay(value: string | null | undefined): string | null {
+  return value && TIME_OF_DAY.test(value) ? value.slice(0, 5) : null
+}

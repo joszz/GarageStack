@@ -351,6 +351,7 @@ const activeSimpleCard = computed(() => {
       :charging-schedule-mode="status.chargingScheduleMode"
       :charging-schedule-start-time="status.chargingScheduleStartTime"
       :charging-schedule-end-time="status.chargingScheduleEndTime"
+      :can-charge-until-target="supportsTargetSoc"
     />
 
     <!-- batteryHeating -->

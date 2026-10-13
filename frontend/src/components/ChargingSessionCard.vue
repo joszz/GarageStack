@@ -5,6 +5,7 @@ import ExpandableStatusCard from './ExpandableStatusCard.vue'
 import DetailListItem from './DetailListItem.vue'
 import CommandButton from './CommandButton.vue'
 import CommandFeedback from './CommandFeedback.vue'
+import ChargingScheduleForm from './ChargingScheduleForm.vue'
 import { useVehicleCommand } from '@/composables/useVehicleCommand'
 import { formatDateTime, formatNumber, formatTimeOfDay } from '@/utils/format'
 import { gatewayLabel } from '@/utils/gatewayLabel'
@@ -28,6 +29,8 @@ const props = defineProps<{
   chargingScheduleMode: string | null
   chargingScheduleStartTime: string | null
   chargingScheduleEndTime: string | null
+  /** Whether the car takes a charge target, and so can charge until it. */
+  canChargeUntilTarget: boolean
 }>()
 
 const obcPower = computed(() => props.obcPowerThreePhase ?? props.obcPowerSinglePhase)
@@ -242,5 +245,15 @@ const scheduleModeLabel = computed(() =>
         :label="t('vehicle.chargingSession.scheduleWindow')"
       />
     </div>
+
+    <ChargingScheduleForm
+      v-if="vin"
+      class="mt-3"
+      :vin="vin"
+      :mode="chargingScheduleMode"
+      :start-time="chargingScheduleStartTime"
+      :end-time="chargingScheduleEndTime"
+      :can-charge-until-target="canChargeUntilTarget"
+    />
   </ExpandableStatusCard>
 </template>
