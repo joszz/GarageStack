@@ -104,11 +104,16 @@ describe('days, weeks and months', () => {
   it('groups days into weeks from Monday', () => {
     const days = ['2026-09-20', '2026-09-21', '2026-09-27', '2026-09-28'].map((d) => day(d))
 
-    expect(bucketDays(days, 'week').map((b) => [b.key, b.days.length])).toEqual([
+    const weeks = bucketDays(days, 'week')
+
+    expect(weeks.map((b) => [b.key, b.days.length])).toEqual([
       ['2026-09-14', 1],
       ['2026-09-21', 2],
       ['2026-09-28', 1],
     ])
+    // A week cut off by the start of the period is labelled from its first day in it.
+    expect(weeks[0]!.start).toEqual(new Date(2026, 8, 20))
+    expect(weeks[1]!.start).toEqual(new Date(2026, 8, 21))
   })
 
   it('groups days into calendar months', () => {

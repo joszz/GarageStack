@@ -133,9 +133,13 @@ const buckets = computed(() => bucketDays(store.dailyStats, grouping.value))
 const hasReadings = computed(() => hasDailyReadings(store.dailyStats))
 const hasPeriodData = computed(() => hasReadings.value || store.tripSummaries.length > 0)
 
-// The month table, once the period spans more than one month.
+// The month table, for a period longer than a month: the last 30 days would only show the two
+// halves of the months they straddle.
 const months = computed(() =>
   monthlyTotals(store.tripSummaries, store.dailyStats, period.value.first, period.value.last),
+)
+const showMonths = computed(
+  () => period.value.days > 31 && months.value.length > 1 && hasPeriodData.value,
 )
 const monthEnergyUnit = computed(() => {
   const type = vehicleType.value
@@ -499,7 +503,7 @@ const skeletonChartCount = computed(
         </template>
 
         <StatsMonthTable
-          v-if="!editMode && months.length > 1 && hasPeriodData"
+          v-if="!editMode && showMonths"
           :months="months"
           :energy-unit="monthEnergyUnit"
         />

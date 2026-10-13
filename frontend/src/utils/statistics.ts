@@ -80,8 +80,9 @@ export function hasSpeedReadings(trips: readonly TripSummary[]): boolean {
 
 /** The days a chart point stands for: one day, a week from Monday, or a calendar month. */
 export interface StatsBucket {
-  /** The first day it covers, "YYYY-MM-DD". */
+  /** The day, the week's Monday or the month's first day, "YYYY-MM-DD". */
   key: string
+  /** The first day of the period it covers: a week cut off by the period starts on that day. */
   start: Date
   days: DailyStat[]
 }
@@ -102,11 +103,10 @@ export function bucketDays(stats: readonly DailyStat[], grouping: StatsGrouping)
   for (const stat of stats) {
     const day = parseLocalDate(stat.date)
     if (!day) continue
-    const start = bucketStart(day, grouping)
-    const key = localDateKey(start)
+    const key = localDateKey(bucketStart(day, grouping))
     const bucket = buckets.get(key)
     if (bucket) bucket.days.push(stat)
-    else buckets.set(key, { key, start, days: [stat] })
+    else buckets.set(key, { key, start: day, days: [stat] })
   }
   return [...buckets.values()]
 }

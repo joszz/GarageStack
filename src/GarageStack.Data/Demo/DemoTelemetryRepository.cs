@@ -18,6 +18,9 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
 
     private TelemetrySnapshot _current = BuildDefaultSnapshot();
 
+    // A little over a year, so the statistics have something to show for last year and per month.
+    private const int HistoryDays = 400;
+
     private static readonly Lazy<IReadOnlyList<TelemetrySnapshot>> _history =
         new(BuildHistory, LazyThreadSafetyMode.ExecutionAndPublication);
 
@@ -205,16 +208,17 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
     private static IReadOnlyList<TelemetrySnapshot> BuildHistory()
     {
         var rng = new Random(42);
-        var snapshots = new List<TelemetrySnapshot>(120);
-        var baseDate = DateTime.UtcNow.Date.AddDays(-30);
+        var snapshots = new List<TelemetrySnapshot>(HistoryDays * 4);
+        var baseDate = DateTime.UtcNow.Date.AddDays(-HistoryDays);
         var odometer = 24300.0;
         var soc = 88.0;
         var fuel = 80.0;
+        var usedTodayKwh = 0.0;
         var idCounter = 100L;
 
         // 4 snapshots per day: depart (7h), midday (12h), return (17h), plug in (22h)
         var dayHours = new[] { 7, 12, 17, 22 };
-        for (var day = 0; day < 30; day++)
+        for (var day = 0; day < HistoryDays; day++)
         {
             for (var hi = 0; hi < dayHours.Length; hi++)
             {
@@ -225,11 +229,13 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
                 {
                     // after overnight charge
                     soc = 87 + rng.Next(-2, 8);
+                    usedTodayKwh = 0;
                 }
                 else if (hour == 12)
                 {
                     var consumed = 6 + rng.Next(0, 5);
                     soc -= consumed;
+                    usedTodayKwh += consumed * 0.7;
                     fuel -= 1.5 + rng.NextDouble();
                     odometer += consumed * 7.2;
                 }
@@ -237,6 +243,7 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
                 {
                     var consumed = 5 + rng.Next(0, 5);
                     soc -= consumed;
+                    usedTodayKwh += consumed * 0.7;
                     fuel -= 1.0 + rng.NextDouble();
                     odometer += consumed * 7.2;
                 }
@@ -264,6 +271,9 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
                     EvSocPercent = Math.Round(soc, 1),
                     HvSocKwh = Math.Round(soc / 100.0 * 70.0, 1),
                     HvTotalCapacityKwh = 70.0,
+                    // The counter restarts at midnight. 22:00 UTC is already the next day in much
+                    // of Europe, so that reading leaves it out rather than carry the day over.
+                    PowerUsageOfDay = hour == 22 ? null : Math.Round(usedTodayKwh, 1),
                     OdometerKm = Math.Round(odometer, 1),
                     IsCharging = isCharging,
                     ChargerConnected = isCharging || hour == 7,

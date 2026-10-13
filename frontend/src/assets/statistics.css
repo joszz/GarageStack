@@ -67,6 +67,18 @@
 .stats-months__table thead th {
   font-weight: 600;
   color: var(--color-text-muted);
+  vertical-align: bottom;
+
+  /* A header with its unit may take two lines, so the table fits a phone. */
+  white-space: normal;
+}
+
+.stats-months__table :is(th, td):first-child {
+  padding-left: 0;
+}
+
+.stats-months__table :is(th, td):last-child {
+  padding-right: 0;
 }
 
 .stats-months__table tbody th {
@@ -79,10 +91,6 @@
   border-bottom: 0;
 }
 
-.stats-months__number {
-  text-align: right;
-}
-
-.stats-months__table th.stats-months__number {
+.stats-months__table .stats-months__number {
   text-align: right;
 }

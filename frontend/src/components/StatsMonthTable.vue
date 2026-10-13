@@ -41,7 +41,7 @@ function distanceText(km: number): string {
 const rows = computed(() =>
   props.months.map((m) => ({
     key: m.key,
-    month: formatDate(m.start, { month: 'long', year: 'numeric' }),
+    month: formatDate(m.start, { month: 'short', year: 'numeric' }),
     trips: m.trips,
     distance: distanceText(m.distanceKm),
     energy: energyText(m.counterTotal),
