@@ -27,6 +27,16 @@ public sealed class ClimateScheduleRunner(
     /// </summary>
     internal static readonly TimeSpan ExteriorReadingMaxAge = TimeSpan.FromHours(3);
 
+    /// <summary>
+    /// How often a command the car refused as busy goes again. Woken after a night's sleep, the
+    /// car can still be busy with another command (such as the gateway's status refresh) when the
+    /// climate command arrives, and asks to try again later.
+    /// </summary>
+    internal const int BusyRetries = 3;
+
+    /// <summary>The wait before a busy car gets the command again: about as long as one command takes.</summary>
+    internal TimeSpan BusyRetryDelay { get; init; } = TimeSpan.FromSeconds(30);
+
     /// <summary>How a run went: its outcome, and the command that failed or went unanswered, if any.</summary>
     internal readonly record struct RunResult(ClimateScheduleOutcome Outcome, string? FailedCommand, string? Detail);
 
@@ -66,17 +76,13 @@ public sealed class ClimateScheduleRunner(
     }
 
     // Stops at the first command the car refuses or does not answer: a car that is asleep or out
-    // of reach takes none of the rest either.
+    // of reach takes none of the rest either. A car that is only busy gets the command again first.
     internal async Task<RunResult> SendCommandsAsync(ClimateSchedule schedule, CancellationToken ct)
     {
         var started = false;
         foreach (var step in ClimateSchedulePlan.For(schedule))
         {
-            // Until the car's account is known, no command can be addressed to it.
-            var answer = schedule.Vehicle.SaicUser is null
-                ? new CommandAnswer(true, false, null)
-                : await commands.SendAsync(schedule.Vehicle.Vin, step.Command, step.Value, ct);
-
+            var answer = await SendStepAsync(schedule, step, ct);
             if (answer is { Answered: true, Success: true })
             {
                 started |= step.Command == ClimateSchedulePlan.ClimateCommand;
@@ -90,6 +96,23 @@ public sealed class ClimateScheduleRunner(
         }
 
         return new RunResult(ClimateScheduleOutcome.Started, null, null);
+    }
+
+    private async Task<CommandAnswer> SendStepAsync(ClimateSchedule schedule, ScheduledCommand step, CancellationToken ct)
+    {
+        // Until the car's account is known, no command can be addressed to it.
+        if (schedule.Vehicle.SaicUser is null) return new CommandAnswer(true, false, null);
+
+        for (var retry = 1; ; retry++)
+        {
+            var answer = await commands.SendAsync(schedule.Vehicle.Vin, step.Command, step.Value, ct);
+            if (!answer.CarBusy || retry > BusyRetries) return answer;
+
+            logger.LogInformation(
+                "Climate schedule {ScheduleId}: the car was busy, sending {Command} again in {Seconds}s ({Retry}/{Retries})",
+                schedule.Id, step.Command, BusyRetryDelay.TotalSeconds, retry, BusyRetries);
+            await Task.Delay(BusyRetryDelay, time, ct);
+        }
     }
 
     private async Task RecordAsync(ClimateSchedule schedule, RunResult result, CancellationToken ct)

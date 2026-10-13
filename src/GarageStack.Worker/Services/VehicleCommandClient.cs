@@ -9,7 +9,18 @@ namespace GarageStack.Worker.Services;
 /// <summary>What became of one command: whether the gateway answered, and if so how.</summary>
 public readonly record struct CommandAnswer(bool Answered, bool Success, string? Detail)
 {
+    // SAIC's code for "Other remote command in progress. Please try again later.", as the gateway
+    // passes it on. The code, not the English text, so another wording or language still matches.
+    private const string CarBusyPrefix = "return code: 8,";
+
     public static CommandAnswer NoAnswer => new(false, false, null);
+
+    /// <summary>
+    /// The car refused only because it was still busy with another command, so the same command
+    /// can go again a little later.
+    /// </summary>
+    public bool CarBusy => Answered && !Success
+        && Detail?.StartsWith(CarBusyPrefix, StringComparison.Ordinal) == true;
 }
 
 /// <summary>Sends a vehicle command from the Worker and waits for the car's answer.</summary>
