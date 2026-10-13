@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import '@/assets/statistics.css'
 import { onMounted, computed, defineAsyncComponent, ref, watch } from 'vue'
-import { storeToRefs } from 'pinia'
 import { useI18n } from 'vue-i18n'
 import { useVehicleStore } from '@/stores/vehicle'
 import { useDashboardSettingsStore } from '@/stores/settingsDashboard'
@@ -18,20 +17,25 @@ import { useBasemap } from '@/composables/useBasemap'
 import CardInfoWrap from '@/components/CardInfoWrap.vue'
 import DetailModal from '@/components/DetailModal.vue'
 import ToolbarPanel from '@/components/ToolbarPanel.vue'
-import DateRangeFilter from '@/components/DateRangeFilter.vue'
+import StatsPeriodFilter from '@/components/StatsPeriodFilter.vue'
+import StatsMonthTable from '@/components/StatsMonthTable.vue'
 import SkeletonCard from '@/components/SkeletonCard.vue'
 import SkeletonChart from '@/components/SkeletonChart.vue'
 import StatusCard from '@/components/StatusCard.vue'
 import StatsChartCard from '@/components/StatsChartCard.vue'
 import type EditableCardGridComponent from '@/components/EditableCardGrid.vue'
-import { formatHour, formatNumber } from '@/utils/format'
-import { startOfLocalDayDaysAgoIso } from '@/utils/dates'
+import { formatDate, formatHour, formatNumber } from '@/utils/format'
+import { resolveStatsPeriod, statsQuery } from '@/utils/statsPeriod'
+import { energyUnit } from '@/utils/energy'
+import { burnsFuel, plugsIn } from '@/utils/vehicleType'
 import {
   averageMovingSpeedKmh,
   averageTripKm as averageTripDistanceKm,
   batteryVoltageChange,
+  bucketDays,
+  hasDailyReadings,
   hasSpeedReadings,
-  historyByDay,
+  monthlyTotals,
   parkingSpots,
   peakDriveHour as peakTripHour,
   totalDistanceKm,
@@ -57,9 +61,19 @@ const editMode = ref(false)
 const loading = ref(false)
 const aggregateStats = ref<VehicleAggregateStats | null>(null)
 
-// Plain ref on the store already (Composition-API-style defineStore) - storeToRefs gives a
-// directly writable, reactive binding with no computed({get, set}) wrapper needed.
-const { filterDays: days } = storeToRefs(uiSettings)
+// The days the page shows, from its own period (the map keeps its 7, 30 or 90 days).
+const period = computed(() => resolveStatsPeriod(uiSettings.statsPeriod))
+
+const periodLabel = computed(() => {
+  const { first, last } = period.value
+  const sameYear = first.getFullYear() === last.getFullYear()
+  const from = formatDate(first, {
+    day: 'numeric',
+    month: 'short',
+    ...(sameYear ? {} : { year: 'numeric' }),
+  })
+  return `${from} - ${formatDate(last, { day: 'numeric', month: 'short', year: 'numeric' })}`
+})
 
 const vin = computed(() => store.activeVin)
 const status = computed(() => store.currentStatus)
@@ -69,13 +83,13 @@ async function load() {
   try {
     await store.fetchVehicles()
     if (!vin.value) return
-    const from = startOfLocalDayDaysAgoIso(days.value)
+    const query = statsQuery(period.value)
     const [, , , , stats] = await Promise.all([
-      store.fetchHistory(vin.value, from),
-      store.fetchTripSummaries(vin.value, from),
+      store.fetchDailyStats(vin.value, query.fromDate, query.toDate),
+      store.fetchTripSummaries(vin.value, query.fromIso, query.toIso),
       store.fetchStatus(vin.value),
       store.fetchConfig(vin.value),
-      vehicleApi.stats(vin.value, from),
+      vehicleApi.stats(vin.value, query.fromIso, query.toIso),
     ])
     aggregateStats.value = stats
   } finally {
@@ -84,7 +98,8 @@ async function load() {
 }
 
 onMounted(load)
-watch(() => uiSettings.filterDays, load)
+// By its days rather than its preset: "this month" and a custom period can be the same days.
+watch(() => `${period.value.first.getTime()}-${period.value.last.getTime()}`, load)
 
 // Trip just finished: refresh stats and trip list silently
 watch(
@@ -110,8 +125,26 @@ const INSIGHT_ICONS: Record<StatsInsightId, string> = {
   avgSpeed: 'gauge-high',
 }
 
-// The period's readings by local day, which the voltage trend and every chart are drawn from.
-const historyDays = computed(() => historyByDay(store.history, days.value))
+// The period's days as chart points: per day, per week or per month, by how long it is.
+const grouping = computed(() => period.value.grouping)
+const buckets = computed(() => bucketDays(store.dailyStats, grouping.value))
+
+// Whether there is anything to show for the period: readings from the car, or trips.
+const hasReadings = computed(() => hasDailyReadings(store.dailyStats))
+const hasPeriodData = computed(() => hasReadings.value || store.tripSummaries.length > 0)
+
+// The month table, for a period longer than a month: the last 30 days would only show the two
+// halves of the months they straddle.
+const months = computed(() =>
+  monthlyTotals(store.tripSummaries, store.dailyStats, period.value.first, period.value.last),
+)
+const showMonths = computed(
+  () => period.value.days > 31 && months.value.length > 1 && hasPeriodData.value,
+)
+const monthEnergyUnit = computed(() => {
+  const type = vehicleType.value
+  return burnsFuel(type) || plugsIn(type) ? energyUnit(type) : null
+})
 
 // ── Insight computed values ───────────────────────────────────
 
@@ -134,7 +167,7 @@ const parkingLocations = computed(() =>
 )
 
 const batteryVoltageTrend = computed(() => {
-  const delta = batteryVoltageChange(historyDays.value)
+  const delta = batteryVoltageChange(store.dailyStats)
   return delta === null ? null : `${delta > 0 ? '+' : ''}${delta} V`
 })
 
@@ -209,13 +242,13 @@ const insightDefs = computed((): InsightDef[] => [
     id: 'periodDistance' as StatsInsightId,
     icon: INSIGHT_ICONS.periodDistance,
     title:
-      days.value === 30
+      uiSettings.statsPeriod.preset === 'thisMonth' || uiSettings.statsPeriod.preset === 'lastMonth'
         ? t('statistics.insights.monthlyMileage')
         : t('statistics.insights.distanceInRange'),
     description: t('statistics.cardDesc.distanceInRange'),
     ...measuredInsight('distance', periodDistanceKm.value),
     vehicleApplicable: true,
-    applicable: store.history.length > 0,
+    applicable: hasPeriodData.value,
   },
   {
     id: 'avgTripLength' as StatsInsightId,
@@ -224,7 +257,7 @@ const insightDefs = computed((): InsightDef[] => [
     description: t('statistics.cardDesc.avgTripLength'),
     ...measuredInsight('distance', averageTripKm.value),
     vehicleApplicable: true,
-    applicable: store.history.length > 0,
+    applicable: hasPeriodData.value,
   },
   {
     id: 'climateUsage' as StatsInsightId,
@@ -233,7 +266,7 @@ const insightDefs = computed((): InsightDef[] => [
     description: t('statistics.cardDesc.climateUsage'),
     value: climateUsagePct.value !== null ? `${climateUsagePct.value}%` : null,
     vehicleApplicable: true,
-    applicable: store.history.length > 0,
+    applicable: hasPeriodData.value,
   },
   {
     id: 'commutePattern' as StatsInsightId,
@@ -242,7 +275,7 @@ const insightDefs = computed((): InsightDef[] => [
     description: t('statistics.cardDesc.commutePattern'),
     value: peakDriveHour.value,
     vehicleApplicable: true,
-    applicable: store.history.length > 0,
+    applicable: hasPeriodData.value,
   },
   {
     id: 'batteryVoltageTrend' as StatsInsightId,
@@ -251,7 +284,7 @@ const insightDefs = computed((): InsightDef[] => [
     description: t('statistics.cardDesc.batteryVoltageTrend'),
     value: batteryVoltageDisplay.value,
     vehicleApplicable: true,
-    applicable: store.history.length > 0 || status.value?.batteryVoltage != null,
+    applicable: hasReadings.value || status.value?.batteryVoltage != null,
   },
   {
     id: 'parkingLocations' as StatsInsightId,
@@ -260,7 +293,7 @@ const insightDefs = computed((): InsightDef[] => [
     description: t('statistics.cardDesc.parkingLocations'),
     value: parkingLocations.value !== null ? String(parkingLocations.value) : null,
     vehicleApplicable: true,
-    applicable: store.history.length > 0,
+    applicable: hasPeriodData.value,
     clickable: true,
   },
   {
@@ -293,7 +326,7 @@ const insightRows = computed(() =>
 
 // ── Charts ────────────────────────────────────────────────
 
-const chartDefs = useStatisticsCharts(historyDays, vehicleType)
+const chartDefs = useStatisticsCharts(buckets, grouping, vehicleType)
 const chartDefMap = computed(() => new Map(chartDefs.value.map((d) => [d.id, d])))
 
 // Each chart in the user's order, with what it shows.
@@ -324,10 +357,13 @@ const skeletonChartCount = computed(
 <template>
   <div class="view-container">
     <div class="view-header">
-      <h1>{{ t('nav.statistics') }}</h1>
+      <div>
+        <h1>{{ t('nav.statistics') }}</h1>
+        <p class="text-muted text-sm stats-period__shown">{{ periodLabel }}</p>
+      </div>
       <div class="view-header__actions">
         <ToolbarPanel>
-          <DateRangeFilter />
+          <StatsPeriodFilter />
         </ToolbarPanel>
         <button
           class="btn btn-sm"
@@ -357,12 +393,12 @@ const skeletonChartCount = computed(
 
     <template v-else>
       <div
-        v-if="store.historyError && !status && !store.history.length"
+        v-if="store.dailyStatsError && !status && !hasPeriodData"
         class="empty-state text-danger"
       >
-        {{ errorMessage(store.historyError) }}
+        {{ errorMessage(store.dailyStatsError) }}
       </div>
-      <div v-else-if="!status && !store.history.length && !editMode" class="empty-state">
+      <div v-else-if="!status && !hasPeriodData && !editMode" class="empty-state">
         {{ t('dashboard.noData') }}
       </div>
 
@@ -417,9 +453,9 @@ const skeletonChartCount = computed(
         </section>
 
         <!-- ── Charts ───────────────────────────────────── -->
-        <template v-if="editMode || store.history.length">
-          <div v-if="store.historyError" class="empty-state text-danger mt-2">
-            {{ errorMessage(store.historyError) }}
+        <template v-if="editMode || hasReadings">
+          <div v-if="store.dailyStatsError" class="empty-state text-danger mt-2">
+            {{ errorMessage(store.dailyStatsError) }}
           </div>
 
           <!-- Edit mode: draggable chart slots -->
@@ -433,7 +469,7 @@ const skeletonChartCount = computed(
           >
             <template #default="{ item }">
               <StatsChartCard
-                v-if="chartDefMap.get(item.id)?.applicable && store.history.length"
+                v-if="chartDefMap.get(item.id)?.applicable && hasReadings"
                 :title="chartDefMap.get(item.id)!.title"
                 :icon="chartDefMap.get(item.id)!.icon"
                 :type="chartDefMap.get(item.id)!.type"
@@ -465,6 +501,12 @@ const skeletonChartCount = computed(
             </template>
           </div>
         </template>
+
+        <StatsMonthTable
+          v-if="!editMode && showMonths"
+          :months="months"
+          :energy-unit="monthEnergyUnit"
+        />
 
         <!-- Reset + done editing -->
         <template v-if="editMode">

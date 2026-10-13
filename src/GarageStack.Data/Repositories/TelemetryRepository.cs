@@ -27,7 +27,7 @@ public class TelemetryRepository(
 
     private static string LatestCacheKey(int vehicleId) => $"telemetry-latest/{vehicleId}";
 
-    // Defensive cap on raw row counts for GetGpsFixesAsync/GetHistoryAsync. Endpoints already cap
+    // Defensive cap on raw row counts for GetGpsFixesAsync. Endpoints already cap
     // the requestable window to 90 days, the trip recorder reads a week at a time, and GPS rows
     // arrive roughly once/minute while driving, so this is far above any realistic heavy-user
     // volume - it exists purely to bound worst-case memory rather than to affect normal queries.
@@ -227,69 +227,27 @@ public class TelemetryRepository(
         return merged;
     }
 
-    public async Task<IReadOnlyList<TelemetryHistoryPoint>> GetHistoryAsync(int vehicleId, DateTime from, DateTime to, CancellationToken ct = default)
+    public async Task<IReadOnlyList<DailyStat>> GetDailyStatsAsync(
+        int vehicleId, DateOnly from, DateOnly to, TimeZoneInfo zone, DateOnly today, CancellationToken ct = default)
     {
-        // Ordered newest-first with a cap, then reversed back to chronological order below:
-        // if the cap is ever hit, it's the oldest rows in the range that get dropped, not the
-        // newest - recent history matters more to users than the tail of a 90-day window.
-        // Only the chart fields are selected: a full snapshot row is ~70 columns, almost all of
-        // which the statistics page never reads.
-        var rows = await db.TelemetrySnapshots
+        var builder = new DailyStatsBuilder(zone, from, to, today);
+        var (start, end) = DailyStatsBuilder.UtcRange(from, to < today ? to : today, zone);
+
+        // Streamed in arrival order rather than loaded: a year is a few hundred thousand rows, each
+        // folded into its day as it arrives. Only the chart fields are read (TelemetryHistoryPoint),
+        // which the partial chart index covers.
+        var readings = db.TelemetrySnapshots
             .AsNoTracking()
-            .Where(s => s.VehicleId == vehicleId && s.RecordedAt >= from && s.RecordedAt <= to)
+            .Where(s => s.VehicleId == vehicleId && s.RecordedAt >= start && s.RecordedAt < end)
             .Where(HasChartData)
-            .OrderByDescending(s => s.RecordedAt)
-            .Take(MaxRawRowsPerQuery)
+            .OrderBy(s => s.RecordedAt)
             .Select(TelemetryHistoryPoint.Projection)
-            .ToListAsync(ct);
+            .AsAsyncEnumerable();
 
-        if (rows.Count == MaxRawRowsPerQuery)
-            logger?.LogWarning(
-                "GetHistoryAsync hit the {Cap}-row cap for vehicleId={VehicleId} ({From} to {To}); oldest rows in range were dropped",
-                MaxRawRowsPerQuery, vehicleId, from, to);
+        await foreach (var reading in readings.WithCancellation(ct))
+            builder.Add(reading);
 
-        rows.Reverse();
-
-        if (rows.Count == 0) return rows;
-
-        var maxPoints = (to - from).TotalDays switch
-        {
-            <= 1 => 288,  // ~5-min resolution
-            <= 7 => 336,  // ~30-min resolution
-            _ => 360,  // ~2-hour resolution
-        };
-
-        if (rows.Count <= maxPoints) return rows;
-
-        // Per-day downsampling: each calendar day gets its own stride so that
-        // the sampler cannot systematically skip a particular MQTT field type.
-        // (A global stride whose step aligns with the per-poll batch size causes
-        // every sample to land on the same field type, e.g. always batteryVoltage,
-        // leaving fuelLevelPercent/evSocPercent blank for most days.)
-        var dayGroups = rows
-            .GroupBy(r => r.RecordedAt.Date)
-            .OrderBy(g => g.Key)
-            .ToList();
-
-        var targetPerDay = Math.Max(1, maxPoints / dayGroups.Count);
-        var result = new List<TelemetryHistoryPoint>(maxPoints + dayGroups.Count);
-        foreach (var dayGroup in dayGroups)
-        {
-            var dayRows = dayGroup.ToList();
-            if (dayRows.Count <= targetPerDay)
-            {
-                result.AddRange(dayRows);
-                continue;
-            }
-            // Even floating-point spacing avoids GCD aliasing: an integer stride
-            // whose GCD with the MQTT batch cycle size (typically 9 rows/poll) is
-            // > 1 causes the sampler to systematically skip certain field types
-            // (e.g. always landing on batteryVoltage, never on fuelLevelPercent).
-            var spacing = (double)dayRows.Count / targetPerDay;
-            for (var k = 0; k < targetPerDay; k++)
-                result.Add(dayRows[(int)(k * spacing)]);
-        }
-        return result;
+        return builder.Build();
     }
 
     public async Task<IReadOnlyList<TripPoint>> GetGpsFixesAsync(int vehicleId, DateTime from, DateTime to, CancellationToken ct = default)

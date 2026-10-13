@@ -75,12 +75,46 @@
       "evChart": "Dagelijks gemiddeld EV-accuniveau in de geselecteerde periode.",
       "tyreChart": "Dagelijkse gemiddelde bandenspanning per wiel in de geselecteerde periode. Normaal bereik voor personenwagens is circa {low} – {high} {unit}.",
       "hybridSocChart": "Dagelijks gemiddeld EV-accuniveau en brandstofniveau in de geselecteerde periode. Geeft inzicht in hoe beide energiebronnen zich samen ontwikkelen.",
-      "dailyKwhChart": "Geschat kWh-verbruik uit de EV-accu per dag. Voltooide dagen tonen de cumulatieve piek van die dag; vandaag toont alleen de nettotoename sinds middernacht, of sinds de laatste tellerreset.",
-      "dailyFuelChart": "Verbruikte brandstof per dag, volgens de teller van de boordcomputer. Voltooide dagen tonen de cumulatieve piek van die dag; vandaag toont alleen de nettotoename sinds middernacht, of sinds de laatste tellerreset."
+      "dailyKwhChart": "Geschat kWh-verbruik uit de EV-accu per dag, week of maand, afhankelijk van de periode. Een voltooide dag telt de piek van zijn teller; vandaag telt alleen de toename sinds middernacht, of sinds de laatste tellerreset.",
+      "dailyFuelChart": "Verbruikte brandstof per dag, week of maand, afhankelijk van de periode, volgens de teller van de boordcomputer. Een voltooide dag telt de piek van zijn teller; vandaag telt alleen de toename sinds middernacht, of sinds de laatste tellerreset."
     },
     "hybridSocChart": "EV & Brandstofniveaus",
-    "dailyKwhChart": "Dagelijks elektrisch verbruik (kWh)",
-    "dailyFuelChart": "Dagelijks brandstofverbruik ({unit})"
+    "weekOf": "Week van {date}",
+    "energyChart": {
+      "day": "Elektrisch verbruik per dag (kWh)",
+      "week": "Elektrisch verbruik per week (kWh)",
+      "month": "Elektrisch verbruik per maand (kWh)"
+    },
+    "fuelChart": {
+      "day": "Brandstofverbruik per dag ({unit})",
+      "week": "Brandstofverbruik per week ({unit})",
+      "month": "Brandstofverbruik per maand ({unit})"
+    },
+    "period": {
+      "label": "Periode",
+      "desc": "De dagen die de statistieken beslaan. Langere periodes worden per week getoond, en per maand vanaf een jaar.",
+      "preset": {
+        "last7": "Laatste 7 dagen",
+        "last30": "Laatste 30 dagen",
+        "last90": "Laatste 90 dagen",
+        "thisMonth": "Deze maand",
+        "lastMonth": "Vorige maand",
+        "thisYear": "Dit jaar",
+        "lastYear": "Vorig jaar",
+        "custom": "Eigen datums"
+      },
+      "from": "Van",
+      "to": "Tot en met"
+    },
+    "months": {
+      "title": "Per maand",
+      "month": "Maand",
+      "trips": "Ritten",
+      "distance": "Afstand ({unit})",
+      "energy": "Elektrisch verbruik (kWh)",
+      "fuel": "Brandstof ({unit})",
+      "total": "Totaal"
+    }
   },
   "vehicle": {
     "diagramLabel": "Voertuigstatusdiagram",

@@ -34,11 +34,12 @@ public interface ITelemetryRepository
     Task<TelemetrySnapshot?> GetMergedLatestAsync(int vehicleId, CancellationToken ct = default);
 
     /// <summary>
-    /// Returns the chart-relevant fields of snapshots between <paramref name="from"/> and
-    /// <paramref name="to"/> (GPS-only rows are excluded - see the Statistics/Map trip endpoints
-    /// for route data), downsampled per-day to a resolution appropriate for the requested range.
+    /// One <see cref="DailyStat"/> per local day in <paramref name="zone"/>, from
+    /// <paramref name="from"/> to <paramref name="to"/> (or <paramref name="today"/>, whichever comes
+    /// first), worked out from every reading of those days.
     /// </summary>
-    Task<IReadOnlyList<TelemetryHistoryPoint>> GetHistoryAsync(int vehicleId, DateTime from, DateTime to, CancellationToken ct = default);
+    Task<IReadOnlyList<DailyStat>> GetDailyStatsAsync(
+        int vehicleId, DateOnly from, DateOnly to, TimeZoneInfo zone, DateOnly today, CancellationToken ct = default);
 
     /// <summary>
     /// The GPS fixes recorded from <paramref name="from"/> up to (not including) <paramref name="to"/>,

@@ -114,15 +114,6 @@ export function needsAttention(schedule: Pick<ClimateSchedule, 'lastRunOutcome'>
   )
 }
 
-/** The browser's IANA time zone, which a new schedule keeps its start time in. */
-export function browserTimeZone(): string {
-  try {
-    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
-  } catch {
-    return 'UTC'
-  }
-}
-
 const COMMAND_LABEL_KEYS: Record<string, string> = {
   'climate-temperature': 'control.temperature',
   climate: 'control.climate',

@@ -112,26 +112,21 @@ export interface TelemetrySnapshot {
 }
 
 /**
- * The chart-relevant slice of a snapshot returned by the history endpoint. Mirrors
- * TelemetryHistoryPoint on the API; the statistics page reads nothing else per point.
+ * One local day for the statistics page, as the API works it out from every reading of that day
+ * (DailyStat). A value is null when the car reported none of it that day. `counterTotal` is in the
+ * counter's own unit: kWh on a plug-in car, hundredths of a litre on a plain hybrid (utils/energy).
  */
-export interface TelemetryHistoryPoint {
-  recordedAt: string
-  fuelLevelPercent: number | null
+export interface DailyStat {
+  /** The local day, "YYYY-MM-DD". */
+  date: string
   evSocPercent: number | null
-  powerUsageOfDay: number | null
-  batteryVoltage: number | null
-  climateOn: boolean | null
-  isCharging: boolean | null
+  fuelLevelPercent: number | null
   tyrePressureFrontLeft: number | null
   tyrePressureFrontRight: number | null
   tyrePressureRearLeft: number | null
   tyrePressureRearRight: number | null
-  mileageOfTheDay: number | null
-  mileageSinceLastCharge: number | null
-  hvSocKwh: number | null
-  hvTotalCapacityKwh: number | null
-  powerUsageSinceLastCharge: number | null
+  batteryVoltage: number | null
+  counterTotal: number | null
 }
 
 export interface VehicleAggregateStats {
@@ -194,10 +189,9 @@ export const vehicleApi = {
   tyrePressureThresholds: () =>
     request<TyrePressureThresholds>('/api/vehicles/tyre-pressure-thresholds'),
   config: (vin: string) => request<Record<string, string>>(`/api/vehicles/${vin}/config`),
-  history: (vin: string, from?: string, to?: string) => {
-    const query = buildQuery({ from, to })
-    return request<TelemetryHistoryPoint[]>(`/api/vehicles/${vin}/history${query}`)
-  },
+  /** One row per local day from `from` to `to` ("YYYY-MM-DD"), in the browser's time zone. */
+  dailyStats: (vin: string, from: string, to: string, timeZone: string) =>
+    request<DailyStat[]>(`/api/vehicles/${vin}/stats/daily${buildQuery({ from, to, timeZone })}`),
   trips: (vin: string, from?: string, to?: string) => {
     const query = buildQuery({ from, to })
     return request<Trip[]>(`/api/vehicles/${vin}/trips${query}`)

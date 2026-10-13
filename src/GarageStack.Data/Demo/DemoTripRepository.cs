@@ -23,6 +23,12 @@ public sealed class DemoTripRepository : ITripRepository
                 .Where(t => t.StartedAt >= from && t.StartedAt < to)
                 .Select((t, i) => t with { Index = i })]);
 
+    public async Task<IReadOnlyList<TripSummaryDto>> GetSummariesAsync(int vehicleId, DateTime from, DateTime to, CancellationToken ct = default) =>
+        [.. (await GetTripsAsync(vehicleId, from, to, ct)).Select(t => t.ToSummary())];
+
+    // Every demo trip carries its fixes, so there is nothing to fill in.
+    public Task<int> FillSpeedFiguresAsync(int batchSize, CancellationToken ct = default) => Task.FromResult(0);
+
     // The demo's fixed timeline ends with the trip it is driving, whatever the clock says.
     public Task<TripDto?> GetLatestAsync(int vehicleId, DateTime now, CancellationToken ct = default) =>
         Task.FromResult<TripDto?>(DemoTrips.All.Count > 0 ? DemoTrips.All[^1] with { Index = 0 } : null);

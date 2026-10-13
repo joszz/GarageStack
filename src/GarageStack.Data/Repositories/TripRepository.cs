@@ -33,6 +33,70 @@ public class TripRepository(
         return [.. saved.Concat(live).Select((trip, i) => trip with { Index = i })];
     }
 
+    public async Task<IReadOnlyList<TripSummaryDto>> GetSummariesAsync(int vehicleId, DateTime from, DateTime to, CancellationToken ct = default)
+    {
+        // The same split as GetTripsAsync, for the same reason.
+        var recordedUntil = await GetRecordedUntilAsync(vehicleId, ct);
+        var liveFrom = recordedUntil is { } line && line > from ? line : from;
+
+        var saved = liveFrom > from ? await GetSavedSummariesAsync(vehicleId, from, Min(liveFrom, to), ct) : [];
+        var live = liveFrom < to
+            ? TripSegmenter.Segment(await telemetry.GetGpsFixesAsync(vehicleId, liveFrom, to, ct), to).Trips.Select(t => t.ToSummary())
+            : [];
+
+        return [.. saved.Concat(live).Select((trip, i) => trip with { Index = i })];
+    }
+
+    private async Task<IEnumerable<TripSummaryDto>> GetSavedSummariesAsync(int vehicleId, DateTime from, DateTime before, CancellationToken ct)
+    {
+        var rows = await db.Trips
+            .AsNoTracking()
+            .Where(t => t.VehicleId == vehicleId && t.StartedAt >= from && t.StartedAt < before)
+            .OrderBy(t => t.StartedAt)
+            // -1 samples marks a trip saved before its figures were stored.
+            .Select(t => new TripSummaryDto(
+                0, t.Id, t.StartedAt, t.EndedAt, t.DistanceKm, t.PointCount, t.EndLatitude, t.EndLongitude,
+                t.MaxSpeedKmh, t.AvgMovingSpeedKmh, t.MovingSpeedSamples ?? -1))
+            .ToListAsync(ct);
+
+        // A trip saved before the figures were stored, which housekeeping has not reached yet:
+        // read off its fixes as before.
+        var missing = rows.Where(r => r.MovingSpeedSamples < 0).Select(r => r.Id!.Value).ToList();
+        if (missing.Count == 0) return rows;
+
+        var worked = (await db.Trips.AsNoTracking().Where(t => missing.Contains(t.Id)).ToListAsync(ct))
+            .Select(ToDto)
+            .OfType<TripDto>()
+            .ToDictionary(t => t.Id!.Value, t => t.ToSummary());
+
+        // A trip whose fixes cannot be read is left out, as GetTripsAsync leaves it out.
+        return rows
+            .Where(r => r.MovingSpeedSamples >= 0 || worked.ContainsKey(r.Id!.Value))
+            .Select(r => r.MovingSpeedSamples >= 0 ? r : worked[r.Id!.Value]);
+    }
+
+    public async Task<int> FillSpeedFiguresAsync(int batchSize, CancellationToken ct = default)
+    {
+        var trips = await db.Trips
+            .Where(t => t.MovingSpeedSamples == null)
+            .OrderBy(t => t.Id)
+            .Take(batchSize)
+            .ToListAsync(ct);
+
+        foreach (var trip in trips)
+        {
+            // Unreadable fixes give no figures, and zero samples marks the trip as done either way.
+            var dto = ToDto(trip);
+            trip.MaxSpeedKmh = dto?.MaxSpeedKmh;
+            trip.AvgMovingSpeedKmh = dto?.AvgMovingSpeedKmh;
+            trip.MovingSpeedSamples = dto?.MovingSpeedSamples ?? 0;
+        }
+
+        await db.SaveChangesAsync(ct);
+        db.ChangeTracker.Clear();
+        return trips.Count;
+    }
+
     // How far back the newest unsaved trip is looked for. The Worker saves a finished trip within
     // minutes, so the fixes past the recording line only span more than this while it is down.
     private static readonly TimeSpan LatestTripLookback = TimeSpan.FromDays(7);
@@ -96,6 +160,9 @@ public class TripRepository(
                 EndLongitude = trip.Points[^1].Longitude,
                 OdometerStartKm = recorded.OdometerStartKm,
                 OdometerEndKm = recorded.OdometerEndKm,
+                MaxSpeedKmh = trip.MaxSpeedKmh,
+                AvgMovingSpeedKmh = trip.AvgMovingSpeedKmh,
+                MovingSpeedSamples = trip.MovingSpeedSamples,
                 Purpose = CommuteRule.AutomaticPurpose(start.Latitude, start.Longitude, end.Latitude, end.Longitude, places),
             };
         }));

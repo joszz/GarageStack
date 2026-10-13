@@ -1,6 +1,6 @@
-import type { TelemetryHistoryPoint, TripSummary } from '@/services/vehicleApi'
+import type { DailyStat, TripSummary } from '@/services/vehicleApi'
 import { localDateKey } from '@/utils/dates'
-import { dailyCounterTotal } from '@/utils/energy'
+import { parseLocalDate, type StatsGrouping } from '@/utils/statsPeriod'
 
 /**
  * The trip figures the statistics page shows, read from trip summaries rather than from every
@@ -76,60 +76,39 @@ export function hasSpeedReadings(trips: readonly TripSummary[]): boolean {
   return trips.some((trip) => trip.maxSpeedKmh !== null)
 }
 
-// ── Daily history ───────────────────────────────────────────────────────────
+// ── Days, weeks and months ──────────────────────────────────────────────────
 
-/** A local calendar day of history readings, keyed "YYYY-MM-DD". */
-export interface HistoryDay {
+/** The days a chart point stands for: one day, a week from Monday, or a calendar month. */
+export interface StatsBucket {
+  /** The day, the week's Monday or the month's first day, "YYYY-MM-DD". */
   key: string
-  points: TelemetryHistoryPoint[]
+  /** The first day of the period it covers: a week cut off by the period starts on that day. */
+  start: Date
+  days: DailyStat[]
 }
 
-/**
- * The period's readings by local day, one entry for every day from `days` ago up to today even
- * when the car sent nothing that day, so a chart's x axis spans the whole period evenly.
- */
-export function historyByDay(
-  history: readonly TelemetryHistoryPoint[],
-  days: number,
-  now: Date = new Date(),
-): HistoryDay[] {
-  const buckets = new Map<string, TelemetryHistoryPoint[]>()
-
-  const startDay = new Date(now)
-  startDay.setDate(startDay.getDate() - days)
-  for (
-    let d = new Date(startDay.getFullYear(), startDay.getMonth(), startDay.getDate());
-    d <= now;
-    d.setDate(d.getDate() + 1)
-  ) {
-    buckets.set(localDateKey(d), [])
+function bucketStart(day: Date, grouping: StatsGrouping): Date {
+  if (grouping === 'month') return new Date(day.getFullYear(), day.getMonth(), 1)
+  if (grouping === 'week') {
+    // Weeks start on Monday, as ISO weeks do.
+    const sinceMonday = (day.getDay() + 6) % 7
+    return new Date(day.getFullYear(), day.getMonth(), day.getDate() - sinceMonday)
   }
+  return day
+}
 
-  for (const point of history) {
-    const key = localDateKey(new Date(point.recordedAt))
-    const existing = buckets.get(key)
-    if (existing) existing.push(point)
-    else buckets.set(key, [point])
+/** The period's days in chart points, oldest first. The API sends every day, so none is missing. */
+export function bucketDays(stats: readonly DailyStat[], grouping: StatsGrouping): StatsBucket[] {
+  const buckets = new Map<string, StatsBucket>()
+  for (const stat of stats) {
+    const day = parseLocalDate(stat.date)
+    if (!day) continue
+    const key = localDateKey(bucketStart(day, grouping))
+    const bucket = buckets.get(key)
+    if (bucket) bucket.days.push(stat)
+    else buckets.set(key, { key, start: day, days: [stat] })
   }
-
-  return Array.from(buckets.entries()).map(([key, points]) => ({ key, points }))
-}
-
-/** The day a history bucket stands for, at local midnight. */
-export function historyDayDate(day: HistoryDay): Date {
-  return new Date(`${day.key}T00:00:00`)
-}
-
-/**
- * How a chart's axis names the period's days: day and short month ("10 Sep"), with the year only
- * when the period runs into another one, where two "3 Jan" ticks a year apart would read the same.
- */
-export function dayTickFormat(days: readonly HistoryDay[]): Intl.DateTimeFormatOptions {
-  const firstYear = days[0]?.key.slice(0, 4)
-  const lastYear = days[days.length - 1]?.key.slice(0, 4)
-  return firstYear === lastYear
-    ? { day: 'numeric', month: 'short' }
-    : { day: 'numeric', month: 'short', year: 'numeric' }
+  return [...buckets.values()]
 }
 
 function average(values: readonly (number | null)[]): number | null {
@@ -138,48 +117,120 @@ function average(values: readonly (number | null)[]): number | null {
   return valid.reduce((sum, v) => sum + v, 0) / valid.length
 }
 
-export function roundTo2(value: number): number {
-  return Math.round(value * 100) / 100
+/** Each point's average of a daily average, null for a point without any. */
+export function bucketAverages(
+  buckets: readonly StatsBucket[],
+  read: (day: DailyStat) => number | null,
+): (number | null)[] {
+  return buckets.map((bucket) => average(bucket.days.map(read)))
 }
 
-/** Each day's average of one reading, null for a day without any. */
-export function dailyAverages(
-  days: readonly HistoryDay[],
-  read: (point: TelemetryHistoryPoint) => number | null,
+/** Each point's sum of a daily total, null for a point without any. */
+export function bucketTotals(
+  buckets: readonly StatsBucket[],
+  read: (day: DailyStat) => number | null,
 ): (number | null)[] {
-  return days.map((day) => average(day.points.map(read)))
+  return buckets.map((bucket) => {
+    const values = bucket.days.map(read).filter((v): v is number => v !== null)
+    return values.length ? values.reduce((sum, v) => sum + v, 0) : null
+  })
+}
+
+/**
+ * How a chart's axis names its points: a day or a week by its first day ("10 Sep"), a month by
+ * its name. The year is added only when the period runs into another one, where two "3 Jan" ticks
+ * a year apart would read the same.
+ */
+export function bucketTickFormat(
+  buckets: readonly StatsBucket[],
+  grouping: StatsGrouping,
+): Intl.DateTimeFormatOptions {
+  const firstYear = buckets[0]?.start.getFullYear()
+  const lastYear = buckets[buckets.length - 1]?.start.getFullYear()
+  const year = firstYear === lastYear ? {} : { year: 'numeric' as const }
+  return grouping === 'month'
+    ? { month: 'short', ...year }
+    : { day: 'numeric', month: 'short', ...year }
+}
+
+/** Whether the car reported anything at all in the period. */
+export function hasDailyReadings(stats: readonly DailyStat[]): boolean {
+  return stats.some(
+    (s) =>
+      s.evSocPercent !== null ||
+      s.fuelLevelPercent !== null ||
+      s.batteryVoltage !== null ||
+      s.counterTotal !== null ||
+      s.tyrePressureFrontLeft !== null,
+  )
+}
+
+export function roundTo2(value: number): number {
+  return Math.round(value * 100) / 100
 }
 
 /**
  * How far the 12 V battery's daily average moved from the first day with a reading to the last,
  * in volts to two decimals. Null with fewer than two such days.
  */
-export function batteryVoltageChange(days: readonly HistoryDay[]): number | null {
-  const averages = dailyAverages(days, (p) => p.batteryVoltage).filter(
-    (v): v is number => v !== null,
-  )
-  if (averages.length < 2) return null
-  return roundTo2(averages[averages.length - 1]! - averages[0]!)
+export function batteryVoltageChange(stats: readonly DailyStat[]): number | null {
+  const voltages = stats.map((s) => s.batteryVoltage).filter((v): v is number => v !== null)
+  if (voltages.length < 2) return null
+  return roundTo2(voltages[voltages.length - 1]! - voltages[0]!)
 }
 
-/**
- * Each day's total from the car's daily energy counter, in whatever the counter holds (kWh on a
- * plug-in car, hundredths of a litre on a plain hybrid). Today is still running, which changes how
- * a counter reset has to be read.
- */
-export function dailyCounterTotals(
-  days: readonly HistoryDay[],
-  now: Date = new Date(),
-): (number | null)[] {
-  const today = localDateKey(now)
-  return days.map((day) => {
-    const readings = day.points
-      .slice()
-      .sort((a, b) => new Date(a.recordedAt).getTime() - new Date(b.recordedAt).getTime())
-      .map((p) => p.powerUsageOfDay)
-      .filter((v): v is number => v !== null)
-    return dailyCounterTotal(readings, day.key === today)
-  })
+// ── Per month ───────────────────────────────────────────────────────────────
+
+export interface MonthTotal {
+  /** The month, "YYYY-MM". */
+  key: string
+  start: Date
+  trips: number
+  distanceKm: number
+  /** The energy counter's total over the month, in its own unit; null when it reported none. */
+  counterTotal: number | null
+}
+
+function monthKey(date: Date): string {
+  return localDateKey(date).slice(0, 7)
+}
+
+/** Every month the period touches, oldest first, with its trips and its counter total. */
+export function monthlyTotals(
+  trips: readonly TripSummary[],
+  stats: readonly DailyStat[],
+  first: Date,
+  last: Date,
+): MonthTotal[] {
+  const months = new Map<string, MonthTotal>()
+  for (
+    let month = new Date(first.getFullYear(), first.getMonth(), 1);
+    month <= last;
+    month = new Date(month.getFullYear(), month.getMonth() + 1, 1)
+  ) {
+    months.set(monthKey(month), {
+      key: monthKey(month),
+      start: month,
+      trips: 0,
+      distanceKm: 0,
+      counterTotal: null,
+    })
+  }
+
+  for (const trip of trips) {
+    const month = months.get(monthKey(new Date(trip.startedAt)))
+    if (!month) continue
+    month.trips++
+    month.distanceKm += trip.distanceKm
+  }
+
+  for (const stat of stats) {
+    const month = months.get(stat.date.slice(0, 7))
+    if (month && stat.counterTotal !== null)
+      month.counterTotal = (month.counterTotal ?? 0) + stat.counterTotal
+  }
+
+  return [...months.values()]
 }
 
 /**

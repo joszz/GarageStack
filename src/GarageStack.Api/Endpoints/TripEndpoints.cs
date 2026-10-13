@@ -27,13 +27,16 @@ public static class TripEndpoints
         {
             var vehicle = httpContext.ResolvedVehicle();
 
-            var rangeError = DateRange.TryResolve(from, to, TimeSpan.FromDays(30), TimeSpan.FromDays(90), out var start, out var end);
+            // Without their fixes a trip is one small row, so the statistics page can ask for years;
+            // with them (the map) a period stays at most 90 days.
+            var summariesOnly = points == false;
+            var rangeError = DateRange.TryResolve(from, to, TimeSpan.FromDays(30),
+                summariesOnly ? DateRange.LongestStatisticsSpan : TimeSpan.FromDays(90), out var start, out var end);
             if (rangeError is not null) return rangeError;
 
-            var found = await trips.GetTripsAsync(vehicle.Id, start, end, ct);
-            return points == false
-                ? Results.Ok(found.Select(trip => trip.ToSummary()).ToList())
-                : Results.Ok(found);
+            return summariesOnly
+                ? Results.Ok(await trips.GetSummariesAsync(vehicle.Id, start, end, ct))
+                : Results.Ok(await trips.GetTripsAsync(vehicle.Id, start, end, ct));
         })
         .WithSummary("Get trip history (saved trips, then the ones not saved yet, including the trip being driven); points=false leaves out the fixes");
 

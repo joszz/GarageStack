@@ -815,6 +815,9 @@ namespace GarageStack.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
+                    b.Property<double?>("AvgMovingSpeedKmh")
+                        .HasColumnType("double precision");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -832,6 +835,12 @@ namespace GarageStack.Data.Migrations
 
                     b.Property<DateTime>("EndedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<double?>("MaxSpeedKmh")
+                        .HasColumnType("double precision");
+
+                    b.Property<int?>("MovingSpeedSamples")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Notes")
                         .HasMaxLength(500)

@@ -368,6 +368,39 @@ public class AuthenticationFlowTests
         Assert.Empty((await client.GetFromJsonAsync<List<CommutePlaceDto>>(placesUrl, ct))!);
     }
 
+    // The statistics page asks for its period by local day, however long it is.
+    [Fact]
+    public async Task DailyStats_ServeEveryDayOfThePeriod_InTheBrowsersZone()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var factory = CreatePasswordOnlyFactory();
+        using var client = CreateClient(factory);
+        var login = await client.PostAsJsonAsync(
+            "/api/auth/login",
+            new { username = DemoUsername, password = DemoPassword, rememberMe = false },
+            ct);
+        Assert.Equal(HttpStatusCode.OK, login.StatusCode);
+        var vin = (await client.GetFromJsonAsync<JsonElement>("/api/vehicles", ct))[0].GetProperty("vin").GetString();
+
+        var zone = TimeZoneInfo.FindSystemTimeZoneById("Europe/Amsterdam");
+        var today = DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, zone));
+        var from = today.AddDays(-399);
+        var stats = await client.GetFromJsonAsync<List<DailyStat>>(
+            $"/api/vehicles/{vin}/stats/daily?from={from:yyyy-MM-dd}&to={today:yyyy-MM-dd}&timeZone=Europe/Amsterdam", ct);
+
+        Assert.Equal(400, stats!.Count);
+        Assert.Equal(from, stats[0].Date);
+        // The demo car reports a month of history, so recent days carry figures.
+        Assert.Contains(stats, s => s.EvSocPercent is not null);
+
+        var unknownZone = await client.GetAsync($"/api/vehicles/{vin}/stats/daily?timeZone=Mars/Olympus_Mons", ct);
+        Assert.Equal(HttpStatusCode.BadRequest, unknownZone.StatusCode);
+        Assert.Contains("stats.timeZoneUnknown", await unknownZone.Content.ReadAsStringAsync(ct));
+
+        // The raw history it replaces is gone.
+        Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync($"/api/vehicles/{vin}/history", ct)).StatusCode);
+    }
+
     [Fact]
     public async Task UpdateNotice_NeedsASignedInUser()
     {
