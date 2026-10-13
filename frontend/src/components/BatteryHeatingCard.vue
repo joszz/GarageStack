@@ -5,6 +5,7 @@ import ExpandableStatusCard from './ExpandableStatusCard.vue'
 import DetailListItem from './DetailListItem.vue'
 import CommandButton from './CommandButton.vue'
 import CommandFeedback from './CommandFeedback.vue'
+import BatteryHeatingScheduleForm from './BatteryHeatingScheduleForm.vue'
 import { useVehicleCommand } from '@/composables/useVehicleCommand'
 import { formatTimeOfDay } from '@/utils/format'
 
@@ -90,5 +91,13 @@ const scheduleModeLabel = computed(() => {
         :label="t('vehicle.batteryHeating.startTime')"
       />
     </div>
+
+    <BatteryHeatingScheduleForm
+      v-if="vin"
+      class="mt-3"
+      :vin="vin"
+      :mode="scheduleMode"
+      :start-time="scheduleStartTime"
+    />
   </ExpandableStatusCard>
 </template>

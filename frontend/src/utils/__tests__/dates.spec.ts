@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { daysAgoIso, startOfLocalDayDaysAgoIso } from '@/utils/dates'
+import { daysAgoIso, startOfLocalDayDaysAgoIso, timeOfDay } from '@/utils/dates'
 
 describe('daysAgoIso', () => {
   it('subtracts whole days from the given instant', () => {
@@ -17,5 +17,18 @@ describe('startOfLocalDayDaysAgoIso', () => {
     expect(result.getDate()).toBe(16)
     expect(result.getHours()).toBe(0)
     expect(result.getMinutes()).toBe(0)
+  })
+})
+
+describe('timeOfDay', () => {
+  it('reads a time with or without seconds as hours and minutes', () => {
+    expect(timeOfDay('07:00')).toBe('07:00')
+    expect(timeOfDay('23:45:00')).toBe('23:45')
+  })
+
+  it('reads nothing else', () => {
+    expect(timeOfDay(null)).toBeNull()
+    expect(timeOfDay('7:00')).toBeNull()
+    expect(timeOfDay('24:00')).toBeNull()
   })
 })

@@ -93,6 +93,18 @@ public class VehicleCommandSenderTests
     }
 
     [Fact]
+    public async Task SendAsync_ChargingUntilTheTargetOnACarWithoutOne_RefusesWithoutPublishing()
+    {
+        var (sender, publisher) = Create();
+        const string value = """{"mode":"UNTIL_CONFIGURED_SOC","startTime":"23:00","endTime":"07:00"}""";
+
+        var outcome = await sender.SendAsync(Car(batteryType: "2"), "scheduled-charging", value, TestContext.Current.CancellationToken);
+
+        Assert.Equal("command.unsupported", outcome.Refusal?.Code);
+        Assert.Empty(publisher.Published);
+    }
+
+    [Fact]
     public async Task SendAsync_ChargeTarget_PublishesThePercentage()
     {
         var (sender, publisher) = Create();

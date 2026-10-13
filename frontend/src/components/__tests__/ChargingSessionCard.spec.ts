@@ -47,6 +47,7 @@ function mountCard(props: Record<string, unknown> = {}) {
       chargingScheduleMode: null,
       chargingScheduleStartTime: null,
       chargingScheduleEndTime: null,
+      canChargeUntilTarget: false,
       ...props,
     },
     global,

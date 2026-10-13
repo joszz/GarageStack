@@ -30,7 +30,7 @@ internal sealed class VehicleCommandSender(IMqttPublisher mqtt, VehicleCommandGa
         if (VehicleCommands.Validate(command, value) is { } message)
             return CommandSendOutcome.Refused("command.invalidValue", message);
 
-        if (!VehicleCommands.Supports(command, vehicle))
+        if (!VehicleCommands.Supports(command, vehicle, value))
             return CommandSendOutcome.Refused("command.unsupported", $"This vehicle does not support '{command}'");
 
         var topic = $"saic/{vehicle.SaicUser}/vehicles/{vehicle.Vin}/{commandTopic}/set";

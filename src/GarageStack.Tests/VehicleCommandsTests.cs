@@ -11,7 +11,7 @@ public class VehicleCommandsTests
     [
         "climate", "climate-temperature", "rear-defroster", "seat-left", "seat-right",
         "find-my-car", "charge-limit", "charge-target", "charging", "charging-cable-lock",
-        "battery-heating", "scheduled-charging", "lock", "boot", "refresh",
+        "battery-heating", "scheduled-charging", "battery-heating-schedule", "lock", "boot", "refresh",
     ];
 
     // An answer is matched back to its command by topic, so two commands sharing a topic would
@@ -41,6 +41,7 @@ public class VehicleCommandsTests
     [InlineData("charging-cable-lock", "drivetrain/chargingCableLock")]
     [InlineData("battery-heating", "drivetrain/batteryHeating")]
     [InlineData("boot", "doors/boot")]
+    [InlineData("battery-heating-schedule", "drivetrain/batteryHeatingSchedule")]
     public void TopicFor_PlugInAndBootCommands_AreTheTopicsTheGatewayHandles(string command, string topic)
     {
         Assert.Equal(topic, VehicleCommands.TopicFor(command));
@@ -72,7 +73,7 @@ public class VehicleCommandsTests
     [InlineData(null, false)]
     public void Supports_ChargeTarget_OnlyWhereTheGatewayCarriesItOut(string? batteryType, bool expected)
     {
-        Assert.Equal(expected, VehicleCommands.Supports("charge-target", Car(batteryType)));
+        Assert.Equal(expected, VehicleCommands.Supports("charge-target", Car(batteryType), "80"));
     }
 
     // The car answers these for itself, so whatever drivetrain GarageStack detected, they go out.
@@ -84,7 +85,21 @@ public class VehicleCommandsTests
     [InlineData("lock")]
     public void Supports_CommandsTheCarAnswersItself_OnEveryCar(string command)
     {
-        Assert.True(VehicleCommands.Supports(command, Car("0")));
+        Assert.True(VehicleCommands.Supports(command, Car("0"), "true"));
+    }
+
+    // Charging until the target is dropped, like the target itself, on a car that takes none;
+    // charging until a time works on every plug-in car.
+    [Theory]
+    [InlineData("UNTIL_CONFIGURED_SOC", "1", true)]
+    [InlineData("UNTIL_CONFIGURED_SOC", "2", false)]
+    [InlineData("UNTIL_CONFIGURED_TIME", "2", true)]
+    [InlineData("DISABLED", "2", true)]
+    public void Supports_ChargingSchedule_UntilTheTargetOnlyWhereThereIsOne(string mode, string batteryType, bool expected)
+    {
+        var value = $$"""{"mode":"{{mode}}","startTime":"23:00","endTime":"07:00"}""";
+
+        Assert.Equal(expected, VehicleCommands.Supports("scheduled-charging", Car(batteryType), value));
     }
 }
 
