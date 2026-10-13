@@ -328,19 +328,22 @@ Unraid users can install directly without waiting for CA approval:
 
 The template uses `:latest`, so a release on its own needs no template change. `unraid/garagestack.xml` changes when a variable, port, volume, name or description changes, and **every such change has to be copied to the Community Apps repository as well**. Community Apps installs only from [`joszz/unraid-community-apps`](https://github.com/joszz/unraid-community-apps), so a change made here alone never reaches the users who installed from there. The comment at the top of the template says the same, for whoever edits it next.
 
-The two copies differ only in `<TemplateURL>`: each one points at itself. Copy the whole file across and restore that one line:
+The two copies differ only in `<TemplateURL>`: each one points at itself. Copy the whole file across on a branch, restore that one line, and open a pull request there, just as for a change here:
 
 ```bash
 cd unraid-community-apps
-git pull
+git switch main && git pull
+git switch -c sync/<what-changed>
 curl -fsSL https://raw.githubusercontent.com/joszz/garagestack/main/unraid/garagestack.xml \
   | sed 's#raw.githubusercontent.com/joszz/garagestack/main/unraid/garagestack.xml#raw.githubusercontent.com/joszz/unraid-community-apps/main/templates/garagestack.xml#' \
   > templates/garagestack.xml
 git diff   # only the template's own changes, never the TemplateURL
-git commit -am "Sync garagestack.xml with joszz/garagestack" && git push
+git commit -am "Sync garagestack.xml with joszz/garagestack (<what changed>)"
+git push -u origin sync/<what-changed>
+gh pr create --repo joszz/unraid-community-apps --base main --fill
 ```
 
-Do this once the template change is on `main` here, so both copies describe the same image. When the app's description changes, update `ca_profile.xml` and `README.md` in that repository too.
+Do this once the template change is on `main` here, so both copies describe the same image. Community Apps reads the template from that repository's `main`, so the sync reaches users only once its pull request is merged. When the app's description changes, update `ca_profile.xml` and `README.md` in that repository too.
 
 ---
 
