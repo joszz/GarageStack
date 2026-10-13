@@ -1,3 +1,4 @@
+using System.Globalization;
 using GarageStack.Core.Models;
 
 namespace GarageStack.Core.Helpers;
@@ -15,10 +16,10 @@ public static class VehicleCommands
     /// <param name="Topic">The topic as saic-python-mqtt-gateway's handlers register it (src/mqtt_topics.py).</param>
     /// <param name="Check">Why a value is refused, or null when the gateway takes it.</param>
     /// <param name="Supports">
-    /// Whether the gateway carries the command out on this car, for a command it otherwise drops
-    /// while still answering "Success"; null when the car itself says no.
+    /// Whether the gateway carries the command, with this value, out on this car, for a command it
+    /// otherwise drops while still answering "Success"; null when the car itself says no.
     /// </param>
-    private sealed record Command(string Topic, Func<string, string?> Check, Func<Vehicle, bool>? Supports = null);
+    private sealed record Command(string Topic, Func<string, string?> Check, Func<Vehicle, string, bool>? Supports = null);
 
     // The gateway maps this onto its ChargeCurrentLimitCode enum, which only knows these four
     // values (it upper-cases the payload first, so any casing is accepted here).
@@ -27,6 +28,13 @@ public static class VehicleCommands
 
     // The gateway maps the percentage onto TargetBatteryCode, which knows 40 to 100 in steps of 10.
     private static readonly HashSet<string> ChargeTargets = ["40", "50", "60", "70", "80", "90", "100"];
+
+    // The names of saic-ismart-client-ng's ScheduledChargingMode, as the gateway reports them.
+    private const string UntilTargetMode = "UNTIL_CONFIGURED_SOC";
+    private static readonly HashSet<string> ChargingScheduleModes = ["UNTIL_CONFIGURED_TIME", UntilTargetMode, "DISABLED"];
+
+    // A schedule is a small JSON object; anything longer is not one, and is not parsed.
+    private const int MaxScheduleLength = 500;
 
     private static readonly Dictionary<string, Command> ByName = new(StringComparer.Ordinal)
     {
@@ -52,14 +60,16 @@ public static class VehicleCommands
             ChargeTargets.Contains(value)
                 ? null
                 : $"'charge-target' value must be one of {string.Join(", ", ChargeTargets)}",
-            VehicleTypeHelper.SupportsTargetSoc),
+            (vehicle, _) => VehicleTypeHelper.SupportsTargetSoc(vehicle)),
         ["charging"] = new("drivetrain/charging", value => TrueFalse("charging", value)),
         ["charging-cable-lock"] = new("drivetrain/chargingCableLock", value => TrueFalse("charging-cable-lock", value)),
         ["battery-heating"] = new("drivetrain/batteryHeating", value => TrueFalse("battery-heating", value)),
-        // The SAIC API expects a JSON blob (mode + start/end time), whose shape isn't validated
-        // here; only the length forwarded to MQTT is capped.
-        ["scheduled-charging"] = new("drivetrain/chargingSchedule", value =>
-            value.Length <= 500 ? null : "value is too long"),
+        // The gateway reads both times whatever the mode, so even switching the schedule off needs
+        // them. Charging until the target is dropped like a target, on a car that takes none.
+        ["scheduled-charging"] = new("drivetrain/chargingSchedule", ChargingSchedule,
+            (vehicle, value) => ScheduleField(value, "mode") != UntilTargetMode || VehicleTypeHelper.SupportsTargetSoc(vehicle)),
+        // The gateway reads the start time even when the schedule is switched off.
+        ["battery-heating-schedule"] = new("drivetrain/batteryHeatingSchedule", BatteryHeatingSchedule),
         ["lock"] = new("doors/locked", value =>
             value is "True" or "False" ? null : "'lock' value must be 'True' or 'False'"),
         // "false" unlocks the tailgate. The gateway takes "true" too, but only logs that a boot
@@ -78,6 +88,31 @@ public static class VehicleCommands
 
     private static string? TrueFalse(string command, string value) =>
         value is "true" or "false" ? null : $"'{command}' value must be 'true' or 'false'";
+
+    // The schedules travel as JSON objects of strings, which the gateway reads with an enum lookup
+    // and time.fromisoformat; it answers anything else with "Failed: Error converting payload".
+    private static Dictionary<string, string>? ScheduleFields(string value) =>
+        value.Length <= MaxScheduleLength ? SafeJson.TryDeserialize<Dictionary<string, string>>(value) : null;
+
+    private static string? ScheduleField(string value, string name) => ScheduleFields(value)?.GetValueOrDefault(name);
+
+    private static bool IsTimeOfDay(string? value) =>
+        TimeOnly.TryParseExact(value, "HH:mm", CultureInfo.InvariantCulture, DateTimeStyles.None, out _);
+
+    private static string? ChargingSchedule(string value) =>
+        ScheduleFields(value) is { } fields
+        && ChargingScheduleModes.Contains(fields.GetValueOrDefault("mode") ?? "")
+        && IsTimeOfDay(fields.GetValueOrDefault("startTime"))
+        && IsTimeOfDay(fields.GetValueOrDefault("endTime"))
+            ? null
+            : $"'scheduled-charging' value must be a JSON object with mode ({string.Join(", ", ChargingScheduleModes)}), startTime and endTime (HH:mm)";
+
+    private static string? BatteryHeatingSchedule(string value) =>
+        ScheduleFields(value) is { } fields
+        && fields.GetValueOrDefault("mode") is "on" or "off"
+        && IsTimeOfDay(fields.GetValueOrDefault("startTime"))
+            ? null
+            : "'battery-heating-schedule' value must be a JSON object with mode ('on' or 'off') and startTime (HH:mm)";
 
     private static string? IntegerBetween(string command, string value, int min, int max) =>
         int.TryParse(value, out var number) && number >= min && number <= max
@@ -102,9 +137,10 @@ public static class VehicleCommands
         ByName.GetValueOrDefault(command)?.Check(value);
 
     /// <summary>
-    /// Whether the gateway carries <paramref name="command"/> out on <paramref name="vehicle"/>.
-    /// True for a command the car itself accepts or refuses, which answers for itself.
+    /// Whether the gateway carries <paramref name="command"/> with <paramref name="value"/> out on
+    /// <paramref name="vehicle"/>. True for a command the car itself accepts or refuses, which
+    /// answers for itself.
     /// </summary>
-    public static bool Supports(string command, Vehicle vehicle) =>
-        ByName.GetValueOrDefault(command)?.Supports?.Invoke(vehicle) ?? true;
+    public static bool Supports(string command, Vehicle vehicle, string value) =>
+        ByName.GetValueOrDefault(command)?.Supports?.Invoke(vehicle, value) ?? true;
 }

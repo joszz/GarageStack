@@ -215,26 +215,55 @@ public class VehicleCommandValidationTests
         Assert.NotNull(VehicleCommands.Validate("boot", value));
     }
 
-    // ── scheduled-charging (passthrough) ─────────────────────────────────────
+    // ── scheduled-charging ────────────────────────────────────────────────────
+    // As the gateway reads it: the mode by ScheduledChargingMode's name, both times by
+    // time.fromisoformat, and both times even to switch the schedule off.
     [Theory]
-    [InlineData("scheduled-charging", "any-complex-value")]
-    [InlineData("scheduled-charging", "{}")]
-    public void ScheduledCharging_AnyNonEmptyString_ReturnsNull(string command, string value)
+    [InlineData("""{"mode":"UNTIL_CONFIGURED_TIME","startTime":"23:00","endTime":"07:00"}""")]
+    [InlineData("""{"mode":"UNTIL_CONFIGURED_SOC","startTime":"01:30","endTime":"06:00"}""")]
+    [InlineData("""{"mode":"DISABLED","startTime":"00:00","endTime":"00:00"}""")]
+    public void ScheduledCharging_WhatTheGatewayReads_ReturnsNull(string value)
     {
-        Assert.Null(VehicleCommands.Validate(command, value));
+        Assert.Null(VehicleCommands.Validate("scheduled-charging", value));
+    }
+
+    [Theory]
+    [InlineData("any-complex-value")]
+    [InlineData("{}")]
+    [InlineData("""{"mode":"DISABLED"}""")]
+    [InlineData("""{"mode":"SOMETIMES","startTime":"23:00","endTime":"07:00"}""")]
+    [InlineData("""{"mode":"UNTIL_CONFIGURED_TIME","startTime":"24:00","endTime":"07:00"}""")]
+    [InlineData("""{"mode":"UNTIL_CONFIGURED_TIME","startTime":"7:00","endTime":"07:00"}""")]
+    [InlineData("""{"mode":"UNTIL_CONFIGURED_TIME","startTime":23,"endTime":"07:00"}""")]
+    public void ScheduledCharging_AnythingElse_ReturnsError(string value)
+    {
+        Assert.NotNull(VehicleCommands.Validate("scheduled-charging", value));
     }
 
     [Fact]
     public void ScheduledCharging_ValueOver500Chars_ReturnsError()
     {
-        var value = new string('a', 501);
+        // A valid schedule padded past the cap, so only the length can refuse it.
+        var value = "{\"mode\":\"DISABLED\",\"startTime\":\"00:00\",\"endTime\":\"00:00\",\"x\":\"" + new string('a', 500) + "\"}";
         Assert.NotNull(VehicleCommands.Validate("scheduled-charging", value));
     }
 
-    [Fact]
-    public void ScheduledCharging_ValueExactly500Chars_ReturnsNull()
+    // ── battery-heating-schedule ─────────────────────────────────────────────
+    [Theory]
+    [InlineData("""{"mode":"on","startTime":"06:30"}""")]
+    [InlineData("""{"mode":"off","startTime":"00:00"}""")]
+    public void BatteryHeatingSchedule_WhatTheGatewayReads_ReturnsNull(string value)
     {
-        var value = new string('a', 500);
-        Assert.Null(VehicleCommands.Validate("scheduled-charging", value));
+        Assert.Null(VehicleCommands.Validate("battery-heating-schedule", value));
+    }
+
+    [Theory]
+    [InlineData("""{"mode":"off"}""")]
+    [InlineData("""{"mode":"daily","startTime":"06:30"}""")]
+    [InlineData("""{"mode":"on","startTime":"6.30"}""")]
+    [InlineData("on")]
+    public void BatteryHeatingSchedule_AnythingElse_ReturnsError(string value)
+    {
+        Assert.NotNull(VehicleCommands.Validate("battery-heating-schedule", value));
     }
 }
