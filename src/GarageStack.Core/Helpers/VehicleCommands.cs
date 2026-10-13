@@ -1,3 +1,5 @@
+using GarageStack.Core.Models;
+
 namespace GarageStack.Core.Helpers;
 
 /// <summary>
@@ -12,12 +14,19 @@ public static class VehicleCommands
 {
     /// <param name="Topic">The topic as saic-python-mqtt-gateway's handlers register it (src/mqtt_topics.py).</param>
     /// <param name="Check">Why a value is refused, or null when the gateway takes it.</param>
-    private sealed record Command(string Topic, Func<string, string?> Check);
+    /// <param name="Supports">
+    /// Whether the gateway carries the command out on this car, for a command it otherwise drops
+    /// while still answering "Success"; null when the car itself says no.
+    /// </param>
+    private sealed record Command(string Topic, Func<string, string?> Check, Func<Vehicle, bool>? Supports = null);
 
     // The gateway maps this onto its ChargeCurrentLimitCode enum, which only knows these four
     // values (it upper-cases the payload first, so any casing is accepted here).
     private static readonly HashSet<string> ChargeCurrentLimits =
         new(["6A", "8A", "16A", "MAX"], StringComparer.OrdinalIgnoreCase);
+
+    // The gateway maps the percentage onto TargetBatteryCode, which knows 40 to 100 in steps of 10.
+    private static readonly HashSet<string> ChargeTargets = ["40", "50", "60", "70", "80", "90", "100"];
 
     private static readonly Dictionary<string, Command> ByName = new(StringComparer.Ordinal)
     {
@@ -37,12 +46,26 @@ public static class VehicleCommands
             ChargeCurrentLimits.Contains(value)
                 ? null
                 : $"'charge-limit' value must be one of {string.Join(", ", ChargeCurrentLimits)}"),
+        // The gateway drops a target on a car it does not take one for, and answers "Success" all
+        // the same, so such a car is refused here instead.
+        ["charge-target"] = new("drivetrain/socTarget", value =>
+            ChargeTargets.Contains(value)
+                ? null
+                : $"'charge-target' value must be one of {string.Join(", ", ChargeTargets)}",
+            VehicleTypeHelper.SupportsTargetSoc),
+        ["charging"] = new("drivetrain/charging", value => TrueFalse("charging", value)),
+        ["charging-cable-lock"] = new("drivetrain/chargingCableLock", value => TrueFalse("charging-cable-lock", value)),
+        ["battery-heating"] = new("drivetrain/batteryHeating", value => TrueFalse("battery-heating", value)),
         // The SAIC API expects a JSON blob (mode + start/end time), whose shape isn't validated
         // here; only the length forwarded to MQTT is capped.
         ["scheduled-charging"] = new("drivetrain/chargingSchedule", value =>
             value.Length <= 500 ? null : "value is too long"),
         ["lock"] = new("doors/locked", value =>
             value is "True" or "False" ? null : "'lock' value must be 'True' or 'False'"),
+        // "false" unlocks the tailgate. The gateway takes "true" too, but only logs that a boot
+        // cannot be closed remotely and answers "Success", so it is not offered.
+        ["boot"] = new("doors/boot", value =>
+            value == "false" ? null : "'boot' value must be 'false': the boot can only be opened"),
         ["refresh"] = new("refresh/mode", value =>
             value == "force" ? null : "'refresh' value must be 'force'"),
     };
@@ -52,6 +75,9 @@ public static class VehicleCommands
 
     private static string? OnOff(string command, string value) =>
         value is "on" or "off" ? null : $"'{command}' value must be 'on' or 'off'";
+
+    private static string? TrueFalse(string command, string value) =>
+        value is "true" or "false" ? null : $"'{command}' value must be 'true' or 'false'";
 
     private static string? IntegerBetween(string command, string value, int min, int max) =>
         int.TryParse(value, out var number) && number >= min && number <= max
@@ -74,4 +100,11 @@ public static class VehicleCommands
     /// </summary>
     public static string? Validate(string command, string value) =>
         ByName.GetValueOrDefault(command)?.Check(value);
+
+    /// <summary>
+    /// Whether the gateway carries <paramref name="command"/> out on <paramref name="vehicle"/>.
+    /// True for a command the car itself accepts or refuses, which answers for itself.
+    /// </summary>
+    public static bool Supports(string command, Vehicle vehicle) =>
+        ByName.GetValueOrDefault(command)?.Supports?.Invoke(vehicle) ?? true;
 }

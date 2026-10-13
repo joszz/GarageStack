@@ -5,6 +5,7 @@ import ExpandableStatusCard from './ExpandableStatusCard.vue'
 import DetailListItem from './DetailListItem.vue'
 import CommandButton from './CommandButton.vue'
 import CommandFailure from './CommandFailure.vue'
+import CommandFeedback from './CommandFeedback.vue'
 import { useVehicleCommand } from '@/composables/useVehicleCommand'
 import { useBooleanStatusList } from '@/composables/useBooleanStatusList'
 
@@ -100,6 +101,14 @@ async function handleLockToggle() {
   })
   if (lastResult.value?.ok) localLocked.value = newLocked
 }
+
+// Only offered while the car reports the boot shut: the gateway can open it, never close it.
+const canOpenBoot = computed(() => props.trunkOpen === false)
+const hasControls = computed(() => props.isLocked !== null || canOpenBoot.value)
+
+function openBoot() {
+  send(props.vin, 'boot', 'false', { isConfirmed: (s) => s.trunkOpen === true })
+}
 </script>
 
 <template>
@@ -110,8 +119,8 @@ async function handleLockToggle() {
     :value="summary"
     :variant="variant"
   >
-    <div v-if="isLocked !== null" class="detail-list">
-      <div class="detail-list__item detail-list__item--control">
+    <div v-if="hasControls" class="detail-list">
+      <div v-if="isLocked !== null" class="detail-list__item detail-list__item--control">
         <font-awesome-icon
           :icon="effectiveLocked ? 'lock' : 'lock-open'"
           class="detail-list__item-icon"
@@ -139,9 +148,26 @@ async function handleLockToggle() {
         class="detail-list__feedback"
         :detail="lastResult.detail"
       />
+      <template v-if="canOpenBoot || isPending('boot')">
+        <div class="detail-list__item detail-list__item--control">
+          <font-awesome-icon icon="car-rear" class="detail-list__item-icon" />
+          <span class="detail-list__item-label">{{ t('vehicle.doors_detail.boot') }}</span>
+          <CommandButton
+            class="btn-sm btn-outline-secondary"
+            :pending="isPending('boot')"
+            :sending="sending === 'boot'"
+            :disabled="!vin"
+            icon="car-rear"
+            :label="t('control.openBoot')"
+            :confirm-label="t('control.confirmOpenBoot')"
+            @click="openBoot"
+          />
+        </div>
+        <CommandFeedback command="boot" :pending="isPending('boot')" :last-result="lastResult" />
+      </template>
     </div>
 
-    <div v-if="doorList.length > 0" class="detail-list" :class="isLocked !== null ? 'mt-3' : ''">
+    <div v-if="doorList.length > 0" class="detail-list" :class="hasControls ? 'mt-3' : ''">
       <DetailListItem
         v-for="door in doorList"
         :key="door.key"

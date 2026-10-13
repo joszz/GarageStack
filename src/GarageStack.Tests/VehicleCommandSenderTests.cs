@@ -19,7 +19,13 @@ public class VehicleCommandSenderTests
         }
     }
 
-    private static Vehicle Car(string? saicUser = "driver@example.com") => new() { Id = 1, Vin = Vin, SaicUser = saicUser };
+    private static Vehicle Car(string? saicUser = "driver@example.com", string? batteryType = null) => new()
+    {
+        Id = 1,
+        Vin = Vin,
+        SaicUser = saicUser,
+        ConfigJson = batteryType is null ? null : $$"""{"BType":"{{batteryType}}"}""",
+    };
 
     private static (VehicleCommandSender Sender, RecordingPublisher Publisher) Create()
     {
@@ -71,5 +77,30 @@ public class VehicleCommandSenderTests
 
         Assert.Equal("command.invalidValue", outcome.Refusal?.Code);
         Assert.Empty(publisher.Published);
+    }
+
+    // The gateway would drop it and still answer "Success", so the browser would wait on a change
+    // that never comes.
+    [Fact]
+    public async Task SendAsync_ChargeTargetOnACarWithoutOne_RefusesWithoutPublishing()
+    {
+        var (sender, publisher) = Create();
+
+        var outcome = await sender.SendAsync(Car(batteryType: "2"), "charge-target", "80", TestContext.Current.CancellationToken);
+
+        Assert.Equal("command.unsupported", outcome.Refusal?.Code);
+        Assert.Empty(publisher.Published);
+    }
+
+    [Fact]
+    public async Task SendAsync_ChargeTarget_PublishesThePercentage()
+    {
+        var (sender, publisher) = Create();
+
+        var outcome = await sender.SendAsync(Car(batteryType: "1"), "charge-target", "80", TestContext.Current.CancellationToken);
+
+        const string expected = "saic/driver@example.com/vehicles/FAKEVN00000000001/drivetrain/socTarget/set";
+        Assert.Null(outcome.Refusal);
+        Assert.Equal([(expected, "80")], publisher.Published);
     }
 }

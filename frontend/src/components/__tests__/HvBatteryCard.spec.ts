@@ -34,6 +34,7 @@ function mountCard(props: Record<string, unknown> = {}) {
       socTargetPercent: null,
       chargeCurrentLimit: null,
       canSetChargeLimit: true,
+      canSetChargeTarget: false,
       ...props,
     },
     global: {
@@ -44,7 +45,11 @@ function mountCard(props: Record<string, unknown> = {}) {
 }
 
 function limitButtons(wrapper: ReturnType<typeof mountCard>) {
-  return wrapper.findAll('.modal-btn-group button')
+  return wrapper.findAll('.modal-btn-group button[aria-pressed]')
+}
+
+function targetButton(wrapper: ReturnType<typeof mountCard>) {
+  return wrapper.find('.modal-btn-group button:not([aria-pressed])')
 }
 
 describe('HvBatteryCard', () => {
@@ -76,5 +81,37 @@ describe('HvBatteryCard', () => {
     await limitButtons(mountCard())[1]!.trigger('click')
 
     expect(send).toHaveBeenCalledWith('FAKEVN00000000001', 'charge-limit', '8A')
+  })
+
+  it('offers a charge target only on a car that takes one', () => {
+    expect(mountCard().find('input[type="range"]').exists()).toBe(false)
+    expect(mountCard({ canSetChargeTarget: true }).find('input[type="range"]').exists()).toBe(true)
+  })
+
+  it("starts the target slider at the car's target, and sends a new one", async () => {
+    const wrapper = mountCard({ canSetChargeTarget: true, socTargetPercent: 80 })
+    const slider = wrapper.find<HTMLInputElement>('input[type="range"]')
+    expect(slider.element.value).toBe('80')
+    expect(targetButton(wrapper).attributes('disabled')).toBeDefined()
+
+    await slider.setValue('90')
+    await targetButton(wrapper).trigger('click')
+
+    const [vin, command, value, options] = send.mock.lastCall! as [
+      string,
+      string,
+      string,
+      { isConfirmed: (s: { socTargetPercent: number | null }) => boolean },
+    ]
+    expect([vin, command, value]).toEqual(['FAKEVN00000000001', 'charge-target', '90'])
+    // Taken as done once the car reports the new target, not on the gateway's word alone.
+    expect(options.isConfirmed({ socTargetPercent: 80 })).toBe(false)
+    expect(options.isConfirmed({ socTargetPercent: 90 })).toBe(true)
+  })
+
+  it('starts the slider at 80% while the car has not reported a target', () => {
+    const wrapper = mountCard({ canSetChargeTarget: true })
+
+    expect(wrapper.find<HTMLInputElement>('input[type="range"]').element.value).toBe('80')
   })
 })

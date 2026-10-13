@@ -41,6 +41,14 @@ public static partial class VehicleTypeHelper
     /// <summary>Vehicles that burn fuel and therefore need fuel stations on the map.</summary>
     public static bool HasCombustionEngine(string vehicleType) => vehicleType is "hev" or "phev";
 
+    /// <summary>
+    /// Whether the car takes a charge target (the level it stops charging at). The gateway's own
+    /// test (vehicle_info.supports_target_soc), so GarageStack offers it exactly where the gateway
+    /// carries it out: BType 1. BType 2 plugs in too, but has no target.
+    /// </summary>
+    public static bool SupportsTargetSoc(Vehicle v) =>
+        BatteryType(SafeJson.TryDeserialize<Dictionary<string, string>>(v.ConfigJson)) == "1";
+
     // Older cars send the code as BTYPE. "Battery" and "BATTERY" are different entries: the first is
     // BType under its item name, the second an unrelated code, so neither is read here.
     private static string? BatteryType(Dictionary<string, string>? cfg) =>

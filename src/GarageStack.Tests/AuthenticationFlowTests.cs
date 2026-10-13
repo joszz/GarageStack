@@ -337,6 +337,8 @@ public class AuthenticationFlowTests
 
         var vehicles = await client.GetFromJsonAsync<JsonElement>("/api/vehicles", ct);
         var vin = vehicles[0].GetProperty("vin").GetString();
+        // The demo ZS EV takes a charge target, so its list entry says so.
+        Assert.True(vehicles[0].GetProperty("supportsTargetSoc").GetBoolean());
         var logUrl = $"/api/vehicles/{vin}/trips/log?from={DateTimeOffset.UtcNow.AddDays(-60):O}&to={DateTimeOffset.UtcNow:O}"
             .Replace("+", "%2B", StringComparison.Ordinal);
         async Task<TripLogEntry> EntryAsync(long id) =>

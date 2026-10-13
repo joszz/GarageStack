@@ -525,6 +525,19 @@ describe('useDashboardSettingsStore - layout', () => {
     expect(dashboard.cards.slice(firstHidden).every((c) => !c.visible)).toBe(true)
   })
 
+  // A first visit starts from the unknown-car defaults; the dashboard takes the drivetrain's own
+  // once it is known, or a plug-in car would never show its charging controls.
+  it('shows the plug-in cards when a first layout turns out to be for a plug-in car', () => {
+    const dashboard = useDashboardSettingsStore()
+    expect(visible(dashboard.cards)).not.toContain('chargingSession')
+
+    dashboard.applyTypeDefaults('bev')
+
+    expect(visible(dashboard.cards)).toEqual(
+      expect.arrayContaining(['chargingSession', 'batteryHeating']),
+    )
+  })
+
   it('moves a hidden card behind the visible ones and a shown one to the end of them', () => {
     const dashboard = useDashboardSettingsStore()
     dashboard.cards = [

@@ -1082,6 +1082,13 @@ body,
   cursor: not-allowed;
 }
 
+/* A command waiting for its second tap (CommandButton's confirmLabel). */
+.btn.btn--armed {
+  border-color: transparent;
+  background: var(--color-danger);
+  color: #fff;
+}
+
 .btn:not(:disabled):hover {
   filter: brightness(1.15);
 }
@@ -1120,6 +1127,12 @@ body,
   border-color: var(--color-border);
   color: var(--color-text);
   background: var(--color-surface-2);
+}
+
+/* An action that leaves the car less secure (unlock), readable in both themes. */
+.btn-outline-warning {
+  border-color: var(--color-warning);
+  background: color-mix(in srgb, var(--color-warning) 12%, var(--color-surface-2));
 }
 
 /* ── Badges ───────────────────────────────────────────────── */

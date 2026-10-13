@@ -13,7 +13,8 @@ public sealed class DemoVehicleRepository : IVehicleRepository
         Series = "ZS EV",
         SaicUser = "demo@example.com",
         CreatedAt = DateTime.UtcNow.AddMonths(-6),
-        ConfigJson = """{"hw_version":"MG_BEV_1.0"}""",
+        // BType 1: a ZS EV takes a charge target, so the demo shows that control.
+        ConfigJson = """{"hw_version":"MG_BEV_1.0","BType":"1"}""",
     };
 
     public Task<IReadOnlyList<Vehicle>> GetAllAsync(CancellationToken ct = default) =>
