@@ -22,7 +22,7 @@ public static class VehicleEndpoints
             var all = await vehicles.GetAllAsync(ct);
             return Results.Ok(all.Select(v => new VehicleListItemDto(
                 v.Id, v.Vin, v.Model, v.Series, v.CreatedAt, VehicleTypeHelper.GetVehicleType(v),
-                hvBatteryCapacity.Kwh)));
+                hvBatteryCapacity.Kwh, VehicleTypeHelper.SupportsTargetSoc(v))));
         })
         .WithSummary("List all vehicles");
 
@@ -157,6 +157,7 @@ public static class VehicleEndpoints
 /// one), served here so every client reads the same answer instead of parsing it themselves.
 /// <c>HvBatteryCapacityKwh</c> rides along for the same reason: it decides how a client turns a
 /// state of charge into kWh, and is null when the deployment has not configured one.
+/// <c>SupportsTargetSoc</c> says whether the car takes a charge target, by the gateway's own test.
 /// </summary>
 public record VehicleListItemDto(
     int Id,
@@ -165,4 +166,5 @@ public record VehicleListItemDto(
     string? Series,
     DateTime CreatedAt,
     string VehicleType,
-    double? HvBatteryCapacityKwh);
+    double? HvBatteryCapacityKwh,
+    bool SupportsTargetSoc);

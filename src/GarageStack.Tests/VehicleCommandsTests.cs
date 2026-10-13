@@ -10,7 +10,8 @@ public class VehicleCommandsTests
     public static TheoryData<string> Commands() =>
     [
         "climate", "climate-temperature", "rear-defroster", "seat-left", "seat-right",
-        "find-my-car", "charge-limit", "scheduled-charging", "lock", "refresh",
+        "find-my-car", "charge-limit", "charge-target", "charging", "charging-cable-lock",
+        "battery-heating", "scheduled-charging", "lock", "boot", "refresh",
     ];
 
     // An answer is matched back to its command by topic, so two commands sharing a topic would
@@ -33,6 +34,18 @@ public class VehicleCommandsTests
         Assert.Equal("drivetrain/chargingSchedule", VehicleCommands.TopicFor("scheduled-charging"));
     }
 
+    // The topics saic-python-mqtt-gateway 0.12.0 registers its handlers on (src/mqtt_topics.py).
+    [Theory]
+    [InlineData("charge-target", "drivetrain/socTarget")]
+    [InlineData("charging", "drivetrain/charging")]
+    [InlineData("charging-cable-lock", "drivetrain/chargingCableLock")]
+    [InlineData("battery-heating", "drivetrain/batteryHeating")]
+    [InlineData("boot", "doors/boot")]
+    public void TopicFor_PlugInAndBootCommands_AreTheTopicsTheGatewayHandles(string command, string topic)
+    {
+        Assert.Equal(topic, VehicleCommands.TopicFor(command));
+    }
+
     [Fact]
     public void TopicFor_UnknownCommand_IsNull()
     {
@@ -42,7 +55,36 @@ public class VehicleCommandsTests
     [Fact]
     public void CommandFor_TopicTheApiNeverSends_IsNull()
     {
-        Assert.Null(VehicleCommands.CommandFor("drivetrain/socTarget"));
+        Assert.Null(VehicleCommands.CommandFor("drivetrain/hvBatteryActive"));
+    }
+
+    private static Vehicle Car(string? batteryType) => new()
+    {
+        Vin = "FAKEVN00000000001",
+        ConfigJson = batteryType is null ? null : JsonSerializer.Serialize(new Dictionary<string, string> { ["BType"] = batteryType }),
+    };
+
+    // The gateway drops a charge target on any other car while answering "Success".
+    [Theory]
+    [InlineData("1", true)]
+    [InlineData("2", false)]
+    [InlineData("0", false)]
+    [InlineData(null, false)]
+    public void Supports_ChargeTarget_OnlyWhereTheGatewayCarriesItOut(string? batteryType, bool expected)
+    {
+        Assert.Equal(expected, VehicleCommands.Supports("charge-target", Car(batteryType)));
+    }
+
+    // The car answers these for itself, so whatever drivetrain GarageStack detected, they go out.
+    [Theory]
+    [InlineData("charging")]
+    [InlineData("charging-cable-lock")]
+    [InlineData("battery-heating")]
+    [InlineData("boot")]
+    [InlineData("lock")]
+    public void Supports_CommandsTheCarAnswersItself_OnEveryCar(string command)
+    {
+        Assert.True(VehicleCommands.Supports(command, Car("0")));
     }
 }
 
@@ -60,7 +102,7 @@ public class CommandResultMessageTests
     [Fact]
     public void From_AnswerToACommandTheApiNeverSends_IsNull()
     {
-        var payload = new CommandResultPayload(1, "FAKEVN00000000001", "drivetrain/socTarget", true, null);
+        var payload = new CommandResultPayload(1, "FAKEVN00000000001", "drivetrain/hvBatteryActive", true, null);
 
         Assert.Null(CommandResultMessage.From(payload));
     }

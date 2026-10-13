@@ -156,6 +156,65 @@ public class VehicleCommandValidationTests
         Assert.NotNull(VehicleCommands.Validate("refresh", value));
     }
 
+    // ── charge-target ─────────────────────────────────────────────────────────
+    [Theory]
+    [InlineData("40")]
+    [InlineData("80")]
+    [InlineData("100")]
+    public void ChargeTarget_StepsTheGatewayKnows_ReturnsNull(string value)
+    {
+        Assert.Null(VehicleCommands.Validate("charge-target", value));
+    }
+
+    [Theory]
+    [InlineData("30")]
+    [InlineData("85")]
+    [InlineData("110")]
+    [InlineData("80%")]
+    public void ChargeTarget_OtherValues_ReturnsError(string value)
+    {
+        Assert.NotNull(VehicleCommands.Validate("charge-target", value));
+    }
+
+    // ── charging / charging-cable-lock / battery-heating ──────────────────────
+    [Theory]
+    [InlineData("charging", "true")]
+    [InlineData("charging", "false")]
+    [InlineData("charging-cable-lock", "true")]
+    [InlineData("charging-cable-lock", "false")]
+    [InlineData("battery-heating", "true")]
+    [InlineData("battery-heating", "false")]
+    public void TrueFalseCommands_ValidValues_ReturnsNull(string command, string value)
+    {
+        Assert.Null(VehicleCommands.Validate(command, value));
+    }
+
+    [Theory]
+    [InlineData("charging", "on")]
+    [InlineData("charging", "True")]
+    [InlineData("charging-cable-lock", "1")]
+    [InlineData("battery-heating", "start")]
+    public void TrueFalseCommands_InvalidValues_ReturnsError(string command, string value)
+    {
+        Assert.NotNull(VehicleCommands.Validate(command, value));
+    }
+
+    // ── boot ──────────────────────────────────────────────────────────────────
+    [Fact]
+    public void Boot_Open_ReturnsNull()
+    {
+        Assert.Null(VehicleCommands.Validate("boot", "false"));
+    }
+
+    // The gateway answers "true" with "Success" without doing anything: a boot cannot be closed.
+    [Theory]
+    [InlineData("true")]
+    [InlineData("open")]
+    public void Boot_AnythingButOpen_ReturnsError(string value)
+    {
+        Assert.NotNull(VehicleCommands.Validate("boot", value));
+    }
+
     // ── scheduled-charging (passthrough) ─────────────────────────────────────
     [Theory]
     [InlineData("scheduled-charging", "any-complex-value")]

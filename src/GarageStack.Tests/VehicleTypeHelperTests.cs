@@ -30,6 +30,24 @@ public class VehicleTypeHelperTests
         Assert.Equal(expected, VehicleTypeHelper.GetVehicleType(car));
     }
 
+    // The gateway's supports_target_soc: BType 1 only. The MG4 Urban and the PHEVs (2) plug in
+    // without a target, and an older car's BTYPE counts the same.
+    [Theory]
+    [InlineData("BType", "1", true)]
+    [InlineData("BTYPE", "1", true)]
+    [InlineData("BType", "2", false)]
+    [InlineData("BType", "0", false)]
+    public void SupportsTargetSoc_FollowsTheGateway(string key, string value, bool expected)
+    {
+        Assert.Equal(expected, VehicleTypeHelper.SupportsTargetSoc(Car("ZS EV", (key, value))));
+    }
+
+    [Fact]
+    public void SupportsTargetSoc_NoConfigurationYet_IsFalse()
+    {
+        Assert.False(VehicleTypeHelper.SupportsTargetSoc(Car("ZS EV")));
+    }
+
     [Fact]
     public void GetVehicleType_OlderCarWithUpperCaseCode()
     {
