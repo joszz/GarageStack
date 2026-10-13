@@ -680,6 +680,7 @@
       "addHome": "Add home",
       "addWork": "Add work",
       "kindLabel": "Kind of place",
+      "homeTaken": "This car already has a home. To move it, edit that place.",
       "kind": {
         "home": "Home",
         "work": "Work"
@@ -864,6 +865,7 @@
       },
       "commutePlace": {
         "limitReached": "A car can have at most 10 home and work places.",
+        "homeExists": "This car already has a home. To move it, edit that place.",
         "kindRequired": "Choose home or work.",
         "invalidPosition": "Place the pin on the map.",
         "invalidRadius": "The radius must be between 50 and 1000 metres.",

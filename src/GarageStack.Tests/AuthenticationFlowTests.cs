@@ -321,7 +321,7 @@ public class AuthenticationFlowTests
     }
 
     // Through the whole stack: setting home and work labels an unclassified demo trip between them
-    // straight away, and removing them takes the label off again. Places are removed at the end,
+    // straight away, a second home is refused, and removing them takes the label off again. Places are removed at the end,
     // since the demo database is shared by every host in this run.
     [Fact]
     public async Task CommutePlaces_LabelTheTripBetweenThem_AndRemovingThemUndoesIt()
@@ -351,9 +351,13 @@ public class AuthenticationFlowTests
         var work = await (await client.PostAsJsonAsync(placesUrl,
             new { kind = "work", label = "Office", latitude = open.EndLatitude, longitude = open.EndLongitude, radiusMeters = 300 }, ct))
             .Content.ReadFromJsonAsync<CommutePlaceChange>(ct);
+        var secondHome = await client.PostAsJsonAsync(placesUrl,
+            new { kind = "home", latitude = open.EndLatitude, longitude = open.EndLongitude }, ct);
 
         Assert.Equal(0, home!.Marked);
         Assert.True(work!.Marked >= 1);
+        Assert.Equal(HttpStatusCode.BadRequest, secondHome.StatusCode);
+        Assert.Equal("commutePlace.homeExists", await ProblemCodeAsync(secondHome, ct));
         Assert.Equal(new CommutePlaceDto(work.Place!.Id, CommutePlaceKind.Work, "Office", open.EndLatitude, open.EndLongitude, 300), work.Place);
         var labelled = await EntryAsync(open.Id);
         Assert.Equal(TripPurpose.Commute, labelled.Purpose);

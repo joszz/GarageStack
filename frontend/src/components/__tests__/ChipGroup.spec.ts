@@ -67,6 +67,15 @@ describe('ChipGroup', () => {
     expect(wrapper.emitted('update:modelValue')?.[1]).toEqual([['a']])
   })
 
+  it('disables a single chip', () => {
+    const wrapper = mountGroup('a', {
+      options: OPTIONS.map((o) => ({ ...o, disabled: o.value === 'c' })),
+    })
+
+    expect(chip(wrapper, 'Charlie').attributes('disabled')).toBeDefined()
+    expect(chip(wrapper, 'Bravo').attributes('disabled')).toBeUndefined()
+  })
+
   it('disables every chip', () => {
     const wrapper = mountGroup(null, { disabled: true })
 

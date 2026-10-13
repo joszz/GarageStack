@@ -37,7 +37,10 @@ internal sealed class ClimateScheduleTestWorker : IDisposable
             .BuildServiceProvider();
         Scopes = _services.GetRequiredService<IServiceScopeFactory>();
         Runner = new ClimateScheduleRunner(
-            Scopes, Car, Push, WorkerLocalizer.Notifications(), Clock, NullLogger<ClimateScheduleRunner>.Instance);
+            Scopes, Car, Push, WorkerLocalizer.Notifications(), Clock, NullLogger<ClimateScheduleRunner>.Instance)
+        {
+            BusyRetryDelay = TimeSpan.Zero,
+        };
     }
 
     public ClimateScheduleService Service() =>
@@ -111,6 +114,9 @@ internal sealed class FakeCommandClient : IVehicleCommandClient
     /// <summary>The answer per command; one not listed succeeds.</summary>
     public Dictionary<string, CommandAnswer> Answers { get; } = [];
 
+    /// <summary>Answers given one per send, in turn, before <see cref="Answers"/> applies.</summary>
+    public Dictionary<string, Queue<CommandAnswer>> FirstAnswers { get; } = [];
+
     /// <summary>When set, every command waits for it before answering.</summary>
     public TaskCompletionSource? Hold { get; set; }
 
@@ -118,12 +124,16 @@ internal sealed class FakeCommandClient : IVehicleCommandClient
     {
         lock (Sent) Sent.Add((command, value));
         if (Hold is { } hold) await hold.Task.WaitAsync(ct);
+        if (FirstAnswers.TryGetValue(command, out var first) && first.TryDequeue(out var next)) return next;
         return Answers.GetValueOrDefault(command, new CommandAnswer(true, true, null));
     }
 }
 
 public class ClimateScheduleRunnerTests : IDisposable
 {
+    // What the car answers, through the gateway, when another command is still running.
+    private const string CarBusy = "return code: 8, message: Other remote command in progress. Please try again later.(3)";
+
     private readonly ClimateScheduleTestWorker _worker = new();
 
     public void Dispose() => _worker.Dispose();
@@ -163,6 +173,42 @@ public class ClimateScheduleRunnerTests : IDisposable
         var push = Assert.Single(_worker.Push.Sent);
         Assert.Equal("Climate did not start", push.Title);
         Assert.Equal("The car refused your 07:30 schedule: vehicle offline", push.Body);
+    }
+
+    // Woken after a night's sleep, the car can still be busy when the climate command arrives.
+    [Fact]
+    public async Task ABusyCar_GetsTheCommandAgain_AndStarts()
+    {
+        _worker.Car.FirstAnswers["climate"] = new([new(true, false, CarBusy), new(true, false, CarBusy)]);
+
+        var after = await RunAsync();
+
+        Assert.Equal([("climate-temperature", "21"), ("climate", "on"), ("climate", "on"), ("climate", "on")], _worker.Car.Sent);
+        Assert.Equal(ClimateScheduleOutcome.Started, after.LastRunOutcome);
+        Assert.Equal("Climate is on", Assert.Single(_worker.Push.Sent).Title);
+    }
+
+    [Fact]
+    public async Task ACarStillBusyAfterEveryRetry_IsFailed_WithItsReason()
+    {
+        _worker.Car.Answers["climate"] = new CommandAnswer(true, false, CarBusy);
+
+        var after = await RunAsync();
+
+        Assert.Equal(1 + ClimateScheduleRunner.BusyRetries, _worker.Car.Sent.Count(s => s.Command == "climate"));
+        Assert.Equal(ClimateScheduleOutcome.Failed, after.LastRunOutcome);
+        Assert.Equal(CarBusy, after.LastRunDetail);
+    }
+
+    [Theory]
+    [InlineData(true, false, CarBusy, true)]
+    [InlineData(true, false, "return code: 80, message: something else", false)]
+    [InlineData(true, false, "vehicle offline", false)]
+    [InlineData(true, false, null, false)]
+    [InlineData(false, false, null, false)]
+    public void OnlyARefusalWithTheBusyCode_MeansTheCarIsBusy(bool answered, bool success, string? detail, bool busy)
+    {
+        Assert.Equal(busy, new CommandAnswer(answered, success, detail).CarBusy);
     }
 
     [Fact]

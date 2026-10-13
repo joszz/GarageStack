@@ -6,4 +6,6 @@ export interface ChipOption<T extends string | number> {
   icon?: string
   /** Extra class on this chip, e.g. a modifier that sets its own --chip-color. */
   class?: string
+  /** This chip alone can't be chosen. */
+  disabled?: boolean
 }

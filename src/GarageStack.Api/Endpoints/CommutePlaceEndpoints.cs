@@ -29,9 +29,8 @@ public static class CommutePlaceEndpoints
             var vehicle = httpContext.ResolvedVehicle();
 
             if (Validate(req) is { } error) return ApiProblems.BadRequest(error);
-            if (await places.CountAsync(vehicle.Id, ct) >= CommutePlaceLimits.MaxPerVehicle)
-                return ApiProblems.BadRequest("commutePlace.limitReached",
-                    $"A vehicle can have at most {CommutePlaceLimits.MaxPerVehicle} home and work places");
+            if (CheckFits(await places.ListAsync(vehicle.Id, ct), req, current: null) is { } conflict)
+                return ApiProblems.BadRequest(conflict);
 
             var place = new CommutePlace { VehicleId = vehicle.Id };
             Apply(place, req);
@@ -47,6 +46,9 @@ public static class CommutePlaceEndpoints
             var vehicle = httpContext.ResolvedVehicle();
 
             if (Validate(req) is { } error) return ApiProblems.BadRequest(error);
+            var existing = await places.ListAsync(vehicle.Id, ct);
+            if (existing.FirstOrDefault(p => p.Id == id) is not { } current) return Results.NotFound();
+            if (CheckFits(existing, req, current) is { } conflict) return ApiProblems.BadRequest(conflict);
 
             var place = await places.UpdateAsync(vehicle.Id, id, p => Apply(p, req), ct);
             return place is null ? Results.NotFound() : Results.Ok(await ChangedAsync(vehicle.Id, place, places, trips, ct));
@@ -85,6 +87,23 @@ public static class CommutePlaceEndpoints
                 $"radiusMeters must be between {CommutePlaceLimits.MinRadiusMeters} and {CommutePlaceLimits.MaxRadiusMeters}");
         if (req.Label?.Trim().Length > CommutePlaceLimits.LabelMaxLength)
             return new("commutePlace.labelTooLong", $"label may not exceed {CommutePlaceLimits.LabelMaxLength} characters");
+        return null;
+    }
+
+    /// <summary>
+    /// Whether a new place (<paramref name="current"/> null) or a change to <paramref name="current"/>
+    /// fits beside the vehicle's other places: ten at most, and one home. A trip from home to home
+    /// is no commute, so a second home only hides a work place saved as the wrong kind. A car that
+    /// has two from before this rule can still edit both.
+    /// </summary>
+    internal static ValidationError? CheckFits(IReadOnlyList<CommutePlace> existing, CommutePlaceRequest req, CommutePlace? current)
+    {
+        if (current is null && existing.Count >= CommutePlaceLimits.MaxPerVehicle)
+            return new("commutePlace.limitReached",
+                $"A vehicle can have at most {CommutePlaceLimits.MaxPerVehicle} home and work places");
+        if (req.Kind == CommutePlaceKind.Home && current?.Kind != CommutePlaceKind.Home
+            && existing.Any(p => p.Kind == CommutePlaceKind.Home))
+            return new("commutePlace.homeExists", "A vehicle has one home: move the existing home instead");
         return null;
     }
 
