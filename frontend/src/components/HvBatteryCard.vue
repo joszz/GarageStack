@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ExpandableStatusCard from './ExpandableStatusCard.vue'
 import DetailListItem from './DetailListItem.vue'
 import CommandButton from './CommandButton.vue'
-import CommandFailure from './CommandFailure.vue'
+import CommandFeedback from './CommandFeedback.vue'
+import RangeControl from './RangeControl.vue'
 import { useVehicleCommand } from '@/composables/useVehicleCommand'
 import { formatNumber } from '@/utils/format'
 
@@ -30,6 +31,8 @@ const props = defineProps<{
   /** The current the car draws as the gateway spells it (6A, 8A, 16A, Max); null while unknown. */
   chargeCurrentLimit: string | null
   canSetChargeLimit: boolean
+  /** Whether the car takes a charge target; the gateway drops one on any other car. */
+  canSetChargeTarget: boolean
 }>()
 
 const { sending, lastResult, isPending, send } = useVehicleCommand()
@@ -73,6 +76,34 @@ function isActiveLimit(value: string): boolean {
 
 function setChargeLimit(value: string) {
   send(props.vin, 'charge-limit', value)
+}
+
+// The car takes 40 to 100 percent in steps of 10.
+const TARGET_MIN = 40
+const TARGET_MAX = 100
+const TARGET_STEP = 10
+const DEFAULT_TARGET = 80
+
+function targetStep(percent: number | null): number {
+  if (percent === null) return DEFAULT_TARGET
+  const stepped = Math.round(percent / TARGET_STEP) * TARGET_STEP
+  return Math.min(TARGET_MAX, Math.max(TARGET_MIN, stepped))
+}
+
+// The slider starts at the car's target and follows it, unless a change is on its way to the car.
+const targetDraft = ref(targetStep(props.socTargetPercent))
+watch(
+  () => props.socTargetPercent,
+  (target) => {
+    if (!isPending('charge-target')) targetDraft.value = targetStep(target)
+  },
+)
+
+function setChargeTarget() {
+  const target = targetDraft.value
+  send(props.vin, 'charge-target', String(target), {
+    isConfirmed: (s) => s.socTargetPercent === target,
+  })
 }
 </script>
 
@@ -164,14 +195,44 @@ function setChargeLimit(value: string) {
           @click="setChargeLimit(limit.value)"
         />
       </div>
-      <div v-if="isPending('charge-limit')" class="detail-list__feedback text-info">
-        <font-awesome-icon icon="clock" />
-        {{ t('control.pending') }}
+      <CommandFeedback
+        command="charge-limit"
+        :pending="isPending('charge-limit')"
+        :last-result="lastResult"
+      />
+    </div>
+
+    <!-- Charge target - only on the cars that take one -->
+    <div v-if="canSetChargeTarget" class="detail-modal__section">
+      <div class="detail-modal__section-title">{{ t('control.chargeTarget') }}</div>
+      <div class="detail-list">
+        <RangeControl
+          v-model="targetDraft"
+          icon="battery-full"
+          :label="t('control.chargeTargetLevel')"
+          :value-text="`${targetDraft}%`"
+          :min="TARGET_MIN"
+          :max="TARGET_MAX"
+          :step="TARGET_STEP"
+          :edge-labels="[`${TARGET_MIN}%`, `${TARGET_MAX}%`]"
+          :disabled="isPending('charge-target')"
+        />
       </div>
-      <CommandFailure
-        v-else-if="lastResult?.key === 'charge-limit' && !lastResult.ok"
-        class="detail-list__feedback"
-        :detail="lastResult.detail"
+      <div class="modal-btn-group">
+        <CommandButton
+          class="btn-primary"
+          :pending="isPending('charge-target')"
+          :sending="sending === 'charge-target'"
+          :disabled="!vin || targetDraft === socTargetPercent"
+          icon="battery-full"
+          :label="t('control.setChargeTarget')"
+          @click="setChargeTarget"
+        />
+      </div>
+      <CommandFeedback
+        command="charge-target"
+        :pending="isPending('charge-target')"
+        :last-result="lastResult"
       />
     </div>
   </ExpandableStatusCard>

@@ -17,6 +17,8 @@ export interface Vehicle {
    * and hides kWh entirely for a hybrid, where it is known to be wrong.
    */
   hvBatteryCapacityKwh: number | null
+  /** Whether the car takes a charge target, by the gateway's own test; it drops one on any other. */
+  supportsTargetSoc: boolean
 }
 
 /**

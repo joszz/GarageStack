@@ -81,6 +81,7 @@ const activeTripCard = computed(() => {
   }
 })
 const supportsExternalCharge = computed(() => plugsIn(vehicleType.value))
+const supportsTargetSoc = computed(() => store.activeVehicle?.supportsTargetSoc ?? false)
 
 // A hybrid's energy counters hold fuel, not kWh, so the same telemetry field is labelled and
 // scaled differently per drivetrain. See utils/energy.
@@ -306,6 +307,7 @@ const activeSimpleCard = computed(() => {
       :soc-target-percent="supportsExternalCharge ? status.socTargetPercent : null"
       :charge-current-limit="supportsExternalCharge ? status.chargeCurrentLimit : null"
       :can-set-charge-limit="supportsExternalCharge"
+      :can-set-charge-target="supportsExternalCharge && supportsTargetSoc"
     />
 
     <!-- findMyCar -->
@@ -334,6 +336,9 @@ const activeSimpleCard = computed(() => {
     <!-- chargingSession -->
     <ChargingSessionCard
       v-else-if="cardId === 'chargingSession' && supportsExternalCharge"
+      :vin="vin"
+      :is-charging="status.isCharging"
+      :charger-connected="status.chargerConnected"
       :charging-type="status.chargingType"
       :charging-cable-lock="status.chargingCableLock"
       :obc-power-single-phase="status.obcPowerSinglePhase"
@@ -351,6 +356,7 @@ const activeSimpleCard = computed(() => {
     <!-- batteryHeating -->
     <BatteryHeatingCard
       v-else-if="cardId === 'batteryHeating' && supportsExternalCharge"
+      :vin="vin"
       :battery-heating="status.batteryHeating"
       :schedule-mode="status.batteryHeatingScheduleMode"
       :schedule-start-time="status.batteryHeatingScheduleStartTime"

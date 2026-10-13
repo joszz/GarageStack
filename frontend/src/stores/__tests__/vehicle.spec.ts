@@ -33,6 +33,7 @@ function vehicle(vehicleType: Vehicle['vehicleType']): Vehicle {
     createdAt: '2026-01-01T00:00:00Z',
     vehicleType,
     hvBatteryCapacityKwh: null,
+    supportsTargetSoc: false,
   }
 }
 
@@ -136,6 +137,7 @@ describe('useVehicleStore - fetchVehicles', () => {
         createdAt: '',
         vehicleType: 'bev',
         hvBatteryCapacityKwh: null,
+        supportsTargetSoc: false,
       },
     ])
     const store = useVehicleStore()

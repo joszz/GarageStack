@@ -3,6 +3,9 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ExpandableStatusCard from './ExpandableStatusCard.vue'
 import DetailListItem from './DetailListItem.vue'
+import CommandButton from './CommandButton.vue'
+import CommandFeedback from './CommandFeedback.vue'
+import { useVehicleCommand } from '@/composables/useVehicleCommand'
 import { formatDateTime, formatNumber, formatTimeOfDay } from '@/utils/format'
 import { gatewayLabel } from '@/utils/gatewayLabel'
 
@@ -10,6 +13,9 @@ const i18n = useI18n()
 const { t } = i18n
 
 const props = defineProps<{
+  vin: string | null
+  isCharging: boolean | null
+  chargerConnected: boolean | null
   chargingType: string | null
   chargingCableLock: boolean | null
   obcPowerSinglePhase: number | null
@@ -25,6 +31,19 @@ const props = defineProps<{
 }>()
 
 const obcPower = computed(() => props.obcPowerThreePhase ?? props.obcPowerSinglePhase)
+
+const { sending, lastResult, isPending, send } = useVehicleCommand()
+
+// Each is taken as done once the car reports the change, not on the gateway's word alone.
+function setCharging(start: boolean) {
+  send(props.vin, 'charging', String(start), { isConfirmed: (s) => s.isCharging === start })
+}
+
+function setCableLock(lock: boolean) {
+  send(props.vin, 'charging-cable-lock', String(lock), {
+    isConfirmed: (s) => s.chargingCableLock === lock,
+  })
+}
 
 const summaryValue = computed((): string | null => {
   const parts: string[] = []
@@ -43,6 +62,7 @@ const summaryValue = computed((): string | null => {
 const hasAnyData = computed(
   () =>
     obcPower.value !== null ||
+    props.isCharging !== null ||
     props.chargingType !== null ||
     props.chargingCableLock !== null ||
     props.remainingChargingTime !== null ||
@@ -95,6 +115,57 @@ const scheduleModeLabel = computed(() =>
     variant="info"
   >
     <div class="detail-list">
+      <div v-if="isCharging !== null" class="detail-list__item detail-list__item--control">
+        <font-awesome-icon icon="bolt" class="detail-list__item-icon" />
+        <span class="detail-list__item-label">{{ t('control.charging') }}</span>
+        <CommandButton
+          class="btn-sm"
+          :class="isCharging ? 'btn-outline-secondary' : 'btn-success'"
+          :pending="isPending('charging')"
+          :sending="sending === 'charging'"
+          :disabled="!vin || (!isCharging && chargerConnected === false)"
+          :icon="isCharging ? 'power-off' : 'bolt'"
+          :label="isCharging ? t('control.stopCharging') : t('control.startCharging')"
+          @click="setCharging(!isCharging)"
+        />
+      </div>
+      <div
+        v-if="isCharging === false && chargerConnected === false && !isPending('charging')"
+        class="detail-list__feedback text-muted"
+      >
+        {{ t('control.plugInFirst') }}
+      </div>
+      <CommandFeedback
+        command="charging"
+        :pending="isPending('charging')"
+        :last-result="lastResult"
+      />
+      <div v-if="chargingCableLock !== null" class="detail-list__item detail-list__item--control">
+        <font-awesome-icon
+          :icon="chargingCableLock ? 'lock' : 'lock-open'"
+          class="detail-list__item-icon"
+        />
+        <span class="detail-list__item-label">{{ t('vehicle.chargingSession.cableLock') }}</span>
+        <CommandButton
+          class="btn-sm"
+          :class="chargingCableLock ? 'btn-outline-warning' : 'btn-success'"
+          :pending="isPending('charging-cable-lock')"
+          :sending="sending === 'charging-cable-lock'"
+          :disabled="!vin"
+          :icon="chargingCableLock ? 'lock-open' : 'lock'"
+          :label="chargingCableLock ? t('control.unlock') : t('control.lock')"
+          :confirm-label="chargingCableLock ? t('control.confirmUnlockCable') : undefined"
+          @click="setCableLock(!chargingCableLock)"
+        />
+      </div>
+      <CommandFeedback
+        command="charging-cable-lock"
+        :pending="isPending('charging-cable-lock')"
+        :last-result="lastResult"
+      />
+    </div>
+
+    <div class="detail-list mt-3">
       <DetailListItem
         v-if="obcPower !== null"
         icon="bolt-lightning"
@@ -126,21 +197,6 @@ const scheduleModeLabel = computed(() =>
       >
         <template #value>
           <span class="badge badge-info">{{ chargingType }}</span>
-        </template>
-      </DetailListItem>
-      <DetailListItem
-        v-if="chargingCableLock !== null"
-        :icon="chargingCableLock ? 'lock' : 'lock-open'"
-        :label="t('vehicle.chargingSession.cableLock')"
-      >
-        <template #value>
-          <span class="badge" :class="chargingCableLock ? 'badge-success' : 'badge-warning'">
-            {{
-              chargingCableLock
-                ? t('vehicle.chargingSession.locked')
-                : t('vehicle.chargingSession.unlocked')
-            }}
-          </span>
         </template>
       </DetailListItem>
       <DetailListItem

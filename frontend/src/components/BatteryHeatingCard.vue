@@ -3,11 +3,15 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ExpandableStatusCard from './ExpandableStatusCard.vue'
 import DetailListItem from './DetailListItem.vue'
+import CommandButton from './CommandButton.vue'
+import CommandFeedback from './CommandFeedback.vue'
+import { useVehicleCommand } from '@/composables/useVehicleCommand'
 import { formatTimeOfDay } from '@/utils/format'
 
 const { t } = useI18n()
 
 const props = defineProps<{
+  vin: string | null
   batteryHeating: boolean | null
   scheduleMode: string | null
   scheduleStartTime: string | null
@@ -21,7 +25,11 @@ const summaryValue = computed((): string | null => {
   return state
 })
 
-const hasModal = computed(() => props.scheduleMode !== null || props.scheduleStartTime !== null)
+const { sending, lastResult, isPending, send } = useVehicleCommand()
+
+function setHeating(on: boolean) {
+  send(props.vin, 'battery-heating', String(on), { isConfirmed: (s) => s.batteryHeating === on })
+}
 
 // The gateway sends the schedule as "on" or "off".
 const scheduleModeLabel = computed(() => {
@@ -38,20 +46,32 @@ const scheduleModeLabel = computed(() => {
     :title="t('vehicle.batteryHeating.title')"
     :value="summaryValue"
     :variant="batteryHeating ? 'info' : undefined"
-    :clickable="hasModal"
   >
     <div class="detail-list">
-      <DetailListItem
-        v-if="batteryHeating !== null"
-        icon="temperature-arrow-up"
-        :label="t('vehicle.batteryHeating.title')"
-      >
-        <template #value>
+      <div class="detail-list__item detail-list__item--control">
+        <font-awesome-icon icon="temperature-arrow-up" class="detail-list__item-icon" />
+        <span class="detail-list__item-label">
+          {{ t('vehicle.batteryHeating.title') }}
           <span class="badge" :class="batteryHeating ? 'badge-info' : 'badge-secondary'">
             {{ batteryHeating ? t('common.on') : t('common.off') }}
           </span>
-        </template>
-      </DetailListItem>
+        </span>
+        <CommandButton
+          class="btn-sm"
+          :class="batteryHeating ? 'btn-outline-secondary' : 'btn-primary'"
+          :pending="isPending('battery-heating')"
+          :sending="sending === 'battery-heating'"
+          :disabled="!vin"
+          :icon="batteryHeating ? 'power-off' : 'temperature-arrow-up'"
+          :label="batteryHeating ? t('control.stopHeating') : t('control.startHeating')"
+          @click="setHeating(!batteryHeating)"
+        />
+      </div>
+      <CommandFeedback
+        command="battery-heating"
+        :pending="isPending('battery-heating')"
+        :last-result="lastResult"
+      />
       <DetailListItem
         v-if="scheduleMode !== null"
         icon="calendar-check"
