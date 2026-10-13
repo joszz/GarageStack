@@ -106,7 +106,7 @@ The full guide, with provider examples, is [`AUTHENTICATION.md`](AUTHENTICATION.
 
 | Variable | Default | What it does |
 | --- | --- | --- |
-| `TELEMETRY_FULL_DETAIL_DAYS` | `365` | Days of telemetry kept exactly as the car reported it. Older telemetry is folded into one row per quarter of an hour, keeping the latest value of every reading, each day's totals and the saved trips. Below `90` is raised to `90`, the furthest back the statistics page and the map read. `0` keeps every row. See [Data kept over time](ARCHITECTURE.md#data-kept-over-time). |
+| `TELEMETRY_FULL_DETAIL_DAYS` | `365` | Days of telemetry kept exactly as the car reported it. Older telemetry is folded into one row per quarter of an hour, keeping the latest value of every reading, each day's totals and the saved trips. Below `90` is raised to `90`, the furthest back the map reads; the statistics read further back, but per day, which compaction keeps. `0` keeps every row. See [Data kept over time](ARCHITECTURE.md#data-kept-over-time). |
 
 ## API, logging and ports
 
