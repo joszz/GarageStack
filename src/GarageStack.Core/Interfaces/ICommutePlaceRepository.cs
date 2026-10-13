@@ -8,8 +8,6 @@ public interface ICommutePlaceRepository
     /// <summary>The vehicle's places, home first, then in the order they were added.</summary>
     Task<IReadOnlyList<CommutePlace>> ListAsync(int vehicleId, CancellationToken ct = default);
 
-    Task<int> CountAsync(int vehicleId, CancellationToken ct = default);
-
     Task<CommutePlace> AddAsync(CommutePlace place, CancellationToken ct = default);
 
     /// <summary>Applies <paramref name="change"/> to the place and saves it; null when the vehicle has no such place.</summary>

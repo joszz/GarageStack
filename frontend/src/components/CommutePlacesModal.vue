@@ -68,11 +68,19 @@ function startDraft(next: Draft) {
   pendingRemove.value = false
 }
 
+const hasHome = computed(() => store.places.some((p) => p.kind === 'home'))
+
+// One home per car: only the place that already is home can stay home. A car that has two homes
+// from before this rule keeps both editable.
+const homeTaken = computed(() => {
+  const editing = store.places.find((p) => p.id === draft.value?.id)
+  return editing?.kind !== 'home' && hasHome.value
+})
+
 // The first place someone sets is usually home; after that, work.
 function newDraft(latitude: number, longitude: number, kind?: CommutePlaceKind): Draft {
-  const hasHome = store.places.some((p) => p.kind === 'home')
   return {
-    kind: kind ?? (hasHome ? 'work' : 'home'),
+    kind: kind ?? (hasHome.value ? 'work' : 'home'),
     label: '',
     latitude,
     longitude,
@@ -122,6 +130,7 @@ const kindOptions = computed((): ChipOption<CommutePlaceKind>[] =>
     value: kind,
     label: t(`tripLog.places.kind.${kind}`),
     icon: COMMUTE_PLACE_ICONS[kind],
+    disabled: kind === 'home' && homeTaken.value,
   })),
 )
 
@@ -221,6 +230,7 @@ function close() {
         :options="kindOptions"
         :group-label="t('tripLog.places.kindLabel')"
       />
+      <p v-if="homeTaken" class="text-xs text-muted">{{ t('tripLog.places.homeTaken') }}</p>
 
       <div class="form-group">
         <label for="commute-place-label">{{ t('tripLog.places.label') }}</label>
@@ -262,7 +272,12 @@ function close() {
 
     <template #footer>
       <template v-if="!draft">
-        <button type="button" class="btn btn-outline-secondary" @click="add('home')">
+        <button
+          v-if="!hasHome"
+          type="button"
+          class="btn btn-outline-secondary"
+          @click="add('home')"
+        >
           <font-awesome-icon :icon="COMMUTE_PLACE_ICONS.home" />{{ t('tripLog.places.addHome') }}
         </button>
         <button type="button" class="btn btn-outline-secondary" @click="add('work')">

@@ -42,7 +42,7 @@ function choose(value: T) {
       class="toggle-chip"
       :class="[option.class, { 'toggle-chip--active': isActive(option.value) }]"
       :aria-pressed="isActive(option.value)"
-      :disabled="disabled"
+      :disabled="disabled || option.disabled"
       @click="choose(option.value)"
     >
       <font-awesome-icon v-if="option.icon" :icon="option.icon" aria-hidden="true" />

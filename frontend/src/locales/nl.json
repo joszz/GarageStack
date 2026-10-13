@@ -680,6 +680,7 @@
       "addHome": "Thuis toevoegen",
       "addWork": "Werk toevoegen",
       "kindLabel": "Soort plaats",
+      "homeTaken": "Deze auto heeft al een thuis. Bewerk die plaats om hem te verplaatsen.",
       "kind": {
         "home": "Thuis",
         "work": "Werk"
@@ -864,6 +865,7 @@
       },
       "commutePlace": {
         "limitReached": "Een auto kan maximaal 10 plaatsen voor thuis en werk hebben.",
+        "homeExists": "Deze auto heeft al een thuis. Bewerk die plaats om hem te verplaatsen.",
         "kindRequired": "Kies thuis of werk.",
         "invalidPosition": "Zet de speld op de kaart.",
         "invalidRadius": "De straal moet tussen 50 en 1000 meter liggen.",

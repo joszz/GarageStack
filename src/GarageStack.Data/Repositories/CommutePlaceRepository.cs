@@ -12,9 +12,6 @@ public class CommutePlaceRepository(AppDbContext db) : ICommutePlaceRepository
             .OrderBy(p => p.Kind).ThenBy(p => p.Id)
             .ToListAsync(ct);
 
-    public Task<int> CountAsync(int vehicleId, CancellationToken ct = default) =>
-        db.CommutePlaces.CountAsync(p => p.VehicleId == vehicleId, ct);
-
     public async Task<CommutePlace> AddAsync(CommutePlace place, CancellationToken ct = default)
     {
         db.CommutePlaces.Add(place);

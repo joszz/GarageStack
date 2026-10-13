@@ -60,6 +60,8 @@ public class CommutePlaceValidationTests
 {
     private static CommutePlaceRequest Valid() => new(CommutePlaceKind.Work, " Office ", 52.1, 5.0, 250);
 
+    private static CommutePlace Place(int id, CommutePlaceKind kind) => new() { Id = id, Kind = kind, Latitude = 52.0, Longitude = 5.0 };
+
     [Fact]
     public void AValidPlace_Passes()
     {
@@ -85,5 +87,36 @@ public class CommutePlaceValidationTests
         var label = new string('x', CommutePlaceLimits.LabelMaxLength + 1);
 
         Assert.Equal("commutePlace.labelTooLong", CommutePlaceEndpoints.Validate(Valid() with { Label = label })?.Code);
+    }
+
+    [Fact]
+    public void ASecondHome_IsRefused_WhetherAddedOrChangedTo()
+    {
+        List<CommutePlace> existing = [Place(1, CommutePlaceKind.Home), Place(2, CommutePlaceKind.Work)];
+        var home = Valid() with { Kind = CommutePlaceKind.Home };
+
+        Assert.Equal("commutePlace.homeExists", CommutePlaceEndpoints.CheckFits(existing, home, current: null)?.Code);
+        Assert.Equal("commutePlace.homeExists", CommutePlaceEndpoints.CheckFits(existing, home, existing[1])?.Code);
+        Assert.Null(CommutePlaceEndpoints.CheckFits(existing, Valid(), current: null));
+        Assert.Null(CommutePlaceEndpoints.CheckFits(existing, home, existing[0]));
+    }
+
+    // Saved before one home was the rule: either can still be moved, or turned into a work place.
+    [Fact]
+    public void ACarWithTwoHomes_CanStillEditBoth()
+    {
+        List<CommutePlace> existing = [Place(1, CommutePlaceKind.Home), Place(2, CommutePlaceKind.Home)];
+
+        Assert.Null(CommutePlaceEndpoints.CheckFits(existing, Valid() with { Kind = CommutePlaceKind.Home }, existing[0]));
+        Assert.Null(CommutePlaceEndpoints.CheckFits(existing, Valid(), existing[1]));
+    }
+
+    [Fact]
+    public void APlacePastTheLimit_IsRefused_ButEditingOneIsNot()
+    {
+        var existing = Enumerable.Range(1, CommutePlaceLimits.MaxPerVehicle).Select(id => Place(id, CommutePlaceKind.Work)).ToList();
+
+        Assert.Equal("commutePlace.limitReached", CommutePlaceEndpoints.CheckFits(existing, Valid(), current: null)?.Code);
+        Assert.Null(CommutePlaceEndpoints.CheckFits(existing, Valid(), existing[0]));
     }
 }

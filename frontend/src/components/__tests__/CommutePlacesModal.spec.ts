@@ -53,6 +53,10 @@ async function open(wrapper: ReturnType<typeof mountModal>) {
   await flushPromises()
 }
 
+function kindChip(wrapper: ReturnType<typeof mountModal>, label: string) {
+  return wrapper.findAll('.toggle-chip').find((b) => b.text() === label)!
+}
+
 describe('CommutePlacesModal', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
@@ -72,6 +76,35 @@ describe('CommutePlacesModal', () => {
     await open(wrapper)
 
     expect(wrapper.find('[aria-pressed="true"]').text()).toBe('Work')
+  })
+
+  it('once home is set, offers no second home', async () => {
+    useCommutePlacesStore().places = [home]
+    const wrapper = mountModal()
+    await open(wrapper)
+
+    const buttons = wrapper.findAll('button').map((b) => b.text())
+    expect(buttons).toContain('Add work')
+    expect(buttons).not.toContain('Add home')
+
+    await wrapper
+      .findAll('button')
+      .find((b) => b.text() === 'Add work')!
+      .trigger('click')
+
+    expect(kindChip(wrapper, 'Home').attributes('disabled')).toBeDefined()
+    expect(wrapper.text()).toContain('This car already has a home.')
+  })
+
+  it('keeps home open to the place that is home', async () => {
+    useCommutePlacesStore().places = [home]
+    const wrapper = mountModal()
+    await open(wrapper)
+
+    await wrapper.find('.detail-list__item--link').trigger('click')
+
+    expect(kindChip(wrapper, 'Home').attributes('disabled')).toBeUndefined()
+    expect(wrapper.text()).not.toContain('This car already has a home.')
   })
 
   it('saves the place with a trimmed name and the radius, then says what changed', async () => {
