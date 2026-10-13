@@ -9,6 +9,7 @@ import {
   persistSettings,
 } from './settingsShared'
 import { setRegionalFormat } from '@/utils/format'
+import { DEFAULT_STATS_PERIOD, isStatsPeriod, type StatsPeriod } from '@/utils/statsPeriod'
 import {
   detectRegion,
   isRegion,
@@ -52,6 +53,8 @@ interface UiSettings {
   carColorScheme: string
   vehicleTypeOverride: VehicleTypeOverride
   filterDays: number
+  /** The statistics page's period; the map keeps filterDays. */
+  statsPeriod: StatsPeriod
   notificationTypeExclusions: string[]
   region: RegionSetting
   clock: ClockSetting
@@ -68,6 +71,7 @@ function defaultsFor(): UiSettings {
     carColorScheme: 'orange',
     vehicleTypeOverride: 'auto',
     filterDays: DEFAULT_FILTER_DAYS,
+    statsPeriod: { ...DEFAULT_STATS_PERIOD },
     notificationTypeExclusions: [],
     // Everything follows the region the browser is in, which its time zone tells far better than
     // its language does. An install from before these settings keeps the units it stored.
@@ -81,8 +85,8 @@ const THEMES: readonly Theme[] = ['dark', 'light']
 const LOCALES: readonly Locale[] = ['en', 'nl']
 const VEHICLE_TYPE_OVERRIDES: readonly VehicleTypeOverride[] = ['auto', 'hev', 'phev', 'bev']
 const CAR_COLOR_SCHEME_IDS = CAR_COLOR_SCHEMES.map((s) => s.id)
-// The API clamps every range to 90 days; anything up to a year is accepted here so an older
-// build's stored value is not thrown away.
+// The map's trips are clamped to 90 days by the API; anything up to a year is accepted here so an
+// older build's stored value is not thrown away.
 const MAX_FILTER_DAYS = 365
 
 // localStorage is user-editable and survives old builds, and the account's copy may have been
@@ -99,6 +103,19 @@ function positiveDays(value: unknown, fallback: number): number {
     value <= MAX_FILTER_DAYS
     ? value
     : fallback
+}
+
+// The statistics page shared the map's days until it had a period of its own: a stored choice of
+// 7, 30 or 90 days carries over, so nobody finds the page on another period than they left it.
+function parseStatsPeriod(raw: unknown, storedDays: unknown, fallback: StatsPeriod): StatsPeriod {
+  if (isStatsPeriod(raw)) {
+    return raw.preset === 'custom'
+      ? { preset: 'custom', from: raw.from, to: raw.to }
+      : { preset: raw.preset, from: null, to: null }
+  }
+  const carried = { 7: 'last7', 30: 'last30', 90: 'last90' }[storedDays as number] as
+    StatsPeriod['preset'] | undefined
+  return carried ? { preset: carried, from: null, to: null } : { ...fallback }
 }
 
 function orAuto<T>(allowed: readonly T[]): readonly ('auto' | T)[] {
@@ -141,6 +158,7 @@ function parseUiFields(parsed: Record<string, unknown>, fallback: UiSettings): U
       fallback.vehicleTypeOverride,
     ),
     filterDays: positiveDays(parsed.filterDays, fallback.filterDays),
+    statsPeriod: parseStatsPeriod(parsed.statsPeriod, parsed.filterDays, fallback.statsPeriod),
     notificationTypeExclusions: Array.isArray(parsed.notificationTypeExclusions)
       ? (parsed.notificationTypeExclusions as string[])
       : fallback.notificationTypeExclusions,

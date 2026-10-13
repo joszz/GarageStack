@@ -23,22 +23,15 @@ describe('vehicleApi', () => {
     expect(await vehicleApi.status('VIN1')).toBeUndefined()
   })
 
-  it('history() appends from and to as query params', async () => {
+  it("dailyStats() asks for the days in the browser's time zone", async () => {
     const fetchSpy = vi.fn<FetchSpy>().mockResolvedValue(makeResponse(200, []))
     vi.stubGlobal('fetch', fetchSpy)
-    await vehicleApi.history('VIN1', '2024-01-01', '2024-01-31')
+    await vehicleApi.dailyStats('VIN1', '2025-01-01', '2025-12-31', 'Europe/Amsterdam')
     const [url] = fetchSpy.mock.calls[0]!
-    expect(url).toContain('from=2024-01-01')
-    expect(url).toContain('to=2024-01-31')
-  })
-
-  it('history() omits query params when not provided', async () => {
-    const fetchSpy = vi.fn<FetchSpy>().mockResolvedValue(makeResponse(200, []))
-    vi.stubGlobal('fetch', fetchSpy)
-    await vehicleApi.history('VIN1')
-    const [url] = fetchSpy.mock.calls[0]!
-    expect(url).not.toContain('from=')
-    expect(url).not.toContain('to=')
+    expect(url).toContain('/api/vehicles/VIN1/stats/daily?')
+    expect(url).toContain('from=2025-01-01')
+    expect(url).toContain('to=2025-12-31')
+    expect(url).toContain('timeZone=Europe%2FAmsterdam')
   })
 
   it('tripSummaries() asks for the trips without their fixes', async () => {

@@ -99,6 +99,44 @@ describe('useUiSettingsStore', () => {
     expect(store.placeNamesEnabled).toBe(true)
   })
 
+  it('opens the statistics on the last 30 days', () => {
+    expect(useUiSettingsStore().statsPeriod).toEqual({ preset: 'last30', from: null, to: null })
+  })
+
+  it('carries a stored 7, 30 or 90 days over to the statistics period', () => {
+    localStorage.setItem(UI_KEY, JSON.stringify({ filterDays: 90 }))
+    expect(useUiSettingsStore().statsPeriod.preset).toBe('last90')
+  })
+
+  it('leaves the statistics on 30 days for map days it has no preset for', () => {
+    localStorage.setItem(UI_KEY, JSON.stringify({ filterDays: 14 }))
+    expect(useUiSettingsStore().statsPeriod.preset).toBe('last30')
+  })
+
+  it('loads a stored custom period, and ignores one it cannot read', () => {
+    const period = { preset: 'custom', from: '2025-03-01', to: '2025-08-31' }
+    localStorage.setItem(UI_KEY, JSON.stringify({ statsPeriod: period, filterDays: 7 }))
+    expect(useUiSettingsStore().statsPeriod).toEqual(period)
+
+    setActivePinia(createPinia())
+    localStorage.setItem(
+      UI_KEY,
+      JSON.stringify({ statsPeriod: { preset: 'custom', from: 'soon' } }),
+    )
+    expect(useUiSettingsStore().statsPeriod.preset).toBe('last30')
+  })
+
+  it('saves the statistics period apart from the map days', async () => {
+    const store = useUiSettingsStore()
+    store.statsPeriod = { preset: 'lastYear', from: null, to: null }
+    await nextTick()
+    vi.advanceTimersByTime(SAVE_DEBOUNCE_MS)
+
+    const saved = JSON.parse(localStorage.getItem(UI_KEY)!)
+    expect(saved.statsPeriod.preset).toBe('lastYear')
+    expect(saved.filterDays).toBe(7)
+  })
+
   it('persists placeNamesEnabled being turned off, and loads it back', async () => {
     const store = useUiSettingsStore()
     store.placeNamesEnabled = false

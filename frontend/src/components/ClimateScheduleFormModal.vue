@@ -26,9 +26,9 @@ import {
   SEAT_LEVEL_MAX,
   type ClimateOnMode,
 } from '@/utils/climate'
+import { browserTimeZone } from '@/utils/dates'
 import {
   WORKWEEK,
-  browserTimeZone,
   commandLabel,
   daysSummary,
   outcomeVariant,

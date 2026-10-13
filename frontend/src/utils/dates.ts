@@ -29,3 +29,15 @@ export function startOfLocalDayDaysAgoIso(days: number, now = new Date()): strin
   start.setDate(start.getDate() - days)
   return new Date(start.getFullYear(), start.getMonth(), start.getDate()).toISOString()
 }
+
+/**
+ * The browser's IANA time zone: what a new climate schedule keeps its start time in, and what the
+ * statistics page's days run midnight to midnight in.
+ */
+export function browserTimeZone(): string {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
+  } catch {
+    return 'UTC'
+  }
+}

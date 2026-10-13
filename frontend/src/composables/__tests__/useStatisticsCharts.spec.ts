@@ -14,7 +14,7 @@ function chartsFor(type: VehicleType) {
   mount(
     defineComponent({
       setup() {
-        result.charts = useStatisticsCharts(ref([]) as Ref<never[]>, ref(type))
+        result.charts = useStatisticsCharts(ref([]) as Ref<never[]>, ref('day'), ref(type))
         return () => h('div')
       },
     }),
@@ -36,14 +36,14 @@ describe('useStatisticsCharts daily energy chart', () => {
     const chart = dailyEnergyChart('bev')
 
     expect(chart.vehicleApplicable).toBe(true)
-    expect(chart.title).toBe(en.statistics.dailyKwhChart)
+    expect(chart.title).toBe(en.statistics.energyChart.day)
   })
 
   it('is offered to a plug-in hybrid, in kWh', () => {
     const chart = dailyEnergyChart('phev')
 
     expect(chart.vehicleApplicable).toBe(true)
-    expect(chart.title).toBe(en.statistics.dailyKwhChart)
+    expect(chart.title).toBe(en.statistics.energyChart.day)
   })
 
   it('is offered to a plain hybrid, as fuel', () => {

@@ -6,7 +6,7 @@ import { vehicleApi } from '@/services/vehicleApi'
 import type {
   Vehicle,
   TelemetrySnapshot,
-  TelemetryHistoryPoint,
+  DailyStat,
   Trip,
   TripSummary,
 } from '@/services/vehicleApi'
@@ -16,7 +16,7 @@ vi.mock('@/services/vehicleApi', () => ({
     list: vi.fn<() => Promise<Vehicle[]>>().mockResolvedValue([]),
     status: vi.fn<() => Promise<TelemetrySnapshot | null>>().mockResolvedValue(null),
     config: vi.fn<() => Promise<Record<string, string>>>().mockResolvedValue({}),
-    history: vi.fn<() => Promise<TelemetryHistoryPoint[]>>().mockResolvedValue([]),
+    dailyStats: vi.fn<() => Promise<DailyStat[]>>().mockResolvedValue([]),
     trips: vi.fn<() => Promise<Trip[]>>().mockResolvedValue([]),
     tripSummaries: vi.fn<() => Promise<TripSummary[]>>().mockResolvedValue([]),
     latestTrip: vi.fn<() => Promise<Trip | undefined>>().mockResolvedValue(undefined),

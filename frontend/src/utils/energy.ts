@@ -16,11 +16,6 @@ export type EnergyUnit = 'kwh' | 'litres'
 /** Hundredths of a litre per litre, the scale a hybrid reports its fuel total in. */
 const COUNTER_UNITS_PER_LITRE = 100
 
-// A reading below this is treated as a counter reset rather than noise
-const RESET_NOISE_FLOOR = 0.05
-// A reading below this fraction of the running peak is treated as a counter reset
-const RESET_PEAK_FRACTION = 0.05
-
 /**
  * What the energy counters measure on this drivetrain. Only a plain hybrid reports fuel: a BEV
  * and a PHEV both cycle a traction battery the counter can describe in kWh.
@@ -84,38 +79,4 @@ export function hvBatteryReading(
       capacityKwh !== null && socPercent !== null ? (capacityKwh * socPercent) / 100 : null,
     capacityKwh,
   }
-}
-
-/**
- * One day's total from the cumulative counter readings, oldest first. Unit-agnostic: it works on
- * the running peak and on resets, which behave the same whether the counter holds kWh or litres.
- */
-export function dailyCounterTotal(
-  readings: readonly number[],
-  isPartialDay: boolean,
-): number | null {
-  if (!readings.length) return null
-
-  // Completed days: cumulative peak = day's total
-  if (!isPartialDay) return Math.max(...readings)
-
-  // Today (partial day): detect a true counter reset so we don't show yesterday's carryover
-  // when no driving has happened yet after midnight
-  let lastResetIdx = -1
-  let peak = readings[0]!
-  for (let i = 1; i < readings.length; i++) {
-    peak = Math.max(peak, readings[i - 1]!)
-    if (readings[i]! < Math.max(peak * RESET_PEAK_FRACTION, RESET_NOISE_FLOOR)) {
-      lastResetIdx = i
-    }
-  }
-
-  if (lastResetIdx >= 0) {
-    const usage = Math.max(...readings.slice(lastResetIdx))
-    return usage > 0 ? usage : null
-  }
-
-  // No reset yet: net increase only (carryover with no driving -> delta 0 -> null)
-  const delta = Math.max(...readings) - Math.min(...readings)
-  return delta > 0 ? delta : null
 }

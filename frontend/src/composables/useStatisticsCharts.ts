@@ -2,20 +2,20 @@ import { computed, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { ChartData, ChartOptions } from 'chart.js'
 import type { StatsChartType } from '@/components/StatsChartCard.vue'
-import type { TelemetryHistoryPoint } from '@/services/vehicleApi'
+import type { DailyStat } from '@/services/vehicleApi'
 import type { StatsChartId } from '@/stores/settingsShared'
 import type { VehicleType } from '@/stores/vehicle'
 import { energyUnit, litres } from '@/utils/energy'
 import { formatDate, numberLocale } from '@/utils/format'
 import {
-  dailyAverages,
-  dailyCounterTotals,
-  dayTickFormat,
-  historyDayDate,
+  bucketAverages,
+  bucketTickFormat,
+  bucketTotals,
   roundedRange,
   roundTo2,
-  type HistoryDay,
+  type StatsBucket,
 } from '@/utils/statistics'
+import type { StatsGrouping } from '@/utils/statsPeriod'
 import { burnsFuel, mayPlugIn, plugsIn } from '@/utils/vehicleType'
 import { useUnits } from './useUnits'
 
@@ -42,7 +42,7 @@ const CHART_ICONS: Record<StatsChartId, string> = {
 
 const TYRE_SERIES: {
   label: string
-  read: (p: TelemetryHistoryPoint) => number | null
+  read: (d: DailyStat) => number | null
   color: string
 }[] = [
   { label: 'FL', read: (p) => p.tyrePressureFrontLeft, color: '#f59e0b' },
@@ -67,12 +67,14 @@ function lineDataset(label: string, data: (number | null)[], color: string, fill
 }
 
 /**
- * The statistics view's charts, one per day of the period: the traction battery, the tyres, a
- * hybrid's battery against its tank, and the daily energy (or fuel) used. Each carries whether it
- * applies to this drivetrain and whether there is anything to draw yet.
+ * The statistics view's charts, one point per day, week or month of the period: the traction
+ * battery, the tyres, a hybrid's battery against its tank, and the energy (or fuel) used. Levels
+ * average over a point's days; energy adds up. Each carries whether it applies to this drivetrain
+ * and whether there is anything to draw yet.
  */
 export function useStatisticsCharts(
-  days: Ref<HistoryDay[]>,
+  buckets: Ref<StatsBucket[]>,
+  grouping: Ref<StatsGrouping>,
   vehicleType: Ref<VehicleType>,
 ): Ref<ChartDef[]> {
   const { t } = useI18n()
@@ -85,15 +87,20 @@ export function useStatisticsCharts(
   const countsDailyEnergy = computed(
     () => burnsFuel(vehicleType.value) || plugsIn(vehicleType.value),
   )
-  const hasData = computed(() => days.value.some((day) => day.points.length > 0))
+  const hasData = computed(() => buckets.value.length > 0)
 
-  const dates = computed(() => days.value.map(historyDayDate))
-  const labels = computed(() => dates.value.map((d) => formatDate(d)))
-  // The axis names each day briefly, since a month of full dates crowds a phone's chart; the
-  // tooltip keeps the full date from the labels.
+  // The tooltip names a point in full: the day, the week it starts, or the month.
+  const labels = computed(() =>
+    buckets.value.map((b) => {
+      if (grouping.value === 'month') return formatDate(b.start, { month: 'long', year: 'numeric' })
+      const day = formatDate(b.start)
+      return grouping.value === 'week' ? t('statistics.weekOf', { date: day }) : day
+    }),
+  )
+  // The axis names each point briefly, since a month of full dates crowds a phone's chart.
   const tickLabels = computed(() => {
-    const options = dayTickFormat(days.value)
-    return dates.value.map((d) => formatDate(d, options))
+    const options = bucketTickFormat(buckets.value, grouping.value)
+    return buckets.value.map((b) => formatDate(b.start, options))
   })
 
   const evChartData = computed(() => ({
@@ -101,7 +108,7 @@ export function useStatisticsCharts(
     datasets: [
       lineDataset(
         `${t('vehicle.evSoc')} (%)`,
-        dailyAverages(days.value, (p) => p.evSocPercent),
+        bucketAverages(buckets.value, (d) => d.evSocPercent),
         '#10b981',
         'rgba(16,185,129,0.1)',
       ),
@@ -115,7 +122,7 @@ export function useStatisticsCharts(
       datasets: TYRE_SERIES.map(({ label, read, color }) =>
         lineDataset(
           `${label} (${u.symbol('pressure')})`,
-          dailyAverages(days.value, read).map((bar) =>
+          bucketAverages(buckets.value, read).map((bar) =>
             bar === null ? null : u.convert('pressure', bar),
           ),
           color,
@@ -129,12 +136,12 @@ export function useStatisticsCharts(
     datasets: [
       lineDataset(
         `${t('vehicle.evSoc')} (%)`,
-        dailyAverages(days.value, (p) => p.evSocPercent),
+        bucketAverages(buckets.value, (d) => d.evSocPercent),
         '#10b981',
       ),
       lineDataset(
         `${t('vehicle.fuel')} (%)`,
-        dailyAverages(days.value, (p) => p.fuelLevelPercent),
+        bucketAverages(buckets.value, (d) => d.fuelLevelPercent),
         '#3b82f6',
       ),
     ],
@@ -149,7 +156,7 @@ export function useStatisticsCharts(
     datasets: [
       {
         label: reportsFuelCounter.value ? units.value.symbol('volume') : t('common.kwh'),
-        data: dailyCounterTotals(days.value).map((total) => {
+        data: bucketTotals(buckets.value, (d) => d.counterTotal).map((total) => {
           const fuel = reportsFuelCounter.value ? litres(total) : null
           const used = fuel !== null ? units.value.convert('volume', fuel) : total
           return used !== null ? roundTo2(used) : null
@@ -239,8 +246,8 @@ export function useStatisticsCharts(
       id: 'dailyKwhChart',
       icon: reportsFuelCounter.value ? 'gas-pump' : CHART_ICONS.dailyKwhChart,
       title: reportsFuelCounter.value
-        ? t('statistics.dailyFuelChart', { unit: units.value.symbol('volume') })
-        : t('statistics.dailyKwhChart'),
+        ? t(`statistics.fuelChart.${grouping.value}`, { unit: units.value.symbol('volume') })
+        : t(`statistics.energyChart.${grouping.value}`),
       description: reportsFuelCounter.value
         ? t('statistics.chartDesc.dailyFuelChart')
         : t('statistics.chartDesc.dailyKwhChart'),

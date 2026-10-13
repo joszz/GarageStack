@@ -5,11 +5,12 @@ import {
   type Vehicle,
   type VehicleType,
   type TelemetrySnapshot,
-  type TelemetryHistoryPoint,
+  type DailyStat,
   type Trip,
   type TripSummary,
   type CommandResult,
 } from '@/services/vehicleApi'
+import { browserTimeZone } from '@/utils/dates'
 import { useUiSettingsStore } from '@/stores/settingsUi'
 import { useLoadingTracker } from '@/composables/useLoadingTracker'
 
@@ -25,7 +26,7 @@ export const useVehicleStore = defineStore('vehicle', () => {
   const vehicleConfig = ref<Record<string, string>>({})
   // shallowRef: these are only ever replaced wholesale on fetch, never mutated
   // field-by-field, so deep reactivity on every GPS point/telemetry snapshot is wasted work.
-  const history = shallowRef<TelemetryHistoryPoint[]>([])
+  const dailyStats = shallowRef<DailyStat[]>([])
   const trips = shallowRef<Trip[]>([])
   // Separate from `trips`, which the map fills with a period of trips and all their fixes: the
   // dashboard needs only the newest trip, and the statistics page only the figures of a period.
@@ -38,7 +39,7 @@ export const useVehicleStore = defineStore('vehicle', () => {
   // mount) can't have one action's success silently overwrite another action's error.
   const vehiclesError = ref<Error | null>(null)
   const statusError = ref<Error | null>(null)
-  const historyError = ref<Error | null>(null)
+  const dailyStatsError = ref<Error | null>(null)
   const tripsError = ref<Error | null>(null)
   const latestTripError = ref<Error | null>(null)
   const tripSummariesError = ref<Error | null>(null)
@@ -77,9 +78,9 @@ export const useVehicleStore = defineStore('vehicle', () => {
     }
   }
 
-  async function fetchHistory(vin: string, from?: string, to?: string) {
-    await withLoading(historyError, async () => {
-      history.value = await vehicleApi.history(vin, from, to)
+  async function fetchDailyStats(vin: string, from: string, to: string) {
+    await withLoading(dailyStatsError, async () => {
+      dailyStats.value = await vehicleApi.dailyStats(vin, from, to, browserTimeZone())
     })
   }
 
@@ -164,7 +165,7 @@ export const useVehicleStore = defineStore('vehicle', () => {
     detectedVehicleType,
     effectiveVehicleType,
     hvBatteryCapacityKwh,
-    history,
+    dailyStats,
     trips,
     latestTrip,
     tripSummaries,
@@ -173,7 +174,7 @@ export const useVehicleStore = defineStore('vehicle', () => {
     sendingCount,
     vehiclesError,
     statusError,
-    historyError,
+    dailyStatsError,
     tripsError,
     latestTripError,
     tripSummariesError,
@@ -184,7 +185,7 @@ export const useVehicleStore = defineStore('vehicle', () => {
     fetchVehicles,
     fetchStatus,
     fetchConfig,
-    fetchHistory,
+    fetchDailyStats,
     fetchTrips,
     fetchLatestTrip,
     fetchTripSummaries,
