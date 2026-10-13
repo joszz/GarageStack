@@ -1,3 +1,4 @@
+using GarageStack.Core.Helpers;
 using GarageStack.Core.Interfaces;
 using GarageStack.Core.Models;
 
@@ -37,13 +38,14 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
         lock (_lock) { return Task.FromResult<TelemetrySnapshot?>(_current.Clone()); }
     }
 
-    public Task<IReadOnlyList<TelemetryHistoryPoint>> GetHistoryAsync(
-        int vehicleId, DateTime from, DateTime to, CancellationToken ct = default) =>
-        Task.FromResult<IReadOnlyList<TelemetryHistoryPoint>>(
-            _history.Value
-                .Where(s => s.RecordedAt >= from && s.RecordedAt <= to)
-                .Select(TelemetryHistoryPoint.FromSnapshot)
-                .ToList());
+    public Task<IReadOnlyList<DailyStat>> GetDailyStatsAsync(
+        int vehicleId, DateOnly from, DateOnly to, TimeZoneInfo zone, DateOnly today, CancellationToken ct = default)
+    {
+        var builder = new DailyStatsBuilder(zone, from, to, today);
+        foreach (var snapshot in _history.Value.OrderBy(s => s.RecordedAt))
+            builder.Add(TelemetryHistoryPoint.FromSnapshot(snapshot));
+        return Task.FromResult(builder.Build());
+    }
 
     // DemoTripRepository serves the demo's trips from DemoTrips directly, so nothing asks the demo
     // telemetry for the fixes to cut them from.

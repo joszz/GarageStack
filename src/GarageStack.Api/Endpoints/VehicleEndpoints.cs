@@ -49,22 +49,32 @@ public static class VehicleEndpoints
         })
         .WithSummary("Get latest telemetry for a vehicle");
 
-        vehicleGroup.MapGet("/history", async (
+        vehicleGroup.MapGet("/stats/daily", async (
             HttpContext httpContext,
             ITelemetryRepository telemetry,
-            DateTimeOffset? from,
-            DateTimeOffset? to,
+            DateOnly? from,
+            DateOnly? to,
+            string? timeZone,
             CancellationToken ct) =>
         {
             var vehicle = httpContext.ResolvedVehicle();
 
-            var rangeError = DateRange.TryResolve(from, to, TimeSpan.FromDays(7), TimeSpan.FromDays(90), out var start, out var end);
-            if (rangeError is not null) return rangeError;
+            // Days are the browser's: a day's total is from its local midnight to the next.
+            if (!TryFindZone(timeZone, out var zone))
+                return ApiProblems.BadRequest("stats.timeZoneUnknown", "timeZone must be an IANA time zone, such as Europe/Amsterdam");
 
-            var history = await telemetry.GetHistoryAsync(vehicle.Id, start, end, ct);
-            return Results.Ok(history);
+            var today = DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, zone));
+            var last = to is { } end && end < today ? end : today;
+            var first = from ?? last.AddDays(-29);
+            if (first > last)
+                return ApiProblems.BadRequest("range.inverted", "from must not be after to");
+
+            var longest = (int)DateRange.LongestStatisticsSpan.TotalDays;
+            if (last.DayNumber - first.DayNumber >= longest) first = last.AddDays(-(longest - 1));
+
+            return Results.Ok(await telemetry.GetDailyStatsAsync(vehicle.Id, first, last, zone, today, ct));
         })
-        .WithSummary("Get chart history for a vehicle (only the fields the statistics charts use)");
+        .WithSummary("Daily statistics for a vehicle: one row per local day, from every reading of it");
 
         vehicleGroup.MapPost("/commands/{command}", async (
             HttpContext httpContext,
@@ -109,7 +119,7 @@ public static class VehicleEndpoints
         {
             var vehicle = httpContext.ResolvedVehicle();
 
-            var rangeError = DateRange.TryResolve(from, to, TimeSpan.FromDays(30), TimeSpan.FromDays(90), out var start, out var end);
+            var rangeError = DateRange.TryResolve(from, to, TimeSpan.FromDays(30), DateRange.LongestStatisticsSpan, out var start, out var end);
             if (rangeError is not null) return rangeError;
 
             var stats = await telemetry.GetAggregateStatsAsync(vehicle.Id, start, end, ct);
@@ -126,6 +136,18 @@ public static class VehicleEndpoints
         .WithSummary("Distinct raw MQTT topics seen for a vehicle (one entry per 15-second merge window; topics arriving mid-window are not recorded)");
 
         return app;
+    }
+
+    // A browser that does not say its zone gets UTC days.
+    private static bool TryFindZone(string? timeZone, out TimeZoneInfo zone)
+    {
+        if (string.IsNullOrWhiteSpace(timeZone))
+        {
+            zone = TimeZoneInfo.Utc;
+            return true;
+        }
+
+        return TimeZoneInfo.TryFindSystemTimeZoneById(timeZone, out zone!);
     }
 }
 
