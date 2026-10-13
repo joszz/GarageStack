@@ -29,6 +29,13 @@ public class Trip
     public double EndLatitude { get; set; }
     public double EndLongitude { get; set; }
 
+    // Read off the fixes when the trip is saved, so a period of trip summaries (the statistics
+    // page, a year at a time) need not read every fix again. Null on a trip saved before these
+    // existed until housekeeping works them out (ITripRepository.FillSpeedFiguresAsync).
+    public double? MaxSpeedKmh { get; set; }
+    public double? AvgMovingSpeedKmh { get; set; }
+    public int? MovingSpeedSamples { get; set; }
+
     /// <summary>The odometer when the trip started, or null when the car had not reported one yet.</summary>
     public double? OdometerStartKm { get; set; }
 

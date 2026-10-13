@@ -488,4 +488,100 @@ public class TripRepositoryTests
         Assert.Equal(new CommuteRelabel(0, 0), relabel);
         Assert.Equal(TripPurpose.Business, (await EntryAsync(repo, vehicle, id, ct)).Purpose);
     }
+
+    // ── Trip summaries ────────────────────────────────────────────────────────
+
+    // Drive()'s trip is its three fixes at 50 km/h; the parked fix after them is not part of it.
+    [Fact]
+    public async Task SaveRecorded_StoresTheSpeedFiguresWithTheTrip()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (db, repo, vehicle) = await SetupAsync(ct);
+        await using var _ = db;
+
+        await SaveOneAsync(repo, vehicle, T0, ct);
+
+        var saved = await db.Trips.SingleAsync(ct);
+        Assert.Equal(50, saved.MaxSpeedKmh);
+        Assert.Equal(50, saved.AvgMovingSpeedKmh);
+        Assert.Equal(3, saved.MovingSpeedSamples);
+    }
+
+    // A year of trips must not read a year of fixes: the stored figures are enough.
+    [Fact]
+    public async Task GetSummaries_ServesStoredFigures_WithoutReadingTheFixes()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (db, repo, vehicle) = await SetupAsync(ct);
+        await using var _ = db;
+        await SaveOneAsync(repo, vehicle, T0, ct);
+        (await db.Trips.SingleAsync(ct)).PointsJson = "not json";
+        await db.SaveChangesAsync(ct);
+
+        var summary = Assert.Single(await repo.GetSummariesAsync(vehicle.Id, T0.AddDays(-1), T0.AddDays(1), ct));
+
+        Assert.Equal(50, summary.MaxSpeedKmh);
+        Assert.Equal(3, summary.MovingSpeedSamples);
+        Assert.Equal(51.60, summary.EndLatitude);
+    }
+
+    // A trip saved before the figures were stored, which housekeeping has not reached yet.
+    [Fact]
+    public async Task GetSummaries_TripWithoutStoredFigures_IsReadOffItsFixes()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (db, repo, vehicle) = await SetupAsync(ct);
+        await using var _ = db;
+        await SaveOneAsync(repo, vehicle, T0, ct);
+        var trip = await db.Trips.SingleAsync(ct);
+        (trip.MaxSpeedKmh, trip.AvgMovingSpeedKmh, trip.MovingSpeedSamples) = (null, null, null);
+        await db.SaveChangesAsync(ct);
+
+        var summary = Assert.Single(await repo.GetSummariesAsync(vehicle.Id, T0.AddDays(-1), T0.AddDays(1), ct));
+
+        Assert.Equal(50, summary.MaxSpeedKmh);
+        Assert.Equal(3, summary.MovingSpeedSamples);
+    }
+
+    [Fact]
+    public async Task GetSummaries_MatchTheTripsTheyStandFor()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (db, repo, vehicle) = await SetupAsync(ct);
+        await using var _ = db;
+        var savedDrive = Drive(vehicle.Id, T0);
+        var liveDrive = Drive(vehicle.Id, T0.AddHours(2));
+        db.TelemetrySnapshots.AddRange([.. savedDrive, .. liveDrive]);
+        await db.SaveChangesAsync(ct);
+        await repo.SaveRecordedAsync(vehicle.Id, [Recorded(CutOne(savedDrive))], T0.AddHours(1), ct);
+
+        var trips = await repo.GetTripsAsync(vehicle.Id, T0.AddDays(-1), T0.AddDays(1), ct);
+        var summaries = await repo.GetSummariesAsync(vehicle.Id, T0.AddDays(-1), T0.AddDays(1), ct);
+
+        Assert.Equal(trips.Select(t => t.ToSummary()), summaries);
+    }
+
+    [Fact]
+    public async Task FillSpeedFigures_WorksOutOlderTrips_InBatches()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (db, repo, vehicle) = await SetupAsync(ct);
+        await using var _ = db;
+        await SaveOneAsync(repo, vehicle, T0, ct);
+        await SaveOneAsync(repo, vehicle, T0.AddDays(1), ct);
+        await SaveOneAsync(repo, vehicle, T0.AddDays(2), ct);
+        foreach (var t in await db.Trips.ToListAsync(ct))
+            (t.MaxSpeedKmh, t.AvgMovingSpeedKmh, t.MovingSpeedSamples) = (null, null, null);
+        (await db.Trips.OrderBy(t => t.Id).LastAsync(ct)).PointsJson = "not json";
+        await db.SaveChangesAsync(ct);
+        db.ChangeTracker.Clear();
+
+        Assert.Equal(2, await repo.FillSpeedFiguresAsync(2, ct));
+        Assert.Equal(1, await repo.FillSpeedFiguresAsync(2, ct));
+        Assert.Equal(0, await repo.FillSpeedFiguresAsync(2, ct));
+
+        var trips = await db.Trips.AsNoTracking().OrderBy(t => t.Id).ToListAsync(ct);
+        Assert.Equal([3, 3, 0], trips.Select(t => t.MovingSpeedSamples));
+        Assert.Equal([50, 50, null], trips.Select(t => t.MaxSpeedKmh));
+    }
 }

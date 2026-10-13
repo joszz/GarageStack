@@ -4,6 +4,12 @@ namespace GarageStack.Api.Endpoints;
 internal static class DateRange
 {
     /// <summary>
+    /// The longest period the statistics read at once: ten years, longer than any install has
+    /// recorded. Only what is summarised per day or per trip may ask for it.
+    /// </summary>
+    internal static readonly TimeSpan LongestStatisticsSpan = TimeSpan.FromDays(3660);
+
+    /// <summary>
     /// Resolves the [start, end) UTC range for a from/to query: defaults the missing bound (end to
     /// now, start to end - defaultSpan) and clamps the span to maxSpan. Returns a 400 IResult if
     /// the resulting range is inverted.

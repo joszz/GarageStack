@@ -7,7 +7,8 @@ namespace GarageStack.Worker.Services;
 /// <summary>
 /// Keeps the database from growing without end. Compacts each vehicle's old telemetry with
 /// <see cref="TelemetryCompactor"/>, and removes cached place names and snapped trips that have
-/// expired, and notifications the user deleted a while ago. Cached map POIs stay: the map shows an
+/// expired, and notifications the user deleted a while ago. Also works out the speed figures of
+/// trips saved before those were stored with the trip. Cached map POIs stay: the map shows an
 /// expired tile's stations while it fetches the tile again.
 /// </summary>
 public class HousekeepingService(
@@ -21,6 +22,9 @@ public class HousekeepingService(
 
     // The notification cooldowns read the history, deleted rows included, at most a week back.
     internal static readonly TimeSpan DeletedNotificationsKept = TimeSpan.FromDays(30);
+
+    // Trips per save while filling in speed figures: each one reads its fixes.
+    internal const int SpeedFigureBatch = 200;
 
     protected override string Name => "Housekeeping";
 
@@ -44,6 +48,17 @@ public class HousekeepingService(
                 logger.LogInformation("Compacted old telemetry for VIN={Vin}: {Count} row(s) folded into quarter-hour rows",
                     LogRedaction.Vin(vehicle.Vin), folded);
         }
+
+        var trips = scope.ServiceProvider.GetRequiredService<ITripRepository>();
+        int filled, totalFilled = 0;
+        do
+        {
+            filled = await trips.FillSpeedFiguresAsync(SpeedFigureBatch, ct);
+            totalFilled += filled;
+        }
+        while (filled == SpeedFigureBatch);
+        if (totalFilled > 0)
+            logger.LogInformation("Worked out speed figures for {Count} trip(s) saved before they were stored", totalFilled);
 
         var expired = await housekeeping.RemoveExpiredCacheEntriesAsync(now - ExpiredCacheGrace, ct);
         var deleted = await housekeeping.RemoveDeletedNotificationsAsync(now - DeletedNotificationsKept, ct);
