@@ -88,7 +88,7 @@ RUN echo "os patch date: ${OS_PATCH_DATE}" \
     && apt-get upgrade -y --no-install-recommends \
     && apt-get install -y --no-install-recommends \
         bash curl ca-certificates gosu supervisor \
-        nginx mosquitto mosquitto-clients \
+        nginx mosquitto \
         libgssapi-krb5-2 libicu76 tzdata \
     && rm -rf /var/lib/apt/lists/*
 
