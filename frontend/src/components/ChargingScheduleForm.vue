@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import CommandButton from './CommandButton.vue'
 import CommandFeedback from './CommandFeedback.vue'
 import TimeOfDaySelect from './TimeOfDaySelect.vue'
 import { useVehicleCommand } from '@/composables/useVehicleCommand'
+import { useCommandDraft } from '@/composables/useCommandDraft'
 import { gatewayLabel } from '@/utils/gatewayLabel'
 import { timeOfDay } from '@/utils/dates'
 
@@ -41,10 +42,10 @@ const current = computed(() => ({
 }))
 
 // The form follows the car, unless a change is on its way to it.
-const draft = ref({ ...current.value })
-watch(current, (now) => {
-  if (!isPending(COMMAND)) draft.value = { ...now }
-})
+const draft = useCommandDraft(
+  () => ({ ...current.value }),
+  () => isPending(COMMAND),
+)
 
 const modes = computed(() =>
   MODES.filter(

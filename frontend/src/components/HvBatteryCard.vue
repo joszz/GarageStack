@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ExpandableStatusCard from './ExpandableStatusCard.vue'
 import DetailListItem from './DetailListItem.vue'
@@ -7,6 +7,7 @@ import CommandButton from './CommandButton.vue'
 import CommandFeedback from './CommandFeedback.vue'
 import RangeControl from './RangeControl.vue'
 import { useVehicleCommand } from '@/composables/useVehicleCommand'
+import { useCommandDraft } from '@/composables/useCommandDraft'
 import { formatNumber } from '@/utils/format'
 
 const { t } = useI18n()
@@ -91,12 +92,9 @@ function targetStep(percent: number | null): number {
 }
 
 // The slider starts at the car's target and follows it, unless a change is on its way to the car.
-const targetDraft = ref(targetStep(props.socTargetPercent))
-watch(
-  () => props.socTargetPercent,
-  (target) => {
-    if (!isPending('charge-target')) targetDraft.value = targetStep(target)
-  },
+const targetDraft = useCommandDraft(
+  () => targetStep(props.socTargetPercent),
+  () => isPending('charge-target'),
 )
 
 function setChargeTarget() {
