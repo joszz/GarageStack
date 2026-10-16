@@ -170,7 +170,7 @@ export function usePoiLayers({ mapInstance, vehicleType }: UsePoiLayersOptions) 
   const chargingLayer = createTileLayer<ChargingStation>({
     map: mapInstance,
     enabled: chargingLayerEnabled,
-    clusterClassName: 'charging-cluster',
+    clusterClassName: 'poi-cluster poi-cluster--charging',
     idOf: (station) => String(station.id),
     // Always fetch unfiltered - the power filter is applied client-side from the cache, so
     // moving the slider never needs a new API call.
@@ -191,7 +191,7 @@ export function usePoiLayers({ mapInstance, vehicleType }: UsePoiLayersOptions) 
       createMarker(
         station.latitude,
         station.longitude,
-        `charging-marker${station.isOperational === false ? ' charging-marker--unknown' : ''}`,
+        `poi-marker poi-marker--charging${station.isOperational === false ? ' poi-marker--unknown' : ''}`,
         '&#9889;',
         () => buildChargingPopup(station),
       ),

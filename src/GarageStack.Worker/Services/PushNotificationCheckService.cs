@@ -3,8 +3,6 @@ using GarageStack.Core.Configuration;
 using GarageStack.Core.Helpers;
 using GarageStack.Core.Interfaces;
 using GarageStack.Core.Models;
-using GarageStack.Data;
-using GarageStack.Data.Extensions;
 using GarageStack.Worker.Mqtt;
 using Microsoft.Extensions.Localization;
 
@@ -66,7 +64,7 @@ public class PushNotificationCheckService(
         var telemetry = scope.ServiceProvider.GetRequiredService<ITelemetryRepository>();
         var vehicleRepo = scope.ServiceProvider.GetRequiredService<IVehicleRepository>();
         // Still needed directly for the notification-history lookup behind the cooldown gate.
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var notifications = scope.ServiceProvider.GetRequiredService<INotificationRepository>();
 
         var vehicles = await vehicleRepo.GetAllAsync(ct);
 
@@ -76,8 +74,8 @@ public class PushNotificationCheckService(
             if (snapshot is null) continue;
 
             var now = DateTime.UtcNow;
-            await CheckLevelsAsync(vehicle, snapshot, telemetry, db, now, ct);
-            await CheckParkedAsync(vehicle, snapshot, telemetry, db, now, ct);
+            await CheckLevelsAsync(vehicle, snapshot, telemetry, notifications, now, ct);
+            await CheckParkedAsync(vehicle, snapshot, telemetry, notifications, now, ct);
         }
     }
 
@@ -87,7 +85,7 @@ public class PushNotificationCheckService(
     /// reported every hour on the one reading it last sent.
     /// </summary>
     internal async Task CheckLevelsAsync(
-        Vehicle vehicle, TelemetrySnapshot snapshot, ITelemetryRepository telemetry, AppDbContext db, DateTime now, CancellationToken ct)
+        Vehicle vehicle, TelemetrySnapshot snapshot, ITelemetryRepository telemetry, INotificationRepository notifications, DateTime now, CancellationToken ct)
     {
         var vehicleType = VehicleTypeHelper.GetVehicleType(vehicle);
         var stopReason = VehicleTypeHelper.CanCharge(vehicleType)
@@ -101,7 +99,7 @@ public class PushNotificationCheckService(
         CheckDataStale(snapshot, now, alerts);
         if (alerts.Count == 0) return;
 
-        await SendAsync(vehicle, alerts, db, ct, onceSince: NewestReportAt(snapshot));
+        await SendAsync(vehicle, alerts, notifications, ct, onceSince: NewestReportAt(snapshot));
     }
 
     /// <summary>
@@ -125,7 +123,7 @@ public class PushNotificationCheckService(
     /// poll it last sent.
     /// </summary>
     internal async Task CheckParkedAsync(
-        Vehicle vehicle, TelemetrySnapshot snapshot, ITelemetryRepository telemetry, AppDbContext db, DateTime now, CancellationToken ct)
+        Vehicle vehicle, TelemetrySnapshot snapshot, ITelemetryRepository telemetry, INotificationRepository notifications, DateTime now, CancellationToken ct)
     {
         // The MQTT consumer records when the engine last stopped (it also sends the
         // engine-start push, the moment the car reports it). A car parked a moment ago is
@@ -140,22 +138,22 @@ public class PushNotificationCheckService(
         CheckAuxBatteryWhileParked(readings, alerts);
         if (alerts.Count == 0) return;
 
-        await SendAsync(vehicle, alerts, db, ct, onceSince: readings[0].ArrivedAt);
+        await SendAsync(vehicle, alerts, notifications, ct, onceSince: readings[0].ArrivedAt);
     }
 
     // With onceSince, an alert is held back when one of its kind already went out after that moment.
     private async Task SendAsync(
-        Vehicle vehicle, List<(string key, string title, string body)> alerts, AppDbContext db, CancellationToken ct, DateTime? onceSince = null)
+        Vehicle vehicle, List<(string key, string title, string body)> alerts, INotificationRepository notifications, CancellationToken ct, DateTime? onceSince = null)
     {
         foreach (var (key, title, body) in alerts)
         {
-            if (onceSince is { } since && await db.WasNotificationSentSinceAsync(key, vehicle.Id, since, ct))
+            if (onceSince is { } since && await notifications.WasSentSinceAsync(key, vehicle.Id, since, ct))
                 continue;
 
             // VehicleId is included in the DB check so one vehicle's alert cannot suppress
             // another vehicle's same-category alert.
             var shouldNotify = await _cooldownGate.ShouldNotifyAsync(vehicle.Vin, key, cutoff =>
-                db.WasNotificationSentSinceAsync(key, vehicle.Id, cutoff, ct));
+                notifications.WasSentSinceAsync(key, vehicle.Id, cutoff, ct));
             if (!shouldNotify) continue;
 
             await pushSender.SendToAllAsync(title, body, ct, key, vehicle.Id);

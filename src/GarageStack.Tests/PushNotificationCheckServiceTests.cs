@@ -172,7 +172,7 @@ public class PushNotificationCheckServiceTests
         var (vehicle, _) = await LeftUnlockedAsync(db, now.AddHours(-1), ct);
         var push = new FakePushSender();
 
-        await CreateService(push: push).CheckParkedAsync(vehicle, Parked(), new TelemetryRepository(db), db, now, ct);
+        await CreateService(push: push).CheckParkedAsync(vehicle, Parked(), new TelemetryRepository(db), new NotificationRepository(db), now, ct);
 
         Assert.Equal("unlocked-parked", Assert.Single(push.Sent).Category);
     }
@@ -196,7 +196,7 @@ public class PushNotificationCheckServiceTests
         await db.SaveChangesAsync(ct);
         var push = new FakePushSender();
 
-        await CreateService(push: push).CheckParkedAsync(vehicle, Parked(), new TelemetryRepository(db), db, now, ct);
+        await CreateService(push: push).CheckParkedAsync(vehicle, Parked(), new TelemetryRepository(db), new NotificationRepository(db), now, ct);
 
         Assert.Empty(push.Sent);
     }
@@ -210,7 +210,7 @@ public class PushNotificationCheckServiceTests
         var (vehicle, _) = await LeftUnlockedAsync(db, now.AddMinutes(-8), ct, polls: 4);
         var push = new FakePushSender();
 
-        await CreateService(push: push).CheckParkedAsync(vehicle, Parked(), new TelemetryRepository(db), db, now, ct);
+        await CreateService(push: push).CheckParkedAsync(vehicle, Parked(), new TelemetryRepository(db), new NotificationRepository(db), now, ct);
 
         Assert.Empty(push.Sent);
     }
@@ -225,7 +225,7 @@ public class PushNotificationCheckServiceTests
         var push = new FakePushSender();
 
         await CreateService(push: push).CheckParkedAsync(
-            vehicle, new TelemetrySnapshot { EngineRunning = true }, new TelemetryRepository(db), db, now, ct);
+            vehicle, new TelemetrySnapshot { EngineRunning = true }, new TelemetryRepository(db), new NotificationRepository(db), now, ct);
 
         Assert.Empty(push.Sent);
     }
@@ -631,7 +631,7 @@ public class PushNotificationCheckServiceTests
         await db.SaveChangesAsync(ct);
         var push = new FakePushSender();
 
-        await CreateService(push: push).CheckLevelsAsync(vehicle, SoftTyreReportedAt(polledAt), new TelemetryRepository(db), db, now, ct);
+        await CreateService(push: push).CheckLevelsAsync(vehicle, SoftTyreReportedAt(polledAt), new TelemetryRepository(db), new NotificationRepository(db), now, ct);
 
         Assert.Empty(push.Sent);
     }
@@ -653,7 +653,7 @@ public class PushNotificationCheckServiceTests
         await db.SaveChangesAsync(ct);
         var push = new FakePushSender();
 
-        await CreateService(push: push).CheckLevelsAsync(vehicle, SoftTyreReportedAt(now.AddMinutes(-2)), new TelemetryRepository(db), db, now, ct);
+        await CreateService(push: push).CheckLevelsAsync(vehicle, SoftTyreReportedAt(now.AddMinutes(-2)), new TelemetryRepository(db), new NotificationRepository(db), now, ct);
 
         Assert.Equal("low-tyre", Assert.Single(push.Sent).Category);
     }

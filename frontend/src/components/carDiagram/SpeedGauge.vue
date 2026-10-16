@@ -32,10 +32,10 @@ const speedFraction = computed(() => Math.min(1, Math.max(0, props.speedKmh / MA
 const needleRotation = computed(() => -135 + speedFraction.value * 270)
 const gaugeDashOffset = computed(() => GAUGE_ARC_LENGTH * (1 - speedFraction.value))
 
-const gaugeColor = computed(() => {
-  if (props.speedKmh >= 140) return 'var(--color-danger)'
-  if (props.speedKmh >= 100) return 'var(--color-warning)'
-  return 'var(--color-primary-light)'
+const gaugeBand = computed(() => {
+  if (props.speedKmh >= 140) return 'speed-gauge__progress--very-fast'
+  if (props.speedKmh >= 100) return 'speed-gauge__progress--fast'
+  return null
 })
 
 const label = computed(
@@ -50,11 +50,9 @@ const label = computed(
       <path
         :d="gaugeArcPath"
         class="speed-gauge__progress"
-        :style="{
-          strokeDasharray: GAUGE_ARC_LENGTH,
-          strokeDashoffset: gaugeDashOffset,
-          stroke: gaugeColor,
-        }"
+        :class="gaugeBand"
+        :stroke-dasharray="GAUGE_ARC_LENGTH"
+        :stroke-dashoffset="gaugeDashOffset"
       />
       <line
         x1="50"

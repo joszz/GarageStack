@@ -1,5 +1,4 @@
-using GarageStack.Data;
-using Microsoft.EntityFrameworkCore;
+using GarageStack.Core.Interfaces;
 
 namespace GarageStack.Api.Endpoints;
 
@@ -11,54 +10,32 @@ public static class NotificationEndpoints
             .WithTags("Notifications")
             .RequireAuthorization();
 
-        group.MapGet("/", async (AppDbContext db, CancellationToken ct, int limit = 100) =>
+        group.MapGet("/", async (INotificationRepository notifications, CancellationToken ct, int limit = 100) =>
         {
             if (limit is < 1 or > 500) limit = 100;
-            var notifications = await db.AppNotifications
-                .AsNoTracking()
-                .Where(n => !n.IsDeleted)
-                .OrderByDescending(n => n.CreatedAt)
-                .Take(limit)
-                .Select(n => new NotificationDto(n.Id, n.Title, n.Body, n.CreatedAt, n.IsArchived, n.Category))
-                .ToListAsync(ct);
-            return Results.Ok(notifications);
+            var list = await notifications.ListAsync(limit, ct);
+            return Results.Ok(list.Select(n => new NotificationDto(n.Id, n.Title, n.Body, n.CreatedAt, n.IsArchived, n.Category)));
         })
         .WithSummary("List non-deleted notifications (most recent first, default limit 100)");
 
-        group.MapPatch("/{id:int}/archive", async (int id, AppDbContext db, CancellationToken ct) =>
-        {
-            var notification = await db.AppNotifications.FindAsync([id], ct);
-            if (notification is null || notification.IsDeleted) return Results.NotFound();
-            notification.IsArchived = true;
-            await db.SaveChangesAsync(ct);
-            return Results.Ok();
-        })
+        group.MapPatch("/{id:int}/archive", async (int id, INotificationRepository notifications, CancellationToken ct) =>
+            await notifications.ArchiveAsync(id, ct) ? Results.Ok() : Results.NotFound())
         .WithSummary("Archive a notification");
 
-        group.MapDelete("/{id:int}", async (int id, AppDbContext db, CancellationToken ct) =>
-        {
-            var notification = await db.AppNotifications.FindAsync([id], ct);
-            if (notification is null) return Results.NotFound();
-            notification.IsDeleted = true;
-            await db.SaveChangesAsync(ct);
-            return Results.Ok();
-        })
+        group.MapDelete("/{id:int}", async (int id, INotificationRepository notifications, CancellationToken ct) =>
+            await notifications.DeleteAsync(id, ct) ? Results.Ok() : Results.NotFound())
         .WithSummary("Soft-delete a notification");
 
-        group.MapPatch("/archive-all", async (AppDbContext db, CancellationToken ct) =>
+        group.MapPatch("/archive-all", async (INotificationRepository notifications, CancellationToken ct) =>
         {
-            await db.AppNotifications
-                .Where(n => !n.IsDeleted && !n.IsArchived)
-                .ExecuteUpdateAsync(s => s.SetProperty(n => n.IsArchived, true), ct);
+            await notifications.ArchiveAllAsync(ct);
             return Results.Ok();
         })
         .WithSummary("Archive all non-archived notifications");
 
-        group.MapDelete("/", async (AppDbContext db, CancellationToken ct) =>
+        group.MapDelete("/", async (INotificationRepository notifications, CancellationToken ct) =>
         {
-            await db.AppNotifications
-                .Where(n => !n.IsDeleted)
-                .ExecuteUpdateAsync(s => s.SetProperty(n => n.IsDeleted, true), ct);
+            await notifications.DeleteAllAsync(ct);
             return Results.Ok();
         })
         .WithSummary("Soft-delete all notifications");

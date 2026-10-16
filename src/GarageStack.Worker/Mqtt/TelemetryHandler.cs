@@ -99,13 +99,14 @@ public sealed class TelemetryHandler(
             var vehicleId = resolved.VehicleId;
             var telemetryRepo = resolved.Services.GetRequiredService<ITelemetryRepository>();
             var db = resolved.Services.GetRequiredService<AppDbContext>();
+            var notifications = resolved.Services.GetRequiredService<INotificationRepository>();
 
             patch.VehicleId = vehicleId;
             patch.RecordedAt = DateTime.UtcNow;
 
             await MergeOrAddTelemetryAsync(vehicleId, patch, message.Topic, telemetryRepo, ct);
 
-            if (await ObserveEngineAsync(vin, patch, db, ct) == StateTransition.TurnedOff && vehicleId > 0)
+            if (await ObserveEngineAsync(vin, patch, notifications, ct) == StateTransition.TurnedOff && vehicleId > 0)
             {
                 // The engine stopping ends the trip and parks the car: the Api refreshes the trip
                 // list, and the push checks give the driver a grace period before warning about an
@@ -155,7 +156,7 @@ public sealed class TelemetryHandler(
     /// Follows the engine across messages. A start sends the engine-start push, once per cooldown.
     /// </summary>
     /// <returns>What the message changed about the engine; a message without an engine reading changes nothing.</returns>
-    internal async Task<StateTransition> ObserveEngineAsync(string vin, TelemetrySnapshot snapshot, AppDbContext db, CancellationToken ct)
+    internal async Task<StateTransition> ObserveEngineAsync(string vin, TelemetrySnapshot snapshot, INotificationRepository notifications, CancellationToken ct)
     {
         if (snapshot.EngineRunning is not { } running)
             return StateTransition.Unchanged;
@@ -166,7 +167,7 @@ public sealed class TelemetryHandler(
         if (transition == StateTransition.TurnedOn)
         {
             var shouldNotify = await _engineStartCooldownGate.ShouldNotifyAsync(vin, NotificationCategories.EngineStart, cutoff =>
-                db.WasNotificationSentSinceAsync(NotificationCategories.EngineStart, snapshot.VehicleId, cutoff, ct));
+                notifications.WasSentSinceAsync(NotificationCategories.EngineStart, snapshot.VehicleId, cutoff, ct));
             if (shouldNotify)
             {
                 logger.LogInformation("Engine started for VIN={Vin} - sending push notification", LogRedaction.Vin(vin));

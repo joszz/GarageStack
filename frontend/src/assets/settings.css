@@ -1,0 +1,184 @@
+/* Settings rows, sections and the car colour picker. Used across the app (the settings dialog,
+   the login page, the map filters, the schedule form), so main.ts loads it right after main.css. */
+
+/* ── Settings ─────────────────────────────────────────────── */
+
+.settings-toggles {
+  display: flex;
+  flex-direction: column;
+}
+
+.settings-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.settings-toggle:last-child {
+  border-bottom: none;
+}
+
+.settings-toggle__info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.settings-toggle__label {
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.settings-toggle__icon {
+  width: 0.85em;
+  margin-right: 0.35rem;
+  color: var(--color-text-muted);
+}
+
+.settings-toggle__desc {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+}
+
+.settings-toggle__control {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+/* A choice from a list goes under its label, at full width: its options are too long to sit
+   beside the label, in a modal as narrow as a phone. */
+.settings-toggle--select {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.5rem;
+}
+
+.settings-toggle__select {
+  width: 100%;
+}
+
+.settings-toggle__side-icon {
+  display: flex;
+  align-items: center;
+  font-size: 1rem;
+  color: var(--color-text-muted);
+  transition: color 0.15s;
+}
+
+.settings-toggle__flag {
+  width: 1.3rem;
+  height: auto;
+  border-radius: 2px;
+  display: block;
+  opacity: 0.45;
+  transition: opacity 0.15s;
+}
+
+.settings-toggle__side-icon--active .settings-toggle__flag {
+  opacity: 1;
+}
+
+.settings-toggle__side-icon--active {
+  color: var(--color-primary);
+}
+
+.notif-type-filter {
+  padding: 0.25rem 0 0.5rem;
+}
+
+.notif-type-filter__header {
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.notif-type-filter__actions {
+  display: flex;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.notif-type-filter__denied {
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+/* Own internal scroll so a long category list never pushes the rest of the settings modal's
+   sections down. minmax(170px, 1fr) against .detail-modal's actual width budget: the mobile
+   bottom-sheet content is ~300-335px wide -> 1 column; the desktop dialog is capped at
+   max-width: 440px -> 2 columns, where the up to 15 categories take 8 rows and scroll a little.
+   max-height keeps the 1-column mobile case to ~5-6 visible rows before scrolling. */
+.notif-type-checklist {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 0.4rem 0.75rem;
+  max-height: 15rem;
+  overflow-y: auto;
+  margin-top: 0.5rem;
+  padding-right: 0.25rem;
+}
+
+.notif-type-checklist__item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0.4rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.notif-type-checklist__item:hover {
+  background: var(--color-surface-2);
+}
+
+.notif-type-checklist__label {
+  line-height: 1.25;
+}
+
+/* ── Car colour picker ────────────────────────────────────── */
+
+.car-color-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.car-color-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.car-color-swatch {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  background: linear-gradient(135deg, var(--swatch-s) 50%, var(--swatch-p) 50%);
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 15%);
+  outline: 2.5px solid transparent;
+  outline-offset: 3px;
+  transition:
+    transform 0.15s,
+    outline-color 0.15s;
+}
+
+.car-color-swatch:hover {
+  transform: scale(1.12);
+}
+
+.car-color-swatch--active {
+  outline-color: var(--color-text);
+}

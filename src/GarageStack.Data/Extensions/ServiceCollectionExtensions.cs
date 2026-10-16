@@ -29,6 +29,9 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IUserSettingsRepository, UserSettingsRepository>();
         services.AddScoped<IClimateScheduleRepository, ClimateScheduleRepository>();
         services.AddScoped<ICommutePlaceRepository, CommutePlaceRepository>();
+        services.AddScoped<IMaintenanceRepository, MaintenanceRepository>();
+        services.AddScoped<INotificationRepository, NotificationRepository>();
+        services.AddScoped<IPushSubscriptionRepository, PushSubscriptionRepository>();
         services.AddGarageStackPoiClients();
 
         return services;
@@ -50,6 +53,9 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IUserSettingsRepository, UserSettingsRepository>();
         services.AddScoped<IClimateScheduleRepository, ClimateScheduleRepository>();
         services.AddScoped<ICommutePlaceRepository, CommutePlaceRepository>();
+        services.AddScoped<IMaintenanceRepository, MaintenanceRepository>();
+        services.AddScoped<INotificationRepository, NotificationRepository>();
+        services.AddScoped<IPushSubscriptionRepository, PushSubscriptionRepository>();
         services.AddGarageStackPoiClients();
 
         return services;

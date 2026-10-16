@@ -1,3 +1,7 @@
+<script setup lang="ts">
+import '@/assets/dashboard.css'
+</script>
+
 <template>
   <div class="location-map-card">
     <div class="map-skel__title skeleton skeleton--text skeleton--text-sm"></div>

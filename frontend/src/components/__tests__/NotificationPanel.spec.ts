@@ -58,4 +58,16 @@ describe('NotificationPanel', () => {
     expect(wrapper.text()).toContain(notification.title)
     wrapper.unmount()
   })
+
+  it('is a modal dialog that takes focus and closes on Escape', () => {
+    const wrapper = mountPanel()
+    const dialog = wrapper.find('[role=dialog]')
+
+    expect(dialog.attributes('aria-modal')).toBe('true')
+    expect(document.activeElement).toBe(dialog.element)
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
+    expect(wrapper.emitted('close')).toHaveLength(1)
+    wrapper.unmount()
+  })
 })
