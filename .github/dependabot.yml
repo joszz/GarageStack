@@ -85,6 +85,7 @@ updates:
       testing:
         patterns:
           - "vitest"
+          - "@vitest/coverage-v8"
           - "jsdom"
           - "@types/jsdom"
           - "@vue/test-utils"
@@ -143,7 +144,7 @@ updates:
           - "xunit*"
           - "xunit.*"
           - "Microsoft.NET.Test.Sdk"
-          - "coverlet.*"
+          - "Microsoft.Testing.*"
 
   # ── Docker base images ───────────────────────────────────────────────────────
   # The image: references in docker-compose.yml (Mosquitto, PostgreSQL and the pinned

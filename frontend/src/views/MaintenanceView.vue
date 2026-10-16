@@ -79,7 +79,8 @@ watch(vin, (v) => {
     <div class="view-header">
       <h1>{{ t('maintenance.title') }}</h1>
       <div class="view-header__actions">
-        <button class="btn btn-primary btn-sm" @click="openAdd">
+        <!-- The form needs a car to add the item to, and only exists once one is known. -->
+        <button class="btn btn-primary btn-sm" :disabled="!vin" @click="openAdd">
           <font-awesome-icon icon="plus" />{{ t('maintenance.addItem') }}
         </button>
       </div>

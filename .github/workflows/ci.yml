@@ -60,7 +60,22 @@ jobs:
 
       - name: Run tests
         working-directory: frontend
-        run: pnpm run test:unit --run
+        run: pnpm run test:coverage
+
+      # Reported, not enforced: the figure is there to watch, not yet a gate.
+      - name: Coverage summary
+        if: always()
+        working-directory: frontend
+        run: |
+          [ -f coverage/coverage-summary.json ] || exit 0
+          # shellcheck disable=SC2016 # the ${...} below are JavaScript template literals
+          node -e '
+            const t = require("./coverage/coverage-summary.json").total
+            for (const line of ["### Frontend coverage", "", "| | Covered | |", "| --- | --- | --- |"])
+              console.log(line)
+            for (const k of ["lines", "branches", "functions", "statements"])
+              console.log(`| ${k} | ${t[k].pct}% | ${t[k].covered} / ${t[k].total} |`)
+          ' >> "$GITHUB_STEP_SUMMARY"
 
   # Runs the production bundle behind the production nginx config, which is the only place the
   # Content-Security-Policy applies. Unit tests and the type checker cannot see that far: a
@@ -126,7 +141,28 @@ jobs:
         run: dotnet restore
 
       - name: Test
-        run: dotnet test --no-restore --verbosity normal
+        run: >-
+          dotnet test --no-restore --verbosity normal
+          --coverage --coverage-output-format cobertura
+          --coverage-settings src/GarageStack.Tests/coverage.settings.xml
+          --results-directory TestResults
+
+      # Reported, not enforced: the figure is there to watch, not yet a gate.
+      - name: Coverage summary
+        if: always()
+        run: |
+          report=$(find TestResults -name '*.cobertura.xml' 2>/dev/null | head -1)
+          [ -n "$report" ] || exit 0
+          python3 - "$report" >> "$GITHUB_STEP_SUMMARY" <<'PY'
+          import sys, xml.etree.ElementTree as ET
+          root = ET.parse(sys.argv[1]).getroot()
+          pct = lambda e: f"{float(e.get('line-rate')) * 100:.1f}%"
+          for line in ["### Backend coverage", "", "| Assembly | Lines |", "| --- | --- |"]:
+              print(line)
+          print(f"| **All** | **{pct(root)}** |")
+          for package in root.iter("package"):
+              print(f"| {package.get('name')} | {pct(package)} |")
+          PY
 
   backend-build:
     name: Backend build

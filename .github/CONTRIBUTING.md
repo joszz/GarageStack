@@ -21,8 +21,11 @@ To work against the full stack (real or self-provided credentials):
 - Create a new branch from `main` for your change: `git checkout -b feature/my-change`.
 - Keep changes focused -- one feature or fix per pull request.
 - Run the test suite before opening a PR:
-  - Backend: `dotnet test`
+  - Backend: `dotnet test --project src/GarageStack.Tests`
   - Frontend: `pnpm test:unit`
+- Coverage, which CI reports on every run:
+  - Backend: add `--coverage --coverage-output-format cobertura --coverage-settings src/GarageStack.Tests/coverage.settings.xml` to the test command; the report lands in `TestResults/`.
+  - Frontend: `pnpm test:coverage`, with an HTML report in `frontend/coverage/`.
 - Touching the frontend, nginx config or the Content-Security-Policy? Run the browser smoke tests too. They drive the production bundle behind the production nginx config, which is the only place the policy applies:
 
   ```bash
