@@ -160,8 +160,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         {
             e.HasKey(m => m.Id);
             e.HasIndex(m => m.VehicleId);
-            e.Property(m => m.Name).HasMaxLength(200).IsRequired();
-            e.Property(m => m.Notes).HasMaxLength(1000);
+            e.Property(m => m.Name).HasMaxLength(MaintenanceLimits.NameMaxLength).IsRequired();
+            e.Property(m => m.Notes).HasMaxLength(MaintenanceLimits.NotesMaxLength);
             e.HasOne(m => m.Vehicle)
              .WithMany()
              .HasForeignKey(m => m.VehicleId)
@@ -172,7 +172,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         {
             e.HasKey(l => l.Id);
             e.HasIndex(l => new { l.MaintenanceItemId, l.PerformedAt });
-            e.Property(l => l.Notes).HasMaxLength(1000);
+            e.Property(l => l.Notes).HasMaxLength(MaintenanceLimits.NotesMaxLength);
             e.HasOne(l => l.MaintenanceItem)
              .WithMany(m => m.LogEntries)
              .HasForeignKey(l => l.MaintenanceItemId)

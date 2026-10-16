@@ -597,6 +597,29 @@ public class AuthenticationFlowTests
         Assert.Equal("points must contain at least one coordinate", problem.RootElement.GetProperty("detail").GetString());
     }
 
+    // NaN binds from the query string and slips past range comparisons; it once reached the tile
+    // maths as tile (0,0) and was fetched and cached upstream.
+    [Theory]
+    [InlineData("/api/map/charging-stations?lat=NaN&lng=5&distanceKm=10&minPowerKw=0&maxPowerKw=350", "map.coordinatesOutOfRange")]
+    [InlineData("/api/map/poi?type=fuel&vehicleType=hev&lat=52&lng=Infinity&radiusKm=10", "map.coordinatesOutOfRange")]
+    [InlineData("/api/map/poi?type=fuel&vehicleType=hev&lat=52&lng=5&radiusKm=NaN", "map.radiusOutOfRange")]
+    public async Task MapQuery_WithANonFiniteNumber_IsRefused(string url, string code)
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var factory = CreatePasswordOnlyFactory();
+        using var client = CreateClient(factory);
+        await client.PostAsJsonAsync(
+            "/api/auth/login",
+            new { username = DemoUsername, password = DemoPassword, rememberMe = false },
+            ct);
+
+        var response = await client.GetAsync(url, ct);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        using var problem = System.Text.Json.JsonDocument.Parse(await response.Content.ReadAsStringAsync(ct));
+        Assert.Equal(code, problem.RootElement.GetProperty("code").GetString());
+    }
+
     // ── Rate limiting ─────────────────────────────────────────────────────────
 
     [Fact]
