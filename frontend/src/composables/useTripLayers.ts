@@ -5,7 +5,7 @@ import type { TelemetrySnapshot, Trip } from '@/services/vehicleApi'
 import { useMapSettingsStore } from '@/stores/settingsMap'
 import { heatLayer as createHeatLayer } from '@/utils/heatLayer'
 import { fitToPoints, L, type LeafletMap } from '@/utils/leaflet'
-import { buildCarMarkerIcon } from '@/utils/mapCarIcon'
+import { buildCarMarkerIcon, moveCarMarker } from '@/utils/mapCarIcon'
 import { speedLimitSegments } from '@/utils/speedLimits'
 import { speedSegments, speedToColor, tripColor } from '@/utils/speedColors'
 import { latLngsOf } from '@/utils/geo'
@@ -277,8 +277,7 @@ export function useTripLayers(o: TripLayersOptions) {
     if (!endMarker || o.selectedIndex.value === null) return
     if (o.selectedIndex.value !== o.activeIndex.value) return
     if (s?.latitude == null || s?.longitude == null) return
-    endMarker.setLatLng([s.latitude, s.longitude])
-    endMarker.setIcon(buildCarMarkerIcon(s.heading ?? 0))
+    moveCarMarker(endMarker, [s.latitude, s.longitude], s.heading)
   })
 
   // When trips load after the map is ready, rebuild layers and fit

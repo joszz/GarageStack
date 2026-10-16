@@ -10,7 +10,7 @@ import { useVehicleStore } from '@/stores/vehicle'
 import { useReverseGeocode } from '@/composables/useReverseGeocode'
 import { addressLabel } from '@/utils/places'
 import CardInfoWrap from './CardInfoWrap.vue'
-import { buildCarMarkerIcon } from '@/utils/mapCarIcon'
+import { buildCarMarkerIcon, moveCarMarker } from '@/utils/mapCarIcon'
 import { latLngsOf } from '@/utils/geo'
 
 const { t } = useI18n()
@@ -143,10 +143,7 @@ function onMapReady(map: LeafletMap) {
 // arrive, and keep the live car marker following position/heading without a full layer rebuild.
 watch(status, (s) => {
   if (!mapInstance.value || s?.latitude == null || s?.longitude == null) return
-  if (carMarker) {
-    carMarker.setLatLng([s.latitude, s.longitude])
-    carMarker.setIcon(buildCarMarkerIcon(s.heading ?? 0))
-  }
+  if (carMarker) moveCarMarker(carMarker, [s.latitude, s.longitude], s.heading)
   updateMapView()
 })
 
