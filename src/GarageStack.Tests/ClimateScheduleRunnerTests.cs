@@ -32,7 +32,9 @@ internal sealed class ClimateScheduleTestWorker : IDisposable
         var name = Guid.NewGuid().ToString();
         _services = new ServiceCollection()
             .AddDbContext<AppDbContext>(o => o.UseInMemoryDatabase(name, root))
-            .AddScoped<ITelemetryRepository>(sp => new TelemetryRepository(sp.GetRequiredService<AppDbContext>()))
+            // On the fixture's clock: the merged status only reads the last week, which a fixed date
+            // would otherwise fall out of a week after it was written.
+            .AddScoped<ITelemetryRepository>(sp => new TelemetryRepository(sp.GetRequiredService<AppDbContext>(), time: Clock))
             .AddScoped<IClimateScheduleRepository, ClimateScheduleRepository>()
             .BuildServiceProvider();
         Scopes = _services.GetRequiredService<IServiceScopeFactory>();
