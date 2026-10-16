@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { activeHourCycle, dayPeriodNames } from '@/utils/format'
+import { pad2 } from '@/utils/dates'
 
 /**
  * A time of day on the chosen clock, as the app's own select boxes rather than the browser's time
@@ -21,18 +22,16 @@ const model = defineModel<string>({ required: true })
 
 const { t } = useI18n()
 
-const pad = (n: number) => String(n).padStart(2, '0')
-
 const twelveHour = computed(() => activeHourCycle() === 'h12')
 
 const hour = computed({
   get: () => Number(model.value.slice(0, 2)) || 0,
-  set: (h: number) => (model.value = `${pad(h)}:${pad(minute.value)}`),
+  set: (h: number) => (model.value = `${pad2(h)}:${pad2(minute.value)}`),
 })
 
 const minute = computed({
   get: () => Number(model.value.slice(3, 5)) || 0,
-  set: (m: number) => (model.value = `${pad(hour.value)}:${pad(m)}`),
+  set: (m: number) => (model.value = `${pad2(hour.value)}:${pad2(m)}`),
 })
 
 const afternoon = computed({
@@ -49,7 +48,7 @@ const shownHour = computed({
 const hourOptions = computed(() =>
   twelveHour.value
     ? [12, ...Array.from({ length: 11 }, (_, i) => i + 1)].map((h) => ({ value: h, label: `${h}` }))
-    : Array.from({ length: 24 }, (_, h) => ({ value: h, label: pad(h) })),
+    : Array.from({ length: 24 }, (_, h) => ({ value: h, label: pad2(h) })),
 )
 
 const dayPeriods = computed(() => {
@@ -77,7 +76,7 @@ const minuteOptions = computed(() => {
     </select>
     <span class="time-select__separator" aria-hidden="true">:</span>
     <select v-model.number="minute" class="form-select" :aria-label="t('common.minute')">
-      <option v-for="m in minuteOptions" :key="m" :value="m">{{ pad(m) }}</option>
+      <option v-for="m in minuteOptions" :key="m" :value="m">{{ pad2(m) }}</option>
     </select>
     <select
       v-if="twelveHour"

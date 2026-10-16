@@ -1,4 +1,4 @@
-import { localDateKey } from '@/utils/dates'
+import { localDateKey, MS_PER_DAY, startOfLocalDay } from '@/utils/dates'
 
 /**
  * The statistics page's period: a preset that moves with the calendar, or two fixed dates. Kept
@@ -40,10 +40,6 @@ export interface ResolvedStatsPeriod {
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/
 
-function startOfDay(date: Date): Date {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate())
-}
-
 /** A "YYYY-MM-DD" as that local day, or null when it is not one. */
 export function parseLocalDate(text: string | null | undefined): Date | null {
   if (!text || !ISO_DATE.test(text)) return null
@@ -54,7 +50,10 @@ export function parseLocalDate(text: string | null | undefined): Date | null {
 
 export function daysBetween(first: Date, last: Date): number {
   // Rounded: a day across a summer-time change is 23 or 25 hours long.
-  return Math.round((startOfDay(last).getTime() - startOfDay(first).getTime()) / 86_400_000) + 1
+  return (
+    Math.round((startOfLocalDay(last).getTime() - startOfLocalDay(first).getTime()) / MS_PER_DAY) +
+    1
+  )
 }
 
 export function groupingFor(days: number): StatsGrouping {
@@ -92,7 +91,7 @@ export function resolveStatsPeriod(
   period: StatsPeriod,
   now: Date = new Date(),
 ): ResolvedStatsPeriod {
-  const today = startOfDay(now)
+  const today = startOfLocalDay(now)
   let first: Date
   let last: Date
 
