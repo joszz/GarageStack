@@ -123,9 +123,7 @@ public sealed class ClimateScheduleRunner(
         {
             s.LastRunOutcome = result.Outcome;
             s.LastRunFailedCommand = result.FailedCommand;
-            s.LastRunDetail = result.Detail is { Length: > ClimateScheduleLimits.DetailMaxLength } tooLong
-                ? tooLong[..ClimateScheduleLimits.DetailMaxLength]
-                : result.Detail;
+            s.LastRunDetail = result.Detail.Truncate(ClimateScheduleLimits.DetailMaxLength);
         }, ct);
     }
 

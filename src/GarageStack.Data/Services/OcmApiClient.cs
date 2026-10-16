@@ -142,7 +142,7 @@ public sealed class OcmApiClient(
             Name = p.AddressInfo?.Title,
             Brand = string.IsNullOrEmpty(operatorName)
                 ? null
-                : operatorName.Length <= PoiItemLimits.BrandMaxLength ? operatorName : operatorName[..PoiItemLimits.BrandMaxLength],
+                : operatorName.Truncate(PoiItemLimits.BrandMaxLength),
             MetaJson = JsonSerializer.Serialize(meta),
             // Tile from element's own position (same pattern as Overpass) so that a station
             // returned by an adjacent tile's radius query doesn't collide on the unique index.
