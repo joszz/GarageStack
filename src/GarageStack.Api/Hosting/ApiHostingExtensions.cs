@@ -3,6 +3,7 @@ using System.Threading.RateLimiting;
 using GarageStack.Api.Endpoints;
 using GarageStack.Api.Security;
 using GarageStack.Core.Configuration;
+using GarageStack.Core.Helpers;
 using Microsoft.AspNetCore.HttpOverrides;
 using Serilog;
 using Serilog.Events;
@@ -88,13 +89,29 @@ internal static class ApiHostingExtensions
     /// <summary>
     /// One log line per request, except for the health probes Docker and uptime monitors send
     /// every few seconds: those would fill the log files with nothing. A failing readiness check
-    /// answers 503 on every probe; whatever failed is logged where it fails.
+    /// answers 503 on every probe; whatever failed is logged where it fails. The path is logged
+    /// with its VIN shortened, as everywhere else at Information level.
     /// </summary>
     public static WebApplication UseGarageStackRequestLogging(this WebApplication app)
     {
-        app.UseSerilogRequestLogging(opts => opts.GetLevel = RequestLogLevel);
+        app.UseSerilogRequestLogging(opts =>
+        {
+            opts.GetLevel = RequestLogLevel;
+            opts.GetMessageTemplateProperties = RequestLogProperties;
+        });
         return app;
     }
+
+    // The properties of Serilog's default "HTTP {RequestMethod} {RequestPath} responded
+    // {StatusCode} in {Elapsed} ms" line, with the path redacted.
+    internal static IEnumerable<LogEventProperty> RequestLogProperties(
+        HttpContext context, string requestPath, double elapsedMs, int statusCode) =>
+    [
+        new("RequestMethod", new ScalarValue(context.Request.Method)),
+        new("RequestPath", new ScalarValue(LogRedaction.RequestPath(requestPath))),
+        new("StatusCode", new ScalarValue(statusCode)),
+        new("Elapsed", new ScalarValue(elapsedMs)),
+    ];
 
     internal static LogEventLevel RequestLogLevel(HttpContext context, double elapsedMs, Exception? ex)
     {

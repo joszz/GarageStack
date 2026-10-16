@@ -42,9 +42,12 @@ public static class HostingExtensions
                       rollingInterval: RollingInterval.Day,
                       retainedFileCountLimit: RetainedLogFileCount);
 
+            // ASP.NET's own "Request starting" line repeats the request log line with the path
+            // unredacted, so it stays quiet even with the taps open.
             if (debugLogs)
                 config.MinimumLevel.Debug()
                       .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
+                      .MinimumLevel.Override("Microsoft.AspNetCore.Hosting.Diagnostics", LogEventLevel.Warning)
                       .MinimumLevel.Override("System", LogEventLevel.Warning);
         });
     }

@@ -24,6 +24,12 @@ public static partial class LogRedaction
             : $"***{vin[^VinVisibleSuffix..]}";
     }
 
+    /// <summary>
+    /// A request path with each VIN segment shortened, for the per-request log line: every
+    /// /api/vehicles/{vin}/... route would otherwise write the full VIN at Information level.
+    /// </summary>
+    public static string RequestPath(string path) => VinFormat.PathSegment().Replace(path, m => Vin(m.Value));
+
     /// <summary>Redacts the account email and VIN segments of a saic-mqtt-gateway topic.</summary>
     public static string MqttTopic(string topic)
     {

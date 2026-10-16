@@ -98,6 +98,22 @@ public class RequestLogLevelTests
         Assert.Equal(LogEventLevel.Error, LevelFor("/api/vehicles", 500));
         Assert.Equal(LogEventLevel.Error, LevelFor("/api/health", 200, new InvalidOperationException()));
     }
+
+    [Fact]
+    public void RequestLine_NamesTheCarByItsLastCharactersOnly()
+    {
+        var context = new DefaultHttpContext();
+        context.Request.Method = "POST";
+
+        var properties = ApiHostingExtensions
+            .RequestLogProperties(context, "/api/vehicles/FAKEVN00000000001/commands/lock", 12.5, 200)
+            .ToDictionary(p => p.Name, p => ((ScalarValue)p.Value).Value);
+
+        Assert.Equal("/api/vehicles/***0001/commands/lock", properties["RequestPath"]);
+        Assert.Equal("POST", properties["RequestMethod"]);
+        Assert.Equal(200, properties["StatusCode"]);
+        Assert.Equal(12.5, properties["Elapsed"]);
+    }
 }
 
 public class WorkerHeartbeatServiceTests : IDisposable
