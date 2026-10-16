@@ -8,6 +8,11 @@ export type LatLng = [number, number]
 
 const EARTH_RADIUS_KM = 6371
 
+/** A trip's fixes as the map draws them: [latitude, longitude] pairs. */
+export function latLngsOf(points: readonly { latitude: number; longitude: number }[]): LatLng[] {
+  return points.map((p) => [p.latitude, p.longitude])
+}
+
 /** Great-circle distance between two coordinates. */
 export function distanceKm(from: LatLng, to: LatLng): number {
   const toRad = Math.PI / 180

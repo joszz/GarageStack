@@ -6,6 +6,7 @@ import { useI18n } from 'vue-i18n'
 import { ApiError } from '@/services/apiCore'
 import { oidcLoginUrl } from '@/services/authApi'
 import { redirectTo } from '@/utils/navigation'
+import { delay } from '@/utils/async'
 import { useAuthStore } from '@/stores/auth'
 import type { AuthConfigResponse } from '@/services/authApi'
 
@@ -71,7 +72,7 @@ async function loadSignInMethods(retries = CONFIG_RETRIES): Promise<AuthConfigRe
   let cfg = await auth.ensureConfig()
 
   for (let attempt = 0; cfg === null && attempt < retries; attempt++) {
-    await new Promise((resolve) => setTimeout(resolve, CONFIG_RETRY_DELAY_MS))
+    await delay(CONFIG_RETRY_DELAY_MS)
     cfg = await auth.ensureConfig()
   }
 

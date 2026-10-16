@@ -1,16 +1,15 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useEscapeKey } from '@/composables/useEscapeKey'
 
 const { t } = useI18n()
 const props = defineProps<{ title: string; open: boolean; wide?: boolean }>()
 const emit = defineEmits<{ (e: 'close'): void }>()
 
-function onKey(e: KeyboardEvent) {
-  if (e.key === 'Escape' && props.open) emit('close')
-}
-onMounted(() => document.addEventListener('keydown', onKey))
-onUnmounted(() => document.removeEventListener('keydown', onKey))
+useEscapeKey(
+  () => props.open,
+  () => emit('close'),
+)
 </script>
 
 <template>
