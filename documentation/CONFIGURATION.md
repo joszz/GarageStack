@@ -46,7 +46,7 @@ all-in-one container and the Unraid template take them as container variables.
 | Variable | Default | What it does |
 | --- | --- | --- |
 | `MQTT_BROKER_USERNAME` | `garagestack` | Username of the broker login the services use. |
-| `MQTT_HOST` | Compose: `mosquitto` | Broker the API and Worker connect to. The all-in-one container always uses its own. |
+| `MQTT_HOST` | Compose: `mosquitto` | Broker the API and Worker connect to. The gateway container publishes to `mosquitto` (the broker address in its section of `docker-compose.yml`), so change both together. The all-in-one container always uses its own. |
 | `MQTT_PORT` | `1883` | Port of that broker. |
 | `MQTT_EXTERNAL_PORT` | `1883` | Host port the bundled broker is published on (Docker Compose). |
 | `MQTT_BIND_ADDRESS` | `127.0.0.1` | Interface that port is bound to (Docker Compose). Set `0.0.0.0` only to reach the broker from other devices. |
@@ -61,7 +61,7 @@ The full guide, with provider examples, is [`AUTHENTICATION.md`](AUTHENTICATION.
 | `AUTH_USERNAME` / `AUTH_PASSWORD` | `SAIC_USER` / `SAIC_PASSWORD` | Credentials of the built-in login. |
 | `AUTH_PASSWORD_LOGIN_ENABLED` | on while no OIDC provider is set | `true` keeps the built-in login next to single sign-on (break-glass access), `false` switches it off. |
 | `AUTH_COOKIE_SECURE` | `auto` in the Docker deployments | `auto` marks the session cookie `Secure` whenever the browser uses HTTPS, also behind a TLS-terminating proxy, and keeps plain HTTP working. `true` always marks it (plain HTTP then cannot log in), `false` never does. Unset outside Docker, cookies are secure unless the API runs in development. |
-| `AUTH_SESSION_LIFETIME_HOURS` | `168` | How long a sign-in lasts, from 1 to 8760 hours. |
+| `AUTH_SESSION_LIFETIME_HOURS` | `168` | How long a single sign-on (OIDC) session lasts, from 1 to 8760 hours. A password sign-in lasts 12 hours, or 30 days with "Remember me". |
 | `OIDC_AUTHORITY` | none | Issuer URL of your identity provider. Setting it switches to single sign-on and turns the built-in login off. |
 | `OIDC_CLIENT_ID` / `OIDC_CLIENT_SECRET` | none | Client credentials from the provider. The secret stays empty for a public (PKCE-only) client. |
 | `OIDC_ALLOWED_GROUPS` / `OIDC_ALLOWED_EMAILS` | none | Who may sign in. Leave both empty only if the provider itself restricts the application. |
@@ -120,6 +120,26 @@ The full guide, with provider examples, is [`AUTHENTICATION.md`](AUTHENTICATION.
 | `FRONTEND_PORT` | `8080` | Host port of the web interface (Docker Compose). |
 | `API_PORT` | `5000` | Host port of the API, bound to localhost (Docker Compose). The web interface does not need it. |
 | `APP_VERSION` | `0.0.0-local` | Version shown in the footer of an image built from source: `APP_VERSION=$(git describe --tags) docker compose up -d --build`. Published images carry their own. |
+
+## Building from source
+
+Baked into the frontend bundle when it is built, so they need `docker compose up -d --build` (or `docker build --build-arg ...`) to take effect.
+
+| Variable | Default | What it does |
+| --- | --- | --- |
+| `MAP_STYLE_DARK` / `MAP_STYLE_LIGHT` / `MAP_STYLE_COLORFUL` | OpenFreeMap's styles | MapLibre style URLs for your own basemap. Add the style's host to `connect-src` and `img-src` in `frontend/nginx-security-headers.conf` as well, or the browser refuses to load it. |
+| `VITE_API_URL` | same address as the page | Development only: where `pnpm dev` sends API requests when the API is not behind the Vite proxy. Set it in `frontend/.env.development.local`. |
+| `VITE_DEMO_MODE` | `false` | Shows the demo banner and the Demo Controls panel. The demo stack sets it. |
+
+## Running outside Docker
+
+The Docker images set these themselves.
+
+| Variable | Default | What it does |
+| --- | --- | --- |
+| `ConnectionStrings__DefaultConnection` | none | PostgreSQL connection string for the API and the Worker, for example `Host=localhost;Database=garagestack;Username=garagestack;Password=...`. |
+| `ASPNETCORE_ENVIRONMENT` | `Production` | `Development` relaxes CORS and CSRF for local work and serves the API reference (Scalar) at `/scalar/v1`; `Demo` serves the reference too. |
+| `DEMO_MODE` | `false` | `true` runs the API on built-in fake data, without a database, broker or gateway. See [`DEMO.md`](DEMO.md). |
 
 ## Settings without a variable
 

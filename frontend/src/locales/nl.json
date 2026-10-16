@@ -401,7 +401,8 @@
     "permissionDenied": "Toestemming geweigerd, sta meldingen toe in je browserinstellingen",
     "subscribeFailed": "Aanmelden voor pushmeldingen is mislukt. Controleer of de server bereikbaar is en probeer het opnieuw.",
     "enable": "Pushmeldingen op dit apparaat",
-    "enableDesc": "Meldingen komen binnen als systeemmelding, ook als GarageStack gesloten is."
+    "enableDesc": "Meldingen komen binnen als systeemmelding, ook als GarageStack gesloten is.",
+    "needsHttps": "Pushmeldingen hebben GarageStack nodig op een https://-adres. Browsers staan ze niet toe op een gewoon http://-adres, behalve localhost."
   },
   "updates": {
     "available": "v{version} beschikbaar",

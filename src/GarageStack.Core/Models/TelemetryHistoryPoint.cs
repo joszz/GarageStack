@@ -3,11 +3,12 @@ using System.Linq.Expressions;
 namespace GarageStack.Core.Models;
 
 /// <summary>
-/// The slice of a <see cref="TelemetrySnapshot"/> the statistics charts actually read. The
-/// history endpoint returns these instead of full snapshots: a 90-day range can hold hundreds of
-/// points, and every field the charts ignore would otherwise be loaded from the database and
-/// serialized to the browser for nothing. The repository reads this type's field list to decide
-/// which rows are worth returning, so that filter follows any change made here.
+/// The slice of a <see cref="TelemetrySnapshot"/> the statistics read. The daily statistics are
+/// built from these instead of full snapshots: a long period holds thousands of rows, and every
+/// field the statistics ignore would otherwise be loaded from the database for nothing. The
+/// repository reads this type's field list to decide which rows are worth returning, so that
+/// filter follows any change made here. The AddChartIndex migration's partial index lists the
+/// same fields in raw SQL; keep the two in step.
 /// </summary>
 public sealed record TelemetryHistoryPoint(
     DateTime RecordedAt,

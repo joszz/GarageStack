@@ -401,7 +401,8 @@
     "permissionDenied": "Permission denied, allow notifications in your browser settings",
     "subscribeFailed": "Could not register for push notifications. Check that the server is reachable, then try again.",
     "enable": "Push notifications on this device",
-    "enableDesc": "Alerts arrive as system notifications, even while GarageStack is closed."
+    "enableDesc": "Alerts arrive as system notifications, even while GarageStack is closed.",
+    "needsHttps": "Push notifications need GarageStack on an https:// address. Browsers do not allow them on a plain http:// address other than localhost."
   },
   "updates": {
     "available": "v{version} available",

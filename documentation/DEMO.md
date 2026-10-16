@@ -4,7 +4,7 @@ Demo mode runs GarageStack with realistic fake data and requires no MG iSmart cr
 
 ## What you get
 
-- MG ZS EV with 30 days of realistic SOC history, ten finished trips from the last five weeks (most around Amsterdam, a few further afield) and one in progress
+- MG ZS EV with 400 days of realistic history (enough for every statistics period up to a year), ten finished trips from the last five weeks (most around Amsterdam, a few further afield) and one in progress
 - Dashboard, Statistics, and Map views fully populated
 - A **Demo Controls** panel (bottom-right button) to toggle vehicle states live: doors, windows, lights, lock, engine, charging, SOC, temperature
 - A demo banner across the top reminding you that data is not real
@@ -30,7 +30,7 @@ This stack is also what the Playwright smoke tests run against, in CI and locall
 .\start-demo.ps1
 ```
 
-Opens Windows Terminal with two horizontal panes: API on top, frontend on the bottom. Falls back to two separate windows if Windows Terminal is not installed.
+Opens Windows Terminal with three panes: a menu on the left, and the API above the frontend on the right. Without Windows Terminal it opens the API and the frontend in two separate windows and runs the menu in the current one.
 
 The script auto-creates `frontend/.env.development.local` from the example file on first run.
 
@@ -44,6 +44,8 @@ dotnet run --launch-profile Demo
 ```
 
 This starts the API at `http://localhost:5000` with `DEMO_MODE=true`, `Auth:Username=demo`, and `Auth:Password=demo` pre-configured. No database or MQTT connection is made.
+
+The API reference (Scalar) is at [http://localhost:5000/scalar/v1](http://localhost:5000/scalar/v1), and the OpenAPI document at `/openapi/v1.json`. Both are served only in the `Development` and `Demo` environments (`ASPNETCORE_ENVIRONMENT`), never by the Docker images.
 
 **Frontend:**
 
@@ -102,7 +104,7 @@ No PostgreSQL, Mosquitto, Worker, or SAIC gateway containers are started.
 
 | Variable | Default | Description |
 | --- | --- | --- |
-| `DEMO_MODE` | `false` | Set to `true` to activate demo mode |
+| `DEMO_MODE` | `false` | Turns demo mode on. `docker-compose.demo.yml` and the `Demo` launch profile always set it, so it only matters for an API started some other way. |
 | `AUTH_USERNAME` | `demo` | Login username |
 | `AUTH_PASSWORD` | `demo` | Login password |
 | `FRONTEND_PORT` | `8080` | Host port for the frontend container |

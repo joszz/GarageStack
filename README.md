@@ -46,13 +46,14 @@ The statistics, trip log, maintenance list and light theme are in the [screensho
 - **Live dashboard** -- Real-time vehicle telemetry displayed as configurable cards. Cards are automatically shown or hidden based on your vehicle type (HEV, PHEV, BEV) and can be reordered or toggled individually in the dashboard's edit mode.
 - **Trip history** -- Browse past journeys on an interactive map, each drawn on the roads it took and coloured by speed or by the speed limit, with a heatmap of the roads you drive most. Each trip is saved to the database a few minutes after the car parks. After upgrading from a version that did not save trips, the existing history is saved in the background on the Worker's first start.
 - **Trip log** -- Mark each trip as business, commute or private (commutes between your home and work are marked automatically), add notes, and export a month or a year as a spreadsheet with the addresses and odometer readings a tax trip log (such as the Dutch *rittenregistratie*) asks for. See [Trip log](#trip-log).
+- **Maintenance** -- Keep the car's service items (oil, tyres, the yearly inspection, ...) with a distance interval, a time interval or both. GarageStack works out from the odometer and your service log when each one is due, shows the most urgent on the dashboard, and sends a notification when an item reaches 90 % of its interval. Log each service with its date, odometer reading and notes.
 - **Energy statistics** -- Track daily energy consumption, efficiency (Wh/km on a plug-in car, L/100 km on a hybrid), fuel use, electric share, average driving speed, and more, for any period from a week to several years.
 - **Remote commands** -- Trigger climate pre-conditioning (normal climate, fan only or front defrost), lock or unlock the car, open the boot, and activate the horn and lights remotely from the dashboard. On a plug-in car also start or stop charging, lock or unlock the charging cable, switch battery heating on or off, set the charging and battery heating schedules, and set the charge current limit and, where the car takes one, the charge target. Opening the boot and unlocking the cable ask for a second tap. Each command reports whether the car carried it out, and if it refused, the reason the MG servers gave.
 - **Climate schedules** -- Switch climate on at a set time on chosen weekdays, or once. A schedule sets the temperature or mode, seat heating and the rear defroster, and can skip mild days by the car's outside temperature. Schedules run on the server, so no browser needs to be open, and each run sends a push notification saying whether the car started climate.
 - **Push notifications** -- Browser and in-app alerts for key events: engine started, low tyre pressure, low EV battery, low fuel, a weak 12V battery, car left unlocked, doors or windows left open, a charge that stopped early, a climate schedule that ran, the messages the official MG app receives, and data that stopped arriving because the MG sign-in failed or the car went quiet.
 - **Homepage widget** -- A read-only API endpoint for the [gethomepage.dev](https://gethomepage.dev) Custom API widget, exposing key vehicle stats at a glance.
 - **Home Assistant** -- Your car appears in Home Assistant automatically through MQTT discovery, sharing GarageStack's broker and MG session instead of needing a second integration. See [`HOME_ASSISTANT.md`](documentation/HOME_ASSISTANT.md).
-- **Progressive Web App (PWA)** -- Installable on mobile or desktop for a native app-like experience, complete with a home screen icon and push notification support.
+- **Progressive Web App (PWA)** -- Installable on mobile or desktop for a native app-like experience, complete with a home screen icon and push notification support. Where the browser allows it, GarageStack offers to install itself, and the offer can be turned down for good. Installing and push need HTTPS, see [HTTPS](#https).
 - **Charging stations** -- Overlay nearby EV charging stations on the map, sourced from the [Open Charge Map](https://openchargemap.org) database. Station data is cached in the database for 7 days; on page load the map immediately shows all stations within 100 km of your car that are already cached. Markers show operational status; clicking a marker displays the station name, operator, address, and available connector types with power ratings. Requires a free OCM API key (`OPENCHARGEMAP_API_KEY`). Unlike fuel stations and service areas, charging station tiles are loaded on demand as you browse the map and are not pre-populated by the background Worker.
 - **Fuel stations** -- Overlay nearby petrol and diesel stations on the map (HEV and PHEV only; not shown for BEV). Sourced from OpenStreetMap via the Overpass API -- no API key required. POI data is cached in the database for 7 days and pre-populated by the Worker for a 100 km radius around the car's last known position so the overlay is instant on first view.
 - **Motorway service areas** -- Overlay motorway service areas and rest stops on the map (all vehicle types). Same DB-backed cache and Worker pre-cache as fuel stations; useful for BEV drivers who often find fast chargers at service areas.
@@ -75,7 +76,7 @@ Cards are shown or hidden automatically based on vehicle type (HEV / PHEV / BEV)
 | ---- | ----------- | ------------- |
 | Fuel Level | Tank level as a percentage | HEV, PHEV |
 | Fuel Range | Estimated remaining range | HEV, PHEV |
-| EV Battery | State of charge (%) | All |
+| EV Battery | State of charge (%) | PHEV, BEV |
 | Electric Range | Distance the car estimates it can drive on the battery alone | PHEV, BEV |
 | Charging | Charging indicator | PHEV, BEV |
 | Odometer | Total distance driven | All |
@@ -91,7 +92,7 @@ Cards are shown or hidden automatically based on vehicle type (HEV / PHEV / BEV)
 | Daily Energy | Energy used today (kWh), or fuel burned today (L) on an HEV | All |
 | Since Charge | Distance since last charge session | PHEV, BEV |
 | Efficiency | Energy per km (Wh/km), or fuel consumption (L/100 km) on an HEV | All |
-| Speed | Current vehicle speed | All |
+| Speed | Current vehicle speed | All (off by default) |
 | Top Speed | Highest speed recorded in the most recent completed trip | All |
 | Active Trip | Distance covered in the current trip | All |
 | Charge Time | Estimated minutes remaining to charge limit | PHEV, BEV |
@@ -138,8 +139,8 @@ The same applies to Home Assistant: rather than adding an MG integration there, 
 
 Before installing, make sure the following are available on your host:
 
-- **Docker** 20.10 or later (or Podman with Docker Compose compatibility)
-- **Docker Compose v2** (bundled with Docker Desktop; on Linux install the `docker-compose-plugin` package) -- required for Option B only
+- **Docker** 23.0 or later (or Podman with Docker Compose compatibility); the quick start's relative `./garagestack-data` mount needs 23.0
+- **Docker Compose** 2.20 or later (bundled with Docker Desktop; on Linux install the `docker-compose-plugin` package) -- required for Option B only
 - An **MG iSmart account** with your vehicle already linked in the official app
 - Outbound internet access on the host so the container can reach the SAIC API and (optionally) Overpass / Open Charge Map
 
@@ -182,7 +183,7 @@ See [`docker/all-in-one/README.md`](docker/all-in-one/README.md) for the volume 
 
 ### Option B: Docker Compose
 
-Separate containers for each service. More flexible -- you can swap in your own PostgreSQL or MQTT broker, and containers update independently.
+Separate containers for each service. More flexible -- you can use your own PostgreSQL server instead of the bundled one, and containers update independently.
 
 #### 1. Clone the repository
 
@@ -233,7 +234,7 @@ The frontend is served on port `8080` by default (configurable via `FRONTEND_POR
 
 ## Updating
 
-Database migrations run automatically on startup.
+Read the release notes first: anything an upgrade needs from you is listed under **Upgrade Notes** at the top. Database migrations run automatically on startup and only forwards, so to go back to an older version, restore the backup you took before upgrading (see [Backup and restore](#backup-and-restore)). A new PostgreSQL major version is never installed by an update: moving from 18 to the next one means a `pg_dump` from the old version and a restore into a fresh volume on the new one.
 
 **Docker Compose** builds GarageStack from the cloned source, so update the source and rebuild. `docker compose pull` fetches the gateway, Postgres and Mosquitto images:
 
@@ -350,7 +351,7 @@ GarageStack checks your vehicle's state every 5 minutes and sends both a browser
 
 Push notifications require VAPID keys to be configured (`VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY`). Without them, alerts still appear in the in-app notification panel. While GarageStack is open in a browser that allowed notifications but is not subscribed to push, the same alerts show up as system notifications too; a subscribed browser gets them through push instead, so nothing arrives twice.
 
-Settings has a push switch for the device you are on and a per-type checklist for these alerts, which offers only the types the car's drivetrain can produce: the two plug-in alerts (low EV battery, charging complete) are left out for a plain hybrid. Both are kept per device: a type switched off on your phone still reaches your laptop, and still shows up in the notification panel. Only the switch turns push on or off; the checklist never asks the browser for permission.
+Settings has a push switch for the device you are on and a per-type checklist for these alerts, which offers only the types the car's drivetrain can produce: the plug-in alerts (low EV battery, charging complete, charging interrupted) are left out for a plain hybrid, and low fuel for a full electric car. Both are kept per device: a type switched off on your phone still reaches your laptop, and still shows up in the notification panel. Only the switch turns push on or off; the checklist never asks the browser for permission.
 
 Notification texts are written by the background worker, which has no browser to take a language from, so their language is a deployment setting: `NOTIFICATION_LANGUAGE=en` (default) or `nl`. The web UI's own language toggle does not affect them.
 
@@ -400,7 +401,7 @@ GarageStack has a read-only endpoint for the [gethomepage.dev](https://gethomepa
 
 ## Map overlays
 
-The map view supports three POI overlay layers. All data is cached in the database and served instantly on subsequent visits. Open the **Filters** panel (sliders icon, top-right of the map) to toggle each layer and adjust filters.
+The map view supports four POI overlay layers: charging stations, fuel stations, motorway service areas and speed cameras. All data is cached in the database and served instantly on subsequent visits. Open the **Filters** panel (sliders icon, top-right of the map) to toggle each layer and adjust filters.
 
 ### Basemap
 
@@ -501,6 +502,44 @@ A reading counts as over the limit only past 5 km/h above it: speedometers read 
 - MQTT now requires credentials and ACLs, and broker exposure defaults to localhost-only in Docker Compose.
 - The optional Home Assistant broker login can only use the car's `saic/#` topics and read Home Assistant discovery, so it cannot publish fake discovery configs or reach anything else on the broker.
 - The frontend sends a strict Content-Security-Policy with every response, which allows scripts only from GarageStack itself. See [Behind a reverse proxy or CDN](#behind-a-reverse-proxy-or-cdn) for keeping it intact.
+
+### HTTPS
+
+GarageStack serves plain HTTP, which is all it needs on your own network, except for three things browsers keep for secure pages: push notifications, installing it as an app, and the service worker behind both. Browsers count `http://localhost` as secure, but not `http://192.168.1.100:8080`. To use those on your phone, give GarageStack an `https://` address: put it behind a reverse proxy that terminates TLS (examples below), or reach it through a VPN that provides HTTPS certificates. Over plain HTTP, Settings > Notifications says why push is not available.
+
+### Reverse proxy examples
+
+Point the proxy at the web interface (`http://<host>:8080` by default, the frontend container or the all-in-one container), then set `CORS_ORIGIN` to the new address, for example `CORS_ORIGIN=https://garage.example.com`. Live updates use a WebSocket on `/hubs/`, so the proxy must pass WebSocket upgrades through. The session cookie is marked `Secure` automatically once the browser uses HTTPS (`AUTH_COOKIE_SECURE=auto`, the default).
+
+**Caddy:**
+
+```caddy
+garage.example.com {
+    reverse_proxy 192.168.1.100:8080
+}
+```
+
+**Traefik** (file provider; WebSockets need no extra setting):
+
+```yaml
+http:
+  routers:
+    garagestack:
+      rule: Host(`garage.example.com`)
+      entryPoints: [websecure]
+      tls:
+        certResolver: letsencrypt
+      service: garagestack
+  services:
+    garagestack:
+      loadBalancer:
+        servers:
+          - url: http://192.168.1.100:8080
+```
+
+**Nginx Proxy Manager:** add a Proxy Host for `garage.example.com` that forwards to `http`, `192.168.1.100`, port `8080`, with **Websockets Support** switched on and a certificate requested on the SSL tab.
+
+Every proxy in front of the API (yours, and with Compose the frontend container) is trusted by default as long as it has a private address, so visitors are told apart for the login rate limit without further setup. To narrow that down, list each proxy in `ForwardedHeaders__TrustedProxies__0`, `__1`, ... (see [CONFIGURATION.md](documentation/CONFIGURATION.md)).
 
 ### Behind a reverse proxy or CDN
 
