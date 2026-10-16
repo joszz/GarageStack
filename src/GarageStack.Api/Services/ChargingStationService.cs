@@ -44,7 +44,7 @@ public sealed class ChargingStationService(
 
         await PoiTileFetcher.FetchAndCacheAsync(
             toFetch,
-            async (cellLat, cellLng, token) => (IReadOnlyList<PoiItem>?)await ocmClient.FetchChargingStationsAsync(cellLat, cellLng, token),
+            ocmClient.FetchChargingStationsAsync,
             (cellLat, cellLng, items, token) => repository.UpsertTileAsync(Source, PoiType, cellLat, cellLng, items, PoiCacheDefaults.Ttl, token),
             (ex, cellLat, cellLng) => logger.LogWarning(ex, "On-demand OCM fetch failed for charging ({CellLat},{CellLng})",
                 cellLat, cellLng),
