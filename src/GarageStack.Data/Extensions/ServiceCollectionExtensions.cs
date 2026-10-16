@@ -32,6 +32,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IMaintenanceRepository, MaintenanceRepository>();
         services.AddScoped<INotificationRepository, NotificationRepository>();
         services.AddScoped<IPushSubscriptionRepository, PushSubscriptionRepository>();
+        services.AddScoped<IApiTokenRepository, ApiTokenRepository>();
         services.AddGarageStackPoiClients();
 
         return services;
@@ -56,6 +57,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IMaintenanceRepository, MaintenanceRepository>();
         services.AddScoped<INotificationRepository, NotificationRepository>();
         services.AddScoped<IPushSubscriptionRepository, PushSubscriptionRepository>();
+        services.AddScoped<IApiTokenRepository, ApiTokenRepository>();
         services.AddGarageStackPoiClients();
 
         return services;

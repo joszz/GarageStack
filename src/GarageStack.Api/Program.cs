@@ -148,6 +148,7 @@ try
         SupportedUICultures = [new CultureInfo("en"), new CultureInfo("nl")],
     });
     app.UseAuthentication();
+    app.UseMiddleware<ApiTokenAuthentication.ReadOnlyMiddleware>();
     app.UseAuthorization();
 
     if (app.Environment.IsDevelopment() || app.Environment.IsEnvironment("Demo"))
@@ -166,6 +167,7 @@ try
     app.MapHub<TelemetryHub>("/hubs/telemetry").RequireAuthorization();
     app.MapAuthEndpoints();
     app.MapSettingsEndpoints();
+    app.MapApiTokenEndpoints();
     app.MapVehicleEndpoints();
     app.MapTripEndpoints();
     app.MapPushEndpoints();

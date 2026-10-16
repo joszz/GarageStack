@@ -802,6 +802,80 @@ public class AuthenticationFlowTests
         Assert.Equal(14, history.RootElement.GetProperty("trendDays").GetInt32());
     }
 
+    // ── Read-only API tokens ──────────────────────────────────────────────────
+
+    // A token made in a session reads as that account, and only reads: no commands, no changes,
+    // no more tokens. Revoked, it stops working at once.
+    [Fact]
+    public async Task ApiToken_ReadsAsItsAccount_OnlyReads_AndStopsWhenRevoked()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var factory = CreatePasswordOnlyFactory();
+        using var session = CreateClient(factory);
+        await PasswordLoginAsync(session, ct);
+
+        var created = await session.PostAsJsonAsync("/api/tokens", new { name = "Watch" }, ct);
+        Assert.Equal(HttpStatusCode.OK, created.StatusCode);
+        var body = await created.Content.ReadFromJsonAsync<JsonElement>(ct);
+        var token = body.GetProperty("token").GetString()!;
+        var id = body.GetProperty("details").GetProperty("id").GetInt32();
+        Assert.StartsWith("gs_", token);
+
+        using var bearer = CreateClient(factory, handleCookies: false);
+        bearer.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+        var vehicles = await bearer.GetAsync("/api/vehicles", ct);
+        var settings = await bearer.GetAsync("/api/settings", ct);
+        var command = await bearer.PostAsJsonAsync($"/api/vehicles/{DemoVin}/commands/lock", new { value = "True" }, ct);
+        var tokens = await bearer.GetAsync("/api/tokens", ct);
+
+        Assert.Equal(HttpStatusCode.OK, vehicles.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, settings.StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, command.StatusCode);
+        Assert.Equal("token.readOnly", await ProblemCodeAsync(command, ct));
+        Assert.Equal("token.cannotManageTokens", await ProblemCodeAsync(tokens, ct));
+
+        // The list shows what the token starts with, never the token.
+        var listed = await session.GetStringAsync("/api/tokens", ct);
+        Assert.Contains(token[..9], listed);
+        Assert.DoesNotContain(token, listed);
+
+        var revoked = await session.DeleteAsync($"/api/tokens/{id}", ct);
+        var afterRevoke = await bearer.GetAsync("/api/vehicles", ct);
+
+        Assert.Equal(HttpStatusCode.NoContent, revoked.StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, afterRevoke.StatusCode);
+    }
+
+    [Fact]
+    public async Task ApiToken_Unknown_IsUnauthorized()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var factory = CreatePasswordOnlyFactory();
+        using var bearer = CreateClient(factory, handleCookies: false);
+        bearer.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", "gs_not-a-real-token");
+
+        var response = await bearer.GetAsync("/api/vehicles", ct);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Theory]
+    [InlineData("", "token.nameRequired")]
+    [InlineData("   ", "token.nameRequired")]
+    public async Task ApiToken_WithoutAName_IsRefused(string name, string code)
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var factory = CreatePasswordOnlyFactory();
+        using var session = CreateClient(factory);
+        await PasswordLoginAsync(session, ct);
+
+        var response = await session.PostAsJsonAsync("/api/tokens", new { name }, ct);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Equal(code, await ProblemCodeAsync(response, ct));
+    }
+
     [Fact]
     public async Task Widget_WithoutAConfiguredKey_SaysItIsSwitchedOff()
     {

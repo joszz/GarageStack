@@ -62,13 +62,19 @@ internal static class AuthenticationSetup
         var authentication = services
             .AddAuthentication(options =>
             {
-                options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+                // The session cookie, or a read-only API token for a request that brings one.
+                options.DefaultScheme = ApiTokenAuthentication.SessionOrTokenScheme;
                 // Challenging with the cookie scheme returns 401 to the SPA's fetch calls.
                 // Redirecting to the provider only ever happens through /api/auth/oidc/login.
                 options.DefaultChallengeScheme = CookieAuthenticationDefaults.AuthenticationScheme;
                 options.DefaultSignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
             })
-            .AddCookie(options => ConfigureCookie(options, securePolicy, sessionLifetime));
+            .AddCookie(options => ConfigureCookie(options, securePolicy, sessionLifetime))
+            .AddScheme<AuthenticationSchemeOptions, ApiTokenAuthentication.Handler>(ApiTokenAuthentication.Scheme, null)
+            .AddPolicyScheme(ApiTokenAuthentication.SessionOrTokenScheme, null, options =>
+                options.ForwardDefaultSelector = context => ApiTokenAuthentication.HasBearerToken(context.Request)
+                    ? ApiTokenAuthentication.Scheme
+                    : CookieAuthenticationDefaults.AuthenticationScheme);
 
         if (oidc.Enabled)
             authentication.AddOpenIdConnect(options => ConfigureOidc(options, oidc, securePolicy, sessionLifetime));

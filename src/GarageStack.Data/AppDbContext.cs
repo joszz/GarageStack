@@ -20,6 +20,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<UserSettings> UserSettings => Set<UserSettings>();
     public DbSet<ClimateSchedule> ClimateSchedules => Set<ClimateSchedule>();
     public DbSet<CommutePlace> CommutePlaces => Set<CommutePlace>();
+    public DbSet<ApiToken> ApiTokens => Set<ApiToken>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -184,6 +185,18 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.HasKey(r => r.Id);
             e.HasIndex(r => r.Jti).IsUnique();
             e.Property(r => r.Jti).HasMaxLength(64).IsRequired();
+        });
+
+        modelBuilder.Entity<ApiToken>(e =>
+        {
+            e.HasKey(t => t.Id);
+            // Every request that carries a token looks it up by its hash.
+            e.HasIndex(t => t.TokenHash).IsUnique();
+            e.HasIndex(t => t.AccountKey);
+            e.Property(t => t.AccountKey).HasMaxLength(UserSettingsLimits.AccountKeyLength).IsRequired();
+            e.Property(t => t.Name).HasMaxLength(ApiTokenLimits.NameMaxLength).IsRequired();
+            e.Property(t => t.TokenHash).HasMaxLength(ApiTokenLimits.HashLength).IsRequired();
+            e.Property(t => t.Prefix).HasMaxLength(ApiTokenLimits.PrefixLength).IsRequired();
         });
 
         modelBuilder.Entity<UserSettings>(e =>

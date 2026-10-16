@@ -579,6 +579,23 @@
         "mpgUk": "mpg (UK gallon)",
         "mpgUs": "mpg (US gallon)"
       }
+    },
+    "apiTokens": {
+      "title": "API tokens",
+      "desc": "Let a script, a dashboard or a watch read GarageStack's data without signing in. A token reads as your account and can only read: it cannot send commands or change anything. Send it as the header \"Authorization: Bearer\" followed by the token.",
+      "nameLabel": "Token name",
+      "namePlaceholder": "Name, e.g. Home Assistant",
+      "create": "Create token",
+      "copyNow": "Copy this token now: it is not shown again.",
+      "newToken": "New API token",
+      "copy": "Copy",
+      "copied": "Copied",
+      "none": "No tokens yet.",
+      "createdAt": "made {date}",
+      "lastUsed": "last used {date}",
+      "neverUsed": "never used",
+      "revoke": "Revoke",
+      "confirmRevoke": "Revoke?"
     }
   },
   "units": {
@@ -900,6 +917,14 @@
         "invalidPosition": "Place the pin on the map.",
         "invalidRadius": "The radius must be between 50 and 1000 metres.",
         "labelTooLong": "The name can be at most 60 characters."
+      },
+      "token": {
+        "nameRequired": "Give the token a name, to know it by later.",
+        "nameTooLong": "That name is too long.",
+        "tooMany": "This account has the most tokens it can have. Revoke one first.",
+        "readOnly": "An API token can only read. Sign in to change anything.",
+        "cannotManageTokens": "API tokens are managed from a signed-in session only.",
+        "noAccount": "This session names no account to make tokens for."
       }
     }
   },

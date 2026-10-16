@@ -182,3 +182,24 @@
 .car-color-swatch--active {
   outline-color: var(--color-text);
 }
+
+/* ── API tokens ───────────────────────────────────────────── */
+
+/* A name and its button, or a new token and its copy button, on one line. */
+.api-token-form {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.api-token-form .form-control {
+  flex: 1;
+  min-width: 0;
+}
+
+.api-token-row {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}

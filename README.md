@@ -52,6 +52,7 @@ The statistics, trip log, maintenance list and light theme are in the [screensho
 - **Climate schedules** -- Switch climate on at a set time on chosen weekdays, or once. A schedule sets the temperature or mode, seat heating and the rear defroster, and can skip mild days by the car's outside temperature. Schedules run on the server, so no browser needs to be open, and each run sends a push notification saying whether the car started climate.
 - **Push notifications** -- Browser and in-app alerts for key events: engine started, low tyre pressure, low EV battery, low fuel, a weak 12V battery, car left unlocked, doors or windows left open, a charge that stopped early, a climate schedule that ran, the messages the official MG app receives, and data that stopped arriving because the MG sign-in failed or the car went quiet.
 - **Homepage widget** -- A read-only API endpoint for the [gethomepage.dev](https://gethomepage.dev) Custom API widget, exposing key vehicle stats at a glance.
+- **Read-only API tokens** -- Make a token under Settings > API tokens and let a script, a dashboard or a watch read everything the app shows, without signing in. A token can only read: it cannot send commands or change anything.
 - **Home Assistant** -- Your car appears in Home Assistant automatically through MQTT discovery, sharing GarageStack's broker and MG session instead of needing a second integration. See [`HOME_ASSISTANT.md`](documentation/HOME_ASSISTANT.md).
 - **Progressive Web App (PWA)** -- Installable on mobile or desktop for a native app-like experience, complete with a home screen icon and push notification support. Where the browser allows it, GarageStack offers to install itself, and the offer can be turned down for good. Installing and push need HTTPS, see [HTTPS](#https).
 - **Charging stations** -- Overlay nearby EV charging stations on the map, sourced from the [Open Charge Map](https://openchargemap.org) database. Station data is cached in the database for 7 days; on page load the map immediately shows all stations within 100 km of your car that are already cached. Markers show operational status; clicking a marker displays the station name, operator, address, and available connector types with power ratings. Requires a free OCM API key (`OPENCHARGEMAP_API_KEY`). Unlike fuel stations and service areas, charging station tiles are loaded on demand as you browse the map and are not pre-populated by the background Worker.
@@ -398,6 +399,18 @@ Only trips the Worker has saved can be logged, so the trip being driven, and one
 ## Homepage dashboard widget
 
 GarageStack has a read-only endpoint for the [gethomepage.dev](https://gethomepage.dev) Custom API widget, switched on by setting `WIDGET_API_KEY`. The setup and every field it returns are in [`WIDGET.md`](documentation/WIDGET.md).
+
+---
+
+## Read-only API tokens
+
+To read GarageStack's data from a script, a dashboard or a watch, make a token under **Settings > API tokens**. It is shown once: copy it then. Send it with every request:
+
+```bash
+curl -H "Authorization: Bearer gs_..." https://garagestack.example.com/api/vehicles
+```
+
+A token reads as the account that made it, through the same endpoints the app uses (the API reference lists them, see [`DEMO.md`](documentation/DEMO.md#manual-start)), and it can only read: any request that would change something, send a command or make another token is refused with `403`. The list under Settings shows when each token was last used; revoking one stops it at once. GarageStack keeps only a hash of each token, so a lost one cannot be shown again: revoke it and make a new one.
 
 ---
 
