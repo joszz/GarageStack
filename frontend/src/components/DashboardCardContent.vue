@@ -228,7 +228,7 @@ const simpleCards = computed((): SimpleCardConfig[] => {
   ]
 })
 
-// At most one entry renders for a given cardId (efficiencyRatio has two candidate entries, so
+// At most one entry renders for a given cardId (efficiencyRatio has three candidate entries, so
 // the first match wins, as the original v-else-if chain did). An entry without its own match
 // falls back to the registry: if the card is on screen at all, its data is there.
 const activeSimpleCard = computed(() => {

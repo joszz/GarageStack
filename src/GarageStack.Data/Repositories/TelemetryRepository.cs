@@ -18,7 +18,7 @@ public class TelemetryRepository(
     IMemoryCache? cache = null) : ITelemetryRepository
 {
     // GetMergedLatestAsync scans up to 200 rows (plus up to 2 fallback queries) and runs on
-    // every /status, /widget/status, maintenance-mutation, and SignalR-broadcast call. A write
+    // every /status, /widget/status and SignalR-broadcast call. A write
     // (AddAsync/MergeIntoAsync) always invalidates the entry immediately via NotifyUpdatedAsync,
     // so this short TTL only bounds staleness for the rare case nothing has written new
     // telemetry at all - its real job is absorbing bursts of reads between writes (multiple

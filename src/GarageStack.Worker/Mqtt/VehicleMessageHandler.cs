@@ -44,7 +44,7 @@ public sealed class VehicleMessageHandler(
     private readonly record struct LatestMessage(string? Id, DateTimeOffset? SentAt);
 
     // Per VIN, the id and time the gateway most recently announced. Written and read by concurrent
-    // MQTT dispatches, like MqttConsumerService's own per-vehicle state.
+    // MQTT dispatches, like the other handlers' per-vehicle state.
     private readonly ConcurrentDictionary<string, LatestMessage> _latest = new();
 
     public static VehicleMessageVerdict Judge(

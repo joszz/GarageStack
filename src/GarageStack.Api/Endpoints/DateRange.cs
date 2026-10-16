@@ -1,6 +1,6 @@
 namespace GarageStack.Api.Endpoints;
 
-/// <summary>The from/to window the history, statistics and trip endpoints read their data in.</summary>
+/// <summary>The from/to window the statistics and trip endpoints read their data in.</summary>
 internal static class DateRange
 {
     /// <summary>
