@@ -61,7 +61,7 @@ Authentication: OIDC via https://auth.example.com/application/o/garagestack/ (cl
 | `AUTH_USERNAME` | _(MG account)_ | Username for the built-in password login. Falls back to `SAIC_USER`. |
 | `AUTH_PASSWORD` | _(MG account)_ | Password for the built-in password login. Falls back to `SAIC_PASSWORD`. |
 | `AUTH_PASSWORD_LOGIN_ENABLED` | _(on without OIDC)_ | `true` keeps the password login available alongside OIDC, `false` switches it off entirely. Unset means "on only while no provider is configured". |
-| `AUTH_COOKIE_SECURE` | `false` | Marks the session cookie `Secure`. Set to `true` when serving over HTTPS. |
+| `AUTH_COOKIE_SECURE` | `auto` | Marks the session cookie `Secure`: `auto` whenever the browser uses HTTPS, `true` always, `false` never. |
 | `AUTH_SESSION_LIFETIME_HOURS` | `168` | How long an OIDC session lasts before the provider is consulted again. |
 
 `JWT_SECRET` is no longer used. See [Upgrading from the previous login](#upgrading-from-the-previous-login).
@@ -257,7 +257,7 @@ The usual reason to want it: your identity provider runs on the same machine as 
 | Lifetime | `AUTH_SESSION_LIFETIME_HOURS` (default 7 days) for OIDC; 12 hours or 30 days for the password login |
 | Logout | Deletes the cookie **and** records the session as revoked in the database, so a copied cookie is refused on its next request |
 
-Set `AUTH_COOKIE_SECURE=true` whenever GarageStack is reachable over HTTPS. It defaults to `false` so plain-HTTP LAN installs work out of the box.
+`AUTH_COOKIE_SECURE` defaults to `auto`: the cookie is `Secure` whenever the browser reaches GarageStack over HTTPS, including through a TLS-terminating proxy that sends `X-Forwarded-Proto`, and plain-HTTP LAN installs still work. Set `true` only if GarageStack is never reached over plain HTTP.
 
 ### Settings belong to the account
 

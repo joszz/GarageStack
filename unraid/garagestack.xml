@@ -234,9 +234,9 @@
   <Config
     Name="Secure Session Cookie"
     Target="AUTH_COOKIE_SECURE"
-    Default="false"
+    Default="auto"
     Mode=""
-    Description="Set to true when GarageStack is served over HTTPS (behind a TLS-terminating reverse proxy) so the session cookie is never sent over plain HTTP. Leave false for a plain-HTTP LAN install, or you will not be able to log in."
+    Description="auto (recommended) marks the session cookie Secure whenever you open GarageStack over HTTPS, also behind a TLS-terminating reverse proxy, and keeps a plain-HTTP LAN install working. true always marks it Secure (plain HTTP then cannot log in); false never does."
     Type="Variable"
     Display="advanced"
     Required="false"

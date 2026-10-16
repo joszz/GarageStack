@@ -51,9 +51,9 @@ export MQTT_URI="tcp://127.0.0.1:1883"
 export MQTT_USER="${MQTT_BROKER_USERNAME}"
 export MQTT_PASSWORD="${MQTT_BROKER_PASSWORD}"
 
-# Default false so plain-HTTP LAN installs work out of the box.
-# Set AUTH_COOKIE_SECURE=true when the app is served behind a TLS-terminating proxy.
-export Auth__CookieSecure="${AUTH_COOKIE_SECURE:-false}"
+# auto marks the session cookie Secure whenever the browser uses HTTPS (also behind a
+# TLS-terminating proxy) and keeps plain-HTTP LAN installs working.
+export Auth__CookieSecure="${AUTH_COOKIE_SECURE:-auto}"
 
 # CORS: the URL users open in their browser
 export Cors__Origins__0="${CORS_ORIGIN:-http://localhost:8080}"

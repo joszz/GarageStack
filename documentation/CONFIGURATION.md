@@ -60,7 +60,7 @@ The full guide, with provider examples, is [`AUTHENTICATION.md`](AUTHENTICATION.
 | --- | --- | --- |
 | `AUTH_USERNAME` / `AUTH_PASSWORD` | `SAIC_USER` / `SAIC_PASSWORD` | Credentials of the built-in login. |
 | `AUTH_PASSWORD_LOGIN_ENABLED` | on while no OIDC provider is set | `true` keeps the built-in login next to single sign-on (break-glass access), `false` switches it off. |
-| `AUTH_COOKIE_SECURE` | `false` in the Docker deployments | Set `true` when GarageStack is served over HTTPS or behind a TLS-terminating proxy. Outside Docker, cookies are secure unless the API runs in development. |
+| `AUTH_COOKIE_SECURE` | `auto` in the Docker deployments | `auto` marks the session cookie `Secure` whenever the browser uses HTTPS, also behind a TLS-terminating proxy, and keeps plain HTTP working. `true` always marks it (plain HTTP then cannot log in), `false` never does. Unset outside Docker, cookies are secure unless the API runs in development. |
 | `AUTH_SESSION_LIFETIME_HOURS` | `168` | How long a sign-in lasts, from 1 to 8760 hours. |
 | `OIDC_AUTHORITY` | none | Issuer URL of your identity provider. Setting it switches to single sign-on and turns the built-in login off. |
 | `OIDC_CLIENT_ID` / `OIDC_CLIENT_SECRET` | none | Client credentials from the provider. The secret stays empty for a public (PKCE-only) client. |

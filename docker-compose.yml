@@ -158,8 +158,8 @@ services:
       AUTH_USERNAME: "${AUTH_USERNAME:-}"
       AUTH_PASSWORD: "${AUTH_PASSWORD:-}"
       AUTH_PASSWORD_LOGIN_ENABLED: "${AUTH_PASSWORD_LOGIN_ENABLED:-}"
-      # False keeps plain-HTTP installs working out of the box; set it to true behind HTTPS.
-      AUTH_COOKIE_SECURE: "${AUTH_COOKIE_SECURE:-false}"
+      # auto marks the cookie Secure whenever the browser uses HTTPS, and still works on plain HTTP.
+      AUTH_COOKIE_SECURE: "${AUTH_COOKIE_SECURE:-auto}"
       AUTH_SESSION_LIFETIME_HOURS: "${AUTH_SESSION_LIFETIME_HOURS:-}"
       # OpenID Connect single sign-on -- see documentation/AUTHENTICATION.md. Setting OIDC_AUTHORITY switches
       # authentication over to the provider and disables the password login above, unless

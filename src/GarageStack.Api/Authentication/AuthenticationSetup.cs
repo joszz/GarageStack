@@ -56,7 +56,7 @@ internal static class AuthenticationSetup
         services.AddSingleton(oidc);
         services.AddSingleton(passwordLogin);
 
-        var securePolicy = ResolveCookieSecurePolicy(config, env);
+        var securePolicy = ResolveCookieSecurePolicy(config["Auth:CookieSecure"], env.IsDevelopment());
         var sessionLifetime = ResolveSessionLifetime(config);
 
         var authentication = services
@@ -244,14 +244,19 @@ internal static class AuthenticationSetup
     private static Microsoft.Extensions.Logging.ILogger CreateLogger(HttpContext context) =>
         context.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger(LogCategory);
 
-    private static CookieSecurePolicy ResolveCookieSecurePolicy(IConfiguration config, IWebHostEnvironment env) =>
-        config.GetValue<bool?>("Auth:CookieSecure") switch
+    /// <summary>
+    /// When the session cookie carries the Secure flag. "auto", the Docker default, follows the
+    /// request: Secure whenever the browser came in over HTTPS (behind a TLS-terminating proxy too,
+    /// through X-Forwarded-Proto), and still usable on a plain-HTTP LAN address. "true" always
+    /// sets it, "false" never does. Unset, it is on everywhere but in development.
+    /// </summary>
+    internal static CookieSecurePolicy ResolveCookieSecurePolicy(string? setting, bool isDevelopment) =>
+        setting?.Trim().ToLowerInvariant() switch
         {
-            true => CookieSecurePolicy.Always,
-            // Explicit false keeps plain-HTTP LAN installs working, which is why the Docker
-            // defaults set it.
-            false => CookieSecurePolicy.None,
-            null => env.IsDevelopment() ? CookieSecurePolicy.SameAsRequest : CookieSecurePolicy.Always,
+            "true" => CookieSecurePolicy.Always,
+            "false" => CookieSecurePolicy.None,
+            "auto" => CookieSecurePolicy.SameAsRequest,
+            _ => isDevelopment ? CookieSecurePolicy.SameAsRequest : CookieSecurePolicy.Always,
         };
 
     private static TimeSpan ResolveSessionLifetime(IConfiguration config)

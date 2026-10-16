@@ -597,6 +597,32 @@ public class AuthenticationFlowTests
         Assert.Equal("points must contain at least one coordinate", problem.RootElement.GetProperty("detail").GetString());
     }
 
+    // The Docker default: the session cookie is Secure exactly when the browser came in over HTTPS,
+    // so a TLS proxy gets the flag and a plain-HTTP LAN install can still sign in.
+    [Theory]
+    [InlineData("https://localhost", true)]
+    [InlineData("http://localhost", false)]
+    public async Task AutoCookieSecurity_FollowsTheRequestScheme(string baseAddress, bool secure)
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var factory = CreatePasswordOnlyFactory(s => s["Auth__CookieSecure"] = "auto");
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions
+        {
+            AllowAutoRedirect = false,
+            HandleCookies = false,
+            BaseAddress = new Uri(baseAddress),
+        });
+
+        var login = await client.PostAsJsonAsync(
+            "/api/auth/login",
+            new { username = DemoUsername, password = DemoPassword, rememberMe = false },
+            ct);
+
+        Assert.Equal(HttpStatusCode.OK, login.StatusCode);
+        var sessionCookie = Assert.Single(login.Headers.GetValues("Set-Cookie"));
+        Assert.Equal(secure, sessionCookie.Contains("; secure", StringComparison.OrdinalIgnoreCase));
+    }
+
     // ── Rate limiting ─────────────────────────────────────────────────────────
 
     [Fact]
