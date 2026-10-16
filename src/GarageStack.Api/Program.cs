@@ -172,6 +172,7 @@ try
     app.MapSettingsEndpoints();
     app.MapApiTokenEndpoints();
     app.MapExportEndpoints();
+    app.MapLogEndpoints();
     app.MapVehicleEndpoints();
     app.MapTripEndpoints();
     app.MapPushEndpoints();

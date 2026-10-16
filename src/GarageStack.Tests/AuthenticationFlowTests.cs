@@ -802,6 +802,51 @@ public class AuthenticationFlowTests
         Assert.Equal(14, history.RootElement.GetProperty("trendDays").GetInt32());
     }
 
+    // ── Log viewer ────────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task Logs_ShowTheWorkersEntries_FromItsDirectory_FilteredByLevel()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var workerLogs = Directory.CreateTempSubdirectory("garagestack-worker-logs-").FullName;
+        try
+        {
+            await File.WriteAllTextAsync(Path.Combine(workerLogs, "worker-20261016.log"),
+                "2026-10-16 10:00:00.000 +02:00 [INF] Worker heartbeat started\n" +
+                "2026-10-16 10:05:00.000 +02:00 [WRN] MQTT broker connection failed\n", ct);
+            await using var factory = CreatePasswordOnlyFactory(s => s["LogFiles__WorkerDirectory"] = workerLogs);
+            using var client = CreateClient(factory);
+            await PasswordLoginAsync(client, ct);
+
+            var page = await client.GetFromJsonAsync<JsonElement>("/api/logs?source=worker&level=Warning", ct);
+
+            var entry = Assert.Single(page.GetProperty("entries").EnumerateArray());
+            Assert.Equal("MQTT broker connection failed", entry.GetProperty("message").GetString());
+            Assert.Equal("Warning", entry.GetProperty("level").GetString());
+            Assert.Equal("worker", entry.GetProperty("source").GetString());
+            Assert.Contains(page.GetProperty("sources").EnumerateArray(),
+                s => s.GetProperty("name").GetString() == "worker" && s.GetProperty("available").GetBoolean());
+        }
+        finally
+        {
+            Directory.Delete(workerLogs, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task Logs_UnknownSource_IsRefused()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var factory = CreatePasswordOnlyFactory();
+        using var client = CreateClient(factory);
+        await PasswordLoginAsync(client, ct);
+
+        var response = await client.GetAsync("/api/logs?source=gateway", ct);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Equal("logs.sourceUnknown", await ProblemCodeAsync(response, ct));
+    }
+
     // ── Data export ───────────────────────────────────────────────────────────
 
     [Fact]

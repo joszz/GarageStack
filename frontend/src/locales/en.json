@@ -6,6 +6,7 @@
     "tripLog": "Trip log",
     "climateSchedules": "Climate schedules",
     "maintenance": "Maintenance",
+    "logs": "Logs",
     "menuLabel": "Menu"
   },
   "dashboard": {
@@ -930,6 +931,9 @@
         "readOnly": "An API token can only read. Sign in to change anything.",
         "cannotManageTokens": "API tokens are managed from a signed-in session only.",
         "noAccount": "This session names no account to make tokens for."
+      },
+      "logs": {
+        "sourceUnknown": "source must be api, worker or all."
       }
     }
   },
@@ -943,5 +947,32 @@
     "keepingUp": "Keeping up",
     "noTrend": "Not enough readings yet: the trend needs a week in which all four tyres reported.",
     "noData": "No tyre pressures reported in the last 30 days."
+  },
+  "logs": {
+    "title": "Logs",
+    "subtitle": "The newest entries of the API's and the Worker's log files, newest first. The files themselves stay on the server, one per day.",
+    "source": "Source",
+    "sources": {
+      "all": "All",
+      "api": "API",
+      "worker": "Worker"
+    },
+    "level": "Lowest level shown",
+    "fromLevel": "{level} and up",
+    "levels": {
+      "Verbose": "Verbose",
+      "Debug": "Debug",
+      "Information": "Information",
+      "Warning": "Warning",
+      "Error": "Error",
+      "Fatal": "Fatal"
+    },
+    "search": "Search the entries",
+    "searchPlaceholder": "Search",
+    "refresh": "Refresh",
+    "live": "Live",
+    "empty": "No entries match.",
+    "workerMissing": "The Worker's log files are not visible here: set WORKER_LOG_DIRECTORY to the folder they are in (see CONFIGURATION.md).",
+    "exception": "Exception"
   }
 }

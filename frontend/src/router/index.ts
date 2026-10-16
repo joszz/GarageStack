@@ -54,6 +54,11 @@ const router = createRouter({
       name: 'maintenance',
       component: () => import('@/views/MaintenanceView.vue'),
     },
+    {
+      path: '/logs',
+      name: 'logs',
+      component: () => import('@/views/LogsView.vue'),
+    },
   ],
   // No scrollBehavior: the scroll container is the main content element, not the window, so
   // App.vue scrolls it to the top on every route change itself.

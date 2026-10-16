@@ -45,6 +45,7 @@ export {
   faDownload,
   faFan,
   faFileCsv,
+  faFileLines,
   faFire,
   faFlask,
   faGasPump,
