@@ -155,7 +155,7 @@ internal sealed class TelemetryNotificationService(
             var snapshot = await repo.GetMergedLatestAsync(vehicleId, ct);
             if (snapshot is null) return;
 
-            await hubContext.Clients.Group($"vehicle-{vehicleId}")
+            await hubContext.Clients.Group(TelemetryHub.GroupFor(vehicleId))
                 .SendAsync("telemetryUpdated", snapshot, ct);
 
             logger.LogDebug("SignalR broadcast telemetryUpdated for vehicleId={VehicleId}", vehicleId);
@@ -186,7 +186,7 @@ internal sealed class TelemetryNotificationService(
     {
         try
         {
-            await hubContext.Clients.Group($"vehicle-{vehicleId}")
+            await hubContext.Clients.Group(TelemetryHub.GroupFor(vehicleId))
                 .SendAsync("tripCompleted", vehicleId, ct);
 
             logger.LogDebug("SignalR broadcast tripCompleted for vehicleId={VehicleId}", vehicleId);
@@ -215,7 +215,7 @@ internal sealed class TelemetryNotificationService(
                 return;
             }
 
-            await hubContext.Clients.Group($"vehicle-{result.VehicleId}")
+            await hubContext.Clients.Group(TelemetryHub.GroupFor(result.VehicleId))
                 .SendAsync("commandResult", message, ct);
 
             logger.LogDebug("SignalR broadcast commandResult {Command} success={Success} for vehicleId={VehicleId}",
