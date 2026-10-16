@@ -53,7 +53,7 @@ public class HostingExtensionsTests
     }
 
     [Fact]
-    public void TyrePressureThresholds_ReadsDecimalsThesameWayInEveryLocale()
+    public void TyrePressureThresholds_ReadsDecimalsTheSameWayInEveryLocale()
     {
         // Dutch writes a decimal comma, so a culture-sensitive parse would read "3.15" as 315.
         var previous = CultureInfo.CurrentCulture;
