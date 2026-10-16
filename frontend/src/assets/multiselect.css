@@ -63,9 +63,9 @@
   min-height: calc(var(--ms-font-size) * var(--ms-line-height) + var(--ms-py) * 2);
 }
 
-/* Teleported dropdown must sit above the modal (z-index 1100) */
+/* Teleported dropdown must sit above the modal (--z-modal) */
 .multiselect-dropdown {
-  z-index: 1200;
+  z-index: var(--z-dropdown);
 }
 
 /* Ensure the search input inside the multiselect also uses the theme background */

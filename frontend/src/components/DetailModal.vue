@@ -32,11 +32,7 @@ useDialogFocus(dialog, () => props.open)
         >
           <div class="detail-modal__header">
             <h3 class="detail-modal__title">{{ title }}</h3>
-            <button
-              class="detail-modal__close"
-              :aria-label="t('common.close')"
-              @click="emit('close')"
-            >
+            <button class="dialog-close" :aria-label="t('common.close')" @click="emit('close')">
               <font-awesome-icon icon="xmark" />
             </button>
           </div>

@@ -149,11 +149,7 @@ useDialogFocus(panel, () => props.open)
               <font-awesome-icon icon="bell" />
               {{ t('notifications.title') }}
             </h3>
-            <button
-              class="notif-panel__close"
-              :aria-label="t('common.close')"
-              @click="emit('close')"
-            >
+            <button class="dialog-close" :aria-label="t('common.close')" @click="emit('close')">
               <font-awesome-icon icon="xmark" aria-hidden="true" />
             </button>
           </div>
