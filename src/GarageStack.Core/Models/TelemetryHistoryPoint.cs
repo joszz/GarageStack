@@ -8,7 +8,7 @@ namespace GarageStack.Core.Models;
 /// field the statistics ignore would otherwise be loaded from the database for nothing. The
 /// repository reads this type's field list to decide which rows are worth returning, so that
 /// filter follows any change made here. The AddChartIndex migration's partial index lists the
-/// same fields in raw SQL; keep the two in step.
+/// same fields in raw SQL; ChartIndexTests fails when the two drift apart.
 /// </summary>
 public sealed record TelemetryHistoryPoint(
     DateTime RecordedAt,
