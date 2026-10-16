@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Text.Json;
 using GarageStack.Core.Configuration;
+using GarageStack.Core.Helpers;
 using GarageStack.Core.Interfaces;
 using GarageStack.Core.Models;
 using GarageStack.Data;
@@ -126,7 +127,7 @@ public sealed class PushSenderService : IPushSender, IDisposable
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "Failed to send push to {Endpoint}", sub.Endpoint);
+                    _logger.LogWarning(ex, "Failed to send push through {PushService}", LogRedaction.UrlHost(sub.Endpoint));
                 }
             }
             finally

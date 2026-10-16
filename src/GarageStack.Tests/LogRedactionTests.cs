@@ -47,6 +47,31 @@ public class LogRedactionTests
     }
 }
 
+public class AccountAndUrlRedactionTests
+{
+    [Theory]
+    [InlineData("jos", "jos")]
+    [InlineData("Household Admin", "Household Admin")]
+    [InlineData("someone@example.com", "s***@example.com")]
+    [InlineData("@example.com", "@example.com")]
+    [InlineData(null, "***")]
+    [InlineData(" ", "***")]
+    public void Account_ShortensOnlyAnEmailAddress(string? name, string expected)
+    {
+        Assert.Equal(expected, LogRedaction.Account(name));
+    }
+
+    [Theory]
+    [InlineData("https://fcm.googleapis.com/fcm/send/abc123:APA91bSecret", "fcm.googleapis.com")]
+    [InlineData("https://updates.push.services.mozilla.com/wpush/v2/gAAAAsecret", "updates.push.services.mozilla.com")]
+    [InlineData("not a url", "***")]
+    [InlineData(null, "***")]
+    public void UrlHost_KeepsOnlyThePushService(string? url, string expected)
+    {
+        Assert.Equal(expected, LogRedaction.UrlHost(url));
+    }
+}
+
 public class VinFormatTests
 {
     [Theory]

@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using GarageStack.Api.Endpoints;
+using GarageStack.Core.Helpers;
 using GarageStack.Data;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -197,7 +198,7 @@ internal static class AuthenticationSetup
                 if (!decision.Allowed)
                 {
                     logger.LogWarning(
-                        "OIDC sign-in denied for {User}: {Reason}", displayName, decision.Reason);
+                        "OIDC sign-in denied for {User}: {Reason}", LogRedaction.Account(displayName), decision.Reason);
                     ctx.Response.Redirect(LoginPageUrl("access_denied"));
                     ctx.HandleResponse();
                     return Task.CompletedTask;
@@ -212,7 +213,7 @@ internal static class AuthenticationSetup
                 ctx.Properties!.IsPersistent = true;
                 ctx.Properties.ExpiresUtc = DateTimeOffset.UtcNow.Add(sessionLifetime);
 
-                logger.LogInformation("OIDC sign-in for {User} ({Reason})", displayName, decision.Reason);
+                logger.LogInformation("OIDC sign-in for {User} ({Reason})", LogRedaction.Account(displayName), decision.Reason);
                 return Task.CompletedTask;
             },
 
