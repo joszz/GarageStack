@@ -91,6 +91,18 @@ public class DeploymentOptionsTests
         Assert.Equal(expected, VapidOptions.From(Config(("Vapid:Subject", subject))).Subject);
     }
 
+    // The subject reaches the browser vendors with every push, so the default is the app's own
+    // https address, never anything personal.
+    [Theory]
+    [InlineData("https://garage.example.com", "https://garage.example.com")]
+    [InlineData("https://garage.example.com:8443/", "https://garage.example.com:8443")]
+    [InlineData("http://192.168.1.100:8080", VapidOptions.FallbackSubject)]
+    [InlineData(null, VapidOptions.FallbackSubject)]
+    public void Vapid_DefaultsToTheHttpsAddressTheAppIsServedOn(string? origin, string expected)
+    {
+        Assert.Equal(expected, VapidOptions.From(Config(("Cors:Origins:0", origin))).Subject);
+    }
+
     [Theory]
     [InlineData(null, 365)]
     [InlineData("", 365)]

@@ -51,9 +51,6 @@ export MQTT_URI="tcp://127.0.0.1:1883"
 export MQTT_USER="${MQTT_BROKER_USERNAME}"
 export MQTT_PASSWORD="${MQTT_BROKER_PASSWORD}"
 
-# VAPID subject defaults to the SAIC account email
-export Vapid__Subject="${Vapid__Subject:-mailto:${SAIC_USER}}"
-
 # Default false so plain-HTTP LAN installs work out of the box.
 # Set AUTH_COOKIE_SECURE=true when the app is served behind a TLS-terminating proxy.
 export Auth__CookieSecure="${AUTH_COOKIE_SECURE:-false}"

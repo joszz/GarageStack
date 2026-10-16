@@ -26,6 +26,7 @@ public static class EnvironmentAliases
         // Push notifications: the Worker signs and words them, the API hands out the public key.
         ["VAPID_PUBLIC_KEY"] = "Vapid:PublicKey",
         ["VAPID_PRIVATE_KEY"] = "Vapid:PrivateKey",
+        ["VAPID_SUBJECT"] = "Vapid:Subject",
         ["NOTIFICATION_LANGUAGE"] = "Notifications:Culture",
 
         // Facts about the car the gateway cannot report.

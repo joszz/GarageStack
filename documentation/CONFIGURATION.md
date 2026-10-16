@@ -77,6 +77,7 @@ The full guide, with provider examples, is [`AUTHENTICATION.md`](AUTHENTICATION.
 | Variable | Default | What it does |
 | --- | --- | --- |
 | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` | none | Web Push keys, generated once with `npx web-push generate-vapid-keys`. Without both, push stays off and notifications only reach the bell in the app. |
+| `VAPID_SUBJECT` | `CORS_ORIGIN` when it is https, otherwise `mailto:admin@garagestack.local` | The contact sent to the push services (Google, Mozilla, Apple) with every notification: `mailto:you@example.com` or an https URL. |
 | `NOTIFICATION_LANGUAGE` | `en` | Language of the notification texts: `en` or `nl`. The Worker writes them and has no browser to ask. |
 
 ## Map and place names
@@ -137,4 +138,3 @@ In the all-in-one container, including Unraid, add them as extra variables on th
 | --- | --- | --- |
 | `Cors__Origins__1`, `Cors__Origins__2`, ... | none | More addresses allowed next to `CORS_ORIGIN`. |
 | `ForwardedHeaders__TrustedProxies__0`, ... | the private address ranges | The proxy addresses whose `X-Forwarded-For` and `X-Forwarded-Proto` headers are believed. Set it to your proxy to stop anything else in those ranges from claiming another address. |
-| `Vapid__Subject` | `mailto:` plus `SAIC_USER` in the Docker deployments | Contact address sent to push services with every notification. |

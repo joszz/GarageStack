@@ -17,7 +17,10 @@ x-dotnet-environment: &dotnet-environment
   MQTT_BROKER_PASSWORD: "${MQTT_BROKER_PASSWORD:?Set MQTT_BROKER_PASSWORD in your .env file, see .env.example}"
   VAPID_PUBLIC_KEY: "${VAPID_PUBLIC_KEY:-}"
   VAPID_PRIVATE_KEY: "${VAPID_PRIVATE_KEY:-}"
-  Vapid__Subject: "mailto:${SAIC_USER}"
+  VAPID_SUBJECT: "${VAPID_SUBJECT:-}"
+  # The Worker signs pushes with the address the app is served on (see VAPID_SUBJECT), so both
+  # services get it.
+  CORS_ORIGIN: "${CORS_ORIGIN:-http://localhost:8080}"
   # Colour-coding and notification thresholds (bar); the API paints them, the Worker alerts on them.
   TYRE_PRESSURE_LOW_BAR: "${TYRE_PRESSURE_LOW_BAR:-}"
   TYRE_PRESSURE_GOOD_BAR: "${TYRE_PRESSURE_GOOD_BAR:-}"
@@ -147,7 +150,6 @@ services:
         condition: service_started
     environment:
       <<: *dotnet-environment
-      CORS_ORIGIN: "${CORS_ORIGIN:-http://localhost:8080}"
       SAIC_USER: "${SAIC_USER}"
       SAIC_PASSWORD: "${SAIC_PASSWORD}"
       # Built-in password login, used only when no OIDC provider is configured below. Left
