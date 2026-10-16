@@ -21,8 +21,11 @@ To work against the full stack (real or self-provided credentials):
 - Create a new branch from `main` for your change: `git checkout -b feature/my-change`.
 - Keep changes focused -- one feature or fix per pull request.
 - Run the test suite before opening a PR:
-  - Backend: `dotnet test`
+  - Backend: `dotnet test --project src/GarageStack.Tests`
   - Frontend: `pnpm test:unit`
+- Coverage, which CI reports on every run:
+  - Backend: add `--coverage --coverage-output-format cobertura --coverage-settings src/GarageStack.Tests/coverage.settings.xml` to the test command; the report lands in `TestResults/`.
+  - Frontend: `pnpm test:coverage`, with an HTML report in `frontend/coverage/`.
 - Touching the frontend, nginx config or the Content-Security-Policy? Run the browser smoke tests too. They drive the production bundle behind the production nginx config, which is the only place the policy applies:
 
   ```bash
@@ -37,6 +40,19 @@ To work against the full stack (real or self-provided credentials):
   - Frontend: `pnpm lint` (oxlint, ESLint and Stylelint, each with `--fix`) and `pnpm format`
 - Changed an EF Core entity? Add a migration from the repository root (no Api configuration needed). `dotnet tool restore` installs the pinned `dotnet-ef` first:
   `dotnet ef migrations add <Name> --project src/GarageStack.Data --startup-project src/GarageStack.Data`
+
+## Adding a language
+
+GarageStack ships in English and Dutch. A new language touches these places (use its two-letter code, here `de`):
+
+- **Interface:** copy `frontend/src/locales/en.json` to `de.json` and translate the values; keys and `{placeholders}` stay as they are. English is the fallback for any key a language lacks.
+- **Language list:** add `'de'` to the `Locale` type in `frontend/src/stores/settingsShared.ts` (and to its browser-language guess just below it), a loader to `loadMessages` in `frontend/src/i18n.ts` (each language is a chunk fetched when first chosen), and its number and date locale in `frontend/src/utils/format.ts`.
+- **Language setting:** Settings > Language is a two-way switch with flags (`frontend/src/components/settings/SettingsModal.vue`). A third language turns it into a choice of several.
+- **Notifications:** copy `src/GarageStack.Worker/Resources/NotificationStrings.resx` to `NotificationStrings.de.resx`. `NOTIFICATION_LANGUAGE=de` then picks it; document the value in `documentation/CONFIGURATION.md`.
+- **Homepage widget and API:** copy `src/GarageStack.Api/Resources/WidgetStrings.resx` to `WidgetStrings.de.resx`, and add the culture to `SupportedCultures` and `SupportedUICultures` in `src/GarageStack.Api/Program.cs`.
+- **Place names:** add the code to `GeocodeDefaults.SupportedLanguages` in `src/GarageStack.Core/Configuration` so addresses come back in that language.
+
+`en.json` and `nl.json` hold the same keys; keep that true for the new file, since a missing key falls back to English silently.
 
 ## Commit Style
 

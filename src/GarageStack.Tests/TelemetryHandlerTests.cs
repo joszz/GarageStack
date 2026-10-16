@@ -40,14 +40,13 @@ file sealed class SlowFakeTelemetryRepository : ITelemetryRepository
         return Task.CompletedTask;
     }
 
-    public Task<TelemetrySnapshot?> GetLatestAsync(int vehicleId, CancellationToken ct = default) => throw new NotImplementedException();
     public Task<TelemetrySnapshot?> GetMergedLatestAsync(int vehicleId, CancellationToken ct = default) => throw new NotImplementedException();
     public Task<IReadOnlyList<DailyStat>> GetDailyStatsAsync(int vehicleId, DateOnly from, DateOnly to, TimeZoneInfo zone, DateOnly today, CancellationToken ct = default) => throw new NotImplementedException();
     public Task<IReadOnlyList<TripPoint>> GetGpsFixesAsync(int vehicleId, DateTime from, DateTime to, CancellationToken ct = default) => throw new NotImplementedException();
     public Task<DateTime?> GetFirstGpsFixAtAsync(int vehicleId, CancellationToken ct = default) => throw new NotImplementedException();
     public Task<double?> GetOdometerAtAsync(int vehicleId, DateTime at, CancellationToken ct = default) => throw new NotImplementedException();
     public Task<IReadOnlyList<StatusReading>> GetStatusReadingsAsync(int vehicleId, int count, CancellationToken ct = default) => throw new NotImplementedException();
-    public Task<IReadOnlyList<RawTopicStat>> GetRawTopicStatsAsync(int vehicleId, CancellationToken ct = default) => throw new NotImplementedException();
+    public Task<IReadOnlyList<RawTopicStat>> GetRawTopicStatsAsync(int vehicleId, DateTime since, CancellationToken ct = default) => throw new NotImplementedException();
     public Task<string?> GetChargingStopReasonAsync(int vehicleId, CancellationToken ct = default) => throw new NotImplementedException();
     public Task<VehicleAggregateStats> GetAggregateStatsAsync(int vehicleId, DateTime from, DateTime to, CancellationToken ct = default) => throw new NotImplementedException();
 }
@@ -261,17 +260,6 @@ public class TelemetryHandlerTests
 // topics GarageStack leaves out on purpose. Neither should read as a topic nobody maps.
 public class TelemetryHandlerLoggingTests
 {
-    private sealed class RecordingLogger : ILogger
-    {
-        public List<(LogLevel Level, string Message)> Entries { get; } = [];
-
-        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
-        public bool IsEnabled(LogLevel logLevel) => true;
-
-        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter) =>
-            Entries.Add((logLevel, formatter(state, exception)));
-    }
-
     [Theory]
     [InlineData("climate/remoteClimateState/set", false)]
     [InlineData("drivetrain/socTarget/set", false)]
@@ -280,7 +268,7 @@ public class TelemetryHandlerLoggingTests
     [InlineData("drivetrain/somethingNew", true)]
     public async Task UnmappedTopic_WarnsOnlyWhenItIsNews(string subtopic, bool warns)
     {
-        var logger = new RecordingLogger();
+        var logger = new RecordingLogger<TelemetryHandler>();
         var handler = new TelemetryHandler(
             logger, new VehicleResolver(new FakeServiceScopeFactory()), new FakePushSender(), WorkerLocalizer.Notifications());
 
@@ -289,5 +277,39 @@ public class TelemetryHandlerLoggingTests
             TestContext.Current.CancellationToken);
 
         Assert.Equal(warns, logger.Entries.Any(e => e.Level == LogLevel.Warning));
+    }
+
+    // The gateway republishes every topic on every poll: a topic it adds later warns once, not
+    // once per poll for as long as the Worker runs.
+    [Fact]
+    public async Task UnmappedTopic_WarnsOncePerTopic()
+    {
+        var logger = new RecordingLogger<TelemetryHandler>();
+        var handler = new TelemetryHandler(
+            logger, new VehicleResolver(new FakeServiceScopeFactory()), new FakePushSender(), WorkerLocalizer.Notifications());
+        var ct = TestContext.Current.CancellationToken;
+
+        for (var poll = 0; poll < 3; poll++)
+            await handler.TryHandleAsync(new MqttMessage("saic/user/vehicles/FAKEVN00000000001/drivetrain/somethingNew", "1", Retain: false), ct);
+        await handler.TryHandleAsync(new MqttMessage("saic/user/vehicles/FAKEVN00000000001/drivetrain/somethingElse", "1", Retain: false), ct);
+
+        Assert.Equal(2, logger.Entries.Count(e => e.Level == LogLevel.Warning));
+    }
+
+    // A known topic with a payload that cannot be read is a different problem from a topic the
+    // mapper has never heard of, and says so.
+    [Fact]
+    public async Task UnreadablePayload_OnAKnownTopic_IsNotCalledUnmapped()
+    {
+        var logger = new RecordingLogger<TelemetryHandler>();
+        var handler = new TelemetryHandler(
+            logger, new VehicleResolver(new FakeServiceScopeFactory()), new FakePushSender(), WorkerLocalizer.Notifications());
+
+        await handler.TryHandleAsync(
+            new MqttMessage("saic/user/vehicles/FAKEVN00000000001/location/position", "not json", Retain: false),
+            TestContext.Current.CancellationToken);
+
+        var warning = Assert.Single(logger.Entries, e => e.Level == LogLevel.Warning);
+        Assert.StartsWith("Unreadable payload", warning.Message);
     }
 }

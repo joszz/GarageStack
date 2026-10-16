@@ -32,6 +32,7 @@ import { daysAgoIso } from '@/utils/dates'
 import { isPhoneViewport } from '@/utils/viewport'
 import { useUnits } from '@/composables/useUnits'
 import { burnsFuel, plugsIn } from '@/utils/vehicleType'
+import { latLngsOf } from '@/utils/geo'
 
 const { t } = useI18n()
 const units = useUnits()
@@ -153,11 +154,7 @@ watch(
  * that have been selected at some point and cuts corners like the raw fixes do for the rest.
  */
 const heatLines = computed<[number, number][][]>(() =>
-  store.trips.map(
-    (trip) =>
-      matchFor(trip)?.coordinates ??
-      trip.points.map((p) => [p.latitude, p.longitude] as [number, number]),
-  ),
+  store.trips.map((trip) => matchFor(trip)?.coordinates ?? latLngsOf(trip.points)),
 )
 
 const heatPoints = computed(() => distanceWeightedSamples(heatLines.value, MAX_HEATMAP_POINTS))

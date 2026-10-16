@@ -547,6 +547,11 @@ body,
   padding: 1.25rem;
 }
 
+/* The dialog takes focus when it opens (useDialogFocus); its controls show focus, not the box. */
+.detail-modal:focus {
+  outline: none;
+}
+
 .detail-modal__header {
   display: flex;
   align-items: center;

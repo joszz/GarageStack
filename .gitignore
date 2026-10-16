@@ -8,6 +8,7 @@ obj/
 *.user
 .vs/
 logs/
+TestResults/
 
 # node
 node_modules/
@@ -22,4 +23,5 @@ example_data.txt
 appsettings.Development.json
 .stfolder
 .claude
-\keys
+# ASP.NET data protection keys from running the API locally
+keys/

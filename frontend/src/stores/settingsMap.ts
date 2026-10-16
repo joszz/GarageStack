@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { reactive, toRefs } from 'vue'
-import { persistSettings, readLegacyBlob } from './settingsShared'
+import { loadStoredSettings, persistSettings } from './settingsShared'
 import { isFuelType } from '@/utils/fuelTypes'
 
 const STORAGE_KEY = 'garagestack-settings-map'
@@ -69,20 +69,8 @@ function parseMapFields(parsed: Record<string, unknown>): MapSettings {
   }
 }
 
-function loadMapSettings(): MapSettings {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (raw) return parseMapFields(JSON.parse(raw))
-  } catch {
-    // ignore parse errors
-  }
-  const legacy = readLegacyBlob()
-  if (legacy) return parseMapFields(legacy)
-  return defaultsFor()
-}
-
 export const useMapSettingsStore = defineStore('settingsMap', () => {
-  const settings = reactive(loadMapSettings())
+  const settings = reactive(loadStoredSettings(STORAGE_KEY, parseMapFields, defaultsFor))
   persistSettings({
     storageKey: STORAGE_KEY,
     section: 'map',

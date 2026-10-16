@@ -33,93 +33,62 @@ public sealed class PoiPreCachingService(
 
         // Single query for the latest known location of every vehicle instead of one query per
         // vehicle: the RecordedAt == MAX(RecordedAt) correlated subquery reliably translates to SQL.
+        // Only the position comes back, untracked: nothing here changes the rows.
         var latestByVehicle = (await db.TelemetrySnapshots
+            .AsNoTracking()
             .Where(s => s.Latitude != null && s.Longitude != null)
             .Where(s => s.RecordedAt == db.TelemetrySnapshots
                 .Where(x => x.VehicleId == s.VehicleId && x.Latitude != null && x.Longitude != null)
                 .Max(x => x.RecordedAt))
+            .Select(s => new { s.VehicleId, Latitude = s.Latitude!.Value, Longitude = s.Longitude!.Value })
             .ToListAsync(ct))
             .GroupBy(s => s.VehicleId)
             .ToDictionary(g => g.Key, g => g.First());
 
         foreach (var vehicle in vehicles)
         {
-            if (!latestByVehicle.TryGetValue(vehicle.Id, out var snapshot))
-                continue;
-            if (snapshot.Latitude is null || snapshot.Longitude is null)
+            if (!latestByVehicle.TryGetValue(vehicle.Id, out var position))
                 continue;
 
-            var lat = snapshot.Latitude.Value;
-            var lng = snapshot.Longitude.Value;
+            var lat = position.Latitude;
+            var lng = position.Longitude;
             var vehicleType = VehicleTypeHelper.GetVehicleType(vehicle);
             var vinForLog = LogRedaction.Vin(vehicle.Vin);
 
             // Two questions, both of which have to say yes: the car has a use for the layer, and
             // the deployment serves it (speed cameras can be switched off).
             foreach (var poiType in PoiTypePolicy.AllowedOverpassTypes(vehicleType).Where(overpassClient.IsTypeEnabled))
-                await PreCacheOverpassAsync(poiType, vinForLog, lat, lng, repository, ct);
+                await PreCacheAsync(
+                    repository, PoiCacheDefaults.OverpassSource, poiType, "Overpass", vinForLog, lat, lng,
+                    async (cellLat, cellLng, token) => await overpassClient.FetchBackgroundAsync(poiType, cellLat, cellLng, token),
+                    ct);
 
             if (ocmClient.IsConfigured && VehicleTypeHelper.CanCharge(vehicleType))
-                await PreCacheOcmAsync(vinForLog, lat, lng, repository, ct);
+                await PreCacheAsync(
+                    repository, PoiCacheDefaults.OcmSource, PoiCacheDefaults.ChargingPoiType, "OCM", vinForLog, lat, lng,
+                    ocmClient.FetchChargingStationsAsync,
+                    ct);
         }
     }
 
-    private async Task PreCacheOverpassAsync(
-        string poiType, string vinForLog,
-        double lat, double lng,
+    private async Task PreCacheAsync(
         IPoiRepository repository,
+        string source, string poiType, string upstream, string vinForLog,
+        double lat, double lng,
+        Func<int, int, CancellationToken, Task<IReadOnlyList<PoiItem>?>> fetch,
         CancellationToken ct)
     {
-        var tiles = TileHelper.ComputeTiles(lat, lng, PreCacheRadiusKm);
-        var toRefresh = await repository.GetExpiredOrMissingTilesAsync(PoiCacheDefaults.OverpassSource, poiType, tiles, ct);
-
-        if (toRefresh.Count == 0)
-        {
-            logger.LogDebug("All Overpass {PoiType} tiles are fresh for {Vin}", poiType, vinForLog);
-            return;
-        }
-
-        logger.LogInformation("Pre-caching {Count} Overpass {PoiType} tiles for {Vin}",
-            toRefresh.Count, poiType, vinForLog);
-
-        await PoiTileFetcher.FetchAndCacheAsync(
-            toRefresh,
-            async (cellLat, cellLng, token) => (IReadOnlyList<PoiItem>?)await overpassClient.FetchBackgroundAsync(poiType, cellLat, cellLng, token),
-            (cellLat, cellLng, items, token) => repository.UpsertTileAsync(
-                PoiCacheDefaults.OverpassSource, poiType, cellLat, cellLng, items, PoiCacheDefaults.Ttl, token),
+        var refresh = await PoiTileFetcher.RefreshAsync(
+            repository, source, poiType, lat, lng, PreCacheRadiusKm, maxTiles: null, fetch,
             (ex, cellLat, cellLng) => logger.LogWarning(ex,
-                "Failed to pre-cache Overpass {PoiType} tile ({CellLat},{CellLng}) for {Vin}",
-                poiType, cellLat, cellLng, vinForLog),
+                "Failed to pre-cache {Upstream} {PoiType} tile ({CellLat},{CellLng}) for {Vin}",
+                upstream, poiType, cellLat, cellLng, vinForLog),
             ct);
-    }
 
-    private async Task PreCacheOcmAsync(
-        string vinForLog,
-        double lat, double lng,
-        IPoiRepository repository,
-        CancellationToken ct)
-    {
-        const string source = PoiCacheDefaults.OcmSource;
-        const string poiType = PoiCacheDefaults.ChargingPoiType;
-
-        var tiles = TileHelper.ComputeTiles(lat, lng, PreCacheRadiusKm);
-        var toRefresh = await repository.GetExpiredOrMissingTilesAsync(source, poiType, tiles, ct);
-
-        if (toRefresh.Count == 0)
-        {
-            logger.LogDebug("All OCM charging tiles are fresh for {Vin}", vinForLog);
-            return;
-        }
-
-        logger.LogInformation("Pre-caching {Count} OCM charging tiles for {Vin}", toRefresh.Count, vinForLog);
-
-        await PoiTileFetcher.FetchAndCacheAsync(
-            toRefresh,
-            async (cellLat, cellLng, token) => (IReadOnlyList<PoiItem>?)await ocmClient.FetchChargingStationsAsync(cellLat, cellLng, token),
-            (cellLat, cellLng, items, token) => repository.UpsertTileAsync(source, poiType, cellLat, cellLng, items, PoiCacheDefaults.Ttl, token),
-            (ex, cellLat, cellLng) => logger.LogWarning(ex,
-                "Failed to pre-cache OCM charging tile ({CellLat},{CellLng}) for {Vin}",
-                cellLat, cellLng, vinForLog),
-            ct);
+        if (refresh.Missing == 0)
+            logger.LogDebug("All {Upstream} {PoiType} tiles are fresh for {Vin}", upstream, poiType, vinForLog);
+        else
+            logger.LogInformation("Pre-cached {Cached} of {Missing} {Upstream} {PoiType} tiles for {Vin}",
+                refresh.Cached, refresh.Missing, upstream, poiType, vinForLog);
     }
 }

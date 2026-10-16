@@ -1,5 +1,6 @@
 import { L } from '@/utils/leaflet'
 import { CAR_SILHOUETTE_VIEWBOX, CAR_SILHOUETTE_MARKUP } from '@/assets/carSilhouette'
+import type { LatLng } from '@/utils/geo'
 
 const CAR_ICON_SIZE: [number, number] = [24, 46]
 const CAR_ICON_ANCHOR: [number, number] = [12, 23]
@@ -29,4 +30,10 @@ export function buildCarMarkerIcon(headingDeg: number) {
     iconSize: CAR_ICON_SIZE,
     iconAnchor: CAR_ICON_ANCHOR,
   })
+}
+
+/** Moves a live car marker to where the car now is, turned to its heading. */
+export function moveCarMarker(marker: L.Marker, position: LatLng, heading: number | null): void {
+  marker.setLatLng(position)
+  marker.setIcon(buildCarMarkerIcon(heading ?? 0))
 }

@@ -16,7 +16,7 @@ import {
   migrateCards,
   ALL_STATS_INSIGHT_IDS,
   ALL_STATS_CHART_IDS,
-  readLegacyBlob,
+  loadStoredSettings,
   hasStoredCopy,
   persistSettings,
 } from './settingsShared'
@@ -64,20 +64,6 @@ function parseDashboardFields(parsed: Record<string, unknown>): DashboardSetting
   }
 }
 
-function loadDashboardSettings(): DashboardSettings {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (raw) return parseDashboardFields(JSON.parse(raw))
-  } catch {
-    // ignore parse errors
-  }
-
-  const legacy = readLegacyBlob()
-  if (legacy) return parseDashboardFields(legacy)
-
-  return defaultsFor()
-}
-
 // Card ids whose default visibility differs between drivetrains, derived from defaultCards. When
 // the drivetrain changes, these follow the new type's defaults.
 const TYPE_SPECIFIC_CARD_IDS: ReadonlySet<CardId> = (() => {
@@ -120,7 +106,7 @@ function byData(cards: CardConfig[], hasData: (id: CardId) => boolean): CardConf
 }
 
 export const useDashboardSettingsStore = defineStore('settingsDashboard', () => {
-  const settings = reactive(loadDashboardSettings())
+  const settings = reactive(loadStoredSettings(STORAGE_KEY, parseDashboardFields, defaultsFor))
   // Whether a layout was ever saved, in this browser or on the account. The dashboard uses it to
   // tell a first visit (where it may order cards by which ones have data) from a returning user
   // whose ordering must be left alone.

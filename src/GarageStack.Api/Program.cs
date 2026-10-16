@@ -87,7 +87,6 @@ try
     builder.Services.AddHvBatteryCapacity(builder.Configuration);
     builder.Services.AddSingleton(VapidOptions.From(builder.Configuration));
 
-    builder.Services.AddMemoryCache();
     builder.Services.AddScoped<ChargingStationService>();
     builder.Services.AddScoped<PoiService>();
     builder.Services.AddScoped<GeocodeService>();
@@ -102,7 +101,7 @@ try
     // Asks GitHub once a day for the latest release, for the footer's update notice.
     builder.Services.AddHttpClient(GitHubReleaseClient.HttpClientName, client =>
     {
-        client.DefaultRequestHeaders.UserAgent.ParseAdd("GarageStack/1.0 (+https://github.com/joszz/GarageStack)");
+        client.DefaultRequestHeaders.UserAgent.ParseAdd(UpstreamHttp.UserAgent);
         client.Timeout = TimeSpan.FromSeconds(15);
     });
     builder.Services.AddSingleton(new UpdateCheckOptions(
@@ -176,6 +175,7 @@ try
     app.MapCommutePlaceEndpoints();
     app.MapWidgetEndpoints();
     app.MapUpdateEndpoints();
+    app.MapClientErrorEndpoints();
     app.MapMapEndpoints();
 
     if (isDemoMode)

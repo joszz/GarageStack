@@ -6,8 +6,10 @@ import { useI18n } from 'vue-i18n'
 import { ApiError } from '@/services/apiCore'
 import { oidcLoginUrl } from '@/services/authApi'
 import { redirectTo } from '@/utils/navigation'
+import { delay } from '@/utils/async'
 import { useAuthStore } from '@/stores/auth'
 import type { AuthConfigResponse } from '@/services/authApi'
+import SettingsToggle from '@/components/SettingsToggle.vue'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -71,7 +73,7 @@ async function loadSignInMethods(retries = CONFIG_RETRIES): Promise<AuthConfigRe
   let cfg = await auth.ensureConfig()
 
   for (let attempt = 0; cfg === null && attempt < retries; attempt++) {
-    await new Promise((resolve) => setTimeout(resolve, CONFIG_RETRY_DELAY_MS))
+    await delay(CONFIG_RETRY_DELAY_MS)
     cfg = await auth.ensureConfig()
   }
 
@@ -203,20 +205,13 @@ async function submitLogin() {
             </div>
           </div>
 
-          <div class="settings-toggle login-remember">
-            <div class="settings-toggle__info">
-              <span class="settings-toggle__label">{{ t('auth.rememberMe') }}</span>
-              <span class="settings-toggle__desc">{{ t('auth.rememberMeDesc') }}</span>
-            </div>
-            <div class="settings-toggle__control form-check form-switch">
-              <input
-                id="remember-me"
-                v-model="rememberMe"
-                type="checkbox"
-                class="form-check-input"
-              />
-            </div>
-          </div>
+          <SettingsToggle
+            v-model="rememberMe"
+            class="login-remember"
+            input-id="remember-me"
+            :label="t('auth.rememberMe')"
+            :desc="t('auth.rememberMeDesc')"
+          />
 
           <button class="btn btn-primary login-submit" type="submit" :disabled="submitting">
             <font-awesome-icon v-if="submitting" icon="spinner" spin />

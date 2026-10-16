@@ -44,7 +44,9 @@ self.addEventListener('push', (event) => {
 
   const title = payload.title ?? 'GarageStack'
   const tag = payload.category ?? 'garagestack-notification'
-  const options: NotificationOptions = {
+  // renotify (alert again for a tag that is already showing) is in the Notifications spec and
+  // Chromium, but no longer in TypeScript's lib.
+  const options: NotificationOptions & { renotify?: boolean } = {
     body: payload.body ?? '',
     icon: '/pwa-192x192.png',
     badge: '/pwa-64x64.png',

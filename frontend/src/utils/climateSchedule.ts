@@ -3,6 +3,7 @@ import type {
   ClimateScheduleOutcome,
   IsoWeekday,
 } from '@/services/climateScheduleApi'
+import { MS_PER_DAY, startOfLocalDay } from '@/utils/dates'
 import { formatDate, formatTime } from '@/utils/format'
 import type { UnitFormatter } from '@/utils/units'
 
@@ -34,9 +35,7 @@ export function daysSummary(days: readonly IsoWeekday[], t: Translate): string {
 }
 
 function localDay(date: Date): number {
-  return Math.round(
-    new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime() / 86_400_000,
-  )
+  return Math.round(startOfLocalDay(date).getTime() / MS_PER_DAY)
 }
 
 /** When a run is or was, from where the browser stands: "Today 07:30", "Tomorrow 07:30", "Monday 07:30" or a date. */

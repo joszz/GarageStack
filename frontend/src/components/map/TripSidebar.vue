@@ -80,44 +80,46 @@ watch(
     </div>
 
     <ul v-else class="trip-list">
-      <li
-        v-for="{ row, realIdx } in rows"
-        :key="realIdx"
-        class="trip-list__item"
-        :class="{ 'trip-list__item--active': selectedIndex === realIdx }"
-        @click="$emit('select', realIdx)"
-      >
-        <span
-          class="trip-list__dot"
-          :class="[tripColorClass(realIdx), { 'trip-list__dot--live': realIdx === activeIndex }]"
-        />
-        <div class="trip-list__info">
-          <div class="trip-list__header">
-            <span
-              v-if="row.mode === 'route'"
-              class="trip-list__name trip-list__route"
-              :title="row.routeTitle"
-            >
-              <span class="trip-list__place">{{ row.from }}</span>
-              <template v-if="row.to">
-                <font-awesome-icon icon="arrow-right" class="trip-list__route-arrow" />
-                <span class="trip-list__place">{{ row.to }}</span>
-              </template>
-            </span>
-            <span
-              v-else-if="row.mode === 'pending'"
-              class="skeleton skeleton--text skeleton--text-lg trip-list__name-skeleton"
-              role="status"
-              :aria-label="t('trips.resolvingPlaces')"
-            />
-            <span v-else class="trip-list__name" :title="row.dateLabel">{{ row.dateLabel }}</span>
-            <span v-if="realIdx === activeIndex" class="trip-list__live-badge">{{
-              t('trips.inProgress')
-            }}</span>
-            <span v-else class="trip-list__time">{{ row.timeLabel }}</span>
+      <li v-for="{ row, realIdx } in rows" :key="realIdx">
+        <button
+          type="button"
+          class="trip-list__item trip-list__button"
+          :class="{ 'trip-list__item--active': selectedIndex === realIdx }"
+          :aria-pressed="selectedIndex === realIdx"
+          @click="$emit('select', realIdx)"
+        >
+          <span
+            class="trip-list__dot"
+            :class="[tripColorClass(realIdx), { 'trip-list__dot--live': realIdx === activeIndex }]"
+          />
+          <div class="trip-list__info">
+            <div class="trip-list__header">
+              <span
+                v-if="row.mode === 'route'"
+                class="trip-list__name trip-list__route"
+                :title="row.routeTitle"
+              >
+                <span class="trip-list__place">{{ row.from }}</span>
+                <template v-if="row.to">
+                  <font-awesome-icon icon="arrow-right" class="trip-list__route-arrow" />
+                  <span class="trip-list__place">{{ row.to }}</span>
+                </template>
+              </span>
+              <span
+                v-else-if="row.mode === 'pending'"
+                class="skeleton skeleton--text skeleton--text-lg trip-list__name-skeleton"
+                role="status"
+                :aria-label="t('trips.resolvingPlaces')"
+              />
+              <span v-else class="trip-list__name" :title="row.dateLabel">{{ row.dateLabel }}</span>
+              <span v-if="realIdx === activeIndex" class="trip-list__live-badge">{{
+                t('trips.inProgress')
+              }}</span>
+              <span v-else class="trip-list__time">{{ row.timeLabel }}</span>
+            </div>
+            <span class="trip-list__meta" :title="row.metaTitle">{{ row.meta }}</span>
           </div>
-          <span class="trip-list__meta" :title="row.metaTitle">{{ row.meta }}</span>
-        </div>
+        </button>
       </li>
     </ul>
     <div ref="sentinel" />

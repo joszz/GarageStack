@@ -156,6 +156,12 @@
         "frontRight": "Front right",
         "rearLeft": "Rear left",
         "rearRight": "Rear right"
+      },
+      "tyrePositionShort": {
+        "frontLeft": "FL",
+        "frontRight": "FR",
+        "rearLeft": "RL",
+        "rearRight": "RR"
       }
     },
     "temperature": {
@@ -401,7 +407,8 @@
     "permissionDenied": "Permission denied, allow notifications in your browser settings",
     "subscribeFailed": "Could not register for push notifications. Check that the server is reachable, then try again.",
     "enable": "Push notifications on this device",
-    "enableDesc": "Alerts arrive as system notifications, even while GarageStack is closed."
+    "enableDesc": "Alerts arrive as system notifications, even while GarageStack is closed.",
+    "needsHttps": "Push notifications need GarageStack on an https:// address. Browsers do not allow them on a plain http:// address other than localhost."
   },
   "updates": {
     "available": "v{version} available",
@@ -881,7 +888,8 @@
         "tooManyIds": "Too many trips at once. Choose a shorter period."
       },
       "push": {
-        "notConfigured": "Push notifications are not set up on this server."
+        "notConfigured": "Push notifications are not set up on this server.",
+        "subscriptionInvalid": "This browser's push address was not accepted."
       },
       "commutePlace": {
         "limitReached": "A car can have at most 10 home and work places.",

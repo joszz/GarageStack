@@ -10,7 +10,10 @@ namespace GarageStack.Core.Configuration;
 /// </summary>
 public sealed class VapidOptions
 {
-    /// <summary>Push services want a way to reach whoever sends; used when the deployment names none.</summary>
+    /// <summary>
+    /// Push services want a way to reach whoever sends. Used when the deployment names no contact
+    /// and has no https address to offer instead.
+    /// </summary>
     public const string FallbackSubject = "mailto:admin@garagestack.local";
 
     public string? PublicKey { get; init; }
@@ -26,6 +29,14 @@ public sealed class VapidOptions
     {
         PublicKey = configuration["Vapid:PublicKey"],
         PrivateKey = configuration["Vapid:PrivateKey"],
-        Subject = configuration.TextOrDefault("Vapid:Subject", FallbackSubject),
+        Subject = configuration.TextOrDefault("Vapid:Subject", DefaultSubject(configuration)),
     };
+
+    // The subject travels to the browser vendors' push services with every notification, so the
+    // default is never personal: the address GarageStack is served on when that is https (a
+    // valid VAPID subject, RFC 8292), otherwise a placeholder. It used to be the MG account email.
+    private static string DefaultSubject(IConfiguration configuration) =>
+        Uri.TryCreate(configuration["Cors:Origins:0"], UriKind.Absolute, out var origin) && origin.Scheme == Uri.UriSchemeHttps
+            ? origin.GetLeftPart(UriPartial.Authority)
+            : FallbackSubject;
 }

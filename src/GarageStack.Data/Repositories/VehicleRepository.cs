@@ -4,10 +4,11 @@ using GarageStack.Core.Interfaces;
 using GarageStack.Core.Models;
 using GarageStack.Data.Extensions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace GarageStack.Data.Repositories;
 
-public class VehicleRepository(AppDbContext db) : IVehicleRepository
+public class VehicleRepository(AppDbContext db, ILogger<VehicleRepository>? logger = null) : IVehicleRepository
 {
     // track: false for read-only lookups so EF doesn't snapshot the entity for change detection;
     // track: true when the caller may mutate and save the returned entity.
@@ -84,8 +85,11 @@ public class VehicleRepository(AppDbContext db) : IVehicleRepository
         if (vehicle is null) return;
 
         // A malformed blob (there is no schema, the gateway writes free-form values) starts a
-        // fresh dictionary instead of taking the message handler down.
-        var config = SafeJson.TryDeserialize<Dictionary<string, string>>(vehicle.ConfigJson)
+        // fresh dictionary instead of taking the message handler down. That drops whatever else it
+        // held, so say so.
+        var config = SafeJson.TryDeserialize<Dictionary<string, string>>(
+                vehicle.ConfigJson,
+                ex => logger?.LogWarning(ex, "Vehicle {VehicleId} had an unreadable configuration; starting it afresh with {Key}", vehicleId, key))
             ?? new Dictionary<string, string>();
 
         config[key] = value;

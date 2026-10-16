@@ -1,7 +1,16 @@
 .git
 .github
 .vs
+.vscode
 .stfolder
+.claude
+.ruff_cache
+
+# Secrets and data that live next to the source on a developer's machine. The all-in-one
+# image copies frontend/ wholesale, so a local frontend/.env would otherwise be built in.
+**/.env
+**/.env.*
+garagestack-data
 
 **/node_modules
 **/dist

@@ -179,7 +179,9 @@ public class PoiRepository(AppDbContext db, IMemoryCache cache, ILogger<PoiRepos
             var safePoiType = poiType.Replace("\r", "").Replace("\n", "");
             logger?.LogWarning(
                 "GetPoisInBoundsAsync hit the {Cap}-row cap for source={Source} poiType={PoiType} bounds=({MinLat},{MinLng})-({MaxLat},{MaxLng})",
-                MaxPoisPerBoundsQuery, source, safePoiType, minLat, minLng, maxLat, maxLng);
+                MaxPoisPerBoundsQuery, source, safePoiType,
+                // The bounds are around the car, so they are rounded to about 10 km first.
+                Math.Round(minLat, 1), Math.Round(minLng, 1), Math.Round(maxLat, 1), Math.Round(maxLng, 1));
         }
 
         return pois;

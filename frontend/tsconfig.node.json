@@ -4,7 +4,6 @@
   "include": [
     "vite.config.*",
     "vitest.config.*",
-    "cypress.config.*",
     "playwright.config.*",
     "eslint.config.*"
   ],
@@ -13,6 +12,8 @@
     // Bundler mode provides a smoother developer experience.
     "module": "preserve",
     "moduleResolution": "bundler",
+    // Vite's native config loader wants the real extension on a relative import.
+    "allowImportingTsExtensions": true,
 
     // Include Node.js types and avoid accidentally including other `@types/*` packages.
     "types": ["node"],

@@ -3,6 +3,7 @@ using System.Threading.RateLimiting;
 using GarageStack.Api.Endpoints;
 using GarageStack.Api.Security;
 using GarageStack.Core.Configuration;
+using GarageStack.Core.Helpers;
 using Microsoft.AspNetCore.HttpOverrides;
 using Serilog;
 using Serilog.Events;
@@ -52,6 +53,10 @@ internal static class ApiHostingExtensions
             // global limiter alone (120/min by default) would allow at a much higher rate. Still generous
             // enough for a handful of dashboard widgets behind the same NAT polling every 30s.
             opts.AddPolicy("widget", FixedWindowPerIp(TimeSpan.FromMinutes(5), permitLimit: 60));
+
+            // Browser error reports: a page stuck in an error loop must not fill the log files.
+            // The page itself caps what it sends; this caps what a misbehaving one could.
+            opts.AddPolicy("client-errors", FixedWindowPerIp(TimeSpan.FromMinutes(5), permitLimit: 30));
         });
     }
 
@@ -88,13 +93,29 @@ internal static class ApiHostingExtensions
     /// <summary>
     /// One log line per request, except for the health probes Docker and uptime monitors send
     /// every few seconds: those would fill the log files with nothing. A failing readiness check
-    /// answers 503 on every probe; whatever failed is logged where it fails.
+    /// answers 503 on every probe; whatever failed is logged where it fails. The path is logged
+    /// with its VIN shortened, as everywhere else at Information level.
     /// </summary>
     public static WebApplication UseGarageStackRequestLogging(this WebApplication app)
     {
-        app.UseSerilogRequestLogging(opts => opts.GetLevel = RequestLogLevel);
+        app.UseSerilogRequestLogging(opts =>
+        {
+            opts.GetLevel = RequestLogLevel;
+            opts.GetMessageTemplateProperties = RequestLogProperties;
+        });
         return app;
     }
+
+    // The properties of Serilog's default "HTTP {RequestMethod} {RequestPath} responded
+    // {StatusCode} in {Elapsed} ms" line, with the path redacted.
+    internal static IEnumerable<LogEventProperty> RequestLogProperties(
+        HttpContext context, string requestPath, double elapsedMs, int statusCode) =>
+    [
+        new("RequestMethod", new ScalarValue(context.Request.Method)),
+        new("RequestPath", new ScalarValue(LogRedaction.RequestPath(requestPath))),
+        new("StatusCode", new ScalarValue(statusCode)),
+        new("Elapsed", new ScalarValue(elapsedMs)),
+    ];
 
     internal static LogEventLevel RequestLogLevel(HttpContext context, double elapsedMs, Exception? ex)
     {
@@ -112,34 +133,46 @@ internal static class ApiHostingExtensions
     /// </summary>
     public static WebApplication UseGarageStackForwardedHeaders(this WebApplication app)
     {
-        var forwardedOptions = new ForwardedHeadersOptions
+        var trustedProxies = app.Configuration.GetSection("ForwardedHeaders:TrustedProxies").Get<string[]>();
+        if (trustedProxies is not { Length: > 0 } && !app.Environment.IsDevelopment())
+            Log.Warning("ForwardedHeaders:TrustedProxies is not configured -- trusting all RFC 1918 ranges. " +
+                        "Set this to your proxy IP(s) to prevent forwarded-header spoofing.");
+
+        app.UseForwardedHeaders(ForwardedHeadersOptionsFor(trustedProxies));
+        return app;
+    }
+
+    /// <summary>
+    /// Which proxies' forwarded headers are believed: the configured addresses, or every private
+    /// range when none are configured (nginx in a Docker network has one of those).
+    /// </summary>
+    internal static ForwardedHeadersOptions ForwardedHeadersOptionsFor(string[]? trustedProxies)
+    {
+        var options = new ForwardedHeadersOptions
         {
             ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
+            // Unwrap X-Forwarded-For hop by hop for as long as the hop is a trusted proxy, rather
+            // than only the last one (the default limit of 1). Behind Traefik or NPM in front of
+            // nginx, the last hop is the outer proxy, so with a limit of 1 every visitor shared its
+            // address, and with it the login rate limit.
+            ForwardLimit = null,
         };
-        var trustedProxies = app.Configuration.GetSection("ForwardedHeaders:TrustedProxies").Get<string[]>();
+
         if (trustedProxies is { Length: > 0 })
         {
             // Prefer explicit proxy IPs to limit header-spoofing surface.
             foreach (var proxyIp in trustedProxies)
                 if (IPAddress.TryParse(proxyIp, out var ip))
-                    forwardedOptions.KnownProxies.Add(ip);
+                    options.KnownProxies.Add(ip);
         }
         else
         {
-            // Fallback: trust all RFC 1918 ranges so nginx in a Docker network is recognised.
-            // Set ForwardedHeaders:TrustedProxies in production to restrict to the actual proxy IP.
-            if (!app.Environment.IsDevelopment())
-                Log.Warning("ForwardedHeaders:TrustedProxies is not configured -- trusting all RFC 1918 ranges. " +
-                            "Set this to your proxy IP(s) to prevent forwarded-header spoofing.");
-#pragma warning disable ASPDEPR005
-            forwardedOptions.KnownNetworks.Add(new Microsoft.AspNetCore.HttpOverrides.IPNetwork(IPAddress.Parse("10.0.0.0"), 8));
-            forwardedOptions.KnownNetworks.Add(new Microsoft.AspNetCore.HttpOverrides.IPNetwork(IPAddress.Parse("172.16.0.0"), 12));
-            forwardedOptions.KnownNetworks.Add(new Microsoft.AspNetCore.HttpOverrides.IPNetwork(IPAddress.Parse("192.168.0.0"), 16));
-#pragma warning restore ASPDEPR005
+            options.KnownIPNetworks.Add(System.Net.IPNetwork.Parse("10.0.0.0/8"));
+            options.KnownIPNetworks.Add(System.Net.IPNetwork.Parse("172.16.0.0/12"));
+            options.KnownIPNetworks.Add(System.Net.IPNetwork.Parse("192.168.0.0/16"));
         }
 
-        app.UseForwardedHeaders(forwardedOptions);
-        return app;
+        return options;
     }
 
     /// <summary>

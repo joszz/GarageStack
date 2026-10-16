@@ -3,12 +3,14 @@ import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { demoApi } from '@/services/demoApi'
 import { useVehicleStore } from '@/stores/vehicle'
+import { useUnits } from '@/composables/useUnits'
 import type { TelemetrySnapshot } from '@/services/vehicleApi'
 
 const props = defineProps<{ open: boolean }>()
 
 const { t } = useI18n()
 const vehicleStore = useVehicleStore()
+const units = useUnits()
 
 const vin = computed(() => vehicleStore.activeVin)
 const status = computed(() => vehicleStore.currentStatus)
@@ -70,9 +72,15 @@ async function applySpeed() {
   await sendOverride({ speed: speedValue.value })
 }
 
+// The overrides are metric, like the telemetry they stand in for; the panel shows and takes
+// temperatures in the browser's units.
+function shownTemperature(metric: number | null | undefined, fallback: number): number {
+  return Math.round(units.value.convert('temperature', metric ?? fallback) * 2) / 2
+}
+
 async function applyTemperature(field: string, value: string) {
   const num = parseFloat(value)
-  if (!isNaN(num)) await sendOverride({ [field]: num })
+  if (!isNaN(num)) await sendOverride({ [field]: units.value.toMetric('temperature', num) })
 }
 
 function bool(val: boolean | null | undefined): boolean {
@@ -111,6 +119,7 @@ async function setLights(mode: 'off' | 'side' | 'dipped' | 'main') {
             :key="btn.field"
             class="demo-toggle-btn"
             :class="{ 'is-active': statusBool(btn.field) }"
+            :aria-pressed="statusBool(btn.field)"
             @click="toggle(btn.field, status?.[btn.field] as boolean | null | undefined)"
           >
             {{ t(btn.label) }}
@@ -126,6 +135,7 @@ async function setLights(mode: 'off' | 'side' | 'dipped' | 'main') {
             :key="btn.field"
             class="demo-toggle-btn"
             :class="{ 'is-active': statusBool(btn.field) }"
+            :aria-pressed="statusBool(btn.field)"
             @click="toggle(btn.field, status?.[btn.field] as boolean | null | undefined)"
           >
             {{ t(btn.label) }}
@@ -139,6 +149,7 @@ async function setLights(mode: 'off' | 'side' | 'dipped' | 'main') {
           <button
             class="demo-toggle-btn"
             :class="{ 'is-active': lightMode === 'off' }"
+            :aria-pressed="lightMode === 'off'"
             @click="setLights('off')"
           >
             {{ t('demo.lightsOff') }}
@@ -146,6 +157,7 @@ async function setLights(mode: 'off' | 'side' | 'dipped' | 'main') {
           <button
             class="demo-toggle-btn"
             :class="{ 'is-active': lightMode === 'side' }"
+            :aria-pressed="lightMode === 'side'"
             @click="setLights('side')"
           >
             {{ t('demo.sidelights') }}
@@ -153,6 +165,7 @@ async function setLights(mode: 'off' | 'side' | 'dipped' | 'main') {
           <button
             class="demo-toggle-btn"
             :class="{ 'is-active': lightMode === 'dipped' }"
+            :aria-pressed="lightMode === 'dipped'"
             @click="setLights('dipped')"
           >
             {{ t('demo.dippedBeam') }}
@@ -160,6 +173,7 @@ async function setLights(mode: 'off' | 'side' | 'dipped' | 'main') {
           <button
             class="demo-toggle-btn"
             :class="{ 'is-active': lightMode === 'main' }"
+            :aria-pressed="lightMode === 'main'"
             @click="setLights('main')"
           >
             {{ t('demo.mainBeam') }}
@@ -175,6 +189,7 @@ async function setLights(mode: 'off' | 'side' | 'dipped' | 'main') {
             :key="btn.field"
             class="demo-toggle-btn"
             :class="{ 'is-active': statusBool(btn.field) }"
+            :aria-pressed="statusBool(btn.field)"
             @click="toggle(btn.field, status?.[btn.field] as boolean | null | undefined)"
           >
             {{ t(btn.label) }}
@@ -190,6 +205,7 @@ async function setLights(mode: 'off' | 'side' | 'dipped' | 'main') {
             :key="btn.field"
             class="demo-toggle-btn"
             :class="{ 'is-active': statusBool(btn.field) }"
+            :aria-pressed="statusBool(btn.field)"
             @click="toggle(btn.field, status?.[btn.field] as boolean | null | undefined)"
           >
             {{ t(btn.label) }}
@@ -224,7 +240,7 @@ async function setLights(mode: 'off' | 'side' | 'dipped' | 'main') {
             step="1"
             :aria-label="t('demo.speed')"
           />
-          <span>{{ speedValue }} km/h</span>
+          <span>{{ units.format('speed', speedValue) }}</span>
           <button class="demo-toggle-btn" @click="applySpeed">OK</button>
         </div>
       </div>
@@ -233,10 +249,13 @@ async function setLights(mode: 'off' | 'side' | 'dipped' | 'main') {
         <div class="demo-panel-section-label">{{ t('demo.temperature') }}</div>
         <div class="demo-panel-inputs">
           <div class="demo-panel-input-group">
-            <label>{{ t('demo.interior') }} (°C)</label>
+            <label for="demo-interior-temperature"
+              >{{ t('demo.interior') }} ({{ units.symbol('temperature') }})</label
+            >
             <input
+              id="demo-interior-temperature"
               type="number"
-              :value="status?.interiorTemperature ?? 21"
+              :value="shownTemperature(status?.interiorTemperature, 21)"
               step="0.5"
               @change="
                 applyTemperature('interiorTemperature', ($event.target as HTMLInputElement).value)
@@ -244,10 +263,13 @@ async function setLights(mode: 'off' | 'side' | 'dipped' | 'main') {
             />
           </div>
           <div class="demo-panel-input-group">
-            <label>{{ t('demo.exterior') }} (°C)</label>
+            <label for="demo-exterior-temperature"
+              >{{ t('demo.exterior') }} ({{ units.symbol('temperature') }})</label
+            >
             <input
+              id="demo-exterior-temperature"
               type="number"
-              :value="status?.exteriorTemperature ?? 14"
+              :value="shownTemperature(status?.exteriorTemperature, 14)"
               step="0.5"
               @change="
                 applyTemperature('exteriorTemperature', ($event.target as HTMLInputElement).value)

@@ -133,7 +133,7 @@ public sealed class NominatimApiClient(
     {
         var trimmed = value?.Trim();
         if (string.IsNullOrEmpty(trimmed)) return null;
-        return trimmed.Length <= maxLength ? trimmed : trimmed[..maxLength];
+        return trimmed.Truncate(maxLength);
     }
 
     private sealed class NominatimReverseResponse

@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text.Json;
+using GarageStack.Core.Helpers;
 using GarageStack.Core.Models;
 
 namespace GarageStack.Worker.Mqtt;
@@ -34,8 +35,8 @@ public readonly record struct GatewayVehicleMessage(string Title, string Content
                 return false;
 
             message = new GatewayVehicleMessage(
-                Clip(ReadString(root, "title"), MaxTitleLength),
-                Clip(ReadString(root, "content"), MaxContentLength),
+                ReadString(root, "title").Truncate(MaxTitleLength).TrimEnd(),
+                ReadString(root, "content").Truncate(MaxContentLength).TrimEnd(),
                 ReadString(root, "message_type"));
             return true;
         }
@@ -66,7 +67,4 @@ public readonly record struct GatewayVehicleMessage(string Title, string Content
         root.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String
             ? value.GetString()!.Trim()
             : string.Empty;
-
-    private static string Clip(string value, int maxLength) =>
-        value.Length <= maxLength ? value : value[..maxLength].TrimEnd();
 }

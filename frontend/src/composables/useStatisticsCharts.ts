@@ -40,15 +40,16 @@ const CHART_ICONS: Record<StatsChartId, string> = {
   dailyKwhChart: 'bolt-lightning',
 }
 
+// Named in the legend by their short translated position (FL in English, LV in Dutch).
 const TYRE_SERIES: {
-  label: string
+  position: 'frontLeft' | 'frontRight' | 'rearLeft' | 'rearRight'
   read: (d: DailyStat) => number | null
   color: string
 }[] = [
-  { label: 'FL', read: (p) => p.tyrePressureFrontLeft, color: '#f59e0b' },
-  { label: 'FR', read: (p) => p.tyrePressureFrontRight, color: '#ef4444' },
-  { label: 'RL', read: (p) => p.tyrePressureRearLeft, color: '#8b5cf6' },
-  { label: 'RR', read: (p) => p.tyrePressureRearRight, color: '#ec4899' },
+  { position: 'frontLeft', read: (p) => p.tyrePressureFrontLeft, color: '#f59e0b' },
+  { position: 'frontRight', read: (p) => p.tyrePressureFrontRight, color: '#ef4444' },
+  { position: 'rearLeft', read: (p) => p.tyrePressureRearLeft, color: '#8b5cf6' },
+  { position: 'rearRight', read: (p) => p.tyrePressureRearRight, color: '#ec4899' },
 ]
 
 // Every line series shares the same shape and styling; only label, data and colour differ.
@@ -119,9 +120,9 @@ export function useStatisticsCharts(
     const u = units.value
     return {
       labels: labels.value,
-      datasets: TYRE_SERIES.map(({ label, read, color }) =>
+      datasets: TYRE_SERIES.map(({ position, read, color }) =>
         lineDataset(
-          `${label} (${u.symbol('pressure')})`,
+          `${t(`vehicle.diagram.tyrePositionShort.${position}`)} (${u.symbol('pressure')})`,
           bucketAverages(buckets.value, read).map((bar) =>
             bar === null ? null : u.convert('pressure', bar),
           ),

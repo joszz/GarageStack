@@ -1,6 +1,7 @@
 import type { Place } from '@/services/mapApi'
 import { TRIP_PURPOSES, type TripLogEntry, type TripPurpose } from '@/services/tripLogApi'
 import { coordinateLabel, postalAddressLabel } from '@/utils/places'
+import { pad2 } from '@/utils/dates'
 
 /**
  * The rules of the trip log that do not need a component: which dates a period covers, which
@@ -26,7 +27,7 @@ export function periodRange({ year, month }: TripLogPeriod): { from: Date; to: D
 
 /** "2026-09" for a month, "2026" for a year: sortable, and the same in every language. */
 export function periodKey({ year, month }: TripLogPeriod): string {
-  return month === null ? String(year) : `${year}-${String(month + 1).padStart(2, '0')}`
+  return month === null ? String(year) : `${year}-${pad2(month + 1)}`
 }
 
 /** The distance on the odometer, or null without both readings or when they run backwards. */

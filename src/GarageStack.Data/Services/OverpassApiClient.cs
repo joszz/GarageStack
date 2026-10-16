@@ -159,7 +159,7 @@ public sealed class OverpassApiClient(
     {
         var brand = (tags?.GetValueOrDefault("brand") ?? tags?.GetValueOrDefault("operator"))?.Trim();
         if (string.IsNullOrEmpty(brand)) return null;
-        return brand.Length <= PoiItemLimits.BrandMaxLength ? brand : brand[..PoiItemLimits.BrandMaxLength];
+        return brand.Truncate(PoiItemLimits.BrandMaxLength);
     }
 
     private sealed class OverpassResponse

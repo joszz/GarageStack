@@ -5,9 +5,10 @@ import type { TelemetrySnapshot, Trip } from '@/services/vehicleApi'
 import { useMapSettingsStore } from '@/stores/settingsMap'
 import { heatLayer as createHeatLayer } from '@/utils/heatLayer'
 import { fitToPoints, L, type LeafletMap } from '@/utils/leaflet'
-import { buildCarMarkerIcon } from '@/utils/mapCarIcon'
+import { buildCarMarkerIcon, moveCarMarker } from '@/utils/mapCarIcon'
 import { speedLimitSegments } from '@/utils/speedLimits'
 import { speedSegments, speedToColor, tripColor } from '@/utils/speedColors'
+import { latLngsOf } from '@/utils/geo'
 
 type HeatPoints = Parameters<typeof createHeatLayer>[0]
 
@@ -53,9 +54,7 @@ export function useTripLayers(o: TripLayersOptions) {
   let carToShow: [number, number] | null = null
 
   const allPoints = computed<[number, number][]>(() =>
-    o.trips.value.flatMap((trip) =>
-      trip.points.map((p) => [p.latitude, p.longitude] as [number, number]),
-    ),
+    o.trips.value.flatMap((trip) => latLngsOf(trip.points)),
   )
 
   function clearRouteLines() {
@@ -100,7 +99,7 @@ export function useTripLayers(o: TripLayersOptions) {
     if (!map) return
     clearRouteLines()
     o.trips.value.forEach((trip, i) => {
-      const pts = trip.points.map((p) => [p.latitude, p.longitude] as [number, number])
+      const pts = latLngsOf(trip.points)
       if (pts.length < 2) return
       if (routeOutlineEnabled.value) {
         const border = L.polyline(pts, { color: '#111', weight: 7, opacity: 0.4 })
@@ -128,8 +127,7 @@ export function useTripLayers(o: TripLayersOptions) {
     // The snapped line when there is one, the raw fixes until then: the map never waits on the
     // matcher, it redraws once the answer lands.
     const match = o.selectedMatch.value
-    const coords =
-      match?.coordinates ?? pts.map((p) => [p.latitude, p.longitude] as [number, number])
+    const coords = match?.coordinates ?? latLngsOf(pts)
 
     if (routeOutlineEnabled.value) {
       const border = L.polyline(coords, { color: '#111', weight: 9, opacity: 0.4 })
@@ -218,7 +216,7 @@ export function useTripLayers(o: TripLayersOptions) {
   }
 
   function fitTrip(trip: Trip) {
-    fitPoints(trip.points.map((p) => [p.latitude, p.longitude] as [number, number]))
+    fitPoints(latLngsOf(trip.points))
   }
 
   /**
@@ -279,8 +277,7 @@ export function useTripLayers(o: TripLayersOptions) {
     if (!endMarker || o.selectedIndex.value === null) return
     if (o.selectedIndex.value !== o.activeIndex.value) return
     if (s?.latitude == null || s?.longitude == null) return
-    endMarker.setLatLng([s.latitude, s.longitude])
-    endMarker.setIcon(buildCarMarkerIcon(s.heading ?? 0))
+    moveCarMarker(endMarker, [s.latitude, s.longitude], s.heading)
   })
 
   // When trips load after the map is ready, rebuild layers and fit

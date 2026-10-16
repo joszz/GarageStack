@@ -12,6 +12,8 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 # longer bundle corepack. The pnpm package's install script links the native binary for this
 # platform (musl), so npm's allowScripts policy has to let it run, and `pnpm --version` prints
 # the version the build runs.
+# The pnpm version is read from package.json, which hadolint cannot see.
+# hadolint ignore=DL3016
 RUN npm install --global --no-fund --no-audit --allow-scripts=pnpm "$(node -p "require('./package.json').packageManager.split('+')[0]")" \
     && pnpm --version \
     && pnpm config set minimum-release-age 0 \
@@ -31,7 +33,7 @@ ENV VITE_MAP_STYLE_LIGHT=$MAP_STYLE_LIGHT
 ENV VITE_MAP_STYLE_COLORFUL=$MAP_STYLE_COLORFUL
 RUN pnpm run build
 
-FROM nginx:alpine AS runtime
+FROM nginx:1.31-alpine AS runtime
 ARG OS_PATCH_DATE=0
 RUN echo "os patch date: ${OS_PATCH_DATE}" && apk upgrade --no-cache
 COPY --from=build /app/dist /usr/share/nginx/html

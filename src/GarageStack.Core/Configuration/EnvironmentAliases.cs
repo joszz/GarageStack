@@ -26,6 +26,7 @@ public static class EnvironmentAliases
         // Push notifications: the Worker signs and words them, the API hands out the public key.
         ["VAPID_PUBLIC_KEY"] = "Vapid:PublicKey",
         ["VAPID_PRIVATE_KEY"] = "Vapid:PrivateKey",
+        ["VAPID_SUBJECT"] = "Vapid:Subject",
         ["NOTIFICATION_LANGUAGE"] = "Notifications:Culture",
 
         // Facts about the car the gateway cannot report.
@@ -42,6 +43,7 @@ public static class EnvironmentAliases
 
         // How much detail old telemetry keeps.
         ["TELEMETRY_FULL_DETAIL_DAYS"] = "TelemetryRetention:FullDetailDays",
+        ["LOG_RETAINED_FILES"] = "LogFiles:Retained",
 
         // Who may call the API, and how often.
         ["CORS_ORIGIN"] = "Cors:Origins:0",

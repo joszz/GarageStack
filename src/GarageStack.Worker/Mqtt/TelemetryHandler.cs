@@ -34,6 +34,10 @@ public sealed class TelemetryHandler(
     internal readonly ConcurrentDictionary<int, (long RowId, DateTime RecordedAt)> _mergeState = new();
     private readonly ConcurrentDictionary<int, SemaphoreSlim> _mergeGates = new();
 
+    // Subtopics already reported as unmapped. The gateway republishes every topic on every poll, so
+    // one it adds after a release would otherwise write a warning per poll, for good.
+    private readonly ConcurrentDictionary<string, byte> _reportedUnmapped = new();
+
     // The last known EngineRunning per VIN. The first observation for a VIN only seeds it and never
     // counts as a start or a stop, which keeps a deploy or crash mid-drive from alerting.
     private readonly VinStateTracker<bool> _engineRunning = new();
@@ -41,7 +45,7 @@ public sealed class TelemetryHandler(
     // A flapping EngineRunning signal (reconnect or replay noise) would otherwise push on every
     // observed start. The gate also checks AppNotifications, so a restart does not forget a push
     // it just sent.
-    private readonly NotificationCooldownGate _engineStartCooldownGate = new(TimeSpan.FromHours(1));
+    private readonly NotificationCooldownGate _engineStartCooldownGate = new(NotificationCooldownGate.AlertCooldown);
 
     // Topics the gateway publishes that are left out on purpose, so they are no news either:
     // hybrid_electrical_range repeats drivetrain/range (see TelemetryMapper), and nothing reads why
@@ -63,7 +67,14 @@ public sealed class TelemetryHandler(
         var vinForLog = LogRedaction.Vin(vin);
 
         var patch = new TelemetrySnapshot();
-        if (!TelemetryMapper.ApplyMessage(patch, subtopic, payload))
+        var mapping = TelemetryMapper.Map(patch, subtopic, payload);
+        if (mapping == TelemetryMapping.MalformedPayload)
+        {
+            logger.LogWarning("Unreadable payload on a telemetry topic - VIN={Vin} subtopic={Subtopic} payloadBytes={PayloadBytes}", vinForLog, subtopic, payload.Length);
+            return true;
+        }
+
+        if (mapping == TelemetryMapping.UnknownTopic)
         {
             var ns = subtopic.Split('/')[0];
             // "command" is the gateway's command/error event, which repeats the failure its
@@ -73,8 +84,10 @@ public sealed class TelemetryHandler(
                 || NotStoredSubtopics.Contains(subtopic)
                 || subtopic.EndsWith("/set", StringComparison.Ordinal))
                 logger.LogDebug("MQTT metadata (skipped) - VIN={Vin} subtopic={Subtopic}", vin, subtopic);
+            else if (_reportedUnmapped.TryAdd(subtopic, 0))
+                logger.LogWarning("Unmapped telemetry topic (reported once per topic until restart) - VIN={Vin} subtopic={Subtopic} payloadBytes={PayloadBytes}", vinForLog, subtopic, payload.Length);
             else
-                logger.LogWarning("Unmapped telemetry topic - VIN={Vin} subtopic={Subtopic} payloadBytes={PayloadBytes}", vinForLog, subtopic, payload.Length);
+                logger.LogDebug("Unmapped telemetry topic - VIN={Vin} subtopic={Subtopic}", vin, subtopic);
             return true;
         }
 

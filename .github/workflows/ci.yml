@@ -17,10 +17,11 @@ jobs:
   project-rules:
     name: Project rules
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       # The project writes no em dashes anywhere: code, comments, docs or translations.
       - name: No em dashes
@@ -33,10 +34,11 @@ jobs:
   frontend-lint:
     name: Frontend lint
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - uses: ./.github/actions/setup-frontend
 
@@ -53,10 +55,11 @@ jobs:
   frontend-typecheck:
     name: Frontend type-check
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - uses: ./.github/actions/setup-frontend
 
@@ -67,16 +70,32 @@ jobs:
   frontend-test:
     name: Frontend tests
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - uses: ./.github/actions/setup-frontend
 
       - name: Run tests
         working-directory: frontend
-        run: pnpm run test:unit --run
+        run: pnpm run test:coverage
+
+      # Reported, not enforced: the figure is there to watch, not yet a gate.
+      - name: Coverage summary
+        if: always()
+        working-directory: frontend
+        run: |
+          [ -f coverage/coverage-summary.json ] || exit 0
+          # shellcheck disable=SC2016 # the ${...} below are JavaScript template literals
+          node -e '
+            const t = require("./coverage/coverage-summary.json").total
+            for (const line of ["### Frontend coverage", "", "| | Covered | |", "| --- | --- | --- |"])
+              console.log(line)
+            for (const k of ["lines", "branches", "functions", "statements"])
+              console.log(`| ${k} | ${t[k].pct}% | ${t[k].covered} / ${t[k].total} |`)
+          ' >> "$GITHUB_STEP_SUMMARY"
 
   # Runs the production bundle behind the production nginx config, which is the only place the
   # Content-Security-Policy applies. Unit tests and the type checker cannot see that far: a
@@ -84,16 +103,37 @@ jobs:
   e2e:
     name: End-to-end smoke test
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - uses: ./.github/actions/setup-frontend
 
+      # The browser download is cached per Playwright version; its system libraries are not
+      # cacheable, so a cache hit still installs those.
+      - name: Read the Playwright version
+        id: playwright
+        working-directory: frontend
+        run: echo "version=$(pnpm exec playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
+
+      - name: Cache the Playwright browser
+        id: playwright-cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+
       - name: Install Playwright browser
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
         working-directory: frontend
         run: pnpm exec playwright install --with-deps chromium
+
+      - name: Install the browser's system libraries
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        working-directory: frontend
+        run: pnpm exec playwright install-deps chromium
 
       - name: Start the demo stack
         run: |
@@ -116,7 +156,7 @@ jobs:
 
       - name: Upload the Playwright report
         if: failure()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: playwright-report
           path: frontend/playwright-report/
@@ -129,12 +169,13 @@ jobs:
   backend-test:
     name: Backend tests
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: actions/setup-dotnet@v6
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           dotnet-version: 10.0.x
 
@@ -142,17 +183,39 @@ jobs:
         run: dotnet restore
 
       - name: Test
-        run: dotnet test --no-restore --verbosity normal
+        run: >-
+          dotnet test --no-restore --verbosity normal
+          --coverage --coverage-output-format cobertura
+          --coverage-settings src/GarageStack.Tests/coverage.settings.xml
+          --results-directory TestResults
+
+      # Reported, not enforced: the figure is there to watch, not yet a gate.
+      - name: Coverage summary
+        if: always()
+        run: |
+          report=$(find TestResults -name '*.cobertura.xml' 2>/dev/null | head -1)
+          [ -n "$report" ] || exit 0
+          python3 - "$report" >> "$GITHUB_STEP_SUMMARY" <<'PY'
+          import sys, xml.etree.ElementTree as ET
+          root = ET.parse(sys.argv[1]).getroot()
+          pct = lambda e: f"{float(e.get('line-rate')) * 100:.1f}%"
+          for line in ["### Backend coverage", "", "| Assembly | Lines |", "| --- | --- |"]:
+              print(line)
+          print(f"| **All** | **{pct(root)}** |")
+          for package in root.iter("package"):
+              print(f"| {package.get('name')} | {pct(package)} |")
+          PY
 
   backend-build:
     name: Backend build
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: actions/setup-dotnet@v6
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           dotnet-version: 10.0.x
 
@@ -174,9 +237,13 @@ jobs:
           dotnet tool restore
           dotnet ef migrations has-pending-model-changes --project src/GarageStack.Data --startup-project src/GarageStack.Data --no-build --configuration Release
 
+  # Pull requests only: on main, docker-publish.yml builds and publishes these same images. The
+  # "Protect main" ruleset requires these checks, so they stay here rather than there.
   container-build:
     name: Container build (${{ matrix.label }})
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions:
       contents: read
     strategy:
@@ -196,19 +263,19 @@ jobs:
             context: .
             dockerfile: src/GarageStack.Worker/Dockerfile
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Log in to Docker Hub (avoids pull rate limits)
         continue-on-error: true
-        uses: docker/login-action@v4
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - uses: docker/setup-buildx-action@v4
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
       - name: Build (no push)
-        uses: docker/build-push-action@v7
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: ${{ matrix.context }}
           file: ${{ matrix.dockerfile }}
@@ -216,3 +283,24 @@ jobs:
           build-args: APP_VERSION=0.0.0-ci
           cache-from: type=gha,scope=ci-${{ matrix.label }}
           cache-to: type=gha,scope=ci-${{ matrix.label }},mode=min
+
+  infra-lint:
+    name: Shell, Dockerfile and workflow lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: shellcheck
+        run: |
+          git ls-files -z '*.sh' | xargs -0 docker run --rm -v "$PWD:/mnt" -w /mnt             koalaman/shellcheck:v0.11.0@sha256:61862eba1fcf09a484ebcc6feea46f1782532571a34ed51fedf90dd25f925a8d -x
+
+      - name: hadolint
+        run: |
+          git ls-files -z '*Dockerfile' | xargs -0 docker run --rm -v "$PWD:/repo" -w /repo             hadolint/hadolint:v2.14.0@sha256:27086352fd5e1907ea2b934eb1023f217c5ae087992eb59fde121dce9c9ff21e hadolint
+
+      - name: actionlint
+        run: |
+          docker run --rm -v "$PWD:/repo" -w /repo             rhysd/actionlint:1.7.12@sha256:b1934ee5f1c509618f2508e6eb47ee0d3520686341fec936f3b79331f9315667 -color

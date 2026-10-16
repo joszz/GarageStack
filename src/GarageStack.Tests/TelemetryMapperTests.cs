@@ -121,6 +121,16 @@ public class TelemetryMapperTests
         Assert.Null(snapshot.IsLocked);
     }
 
+    [Theory]
+    [InlineData("drivetrain/soc", "81", TelemetryMapping.Mapped)]
+    [InlineData("unknown/topic", "42", TelemetryMapping.UnknownTopic)]
+    [InlineData("location/position", "not json", TelemetryMapping.MalformedPayload)]
+    [InlineData("drivetrain/chargingSchedule", "{\"mode\":", TelemetryMapping.MalformedPayload)]
+    public void Map_TellsAnUnknownTopicFromAnUnreadablePayload(string subtopic, string payload, TelemetryMapping expected)
+    {
+        Assert.Equal(expected, TelemetryMapper.Map(new TelemetrySnapshot(), subtopic, payload));
+    }
+
     // The gateway names the remote climate mode on remoteClimateState; fan only and front
     // defrost still count as climate on.
     [Theory]

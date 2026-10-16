@@ -10,7 +10,8 @@ import { useVehicleStore } from '@/stores/vehicle'
 import { useReverseGeocode } from '@/composables/useReverseGeocode'
 import { addressLabel } from '@/utils/places'
 import CardInfoWrap from './CardInfoWrap.vue'
-import { buildCarMarkerIcon } from '@/utils/mapCarIcon'
+import { buildCarMarkerIcon, moveCarMarker } from '@/utils/mapCarIcon'
+import { latLngsOf } from '@/utils/geo'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -91,7 +92,7 @@ function buildActiveTripLayers() {
   if (!map || !trip || !hasLocation.value) return
 
   if (trip.points.length >= 2) {
-    const coords = trip.points.map((p) => [p.latitude, p.longitude] as [number, number])
+    const coords = latLngsOf(trip.points)
     routeLine = L.polyline(coords, { color: '#3b82f6', weight: 4, opacity: 0.8 }).addTo(map)
   }
   carMarker = L.marker(center.value, {
@@ -125,11 +126,7 @@ function updateMapView() {
       24,
     )
   } else if (trip && trip.points.length > 0) {
-    fitToPoints(
-      map,
-      trip.points.map((p) => [p.latitude, p.longitude] as [number, number]),
-      24,
-    )
+    fitToPoints(map, latLngsOf(trip.points), 24)
   } else if (hasLocation.value) {
     map.setView(center.value, 14, { animate: false })
   }
@@ -146,10 +143,7 @@ function onMapReady(map: LeafletMap) {
 // arrive, and keep the live car marker following position/heading without a full layer rebuild.
 watch(status, (s) => {
   if (!mapInstance.value || s?.latitude == null || s?.longitude == null) return
-  if (carMarker) {
-    carMarker.setLatLng([s.latitude, s.longitude])
-    carMarker.setIcon(buildCarMarkerIcon(s.heading ?? 0))
-  }
+  if (carMarker) moveCarMarker(carMarker, [s.latitude, s.longitude], s.heading)
   updateMapView()
 })
 

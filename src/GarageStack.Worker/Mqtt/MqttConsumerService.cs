@@ -1,4 +1,5 @@
 using GarageStack.Core.Configuration;
+using GarageStack.Core.Helpers;
 using GarageStack.Core.Interfaces;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Options;
@@ -48,6 +49,9 @@ public class MqttConsumerService : BackgroundService
     protected virtual IMqttClient CreateMqttClient() => new MqttClientFactory().CreateMqttClient();
     protected virtual TimeSpan RetryDelay => TimeSpan.FromSeconds(5);
 
+    // While the broker stays down, how often the log hears about it again (it retries every 5 s).
+    private static readonly TimeSpan OutageReminder = TimeSpan.FromMinutes(5);
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         using var client = CreateMqttClient();
@@ -68,6 +72,7 @@ public class MqttConsumerService : BackgroundService
             mqttOptionsBuilder.WithCredentials(_options.Username, _options.Password);
 
         var mqttOptions = mqttOptionsBuilder.Build();
+        var outage = new OutageLog(_logger, "MQTT broker connection", OutageReminder);
 
         while (!stoppingToken.IsCancellationRequested)
         {
@@ -92,6 +97,7 @@ public class MqttConsumerService : BackgroundService
                     .Build(), stoppingToken);
                 _logger.LogInformation("Subscribed to saic/# and homeassistant/#");
                 _connection.Set(true);
+                outage.Recovered();
 
                 // Waits until the broker disconnects or the host is shutting down.
                 await disconnectedTcs.Task.WaitAsync(stoppingToken);
@@ -103,7 +109,7 @@ public class MqttConsumerService : BackgroundService
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "MQTT connection error, reconnecting in 5s...");
+                outage.Failed(ex);
             }
             finally
             {

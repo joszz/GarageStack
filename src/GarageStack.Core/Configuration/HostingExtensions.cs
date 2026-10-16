@@ -13,7 +13,11 @@ namespace GarageStack.Core.Configuration;
 /// </summary>
 public static class HostingExtensions
 {
-    private const int RetainedLogFileCount = 30;
+    private const int DefaultRetainedLogFiles = 30;
+
+    // A day's file that reaches this starts a second one rather than stopping the log for the rest
+    // of the day (Serilog's default at 1 GB). Rolled files count towards the files kept.
+    private const long MaxLogFileBytes = 100L * 1024 * 1024;
 
     /// <summary>
     /// Logger for the window before the host exists, so a failure while reading configuration
@@ -24,14 +28,16 @@ public static class HostingExtensions
         new LoggerConfiguration().WriteTo.Console().CreateBootstrapLogger();
 
     /// <summary>
-    /// Logging as both services do it: console plus a daily rolling file kept for a month, with
-    /// levels read from configuration and DEBUG_LOGS=true turning on debug output. The
-    /// <c>logFilePrefix</c> names that file, so "api" writes logs/api-20260916.log.
+    /// Logging as both services do it: console plus a daily rolling file, kept for
+    /// LOG_RETAINED_FILES files (30 by default) and rolled early at 100 MB, with levels read from
+    /// configuration and DEBUG_LOGS=true turning on debug output. The <c>logFilePrefix</c> names
+    /// that file, so "api" writes logs/api-20260916.log.
     /// </summary>
     public static IServiceCollection AddGarageStackSerilog(
         this IServiceCollection services, IConfiguration configuration, string logFilePrefix)
     {
         var debugLogs = string.Equals(configuration["DEBUG_LOGS"], "true", StringComparison.OrdinalIgnoreCase);
+        var retainedFiles = Math.Max(1, configuration.IntegerOrDefault("LogFiles:Retained", DefaultRetainedLogFiles));
 
         return services.AddSerilog((_, config) =>
         {
@@ -40,12 +46,18 @@ public static class HostingExtensions
                   .WriteTo.File(
                       $"logs/{logFilePrefix}-.log",
                       rollingInterval: RollingInterval.Day,
-                      retainedFileCountLimit: RetainedLogFileCount);
+                      retainedFileCountLimit: retainedFiles,
+                      fileSizeLimitBytes: MaxLogFileBytes,
+                      rollOnFileSizeLimit: true);
 
             if (debugLogs)
                 config.MinimumLevel.Debug()
                       .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
                       .MinimumLevel.Override("System", LogEventLevel.Warning);
+
+            // ASP.NET's own "Request starting" line repeats the request log line with the path
+            // unredacted (the VIN in full), so it stays quiet whatever the configuration says.
+            config.MinimumLevel.Override("Microsoft.AspNetCore.Hosting.Diagnostics", LogEventLevel.Warning);
         });
     }
 

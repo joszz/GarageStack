@@ -22,6 +22,10 @@ const {
   showSubscribeFailedNotice,
 } = useNotificationPushSync()
 
+// Browsers only offer push (and the service worker behind it) to secure pages: https, or
+// localhost. On a plain-HTTP LAN address the switch would simply be missing, so say why instead.
+const needsHttps = !pushSupported && !window.isSecureContext
+
 const NOTIFICATION_CATEGORY_LABEL_KEYS: Record<NotificationCategoryId, string> = {
   'low-tyre': 'lowTyre',
   'high-tyre': 'highTyre',
@@ -87,6 +91,10 @@ function toggleNotificationType(id: NotificationCategoryId, checked: boolean) {
       input-id="settings-toggle-push"
     />
   </div>
+
+  <p v-else-if="needsHttps" class="notif-type-filter__denied text-muted text-sm">
+    {{ t('push.needsHttps') }}
+  </p>
 
   <div v-if="showPermissionDeniedNotice" class="notif-type-filter__denied text-danger text-sm">
     {{ t('push.permissionDenied') }}

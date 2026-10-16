@@ -22,7 +22,7 @@ public class TelemetryRepository(
     private DateTime UtcNow => (time ?? TimeProvider.System).GetUtcNow().UtcDateTime;
 
     // GetMergedLatestAsync scans up to 200 rows (plus up to 2 fallback queries) and runs on
-    // every /status, /widget/status, maintenance-mutation, and SignalR-broadcast call. A write
+    // every /status, /widget/status and SignalR-broadcast call. A write
     // (AddAsync/MergeIntoAsync) always invalidates the entry immediately via NotifyUpdatedAsync,
     // so this short TTL only bounds staleness for the rare case nothing has written new
     // telemetry at all - its real job is absorbing bursts of reads between writes (multiple
@@ -125,13 +125,6 @@ public class TelemetryRepository(
         }
     }
 
-    public Task<TelemetrySnapshot?> GetLatestAsync(int vehicleId, CancellationToken ct = default) =>
-        db.TelemetrySnapshots
-          .AsNoTracking()
-          .Where(s => s.VehicleId == vehicleId)
-          .OrderByDescending(s => s.RecordedAt)
-          .FirstOrDefaultAsync(ct);
-
     public async Task<TelemetrySnapshot?> GetMergedLatestAsync(int vehicleId, CancellationToken ct = default)
     {
         var cacheKey = LatestCacheKey(vehicleId);
@@ -171,7 +164,7 @@ public class TelemetryRepository(
         {
             var lastSpeedRow = rows.FirstOrDefault(r => r.Speed != null);
             var engineOff = merged.EngineRunning == false;
-            var stationary = lastSpeedRow is { Speed: <= 0 } && UtcNow - lastSpeedRow.RecordedAt > TimeSpan.FromMinutes(5);
+            var stationary = lastSpeedRow is { Speed: <= 0 } && UtcNow - lastSpeedRow.RecordedAt > TripSegmenter.ParkThreshold;
             if (engineOff || stationary)
                 merged.CurrentJourneyDistance = null;
         }
@@ -328,10 +321,10 @@ public class TelemetryRepository(
 
     // Ordered on the group before projecting: EF cannot translate an OrderBy on a property of a
     // record built through its constructor, so sorting after the Select fails at runtime.
-    public async Task<IReadOnlyList<RawTopicStat>> GetRawTopicStatsAsync(int vehicleId, CancellationToken ct = default) =>
+    public async Task<IReadOnlyList<RawTopicStat>> GetRawTopicStatsAsync(int vehicleId, DateTime since, CancellationToken ct = default) =>
         await db.TelemetrySnapshots
             .AsNoTracking()
-            .Where(s => s.VehicleId == vehicleId && s.RawTopic != null)
+            .Where(s => s.VehicleId == vehicleId && s.RecordedAt >= since && s.RawTopic != null)
             .GroupBy(s => s.RawTopic!)
             .OrderByDescending(g => g.Count())
             .Select(g => new RawTopicStat(g.Key, g.Count(), g.Max(s => s.RecordedAt)))

@@ -16,12 +16,15 @@
   <Support>https://github.com/joszz/garagestack/issues</Support>
   <Project>https://github.com/joszz/garagestack</Project>
   <Overview>
-    GarageStack is an open-source vehicle monitoring dashboard for MG / SAIC electric, plug-in hybrid, and hybrid vehicles.
-    It connects to the MG iSmart cloud via the SAIC MQTT Gateway and stores all data locally in an embedded
-    PostgreSQL database. Features include: live dashboard, energy and efficiency statistics, trip history with
-    heatmap visualisation, EV charging station overlay (requires free OCM API key), fuel station and motorway
-    service area overlays (OpenStreetMap, no key required), Web Push notifications, and a Homepage dashboard widget.
-    Everything runs in a single container -- no external database or MQTT broker required.
+    GarageStack is an open-source, self-hosted dashboard for MG / SAIC electric, plug-in hybrid and hybrid cars.
+    It connects to the MG iSmart cloud through the SAIC MQTT Gateway and keeps everything in its own embedded
+    PostgreSQL database. Features: a live dashboard; remote commands (climate, lock, boot, horn and lights, and on
+    a plug-in car charging, the charge target, cable lock, battery heating and their schedules); climate schedules;
+    energy statistics over any period; trips drawn on the roads they took, with heatmaps and speed limits; a trip
+    log for the taxman with automatic commutes and CSV export; maintenance reminders; push notifications; charging
+    station, fuel station, service area and speed camera map layers; Home Assistant through MQTT discovery; single
+    sign-on through any OpenID Connect provider; and a Homepage dashboard widget.
+    Everything runs in this one container: no external database or MQTT broker required.
   </Overview>
   <Category>Tools: HomeAutomation:</Category>
   <WebUI>http://[IP]:[PORT:80]/</WebUI>
@@ -234,9 +237,9 @@
   <Config
     Name="Secure Session Cookie"
     Target="AUTH_COOKIE_SECURE"
-    Default="false"
+    Default="auto"
     Mode=""
-    Description="Set to true when GarageStack is served over HTTPS (behind a TLS-terminating reverse proxy) so the session cookie is never sent over plain HTTP. Leave false for a plain-HTTP LAN install, or you will not be able to log in."
+    Description="auto (recommended) marks the session cookie Secure whenever you open GarageStack over HTTPS, also behind a TLS-terminating reverse proxy, and keeps a plain-HTTP LAN install working. true always marks it Secure (plain HTTP then cannot log in); false never does."
     Type="Variable"
     Display="advanced"
     Required="false"
@@ -390,6 +393,17 @@
     Mask="true"/>
 
   <Config
+    Name="VAPID Subject"
+    Target="VAPID_SUBJECT"
+    Default=""
+    Mode=""
+    Description="Contact the push services (Google, Mozilla, Apple) receive with every notification: mailto:you@example.com or an https URL. Empty uses CORS_ORIGIN when that is https, otherwise a placeholder; it is never taken from your MG account."
+    Type="Variable"
+    Display="advanced"
+    Required="false"
+    Mask="false"/>
+
+  <Config
     Name="Notification Language"
     Target="NOTIFICATION_LANGUAGE"
     Default="en"
@@ -438,7 +452,7 @@
     Target="OVERPASS__BASEURL"
     Default="https://overpass-api.de/api/interpreter"
     Mode=""
-    Description="Overpass API endpoint used for fuel station and motorway service area overlays. Defaults to the public endpoint -- no API key required. Change this only if you self-host an Overpass instance."
+    Description="Overpass API endpoint used for the fuel station, motorway service area and speed camera overlays. Defaults to the public endpoint -- no API key required. Change this only if you self-host an Overpass instance."
     Type="Variable"
     Display="advanced"
     Required="false"
@@ -619,6 +633,17 @@
     Display="advanced"
     Required="false"
     Mask="false">false</Config>
+
+  <Config
+    Name="Log Files Kept"
+    Target="LOG_RETAINED_FILES"
+    Default="30"
+    Mode=""
+    Description="Log files each service keeps under /data: one per day, and another whenever a day's file passes 100 MB. The oldest go first."
+    Type="Variable"
+    Display="advanced"
+    Required="false"
+    Mask="false">30</Config>
 
   <Config
     Name="Database Name"

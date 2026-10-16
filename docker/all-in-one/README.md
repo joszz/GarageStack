@@ -6,14 +6,14 @@ Single container that bundles every GarageStack service. Designed for Unraid and
 
 | Process | Role |
 |---------|------|
-| **nginx** | Serves the Vue SPA on port 80; proxies `/api/` to the .NET API |
+| **nginx** | Serves the Vue SPA on port 80; proxies `/api/` and `/hubs/` to the .NET API |
 | **GarageStack.Api** | ASP.NET Core REST API (localhost:9000, not directly exposed) |
 | **GarageStack.Worker** | .NET background service -- MQTT consumer, push notifications |
 | **PostgreSQL 18** | Embedded database (localhost:5432, not directly exposed) |
 | **Mosquitto** | MQTT broker on port 1883 with username/password auth and ACL |
 | **SAIC MQTT Gateway** | Python 3.14 service that polls the MG iSmart cloud and publishes telemetry to Mosquitto. Copied from the official `saicismartapi/saic-python-mqtt-gateway` image, minus the dev-only packages that image ships in its venv. |
 
-All processes are managed by **supervisord**. Startup order is enforced via priority and startup delays so PostgreSQL is ready before the .NET services try to connect.
+All processes are managed by **supervisord**. Each service starts in priority order and first waits for what it needs: the gateway for Mosquitto, the API for PostgreSQL, and the Worker for PostgreSQL and the API (the `wait-for-*.sh` scripts poll until each one answers).
 
 ## Port layout
 
@@ -204,7 +204,7 @@ Then run the container again. The database, credentials, and data protection key
 
 ### Container starts but the web UI returns 502
 
-PostgreSQL or the .NET API is still starting up. The API has a 20-second startup delay built in; allow up to 30 seconds after `docker start`. Watch the logs:
+PostgreSQL or the .NET API is still starting up. The API waits for PostgreSQL before it starts, so on a first start (which also initialises the database) allow up to a minute after `docker start`. `/api/health` answers once the API is up. Watch the logs:
 
 ```powershell
 docker logs -f garagestack

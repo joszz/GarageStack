@@ -1,16 +1,20 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted } from 'vue'
+import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useEscapeKey } from '@/composables/useEscapeKey'
+import { useDialogFocus } from '@/composables/useDialogFocus'
 
 const { t } = useI18n()
 const props = defineProps<{ title: string; open: boolean; wide?: boolean }>()
 const emit = defineEmits<{ (e: 'close'): void }>()
 
-function onKey(e: KeyboardEvent) {
-  if (e.key === 'Escape' && props.open) emit('close')
-}
-onMounted(() => document.addEventListener('keydown', onKey))
-onUnmounted(() => document.removeEventListener('keydown', onKey))
+useEscapeKey(
+  () => props.open,
+  () => emit('close'),
+)
+
+const dialog = ref<HTMLElement | null>(null)
+useDialogFocus(dialog, () => props.open)
 </script>
 
 <template>
@@ -18,8 +22,10 @@ onUnmounted(() => document.removeEventListener('keydown', onKey))
     <Transition name="modal">
       <div v-if="open" class="detail-modal-backdrop" @click.self="emit('close')">
         <div
+          ref="dialog"
           class="detail-modal"
           :class="{ 'detail-modal--wide': wide }"
+          tabindex="-1"
           role="dialog"
           :aria-modal="true"
           :aria-label="title"

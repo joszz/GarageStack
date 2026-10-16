@@ -37,7 +37,8 @@
     <PackageVersion Include="Serilog.Sinks.Console" Version="6.1.1" />
     <PackageVersion Include="Serilog.Sinks.File" Version="7.0.0" />
     <!-- Tests -->
-    <PackageVersion Include="coverlet.collector" Version="10.1.0" />
+    <!-- Coverage for Microsoft.Testing.Platform (global.json); coverlet.collector only plugs into VSTest. -->
+    <PackageVersion Include="Microsoft.Testing.Extensions.CodeCoverage" Version="18.12.0" />
     <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.12" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="4.0.0" />

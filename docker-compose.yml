@@ -10,6 +10,7 @@
 x-dotnet-environment: &dotnet-environment
   ASPNETCORE_ENVIRONMENT: "Production"
   DEBUG_LOGS: "${DEBUG_LOGS:-}"
+  LOG_RETAINED_FILES: "${LOG_RETAINED_FILES:-}"
   ConnectionStrings__DefaultConnection: "Host=${POSTGRES_HOST:-postgres};Port=${POSTGRES_PORT:-5432};Database=${POSTGRES_DB:-garagestack};Username=${POSTGRES_USER:-garagestack};Password=${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in your .env file, see .env.example}"
   MQTT_HOST: "${MQTT_HOST:-mosquitto}"
   MQTT_PORT: "${MQTT_PORT:-}"
@@ -17,7 +18,10 @@ x-dotnet-environment: &dotnet-environment
   MQTT_BROKER_PASSWORD: "${MQTT_BROKER_PASSWORD:?Set MQTT_BROKER_PASSWORD in your .env file, see .env.example}"
   VAPID_PUBLIC_KEY: "${VAPID_PUBLIC_KEY:-}"
   VAPID_PRIVATE_KEY: "${VAPID_PRIVATE_KEY:-}"
-  Vapid__Subject: "mailto:${SAIC_USER}"
+  VAPID_SUBJECT: "${VAPID_SUBJECT:-}"
+  # The Worker signs pushes with the address the app is served on (see VAPID_SUBJECT), so both
+  # services get it.
+  CORS_ORIGIN: "${CORS_ORIGIN:-http://localhost:8080}"
   # Colour-coding and notification thresholds (bar); the API paints them, the Worker alerts on them.
   TYRE_PRESSURE_LOW_BAR: "${TYRE_PRESSURE_LOW_BAR:-}"
   TYRE_PRESSURE_GOOD_BAR: "${TYRE_PRESSURE_GOOD_BAR:-}"
@@ -28,6 +32,15 @@ x-dotnet-environment: &dotnet-environment
   SPEEDCAMERAS__ENABLED: "${SPEEDCAMERAS__ENABLED:-}"
   OPENCHARGEMAP_API_KEY: "${OPENCHARGEMAP_API_KEY:-}"
 
+# Docker keeps container output forever unless told otherwise. The .NET services also write their
+# own rotated files (LOG_RETAINED_FILES), so a few megabytes of console history per container is
+# plenty.
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   mosquitto:
     image: eclipse-mosquitto:2
@@ -35,6 +48,7 @@ services:
     restart: unless-stopped
     mem_limit: 128m
     cpus: 0.5
+    logging: *logging
     environment:
       MQTT_BROKER_USERNAME: "${MQTT_BROKER_USERNAME:-garagestack}"
       MQTT_BROKER_PASSWORD: "${MQTT_BROKER_PASSWORD:?Set MQTT_BROKER_PASSWORD in your .env file, see .env.example}"
@@ -49,6 +63,14 @@ services:
       - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf
       - ./docker/mosquitto-auth.sh:/mosquitto-auth.sh:ro
       - mosquitto_data:/mosquitto/data/
+    healthcheck:
+      # Signs in and subscribes as the internal user, so it proves both that the broker listens
+      # and that the password file it was started with works. -E exits once the broker acks.
+      test: ["CMD-SHELL", "mosquitto_sub -h 127.0.0.1 -u \"$$MQTT_BROKER_USERNAME\" -P \"$$MQTT_BROKER_PASSWORD\" -t garagestack/healthcheck -E -W 3"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
 
   saic-mqtt-gateway:
     image: saicismartapi/saic-python-mqtt-gateway:0.12.0
@@ -56,8 +78,12 @@ services:
     restart: unless-stopped
     mem_limit: 256m
     cpus: 0.5
+    logging: *logging
+    # The gateway has no endpoint to probe; it waits for a broker that takes its login instead
+    # of logging connection errors through the broker's start.
     depends_on:
-      - mosquitto
+      mosquitto:
+        condition: service_healthy
     environment:
       SAIC_USER: "${SAIC_USER}"
       SAIC_PASSWORD: "${SAIC_PASSWORD}"
@@ -81,6 +107,7 @@ services:
     restart: unless-stopped
     mem_limit: 512m
     cpus: 1.0
+    logging: *logging
     environment:
       POSTGRES_DB: "${POSTGRES_DB:-garagestack}"
       POSTGRES_USER: "${POSTGRES_USER:-garagestack}"
@@ -103,6 +130,7 @@ services:
     restart: unless-stopped
     mem_limit: 256m
     cpus: 0.5
+    logging: *logging
     labels:
       net.unraid.docker.icon: "https://raw.githubusercontent.com/joszz/garagestack/main/frontend/public/pwa-192x192.png"
     depends_on:
@@ -137,6 +165,7 @@ services:
     restart: unless-stopped
     mem_limit: 512m
     cpus: 1.0
+    logging: *logging
     labels:
       net.unraid.docker.icon: "https://raw.githubusercontent.com/joszz/garagestack/main/frontend/public/pwa-192x192.png"
     depends_on:
@@ -147,7 +176,6 @@ services:
         condition: service_started
     environment:
       <<: *dotnet-environment
-      CORS_ORIGIN: "${CORS_ORIGIN:-http://localhost:8080}"
       SAIC_USER: "${SAIC_USER}"
       SAIC_PASSWORD: "${SAIC_PASSWORD}"
       # Built-in password login, used only when no OIDC provider is configured below. Left
@@ -156,8 +184,8 @@ services:
       AUTH_USERNAME: "${AUTH_USERNAME:-}"
       AUTH_PASSWORD: "${AUTH_PASSWORD:-}"
       AUTH_PASSWORD_LOGIN_ENABLED: "${AUTH_PASSWORD_LOGIN_ENABLED:-}"
-      # False keeps plain-HTTP installs working out of the box; set it to true behind HTTPS.
-      AUTH_COOKIE_SECURE: "${AUTH_COOKIE_SECURE:-false}"
+      # auto marks the cookie Secure whenever the browser uses HTTPS, and still works on plain HTTP.
+      AUTH_COOKIE_SECURE: "${AUTH_COOKIE_SECURE:-auto}"
       AUTH_SESSION_LIFETIME_HOURS: "${AUTH_SESSION_LIFETIME_HOURS:-}"
       # OpenID Connect single sign-on -- see documentation/AUTHENTICATION.md. Setting OIDC_AUTHORITY switches
       # authentication over to the provider and disables the password login above, unless
@@ -201,10 +229,15 @@ services:
       dockerfile: Dockerfile
       args:
         APP_VERSION: "${APP_VERSION:-0.0.0-local}"
+        # Your own basemap styles, baked in at build time. See documentation/CONFIGURATION.md.
+        MAP_STYLE_DARK: "${MAP_STYLE_DARK:-}"
+        MAP_STYLE_LIGHT: "${MAP_STYLE_LIGHT:-}"
+        MAP_STYLE_COLORFUL: "${MAP_STYLE_COLORFUL:-}"
     container_name: garagestack-frontend
     restart: unless-stopped
     mem_limit: 128m
     cpus: 0.5
+    logging: *logging
     labels:
       net.unraid.docker.icon: "https://raw.githubusercontent.com/joszz/garagestack/main/frontend/public/pwa-192x192.png"
       net.unraid.docker.webui: "http://[IP]:[PORT:80]/"

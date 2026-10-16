@@ -1,4 +1,14 @@
-const MS_PER_DAY = 86_400_000
+export const MS_PER_DAY = 86_400_000
+
+/** A number as two digits, for dates and clock times: 7 is "07". */
+export function pad2(n: number): string {
+  return String(n).padStart(2, '0')
+}
+
+/** Local midnight at the start of the day `date` falls on. */
+export function startOfLocalDay(date: Date): Date {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate())
+}
 
 /**
  * The local calendar day as "YYYY-MM-DD", which is also what a date input takes. Not
@@ -6,9 +16,7 @@ const MS_PER_DAY = 86_400_000
  */
 export function localDateKey(date: Date): string {
   const y = date.getFullYear()
-  const m = String(date.getMonth() + 1).padStart(2, '0')
-  const d = String(date.getDate()).padStart(2, '0')
-  return `${y}-${m}-${d}`
+  return `${y}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`
 }
 
 /**
@@ -17,17 +25,6 @@ export function localDateKey(date: Date): string {
  */
 export function daysAgoIso(days: number, now = Date.now()): string {
   return new Date(now - days * MS_PER_DAY).toISOString()
-}
-
-/**
- * ISO timestamp for local midnight `days` days ago. The statistics page groups history by
- * local calendar day, so its range has to start on a day boundary or the first bucket would
- * be a partial day.
- */
-export function startOfLocalDayDaysAgoIso(days: number, now = new Date()): string {
-  const start = new Date(now)
-  start.setDate(start.getDate() - days)
-  return new Date(start.getFullYear(), start.getMonth(), start.getDate()).toISOString()
 }
 
 /**

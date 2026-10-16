@@ -110,7 +110,7 @@ PostgreSQL reuses the space of removed rows for new ones rather than handing it 
 | --- | --- | --- |
 | `GarageStack.Core` | Domain models (`Models/`), repository/service interfaces (`Interfaces/`), and pure helpers with no I/O (`Helpers/`) - the shared vocabulary every other project builds on. | nothing (leaf project) |
 | `GarageStack.Data` | EF Core: `AppDbContext`, migrations, concrete repository implementations, and `Demo/` (in-memory fakes used when `DEMO_MODE=true`). | `Core` |
-| `GarageStack.Worker` | The MQTT-ingestion process: `Mqtt/MqttConsumerService` and the message handlers beside it, plus the periodic jobs (maintenance reminders, POI pre-caching, push-notification checks, saving finished trips, housekeeping), each a `PeriodicBackgroundService`. | `Core`, `Data` |
+| `GarageStack.Worker` | The MQTT-ingestion process: `Mqtt/MqttConsumerService` and the message handlers beside it, plus the periodic jobs (maintenance reminders, POI pre-caching, push-notification checks, saving finished trips, housekeeping and telemetry compaction, climate schedules, and the heartbeat the API's readiness check listens for), each a `PeriodicBackgroundService`. | `Core`, `Data` |
 | `GarageStack.Api` | ASP.NET Core minimal APIs (`Endpoints/`), the SignalR hub (`Hubs/`), and Api-only services (outbound MQTT publishing, POI/charging-station lookups, the Postgres-LISTEN-to-SignalR bridge). | `Core`, `Data` |
 | `GarageStack.Tests` | xUnit tests across all of the above. | all four |
 
@@ -123,6 +123,8 @@ The upstream clients and the push sender take typed options (`GeocodingOptions`,
 ## Errors
 
 Every error the API answers with is a ProblemDetails body. Refusals the browser can explain carry a `code` beside the English `detail` (`maintenance.nameRequired`, `command.invalidValue`, `csrf.originNotAllowed`), built through `ApiProblems` in the Api. The frontend's `ApiError` keeps that code, and `useErrorMessage` shows the translation under `errors.codes.<code>` when there is one, else a message for the status, so a validation message reaches the user in their own language. A new refusal needs its code in both `en.json` and `nl.json`.
+
+Errors the other way round, the ones the web app runs into in someone's browser (a component that throws, a promise nobody awaited), are posted to `/api/client-errors` by `utils/errorReporting.ts` while someone is signed in, and the API logs them as `Browser error on <page>`. Each distinct message is sent once per page load and at most ten per load; the API caps the size, keeps every field on one line and rate-limits the endpoint.
 
 ## Caching
 

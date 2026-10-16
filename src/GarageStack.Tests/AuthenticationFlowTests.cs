@@ -597,6 +597,207 @@ public class AuthenticationFlowTests
         Assert.Equal("points must contain at least one coordinate", problem.RootElement.GetProperty("detail").GetString());
     }
 
+    // The Docker default: the session cookie is Secure exactly when the browser came in over HTTPS,
+    // so a TLS proxy gets the flag and a plain-HTTP LAN install can still sign in.
+    [Theory]
+    [InlineData("https://localhost", true)]
+    [InlineData("http://localhost", false)]
+    public async Task AutoCookieSecurity_FollowsTheRequestScheme(string baseAddress, bool secure)
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var factory = CreatePasswordOnlyFactory(s => s["Auth__CookieSecure"] = "auto");
+        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions
+        {
+            AllowAutoRedirect = false,
+            HandleCookies = false,
+            BaseAddress = new Uri(baseAddress),
+        });
+
+        var login = await client.PostAsJsonAsync(
+            "/api/auth/login",
+            new { username = DemoUsername, password = DemoPassword, rememberMe = false },
+            ct);
+
+        Assert.Equal(HttpStatusCode.OK, login.StatusCode);
+        var sessionCookie = Assert.Single(login.Headers.GetValues("Set-Cookie"));
+        Assert.Equal(secure, sessionCookie.Contains("; secure", StringComparison.OrdinalIgnoreCase));
+    }
+
+    // Browser errors reach the API's log, but only from a signed-in page.
+    [Fact]
+    public async Task ClientErrorReport_IsTakenFromASignedInPageOnly()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var factory = CreatePasswordOnlyFactory();
+        using var client = CreateClient(factory);
+        var report = new { message = "TypeError: x is undefined", stack = "at a (index.js:1:2)", page = "/map", source = "index.js:1:2" };
+
+        var anonymous = await client.PostAsJsonAsync("/api/client-errors", report, ct);
+        await client.PostAsJsonAsync(
+            "/api/auth/login",
+            new { username = DemoUsername, password = DemoPassword, rememberMe = false },
+            ct);
+        var signedIn = await client.PostAsJsonAsync("/api/client-errors", report, ct);
+        var empty = await client.PostAsJsonAsync("/api/client-errors", new { message = " " }, ct);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, anonymous.StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, signedIn.StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, empty.StatusCode);
+    }
+
+    // ── Endpoints end to end ──────────────────────────────────────────────────
+
+    private const string DemoVin = "DEMOVIN0000012345";
+
+    // An item's whole life: added, listed, a service logged against it, removed with its log.
+    // The demo database is shared by every host in this class, so the item has a name of its own.
+    [Fact]
+    public async Task MaintenanceItem_CanBeAddedLoggedAndRemoved()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var factory = CreatePasswordOnlyFactory();
+        using var client = CreateClient(factory);
+        await PasswordLoginAsync(client, ct);
+        var items = $"/api/vehicles/{DemoVin}/maintenance";
+        var name = $"Brake fluid {Guid.NewGuid():N}";
+
+        var created = await client.PostAsJsonAsync(items, new { name, intervalMonths = 24 }, ct);
+        var id = (await created.Content.ReadFromJsonAsync<JsonElement>(ct)).GetProperty("id").GetInt32();
+        var logged = await client.PostAsJsonAsync(
+            $"{items}/{id}/log", new { performedAt = DateTime.UtcNow.AddDays(-1), odometerKm = 1200, notes = "replaced" }, ct);
+        var log = await client.GetFromJsonAsync<JsonElement>($"{items}/{id}/log", ct);
+        var deleted = await client.DeleteAsync($"{items}/{id}", ct);
+        var after = await client.GetFromJsonAsync<JsonElement>(items, ct);
+
+        Assert.Equal(HttpStatusCode.OK, created.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, logged.StatusCode);
+        Assert.Equal("replaced", Assert.Single(log.EnumerateArray()).GetProperty("notes").GetString());
+        Assert.Equal(HttpStatusCode.OK, deleted.StatusCode);
+        Assert.DoesNotContain(after.EnumerateArray(), item => item.GetProperty("name").GetString() == name);
+    }
+
+    [Theory]
+    [InlineData("""{"name":"","intervalKm":10000}""", "maintenance.nameRequired")]
+    [InlineData("""{"name":"Oil"}""", "maintenance.intervalRequired")]
+    [InlineData("""{"name":"Oil","intervalMonths":121}""", "maintenance.intervalMonthsOutOfRange")]
+    public async Task MaintenanceItem_IsRefusedWithTheRuleItBreaks(string body, string code)
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var factory = CreatePasswordOnlyFactory();
+        using var client = CreateClient(factory);
+        await PasswordLoginAsync(client, ct);
+
+        var response = await client.PostAsync(
+            $"/api/vehicles/{DemoVin}/maintenance",
+            new StringContent(body, System.Text.Encoding.UTF8, "application/json"),
+            ct);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Equal(code, await ProblemCodeAsync(response, ct));
+    }
+
+    [Theory]
+    [InlineData("lock", """{"value":"maybe"}""", "command.invalidValue")]
+    [InlineData("fly", """{"value":"now"}""", "command.unknown")]
+    [InlineData("lock", "{}", "command.valueMissing")]
+    [InlineData("lock", """{"value":1}""", "command.valueNotText")]
+    [InlineData("lock", """{"value":" "}""", "command.valueEmpty")]
+    public async Task Command_IsRefusedWithTheReason(string command, string body, string code)
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var factory = CreatePasswordOnlyFactory();
+        using var client = CreateClient(factory);
+        await PasswordLoginAsync(client, ct);
+
+        var response = await client.PostAsync(
+            $"/api/vehicles/{DemoVin}/commands/{command}",
+            new StringContent(body, System.Text.Encoding.UTF8, "application/json"),
+            ct);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Equal(code, await ProblemCodeAsync(response, ct));
+    }
+
+    [Fact]
+    public async Task Command_IsSentOnTheGatewaysTopic()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var factory = CreatePasswordOnlyFactory();
+        using var client = CreateClient(factory);
+        await PasswordLoginAsync(client, ct);
+
+        var response = await client.PostAsJsonAsync($"/api/vehicles/{DemoVin}/commands/lock", new { value = "True" }, ct);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var sent = await response.Content.ReadFromJsonAsync<JsonElement>(ct);
+        Assert.EndsWith($"/vehicles/{DemoVin}/doors/locked/set", sent.GetProperty("topic").GetString());
+    }
+
+    [Fact]
+    public async Task Notifications_ListAndRefuseAnUnknownOne()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var factory = CreatePasswordOnlyFactory();
+        using var client = CreateClient(factory);
+        await PasswordLoginAsync(client, ct);
+
+        var list = await client.GetAsync("/api/notifications", ct);
+        var archive = await client.PatchAsync("/api/notifications/987654/archive", null, ct);
+        var delete = await client.DeleteAsync("/api/notifications/987654", ct);
+
+        Assert.Equal(HttpStatusCode.OK, list.StatusCode);
+        Assert.Equal(JsonValueKind.Array, (await list.Content.ReadFromJsonAsync<JsonElement>(ct)).ValueKind);
+        Assert.Equal(HttpStatusCode.NotFound, archive.StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, delete.StatusCode);
+    }
+
+    // Unsubscribing an endpoint the server never had is not an error: the browser may be cleaning up.
+    [Fact]
+    public async Task PushUnsubscribe_OfAnUnknownEndpoint_Succeeds()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var factory = CreatePasswordOnlyFactory();
+        using var client = CreateClient(factory);
+        await PasswordLoginAsync(client, ct);
+
+        var response = await client.PostAsJsonAsync("/api/push/unsubscribe", new { endpoint = "https://push.example/unknown" }, ct);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    // The widget has no session: its key is the whole of its protection.
+    [Theory]
+    [InlineData(null, HttpStatusCode.Unauthorized)]
+    [InlineData("wrong-key", HttpStatusCode.Unauthorized)]
+    [InlineData("widget-test-key", HttpStatusCode.OK)]
+    public async Task Widget_AnswersOnlyTheConfiguredKey(string? key, HttpStatusCode expected)
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var factory = CreatePasswordOnlyFactory(s => s["Widget__ApiKey"] = "widget-test-key");
+        using var client = CreateClient(factory);
+        using var request = new HttpRequestMessage(HttpMethod.Get, $"/api/widget/{DemoVin}/status");
+        if (key is not null) request.Headers.Add("X-Widget-Key", key);
+
+        var response = await client.SendAsync(request, ct);
+
+        Assert.Equal(expected, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Widget_WithoutAConfiguredKey_SaysItIsSwitchedOff()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var factory = CreatePasswordOnlyFactory();
+        using var client = CreateClient(factory);
+        using var request = new HttpRequestMessage(HttpMethod.Get, $"/api/widget/{DemoVin}/status");
+        request.Headers.Add("X-Widget-Key", "anything");
+
+        var response = await client.SendAsync(request, ct);
+
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
+        Assert.Equal("widget.notConfigured", await ProblemCodeAsync(response, ct));
+    }
+
     // NaN binds from the query string and slips past range comparisons; it once reached the tile
     // maths as tile (0,0) and was fetched and cached upstream.
     [Theory]
@@ -616,8 +817,7 @@ public class AuthenticationFlowTests
         var response = await client.GetAsync(url, ct);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        using var problem = System.Text.Json.JsonDocument.Parse(await response.Content.ReadAsStringAsync(ct));
-        Assert.Equal(code, problem.RootElement.GetProperty("code").GetString());
+        Assert.Equal(code, await ProblemCodeAsync(response, ct));
     }
 
     // ── Rate limiting ─────────────────────────────────────────────────────────
@@ -635,6 +835,26 @@ public class AuthenticationFlowTests
 
         Assert.Equal(HttpStatusCode.OK, allowed.StatusCode);
         Assert.Equal(HttpStatusCode.TooManyRequests, rejected.StatusCode);
+    }
+
+    // Ten tries per five minutes per address: enough for typos, too few to guess a password.
+    [Fact]
+    public async Task LoginRateLimit_RefusesTheEleventhTry()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var factory = CreatePasswordOnlyFactory();
+        using var client = CreateClient(factory);
+
+        var answers = new List<HttpStatusCode>();
+        for (var attempt = 0; attempt < 11; attempt++)
+        {
+            var response = await client.PostAsJsonAsync(
+                "/api/auth/login", new { username = DemoUsername, password = "wrong", rememberMe = false }, ct);
+            answers.Add(response.StatusCode);
+        }
+
+        Assert.All(answers.Take(10), status => Assert.Equal(HttpStatusCode.Unauthorized, status));
+        Assert.Equal(HttpStatusCode.TooManyRequests, answers[10]);
     }
 
     [Fact]

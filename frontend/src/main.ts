@@ -13,12 +13,16 @@ import { useUiSettingsStore } from './stores/settingsUi'
 import { useAuthStore } from './stores/auth'
 import { setUnauthorizedHandler, clearUnauthorizedState } from './services/apiCore'
 import { i18n, setLocale } from './i18n'
+import { installErrorReporting } from './utils/errorReporting'
 
 watchServiceWorkerUpdates()
 
 const app = createApp(App)
 const pinia = createPinia()
 app.use(pinia)
+
+// Errors in someone's browser reach the API's log, so a bug only they hit is not invisible.
+installErrorReporting(app, () => useAuthStore().isAuthenticated)
 
 const settings = useUiSettingsStore()
 // The interface language follows the setting from the start, so it also catches the account's

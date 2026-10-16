@@ -24,6 +24,31 @@ public static partial class LogRedaction
             : $"***{vin[^VinVisibleSuffix..]}";
     }
 
+    /// <summary>
+    /// A request path with each VIN segment shortened, for the per-request log line: every
+    /// /api/vehicles/{vin}/... route would otherwise write the full VIN at Information level.
+    /// </summary>
+    public static string RequestPath(string path) => VinFormat.PathSegment().Replace(path, m => Vin(m.Value));
+
+    /// <summary>
+    /// An account name for a sign-in log line. A username or display name is kept, so the log
+    /// still says which household member signed in; one that is an email address (providers fall
+    /// back to it) keeps only its first character and its domain.
+    /// </summary>
+    public static string Account(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return "***";
+        var at = name.IndexOf('@');
+        return at <= 0 ? name : $"{name[0]}***{name[at..]}";
+    }
+
+    /// <summary>
+    /// Only the host of a URL. A push subscription's endpoint is a bearer-like address for one
+    /// device; its host (the browser's push service) is all a log line needs.
+    /// </summary>
+    public static string UrlHost(string? url) =>
+        Uri.TryCreate(url, UriKind.Absolute, out var uri) ? uri.Host : "***";
+
     /// <summary>Redacts the account email and VIN segments of a saic-mqtt-gateway topic.</summary>
     public static string MqttTopic(string topic)
     {

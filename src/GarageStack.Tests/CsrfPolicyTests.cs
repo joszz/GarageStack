@@ -2,7 +2,7 @@ using GarageStack.Api.Security;
 
 namespace GarageStack.Tests;
 
-public class CsrfMiddlewareTests
+public class CsrfPolicyTests
 {
     private static readonly string[] Allowed = ["https://app.garagestack.io", "https://www.garagestack.io"];
 

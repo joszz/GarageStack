@@ -6,6 +6,7 @@ on:
 jobs:
   notice:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     permissions: {}
     steps:
       - run: echo "Use the docker-publish workflow instead."
