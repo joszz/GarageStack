@@ -2,9 +2,7 @@ using GarageStack.Core.Configuration;
 using GarageStack.Core.Helpers;
 using GarageStack.Core.Interfaces;
 using GarageStack.Core.Models;
-using GarageStack.Data;
 using GarageStack.Data.Services;
-using Microsoft.EntityFrameworkCore;
 
 namespace GarageStack.Worker.Services;
 
@@ -25,29 +23,16 @@ public sealed class PoiPreCachingService(
     protected override async Task RunOnceAsync(CancellationToken ct)
     {
         using var scope = scopeFactory.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var repository = scope.ServiceProvider.GetRequiredService<IPoiRepository>();
         var vehicleRepo = scope.ServiceProvider.GetRequiredService<IVehicleRepository>();
+        var telemetry = scope.ServiceProvider.GetRequiredService<ITelemetryRepository>();
 
         var vehicles = await vehicleRepo.GetAllAsync(ct);
 
-        // Single query for the latest known location of every vehicle instead of one query per
-        // vehicle: the RecordedAt == MAX(RecordedAt) correlated subquery reliably translates to SQL.
-        // Only the position comes back, untracked: nothing here changes the rows.
-        var latestByVehicle = (await db.TelemetrySnapshots
-            .AsNoTracking()
-            .Where(s => s.Latitude != null && s.Longitude != null)
-            .Where(s => s.RecordedAt == db.TelemetrySnapshots
-                .Where(x => x.VehicleId == s.VehicleId && x.Latitude != null && x.Longitude != null)
-                .Max(x => x.RecordedAt))
-            .Select(s => new { s.VehicleId, Latitude = s.Latitude!.Value, Longitude = s.Longitude!.Value })
-            .ToListAsync(ct))
-            .GroupBy(s => s.VehicleId)
-            .ToDictionary(g => g.Key, g => g.First());
-
         foreach (var vehicle in vehicles)
         {
-            if (!latestByVehicle.TryGetValue(vehicle.Id, out var position))
+            // One short index read per car (IX_TelemetrySnapshots_VehicleId_RecordedAt_Gps).
+            if (await telemetry.GetLatestPositionAsync(vehicle.Id, ct) is not { } position)
                 continue;
 
             var lat = position.Latitude;

@@ -30,6 +30,9 @@ public interface ITelemetryRepository
     /// </summary>
     Task<TelemetrySnapshot?> GetMergedLatestAsync(int vehicleId, CancellationToken ct = default);
 
+    /// <summary>The newest GPS fix of <paramref name="vehicleId"/>, however long ago; null when it never sent one.</summary>
+    Task<PositionFix?> GetLatestPositionAsync(int vehicleId, CancellationToken ct = default);
+
     /// <summary>
     /// One <see cref="DailyStat"/> per local day in <paramref name="zone"/>, from
     /// <paramref name="from"/> to <paramref name="to"/> (or <paramref name="today"/>, whichever comes

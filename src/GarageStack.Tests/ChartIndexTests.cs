@@ -6,9 +6,10 @@ using Microsoft.EntityFrameworkCore.Migrations.Operations;
 namespace GarageStack.Tests;
 
 // The statistics only read rows carrying one of TelemetryHistoryPoint's fields, and a partial
-// index written in raw SQL (the AddChartIndex migration) keeps that read cheap. Nothing but this
-// test ties the two together: a field added to the record and not to the index would silently
-// stop PostgreSQL from using the index, and the statistics would read every row again.
+// index written in raw SQL (TelemetryChartIndex, created by the RestoreChartIndex migration) keeps
+// that read cheap. Nothing but this test ties the two together: a field added to the record and
+// not to the index would silently stop PostgreSQL from using the index, and the statistics would
+// read every row again.
 public partial class ChartIndexTests
 {
     [GeneratedRegex(@"""(\w+)""\s+IS NOT NULL")]
@@ -17,7 +18,7 @@ public partial class ChartIndexTests
     [Fact]
     public void ThePartialIndex_CoversExactlyTheFieldsTheStatisticsRead()
     {
-        var sql = string.Concat(new AddChartIndex().UpOperations.OfType<SqlOperation>().Select(o => o.Sql));
+        var sql = string.Concat(new RestoreChartIndex().UpOperations.OfType<SqlOperation>().Select(o => o.Sql));
         var indexed = IndexedField().Matches(sql).Select(m => m.Groups[1].Value).Order().ToList();
 
         var read = typeof(TelemetryHistoryPoint).GetConstructors().Single().GetParameters()
