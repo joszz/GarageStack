@@ -15,6 +15,8 @@ COPY frontend/package.json frontend/pnpm-lock.yaml frontend/pnpm-workspace.yaml 
 # longer bundle corepack. The pnpm package's install script links the native binary for this
 # platform (musl), so npm's allowScripts policy has to let it run, and `pnpm --version` prints
 # the version the build runs.
+# The pnpm version is read from package.json, which hadolint cannot see.
+# hadolint ignore=DL3016
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
     npm install --global --no-fund --no-audit --allow-scripts=pnpm "$(node -p "require('./package.json').packageManager.split('+')[0]")" && \
     pnpm --version && \
@@ -145,6 +147,8 @@ COPY --from=saic-source /usr/src/app /opt/saic/app
 # both the gateway venv and the base interpreter. Even the newest pip vendors outdated copies
 # of msgpack and setuptools' pkg_resources that image scans keep flagging (GHSA-6v7p-g79w-8964,
 # CVE-2025-47273, CVE-2026-59890), and dropping it also retires the earlier pip CVE patching.
+# The import check runs from the app directory, as the gateway does, without moving WORKDIR.
+# hadolint ignore=DL3003
 RUN --mount=type=bind,source=docker/all-in-one/prune-venv.py,target=/tmp/prune-venv.py \
     /opt/saic/app/.venv/bin/python -m pip install --no-cache-dir --upgrade "anyio==4.15.1" \
     && /opt/saic/app/.venv/bin/python /tmp/prune-venv.py \

@@ -1,0 +1,5 @@
+# hadolint settings for every Dockerfile, run by the infra-lint job in .github/workflows/ci.yml.
+ignored:
+  # OS packages are left unpinned on purpose: every image build runs the distribution's upgrade
+  # (see OS_PATCH_DATE in each Dockerfile), so security fixes land without a pin to bump.
+  - DL3008

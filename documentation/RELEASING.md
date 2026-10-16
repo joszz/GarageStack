@@ -42,13 +42,13 @@ All images live on GitHub Container Registry (`ghcr.io`). Replace `joszz` with t
 
 ```
 PR opened
-  CI (project rules, lint, typecheck, test, build, e2e, container-build)
+  CI (project rules, lint, typecheck, test, build, e2e, container-build, infra-lint)
   CodeQL (actions, C#, JS/TS analysis)
   Security (Trivy filesystem scan)
-  docker-publish (builds all four images, pushes nothing)
+  docker-publish (only when the PR changes docker-publish.yml itself; pushes nothing)
 
 Merge to main
-  CI
+  CI (without container-build: docker-publish builds the images)
   CodeQL
   Security (Trivy filesystem + image scan after publish)
   Dependency submission (graph snapshot to GitHub)
@@ -140,7 +140,8 @@ The `ci` workflow runs on every PR and push to `main`. All jobs must pass before
 | `e2e` | The production bundle behind the production nginx config (the only place the Content-Security-Policy applies), driven by the Playwright smoke tests against the demo stack |
 | `backend-build` | `dotnet build --configuration Release` with warnings as errors, `dotnet format --verify-no-changes`, and a check that the EF model has no change without a migration |
 | `backend-test` | `dotnet test` (all xUnit tests) |
-| `container-build` | Docker build (no push) for all four images |
+| `container-build` | Docker build (no push) for all four images. Pull requests only: on `main`, `docker-publish` builds and pushes them |
+| `infra-lint` | shellcheck on every `*.sh`, hadolint on every Dockerfile (deliberate exceptions in `.hadolint.yaml` and inline `# hadolint ignore` comments), actionlint on the workflows |
 
 ### Code Analysis (CodeQL)
 
