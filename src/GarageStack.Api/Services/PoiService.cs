@@ -20,20 +20,13 @@ public sealed class PoiService(
         if (!overpassClient.IsTypeEnabled(poiType))
             return new PoiResult([], HasMore: false, Available: false);
 
-        var tiles = TileHelper.ComputeTiles(lat, lng, radiusKm);
-        var uncached = await repository.GetExpiredOrMissingTilesAsync(PoiCacheDefaults.OverpassSource, poiType, tiles, ct);
-
         // Cap on-demand fetches to the tile closest to the viewport centre. The remaining
         // uncached tiles will be filled by the Worker pre-caching service in the background
         // (and by client-side chain loading). The foreground fetch fails fast and returns null
         // when the gate is busy or rate-limited, so the tile is not cached as empty.
-        var toFetch = TileHelper.ClosestTiles(uncached, lat, lng, PoiTileFetcher.DefaultMaxOnDemandTiles);
-
-        var tilesActuallyCached = await PoiTileFetcher.FetchAndCacheAsync(
-            toFetch,
+        var refresh = await PoiTileFetcher.RefreshAsync(
+            repository, PoiCacheDefaults.OverpassSource, poiType, lat, lng, radiusKm, PoiTileFetcher.DefaultMaxOnDemandTiles,
             (cellLat, cellLng, token) => overpassClient.FetchAsync(poiType, cellLat, cellLng, token),
-            (cellLat, cellLng, items, token) => repository.UpsertTileAsync(
-                PoiCacheDefaults.OverpassSource, poiType, cellLat, cellLng, items, PoiCacheDefaults.Ttl, token),
             (ex, cellLat, cellLng) => logger.LogWarning(ex,
                 "On-demand Overpass fetch failed for {PoiType} ({CellLat},{CellLng})", poiType, cellLat, cellLng),
             ct);
@@ -41,7 +34,7 @@ public sealed class PoiService(
         // hasMore = uncached tiles still remain after this request (either more exist beyond
         // MaxOnDemandTiles, or a fetch was skipped due to a rate-limit backoff). The client
         // uses this to decide whether to chain another request or to stop.
-        bool hasMore = uncached.Count - tilesActuallyCached > 0;
+        var hasMore = refresh.HasMore;
 
         var (minLat, maxLat, minLng, maxLng) = TileHelper.ComputeBounds(lat, lng, radiusKm);
 
