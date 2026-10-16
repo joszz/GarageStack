@@ -6,6 +6,7 @@
     "tripLog": "Rittenregistratie",
     "climateSchedules": "Klimaatschema's",
     "maintenance": "Onderhoud",
+    "logs": "Logboek",
     "menuLabel": "Menu"
   },
   "dashboard": {
@@ -930,6 +931,9 @@
         "readOnly": "Een API-token kan alleen lezen. Log in om iets te wijzigen.",
         "cannotManageTokens": "API-tokens beheer je alleen vanuit een ingelogde sessie.",
         "noAccount": "Deze sessie hoort bij geen account om tokens voor te maken."
+      },
+      "logs": {
+        "sourceUnknown": "De bron moet api, worker of all zijn."
       }
     }
   },
@@ -943,5 +947,32 @@
     "keepingUp": "Houdt bij",
     "noTrend": "Nog te weinig metingen: de trend heeft een week nodig waarin alle vier de banden gemeld hebben.",
     "noData": "Geen bandenspanning gemeld in de afgelopen 30 dagen."
+  },
+  "logs": {
+    "title": "Logboek",
+    "subtitle": "De nieuwste regels uit de logbestanden van de API en de Worker, nieuwste eerst. De bestanden zelf blijven op de server, één per dag.",
+    "source": "Bron",
+    "sources": {
+      "all": "Alle",
+      "api": "API",
+      "worker": "Worker"
+    },
+    "level": "Laagste niveau",
+    "fromLevel": "{level} en hoger",
+    "levels": {
+      "Verbose": "Uitgebreid",
+      "Debug": "Debug",
+      "Information": "Informatie",
+      "Warning": "Waarschuwing",
+      "Error": "Fout",
+      "Fatal": "Fataal"
+    },
+    "search": "Zoeken in de regels",
+    "searchPlaceholder": "Zoeken",
+    "refresh": "Vernieuwen",
+    "live": "Live",
+    "empty": "Geen regels gevonden.",
+    "workerMissing": "De logbestanden van de Worker zijn hier niet zichtbaar: zet WORKER_LOG_DIRECTORY op de map waar ze staan (zie CONFIGURATION.md).",
+    "exception": "Uitzondering"
   }
 }

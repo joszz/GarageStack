@@ -45,6 +45,7 @@ public static class EnvironmentAliases
         // How much detail old telemetry keeps.
         ["TELEMETRY_FULL_DETAIL_DAYS"] = "TelemetryRetention:FullDetailDays",
         ["LOG_RETAINED_FILES"] = "LogFiles:Retained",
+        ["WORKER_LOG_DIRECTORY"] = "LogFiles:WorkerDirectory",
 
         // Who may call the API, and how often.
         ["CORS_ORIGIN"] = "Cors:Origins:0",
