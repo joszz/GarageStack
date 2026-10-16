@@ -70,3 +70,19 @@ test('opens the climate modal with a usable Apply button', async ({ page }) => {
   const footer = page.locator('.detail-modal__footer')
   await expect(footer.getByRole('button', { name: /apply|toepassen/i })).toBeVisible()
 })
+
+// Demo mode carries a command out and answers it within seconds, as the gateway would. Without
+// that the button stayed waiting for the full 45-second timeout.
+test('carries a command out in demo mode', async ({ page }) => {
+  await open(page, '/')
+  await page.locator('.status-card', { hasText: /doors/i }).first().click()
+
+  const row = page.locator('.detail-list__item--control', { hasText: /lock doors/i })
+  const button = row.getByRole('button')
+  const before = (await button.textContent())?.trim() ?? ''
+  await button.click()
+
+  await expect(button).toBeDisabled()
+  await expect(button).toBeEnabled({ timeout: 10_000 })
+  await expect(button).not.toHaveText(before)
+})
