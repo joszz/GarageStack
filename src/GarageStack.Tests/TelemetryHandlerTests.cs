@@ -229,7 +229,7 @@ public class TelemetryHandlerTests
     }
 
     [Fact]
-    public async Task EngineStop_OverMqtt_RecordsWhenTheCarParked()
+    public async Task EngineStop_OverMqtt_RecordsWhenAndWhereTheCarParked()
     {
         var ct = TestContext.Current.CancellationToken;
         const string topic = "saic/user@example.com/vehicles/FAKEVN00000000001/drivetrain/running";
@@ -247,6 +247,9 @@ public class TelemetryHandlerTests
             WorkerLocalizer.Notifications());
 
         await handler.TryHandleAsync(new MqttMessage(topic, "true", Retain: false), ct);
+        const string vehicleTopic = "saic/user@example.com/vehicles/FAKEVN00000000001";
+        await handler.TryHandleAsync(new MqttMessage($"{vehicleTopic}/location/latitude", "52.37", Retain: false), ct);
+        await handler.TryHandleAsync(new MqttMessage($"{vehicleTopic}/location/longitude", "4.89", Retain: false), ct);
         var before = DateTime.UtcNow;
         await handler.TryHandleAsync(new MqttMessage(topic, "false", Retain: false), ct);
 
@@ -254,6 +257,7 @@ public class TelemetryHandlerTests
         var vehicle = await scope.ServiceProvider.GetRequiredService<AppDbContext>().Vehicles.SingleAsync(ct);
         Assert.NotNull(vehicle.LastParkedAt);
         Assert.True(vehicle.LastParkedAt >= before);
+        Assert.Equal((52.37, 4.89), (vehicle.ParkedLatitude, vehicle.ParkedLongitude));
     }
 }
 

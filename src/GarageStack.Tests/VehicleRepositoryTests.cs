@@ -149,10 +149,10 @@ public class VehicleRepositoryTests
         await new VehicleRepository(db).SetModelAsync(9999, "SomeModel", ct);
     }
 
-    // ── SetLastParkedAtAsync ──────────────────────────────────────────────────
+    // ── SetParkedAsync ────────────────────────────────────────────────────────
 
     [Fact]
-    public async Task SetLastParkedAtAsync_PersistsTheParkingTime()
+    public async Task SetParkedAsync_PersistsWhenAndWhereTheCarParked()
     {
         var ct = TestContext.Current.CancellationToken;
         await using var db = CreateDb();
@@ -161,19 +161,20 @@ public class VehicleRepositoryTests
         await db.SaveChangesAsync(ct);
         var parkedAt = new DateTime(2026, 9, 16, 8, 30, 0, DateTimeKind.Utc);
 
-        await new VehicleRepository(db).SetLastParkedAtAsync(vehicle.Id, parkedAt, ct);
+        await new VehicleRepository(db).SetParkedAsync(vehicle.Id, parkedAt, 52.1, 5.1, ct);
 
         var updated = await db.Vehicles.FindAsync([vehicle.Id], ct);
         Assert.Equal(parkedAt, updated!.LastParkedAt);
+        Assert.Equal((52.1, 5.1), (updated.ParkedLatitude, updated.ParkedLongitude));
     }
 
     [Fact]
-    public async Task SetLastParkedAtAsync_UnknownVehicle_DoesNothing()
+    public async Task SetParkedAsync_UnknownVehicle_DoesNothing()
     {
         var ct = TestContext.Current.CancellationToken;
         await using var db = CreateDb();
 
-        await new VehicleRepository(db).SetLastParkedAtAsync(4242, DateTime.UtcNow, ct);
+        await new VehicleRepository(db).SetParkedAsync(4242, DateTime.UtcNow, null, null, ct);
 
         Assert.Empty(db.Vehicles);
     }

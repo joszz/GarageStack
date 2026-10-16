@@ -60,6 +60,12 @@
   <data name="SlowPunctureBody" xml:space="preserve">
     <value>{0} verloor in de afgelopen {2} dagen {1} bar die de andere banden hielden. Laat de band nakijken op een langzaam lek.</value>
   </data>
+  <data name="MovedParkedTitle" xml:space="preserve">
+    <value>Auto verplaatst terwijl geparkeerd</value>
+  </data>
+  <data name="MovedParkedBody" xml:space="preserve">
+    <value>Je auto staat {0} km van waar hij geparkeerd werd, met de motor uit.</value>
+  </data>
   <data name="TyreFrontLeft" xml:space="preserve">
     <value>Linksvoor</value>
   </data>

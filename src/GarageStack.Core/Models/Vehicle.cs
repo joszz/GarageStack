@@ -15,6 +15,14 @@ public class Vehicle
     public DateTime? LastParkedAt { get; set; }
 
     /// <summary>
+    /// Where the car was when it last parked: the position it is expected to stay at while the
+    /// engine is off. Null when the car reported no position then.
+    /// </summary>
+    public double? ParkedLatitude { get; set; }
+
+    public double? ParkedLongitude { get; set; }
+
+    /// <summary>
     /// SAIC's id for the newest MG app message the Worker has dealt with, pushed or deliberately
     /// not. The gateway publishes its latest message again every time it starts, and this is how
     /// that repeat is told apart from a new message.

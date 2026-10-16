@@ -32,7 +32,8 @@ public sealed class DemoVehicleRepository : IVehicleRepository
     public Task SetConfigValueAsync(int vehicleId, string key, string value, CancellationToken ct = default) =>
         Task.CompletedTask;
 
-    public Task SetLastParkedAtAsync(int vehicleId, DateTime parkedAt, CancellationToken ct = default) =>
+    public Task SetParkedAsync(
+        int vehicleId, DateTime parkedAt, double? latitude, double? longitude, CancellationToken ct = default) =>
         Task.CompletedTask;
 
     public Task SetLastMessageIdAsync(int vehicleId, string messageId, CancellationToken ct = default) =>

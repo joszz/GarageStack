@@ -120,7 +120,7 @@ public class PushNotificationCheckService(
     /// Warns about a car parked unlocked, with a door or window open, or with a low 12V battery,
     /// once its polls have shown it for a while. Every warning rests on the newest poll and goes
     /// out once for it: a car asleep overnight would otherwise be reported every hour on the one
-    /// poll it last sent.
+    /// poll it last sent. A car that left the spot it parked on is warned about once per parking.
     /// </summary>
     internal async Task CheckParkedAsync(
         Vehicle vehicle, TelemetrySnapshot snapshot, ITelemetryRepository telemetry, INotificationRepository notifications, DateTime now, CancellationToken ct)
@@ -136,9 +136,34 @@ public class PushNotificationCheckService(
         CheckDoorsOpenWhileParked(readings, alerts);
         CheckWindowsOpenWhileParked(readings, alerts);
         CheckAuxBatteryWhileParked(readings, alerts);
-        if (alerts.Count == 0) return;
+        if (alerts.Count > 0)
+            await SendAsync(vehicle, alerts, notifications, ct, onceSince: readings[0].ArrivedAt);
 
-        await SendAsync(vehicle, alerts, notifications, ct, onceSince: readings[0].ArrivedAt);
+        var moved = new List<(string key, string title, string body)>();
+        CheckMovedWhileParked(vehicle, snapshot, moved);
+        if (moved.Count > 0)
+            await SendAsync(vehicle, moved, notifications, ct, onceSince: vehicle.LastParkedAt);
+    }
+
+    // Further than GPS wanders in a car park or a garage, nearer than a tow truck takes a car.
+    internal const double MovedWhileParkedMeters = 300;
+
+    /// <summary>
+    /// Warns when the car reports a position well away from where it parked while the engine stayed
+    /// off: towed, lifted onto a truck, or taken on a ferry. A car only says where it is when it
+    /// reports, so the warning comes with its first report after the move.
+    /// </summary>
+    internal void CheckMovedWhileParked(Vehicle vehicle, TelemetrySnapshot snapshot, List<(string, string, string)> alerts)
+    {
+        if (vehicle is not { ParkedLatitude: { } parkedLat, ParkedLongitude: { } parkedLon }) return;
+        if (snapshot is not { Latitude: { } lat, Longitude: { } lon }) return;
+
+        var meters = GeoHelper.Haversine(parkedLat, parkedLon, lat, lon) * 1000;
+        if (meters < MovedWhileParkedMeters) return;
+
+        // In the notification's language, as its words are: 1,2 km in Dutch.
+        var distance = (meters / 1000).ToString("F1", CultureInfo.CurrentUICulture);
+        alerts.Add((NotificationCategories.MovedParked, strings["MovedParkedTitle"], strings["MovedParkedBody", distance]));
     }
 
     // With onceSince, an alert is held back when one of its kind already went out after that moment.

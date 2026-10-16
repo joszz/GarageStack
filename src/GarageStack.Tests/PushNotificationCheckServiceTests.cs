@@ -657,4 +657,95 @@ public class PushNotificationCheckServiceTests
 
         Assert.Equal("low-tyre", Assert.Single(push.Sent).Category);
     }
+
+    // ---------------------------------------------------------------------------
+    // Moved while parked: a report well away from the spot the car parked on
+    // ---------------------------------------------------------------------------
+
+    private static Vehicle ParkedInAmsterdam(DateTime? parkedAt = null) => new()
+    {
+        Vin = "FAKEVN00000000001",
+        LastParkedAt = parkedAt ?? ParkedAt,
+        ParkedLatitude = 52.3700,
+        ParkedLongitude = 4.8900,
+    };
+
+    [Fact]
+    public void CheckMovedWhileParked_TwoKilometresAway_Warns()
+    {
+        var alerts = new List<(string, string, string)>();
+
+        CreateService().CheckMovedWhileParked(
+            ParkedInAmsterdam(), Parked(s => { s.Latitude = 52.3880; s.Longitude = 4.8900; }), alerts);
+
+        var (category, _, body) = Assert.Single(alerts);
+        Assert.Equal(NotificationCategories.MovedParked, category);
+        Assert.Contains("km", body);
+    }
+
+    // A garage or a car park can put a parked car's fix a hundred metres off.
+    [Fact]
+    public void CheckMovedWhileParked_GpsWanderingNearby_StaysQuiet()
+    {
+        var alerts = new List<(string, string, string)>();
+
+        CreateService().CheckMovedWhileParked(
+            ParkedInAmsterdam(), Parked(s => { s.Latitude = 52.3709; s.Longitude = 4.8905; }), alerts);
+
+        Assert.Empty(alerts);
+    }
+
+    [Fact]
+    public void CheckMovedWhileParked_NoParkedPositionOrNoFix_StaysQuiet()
+    {
+        var alerts = new List<(string, string, string)>();
+        var far = Parked(s => { s.Latitude = 51.0; s.Longitude = 4.0; });
+
+        CreateService().CheckMovedWhileParked(new Vehicle { Vin = "FAKEVN00000000001", LastParkedAt = ParkedAt }, far, alerts);
+        CreateService().CheckMovedWhileParked(ParkedInAmsterdam(), Parked(), alerts);
+
+        Assert.Empty(alerts);
+    }
+
+    // The car keeps reporting from its new spot; one warning per parking is enough.
+    [Fact]
+    public async Task CheckParkedAsync_MovedAndAlreadyWarnedThisParking_SendsNothingMore()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var now = DateTime.UtcNow;
+        await using var db = CreateDb();
+        var vehicle = ParkedInAmsterdam(now.AddHours(-3));
+        db.Vehicles.Add(vehicle);
+        db.AppNotifications.Add(new AppNotification
+        {
+            Title = "Car moved while parked",
+            Category = NotificationCategories.MovedParked,
+            VehicleId = 1,
+            CreatedAt = now.AddHours(-2),
+        });
+        await db.SaveChangesAsync(ct);
+        var moved = Parked(s => { s.Latitude = 52.3880; s.Longitude = 4.8900; });
+        var push = new FakePushSender();
+
+        await CreateService(push: push).CheckParkedAsync(vehicle, moved, new TelemetryRepository(db), new NotificationRepository(db), now, ct);
+
+        Assert.Empty(push.Sent);
+    }
+
+    [Fact]
+    public async Task CheckParkedAsync_Moved_SendsTheWarning()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var now = DateTime.UtcNow;
+        await using var db = CreateDb();
+        var vehicle = ParkedInAmsterdam(now.AddHours(-3));
+        db.Vehicles.Add(vehicle);
+        await db.SaveChangesAsync(ct);
+        var moved = Parked(s => { s.Latitude = 52.3880; s.Longitude = 4.8900; });
+        var push = new FakePushSender();
+
+        await CreateService(push: push).CheckParkedAsync(vehicle, moved, new TelemetryRepository(db), new NotificationRepository(db), now, ct);
+
+        Assert.Equal(NotificationCategories.MovedParked, Assert.Single(push.Sent).Category);
+    }
 }
