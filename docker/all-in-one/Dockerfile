@@ -107,6 +107,9 @@ RUN curl -sSL https://dot.net/v1/dotnet-install.sh -o /tmp/dotnet-install.sh \
 ENV PATH="/usr/local/dotnet:$PATH"
 
 # PostgreSQL 18 -- official apt repo, trixie suite. apt reads the ASCII-armored key as is.
+# postgresql-common pulls in ssl-cert, which generates a self-signed "snakeoil" key pair at
+# install. Nothing here serves TLS (initdb leaves ssl off), so the private key goes rather than
+# sit in every image for scanners to flag.
 RUN curl -sSL https://www.postgresql.org/media/keys/ACCC4CF8.asc -o /usr/share/keyrings/postgresql.asc \
     && echo "deb [signed-by=/usr/share/keyrings/postgresql.asc] http://apt.postgresql.org/pub/repos/apt trixie-pgdg main" \
         > /etc/apt/sources.list.d/pgdg.list \
@@ -114,7 +117,8 @@ RUN curl -sSL https://www.postgresql.org/media/keys/ACCC4CF8.asc -o /usr/share/k
     && printf "create_main_cluster = false\n" > /etc/postgresql-common/createcluster.conf \
     && apt-get update \
     && apt-get install -y --no-install-recommends postgresql-18 \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && rm -f /etc/ssl/private/ssl-cert-snakeoil.key /etc/ssl/certs/ssl-cert-snakeoil.pem
 
 # SAIC MQTT Gateway: copy the pre-built venv and source from the official image.
 # Layout in the saic image: WORKDIR=/usr/src/app, venv at /usr/src/app/.venv,

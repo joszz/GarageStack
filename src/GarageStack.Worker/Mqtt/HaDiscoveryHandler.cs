@@ -48,7 +48,9 @@ public sealed class HaDiscoveryHandler(ILogger logger, VehicleResolver vehicles)
                     break;
                 }
             }
-            if (string.IsNullOrWhiteSpace(vin)) return;
+            // Other devices announce themselves under homeassistant/ too (zigbee2mqtt, ESPHome),
+            // with identifiers of their own; only a car's VIN may create a vehicle.
+            if (!VinFormat.IsValid(vin)) return;
 
             logger.LogInformation("HA discovery - VIN={Vin} hw_version={HwVersion} model={Model}", LogRedaction.Vin(vin), hwVersion, model);
 

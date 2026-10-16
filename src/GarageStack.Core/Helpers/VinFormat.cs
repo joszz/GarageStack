@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Text.RegularExpressions;
 
 namespace GarageStack.Core.Helpers;
@@ -16,5 +17,5 @@ public static partial class VinFormat
     [GeneratedRegex(@"(?<=/)[A-HJ-NPR-Z0-9]{17}(?=/|$)")]
     internal static partial Regex PathSegment();
 
-    public static bool IsValid(string? value) => value is not null && Whole().IsMatch(value);
+    public static bool IsValid([NotNullWhen(true)] string? value) => value is not null && Whole().IsMatch(value);
 }

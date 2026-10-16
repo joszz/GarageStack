@@ -1,5 +1,10 @@
 using GarageStack.Core.Configuration;
+using GarageStack.Core.Interfaces;
+using GarageStack.Data;
+using GarageStack.Data.Repositories;
 using GarageStack.Worker.Mqtt;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using MQTTnet;
@@ -283,6 +288,29 @@ public class MqttConsumerServiceHaDiscoveryTests
 
         await cts.CancelAsync();
         try { await serviceTask; } catch (OperationCanceledException) { }
+    }
+
+    // Other devices announce themselves under homeassistant/ with hw_version and identifiers too.
+    [Theory]
+    [InlineData("zigbee2mqtt_0x00158d0001a2b3c4", false)]
+    [InlineData("esphome-garage-door", false)]
+    [InlineData("FAKEVN00000000001", true)]
+    public async Task HandleHaDiscovery_OnlyAVinCreatesAVehicle(string identifier, bool creates)
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var databaseName = Guid.NewGuid().ToString();
+        await using var services = new ServiceCollection()
+            .AddDbContext<AppDbContext>(o => o.UseInMemoryDatabase(databaseName))
+            .AddScoped<IVehicleRepository, VehicleRepository>()
+            .BuildServiceProvider();
+        var handler = new HaDiscoveryHandler(
+            NullLogger.Instance, new VehicleResolver(services.GetRequiredService<IServiceScopeFactory>()));
+        var payload = $$$"""{"device":{"hw_version":"1.2.3","identifiers":["{{{identifier}}}"],"model":"Door sensor"}}""";
+
+        await handler.TryHandleAsync(new MqttMessage("homeassistant/sensor/device/config", payload, Retain: true), ct);
+
+        await using var scope = services.CreateAsyncScope();
+        Assert.Equal(creates ? 1 : 0, await scope.ServiceProvider.GetRequiredService<AppDbContext>().Vehicles.CountAsync(ct));
     }
 }
 
