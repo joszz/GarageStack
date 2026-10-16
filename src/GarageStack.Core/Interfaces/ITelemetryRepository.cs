@@ -22,9 +22,6 @@ public interface ITelemetryRepository
     /// </summary>
     Task MergeIntoAsync(long rowId, TelemetrySnapshot patch, CancellationToken ct = default);
 
-    /// <summary>Returns the single most recently recorded row for <paramref name="vehicleId"/>, unmerged.</summary>
-    Task<TelemetrySnapshot?> GetLatestAsync(int vehicleId, CancellationToken ct = default);
-
     /// <summary>
     /// Builds a single "current state" snapshot by merging the most recent rows for
     /// <paramref name="vehicleId"/> field-by-field (first non-null value per field wins,

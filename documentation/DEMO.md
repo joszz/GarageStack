@@ -95,7 +95,6 @@ Click the flask icon in the bottom-right corner to open the panel. Changes take 
 | `IVehicleRepository` | Returns one static MG ZS EV |
 | `ITelemetryRepository` | Serves pre-built snapshots; mutable via `/api/demo/status/{vin}` |
 | `ITripRepository` | Serves the pre-built trips |
-| `IPushSender` | Logs notifications instead of sending them |
 | `IMqttPublisher` | No-op (vehicle commands are accepted but not sent) |
 
 No PostgreSQL, Mosquitto, Worker, or SAIC gateway containers are started.

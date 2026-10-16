@@ -87,7 +87,6 @@ try
     builder.Services.AddHvBatteryCapacity(builder.Configuration);
     builder.Services.AddSingleton(VapidOptions.From(builder.Configuration));
 
-    builder.Services.AddMemoryCache();
     builder.Services.AddScoped<ChargingStationService>();
     builder.Services.AddScoped<PoiService>();
     builder.Services.AddScoped<GeocodeService>();

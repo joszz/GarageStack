@@ -30,12 +30,6 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
     public Task MergeIntoAsync(long rowId, TelemetrySnapshot patch, CancellationToken ct = default) =>
         Task.CompletedTask;
 
-    public Task<TelemetrySnapshot?> GetLatestAsync(int vehicleId, CancellationToken ct = default)
-    {
-        // Return a copy - callers must not be able to mutate the shared in-memory demo state.
-        lock (_lock) { return Task.FromResult<TelemetrySnapshot?>(_current.Clone()); }
-    }
-
     public Task<TelemetrySnapshot?> GetMergedLatestAsync(int vehicleId, CancellationToken ct = default)
     {
         lock (_lock) { return Task.FromResult<TelemetrySnapshot?>(_current.Clone()); }

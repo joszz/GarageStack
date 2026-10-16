@@ -125,13 +125,6 @@ public class TelemetryRepository(
         }
     }
 
-    public Task<TelemetrySnapshot?> GetLatestAsync(int vehicleId, CancellationToken ct = default) =>
-        db.TelemetrySnapshots
-          .AsNoTracking()
-          .Where(s => s.VehicleId == vehicleId)
-          .OrderByDescending(s => s.RecordedAt)
-          .FirstOrDefaultAsync(ct);
-
     public async Task<TelemetrySnapshot?> GetMergedLatestAsync(int vehicleId, CancellationToken ct = default)
     {
         var cacheKey = LatestCacheKey(vehicleId);
