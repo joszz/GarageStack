@@ -879,7 +879,8 @@
         "notesTooLong": "De notities mogen hoogstens 500 tekens lang zijn."
       },
       "push": {
-        "notConfigured": "Pushmeldingen zijn op deze server niet ingesteld."
+        "notConfigured": "Pushmeldingen zijn op deze server niet ingesteld.",
+        "subscriptionInvalid": "Het pushadres van deze browser werd niet geaccepteerd."
       },
       "commutePlace": {
         "limitReached": "Een auto kan maximaal 10 plaatsen voor thuis en werk hebben.",

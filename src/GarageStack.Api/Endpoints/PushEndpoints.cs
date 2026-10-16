@@ -24,10 +24,8 @@ public static class PushEndpoints
 
         push.MapPost("/subscribe", async (PushSubscribeRequest req, AppDbContext db, CancellationToken ct) =>
         {
-            if (string.IsNullOrWhiteSpace(req.Endpoint) ||
-                string.IsNullOrWhiteSpace(req.P256DhKey) ||
-                string.IsNullOrWhiteSpace(req.AuthKey))
-                return ApiProblems.BadRequest("push.subscriptionIncomplete", "Endpoint, P256DhKey and AuthKey are required");
+            if (ValidateSubscription(req) is { } error)
+                return ApiProblems.BadRequest(error);
 
             await UpsertSubscriptionAsync(db, req, ct);
 
@@ -48,6 +46,49 @@ public static class PushEndpoints
         .WithSummary("Remove a push subscription");
 
         return app;
+    }
+
+    // Far longer than any push service's endpoint or key, short enough for the unique index.
+    private const int MaxEndpointLength = 2048;
+    private const int MaxKeyLength = 256;
+
+    /// <summary>
+    /// Whether <paramref name="req"/> looks like a subscription a browser handed out. The Worker
+    /// POSTs every notification to the endpoint, so it must be a public https address: a push
+    /// service, never a host on the server's own network.
+    /// </summary>
+    internal static ValidationError? ValidateSubscription(PushSubscribeRequest req)
+    {
+        if (string.IsNullOrWhiteSpace(req.Endpoint) ||
+            string.IsNullOrWhiteSpace(req.P256DhKey) ||
+            string.IsNullOrWhiteSpace(req.AuthKey))
+            return new("push.subscriptionIncomplete", "Endpoint, P256DhKey and AuthKey are required");
+
+        if (req.Endpoint.Length > MaxEndpointLength || req.P256DhKey.Length > MaxKeyLength || req.AuthKey.Length > MaxKeyLength
+            || !IsPublicHttpsUrl(req.Endpoint))
+            return new("push.subscriptionInvalid", "Endpoint must be a push service's https address");
+
+        return null;
+    }
+
+    private static bool IsPublicHttpsUrl(string endpoint)
+    {
+        if (!Uri.TryCreate(endpoint, UriKind.Absolute, out var uri)
+            || uri.Scheme != Uri.UriSchemeHttps
+            || !string.IsNullOrEmpty(uri.UserInfo)
+            || !uri.IsDefaultPort
+            || uri.HostNameType != UriHostNameType.Dns)
+            return false;
+
+        // A push service has a public DNS name: dotted, and not one of the names that only resolve
+        // inside a network.
+        var host = uri.IdnHost.TrimEnd('.');
+        return host.Contains('.')
+            && !host.EndsWith(".local", StringComparison.OrdinalIgnoreCase)
+            && !host.EndsWith(".internal", StringComparison.OrdinalIgnoreCase)
+            && !host.EndsWith(".lan", StringComparison.OrdinalIgnoreCase)
+            && !host.EndsWith(".home.arpa", StringComparison.OrdinalIgnoreCase)
+            && !host.EndsWith(".localhost", StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>

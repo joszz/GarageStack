@@ -879,7 +879,8 @@
         "notesTooLong": "The notes can be at most 500 characters."
       },
       "push": {
-        "notConfigured": "Push notifications are not set up on this server."
+        "notConfigured": "Push notifications are not set up on this server.",
+        "subscriptionInvalid": "This browser's push address was not accepted."
       },
       "commutePlace": {
         "limitReached": "A car can have at most 10 home and work places.",
