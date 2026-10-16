@@ -290,4 +290,38 @@ public class TelemetryHandlerLoggingTests
 
         Assert.Equal(warns, logger.Entries.Any(e => e.Level == LogLevel.Warning));
     }
+
+    // The gateway republishes every topic on every poll: a topic it adds later warns once, not
+    // once per poll for as long as the Worker runs.
+    [Fact]
+    public async Task UnmappedTopic_WarnsOncePerTopic()
+    {
+        var logger = new RecordingLogger();
+        var handler = new TelemetryHandler(
+            logger, new VehicleResolver(new FakeServiceScopeFactory()), new FakePushSender(), WorkerLocalizer.Notifications());
+        var ct = TestContext.Current.CancellationToken;
+
+        for (var poll = 0; poll < 3; poll++)
+            await handler.TryHandleAsync(new MqttMessage("saic/user/vehicles/FAKEVN00000000001/drivetrain/somethingNew", "1", Retain: false), ct);
+        await handler.TryHandleAsync(new MqttMessage("saic/user/vehicles/FAKEVN00000000001/drivetrain/somethingElse", "1", Retain: false), ct);
+
+        Assert.Equal(2, logger.Entries.Count(e => e.Level == LogLevel.Warning));
+    }
+
+    // A known topic with a payload that cannot be read is a different problem from a topic the
+    // mapper has never heard of, and says so.
+    [Fact]
+    public async Task UnreadablePayload_OnAKnownTopic_IsNotCalledUnmapped()
+    {
+        var logger = new RecordingLogger();
+        var handler = new TelemetryHandler(
+            logger, new VehicleResolver(new FakeServiceScopeFactory()), new FakePushSender(), WorkerLocalizer.Notifications());
+
+        await handler.TryHandleAsync(
+            new MqttMessage("saic/user/vehicles/FAKEVN00000000001/location/position", "not json", Retain: false),
+            TestContext.Current.CancellationToken);
+
+        var warning = Assert.Single(logger.Entries, e => e.Level == LogLevel.Warning);
+        Assert.StartsWith("Unreadable payload", warning.Message);
+    }
 }
