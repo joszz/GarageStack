@@ -6,13 +6,14 @@ namespace GarageStack.Api.Endpoints;
 
 public static class MapEndpoints
 {
+    // NaN binds from the query string and fails every comparison, so it is refused by name.
     private static IResult? ValidateLatLng(double lat, double lng) =>
-        lat is < -90 or > 90 || lng is < -180 or > 180
+        !double.IsFinite(lat) || !double.IsFinite(lng) || lat is < -90 or > 90 || lng is < -180 or > 180
             ? ApiProblems.BadRequest("map.coordinatesOutOfRange", "lat must be between -90 and 90, lng between -180 and 180")
             : null;
 
     private static IResult? ValidateRadiusKm(double radiusKm, string paramName) =>
-        radiusKm is < 1 or > 200
+        !double.IsFinite(radiusKm) || radiusKm is < 1 or > 200
             ? ApiProblems.BadRequest("map.radiusOutOfRange", $"{paramName} must be between 1 and 200")
             : null;
 

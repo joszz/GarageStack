@@ -245,7 +245,7 @@ describe('useNotifications', () => {
     await fetchNotifications()
 
     expect(loading.value).toBe(false)
-    expect(fetchError.value).toBe('Network error')
+    expect(fetchError.value?.message).toBe('Network error')
   })
 
   it('archiveNotification() marks the notification as archived in-place', async () => {
@@ -312,7 +312,7 @@ describe('useNotifications', () => {
     await fetchNotifications()
     await archiveNotification(5)
 
-    expect(actionError.value).toBe('Network error')
+    expect(actionError.value?.message).toBe('Network error')
     expect(notifications.value.find((n) => n.id === 5)?.isArchived).toBe(false)
   })
 
@@ -326,7 +326,7 @@ describe('useNotifications', () => {
     await fetchNotifications()
     await deleteNotification(9)
 
-    expect(actionError.value).toBe('Network error')
+    expect(actionError.value?.message).toBe('Network error')
     expect(notifications.value).toHaveLength(1)
   })
 
@@ -340,7 +340,7 @@ describe('useNotifications', () => {
     await fetchNotifications()
     await archiveAllNotifications()
 
-    expect(actionError.value).toBe('Network error')
+    expect(actionError.value?.message).toBe('Network error')
     expect(notifications.value[0]?.isArchived).toBe(false)
   })
 
@@ -354,7 +354,7 @@ describe('useNotifications', () => {
     await fetchNotifications()
     await deleteAllNotifications()
 
-    expect(actionError.value).toBe('Network error')
+    expect(actionError.value?.message).toBe('Network error')
     expect(notifications.value).toHaveLength(1)
   })
 

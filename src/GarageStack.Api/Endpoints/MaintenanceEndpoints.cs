@@ -36,7 +36,8 @@ public static class MaintenanceEndpoints
         {
             var vehicle = httpContext.ResolvedVehicle();
 
-            if (ValidateItem(req.Name, req.Notes, req.IntervalKm, req.IntervalMonths) is { } error)
+            if ((ValidateItem(req.Name, req.Notes, req.IntervalKm, req.IntervalMonths)
+                    ?? ValidateService(req.LastServiceDate, req.LastServiceOdometerKm)) is { } error)
                 return ApiProblems.BadRequest(error);
 
             var item = new MaintenanceItem
@@ -122,7 +123,7 @@ public static class MaintenanceEndpoints
             var item = await db.MaintenanceItems.FirstOrDefaultAsync(m => m.Id == id && m.VehicleId == vehicle.Id, ct);
             if (item is null) return Results.NotFound();
 
-            if (ValidateLogEntry(req.PerformedAt, req.OdometerKm) is { } error)
+            if (ValidateLogEntry(req.PerformedAt, req.OdometerKm, req.Notes) is { } error)
                 return ApiProblems.BadRequest(error);
 
             var entry = new MaintenanceLogEntry
@@ -189,10 +190,10 @@ public static class MaintenanceEndpoints
     {
         if (string.IsNullOrWhiteSpace(name))
             return new("maintenance.nameRequired", "Name is required");
-        if (name.Trim().Length > 200)
-            return new("maintenance.nameTooLong", "Name must be 200 characters or fewer");
-        if (notes is not null && notes.Length > 1000)
-            return new("maintenance.notesTooLong", "Notes must be 1000 characters or fewer");
+        if (name.Trim().Length > MaintenanceLimits.NameMaxLength)
+            return new("maintenance.nameTooLong", $"Name must be {MaintenanceLimits.NameMaxLength} characters or fewer");
+        if (NotesError(notes) is { } notesError)
+            return notesError;
         if (intervalKm is null && intervalMonths is null)
             return new("maintenance.intervalRequired", "Set at least one of the distance or time interval");
         if (intervalKm is not null and (<= 0 or > 1_000_000))
@@ -202,7 +203,14 @@ public static class MaintenanceEndpoints
         return null;
     }
 
-    internal static ValidationError? ValidateLogEntry(DateTime performedAt, double? odometerKm)
+    internal static ValidationError? ValidateLogEntry(DateTime performedAt, double? odometerKm, string? notes) =>
+        ValidateService(performedAt, odometerKm) ?? NotesError(notes);
+
+    /// <summary>
+    /// A service as a log entry records it, or as the last service a new item starts from: not in
+    /// the future, and not at a negative odometer reading.
+    /// </summary>
+    internal static ValidationError? ValidateService(DateTime? performedAt, double? odometerKm)
     {
         if (performedAt > DateTime.UtcNow.AddDays(1))
             return new("maintenance.serviceDateInFuture", "Service date cannot be in the future");
@@ -210,6 +218,12 @@ public static class MaintenanceEndpoints
             return new("maintenance.odometerNegative", "Odometer reading cannot be negative");
         return null;
     }
+
+    // Longer notes than the column holds would fail the insert with a 500.
+    private static ValidationError? NotesError(string? notes) =>
+        notes is not null && notes.Length > MaintenanceLimits.NotesMaxLength
+            ? new("maintenance.notesTooLong", $"Notes must be {MaintenanceLimits.NotesMaxLength} characters or fewer")
+            : null;
 
     private static MaintenanceItemDto ToDto(MaintenanceItem item, double? currentOdometerKm)
     {

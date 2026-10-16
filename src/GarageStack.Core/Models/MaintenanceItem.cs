@@ -19,3 +19,12 @@ public class MaintenanceItem
 
     public ICollection<MaintenanceLogEntry> LogEntries { get; set; } = [];
 }
+
+/// <summary>Column limits shared between the model configuration and the endpoint's validation.</summary>
+public static class MaintenanceLimits
+{
+    public const int NameMaxLength = 200;
+
+    /// <summary>For an item's notes and for a logged service's notes alike.</summary>
+    public const int NotesMaxLength = 1000;
+}

@@ -8,8 +8,11 @@ public class MaintenanceValidationTests
     private static string? ItemRule(string name, string? notes, double? intervalKm, int? intervalMonths) =>
         MaintenanceEndpoints.ValidateItem(name, notes, intervalKm, intervalMonths)?.Code;
 
-    private static string? LogEntryRule(DateTime performedAt, double? odometerKm) =>
-        MaintenanceEndpoints.ValidateLogEntry(performedAt, odometerKm)?.Code;
+    private static string? LogEntryRule(DateTime performedAt, double? odometerKm, string? notes = null) =>
+        MaintenanceEndpoints.ValidateLogEntry(performedAt, odometerKm, notes)?.Code;
+
+    private static string? LastServiceRule(DateTime? performedAt, double? odometerKm) =>
+        MaintenanceEndpoints.ValidateService(performedAt, odometerKm)?.Code;
 
     // ── ValidateItem: name ───────────────────────────────────────────────────
     [Fact]
@@ -140,5 +143,37 @@ public class MaintenanceValidationTests
     public void ValidateLogEntry_ZeroOdometer_ReturnsNull()
     {
         Assert.Null(LogEntryRule(DateTime.UtcNow, 0));
+    }
+
+    // Longer notes than the column holds used to fail the insert with a 500.
+    [Fact]
+    public void ValidateLogEntry_NotesOver1000Chars_ReturnsError()
+    {
+        Assert.Equal("maintenance.notesTooLong", LogEntryRule(DateTime.UtcNow, null, new string('a', 1001)));
+    }
+
+    [Fact]
+    public void ValidateLogEntry_NotesExactly1000Chars_ReturnsNull()
+    {
+        Assert.Null(LogEntryRule(DateTime.UtcNow, null, new string('a', 1000)));
+    }
+
+    // ── ValidateService: the last service a new item starts from ─────────────
+    [Fact]
+    public void ValidateService_NoLastService_ReturnsNull()
+    {
+        Assert.Null(LastServiceRule(null, null));
+    }
+
+    [Fact]
+    public void ValidateService_LastServiceInFuture_ReturnsError()
+    {
+        Assert.Equal("maintenance.serviceDateInFuture", LastServiceRule(DateTime.UtcNow.AddDays(5), null));
+    }
+
+    [Fact]
+    public void ValidateService_NegativeLastOdometer_ReturnsError()
+    {
+        Assert.Equal("maintenance.odometerNegative", LastServiceRule(null, -1));
     }
 }

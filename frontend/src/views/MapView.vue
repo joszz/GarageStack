@@ -399,15 +399,11 @@ onMounted(async () => {
 
         <div v-if="poiLoading || snapStatus" class="map-pill-stack">
           <div v-if="poiLoading" class="map-pill" role="status" :aria-label="t('trips.poiLoading')">
-            <span class="spinner-border spinner-border-sm" aria-hidden="true" />
+            <font-awesome-icon icon="spinner" spin aria-hidden="true" />
             {{ t('trips.poiLoading') }}
           </div>
           <div v-if="snapStatus" class="map-pill" role="status">
-            <span
-              v-if="snapStatus.snapping"
-              class="spinner-border spinner-border-sm"
-              aria-hidden="true"
-            />
+            <font-awesome-icon v-if="snapStatus.snapping" icon="spinner" spin aria-hidden="true" />
             <font-awesome-icon v-else icon="road-circle-check" />
             {{
               snapStatus.snapping

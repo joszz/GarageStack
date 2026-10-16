@@ -100,7 +100,6 @@ const activeCount = computed(() => {
           mode="tags"
           :no-results-text="t('trips.fuelTypeNoMatch')"
           append-to="body"
-          class="fuel-brand-multiselect"
         />
       </div>
       <div class="poi-filter">
@@ -125,7 +124,6 @@ const activeCount = computed(() => {
           :no-results-text="t('trips.fuelBrandNoMatch')"
           :no-options-text="t('trips.fuelBrandNoneLoaded')"
           append-to="body"
-          class="fuel-brand-multiselect"
         />
       </div>
     </template>

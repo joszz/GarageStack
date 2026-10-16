@@ -2,17 +2,10 @@ import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createI18n } from 'vue-i18n'
 import ToolbarPanel from '../ToolbarPanel.vue'
+import { DetailModalStub } from './stubs'
 
 // Stub FontAwesomeIcon so the test environment doesn't need the FA setup
 const FaStub = { template: '<span />', props: ['icon'] }
-
-// Stub DetailModal with a minimal shim that exposes the open prop and a slot
-const DetailModalStub = {
-  name: 'DetailModal',
-  template: '<div v-if="open" data-testid="modal"><slot /></div>',
-  props: ['open', 'title'],
-  emits: ['close'],
-}
 
 const i18n = createI18n({
   legacy: false,

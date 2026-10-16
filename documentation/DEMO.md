@@ -18,7 +18,7 @@ docker compose --env-file .env.demo -f docker-compose.demo.yml up --build
 
 Open [http://localhost:8080](http://localhost:8080) and log in with **demo / demo**.
 
-The API is available at `http://localhost:5001`. Scalar API docs are not served in production mode — start the API locally (see below) if you need them.
+The API is available at `http://localhost:5001`. Scalar API docs are not served in production mode, so start the API locally (see below) if you need them.
 
 This stack is also what the Playwright smoke tests run against, in CI and locally, because it is the production frontend image with the real nginx config. See [CONTRIBUTING.md](../.github/CONTRIBUTING.md).
 

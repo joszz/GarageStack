@@ -14,6 +14,22 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
+  project-rules:
+    name: Project rules
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+
+      # The project writes no em dashes anywhere: code, comments, docs or translations.
+      - name: No em dashes
+        run: |
+          if git grep -n "$(printf '\342\200\224')" -- . ':!frontend/pnpm-lock.yaml'; then
+            echo "::error::Em dashes found. Use a comma, colon, semicolon or full stop instead."
+            exit 1
+          fi
+
   frontend-lint:
     name: Frontend lint
     runs-on: ubuntu-latest
