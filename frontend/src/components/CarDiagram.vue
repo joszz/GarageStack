@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import '@/assets/carDiagram.css'
 import { useI18n } from 'vue-i18n'
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import CardInfoWrap from './CardInfoWrap.vue'
 import CarLightBeams from './carDiagram/CarLightBeams.vue'
 import LevelBadge from './carDiagram/LevelBadge.vue'
 import SpeedGauge from './carDiagram/SpeedGauge.vue'
 import TyreIndicators from './carDiagram/TyreIndicators.vue'
 import TyreLabels from './carDiagram/TyreLabels.vue'
+import TyreHistoryModal from './TyreHistoryModal.vue'
 import { CAR_SILHOUETTE_VIEWBOX, CAR_SILHOUETTE_MARKUP } from '@/assets/carSilhouette'
 import { useTyrePressureThresholds } from '@/composables/useTyrePressureThresholds'
 import { useUnits } from '@/composables/useUnits'
@@ -16,6 +17,9 @@ import { evLevelVariant, fuelLevelVariant, type LevelVariant } from '@/utils/lev
 const { t } = useI18n()
 const tyreThresholds = useTyrePressureThresholds()
 const units = useUnits()
+
+// Tapping a tyre's pressure opens its history.
+const tyreHistoryOpen = ref(false)
 
 const props = defineProps<{
   frontLeft: number | null
@@ -275,7 +279,7 @@ const motionBlurAmount = computed(() => {
             <TyreIndicators :pressures="tyrePressures" />
           </svg>
 
-          <TyreLabels :pressures="tyrePressures" />
+          <TyreLabels :pressures="tyrePressures" @select="tyreHistoryOpen = true" />
 
           <!-- Open panel icon badges – positioned over SVG at each panel location -->
           <template v-for="badge in doorBadges" :key="badge.key">
@@ -317,5 +321,6 @@ const motionBlurAmount = computed(() => {
         </div>
       </div>
     </div>
+    <TyreHistoryModal :open="tyreHistoryOpen" @close="tyreHistoryOpen = false" />
   </CardInfoWrap>
 </template>

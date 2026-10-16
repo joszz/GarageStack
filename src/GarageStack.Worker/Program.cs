@@ -36,6 +36,7 @@ try
     builder.Services.AddHostedService<WorkerHeartbeatService>();
     builder.Services.AddHostedService<PushNotificationCheckService>();
     builder.Services.AddHostedService<MaintenanceCheckService>();
+    builder.Services.AddHostedService<TyreTrendCheckService>();
     builder.Services.AddHostedService<PoiPreCachingService>();
     builder.Services.AddHostedService<TripRecorderService>();
 

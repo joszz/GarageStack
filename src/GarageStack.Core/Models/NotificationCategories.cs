@@ -9,6 +9,8 @@ public static class NotificationCategories
 {
     public const string LowTyre = "low-tyre";
     public const string HighTyre = "high-tyre";
+    // One tyre losing air the other three keep, over days: a slow puncture.
+    public const string SlowPuncture = "slow-puncture";
     public const string LowEv = "low-ev";
     public const string ChargingComplete = "charging-complete";
     // Charging stopped for a fault the car named.
@@ -39,7 +41,7 @@ public static class NotificationCategories
     /// <summary>The types a user can switch off, as the frontend's notification checklist offers them.</summary>
     public static readonly IReadOnlySet<string> Groups = new HashSet<string>(StringComparer.Ordinal)
     {
-        LowTyre, HighTyre, LowEv, ChargingComplete, ChargingInterrupted, EngineStart, UnlockedParked, DoorsOpenParked,
+        LowTyre, HighTyre, SlowPuncture, LowEv, ChargingComplete, ChargingInterrupted, EngineStart, UnlockedParked, DoorsOpenParked,
         WindowsOpenParked, VehicleMessage, ClimateSchedule, Low12V, LowFuel, GatewayLogin, DataStale,
         Maintenance,
     };

@@ -783,6 +783,25 @@ public class AuthenticationFlowTests
         Assert.Equal(expected, response.StatusCode);
     }
 
+    // The demo's rear right tyre loses air over its last twelve days, which the trend picks out.
+    [Fact]
+    public async Task TyreHistory_HasAMonthOfDays_AndTheTrendFindsTheLeakingTyre()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var factory = CreatePasswordOnlyFactory();
+        using var client = CreateClient(factory);
+        await PasswordLoginAsync(client, ct);
+
+        using var history = System.Text.Json.JsonDocument.Parse(
+            await client.GetStringAsync($"/api/vehicles/{DemoVin}/tyres?timeZone=Europe/Amsterdam", ct));
+
+        Assert.Equal(30, history.RootElement.GetProperty("days").GetArrayLength());
+        var trend = history.RootElement.GetProperty("trend");
+        Assert.True(trend.GetProperty("rearRight").GetDouble() <= -0.15);
+        Assert.True(trend.GetProperty("frontLeft").GetDouble() > -0.15);
+        Assert.Equal(14, history.RootElement.GetProperty("trendDays").GetInt32());
+    }
+
     [Fact]
     public async Task Widget_WithoutAConfiguredKey_SaysItIsSwitchedOff()
     {

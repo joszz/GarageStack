@@ -437,6 +437,7 @@
     "categories": {
       "lowTyre": "Low tyre pressure",
       "highTyre": "High tyre pressure",
+      "slowPuncture": "Possible slow puncture",
       "lowEv": "Low EV battery",
       "chargingComplete": "Charging complete",
       "chargingInterrupted": "Charging interrupted",
@@ -900,5 +901,16 @@
         "labelTooLong": "The name can be at most 60 characters."
       }
     }
+  },
+  "tyreHistory": {
+    "title": "Tyre history",
+    "open": "{position}: {reading}. Show tyre history",
+    "chartDesc": "Each tyre's daily average pressure over the last 30 days.",
+    "trendTitle": "Against the other tyres",
+    "trendDesc": "Over the last {days} days. The weather moves all four tyres up and down together, so a tyre that falls behind the others is losing air. Falling {drop} or more behind is reported as a possible slow puncture.",
+    "losing": "Losing air",
+    "keepingUp": "Keeping up",
+    "noTrend": "Not enough readings yet: the trend needs a week in which all four tyres reported.",
+    "noData": "No tyre pressures reported in the last 30 days."
   }
 }

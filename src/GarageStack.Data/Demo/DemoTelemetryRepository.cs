@@ -21,6 +21,9 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
     // A little over a year, so the statistics have something to show for last year and per month.
     private const int HistoryDays = 400;
 
+    private const int SlowLeakDays = 12;
+    private const double SlowLeakBarPerDay = 0.02;
+
     private static readonly Lazy<IReadOnlyList<TelemetrySnapshot>> _history =
         new(BuildHistory, LazyThreadSafetyMode.ExecutionAndPublication);
 
@@ -253,8 +256,9 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
             SunRoofOpen = null,
             TyrePressureFrontLeft = 2.4,
             TyrePressureFrontRight = 2.4,
-            TyrePressureRearLeft = 2.3,
-            TyrePressureRearRight = 2.3,
+            TyrePressureRearLeft = 2.5,
+            // Where the slow leak in the history below has brought it: still above the low line.
+            TyrePressureRearRight = 2.26,
             Latitude = current.Lat,
             Longitude = current.Lon,
             Elevation = 3.0,
@@ -331,7 +335,10 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
                 var isCharging = hour == 22;
                 var extTemp = 13.0 + (rng.NextDouble() - 0.5) * 10.0;
                 var frontPressure = 2.4 + (rng.NextDouble() - 0.5) * 0.06;
-                var rearPressure = 2.3 + (rng.NextDouble() - 0.5) * 0.06;
+                var rearPressure = 2.5 + (rng.NextDouble() - 0.5) * 0.06;
+                // The rear right has a slow puncture: over the last twelve days it loses air the
+                // other three keep, for the tyre history and the slow-puncture alert to show.
+                var leak = Math.Max(0, day - (HistoryDays - SlowLeakDays)) * SlowLeakBarPerDay;
 
                 snapshots.Add(new TelemetrySnapshot
                 {
@@ -354,7 +361,7 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
                     TyrePressureFrontLeft = Math.Round(frontPressure, 2),
                     TyrePressureFrontRight = Math.Round(frontPressure + (rng.NextDouble() - 0.5) * 0.04, 2),
                     TyrePressureRearLeft = Math.Round(rearPressure, 2),
-                    TyrePressureRearRight = Math.Round(rearPressure + (rng.NextDouble() - 0.5) * 0.04, 2),
+                    TyrePressureRearRight = Math.Round(rearPressure - leak + (rng.NextDouble() - 0.5) * 0.04, 2),
                     MileageOfTheDay = hour >= 12 ? Math.Round((odometer - 24300 - day * 90) % 200, 1) : 0,
                     BatteryVoltage = 12.6 + rng.NextDouble() * 0.3,
                     Latitude = 52.3676 + (rng.NextDouble() - 0.5) * 0.02,

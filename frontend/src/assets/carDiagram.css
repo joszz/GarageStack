@@ -200,6 +200,14 @@
   white-space: nowrap;
   pointer-events: auto;
   user-select: none;
+  cursor: pointer;
+}
+
+/* Each label opens the tyre history. */
+.tyre-label:hover,
+.tyre-label:focus-visible {
+  background: var(--color-surface-2);
+  outline: none;
 }
 
 .tyre-label--fl {

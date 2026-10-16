@@ -4,6 +4,7 @@ export {
   faArrowRight,
   faArrowRightFromBracket,
   faArrowRightToBracket,
+  faArrowTrendDown,
   faBars,
   faBatteryFull,
   faBatteryHalf,

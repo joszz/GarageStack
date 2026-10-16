@@ -547,6 +547,17 @@
     Mask="false">3.2</Config>
 
   <Config
+    Name="Tyre Pressure - Slow Puncture Drop (bar)"
+    Target="TYRE_PRESSURE_DROP_BAR"
+    Default="0.15"
+    Mode=""
+    Description="How far one tyre may fall behind the other three over two weeks before it is reported as a possible slow puncture. 0 switches the alert off."
+    Type="Variable"
+    Display="advanced"
+    Required="false"
+    Mask="false">0.15</Config>
+
+  <Config
     Name="Alert - Low 12V Battery (V)"
     Target="AUX_BATTERY_LOW_VOLT"
     Default="12.0"

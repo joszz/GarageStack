@@ -437,6 +437,7 @@
     "categories": {
       "lowTyre": "Lage bandenspanning",
       "highTyre": "Hoge bandenspanning",
+      "slowPuncture": "Mogelijk langzaam lek",
       "lowEv": "Lage EV-accustand",
       "chargingComplete": "Laden voltooid",
       "chargingInterrupted": "Laden onderbroken",
@@ -900,5 +901,16 @@
         "labelTooLong": "De naam mag maximaal 60 tekens zijn."
       }
     }
+  },
+  "tyreHistory": {
+    "title": "Verloop bandenspanning",
+    "open": "{position}: {reading}. Toon verloop bandenspanning",
+    "chartDesc": "De gemiddelde spanning van elke band per dag, over de afgelopen 30 dagen.",
+    "trendTitle": "Ten opzichte van de andere banden",
+    "trendDesc": "Over de afgelopen {days} dagen. Het weer laat alle vier de banden samen stijgen en dalen, dus een band die achterblijft verliest lucht. Wie {drop} of meer achterblijft, wordt gemeld als mogelijk langzaam lek.",
+    "losing": "Verliest lucht",
+    "keepingUp": "Houdt bij",
+    "noTrend": "Nog te weinig metingen: de trend heeft een week nodig waarin alle vier de banden gemeld hebben.",
+    "noData": "Geen bandenspanning gemeld in de afgelopen 30 dagen."
   }
 }

@@ -2,11 +2,15 @@ using System.Text.Json;
 using GarageStack.Core.Configuration;
 using GarageStack.Core.Helpers;
 using GarageStack.Core.Interfaces;
+using GarageStack.Core.Models;
 
 namespace GarageStack.Api.Endpoints;
 
 public static class VehicleEndpoints
 {
+    // What the tyre history dialog charts.
+    private const int TyreHistoryDays = 30;
+
     private static readonly TimeSpan TopicsWindow = TimeSpan.FromDays(7);
 
     public static IEndpointRouteBuilder MapVehicleEndpoints(this IEndpointRouteBuilder app)
@@ -77,6 +81,27 @@ public static class VehicleEndpoints
             return Results.Ok(await telemetry.GetDailyStatsAsync(vehicle.Id, first, last, zone, today, ct));
         })
         .WithSummary("Daily statistics for a vehicle: one row per local day, from every reading of it");
+
+        // A month of each tyre's daily average, and how each moved against the other three over
+        // the last two weeks: what the slow-puncture alert looks at, for the tyre history dialog.
+        vehicleGroup.MapGet("/tyres", async (
+            HttpContext httpContext,
+            ITelemetryRepository telemetry,
+            string? timeZone,
+            CancellationToken ct) =>
+        {
+            var vehicle = httpContext.ResolvedVehicle();
+            if (!TryFindZone(timeZone, out var zone))
+                return ApiProblems.BadRequest("stats.timeZoneUnknown", "timeZone must be an IANA time zone, such as Europe/Amsterdam");
+
+            var today = DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, zone));
+            var days = await telemetry.GetDailyStatsAsync(vehicle.Id, today.AddDays(-(TyreHistoryDays - 1)), today, zone, today, ct);
+            var trendFrom = today.AddDays(-(TyreTrend.WindowDays - 1));
+
+            return Results.Ok(new TyreHistoryDto(
+                days, TyreTrend.Measure(days.Where(d => d.Date >= trendFrom)), TyreTrend.WindowDays));
+        })
+        .WithSummary("A month of daily tyre pressures, and each tyre's change against the others over the last two weeks");
 
         vehicleGroup.MapPost("/commands/{command}", async (
             HttpContext httpContext,
@@ -172,3 +197,10 @@ public record VehicleListItemDto(
     string VehicleType,
     double? HvBatteryCapacityKwh,
     bool SupportsTargetSoc);
+
+/// <summary>
+/// A month of daily statistics (the same rows as /stats/daily, for the same chart) and, when there
+/// are readings enough, each tyre's change against the others over <paramref name="TrendDays"/>.
+/// </summary>
+public sealed record TyreHistoryDto(IReadOnlyList<DailyStat> Days, TyreChanges? Trend, int TrendDays);
+

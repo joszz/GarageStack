@@ -3,8 +3,10 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useTyreDisplay, type TyrePosition, type TyrePressures } from './useTyreDisplay'
 
-// The pressure readings laid over the diagram at the end of each wheel's indicator line.
+// The pressure readings laid over the diagram at the end of each wheel's indicator line. Each
+// one opens the tyre history.
 const props = defineProps<{ pressures: TyrePressures }>()
+defineEmits<{ select: [position: TyrePosition] }>()
 
 const { t } = useI18n()
 const { variant, reading } = useTyreDisplay()
@@ -23,13 +25,21 @@ const labels = computed(() =>
 
 <template>
   <div class="tyre-labels">
-    <div
+    <button
       v-for="label in labels"
       :key="label.key"
+      type="button"
       :class="['tyre-label', `tyre-label--${label.suffix}`, `tyre-label--${variant(label.value)}`]"
       :title="t(`vehicle.diagram.tyrePosition.${label.key}`)"
+      :aria-label="
+        t('tyreHistory.open', {
+          position: t(`vehicle.diagram.tyrePosition.${label.key}`),
+          reading: reading(label.value),
+        })
+      "
+      @click="$emit('select', label.key)"
     >
       {{ reading(label.value) }}
-    </div>
+    </button>
   </div>
 </template>
