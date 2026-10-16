@@ -22,9 +22,6 @@ public interface ITelemetryRepository
     /// </summary>
     Task MergeIntoAsync(long rowId, TelemetrySnapshot patch, CancellationToken ct = default);
 
-    /// <summary>Returns the single most recently recorded row for <paramref name="vehicleId"/>, unmerged.</summary>
-    Task<TelemetrySnapshot?> GetLatestAsync(int vehicleId, CancellationToken ct = default);
-
     /// <summary>
     /// Builds a single "current state" snapshot by merging the most recent rows for
     /// <paramref name="vehicleId"/> field-by-field (first non-null value per field wins,
@@ -72,8 +69,11 @@ public interface ITelemetryRepository
     /// </summary>
     Task<string?> GetChargingStopReasonAsync(int vehicleId, CancellationToken ct = default);
 
-    /// <summary>The raw MQTT topics that started telemetry rows for <paramref name="vehicleId"/>, most frequent first.</summary>
-    Task<IReadOnlyList<RawTopicStat>> GetRawTopicStatsAsync(int vehicleId, CancellationToken ct = default);
+    /// <summary>
+    /// The raw MQTT topics that started telemetry rows for <paramref name="vehicleId"/> since
+    /// <paramref name="since"/>, most frequent first.
+    /// </summary>
+    Task<IReadOnlyList<RawTopicStat>> GetRawTopicStatsAsync(int vehicleId, DateTime since, CancellationToken ct = default);
 
     /// <summary>Computes summary statistics (e.g. climate usage) over snapshots in the given date range.</summary>
     Task<VehicleAggregateStats> GetAggregateStatsAsync(int vehicleId, DateTime from, DateTime to, CancellationToken ct = default);

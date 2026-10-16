@@ -40,14 +40,13 @@ file sealed class SlowFakeTelemetryRepository : ITelemetryRepository
         return Task.CompletedTask;
     }
 
-    public Task<TelemetrySnapshot?> GetLatestAsync(int vehicleId, CancellationToken ct = default) => throw new NotImplementedException();
     public Task<TelemetrySnapshot?> GetMergedLatestAsync(int vehicleId, CancellationToken ct = default) => throw new NotImplementedException();
     public Task<IReadOnlyList<DailyStat>> GetDailyStatsAsync(int vehicleId, DateOnly from, DateOnly to, TimeZoneInfo zone, DateOnly today, CancellationToken ct = default) => throw new NotImplementedException();
     public Task<IReadOnlyList<TripPoint>> GetGpsFixesAsync(int vehicleId, DateTime from, DateTime to, CancellationToken ct = default) => throw new NotImplementedException();
     public Task<DateTime?> GetFirstGpsFixAtAsync(int vehicleId, CancellationToken ct = default) => throw new NotImplementedException();
     public Task<double?> GetOdometerAtAsync(int vehicleId, DateTime at, CancellationToken ct = default) => throw new NotImplementedException();
     public Task<IReadOnlyList<StatusReading>> GetStatusReadingsAsync(int vehicleId, int count, CancellationToken ct = default) => throw new NotImplementedException();
-    public Task<IReadOnlyList<RawTopicStat>> GetRawTopicStatsAsync(int vehicleId, CancellationToken ct = default) => throw new NotImplementedException();
+    public Task<IReadOnlyList<RawTopicStat>> GetRawTopicStatsAsync(int vehicleId, DateTime since, CancellationToken ct = default) => throw new NotImplementedException();
     public Task<string?> GetChargingStopReasonAsync(int vehicleId, CancellationToken ct = default) => throw new NotImplementedException();
     public Task<VehicleAggregateStats> GetAggregateStatsAsync(int vehicleId, DateTime from, DateTime to, CancellationToken ct = default) => throw new NotImplementedException();
 }

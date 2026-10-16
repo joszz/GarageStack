@@ -43,7 +43,6 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IVehicleRepository, DemoVehicleRepository>();
         services.AddSingleton<ITelemetryRepository, DemoTelemetryRepository>();
         services.AddSingleton<ITripRepository, DemoTripRepository>();
-        services.AddSingleton<IPushSender, DemoPushSender>();
         services.AddScoped<IPoiRepository, PoiRepository>();
         services.AddScoped<IGeocodeRepository, GeocodeRepository>();
         services.AddScoped<IMapMatchRepository, MapMatchRepository>();

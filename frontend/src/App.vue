@@ -15,6 +15,7 @@ import { useBrowserNotifications } from '@/composables/useBrowserNotifications'
 import { useSignalR } from '@/composables/useSignalR'
 import { useFavicon } from '@/composables/useFavicon'
 import { useRelativeTime } from '@/composables/useRelativeTime'
+import { useEscapeKey } from '@/composables/useEscapeKey'
 import { formatDateTime, formatTime } from '@/utils/format'
 
 const isDemoMode = import.meta.env.VITE_DEMO_MODE === 'true'
@@ -156,6 +157,16 @@ function closeMenu() {
   menuOpen.value = false
 }
 
+// Escape closes the mobile menu and puts focus back on the button that opened it.
+const hamburger = ref<HTMLButtonElement | null>(null)
+useEscapeKey(
+  () => menuOpen.value,
+  () => {
+    closeMenu()
+    hamburger.value?.focus()
+  },
+)
+
 async function logout() {
   await stopSignalR()
   await auth.logout()
@@ -182,7 +193,9 @@ watch(
     <!-- Mobile topbar -->
     <header class="mobile-topbar">
       <button
+        ref="hamburger"
         class="hamburger"
+        aria-controls="app-sidebar"
         :aria-expanded="menuOpen"
         :aria-label="t('nav.menuLabel')"
         @click="toggleMenu"
@@ -207,7 +220,7 @@ watch(
     <!-- Sidebar + main body (fills space between topbar and footer) -->
     <div class="app-body">
       <!-- Sidebar / drawer -->
-      <nav class="sidebar" :class="{ 'sidebar--open': menuOpen }">
+      <nav id="app-sidebar" class="sidebar" :class="{ 'sidebar--open': menuOpen }">
         <RouterLink to="/" class="sidebar-brand">
           <font-awesome-icon icon="car" />
           <span>GarageStack</span>

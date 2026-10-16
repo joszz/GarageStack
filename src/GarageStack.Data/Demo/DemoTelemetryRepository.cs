@@ -30,12 +30,6 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
     public Task MergeIntoAsync(long rowId, TelemetrySnapshot patch, CancellationToken ct = default) =>
         Task.CompletedTask;
 
-    public Task<TelemetrySnapshot?> GetLatestAsync(int vehicleId, CancellationToken ct = default)
-    {
-        // Return a copy - callers must not be able to mutate the shared in-memory demo state.
-        lock (_lock) { return Task.FromResult<TelemetrySnapshot?>(_current.Clone()); }
-    }
-
     public Task<TelemetrySnapshot?> GetMergedLatestAsync(int vehicleId, CancellationToken ct = default)
     {
         lock (_lock) { return Task.FromResult<TelemetrySnapshot?>(_current.Clone()); }
@@ -74,7 +68,7 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
         Task.FromResult<string?>(null);
 
     // Demo data is not ingested from MQTT, so there are no raw topics to report.
-    public Task<IReadOnlyList<RawTopicStat>> GetRawTopicStatsAsync(int vehicleId, CancellationToken ct = default) =>
+    public Task<IReadOnlyList<RawTopicStat>> GetRawTopicStatsAsync(int vehicleId, DateTime since, CancellationToken ct = default) =>
         Task.FromResult<IReadOnlyList<RawTopicStat>>([]);
 
     public Task<VehicleAggregateStats> GetAggregateStatsAsync(

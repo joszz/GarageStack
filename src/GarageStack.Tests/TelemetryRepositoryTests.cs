@@ -610,10 +610,26 @@ public class TelemetryRepositoryMergeTests
             new TelemetrySnapshot { VehicleId = vehicle.Id, RecordedAt = t0.AddMinutes(3), EvSocPercent = 1 });
         await db.SaveChangesAsync(ct);
 
-        var stats = await repo.GetRawTopicStatsAsync(vehicle.Id, ct);
+        var stats = await repo.GetRawTopicStatsAsync(vehicle.Id, t0.AddDays(-7), ct);
 
         Assert.Equal(2, stats.Count);
         Assert.Equal(new RawTopicStat("b", 2, t0.AddMinutes(2)), stats[0]);
         Assert.Equal(new RawTopicStat("a", 1, t0), stats[1]);
+    }
+
+    [Fact]
+    public async Task GetRawTopicStatsAsync_LeavesOutTopicsBeforeTheWindow()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (db, repo, vehicle) = await SetupAsync();
+        var t0 = new DateTime(2026, 1, 1, 10, 0, 0, DateTimeKind.Utc);
+        db.TelemetrySnapshots.AddRange(
+            new TelemetrySnapshot { VehicleId = vehicle.Id, RecordedAt = t0.AddDays(-30), RawTopic = "old", EvSocPercent = 1 },
+            new TelemetrySnapshot { VehicleId = vehicle.Id, RecordedAt = t0, RawTopic = "recent", EvSocPercent = 1 });
+        await db.SaveChangesAsync(ct);
+
+        var stats = await repo.GetRawTopicStatsAsync(vehicle.Id, t0.AddDays(-7), ct);
+
+        Assert.Equal("recent", Assert.Single(stats).Topic);
     }
 }

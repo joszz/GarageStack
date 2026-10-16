@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { usePwaInstall } from '@/composables/usePwaInstall'
 import { useEscapeKey } from '@/composables/useEscapeKey'
+import { useDialogFocus } from '@/composables/useDialogFocus'
 
 const { t } = useI18n()
 const { modalVisible, install, dismiss } = usePwaInstall()
@@ -15,6 +16,9 @@ function onDismiss() {
 
 // Escape is "not now", like a click outside the dialog.
 useEscapeKey(() => modalVisible.value, onDismiss)
+
+const dialog = ref<HTMLElement | null>(null)
+useDialogFocus(dialog, () => modalVisible.value)
 </script>
 
 <template>
@@ -22,7 +26,9 @@ useEscapeKey(() => modalVisible.value, onDismiss)
     <Transition name="modal">
       <div v-if="modalVisible" class="detail-modal-backdrop" @click.self="onDismiss">
         <div
+          ref="dialog"
           class="detail-modal pwa-install-modal"
+          tabindex="-1"
           role="dialog"
           :aria-modal="true"
           :aria-label="t('pwa.install.title')"

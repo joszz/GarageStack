@@ -45,7 +45,8 @@ const roundedSocPercent = computed(() =>
 const summaryValue = computed((): string | null => {
   const parts: string[] = []
   if (roundedSocPercent.value !== null) parts.push(`${roundedSocPercent.value}%`)
-  else if (props.storedKwh !== null) parts.push(`${formatNumber(props.storedKwh)} kWh`)
+  else if (props.storedKwh !== null)
+    parts.push(`${formatNumber(props.storedKwh)} ${t('common.kwh')}`)
   if (props.hvBatteryActive !== null)
     parts.push(props.hvBatteryActive ? t('vehicle.hvBattery.active') : t('vehicle.hvBattery.idle'))
   return parts.length ? parts.join(' · ') : null
@@ -117,13 +118,13 @@ function setChargeTarget() {
       <DetailListItem
         v-if="storedKwh !== null"
         icon="bolt"
-        :value="`${formatNumber(storedKwh)} kWh`"
+        :value="`${formatNumber(storedKwh)} ${t('common.kwh')}`"
         :label="t('vehicle.hvBattery.socKwh')"
       />
       <DetailListItem
         v-if="capacityKwh !== null"
         icon="database"
-        :value="`${formatNumber(capacityKwh)} kWh`"
+        :value="`${formatNumber(capacityKwh)} ${t('common.kwh')}`"
         :label="t('vehicle.hvBattery.capacity')"
       />
       <DetailListItem
@@ -153,7 +154,7 @@ function setChargeTarget() {
       <DetailListItem
         v-if="powerUsageSinceLastCharge !== null"
         icon="chart-line"
-        :value="`${formatNumber(powerUsageSinceLastCharge)} kWh`"
+        :value="`${formatNumber(powerUsageSinceLastCharge)} ${t('common.kwh')}`"
         :label="t('vehicle.hvBattery.usedSinceCharge')"
       />
       <DetailListItem

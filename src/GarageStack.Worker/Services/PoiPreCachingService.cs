@@ -33,24 +33,25 @@ public sealed class PoiPreCachingService(
 
         // Single query for the latest known location of every vehicle instead of one query per
         // vehicle: the RecordedAt == MAX(RecordedAt) correlated subquery reliably translates to SQL.
+        // Only the position comes back, untracked: nothing here changes the rows.
         var latestByVehicle = (await db.TelemetrySnapshots
+            .AsNoTracking()
             .Where(s => s.Latitude != null && s.Longitude != null)
             .Where(s => s.RecordedAt == db.TelemetrySnapshots
                 .Where(x => x.VehicleId == s.VehicleId && x.Latitude != null && x.Longitude != null)
                 .Max(x => x.RecordedAt))
+            .Select(s => new { s.VehicleId, Latitude = s.Latitude!.Value, Longitude = s.Longitude!.Value })
             .ToListAsync(ct))
             .GroupBy(s => s.VehicleId)
             .ToDictionary(g => g.Key, g => g.First());
 
         foreach (var vehicle in vehicles)
         {
-            if (!latestByVehicle.TryGetValue(vehicle.Id, out var snapshot))
-                continue;
-            if (snapshot.Latitude is null || snapshot.Longitude is null)
+            if (!latestByVehicle.TryGetValue(vehicle.Id, out var position))
                 continue;
 
-            var lat = snapshot.Latitude.Value;
-            var lng = snapshot.Longitude.Value;
+            var lat = position.Latitude;
+            var lng = position.Longitude;
             var vehicleType = VehicleTypeHelper.GetVehicleType(vehicle);
             var vinForLog = LogRedaction.Vin(vehicle.Vin);
 
