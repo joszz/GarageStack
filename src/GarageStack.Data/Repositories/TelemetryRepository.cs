@@ -11,12 +11,16 @@ using Microsoft.Extensions.Logging;
 namespace GarageStack.Data.Repositories;
 
 // logger/cache are optional (DI always supplies both) so existing tests can keep
-// constructing this directly with just a DbContext.
+// constructing this directly with just a DbContext. time is the clock "the last week" and
+// "today" are measured by: the system's, or a test's fixed one.
 public class TelemetryRepository(
     AppDbContext db,
     ILogger<TelemetryRepository>? logger = null,
-    IMemoryCache? cache = null) : ITelemetryRepository
+    IMemoryCache? cache = null,
+    TimeProvider? time = null) : ITelemetryRepository
 {
+    private DateTime UtcNow => (time ?? TimeProvider.System).GetUtcNow().UtcDateTime;
+
     // GetMergedLatestAsync scans up to 200 rows (plus up to 2 fallback queries) and runs on
     // every /status, /widget/status, maintenance-mutation, and SignalR-broadcast call. A write
     // (AddAsync/MergeIntoAsync) always invalidates the entry immediately via NotifyUpdatedAsync,
@@ -134,7 +138,7 @@ public class TelemetryRepository(
         if (cache is not null && cache.TryGetValue(cacheKey, out TelemetrySnapshot? cached))
             return cached;
 
-        var since = DateTime.UtcNow.AddDays(-7);
+        var since = UtcNow.AddDays(-7);
         var rows = await db.TelemetrySnapshots
             .AsNoTracking()
             .Where(s => s.VehicleId == vehicleId && s.RecordedAt >= since)
@@ -145,7 +149,7 @@ public class TelemetryRepository(
 
         if (rows.Count == 0) return null;
 
-        var todayStart = DateTime.UtcNow.Date;
+        var todayStart = UtcNow.Date;
         var merged = new TelemetrySnapshot { VehicleId = vehicleId, RecordedAt = rows[0].RecordedAt };
         foreach (var row in rows)
         {
@@ -167,7 +171,7 @@ public class TelemetryRepository(
         {
             var lastSpeedRow = rows.FirstOrDefault(r => r.Speed != null);
             var engineOff = merged.EngineRunning == false;
-            var stationary = lastSpeedRow is { Speed: <= 0 } && DateTime.UtcNow - lastSpeedRow.RecordedAt > TimeSpan.FromMinutes(5);
+            var stationary = lastSpeedRow is { Speed: <= 0 } && UtcNow - lastSpeedRow.RecordedAt > TimeSpan.FromMinutes(5);
             if (engineOff || stationary)
                 merged.CurrentJourneyDistance = null;
         }
