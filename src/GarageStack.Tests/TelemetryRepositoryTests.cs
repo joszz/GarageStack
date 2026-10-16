@@ -632,4 +632,32 @@ public class TelemetryRepositoryMergeTests
 
         Assert.Equal("recent", Assert.Single(stats).Topic);
     }
+
+    // Parked, the car keeps sending rows without a position; the newest fix is still the answer.
+    [Fact]
+    public async Task GetLatestPositionAsync_IsTheNewestFix_PastRowsWithoutOne()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (db, repo, vehicle) = await SetupAsync();
+        var t0 = new DateTime(2026, 1, 1, 10, 0, 0, DateTimeKind.Utc);
+        db.TelemetrySnapshots.AddRange(
+            new TelemetrySnapshot { VehicleId = vehicle.Id, RecordedAt = t0, Latitude = 52.0, Longitude = 5.0, Heading = 90 },
+            new TelemetrySnapshot { VehicleId = vehicle.Id, RecordedAt = t0.AddMinutes(5), Latitude = 52.1, Longitude = 5.1, Heading = 180 },
+            new TelemetrySnapshot { VehicleId = vehicle.Id, RecordedAt = t0.AddMinutes(10), IsLocked = true },
+            new TelemetrySnapshot { VehicleId = vehicle.Id, RecordedAt = t0.AddMinutes(15), Latitude = 53.0 });
+        await db.SaveChangesAsync(ct);
+
+        Assert.Equal(new PositionFix(52.1, 5.1, 180), await repo.GetLatestPositionAsync(vehicle.Id, ct));
+    }
+
+    [Fact]
+    public async Task GetLatestPositionAsync_NoFixEver_IsNull()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (db, repo, vehicle) = await SetupAsync();
+        db.TelemetrySnapshots.Add(new TelemetrySnapshot { VehicleId = vehicle.Id, RecordedAt = DateTime.UtcNow, IsLocked = true });
+        await db.SaveChangesAsync(ct);
+
+        Assert.Null(await repo.GetLatestPositionAsync(vehicle.Id, ct));
+    }
 }

@@ -79,6 +79,16 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
         yield return (await GetMergedLatestAsync(vehicleId, ct))!;
     }
 
+    public Task<PositionFix?> GetLatestPositionAsync(int vehicleId, CancellationToken ct = default)
+    {
+        lock (_lock)
+        {
+            return Task.FromResult(_current is { Latitude: { } lat, Longitude: { } lon }
+                ? new PositionFix(lat, lon, _current.Heading)
+                : null);
+        }
+    }
+
     public Task<IReadOnlyList<RawTopicStat>> GetRawTopicStatsAsync(int vehicleId, DateTime since, CancellationToken ct = default) =>
         Task.FromResult<IReadOnlyList<RawTopicStat>>([]);
 

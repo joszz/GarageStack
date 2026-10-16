@@ -38,9 +38,13 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.HasIndex(s => new { s.VehicleId, s.RecordedAt });
             // IX_TelemetrySnapshots_VehicleId_RecordedAt_Chart is a partial index
             // managed via raw SQL in the AddChartIndex migration.
-            e.HasIndex(s => new { s.VehicleId, s.Latitude, s.Longitude, s.RecordedAt })
-             .HasDatabaseName("IX_TelemetrySnapshots_VehicleId_LatLon_RecordedAt")
-             .HasFilter("\"Latitude\" IS NOT NULL AND \"Longitude\" IS NOT NULL");
+            // The rows with a GPS fix, in time order: the newest fix (the dashboard's position,
+            // the POI pre-cache), the first one, and a stretch of them (trips) are each a short
+            // read of this index alone. GPS rows are sparse, so the plain (VehicleId, RecordedAt)
+            // index would wade through every row without a fix to find them.
+            e.HasIndex(s => new { s.VehicleId, s.RecordedAt }, "IX_TelemetrySnapshots_VehicleId_RecordedAt_Gps")
+             .HasFilter("\"Latitude\" IS NOT NULL AND \"Longitude\" IS NOT NULL")
+             .IncludeProperties(s => new { s.Latitude, s.Longitude, s.Speed, s.Heading });
             // Backs GetMergedLatestAsync's schedule fallback, which looks for the newest row
             // carrying any charging or heating schedule. Some cars report a schedule on nearly
             // every message and never reach the fallback; others have no such row at all, and

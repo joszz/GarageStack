@@ -174,12 +174,7 @@ public class TelemetryRepository(
         // row that has coordinates - the partial index makes this cheap.
         if (merged.Latitude == null)
         {
-            var loc = await db.TelemetrySnapshots
-                .Where(s => s.VehicleId == vehicleId && s.Latitude != null && s.Longitude != null)
-                .OrderByDescending(s => s.RecordedAt)
-                .Select(s => new { s.Latitude, s.Longitude, s.Heading })
-                .FirstOrDefaultAsync(ct);
-
+            var loc = await GetLatestPositionAsync(vehicleId, ct);
             if (loc != null)
             {
                 merged.Latitude = loc.Latitude;
@@ -246,6 +241,14 @@ public class TelemetryRepository(
 
         return builder.Build();
     }
+
+    public Task<PositionFix?> GetLatestPositionAsync(int vehicleId, CancellationToken ct = default) =>
+        db.TelemetrySnapshots
+            .AsNoTracking()
+            .Where(s => s.VehicleId == vehicleId && s.Latitude != null && s.Longitude != null)
+            .OrderByDescending(s => s.RecordedAt)
+            .Select(s => new PositionFix(s.Latitude!.Value, s.Longitude!.Value, s.Heading))
+            .FirstOrDefaultAsync(ct);
 
     public async Task<IReadOnlyList<TripPoint>> GetGpsFixesAsync(int vehicleId, DateTime from, DateTime to, CancellationToken ct = default)
     {

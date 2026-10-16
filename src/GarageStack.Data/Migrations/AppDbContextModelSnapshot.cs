@@ -841,9 +841,10 @@ namespace GarageStack.Data.Migrations
 
                     b.HasIndex("VehicleId", "RecordedAt");
 
-                    b.HasIndex("VehicleId", "Latitude", "Longitude", "RecordedAt")
-                        .HasDatabaseName("IX_TelemetrySnapshots_VehicleId_LatLon_RecordedAt")
+                    b.HasIndex(new[] { "VehicleId", "RecordedAt" }, "IX_TelemetrySnapshots_VehicleId_RecordedAt_Gps")
                         .HasFilter("\"Latitude\" IS NOT NULL AND \"Longitude\" IS NOT NULL");
+
+                    NpgsqlIndexBuilderExtensions.IncludeProperties(b.HasIndex(new[] { "VehicleId", "RecordedAt" }, "IX_TelemetrySnapshots_VehicleId_RecordedAt_Gps"), new[] { "Latitude", "Longitude", "Speed", "Heading" });
 
                     b.HasIndex(new[] { "VehicleId", "RecordedAt" }, "IX_TelemetrySnapshots_VehicleId_RecordedAt_Schedule")
                         .HasFilter("\"ChargingScheduleMode\" IS NOT NULL OR \"ChargingScheduleStartTime\" IS NOT NULL OR \"ChargingScheduleEndTime\" IS NOT NULL OR \"BatteryHeatingScheduleMode\" IS NOT NULL OR \"BatteryHeatingScheduleStartTime\" IS NOT NULL");
