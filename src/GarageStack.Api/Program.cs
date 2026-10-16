@@ -49,7 +49,9 @@ try
     {
         Log.Information("DEMO MODE enabled -- using in-memory fake data, no database or MQTT required");
         builder.Services.AddDemoServices();
-        builder.Services.AddSingleton<IMqttPublisher, DemoNoOpMqttPublisher>();
+        // Demo mode's gateway carries commands out on the demo car and answers them.
+        builder.Services.AddSingleton<IMqttPublisher>(sp => ActivatorUtilities.CreateInstance<DemoCommandPublisher>(
+            sp, (DemoTelemetryRepository)sp.GetRequiredService<ITelemetryRepository>()));
     }
     else
     {
