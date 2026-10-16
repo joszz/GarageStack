@@ -41,15 +41,7 @@ public sealed class DailyStatsBuilder(TimeZoneInfo zone, DateOnly from, DateOnly
 
     /// <summary>The UTC instants the local days from <paramref name="first"/> to <paramref name="last"/> span, end exclusive.</summary>
     public static (DateTime Start, DateTime End) UtcRange(DateOnly first, DateOnly last, TimeZoneInfo zone) =>
-        (StartOfDay(first, zone), StartOfDay(last.AddDays(1), zone));
-
-    // Where a zone skips midnight for summer time, the day starts at the first hour that exists.
-    private static DateTime StartOfDay(DateOnly date, TimeZoneInfo zone)
-    {
-        var local = date.ToDateTime(TimeOnly.MinValue, DateTimeKind.Unspecified);
-        while (zone.IsInvalidTime(local)) local = local.AddMinutes(30);
-        return TimeZoneInfo.ConvertTimeToUtc(local, zone);
-    }
+        (ZoneTime.StartOfDay(first, zone), ZoneTime.StartOfDay(last.AddDays(1), zone));
 
     public void Add(TelemetryHistoryPoint reading)
     {
