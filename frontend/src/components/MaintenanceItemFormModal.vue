@@ -5,7 +5,7 @@ import DetailModal from './DetailModal.vue'
 import { useMaintenanceStore } from '@/stores/maintenance'
 import type { MaintenanceItem } from '@/services/maintenanceApi'
 import { useUnits } from '@/composables/useUnits'
-import { useErrorMessage } from '@/composables/useErrorMessage'
+import { useStoreAction } from '@/composables/useStoreAction'
 import { useMeasureField } from '@/composables/useMeasureField'
 
 const props = defineProps<{
@@ -19,7 +19,6 @@ const emit = defineEmits<{ (e: 'close'): void }>()
 const { t } = useI18n()
 const store = useMaintenanceStore()
 const units = useUnits()
-const errorMessage = useErrorMessage()
 
 const name = ref('')
 const notes = ref('')
@@ -29,7 +28,8 @@ const lastServiceDate = ref('')
 const lastServiceOdometer = useMeasureField(units, 'distance')
 const validationError = ref<string | null>(null)
 const distanceUnit = computed(() => ({ unit: units.value.symbol('distance') }))
-const saving = ref(false)
+const { busy: saving, error: actionError, run } = useStoreAction(() => store.actionError)
+const formError = computed(() => validationError.value ?? actionError.value)
 
 const isEdit = computed(() => props.item !== null)
 const title = computed(() => (isEdit.value ? t('maintenance.editItem') : t('maintenance.addItem')))
@@ -39,6 +39,7 @@ watch(
   (isOpen) => {
     if (!isOpen) return
     validationError.value = null
+    actionError.value = null
     const item = props.item
     name.value = item?.name ?? ''
     notes.value = item?.notes ?? ''
@@ -66,33 +67,23 @@ async function submit() {
     return
   }
 
-  saving.value = true
-  try {
-    if (isEdit.value && props.item) {
-      await store.updateItem(props.vin, props.item.id, {
-        name: name.value.trim(),
-        notes: notes.value.trim() || null,
-        intervalKm,
-        intervalMonths: intervalMonths.value,
-      })
-    } else {
-      await store.createItem(props.vin, {
-        name: name.value.trim(),
-        notes: notes.value.trim() || null,
-        intervalKm,
-        intervalMonths: intervalMonths.value,
-        lastServiceDate: lastServiceDate.value || null,
-        lastServiceOdometerKm: lastServiceOdometer.metric(),
-      })
-    }
-    if (store.actionError) {
-      validationError.value = errorMessage(store.actionError)
-      return
-    }
-    emit('close')
-  } finally {
-    saving.value = false
+  const item = props.item
+  const fields = {
+    name: name.value.trim(),
+    notes: notes.value.trim() || null,
+    intervalKm,
+    intervalMonths: intervalMonths.value,
   }
+  const saved = await run(() =>
+    item
+      ? store.updateItem(props.vin, item.id, fields)
+      : store.createItem(props.vin, {
+          ...fields,
+          lastServiceDate: lastServiceDate.value || null,
+          lastServiceOdometerKm: lastServiceOdometer.metric(),
+        }),
+  )
+  if (saved) emit('close')
 }
 </script>
 
@@ -179,7 +170,7 @@ async function submit() {
         <p class="text-muted text-xs">{{ t('maintenance.form.lastServiceHint') }}</p>
       </template>
 
-      <p v-if="validationError" class="text-danger text-sm">{{ validationError }}</p>
+      <p v-if="formError" class="text-danger text-sm" role="alert">{{ formError }}</p>
     </form>
 
     <template #footer>

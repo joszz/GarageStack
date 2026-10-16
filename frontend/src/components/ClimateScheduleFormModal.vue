@@ -17,7 +17,7 @@ import type {
   IsoWeekday,
 } from '@/services/climateScheduleApi'
 import { useUnits } from '@/composables/useUnits'
-import { useErrorMessage } from '@/composables/useErrorMessage'
+import { useStoreAction } from '@/composables/useStoreAction'
 import { useMeasureField } from '@/composables/useMeasureField'
 import { useClimateLabels } from '@/composables/useClimateLabels'
 import {
@@ -47,7 +47,6 @@ const { t } = useI18n()
 const store = useClimateSchedulesStore()
 const vehicleStore = useVehicleStore()
 const units = useUnits()
-const errorMessage = useErrorMessage()
 const { temperatureText, temperatureEdges, seatLabels, seatText, modeOptions } = useClimateLabels()
 
 // A new schedule warms to 21 °C unless the car is already set to something else.
@@ -68,7 +67,8 @@ const conditionOn = ref(false)
 const colderThan = useMeasureField(units, 'temperature')
 const warmerThan = useMeasureField(units, 'temperature')
 const validationError = ref<string | null>(null)
-const saving = ref(false)
+const { busy: saving, error: actionError, run } = useStoreAction(() => store.actionError)
+const formError = computed(() => validationError.value ?? actionError.value)
 const pendingDelete = ref(false)
 
 const isEdit = computed(() => props.schedule !== null)
@@ -108,6 +108,7 @@ watch(
   (isOpen) => {
     if (!isOpen) return
     validationError.value = null
+    actionError.value = null
     pendingDelete.value = false
     const s = props.schedule
     name.value = s?.name ?? ''
@@ -204,35 +205,22 @@ async function submit() {
   validationError.value = validate()
   if (validationError.value) return
 
-  saving.value = true
-  try {
-    const request = buildRequest()
-    if (props.schedule) await store.updateSchedule(props.vin, props.schedule.id, request)
-    else await store.createSchedule(props.vin, request)
-    if (store.actionError) {
-      validationError.value = errorMessage(store.actionError)
-      return
-    }
-    emit('close')
-  } finally {
-    saving.value = false
-  }
+  const request = buildRequest()
+  const schedule = props.schedule
+  const saved = await run(() =>
+    schedule
+      ? store.updateSchedule(props.vin, schedule.id, request)
+      : store.createSchedule(props.vin, request),
+  )
+  if (saved) emit('close')
 }
 
 async function confirmDelete() {
-  if (!props.schedule) return
-  saving.value = true
-  try {
-    await store.deleteSchedule(props.vin, props.schedule.id)
-    if (store.actionError) {
-      validationError.value = errorMessage(store.actionError)
-      pendingDelete.value = false
-      return
-    }
-    emit('close')
-  } finally {
-    saving.value = false
-  }
+  const schedule = props.schedule
+  if (!schedule) return
+  const deleted = await run(() => store.deleteSchedule(props.vin, schedule.id))
+  pendingDelete.value = false
+  if (deleted) emit('close')
 }
 </script>
 
@@ -374,7 +362,7 @@ async function confirmDelete() {
 
       <p class="text-muted text-xs mt-3">{{ t('climateSchedules.form.timingHint') }}</p>
       <p v-if="zoneHint" class="text-muted text-xs">{{ zoneHint }}</p>
-      <p v-if="validationError" class="text-danger text-sm" role="alert">{{ validationError }}</p>
+      <p v-if="formError" class="text-danger text-sm" role="alert">{{ formError }}</p>
     </form>
 
     <template #footer>

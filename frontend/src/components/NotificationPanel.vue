@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import '@/assets/notifications.css'
-import { onMounted, onUnmounted, ref, computed, watch, nextTick } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { AppNotification } from '@/services/notificationsApi'
 import { useInfiniteScroll } from '@/composables/useInfiniteScroll'
 import { useRelativeTime } from '@/composables/useRelativeTime'
 import { useErrorMessage } from '@/composables/useErrorMessage'
+import { useEscapeKey } from '@/composables/useEscapeKey'
+import { useDialogFocus } from '@/composables/useDialogFocus'
 
 const PAGE_SIZE = 10
 
@@ -121,18 +123,27 @@ watch(showArchived, async () => {
 
 const { relativeTime } = useRelativeTime()
 
-function onKey(e: KeyboardEvent) {
-  if (e.key === 'Escape' && props.open) emit('close')
-}
-onMounted(() => document.addEventListener('keydown', onKey))
-onUnmounted(() => document.removeEventListener('keydown', onKey))
+useEscapeKey(
+  () => props.open,
+  () => emit('close'),
+)
+
+const panel = ref<HTMLElement | null>(null)
+useDialogFocus(panel, () => props.open)
 </script>
 
 <template>
   <Teleport to="body">
     <Transition name="notif-panel">
       <div v-if="open" class="notif-backdrop" @click.self="emit('close')">
-        <div class="notif-panel" role="dialog" :aria-label="t('notifications.title')">
+        <div
+          ref="panel"
+          class="notif-panel"
+          tabindex="-1"
+          role="dialog"
+          :aria-modal="true"
+          :aria-label="t('notifications.title')"
+        >
           <div class="notif-panel__header">
             <h3 class="notif-panel__title">
               <font-awesome-icon icon="bell" />

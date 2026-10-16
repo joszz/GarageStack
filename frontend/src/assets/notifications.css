@@ -24,6 +24,11 @@
   overflow: hidden;
 }
 
+/* The panel takes focus when it opens (useDialogFocus); its controls show focus, not the box. */
+.notif-panel:focus {
+  outline: none;
+}
+
 .notif-panel__header {
   display: flex;
   align-items: center;

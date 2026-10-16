@@ -5,6 +5,7 @@ import { useRouter } from 'vue-router'
 import { useVehicleStore } from '@/stores/vehicle'
 import { useMaintenanceStore } from '@/stores/maintenance'
 import StatusCard from './StatusCard.vue'
+import { dueStatusVariant } from '@/utils/maintenance'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -24,9 +25,9 @@ watch(
 // The card names the worst state in the words the maintenance page uses, rather than a bare count
 // of items needing attention; the tooltip lists which ones.
 const state = computed(() => {
-  if (store.overdueItems.length > 0) return { variant: 'danger', status: 'overdue' } as const
-  if (store.dueSoonItems.length > 0) return { variant: 'warning', status: 'dueSoon' } as const
-  return { variant: 'success', status: 'ok' } as const
+  const status =
+    store.overdueItems.length > 0 ? 'overdue' : store.dueSoonItems.length > 0 ? 'dueSoon' : 'ok'
+  return { status, variant: dueStatusVariant(status) }
 })
 
 const subtitle = computed(() => {

@@ -5,13 +5,13 @@ import DetailModal from './DetailModal.vue'
 import { useMaintenanceStore } from '@/stores/maintenance'
 import { useVehicleStore } from '@/stores/vehicle'
 import type { MaintenanceItem } from '@/services/maintenanceApi'
-import { formatIntervalSummary } from '@/utils/maintenance'
+import { dueStatusVariant, formatIntervalSummary } from '@/utils/maintenance'
 import { localDateKey } from '@/utils/dates'
 import { formatDate } from '@/utils/format'
 import { ODOMETER_FORMAT } from '@/utils/units'
 import { useUnits } from '@/composables/useUnits'
 import { useMeasureField } from '@/composables/useMeasureField'
-import { useErrorMessage } from '@/composables/useErrorMessage'
+import { useStoreAction } from '@/composables/useStoreAction'
 
 const props = defineProps<{
   open: boolean
@@ -25,17 +25,16 @@ const { t } = useI18n()
 const store = useMaintenanceStore()
 const vehicleStore = useVehicleStore()
 const units = useUnits()
-const errorMessage = useErrorMessage()
 
 const performedAt = ref('')
 const odometer = useMeasureField(units, 'distance')
 const logNotes = ref('')
-const logSaving = ref(false)
-const logError = ref<string | null>(null)
-const historyError = ref<string | null>(null)
+// Logging a service, removing a log entry and deleting the item each show their own outcome.
+const failure = () => store.actionError
+const { busy: logSaving, error: logError, run: runLog } = useStoreAction(failure)
+const { error: historyError, run: runHistory } = useStoreAction(failure)
+const { busy: deleting, error: deleteError, run: runDelete } = useStoreAction(failure)
 const pendingDelete = ref(false)
-const deleting = ref(false)
-const deleteError = ref<string | null>(null)
 
 const currentItem = computed(() => store.items.find((i) => i.id === props.item?.id) ?? props.item)
 const logEntries = computed(() => (props.item ? (store.logEntries[props.item.id] ?? []) : []))
@@ -56,30 +55,22 @@ watch(
 )
 
 async function submitLog() {
-  if (!props.item) return
-  logError.value = null
-  logSaving.value = true
-  try {
-    await store.logService(props.vin, props.item.id, {
+  const item = props.item
+  if (!item) return
+  const logged = await runLog(() =>
+    store.logService(props.vin, item.id, {
       performedAt: performedAt.value,
       odometerKm: odometer.metric(),
       notes: logNotes.value.trim() || null,
-    })
-    if (store.actionError) {
-      logError.value = errorMessage(store.actionError)
-      return
-    }
-    logNotes.value = ''
-  } finally {
-    logSaving.value = false
-  }
+    }),
+  )
+  if (logged) logNotes.value = ''
 }
 
 async function removeLogEntry(logId: number) {
-  if (!props.item) return
-  historyError.value = null
-  await store.deleteLogEntry(props.vin, props.item.id, logId)
-  if (store.actionError) historyError.value = errorMessage(store.actionError)
+  const item = props.item
+  if (!item) return
+  await runHistory(() => store.deleteLogEntry(props.vin, item.id, logId))
 }
 
 function requestDelete() {
@@ -93,19 +84,11 @@ function cancelDelete() {
 
 // The modal only closes once the item is really gone; a refused delete stays on screen.
 async function confirmDelete() {
-  if (!props.item) return
-  deleting.value = true
-  try {
-    await store.deleteItem(props.vin, props.item.id)
-  } finally {
-    deleting.value = false
-  }
+  const item = props.item
+  if (!item) return
+  const deleted = await runDelete(() => store.deleteItem(props.vin, item.id))
   pendingDelete.value = false
-  if (store.actionError) {
-    deleteError.value = errorMessage(store.actionError)
-    return
-  }
-  emit('close')
+  if (deleted) emit('close')
 }
 </script>
 
@@ -119,10 +102,7 @@ async function confirmDelete() {
     <div v-if="currentItem">
       <section class="detail-modal__section maintenance-detail">
         <div class="maintenance-detail__summary">
-          <span
-            class="badge"
-            :class="`badge-${currentItem.dueStatus === 'dueSoon' ? 'warning' : currentItem.dueStatus === 'overdue' ? 'danger' : currentItem.dueStatus === 'ok' ? 'success' : 'secondary'}`"
-          >
+          <span class="badge" :class="`badge-${dueStatusVariant(currentItem.dueStatus)}`">
             {{ t(`maintenance.status.${currentItem.dueStatus}`) }}
           </span>
           <span class="text-muted text-sm">{{ formatIntervalSummary(currentItem, t, units) }}</span>
