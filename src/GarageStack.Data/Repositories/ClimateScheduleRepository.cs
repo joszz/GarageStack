@@ -25,8 +25,22 @@ public class ClimateScheduleRepository(AppDbContext db) : IClimateScheduleReposi
         return schedule;
     }
 
-    public async Task<ClimateSchedule?> UpdateAsync(
-        int vehicleId, int id, Action<ClimateSchedule> change, CancellationToken ct = default)
+    public Task<ClimateSchedule?> UpdateAsync(
+        int vehicleId, int id, Action<ClimateSchedule> change, CancellationToken ct = default) =>
+        ChangeAsync(vehicleId, id, schedule =>
+        {
+            change(schedule);
+            schedule.Version++;
+        }, ct);
+
+    // Deleting what the Worker saved in between is still what was asked.
+    public async Task<bool> DeleteAsync(int vehicleId, int id, CancellationToken ct = default) =>
+        await ChangeAsync(vehicleId, id, schedule => db.ClimateSchedules.Remove(schedule), ct) is not null;
+
+    // Loads the schedule, applies the change and saves it. When the other process saved (or
+    // deleted) it in between, the save fails on the version and starts over from that save.
+    private async Task<ClimateSchedule?> ChangeAsync(
+        int vehicleId, int id, Action<ClimateSchedule> change, CancellationToken ct)
     {
         for (var attempt = 1; ; attempt++)
         {
@@ -34,7 +48,6 @@ public class ClimateScheduleRepository(AppDbContext db) : IClimateScheduleReposi
             if (schedule is null) return null;
 
             change(schedule);
-            schedule.Version++;
             try
             {
                 await db.SaveChangesAsync(ct);
@@ -42,28 +55,6 @@ public class ClimateScheduleRepository(AppDbContext db) : IClimateScheduleReposi
             }
             catch (DbUpdateConcurrencyException) when (attempt < MaxAttempts)
             {
-                // The other process saved it (or deleted it) in between: start over from its save.
-                db.ChangeTracker.Clear();
-            }
-        }
-    }
-
-    public async Task<bool> DeleteAsync(int vehicleId, int id, CancellationToken ct = default)
-    {
-        for (var attempt = 1; ; attempt++)
-        {
-            var schedule = await db.ClimateSchedules.FirstOrDefaultAsync(s => s.Id == id && s.VehicleId == vehicleId, ct);
-            if (schedule is null) return false;
-
-            db.ClimateSchedules.Remove(schedule);
-            try
-            {
-                await db.SaveChangesAsync(ct);
-                return true;
-            }
-            catch (DbUpdateConcurrencyException) when (attempt < MaxAttempts)
-            {
-                // The Worker saved it in between; deleting what it saved is still what was asked.
                 db.ChangeTracker.Clear();
             }
         }

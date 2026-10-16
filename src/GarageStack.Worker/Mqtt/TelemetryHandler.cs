@@ -45,7 +45,7 @@ public sealed class TelemetryHandler(
     // A flapping EngineRunning signal (reconnect or replay noise) would otherwise push on every
     // observed start. The gate also checks AppNotifications, so a restart does not forget a push
     // it just sent.
-    private readonly NotificationCooldownGate _engineStartCooldownGate = new(TimeSpan.FromHours(1));
+    private readonly NotificationCooldownGate _engineStartCooldownGate = new(NotificationCooldownGate.AlertCooldown);
 
     // Topics the gateway publishes that are left out on purpose, so they are no news either:
     // hybrid_electrical_range repeats drivetrain/range (see TelemetryMapper), and nothing reads why

@@ -1,4 +1,3 @@
-using System.Globalization;
 using GarageStack.Core.Helpers;
 using GarageStack.Core.Interfaces;
 using GarageStack.Core.Models;
@@ -123,9 +122,7 @@ public sealed class ClimateScheduleRunner(
         {
             s.LastRunOutcome = result.Outcome;
             s.LastRunFailedCommand = result.FailedCommand;
-            s.LastRunDetail = result.Detail is { Length: > ClimateScheduleLimits.DetailMaxLength } tooLong
-                ? tooLong[..ClimateScheduleLimits.DetailMaxLength]
-                : result.Detail;
+            s.LastRunDetail = result.Detail.Truncate(ClimateScheduleLimits.DetailMaxLength);
         }, ct);
     }
 
@@ -139,7 +136,7 @@ public sealed class ClimateScheduleRunner(
     internal static (string Title, string Body)? BuildNotification(
         ClimateSchedule schedule, RunResult result, IStringLocalizer<NotificationStrings> strings)
     {
-        var time = schedule.StartTime.ToString("HH:mm", CultureInfo.InvariantCulture);
+        var time = TimeOfDayText.ToText(schedule.StartTime);
         var reference = schedule.Name is { } name
             ? strings["ClimateScheduleRefNamed", name, time].Value
             : strings["ClimateScheduleRef", time].Value;

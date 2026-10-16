@@ -1,5 +1,3 @@
-using System.Text.Json;
-
 namespace GarageStack.Core.Models;
 
 /// <summary>
@@ -10,10 +8,8 @@ namespace GarageStack.Core.Models;
 /// </summary>
 public sealed record VehicleCommandRequestPayload(string RequestId, string Vin, string Command, string Value)
 {
-    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
-
-    public string ToJson() => JsonSerializer.Serialize(this, JsonOptions);
+    public string ToJson() => PgNotifyJson.Serialize(this);
 
     public static VehicleCommandRequestPayload? FromJson(string json) =>
-        JsonSerializer.Deserialize<VehicleCommandRequestPayload>(json, JsonOptions);
+        PgNotifyJson.Deserialize<VehicleCommandRequestPayload>(json);
 }

@@ -35,17 +35,11 @@ public sealed class ChargingStationService(
     {
         if (!ocmClient.IsConfigured) return [];
 
-        var tiles = TileHelper.ComputeTiles(lat, lng, distanceKm);
-        var uncached = await repository.GetExpiredOrMissingTilesAsync(Source, PoiType, tiles, ct);
-
         // Cap on-demand fetches to the 1 tile closest to the viewport centre so the API
         // never takes 80+ seconds on a cold cache. The Worker fills remaining tiles in the background.
-        var toFetch = TileHelper.ClosestTiles(uncached, lat, lng, PoiTileFetcher.DefaultMaxOnDemandTiles);
-
-        await PoiTileFetcher.FetchAndCacheAsync(
-            toFetch,
+        await PoiTileFetcher.RefreshAsync(
+            repository, Source, PoiType, lat, lng, distanceKm, PoiTileFetcher.DefaultMaxOnDemandTiles,
             ocmClient.FetchChargingStationsAsync,
-            (cellLat, cellLng, items, token) => repository.UpsertTileAsync(Source, PoiType, cellLat, cellLng, items, PoiCacheDefaults.Ttl, token),
             (ex, cellLat, cellLng) => logger.LogWarning(ex, "On-demand OCM fetch failed for charging ({CellLat},{CellLng})",
                 cellLat, cellLng),
             ct);

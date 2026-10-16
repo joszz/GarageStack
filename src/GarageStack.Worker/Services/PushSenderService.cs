@@ -68,8 +68,7 @@ public sealed class PushSenderService : IPushSender, IDisposable
             recordDb.AppNotifications.Add(record);
             await recordDb.SaveChangesAsync(ct);
 
-            unreadCount = await recordDb.AppNotifications
-                .CountAsync(n => !n.IsArchived && !n.IsDeleted, ct);
+            unreadCount = await UnreadCountAsync(recordDb, ct);
 
             // Signal the API process via PostgreSQL so connected browser clients get
             // an immediate notificationReceived push without polling.
@@ -93,8 +92,7 @@ public sealed class PushSenderService : IPushSender, IDisposable
         if (subscriptions.Count == 0) return;
 
         // Only re-queried if persistence above failed before it could compute this itself.
-        unreadCount ??= await db.AppNotifications
-            .CountAsync(n => !n.IsArchived && !n.IsDeleted, ct);
+        unreadCount ??= await UnreadCountAsync(db, ct);
         // The service worker (frontend/src/sw.ts) reads title, body, category and unreadCount;
         // it picks the icon itself from the app's own assets.
         var webPushPayload = JsonSerializer.Serialize(new { title, body, category, unreadCount });
@@ -151,4 +149,8 @@ public sealed class PushSenderService : IPushSender, IDisposable
     }
 
     public void Dispose() => _httpClient.Dispose();
+
+    // What the app's badge shows: notifications neither archived nor deleted.
+    private static Task<int> UnreadCountAsync(AppDbContext db, CancellationToken ct) =>
+        db.AppNotifications.CountAsync(n => !n.IsArchived && !n.IsDeleted, ct);
 }

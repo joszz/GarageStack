@@ -1,4 +1,3 @@
-using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace GarageStack.Core.Models;
@@ -21,8 +20,6 @@ public sealed record NotificationCreatedPayload(
     // has to travel with the payload: without it a live notification matches neither tab.
     bool IsArchived)
 {
-    public static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
-
     public static NotificationCreatedPayload From(AppNotification notification, int? unreadCount) => new(
         notification.Id,
         notification.Title,
@@ -33,8 +30,8 @@ public sealed record NotificationCreatedPayload(
         unreadCount,
         notification.IsArchived);
 
-    public string ToJson() => JsonSerializer.Serialize(this, JsonOptions);
+    public string ToJson() => PgNotifyJson.Serialize(this);
 
     public static NotificationCreatedPayload? FromJson(string json) =>
-        JsonSerializer.Deserialize<NotificationCreatedPayload>(json, JsonOptions);
+        PgNotifyJson.Deserialize<NotificationCreatedPayload>(json);
 }

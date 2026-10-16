@@ -1,3 +1,5 @@
+using GarageStack.Core.Helpers;
+
 namespace GarageStack.Worker.Mqtt;
 
 /// <summary>
@@ -38,9 +40,7 @@ public readonly record struct GatewayCommandResult(string Topic, bool Success, s
         if (!payload.StartsWith(FailedPrefix, StringComparison.Ordinal))
             return false;
 
-        var detail = payload[FailedPrefix.Length..].TrimStart(':').Trim().ReplaceLineEndings(" ");
-        if (detail.Length > MaxDetailLength)
-            detail = detail[..MaxDetailLength];
+        var detail = payload[FailedPrefix.Length..].TrimStart(':').Trim().ReplaceLineEndings(" ").Truncate(MaxDetailLength);
 
         result = new GatewayCommandResult(topic, false, detail.Length > 0 ? detail : null);
         return true;
