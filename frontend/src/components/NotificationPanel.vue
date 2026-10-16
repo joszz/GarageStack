@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n'
 import type { AppNotification } from '@/services/notificationsApi'
 import { useInfiniteScroll } from '@/composables/useInfiniteScroll'
 import { useRelativeTime } from '@/composables/useRelativeTime'
+import { useErrorMessage } from '@/composables/useErrorMessage'
 
 const PAGE_SIZE = 10
 
@@ -35,7 +36,9 @@ const props = defineProps<{
   open: boolean
   notifications: AppNotification[]
   loading: boolean
-  actionError?: string | null
+  /** Why the list could not be loaded; the panel then offers to try again. */
+  fetchError?: Error | null
+  actionError?: Error | null
 }>()
 
 const emit = defineEmits<{
@@ -44,9 +47,11 @@ const emit = defineEmits<{
   (e: 'delete', id: number): void
   (e: 'archiveAll'): void
   (e: 'deleteAll'): void
+  (e: 'retry'): void
 }>()
 
 const { t } = useI18n()
+const errorMessage = useErrorMessage()
 
 const showArchived = ref(false)
 const pendingAction = ref<'archiveAll' | 'deleteAll' | null>(null)
@@ -142,9 +147,17 @@ onUnmounted(() => document.removeEventListener('keydown', onKey))
             </button>
           </div>
 
-          <div v-if="actionError" class="notif-panel__error text-danger">
+          <div v-if="actionError" class="notif-panel__error text-danger" role="alert">
             <font-awesome-icon icon="triangle-exclamation" />
-            {{ t('common.error') }}
+            {{ errorMessage(actionError) }}
+          </div>
+
+          <div v-if="fetchError && !loading" class="notif-panel__error text-danger" role="alert">
+            <font-awesome-icon icon="triangle-exclamation" />
+            <span>{{ errorMessage(fetchError) }}</span>
+            <button class="btn btn-sm btn-outline-secondary" @click="emit('retry')">
+              {{ t('common.retry') }}
+            </button>
           </div>
 
           <div v-if="!loading && notifications.length > 0" class="notif-panel__tabs">
@@ -172,7 +185,7 @@ onUnmounted(() => document.removeEventListener('keydown', onKey))
             </div>
 
             <div
-              v-else-if="filteredNotifications.length === 0"
+              v-else-if="filteredNotifications.length === 0 && !fetchError"
               class="notif-panel__empty text-muted"
             >
               <font-awesome-icon icon="bell-slash" class="notif-panel__empty-icon" />
@@ -181,7 +194,7 @@ onUnmounted(() => document.removeEventListener('keydown', onKey))
               }}</span>
             </div>
 
-            <ul v-else class="notif-panel__list">
+            <ul v-else-if="filteredNotifications.length > 0" class="notif-panel__list">
               <li
                 v-for="n in pagedNotifications"
                 :key="n.id"

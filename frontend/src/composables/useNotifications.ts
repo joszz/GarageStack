@@ -3,6 +3,7 @@ import { notificationsApi, type AppNotification } from '@/services/notifications
 import { useAuthStore } from '@/stores/auth'
 import { useUiSettingsStore } from '@/stores/settingsUi'
 import { notificationCategoryId } from '@/utils/notificationCategories'
+import { asError } from '@/utils/errors'
 
 const notifications = ref<AppNotification[]>([])
 
@@ -20,12 +21,6 @@ function syncBadge(count: number) {
   }
 }
 
-// The message alone for real errors, so the panel and the log can show something useful,
-// with no English fallback text: the UI translates its own error line.
-function errorMessage(err: unknown): string {
-  return err instanceof Error ? err.message : String(err)
-}
-
 export function prependNotification(notification: AppNotification) {
   // A live notification is new, so it is never archived. Defaulting the flag keeps a payload
   // from an older API version out of the panel's "neither tab" gap, where a missing value
@@ -37,8 +32,9 @@ export function prependNotification(notification: AppNotification) {
 }
 const panelOpen = ref(false)
 const loading = ref(false)
-const fetchError = ref<string | null>(null)
-const actionError = ref<string | null>(null)
+// Kept as the failures themselves; the panel translates them (useErrorMessage).
+const fetchError = ref<Error | null>(null)
+const actionError = ref<Error | null>(null)
 
 /**
  * Owns the in-app notification list: fetching, the user's per-category exclusion filter,
@@ -74,7 +70,7 @@ export function useNotifications() {
       notifications.value = await notificationsApi.list()
       syncBadge(unreadCount.value)
     } catch (err) {
-      fetchError.value = errorMessage(err)
+      fetchError.value = asError(err)
     } finally {
       loading.value = false
     }
@@ -109,53 +105,44 @@ export function useNotifications() {
     })
   }
 
-  async function archiveNotification(id: number) {
+  // Every panel action reports its failure the same way: logged, and shown above the list.
+  async function act(what: string, action: () => Promise<void>) {
     actionError.value = null
     try {
+      await action()
+    } catch (err) {
+      console.error(`Failed to ${what}`, err)
+      actionError.value = asError(err)
+    }
+  }
+
+  const archiveNotification = (id: number) =>
+    act('archive notification', async () => {
       await notificationsApi.archive(id)
       const n = notifications.value.find((n) => n.id === id)
       if (n) n.isArchived = true
-    } catch (err) {
-      console.error('Failed to archive notification', err)
-      actionError.value = errorMessage(err)
-    }
-  }
+    })
 
-  async function archiveAllNotifications() {
-    actionError.value = null
-    try {
+  const archiveAllNotifications = () =>
+    act('archive all notifications', async () => {
       await notificationsApi.archiveAll()
       notifications.value.forEach((n) => (n.isArchived = true))
       syncBadge(0)
-    } catch (err) {
-      console.error('Failed to archive all notifications', err)
-      actionError.value = errorMessage(err)
-    }
-  }
+    })
 
-  async function deleteNotification(id: number) {
-    actionError.value = null
-    try {
+  const deleteNotification = (id: number) =>
+    act('delete notification', async () => {
       await notificationsApi.delete(id)
       notifications.value = notifications.value.filter((n) => n.id !== id)
       syncBadge(unreadCount.value)
-    } catch (err) {
-      console.error('Failed to delete notification', err)
-      actionError.value = errorMessage(err)
-    }
-  }
+    })
 
-  async function deleteAllNotifications() {
-    actionError.value = null
-    try {
+  const deleteAllNotifications = () =>
+    act('delete all notifications', async () => {
       await notificationsApi.deleteAll()
       notifications.value = []
       syncBadge(0)
-    } catch (err) {
-      console.error('Failed to delete all notifications', err)
-      actionError.value = errorMessage(err)
-    }
-  }
+    })
 
   function togglePanel() {
     panelOpen.value = !panelOpen.value
