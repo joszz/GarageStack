@@ -1,7 +1,6 @@
 using GarageStack.Core.Configuration;
+using GarageStack.Core.Interfaces;
 using GarageStack.Core.Models;
-using GarageStack.Data;
-using Microsoft.EntityFrameworkCore;
 
 namespace GarageStack.Api.Endpoints;
 
@@ -22,25 +21,20 @@ public static class PushEndpoints
                 : Results.Ok(new { publicKey = vapid.PublicKey }))
         .WithSummary("Get VAPID public key for push subscription");
 
-        push.MapPost("/subscribe", async (PushSubscribeRequest req, AppDbContext db, CancellationToken ct) =>
+        push.MapPost("/subscribe", async (PushSubscribeRequest req, IPushSubscriptionRepository subscriptions, CancellationToken ct) =>
         {
             if (ValidateSubscription(req) is { } error)
                 return ApiProblems.BadRequest(error);
 
-            await UpsertSubscriptionAsync(db, req, ct);
+            await UpsertSubscriptionAsync(subscriptions, req, ct);
 
             return Results.Ok();
         })
         .WithSummary("Register a browser push subscription");
 
-        push.MapPost("/unsubscribe", async (PushUnsubscribeRequest req, AppDbContext db, CancellationToken ct) =>
+        push.MapPost("/unsubscribe", async (PushUnsubscribeRequest req, IPushSubscriptionRepository subscriptions, CancellationToken ct) =>
         {
-            var sub = await db.PushSubscriptions.FirstOrDefaultAsync(s => s.Endpoint == req.Endpoint, ct);
-            if (sub is not null)
-            {
-                db.PushSubscriptions.Remove(sub);
-                await db.SaveChangesAsync(ct);
-            }
+            await subscriptions.RemoveAsync([req.Endpoint], ct);
             return Results.Ok();
         })
         .WithSummary("Remove a push subscription");
@@ -92,64 +86,16 @@ public static class PushEndpoints
     }
 
     /// <summary>
-    /// Stores <paramref name="req"/> against its endpoint, inserting or updating as needed. The app
-    /// re-registers its subscription on every load rather than only when the user opts in, so this
-    /// runs often and has to be both idempotent and safe to run twice at once.
+    /// Stores <paramref name="req"/> against its endpoint. A request without the type list comes
+    /// from a page that predates it: it says nothing about which types the device wants, so
+    /// whatever is stored stays.
     /// </summary>
-    internal static async Task UpsertSubscriptionAsync(
-        AppDbContext db,
-        PushSubscribeRequest req,
-        CancellationToken ct)
-    {
-        var existing = await db.PushSubscriptions
-            .FirstOrDefaultAsync(s => s.Endpoint == req.Endpoint, ct);
-
-        // A request without the list comes from a page that predates it: it says nothing about
-        // which types the device wants, so whatever the row holds stays.
-        var excluded = req.ExcludedCategories is { } requested ? KnownGroups(requested) : null;
-
-        if (existing is not null)
-        {
-            // Rewritten only when something actually changed, so the common case (the same
-            // subscription arriving again on the next load) costs one read and no write at all.
-            var keysChanged = existing.P256DhKey != req.P256DhKey || existing.AuthKey != req.AuthKey;
-            var exclusionsChanged = excluded is not null && !excluded.SequenceEqual(existing.ExcludedCategories);
-            if (!keysChanged && !exclusionsChanged)
-                return;
-
-            existing.P256DhKey = req.P256DhKey;
-            existing.AuthKey = req.AuthKey;
-            if (excluded is not null)
-                existing.ExcludedCategories = excluded;
-            await db.SaveChangesAsync(ct);
-            return;
-        }
-
-        db.PushSubscriptions.Add(new PushSubscription
-        {
-            Endpoint = req.Endpoint,
-            P256DhKey = req.P256DhKey,
-            AuthKey = req.AuthKey,
-            ExcludedCategories = excluded ?? [],
-        });
-
-        try
-        {
-            await db.SaveChangesAsync(ct);
-        }
-        catch (DbUpdateException)
-        {
-            // Two clients (or two tabs) can reach the insert together, and the unique index on
-            // Endpoint rejects the second one. Re-read rather than assume that is what happened:
-            // if the row is there now it was that race, and the keys match anyway since a browser
-            // has exactly one key pair per endpoint. If it is not, the save failed for a real
-            // reason and the caller should hear about it.
-            var raced = await db.PushSubscriptions
-                .AsNoTracking()
-                .AnyAsync(s => s.Endpoint == req.Endpoint, ct);
-            if (!raced) throw;
-        }
-    }
+    internal static Task UpsertSubscriptionAsync(
+        IPushSubscriptionRepository subscriptions, PushSubscribeRequest req, CancellationToken ct) =>
+        subscriptions.UpsertAsync(
+            req.Endpoint, req.P256DhKey, req.AuthKey,
+            req.ExcludedCategories is { } requested ? KnownGroups(requested) : null,
+            ct);
 
     // Only the types the checklist offers, once each and in one order, so an unchanged list
     // compares equal to the stored one whatever order the page sent it in.

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import '@/assets/notifications.css'
+import '@/assets/demo.css'
 import { computed, ref, watch, onBeforeUnmount, defineAsyncComponent } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
@@ -334,14 +336,18 @@ watch(
           </div>
           <button
             v-if="isDemoMode"
-            class="sidebar-demo-btn"
+            class="sidebar-action sidebar-demo-btn"
             :class="{ 'is-active': demoControlsOpen }"
             @click="demoControlsOpen = !demoControlsOpen"
           >
             <font-awesome-icon :icon="['fas', 'flask']" />
             <span>{{ t('demo.controlPanel') }}</span>
           </button>
-          <button class="sidebar-notif-btn" :aria-label="notificationsLabel" @click="togglePanel">
+          <button
+            class="sidebar-action sidebar-notif-btn"
+            :aria-label="notificationsLabel"
+            @click="togglePanel"
+          >
             <font-awesome-icon icon="bell" />
             <span>{{ t('notifications.title') }}</span>
             <span v-if="unreadCount > 0" class="notif-bell__badge" aria-hidden="true">{{
@@ -349,7 +355,7 @@ watch(
             }}</span>
           </button>
 
-          <button class="sidebar-logout-btn" @click="logout">
+          <button class="sidebar-action sidebar-logout-btn" @click="logout">
             <font-awesome-icon icon="arrow-right-from-bracket" />
             <span>{{ t('auth.logout') }}</span>
           </button>

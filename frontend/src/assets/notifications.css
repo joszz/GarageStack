@@ -1,3 +1,69 @@
+/* ── Notification bell ────────────────────────────────────── */
+
+.notif-bell {
+  position: relative;
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  font-size: 1.15rem;
+  cursor: pointer;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  flex-shrink: 0;
+  transition:
+    color 0.15s,
+    background 0.15s;
+}
+
+.notif-bell:hover {
+  background: var(--color-surface-2);
+  color: var(--color-text);
+}
+
+.notif-bell__badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 3px;
+  background: var(--color-danger-badge);
+  color: #fff;
+  font-size: 0.6rem;
+  font-weight: 700;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.sidebar-notif-btn {
+  position: relative;
+}
+
+.sidebar-notif-btn:hover {
+  background: color-mix(in srgb, var(--color-primary) 10%, var(--color-surface-2));
+  border-color: var(--color-primary);
+  color: var(--color-text);
+}
+
+.sidebar-notif-btn .notif-bell__badge {
+  position: static;
+  margin-left: auto;
+}
+
+@media (width <= 767px) {
+  .sidebar-notif-btn {
+    display: none;
+  }
+}
+
 /* The notification panel (NotificationPanel.vue). The bell that opens it is part of the app
    shell and stays in main.css. */
 
@@ -6,7 +72,7 @@
 .notif-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 1100;
+  z-index: var(--z-modal);
   background: rgb(0 0 0 / 50%);
   display: flex;
   align-items: flex-end;
@@ -24,6 +90,11 @@
   overflow: hidden;
 }
 
+/* The panel takes focus when it opens (useDialogFocus); its controls show focus, not the box. */
+.notif-panel:focus {
+  outline: none;
+}
+
 .notif-panel__header {
   display: flex;
   align-items: center;
@@ -36,28 +107,6 @@
 .notif-panel__title {
   font-size: 1rem;
   font-weight: 600;
-}
-
-.notif-panel__close {
-  background: none;
-  border: none;
-  color: var(--color-text-muted);
-  cursor: pointer;
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 6px;
-  font-size: 1rem;
-  transition:
-    background 0.15s,
-    color 0.15s;
-}
-
-.notif-panel__close:hover {
-  background: var(--color-surface-2);
-  color: var(--color-text);
 }
 
 .notif-panel__error {
@@ -124,12 +173,6 @@
 
 .notif-panel__footer-side--right {
   justify-content: flex-end;
-}
-
-.notif-panel__footer-center {
-  display: flex;
-  justify-content: center;
-  align-items: center;
 }
 
 .notif-panel__confirm {

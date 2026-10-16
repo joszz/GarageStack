@@ -8,7 +8,7 @@ import StatusCard from '@/components/StatusCard.vue'
 import MaintenanceItemFormModal from '@/components/MaintenanceItemFormModal.vue'
 import MaintenanceItemDetailModal from '@/components/MaintenanceItemDetailModal.vue'
 import type { MaintenanceItem, MaintenanceDueStatus } from '@/services/maintenanceApi'
-import { formatIntervalSummary } from '@/utils/maintenance'
+import { dueStatusVariant, formatIntervalSummary } from '@/utils/maintenance'
 import { useUnits } from '@/composables/useUnits'
 import { useErrorMessage } from '@/composables/useErrorMessage'
 
@@ -45,13 +45,6 @@ const sortedItems = computed(() =>
     return order !== 0 ? order : a.name.localeCompare(b.name)
   }),
 )
-
-function statusVariant(status: MaintenanceDueStatus): 'success' | 'warning' | 'danger' | 'info' {
-  if (status === 'overdue') return 'danger'
-  if (status === 'dueSoon') return 'warning'
-  if (status === 'ok') return 'success'
-  return 'info'
-}
 
 function openAdd() {
   editingItem.value = null
@@ -102,7 +95,7 @@ watch(vin, (v) => {
         :label="item.name"
         :value="t(`maintenance.status.${item.dueStatus}`)"
         :subtitle="formatIntervalSummary(item, t, units)"
-        :variant="statusVariant(item.dueStatus)"
+        :variant="dueStatusVariant(item.dueStatus)"
         clickable
         @click="openDetail(item)"
       />

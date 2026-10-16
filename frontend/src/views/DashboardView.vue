@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import '@/assets/dashboard.css'
 import { onMounted, onUnmounted, computed, defineAsyncComponent, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useVehicleStore } from '@/stores/vehicle'

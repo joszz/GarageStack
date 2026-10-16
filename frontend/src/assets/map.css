@@ -209,43 +209,7 @@
   color: var(--color-text-muted);
 }
 
-/* Charging station cluster (Leaflet divIcon - cannot be scoped) */
-.charging-cluster {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: #16a34a;
-  border: 3px solid rgb(22 163 74 / 35%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  font-size: 12px;
-  font-weight: 700;
-  box-shadow: 0 1px 4px rgb(0 0 0 / 30%);
-}
-
-/* Charging station markers (Leaflet divIcon - cannot be scoped) */
-.charging-marker {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: #22c55e;
-  border: 2px solid #fff;
-  box-shadow: 0 1px 4px rgb(0 0 0 / 35%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  font-size: 14px;
-  line-height: 1;
-}
-
-.charging-marker--unknown {
-  background: #6b7280;
-}
-
-/* POI markers (Leaflet divIcon - cannot be scoped) */
+/* POI markers and clusters, charging stations included (Leaflet divIcons - cannot be scoped) */
 .poi-marker {
   width: 28px;
   height: 28px;
@@ -270,6 +234,16 @@
 
 .poi-marker--speed-camera {
   background: #dc2626;
+}
+
+.poi-marker--charging {
+  background: #22c55e;
+  font-size: 14px;
+}
+
+/* A station that may be out of order, after --charging so its grey wins. */
+.poi-marker--unknown {
+  background: #6b7280;
 }
 
 .poi-cluster {
@@ -301,13 +275,19 @@
   border-color: rgb(220 38 38 / 35%);
 }
 
+.poi-cluster--charging {
+  background: #16a34a;
+  border-color: rgb(22 163 74 / 35%);
+}
+
 .poi-popup {
   min-width: 140px;
   font-size: 0.82rem;
   line-height: 1.5;
 }
 
-.poi-popup__title {
+.poi-popup__title,
+.charging-popup__title {
   display: block;
   font-weight: 600;
   margin-bottom: 2px;
@@ -325,7 +305,7 @@
   top: 10px;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 1000;
+  z-index: var(--z-map-overlay);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -350,12 +330,6 @@
   min-width: 160px;
   font-size: 0.82rem;
   line-height: 1.5;
-}
-
-.charging-popup__title {
-  display: block;
-  font-weight: 600;
-  margin-bottom: 2px;
 }
 
 .charging-popup__operator {
@@ -484,18 +458,6 @@
   min-width: 0;
 }
 
-.map-controls {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.map-controls__label {
-  font-size: 0.8rem;
-  color: var(--color-text-muted);
-  white-space: nowrap;
-}
-
 /* Trips above the map: below the tablet breakpoint the nav sidebar (220px) plus the fixed
    290px trip sidebar leave too little width for a usable map, so stack them here rather than
    waiting for the general mobile breakpoint below. */
@@ -519,11 +481,6 @@
 }
 
 @media (width <= 767px) {
-  .map-controls {
-    flex-wrap: wrap;
-    gap: 0.4rem;
-  }
-
   /* A phone's map is short as well as narrow, so the speed-limit key runs along one wrapped row
      rather than stacking three, leaving the map itself visible under it. */
   .speed-legend__keys {

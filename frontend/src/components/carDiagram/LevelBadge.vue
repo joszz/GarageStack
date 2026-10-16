@@ -15,11 +15,7 @@ const rounded = computed(() => Math.round(props.percent))
 </script>
 
 <template>
-  <div
-    class="diagram-level"
-    :style="{ '--level-color': `var(--color-${variant})` }"
-    :title="`${label}: ${rounded}%`"
-  >
+  <div class="diagram-level" :class="`diagram-level--${variant}`" :title="`${label}: ${rounded}%`">
     <font-awesome-icon :icon="icon" />
     <span>{{ rounded }}%</span>
   </div>

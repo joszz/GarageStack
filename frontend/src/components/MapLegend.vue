@@ -46,7 +46,7 @@ const panelId = useId()
   position: absolute;
   top: 80px;
   left: 10px;
-  z-index: 1000;
+  z-index: var(--z-map-overlay);
   display: flex;
   flex-direction: column;
   align-items: flex-start;

@@ -30,6 +30,20 @@
   --radius: 10px;
   --demo-banner-height: 2.2rem;
 
+  /* Stacking layers, lowest first. Leaflet draws its own controls at 1000, so whatever sits on a
+     map uses --z-map-overlay, and the open drawer and the dialogs rise above it. */
+  --z-footer: 100;
+  --z-demo-banner: 199;
+  --z-topbar: 200;
+  --z-drawer: 300;
+  --z-demo-panel: 999;
+  --z-map-overlay: 1000;
+  --z-drawer-backdrop: 1000;
+  --z-drawer-open: 1001;
+  --z-modal: 1100;
+  --z-dropdown: 1200;
+  --z-toast: 2000;
+
   /* Dark cards stand off the page by their surface alone; light ones need a hint of depth, or a
      white card on the pale page blends into it. */
   --shadow-card: none;
@@ -166,7 +180,7 @@ body,
   align-items: center;
   gap: 0.75rem;
   padding: 0 0.75rem;
-  z-index: 200;
+  z-index: var(--z-topbar);
 }
 
 .hamburger {
@@ -209,7 +223,7 @@ body,
   position: fixed;
   inset: 0;
   background: rgb(0 0 0 / 60%);
-  z-index: 1000;
+  z-index: var(--z-drawer-backdrop);
 }
 
 /* ── Sidebar ──────────────────────────────────────────────── */
@@ -320,10 +334,6 @@ body,
   font-size: 0.85rem;
 }
 
-.text-success {
-  color: var(--color-success);
-}
-
 .text-danger {
   color: var(--color-danger);
 }
@@ -350,10 +360,6 @@ body,
   margin-bottom: 1.5rem;
 }
 
-.ms-2 {
-  margin-left: 0.5rem;
-}
-
 /* Pushes what follows to the far end of a flex row, such as a modal footer's buttons. */
 .me-auto {
   margin-right: auto;
@@ -373,7 +379,6 @@ body,
 
 /* ── State indicators ─────────────────────────────────────── */
 
-.loading-state,
 .empty-state,
 .error-state {
   display: flex;
@@ -530,7 +535,7 @@ body,
 .detail-modal-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 1100;
+  z-index: var(--z-modal);
   background: rgb(0 0 0 / 60%);
   display: flex;
   align-items: flex-end;
@@ -566,7 +571,8 @@ body,
   font-weight: 600;
 }
 
-.detail-modal__close {
+/* The X in a dialog's header: the detail dialog and the notification panel. */
+.dialog-close {
   background: none;
   border: none;
   color: var(--color-text-muted);
@@ -578,9 +584,12 @@ body,
   justify-content: center;
   border-radius: 6px;
   font-size: 1rem;
+  transition:
+    background 0.15s,
+    color 0.15s;
 }
 
-.detail-modal__close:hover {
+.dialog-close:hover {
   background: var(--color-surface-2);
   color: var(--color-text);
 }
@@ -858,147 +867,6 @@ body,
   color: var(--color-text);
 }
 
-/* ── Overview row: car diagram + location map ─────────────── */
-
-.overview-row {
-  display: flex;
-  align-items: stretch;
-  gap: 1rem;
-}
-
-.overview-row__car {
-  flex: 2 1 320px;
-  min-width: 0;
-}
-
-.overview-row__map {
-  flex: 1 1 260px;
-  min-width: 220px;
-  max-width: 380px;
-  display: flex;
-  flex-direction: column;
-}
-
-@media (width <= 767px) {
-  .overview-row {
-    flex-direction: column;
-  }
-
-  .overview-row__map {
-    max-width: none;
-  }
-}
-
-/* Edit mode wraps each slot in extra card-slot/card-slot__content layers, which
-   otherwise break the height stretch and leave the map shorter than the car
-   diagram. Propagate flex sizing all the way down to each card's content so
-   both slots stay the same height whether editing or not. The child selector
-   also reaches .card-info-btn, but it's position:absolute so flex sizing is a
-   no-op for it. */
-.overview-row > .card-slot {
-  display: flex;
-  flex-direction: column;
-}
-
-.overview-row > .card-slot > .card-slot__content {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0;
-}
-
-.overview-row > .card-slot > .card-slot__content > .card-info-wrap {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0;
-}
-
-.overview-row > .card-slot > .card-slot__content > .card-info-wrap > * {
-  flex: 1;
-  min-height: 0;
-}
-
-.location-map-card {
-  position: relative;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-card);
-  padding: 1.25rem;
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0;
-}
-
-/* Where the car stands, in words, between the card title and the map. Truncated rather than
-   wrapped so the map keeps its height whatever the address turns out to be. */
-.location-map-card__address {
-  margin: -0.25rem 0 0.6rem;
-  font-size: 0.8rem;
-  color: var(--color-text-muted);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.location-map-card__map {
-  position: relative;
-  flex: 1;
-  min-height: 180px;
-  border-radius: var(--radius);
-  overflow: hidden;
-  cursor: pointer;
-}
-
-.location-map-card__canvas {
-  /* absolute + inset instead of height:100% - the edit-mode layout only gives
-     this element's ancestors a min-height (not a definite height), which a
-     percentage height cannot resolve against, leaving Leaflet's container at
-     0 height. Absolute positioning sizes against the laid-out box instead. */
-  position: absolute;
-  inset: 0;
-}
-
-.location-map-card__empty {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  color: var(--color-text-muted);
-  background: var(--color-surface-2);
-  font-size: 0.85rem;
-}
-
-/* Top right: the bottom edge belongs to the attribution strip, which on a phone runs the full width
-   of the map, so no bottom corner stays clear of it. */
-.location-map-card__expand {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  z-index: 1000;
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: 6px;
-  color: var(--color-text);
-  cursor: pointer;
-  box-shadow: 0 1px 4px rgb(0 0 0 / 20%);
-  transition: background 0.15s;
-}
-
-.location-map-card__expand:hover {
-  background: var(--color-surface-2);
-}
-
 /* ── Car SVG illustration classes ────────────────────────── */
 
 .car-svg-body {
@@ -1129,11 +997,6 @@ body,
 
 .btn-danger {
   background: var(--color-danger);
-  color: #fff;
-}
-
-.btn-orange {
-  background: #f97316;
   color: #fff;
 }
 
@@ -1360,192 +1223,6 @@ textarea.form-control {
   display: flex;
   flex-wrap: wrap;
   gap: 0.35rem;
-}
-
-/* ── Settings ─────────────────────────────────────────────── */
-
-.settings-section {
-  max-width: 640px;
-}
-
-.settings-toggles {
-  display: flex;
-  flex-direction: column;
-}
-
-.settings-toggle {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 0.75rem 0;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.settings-toggle:last-child {
-  border-bottom: none;
-}
-
-.settings-toggle__info {
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-}
-
-.settings-toggle__label {
-  font-size: 0.9rem;
-  font-weight: 500;
-}
-
-.settings-toggle__icon {
-  width: 0.85em;
-  margin-right: 0.35rem;
-  color: var(--color-text-muted);
-}
-
-.settings-toggle__desc {
-  font-size: 0.78rem;
-  color: var(--color-text-muted);
-}
-
-.settings-toggle__control {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-shrink: 0;
-}
-
-/* A choice from a list goes under its label, at full width: its options are too long to sit
-   beside the label, in a modal as narrow as a phone. */
-.settings-toggle--select {
-  flex-direction: column;
-  align-items: stretch;
-  gap: 0.5rem;
-}
-
-.settings-toggle__select {
-  width: 100%;
-}
-
-.settings-toggle__side-icon {
-  display: flex;
-  align-items: center;
-  font-size: 1rem;
-  color: var(--color-text-muted);
-  transition: color 0.15s;
-}
-
-.settings-toggle__flag {
-  width: 1.3rem;
-  height: auto;
-  border-radius: 2px;
-  display: block;
-  opacity: 0.45;
-  transition: opacity 0.15s;
-}
-
-.settings-toggle__side-icon--active .settings-toggle__flag {
-  opacity: 1;
-}
-
-.settings-toggle__side-icon--active {
-  color: var(--color-primary);
-}
-
-.notif-type-filter {
-  padding: 0.25rem 0 0.5rem;
-}
-
-.notif-type-filter__header {
-  margin-bottom: 0.5rem;
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-}
-
-.notif-type-filter__actions {
-  display: flex;
-  gap: 0.4rem;
-  flex-shrink: 0;
-}
-
-.notif-type-filter__denied {
-  display: block;
-  margin-bottom: 0.5rem;
-}
-
-/* Own internal scroll so a long category list never pushes the rest of the settings modal's
-   sections down. minmax(170px, 1fr) against .detail-modal's actual width budget: the mobile
-   bottom-sheet content is ~300-335px wide -> 1 column; the desktop dialog is capped at
-   max-width: 440px -> 2 columns, where the up to 15 categories take 8 rows and scroll a little.
-   max-height keeps the 1-column mobile case to ~5-6 visible rows before scrolling. */
-.notif-type-checklist {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
-  gap: 0.4rem 0.75rem;
-  max-height: 15rem;
-  overflow-y: auto;
-  margin-top: 0.5rem;
-  padding-right: 0.25rem;
-}
-
-.notif-type-checklist__item {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.3rem 0.4rem;
-  border-radius: 6px;
-  font-size: 0.85rem;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-
-.notif-type-checklist__item:hover {
-  background: var(--color-surface-2);
-}
-
-.notif-type-checklist__label {
-  line-height: 1.25;
-}
-
-/* ── Car colour picker ────────────────────────────────────── */
-
-.car-color-picker {
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-}
-
-.car-color-swatches {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.car-color-swatch {
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  background: linear-gradient(135deg, var(--swatch-s) 50%, var(--swatch-p) 50%);
-  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 15%);
-  outline: 2.5px solid transparent;
-  outline-offset: 3px;
-  transition:
-    transform 0.15s,
-    outline-color 0.15s;
-}
-
-.car-color-swatch:hover {
-  transform: scale(1.12);
-}
-
-.car-color-swatch--active {
-  outline-color: var(--color-text);
 }
 
 /* ── Range slider ─────────────────────────────────────────── */
@@ -1787,7 +1464,7 @@ textarea.form-control {
   align-items: center;
   justify-content: space-between;
   padding: 0 1.5rem;
-  z-index: 100;
+  z-index: var(--z-footer);
 }
 
 .app-footer__meta {
@@ -1898,7 +1575,7 @@ textarea.form-control {
     top: var(--topbar-height);
     left: 0;
     right: 0;
-    z-index: 199;
+    z-index: var(--z-demo-banner);
   }
 
   .has-demo-banner .app-body {
@@ -1915,17 +1592,17 @@ textarea.form-control {
     top: 0;
     left: 0;
     bottom: 0;
-    z-index: 300;
+    z-index: var(--z-drawer);
     transform: translateX(-100%);
     transition: transform 0.25s ease;
     box-shadow: 4px 0 24px rgb(0 0 0 / 50%);
   }
 
-  /* Elevate above Leaflet controls (z-index 1000) only while the drawer is
+  /* Elevate above Leaflet controls (--z-map-overlay) only while the drawer is
      open; GPU layer promotion is limited to the 250 ms slide-in animation. */
   .sidebar--open {
     transform: translateX(0);
-    z-index: 1001;
+    z-index: var(--z-drawer-open);
   }
 
   /* The same gutter as the topbar, so the page title and cards line up under the menu button and
@@ -1991,23 +1668,6 @@ textarea.form-control {
   }
 }
 
-/* ── Large desktop (1440px+) ──────────────────────────────── */
-
-@media (width >= 1440px) {
-  .overview-row__map {
-    flex: 1.4 1 420px;
-    max-width: 560px;
-  }
-}
-
-/* ── Full-HD and above (1920px+) ──────────────────────────── */
-
-@media (width >= 1920px) {
-  .overview-row__map {
-    max-width: 680px;
-  }
-}
-
 /* ── Sidebar footer (user + logout) ──────────────────────── */
 
 .sidebar-footer {
@@ -2029,7 +1689,8 @@ textarea.form-control {
   font-weight: 600;
 }
 
-.sidebar-online-status {
+.sidebar-online-status,
+.sidebar-user {
   display: flex;
   align-items: center;
   gap: 0.75rem;
@@ -2073,23 +1734,14 @@ textarea.form-control {
   white-space: nowrap;
 }
 
-.sidebar-user {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.5rem 0.75rem;
-  color: var(--color-text-muted);
-  font-size: 0.85rem;
-  overflow: hidden;
-}
-
 .sidebar-user__email {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.sidebar-logout-btn {
+/* The sidebar footer's buttons: demo controls, notifications and log out. */
+.sidebar-action {
   display: flex;
   align-items: center;
   gap: 0.75rem;
@@ -2101,142 +1753,6 @@ textarea.form-control {
   font-size: 0.85rem;
   cursor: pointer;
   width: 100%;
-  text-align: left;
-  transition:
-    background 0.15s,
-    color 0.15s,
-    border-color 0.15s;
-}
-
-.sidebar-logout-btn:hover {
-  background: color-mix(in srgb, var(--color-danger) 12%, var(--color-surface-2));
-  border-color: var(--color-danger);
-  color: var(--color-danger-text);
-}
-
-.logout-confirm__message {
-  margin-bottom: 1.5rem;
-  color: var(--color-text-muted);
-}
-
-/* ── Session loading overlay ──────────────────────────────── */
-
-.session-loading {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--color-text-muted);
-}
-
-/* ── Notification bell ────────────────────────────────────── */
-
-.notif-bell {
-  position: relative;
-  background: none;
-  border: none;
-  color: var(--color-text-muted);
-  font-size: 1.15rem;
-  cursor: pointer;
-  width: 36px;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 6px;
-  flex-shrink: 0;
-  transition:
-    color 0.15s,
-    background 0.15s;
-}
-
-.notif-bell:hover {
-  background: var(--color-surface-2);
-  color: var(--color-text);
-}
-
-.notif-bell__badge {
-  position: absolute;
-  top: 2px;
-  right: 2px;
-  min-width: 16px;
-  height: 16px;
-  padding: 0 3px;
-  background: var(--color-danger-badge);
-  color: #fff;
-  font-size: 0.6rem;
-  font-weight: 700;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  line-height: 1;
-  pointer-events: none;
-}
-
-.sidebar-notif-btn {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.5rem 0.75rem;
-  border-radius: var(--radius);
-  border: 1px solid var(--color-border);
-  background: var(--color-surface-2);
-  color: var(--color-text-muted);
-  font-size: 0.85rem;
-  cursor: pointer;
-  width: 100%;
-  text-align: left;
-  transition:
-    background 0.15s,
-    color 0.15s,
-    border-color 0.15s;
-}
-
-.sidebar-notif-btn:hover {
-  background: color-mix(in srgb, var(--color-primary) 10%, var(--color-surface-2));
-  border-color: var(--color-primary);
-  color: var(--color-text);
-}
-
-.sidebar-notif-btn .notif-bell__badge {
-  position: static;
-  margin-left: auto;
-}
-
-@media (width <= 767px) {
-  .sidebar-notif-btn {
-    display: none;
-  }
-}
-
-.demo-banner {
-  background-color: var(--color-warning);
-  color: #000;
-  text-align: center;
-  padding: 0.4rem 1rem;
-  font-size: 0.8rem;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  letter-spacing: 0.02em;
-}
-
-.sidebar-demo-btn {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.5rem 0.75rem;
-  width: 100%;
-  border-radius: var(--radius);
-  font-size: 0.85rem;
-  cursor: pointer;
-  background: var(--color-surface-2);
-  border: 1px solid var(--color-border);
-  color: var(--color-text-muted);
   text-align: left;
   transition:
     background 0.15s,
@@ -2251,134 +1767,13 @@ textarea.form-control {
   color: var(--color-text);
 }
 
-.demo-panel {
-  position: fixed;
-  bottom: 2rem;
-  left: calc(var(--sidebar-width) + 0.75rem);
-  z-index: 999;
-  width: 320px;
-  max-height: 70vh;
-  overflow-y: auto;
-  background-color: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  box-shadow: 0 8px 24px rgb(0 0 0 / 50%);
-  padding: 1rem;
+.sidebar-logout-btn:hover {
+  background: color-mix(in srgb, var(--color-danger) 12%, var(--color-surface-2));
+  border-color: var(--color-danger);
+  color: var(--color-danger-text);
 }
 
-.demo-panel-title {
-  font-size: 0.85rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--color-warning);
-  margin-bottom: 0.75rem;
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-
-/* Between sections only, so the panel's padding is the same at the bottom as at the top. */
-.demo-panel-section:not(:last-child) {
-  margin-bottom: 0.75rem;
-}
-
-.demo-panel-section-label {
-  font-size: 0.72rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--color-text-muted);
-  margin-bottom: 0.4rem;
-}
-
-.demo-panel-toggles {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem;
-}
-
-.demo-toggle-btn {
-  padding: 0.25rem 0.6rem;
-  font-size: 0.75rem;
-  border-radius: 6px;
-  border: 1px solid var(--color-border);
-  background-color: var(--color-surface-2);
-  color: var(--color-text);
-  cursor: pointer;
-  transition:
-    background-color 0.12s ease,
-    border-color 0.12s ease;
-}
-
-.demo-toggle-btn.is-active {
-  background-color: var(--color-warning);
-  border-color: var(--color-warning);
-  color: #000;
-}
-
-.demo-panel-range {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-}
-
-.demo-panel-range input[type='range'] {
-  flex: 1;
-  accent-color: var(--color-warning);
-}
-
-.demo-panel-range span {
-  font-size: 0.8rem;
-  min-width: 2.5rem;
-  text-align: right;
-  color: var(--color-text);
-}
-
-.demo-panel-inputs {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.5rem;
-}
-
-.demo-panel-input-group label {
-  font-size: 0.72rem;
-  color: var(--color-text-muted);
-  display: block;
-  margin-bottom: 0.2rem;
-}
-
-.demo-panel-input-group input[type='number'] {
-  width: 100%;
-  padding: 0.3rem 0.5rem;
-  font-size: 0.8rem;
-  border-radius: 6px;
-  border: 1px solid var(--color-border);
-  background-color: var(--color-surface-2);
-  color: var(--color-text);
-}
-
-.demo-panel-enter-active,
-.demo-panel-leave-active {
-  transition:
-    opacity 0.18s ease,
-    transform 0.18s ease;
-}
-
-.demo-panel-enter-from,
-.demo-panel-leave-to {
-  opacity: 0;
-  transform: translateX(-8px);
-}
-
-@media (width <= 767px) {
-  .demo-panel {
-    left: 1rem;
-    right: 1rem;
-    bottom: 4.5rem;
-    width: auto;
-  }
-}
+/* ── Availability toast ───────────────────────────────────── */
 
 .availability-toast {
   position: fixed;
@@ -2392,7 +1787,7 @@ textarea.form-control {
   border-radius: 6px;
   font-size: 0.875rem;
   font-weight: 500;
-  z-index: 2000;
+  z-index: var(--z-toast);
   box-shadow: 0 4px 16px rgb(0 0 0 / 25%);
   pointer-events: none;
 }

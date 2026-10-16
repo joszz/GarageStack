@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { formatIntervalSummary } from '@/utils/maintenance'
+import { dueStatusVariant, formatIntervalSummary } from '@/utils/maintenance'
 import { METRIC_UNITS, UnitFormatter } from '@/utils/units'
 
 const t = (key: string, named?: Record<string, unknown>) =>
@@ -28,5 +28,13 @@ describe('formatIntervalSummary', () => {
 
   it('is empty when neither interval is set', () => {
     expect(formatIntervalSummary({ intervalKm: null, intervalMonths: null }, t, units)).toBe('')
+  })
+})
+
+describe('dueStatusVariant', () => {
+  it('colours each due status, with an item never serviced as information', () => {
+    expect(
+      (['overdue', 'dueSoon', 'ok', 'unknown'] as const).map((status) => dueStatusVariant(status)),
+    ).toEqual(['danger', 'warning', 'success', 'info'])
   })
 })

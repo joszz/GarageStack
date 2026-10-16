@@ -8,7 +8,6 @@ using GarageStack.Data;
 using GarageStack.Data.Extensions;
 using Lib.Net.Http.WebPush;
 using Lib.Net.Http.WebPush.Authentication;
-using Microsoft.EntityFrameworkCore;
 using ModelPushSubscription = GarageStack.Core.Models.PushSubscription;
 using WebPushSubscription = Lib.Net.Http.WebPush.PushSubscription;
 
@@ -56,7 +55,7 @@ public sealed class PushSenderService : IPushSender, IDisposable
         try
         {
             using var recordScope = _scopeFactory.CreateScope();
-            var recordDb = recordScope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var notifications = recordScope.ServiceProvider.GetRequiredService<INotificationRepository>();
             var record = new AppNotification
             {
                 Title = title,
@@ -65,15 +64,14 @@ public sealed class PushSenderService : IPushSender, IDisposable
                 Category = category,
                 VehicleId = vehicleId,
             };
-            recordDb.AppNotifications.Add(record);
-            await recordDb.SaveChangesAsync(ct);
-
-            unreadCount = await UnreadCountAsync(recordDb, ct);
+            await notifications.AddAsync(record, ct);
+            unreadCount = await notifications.CountUnreadAsync(ct);
 
             // Signal the API process via PostgreSQL so connected browser clients get
             // an immediate notificationReceived push without polling.
             var payload = NotificationCreatedPayload.From(record, unreadCount);
-            await recordDb.Database.NotifyAsync(PgChannels.NotificationCreated, payload.ToJson(), ct);
+            var db = recordScope.ServiceProvider.GetRequiredService<AppDbContext>();
+            await db.Database.NotifyAsync(PgChannels.NotificationCreated, payload.ToJson(), ct);
         }
         catch (Exception ex)
         {
@@ -83,16 +81,16 @@ public sealed class PushSenderService : IPushSender, IDisposable
         if (_pushClient is null) return;
 
         using var scope = _scopeFactory.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var subscriptionRepository = scope.ServiceProvider.GetRequiredService<IPushSubscriptionRepository>();
         // Each device switched its own types off. The in-app record above is shared and kept
         // regardless; only the push to a device that does not want this type is left out.
-        var subscriptions = (await db.PushSubscriptions.AsNoTracking().ToListAsync(ct))
+        var subscriptions = (await subscriptionRepository.ListAsync(ct))
             .Where(s => NotificationCategories.IsWanted(category, s.ExcludedCategories))
             .ToList();
         if (subscriptions.Count == 0) return;
 
         // Only re-queried if persistence above failed before it could compute this itself.
-        unreadCount ??= await UnreadCountAsync(db, ct);
+        unreadCount ??= await scope.ServiceProvider.GetRequiredService<INotificationRepository>().CountUnreadAsync(ct);
         // The service worker (frontend/src/sw.ts) reads title, body, category and unreadCount;
         // it picks the icon itself from the app's own assets.
         var webPushPayload = JsonSerializer.Serialize(new { title, body, category, unreadCount });
@@ -134,23 +132,10 @@ public sealed class PushSenderService : IPushSender, IDisposable
             }
         }));
 
+        // The push service said these subscriptions are gone for good.
         if (dead.Count > 0)
-        {
-            // Re-open a write scope to remove expired subscriptions
-            using var writeScope = _scopeFactory.CreateScope();
-            var writeDb = writeScope.ServiceProvider.GetRequiredService<AppDbContext>();
-            var deadEndpoints = dead.Select(d => d.Endpoint).ToHashSet();
-            var toRemove = await writeDb.PushSubscriptions
-                .Where(s => deadEndpoints.Contains(s.Endpoint))
-                .ToListAsync(ct);
-            writeDb.PushSubscriptions.RemoveRange(toRemove);
-            await writeDb.SaveChangesAsync(ct);
-        }
+            await subscriptionRepository.RemoveAsync([.. dead.Select(d => d.Endpoint).Distinct()], ct);
     }
 
     public void Dispose() => _httpClient.Dispose();
-
-    // What the app's badge shows: notifications neither archived nor deleted.
-    private static Task<int> UnreadCountAsync(AppDbContext db, CancellationToken ct) =>
-        db.AppNotifications.CountAsync(n => !n.IsArchived && !n.IsDeleted, ct);
 }
