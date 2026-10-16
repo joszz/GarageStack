@@ -9,15 +9,13 @@ namespace GarageStack.Core.Models;
 /// </summary>
 public sealed record WorkerHeartbeatPayload(bool MqttConnected)
 {
-    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
-
-    public string ToJson() => JsonSerializer.Serialize(this, JsonOptions);
+    public string ToJson() => PgNotifyJson.Serialize(this);
 
     public static WorkerHeartbeatPayload? FromJson(string json)
     {
         try
         {
-            return JsonSerializer.Deserialize<WorkerHeartbeatPayload>(json, JsonOptions);
+            return PgNotifyJson.Deserialize<WorkerHeartbeatPayload>(json);
         }
         catch (JsonException)
         {
