@@ -151,6 +151,25 @@ export function readLegacyBlob(): Record<string, unknown> | null {
   }
 }
 
+/**
+ * A settings store's starting state: this browser's copy under `key`, else the blob from before
+ * the stores were split, else the defaults. A copy that cannot be read counts as none.
+ */
+export function loadStoredSettings<T>(
+  key: string,
+  parse: (stored: Record<string, unknown>) => T,
+  defaults: () => T,
+): T {
+  try {
+    const raw = localStorage.getItem(key)
+    if (raw) return parse(JSON.parse(raw) as Record<string, unknown>)
+  } catch {
+    // An unreadable copy is no copy.
+  }
+  const legacy = readLegacyBlob()
+  return legacy ? parse(legacy) : defaults()
+}
+
 /** Whether this browser has stored settings under `key`, or before the split, in the legacy blob. */
 export function hasStoredCopy(key: string): boolean {
   try {

@@ -5,7 +5,7 @@ import {
   osPreferredTheme,
   browserLocale,
   CAR_COLOR_SCHEMES,
-  readLegacyBlob,
+  loadStoredSettings,
   persistSettings,
 } from './settingsShared'
 import { setRegionalFormat } from '@/utils/format'
@@ -170,15 +170,11 @@ function parseUiFields(parsed: Record<string, unknown>, fallback: UiSettings): U
 
 function loadUiSettings(): UiSettings {
   const fallback = defaultsFor()
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (raw) return parseUiFields(JSON.parse(raw), fallback)
-  } catch {
-    // ignore parse errors
-  }
-  const legacy = readLegacyBlob()
-  if (legacy) return parseUiFields(legacy, fallback)
-  return fallback
+  return loadStoredSettings(
+    STORAGE_KEY,
+    (stored) => parseUiFields(stored, fallback),
+    () => fallback,
+  )
 }
 
 function applyCarColors(id: string) {
