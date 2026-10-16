@@ -23,6 +23,9 @@ public sealed class WorkerHeartbeatService(
 
     private bool? _wasHealthy;
 
+    // Why the last beat could not reach the database, for the warning that reports the change.
+    private Exception? _databaseError;
+
     protected override string Name => "Worker heartbeat";
 
     // The API's health check gives the Worker a minute of silence, four beats.
@@ -46,7 +49,7 @@ public sealed class WorkerHeartbeatService(
             if (healthy)
                 logger.LogInformation("Worker is healthy");
             else
-                logger.LogWarning("Worker is unhealthy: broker {Mqtt}, database {Database}",
+                logger.LogWarning(databaseReachable ? null : _databaseError, "Worker is unhealthy: broker {Mqtt}, database {Database}",
                     mqttConnected ? "connected" : "disconnected", databaseReachable ? "reachable" : "unreachable");
         }
         _wasHealthy = healthy;
@@ -55,6 +58,7 @@ public sealed class WorkerHeartbeatService(
     /// <returns>Whether the database answered, which the notification needs anyway.</returns>
     private async Task<bool> TellTheApiAsync(bool mqttConnected, CancellationToken ct)
     {
+        _databaseError = null;
         try
         {
             using var scope = scopeFactory.CreateScope();
@@ -66,7 +70,10 @@ public sealed class WorkerHeartbeatService(
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            // The database going away mid-beat; logged once, as a state change.
+            // The database going away mid-beat. Logged in full once, with the state change it
+            // causes; every beat in between only at Debug.
+            _databaseError = ex;
+            logger.LogDebug(ex, "Heartbeat could not reach the database");
             return false;
         }
     }

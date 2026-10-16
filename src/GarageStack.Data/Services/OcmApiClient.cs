@@ -26,7 +26,12 @@ public sealed class OcmApiClient(
 
     public bool IsConfigured => options.IsConfigured;
 
-    public async Task<IReadOnlyList<PoiItem>> FetchChargingStationsAsync(
+    /// <returns>
+    /// The tile's stations, or null when OCM was not asked because it is rate-limiting us (the
+    /// tile is then left for a later pass, like Overpass does). Other failures throw, and the
+    /// caller logs them.
+    /// </returns>
+    public async Task<IReadOnlyList<PoiItem>?> FetchChargingStationsAsync(
         int cellLat, int cellLng, CancellationToken ct = default)
     {
         var apiKey = options.ApiKey;
@@ -39,48 +44,46 @@ public sealed class OcmApiClient(
         var centerLng = ((cellLng + 0.5) / 2.0).ToString(CultureInfo.InvariantCulture);
 
         using var entry = await _gate.TryEnterAsync(waitAtMost: null, failWhenBackingOff: true, ct);
-        try
+
+        // Skip without hitting the network while a prior request is rate-limited, so a sustained
+        // limit is not hammered by every remaining tile of the Worker's pass. Not a failure: each
+        // skipped tile would otherwise log a warning with a stack trace.
+        if (!entry.Entered)
         {
-            // Fail fast without hitting the network if a prior request was rate-limited, so a
-            // sustained rate limit is not hammered every MinInterval by every remaining tile in
-            // the Worker's current pass.
-            if (!entry.Entered)
-                throw new HttpRequestException($"OCM rate-limited, backing off until {_gate.BackoffUntil:O}");
-
-            await _gate.ThrottleAsync(MinInterval, honourBackoff: false, ct);
-
-            // currenttypeid=30 = DC only; excludes AC slow chargers (Type 1/2, Schuko, etc.)
-            // distance=50 covers the full 0.5°×0.5° tile diagonal at European latitudes (~33 km)
-            var url = BaseUrl +
-                      $"?latitude={centerLat}&longitude={centerLng}" +
-                      "&distance=50&distanceunit=KM" +
-                      "&maxresults=5000&compact=true&verbose=false&statustypeid=50&currenttypeid=30&client=garagestack";
-
-            using var request = new HttpRequestMessage(HttpMethod.Get, url);
-            request.Headers.Add("X-API-Key", apiKey);
-
-            var client = httpClientFactory.CreateClient(HttpClientName);
-            _gate.MarkRequestSent();
-            using var response = await client.SendAsync(request, ct);
-
-            if (UpstreamRateGate.IsThrottlingStatus((int)response.StatusCode))
-            {
-                _gate.SetBackoff(RetryAfter429);
-                throw new HttpRequestException(
-                    $"OCM rate-limited ({(int)response.StatusCode}), backing off {(int)RetryAfter429.TotalSeconds}s");
-            }
-
-            response.EnsureSuccessStatusCode();
-
-            await using var stream = await response.Content.ReadAsStreamAsync(ct);
-            var pois = await JsonSerializer.DeserializeAsync<OcmPoi[]>(stream, cancellationToken: ct) ?? [];
-            return pois.Select(MapToPoiItem).ToList();
+            logger.LogDebug("OCM backing off until {Until:O}; charging tile ({CellLat},{CellLng}) left for later",
+                _gate.BackoffUntil, cellLat, cellLng);
+            return null;
         }
-        catch (Exception ex) when (!ct.IsCancellationRequested)
+
+        await _gate.ThrottleAsync(MinInterval, honourBackoff: false, ct);
+
+        // currenttypeid=30 = DC only; excludes AC slow chargers (Type 1/2, Schuko, etc.)
+        // distance=50 covers the full 0.5°×0.5° tile diagonal at European latitudes (~33 km)
+        var url = BaseUrl +
+                  $"?latitude={centerLat}&longitude={centerLng}" +
+                  "&distance=50&distanceunit=KM" +
+                  "&maxresults=5000&compact=true&verbose=false&statustypeid=50&currenttypeid=30&client=garagestack";
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, url);
+        request.Headers.Add("X-API-Key", apiKey);
+
+        var client = httpClientFactory.CreateClient(HttpClientName);
+        _gate.MarkRequestSent();
+        using var response = await client.SendAsync(request, ct);
+
+        if (UpstreamRateGate.IsThrottlingStatus((int)response.StatusCode))
         {
-            logger.LogWarning(ex, "OCM fetch failed for charging tile ({CellLat},{CellLng})", cellLat, cellLng);
-            throw;
+            _gate.SetBackoff(RetryAfter429);
+            logger.LogWarning("OCM rate-limited ({Status}); pausing charging station requests for {Seconds}s",
+                (int)response.StatusCode, (int)RetryAfter429.TotalSeconds);
+            return null;
         }
+
+        response.EnsureSuccessStatusCode();
+
+        await using var stream = await response.Content.ReadAsStreamAsync(ct);
+        var pois = await JsonSerializer.DeserializeAsync<OcmPoi[]>(stream, cancellationToken: ct) ?? [];
+        return pois.Select(MapToPoiItem).ToList();
     }
 
     // OCM connection type IDs for common DC connectors (from OCM reference data).

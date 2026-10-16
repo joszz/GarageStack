@@ -623,6 +623,28 @@ public class AuthenticationFlowTests
         Assert.Equal(secure, sessionCookie.Contains("; secure", StringComparison.OrdinalIgnoreCase));
     }
 
+    // Browser errors reach the API's log, but only from a signed-in page.
+    [Fact]
+    public async Task ClientErrorReport_IsTakenFromASignedInPageOnly()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var factory = CreatePasswordOnlyFactory();
+        using var client = CreateClient(factory);
+        var report = new { message = "TypeError: x is undefined", stack = "at a (index.js:1:2)", page = "/map", source = "index.js:1:2" };
+
+        var anonymous = await client.PostAsJsonAsync("/api/client-errors", report, ct);
+        await client.PostAsJsonAsync(
+            "/api/auth/login",
+            new { username = DemoUsername, password = DemoPassword, rememberMe = false },
+            ct);
+        var signedIn = await client.PostAsJsonAsync("/api/client-errors", report, ct);
+        var empty = await client.PostAsJsonAsync("/api/client-errors", new { message = " " }, ct);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, anonymous.StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, signedIn.StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, empty.StatusCode);
+    }
+
     // ── Rate limiting ─────────────────────────────────────────────────────────
 
     [Fact]

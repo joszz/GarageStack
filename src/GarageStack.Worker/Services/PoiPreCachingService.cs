@@ -115,7 +115,7 @@ public sealed class PoiPreCachingService(
 
         await PoiTileFetcher.FetchAndCacheAsync(
             toRefresh,
-            async (cellLat, cellLng, token) => (IReadOnlyList<PoiItem>?)await ocmClient.FetchChargingStationsAsync(cellLat, cellLng, token),
+            ocmClient.FetchChargingStationsAsync,
             (cellLat, cellLng, items, token) => repository.UpsertTileAsync(source, poiType, cellLat, cellLng, items, PoiCacheDefaults.Ttl, token),
             (ex, cellLat, cellLng) => logger.LogWarning(ex,
                 "Failed to pre-cache OCM charging tile ({CellLat},{CellLng}) for {Vin}",

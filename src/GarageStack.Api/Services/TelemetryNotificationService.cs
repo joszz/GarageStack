@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Threading.Channels;
 using GarageStack.Api.Health;
 using GarageStack.Api.Hubs;
+using GarageStack.Core.Helpers;
 using GarageStack.Core.Interfaces;
 using GarageStack.Core.Models;
 using GarageStack.Data.Extensions;
@@ -22,6 +23,7 @@ internal sealed class TelemetryNotificationService(
     // Trailing-edge debounce per vehicle: coalesces rapid MQTT bursts (multiple
     // topics per poll cycle) into a single SignalR broadcast after a quiet period.
     private readonly ConcurrentDictionary<int, CancellationTokenSource> _pending = new();
+    private bool _reportedUnreadableHeartbeat;
 
     private record PgEvent(string Channel, string Payload);
 
@@ -64,6 +66,13 @@ internal sealed class TelemetryNotificationService(
                 case PgChannels.WorkerHeartbeat:
                     if (WorkerHeartbeatPayload.FromJson(evt.Payload) is { } heartbeat)
                         workerHeartbeats.Record(heartbeat);
+                    else if (!_reportedUnreadableHeartbeat)
+                    {
+                        // A Worker from another release speaks a format this API does not read,
+                        // and the readiness check will call the Worker missing. Said once.
+                        _reportedUnreadableHeartbeat = true;
+                        logger.LogWarning("Ignoring worker heartbeats this API cannot read ({PayloadBytes} bytes); is the Worker the same version?", evt.Payload.Length);
+                    }
                     break;
             }
         }
@@ -73,6 +82,8 @@ internal sealed class TelemetryNotificationService(
     {
         var listenCommand = string.Join("; ", PgChannels.All.Select(c => $"LISTEN {c}"));
         var channelList = string.Join(", ", PgChannels.All);
+
+        var outage = new OutageLog(logger, "PostgreSQL LISTEN connection", TimeSpan.FromMinutes(5));
 
         while (!ct.IsCancellationRequested)
         {
@@ -88,6 +99,7 @@ internal sealed class TelemetryNotificationService(
                 }
 
                 logger.LogInformation("Listening for PostgreSQL notifications on {Channels}", channelList);
+                outage.Recovered();
 
                 conn.Notification += (_, e) => writer.TryWrite(new PgEvent(e.Channel, e.Payload));
 
@@ -100,7 +112,7 @@ internal sealed class TelemetryNotificationService(
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "PostgreSQL LISTEN connection failed, retrying in 5s");
+                outage.Failed(ex);
                 try { await Task.Delay(5_000, ct); }
                 catch (OperationCanceledException) { break; }
             }

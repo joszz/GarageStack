@@ -14,10 +14,22 @@ namespace GarageStack.Worker.Mqtt;
 // version or a differently-configured/forked one, not topics the current gateway emits
 // alongside its canonical name. Safe to drop an alias only after confirming no supported
 // gateway version still uses it.
+/// <summary>What became of a message: stored, a topic the mapper does not know, or a known topic whose payload could not be read.</summary>
+public enum TelemetryMapping
+{
+    Mapped,
+    UnknownTopic,
+    MalformedPayload,
+}
+
 public static class TelemetryMapper
 {
-    /// <returns>true if the subtopic was recognised and a field was set; false for metadata/unknown topics.</returns>
-    public static bool ApplyMessage(TelemetrySnapshot snapshot, string subtopic, string payload)
+    /// <returns>true if the subtopic was recognised and a field was set; false for metadata/unknown topics and unreadable payloads.</returns>
+    public static bool ApplyMessage(TelemetrySnapshot snapshot, string subtopic, string payload) =>
+        Map(snapshot, subtopic, payload) == TelemetryMapping.Mapped;
+
+    /// <summary>Applies the message to <paramref name="snapshot"/> and says what became of it.</summary>
+    public static TelemetryMapping Map(TelemetrySnapshot snapshot, string subtopic, string payload)
     {
         if (!double.TryParse(payload, NumberStyles.Any, CultureInfo.InvariantCulture, out var numeric))
             numeric = double.NaN;
@@ -31,7 +43,7 @@ public static class TelemetryMapper
 
         // Each Apply* method returns null when the subtopic isn't part of its domain (try the next
         // one), or a final true/false when it is (recognised-and-mapped, or a malformed JSON payload).
-        return ApplyDrivetrainBasics(snapshot, subtopic, numeric, asBool)
+        return (ApplyDrivetrainBasics(snapshot, subtopic, numeric, asBool)
             ?? ApplyDoors(snapshot, subtopic, asBool)
             ?? ApplyWindows(snapshot, subtopic, asBool)
             ?? ApplyLocation(snapshot, subtopic, payload, numeric)
@@ -41,8 +53,12 @@ public static class TelemetryMapper
             ?? ApplyLights(snapshot, subtopic, asBool)
             ?? ApplyAvailabilityAndJourney(snapshot, subtopic, payload, numeric, asBool)
             ?? ApplyChargingSession(snapshot, subtopic, payload, numeric, asBool)
-            ?? ApplyObcAndBatteryHeating(snapshot, subtopic, payload, numeric, asBool)
-            ?? false;
+            ?? ApplyObcAndBatteryHeating(snapshot, subtopic, payload, numeric, asBool)) switch
+        {
+            true => TelemetryMapping.Mapped,
+            false => TelemetryMapping.MalformedPayload,
+            null => TelemetryMapping.UnknownTopic,
+        };
     }
 
     private static double? N(double v) => double.IsFinite(v) ? v : null;
@@ -58,7 +74,9 @@ public static class TelemetryMapper
             apply(doc.RootElement);
             return true;
         }
-        catch
+        // Not JSON at all, or JSON of another shape than the gateway sends (a string where a
+        // number belongs, a missing property).
+        catch (Exception ex) when (ex is JsonException or InvalidOperationException or FormatException or KeyNotFoundException)
         {
             return false;
         }
