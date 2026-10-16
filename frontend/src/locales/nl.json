@@ -852,7 +852,8 @@
         "accountUnknown": "De auto heeft zijn MG-account nog niet doorgegeven. Probeer het opnieuw zodra hij gegevens heeft gestuurd."
       },
       "command": {
-        "invalidValue": "De auto accepteert deze waarde niet."
+        "invalidValue": "De auto accepteert deze waarde niet.",
+        "unsupported": "Deze auto ondersteunt dit commando niet."
       },
       "maintenance": {
         "nameRequired": "Naam is verplicht",
@@ -876,7 +877,8 @@
         "conditionAlwaysTrue": "De 'kouder dan'-temperatuur moet lager zijn dan de 'warmer dan'-temperatuur."
       },
       "trip": {
-        "notesTooLong": "De notities mogen hoogstens 500 tekens lang zijn."
+        "notesTooLong": "De notities mogen hoogstens 500 tekens lang zijn.",
+        "tooManyIds": "Te veel ritten tegelijk. Kies een kortere periode."
       },
       "push": {
         "notConfigured": "Pushmeldingen zijn op deze server niet ingesteld."

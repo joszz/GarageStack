@@ -852,7 +852,8 @@
         "accountUnknown": "The car has not reported its MG account yet. Try again once it has sent data."
       },
       "command": {
-        "invalidValue": "The car does not accept this value."
+        "invalidValue": "The car does not accept this value.",
+        "unsupported": "This car does not support this command."
       },
       "maintenance": {
         "nameRequired": "Name is required",
@@ -876,7 +877,8 @@
         "conditionAlwaysTrue": "The 'colder than' temperature must be below the 'warmer than' one."
       },
       "trip": {
-        "notesTooLong": "The notes can be at most 500 characters."
+        "notesTooLong": "The notes can be at most 500 characters.",
+        "tooManyIds": "Too many trips at once. Choose a shorter period."
       },
       "push": {
         "notConfigured": "Push notifications are not set up on this server."
