@@ -84,7 +84,6 @@ const isNL = computed({
           v-model="isNL"
           :label="isNL ? 'Nederlands' : 'English'"
           input-id="footer-toggle-lang"
-          flags
         >
           <template #off>
             <img :src="gbFlag" alt="English" class="settings-toggle__flag" />

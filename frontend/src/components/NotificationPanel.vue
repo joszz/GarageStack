@@ -135,7 +135,7 @@ onUnmounted(() => document.removeEventListener('keydown', onKey))
         <div class="notif-panel" role="dialog" :aria-label="t('notifications.title')">
           <div class="notif-panel__header">
             <h3 class="notif-panel__title">
-              <font-awesome-icon icon="bell" class="me-2" />
+              <font-awesome-icon icon="bell" />
               {{ t('notifications.title') }}
             </h3>
             <button
@@ -173,7 +173,7 @@ onUnmounted(() => document.removeEventListener('keydown', onKey))
               :class="{ 'notif-panel__tab--active': showArchived }"
               @click="showArchived = true"
             >
-              <font-awesome-icon icon="box-archive" class="me-1" />
+              <font-awesome-icon icon="box-archive" />
               {{ t('notifications.archived') }}
             </button>
           </div>
@@ -265,7 +265,7 @@ onUnmounted(() => document.removeEventListener('keydown', onKey))
                   class="notif-panel__bulk-btn"
                   @click="requestBulkAction('archiveAll')"
                 >
-                  <font-awesome-icon icon="box-archive" class="me-1" />
+                  <font-awesome-icon icon="box-archive" />
                   {{ t('notifications.archiveAll') }}
                 </button>
               </div>
@@ -275,7 +275,7 @@ onUnmounted(() => document.removeEventListener('keydown', onKey))
                   class="notif-panel__bulk-btn notif-panel__bulk-btn--danger"
                   @click="requestBulkAction('deleteAll')"
                 >
-                  <font-awesome-icon icon="trash" class="me-1" />
+                  <font-awesome-icon icon="trash" />
                   {{ t('notifications.deleteAll') }}
                 </button>
               </div>

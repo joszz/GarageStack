@@ -215,7 +215,7 @@ const motionBlurAmount = computed(() => {
                  ViewBox is -40 0 420 480. 3 equal lanes of 140 px each.
                  Left lane: x=-40–100. Center lane: x=100–240 (car body x≈119–222, ~20 px margin).
                  Right lane: x=240–380. Edges at x=-38 and x=378. -->
-            <g v-if="isMoving" class="road-anim-group">
+            <g v-if="isMoving">
               <rect x="-40" y="0" width="420" height="480" class="road-surface" />
               <line x1="-38" y1="0" x2="-38" y2="480" class="road-edge" />
               <line x1="378" y1="0" x2="378" y2="480" class="road-edge" />

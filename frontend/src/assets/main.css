@@ -328,6 +328,10 @@ body,
   color: var(--color-danger);
 }
 
+.text-info {
+  color: var(--color-info);
+}
+
 /* ── Utility spacing ──────────────────────────────────────── */
 
 .mt-2 {
@@ -348,6 +352,11 @@ body,
 
 .ms-2 {
   margin-left: 0.5rem;
+}
+
+/* Pushes what follows to the far end of a flex row, such as a modal footer's buttons. */
+.me-auto {
+  margin-right: auto;
 }
 
 .text-xs {

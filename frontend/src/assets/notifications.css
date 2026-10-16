@@ -71,7 +71,9 @@
 }
 
 .notif-panel__error .btn {
+  flex-shrink: 0;
   margin-left: auto;
+  white-space: nowrap;
 }
 
 .notif-panel__tabs {
