@@ -60,8 +60,8 @@ public class TelemetryHandlerTests
     private static TelemetryHandler CreateHandler(IPushSender push) =>
         new(NullLogger.Instance, new VehicleResolver(new FakeServiceScopeFactory()), push, WorkerLocalizer.Notifications());
 
-    // ObserveEngineAsync's cooldown gate checks AppNotifications via this db - an empty in-memory
-    // context is enough for these tests since none of them pre-seed a notification row.
+    // ObserveEngineAsync's cooldown gate checks the notification history in this db; an empty
+    // in-memory one is enough, since none of these tests seeds a notification.
     private static AppDbContext CreateTestDb() =>
         new(new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
@@ -96,7 +96,7 @@ public class TelemetryHandlerTests
         await using var db = CreateTestDb();
 
         // On restart the car may already be running; the first observation must not fire.
-        await handler.ObserveEngineAsync("VIN1", new TelemetrySnapshot { EngineRunning = true }, db, ct);
+        await handler.ObserveEngineAsync("VIN1", new TelemetrySnapshot { EngineRunning = true }, new NotificationRepository(db), ct);
 
         Assert.Empty(push.Sent);
     }
@@ -110,8 +110,8 @@ public class TelemetryHandlerTests
         await using var db = CreateTestDb();
 
         // Seed the state with the engine off, then observe a start.
-        await handler.ObserveEngineAsync("VIN1", new TelemetrySnapshot { EngineRunning = false }, db, ct);
-        await handler.ObserveEngineAsync("VIN1", new TelemetrySnapshot { EngineRunning = true }, db, ct);
+        await handler.ObserveEngineAsync("VIN1", new TelemetrySnapshot { EngineRunning = false }, new NotificationRepository(db), ct);
+        await handler.ObserveEngineAsync("VIN1", new TelemetrySnapshot { EngineRunning = true }, new NotificationRepository(db), ct);
 
         Assert.Single(push.Sent);
         Assert.Equal("Engine started", push.Sent[0].Title);
@@ -127,8 +127,8 @@ public class TelemetryHandlerTests
 
         var snap = new TelemetrySnapshot { EngineRunning = true };
         // First: seed. Second: no transition. Neither fires.
-        await handler.ObserveEngineAsync("VIN1", snap, db, ct);
-        await handler.ObserveEngineAsync("VIN1", snap, db, ct);
+        await handler.ObserveEngineAsync("VIN1", snap, new NotificationRepository(db), ct);
+        await handler.ObserveEngineAsync("VIN1", snap, new NotificationRepository(db), ct);
 
         Assert.Empty(push.Sent);
     }
@@ -141,7 +141,7 @@ public class TelemetryHandlerTests
         var handler = CreateHandler(push);
         await using var db = CreateTestDb();
 
-        await handler.ObserveEngineAsync("VIN1", new TelemetrySnapshot { EngineRunning = false }, db, ct);
+        await handler.ObserveEngineAsync("VIN1", new TelemetrySnapshot { EngineRunning = false }, new NotificationRepository(db), ct);
 
         Assert.Empty(push.Sent);
     }
@@ -155,9 +155,9 @@ public class TelemetryHandlerTests
         await using var db = CreateTestDb();
 
         // Seed (no fire), stop, start -> exactly one notification.
-        await handler.ObserveEngineAsync("VIN1", new TelemetrySnapshot { EngineRunning = true }, db, ct);
-        await handler.ObserveEngineAsync("VIN1", new TelemetrySnapshot { EngineRunning = false }, db, ct);
-        await handler.ObserveEngineAsync("VIN1", new TelemetrySnapshot { EngineRunning = true }, db, ct);
+        await handler.ObserveEngineAsync("VIN1", new TelemetrySnapshot { EngineRunning = true }, new NotificationRepository(db), ct);
+        await handler.ObserveEngineAsync("VIN1", new TelemetrySnapshot { EngineRunning = false }, new NotificationRepository(db), ct);
+        await handler.ObserveEngineAsync("VIN1", new TelemetrySnapshot { EngineRunning = true }, new NotificationRepository(db), ct);
 
         Assert.Single(push.Sent);
     }
@@ -170,7 +170,7 @@ public class TelemetryHandlerTests
         var handler = CreateHandler(push);
         await using var db = CreateTestDb();
 
-        await handler.ObserveEngineAsync("VIN1", new TelemetrySnapshot { EngineRunning = null }, db, ct);
+        await handler.ObserveEngineAsync("VIN1", new TelemetrySnapshot { EngineRunning = null }, new NotificationRepository(db), ct);
 
         Assert.Empty(push.Sent);
     }
@@ -184,10 +184,10 @@ public class TelemetryHandlerTests
         await using var db = CreateTestDb();
 
         // Seed both VINs as off, then start each one independently.
-        await handler.ObserveEngineAsync("VIN1", new TelemetrySnapshot { EngineRunning = false }, db, ct);
-        await handler.ObserveEngineAsync("VIN2", new TelemetrySnapshot { EngineRunning = false }, db, ct);
-        await handler.ObserveEngineAsync("VIN1", new TelemetrySnapshot { EngineRunning = true }, db, ct);
-        await handler.ObserveEngineAsync("VIN2", new TelemetrySnapshot { EngineRunning = true }, db, ct);
+        await handler.ObserveEngineAsync("VIN1", new TelemetrySnapshot { EngineRunning = false }, new NotificationRepository(db), ct);
+        await handler.ObserveEngineAsync("VIN2", new TelemetrySnapshot { EngineRunning = false }, new NotificationRepository(db), ct);
+        await handler.ObserveEngineAsync("VIN1", new TelemetrySnapshot { EngineRunning = true }, new NotificationRepository(db), ct);
+        await handler.ObserveEngineAsync("VIN2", new TelemetrySnapshot { EngineRunning = true }, new NotificationRepository(db), ct);
 
         Assert.Equal(2, push.Sent.Count);
     }
@@ -205,10 +205,10 @@ public class TelemetryHandlerTests
         var handler = CreateHandler(push);
         await using var db = CreateTestDb();
 
-        await handler.ObserveEngineAsync("VIN1", new TelemetrySnapshot { EngineRunning = false }, db, ct);
-        await handler.ObserveEngineAsync("VIN1", new TelemetrySnapshot { EngineRunning = true }, db, ct); // genuine start - sends
-        await handler.ObserveEngineAsync("VIN1", new TelemetrySnapshot { EngineRunning = false }, db, ct); // flap off
-        await handler.ObserveEngineAsync("VIN1", new TelemetrySnapshot { EngineRunning = true }, db, ct); // flap back on - must not re-send
+        await handler.ObserveEngineAsync("VIN1", new TelemetrySnapshot { EngineRunning = false }, new NotificationRepository(db), ct);
+        await handler.ObserveEngineAsync("VIN1", new TelemetrySnapshot { EngineRunning = true }, new NotificationRepository(db), ct); // genuine start - sends
+        await handler.ObserveEngineAsync("VIN1", new TelemetrySnapshot { EngineRunning = false }, new NotificationRepository(db), ct); // flap off
+        await handler.ObserveEngineAsync("VIN1", new TelemetrySnapshot { EngineRunning = true }, new NotificationRepository(db), ct); // flap back on - must not re-send
 
         Assert.Single(push.Sent);
     }
@@ -221,8 +221,8 @@ public class TelemetryHandlerTests
         var handler = CreateHandler(push);
         await using var db = CreateTestDb();
 
-        await handler.ObserveEngineAsync("VIN1", new TelemetrySnapshot { EngineRunning = true }, db, ct);
-        var stop = await handler.ObserveEngineAsync("VIN1", new TelemetrySnapshot { EngineRunning = false }, db, ct);
+        await handler.ObserveEngineAsync("VIN1", new TelemetrySnapshot { EngineRunning = true }, new NotificationRepository(db), ct);
+        var stop = await handler.ObserveEngineAsync("VIN1", new TelemetrySnapshot { EngineRunning = false }, new NotificationRepository(db), ct);
 
         Assert.Equal(StateTransition.TurnedOff, stop);
         Assert.Empty(push.Sent);
@@ -238,6 +238,7 @@ public class TelemetryHandlerTests
             .AddDbContext<AppDbContext>(o => o.UseInMemoryDatabase(databaseName))
             .AddScoped<IVehicleRepository, VehicleRepository>()
             .AddScoped<ITelemetryRepository>(sp => new TelemetryRepository(sp.GetRequiredService<AppDbContext>()))
+            .AddScoped<INotificationRepository, NotificationRepository>()
             .BuildServiceProvider();
         var handler = new TelemetryHandler(
             NullLogger.Instance,

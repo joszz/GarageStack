@@ -2,8 +2,6 @@ using System.Collections.Concurrent;
 using System.Globalization;
 using GarageStack.Core.Interfaces;
 using GarageStack.Core.Models;
-using GarageStack.Data;
-using GarageStack.Data.Extensions;
 using Microsoft.Extensions.Localization;
 
 namespace GarageStack.Worker.Mqtt;
@@ -70,8 +68,8 @@ public sealed class AccountStatusHandler(
         try
         {
             using var scope = scopeFactory.CreateScope();
-            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-            if (await db.WasNotificationSentSinceAsync(NotificationCategories.GatewayLogin, vehicleId: null, OutageStart(saicUser), ct))
+            var notifications = scope.ServiceProvider.GetRequiredService<INotificationRepository>();
+            if (await notifications.WasSentSinceAsync(NotificationCategories.GatewayLogin, vehicleId: null, OutageStart(saicUser), ct))
                 return;
 
             await pushSender.SendToAllAsync(

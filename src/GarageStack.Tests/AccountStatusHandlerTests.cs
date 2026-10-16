@@ -1,5 +1,7 @@
+using GarageStack.Core.Interfaces;
 using GarageStack.Core.Models;
 using GarageStack.Data;
+using GarageStack.Data.Repositories;
 using GarageStack.Worker.Mqtt;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
@@ -25,6 +27,7 @@ public sealed class AccountStatusHandlerTests : IDisposable
         var name = Guid.NewGuid().ToString();
         _services = new ServiceCollection()
             .AddDbContext<AppDbContext>(o => o.UseInMemoryDatabase(name, root))
+            .AddScoped<INotificationRepository, NotificationRepository>()
             .BuildServiceProvider();
         _handler = new AccountStatusHandler(
             NullLogger.Instance,

@@ -1,8 +1,6 @@
 using GarageStack.Core.Helpers;
 using GarageStack.Core.Interfaces;
 using GarageStack.Core.Models;
-using GarageStack.Data;
-using Microsoft.EntityFrameworkCore;
 
 namespace GarageStack.Api.Endpoints;
 
@@ -15,15 +13,12 @@ public static class MaintenanceEndpoints
             .RequireAuthorization()
             .AddEndpointFilter<ResolveVehicleFilter>();
 
-        group.MapGet("/", async (HttpContext httpContext, AppDbContext db, ITelemetryRepository telemetry, CancellationToken ct) =>
+        group.MapGet("/", async (
+            HttpContext httpContext, IMaintenanceRepository maintenance, ITelemetryRepository telemetry, CancellationToken ct) =>
         {
             var vehicle = httpContext.ResolvedVehicle();
 
-            var items = await db.MaintenanceItems.AsNoTracking()
-                .Where(m => m.VehicleId == vehicle.Id)
-                .OrderBy(m => m.Name)
-                .ToListAsync(ct);
-
+            var items = await maintenance.ListAsync(vehicle.Id, ct);
             var odometerKm = await telemetry.GetOdometerAtAsync(vehicle.Id, DateTime.UtcNow, ct);
 
             return Results.Ok(items.Select(m => ToDto(m, odometerKm)));
@@ -32,7 +27,7 @@ public static class MaintenanceEndpoints
 
         group.MapPost("/", async (
             HttpContext httpContext, CreateMaintenanceItemRequest req,
-            AppDbContext db, ITelemetryRepository telemetry, CancellationToken ct) =>
+            IMaintenanceRepository maintenance, ITelemetryRepository telemetry, CancellationToken ct) =>
         {
             var vehicle = httpContext.ResolvedVehicle();
 
@@ -40,7 +35,7 @@ public static class MaintenanceEndpoints
                     ?? ValidateService(req.LastServiceDate, req.LastServiceOdometerKm)) is { } error)
                 return ApiProblems.BadRequest(error);
 
-            var item = new MaintenanceItem
+            var item = await maintenance.AddAsync(new MaintenanceItem
             {
                 VehicleId = vehicle.Id,
                 Name = req.Name.Trim(),
@@ -49,10 +44,7 @@ public static class MaintenanceEndpoints
                 IntervalMonths = req.IntervalMonths,
                 LastServiceDate = req.LastServiceDate,
                 LastServiceOdometerKm = req.LastServiceOdometerKm,
-            };
-
-            db.MaintenanceItems.Add(item);
-            await db.SaveChangesAsync(ct);
+            }, ct);
 
             var odometerKm = await telemetry.GetOdometerAtAsync(vehicle.Id, DateTime.UtcNow, ct);
             return Results.Ok(ToDto(item, odometerKm));
@@ -61,108 +53,74 @@ public static class MaintenanceEndpoints
 
         group.MapPut("/{id:int}", async (
             HttpContext httpContext, int id, UpdateMaintenanceItemRequest req,
-            AppDbContext db, ITelemetryRepository telemetry, CancellationToken ct) =>
+            IMaintenanceRepository maintenance, ITelemetryRepository telemetry, CancellationToken ct) =>
         {
             var vehicle = httpContext.ResolvedVehicle();
-
-            var item = await db.MaintenanceItems.FirstOrDefaultAsync(m => m.Id == id && m.VehicleId == vehicle.Id, ct);
-            if (item is null) return Results.NotFound();
 
             if (ValidateItem(req.Name, req.Notes, req.IntervalKm, req.IntervalMonths) is { } error)
                 return ApiProblems.BadRequest(error);
 
-            item.Name = req.Name.Trim();
-            item.Notes = req.Notes;
-            item.IntervalKm = req.IntervalKm;
-            item.IntervalMonths = req.IntervalMonths;
-
-            await db.SaveChangesAsync(ct);
+            var item = await maintenance.UpdateAsync(vehicle.Id, id, item =>
+            {
+                item.Name = req.Name.Trim();
+                item.Notes = req.Notes;
+                item.IntervalKm = req.IntervalKm;
+                item.IntervalMonths = req.IntervalMonths;
+            }, ct);
+            if (item is null) return Results.NotFound();
 
             var odometerKm = await telemetry.GetOdometerAtAsync(vehicle.Id, DateTime.UtcNow, ct);
             return Results.Ok(ToDto(item, odometerKm));
         })
         .WithSummary("Update a maintenance item's name, notes and intervals");
 
-        group.MapDelete("/{id:int}", async (HttpContext httpContext, int id, AppDbContext db, CancellationToken ct) =>
-        {
-            var vehicle = httpContext.ResolvedVehicle();
-
-            var item = await db.MaintenanceItems.FirstOrDefaultAsync(m => m.Id == id && m.VehicleId == vehicle.Id, ct);
-            if (item is null) return Results.NotFound();
-
-            db.MaintenanceItems.Remove(item);
-            await db.SaveChangesAsync(ct);
-
-            return Results.Ok();
-        })
+        group.MapDelete("/{id:int}", async (
+            HttpContext httpContext, int id, IMaintenanceRepository maintenance, CancellationToken ct) =>
+            await maintenance.DeleteAsync(httpContext.ResolvedVehicle().Id, id, ct)
+                ? Results.Ok()
+                : Results.NotFound())
         .WithSummary("Delete a maintenance item and its service history");
 
-        group.MapGet("/{id:int}/log", async (HttpContext httpContext, int id, AppDbContext db, CancellationToken ct) =>
+        group.MapGet("/{id:int}/log", async (
+            HttpContext httpContext, int id, IMaintenanceRepository maintenance, CancellationToken ct) =>
         {
-            var vehicle = httpContext.ResolvedVehicle();
-
-            var itemExists = await db.MaintenanceItems.AnyAsync(m => m.Id == id && m.VehicleId == vehicle.Id, ct);
-            if (!itemExists) return Results.NotFound();
-
-            var entries = await db.MaintenanceLogEntries.AsNoTracking()
-                .Where(l => l.MaintenanceItemId == id)
-                .OrderByDescending(l => l.PerformedAt)
-                .Select(l => new MaintenanceLogEntryDto(l.Id, l.MaintenanceItemId, l.PerformedAt, l.OdometerKm, l.Notes, l.CreatedAt))
-                .ToListAsync(ct);
-
-            return Results.Ok(entries);
+            var entries = await maintenance.GetLogAsync(httpContext.ResolvedVehicle().Id, id, ct);
+            return entries is null
+                ? Results.NotFound()
+                : Results.Ok(entries.Select(ToDto));
         })
         .WithSummary("List service history for a maintenance item, newest first");
 
         group.MapPost("/{id:int}/log", async (
             HttpContext httpContext, int id, LogMaintenanceServiceRequest req,
-            AppDbContext db, ITelemetryRepository telemetry, CancellationToken ct) =>
+            IMaintenanceRepository maintenance, ITelemetryRepository telemetry, CancellationToken ct) =>
         {
             var vehicle = httpContext.ResolvedVehicle();
-
-            var item = await db.MaintenanceItems.FirstOrDefaultAsync(m => m.Id == id && m.VehicleId == vehicle.Id, ct);
-            if (item is null) return Results.NotFound();
 
             if (ValidateLogEntry(req.PerformedAt, req.OdometerKm, req.Notes) is { } error)
                 return ApiProblems.BadRequest(error);
 
-            var entry = new MaintenanceLogEntry
+            var logged = await maintenance.LogServiceAsync(vehicle.Id, id, new MaintenanceLogEntry
             {
-                MaintenanceItemId = id,
                 PerformedAt = req.PerformedAt,
                 OdometerKm = req.OdometerKm,
                 Notes = req.Notes,
-            };
-            db.MaintenanceLogEntries.Add(entry);
-            await db.SaveChangesAsync(ct);
-
-            await RecomputeBaselineAsync(item, db, ct);
-            await db.SaveChangesAsync(ct);
+            }, ct);
+            if (logged is null) return Results.NotFound();
 
             var odometerKm = await telemetry.GetOdometerAtAsync(vehicle.Id, DateTime.UtcNow, ct);
-            var logDto = new MaintenanceLogEntryDto(entry.Id, entry.MaintenanceItemId, entry.PerformedAt, entry.OdometerKm, entry.Notes, entry.CreatedAt);
-
-            return Results.Ok(new LogMaintenanceServiceResponse(ToDto(item, odometerKm), logDto));
+            return Results.Ok(new LogMaintenanceServiceResponse(ToDto(logged.Item, odometerKm), ToDto(logged.Entry)));
         })
         .WithSummary("Log a completed service, updating the item's baseline");
 
         group.MapDelete("/{id:int}/log/{logId:int}", async (
             HttpContext httpContext, int id, int logId,
-            AppDbContext db, ITelemetryRepository telemetry, CancellationToken ct) =>
+            IMaintenanceRepository maintenance, ITelemetryRepository telemetry, CancellationToken ct) =>
         {
             var vehicle = httpContext.ResolvedVehicle();
 
-            var item = await db.MaintenanceItems.FirstOrDefaultAsync(m => m.Id == id && m.VehicleId == vehicle.Id, ct);
+            var item = await maintenance.DeleteLogEntryAsync(vehicle.Id, id, logId, ct);
             if (item is null) return Results.NotFound();
-
-            var entry = await db.MaintenanceLogEntries.FirstOrDefaultAsync(l => l.Id == logId && l.MaintenanceItemId == id, ct);
-            if (entry is null) return Results.NotFound();
-
-            db.MaintenanceLogEntries.Remove(entry);
-            await db.SaveChangesAsync(ct);
-
-            await RecomputeBaselineAsync(item, db, ct);
-            await db.SaveChangesAsync(ct);
 
             var odometerKm = await telemetry.GetOdometerAtAsync(vehicle.Id, DateTime.UtcNow, ct);
             return Results.Ok(ToDto(item, odometerKm));
@@ -170,20 +128,6 @@ public static class MaintenanceEndpoints
         .WithSummary("Remove a service log entry, recomputing the item's baseline");
 
         return app;
-    }
-
-    // Baseline always reflects the entry with the latest PerformedAt, not the most recently
-    // inserted one, so back-dating an older service after a newer one already exists doesn't
-    // corrupt the due-status calculation.
-    private static async Task RecomputeBaselineAsync(MaintenanceItem item, AppDbContext db, CancellationToken ct)
-    {
-        var latest = await db.MaintenanceLogEntries.AsNoTracking()
-            .Where(l => l.MaintenanceItemId == item.Id)
-            .OrderByDescending(l => l.PerformedAt)
-            .FirstOrDefaultAsync(ct);
-
-        item.LastServiceDate = latest?.PerformedAt;
-        item.LastServiceOdometerKm = latest?.OdometerKm;
     }
 
     internal static ValidationError? ValidateItem(string name, string? notes, double? intervalKm, int? intervalMonths)
@@ -224,6 +168,9 @@ public static class MaintenanceEndpoints
         notes is not null && notes.Length > MaintenanceLimits.NotesMaxLength
             ? new("maintenance.notesTooLong", $"Notes must be {MaintenanceLimits.NotesMaxLength} characters or fewer")
             : null;
+
+    private static MaintenanceLogEntryDto ToDto(MaintenanceLogEntry entry) =>
+        new(entry.Id, entry.MaintenanceItemId, entry.PerformedAt, entry.OdometerKm, entry.Notes, entry.CreatedAt);
 
     private static MaintenanceItemDto ToDto(MaintenanceItem item, double? currentOdometerKm)
     {

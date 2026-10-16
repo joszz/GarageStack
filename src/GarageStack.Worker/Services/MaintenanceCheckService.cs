@@ -1,9 +1,6 @@
 using GarageStack.Core.Helpers;
 using GarageStack.Core.Interfaces;
 using GarageStack.Core.Models;
-using GarageStack.Data;
-using GarageStack.Data.Extensions;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Localization;
 
 namespace GarageStack.Worker.Services;
@@ -25,7 +22,8 @@ public class MaintenanceCheckService(
     protected override async Task RunOnceAsync(CancellationToken ct)
     {
         using var scope = scopeFactory.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var maintenance = scope.ServiceProvider.GetRequiredService<IMaintenanceRepository>();
+        var notifications = scope.ServiceProvider.GetRequiredService<INotificationRepository>();
         var telemetry = scope.ServiceProvider.GetRequiredService<ITelemetryRepository>();
         var vehicleRepo = scope.ServiceProvider.GetRequiredService<IVehicleRepository>();
 
@@ -33,7 +31,7 @@ public class MaintenanceCheckService(
 
         // One query for every vehicle's items instead of one query per vehicle (mirrors the
         // grouped-lookup pattern PoiPreCachingService already uses for latest-location data).
-        var itemsByVehicle = (await db.MaintenanceItems.AsNoTracking().ToListAsync(ct))
+        var itemsByVehicle = (await maintenance.ListAllAsync(ct))
             .GroupBy(m => m.VehicleId)
             .ToDictionary(g => g.Key, g => g.ToList());
 
@@ -54,7 +52,7 @@ public class MaintenanceCheckService(
                 if (alert is null) continue;
 
                 var shouldNotify = await _cooldownGate.ShouldNotifyAsync(vehicle.Vin, alert.Value.Category, cutoff =>
-                    db.WasNotificationSentSinceAsync(alert.Value.Category, vehicle.Id, cutoff, ct));
+                    notifications.WasSentSinceAsync(alert.Value.Category, vehicle.Id, cutoff, ct));
                 if (!shouldNotify) continue;
 
                 await pushSender.SendToAllAsync(alert.Value.Title, alert.Value.Body, ct, alert.Value.Category, vehicle.Id);

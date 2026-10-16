@@ -1,6 +1,7 @@
 using GarageStack.Api.Endpoints;
 using GarageStack.Core.Models;
 using GarageStack.Data;
+using GarageStack.Data.Repositories;
 using Microsoft.EntityFrameworkCore;
 
 namespace GarageStack.Tests;
@@ -23,8 +24,7 @@ public class PushSubscriptionUpsertTests
         var ct = TestContext.Current.CancellationToken;
         await using var db = CreateDb();
 
-        await PushEndpoints.UpsertSubscriptionAsync(
-            db, new PushSubscribeRequest(Endpoint, "p256dh", "auth"), ct);
+        await PushEndpoints.UpsertSubscriptionAsync(new PushSubscriptionRepository(db), new PushSubscribeRequest(Endpoint, "p256dh", "auth"), ct);
 
         var stored = await db.PushSubscriptions.SingleAsync(ct);
         Assert.Equal(Endpoint, stored.Endpoint);
@@ -39,9 +39,9 @@ public class PushSubscriptionUpsertTests
         await using var db = CreateDb();
         var req = new PushSubscribeRequest(Endpoint, "p256dh", "auth");
 
-        await PushEndpoints.UpsertSubscriptionAsync(db, req, ct);
-        await PushEndpoints.UpsertSubscriptionAsync(db, req, ct);
-        await PushEndpoints.UpsertSubscriptionAsync(db, req, ct);
+        await PushEndpoints.UpsertSubscriptionAsync(new PushSubscriptionRepository(db), req, ct);
+        await PushEndpoints.UpsertSubscriptionAsync(new PushSubscriptionRepository(db), req, ct);
+        await PushEndpoints.UpsertSubscriptionAsync(new PushSubscriptionRepository(db), req, ct);
 
         Assert.Equal(1, await db.PushSubscriptions.CountAsync(ct));
     }
@@ -59,8 +59,7 @@ public class PushSubscriptionUpsertTests
         });
         await db.SaveChangesAsync(ct);
 
-        await PushEndpoints.UpsertSubscriptionAsync(
-            db, new PushSubscribeRequest(Endpoint, "new-p256dh", "new-auth"), ct);
+        await PushEndpoints.UpsertSubscriptionAsync(new PushSubscriptionRepository(db), new PushSubscribeRequest(Endpoint, "new-p256dh", "new-auth"), ct);
 
         var stored = await db.PushSubscriptions.SingleAsync(ct);
         Assert.Equal("new-p256dh", stored.P256DhKey);
@@ -80,8 +79,7 @@ public class PushSubscriptionUpsertTests
         });
         await db.SaveChangesAsync(ct);
 
-        await PushEndpoints.UpsertSubscriptionAsync(
-            db, new PushSubscribeRequest(Endpoint, "p256dh", "auth"), ct);
+        await PushEndpoints.UpsertSubscriptionAsync(new PushSubscriptionRepository(db), new PushSubscribeRequest(Endpoint, "p256dh", "auth"), ct);
 
         Assert.Equal(2, await db.PushSubscriptions.CountAsync(ct));
         var other = await db.PushSubscriptions
@@ -97,8 +95,7 @@ public class PushSubscriptionUpsertTests
         var ct = TestContext.Current.CancellationToken;
         await using var db = CreateDb();
 
-        await PushEndpoints.UpsertSubscriptionAsync(
-            db, new PushSubscribeRequest(Endpoint, "p256dh", "auth", ["low-tyre", "engine-start", "not-a-type", "low-tyre"]), ct);
+        await PushEndpoints.UpsertSubscriptionAsync(new PushSubscriptionRepository(db), new PushSubscribeRequest(Endpoint, "p256dh", "auth", ["low-tyre", "engine-start", "not-a-type", "low-tyre"]), ct);
 
         var stored = await db.PushSubscriptions.SingleAsync(ct);
         Assert.Equal(["engine-start", "low-tyre"], stored.ExcludedCategories);
@@ -109,9 +106,9 @@ public class PushSubscriptionUpsertTests
     {
         var ct = TestContext.Current.CancellationToken;
         await using var db = CreateDb();
-        await PushEndpoints.UpsertSubscriptionAsync(db, new PushSubscribeRequest(Endpoint, "p256dh", "auth", ["engine-start"]), ct);
+        await PushEndpoints.UpsertSubscriptionAsync(new PushSubscriptionRepository(db), new PushSubscribeRequest(Endpoint, "p256dh", "auth", ["engine-start"]), ct);
 
-        await PushEndpoints.UpsertSubscriptionAsync(db, new PushSubscribeRequest(Endpoint, "p256dh", "auth", ["maintenance"]), ct);
+        await PushEndpoints.UpsertSubscriptionAsync(new PushSubscriptionRepository(db), new PushSubscribeRequest(Endpoint, "p256dh", "auth", ["maintenance"]), ct);
 
         var stored = await db.PushSubscriptions.SingleAsync(ct);
         Assert.Equal(["maintenance"], stored.ExcludedCategories);
@@ -123,11 +120,27 @@ public class PushSubscriptionUpsertTests
     {
         var ct = TestContext.Current.CancellationToken;
         await using var db = CreateDb();
-        await PushEndpoints.UpsertSubscriptionAsync(db, new PushSubscribeRequest(Endpoint, "p256dh", "auth", ["engine-start"]), ct);
+        await PushEndpoints.UpsertSubscriptionAsync(new PushSubscriptionRepository(db), new PushSubscribeRequest(Endpoint, "p256dh", "auth", ["engine-start"]), ct);
 
-        await PushEndpoints.UpsertSubscriptionAsync(db, new PushSubscribeRequest(Endpoint, "p256dh", "auth"), ct);
+        await PushEndpoints.UpsertSubscriptionAsync(new PushSubscriptionRepository(db), new PushSubscribeRequest(Endpoint, "p256dh", "auth"), ct);
 
         var stored = await db.PushSubscriptions.SingleAsync(ct);
         Assert.Equal(["engine-start"], stored.ExcludedCategories);
+    }
+
+    // The Worker drops the subscriptions a push service reported gone; others stay, and an
+    // endpoint that was never stored is no error.
+    [Fact]
+    public async Task Remove_DropsOnlyTheNamedEndpoints()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var db = CreateDb();
+        var repo = new PushSubscriptionRepository(db);
+        await repo.UpsertAsync(Endpoint, "p256dh", "auth", null, ct);
+        await repo.UpsertAsync("https://push.example/other", "p256dh", "auth", null, ct);
+
+        await repo.RemoveAsync([Endpoint, "https://push.example/unknown"], ct);
+
+        Assert.Equal("https://push.example/other", Assert.Single(await repo.ListAsync(ct)).Endpoint);
     }
 }
