@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { usePwaInstall } from '@/composables/usePwaInstall'
+import { useEscapeKey } from '@/composables/useEscapeKey'
 
 const { t } = useI18n()
 const { modalVisible, install, dismiss } = usePwaInstall()
@@ -11,6 +12,9 @@ const neverShow = ref(false)
 function onDismiss() {
   dismiss(neverShow.value)
 }
+
+// Escape is "not now", like a click outside the dialog.
+useEscapeKey(() => modalVisible.value, onDismiss)
 </script>
 
 <template>
