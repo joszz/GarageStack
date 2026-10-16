@@ -17,6 +17,7 @@ jobs:
   frontend-lint:
     name: Frontend lint
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: read
     steps:
@@ -37,6 +38,7 @@ jobs:
   frontend-typecheck:
     name: Frontend type-check
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: read
     steps:
@@ -51,6 +53,7 @@ jobs:
   frontend-test:
     name: Frontend tests
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: read
     steps:
@@ -83,6 +86,7 @@ jobs:
   e2e:
     name: End-to-end smoke test
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: read
     steps:
@@ -90,9 +94,29 @@ jobs:
 
       - uses: ./.github/actions/setup-frontend
 
+      # The browser download is cached per Playwright version; its system libraries are not
+      # cacheable, so a cache hit still installs those.
+      - name: Read the Playwright version
+        id: playwright
+        working-directory: frontend
+        run: echo "version=$(pnpm exec playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
+
+      - name: Cache the Playwright browser
+        id: playwright-cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+
       - name: Install Playwright browser
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
         working-directory: frontend
         run: pnpm exec playwright install --with-deps chromium
+
+      - name: Install the browser's system libraries
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        working-directory: frontend
+        run: pnpm exec playwright install-deps chromium
 
       - name: Start the demo stack
         run: |
@@ -128,6 +152,7 @@ jobs:
   backend-test:
     name: Backend tests
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: read
     steps:
@@ -167,6 +192,7 @@ jobs:
   backend-build:
     name: Backend build
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: read
     steps:
@@ -194,9 +220,13 @@ jobs:
           dotnet tool restore
           dotnet ef migrations has-pending-model-changes --project src/GarageStack.Data --startup-project src/GarageStack.Data --no-build --configuration Release
 
+  # Pull requests only: on main, docker-publish.yml builds and publishes these same images. The
+  # "Protect main" ruleset requires these checks, so they stay here rather than there.
   container-build:
     name: Container build (${{ matrix.label }})
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions:
       contents: read
     strategy:
@@ -236,3 +266,24 @@ jobs:
           build-args: APP_VERSION=0.0.0-ci
           cache-from: type=gha,scope=ci-${{ matrix.label }}
           cache-to: type=gha,scope=ci-${{ matrix.label }},mode=min
+
+  infra-lint:
+    name: Shell, Dockerfile and workflow lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: shellcheck
+        run: |
+          git ls-files -z '*.sh' | xargs -0 docker run --rm -v "$PWD:/mnt" -w /mnt             koalaman/shellcheck:v0.11.0@sha256:61862eba1fcf09a484ebcc6feea46f1782532571a34ed51fedf90dd25f925a8d -x
+
+      - name: hadolint
+        run: |
+          git ls-files -z '*Dockerfile' | xargs -0 docker run --rm -v "$PWD:/repo" -w /repo             hadolint/hadolint:v2.14.0@sha256:27086352fd5e1907ea2b934eb1023f217c5ae087992eb59fde121dce9c9ff21e hadolint
+
+      - name: actionlint
+        run: |
+          docker run --rm -v "$PWD:/repo" -w /repo             rhysd/actionlint:1.7.12@sha256:b1934ee5f1c509618f2508e6eb47ee0d3520686341fec936f3b79331f9315667 -color

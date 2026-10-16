@@ -14,6 +14,7 @@ jobs:
   auto-merge:
     name: Auto-merge
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     # The PR's author, not github.actor (whoever triggered this run), and a branch of this
     # repository rather than a fork: only Dependabot's own PRs get approved and merged.
     if: >-

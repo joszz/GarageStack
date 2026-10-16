@@ -12,6 +12,7 @@ SAIC_PASSWORD="${SAIC_PASSWORD:?SAIC_PASSWORD environment variable is required}"
 
 # Derives SAIC_REST_URI from SAIC_REGION for known regions (unless already set) so
 # the SAIC gateway hits the right API endpoint -- see the script for details.
+# shellcheck source=docker/resolve-saic-rest-uri.sh
 . /resolve-saic-rest-uri.sh
 
 # Auto-generate POSTGRES_PASSWORD on first run and persist it so subsequent

@@ -33,7 +33,6 @@ updates:
           - "pinia"
           - "@vue/*"
           - "@vitejs/plugin-vue"
-          - "vite-plugin-vue-devtools"
           - "vue-tsc"
 
       # Vite + PWA plugin (tend to release in step)
@@ -90,7 +89,6 @@ updates:
           - "@types/jsdom"
           - "@vue/test-utils"
           - "jiti"
-          - "npm-run-all2"
 
   # ── NuGet (all projects, Dependabot discovers every .csproj) ─────────────────
   - package-ecosystem: nuget

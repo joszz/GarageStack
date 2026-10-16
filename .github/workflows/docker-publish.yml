@@ -9,9 +9,12 @@ on:
       - main
     tags:
       - "v*"
+  # On pull requests ci.yml builds every image already; this runs only to try a change to itself.
   pull_request:
     branches:
       - main
+    paths:
+      - .github/workflows/docker-publish.yml
 
 # A newer push to a PR makes its running build pointless; on main and tags a build is never cut
 # off halfway through publishing, the next one waits instead.
@@ -31,6 +34,7 @@ jobs:
   build:
     name: ${{ matrix.label }}
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     permissions:
       contents: read
       packages: write

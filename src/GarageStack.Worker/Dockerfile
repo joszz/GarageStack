@@ -15,7 +15,7 @@ WORKDIR /src/GarageStack.Worker
 # ${APP_VERSION#v} strips a leading "v" (e.g. a tag name), which MinVer rejects
 RUN dotnet publish -c Release -o /app /p:MinVerVersionOverride=${APP_VERSION#v}
 
-FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
+FROM mcr.microsoft.com/dotnet/runtime:10.0 AS runtime
 WORKDIR /app
 # OS_PATCH_DATE busts the layer cache so apt-get upgrade actually re-runs instead of
 # reusing a stale cached layer from before an OS package fix was published.
