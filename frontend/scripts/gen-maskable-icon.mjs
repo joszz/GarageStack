@@ -14,7 +14,7 @@ const FG = '#3b82f6'
 // Adaptive icon safe zone = circle radius 40% of image size. The car bounding
 // box corners are at ~344 original units from centre, so scale is capped at
 // size*0.38/344 to keep all corners inside the circle with breathing room.
-// All icons — maskable and non-maskable — use the same layout so they are
+// All icons, maskable and non-maskable, use the same layout so they are
 // visually identical regardless of which one the OS or browser picks.
 function buildIconSvg(size) {
   const scale = (size * 0.38) / 344
@@ -57,11 +57,11 @@ function buildShortcutSvg(size, iconPath, vbW, vbH) {
 </svg>`
 }
 
-// FA location-dot  — viewBox 0 0 384 512
+// FA location-dot: viewBox 0 0 384 512
 const mapIconPath =
   'M215.7 499.2C267 435 384 279.4 384 192C384 86 298 0 192 0S0 86 0 192c0 87.4 117 243 168.3 307.2c12.3 15.3 35.1 15.3 47.4 0zM192 128a64 64 0 1 1 0 128 64 64 0 1 1 0-128z'
 
-// FA chart-column (vertical bars) — viewBox 0 0 448 512
+// FA chart-column (vertical bars): viewBox 0 0 448 512
 const statsIconPath =
   'M160 80c0-26.5 21.5-48 48-48h32c26.5 0 48 21.5 48 48V432c0 26.5-21.5 48-48 48H208c-26.5 0-48-21.5-48-48V80zM0 272c0-26.5 21.5-48 48-48H80c26.5 0 48 21.5 48 48V432c0 26.5-21.5 48-48 48H48c-26.5 0-48-21.5-48-48V272zM368 96h32c26.5 0 48 21.5 48 48V432c0 26.5-21.5 48-48 48H368c-26.5 0-48-21.5-48-48V144c0-26.5 21.5-48 48-48z'
 
@@ -77,7 +77,7 @@ function write(filePath, svg, size) {
 
 const pub = join(__dirname, '..', 'public')
 
-// App icons — full-bleed dark background, purpose: "any maskable" in the manifest
+// App icons: full-bleed dark background, purpose: "any maskable" in the manifest
 write(join(pub, 'pwa-64x64.png'), buildIconSvg(64), 64)
 write(join(pub, 'pwa-192x192.png'), buildIconSvg(192), 192)
 write(join(pub, 'pwa-512x512.png'), buildIconSvg(512), 512)

@@ -18,7 +18,7 @@ defineProps<{
 </template>
 
 <style scoped>
-/* Body collapses without content — make it fill the remaining card width */
+/* Body collapses without content, so make it fill the remaining card width */
 .status-card__body {
   flex: 1;
   min-width: 0;
@@ -26,7 +26,7 @@ defineProps<{
 
 /*
  * Use the same font-size as the real elements so the browser computes
- * the line-box height from actual font metrics — no manual calc needed.
+ * the line-box height from actual font metrics, so no manual calc is needed.
  * The &nbsp; provides the content that drives that height; color:transparent
  * hides it behind the shimmer gradient.
  */

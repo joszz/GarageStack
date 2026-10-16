@@ -85,7 +85,7 @@ self.addEventListener('notificationclick', (event) => {
     }
   })()
 
-  // Clear the badge — the app will re-sync the correct count after it loads
+  // Clear the badge; the app will re-sync the correct count after it loads
   const badgeNav = self.navigator as BadgingNavigator
   const clearPromise = badgeNav.clearAppBadge?.() ?? Promise.resolve()
 

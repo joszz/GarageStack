@@ -70,6 +70,12 @@
   flex-shrink: 0;
 }
 
+.notif-panel__error .btn {
+  flex-shrink: 0;
+  margin-left: auto;
+  white-space: nowrap;
+}
+
 .notif-panel__tabs {
   display: flex;
   border-bottom: 1px solid var(--color-border);

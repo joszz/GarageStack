@@ -171,7 +171,7 @@ onUnmounted(() => {
     <div class="view-header">
       <h1>{{ t('dashboard.title') }}</h1>
       <div class="view-header__actions">
-        <span v-if="store.loading && status" class="text-muted small me-2">
+        <span v-if="store.loading && status" class="text-muted">
           <font-awesome-icon icon="spinner" spin />
           {{ t('common.refreshing') }}
         </span>
@@ -189,7 +189,7 @@ onUnmounted(() => {
     <!-- Edit mode: same grid with draggable card-slot wrappers -->
     <template v-if="editMode">
       <!-- Tyre diagram + location map toggles -->
-      <div class="overview-row overview-row--edit mt-4 mb-4">
+      <div class="overview-row mt-4 mb-4">
         <EditableCardSlot
           class="card-slot--static overview-row__car"
           :visible="settings.showTyreDiagram"

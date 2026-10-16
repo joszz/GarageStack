@@ -221,7 +221,7 @@ Verify a signature (the workflow signs with Cosign 3, so use Cosign 3 or newer t
 
 ```bash
 cosign verify \
-  --certificate-identity-regexp "https://github.com/joszz/garagestack/.*" \
+  --certificate-identity-regexp "^https://github.com/joszz/GarageStack/" \
   --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
   ghcr.io/joszz/garagestack:latest
 ```

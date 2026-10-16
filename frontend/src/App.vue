@@ -51,7 +51,9 @@ const {
   unreadCount,
   panelOpen,
   loading,
+  fetchError: notificationFetchError,
   actionError: notificationActionError,
+  fetchNotifications,
   togglePanel,
   closePanel,
   archiveNotification,
@@ -378,7 +380,9 @@ watch(
       :open="panelOpen"
       :notifications="notifications"
       :loading="loading"
+      :fetch-error="notificationFetchError"
       :action-error="notificationActionError"
+      @retry="fetchNotifications"
       @close="closePanel"
       @archive="archiveNotification"
       @archive-all="archiveAllNotifications"

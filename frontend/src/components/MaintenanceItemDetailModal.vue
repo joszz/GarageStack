@@ -32,7 +32,10 @@ const odometer = useMeasureField(units, 'distance')
 const logNotes = ref('')
 const logSaving = ref(false)
 const logError = ref<string | null>(null)
+const historyError = ref<string | null>(null)
 const pendingDelete = ref(false)
+const deleting = ref(false)
+const deleteError = ref<string | null>(null)
 
 const currentItem = computed(() => store.items.find((i) => i.id === props.item?.id) ?? props.item)
 const logEntries = computed(() => (props.item ? (store.logEntries[props.item.id] ?? []) : []))
@@ -42,7 +45,9 @@ watch(
   (isOpen) => {
     if (!isOpen || !props.item) return
     pendingDelete.value = false
+    deleteError.value = null
     logError.value = null
+    historyError.value = null
     performedAt.value = localDateKey(new Date())
     odometer.load(vehicleStore.currentStatus?.odometerKm ?? null)
     logNotes.value = ''
@@ -72,10 +77,13 @@ async function submitLog() {
 
 async function removeLogEntry(logId: number) {
   if (!props.item) return
+  historyError.value = null
   await store.deleteLogEntry(props.vin, props.item.id, logId)
+  if (store.actionError) historyError.value = errorMessage(store.actionError)
 }
 
 function requestDelete() {
+  deleteError.value = null
   pendingDelete.value = true
 }
 
@@ -83,10 +91,20 @@ function cancelDelete() {
   pendingDelete.value = false
 }
 
+// The modal only closes once the item is really gone; a refused delete stays on screen.
 async function confirmDelete() {
   if (!props.item) return
-  await store.deleteItem(props.vin, props.item.id)
+  deleting.value = true
+  try {
+    await store.deleteItem(props.vin, props.item.id)
+  } finally {
+    deleting.value = false
+  }
   pendingDelete.value = false
+  if (store.actionError) {
+    deleteError.value = errorMessage(store.actionError)
+    return
+  }
   emit('close')
 }
 </script>
@@ -160,6 +178,7 @@ async function confirmDelete() {
 
       <section class="detail-modal__section">
         <h4 class="detail-modal__section-title">{{ t('maintenance.history') }}</h4>
+        <p v-if="historyError" class="text-danger text-sm">{{ historyError }}</p>
         <p v-if="logEntries.length === 0" class="text-muted text-sm">
           {{ t('maintenance.noHistory') }}
         </p>
@@ -189,9 +208,12 @@ async function confirmDelete() {
         <button class="btn btn-outline-secondary" @click="cancelDelete">
           {{ t('common.cancel') }}
         </button>
-        <button class="btn btn-danger" @click="confirmDelete">{{ t('common.confirm') }}</button>
+        <button class="btn btn-danger" :disabled="deleting" @click="confirmDelete">
+          {{ t('common.confirm') }}
+        </button>
       </template>
       <template v-else>
+        <span v-if="deleteError" class="text-danger text-sm">{{ deleteError }}</span>
         <button class="btn btn-outline-secondary" @click="requestDelete">
           <font-awesome-icon icon="trash" />{{ t('maintenance.delete') }}
         </button>
