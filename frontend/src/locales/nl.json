@@ -156,6 +156,12 @@
         "frontRight": "Rechtsvoor",
         "rearLeft": "Linksachter",
         "rearRight": "Rechtsachter"
+      },
+      "tyrePositionShort": {
+        "frontLeft": "LV",
+        "frontRight": "RV",
+        "rearLeft": "LA",
+        "rearRight": "RA"
       }
     },
     "temperature": {

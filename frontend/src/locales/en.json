@@ -156,6 +156,12 @@
         "frontRight": "Front right",
         "rearLeft": "Rear left",
         "rearRight": "Rear right"
+      },
+      "tyrePositionShort": {
+        "frontLeft": "FL",
+        "frontRight": "FR",
+        "rearLeft": "RL",
+        "rearRight": "RR"
       }
     },
     "temperature": {
