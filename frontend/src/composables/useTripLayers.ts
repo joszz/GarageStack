@@ -8,6 +8,7 @@ import { fitToPoints, L, type LeafletMap } from '@/utils/leaflet'
 import { buildCarMarkerIcon } from '@/utils/mapCarIcon'
 import { speedLimitSegments } from '@/utils/speedLimits'
 import { speedSegments, speedToColor, tripColor } from '@/utils/speedColors'
+import { latLngsOf } from '@/utils/geo'
 
 type HeatPoints = Parameters<typeof createHeatLayer>[0]
 
@@ -53,9 +54,7 @@ export function useTripLayers(o: TripLayersOptions) {
   let carToShow: [number, number] | null = null
 
   const allPoints = computed<[number, number][]>(() =>
-    o.trips.value.flatMap((trip) =>
-      trip.points.map((p) => [p.latitude, p.longitude] as [number, number]),
-    ),
+    o.trips.value.flatMap((trip) => latLngsOf(trip.points)),
   )
 
   function clearRouteLines() {
@@ -100,7 +99,7 @@ export function useTripLayers(o: TripLayersOptions) {
     if (!map) return
     clearRouteLines()
     o.trips.value.forEach((trip, i) => {
-      const pts = trip.points.map((p) => [p.latitude, p.longitude] as [number, number])
+      const pts = latLngsOf(trip.points)
       if (pts.length < 2) return
       if (routeOutlineEnabled.value) {
         const border = L.polyline(pts, { color: '#111', weight: 7, opacity: 0.4 })
@@ -128,8 +127,7 @@ export function useTripLayers(o: TripLayersOptions) {
     // The snapped line when there is one, the raw fixes until then: the map never waits on the
     // matcher, it redraws once the answer lands.
     const match = o.selectedMatch.value
-    const coords =
-      match?.coordinates ?? pts.map((p) => [p.latitude, p.longitude] as [number, number])
+    const coords = match?.coordinates ?? latLngsOf(pts)
 
     if (routeOutlineEnabled.value) {
       const border = L.polyline(coords, { color: '#111', weight: 9, opacity: 0.4 })
@@ -218,7 +216,7 @@ export function useTripLayers(o: TripLayersOptions) {
   }
 
   function fitTrip(trip: Trip) {
-    fitPoints(trip.points.map((p) => [p.latitude, p.longitude] as [number, number]))
+    fitPoints(latLngsOf(trip.points))
   }
 
   /**

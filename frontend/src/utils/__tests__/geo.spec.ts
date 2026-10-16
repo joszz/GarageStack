@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest'
-import { distanceKm, polylineLengthKm, resampleByDistance, type LatLng } from '@/utils/geo'
+import {
+  distanceKm,
+  latLngsOf,
+  polylineLengthKm,
+  resampleByDistance,
+  type LatLng,
+} from '@/utils/geo'
 
 // A degree of latitude is about 111.19 km anywhere, which makes north-south lines easy to reason
 // about: a line from 52.0 to 52.1 is roughly 11.1 km long.
@@ -122,5 +128,11 @@ describe('resampleByDistance', () => {
         5,
       ),
     ).toEqual([[52, 5]])
+  })
+})
+
+describe('latLngsOf', () => {
+  it("turns a trip's fixes into the [latitude, longitude] pairs the map draws", () => {
+    expect(latLngsOf([{ latitude: 52.37, longitude: 4.89 }])).toEqual([[52.37, 4.89]])
   })
 })
