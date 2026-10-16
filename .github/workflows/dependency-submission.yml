@@ -15,7 +15,7 @@ jobs:
     name: Dependency snapshot
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Submit dependencies
-        uses: advanced-security/component-detection-dependency-submission-action@v0.2.0
+        uses: advanced-security/component-detection-dependency-submission-action@a02aeda7a175ad4dd38a13c4d3ff2df9da8f2cf0 # v0.2.0

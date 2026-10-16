@@ -223,6 +223,9 @@ updates:
         versions: [">=27"]
 
   # ── GitHub Actions ───────────────────────────────────────────────────────────
+  # Every action is pinned to a commit SHA with its version in a trailing comment, so a tag that
+  # is moved later (as trivy-action's were in March 2026) cannot change what runs here. Dependabot
+  # bumps the SHA and the comment together.
   - package-ecosystem: github-actions
     # The workflows, and the composite action the frontend jobs share.
     directories:
