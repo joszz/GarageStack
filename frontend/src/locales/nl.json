@@ -358,7 +358,7 @@
     "poiLoading": "Live kaartgegevens ophalen...",
     "fuelBrandFilter": "Merkfilter",
     "fuelBrandFilterDesc": "Toon alleen geselecteerde tankstationmerken. Werkt zodra de laag tankstations aan staat.",
-    "fuelBrandNoneLoaded": "Nog geen merken gevonden — verschuif de kaart om stations te laden.",
+    "fuelBrandNoneLoaded": "Nog geen merken gevonden. Verschuif de kaart om stations te laden.",
     "fuelBrandNoMatch": "Geen overeenkomende merken.",
     "fuelBrandPlaceholder": "Merken filteren...",
     "fuelTypeFilter": "Brandstoffilter",

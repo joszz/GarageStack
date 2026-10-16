@@ -1917,7 +1917,7 @@ textarea.form-control {
   }
 
   /* Elevate above Leaflet controls (z-index 1000) only while the drawer is
-     open — GPU layer promotion is limited to the 250 ms slide-in animation. */
+     open; GPU layer promotion is limited to the 250 ms slide-in animation. */
   .sidebar--open {
     transform: translateX(0);
     z-index: 1001;
