@@ -130,6 +130,84 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
         }
     }
 
+    /// <summary>
+    /// Carries out a command the way the car would, on the demo car's state: the command name and
+    /// value as <see cref="VehicleCommands"/> checked them. Returns why the car refused, the way the
+    /// gateway reports it, or null when it carried the command out.
+    /// </summary>
+    public string? ApplyCommand(string command, string value)
+    {
+        lock (_lock)
+        {
+            var refusal = Apply(_current, command, value);
+            if (refusal is null)
+            {
+                _current.RecordedAt = DateTime.UtcNow;
+                _current.LastVehicleStateAt = _current.RecordedAt;
+            }
+            return refusal;
+        }
+    }
+
+    // The car's side of each command. Horn and lights, opening the boot lock and a refresh change
+    // nothing the dashboard shows beyond the reading's time, except the boot, which pops open.
+    private static string? Apply(TelemetrySnapshot car, string command, string value)
+    {
+        switch (command)
+        {
+            case "climate":
+                car.ClimateOn = value != "off";
+                car.ClimateMode = value;
+                break;
+            case "climate-temperature":
+                car.RemoteTemperature = int.Parse(value, System.Globalization.CultureInfo.InvariantCulture);
+                break;
+            case "rear-defroster":
+                car.RearWindowDefroster = value == "on";
+                break;
+            case "seat-left":
+                car.HeatedSeatFrontLeft = int.Parse(value, System.Globalization.CultureInfo.InvariantCulture);
+                break;
+            case "seat-right":
+                car.HeatedSeatFrontRight = int.Parse(value, System.Globalization.CultureInfo.InvariantCulture);
+                break;
+            case "lock":
+                car.IsLocked = value == "True";
+                break;
+            case "boot":
+                car.TrunkOpen = true;
+                break;
+            case "charge-limit":
+                car.ChargeCurrentLimit = value;
+                break;
+            case "charge-target":
+                car.SocTargetPercent = int.Parse(value, System.Globalization.CultureInfo.InvariantCulture);
+                break;
+            case "charging" when value == "true" && car.ChargerConnected != true:
+                return "Failed: the charging cable is not plugged in";
+            case "charging":
+                car.IsCharging = value == "true";
+                car.BmsChargeStatus = value == "true" ? "CHARGING_1" : "CHARGING_STOPPED";
+                break;
+            case "charging-cable-lock":
+                car.ChargingCableLock = value == "true";
+                break;
+            case "battery-heating":
+                car.BatteryHeating = value == "true";
+                break;
+            case "scheduled-charging" when SafeJson.TryDeserialize<Dictionary<string, string>>(value) is { } schedule:
+                car.ChargingScheduleMode = schedule["mode"];
+                car.ChargingScheduleStartTime = schedule["startTime"];
+                car.ChargingScheduleEndTime = schedule["endTime"];
+                break;
+            case "battery-heating-schedule" when SafeJson.TryDeserialize<Dictionary<string, string>>(value) is { } schedule:
+                car.BatteryHeatingScheduleMode = schedule["mode"];
+                car.BatteryHeatingScheduleStartTime = schedule["startTime"];
+                break;
+        }
+        return null;
+    }
+
     private static TelemetrySnapshot BuildDefaultSnapshot()
     {
         var current = DemoTrips.InProgressWaypoints[^1];
