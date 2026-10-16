@@ -53,6 +53,10 @@ internal static class ApiHostingExtensions
             // global limiter alone (120/min by default) would allow at a much higher rate. Still generous
             // enough for a handful of dashboard widgets behind the same NAT polling every 30s.
             opts.AddPolicy("widget", FixedWindowPerIp(TimeSpan.FromMinutes(5), permitLimit: 60));
+
+            // Browser error reports: a page stuck in an error loop must not fill the log files.
+            // The page itself caps what it sends; this caps what a misbehaving one could.
+            opts.AddPolicy("client-errors", FixedWindowPerIp(TimeSpan.FromMinutes(5), permitLimit: 30));
         });
     }
 

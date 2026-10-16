@@ -176,6 +176,7 @@ try
     app.MapCommutePlaceEndpoints();
     app.MapWidgetEndpoints();
     app.MapUpdateEndpoints();
+    app.MapClientErrorEndpoints();
     app.MapMapEndpoints();
 
     if (isDemoMode)
