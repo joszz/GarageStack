@@ -103,10 +103,10 @@ updates:
     cooldown:
       default-days: 3
     ignore:
-      # Microsoft.OpenApi 3.x breaks Microsoft.AspNetCore.OpenApi 10.0.9 at both compile
-      # time and runtime (see the pin comment on the Microsoft.OpenApi PackageReference
-      # in GarageStack.Api.csproj) - no compatible Microsoft.AspNetCore.OpenApi release
-      # exists yet. Only block the major bump; keep getting 2.x patch/minor updates.
+      # Microsoft.OpenApi 3.x breaks Microsoft.AspNetCore.OpenApi 10 at both compile time
+      # and runtime (see the pin comment on Microsoft.OpenApi in Directory.Packages.props),
+      # and no compatible Microsoft.AspNetCore.OpenApi release exists yet. Only block the
+      # major bump; keep getting 2.x patch/minor updates.
       - dependency-name: "Microsoft.OpenApi"
         update-types: ["version-update:semver-major"]
     groups:

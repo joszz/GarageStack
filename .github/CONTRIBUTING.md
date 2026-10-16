@@ -38,6 +38,19 @@ To work against the full stack (real or self-provided credentials):
 - Changed an EF Core entity? Add a migration from the repository root (no Api configuration needed). `dotnet tool restore` installs the pinned `dotnet-ef` first:
   `dotnet ef migrations add <Name> --project src/GarageStack.Data --startup-project src/GarageStack.Data`
 
+## Adding a language
+
+GarageStack ships in English and Dutch. A new language touches these places (use its two-letter code, here `de`):
+
+- **Interface:** copy `frontend/src/locales/en.json` to `de.json` and translate the values; keys and `{placeholders}` stay as they are. English is the fallback for any key a language lacks.
+- **Language list:** add `'de'` to the `Locale` type in `frontend/src/stores/settingsShared.ts` (and to its browser-language guess just below it), a loader to `loadMessages` in `frontend/src/i18n.ts` (each language is a chunk fetched when first chosen), and its number and date locale in `frontend/src/utils/format.ts`.
+- **Language setting:** Settings > Language is a two-way switch with flags (`frontend/src/components/settings/SettingsModal.vue`). A third language turns it into a choice of several.
+- **Notifications:** copy `src/GarageStack.Worker/Resources/NotificationStrings.resx` to `NotificationStrings.de.resx`. `NOTIFICATION_LANGUAGE=de` then picks it; document the value in `documentation/CONFIGURATION.md`.
+- **Homepage widget and API:** copy `src/GarageStack.Api/Resources/WidgetStrings.resx` to `WidgetStrings.de.resx`, and add the culture to `SupportedCultures` and `SupportedUICultures` in `src/GarageStack.Api/Program.cs`.
+- **Place names:** add the code to `GeocodeDefaults.SupportedLanguages` in `src/GarageStack.Core/Configuration` so addresses come back in that language.
+
+`en.json` and `nl.json` hold the same keys; keep that true for the new file, since a missing key falls back to English silently.
+
 ## Commit Style
 
 Commits follow [Conventional Commits](https://www.conventionalcommits.org/), with a short imperative description after the type: `feat: add trip heatmap filter`, `fix(frontend): round the battery percentage`. The type decides which heading of the release notes a change goes under; see [RELEASING.md](../documentation/RELEASING.md#commit-convention).

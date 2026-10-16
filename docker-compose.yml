@@ -203,6 +203,10 @@ services:
       dockerfile: Dockerfile
       args:
         APP_VERSION: "${APP_VERSION:-0.0.0-local}"
+        # Your own basemap styles, baked in at build time. See documentation/CONFIGURATION.md.
+        MAP_STYLE_DARK: "${MAP_STYLE_DARK:-}"
+        MAP_STYLE_LIGHT: "${MAP_STYLE_LIGHT:-}"
+        MAP_STYLE_COLORFUL: "${MAP_STYLE_COLORFUL:-}"
     container_name: garagestack-frontend
     restart: unless-stopped
     mem_limit: 128m

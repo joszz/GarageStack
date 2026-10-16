@@ -28,11 +28,11 @@ All images live on GitHub Container Registry (`ghcr.io`). Replace `joszz` with t
 
 | Tag | Example | When created |
 |-----|---------|--------------|
-| `latest` | `garagestack:latest` | Every push to `main`, weekly rebuild (Mondays 05:00 UTC), manual dispatch |
+| `latest` | `garagestack:latest` | Every push to `main`, every `vX.Y.Z` tag, weekly rebuild (Mondays 05:00 UTC), manual dispatch |
 | `1.2.3` | `garagestack:1.2.3` | On `v1.2.3` git tag |
 | `1.2` | `garagestack:1.2` | On any `v1.2.x` tag |
 | `1` | `garagestack:1` | On any `v1.x.x` tag |
-| `sha-abc1234` | `garagestack:sha-abc1234` | Every push to `main`, weekly rebuild, manual dispatch |
+| `sha-abc1234` | `garagestack:sha-abc1234` | Every published build: pushes to `main`, tags, weekly rebuild, manual dispatch |
 
 ---
 
@@ -42,9 +42,10 @@ All images live on GitHub Container Registry (`ghcr.io`). Replace `joszz` with t
 
 ```
 PR opened
-  CI (lint, typecheck, test, build, e2e, container-build)
+  CI (project rules, lint, typecheck, test, build, e2e, container-build)
   CodeQL (actions, C#, JS/TS analysis)
   Security (Trivy filesystem scan)
+  docker-publish (builds all four images, pushes nothing)
 
 Merge to main
   CI
@@ -149,7 +150,7 @@ The `codeql` workflow runs alongside CI on every PR, every push to `main`, and w
 
 ## Dependency Management
 
-[Dependabot](https://docs.github.com/en/code-security/dependabot) opens weekly PRs on Mondays for outdated packages across npm (frontend), NuGet (backend), and GitHub Actions.
+[Dependabot](https://docs.github.com/en/code-security/dependabot) opens weekly PRs on Mondays for outdated packages across npm (frontend), NuGet (backend), the Dockerfiles' base images, the image tags in `docker-compose.yml` (Mosquitto, PostgreSQL, the SAIC gateway) and GitHub Actions. Actions are pinned to commit SHAs with the version in a trailing comment; Dependabot updates both.
 
 ### Auto-merge Rules
 
@@ -271,6 +272,8 @@ Use `0.x.y` while in active development, `1.0.0` for the first public release.
 | `DOCKERHUB_TOKEN` | Repo secret | Avoid Docker Hub pull rate limits during builds |
 | Actions: Read and write permissions | Repo settings | Required for GHCR push and release creation |
 | `id-token: write` | Workflow-level | Cosign keyless signing via OIDC |
+| Allow auto-merge | Repo settings > General | `auto-merge` queues Dependabot PRs with `gh pr merge --auto` |
+| Allow GitHub Actions to create and approve pull requests | Repo settings > Actions > General | `auto-merge` approves Dependabot PRs so branch protection's review rule is met |
 
 ---
 

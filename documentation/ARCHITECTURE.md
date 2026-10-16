@@ -110,7 +110,7 @@ PostgreSQL reuses the space of removed rows for new ones rather than handing it 
 | --- | --- | --- |
 | `GarageStack.Core` | Domain models (`Models/`), repository/service interfaces (`Interfaces/`), and pure helpers with no I/O (`Helpers/`) - the shared vocabulary every other project builds on. | nothing (leaf project) |
 | `GarageStack.Data` | EF Core: `AppDbContext`, migrations, concrete repository implementations, and `Demo/` (in-memory fakes used when `DEMO_MODE=true`). | `Core` |
-| `GarageStack.Worker` | The MQTT-ingestion process: `Mqtt/MqttConsumerService` and the message handlers beside it, plus the periodic jobs (maintenance reminders, POI pre-caching, push-notification checks, saving finished trips, housekeeping), each a `PeriodicBackgroundService`. | `Core`, `Data` |
+| `GarageStack.Worker` | The MQTT-ingestion process: `Mqtt/MqttConsumerService` and the message handlers beside it, plus the periodic jobs (maintenance reminders, POI pre-caching, push-notification checks, saving finished trips, housekeeping and telemetry compaction, climate schedules, and the heartbeat the API's readiness check listens for), each a `PeriodicBackgroundService`. | `Core`, `Data` |
 | `GarageStack.Api` | ASP.NET Core minimal APIs (`Endpoints/`), the SignalR hub (`Hubs/`), and Api-only services (outbound MQTT publishing, POI/charging-station lookups, the Postgres-LISTEN-to-SignalR bridge). | `Core`, `Data` |
 | `GarageStack.Tests` | xUnit tests across all of the above. | all four |
 
