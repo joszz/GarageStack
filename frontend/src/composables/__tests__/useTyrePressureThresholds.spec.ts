@@ -25,7 +25,7 @@ describe('pressureVariant', () => {
   })
 
   it('honours custom thresholds instead of the defaults', () => {
-    const custom = { lowBar: 2.4, goodBar: 2.55, highBar: 2.7 }
+    const custom = { lowBar: 2.4, goodBar: 2.55, highBar: 2.7, dropBar: 0.2 }
     expect(pressureVariant(2.5, custom)).toBe('warning')
     expect(pressureVariant(2.55, custom)).toBe('ok')
   })
@@ -43,7 +43,7 @@ describe('useTyrePressureThresholds', () => {
       vi.fn().mockResolvedValue({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ lowBar: 2.4, goodBar: 2.55, highBar: 2.7 }),
+        json: () => Promise.resolve({ lowBar: 2.4, goodBar: 2.55, highBar: 2.7, dropBar: 0.2 }),
       }),
     )
 
@@ -54,7 +54,7 @@ describe('useTyrePressureThresholds', () => {
     await nextTick()
     await new Promise((resolve) => setTimeout(resolve, 0))
 
-    expect(thresholds.value).toEqual({ lowBar: 2.4, goodBar: 2.55, highBar: 2.7 })
+    expect(thresholds.value).toEqual({ lowBar: 2.4, goodBar: 2.55, highBar: 2.7, dropBar: 0.2 })
   })
 
   it('keeps the default thresholds when the fetch fails', async () => {

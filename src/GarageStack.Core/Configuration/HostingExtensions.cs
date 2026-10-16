@@ -75,7 +75,8 @@ public static class HostingExtensions
         return services.AddSingleton(new TyrePressureThresholds(
             DoubleOrDefault(section, "LowBar", defaults.LowBar),
             DoubleOrDefault(section, "GoodBar", defaults.GoodBar),
-            DoubleOrDefault(section, "HighBar", defaults.HighBar)));
+            DoubleOrDefault(section, "HighBar", defaults.HighBar),
+            DoubleOrDefault(section, "DropBar", defaults.DropBar)));
     }
 
     /// <summary>

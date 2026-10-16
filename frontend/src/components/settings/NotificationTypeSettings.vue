@@ -29,6 +29,7 @@ const needsHttps = !pushSupported && !window.isSecureContext
 const NOTIFICATION_CATEGORY_LABEL_KEYS: Record<NotificationCategoryId, string> = {
   'low-tyre': 'lowTyre',
   'high-tyre': 'highTyre',
+  'slow-puncture': 'slowPuncture',
   'low-ev': 'lowEv',
   'charging-complete': 'chargingComplete',
   'charging-interrupted': 'chargingInterrupted',

@@ -7,6 +7,7 @@ export const DEFAULT_TYRE_PRESSURE_THRESHOLDS: TyrePressureThresholds = {
   lowBar: 2.2,
   goodBar: 2.6,
   highBar: 3.2,
+  dropBar: 0.15,
 }
 
 // Module-scoped so every component/composable calling useTyrePressureThresholds() shares the

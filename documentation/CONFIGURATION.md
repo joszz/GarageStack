@@ -97,6 +97,7 @@ The full guide, with provider examples, is [`AUTHENTICATION.md`](AUTHENTICATION.
 | Variable | Default | What it does |
 | --- | --- | --- |
 | `TYRE_PRESSURE_LOW_BAR` / `TYRE_PRESSURE_GOOD_BAR` / `TYRE_PRESSURE_HIGH_BAR` | `2.2` / `2.6` / `3.2` | Tyre pressure bands in bar, for the diagram's colours and the tyre notifications. Set them from your car's placard. |
+| `TYRE_PRESSURE_DROP_BAR` | `0.15` | How far, in bar, one tyre may fall behind the other three over two weeks before it is reported as a possible slow puncture. `0` switches the alert off. |
 | `AUX_BATTERY_LOW_VOLT` | `12.0` | 12V battery voltage a parked car is warned below, once several polls in a row show it. `0` switches the alert off. |
 | `LOW_FUEL_PERCENT` | `15` | Fuel level, in percent, a hybrid or plug-in hybrid is warned below. `0` switches the alert off. |
 | `LOW_EV_PERCENT` | `20` | Charge level, in percent, a plug-in car is warned below. `0` switches the alert off. |

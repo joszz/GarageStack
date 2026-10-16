@@ -183,6 +183,27 @@ export interface TyrePressureThresholds {
   lowBar: number
   goodBar: number
   highBar: number
+  /** How far one tyre may fall behind the other three over the trend's days: a slow puncture. */
+  dropBar: number
+}
+
+/** Each tyre's change against the other three, in bar: negative when it lost air the others kept. */
+export interface TyreChanges {
+  frontLeft: number
+  frontRight: number
+  rearLeft: number
+  rearRight: number
+  /** How many days with all four readings the changes rest on. */
+  days: number
+}
+
+export interface TyreHistory {
+  /** A month of days, the same rows as dailyStats. */
+  days: DailyStat[]
+  /** Null until there are a week's readings of all four tyres. */
+  trend: TyreChanges | null
+  /** The days the trend is measured over. */
+  trendDays: number
 }
 
 export const vehicleApi = {
@@ -194,6 +215,9 @@ export const vehicleApi = {
   /** One row per local day from `from` to `to` ("YYYY-MM-DD"), in the browser's time zone. */
   dailyStats: (vin: string, from: string, to: string, timeZone: string) =>
     request<DailyStat[]>(`/api/vehicles/${vin}/stats/daily${buildQuery({ from, to, timeZone })}`),
+  /** A month of daily tyre pressures, in the browser's days, and each tyre's trend against the others. */
+  tyreHistory: (vin: string, timeZone: string) =>
+    request<TyreHistory>(`/api/vehicles/${vin}/tyres${buildQuery({ timeZone })}`),
   trips: (vin: string, from?: string, to?: string) => {
     const query = buildQuery({ from, to })
     return request<Trip[]>(`/api/vehicles/${vin}/trips${query}`)

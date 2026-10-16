@@ -54,6 +54,24 @@
   <data name="HighTyreBody" xml:space="preserve">
     <value>Bandenspanning te hoog: {0}</value>
   </data>
+  <data name="SlowPunctureTitle" xml:space="preserve">
+    <value>Mogelijk langzaam lek</value>
+  </data>
+  <data name="SlowPunctureBody" xml:space="preserve">
+    <value>{0} verloor in de afgelopen {2} dagen {1} bar die de andere banden hielden. Laat de band nakijken op een langzaam lek.</value>
+  </data>
+  <data name="TyreFrontLeft" xml:space="preserve">
+    <value>Linksvoor</value>
+  </data>
+  <data name="TyreFrontRight" xml:space="preserve">
+    <value>Rechtsvoor</value>
+  </data>
+  <data name="TyreRearLeft" xml:space="preserve">
+    <value>Linksachter</value>
+  </data>
+  <data name="TyreRearRight" xml:space="preserve">
+    <value>Rechtsachter</value>
+  </data>
   <data name="LowEvTitle" xml:space="preserve">
     <value>Lage EV-accustand</value>
   </data>

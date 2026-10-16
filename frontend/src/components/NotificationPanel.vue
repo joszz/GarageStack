@@ -14,6 +14,7 @@ const PAGE_SIZE = 10
 const CATEGORY_ICONS: Record<string, string[]> = {
   'low-tyre': ['fas', 'circle-exclamation'],
   'high-tyre': ['fas', 'circle-exclamation'],
+  'slow-puncture': ['fas', 'arrow-trend-down'],
   'low-ev': ['fas', 'battery-quarter'],
   'charging-complete': ['fas', 'plug-circle-check'],
   'charging-interrupted': ['fas', 'plug-circle-exclamation'],

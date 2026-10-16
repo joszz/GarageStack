@@ -26,6 +26,7 @@ x-dotnet-environment: &dotnet-environment
   TYRE_PRESSURE_LOW_BAR: "${TYRE_PRESSURE_LOW_BAR:-}"
   TYRE_PRESSURE_GOOD_BAR: "${TYRE_PRESSURE_GOOD_BAR:-}"
   TYRE_PRESSURE_HIGH_BAR: "${TYRE_PRESSURE_HIGH_BAR:-}"
+  TYRE_PRESSURE_DROP_BAR: "${TYRE_PRESSURE_DROP_BAR:-}"
   # The POI map layers: the API serves them and the Worker pre-fetches them around the car, so
   # both need the same endpoint, key and speed camera switch. See .env.example.
   OVERPASS__BASEURL: "${OVERPASS__BASEURL:-}"

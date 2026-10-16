@@ -335,6 +335,7 @@ GarageStack checks your vehicle's state every 5 minutes and sends both a browser
 | Engine started | Engine transitions from off to running |
 | Low tyre pressure | Any tyre below `TYRE_PRESSURE_LOW_BAR` (default 2.2 bar) |
 | High tyre pressure | Any tyre above `TYRE_PRESSURE_HIGH_BAR` (default 3.2 bar) |
+| Possible slow puncture | One tyre lost `TYRE_PRESSURE_DROP_BAR` (default 0.15 bar) or more that the other three kept, over the last two weeks. Comparing the tyres with each other leaves out the weather, which moves all four together. Sent at most once every three days; tap a tyre on the dashboard's diagram for its history |
 | Low EV battery | EV state-of-charge below `LOW_EV_PERCENT` (default 20 %, plug-in vehicles) |
 | Low fuel | Fuel level below `LOW_FUEL_PERCENT` (default 15 %, hybrids and plug-in hybrids) |
 | Low 12V battery | 12V battery below `AUX_BATTERY_LOW_VOLT` (default 12.0 V) on several polls in a row while the engine is off |

@@ -4,6 +4,7 @@ import { mayBurnFuel, mayPlugIn } from '@/utils/vehicleType'
 export const NOTIFICATION_CATEGORY_IDS = [
   'low-tyre',
   'high-tyre',
+  'slow-puncture',
   'low-ev',
   'charging-complete',
   'charging-interrupted',

@@ -54,6 +54,24 @@
   <data name="HighTyreBody" xml:space="preserve">
     <value>Tyre pressure high: {0}</value>
   </data>
+  <data name="SlowPunctureTitle" xml:space="preserve">
+    <value>Possible slow puncture</value>
+  </data>
+  <data name="SlowPunctureBody" xml:space="preserve">
+    <value>{0} lost {1} bar the other tyres kept, over the last {2} days. Have it checked for a slow puncture.</value>
+  </data>
+  <data name="TyreFrontLeft" xml:space="preserve">
+    <value>Front left</value>
+  </data>
+  <data name="TyreFrontRight" xml:space="preserve">
+    <value>Front right</value>
+  </data>
+  <data name="TyreRearLeft" xml:space="preserve">
+    <value>Rear left</value>
+  </data>
+  <data name="TyreRearRight" xml:space="preserve">
+    <value>Rear right</value>
+  </data>
   <data name="LowEvTitle" xml:space="preserve">
     <value>Low EV Battery</value>
   </data>
