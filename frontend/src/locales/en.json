@@ -445,6 +445,7 @@
       "unlockedParked": "Unlocked while parked",
       "doorsOpenParked": "Doors open while parked",
       "windowsOpenParked": "Windows open while parked",
+      "movedParked": "Moved while parked",
       "vehicleMessage": "MG app messages",
       "climateSchedule": "Scheduled climate",
       "maintenance": "Maintenance reminders",

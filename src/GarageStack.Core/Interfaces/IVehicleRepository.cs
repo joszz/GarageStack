@@ -27,10 +27,10 @@ public interface IVehicleRepository
     Task SetModelAsync(int vehicleId, string model, CancellationToken ct = default);
 
     /// <summary>
-    /// Records when the vehicle was last parked, so the "parked recently" grace period survives
-    /// a Worker restart.
+    /// Records when and where the vehicle last parked, so the "parked recently" grace period
+    /// survives a Worker restart and a car moved while parked can be told from one standing still.
     /// </summary>
-    Task SetLastParkedAtAsync(int vehicleId, DateTime parkedAt, CancellationToken ct = default);
+    Task SetParkedAsync(int vehicleId, DateTime parkedAt, double? latitude, double? longitude, CancellationToken ct = default);
 
     /// <summary>
     /// Records the newest MG app message dealt with, so it is not pushed again when the gateway

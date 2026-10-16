@@ -344,6 +344,7 @@ GarageStack checks your vehicle's state every 5 minutes and sends both a browser
 | Car left unlocked | `doors/locked = false` while engine is off |
 | Door left open | Any door, boot, or bonnet open while engine is off |
 | Window left open | Any window open while engine is off |
+| Moved while parked | The car reports a position more than 300 m from where it parked, with the engine off: towed, lifted onto a truck, or taken on a ferry. Sent once per parking, with the car's first report after the move (a sleeping car only reports now and then) |
 | Charging complete | Charging stops while the cable is still connected (plug-in vehicles) |
 | Charging interrupted | Charging stops because of a fault the car names: the charger, an overheating port, a plug not fully in, or a voltage mismatch (plug-in vehicles; unplugging mid-charge sends nothing) |
 | Maintenance due | A maintenance item reaches 90 % of its interval, or passes it (checked every 6 hours, 7-day cooldown per item) |

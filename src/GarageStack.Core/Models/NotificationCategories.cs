@@ -19,6 +19,8 @@ public static class NotificationCategories
     public const string UnlockedParked = "unlocked-parked";
     public const string DoorsOpenParked = "doors-open-parked";
     public const string WindowsOpenParked = "windows-open-parked";
+    // The car reported a position away from where it parked, with the engine off.
+    public const string MovedParked = "moved-parked";
     // A message from the official MG app, passed on as SAIC wrote it.
     public const string VehicleMessage = "vehicle-message";
     // A climate schedule started climate, or could not.
@@ -42,7 +44,7 @@ public static class NotificationCategories
     public static readonly IReadOnlySet<string> Groups = new HashSet<string>(StringComparer.Ordinal)
     {
         LowTyre, HighTyre, SlowPuncture, LowEv, ChargingComplete, ChargingInterrupted, EngineStart, UnlockedParked, DoorsOpenParked,
-        WindowsOpenParked, VehicleMessage, ClimateSchedule, Low12V, LowFuel, GatewayLogin, DataStale,
+        WindowsOpenParked, MovedParked, VehicleMessage, ClimateSchedule, Low12V, LowFuel, GatewayLogin, DataStale,
         Maintenance,
     };
 

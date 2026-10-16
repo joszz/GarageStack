@@ -63,11 +63,14 @@ public class VehicleRepository(AppDbContext db, ILogger<VehicleRepository>? logg
         await db.SaveChangesAsync(ct);
     }
 
-    public async Task SetLastParkedAtAsync(int vehicleId, DateTime parkedAt, CancellationToken ct = default)
+    public async Task SetParkedAsync(
+        int vehicleId, DateTime parkedAt, double? latitude, double? longitude, CancellationToken ct = default)
     {
         var vehicle = await db.Vehicles.FindAsync([vehicleId], ct);
         if (vehicle is null || vehicle.LastParkedAt == parkedAt) return;
         vehicle.LastParkedAt = parkedAt;
+        vehicle.ParkedLatitude = latitude;
+        vehicle.ParkedLongitude = longitude;
         await db.SaveChangesAsync(ct);
     }
 

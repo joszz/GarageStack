@@ -110,8 +110,9 @@ public sealed class TelemetryHandler(
             {
                 // The engine stopping ends the trip and parks the car: the Api refreshes the trip
                 // list, and the push checks give the driver a grace period before warning about an
-                // open door or window.
-                await resolved.Vehicles.SetLastParkedAtAsync(vehicleId, patch.RecordedAt, ct);
+                // open door or window, and watch for the car leaving the spot it parked on.
+                var parkedAt = await telemetryRepo.GetMergedLatestAsync(vehicleId, ct);
+                await resolved.Vehicles.SetParkedAsync(vehicleId, patch.RecordedAt, parkedAt?.Latitude, parkedAt?.Longitude, ct);
                 await db.Database.NotifyAsync(PgChannels.TripCompleted, vehicleId.ToString(), ct);
                 logger.LogInformation("Trip completed for vehicleId={VehicleId} - notifying SignalR clients", vehicleId);
             }

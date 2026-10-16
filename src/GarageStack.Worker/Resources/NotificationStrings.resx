@@ -60,6 +60,12 @@
   <data name="SlowPunctureBody" xml:space="preserve">
     <value>{0} lost {1} bar the other tyres kept, over the last {2} days. Have it checked for a slow puncture.</value>
   </data>
+  <data name="MovedParkedTitle" xml:space="preserve">
+    <value>Car moved while parked</value>
+  </data>
+  <data name="MovedParkedBody" xml:space="preserve">
+    <value>Your car is {0} km from where it was parked, with the engine off.</value>
+  </data>
   <data name="TyreFrontLeft" xml:space="preserve">
     <value>Front left</value>
   </data>

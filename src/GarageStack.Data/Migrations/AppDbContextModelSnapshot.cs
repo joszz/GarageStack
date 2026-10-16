@@ -950,6 +950,12 @@ namespace GarageStack.Data.Migrations
                     b.Property<string>("Model")
                         .HasColumnType("text");
 
+                    b.Property<double?>("ParkedLatitude")
+                        .HasColumnType("double precision");
+
+                    b.Property<double?>("ParkedLongitude")
+                        .HasColumnType("double precision");
+
                     b.Property<string>("SaicUser")
                         .HasColumnType("text");
 

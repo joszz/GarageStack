@@ -445,6 +445,7 @@
       "unlockedParked": "Ontgrendeld terwijl geparkeerd",
       "doorsOpenParked": "Portier open terwijl geparkeerd",
       "windowsOpenParked": "Raam open terwijl geparkeerd",
+      "movedParked": "Verplaatst terwijl geparkeerd",
       "vehicleMessage": "Berichten uit de MG-app",
       "climateSchedule": "Geplande klimaatregeling",
       "maintenance": "Onderhoudsherinneringen",
