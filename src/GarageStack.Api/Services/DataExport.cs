@@ -89,8 +89,14 @@ internal sealed class DataExport(
                 var history = await maintenance.GetLogAsync(car.Id, item.Id, ct) ?? [];
                 withHistory.Add(new
                 {
-                    item.Id, item.Name, item.Notes, item.IntervalKm, item.IntervalMonths,
-                    item.LastServiceDate, item.LastServiceOdometerKm, item.CreatedAt,
+                    item.Id,
+                    item.Name,
+                    item.Notes,
+                    item.IntervalKm,
+                    item.IntervalMonths,
+                    item.LastServiceDate,
+                    item.LastServiceOdometerKm,
+                    item.CreatedAt,
                     history = history.Select(h => new { h.PerformedAt, h.OdometerKm, h.Notes, h.CreatedAt }),
                 });
             }
@@ -99,14 +105,29 @@ internal sealed class DataExport(
             var carSchedules = await schedules.ListAsync(car.Id, ct);
             await WriteJsonAsync(zip, $"{folder}/climate-schedules.json", carSchedules.Select(s => new
             {
-                s.Id, s.Name, s.Enabled, s.StartTime, s.Days, s.TimeZoneId, s.Mode, s.TemperatureC,
-                s.RearDefroster, s.SeatLeftLevel, s.SeatRightLevel, s.OnlyBelowC, s.OnlyAboveC,
+                s.Id,
+                s.Name,
+                s.Enabled,
+                s.StartTime,
+                s.Days,
+                s.TimeZoneId,
+                s.Mode,
+                s.TemperatureC,
+                s.RearDefroster,
+                s.SeatLeftLevel,
+                s.SeatRightLevel,
+                s.OnlyBelowC,
+                s.OnlyAboveC,
             }), ct);
 
             var carPlaces = await places.ListAsync(car.Id, ct);
             await WriteJsonAsync(zip, $"{folder}/commute-places.json", carPlaces.Select(p => new
             {
-                p.Kind, p.Label, p.Latitude, p.Longitude, p.RadiusMeters,
+                p.Kind,
+                p.Label,
+                p.Latitude,
+                p.Longitude,
+                p.RadiusMeters,
             }), ct);
 
             await WriteTelemetryAsync(zip, $"{folder}/telemetry.csv", car.Id, ct);
