@@ -261,17 +261,6 @@ public class TelemetryHandlerTests
 // topics GarageStack leaves out on purpose. Neither should read as a topic nobody maps.
 public class TelemetryHandlerLoggingTests
 {
-    private sealed class RecordingLogger : ILogger
-    {
-        public List<(LogLevel Level, string Message)> Entries { get; } = [];
-
-        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
-        public bool IsEnabled(LogLevel logLevel) => true;
-
-        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter) =>
-            Entries.Add((logLevel, formatter(state, exception)));
-    }
-
     [Theory]
     [InlineData("climate/remoteClimateState/set", false)]
     [InlineData("drivetrain/socTarget/set", false)]
@@ -280,7 +269,7 @@ public class TelemetryHandlerLoggingTests
     [InlineData("drivetrain/somethingNew", true)]
     public async Task UnmappedTopic_WarnsOnlyWhenItIsNews(string subtopic, bool warns)
     {
-        var logger = new RecordingLogger();
+        var logger = new RecordingLogger<TelemetryHandler>();
         var handler = new TelemetryHandler(
             logger, new VehicleResolver(new FakeServiceScopeFactory()), new FakePushSender(), WorkerLocalizer.Notifications());
 
@@ -296,7 +285,7 @@ public class TelemetryHandlerLoggingTests
     [Fact]
     public async Task UnmappedTopic_WarnsOncePerTopic()
     {
-        var logger = new RecordingLogger();
+        var logger = new RecordingLogger<TelemetryHandler>();
         var handler = new TelemetryHandler(
             logger, new VehicleResolver(new FakeServiceScopeFactory()), new FakePushSender(), WorkerLocalizer.Notifications());
         var ct = TestContext.Current.CancellationToken;
@@ -313,7 +302,7 @@ public class TelemetryHandlerLoggingTests
     [Fact]
     public async Task UnreadablePayload_OnAKnownTopic_IsNotCalledUnmapped()
     {
-        var logger = new RecordingLogger();
+        var logger = new RecordingLogger<TelemetryHandler>();
         var handler = new TelemetryHandler(
             logger, new VehicleResolver(new FakeServiceScopeFactory()), new FakePushSender(), WorkerLocalizer.Notifications());
 

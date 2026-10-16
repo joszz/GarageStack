@@ -225,6 +225,25 @@ public class VehicleRepositoryTests
         Assert.Equal("MG_BEV_1.0", config!["hw_version"]);
     }
 
+    // The blob has no schema, so an unreadable one starts afresh, which drops what it held: that
+    // much is worth a warning.
+    [Fact]
+    public async Task SetConfigValueAsync_UnreadableConfig_StartsAfreshAndSaysSo()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var db = CreateDb();
+        var vehicle = new Vehicle { Vin = "FAKEVN00000000001", ConfigJson = "{not json" };
+        db.Vehicles.Add(vehicle);
+        await db.SaveChangesAsync(ct);
+        var logger = new RecordingLogger<VehicleRepository>();
+
+        await new VehicleRepository(db, logger).SetConfigValueAsync(vehicle.Id, "hw_version", "MG_BEV_1.0", ct);
+
+        var config = JsonSerializer.Deserialize<Dictionary<string, string>>((await db.Vehicles.FindAsync([vehicle.Id], ct))!.ConfigJson!);
+        Assert.Equal(new Dictionary<string, string> { ["hw_version"] = "MG_BEV_1.0" }, config);
+        Assert.Single(logger.Entries, e => e.Level == Microsoft.Extensions.Logging.LogLevel.Warning);
+    }
+
     [Fact]
     public async Task SetConfigValueAsync_ExistingKey_UpdatesValue()
     {

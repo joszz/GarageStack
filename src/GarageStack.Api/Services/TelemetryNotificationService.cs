@@ -22,6 +22,7 @@ internal sealed class TelemetryNotificationService(
     // Trailing-edge debounce per vehicle: coalesces rapid MQTT bursts (multiple
     // topics per poll cycle) into a single SignalR broadcast after a quiet period.
     private readonly ConcurrentDictionary<int, CancellationTokenSource> _pending = new();
+    private bool _reportedUnreadableHeartbeat;
 
     private record PgEvent(string Channel, string Payload);
 
@@ -64,6 +65,13 @@ internal sealed class TelemetryNotificationService(
                 case PgChannels.WorkerHeartbeat:
                     if (WorkerHeartbeatPayload.FromJson(evt.Payload) is { } heartbeat)
                         workerHeartbeats.Record(heartbeat);
+                    else if (!_reportedUnreadableHeartbeat)
+                    {
+                        // A Worker from another release speaks a format this API does not read,
+                        // and the readiness check will call the Worker missing. Said once.
+                        _reportedUnreadableHeartbeat = true;
+                        logger.LogWarning("Ignoring worker heartbeats this API cannot read ({PayloadBytes} bytes); is the Worker the same version?", evt.Payload.Length);
+                    }
                     break;
             }
         }
