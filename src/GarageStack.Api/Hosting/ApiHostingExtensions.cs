@@ -57,6 +57,9 @@ internal static class ApiHostingExtensions
             // Browser error reports: a page stuck in an error loop must not fill the log files.
             // The page itself caps what it sends; this caps what a misbehaving one could.
             opts.AddPolicy("client-errors", FixedWindowPerIp(TimeSpan.FromMinutes(5), permitLimit: 30));
+
+            // A full export reads every row the car ever sent: a few a quarter of an hour is plenty.
+            opts.AddPolicy("export", FixedWindowPerIp(TimeSpan.FromMinutes(15), permitLimit: 5));
         });
     }
 

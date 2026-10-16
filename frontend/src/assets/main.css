@@ -941,6 +941,9 @@ body,
     filter 0.15s;
   background: none;
   color: var(--color-text);
+
+  /* A link drawn as a button (the export download) is not underlined. */
+  text-decoration: none;
 }
 
 .btn:disabled {

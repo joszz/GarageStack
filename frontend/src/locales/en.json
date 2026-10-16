@@ -596,6 +596,11 @@
       "neverUsed": "never used",
       "revoke": "Revoke",
       "confirmRevoke": "Revoke?"
+    },
+    "export": {
+      "title": "Your data",
+      "desc": "Everything GarageStack keeps, in one zip: per car its trips, maintenance, schedules, places and every telemetry reading, and your notifications and settings. Telemetry comes as a CSV file a spreadsheet opens, the rest as JSON. A big history takes a moment to gather.",
+      "download": "Download everything"
     }
   },
   "units": {

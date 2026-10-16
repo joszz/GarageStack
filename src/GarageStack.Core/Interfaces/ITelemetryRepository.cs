@@ -75,6 +75,12 @@ public interface ITelemetryRepository
     /// </summary>
     Task<IReadOnlyList<RawTopicStat>> GetRawTopicStatsAsync(int vehicleId, DateTime since, CancellationToken ct = default);
 
+    /// <summary>
+    /// Every row recorded for <paramref name="vehicleId"/>, oldest first, one at a time: for the data
+    /// export, which can run to hundreds of thousands of rows.
+    /// </summary>
+    IAsyncEnumerable<TelemetrySnapshot> StreamAllAsync(int vehicleId, CancellationToken ct = default);
+
     /// <summary>Computes summary statistics (e.g. climate usage) over snapshots in the given date range.</summary>
     Task<VehicleAggregateStats> GetAggregateStatsAsync(int vehicleId, DateTime from, DateTime to, CancellationToken ct = default);
 }
