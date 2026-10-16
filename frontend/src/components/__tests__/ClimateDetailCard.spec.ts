@@ -5,6 +5,7 @@ import { createI18n } from 'vue-i18n'
 import { ref } from 'vue'
 import en from '@/locales/en.json'
 import ClimateDetailCard from '../ClimateDetailCard.vue'
+import { DetailModalStub } from './stubs'
 
 const send = vi.fn<(...args: unknown[]) => Promise<boolean>>().mockResolvedValue(true)
 const push = vi.fn<(to: unknown) => void>()
@@ -29,13 +30,6 @@ vi.mock('@/composables/useVehicleCommand', () => ({
     waitUntilSettled: vi.fn<() => Promise<void>>().mockResolvedValue(undefined),
   }),
 }))
-
-const DetailModalStub = {
-  name: 'DetailModal',
-  template: '<div v-if="open"><slot /><slot name="footer" /></div>',
-  props: ['open', 'title'],
-  emits: ['close'],
-}
 
 const i18n = createI18n({ legacy: false, locale: 'en', messages: { en } })
 

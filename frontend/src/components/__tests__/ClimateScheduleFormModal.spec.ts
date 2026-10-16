@@ -7,6 +7,7 @@ import ClimateScheduleFormModal from '../ClimateScheduleFormModal.vue'
 import { climateScheduleApi, type ClimateSchedule } from '@/services/climateScheduleApi'
 import { useUiSettingsStore } from '@/stores/settingsUi'
 import { schedule } from '@/services/__tests__/climateScheduleFixtures'
+import { DetailModalStub } from './stubs'
 
 vi.mock('@/services/climateScheduleApi', () => ({
   climateScheduleApi: {
@@ -16,13 +17,6 @@ vi.mock('@/services/climateScheduleApi', () => ({
     delete: vi.fn<() => Promise<void>>().mockResolvedValue(undefined),
   },
 }))
-
-const DetailModalStub = {
-  name: 'DetailModal',
-  template: '<div v-if="open"><slot /><slot name="footer" /></div>',
-  props: ['open', 'title', 'wide'],
-  emits: ['close'],
-}
 
 const i18n = createI18n({ legacy: false, locale: 'en', messages: { en } })
 
