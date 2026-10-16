@@ -117,6 +117,7 @@ The full guide, with provider examples, is [`AUTHENTICATION.md`](AUTHENTICATION.
 | `UPDATE_CHECK_ENABLED` | `true` | Once a day the API asks GitHub for the latest release, and the footer links to it when it is newer than the running version. `false` keeps the API from contacting GitHub. A build without a version (from source without `APP_VERSION`) never asks. |
 | `WIDGET_API_KEY` | none | Key for the Homepage dashboard widget endpoint. Empty switches the endpoint off. See [`WIDGET.md`](WIDGET.md). |
 | `DEBUG_LOGS` | `false` | `true` turns on debug logging in the API and the Worker. |
+| `LOG_RETAINED_FILES` | `30` | Log files each service keeps in its `logs` folder: one per day, and another whenever a day's file passes 100 MB. The oldest go first. |
 | `FRONTEND_PORT` | `8080` | Host port of the web interface (Docker Compose). |
 | `API_PORT` | `5000` | Host port of the API, bound to localhost (Docker Compose). The web interface does not need it. |
 | `APP_VERSION` | `0.0.0-local` | Version shown in the footer of an image built from source: `APP_VERSION=$(git describe --tags) docker compose up -d --build`. Published images carry their own. |

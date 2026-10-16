@@ -10,6 +10,7 @@
 x-dotnet-environment: &dotnet-environment
   ASPNETCORE_ENVIRONMENT: "Production"
   DEBUG_LOGS: "${DEBUG_LOGS:-}"
+  LOG_RETAINED_FILES: "${LOG_RETAINED_FILES:-}"
   ConnectionStrings__DefaultConnection: "Host=${POSTGRES_HOST:-postgres};Port=${POSTGRES_PORT:-5432};Database=${POSTGRES_DB:-garagestack};Username=${POSTGRES_USER:-garagestack};Password=${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in your .env file, see .env.example}"
   MQTT_HOST: "${MQTT_HOST:-mosquitto}"
   MQTT_PORT: "${MQTT_PORT:-}"

@@ -635,6 +635,17 @@
     Mask="false">false</Config>
 
   <Config
+    Name="Log Files Kept"
+    Target="LOG_RETAINED_FILES"
+    Default="30"
+    Mode=""
+    Description="Log files each service keeps under /data: one per day, and another whenever a day's file passes 100 MB. The oldest go first."
+    Type="Variable"
+    Display="advanced"
+    Required="false"
+    Mask="false">30</Config>
+
+  <Config
     Name="Database Name"
     Target="POSTGRES_DB"
     Default="garagestack"
