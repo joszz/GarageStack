@@ -75,4 +75,23 @@ describe('NotificationTypeSettings', () => {
 
     expect(mountSettings().findComponent({ name: 'SettingsToggle' }).exists()).toBe(false)
   })
+
+  it('explains that push needs https on a plain-HTTP address', () => {
+    pushSupported.value = false
+    vi.stubGlobal('isSecureContext', false)
+
+    const wrapper = mountSettings()
+
+    expect(wrapper.text()).toContain('push.needsHttps')
+    expect(wrapper.find('#settings-toggle-push').exists()).toBe(false)
+    vi.unstubAllGlobals()
+  })
+
+  it('says nothing about https where push is simply unsupported on a secure page', () => {
+    pushSupported.value = false
+    vi.stubGlobal('isSecureContext', true)
+
+    expect(mountSettings().text()).not.toContain('push.needsHttps')
+    vi.unstubAllGlobals()
+  })
 })
