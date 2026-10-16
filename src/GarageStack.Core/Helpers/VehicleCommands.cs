@@ -1,4 +1,3 @@
-using System.Globalization;
 using GarageStack.Core.Models;
 
 namespace GarageStack.Core.Helpers;
@@ -96,8 +95,7 @@ public static class VehicleCommands
 
     private static string? ScheduleField(string value, string name) => ScheduleFields(value)?.GetValueOrDefault(name);
 
-    private static bool IsTimeOfDay(string? value) =>
-        TimeOnly.TryParseExact(value, "HH:mm", CultureInfo.InvariantCulture, DateTimeStyles.None, out _);
+    private static bool IsTimeOfDay(string? value) => TimeOfDayText.TryParse(value, out _);
 
     private static string? ChargingSchedule(string value) =>
         ScheduleFields(value) is { } fields

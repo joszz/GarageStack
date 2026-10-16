@@ -171,7 +171,7 @@ public class TelemetryRepository(
         {
             var lastSpeedRow = rows.FirstOrDefault(r => r.Speed != null);
             var engineOff = merged.EngineRunning == false;
-            var stationary = lastSpeedRow is { Speed: <= 0 } && UtcNow - lastSpeedRow.RecordedAt > TimeSpan.FromMinutes(5);
+            var stationary = lastSpeedRow is { Speed: <= 0 } && UtcNow - lastSpeedRow.RecordedAt > TripSegmenter.ParkThreshold;
             if (engineOff || stationary)
                 merged.CurrentJourneyDistance = null;
         }

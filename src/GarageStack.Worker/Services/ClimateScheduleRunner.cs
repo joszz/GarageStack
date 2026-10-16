@@ -1,4 +1,3 @@
-using System.Globalization;
 using GarageStack.Core.Helpers;
 using GarageStack.Core.Interfaces;
 using GarageStack.Core.Models;
@@ -137,7 +136,7 @@ public sealed class ClimateScheduleRunner(
     internal static (string Title, string Body)? BuildNotification(
         ClimateSchedule schedule, RunResult result, IStringLocalizer<NotificationStrings> strings)
     {
-        var time = schedule.StartTime.ToString("HH:mm", CultureInfo.InvariantCulture);
+        var time = TimeOfDayText.ToText(schedule.StartTime);
         var reference = schedule.Name is { } name
             ? strings["ClimateScheduleRefNamed", name, time].Value
             : strings["ClimateScheduleRef", time].Value;

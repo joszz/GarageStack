@@ -8,6 +8,9 @@ namespace GarageStack.Core.Helpers;
 /// </summary>
 public sealed class NotificationCooldownGate(TimeSpan cooldown)
 {
+    /// <summary>How long an alert stays quiet for a vehicle after it went out (the README's "1-hour cooldown").</summary>
+    public static readonly TimeSpan AlertCooldown = TimeSpan.FromHours(1);
+
     public TimeSpan Cooldown { get; } = cooldown;
 
     internal readonly Dictionary<string, DateTime> _lastNotified = new();

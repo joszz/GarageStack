@@ -18,7 +18,7 @@ public class PushNotificationCheckService(
     AlertThresholds alertThresholds,
     IStringLocalizer<NotificationStrings> strings) : PeriodicBackgroundService(logger)
 {
-    private readonly NotificationCooldownGate _cooldownGate = new(TimeSpan.FromHours(1));
+    private readonly NotificationCooldownGate _cooldownGate = new(NotificationCooldownGate.AlertCooldown);
     internal readonly VinStateTracker<bool?> _isChargingTracker = new();
     private readonly TimeSpan _parkingGrace = TimeSpan.FromMinutes(10);
 

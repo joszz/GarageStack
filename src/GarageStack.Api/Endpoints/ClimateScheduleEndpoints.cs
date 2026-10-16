@@ -1,4 +1,3 @@
-using System.Globalization;
 using GarageStack.Core.Helpers;
 using GarageStack.Core.Interfaces;
 using GarageStack.Core.Models;
@@ -11,7 +10,6 @@ namespace GarageStack.Api.Endpoints;
 /// </summary>
 public static class ClimateScheduleEndpoints
 {
-    private const string TimeFormat = "HH:mm";
 
     public static IEndpointRouteBuilder MapClimateScheduleEndpoints(this IEndpointRouteBuilder app)
     {
@@ -79,7 +77,7 @@ public static class ClimateScheduleEndpoints
     {
         if (req.Name?.Trim().Length > ClimateScheduleLimits.NameMaxLength)
             return Refuse("nameTooLong", $"Name must be {ClimateScheduleLimits.NameMaxLength} characters or fewer");
-        if (!TimeOnly.TryParseExact(req.StartTime, TimeFormat, CultureInfo.InvariantCulture, DateTimeStyles.None, out var start))
+        if (!TimeOfDayText.TryParse(req.StartTime, out var start))
             return Refuse("startTimeInvalid", "Start time must be a time of day as HH:mm");
         if (ClimateScheduleDaysExtensions.FromIsoDays(req.Days ?? []) is not { } days)
             return Refuse("daysInvalid", "Days must be ISO weekday numbers from 1 (Monday) to 7 (Sunday), each once");
@@ -131,7 +129,7 @@ public static class ClimateScheduleEndpoints
 
     internal static ClimateScheduleDto ToDto(ClimateSchedule s) => new(
         s.Id, s.Name, s.Enabled,
-        s.StartTime.ToString(TimeFormat, CultureInfo.InvariantCulture), s.Days.ToIsoDays(), s.TimeZoneId,
+        TimeOfDayText.ToText(s.StartTime), s.Days.ToIsoDays(), s.TimeZoneId,
         s.Mode, s.TemperatureC, s.RearDefroster, s.SeatLeftLevel, s.SeatRightLevel,
         s.OnlyBelowC, s.OnlyAboveC,
         AsUtc(s.NextRunUtc), AsUtc(s.LastRunAt), s.LastRunOutcome, s.LastRunFailedCommand, s.LastRunDetail);

@@ -62,27 +62,23 @@ public static class ServiceCollectionExtensions
     {
         services.AddHttpClient(OcmApiClient.HttpClientName, client =>
         {
-            client.DefaultRequestHeaders.UserAgent.ParseAdd("GarageStack/1.0");
+            client.DefaultRequestHeaders.UserAgent.ParseAdd(UpstreamHttp.UserAgent);
         });
         services.AddHttpClient(OverpassApiClient.HttpClientName, client =>
         {
-            client.DefaultRequestHeaders.UserAgent.ParseAdd("GarageStack/1.0");
+            client.DefaultRequestHeaders.UserAgent.ParseAdd(UpstreamHttp.UserAgent);
             client.Timeout = TimeSpan.FromSeconds(45);
         });
-        // Nominatim's usage policy requires a User-Agent that identifies the application well
-        // enough to contact whoever runs it, so this one carries the project URL.
         services.AddHttpClient(NominatimApiClient.HttpClientName, client =>
         {
-            client.DefaultRequestHeaders.UserAgent.ParseAdd(
-                "GarageStack/1.0 (+https://github.com/joszz/GarageStack)");
+            client.DefaultRequestHeaders.UserAgent.ParseAdd(UpstreamHttp.UserAgent);
             client.Timeout = TimeSpan.FromSeconds(20);
         });
         // Matching a long trace is real work upstream, so this one waits longer than the others
         // before giving up on an answer.
         services.AddHttpClient(ValhallaApiClient.HttpClientName, client =>
         {
-            client.DefaultRequestHeaders.UserAgent.ParseAdd(
-                "GarageStack/1.0 (+https://github.com/joszz/GarageStack)");
+            client.DefaultRequestHeaders.UserAgent.ParseAdd(UpstreamHttp.UserAgent);
             client.Timeout = TimeSpan.FromSeconds(30);
         });
         services.AddSingleton(sp => OverpassOptions.From(sp.GetRequiredService<IConfiguration>()));
