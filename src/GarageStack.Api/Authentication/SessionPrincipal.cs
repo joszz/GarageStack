@@ -17,6 +17,9 @@ internal static class SessionPrincipal
 
     internal const string SubjectClaimType = "sub";
 
+    /// <summary>The account an API token reads as, set by the token scheme instead of a subject.</summary>
+    internal const string AccountKeyClaimType = "garagestack:account";
+
     // Ordered from most to least human-friendly: providers differ in which of these they send.
     private static readonly string[] DisplayNameClaimTypes =
     [
@@ -64,6 +67,9 @@ internal static class SessionPrincipal
     /// </summary>
     internal static string? ResolveAccountKey(ClaimsPrincipal principal)
     {
+        if (principal.FindFirst(AccountKeyClaimType)?.Value is { } tokenAccount)
+            return tokenAccount;
+
         var subject = ResolveSubject(principal);
         var method = principal.Identity?.AuthenticationType;
         if (string.IsNullOrWhiteSpace(subject) || string.IsNullOrWhiteSpace(method))

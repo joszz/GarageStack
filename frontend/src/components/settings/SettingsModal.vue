@@ -12,6 +12,7 @@ import SideIconSwitch from './SideIconSwitch.vue'
 import CarColorPicker from './CarColorPicker.vue'
 import VehicleTypeSetting from './VehicleTypeSetting.vue'
 import NotificationTypeSettings from './NotificationTypeSettings.vue'
+import ApiTokenSettings from './ApiTokenSettings.vue'
 
 defineProps<{ open: boolean }>()
 defineEmits<{ close: [] }>()
@@ -109,6 +110,10 @@ const isNL = computed({
 
     <SettingsSection :title="t('settings.notificationTypes.title')">
       <NotificationTypeSettings />
+    </SettingsSection>
+
+    <SettingsSection :title="t('settings.apiTokens.title')">
+      <ApiTokenSettings />
     </SettingsSection>
   </DetailModal>
 </template>

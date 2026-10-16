@@ -579,6 +579,23 @@
         "mpgUk": "mpg (Britse gallon)",
         "mpgUs": "mpg (Amerikaanse gallon)"
       }
+    },
+    "apiTokens": {
+      "title": "API-tokens",
+      "desc": "Laat een script, een dashboard of een horloge de gegevens van GarageStack lezen zonder in te loggen. Een token leest als jouw account en kan alleen lezen: geen opdrachten sturen en niets wijzigen. Stuur hem mee als de header \"Authorization: Bearer\" gevolgd door het token.",
+      "nameLabel": "Naam van het token",
+      "namePlaceholder": "Naam, bijv. Home Assistant",
+      "create": "Token maken",
+      "copyNow": "Kopieer dit token nu: het wordt niet opnieuw getoond.",
+      "newToken": "Nieuw API-token",
+      "copy": "Kopiëren",
+      "copied": "Gekopieerd",
+      "none": "Nog geen tokens.",
+      "createdAt": "gemaakt {date}",
+      "lastUsed": "laatst gebruikt {date}",
+      "neverUsed": "nooit gebruikt",
+      "revoke": "Intrekken",
+      "confirmRevoke": "Intrekken?"
     }
   },
   "units": {
@@ -900,6 +917,14 @@
         "invalidPosition": "Zet de speld op de kaart.",
         "invalidRadius": "De straal moet tussen 50 en 1000 meter liggen.",
         "labelTooLong": "De naam mag maximaal 60 tekens zijn."
+      },
+      "token": {
+        "nameRequired": "Geef het token een naam, om het later te herkennen.",
+        "nameTooLong": "Die naam is te lang.",
+        "tooMany": "Dit account heeft het maximale aantal tokens. Trek er eerst een in.",
+        "readOnly": "Een API-token kan alleen lezen. Log in om iets te wijzigen.",
+        "cannotManageTokens": "API-tokens beheer je alleen vanuit een ingelogde sessie.",
+        "noAccount": "Deze sessie hoort bij geen account om tokens voor te maken."
       }
     }
   },
