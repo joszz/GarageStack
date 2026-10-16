@@ -1,6 +1,8 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useEscapeKey } from '@/composables/useEscapeKey'
+import { useDialogFocus } from '@/composables/useDialogFocus'
 
 const { t } = useI18n()
 const props = defineProps<{ title: string; open: boolean; wide?: boolean }>()
@@ -10,6 +12,9 @@ useEscapeKey(
   () => props.open,
   () => emit('close'),
 )
+
+const dialog = ref<HTMLElement | null>(null)
+useDialogFocus(dialog, () => props.open)
 </script>
 
 <template>
@@ -17,8 +22,10 @@ useEscapeKey(
     <Transition name="modal">
       <div v-if="open" class="detail-modal-backdrop" @click.self="emit('close')">
         <div
+          ref="dialog"
           class="detail-modal"
           :class="{ 'detail-modal--wide': wide }"
+          tabindex="-1"
           role="dialog"
           :aria-modal="true"
           :aria-label="title"

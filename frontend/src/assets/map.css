@@ -81,8 +81,21 @@
     border-color 0.15s;
 }
 
-.trip-list__item:hover {
+/* A trip row is a button, so it is reachable and selectable from the keyboard. */
+.trip-list__button {
+  width: calc(100% + 2rem);
+  border: 0;
+  border-left: 2px solid transparent;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
+.trip-list__item:hover,
+.trip-list__button:focus-visible {
   background: var(--color-surface-2);
+  outline: none;
 }
 
 .trip-list__item--active {
