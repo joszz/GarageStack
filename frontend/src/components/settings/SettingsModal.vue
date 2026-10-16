@@ -13,6 +13,7 @@ import CarColorPicker from './CarColorPicker.vue'
 import VehicleTypeSetting from './VehicleTypeSetting.vue'
 import NotificationTypeSettings from './NotificationTypeSettings.vue'
 import ApiTokenSettings from './ApiTokenSettings.vue'
+import { apiUrl } from '@/services/apiCore'
 
 defineProps<{ open: boolean }>()
 defineEmits<{ close: [] }>()
@@ -114,6 +115,16 @@ const isNL = computed({
 
     <SettingsSection :title="t('settings.apiTokens.title')">
       <ApiTokenSettings />
+    </SettingsSection>
+
+    <SettingsSection :title="t('settings.export.title')">
+      <div class="form-stack">
+        <p class="settings-toggle__desc">{{ t('settings.export.desc') }}</p>
+        <a class="btn btn-outline-secondary btn-sm" :href="apiUrl('/api/export')" download>
+          <font-awesome-icon icon="download" />
+          {{ t('settings.export.download') }}
+        </a>
+      </div>
     </SettingsSection>
   </DetailModal>
 </template>

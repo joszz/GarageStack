@@ -596,6 +596,11 @@
       "neverUsed": "nooit gebruikt",
       "revoke": "Intrekken",
       "confirmRevoke": "Intrekken?"
+    },
+    "export": {
+      "title": "Je gegevens",
+      "desc": "Alles wat GarageStack bewaart, in één zip: per auto de ritten, het onderhoud, de schema’s, de plaatsen en elke meting, en je meldingen en instellingen. De metingen komen als CSV-bestand dat een spreadsheet opent, de rest als JSON. Een grote geschiedenis verzamelen duurt even.",
+      "download": "Alles downloaden"
     }
   },
   "units": {

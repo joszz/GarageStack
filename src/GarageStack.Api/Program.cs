@@ -92,6 +92,7 @@ try
     builder.Services.AddScoped<GeocodeService>();
     builder.Services.AddScoped<TripPlaceService>();
     builder.Services.AddScoped<MapMatchService>();
+    builder.Services.AddScoped<DataExport>();
     builder.Services.AddSingleton<VehicleCommandGate>();
     builder.Services.AddSingleton<VehicleCommandSender>();
 
@@ -168,6 +169,7 @@ try
     app.MapAuthEndpoints();
     app.MapSettingsEndpoints();
     app.MapApiTokenEndpoints();
+    app.MapExportEndpoints();
     app.MapVehicleEndpoints();
     app.MapTripEndpoints();
     app.MapPushEndpoints();

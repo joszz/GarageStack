@@ -71,6 +71,14 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
         Task.FromResult<string?>(null);
 
     // Demo data is not ingested from MQTT, so there are no raw topics to report.
+    public async IAsyncEnumerable<TelemetrySnapshot> StreamAllAsync(
+        int vehicleId, [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken ct = default)
+    {
+        foreach (var snapshot in _history.Value.OrderBy(s => s.RecordedAt))
+            yield return snapshot;
+        yield return (await GetMergedLatestAsync(vehicleId, ct))!;
+    }
+
     public Task<IReadOnlyList<RawTopicStat>> GetRawTopicStatsAsync(int vehicleId, DateTime since, CancellationToken ct = default) =>
         Task.FromResult<IReadOnlyList<RawTopicStat>>([]);
 

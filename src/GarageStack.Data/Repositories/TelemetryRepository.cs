@@ -321,6 +321,12 @@ public class TelemetryRepository(
 
     // Ordered on the group before projecting: EF cannot translate an OrderBy on a property of a
     // record built through its constructor, so sorting after the Select fails at runtime.
+    public IAsyncEnumerable<TelemetrySnapshot> StreamAllAsync(int vehicleId, CancellationToken ct = default) =>
+        db.TelemetrySnapshots.AsNoTracking()
+            .Where(s => s.VehicleId == vehicleId)
+            .OrderBy(s => s.RecordedAt).ThenBy(s => s.Id)
+            .AsAsyncEnumerable();
+
     public async Task<IReadOnlyList<RawTopicStat>> GetRawTopicStatsAsync(int vehicleId, DateTime since, CancellationToken ct = default) =>
         await db.TelemetrySnapshots
             .AsNoTracking()

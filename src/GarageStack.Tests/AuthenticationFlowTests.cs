@@ -802,6 +802,51 @@ public class AuthenticationFlowTests
         Assert.Equal(14, history.RootElement.GetProperty("trendDays").GetInt32());
     }
 
+    // ── Data export ───────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task Export_IsAZipOfEverything_WithTheTelemetryAsCsv()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var factory = CreatePasswordOnlyFactory();
+        using var client = CreateClient(factory);
+        await PasswordLoginAsync(client, ct);
+
+        var response = await client.GetAsync("/api/export", ct);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("application/zip", response.Content.Headers.ContentType?.MediaType);
+        await using var body = await response.Content.ReadAsStreamAsync(ct);
+        using var zip = new System.IO.Compression.ZipArchive(body);
+        var names = zip.Entries.Select(e => e.FullName).ToHashSet();
+        var folder = $"vehicles/{DemoVin}";
+        Assert.Contains("export.json", names);
+        Assert.Contains("notifications.json", names);
+        foreach (var file in new[] { "vehicle.json", "trips.json", "maintenance.json", "climate-schedules.json", "commute-places.json", "telemetry.csv" })
+            Assert.Contains($"{folder}/{file}", names);
+
+        using var csv = new StreamReader(zip.GetEntry($"{folder}/telemetry.csv")!.Open());
+        var header = (await csv.ReadLineAsync(ct))!.Split(',');
+        Assert.Contains("RecordedAt", header);
+        Assert.Contains("TyrePressureRearRight", header);
+        Assert.NotNull(await csv.ReadLineAsync(ct));
+
+        using var trips = System.Text.Json.JsonDocument.Parse(zip.GetEntry($"{folder}/trips.json")!.Open());
+        Assert.True(trips.RootElement.GetArrayLength() > 0);
+    }
+
+    [Fact]
+    public async Task Export_NeedsASignedInSession()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var factory = CreatePasswordOnlyFactory();
+        using var client = CreateClient(factory);
+
+        var response = await client.GetAsync("/api/export", ct);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
     // ── Read-only API tokens ──────────────────────────────────────────────────
 
     // A token made in a session reads as that account, and only reads: no commands, no changes,
