@@ -12,6 +12,16 @@ import { AUTH_STATE_FILE } from './e2e/auth-state'
  *
  * Then, from frontend/:  pnpm test:e2e
  */
+const baseURL = process.env.E2E_BASE_URL ?? 'http://localhost:8080'
+
+// The same deployment under a name that is not localhost. Browsers treat localhost as a secure
+// origin, so a policy that only breaks plain HTTP on a LAN address (upgrade-insecure-requests
+// once blanked every such install) never shows up there.
+const insecureHost = 'garagestack.test'
+const insecureURL = new URL(baseURL)
+const insecureTarget = insecureURL.hostname
+insecureURL.hostname = insecureHost
+
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: true,
@@ -19,7 +29,7 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? [['github'], ['html', { open: 'never' }]] : [['list']],
   use: {
-    baseURL: process.env.E2E_BASE_URL ?? 'http://localhost:8080',
+    baseURL,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
   },
@@ -27,8 +37,20 @@ export default defineConfig({
     { name: 'setup', testMatch: /auth\.setup\.ts/ },
     {
       name: 'chromium',
+      testIgnore: /plain-http\.spec\.ts/,
       use: { ...devices['Desktop Chrome'], storageState: AUTH_STATE_FILE },
       dependencies: ['setup'],
+    },
+    {
+      name: 'plain-http',
+      testMatch: /plain-http\.spec\.ts/,
+      use: {
+        ...devices['Desktop Chrome'],
+        baseURL: insecureURL.origin,
+        launchOptions: {
+          args: [`--host-resolver-rules=MAP ${insecureHost} ${insecureTarget}`],
+        },
+      },
     },
   ],
 })
