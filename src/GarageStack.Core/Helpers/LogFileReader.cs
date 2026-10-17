@@ -9,10 +9,17 @@ namespace GarageStack.Core.Helpers;
 /// Reads the newest entries back out of the rolling log files both services write
 /// (logs/api-20261016.log, and logs/api-20261016_001.log once a day's file passed its size cap). An
 /// entry starts "2026-10-16 06:30:38.268 +02:00 [WRN] message"; an exception's lines follow it.
-/// Only the end of the newest files is read, so a long history costs nothing to look at.
+/// Only the end of the newest files is read, so a long history costs nothing to look at, and only
+/// as much of that end as it takes to fill the page. An entry starts only at a timestamp in the
+/// first column; <see cref="LogFileFormatter"/> indents everything else.
 /// </summary>
 public static partial class LogFileReader
 {
+    // The first read takes this much of a file's end, each further one four times as much, up to
+    // the budget: a page of entries is usually in the last few hundred KB of a day's file, and the
+    // log viewer's live mode asks every ten seconds.
+    private const long FirstReadBytes = 64 * 1024;
+
     private static readonly Dictionary<string, LogLevelName> Levels = new(StringComparer.Ordinal)
     {
         ["VRB"] = LogLevelName.Verbose,
@@ -45,12 +52,19 @@ public static partial class LogFileReader
         foreach (var file in files)
         {
             if (budget <= 0 || found.Count >= limit) break;
-            var (text, partial) = ReadTail(file, budget, out var read);
+            var needed = limit - found.Count;
+            List<LogEntry> matches;
+            long read;
+            for (var size = Math.Min(FirstReadBytes, budget); ; size = Math.Min(size * 4, budget))
+            {
+                var (text, partial) = ReadTail(file, size, out read);
+                matches = [.. Parse(text, source, skipFirstLine: partial).Where(filter.Allows)];
+                if (matches.Count >= needed || !partial || size >= budget) break;
+            }
             budget -= read;
 
-            var entries = Parse(text, source, skipFirstLine: partial);
-            for (var i = entries.Count - 1; i >= 0 && found.Count < limit; i--)
-                if (filter.Allows(entries[i])) found.Add(entries[i]);
+            for (var i = matches.Count - 1; i >= 0 && found.Count < limit; i--)
+                found.Add(matches[i]);
         }
 
         return found;
@@ -84,7 +98,8 @@ public static partial class LogFileReader
             }
             else if (current is not null && line.Length > 0)
             {
-                (more ??= new StringBuilder()).AppendLine(line);
+                (more ??= new StringBuilder()).AppendLine(
+                    line.StartsWith(LogFileFormatter.Indent, StringComparison.Ordinal) ? line[LogFileFormatter.Indent.Length..] : line);
             }
         }
 

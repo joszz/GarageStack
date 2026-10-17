@@ -117,7 +117,7 @@ The full guide, with provider examples, is [`AUTHENTICATION.md`](AUTHENTICATION.
 | `RATE_LIMIT_GLOBAL_PER_MINUTE` | `120` | Requests per minute the API accepts from one address. Raise it when several people share one public address. Login and the widget keep their own, tighter limits. |
 | `UPDATE_CHECK_ENABLED` | `true` | Once a day the API asks GitHub for the latest release, and the footer links to it when it is newer than the running version. `false` keeps the API from contacting GitHub. A build without a version (from source without `APP_VERSION`) never asks. |
 | `WIDGET_API_KEY` | none | Key for the Homepage dashboard widget endpoint. Empty switches the endpoint off. See [`WIDGET.md`](WIDGET.md). |
-| `DEBUG_LOGS` | `false` | `true` turns on debug logging in the API and the Worker. |
+| `DEBUG_LOGS` | `false` | `true` turns on debug logging in the API and the Worker, including a line for every API request. Without it, only refused (4xx), failed (5xx) and slow (over a second) requests are logged. |
 | `LOG_RETAINED_FILES` | `30` | Log files each service keeps in its `logs` folder: one per day, and another whenever a day's file passes 100 MB. The oldest go first. |
 | `WORKER_LOG_DIRECTORY` | none | Where the API finds the Worker's log files, so the log viewer (the Logs page) shows them as well as its own. The Compose file mounts the Worker's log volume at `/app/worker-logs` and sets this; the all-in-one image sets it itself. Unset, the Logs page shows the API's entries only. |
 | `FRONTEND_PORT` | `8080` | Host port of the web interface (Docker Compose). |

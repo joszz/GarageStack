@@ -128,10 +128,11 @@ internal static class ApiHostingExtensions
             }));
 
     /// <summary>
-    /// One log line per request, except for the health probes Docker and uptime monitors send
-    /// every few seconds: those would fill the log files with nothing. A failing readiness check
-    /// answers 503 on every probe; whatever failed is logged where it fails. The path is logged
-    /// with its VIN shortened, as everywhere else at Information level.
+    /// One log line per request: at Information for a refusal or a slow answer, at Error for a
+    /// failure, at Debug for the everyday successful rest (see <see cref="RequestLogLevel"/>).
+    /// Health probes, which Docker and uptime monitors send every few seconds, stay out entirely;
+    /// a failing readiness check is logged where it fails. The path is logged with its VIN
+    /// shortened, as everywhere else at Information level.
     /// </summary>
     public static WebApplication UseGarageStackRequestLogging(this WebApplication app)
     {
@@ -154,13 +155,22 @@ internal static class ApiHostingExtensions
         new("Elapsed", new ScalarValue(elapsedMs)),
     ];
 
+    // A successful answer slower than this is worth a line even when nothing went wrong.
+    private const double SlowRequestMs = 1000;
+
+    // Every successful request at Information made nine lines in ten of a log file: the dashboard
+    // and the log viewer polling. Those are one DEBUG_LOGS away; refusals, failures and slow answers
+    // stay in. A 101 is a live-update connection ending, its time how long it was open.
     internal static LogEventLevel RequestLogLevel(HttpContext context, double elapsedMs, Exception? ex)
     {
         if (ex is not null) return LogEventLevel.Error;
         if (HealthEndpoints.IsHealthProbe(context.Request.Path)) return LogEventLevel.Verbose;
-        return context.Response.StatusCode >= StatusCodes.Status500InternalServerError
-            ? LogEventLevel.Error
-            : LogEventLevel.Information;
+        var status = context.Response.StatusCode;
+        if (status >= StatusCodes.Status500InternalServerError) return LogEventLevel.Error;
+        if (status >= StatusCodes.Status400BadRequest) return LogEventLevel.Information;
+        return status >= StatusCodes.Status200OK && elapsedMs >= SlowRequestMs
+            ? LogEventLevel.Information
+            : LogEventLevel.Debug;
     }
 
     /// <summary>
