@@ -82,7 +82,7 @@
 
 .login-field__input {
   width: 100%;
-  background: var(--color-surface-2);
+  background: var(--field-bg);
   border: 1px solid var(--color-border);
   border-radius: 6px;
   color: var(--color-text);
@@ -105,7 +105,7 @@
 .login-field__input:-webkit-autofill,
 .login-field__input:-webkit-autofill:hover,
 .login-field__input:-webkit-autofill:focus {
-  box-shadow: 0 0 0 1000px var(--color-surface-2) inset !important;
+  box-shadow: 0 0 0 1000px var(--field-bg) inset !important;
   -webkit-text-fill-color: var(--color-text) !important;
   caret-color: var(--color-text);
   border-color: var(--color-border) !important;

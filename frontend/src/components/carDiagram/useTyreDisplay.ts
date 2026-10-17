@@ -24,12 +24,13 @@ export function useTyreDisplay() {
     return pressureVariant(bar, thresholds.value)
   }
 
+  // The status colours the tyre labels' borders and the legend use, so all three agree per theme.
   function color(bar: number | null): string {
     const v = variant(bar)
-    if (v === 'danger') return 'var(--tyre-danger, #dc3545)'
-    if (v === 'warning') return 'var(--tyre-warning, #fd7e14)'
-    if (v === 'ok') return 'var(--tyre-ok, #198754)'
-    return 'var(--tyre-unknown, #6c757d)'
+    if (v === 'danger') return 'var(--color-danger)'
+    if (v === 'warning') return 'var(--color-warning)'
+    if (v === 'ok') return 'var(--color-success)'
+    return 'var(--color-text-muted)'
   }
 
   function reading(bar: number | null): string {

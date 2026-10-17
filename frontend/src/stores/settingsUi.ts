@@ -9,6 +9,7 @@ import {
   persistSettings,
 } from './settingsShared'
 import { setRegionalFormat } from '@/utils/format'
+import { applyTheme } from '@/utils/theme'
 import { DEFAULT_STATS_PERIOD, isStatsPeriod, type StatsPeriod } from '@/utils/statsPeriod'
 import {
   detectRegion,
@@ -200,9 +201,7 @@ export const useUiSettingsStore = defineStore('settingsUi', () => {
   // The theme and the car's colours live on the document, so they follow the setting at once.
   watch(
     () => settings.theme,
-    (theme) => {
-      document.documentElement.dataset.theme = theme
-    },
+    (theme) => applyTheme(theme),
     { immediate: true },
   )
   watch(() => settings.carColorScheme, applyCarColors, { immediate: true })
