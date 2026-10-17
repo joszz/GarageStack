@@ -1763,6 +1763,23 @@ textarea.form-control {
   }
 }
 
+/* ── Narrow phone (up to 479px) ───────────────────────────── */
+
+@media (width <= 479px) {
+  /* The copyright, the update icon and both labelled buttons need about 450px in Dutch; narrower,
+     the copyright wrapped over three lines and the update icon ran into Refresh. The buttons keep
+     their aria-labels, so they turn into square icon buttons. */
+  .app-footer__btn {
+    width: 32px;
+    padding: 0;
+    justify-content: center;
+  }
+
+  .app-footer__btn-label {
+    display: none;
+  }
+}
+
 /* ── Tablet (600–1023px) ──────────────────────────────────── */
 
 @media (width >= 600px) and (width <= 1023px) {
