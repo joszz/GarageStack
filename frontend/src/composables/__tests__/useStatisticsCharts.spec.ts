@@ -111,6 +111,24 @@ describe('useStatisticsCharts', () => {
     expect(offered('hev')).toEqual(['tyreChart', 'hybridSocChart', 'dailyKwhChart'])
   })
 
+  // A canvas draws in whatever colours it is given; left alone, Chart.js greys suit neither theme.
+  it("draws axes, grid and legend in the theme's chart colours", () => {
+    document.documentElement.style.setProperty('--chart-text', '#5a6a7e')
+    document.documentElement.style.setProperty('--chart-grid', '#cdd5df')
+    const options = chart('bev', 'tyreChart', TWO_DAYS).options as {
+      plugins: { legend: { labels: { color: string } } }
+      scales: Record<'x' | 'y', { ticks: { color: string }; grid: { color: string } }>
+    }
+    document.documentElement.style.removeProperty('--chart-text')
+    document.documentElement.style.removeProperty('--chart-grid')
+
+    expect(options.plugins.legend.labels.color).toBe('#5a6a7e')
+    expect(options.scales.x.ticks.color).toBe('#5a6a7e')
+    expect(options.scales.y.ticks.color).toBe('#5a6a7e')
+    expect(options.scales.x.grid.color).toBe('#cdd5df')
+    expect(options.scales.y.grid.color).toBe('#cdd5df')
+  })
+
   it('has nothing to draw until there is data', () => {
     expect(chart('bev', 'evChart').applicable).toBe(false)
     expect(chart('bev', 'evChart', TWO_DAYS).applicable).toBe(true)

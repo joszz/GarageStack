@@ -95,7 +95,12 @@
 .trip-list__item:hover,
 .trip-list__button:focus-visible {
   background: var(--color-surface-2);
-  outline: none;
+}
+
+/* The same background as hover and as the active row, so keyboard focus needs its own ring. */
+.trip-list__button:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: -2px;
 }
 
 .trip-list__item--active {

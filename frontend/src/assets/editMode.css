@@ -125,7 +125,7 @@
 }
 
 .card-slot__badge--show {
-  background: var(--color-success);
+  background: var(--color-success-text);
   color: #fff;
 }
 

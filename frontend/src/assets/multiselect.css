@@ -8,8 +8,8 @@
 
 /* --ms-* vars set on :root so they cascade to the body-teleported dropdown too. */
 :root {
-  --ms-bg: var(--color-surface-2);
-  --ms-bg-disabled: var(--color-surface);
+  --ms-bg: var(--field-bg);
+  --ms-bg-disabled: var(--field-bg-disabled);
   --ms-border-color: var(--color-border);
   --ms-border-width: 1px;
   --ms-radius: var(--field-radius);
