@@ -16,9 +16,10 @@ public sealed class CommandResultHandler(ILogger logger, VehicleResolver vehicle
         if (message.Vehicle is not { } topic || !GatewayCommandResult.TryParse(topic.Subtopic, message.Payload, out var result))
             return false;
 
-        // The gateway publishes results retained, so the broker replays the last one per command
-        // on every (re)subscribe. That is an old answer, and forwarding it would show a stale
-        // failure or release a later command's gate early.
+        // Gateways up to 0.12.0 published results retained, and the broker keeps those until
+        // something clears the topic, so it replays the last one per command on every
+        // (re)subscribe. That is an old answer, and forwarding it would show a stale failure or
+        // release a later command's gate early.
         if (message.Retain)
         {
             logger.LogDebug("Skipping retained command result - VIN={Vin} subtopic={Subtopic}", topic.Vin, topic.Subtopic);

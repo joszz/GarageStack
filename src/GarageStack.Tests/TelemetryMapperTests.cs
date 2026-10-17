@@ -239,7 +239,7 @@ public class TelemetryMapperTests
         Assert.Equal(new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc), snapshot.ChargingLastStartAt);
     }
 
-    // Payloads as saic-python-mqtt-gateway 0.12.0 publishes them: the SAIC client's enum names for
+    // Payloads as saic-python-mqtt-gateway 0.13.0-rc3 publishes them: the SAIC client's enum names for
     // the stop reason, a whole percentage for the target, and its own spelling of the limit.
     [Fact]
     public void ApplyMessage_ChargingDetails_AreStoredAsTheGatewaySendsThem()

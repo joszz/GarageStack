@@ -54,12 +54,14 @@ public sealed class TelemetryHandler(
     private readonly ConcurrentDictionary<int, DateTime> _awaitingParkedFix = new();
 
     // Topics the gateway publishes that are left out on purpose, so they are no news either:
-    // hybrid_electrical_range repeats drivetrain/range (see TelemetryMapper), and nothing reads why
-    // battery heating stopped.
+    // hybrid_electrical_range repeats drivetrain/range (see TelemetryMapper), nothing reads why
+    // battery heating stopped, and chargingDataAvailable only goes offline after charge status
+    // requests fail, which refresh/lastChargeState already dates.
     private static readonly HashSet<string> NotStoredSubtopics = new(StringComparer.Ordinal)
     {
         "drivetrain/hybrid_electrical_range",
         "drivetrain/batteryHeatingStopReason",
+        "drivetrain/chargingDataAvailable",
     };
 
     public async Task<bool> TryHandleAsync(MqttMessage message, CancellationToken ct)

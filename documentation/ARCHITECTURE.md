@@ -59,7 +59,7 @@ The frontend calls `POST /api/vehicles/{vin}/commands/{command}` on the Api, whi
 
 The gateway answers every command on the same topic with `/set` swapped for `/result`: `Success`, or `Failed: <reason>` once the SAIC API gives up (it polls for up to 30 seconds). The Worker parses that (`GatewayCommandResult`) and raises `command_result`. The Api releases the command gate for that VIN and pushes a `commandResult` event over SignalR, named by the command the browser sent. `useVehicleCommand` then settles the matching pending command: a refusal clears it and shows the reason. A success clears a command that no telemetry reports (the horn, the charge current limit). A command that telemetry does report stays pending until the telemetry shows it, but a batch can already move on to its next command. Without an answer, the 45-second hold on both sides still applies, which is also what happens in demo mode.
 
-Two details matter here. The gateway publishes results retained, so the broker replays the last one per command on every subscribe; the Worker drops those replays, or a restart would show an old failure as new. And an answer names a command but not a request, so a browser only takes an answer for a command it is still waiting on.
+Two details matter here. Gateways up to 0.12.0 published results retained, and the broker still holds those, so it replays the last one per command on every subscribe; the Worker drops retained results, or a restart would show an old failure as new. And an answer names a command but not a request, so a browser only takes an answer for a command it is still waiting on.
 
 ### Climate schedules
 

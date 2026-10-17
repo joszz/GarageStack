@@ -62,7 +62,7 @@ RUN dotnet publish GarageStack.Api/GarageStack.Api.csproj -c Release -o /publish
 # ── Stage 3: Pull SAIC MQTT Gateway (source of truth for the gateway app) ────
 # The gateway is not on PyPI. We copy its pre-built venv + source directly from
 # the official image so we always match the tested Python/dependency versions.
-FROM saicismartapi/saic-python-mqtt-gateway:0.12.0 AS saic-source
+FROM saicismartapi/saic-python-mqtt-gateway:0.13.0-rc3 AS saic-source
 
 # ── Stage 4: Final all-in-one runtime image ───────────────────────────────────
 # python:3.14-slim is Debian trixie (13) -- the same base the saic gateway uses,
@@ -135,13 +135,9 @@ COPY --from=saic-source /usr/src/app /opt/saic/app
 # httpx 0.28 accepts any anyio 4.x, so the upgrade stays inside the gateway's own bounds.
 # Drop this once the pinned gateway tag ships anyio >= 4.14.2.
 #
-# The upstream image runs a plain `poetry install`, so the venv also carries the gateway's dev
-# group (pytest, mypy, pylint, pre-commit, ...), 31 packages at 0.12.0 that never run. Image
-# scans flag them all the same (virtualenv, via pre-commit: CVE-2026-102925/30/37/38),
-# so prune-venv.py keeps only what the runtime dependencies below resolve to. They mirror
-# [project].dependencies in the gateway's pyproject.toml at the pinned tag: compare them on every
-# gateway bump. Importing main.py loads every gateway module, so a runtime package pruned by
-# mistake fails the build here instead of the gateway at startup.
+# Importing main.py loads every gateway module, so a venv that no longer runs on this image's
+# Python, or a package the upgrade above broke, fails the build here instead of the gateway at
+# startup.
 #
 # Nothing in this image installs Python packages at runtime, so remove pip afterwards from
 # both the gateway venv and the base interpreter. Even the newest pip vendors outdated copies
@@ -149,10 +145,7 @@ COPY --from=saic-source /usr/src/app /opt/saic/app
 # CVE-2025-47273, CVE-2026-59890), and dropping it also retires the earlier pip CVE patching.
 # The import check runs from the app directory, as the gateway does, without moving WORKDIR.
 # hadolint ignore=DL3003
-RUN --mount=type=bind,source=docker/all-in-one/prune-venv.py,target=/tmp/prune-venv.py \
-    /opt/saic/app/.venv/bin/python -m pip install --no-cache-dir --upgrade "anyio==4.15.1" \
-    && /opt/saic/app/.venv/bin/python /tmp/prune-venv.py \
-        saic-ismart-client-ng httpx gmqtt inflection apscheduler python-dotenv \
+RUN /opt/saic/app/.venv/bin/python -m pip install --no-cache-dir --upgrade "anyio==4.15.1" \
     && cd /opt/saic/app && .venv/bin/python -B -c "import main" \
     && /opt/saic/app/.venv/bin/python -m pip uninstall --yes pip \
     && python -m pip uninstall --yes pip
