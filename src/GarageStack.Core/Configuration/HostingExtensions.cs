@@ -1,4 +1,5 @@
 using System.Globalization;
+using GarageStack.Core.Helpers;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
@@ -44,6 +45,7 @@ public static class HostingExtensions
             config.ReadFrom.Configuration(configuration)
                   .WriteTo.Console()
                   .WriteTo.File(
+                      new LogFileFormatter(),
                       $"logs/{logFilePrefix}-.log",
                       rollingInterval: RollingInterval.Day,
                       retainedFileCountLimit: retainedFiles,
