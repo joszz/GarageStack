@@ -305,6 +305,7 @@ public class TelemetryHandlerLoggingTests
     [InlineData("drivetrain/socTarget/set", false)]
     [InlineData("drivetrain/hybrid_electrical_range", false)]
     [InlineData("drivetrain/batteryHeatingStopReason", false)]
+    [InlineData("drivetrain/chargingDataAvailable", false)]
     [InlineData("drivetrain/somethingNew", true)]
     public async Task UnmappedTopic_WarnsOnlyWhenItIsNews(string subtopic, bool warns)
     {
