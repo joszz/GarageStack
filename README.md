@@ -412,7 +412,14 @@ To read GarageStack's data from a script, a dashboard or a watch, make a token u
 curl -H "Authorization: Bearer gs_..." https://garagestack.example.com/api/vehicles
 ```
 
-A token reads as the account that made it, through the same endpoints the app uses (the API reference lists them, see [`DEMO.md`](documentation/DEMO.md#manual-start)), and it can only read: any request that would change something, send a command or make another token is refused with `403`. The list under Settings shows when each token was last used; revoking one stops it at once. GarageStack keeps only a hash of each token, so a lost one cannot be shown again: revoke it and make a new one.
+A token reads as the account that made it, through the same endpoints the app uses (the API reference lists them, see [`DEMO.md`](documentation/DEMO.md#manual-start)), and it can only read: any request that would change something, send a command or make another token is refused with `403`. The full data export and the server logs are refused too: they hold the car's whole history and the services' diagnostics, so they need a signed-in session. The list under Settings shows when each token was last used; revoking one stops it at once. GarageStack keeps only a hash of each token, so a lost one cannot be shown again: revoke it and make a new one.
+
+A few things to know before building on a token:
+
+- Tokens do not expire. Revoke the ones you no longer use; an account can hold 20.
+- Requests with a token count against the same per-address rate limit as the app (120 a minute by default, `RATE_LIMIT_GLOBAL_PER_MINUTE`), so poll every few seconds at most.
+- Live updates (the `/hubs/telemetry` connection the dashboard uses) are not available with a token; poll the REST endpoints instead.
+- A Home Assistant [REST sensor](https://www.home-assistant.io/integrations/sensor.rest/) works well with a token, see [`HOME_ASSISTANT.md`](documentation/HOME_ASSISTANT.md#reading-garagestack-with-an-api-token).
 
 ---
 
@@ -556,7 +563,7 @@ http:
 
 **Nginx Proxy Manager:** add a Proxy Host for `garage.example.com` that forwards to `http`, `192.168.1.100`, port `8080`, with **Websockets Support** switched on and a certificate requested on the SSL tab.
 
-Every proxy in front of the API (yours, and with Compose the frontend container) is trusted by default as long as it has a private address, so visitors are told apart for the login rate limit without further setup. To narrow that down, list each proxy in `ForwardedHeaders__TrustedProxies__0`, `__1`, ... (see [CONFIGURATION.md](documentation/CONFIGURATION.md)).
+Every proxy in front of the API (yours, and with Compose the frontend container) is trusted by default as long as it has a private address, so visitors are told apart for the login rate limit without further setup. The catch is that anything else on your LAN is believed the same way and could claim to be a new visitor on every sign-in attempt, so in that default sign-ins are also capped per device in front of the frontend container (30 per 5 minutes; a household behind one proxy shares that). To close the gap, list each proxy in `ForwardedHeaders__TrustedProxies__0`, `__1`, ... (see [CONFIGURATION.md](documentation/CONFIGURATION.md)): then only those are believed and the extra cap is off.
 
 ### Behind a reverse proxy or CDN
 

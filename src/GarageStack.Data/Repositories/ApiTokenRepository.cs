@@ -37,6 +37,14 @@ public class ApiTokenRepository(AppDbContext db) : IApiTokenRepository
 
     public async Task MarkUsedAsync(int id, DateTime usedAt, CancellationToken ct = default)
     {
+        // One UPDATE on PostgreSQL. The in-memory provider (demo, tests) cannot run that, so it
+        // loads and saves the row instead.
+        if (db.Database.IsRelational())
+        {
+            await db.ApiTokens.Where(t => t.Id == id).ExecuteUpdateAsync(s => s.SetProperty(t => t.LastUsedAt, usedAt), ct);
+            return;
+        }
+
         var token = await db.ApiTokens.FindAsync([id], ct);
         if (token is null) return;
 

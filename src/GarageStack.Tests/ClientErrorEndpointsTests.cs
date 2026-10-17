@@ -42,4 +42,19 @@ public class ClientErrorEndpointsTests
         Assert.Equal("/api/vehicles/***0001/status", entry.Page);
         Assert.Equal("", entry.Stack);
     }
+
+    // A failed API call's message names the path it failed on, and the page sends that message on
+    // as the report's own text.
+    [Fact]
+    public void AVinInTheMessageOrStack_IsShortened()
+    {
+        var entry = ClientErrorEndpoints.ToLogEntry(new ClientErrorReport(
+            Message: "API error 404: /api/vehicles/FAKEVN00000000001/status",
+            Stack: "at load (vehicleApi.ts:12:3) for FAKEVN00000000001?x=1",
+            Page: "/",
+            Source: null));
+
+        Assert.Equal("API error 404: /api/vehicles/***0001/status", entry.Message);
+        Assert.Equal(" | at load (vehicleApi.ts:12:3) for ***0001?x=1", entry.Stack);
+    }
 }

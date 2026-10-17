@@ -17,5 +17,10 @@ public static partial class VinFormat
     [GeneratedRegex(@"(?<=/)[A-HJ-NPR-Z0-9]{17}(?=/|$)")]
     internal static partial Regex PathSegment();
 
+    // A VIN anywhere in free text: 17 VIN characters that are not part of a longer run of letters
+    // and digits (a hash or a longer identifier).
+    [GeneratedRegex(@"(?<![A-Za-z0-9])[A-HJ-NPR-Z0-9]{17}(?![A-Za-z0-9])")]
+    internal static partial Regex InText();
+
     public static bool IsValid([NotNullWhen(true)] string? value) => value is not null && Whole().IsMatch(value);
 }

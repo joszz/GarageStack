@@ -1,5 +1,6 @@
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using GarageStack.Core.Helpers;
 using GarageStack.Core.Interfaces;
 using GarageStack.Core.Models;
@@ -324,11 +325,19 @@ public class TelemetryRepository(
 
     // Ordered on the group before projecting: EF cannot translate an OrderBy on a property of a
     // record built through its constructor, so sorting after the Select fails at runtime.
-    public IAsyncEnumerable<TelemetrySnapshot> StreamAllAsync(int vehicleId, CancellationToken ct = default) =>
-        db.TelemetrySnapshots.AsNoTracking()
+    // An iterator rather than the query itself, so the token reaches the query: returned as is, a
+    // caller's token never did, and an export kept reading every row after the browser had gone.
+    public async IAsyncEnumerable<TelemetrySnapshot> StreamAllAsync(
+        int vehicleId, [EnumeratorCancellation] CancellationToken ct = default)
+    {
+        var rows = db.TelemetrySnapshots.AsNoTracking()
             .Where(s => s.VehicleId == vehicleId)
             .OrderBy(s => s.RecordedAt).ThenBy(s => s.Id)
-            .AsAsyncEnumerable();
+            .AsAsyncEnumerable()
+            .WithCancellation(ct);
+        await foreach (var row in rows)
+            yield return row;
+    }
 
     public async Task<IReadOnlyList<RawTopicStat>> GetRawTopicStatsAsync(int vehicleId, DateTime since, CancellationToken ct = default) =>
         await db.TelemetrySnapshots

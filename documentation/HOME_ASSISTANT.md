@@ -123,6 +123,27 @@ For any other Mosquitto broker, add the same lines to its configuration file and
 
 ---
 
+## Reading GarageStack with an API token
+
+The bridge above gives Home Assistant the car's own entities. What GarageStack works out itself (maintenance due, the latest trip, the merged status it shows on the dashboard) can be read with a [read-only API token](../README.md#read-only-api-tokens) and a [REST sensor](https://www.home-assistant.io/integrations/sensor.rest/). Make the token under **Settings > API tokens**, keep it in `secrets.yaml`, and use the car's VIN in the URL:
+
+```yaml
+# configuration.yaml
+rest:
+  - resource: http://192.168.1.100:8080/api/vehicles/YOUR_VIN/status
+    headers:
+      Authorization: !secret garagestack_token   # "Bearer gs_..."
+    scan_interval: 300
+    sensor:
+      - name: GarageStack odometer
+        value_template: "{{ value_json.odometerKm }}"
+        unit_of_measurement: km
+```
+
+A token only reads, never sees the full export or the server logs, and counts against the same rate limit as the app, so keep `scan_interval` at a minute or more. Other useful endpoints are `/api/vehicles/YOUR_VIN/maintenance` and `/api/vehicles/YOUR_VIN/trips/latest`.
+
+---
+
 ## Things to know
 
 - **Commands from Home Assistant skip GarageStack's command queue.** The MG cloud handles one command per car at a time, and each can take around 30 seconds. GarageStack queues its own commands for that reason, but Home Assistant's go straight to the gateway. Avoid automations that fire a command at the same moment as one from GarageStack, and in Home Assistant scripts wait for each command's state change before sending the next.
