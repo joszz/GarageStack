@@ -24,6 +24,11 @@
   --color-warning-text: var(--color-warning);
   --color-info-text: var(--color-info);
 
+  /* Text on a solid success fill: dark ink on the bright dark-theme green (white read at 2.3:1),
+     white on the light theme's deep one. Badges tint instead, see .badge. */
+  --color-on-success: #052e16;
+  --badge-fill: 16%;
+
   /* What changes between the themes beyond the palette: dark fields and secondary buttons sit a
      step above the card, light ones are white with a border; a dark switch knob is the text
      colour, a light one white. A dark button lightens on hover, a light one darkens. */
@@ -108,6 +113,10 @@
   --color-warning-text: #b45309;
   --color-danger-text: #dc2626;
   --color-info-text: #0e7490;
+  --color-on-success: #fff;
+  --badge-fill: 100%;
+  --badge-on: #fff;
+  --badge-on-warning: #000;
   --field-bg: var(--color-surface);
   --field-bg-disabled: var(--color-surface-2);
   --switch-knob: #fff;
@@ -1058,7 +1067,7 @@ body,
 
 .btn-success {
   background: var(--color-success-text);
-  color: #fff;
+  color: var(--color-on-success);
 }
 
 .btn-warning {
@@ -1085,32 +1094,37 @@ body,
 
 /* ── Badges ───────────────────────────────────────────────── */
 
+/* A status badge is its colour, mixed into the card by --badge-fill: a tint with the colour as its
+   text on a dark card, where a solid green or cyan under white text read at 2.3:1, and solid with
+   white (amber: black) text on a light one. Each variant names its colour and its text. */
 .badge {
   display: inline-block;
   padding: 0.15rem 0.45rem;
   border-radius: 4px;
   font-size: 0.7rem;
   font-weight: 600;
+  background: color-mix(in srgb, var(--badge-color) var(--badge-fill), transparent);
+  color: var(--badge-text);
 }
 
 .badge-success {
-  background: var(--color-success-text);
-  color: #fff;
+  --badge-color: var(--color-success-text);
+  --badge-text: var(--badge-on, var(--color-success-text));
 }
 
 .badge-warning {
-  background: var(--color-warning);
-  color: #000;
+  --badge-color: var(--color-warning);
+  --badge-text: var(--badge-on-warning, var(--color-warning));
 }
 
 .badge-danger {
-  background: var(--color-danger);
-  color: #fff;
+  --badge-color: var(--color-danger-text);
+  --badge-text: var(--badge-on, var(--color-danger-text));
 }
 
 .badge-info {
-  background: var(--color-info-text);
-  color: #fff;
+  --badge-color: var(--color-info-text);
+  --badge-text: var(--badge-on, var(--color-info-text));
 }
 
 .badge-secondary {
@@ -1877,7 +1891,7 @@ textarea.form-control {
 
 .availability-toast--online {
   background: var(--color-success-text);
-  color: #fff;
+  color: var(--color-on-success);
 }
 
 .availability-toast--offline {
