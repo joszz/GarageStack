@@ -15,7 +15,7 @@ public static class ClimateScheduleCalendar
     /// </summary>
     public static DateTime NextRunUtc(TimeOnly start, ClimateScheduleDays days, TimeZoneInfo zone, DateTime afterUtc)
     {
-        var today = DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(afterUtc, zone));
+        var today = ZoneTime.DateOf(afterUtc, zone);
         // Today when the time is still ahead, else within the next seven days; the eighth day
         // covers a schedule for today's weekday whose time has already passed.
         for (var i = 0; i <= 7; i++)

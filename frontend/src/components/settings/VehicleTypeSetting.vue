@@ -6,6 +6,7 @@ import { useDashboardSettingsStore } from '@/stores/settingsDashboard'
 import { useVehicleStore } from '@/stores/vehicle'
 import SettingsToggle from '../SettingsToggle.vue'
 import SettingsSelect, { type SettingsSelectOption } from '../SettingsSelect.vue'
+import StatusBadge from '@/components/StatusBadge.vue'
 
 // What the gateway says the car is, and the override for when it gets that wrong.
 const { t } = useI18n()
@@ -46,7 +47,7 @@ const typeOptions = computed((): SettingsSelectOption<VehicleTypeOverride>[] => 
     >
       <template #control>
         <span v-if="hwVersion" class="text-muted text-xs">{{ hwVersion }}</span>
-        <span v-if="detectedLabel" class="badge badge-info">{{ detectedLabel }}</span>
+        <StatusBadge v-if="detectedLabel" variant="info">{{ detectedLabel }}</StatusBadge>
       </template>
     </SettingsToggle>
     <SettingsSelect

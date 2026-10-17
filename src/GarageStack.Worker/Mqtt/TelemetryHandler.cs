@@ -196,8 +196,8 @@ public sealed class TelemetryHandler(
 
         if (transition == StateTransition.TurnedOn)
         {
-            var shouldNotify = await _engineStartCooldownGate.ShouldNotifyAsync(vin, NotificationCategories.EngineStart, cutoff =>
-                notifications.WasSentSinceAsync(NotificationCategories.EngineStart, snapshot.VehicleId, cutoff, ct));
+            var shouldNotify = await _engineStartCooldownGate.ShouldNotifyAsync(
+                vin, snapshot.VehicleId, NotificationCategories.EngineStart, notifications, ct);
             if (shouldNotify)
             {
                 logger.LogInformation("Engine started for VIN={Vin} - sending push notification", LogRedaction.Vin(vin));

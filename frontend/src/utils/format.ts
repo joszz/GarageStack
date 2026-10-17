@@ -92,12 +92,11 @@ function toDate(value: string | Date): Date {
 }
 
 const TIME: Intl.DateTimeFormatOptions = { hour: '2-digit', minute: '2-digit' }
-const DATE_TIME: Intl.DateTimeFormatOptions = {
-  day: 'numeric',
-  month: 'short',
-  year: 'numeric',
-  ...TIME,
-}
+
+/** A short date without its year, "16 Oct" or "Oct 16": what a list of recent things shows. */
+export const DAY_MONTH: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short' }
+
+const DATE_TIME: Intl.DateTimeFormatOptions = { ...DAY_MONTH, year: 'numeric', ...TIME }
 
 /** A calendar date in the interface language, in the region's date order. */
 export function formatDate(value: string | Date, options?: Intl.DateTimeFormatOptions): string {

@@ -6,6 +6,9 @@
  */
 export type LevelVariant = 'success' | 'warning' | 'danger'
 
+/** The colours a status badge comes in (StatusBadge): a level's three, plus neutral news and none. */
+export type BadgeVariant = LevelVariant | 'info' | 'secondary'
+
 interface LevelThresholds {
   /** Below this percentage the level is critical. */
   danger: number

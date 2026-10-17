@@ -11,6 +11,7 @@ import type { MaintenanceItem, MaintenanceDueStatus } from '@/services/maintenan
 import { dueStatusVariant, formatIntervalSummary } from '@/utils/maintenance'
 import { useUnits } from '@/composables/useUnits'
 import { useErrorMessage } from '@/composables/useErrorMessage'
+import ViewHeader from '@/components/ViewHeader.vue'
 
 const { t } = useI18n()
 const vehicleStore = useVehicleStore()
@@ -69,19 +70,16 @@ watch(vin, (v) => {
 
 <template>
   <div class="view-container">
-    <div class="view-header">
-      <h1>{{ t('maintenance.title') }}</h1>
-      <div class="view-header__actions">
+    <ViewHeader :title="t('maintenance.title')" :subtitle="t('maintenance.subtitle')">
+      <template #actions>
         <!-- The form needs a car to add the item to, and only exists once one is known. -->
         <button class="btn btn-primary btn-sm" :disabled="!vin" @click="openAdd">
           <font-awesome-icon icon="plus" />{{ t('maintenance.addItem') }}
         </button>
-      </div>
-    </div>
+      </template>
+    </ViewHeader>
 
-    <p class="text-muted view-subtitle">{{ t('maintenance.subtitle') }}</p>
-
-    <div v-if="store.itemsError" class="empty-state text-danger">
+    <div v-if="store.itemsError" class="empty-state text-danger" role="alert">
       {{ errorMessage(store.itemsError) }}
     </div>
     <div v-else-if="!store.loading && sortedItems.length === 0" class="empty-state">

@@ -46,8 +46,7 @@ public static class MaintenanceEndpoints
                 LastServiceOdometerKm = req.LastServiceOdometerKm,
             }, ct);
 
-            var odometerKm = await telemetry.GetOdometerAtAsync(vehicle.Id, DateTime.UtcNow, ct);
-            return Results.Ok(ToDto(item, odometerKm));
+            return Results.Ok(await ToDtoAsync(item, telemetry, ct));
         })
         .WithSummary("Create a maintenance item");
 
@@ -69,8 +68,7 @@ public static class MaintenanceEndpoints
             }, ct);
             if (item is null) return Results.NotFound();
 
-            var odometerKm = await telemetry.GetOdometerAtAsync(vehicle.Id, DateTime.UtcNow, ct);
-            return Results.Ok(ToDto(item, odometerKm));
+            return Results.Ok(await ToDtoAsync(item, telemetry, ct));
         })
         .WithSummary("Update a maintenance item's name, notes and intervals");
 
@@ -108,8 +106,7 @@ public static class MaintenanceEndpoints
             }, ct);
             if (logged is null) return Results.NotFound();
 
-            var odometerKm = await telemetry.GetOdometerAtAsync(vehicle.Id, DateTime.UtcNow, ct);
-            return Results.Ok(new LogMaintenanceServiceResponse(ToDto(logged.Item, odometerKm), ToDto(logged.Entry)));
+            return Results.Ok(new LogMaintenanceServiceResponse(await ToDtoAsync(logged.Item, telemetry, ct), ToDto(logged.Entry)));
         })
         .WithSummary("Log a completed service, updating the item's baseline");
 
@@ -122,8 +119,7 @@ public static class MaintenanceEndpoints
             var item = await maintenance.DeleteLogEntryAsync(vehicle.Id, id, logId, ct);
             if (item is null) return Results.NotFound();
 
-            var odometerKm = await telemetry.GetOdometerAtAsync(vehicle.Id, DateTime.UtcNow, ct);
-            return Results.Ok(ToDto(item, odometerKm));
+            return Results.Ok(await ToDtoAsync(item, telemetry, ct));
         })
         .WithSummary("Remove a service log entry, recomputing the item's baseline");
 
@@ -171,6 +167,10 @@ public static class MaintenanceEndpoints
 
     private static MaintenanceLogEntryDto ToDto(MaintenanceLogEntry entry) =>
         new(entry.Id, entry.MaintenanceItemId, entry.PerformedAt, entry.OdometerKm, entry.Notes, entry.CreatedAt);
+
+    // An item as it stands now: due against the car's current odometer reading.
+    private static async Task<MaintenanceItemDto> ToDtoAsync(MaintenanceItem item, ITelemetryRepository telemetry, CancellationToken ct) =>
+        ToDto(item, await telemetry.GetOdometerAtAsync(item.VehicleId, DateTime.UtcNow, ct));
 
     private static MaintenanceItemDto ToDto(MaintenanceItem item, double? currentOdometerKm)
     {

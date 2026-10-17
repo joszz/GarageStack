@@ -9,6 +9,7 @@ import ChargingScheduleForm from './ChargingScheduleForm.vue'
 import { useVehicleCommand } from '@/composables/useVehicleCommand'
 import { formatDateTime, formatNumber, formatTimeOfDay } from '@/utils/format'
 import { gatewayLabel } from '@/utils/gatewayLabel'
+import StatusBadge from '@/components/StatusBadge.vue'
 
 const i18n = useI18n()
 const { t } = i18n
@@ -199,7 +200,7 @@ const scheduleModeLabel = computed(() =>
         :label="t('vehicle.chargingSession.type')"
       >
         <template #value>
-          <span class="badge badge-info">{{ chargingType }}</span>
+          <StatusBadge variant="info">{{ chargingType }}</StatusBadge>
         </template>
       </DetailListItem>
       <DetailListItem
@@ -208,7 +209,7 @@ const scheduleModeLabel = computed(() =>
         :label="t('vehicle.chargingSession.bmsStatus')"
       >
         <template #value>
-          <span class="badge badge-secondary">{{ bmsStatusLabel }}</span>
+          <StatusBadge variant="secondary">{{ bmsStatusLabel }}</StatusBadge>
         </template>
       </DetailListItem>
       <DetailListItem
@@ -235,7 +236,7 @@ const scheduleModeLabel = computed(() =>
         :label="t('vehicle.chargingSession.schedule')"
       >
         <template #value>
-          <span class="badge badge-info">{{ scheduleModeLabel }}</span>
+          <StatusBadge variant="info">{{ scheduleModeLabel }}</StatusBadge>
         </template>
       </DetailListItem>
       <DetailListItem

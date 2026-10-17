@@ -16,6 +16,7 @@ import { PURPOSE_ICONS, PURPOSE_KEYS, type TripLogPeriod } from '@/utils/tripLog
 import { tripLogCsv, tripLogFileName } from '@/utils/tripLogCsv'
 import { useUnits } from '@/composables/useUnits'
 import { useErrorMessage } from '@/composables/useErrorMessage'
+import ViewHeader from '@/components/ViewHeader.vue'
 
 const { t } = useI18n()
 const vehicleStore = useVehicleStore()
@@ -124,9 +125,8 @@ function exportCsv() {
 
 <template>
   <div class="view-container">
-    <div class="view-header">
-      <h1>{{ t('tripLog.title') }}</h1>
-      <div class="view-header__actions">
+    <ViewHeader :title="t('tripLog.title')" :subtitle="t('tripLog.subtitle')">
+      <template #actions>
         <button type="button" class="btn btn-outline-secondary btn-sm" @click="openPlaces()">
           <font-awesome-icon icon="house" />{{ t('tripLog.places.button') }}
         </button>
@@ -139,10 +139,8 @@ function exportCsv() {
         >
           <font-awesome-icon icon="file-csv" />{{ t('tripLog.export') }}
         </button>
-      </div>
-    </div>
-
-    <p class="text-muted view-subtitle">{{ t('tripLog.subtitle') }}</p>
+      </template>
+    </ViewHeader>
 
     <div class="trip-log-filters">
       <label class="trip-log-filters__field">
@@ -197,7 +195,7 @@ function exportCsv() {
       {{ t('tripLog.saveFailed') }}
     </p>
 
-    <div v-if="store.loadError" class="empty-state text-danger">
+    <div v-if="store.loadError" class="empty-state text-danger" role="alert">
       {{ errorMessage(store.loadError) }}
     </div>
     <div v-else-if="!store.loading && store.entries.length === 0" class="empty-state">

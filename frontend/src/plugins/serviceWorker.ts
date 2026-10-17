@@ -1,9 +1,12 @@
 /**
  * Keeps the page on the service worker's current version: a new worker replacing the one in
  * control reloads the page once, and a worker that fails to install is unregistered so the next
- * load starts clean.
+ * load starts clean. `reload` is the page's own reload, which a test hands in instead: jsdom will
+ * not let a test replace `location`.
  */
-export function watchServiceWorkerUpdates(): void {
+export function watchServiceWorkerUpdates(
+  reload: () => void = () => window.location.reload(),
+): void {
   if (!('serviceWorker' in navigator)) return
 
   let refreshing = false
@@ -16,7 +19,7 @@ export function watchServiceWorkerUpdates(): void {
     // twice, which Lighthouse (it clears service workers before each run) scored as a redirect.
     if (!previous || refreshing) return
     refreshing = true
-    window.location.reload()
+    reload()
   })
 
   // If a SW install fails (e.g. stale precache manifest after deploy while
@@ -24,7 +27,7 @@ export function watchServiceWorkerUpdates(): void {
   // load fetches a fresh sw.js and installs cleanly.
   const watchInstalling = (sw: ServiceWorker, reg: ServiceWorkerRegistration) =>
     sw.addEventListener('statechange', () => {
-      if (sw.state === 'redundant') reg.unregister().then(() => window.location.reload())
+      if (sw.state === 'redundant') reg.unregister().then(reload)
     })
 
   window.addEventListener('load', () => {

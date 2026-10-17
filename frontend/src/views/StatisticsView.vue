@@ -24,7 +24,7 @@ import SkeletonChart from '@/components/SkeletonChart.vue'
 import StatusCard from '@/components/StatusCard.vue'
 import StatsChartCard from '@/components/StatsChartCard.vue'
 import type EditableCardGridComponent from '@/components/EditableCardGrid.vue'
-import { formatDate, formatHour, formatNumber } from '@/utils/format'
+import { DAY_MONTH, formatDate, formatHour, formatNumber } from '@/utils/format'
 import { resolveStatsPeriod, statsQuery } from '@/utils/statsPeriod'
 import { energyUnit } from '@/utils/energy'
 import { burnsFuel, plugsIn } from '@/utils/vehicleType'
@@ -43,6 +43,7 @@ import {
 import { useUnits } from '@/composables/useUnits'
 import { useErrorMessage } from '@/composables/useErrorMessage'
 import { useStatisticsCharts } from '@/composables/useStatisticsCharts'
+import ViewHeader from '@/components/ViewHeader.vue'
 
 // Only edit mode rearranges the cards; the drag-and-drop library loads when it opens. The cast
 // restores the grid's generic item type, which defineAsyncComponent does not carry over.
@@ -72,7 +73,7 @@ const periodLabel = computed(() => {
     month: 'short',
     ...(sameYear ? {} : { year: 'numeric' }),
   })
-  return `${from} - ${formatDate(last, { day: 'numeric', month: 'short', year: 'numeric' })}`
+  return `${from} - ${formatDate(last, { ...DAY_MONTH, year: 'numeric' })}`
 })
 
 const vin = computed(() => store.activeVin)
@@ -356,12 +357,8 @@ const skeletonChartCount = computed(
 
 <template>
   <div class="view-container">
-    <div class="view-header">
-      <div>
-        <h1>{{ t('nav.statistics') }}</h1>
-        <p class="text-muted text-sm stats-period__shown">{{ periodLabel }}</p>
-      </div>
-      <div class="view-header__actions">
+    <ViewHeader :title="t('nav.statistics')" :caption="periodLabel">
+      <template #actions>
         <ToolbarPanel>
           <StatsPeriodFilter />
         </ToolbarPanel>
@@ -373,8 +370,8 @@ const skeletonChartCount = computed(
           <font-awesome-icon :icon="editMode ? 'check' : 'pen-to-square'" />
           {{ editMode ? t('dashboard.doneEditing') : t('dashboard.editLayout') }}
         </button>
-      </div>
-    </div>
+      </template>
+    </ViewHeader>
 
     <template v-if="loading">
       <section class="stats-insights" :aria-label="t('statistics.insightsSectionLabel')">
@@ -395,6 +392,7 @@ const skeletonChartCount = computed(
       <div
         v-if="store.dailyStatsError && !status && !hasPeriodData"
         class="empty-state text-danger"
+        role="alert"
       >
         {{ errorMessage(store.dailyStatsError) }}
       </div>

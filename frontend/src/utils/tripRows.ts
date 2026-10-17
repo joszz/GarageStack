@@ -1,5 +1,5 @@
 import type { Trip } from '@/services/vehicleApi'
-import { formatDate, formatTime } from '@/utils/format'
+import { DAY_MONTH, formatDate, formatTime } from '@/utils/format'
 import type { UnitFormatter } from '@/utils/units'
 
 // `t` is injected rather than obtained via useI18n() so these stay plain, directly testable
@@ -57,7 +57,7 @@ export function buildTripRow(trip: Trip, ctx: TripRowContext): TripRow {
   const destination = inProgress ? null : toCity
 
   const dateLabel = formatDate(trip.startedAt)
-  const dateShort = formatDate(trip.startedAt, { day: 'numeric', month: 'short' })
+  const dateShort = formatDate(trip.startedAt, DAY_MONTH)
   const timeLabel = formatTime(trip.startedAt)
 
   const distance = units.format('distance', trip.distanceKm)

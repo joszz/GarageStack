@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import ExpandableStatusCard from './ExpandableStatusCard.vue'
 import DetailListItem from './DetailListItem.vue'
 import { useBooleanStatusList } from '@/composables/useBooleanStatusList'
+import StatusBadge from '@/components/StatusBadge.vue'
 
 const { t } = useI18n()
 
@@ -45,9 +46,9 @@ const summary = computed((): string | null => {
         :alert="light.open"
       >
         <template #value>
-          <span class="badge" :class="light.open ? 'badge-warning' : 'badge-secondary'">
+          <StatusBadge :variant="light.open ? 'warning' : 'secondary'">
             {{ light.open ? t('common.on') : t('common.off') }}
-          </span>
+          </StatusBadge>
         </template>
       </DetailListItem>
     </div>

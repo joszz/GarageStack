@@ -317,6 +317,12 @@ body,
   line-height: var(--page-title-height);
 }
 
+/* A short line under the heading inside the title row (ViewHeader's caption), such as the period
+   Statistics shows. */
+.view-header__caption {
+  margin: 0.15rem 0 0;
+}
+
 /* A line about the page, tucked under its title rather than spaced like a section of its own. */
 .view-subtitle {
   margin-top: -1rem;

@@ -70,7 +70,7 @@ public static class VehicleEndpoints
             if (!TryFindZone(timeZone, out var zone))
                 return ApiProblems.BadRequest("stats.timeZoneUnknown", "timeZone must be an IANA time zone, such as Europe/Amsterdam");
 
-            var today = DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, zone));
+            var today = ZoneTime.DateOf(DateTime.UtcNow, zone);
             var last = to is { } end && end < today ? end : today;
             var first = from ?? last.AddDays(-29);
             if (first > last)
@@ -95,7 +95,7 @@ public static class VehicleEndpoints
             if (!TryFindZone(timeZone, out var zone))
                 return ApiProblems.BadRequest("stats.timeZoneUnknown", "timeZone must be an IANA time zone, such as Europe/Amsterdam");
 
-            var today = DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, zone));
+            var today = ZoneTime.DateOf(DateTime.UtcNow, zone);
             var days = await telemetry.GetDailyStatsAsync(vehicle.Id, today.AddDays(-(TyreHistoryDays - 1)), today, zone, today, ct);
             var trendFrom = today.AddDays(-(TyreTrend.WindowDays - 1));
             var trend = TyreTrend.Measure(days.Where(d => d.Date >= trendFrom));

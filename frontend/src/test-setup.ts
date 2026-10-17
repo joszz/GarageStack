@@ -9,8 +9,10 @@ vi.mock('@/utils/region', async (importOriginal) => ({
   detectRegion: () => 'NL',
 }))
 
+// Configurable, so a spec can stub it (vi.stubGlobal) whichever pool runs it.
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
+  configurable: true,
   value: (query: string) => ({
     matches: false,
     media: query,

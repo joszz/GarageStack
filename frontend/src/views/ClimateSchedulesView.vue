@@ -12,6 +12,7 @@ import { CLIMATE_MODE_ICONS } from '@/utils/climate'
 import { formatTimeOfDay } from '@/utils/format'
 import { useUnits } from '@/composables/useUnits'
 import { useErrorMessage } from '@/composables/useErrorMessage'
+import ViewHeader from '@/components/ViewHeader.vue'
 
 const { t } = useI18n()
 const vehicleStore = useVehicleStore()
@@ -66,18 +67,15 @@ function variant(schedule: ClimateSchedule): 'info' | 'warning' | undefined {
 
 <template>
   <div class="view-container">
-    <div class="view-header">
-      <h1>{{ t('climateSchedules.title') }}</h1>
-      <div class="view-header__actions">
+    <ViewHeader :title="t('climateSchedules.title')" :subtitle="t('climateSchedules.subtitle')">
+      <template #actions>
         <button class="btn btn-primary btn-sm" :disabled="!vin" @click="openAdd">
           <font-awesome-icon icon="plus" />{{ t('climateSchedules.addSchedule') }}
         </button>
-      </div>
-    </div>
+      </template>
+    </ViewHeader>
 
-    <p class="text-muted view-subtitle">{{ t('climateSchedules.subtitle') }}</p>
-
-    <div v-if="store.itemsError" class="empty-state text-danger">
+    <div v-if="store.itemsError" class="empty-state text-danger" role="alert">
       {{ errorMessage(store.itemsError) }}
     </div>
     <div v-else-if="!store.loading && store.schedules.length === 0" class="empty-state">

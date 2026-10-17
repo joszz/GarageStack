@@ -8,7 +8,7 @@ import { useVehicleStore } from '@/stores/vehicle'
 import { useStatisticsCharts } from '@/composables/useStatisticsCharts'
 import { useTyrePressureThresholds } from '@/composables/useTyrePressureThresholds'
 import { useUnits } from '@/composables/useUnits'
-import { useErrorMessage } from '@/composables/useErrorMessage'
+import { useAsyncRequest } from '@/composables/useAsyncRequest'
 import { browserTimeZone } from '@/utils/dates'
 import { bucketDays } from '@/utils/statistics'
 import type { StatsGrouping } from '@/utils/statsPeriod'
@@ -23,28 +23,21 @@ const { t } = useI18n()
 const vehicleStore = useVehicleStore()
 const units = useUnits()
 const thresholds = useTyrePressureThresholds()
-const errorMessage = useErrorMessage()
 
 const POSITIONS: TyrePosition[] = ['frontLeft', 'frontRight', 'rearLeft', 'rearRight']
 
 const history = ref<TyreHistory | null>(null)
-const loadError = ref<unknown>(null)
-const loading = ref(false)
+const { loading, error: loadError, run } = useAsyncRequest()
 
 watch(
   () => props.open,
-  async (open) => {
+  (open) => {
     const vin = vehicleStore.activeVin
     if (!open || !vin) return
-    loading.value = true
-    loadError.value = null
-    try {
-      history.value = await vehicleApi.tyreHistory(vin, browserTimeZone())
-    } catch (e) {
-      loadError.value = e
-    } finally {
-      loading.value = false
-    }
+    void run(
+      () => vehicleApi.tyreHistory(vin, browserTimeZone()),
+      (result) => (history.value = result),
+    )
   },
 )
 
@@ -104,7 +97,7 @@ const trendRows = computed(() => {
       {{ t('common.loading') }}
     </p>
     <p v-else-if="loadError" class="text-danger text-sm" role="alert">
-      {{ errorMessage(loadError) }}
+      {{ loadError }}
     </p>
     <template v-else-if="history">
       <section class="detail-modal__section form-stack">
