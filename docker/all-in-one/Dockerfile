@@ -63,6 +63,11 @@ RUN dotnet publish GarageStack.Api/GarageStack.Api.csproj -c Release -o /publish
 # The gateway is not on PyPI. We copy its pre-built venv + source directly from
 # the official image so we always match the tested Python/dependency versions.
 FROM saicismartapi/saic-python-mqtt-gateway:0.13.0-rc3 AS saic-source
+# The gateway reports its version from RELEASE_VERSION, an ENV of this image that copying its
+# files leaves behind, so keep it in a file for supervisord to pass on (see supervisord.conf).
+# The image runs as an unprivileged user, hence /tmp. Without the variable the gateway says
+# "unknown" itself, so the file says that too.
+RUN printf '%s\n' "${RELEASE_VERSION:-unknown}" > /tmp/release-version
 
 # ── Stage 4: Final all-in-one runtime image ───────────────────────────────────
 # python:3.14-slim is Debian trixie (13) -- the same base the saic gateway uses,
@@ -128,6 +133,7 @@ RUN curl -sSL https://www.postgresql.org/media/keys/ACCC4CF8.asc -o /usr/share/k
 # The files stay root-owned: appuser only reads them, like the upstream image's own
 # non-root user does.
 COPY --from=saic-source /usr/src/app /opt/saic/app
+COPY --from=saic-source /tmp/release-version /opt/saic/release-version
 # The gateway pins anyio 4.12.1 (transitively, via httpx), which carries CVE-2026-63374
 # (TLS certificate spoofing through IDNA 2003 host name encoding) and CVE-2026-64847
 # (process-pool workers deadlock on an undrained stderr pipe). Both are fixed in 4.14.2
