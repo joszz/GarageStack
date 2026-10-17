@@ -72,11 +72,11 @@ function refresh() {
         @click="refresh"
       >
         <font-awesome-icon icon="rotate" :spin="vehicleStore.loading || sending === 'refresh'" />
-        {{ t('control.refresh') }}
+        <span class="app-footer__btn-label">{{ t('control.refresh') }}</span>
       </button>
       <button class="app-footer__btn" :aria-label="t('settings.title')" @click="openModal">
         <font-awesome-icon icon="gear" />
-        {{ t('settings.title') }}
+        <span class="app-footer__btn-label">{{ t('settings.title') }}</span>
       </button>
     </div>
   </footer>
