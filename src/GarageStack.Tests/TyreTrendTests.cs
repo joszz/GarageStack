@@ -26,6 +26,31 @@ public class TyreTrendTests
         Assert.Equal([TyrePosition.FrontLeft], changes.Losing(0.15));
     }
 
+    // Three tyres topped up by 0.2 bar halfway through, the fourth (already right) left alone: it
+    // falls behind the others without losing anything, so it is no slow puncture.
+    [Fact]
+    public void TheOneTyreNotToppedUp_FallsBehind_ButIsNotLosingAir()
+    {
+        var changes = TyreTrend.Measure(Days(_ => 2.5, i => i < 7 ? 2.3 : 2.5));
+
+        Assert.NotNull(changes);
+        Assert.InRange(changes.FrontLeft, -0.21, -0.19);
+        Assert.Equal(0, changes.Own[0], 3);
+        Assert.Empty(changes.Losing(0.15));
+    }
+
+    // Warmer days lift all four by 0.08 bar over the fortnight while front left leaks 0.2: its own
+    // pressure falls by less than its gap, but it falls, and that is a slow puncture.
+    [Fact]
+    public void ALeakDuringWarmerDays_IsStillLosingAir()
+    {
+        var changes = TyreTrend.Measure(Days(i => 2.4 + (0.08 - 0.2) * i / 13, i => 2.4 + 0.08 * i / 13));
+
+        Assert.NotNull(changes);
+        Assert.InRange(changes.Own[0], -0.11, -0.09);
+        Assert.Equal([TyrePosition.FrontLeft], changes.Losing(0.15));
+    }
+
     // A cold spell lowers all four tyres together: no tyre falls behind the others.
     [Fact]
     public void AllFourFallingTogether_IsTheWeather_NotAPuncture()

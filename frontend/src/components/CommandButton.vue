@@ -1,11 +1,9 @@
 <script setup lang="ts">
-import { onUnmounted, ref } from 'vue'
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useTwoTapConfirm } from '@/composables/useTwoTapConfirm'
 
 const { t } = useI18n()
-
-// How long a button asking for a second tap waits for it.
-const CONFIRM_WINDOW_MS = 4000
 
 const props = withDefaults(
   defineProps<{
@@ -31,25 +29,14 @@ const props = withDefaults(
 
 const emit = defineEmits<{ click: [] }>()
 
-const armed = ref(false)
-let disarmTimer: ReturnType<typeof setTimeout> | undefined
-
-function disarm() {
-  clearTimeout(disarmTimer)
-  armed.value = false
-}
+// One button, so the confirmation has a single key.
+const confirmation = useTwoTapConfirm<true>()
+const armed = computed(() => confirmation.armed.value !== null)
+const disarm = confirmation.disarm
 
 function onClick() {
-  if (!props.confirmLabel || armed.value) {
-    disarm()
-    emit('click')
-    return
-  }
-  armed.value = true
-  disarmTimer = setTimeout(disarm, CONFIRM_WINDOW_MS)
+  if (!props.confirmLabel || confirmation.tap(true)) emit('click')
 }
-
-onUnmounted(() => clearTimeout(disarmTimer))
 </script>
 
 <template>

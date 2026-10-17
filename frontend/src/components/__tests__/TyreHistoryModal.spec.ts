@@ -69,6 +69,7 @@ describe('TyreHistoryModal', () => {
       days: [day('2026-10-15', 2.3), day('2026-10-16', 2.26)],
       trend: { frontLeft: 0.06, frontRight: 0.05, rearLeft: 0.07, rearRight: -0.2, days: 14 },
       trendDays: 14,
+      losing: ['rearRight'],
     })
 
     expect(tyreHistory).toHaveBeenCalledWith('FAKEVN00000000001', expect.any(String))
@@ -83,8 +84,28 @@ describe('TyreHistoryModal', () => {
     expect(wrapper.find('stats-chart-card-stub').exists()).toBe(true)
   })
 
+  // Three tyres topped up, the fourth left alone: behind the others, but not losing anything.
+  // The API applies the alert's rule; the dialog does not second-guess it from the gap.
+  it('says a tyre keeps up when the API does not count it as losing air', async () => {
+    const wrapper = await render({
+      days: [day('2026-10-15', 2.3), day('2026-10-16', 2.3)],
+      trend: { frontLeft: 0.07, frontRight: 0.07, rearLeft: 0.07, rearRight: -0.2, days: 14 },
+      trendDays: 14,
+      losing: [],
+    })
+
+    const rearRight = wrapper.findAll('.detail-list__item')[3]!
+    expect(rearRight.classes()).not.toContain('detail-list__item--alert')
+    expect(rearRight.text()).toContain(en.tyreHistory.keepingUp)
+  })
+
   it('says a trend needs more days rather than showing an empty list', async () => {
-    const wrapper = await render({ days: [day('2026-10-16', 2.5)], trend: null, trendDays: 14 })
+    const wrapper = await render({
+      days: [day('2026-10-16', 2.5)],
+      trend: null,
+      trendDays: 14,
+      losing: [],
+    })
 
     expect(wrapper.text()).toContain(en.tyreHistory.noTrend)
     expect(wrapper.findAll('.detail-list__item')).toHaveLength(0)
@@ -96,6 +117,7 @@ describe('TyreHistoryModal', () => {
       days: [{ ...empty, tyrePressureFrontRight: null, tyrePressureRearLeft: null }],
       trend: null,
       trendDays: 14,
+      losing: [],
     })
 
     expect(wrapper.text()).toContain(en.tyreHistory.noData)

@@ -596,7 +596,9 @@
       "lastUsed": "last used {date}",
       "neverUsed": "never used",
       "revoke": "Revoke",
-      "confirmRevoke": "Revoke?"
+      "confirmRevoke": "Revoke?",
+      "revokeNamed": "Revoke {name}",
+      "confirmRevokeNamed": "Revoke {name}? Tap again to confirm"
     },
     "export": {
       "title": "Your data",
@@ -768,6 +770,8 @@
     "history": "Service history",
     "noHistory": "No service history recorded yet",
     "deleteLogEntry": "Delete entry",
+    "confirmDeleteLogEntry": "Delete?",
+    "confirmDeleteLogEntryLabel": "Tap again to delete this entry",
     "everyDistance": "Every {distance}",
     "everyMonths": "Every {months} months",
     "or": "or",

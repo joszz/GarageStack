@@ -12,6 +12,7 @@ import { ODOMETER_FORMAT } from '@/utils/units'
 import { useUnits } from '@/composables/useUnits'
 import { useMeasureField } from '@/composables/useMeasureField'
 import { useStoreAction } from '@/composables/useStoreAction'
+import { useTwoTapConfirm } from '@/composables/useTwoTapConfirm'
 
 const props = defineProps<{
   open: boolean
@@ -35,6 +36,8 @@ const { busy: logSaving, error: logError, run: runLog } = useStoreAction(failure
 const { error: historyError, run: runHistory } = useStoreAction(failure)
 const { busy: deleting, error: deleteError, run: runDelete } = useStoreAction(failure)
 const pendingDelete = ref(false)
+// A log entry goes on the second tap: it moves the item's last service back, and there is no undo.
+const { armed: armedEntry, tap: tapEntry } = useTwoTapConfirm<number>()
 
 const currentItem = computed(() => store.items.find((i) => i.id === props.item?.id) ?? props.item)
 const logEntries = computed(() => (props.item ? (store.logEntries[props.item.id] ?? []) : []))
@@ -69,7 +72,7 @@ async function submitLog() {
 
 async function removeLogEntry(logId: number) {
   const item = props.item
-  if (!item) return
+  if (!item || !tapEntry(logId)) return
   await runHistory(() => store.deleteLogEntry(props.vin, item.id, logId))
 }
 
@@ -149,7 +152,7 @@ async function confirmDelete() {
               maxlength="1000"
             />
           </div>
-          <p v-if="logError" class="text-danger text-sm">{{ logError }}</p>
+          <p v-if="logError" class="text-danger text-sm" role="alert">{{ logError }}</p>
           <button type="submit" class="btn btn-primary btn-sm" :disabled="logSaving">
             {{ t('maintenance.logForm.submit') }}
           </button>
@@ -158,7 +161,7 @@ async function confirmDelete() {
 
       <section class="detail-modal__section">
         <h4 class="detail-modal__section-title">{{ t('maintenance.history') }}</h4>
-        <p v-if="historyError" class="text-danger text-sm">{{ historyError }}</p>
+        <p v-if="historyError" class="text-danger text-sm" role="alert">{{ historyError }}</p>
         <p v-if="logEntries.length === 0" class="text-muted text-sm">
           {{ t('maintenance.noHistory') }}
         </p>
@@ -171,11 +174,21 @@ async function confirmDelete() {
             <span v-if="entry.notes" class="text-muted">{{ entry.notes }}</span>
             <button
               type="button"
-              class="btn btn-sm btn-outline-secondary maintenance-history__delete"
-              :aria-label="t('maintenance.deleteLogEntry')"
+              class="btn btn-sm maintenance-history__delete"
+              :class="armedEntry === entry.id ? 'btn-danger' : 'btn-outline-secondary'"
+              :aria-label="
+                armedEntry === entry.id
+                  ? t('maintenance.confirmDeleteLogEntryLabel')
+                  : t('maintenance.deleteLogEntry')
+              "
               @click="removeLogEntry(entry.id)"
             >
-              <font-awesome-icon icon="trash" />
+              <font-awesome-icon
+                :icon="armedEntry === entry.id ? 'triangle-exclamation' : 'trash'"
+              />
+              <template v-if="armedEntry === entry.id">{{
+                t('maintenance.confirmDeleteLogEntry')
+              }}</template>
             </button>
           </li>
         </ul>
@@ -193,7 +206,7 @@ async function confirmDelete() {
         </button>
       </template>
       <template v-else>
-        <span v-if="deleteError" class="text-danger text-sm">{{ deleteError }}</span>
+        <span v-if="deleteError" class="text-danger text-sm" role="alert">{{ deleteError }}</span>
         <button class="btn btn-outline-secondary" @click="requestDelete">
           <font-awesome-icon icon="trash" />{{ t('maintenance.delete') }}
         </button>

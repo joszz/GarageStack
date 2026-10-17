@@ -800,6 +800,8 @@ public class AuthenticationFlowTests
         Assert.True(trend.GetProperty("rearRight").GetDouble() <= -0.15);
         Assert.True(trend.GetProperty("frontLeft").GetDouble() > -0.15);
         Assert.Equal(14, history.RootElement.GetProperty("trendDays").GetInt32());
+        Assert.Equal(["rearRight"], history.RootElement.GetProperty("losing").EnumerateArray().Select(p => p.GetString()));
+        Assert.False(trend.TryGetProperty("own", out _));
     }
 
     // ── Log viewer ────────────────────────────────────────────────────────────

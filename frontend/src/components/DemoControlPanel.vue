@@ -225,7 +225,7 @@ async function setLights(mode: 'off' | 'side' | 'dipped' | 'main') {
             :aria-label="t('demo.soc')"
           />
           <span>{{ socValue }}%</span>
-          <button class="demo-toggle-btn" @click="applySoc">OK</button>
+          <button class="demo-toggle-btn" @click="applySoc">{{ t('common.apply') }}</button>
         </div>
       </div>
 
@@ -241,7 +241,7 @@ async function setLights(mode: 'off' | 'side' | 'dipped' | 'main') {
             :aria-label="t('demo.speed')"
           />
           <span>{{ units.format('speed', speedValue) }}</span>
-          <button class="demo-toggle-btn" @click="applySpeed">OK</button>
+          <button class="demo-toggle-btn" @click="applySpeed">{{ t('common.apply') }}</button>
         </div>
       </div>
 
