@@ -1,5 +1,6 @@
 import type { DailyStat, TripSummary } from '@/services/vehicleApi'
 import { localDateKey } from '@/utils/dates'
+import { DAY_MONTH } from '@/utils/format'
 import { parseLocalDate, type StatsGrouping } from '@/utils/statsPeriod'
 
 /**
@@ -148,9 +149,7 @@ export function bucketTickFormat(
   const firstYear = buckets[0]?.start.getFullYear()
   const lastYear = buckets[buckets.length - 1]?.start.getFullYear()
   const year = firstYear === lastYear ? {} : { year: 'numeric' as const }
-  return grouping === 'month'
-    ? { month: 'short', ...year }
-    : { day: 'numeric', month: 'short', ...year }
+  return grouping === 'month' ? { month: 'short', ...year } : { ...DAY_MONTH, ...year }
 }
 
 /** Whether the car reported anything at all in the period. */

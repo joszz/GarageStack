@@ -9,6 +9,7 @@ import RangeControl from './RangeControl.vue'
 import { useVehicleCommand } from '@/composables/useVehicleCommand'
 import { useCommandDraft } from '@/composables/useCommandDraft'
 import { formatNumber } from '@/utils/format'
+import StatusBadge from '@/components/StatusBadge.vue'
 
 const { t } = useI18n()
 
@@ -169,11 +170,11 @@ function setChargeTarget() {
         :label="t('vehicle.hvBattery.charger')"
       >
         <template #value>
-          <span class="badge" :class="chargerConnected ? 'badge-info' : 'badge-secondary'">
+          <StatusBadge :variant="chargerConnected ? 'info' : 'secondary'">
             {{
               chargerConnected ? t('vehicle.hvBattery.pluggedIn') : t('vehicle.hvBattery.unplugged')
             }}
-          </span>
+          </StatusBadge>
         </template>
       </DetailListItem>
     </div>

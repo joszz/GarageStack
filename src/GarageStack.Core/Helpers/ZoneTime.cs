@@ -24,6 +24,10 @@ public static class ZoneTime
         return TimeZoneInfo.ConvertTimeToUtc(local, zone);
     }
 
+    /// <summary>The date on the clock in <paramref name="zone"/> at the UTC instant <paramref name="utc"/>.</summary>
+    public static DateOnly DateOf(DateTime utc, TimeZoneInfo zone) =>
+        DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(utc, zone));
+
     /// <summary>The UTC instant a local day starts.</summary>
     public static DateTime StartOfDay(DateOnly date, TimeZoneInfo zone) =>
         WallClockToUtc(date.ToDateTime(TimeOnly.MinValue), zone);

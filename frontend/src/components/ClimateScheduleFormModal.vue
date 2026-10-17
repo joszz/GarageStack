@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import DetailModal from './DetailModal.vue'
+import ConfirmFooter from './ConfirmFooter.vue'
 import SettingsSection from './settings/SettingsSection.vue'
 import SettingsToggle from './SettingsToggle.vue'
 import ChipGroup from './ChipGroup.vue'
@@ -27,6 +28,7 @@ import {
   type ClimateOnMode,
 } from '@/utils/climate'
 import { browserTimeZone } from '@/utils/dates'
+import StatusBadge from '@/components/StatusBadge.vue'
 import {
   WORKWEEK,
   commandLabel,
@@ -238,7 +240,7 @@ async function confirmDelete() {
           />
         </div>
         <p v-if="lastRun" class="climate-schedule-last-run text-sm">
-          <span class="badge" :class="`badge-${lastRun.variant}`">{{ lastRun.label }}</span>
+          <StatusBadge :variant="lastRun.variant">{{ lastRun.label }}</StatusBadge>
           <span v-if="lastRun.when" class="text-muted">{{ lastRun.when }}</span>
           <span v-if="lastRun.detail" class="climate-schedule-last-run__detail text-muted">
             {{ lastRun.detail }}
@@ -366,15 +368,13 @@ async function confirmDelete() {
     </form>
 
     <template #footer>
-      <template v-if="pendingDelete">
-        <span class="text-danger text-sm me-auto">{{ t('climateSchedules.deleteConfirm') }}</span>
-        <button class="btn btn-outline-secondary" :disabled="saving" @click="pendingDelete = false">
-          {{ t('common.cancel') }}
-        </button>
-        <button class="btn btn-danger" :disabled="saving" @click="confirmDelete">
-          {{ t('common.confirm') }}
-        </button>
-      </template>
+      <ConfirmFooter
+        v-if="pendingDelete"
+        :question="t('climateSchedules.deleteConfirm')"
+        :busy="saving"
+        @cancel="pendingDelete = false"
+        @confirm="confirmDelete"
+      />
       <template v-else>
         <button
           v-if="isEdit"

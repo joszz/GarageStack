@@ -8,6 +8,7 @@ import CommandFeedback from './CommandFeedback.vue'
 import BatteryHeatingScheduleForm from './BatteryHeatingScheduleForm.vue'
 import { useVehicleCommand } from '@/composables/useVehicleCommand'
 import { formatTimeOfDay } from '@/utils/format'
+import StatusBadge from '@/components/StatusBadge.vue'
 
 const { t } = useI18n()
 
@@ -53,9 +54,9 @@ const scheduleModeLabel = computed(() => {
         <font-awesome-icon icon="temperature-arrow-up" class="detail-list__item-icon" />
         <span class="detail-list__item-label">
           {{ t('vehicle.batteryHeating.title') }}
-          <span class="badge" :class="batteryHeating ? 'badge-info' : 'badge-secondary'">
+          <StatusBadge :variant="batteryHeating ? 'info' : 'secondary'">
             {{ batteryHeating ? t('common.on') : t('common.off') }}
-          </span>
+          </StatusBadge>
         </span>
         <CommandButton
           class="btn-sm"
@@ -79,9 +80,9 @@ const scheduleModeLabel = computed(() => {
         :label="t('vehicle.batteryHeating.schedule')"
       >
         <template #value>
-          <span class="badge" :class="scheduleMode !== 'off' ? 'badge-info' : 'badge-secondary'">
+          <StatusBadge :variant="scheduleMode !== 'off' ? 'info' : 'secondary'">
             {{ scheduleModeLabel }}
-          </span>
+          </StatusBadge>
         </template>
       </DetailListItem>
       <DetailListItem

@@ -2,6 +2,7 @@
 import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import DetailModal from './DetailModal.vue'
+import ConfirmFooter from './ConfirmFooter.vue'
 import { useMaintenanceStore } from '@/stores/maintenance'
 import { useVehicleStore } from '@/stores/vehicle'
 import type { MaintenanceItem } from '@/services/maintenanceApi'
@@ -13,6 +14,7 @@ import { useUnits } from '@/composables/useUnits'
 import { useMeasureField } from '@/composables/useMeasureField'
 import { useStoreAction } from '@/composables/useStoreAction'
 import { useTwoTapConfirm } from '@/composables/useTwoTapConfirm'
+import StatusBadge from '@/components/StatusBadge.vue'
 
 const props = defineProps<{
   open: boolean
@@ -105,9 +107,9 @@ async function confirmDelete() {
     <div v-if="currentItem">
       <section class="detail-modal__section maintenance-detail">
         <div class="maintenance-detail__summary">
-          <span class="badge" :class="`badge-${dueStatusVariant(currentItem.dueStatus)}`">
+          <StatusBadge :variant="dueStatusVariant(currentItem.dueStatus)">
             {{ t(`maintenance.status.${currentItem.dueStatus}`) }}
-          </span>
+          </StatusBadge>
           <span class="text-muted text-sm">{{ formatIntervalSummary(currentItem, t, units) }}</span>
         </div>
 
@@ -196,15 +198,13 @@ async function confirmDelete() {
     </div>
 
     <template #footer>
-      <template v-if="pendingDelete">
-        <span class="text-danger text-sm">{{ t('maintenance.deleteConfirm') }}</span>
-        <button class="btn btn-outline-secondary" @click="cancelDelete">
-          {{ t('common.cancel') }}
-        </button>
-        <button class="btn btn-danger" :disabled="deleting" @click="confirmDelete">
-          {{ t('common.confirm') }}
-        </button>
-      </template>
+      <ConfirmFooter
+        v-if="pendingDelete"
+        :question="t('maintenance.deleteConfirm')"
+        :busy="deleting"
+        @cancel="cancelDelete"
+        @confirm="confirmDelete"
+      />
       <template v-else>
         <span v-if="deleteError" class="text-danger text-sm" role="alert">{{ deleteError }}</span>
         <button class="btn btn-outline-secondary" @click="requestDelete">

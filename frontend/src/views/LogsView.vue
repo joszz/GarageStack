@@ -3,19 +3,27 @@ import '@/assets/logs.css'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ChipGroup from '@/components/ChipGroup.vue'
-import { logsApi, type LogLevel, type LogPage, type LogSourceName } from '@/services/logsApi'
-import { useErrorMessage } from '@/composables/useErrorMessage'
+import {
+  LOG_LEVELS,
+  logsApi,
+  type LogLevel,
+  type LogPage,
+  type LogSourceName,
+} from '@/services/logsApi'
+import { useAsyncRequest } from '@/composables/useAsyncRequest'
 import { formatDateTime } from '@/utils/format'
+import ViewHeader from '@/components/ViewHeader.vue'
+import type { BadgeVariant } from '@/utils/levels'
+import StatusBadge from '@/components/StatusBadge.vue'
 
 // The newest entries of the API's and the Worker's log files, to see what happened without a
 // shell on the server.
 const { t } = useI18n()
-const errorMessage = useErrorMessage()
 
 const LIVE_INTERVAL_MS = 10_000
 const SEARCH_DELAY_MS = 300
 // The levels worth starting from: Verbose is never written, and Fatal alone is next to nothing.
-const LEVEL_CHOICES: LogLevel[] = ['Debug', 'Information', 'Warning', 'Error']
+const LEVEL_CHOICES = LOG_LEVELS.filter((l) => l !== 'Verbose' && l !== 'Fatal')
 const ENTRY_TIME: Intl.DateTimeFormatOptions = {
   day: 'numeric',
   month: 'short',
@@ -29,8 +37,8 @@ const level = ref<LogLevel>('Information')
 const search = ref('')
 const live = ref(false)
 const page = ref<LogPage | null>(null)
-const loading = ref(false)
-const error = ref<string | null>(null)
+// The filters, the search box and live mode all read again, and may overlap: the newest wins.
+const { loading, error, run } = useAsyncRequest()
 
 const sourceOptions = computed(() =>
   (['all', 'api', 'worker'] as const).map((value) => ({
@@ -43,23 +51,14 @@ const workerMissing = computed(
   () => page.value?.sources.some((s) => s.name === 'worker' && !s.available) ?? false,
 )
 
-async function load() {
-  loading.value = true
-  try {
-    page.value = await logsApi.recent({
-      source: source.value,
-      level: level.value,
-      search: search.value.trim(),
-    })
-    error.value = null
-  } catch (e) {
-    error.value = errorMessage(e)
-  } finally {
-    loading.value = false
-  }
+function load() {
+  return run(
+    () => logsApi.recent({ source: source.value, level: level.value, search: search.value.trim() }),
+    (result) => (page.value = result),
+  )
 }
 
-function levelVariant(entryLevel: LogLevel): string {
+function levelVariant(entryLevel: LogLevel): BadgeVariant {
   if (entryLevel === 'Error' || entryLevel === 'Fatal') return 'danger'
   if (entryLevel === 'Warning') return 'warning'
   if (entryLevel === 'Information') return 'info'
@@ -74,25 +73,36 @@ watch(search, () => {
   searchTimer = setTimeout(load, SEARCH_DELAY_MS)
 })
 
-// Live: read again every few seconds, for watching what the services do right now.
+// Live: read again every few seconds, for watching what the services do right now. A tab out
+// of view asks nothing, and catches up the moment it shows again.
 let liveTimer: ReturnType<typeof setInterval> | undefined
-watch(live, (on) => {
+function followLive() {
   clearInterval(liveTimer)
-  if (on) liveTimer = setInterval(load, LIVE_INTERVAL_MS)
-})
+  if (live.value && !document.hidden) liveTimer = setInterval(load, LIVE_INTERVAL_MS)
+}
+watch(live, followLive)
 
-onMounted(load)
+function onVisibilityChange() {
+  if (!live.value) return
+  if (!document.hidden) void load()
+  followLive()
+}
+
+onMounted(() => {
+  void load()
+  document.addEventListener('visibilitychange', onVisibilityChange)
+})
 onUnmounted(() => {
   clearTimeout(searchTimer)
   clearInterval(liveTimer)
+  document.removeEventListener('visibilitychange', onVisibilityChange)
 })
 </script>
 
 <template>
   <div class="view-container">
-    <div class="view-header">
-      <h1>{{ t('logs.title') }}</h1>
-      <div class="view-header__actions">
+    <ViewHeader :title="t('logs.title')" :subtitle="t('logs.subtitle')">
+      <template #actions>
         <button
           class="btn btn-sm"
           :class="live ? 'btn-success' : 'btn-outline-secondary'"
@@ -104,10 +114,8 @@ onUnmounted(() => {
         <button class="btn btn-primary btn-sm" :disabled="loading" @click="load">
           <font-awesome-icon icon="rotate" :spin="loading" />{{ t('logs.refresh') }}
         </button>
-      </div>
-    </div>
-
-    <p class="text-muted view-subtitle">{{ t('logs.subtitle') }}</p>
+      </template>
+    </ViewHeader>
 
     <div class="logs-filters">
       <ChipGroup v-model="source" :options="sourceOptions" :group-label="t('logs.source')" />
@@ -134,9 +142,9 @@ onUnmounted(() => {
     <ol v-if="page && page.entries.length > 0" class="logs-list">
       <li v-for="(entry, i) in page.entries" :key="`${entry.time}-${i}`" class="logs-entry">
         <div class="logs-entry__meta">
-          <span class="badge" :class="`badge-${levelVariant(entry.level)}`">{{
+          <StatusBadge :variant="levelVariant(entry.level)">{{
             t(`logs.levels.${entry.level}`)
-          }}</span>
+          }}</StatusBadge>
           <span>{{ t(`logs.sources.${entry.source}`) }}</span>
           <time :datetime="entry.time">{{ formatDateTime(entry.time, ENTRY_TIME) }}</time>
         </div>

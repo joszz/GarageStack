@@ -18,6 +18,7 @@ import SkeletonCarDiagram from '@/components/SkeletonCarDiagram.vue'
 import SkeletonLocationMap from '@/components/SkeletonLocationMap.vue'
 import { useUnits } from '@/composables/useUnits'
 import { mayBurnFuel } from '@/utils/vehicleType'
+import ViewHeader from '@/components/ViewHeader.vue'
 
 // Only edit mode drags cards around, and the drag-and-drop library is the size of every card on
 // this page together, so it loads when the layout editor opens rather than with the dashboard.
@@ -169,9 +170,8 @@ onUnmounted(() => {
 
 <template>
   <div class="view-container">
-    <div class="view-header">
-      <h1>{{ t('dashboard.title') }}</h1>
-      <div class="view-header__actions">
+    <ViewHeader :title="t('dashboard.title')">
+      <template #actions>
         <span v-if="store.loading && status" class="text-muted">
           <font-awesome-icon icon="spinner" spin />
           {{ t('common.refreshing') }}
@@ -184,8 +184,8 @@ onUnmounted(() => {
           <font-awesome-icon :icon="editMode ? 'check' : 'pen-to-square'" />
           {{ editMode ? t('dashboard.doneEditing') : t('dashboard.editLayout') }}
         </button>
-      </div>
-    </div>
+      </template>
+    </ViewHeader>
 
     <!-- Edit mode: same grid with draggable card-slot wrappers -->
     <template v-if="editMode">

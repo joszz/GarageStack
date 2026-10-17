@@ -1,9 +1,5 @@
 /* ── Period ───────────────────────────────────────────────── */
 
-.stats-period__shown {
-  margin: 0.15rem 0 0;
-}
-
 .stats-period__custom {
   display: flex;
   flex-wrap: wrap;

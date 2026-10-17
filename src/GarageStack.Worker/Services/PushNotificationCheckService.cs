@@ -177,8 +177,7 @@ public class PushNotificationCheckService(
 
             // VehicleId is included in the DB check so one vehicle's alert cannot suppress
             // another vehicle's same-category alert.
-            var shouldNotify = await _cooldownGate.ShouldNotifyAsync(vehicle.Vin, key, cutoff =>
-                notifications.WasSentSinceAsync(key, vehicle.Id, cutoff, ct));
+            var shouldNotify = await _cooldownGate.ShouldNotifyAsync(vehicle.Vin, vehicle.Id, key, notifications, ct);
             if (!shouldNotify) continue;
 
             await pushSender.SendToAllAsync(title, body, ct, key, vehicle.Id);

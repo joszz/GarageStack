@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { LCircle, LMap, LMarker } from '@vue-leaflet/vue-leaflet'
 import type { LatLng as LeafletLatLng, LeafletMouseEvent } from 'leaflet'
 import DetailModal from './DetailModal.vue'
+import ConfirmFooter from './ConfirmFooter.vue'
 import ChipGroup from './ChipGroup.vue'
 import RangeControl from './RangeControl.vue'
 import { useCommutePlacesStore } from '@/stores/commutePlaces'
@@ -284,15 +285,13 @@ function close() {
           <font-awesome-icon :icon="COMMUTE_PLACE_ICONS.work" />{{ t('tripLog.places.addWork') }}
         </button>
       </template>
-      <template v-else-if="pendingRemove">
-        <span class="text-danger text-sm">{{ t('tripLog.places.removeConfirm') }}</span>
-        <button type="button" class="btn btn-outline-secondary" @click="pendingRemove = false">
-          {{ t('common.cancel') }}
-        </button>
-        <button type="button" class="btn btn-danger" :disabled="store.loading" @click="remove">
-          {{ t('common.confirm') }}
-        </button>
-      </template>
+      <ConfirmFooter
+        v-else-if="pendingRemove"
+        :question="t('tripLog.places.removeConfirm')"
+        :busy="store.loading"
+        @cancel="pendingRemove = false"
+        @confirm="remove"
+      />
       <template v-else>
         <button
           v-if="draft.id !== undefined"

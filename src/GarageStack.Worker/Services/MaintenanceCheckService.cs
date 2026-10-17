@@ -51,8 +51,8 @@ public class MaintenanceCheckService(
                 var alert = BuildAlert(item, result, strings);
                 if (alert is null) continue;
 
-                var shouldNotify = await _cooldownGate.ShouldNotifyAsync(vehicle.Vin, alert.Value.Category, cutoff =>
-                    notifications.WasSentSinceAsync(alert.Value.Category, vehicle.Id, cutoff, ct));
+                var shouldNotify = await _cooldownGate.ShouldNotifyAsync(
+                    vehicle.Vin, vehicle.Id, alert.Value.Category, notifications, ct);
                 if (!shouldNotify) continue;
 
                 await pushSender.SendToAllAsync(alert.Value.Title, alert.Value.Body, ct, alert.Value.Category, vehicle.Id);

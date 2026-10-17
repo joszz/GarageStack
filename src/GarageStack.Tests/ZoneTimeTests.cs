@@ -38,4 +38,12 @@ public class ZoneTimeTests
     {
         Assert.Equal(new DateTime(2026, 10, 15, 22, 0, 0, DateTimeKind.Utc), ZoneTime.StartOfDay(new DateOnly(2026, 10, 16), Amsterdam));
     }
+
+    // 22:30 UTC on 15 October is already the 16th in Amsterdam (CEST, UTC+2).
+    [Fact]
+    public void DateOf_IsTheDateOnTheLocalClock()
+    {
+        Assert.Equal(new DateOnly(2026, 10, 16), ZoneTime.DateOf(new DateTime(2026, 10, 15, 22, 30, 0, DateTimeKind.Utc), Amsterdam));
+        Assert.Equal(new DateOnly(2026, 10, 15), ZoneTime.DateOf(new DateTime(2026, 10, 15, 21, 59, 0, DateTimeKind.Utc), Amsterdam));
+    }
 }

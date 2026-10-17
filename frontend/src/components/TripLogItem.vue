@@ -8,7 +8,7 @@ import {
   type TripLogEntry,
   type TripPurpose,
 } from '@/services/tripLogApi'
-import { formatDate, formatTime } from '@/utils/format'
+import { DAY_MONTH, formatDate, formatTime } from '@/utils/format'
 import { endLabel, loggedDistanceKm, odometerDistanceKm, PURPOSE_ICONS } from '@/utils/tripLog'
 import { COMMUTE_PLACE_ICONS, commutePlaceAt } from '@/utils/commutePlaces'
 import type { CommutePlace } from '@/services/commutePlacesApi'
@@ -37,7 +37,7 @@ const { t } = useI18n()
 const units = useUnits()
 
 const dateLabel = computed(() =>
-  formatDate(props.entry.startedAt, { weekday: 'short', day: 'numeric', month: 'short' }),
+  formatDate(props.entry.startedAt, { weekday: 'short', ...DAY_MONTH }),
 )
 
 const timeLabel = computed(

@@ -46,7 +46,7 @@ public sealed class DailyStatsBuilder(TimeZoneInfo zone, DateOnly from, DateOnly
     public void Add(TelemetryHistoryPoint reading)
     {
         var utc = DateTime.SpecifyKind(reading.RecordedAt, DateTimeKind.Utc);
-        var date = DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(utc, zone));
+        var date = ZoneTime.DateOf(utc, zone);
         if (date < from || date > to) return;
 
         if (!_days.TryGetValue(date, out var day)) _days[date] = day = new Day();

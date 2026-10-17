@@ -33,17 +33,17 @@ describe('prefersMapApp', () => {
   afterEach(() => vi.unstubAllGlobals())
 
   it('is true on a device with a coarse pointer', () => {
-    vi.stubGlobal('window', { matchMedia: () => ({ matches: true }) })
+    vi.stubGlobal('matchMedia', () => ({ matches: true }))
     expect(prefersMapApp()).toBe(true)
   })
 
   it('is false on a desktop, where a geo: link leads nowhere', () => {
-    vi.stubGlobal('window', { matchMedia: () => ({ matches: false }) })
+    vi.stubGlobal('matchMedia', () => ({ matches: false }))
     expect(prefersMapApp()).toBe(false)
   })
 
   it('is false where matchMedia is missing rather than throwing', () => {
-    vi.stubGlobal('window', {})
+    vi.stubGlobal('matchMedia', undefined)
     expect(prefersMapApp()).toBe(false)
   })
 })

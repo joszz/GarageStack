@@ -1,3 +1,5 @@
+using GarageStack.Core.Interfaces;
+
 namespace GarageStack.Core.Helpers;
 
 /// <summary>
@@ -56,6 +58,14 @@ public sealed class NotificationCooldownGate(TimeSpan cooldown)
     /// </summary>
     public Task<bool> ShouldNotifyAsync(string vin, string category, Func<DateTime, Task<bool>> wasRecentlySentSinceAsync) =>
         ShouldNotifyAsync(vin, category, () => wasRecentlySentSinceAsync(DateTime.UtcNow - Cooldown));
+
+    /// <summary>
+    /// The question every Worker alert asks: the gate, backed by the notification history of this
+    /// vehicle. The category is named once, so the history is never asked about another one.
+    /// </summary>
+    public Task<bool> ShouldNotifyAsync(
+        string vin, int vehicleId, string category, INotificationRepository notifications, CancellationToken ct) =>
+        ShouldNotifyAsync(vin, category, cutoff => notifications.WasSentSinceAsync(category, vehicleId, cutoff, ct));
 
     // Called with _lock already held. An entry past Cooldown provides no further dedup value
     // (the TryGetValue check above would ignore it anyway), so this is a pure memory-cleanup

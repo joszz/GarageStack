@@ -33,6 +33,7 @@ import { isPhoneViewport } from '@/utils/viewport'
 import { useUnits } from '@/composables/useUnits'
 import { burnsFuel, plugsIn } from '@/utils/vehicleType'
 import { latLngsOf } from '@/utils/geo'
+import ViewHeader from '@/components/ViewHeader.vue'
 
 const { t } = useI18n()
 const units = useUnits()
@@ -326,9 +327,8 @@ onMounted(async () => {
 
 <template>
   <div class="view-container view-container--map">
-    <div class="view-header">
-      <h1>{{ t('nav.map') }}</h1>
-      <div class="view-header__actions">
+    <ViewHeader :title="t('nav.map')">
+      <template #actions>
         <!-- Filters narrow what the map draws; the layer panel beside it decides what it draws
              at all. -->
         <MapFilterPanel
@@ -350,8 +350,8 @@ onMounted(async () => {
           <font-awesome-icon icon="location-dot" />
           {{ t('trips.findCar') }}
         </button>
-      </div>
-    </div>
+      </template>
+    </ViewHeader>
 
     <div class="map-layout">
       <TripSidebar

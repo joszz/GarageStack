@@ -48,7 +48,7 @@ public class TyreTrendCheckService(
 
         // Days by the server's clock: over two weeks, where a day starts makes no difference.
         var zone = time.LocalTimeZone;
-        var today = DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(time.GetUtcNow().UtcDateTime, zone));
+        var today = ZoneTime.DateOf(time.GetUtcNow().UtcDateTime, zone);
         var first = today.AddDays(-(TyreTrend.WindowDays - 1));
 
         foreach (var vehicle in vehicles)
@@ -56,8 +56,8 @@ public class TyreTrendCheckService(
             var days = await telemetry.GetDailyStatsAsync(vehicle.Id, first, today, zone, today, ct);
             if (BuildAlert(TyreTrend.Measure(days), thresholds.DropBar, strings) is not { } alert) continue;
 
-            var shouldNotify = await _cooldownGate.ShouldNotifyAsync(vehicle.Vin, NotificationCategories.SlowPuncture, cutoff =>
-                notifications.WasSentSinceAsync(NotificationCategories.SlowPuncture, vehicle.Id, cutoff, ct));
+            var shouldNotify = await _cooldownGate.ShouldNotifyAsync(
+                vehicle.Vin, vehicle.Id, NotificationCategories.SlowPuncture, notifications, ct);
             if (!shouldNotify) continue;
 
             await pushSender.SendToAllAsync(alert.Title, alert.Body, ct, NotificationCategories.SlowPuncture, vehicle.Id);

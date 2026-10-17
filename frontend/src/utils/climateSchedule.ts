@@ -4,7 +4,7 @@ import type {
   IsoWeekday,
 } from '@/services/climateScheduleApi'
 import { MS_PER_DAY, startOfLocalDay } from '@/utils/dates'
-import { formatDate, formatTime } from '@/utils/format'
+import { DAY_MONTH, formatDate, formatTime } from '@/utils/format'
 import type { UnitFormatter } from '@/utils/units'
 
 type Translate = (key: string, named?: Record<string, unknown>) => string
@@ -47,7 +47,7 @@ export function runLabel(iso: string, now: Date, t: Translate): string {
   if (days === 1) return t('climateSchedules.when.tomorrow', { time })
   if (days === -1) return t('climateSchedules.when.yesterday', { time })
   if (days > 1 && days < 7) return `${formatDate(at, { weekday: 'long' })} ${time}`
-  return `${formatDate(at, { day: 'numeric', month: 'short' })} ${time}`
+  return `${formatDate(at, DAY_MONTH)} ${time}`
 }
 
 /**
@@ -62,7 +62,7 @@ export function runParts(iso: string, now: Date): { time: string; day: string | 
       ? null
       : days > 0 && days < 7
         ? formatDate(at, { weekday: 'short' })
-        : formatDate(at, { day: 'numeric', month: 'short' })
+        : formatDate(at, DAY_MONTH)
   // No leading zero: every character counts on the card.
   return { time: formatTime(at, { hour: 'numeric', minute: '2-digit' }), day }
 }
