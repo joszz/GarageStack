@@ -161,6 +161,13 @@ function closeMenu() {
   menuOpen.value = false
 }
 
+// The route watcher below closes the menu after a navigation, but a link to the page already open
+// navigates nowhere: tapping the brand on the dashboard, or the current page's entry, left the
+// drawer open. Any link in it closes it now.
+function closeMenuOnLink(event: MouseEvent) {
+  if (event.target instanceof Element && event.target.closest('a')) closeMenu()
+}
+
 // Escape closes the mobile menu and puts focus back on the button that opened it.
 const hamburger = ref<HTMLButtonElement | null>(null)
 useEscapeKey(
@@ -224,7 +231,12 @@ watch(
     <!-- Sidebar + main body (fills space between topbar and footer) -->
     <div class="app-body">
       <!-- Sidebar / drawer -->
-      <nav id="app-sidebar" class="sidebar" :class="{ 'sidebar--open': menuOpen }">
+      <nav
+        id="app-sidebar"
+        class="sidebar"
+        :class="{ 'sidebar--open': menuOpen }"
+        @click="closeMenuOnLink"
+      >
         <RouterLink to="/" class="sidebar-brand">
           <font-awesome-icon icon="car" />
           <span>GarageStack</span>
