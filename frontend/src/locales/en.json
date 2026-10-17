@@ -149,7 +149,7 @@
       "infoLightsTitle": "Lights",
       "infoLightsDesc": "Light beam shapes are drawn when high beam, low beam or sidelights are active.",
       "infoLevelTitle": "Fuel & Battery",
-      "infoLevelDesc": "When data is available, the fuel level percentage appears at the front and the EV battery percentage appears at the rear of the diagram.",
+      "infoLevelDesc": "When data is available, the fuel level percentage appears at the front and the EV battery percentage appears at the rear of the diagram. Tap either one, or a tyre's pressure, to see its last 30 days.",
       "infoChargingTitle": "Charging",
       "infoChargingDesc": "A cable is shown below the battery indicator when the charger is connected. When actively charging, the cable animates with flowing dashes to show energy entering the car.",
       "tyrePosition": {
@@ -952,6 +952,22 @@
     "keepingUp": "Keeping up",
     "noTrend": "Not enough readings yet: the trend needs a week in which all four tyres reported.",
     "noData": "No tyre pressures reported in the last 30 days."
+  },
+  "levelHistory": {
+    "open": "{level}: {reading}. Show history",
+    "nowTitle": "Now",
+    "fuel": {
+      "title": "Fuel history",
+      "chartDesc": "The tank's average level per day over the last {days} days.",
+      "noData": "No fuel level reported in the last {days} days.",
+      "usageDesc": "Fuel burned per day, from the trip computer's own counter."
+    },
+    "battery": {
+      "title": "Battery history",
+      "chartDesc": "The battery's average charge level per day over the last {days} days.",
+      "noData": "No battery level reported in the last {days} days.",
+      "usageDesc": "Energy drawn from the battery per day, from the trip computer's own counter."
+    }
   },
   "logs": {
     "title": "Logs",

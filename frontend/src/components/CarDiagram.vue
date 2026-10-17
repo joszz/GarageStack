@@ -9,7 +9,9 @@ import SpeedGauge from './carDiagram/SpeedGauge.vue'
 import TyreIndicators from './carDiagram/TyreIndicators.vue'
 import TyreLabels from './carDiagram/TyreLabels.vue'
 import TyreHistoryModal from './TyreHistoryModal.vue'
+import LevelHistoryModal from './LevelHistoryModal.vue'
 import { CAR_SILHOUETTE_VIEWBOX, CAR_SILHOUETTE_MARKUP } from '@/assets/carSilhouette'
+import type { LevelKind } from '@/composables/useStatisticsCharts'
 import { useTyrePressureThresholds } from '@/composables/useTyrePressureThresholds'
 import { useUnits } from '@/composables/useUnits'
 import { evLevelVariant, fuelLevelVariant, type LevelVariant } from '@/utils/levels'
@@ -18,8 +20,16 @@ const { t } = useI18n()
 const tyreThresholds = useTyrePressureThresholds()
 const units = useUnits()
 
-// Tapping a tyre's pressure opens its history.
+// Tapping a tyre's pressure opens its history, and tapping the fuel or battery level its own.
+// The level stays set after closing, so the dialog keeps its title while it fades out.
 const tyreHistoryOpen = ref(false)
+const levelHistoryOpen = ref(false)
+const levelHistory = ref<LevelKind>('fuel')
+
+function openLevelHistory(level: LevelKind) {
+  levelHistory.value = level
+  levelHistoryOpen.value = true
+}
 
 const props = defineProps<{
   frontLeft: number | null
@@ -301,6 +311,7 @@ const motionBlurAmount = computed(() => {
             :label="t('vehicle.fuel')"
             :percent="fuelLevel.percent"
             :variant="fuelLevel.variant"
+            @select="openLevelHistory('fuel')"
           />
 
           <!-- EV battery (rear) -->
@@ -315,6 +326,7 @@ const motionBlurAmount = computed(() => {
             :label="t('vehicle.evSoc')"
             :percent="batteryLevel.percent"
             :variant="batteryLevel.variant"
+            @select="openLevelHistory('battery')"
           />
 
           <SpeedGauge v-if="isMoving" :speed-kmh="speed ?? 0" />
@@ -322,5 +334,10 @@ const motionBlurAmount = computed(() => {
       </div>
     </div>
     <TyreHistoryModal :open="tyreHistoryOpen" @close="tyreHistoryOpen = false" />
+    <LevelHistoryModal
+      :open="levelHistoryOpen"
+      :level="levelHistory"
+      @close="levelHistoryOpen = false"
+    />
   </CardInfoWrap>
 </template>

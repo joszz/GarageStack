@@ -53,6 +53,39 @@ const TYRE_SERIES: {
   { position: 'rearRight', read: (p) => p.tyrePressureRearRight, color: '#ec4899' },
 ]
 
+/** A level the car reports in percent: the fuel tank's, or the traction battery's charge. */
+export type LevelKind = 'fuel' | 'battery'
+
+// Each level's line, in the colours every chart draws it in, filled where it is the only line.
+const LEVEL_SERIES: Record<
+  LevelKind,
+  {
+    labelKey: string
+    icon: string
+    read: (d: DailyStat) => number | null
+    color: string
+    fill: string
+  }
+> = {
+  battery: {
+    labelKey: 'vehicle.evSoc',
+    icon: 'bolt',
+    read: (d) => d.evSocPercent,
+    color: '#10b981',
+    fill: 'rgba(16,185,129,0.1)',
+  },
+  fuel: {
+    labelKey: 'vehicle.fuel',
+    icon: 'gas-pump',
+    read: (d) => d.fuelLevelPercent,
+    color: '#3b82f6',
+    fill: 'rgba(59,130,246,0.1)',
+  },
+}
+
+// A level's axis runs the whole way, so a quarter tank looks like one.
+const PERCENT_AXIS = { min: 0, max: 100 }
+
 // Every line series shares the same shape and styling; only label, data and colour differ.
 function lineDataset(label: string, data: (number | null)[], color: string, fillColor?: string) {
   return {
@@ -69,28 +102,12 @@ function lineDataset(label: string, data: (number | null)[], color: string, fill
 }
 
 /**
- * The statistics view's charts, one point per day, week or month of the period: the traction
- * battery, the tyres, a hybrid's battery against its tank, and the energy (or fuel) used. Levels
- * average over a point's days; energy adds up. Each carries whether it applies to this drivetrain
- * and whether there is anything to draw yet.
+ * What every chart of a period's points shares: each point's name, in full for the tooltip and
+ * briefly for the axis, the axes, legend and theme colours, and the line a level draws.
  */
-export function useStatisticsCharts(
-  buckets: Ref<StatsBucket[]>,
-  grouping: Ref<StatsGrouping>,
-  vehicleType: Ref<VehicleType>,
-): Ref<ChartDef[]> {
+function useChartFrame(buckets: Ref<StatsBucket[]>, grouping: Ref<StatsGrouping>) {
   const { t } = useI18n()
-  const units = useUnits()
   const chartTheme = useChartTheme()
-
-  const hasLargeEv = computed(() => mayPlugIn(vehicleType.value))
-  const isHybrid = computed(() => burnsFuel(vehicleType.value))
-  // Every known drivetrain counts its daily energy: a plain hybrid in litres of fuel, a plug-in
-  // in kWh. Only an undetected car is left out, since its counter could be either.
-  const countsDailyEnergy = computed(
-    () => burnsFuel(vehicleType.value) || plugsIn(vehicleType.value),
-  )
-  const hasData = computed(() => buckets.value.length > 0)
 
   // The tooltip names a point in full: the day, the week it starts, or the month.
   const labels = computed(() =>
@@ -105,70 +122,6 @@ export function useStatisticsCharts(
     const options = bucketTickFormat(buckets.value, grouping.value)
     return buckets.value.map((b) => formatDate(b.start, options))
   })
-
-  const evChartData = computed(() => ({
-    labels: labels.value,
-    datasets: [
-      lineDataset(
-        `${t('vehicle.evSoc')} (%)`,
-        bucketAverages(buckets.value, (d) => d.evSocPercent),
-        '#10b981',
-        'rgba(16,185,129,0.1)',
-      ),
-    ],
-  }))
-
-  const tyreChartData = computed(() => {
-    const u = units.value
-    return {
-      labels: labels.value,
-      datasets: TYRE_SERIES.map(({ position, read, color }) =>
-        lineDataset(
-          `${t(`vehicle.diagram.tyrePositionShort.${position}`)} (${u.symbol('pressure')})`,
-          bucketAverages(buckets.value, read).map((bar) =>
-            bar === null ? null : u.convert('pressure', bar),
-          ),
-          color,
-        ),
-      ),
-    }
-  })
-
-  const hybridSocChartData = computed(() => ({
-    labels: labels.value,
-    datasets: [
-      lineDataset(
-        `${t('vehicle.evSoc')} (%)`,
-        bucketAverages(buckets.value, (d) => d.evSocPercent),
-        '#10b981',
-      ),
-      lineDataset(
-        `${t('vehicle.fuel')} (%)`,
-        bucketAverages(buckets.value, (d) => d.fuelLevelPercent),
-        '#3b82f6',
-      ),
-    ],
-  }))
-
-  // The same counter, read in the unit this drivetrain actually reports: kWh out of the traction
-  // battery on a plug-in car, litres of fuel on a plain hybrid. See utils/energy.
-  const reportsFuelCounter = computed(() => energyUnit(vehicleType.value) === 'litres')
-
-  const dailyEnergyChartData = computed(() => ({
-    labels: labels.value,
-    datasets: [
-      {
-        label: reportsFuelCounter.value ? units.value.symbol('volume') : t('common.kwh'),
-        data: bucketTotals(buckets.value, (d) => d.counterTotal).map((total) => {
-          const fuel = reportsFuelCounter.value ? litres(total) : null
-          const used = fuel !== null ? units.value.convert('volume', fuel) : total
-          return used !== null ? roundTo2(used) : null
-        }),
-        borderColor: '#f59e0b',
-        backgroundColor: 'rgba(245,158,11,0.7)',
-      },
-    ],
-  }))
 
   // All charts share the same responsive/axis setup; they differ only in aspect ratio, legend
   // and y-axis range. The locale makes axis and tooltip numbers read like the rest of the page,
@@ -200,7 +153,90 @@ export function useStatisticsCharts(
     }
   }
 
-  const percentOptions = computed(() => chartOptions(2.6, false, { min: 0, max: 100 }))
+  function levelDataset(level: LevelKind, filled: boolean) {
+    const series = LEVEL_SERIES[level]
+    return lineDataset(
+      `${t(series.labelKey)} (%)`,
+      bucketAverages(buckets.value, series.read),
+      series.color,
+      filled ? series.fill : undefined,
+    )
+  }
+
+  return { labels, chartOptions, levelDataset }
+}
+
+/**
+ * The statistics view's charts, one point per day, week or month of the period: the traction
+ * battery, the tyres, a hybrid's battery against its tank, and the energy (or fuel) used. Levels
+ * average over a point's days; energy adds up. Each carries whether it applies to this drivetrain
+ * and whether there is anything to draw yet.
+ */
+export function useStatisticsCharts(
+  buckets: Ref<StatsBucket[]>,
+  grouping: Ref<StatsGrouping>,
+  vehicleType: Ref<VehicleType>,
+): Ref<ChartDef[]> {
+  const { t } = useI18n()
+  const units = useUnits()
+  const { labels, chartOptions, levelDataset } = useChartFrame(buckets, grouping)
+
+  const hasLargeEv = computed(() => mayPlugIn(vehicleType.value))
+  const isHybrid = computed(() => burnsFuel(vehicleType.value))
+  // Every known drivetrain counts its daily energy: a plain hybrid in litres of fuel, a plug-in
+  // in kWh. Only an undetected car is left out, since its counter could be either.
+  const countsDailyEnergy = computed(
+    () => burnsFuel(vehicleType.value) || plugsIn(vehicleType.value),
+  )
+  const hasData = computed(() => buckets.value.length > 0)
+
+  const evChartData = computed(() => ({
+    labels: labels.value,
+    datasets: [levelDataset('battery', true)],
+  }))
+
+  const tyreChartData = computed(() => {
+    const u = units.value
+    return {
+      labels: labels.value,
+      datasets: TYRE_SERIES.map(({ position, read, color }) =>
+        lineDataset(
+          `${t(`vehicle.diagram.tyrePositionShort.${position}`)} (${u.symbol('pressure')})`,
+          bucketAverages(buckets.value, read).map((bar) =>
+            bar === null ? null : u.convert('pressure', bar),
+          ),
+          color,
+        ),
+      ),
+    }
+  })
+
+  const hybridSocChartData = computed(() => ({
+    labels: labels.value,
+    datasets: [levelDataset('battery', false), levelDataset('fuel', false)],
+  }))
+
+  // The same counter, read in the unit this drivetrain actually reports: kWh out of the traction
+  // battery on a plug-in car, litres of fuel on a plain hybrid. See utils/energy.
+  const reportsFuelCounter = computed(() => energyUnit(vehicleType.value) === 'litres')
+
+  const dailyEnergyChartData = computed(() => ({
+    labels: labels.value,
+    datasets: [
+      {
+        label: reportsFuelCounter.value ? units.value.symbol('volume') : t('common.kwh'),
+        data: bucketTotals(buckets.value, (d) => d.counterTotal).map((total) => {
+          const fuel = reportsFuelCounter.value ? litres(total) : null
+          const used = fuel !== null ? units.value.convert('volume', fuel) : total
+          return used !== null ? roundTo2(used) : null
+        }),
+        borderColor: '#f59e0b',
+        backgroundColor: 'rgba(245,158,11,0.7)',
+      },
+    ],
+  }))
+
+  const percentOptions = computed(() => chartOptions(2.6, false, PERCENT_AXIS))
   const pressureOptions = computed(() => {
     const u = units.value
     return chartOptions(
@@ -209,7 +245,7 @@ export function useStatisticsCharts(
       roundedRange(u.convert('pressure', 1.5), u.convert('pressure', 3.5)),
     )
   })
-  const hybridSocOptions = computed(() => chartOptions(2.6, true, { min: 0, max: 100 }))
+  const hybridSocOptions = computed(() => chartOptions(2.6, true, PERCENT_AXIS))
   const kwhOptions = computed(() => chartOptions(2.6, false, { min: 0 }))
 
   return computed((): ChartDef[] => [
@@ -266,4 +302,36 @@ export function useStatisticsCharts(
       options: kwhOptions.value,
     },
   ])
+}
+
+/** One level's chart, and whether the car reported any of that level in the period. */
+export type LevelChart = Pick<ChartDef, 'title' | 'icon' | 'type' | 'data' | 'options'> & {
+  hasReadings: boolean
+}
+
+/**
+ * The tank's or the battery's level on its own, one point per day, week or month, drawn as the
+ * statistics page draws it: what the car diagram's level dialog shows.
+ */
+export function useLevelChart(
+  buckets: Ref<StatsBucket[]>,
+  grouping: Ref<StatsGrouping>,
+  level: Ref<LevelKind>,
+): Ref<LevelChart> {
+  const { t } = useI18n()
+  const { labels, chartOptions, levelDataset } = useChartFrame(buckets, grouping)
+  const options = computed(() => chartOptions(2.6, false, PERCENT_AXIS))
+
+  return computed((): LevelChart => {
+    const series = LEVEL_SERIES[level.value]
+    const dataset = levelDataset(level.value, true)
+    return {
+      title: t(series.labelKey),
+      icon: series.icon,
+      type: 'line',
+      data: { labels: labels.value, datasets: [dataset] },
+      options: options.value,
+      hasReadings: dataset.data.some((v) => v !== null),
+    }
+  })
 }

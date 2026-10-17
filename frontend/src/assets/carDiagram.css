@@ -205,13 +205,16 @@
   cursor: pointer;
 }
 
-/* Each label opens the tyre history. */
+/* Each tyre label opens the tyre history, and each level badge (below) its own history. */
 .tyre-label:hover,
-.tyre-label:focus-visible {
+.tyre-label:focus-visible,
+.diagram-level:hover,
+.diagram-level:focus-visible {
   background: var(--color-surface-2);
 }
 
-.tyre-label:focus-visible {
+.tyre-label:focus-visible,
+.diagram-level:focus-visible {
   outline: var(--focus-ring);
   outline-offset: 2px;
 }
@@ -283,6 +286,7 @@
   white-space: nowrap;
   pointer-events: auto;
   user-select: none;
+  cursor: pointer;
 }
 
 /* The level's band, as on the dashboard's cards (utils/levels). */

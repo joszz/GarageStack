@@ -149,7 +149,7 @@
       "infoLightsTitle": "Verlichting",
       "infoLightsDesc": "Lichtbundelvormen worden getekend wanneer groot licht, dimlicht of stadslichten actief zijn.",
       "infoLevelTitle": "Brandstof & Accu",
-      "infoLevelDesc": "Wanneer gegevens beschikbaar zijn, toont het diagram het brandstofpercentage aan de voorkant en het EV-accupercentage aan de achterkant.",
+      "infoLevelDesc": "Wanneer gegevens beschikbaar zijn, toont het diagram het brandstofpercentage aan de voorkant en het EV-accupercentage aan de achterkant. Tik op een van beide, of op de spanning van een band, voor de afgelopen 30 dagen.",
       "infoChargingTitle": "Laden",
       "infoChargingDesc": "Er wordt een kabel weergegeven onder de accu-indicator wanneer de lader is aangesloten. Als er actief geladen wordt, animeert de kabel met bewegende streepjes om de energiestroom in de auto te tonen.",
       "tyrePosition": {
@@ -952,6 +952,22 @@
     "keepingUp": "Houdt bij",
     "noTrend": "Nog te weinig metingen: de trend heeft een week nodig waarin alle vier de banden gemeld hebben.",
     "noData": "Geen bandenspanning gemeld in de afgelopen 30 dagen."
+  },
+  "levelHistory": {
+    "open": "{level}: {reading}. Toon verloop",
+    "nowTitle": "Nu",
+    "fuel": {
+      "title": "Verloop brandstof",
+      "chartDesc": "Het gemiddelde niveau van de tank per dag, over de afgelopen {days} dagen.",
+      "noData": "Geen brandstofniveau gemeld in de afgelopen {days} dagen.",
+      "usageDesc": "Verbruikte brandstof per dag, volgens de eigen teller van de boordcomputer."
+    },
+    "battery": {
+      "title": "Verloop accu",
+      "chartDesc": "Het gemiddelde laadniveau van de accu per dag, over de afgelopen {days} dagen.",
+      "noData": "Geen accuniveau gemeld in de afgelopen {days} dagen.",
+      "usageDesc": "Energie uit de accu per dag, volgens de eigen teller van de boordcomputer."
+    }
   },
   "logs": {
     "title": "Logboek",

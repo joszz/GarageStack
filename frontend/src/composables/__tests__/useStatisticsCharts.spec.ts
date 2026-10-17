@@ -9,7 +9,11 @@ import type { DailyStat } from '@/services/vehicleApi'
 import type { VehicleType } from '@/stores/vehicle'
 import { useUiSettingsStore } from '@/stores/settingsUi'
 import type { StatsBucket } from '@/utils/statistics'
-import { useStatisticsCharts } from '@/composables/useStatisticsCharts'
+import {
+  useLevelChart,
+  useStatisticsCharts,
+  type LevelKind,
+} from '@/composables/useStatisticsCharts'
 
 function day(date: string, values: Partial<DailyStat> = {}): DailyStat {
   return {
@@ -153,5 +157,41 @@ describe('useStatisticsCharts', () => {
 
     expect(frontLeft.label).toBe('FL (psi)')
     expect((frontLeft.data as number[]).map((v) => Math.round(v))).toEqual([35, 32])
+  })
+})
+
+describe('useLevelChart', () => {
+  function levelChart(level: LevelKind, buckets: StatsBucket[]) {
+    const i18n = createI18n({ legacy: false, locale: 'en', messages: { en } })
+    const result: { chart: ReturnType<typeof useLevelChart> | null } = { chart: null }
+    mount(
+      defineComponent({
+        setup() {
+          result.chart = useLevelChart(ref(buckets), ref('day'), ref(level))
+          return () => h('div')
+        },
+      }),
+      { global: { plugins: [i18n] } },
+    )
+    return result.chart!.value
+  }
+
+  beforeEach(() => setActivePinia(createPinia()))
+
+  it('draws the tank on its own, per point', () => {
+    const c = levelChart('fuel', [
+      bucket('2026-10-14', [day('2026-10-14', { fuelLevelPercent: 70, evSocPercent: 50 })]),
+      bucket('2026-10-15', [day('2026-10-15', { fuelLevelPercent: 64, evSocPercent: 55 })]),
+    ])
+
+    expect(c.title).toBe(en.vehicle.fuel)
+    expect(c.data.datasets).toHaveLength(1)
+    expect(c.data.datasets[0]!.data).toEqual([70, 64])
+    expect(c.hasReadings).toBe(true)
+  })
+
+  it('has nothing to draw when the car reported none of the level', () => {
+    expect(levelChart('fuel', TWO_DAYS).hasReadings).toBe(false)
+    expect(levelChart('battery', TWO_DAYS).hasReadings).toBe(true)
   })
 })
