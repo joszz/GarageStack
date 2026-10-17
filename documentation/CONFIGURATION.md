@@ -159,5 +159,7 @@ In the all-in-one container, including Unraid, add them as extra variables on th
 
 | Key | Default | What it does |
 | --- | --- | --- |
+| `Serilog__MinimumLevel__Override__<category>` | see `appsettings.json` | The log level for one source, for example `Serilog__MinimumLevel__Override__GarageStack.Worker.Mqtt=Debug` to see every MQTT message without `DEBUG_LOGS` opening every tap. |
+| `Mqtt__ClientId` | `garagestack-worker` | The Worker's MQTT client id. The broker keeps its session and queued messages under it; change it only when two Workers share one broker. |
 | `Cors__Origins__1`, `Cors__Origins__2`, ... | none | More addresses allowed next to `CORS_ORIGIN`. |
 | `ForwardedHeaders__TrustedProxies__0`, ... | the private address ranges | The proxy addresses whose `X-Forwarded-For` and `X-Forwarded-Proto` headers are believed. Set it to stop anything else in those ranges from claiming another address, and list every proxy in front of the API: the frontend nginx container and, if you run one, your own reverse proxy in front of it. A proxy left out is taken for the visitor, and every visitor then shares its login rate limit. Left unset, sign-ins are also capped at 30 per 5 minutes per device in front of nginx, because any LAN device could otherwise claim a new address on every attempt; setting it turns that cap off. |

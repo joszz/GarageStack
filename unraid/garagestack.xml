@@ -21,9 +21,11 @@
     PostgreSQL database. Features: a live dashboard; remote commands (climate, lock, boot, horn and lights, and on
     a plug-in car charging, the charge target, cable lock, battery heating and their schedules); climate schedules;
     energy statistics over any period; trips drawn on the roads they took, with heatmaps and speed limits; a trip
-    log for the taxman with automatic commutes and CSV export; maintenance reminders; push notifications; charging
-    station, fuel station, service area and speed camera map layers; Home Assistant through MQTT discovery; single
-    sign-on through any OpenID Connect provider; and a Homepage dashboard widget.
+    log for the taxman with automatic commutes and CSV export; maintenance reminders; tyre history with a
+    slow-puncture alert; push notifications, among them the car moving while parked; charging station, fuel
+    station, service area and speed camera map layers; kilometres or miles and the other units by region; Home
+    Assistant through MQTT discovery; single sign-on through any OpenID Connect provider; read-only API tokens; a
+    full data export; a log viewer; and a Homepage dashboard widget.
     Everything runs in this one container: no external database or MQTT broker required.
   </Overview>
   <Category>Tools: HomeAutomation:</Category>
