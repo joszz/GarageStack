@@ -17,6 +17,35 @@
   --color-danger-badge: #b91c1c;
   --color-danger-text: #f87171;
   --color-info: #06b6d4;
+
+  /* The status colours strong enough for text on a card, and for white text on them. On a dark
+     surface that is the status colour itself; the light theme needs deeper shades (about 5:1). */
+  --color-success-text: var(--color-success);
+  --color-warning-text: var(--color-warning);
+  --color-info-text: var(--color-info);
+
+  /* Text on a solid success fill: dark ink on the bright dark-theme green (white read at 2.3:1),
+     white on the light theme's deep one. Badges tint instead, see .badge. */
+  --color-on-success: #052e16;
+  --badge-fill: 16%;
+
+  /* What changes between the themes beyond the palette: dark fields and secondary buttons sit a
+     step above the card, light ones are white with a border; a dark switch knob is the text
+     colour, a light one white. A dark button lightens on hover, a light one darkens. */
+  --field-bg: var(--color-surface-2);
+  --field-bg-disabled: var(--color-surface);
+  --switch-knob: var(--color-text);
+  --switch-knob-shadow: none;
+  --nav-active-bg: var(--color-surface-2);
+  --btn-hover-filter: brightness(1.15);
+  --shadow-pop: rgb(0 0 0 / 50%);
+
+  /* Chart.js axis text and grid lines. The dark values are Chart.js's own defaults. */
+  --chart-text: #666;
+  --chart-grid: rgb(0 0 0 / 10%);
+
+  /* Keyboard focus on a control whose hover look would otherwise be all that shows. */
+  --focus-ring: 2px solid var(--color-primary);
   --sidebar-width: 220px;
   --topbar-height: 56px;
 
@@ -71,8 +100,32 @@
   --color-border: #cdd5df;
   --color-text: #1a202c;
   --color-text-muted: #5a6a7e;
+
+  /* The dark theme's status colours are 2.2 to 2.4:1 on white. Fills and borders take the 600
+     shades, text and anything carrying white text the 700 ones. */
+  --color-primary: #2563eb;
   --color-primary-light: #1d4ed8;
+  --color-success: #16a34a;
+  --color-warning: #d97706;
+  --color-danger: #dc2626;
+  --color-info: #0891b2;
+  --color-success-text: #15803d;
+  --color-warning-text: #b45309;
   --color-danger-text: #dc2626;
+  --color-info-text: #0e7490;
+  --color-on-success: #fff;
+  --badge-fill: 100%;
+  --badge-on: #fff;
+  --badge-on-warning: #000;
+  --field-bg: var(--color-surface);
+  --field-bg-disabled: var(--color-surface-2);
+  --switch-knob: #fff;
+  --switch-knob-shadow: 0 1px 2px rgb(16 24 40 / 30%);
+  --nav-active-bg: color-mix(in srgb, var(--color-primary) 10%, transparent);
+  --btn-hover-filter: brightness(0.94);
+  --shadow-pop: rgb(15 23 42 / 18%);
+  --chart-text: var(--color-text-muted);
+  --chart-grid: var(--color-border);
   --shadow-card: 0 1px 2px rgb(16 24 40 / 5%), 0 1px 3px rgb(16 24 40 / 8%);
   --field-caret: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 320 512'%3E%3Cpath fill='%235a6a7e' d='M31.3 192h257.3c17.8 0 26.7 21.5 14.1 34.1L174.1 354.8c-7.8 7.8-20.5 7.8-28.3 0L17.2 226.1C4.6 213.5 13.5 192 31.3 192z'/%3E%3C/svg%3E");
 }
@@ -287,6 +340,7 @@ body,
 }
 
 .sidebar-nav a.active {
+  background: var(--nav-active-bg);
   color: var(--color-primary-light);
 }
 
@@ -345,7 +399,7 @@ body,
 }
 
 .text-info {
-  color: var(--color-info);
+  color: var(--color-info-text);
 }
 
 /* ── Utility spacing ──────────────────────────────────────── */
@@ -670,7 +724,7 @@ body,
 }
 
 .detail-list__item--alert .detail-list__item-icon {
-  color: var(--color-warning);
+  color: var(--color-warning-text);
 }
 
 /* value comes first - bold, no wrapping */
@@ -681,7 +735,7 @@ body,
 }
 
 .detail-list__item--alert .detail-list__item-value {
-  color: var(--color-warning);
+  color: var(--color-warning-text);
 }
 
 /* dash separator */
@@ -756,6 +810,29 @@ body,
   display: flex;
   align-items: center;
   gap: 0.5rem;
+}
+
+/* ── Chart card ───────────────────────────────────────────── */
+
+/* A chart in a card of its own (StatsChartCard, SkeletonChart). Here rather than in
+   statistics.css, which only the Statistics page loads: the tyre history dialog draws the same
+   card from the dashboard, and looked different depending on whether Statistics had been opened. */
+.chart-container {
+  position: relative;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  padding: 1.25rem;
+  overflow: visible;
+}
+
+/* Inside a dialog the dialog is the card, so the chart sits in it without a second frame. */
+.detail-modal .chart-container {
+  background: none;
+  border: 0;
+  box-shadow: none;
+  padding: 0;
 }
 
 /* ── Leaflet map chrome ───────────────────────────────────── */
@@ -981,7 +1058,7 @@ body,
 }
 
 .btn:not(:disabled):hover {
-  filter: brightness(1.15);
+  filter: var(--btn-hover-filter);
 }
 
 .btn-sm {
@@ -995,8 +1072,8 @@ body,
 }
 
 .btn-success {
-  background: var(--color-success);
-  color: #fff;
+  background: var(--color-success-text);
+  color: var(--color-on-success);
 }
 
 .btn-warning {
@@ -1012,7 +1089,7 @@ body,
 .btn-outline-secondary {
   border-color: var(--color-border);
   color: var(--color-text);
-  background: var(--color-surface-2);
+  background: var(--field-bg);
 }
 
 /* An action that leaves the car less secure (unlock), readable in both themes. */
@@ -1023,32 +1100,37 @@ body,
 
 /* ── Badges ───────────────────────────────────────────────── */
 
+/* A status badge is its colour, mixed into the card by --badge-fill: a tint with the colour as its
+   text on a dark card, where a solid green or cyan under white text read at 2.3:1, and solid with
+   white (amber: black) text on a light one. Each variant names its colour and its text. */
 .badge {
   display: inline-block;
   padding: 0.15rem 0.45rem;
   border-radius: 4px;
   font-size: 0.7rem;
   font-weight: 600;
+  background: color-mix(in srgb, var(--badge-color) var(--badge-fill), transparent);
+  color: var(--badge-text);
 }
 
 .badge-success {
-  background: var(--color-success);
-  color: #fff;
+  --badge-color: var(--color-success-text);
+  --badge-text: var(--badge-on, var(--color-success-text));
 }
 
 .badge-warning {
-  background: var(--color-warning);
-  color: #000;
+  --badge-color: var(--color-warning);
+  --badge-text: var(--badge-on-warning, var(--color-warning));
 }
 
 .badge-danger {
-  background: var(--color-danger);
-  color: #fff;
+  --badge-color: var(--color-danger-text);
+  --badge-text: var(--badge-on, var(--color-danger-text));
 }
 
 .badge-info {
-  background: var(--color-info);
-  color: #fff;
+  --badge-color: var(--color-info-text);
+  --badge-text: var(--badge-on, var(--color-info-text));
 }
 
 .badge-secondary {
@@ -1063,8 +1145,8 @@ body,
    the right for the caret between two of its paddings. */
 .form-select {
   appearance: none;
-  background: var(--color-surface-2) var(--field-caret) no-repeat right var(--field-px) center /
-    0.625rem 1.125rem;
+  background: var(--field-bg) var(--field-caret) no-repeat right var(--field-px) center / 0.625rem
+    1.125rem;
   border: 1px solid var(--color-border);
   border-radius: var(--field-radius);
   color: var(--color-text);
@@ -1101,7 +1183,8 @@ body,
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: var(--color-text);
+  background: var(--switch-knob);
+  box-shadow: var(--switch-knob-shadow);
   transition: left 0.2s;
 }
 
@@ -1151,7 +1234,7 @@ body,
   line-height: var(--field-line-height);
   border-radius: var(--field-radius);
   border: 1px solid var(--color-border);
-  background-color: var(--color-surface-2);
+  background-color: var(--field-bg);
   color: var(--color-text);
 }
 
@@ -1276,6 +1359,12 @@ textarea.form-control {
   cursor: pointer;
 }
 
+/* The track itself draws no outline, so keyboard focus rings the whole control. */
+.range-control input[type='range']:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 6px;
+}
+
 .range-control input[type='range']::-webkit-slider-thumb {
   appearance: none;
   width: 18px;
@@ -1360,7 +1449,11 @@ textarea.form-control {
   opacity: 1;
   color: var(--color-primary-light);
   background: var(--color-surface-2);
-  outline: none;
+}
+
+.card-info-btn:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 1px;
 }
 
 .card-info-desc {
@@ -1393,15 +1486,15 @@ textarea.form-control {
 }
 
 .tyre-legend-dot--ok {
-  color: var(--tyre-ok, #198754);
+  color: var(--color-success);
 }
 
 .tyre-legend-dot--warning {
-  color: var(--tyre-warning, #fd7e14);
+  color: var(--color-warning);
 }
 
 .tyre-legend-dot--danger {
-  color: var(--tyre-danger, #dc3545);
+  color: var(--color-danger);
 }
 
 /* ── Skeleton loader ──────────────────────────────────────── */
@@ -1511,7 +1604,7 @@ textarea.form-control {
 }
 
 .app-footer__btn {
-  background: var(--color-surface-2);
+  background: var(--field-bg);
   border: 1px solid var(--color-border);
   color: var(--color-text-muted);
   font-size: 0.85rem;
@@ -1604,14 +1697,15 @@ textarea.form-control {
     z-index: var(--z-drawer);
     transform: translateX(-100%);
     transition: transform 0.25s ease;
-    box-shadow: 4px 0 24px rgb(0 0 0 / 50%);
   }
 
   /* Elevate above Leaflet controls (--z-map-overlay) only while the drawer is
-     open; GPU layer promotion is limited to the 250 ms slide-in animation. */
+     open; GPU layer promotion is limited to the 250 ms slide-in animation. The shadow comes with
+     it: on the closed drawer it reached past the screen's edge, a grey band on a light page. */
   .sidebar--open {
     transform: translateX(0);
     z-index: var(--z-drawer-open);
+    box-shadow: 4px 0 24px var(--shadow-pop);
   }
 
   /* The same gutter as the topbar, so the page title and cards line up under the menu button and
@@ -1710,7 +1804,7 @@ textarea.form-control {
 }
 
 .sidebar-online-status--online {
-  color: var(--color-success);
+  color: var(--color-success-text);
 }
 
 .sidebar-online-status--offline {
@@ -1757,7 +1851,7 @@ textarea.form-control {
   padding: 0.5rem 0.75rem;
   border-radius: var(--radius);
   border: 1px solid var(--color-border);
-  background: var(--color-surface-2);
+  background: var(--field-bg);
   color: var(--color-text-muted);
   font-size: 0.85rem;
   cursor: pointer;
@@ -1771,13 +1865,13 @@ textarea.form-control {
 
 .sidebar-demo-btn:hover,
 .sidebar-demo-btn.is-active {
-  background: color-mix(in srgb, var(--color-warning) 12%, var(--color-surface-2));
+  background: color-mix(in srgb, var(--color-warning) 12%, var(--field-bg));
   border-color: var(--color-warning);
   color: var(--color-text);
 }
 
 .sidebar-logout-btn:hover {
-  background: color-mix(in srgb, var(--color-danger) 12%, var(--color-surface-2));
+  background: color-mix(in srgb, var(--color-danger) 12%, var(--field-bg));
   border-color: var(--color-danger);
   color: var(--color-danger-text);
 }
@@ -1802,8 +1896,8 @@ textarea.form-control {
 }
 
 .availability-toast--online {
-  background: var(--color-success);
-  color: #fff;
+  background: var(--color-success-text);
+  color: var(--color-on-success);
 }
 
 .availability-toast--offline {

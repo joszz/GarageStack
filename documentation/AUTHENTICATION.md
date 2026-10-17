@@ -267,7 +267,7 @@ Switching from the password login to a provider, or changing `AUTH_USERNAME`, th
 
 ### Read-only API tokens
 
-A signed-in account can make API tokens under Settings > API tokens, for scripts and gadgets that read without signing in (`Authorization: Bearer gs_...`, see the README). A token reads as that account, settings included, and only reads: anything but a `GET` is refused, and so is the token list itself, so a leaked token can neither send a command nor make more tokens. Only a SHA-256 hash of each token is stored. Tokens belong to the account like its settings do, so the same change of sign-in method that starts a new account leaves the old account's tokens with it.
+A signed-in account can make API tokens under Settings > API tokens, for scripts and gadgets that read without signing in (`Authorization: Bearer gs_...`, see the README). A token reads as that account, settings included, and only reads: anything but a `GET` is refused, and so are the token list, the full data export and the server logs, so a leaked token can neither send a command, make more tokens nor carry off the car's whole history. Only a SHA-256 hash of each token is stored. Tokens belong to the account like its settings do, so the same change of sign-in method that starts a new account leaves the old account's tokens with it.
 
 ---
 

@@ -125,8 +125,8 @@
 }
 
 .card-slot__badge--show {
-  background: var(--color-success);
-  color: #fff;
+  background: var(--color-success-text);
+  color: var(--color-on-success);
 }
 
 /* Placeholder for hidden or data-less cards in edit mode */

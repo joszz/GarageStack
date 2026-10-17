@@ -124,7 +124,7 @@ fi
 
 chown -R postgres:postgres /data/db/postgres /data/logs
 
-# Volumes initialised before v0.10.1 trusted every local socket connection, so any process in the
+# Volumes initialised before v0.11.0 trusted every local socket connection, so any process in the
 # container (the third-party gateway included) could open a superuser session, and used md5 over
 # TCP, which PostgreSQL 18 deprecates. initdb's md5 choice also set password_encryption = md5, so
 # the role's password is stored as an MD5 hash that SCRAM cannot check. It is hashed again as SCRAM

@@ -17,6 +17,7 @@ import {
 } from '@/utils/statistics'
 import type { StatsGrouping } from '@/utils/statsPeriod'
 import { burnsFuel, mayPlugIn, plugsIn } from '@/utils/vehicleType'
+import { useChartTheme } from './useChartTheme'
 import { useUnits } from './useUnits'
 
 export interface ChartDef {
@@ -80,6 +81,7 @@ export function useStatisticsCharts(
 ): Ref<ChartDef[]> {
   const { t } = useI18n()
   const units = useUnits()
+  const chartTheme = useChartTheme()
 
   const hasLargeEv = computed(() => mayPlugIn(vehicleType.value))
   const isHybrid = computed(() => burnsFuel(vehicleType.value))
@@ -169,18 +171,23 @@ export function useStatisticsCharts(
   }))
 
   // All charts share the same responsive/axis setup; they differ only in aspect ratio, legend
-  // and y-axis range. The locale makes axis and tooltip numbers read like the rest of the page.
+  // and y-axis range. The locale makes axis and tooltip numbers read like the rest of the page,
+  // and the theme's colours make the axes, grid and legend fit it.
   function chartOptions(aspectRatio: number, legend: boolean, y: { min: number; max?: number }) {
+    const { text, grid } = chartTheme.value
+    const axis = { grid: { color: grid }, border: { color: grid } }
     return {
       locale: numberLocale(),
       responsive: true,
       maintainAspectRatio: true,
       aspectRatio,
       animation: false as const,
-      plugins: { legend: { display: legend } },
+      plugins: { legend: { display: legend, labels: { color: text } } },
       scales: {
         x: {
+          ...axis,
           ticks: {
+            color: text,
             maxRotation: 0,
             autoSkip: true,
             maxTicksLimit: 8,
@@ -188,7 +195,7 @@ export function useStatisticsCharts(
             callback: (value: string | number) => tickLabels.value[Number(value)] ?? value,
           },
         },
-        y,
+        y: { ...y, ...axis, ticks: { color: text } },
       },
     }
   }

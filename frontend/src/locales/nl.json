@@ -934,6 +934,7 @@
         "tooMany": "Dit account heeft het maximale aantal tokens. Trek er eerst een in.",
         "readOnly": "Een API-token kan alleen lezen. Log in om iets te wijzigen.",
         "cannotManageTokens": "API-tokens beheer je alleen vanuit een ingelogde sessie.",
+        "sessionOnly": "De export en de logs vragen een ingelogde sessie. Een API-token kan ze niet lezen.",
         "noAccount": "Deze sessie hoort bij geen account om tokens voor te maken."
       },
       "logs": {

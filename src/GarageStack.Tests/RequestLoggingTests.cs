@@ -6,12 +6,12 @@ namespace GarageStack.Tests;
 
 public class RequestLogLevelTests
 {
-    private static LogEventLevel LevelFor(string path, int status, Exception? ex = null)
+    private static LogEventLevel LevelFor(string path, int status, Exception? ex = null, double elapsedMs = 1)
     {
         var context = new DefaultHttpContext();
         context.Request.Path = path;
         context.Response.StatusCode = status;
-        return ApiHostingExtensions.RequestLogLevel(context, 1, ex);
+        return ApiHostingExtensions.RequestLogLevel(context, elapsedMs, ex);
     }
 
     // Docker probes /health every ten seconds, and monitors poll /api/health.
@@ -24,12 +24,24 @@ public class RequestLogLevelTests
         Assert.Equal(LogEventLevel.Verbose, LevelFor(path, status));
     }
 
+    // The dashboard and the log viewer poll: their answers were nine lines in ten of a log file.
     [Fact]
-    public void OrdinaryRequests_AreLoggedAsBefore()
+    public void EverydaySuccess_IsDebug_RefusalsAndSlowAnswersAreInformation_FailuresError()
     {
-        Assert.Equal(LogEventLevel.Information, LevelFor("/api/vehicles", 200));
+        Assert.Equal(LogEventLevel.Debug, LevelFor("/api/vehicles", 200));
+        Assert.Equal(LogEventLevel.Debug, LevelFor("/api/vehicles", 304));
+        Assert.Equal(LogEventLevel.Information, LevelFor("/api/vehicles", 200, elapsedMs: 2500));
+        Assert.Equal(LogEventLevel.Information, LevelFor("/api/auth/login", 401));
+        Assert.Equal(LogEventLevel.Information, LevelFor("/api/vehicles", 429));
         Assert.Equal(LogEventLevel.Error, LevelFor("/api/vehicles", 500));
         Assert.Equal(LogEventLevel.Error, LevelFor("/api/health", 200, new InvalidOperationException()));
+    }
+
+    // A live-update connection is logged when it ends, with how long it was open as its time.
+    [Fact]
+    public void AClosingLiveConnection_IsNotASlowRequest()
+    {
+        Assert.Equal(LogEventLevel.Debug, LevelFor("/hubs/telemetry", 101, elapsedMs: 600_000));
     }
 
     [Fact]

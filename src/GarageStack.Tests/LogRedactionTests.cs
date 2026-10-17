@@ -45,6 +45,19 @@ public class LogRedactionTests
     {
         Assert.Equal(expected, LogRedaction.RequestPath(path));
     }
+
+    // Free text from a browser: a VIN wherever it sits, but never part of a longer identifier.
+    [Theory]
+    [InlineData("car FAKEVN00000000001 failed", "car ***0001 failed")]
+    [InlineData("/api/vehicles/FAKEVN00000000001?x=1", "/api/vehicles/***0001?x=1")]
+    [InlineData("FAKEVN00000000001", "***0001")]
+    [InlineData("hash AFAKEVN00000000001", "hash AFAKEVN00000000001")]
+    [InlineData("index-FAKEVN00000000001b.js", "index-FAKEVN00000000001b.js")]
+    [InlineData("short FAKEVN0000000001", "short FAKEVN0000000001")]
+    public void Vins_ShortensEveryVinInText(string text, string expected)
+    {
+        Assert.Equal(expected, LogRedaction.Vins(text));
+    }
 }
 
 public class AccountAndUrlRedactionTests

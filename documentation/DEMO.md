@@ -91,7 +91,7 @@ Click the flask icon in the bottom-right corner to open the panel. Changes take 
 
 | Interface | Demo implementation |
 | --- | --- |
-| `AppDbContext` | An in-memory database for everything you add yourself: settings, maintenance, climate schedules, notifications |
+| `AppDbContext` | An in-memory database for everything you add yourself: settings, maintenance, climate schedules, home and work places, API tokens, notifications |
 | `IVehicleRepository` | Returns one static MG ZS EV |
 | `ITelemetryRepository` | Serves pre-built snapshots; mutable via `/api/demo/status/{vin}` |
 | `ITripRepository` | Serves the pre-built trips |

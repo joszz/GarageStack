@@ -53,12 +53,25 @@ body:
         - Backend (API)
         - Map / Routes
         - Statistics
+        - Trip log
+        - Maintenance
+        - Climate schedules
+        - Remote commands
         - Push Notifications
-        - Authentication
+        - Authentication / API tokens
+        - Home Assistant
+        - Logs page / data export
         - Docker / Deployment
         - Other
     validations:
       required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: The Logs page in GarageStack shows the API's and the Worker's newest entries; filter on Warning and up and paste what is near the problem. VINs are shortened in the logs already; remove anything else you would rather not share.
+      render: text
 
   - type: input
     id: version
@@ -75,7 +88,8 @@ body:
       label: Deployment method
       options:
         - Docker Compose
-        - Docker (standalone)
+        - All-in-one container
+        - Unraid (Community Apps)
         - Bare metal / manual
         - Other
     validations:

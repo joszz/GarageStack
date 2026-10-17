@@ -48,7 +48,7 @@
 }
 
 .sidebar-notif-btn:hover {
-  background: color-mix(in srgb, var(--color-primary) 10%, var(--color-surface-2));
+  background: color-mix(in srgb, var(--color-primary) 10%, var(--field-bg));
   border-color: var(--color-primary);
   color: var(--color-text);
 }

@@ -31,6 +31,12 @@ public static partial class LogRedaction
     public static string RequestPath(string path) => VinFormat.PathSegment().Replace(path, m => Vin(m.Value));
 
     /// <summary>
+    /// Text from outside the server (a browser's error message or stack trace) with every VIN in it
+    /// shortened, wherever it sits: after a path, inside a sentence, before a query string.
+    /// </summary>
+    public static string Vins(string text) => VinFormat.InText().Replace(text, m => Vin(m.Value));
+
+    /// <summary>
     /// An account name for a sign-in log line. A username or display name is kept, so the log
     /// still says which household member signed in; one that is an email address (providers fall
     /// back to it) keeps only its first character and its domain.

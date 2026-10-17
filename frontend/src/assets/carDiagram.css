@@ -12,9 +12,11 @@
   opacity: 0.5;
 }
 
+/* A pale slate road on a white card, with lane lines dark enough to see: white lines on a light
+   grey road barely showed. */
 [data-theme='light'] .road-surface {
-  fill: #a0a0a0;
-  opacity: 0.35;
+  fill: #e2e8f0;
+  opacity: 1;
 }
 
 .road-edge {
@@ -23,7 +25,7 @@
 }
 
 [data-theme='light'] .road-edge {
-  stroke: rgb(255 255 255 / 70%);
+  stroke: #94a3b8;
 }
 
 .road-center-dash {
@@ -34,7 +36,7 @@
 }
 
 [data-theme='light'] .road-center-dash {
-  stroke: rgb(255 255 255 / 85%);
+  stroke: #94a3b8;
 }
 
 @keyframes road-scroll {
@@ -207,7 +209,11 @@
 .tyre-label:hover,
 .tyre-label:focus-visible {
   background: var(--color-surface-2);
-  outline: none;
+}
+
+.tyre-label:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
 }
 
 .tyre-label--fl {
@@ -236,12 +242,12 @@
 
 .tyre-label--ok {
   border-color: var(--color-success);
-  color: var(--color-success);
+  color: var(--color-success-text);
 }
 
 .tyre-label--warning {
   border-color: var(--color-warning);
-  color: var(--color-warning);
+  color: var(--color-warning-text);
 }
 
 .tyre-label--danger {
@@ -281,11 +287,11 @@
 
 /* The level's band, as on the dashboard's cards (utils/levels). */
 .diagram-level--success {
-  color: var(--color-success);
+  color: var(--color-success-text);
 }
 
 .diagram-level--warning {
-  color: var(--color-warning);
+  color: var(--color-warning-text);
 }
 
 .diagram-level--danger {

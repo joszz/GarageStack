@@ -117,7 +117,7 @@ The full guide, with provider examples, is [`AUTHENTICATION.md`](AUTHENTICATION.
 | `RATE_LIMIT_GLOBAL_PER_MINUTE` | `120` | Requests per minute the API accepts from one address. Raise it when several people share one public address. Login and the widget keep their own, tighter limits. |
 | `UPDATE_CHECK_ENABLED` | `true` | Once a day the API asks GitHub for the latest release, and the footer links to it when it is newer than the running version. `false` keeps the API from contacting GitHub. A build without a version (from source without `APP_VERSION`) never asks. |
 | `WIDGET_API_KEY` | none | Key for the Homepage dashboard widget endpoint. Empty switches the endpoint off. See [`WIDGET.md`](WIDGET.md). |
-| `DEBUG_LOGS` | `false` | `true` turns on debug logging in the API and the Worker. |
+| `DEBUG_LOGS` | `false` | `true` turns on debug logging in the API and the Worker, including a line for every API request. Without it, only refused (4xx), failed (5xx) and slow (over a second) requests are logged. |
 | `LOG_RETAINED_FILES` | `30` | Log files each service keeps in its `logs` folder: one per day, and another whenever a day's file passes 100 MB. The oldest go first. |
 | `WORKER_LOG_DIRECTORY` | none | Where the API finds the Worker's log files, so the log viewer (the Logs page) shows them as well as its own. The Compose file mounts the Worker's log volume at `/app/worker-logs` and sets this; the all-in-one image sets it itself. Unset, the Logs page shows the API's entries only. |
 | `FRONTEND_PORT` | `8080` | Host port of the web interface (Docker Compose). |
@@ -159,5 +159,7 @@ In the all-in-one container, including Unraid, add them as extra variables on th
 
 | Key | Default | What it does |
 | --- | --- | --- |
+| `Serilog__MinimumLevel__Override__<category>` | see `appsettings.json` | The log level for one source, for example `Serilog__MinimumLevel__Override__GarageStack.Worker.Mqtt=Debug` to see every MQTT message without `DEBUG_LOGS` opening every tap. |
+| `Mqtt__ClientId` | `garagestack-worker` | The Worker's MQTT client id. The broker keeps its session and queued messages under it; change it only when two Workers share one broker. |
 | `Cors__Origins__1`, `Cors__Origins__2`, ... | none | More addresses allowed next to `CORS_ORIGIN`. |
-| `ForwardedHeaders__TrustedProxies__0`, ... | the private address ranges | The proxy addresses whose `X-Forwarded-For` and `X-Forwarded-Proto` headers are believed. Set it to stop anything else in those ranges from claiming another address, and list every proxy in front of the API: the frontend nginx container and, if you run one, your own reverse proxy in front of it. A proxy left out is taken for the visitor, and every visitor then shares its login rate limit. |
+| `ForwardedHeaders__TrustedProxies__0`, ... | the private address ranges | The proxy addresses whose `X-Forwarded-For` and `X-Forwarded-Proto` headers are believed. Set it to stop anything else in those ranges from claiming another address, and list every proxy in front of the API: the frontend nginx container and, if you run one, your own reverse proxy in front of it. A proxy left out is taken for the visitor, and every visitor then shares its login rate limit. Left unset, sign-ins are also capped at 30 per 5 minutes per device in front of nginx, because any LAN device could otherwise claim a new address on every attempt; setting it turns that cap off. |

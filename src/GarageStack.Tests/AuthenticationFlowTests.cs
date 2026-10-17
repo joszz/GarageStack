@@ -952,6 +952,46 @@ public class AuthenticationFlowTests
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
+    // The export is every trip and every position, the logs the services' own diagnostics: a token
+    // meant for a dashboard sensor must not carry those off. The same session reads both.
+    [Theory]
+    [InlineData("/api/export")]
+    [InlineData("/api/logs")]
+    public async Task ApiToken_CannotReadTheExportOrTheLogs(string path)
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var factory = CreatePasswordOnlyFactory();
+        using var session = CreateClient(factory);
+        await PasswordLoginAsync(session, ct);
+        var created = await session.PostAsJsonAsync("/api/tokens", new { name = "Sensor" }, ct);
+        var token = (await created.Content.ReadFromJsonAsync<JsonElement>(ct)).GetProperty("token").GetString()!;
+        using var bearer = CreateClient(factory, handleCookies: false);
+        bearer.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+        var withToken = await bearer.GetAsync(path, ct);
+        var withSession = await session.GetAsync(path, ct);
+
+        Assert.Equal(HttpStatusCode.Forbidden, withToken.StatusCode);
+        Assert.Equal("token.sessionOnly", await ProblemCodeAsync(withToken, ct));
+        Assert.Equal(HttpStatusCode.OK, withSession.StatusCode);
+    }
+
+    // A forward-auth proxy in front (oauth2-proxy and the like) can pass its own bearer token on.
+    // That is not a GarageStack token, so the session cookie next to it still decides.
+    [Fact]
+    public async Task AForeignBearerHeader_LeavesTheSessionSignedIn()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var factory = CreatePasswordOnlyFactory();
+        using var session = CreateClient(factory);
+        await PasswordLoginAsync(session, ct);
+        session.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", "eyJhbGciOiJSUzI1NiJ9.e30.c2ln");
+
+        var response = await session.GetAsync("/api/vehicles", ct);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
     [Theory]
     [InlineData("", "token.nameRequired")]
     [InlineData("   ", "token.nameRequired")]
