@@ -47,6 +47,12 @@ public sealed class TelemetryHandler(
     // it just sent.
     private readonly NotificationCooldownGate _engineStartCooldownGate = new(NotificationCooldownGate.AlertCooldown);
 
+    // When each vehicle parked, until its parking poll's position is in. The gateway publishes a
+    // poll's basic status (the engine stopping among it) before that poll's GPS fix, so at the
+    // moment the engine stops the merged position is still the previous poll's: at speed, hundreds
+    // of metres back, which the moved-while-parked check then took for a move.
+    private readonly ConcurrentDictionary<int, DateTime> _awaitingParkedFix = new();
+
     // Topics the gateway publishes that are left out on purpose, so they are no news either:
     // hybrid_electrical_range repeats drivetrain/range (see TelemetryMapper), and nothing reads why
     // battery heating stopped.
@@ -105,6 +111,7 @@ public sealed class TelemetryHandler(
             patch.RecordedAt = DateTime.UtcNow;
 
             await MergeOrAddTelemetryAsync(vehicleId, patch, message.Topic, telemetryRepo, ct);
+            await ParkAtThisPollsFixAsync(vehicleId, patch, telemetryRepo, resolved.Vehicles, ct);
 
             if (await ObserveEngineAsync(vin, patch, notifications, ct) == StateTransition.TurnedOff && vehicleId > 0)
             {
@@ -113,6 +120,7 @@ public sealed class TelemetryHandler(
                 // open door or window, and watch for the car leaving the spot it parked on.
                 var parkedAt = await telemetryRepo.GetMergedLatestAsync(vehicleId, ct);
                 await resolved.Vehicles.SetParkedAsync(vehicleId, patch.RecordedAt, parkedAt?.Latitude, parkedAt?.Longitude, ct);
+                _awaitingParkedFix[vehicleId] = patch.RecordedAt;
                 await db.Database.NotifyAsync(PgChannels.TripCompleted, vehicleId.ToString(), ct);
                 logger.LogInformation("Trip completed for vehicleId={VehicleId} - notifying SignalR clients", vehicleId);
             }
@@ -123,6 +131,27 @@ public sealed class TelemetryHandler(
         }
 
         return true;
+    }
+
+    /// <summary>
+    /// A position from the poll the car parked in (within <see cref="MergeWindow"/> of the engine
+    /// stopping) is where it parked, so it replaces the previous poll's fix stored a moment ago.
+    /// Read back merged, since a gateway may send latitude and longitude as separate topics. Later
+    /// fixes are the car reporting from its spot, which the moved-while-parked check compares.
+    /// </summary>
+    internal async Task ParkAtThisPollsFixAsync(
+        int vehicleId, TelemetrySnapshot patch, ITelemetryRepository telemetryRepo, IVehicleRepository vehicleRepo, CancellationToken ct)
+    {
+        if (patch is { Latitude: null, Longitude: null }) return;
+        if (!_awaitingParkedFix.TryGetValue(vehicleId, out var parkedAt)) return;
+        if (patch.RecordedAt - parkedAt > MergeWindow)
+        {
+            _awaitingParkedFix.TryRemove(vehicleId, out _);
+            return;
+        }
+
+        var merged = await telemetryRepo.GetMergedLatestAsync(vehicleId, ct);
+        await vehicleRepo.SetParkedAsync(vehicleId, parkedAt, merged?.Latitude, merged?.Longitude, ct);
     }
 
     // Serializes read-await-write access to _mergeState per vehicle so two concurrently

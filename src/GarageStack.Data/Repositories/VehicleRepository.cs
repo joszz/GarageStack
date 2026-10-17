@@ -67,7 +67,11 @@ public class VehicleRepository(AppDbContext db, ILogger<VehicleRepository>? logg
         int vehicleId, DateTime parkedAt, double? latitude, double? longitude, CancellationToken ct = default)
     {
         var vehicle = await db.Vehicles.FindAsync([vehicleId], ct);
-        if (vehicle is null || vehicle.LastParkedAt == parkedAt) return;
+        // The same parking can be stored twice: once when the engine stops, again when that poll's
+        // GPS fix follows (see TelemetryHandler). Only an exact repeat is skipped.
+        if (vehicle is null
+            || (vehicle.LastParkedAt == parkedAt && vehicle.ParkedLatitude == latitude && vehicle.ParkedLongitude == longitude))
+            return;
         vehicle.LastParkedAt = parkedAt;
         vehicle.ParkedLatitude = latitude;
         vehicle.ParkedLongitude = longitude;

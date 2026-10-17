@@ -82,11 +82,30 @@ describe('MaintenanceItemDetailModal', () => {
     expect(wrapper.find('.text-danger').text()).toBe(en.errors.server)
   })
 
+  // No undo, and it moves the item's last service back: the first tap only asks.
+  it('deletes a history entry on the second tap only', async () => {
+    vi.mocked(maintenanceApi.listLog).mockResolvedValue([entry])
+    vi.mocked(maintenanceApi.deleteLogEntry).mockResolvedValue(undefined)
+    const wrapper = await openModal()
+    const button = wrapper.find('.maintenance-history__delete')
+
+    await button.trigger('click')
+    await flushPromises()
+    expect(maintenanceApi.deleteLogEntry).not.toHaveBeenCalled()
+    expect(button.classes()).toContain('btn-danger')
+    expect(button.attributes('aria-label')).toBe(en.maintenance.confirmDeleteLogEntryLabel)
+
+    await button.trigger('click')
+    await flushPromises()
+    expect(maintenanceApi.deleteLogEntry).toHaveBeenCalledOnce()
+  })
+
   it('says why when a history entry cannot be deleted', async () => {
     vi.mocked(maintenanceApi.listLog).mockResolvedValue([entry])
     vi.mocked(maintenanceApi.deleteLogEntry).mockRejectedValueOnce(new TypeError('offline'))
     const wrapper = await openModal()
 
+    await wrapper.find('.maintenance-history__delete').trigger('click')
     await wrapper.find('.maintenance-history__delete').trigger('click')
     await flushPromises()
 

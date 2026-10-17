@@ -596,7 +596,9 @@
       "lastUsed": "laatst gebruikt {date}",
       "neverUsed": "nooit gebruikt",
       "revoke": "Intrekken",
-      "confirmRevoke": "Intrekken?"
+      "confirmRevoke": "Intrekken?",
+      "revokeNamed": "{name} intrekken",
+      "confirmRevokeNamed": "{name} intrekken? Tik nogmaals om te bevestigen"
     },
     "export": {
       "title": "Je gegevens",
@@ -768,6 +770,8 @@
     "history": "Servicegeschiedenis",
     "noHistory": "Nog geen servicegeschiedenis geregistreerd",
     "deleteLogEntry": "Item verwijderen",
+    "confirmDeleteLogEntry": "Verwijderen?",
+    "confirmDeleteLogEntryLabel": "Tik nogmaals om dit item te verwijderen",
     "everyDistance": "Elke {distance}",
     "everyMonths": "Elke {months} maanden",
     "or": "of",

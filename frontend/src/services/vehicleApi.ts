@@ -204,6 +204,11 @@ export interface TyreHistory {
   trend: TyreChanges | null
   /** The days the trend is measured over. */
   trendDays: number
+  /**
+   * The tyres losing air, by the slow-puncture alert's own rule: behind the others by the drop
+   * threshold, and down themselves too. Decided by the API so the dialog and the alert agree.
+   */
+  losing: Exclude<keyof TyreChanges, 'days'>[]
 }
 
 export const vehicleApi = {

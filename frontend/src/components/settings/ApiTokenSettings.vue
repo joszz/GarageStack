@@ -3,6 +3,7 @@ import { onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { API_TOKEN_NAME_MAX_LENGTH, apiTokensApi, type ApiToken } from '@/services/apiTokensApi'
 import { useErrorMessage } from '@/composables/useErrorMessage'
+import { useTwoTapConfirm } from '@/composables/useTwoTapConfirm'
 import { formatDateTime } from '@/utils/format'
 
 // Read-only tokens for scripts, dashboards and gadgets. A new token is shown once, to be copied;
@@ -16,7 +17,7 @@ const created = ref<string | null>(null)
 const copied = ref(false)
 const error = ref<string | null>(null)
 const busy = ref(false)
-const confirmingId = ref<number | null>(null)
+const { armed: confirmingId, tap: tapRevoke } = useTwoTapConfirm<number>()
 
 onMounted(async () => {
   try {
@@ -56,11 +57,7 @@ async function copy() {
 
 // The first tap asks, the second revokes: a script using the token stops working at once.
 async function revoke(id: number) {
-  if (confirmingId.value !== id) {
-    confirmingId.value = id
-    return
-  }
-  confirmingId.value = null
+  if (!tapRevoke(id)) return
   error.value = null
   try {
     await apiTokensApi.revoke(id)
@@ -126,6 +123,14 @@ function usage(token: ApiToken): string {
           type="button"
           class="btn btn-sm"
           :class="confirmingId === token.id ? 'btn-danger' : 'btn-outline-secondary'"
+          :aria-label="
+            t(
+              confirmingId === token.id
+                ? 'settings.apiTokens.confirmRevokeNamed'
+                : 'settings.apiTokens.revokeNamed',
+              { name: token.name },
+            )
+          "
           @click="revoke(token.id)"
         >
           {{
