@@ -110,7 +110,7 @@ PostgreSQL reuses the space of removed rows for new ones rather than handing it 
 | --- | --- | --- |
 | `GarageStack.Core` | Domain models (`Models/`), repository/service interfaces (`Interfaces/`), and pure helpers with no I/O (`Helpers/`) - the shared vocabulary every other project builds on. | nothing (leaf project) |
 | `GarageStack.Data` | EF Core: `AppDbContext`, migrations, concrete repository implementations, and `Demo/` (in-memory fakes used when `DEMO_MODE=true`). | `Core` |
-| `GarageStack.Worker` | The MQTT-ingestion process: `Mqtt/MqttConsumerService` and the message handlers beside it, plus the periodic jobs (maintenance reminders, POI pre-caching, push-notification checks, saving finished trips, housekeeping and telemetry compaction, climate schedules, and the heartbeat the API's readiness check listens for), each a `PeriodicBackgroundService`. | `Core`, `Data` |
+| `GarageStack.Worker` | The MQTT-ingestion process: `Mqtt/MqttConsumerService` and the message handlers beside it, plus the periodic jobs (maintenance reminders, POI pre-caching, push-notification checks, the slow-puncture check over two weeks of tyre pressures, saving finished trips, housekeeping and telemetry compaction, climate schedules, and the heartbeat the API's readiness check listens for), each a `PeriodicBackgroundService`. | `Core`, `Data` |
 | `GarageStack.Api` | ASP.NET Core minimal APIs (`Endpoints/`), the SignalR hub (`Hubs/`), and Api-only services (outbound MQTT publishing, POI/charging-station lookups, the Postgres-LISTEN-to-SignalR bridge). | `Core`, `Data` |
 | `GarageStack.Tests` | xUnit tests across all of the above. | all four |
 
@@ -125,6 +125,12 @@ The upstream clients and the push sender take typed options (`GeocodingOptions`,
 Every error the API answers with is a ProblemDetails body. Refusals the browser can explain carry a `code` beside the English `detail` (`maintenance.nameRequired`, `command.invalidValue`, `csrf.originNotAllowed`), built through `ApiProblems` in the Api. The frontend's `ApiError` keeps that code, and `useErrorMessage` shows the translation under `errors.codes.<code>` when there is one, else a message for the status, so a validation message reaches the user in their own language. A new refusal needs its code in both `en.json` and `nl.json`.
 
 Errors the other way round, the ones the web app runs into in someone's browser (a component that throws, a promise nobody awaited), are posted to `/api/client-errors` by `utils/errorReporting.ts` while someone is signed in, and the API logs them as `Browser error on <page>`. Each distinct message is sent once per page load and at most ten per load; the API caps the size, keeps every field on one line and rate-limits the endpoint.
+
+## Logs and the data export
+
+- **Log files.** Both services log through Serilog to the console and to a daily rolling file (`logs/api-*.log`, `logs/worker-*.log`, rolled early at 100 MB, `LOG_RETAINED_FILES` kept), set up once in `HostingExtensions.AddGarageStackSerilog`. Successful requests are Debug; refusals, slow answers and failures are logged.
+- **Log viewer.** `GET /api/logs` reads the newest entries back out of those files with `LogFileReader`: only the end of the newest files, as much as fills the page. The API reads its own folder and the Worker's from `LogFiles:WorkerDirectory` (`WORKER_LOG_DIRECTORY`): Compose mounts the Worker's log volume there read-only, the all-in-one image points it at `/data/worker`.
+- **Export.** `GET /api/export` (`DataExport`) writes one zip to a temporary file and sends that: JSON per kind of record, and every telemetry row as CSV, streamed from the database rather than loaded. It is rate-limited to a few downloads a quarter of an hour.
 
 ## Caching
 
@@ -180,11 +186,12 @@ would all need to move to something shared.
 
 ## Authentication
 
-`src/GarageStack.Api/Authentication/` wires both sign-in methods into a single session scheme, so nothing downstream has to care which one was used.
+`src/GarageStack.Api/Authentication/` wires both sign-in methods into a single session scheme, so nothing downstream has to care which one was used. Read-only API tokens sit beside it: a policy scheme (`SessionOrApiToken`, the default) hands a request carrying `Authorization: Bearer gs_...` to the token scheme and every other request to the session cookie.
 
 - **Sessions** are ASP.NET Core cookie-auth tickets (`garagestack-auth`), encrypted with the Data Protection keys on disk. `AuthenticationSetup` answers unauthenticated API calls with 401 instead of the framework's default redirect to a login page, checks every request's session id against the `RevokedTokens` table, and keeps the principal slim: display name, subject, session id.
 - **OIDC** uses the stock `AddOpenIdConnect` handler (authorization code + PKCE, `response_mode=query` so the callback carries `SameSite=Lax` cookies on plain HTTP). `OidcOptions` binds the `OIDC_*` environment variables and fails fast on a half-finished configuration; `OidcAccessPolicy` decides whether an authenticated user is also authorised, and is the piece worth reading first.
 - **Password login** is the fallback. `PasswordLoginOptions.Resolve` switches it off as soon as OIDC is configured, unless `AUTH_PASSWORD_LOGIN_ENABLED` explicitly asks for both, and the API refuses to start when that leaves no way in at all.
+- **API tokens** (`ApiTokenAuthentication`) are looked up by their SHA-256 hash in `ApiTokens`; only the hash and the first characters are stored. A token signs in as the account that made it, through the same `garagestack:account` claim a session carries, so settings and per-account data read the same. `ReadOnlyMiddleware`, straight after authentication, is what holds a token to reading: it refuses anything but `GET`/`HEAD`, the token endpoints, the full export and the logs. A token has no session, so the SignalR hub (whose negotiate step is a `POST`) is not open to it.
 
 Both `/api/auth/oidc/login` and the callback answer failures with a redirect to `/login?error=...` rather than an exception: they are browser navigations, and a JSON 500 is useless to the person looking at it (and, with auto-login on, loops).
 

@@ -8,7 +8,7 @@ Single container that bundles every GarageStack service. Designed for Unraid and
 |---------|------|
 | **nginx** | Serves the Vue SPA on port 80; proxies `/api/` and `/hubs/` to the .NET API |
 | **GarageStack.Api** | ASP.NET Core REST API (localhost:9000, not directly exposed) |
-| **GarageStack.Worker** | .NET background service -- MQTT consumer, push notifications |
+| **GarageStack.Worker** | .NET background service -- stores the gateway's telemetry, saves trips, sends push notifications, runs climate schedules, pre-caches map overlays and keeps the database tidy |
 | **PostgreSQL 18** | Embedded database (localhost:5432, not directly exposed) |
 | **Mosquitto** | MQTT broker on port 1883 with username/password auth and ACL |
 | **SAIC MQTT Gateway** | Python 3.14 service that polls the MG iSmart cloud and publishes telemetry to Mosquitto. Copied from the official `saicismartapi/saic-python-mqtt-gateway` image, minus the dev-only packages that image ships in its venv. |
@@ -31,7 +31,9 @@ Mount a single volume at `/data`. The container creates the following layout ins
   db/
     postgres/     PostgreSQL data directory
     mosquitto/    Mosquitto retained messages
-  logs/           All application and service logs
+  api/            The API's own log files, one per day (shown on the Logs page)
+  worker/         The Worker's own log files, one per day (shown on the Logs page)
+  logs/           What each service writes to its console (supervisord, PostgreSQL, Mosquitto, the gateway, nginx, and the API's and Worker's stdout)
   dataprotection/ ASP.NET Core Data Protection keys
   .postgres_password   Auto-generated DB password (if not set via env var)
   .db_initialized      Marker written after full database setup completes
@@ -59,7 +61,7 @@ Every other variable works here as well, under the same name as in Docker Compos
 | `POSTGRES_PASSWORD` | Generated on first start and saved to `/data/.postgres_password` when not set. Set it only if you need a known value, for example to connect an external tool to the database. |
 | `MQTT_BROKER_PASSWORD` | Generated on every start when not set. Set it if you publish port 1883 and connect other clients. |
 | `MQTT_HOST` / `MQTT_PORT` | Ignored: the services always use the broker inside the container. |
-| `AUTH_COOKIE_SECURE` | Defaults to `false`, so a plain-HTTP LAN install works. Set it to `true` behind a TLS-terminating proxy. |
+| `AUTH_COOKIE_SECURE` | Defaults to `auto`: the session cookie is marked Secure whenever GarageStack is opened over HTTPS (also behind a TLS-terminating proxy), and a plain-HTTP LAN address still works. `true` always marks it Secure, `false` never does. |
 
 ## Building the image
 
@@ -119,7 +121,7 @@ docker run -d `
 
 > `POSTGRES_PASSWORD` is omitted -- a random password is auto-generated on first start and saved to `/data/.postgres_password`. Pass `-e POSTGRES_PASSWORD=yourpassword` if you need a known value (e.g. to connect with an external DB tool).
 
-Once running, open `http://localhost:8080` in your browser. First start takes 20-30 seconds for PostgreSQL to initialise and for the .NET services to come up.
+Once running, open `http://localhost:8080` in your browser. The first start initialises PostgreSQL before the .NET services come up, which can take up to a minute (the health check allows two).
 
 ## Managing the container
 
@@ -129,11 +131,14 @@ Once running, open `http://localhost:8080` in your browser. First start takes 20
 docker logs -f garagestack
 ```
 
-To view a specific service log from inside the container (all logs are written to the `/data/logs/` bind-mounted directory):
+The API's and the Worker's own log files are on the **Logs** page in the web UI. On disk they are in `/data/api` and `/data/worker`; the other services' console output is in `/data/logs`:
 
 ```powershell
-# Tail the API log directly from the host
-Get-Content -Wait garagestack-data\logs\api-supervisor.log
+# Tail today's API log from the host
+Get-Content -Wait (Get-ChildItem garagestack-data\api\api-*.log | Sort-Object Name | Select-Object -Last 1)
+
+# The gateway's output
+Get-Content -Wait garagestack-data\logs\saic-gateway.log
 ```
 
 ### Stop and start

@@ -134,7 +134,8 @@ The `ci` workflow runs on every PR and push to `main`. All jobs must pass before
 
 | Job | What it checks |
 |-----|---------------|
-| `frontend-lint` | oxlint + ESLint (no fixable issues left uncommitted), Prettier format |
+| `project-rules` | Rules from `CLAUDE.md` no linter knows: no em dash anywhere in the repository |
+| `frontend-lint` | oxlint, ESLint and Stylelint (no fixable issues left uncommitted), Prettier format |
 | `frontend-typecheck` | `vue-tsc --build` (zero type errors) |
 | `frontend-test` | Vitest unit tests |
 | `e2e` | The production bundle behind the production nginx config (the only place the Content-Security-Policy applies), driven by the Playwright smoke tests against the demo stack |
