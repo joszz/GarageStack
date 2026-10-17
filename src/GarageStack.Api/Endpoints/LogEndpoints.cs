@@ -9,6 +9,8 @@ namespace GarageStack.Api.Endpoints;
 /// </summary>
 public static class LogEndpoints
 {
+    internal const string Path = "/api/logs";
+
     private const string ApiSource = "api";
     private const string WorkerSource = "worker";
     private const int DefaultLimit = 200;
@@ -23,13 +25,13 @@ public static class LogEndpoints
         var directories = new Dictionary<string, string?>(StringComparer.Ordinal)
         {
             // Where Serilog writes them: "logs" under the working directory (see AddGarageStackSerilog).
-            [ApiSource] = Path.GetFullPath("logs"),
+            [ApiSource] = System.IO.Path.GetFullPath("logs"),
             [WorkerSource] = app.ServiceProvider.GetRequiredService<IConfiguration>()["LogFiles:WorkerDirectory"] is { Length: > 0 } worker
                 ? worker
                 : null,
         };
 
-        app.MapGet("/api/logs", (string? source, LogLevelName? level, string? search, int? limit) =>
+        app.MapGet(Path, (string? source, LogLevelName? level, string? search, int? limit) =>
         {
             var wanted = source is null or "all" ? directories.Keys.ToArray() : [source];
             if (wanted.Any(s => !directories.ContainsKey(s)))

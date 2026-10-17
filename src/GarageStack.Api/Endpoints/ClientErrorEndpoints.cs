@@ -43,13 +43,14 @@ public static class ClientErrorEndpoints
     /// <summary>
     /// The report as it may enter the log: every field capped, each one on a single line (a
     /// stack keeps its frames apart with " | ") so a crafted report cannot forge log entries, and
-    /// any VIN in a path shortened like everywhere else.
+    /// any VIN shortened like everywhere else. An API error's message names the path it failed on,
+    /// VIN included, so the message and the stack are redacted as well as the page.
     /// </summary>
     internal static ClientErrorReport ToLogEntry(ClientErrorReport report)
     {
-        var stack = OneLine(report.Stack.Truncate(MaxStackLength), " | ");
+        var stack = OneLine(report.Stack.Truncate(MaxStackLength), " | ") is { } frames ? LogRedaction.Vins(frames) : null;
         return new ClientErrorReport(
-            Message: OneLine(report.Message.Truncate(MaxMessageLength), " "),
+            Message: OneLine(report.Message.Truncate(MaxMessageLength), " ") is { } message ? LogRedaction.Vins(message) : null,
             Stack: string.IsNullOrEmpty(stack) ? "" : $" | {stack}",
             Page: LogRedaction.RequestPath(OneLine(report.Page.Truncate(MaxPathLength), " ") ?? "?"),
             Source: LogRedaction.RequestPath(OneLine(report.Source.Truncate(MaxPathLength), " ") ?? "?"));

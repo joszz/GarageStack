@@ -6,15 +6,17 @@ namespace GarageStack.Api.Endpoints;
 /// <summary>Everything GarageStack keeps, as one zip to download (see <see cref="DataExport"/>).</summary>
 public static class ExportEndpoints
 {
+    internal const string Path = "/api/export";
+
     public static IEndpointRouteBuilder MapExportEndpoints(this IEndpointRouteBuilder app)
     {
-        app.MapGet("/api/export", async (HttpContext httpContext, DataExport export, CancellationToken ct) =>
+        app.MapGet(Path, async (HttpContext httpContext, DataExport export, CancellationToken ct) =>
         {
             // Built in a temporary file rather than in memory or straight into the response: the
             // telemetry alone can run to hundreds of megabytes, and the zip writer writes
             // synchronously, which the response does not take. The file goes when the response is sent.
             var file = new FileStream(
-                Path.GetTempFileName(), FileMode.Create, FileAccess.ReadWrite, FileShare.None,
+                System.IO.Path.GetTempFileName(), FileMode.Create, FileAccess.ReadWrite, FileShare.None,
                 bufferSize: 81920, FileOptions.DeleteOnClose | FileOptions.Asynchronous);
             try
             {

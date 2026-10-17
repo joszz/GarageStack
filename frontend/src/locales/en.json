@@ -930,6 +930,7 @@
         "tooMany": "This account has the most tokens it can have. Revoke one first.",
         "readOnly": "An API token can only read. Sign in to change anything.",
         "cannotManageTokens": "API tokens are managed from a signed-in session only.",
+        "sessionOnly": "The export and the logs need a signed-in session. An API token cannot read them.",
         "noAccount": "This session names no account to make tokens for."
       },
       "logs": {
