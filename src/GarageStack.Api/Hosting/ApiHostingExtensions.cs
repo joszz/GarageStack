@@ -5,6 +5,7 @@ using GarageStack.Api.Security;
 using GarageStack.Core.Configuration;
 using GarageStack.Core.Helpers;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.RateLimiting;
 using Serilog;
 using Serilog.Events;
 
@@ -17,6 +18,16 @@ namespace GarageStack.Api.Hosting;
 internal static class ApiHostingExtensions
 {
     private const int DefaultGlobalPermitsPerMinute = 120;
+
+    private const string LoginPolicy = "login";
+
+    // The address nginx saw the request come from, kept before the forwarded headers are unwrapped.
+    internal const string PeerItemKey = "GarageStack.Peer";
+
+    // Failed or not, sign-ins through one device in front of nginx per window when no proxies are
+    // configured: three times one visitor's limit, so a household behind an outer proxy never
+    // notices it, while a LAN device forging X-Forwarded-For stops here instead of never.
+    private const int LoginPermitsPerPeer = 30;
 
     /// <summary>
     /// Requests per minute per client IP across the whole API, plus tighter policies for the
@@ -34,14 +45,19 @@ internal static class ApiHostingExtensions
                 $"RateLimits:GlobalPerMinute must be at least 1, but was {globalPermitsPerMinute}.");
         }
 
+        var proxiesConfigured = TrustedProxiesFrom(configuration) is { Length: > 0 };
+
         return services.AddRateLimiter(opts =>
         {
             opts.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-            opts.GlobalLimiter = PartitionedRateLimiter.Create(FixedWindowPerIp(TimeSpan.FromMinutes(1), globalPermitsPerMinute));
+            var global = PartitionedRateLimiter.Create(FixedWindowPerIp(TimeSpan.FromMinutes(1), globalPermitsPerMinute));
+            opts.GlobalLimiter = proxiesConfigured
+                ? global
+                : PartitionedRateLimiter.CreateChained(global, LoginPerPeerLimiter());
 
             // Tighter, endpoint-specific limit on login to slow down credential-stuffing attempts.
             // Composes with (i.e. is enforced in addition to) the global limiter above.
-            opts.AddPolicy("login", FixedWindowPerIp(TimeSpan.FromMinutes(5), permitLimit: 10));
+            opts.AddPolicy(LoginPolicy, FixedWindowPerIp(TimeSpan.FromMinutes(5), permitLimit: 10));
 
             // Starting an OIDC sign-in submits no credentials, so it needs no brute-force limit --
             // but it does redirect to the identity provider, and a redirect loop caused by a
@@ -65,8 +81,11 @@ internal static class ApiHostingExtensions
 
     // One fixed-window limiter per client IP. Every policy above differs only in window and limit.
     private static Func<HttpContext, RateLimitPartition<string>> FixedWindowPerIp(TimeSpan window, int permitLimit) =>
-        httpContext => RateLimitPartition.GetFixedWindowLimiter(
-            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        httpContext => FixedWindow(httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown", window, permitLimit);
+
+    private static RateLimitPartition<string> FixedWindow(string key, TimeSpan window, int permitLimit) =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: key,
             factory: _ => new FixedWindowRateLimiterOptions
             {
                 Window = window,
@@ -74,6 +93,21 @@ internal static class ApiHostingExtensions
                 QueueLimit = 0,
                 AutoReplenishment = true,
             });
+
+    /// <summary>
+    /// With no proxies configured every private address is believed as a proxy, so a device on the
+    /// LAN can put any address it likes in X-Forwarded-For and look like a new visitor on each
+    /// sign-in attempt. The address nginx saw (<see cref="PeerItemKey"/>) cannot be forged that way,
+    /// so sign-ins are also counted per that address. Every other request passes untouched.
+    /// </summary>
+    internal static PartitionedRateLimiter<HttpContext> LoginPerPeerLimiter() =>
+        PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
+            httpContext.GetEndpoint()?.Metadata.GetMetadata<EnableRateLimitingAttribute>()?.PolicyName == LoginPolicy
+                ? FixedWindow(
+                    httpContext.Items[PeerItemKey] as string ?? httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                    TimeSpan.FromMinutes(5),
+                    LoginPermitsPerPeer)
+                : RateLimitPartition.GetNoLimiter(""));
 
     /// <summary>
     /// CORS for the configured browser origins; any origin in Development, where the Vite dev
@@ -136,13 +170,47 @@ internal static class ApiHostingExtensions
     /// </summary>
     public static WebApplication UseGarageStackForwardedHeaders(this WebApplication app)
     {
-        var trustedProxies = app.Configuration.GetSection("ForwardedHeaders:TrustedProxies").Get<string[]>();
-        if (trustedProxies is not { Length: > 0 } && !app.Environment.IsDevelopment())
-            Log.Warning("ForwardedHeaders:TrustedProxies is not configured -- trusting all RFC 1918 ranges. " +
-                        "Set this to your proxy IP(s) to prevent forwarded-header spoofing.");
+        var trustedProxies = TrustedProxiesFrom(app.Configuration);
+        var options = ForwardedHeadersOptionsFor(trustedProxies);
+        if (trustedProxies is not { Length: > 0 })
+        {
+            if (!app.Environment.IsDevelopment())
+                Log.Warning("ForwardedHeaders:TrustedProxies is not configured -- trusting all RFC 1918 ranges, " +
+                            "so sign-ins are also limited per device in front of nginx. Set it to your proxy IP(s) " +
+                            "to stop anything on the LAN from claiming another address.");
 
-        app.UseForwardedHeaders(ForwardedHeadersOptionsFor(trustedProxies));
+            // Kept before the unwrapping below replaces it, for the per-peer sign-in limit.
+            app.Use((context, next) =>
+            {
+                context.Items[PeerItemKey] = NearestPeer(context, options);
+                return next(context);
+            });
+        }
+
+        app.UseForwardedHeaders(options);
         return app;
+    }
+
+    internal static string[]? TrustedProxiesFrom(IConfiguration configuration) =>
+        configuration.GetSection("ForwardedHeaders:TrustedProxies").Get<string[]>();
+
+    /// <summary>
+    /// The address of whatever connected to nginx: the last X-Forwarded-For entry, which nginx
+    /// appends itself, when the request comes through a trusted proxy; the connection's own address
+    /// otherwise. Unlike the entries before it, a client cannot choose this one.
+    /// </summary>
+    internal static string NearestPeer(HttpContext context, ForwardedHeadersOptions options)
+    {
+        var connection = context.Connection.RemoteIpAddress;
+        if (connection is null) return "unknown";
+        if (connection.IsIPv4MappedToIPv6) connection = connection.MapToIPv4();
+
+        var trusted = options.KnownProxies.Contains(connection) || options.KnownIPNetworks.Any(n => n.Contains(connection));
+        var forwardedFor = context.Request.Headers["X-Forwarded-For"].ToString();
+        if (!trusted || forwardedFor.Length == 0) return connection.ToString();
+
+        var last = forwardedFor[(forwardedFor.LastIndexOf(',') + 1)..].Trim();
+        return IPAddress.TryParse(last, out var peer) ? peer.ToString() : connection.ToString();
     }
 
     /// <summary>

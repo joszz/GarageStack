@@ -70,12 +70,15 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
     public Task<string?> GetChargingStopReasonAsync(int vehicleId, CancellationToken ct = default) =>
         Task.FromResult<string?>(null);
 
-    // Demo data is not ingested from MQTT, so there are no raw topics to report.
+    // The generated history, oldest first, then the live snapshot the demo controls change.
     public async IAsyncEnumerable<TelemetrySnapshot> StreamAllAsync(
         int vehicleId, [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken ct = default)
     {
         foreach (var snapshot in _history.Value.OrderBy(s => s.RecordedAt))
+        {
+            ct.ThrowIfCancellationRequested();
             yield return snapshot;
+        }
         yield return (await GetMergedLatestAsync(vehicleId, ct))!;
     }
 
@@ -89,6 +92,7 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
         }
     }
 
+    // Demo data is not ingested from MQTT, so there are no raw topics to report.
     public Task<IReadOnlyList<RawTopicStat>> GetRawTopicStatsAsync(int vehicleId, DateTime since, CancellationToken ct = default) =>
         Task.FromResult<IReadOnlyList<RawTopicStat>>([]);
 

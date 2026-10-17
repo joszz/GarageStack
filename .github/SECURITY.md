@@ -68,9 +68,10 @@ This project follows a coordinated vulnerability disclosure model. Good-faith se
 
 ### API and Network
 
-- API rate limiting is enforced server-side, per client IP, with tighter limits on the login and widget endpoints
+- API rate limiting is enforced server-side, per client IP, with tighter limits on the login and widget endpoints. Forwarded client addresses are only believed from trusted proxies; with none configured, every private address is believed, and sign-ins are then also capped per device in front of nginx so a LAN device cannot dodge the login limit by forging `X-Forwarded-For`
 - Sessions are encrypted, HTTP-only, `SameSite=Strict` cookies, revoked server-side on logout
-- Plain HTTP on a LAN is the documented default. Put a TLS-terminating proxy in front for anything reachable from outside the LAN and set `AUTH_COOKIE_SECURE=true` so the session cookie is only sent over HTTPS
+- Plain HTTP on a LAN is the documented default. Put a TLS-terminating proxy in front for anything reachable from outside the LAN. `AUTH_COOKIE_SECURE=auto`, the default, then marks the session cookie Secure, so it is only sent over HTTPS
+- Read-only API tokens (`Authorization: Bearer gs_...`) are stored as SHA-256 hashes only. A token can only `GET`, cannot manage tokens, and cannot read the full data export or the server logs, which need a signed-in session. Tokens do not expire; revoke unused ones under Settings
 - CORS is restricted to the configured origin, and state-changing requests carrying an `Origin` header are rejected unless it matches
 
 ### Frontend
@@ -83,6 +84,7 @@ This project follows a coordinated vulnerability disclosure model. Good-faith se
 - The bundled deployments use one PostgreSQL role, owned by the application, for both the API and the Worker. There is no split into per-service roles; on an external server you can create a dedicated role with access to the `garagestack` database only
 - User settings are stored per account under a SHA-256 hash of the sign-in method and subject, so the settings table holds no user name or email address. The server accepts only the known sections, plain identifier keys and 16 KB per section
 - Personal identifiers are kept out of the rotating log files: the MG account email and VIN are redacted from MQTT topics before logging, VINs are shortened to their last four characters, and failed login attempts log only the client IP. Location data is stored in the database and never logged
+- Errors the web app hits in a browser are reported to the API (signed-in only, rate-limited, 16 KB) and written to its log, capped, on one line, with VINs shortened. The log viewer and the full data export are available to signed-in sessions only
 
 ### Dependencies
 
