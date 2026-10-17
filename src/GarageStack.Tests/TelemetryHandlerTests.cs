@@ -261,6 +261,39 @@ public class TelemetryHandlerTests
         Assert.True(vehicle.LastParkedAt >= before);
         Assert.Equal((52.37, 4.89), (vehicle.ParkedLatitude, vehicle.ParkedLongitude));
     }
+
+    // The gateway publishes a poll's basic status, the engine stopping among it, before that poll's
+    // GPS fix. The spot it parked on is the fix that follows, not the previous poll's, which at
+    // speed lies hundreds of metres back and read as the car having moved while parked.
+    [Fact]
+    public async Task EngineStop_ThenThatPollsFix_ParksTheCarAtTheFix()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        const string vehicleTopic = "saic/user@example.com/vehicles/FAKEVN00000000001";
+        var databaseName = Guid.NewGuid().ToString();
+        await using var services = new ServiceCollection()
+            .AddDbContext<AppDbContext>(o => o.UseInMemoryDatabase(databaseName))
+            .AddScoped<IVehicleRepository, VehicleRepository>()
+            .AddScoped<ITelemetryRepository>(sp => new TelemetryRepository(sp.GetRequiredService<AppDbContext>()))
+            .AddScoped<INotificationRepository, NotificationRepository>()
+            .BuildServiceProvider();
+        var handler = new TelemetryHandler(
+            NullLogger.Instance,
+            new VehicleResolver(services.GetRequiredService<IServiceScopeFactory>()),
+            new FakePushSender(),
+            WorkerLocalizer.Notifications());
+
+        // Driving, last seen on the previous poll.
+        await handler.TryHandleAsync(new MqttMessage($"{vehicleTopic}/drivetrain/running", "true", Retain: false), ct);
+        await handler.TryHandleAsync(new MqttMessage($"{vehicleTopic}/location/position", """{"latitude":52.37,"longitude":4.89}""", Retain: false), ct);
+        // The parking poll: the stop first, its position after.
+        await handler.TryHandleAsync(new MqttMessage($"{vehicleTopic}/drivetrain/running", "false", Retain: false), ct);
+        await handler.TryHandleAsync(new MqttMessage($"{vehicleTopic}/location/position", """{"latitude":52.40,"longitude":4.95}""", Retain: false), ct);
+
+        await using var scope = services.CreateAsyncScope();
+        var vehicle = await scope.ServiceProvider.GetRequiredService<AppDbContext>().Vehicles.SingleAsync(ct);
+        Assert.Equal((52.40, 4.95), (vehicle.ParkedLatitude, vehicle.ParkedLongitude));
+    }
 }
 
 // The broker hands the Api's own commands back to the Worker, and the gateway publishes a few

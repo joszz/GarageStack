@@ -88,11 +88,11 @@ const trendDesc = computed(() =>
 const trendRows = computed(() => {
   const trend = history.value?.trend
   if (!trend) return []
-  const drop = thresholds.value.dropBar
+  const losing = history.value?.losing ?? []
   return POSITIONS.map((position) => ({
     position,
     change: pressureChange(trend[position]),
-    losing: drop > 0 && trend[position] <= -drop,
+    losing: losing.includes(position),
   }))
 })
 </script>

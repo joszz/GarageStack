@@ -373,18 +373,21 @@ watch(
       </main>
     </div>
 
-    <Transition name="availability-toast">
-      <div
-        v-if="availabilityToast"
-        class="availability-toast"
-        :class="`availability-toast--${availabilityToast}`"
-      >
-        <font-awesome-icon
-          :icon="availabilityToast === 'online' ? 'wifi' : 'triangle-exclamation'"
-        />
-        {{ availabilityToast === 'online' ? t('vehicle.wentOnline') : t('vehicle.wentOffline') }}
-      </div>
-    </Transition>
+    <!-- Always there, so a screen reader announces the toast when it appears inside. -->
+    <div role="status" aria-live="polite">
+      <Transition name="availability-toast">
+        <div
+          v-if="availabilityToast"
+          class="availability-toast"
+          :class="`availability-toast--${availabilityToast}`"
+        >
+          <font-awesome-icon
+            :icon="availabilityToast === 'online' ? 'wifi' : 'triangle-exclamation'"
+          />
+          {{ availabilityToast === 'online' ? t('vehicle.wentOnline') : t('vehicle.wentOffline') }}
+        </div>
+      </Transition>
+    </div>
 
     <AppFooter />
 

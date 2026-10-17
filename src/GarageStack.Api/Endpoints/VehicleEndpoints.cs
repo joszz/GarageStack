@@ -22,6 +22,7 @@ public static class VehicleEndpoints
         // Resolved once here rather than taken as a handler parameter: it is deployment
         // configuration, not request input.
         var hvBatteryCapacity = app.ServiceProvider.GetRequiredService<HvBatteryCapacity>();
+        var tyreThresholds = app.ServiceProvider.GetRequiredService<TyrePressureThresholds>();
 
         group.MapGet("/", async (IVehicleRepository vehicles, CancellationToken ct) =>
         {
@@ -97,9 +98,14 @@ public static class VehicleEndpoints
             var today = DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, zone));
             var days = await telemetry.GetDailyStatsAsync(vehicle.Id, today.AddDays(-(TyreHistoryDays - 1)), today, zone, today, ct);
             var trendFrom = today.AddDays(-(TyreTrend.WindowDays - 1));
+            var trend = TyreTrend.Measure(days.Where(d => d.Date >= trendFrom));
 
-            return Results.Ok(new TyreHistoryDto(
-                days, TyreTrend.Measure(days.Where(d => d.Date >= trendFrom)), TyreTrend.WindowDays));
+            // Decided here, by the same rule the Worker's alert uses, so the dialog never says a
+            // tyre is losing air when no alert would say so, or the other way round.
+            var losing = trend?.Losing(tyreThresholds.DropBar)
+                .Select(p => JsonNamingPolicy.CamelCase.ConvertName(p.ToString()))
+                .ToList() ?? [];
+            return Results.Ok(new TyreHistoryDto(days, trend, TyreTrend.WindowDays, losing));
         })
         .WithSummary("A month of daily tyre pressures, and each tyre's change against the others over the last two weeks");
 
@@ -200,7 +206,8 @@ public record VehicleListItemDto(
 
 /// <summary>
 /// A month of daily statistics (the same rows as /stats/daily, for the same chart) and, when there
-/// are readings enough, each tyre's change against the others over <paramref name="TrendDays"/>.
+/// are readings enough, each tyre's change against the others over <paramref name="TrendDays"/>,
+/// with the positions losing air (frontLeft, rearRight, ...) by the slow-puncture alert's rule.
 /// </summary>
-public sealed record TyreHistoryDto(IReadOnlyList<DailyStat> Days, TyreChanges? Trend, int TrendDays);
+public sealed record TyreHistoryDto(IReadOnlyList<DailyStat> Days, TyreChanges? Trend, int TrendDays, IReadOnlyList<string> Losing);
 

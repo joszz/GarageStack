@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using GarageStack.Core.Models;
 
 namespace GarageStack.Core.Helpers;
@@ -7,6 +8,8 @@ namespace GarageStack.Core.Helpers;
 /// temperature, so all four tyres rise and fall together through the seasons; a tyre that slowly
 /// loses air falls away from the other three, and that gap is what is measured here. When one
 /// tyre loses 0.2 bar, its change is -0.2 and each other tyre's is about +0.07.
+/// The tyre's own pressure has to have fallen too: topping up three tyres and leaving the fourth,
+/// which was already right, leaves the fourth behind the others without it losing anything.
 /// </summary>
 public static class TyreTrend
 {
@@ -35,13 +38,15 @@ public static class TyreTrend
         // Each tyre's pressure less the average of the other three, on one day.
         static double Gap(double[] day, int tyre) => day[tyre] - (day.Sum() - day[tyre]) / 3;
 
-        double Change(int tyre) =>
-            Math.Round(
-                complete.TakeLast(EdgeDays).Average(day => Gap(day, tyre)) -
-                complete.Take(EdgeDays).Average(day => Gap(day, tyre)),
-                3);
+        double Change(Func<double[], double> measure) =>
+            Math.Round(complete.TakeLast(EdgeDays).Average(measure) - complete.Take(EdgeDays).Average(measure), 3);
 
-        return new TyreChanges(Change(0), Change(1), Change(2), Change(3), complete.Count);
+        return new TyreChanges(
+            Change(day => Gap(day, 0)), Change(day => Gap(day, 1)), Change(day => Gap(day, 2)), Change(day => Gap(day, 3)),
+            complete.Count)
+        {
+            Own = [Change(day => day[0]), Change(day => day[1]), Change(day => day[2]), Change(day => day[3])],
+        };
     }
 }
 
@@ -51,15 +56,25 @@ public static class TyreTrend
 /// </summary>
 public sealed record TyreChanges(double FrontLeft, double FrontRight, double RearLeft, double RearRight, int Days)
 {
-    /// <summary>The tyres that fell at least <paramref name="dropBar"/> behind the others, front left first.</summary>
-    public IReadOnlyList<TyrePosition> Losing(double dropBar) =>
-        dropBar <= 0
-            ? []
-            : [.. new[]
-            {
-                (TyrePosition.FrontLeft, FrontLeft), (TyrePosition.FrontRight, FrontRight),
-                (TyrePosition.RearLeft, RearLeft), (TyrePosition.RearRight, RearRight),
-            }.Where(t => t.Item2 <= -dropBar).Select(t => t.Item1)];
+    /// <summary>
+    /// Each tyre's own change over the same days, front left first, in bar. Not sent: the dialog
+    /// shows the gaps, and the API tells it which tyres are losing air.
+    /// </summary>
+    [JsonIgnore]
+    public IReadOnlyList<double> Own { get; init; } = [];
+
+    /// <summary>
+    /// The tyres losing air, front left first: at least <paramref name="dropBar"/> behind the
+    /// others, and down by at least half that themselves. Half, because warmer days over the two
+    /// weeks lift a leaking tyre's own pressure along with the others'.
+    /// </summary>
+    public IReadOnlyList<TyrePosition> Losing(double dropBar)
+    {
+        if (dropBar <= 0) return [];
+        var gaps = new[] { FrontLeft, FrontRight, RearLeft, RearRight };
+        return [.. Enum.GetValues<TyrePosition>()
+            .Where(p => gaps[(int)p] <= -dropBar && (Own.Count == 0 || Own[(int)p] <= -dropBar / 2))];
+    }
 }
 
 public enum TyrePosition

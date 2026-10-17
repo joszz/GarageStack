@@ -266,7 +266,7 @@ function close() {
       <p class="text-xs text-muted">{{ t('tripLog.places.radiusHint') }}</p>
     </form>
 
-    <p v-if="store.actionError" class="text-danger text-sm">
+    <p v-if="store.actionError" class="text-danger text-sm" role="alert">
       {{ errorMessage(store.actionError) }}
     </p>
 
