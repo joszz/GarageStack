@@ -849,6 +849,61 @@ public class AuthenticationFlowTests
         Assert.Equal("logs.sourceUnknown", await ProblemCodeAsync(response, ct));
     }
 
+    // The viewer scrolls back a page at a time with each page's older cursor, and live mode asks
+    // with the newer one for what was written since.
+    [Fact]
+    public async Task Logs_PageBackWithTheOlderCursor_AndReadOnWithTheNewerOne()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var workerLogs = Directory.CreateTempSubdirectory("garagestack-worker-logs-").FullName;
+        var file = Path.Combine(workerLogs, "worker-20261016.log");
+        try
+        {
+            await File.WriteAllTextAsync(file,
+                "2026-10-16 10:00:00.000 +02:00 [INF] first\n" +
+                "2026-10-16 10:01:00.000 +02:00 [INF] second\n", ct);
+            await using var factory = CreatePasswordOnlyFactory(s => s["LogFiles__WorkerDirectory"] = workerLogs);
+            using var client = CreateClient(factory);
+            await PasswordLoginAsync(client, ct);
+
+            var newest = await client.GetFromJsonAsync<JsonElement>("/api/logs?source=worker&limit=1", ct);
+            var older = await client.GetFromJsonAsync<JsonElement>(
+                $"/api/logs?source=worker&limit=1&before={Uri.EscapeDataString(newest.GetProperty("older").GetString()!)}", ct);
+            await File.AppendAllTextAsync(file, "2026-10-16 10:02:00.000 +02:00 [INF] third\n", ct);
+            var live = await client.GetFromJsonAsync<JsonElement>(
+                $"/api/logs?source=worker&limit=1&after={Uri.EscapeDataString(newest.GetProperty("newer").GetString()!)}", ct);
+
+            Assert.True(newest.GetProperty("reset").GetBoolean());
+            Assert.Equal("second", Assert.Single(newest.GetProperty("entries").EnumerateArray()).GetProperty("message").GetString());
+            var first = Assert.Single(older.GetProperty("entries").EnumerateArray());
+            Assert.Equal("first", first.GetProperty("message").GetString());
+            Assert.Equal("worker-20261016.log:0", first.GetProperty("id").GetString());
+            Assert.Equal(JsonValueKind.Null, older.GetProperty("older").ValueKind);
+            Assert.False(live.GetProperty("reset").GetBoolean());
+            Assert.Equal("third", Assert.Single(live.GetProperty("entries").EnumerateArray()).GetProperty("message").GetString());
+        }
+        finally
+        {
+            Directory.Delete(workerLogs, recursive: true);
+        }
+    }
+
+    [Theory]
+    [InlineData("before=..%2Fapi-20261016.log%3A0")]
+    [InlineData("before=api-20261016.log%3A0&after=api-20261016.log%3A0")]
+    public async Task Logs_ACursorThatNoPageGave_IsRefused(string query)
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var factory = CreatePasswordOnlyFactory();
+        using var client = CreateClient(factory);
+        await PasswordLoginAsync(client, ct);
+
+        var response = await client.GetAsync($"/api/logs?{query}", ct);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Equal("logs.cursorInvalid", await ProblemCodeAsync(response, ct));
+    }
+
     // ── Data export ───────────────────────────────────────────────────────────
 
     [Fact]

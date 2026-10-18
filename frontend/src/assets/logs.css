@@ -1,4 +1,4 @@
-/* The log viewer: filters, then one card per entry, newest first. */
+/* The log viewer: filters, then one card per entry, newest first, older pages loading below. */
 
 .logs-filters {
   display: flex;
@@ -31,6 +31,11 @@
   box-shadow: var(--shadow-card);
   padding: 0.6rem 0.8rem;
   min-width: 0;
+
+  /* Entries out of view skip layout and paint, so thousands scroll like a few: until one has
+     shown, it holds a typical entry's height. */
+  content-visibility: auto;
+  contain-intrinsic-size: auto 4.5rem;
 }
 
 .logs-entry__meta {
@@ -69,4 +74,14 @@
   max-height: 20rem;
   overflow: auto;
   font-size: 0.72rem;
+}
+
+/* Under the list: older entries loading, a retry, or the end of the files. */
+.logs-more {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1rem;
 }

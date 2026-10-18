@@ -8,3 +8,15 @@ export const PHONE_MEDIA_QUERY = '(width <= 767px)'
 export function isPhoneViewport(): boolean {
   return typeof window !== 'undefined' && window.matchMedia?.(PHONE_MEDIA_QUERY).matches === true
 }
+
+/**
+ * The nearest ancestor that scrolls, for an IntersectionObserver whose margin has to reach past
+ * what is in view: the page's main column rather than the window. Null when nothing does.
+ */
+export function scrollParent(element: HTMLElement | null): HTMLElement | null {
+  for (let parent = element?.parentElement ?? null; parent; parent = parent.parentElement) {
+    const { overflowY } = getComputedStyle(parent)
+    if (overflowY === 'auto' || overflowY === 'scroll') return parent
+  }
+  return null
+}

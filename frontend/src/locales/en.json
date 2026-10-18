@@ -938,7 +938,8 @@
         "noAccount": "This session names no account to make tokens for."
       },
       "logs": {
-        "sourceUnknown": "source must be api, worker or all."
+        "sourceUnknown": "source must be api, worker or all.",
+        "cursorInvalid": "That place in the log files is not one an earlier page gave. Refresh to start over."
       }
     }
   },
@@ -971,7 +972,7 @@
   },
   "logs": {
     "title": "Logs",
-    "subtitle": "The newest entries of the API's and the Worker's log files, newest first. The files themselves stay on the server, one per day.",
+    "subtitle": "The entries of the API's and the Worker's log files, newest first, older ones loading as you scroll. The files themselves stay on the server, one per day.",
     "source": "Source",
     "sources": {
       "all": "All",
@@ -993,6 +994,8 @@
     "refresh": "Refresh",
     "live": "Live",
     "empty": "No entries match.",
+    "loadingOlder": "Loading older entries",
+    "end": "No older entries in the log files.",
     "workerMissing": "The Worker's log files are not visible here: set WORKER_LOG_DIRECTORY to the folder they are in (see CONFIGURATION.md).",
     "exception": "Exception"
   }
