@@ -45,7 +45,7 @@
     "workbox-window": "^7.4.1"
   },
   "devDependencies": {
-    "@playwright/test": "^1.64.0",
+    "@playwright/test": "^1.64.1",
     "@resvg/resvg-js": "^2.6.2",
     "@tsconfig/node26": "^26.0.1",
     "@types/jsdom": "^30.0.0",
