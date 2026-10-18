@@ -221,6 +221,20 @@ updates:
       - dependency-name: "node"
         versions: [">=27"]
 
+  # ── Python (all-in-one image) ────────────────────────────────────────────────
+  # supervisord, pip-installed into the all-in-one image's own Python from the hash-pinned
+  # docker/all-in-one/requirements.txt. The SAIC gateway's venv comes from its upstream image.
+  - package-ecosystem: pip
+    directory: /docker/all-in-one
+    schedule:
+      interval: weekly
+      day: monday
+      time: "07:00"
+      timezone: "Europe/Amsterdam"
+    open-pull-requests-limit: 2
+    cooldown:
+      default-days: 3
+
   # ── GitHub Actions ───────────────────────────────────────────────────────────
   # Every action is pinned to a commit SHA with its version in a trailing comment, so a tag that
   # is moved later (as trivy-action's were in March 2026) cannot change what runs here. Dependabot

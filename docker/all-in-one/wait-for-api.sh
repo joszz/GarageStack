@@ -7,7 +7,7 @@
 set -u
 
 for _ in $(seq 1 180); do
-    curl -fsS -o /dev/null http://127.0.0.1:9000/health && exit 0
+    /http-check.py http://127.0.0.1:9000/health && exit 0
     sleep 1
 done
 

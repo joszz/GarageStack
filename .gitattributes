@@ -3,6 +3,7 @@
 # CRLF breaks shebangs ("no such file or directory") when the image is
 # built locally on Windows.
 *.sh text eol=lf
+docker/**/*.py text eol=lf
 docker/**/*.conf text eol=lf
 mosquitto/**/*.conf text eol=lf
 Dockerfile text eol=lf

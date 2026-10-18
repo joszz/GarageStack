@@ -33,7 +33,9 @@ ENV VITE_MAP_STYLE_LIGHT=$MAP_STYLE_LIGHT
 ENV VITE_MAP_STYLE_COLORFUL=$MAP_STYLE_COLORFUL
 RUN pnpm run build
 
-FROM nginx:1.31-alpine AS runtime
+# The slim variant is the same nginx build without the optional dynamic modules (njs, XSLT, GeoIP,
+# image filter, ACME) and the libraries they pull in. nginx.conf loads none of them.
+FROM nginx:1.31-alpine-slim AS runtime
 ARG OS_PATCH_DATE=0
 RUN echo "os patch date: ${OS_PATCH_DATE}" && apk upgrade --no-cache
 COPY --from=build /app/dist /usr/share/nginx/html

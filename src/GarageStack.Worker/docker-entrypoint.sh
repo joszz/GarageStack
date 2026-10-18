@@ -8,4 +8,7 @@ set -e
 mkdir -p /app/logs
 chown -R "$APP_UID" /app/logs
 
-exec gosu "$APP_UID" dotnet GarageStack.Worker.dll
+# setpriv (util-linux, part of the base image) leaves HOME at root's, so point it at the app
+# user's own.
+export HOME=/home/app
+exec setpriv --reuid="$APP_UID" --regid="$APP_UID" --init-groups dotnet GarageStack.Worker.dll
