@@ -262,3 +262,11 @@ updates:
       github-actions:
         patterns:
           - "actions/*"
+
+      # Every github/codeql-action step (init, autobuild, analyze, upload-sarif) must run the
+      # same version, or CodeQL fails with "Loaded a configuration file for version X, but
+      # running version Y". Dependabot treats each subpath as its own dependency, so without
+      # this group it opens one PR per step and each of them breaks the CodeQL run.
+      codeql-action:
+        patterns:
+          - "github/codeql-action*"
