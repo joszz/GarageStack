@@ -14,6 +14,9 @@ TestResults/
 node_modules/
 frontend/dist/
 
+# python (docker/all-in-one/http-check.py)
+__pycache__/
+
 # local all-in-one container testing data (see docker/all-in-one/README.md)
 garagestack-data/
 

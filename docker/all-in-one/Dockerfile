@@ -6,8 +6,6 @@ WORKDIR /app
 # OS_PATCH_DATE busts the layer cache so apk upgrade actually re-runs instead of
 # reusing a stale cached layer from before an OS package fix was published.
 ARG OS_PATCH_DATE=0
-# tzdata        -- IANA time zones, which climate schedules keep their start time in. Named
-#                  explicitly: trixie no longer counts it as a required package.
 RUN echo "os patch date: ${OS_PATCH_DATE}" && apk upgrade --no-cache
 COPY frontend/package.json frontend/pnpm-lock.yaml frontend/pnpm-workspace.yaml ./
 # No version here: npm installs the one in package.json's packageManager field, so the pnpm
@@ -69,14 +67,16 @@ FROM saicismartapi/saic-python-mqtt-gateway:0.13.0-rc5 AS saic-source
 # "unknown" itself, so the file says that too.
 RUN printf '%s\n' "${RELEASE_VERSION:-unknown}" > /tmp/release-version
 
-# ── Stage 4: Final all-in-one runtime image ───────────────────────────────────
+# ── Stage 4: .NET runtime ─────────────────────────────────────────────────────
+# The ASP.NET Core runtime (which includes the base .NET runtime) is copied from Microsoft's own
+# image, the one the separate API image runs on. Trixie replaced gnupg with sqv for apt signature
+# verification, and sqv rejects SHA1-signed keys (policy change since 2026-02-01), which breaks
+# the Microsoft apt repo. Copying also needs no install script fetched and run at build time.
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS dotnet-runtime
+
+# ── Stage 5: Final all-in-one runtime image ───────────────────────────────────
 # python:3.14-slim is Debian trixie (13) -- the same base the saic gateway uses,
 # so the copied venv's Python symlinks resolve correctly.
-#
-# Trixie replaced gnupg with sqv for apt signature verification. sqv rejects
-# SHA1-signed keys (policy change since 2026-02-01), which breaks the Microsoft
-# apt repo. We install .NET via the official install script instead, which needs
-# no apt repo at all.
 FROM python:3.14-slim
 
 ARG DEBIAN_FRONTEND=noninteractive
@@ -85,45 +85,57 @@ ARG DEBIAN_FRONTEND=noninteractive
 # reusing a stale cached layer from before an OS package fix was published.
 ARG OS_PATCH_DATE=0
 
-# bash          -- required by entrypoint.sh and dotnet-install.sh (slim images ship dash only)
+# bash          -- required by entrypoint.sh and the wait-for scripts (slim images ship dash only)
 # libgssapi-krb5-2 -- required by the .NET runtime
 # libicu76      -- required by .NET globalization (UseRequestLocalization uses CultureInfo).
 #                  The library alone, not libicu-dev, whose headers add ~74 MB. 76 is trixie's
 #                  ICU version, so it moves with the base image like the pgdg suite below.
+# tzdata        -- IANA time zones, which climate schedules keep their start time in. Named
+#                  explicitly: trixie no longer counts it as a required package.
+# No curl (http-check.py does the HTTP checks), no gosu (supervisord's user= and setpriv drop
+# privileges) and no Debian supervisor package (installed with pip below).
 RUN echo "os patch date: ${OS_PATCH_DATE}" \
     && apt-get update \
     && apt-get upgrade -y --no-install-recommends \
     && apt-get install -y --no-install-recommends \
-        bash curl ca-certificates gosu supervisor \
+        bash ca-certificates \
         nginx mosquitto \
         libgssapi-krb5-2 libicu76 tzdata \
     && rm -rf /var/lib/apt/lists/*
 
-# Dedicated non-root user for the .NET API/Worker and the SAIC gateway. Postgres and
-# Mosquitto already run as their own unprivileged users via gosu (see supervisord.conf),
-# and nginx already drops its worker processes to www-data via the Debian package default,
-# only its master process stays root to bind port 80.
+# Dedicated non-root user for the .NET API/Worker and the SAIC gateway. supervisord starts every
+# program as its own unprivileged user (user= in supervisord.conf): postgres, mosquitto, or this
+# one. nginx drops its worker processes to www-data via the Debian package default, only its
+# master process stays root to bind port 80.
 RUN useradd --system --create-home --home-dir /home/appuser --shell /usr/sbin/nologin appuser
 
-# .NET 10 ASP.NET Core runtime -- installed via the official script, no apt repo needed.
-RUN curl -sSL https://dot.net/v1/dotnet-install.sh -o /tmp/dotnet-install.sh \
-    && chmod +x /tmp/dotnet-install.sh \
-    && /tmp/dotnet-install.sh --runtime aspnetcore --channel 10.0 --install-dir /usr/local/dotnet \
-    && rm /tmp/dotnet-install.sh
+# .NET 10 ASP.NET Core runtime, from the dotnet-runtime stage above.
+COPY --from=dotnet-runtime /usr/share/dotnet /usr/local/dotnet
 
-ENV PATH="/usr/local/dotnet:$PATH"
+# PostgreSQL's own bin directory comes first, so psql, pg_dump and the rest run directly rather
+# than through postgresql-common's Perl wrappers in /usr/bin, which need the Perl removed below.
+ENV PATH="/usr/lib/postgresql/18/bin:/usr/local/dotnet:$PATH"
 
 # PostgreSQL 18 -- official apt repo, trixie suite. apt reads the ASCII-armored key as is.
+ADD --chmod=644 https://www.postgresql.org/media/keys/ACCC4CF8.asc /usr/share/keyrings/postgresql.asc
 # postgresql-common pulls in ssl-cert, which generates a self-signed "snakeoil" key pair at
 # install. Nothing here serves TLS (initdb leaves ssl off), so the private key goes rather than
 # sit in every image for scanners to flag.
-RUN curl -sSL https://www.postgresql.org/media/keys/ACCC4CF8.asc -o /usr/share/keyrings/postgresql.asc \
-    && echo "deb [signed-by=/usr/share/keyrings/postgresql.asc] http://apt.postgresql.org/pub/repos/apt trixie-pgdg main" \
+#
+# postgresql-common's scripts need Perl, and postgresql-18 requires locales: ~63 MB together that
+# nothing here uses. Every PostgreSQL program runs from its own bin directory (see PATH above),
+# and initdb uses the C locale, which glibc has built in. Only purging them in this same RUN
+# keeps them out of the image. --force-depends leaves apt counting those dependencies as broken,
+# so an apt-get install inside a running container asks for `apt --fix-broken install` first,
+# which brings them back. 5.40 is trixie's Perl, so the names move with the base image like
+# libicu76 above.
+RUN echo "deb [signed-by=/usr/share/keyrings/postgresql.asc] http://apt.postgresql.org/pub/repos/apt trixie-pgdg main" \
         > /etc/apt/sources.list.d/pgdg.list \
     && mkdir -p /etc/postgresql-common \
     && printf "create_main_cluster = false\n" > /etc/postgresql-common/createcluster.conf \
     && apt-get update \
     && apt-get install -y --no-install-recommends postgresql-18 \
+    && dpkg --purge --force-depends perl libperl5.40 perl-modules-5.40 libjson-perl locales libc-l10n \
     && rm -rf /var/lib/apt/lists/* \
     && rm -f /etc/ssl/private/ssl-cert-snakeoil.key /etc/ssl/certs/ssl-cert-snakeoil.pem
 
@@ -145,15 +157,21 @@ COPY --from=saic-source /tmp/release-version /opt/saic/release-version
 # Python, or a package the upgrade above broke, fails the build here instead of the gateway at
 # startup.
 #
+# supervisord comes from PyPI into the image's own Python rather than from apt: Debian's package
+# pulls in a whole second Python (3.13, ~23 MB). requirements.txt pins it with hashes, and
+# Dependabot keeps that pin current.
+#
 # Nothing in this image installs Python packages at runtime, so remove pip afterwards from
 # both the gateway venv and the base interpreter. Even the newest pip vendors outdated copies
 # of msgpack and setuptools' pkg_resources that image scans keep flagging (GHSA-6v7p-g79w-8964,
 # CVE-2025-47273, CVE-2026-59890), and dropping it also retires the earlier pip CVE patching.
 # The import check runs from the app directory, as the gateway does, without moving WORKDIR.
 # hadolint ignore=DL3003
-RUN /opt/saic/app/.venv/bin/python -m pip install --no-cache-dir --upgrade "anyio==4.15.1" \
+RUN --mount=type=bind,source=docker/all-in-one/requirements.txt,target=/tmp/requirements.txt \
+    /opt/saic/app/.venv/bin/python -m pip install --no-cache-dir --upgrade "anyio==4.15.1" \
     && cd /opt/saic/app && .venv/bin/python -B -c "import main" \
     && /opt/saic/app/.venv/bin/python -m pip uninstall --yes pip \
+    && python -m pip install --no-cache-dir --require-hashes -r /tmp/requirements.txt \
     && python -m pip uninstall --yes pip
 
 # Frontend SPA
@@ -174,6 +192,7 @@ COPY --chmod=755 \
     docker/all-in-one/wait-for-postgres.sh \
     docker/all-in-one/wait-for-mosquitto.sh \
     docker/all-in-one/wait-for-api.sh \
+    docker/all-in-one/http-check.py \
     docker/resolve-saic-rest-uri.sh \
     docker/mosquitto-auth.sh \
     /
@@ -198,7 +217,7 @@ EXPOSE 80 1883
 # nothing waits on this container's health. The longer start period covers a first run, which
 # initialises PostgreSQL before anything else starts.
 HEALTHCHECK --interval=10s --timeout=5s --start-period=120s --retries=5 \
-    CMD curl -fsS http://127.0.0.1:9000/api/health || exit 1
+    CMD /http-check.py http://127.0.0.1:9000/api/health || exit 1
 
 VOLUME ["/data"]
 

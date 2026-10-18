@@ -4,6 +4,12 @@ set -e
 # Ensure volume subdirectories exist on a fresh mount
 mkdir -p /data/db/postgres /data/db/mosquitto /data/logs /data/dataprotection /data/api /data/worker
 
+# Runs a command as the postgres account. supervisord drops privileges for the services
+# themselves (user= in supervisord.conf); this covers the setup steps below.
+as_postgres() {
+    setpriv --reuid=postgres --regid=postgres --init-groups "$@"
+}
+
 PGDATA="/data/db/postgres"
 POSTGRES_DB="${POSTGRES_DB:-garagestack}"
 POSTGRES_USER="${POSTGRES_USER:-garagestack}"
@@ -72,7 +78,7 @@ chown -R appuser:appuser /data/api /data/worker /data/dataprotection
 # Home Assistant login (HA_MQTT_USERNAME / HA_MQTT_PASSWORD, see documentation/HOME_ASSISTANT.md).
 # Mosquitto 2.x refuses to load password/ACL files unless they are owned by
 # the user it runs as (it checks the literal "mosquitto" account via getpwnam,
-# not the process's actual uid) -- run the broker as that user via gosu below.
+# not the process's actual uid) -- supervisord runs the broker as that user.
 MQTT_BROKER_USERNAME="${MQTT_BROKER_USERNAME}" MQTT_BROKER_PASSWORD="${MQTT_BROKER_PASSWORD}" \
     sh /mosquitto-auth.sh /etc/mosquitto/conf.d
 chown mosquitto:mosquitto /data/db/mosquitto
@@ -91,21 +97,21 @@ if [ ! -f "$DB_INIT_MARKER" ]; then
         chown -R postgres:postgres /data/db/postgres /data/logs
         # Only this script (as the postgres OS user) uses the socket, and the .NET services connect
         # over TCP with their password, so nothing else in the container gets into the database.
-        gosu postgres /usr/lib/postgresql/18/bin/initdb \
+        as_postgres /usr/lib/postgresql/18/bin/initdb \
             -D "$PGDATA" --auth-host=scram-sha-256 --auth-local=peer -E UTF8 --locale=C
     else
         echo "[garagestack] Resuming PostgreSQL setup (partial initialisation detected)..."
         chown -R postgres:postgres /data/db/postgres /data/logs
     fi
 
-    gosu postgres /usr/lib/postgresql/18/bin/pg_ctl -D "$PGDATA" \
+    as_postgres /usr/lib/postgresql/18/bin/pg_ctl -D "$PGDATA" \
         -l /data/logs/postgres-init.log start -w
 
     # PostgreSQL has no IF NOT EXISTS for roles or databases, so each CREATE is generated only
     # when the catalog lacks the object and run through \gexec. That keeps a rerun after a
     # partial init idempotent. ALTER ROLE ensures the password matches .postgres_password even
     # when the role already existed from a prior partial run with a different password.
-    gosu postgres psql -v ON_ERROR_STOP=1 \
+    as_postgres psql -v ON_ERROR_STOP=1 \
         -v pguser="${POSTGRES_USER}" \
         -v pgpassword="${POSTGRES_PASSWORD}" \
         -v pgdb="${POSTGRES_DB}" <<-'EOSQL'
@@ -117,7 +123,7 @@ if [ ! -f "$DB_INIT_MARKER" ]; then
         GRANT ALL PRIVILEGES ON DATABASE :"pgdb" TO :"pguser";
 EOSQL
 
-    gosu postgres /usr/lib/postgresql/18/bin/pg_ctl -D "$PGDATA" stop -w
+    as_postgres /usr/lib/postgresql/18/bin/pg_ctl -D "$PGDATA" stop -w
     touch "$DB_INIT_MARKER"
     echo "[garagestack] PostgreSQL initialised."
 fi
@@ -132,15 +138,15 @@ chown -R postgres:postgres /data/db/postgres /data/logs
 # initdb's own default lines switched over. Runs once: afterwards nothing matches.
 if grep -Eq '^(local[[:space:]].*[[:space:]]trust|host[[:space:]].*[[:space:]]md5)[[:space:]]*$' "$PGDATA/pg_hba.conf"; then
     echo "[garagestack] Moving PostgreSQL authentication to peer (socket) and scram-sha-256 (TCP)..."
-    gosu postgres /usr/lib/postgresql/18/bin/pg_ctl -D "$PGDATA" \
+    as_postgres /usr/lib/postgresql/18/bin/pg_ctl -D "$PGDATA" \
         -l /data/logs/postgres-init.log start -w
-    gosu postgres psql -v ON_ERROR_STOP=1 \
+    as_postgres psql -v ON_ERROR_STOP=1 \
         -v pguser="${POSTGRES_USER}" \
         -v pgpassword="${POSTGRES_PASSWORD}" <<-'EOSQL'
         SET password_encryption = 'scram-sha-256';
         ALTER ROLE :"pguser" WITH PASSWORD :'pgpassword';
 EOSQL
-    gosu postgres /usr/lib/postgresql/18/bin/pg_ctl -D "$PGDATA" stop -w
+    as_postgres /usr/lib/postgresql/18/bin/pg_ctl -D "$PGDATA" stop -w
 
     sed -i -E 's/^password_encryption = md5\b/password_encryption = scram-sha-256/' "$PGDATA/postgresql.conf"
     sed -i -E \
@@ -151,4 +157,4 @@ EOSQL
 fi
 
 echo "[garagestack] Starting all services via supervisord..."
-exec /usr/bin/supervisord -n -c /etc/supervisor/supervisord.conf
+exec /usr/local/bin/supervisord -n -c /etc/supervisor/supervisord.conf
