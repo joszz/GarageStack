@@ -34,7 +34,7 @@ public class VehicleCommandsTests
         Assert.Equal("drivetrain/chargingSchedule", VehicleCommands.TopicFor("scheduled-charging"));
     }
 
-    // The topics saic-python-mqtt-gateway 0.13.0-rc3 registers its handlers on (src/mqtt_topics.py).
+    // The topics saic-python-mqtt-gateway 0.13.0-rc5 registers its handlers on (src/mqtt_topics.py).
     [Theory]
     [InlineData("charge-target", "drivetrain/socTarget")]
     [InlineData("charging", "drivetrain/charging")]
