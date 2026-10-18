@@ -938,7 +938,8 @@
         "noAccount": "Deze sessie hoort bij geen account om tokens voor te maken."
       },
       "logs": {
-        "sourceUnknown": "De bron moet api, worker of all zijn."
+        "sourceUnknown": "De bron moet api, worker of all zijn.",
+        "cursorInvalid": "Die plek in de logbestanden komt niet van een eerdere pagina. Vernieuw om opnieuw te beginnen."
       }
     }
   },
@@ -971,7 +972,7 @@
   },
   "logs": {
     "title": "Logboek",
-    "subtitle": "De nieuwste regels uit de logbestanden van de API en de Worker, nieuwste eerst. De bestanden zelf blijven op de server, één per dag.",
+    "subtitle": "De regels uit de logbestanden van de API en de Worker, nieuwste eerst; oudere laden terwijl je scrolt. De bestanden zelf blijven op de server, één per dag.",
     "source": "Bron",
     "sources": {
       "all": "Alle",
@@ -993,6 +994,8 @@
     "refresh": "Vernieuwen",
     "live": "Live",
     "empty": "Geen regels gevonden.",
+    "loadingOlder": "Oudere regels laden",
+    "end": "Geen oudere regels in de logbestanden.",
     "workerMissing": "De logbestanden van de Worker zijn hier niet zichtbaar: zet WORKER_LOG_DIRECTORY op de map waar ze staan (zie CONFIGURATION.md).",
     "exception": "Uitzondering"
   }
