@@ -1,3 +1,5 @@
+using GarageStack.Core.Helpers;
+
 namespace GarageStack.Core.Models;
 
 public record TripPoint(DateTime RecordedAt, double Latitude, double Longitude, double? Speed);
@@ -34,6 +36,28 @@ public record TripDto(int Index, DateTime StartedAt, DateTime EndedAt, double Di
     public TripSummaryDto ToSummary() => new(
         Index, Id, StartedAt, EndedAt, DistanceKm, PointCount,
         EndLatitude, EndLongitude, MaxSpeedKmh, AvgMovingSpeedKmh, MovingSpeedSamples);
+
+    /// <summary>The same trip with its fixes packed into three arrays; see <see cref="CompactTripDto"/>.</summary>
+    public CompactTripDto ToCompact()
+    {
+        // Between rounded offsets, not rounded after subtracting, as the polyline does, so the
+        // running total stays within half a millisecond of every fix instead of drifting.
+        var intervals = new long[Points.Count];
+        long previous = 0;
+        for (var i = 0; i < Points.Count; i++)
+        {
+            var offset = (long)Math.Round((Points[i].RecordedAt - StartedAt).TotalMilliseconds);
+            intervals[i] = offset - previous;
+            previous = offset;
+        }
+
+        return new(
+            Index, Id, StartedAt, EndedAt, DistanceKm, PointCount,
+            EndLatitude, EndLongitude, MaxSpeedKmh, AvgMovingSpeedKmh, MovingSpeedSamples,
+            PolylineCodec.Encode([.. Points.Select(p => new GeoCoordinate(p.Latitude, p.Longitude))]),
+            intervals,
+            [.. Points.Select(p => p.Speed)]);
+    }
 }
 
 /// <summary>
@@ -52,3 +76,30 @@ public record TripSummaryDto(
     double? MaxSpeedKmh,
     double? AvgMovingSpeedKmh,
     int MovingSpeedSamples);
+
+/// <summary>
+/// A trip as <see cref="TripDto"/> serves it, with its fixes as three arrays instead of an object
+/// each: about half the size gzipped, for a map that shows up to 90 days of them. Opt-in
+/// (<c>?format=compact</c>), so a script reading the plain format is not affected.
+/// <para>
+/// Fix <c>i</c> is at <see cref="Line"/>'s vertex <c>i</c> (an encoded polyline at
+/// <see cref="PolylineCodec.DefaultPrecision"/> decimals, about 10 cm) and reported
+/// <see cref="Speeds"/>[i]. <see cref="IntervalsMs"/>[i] is the milliseconds since the fix before
+/// it, or since <see cref="StartedAt"/> for the first, so a fix's time is their running total.
+/// </para>
+/// </summary>
+public record CompactTripDto(
+    int Index,
+    long? Id,
+    DateTime StartedAt,
+    DateTime EndedAt,
+    double DistanceKm,
+    int PointCount,
+    double? EndLatitude,
+    double? EndLongitude,
+    double? MaxSpeedKmh,
+    double? AvgMovingSpeedKmh,
+    int MovingSpeedSamples,
+    string Line,
+    IReadOnlyList<long> IntervalsMs,
+    IReadOnlyList<double?> Speeds);

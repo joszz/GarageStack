@@ -6,6 +6,7 @@ using GarageStack.Api.Authentication;
 using GarageStack.Api.Endpoints;
 using GarageStack.Api.Services;
 using GarageStack.Core.Configuration;
+using GarageStack.Core.Helpers;
 using GarageStack.Core.Models;
 using GarageStack.Data.Demo;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
@@ -386,7 +387,8 @@ public class AuthenticationFlowTests
     }
 
     // Through the whole stack, on the demo's trips: hiding needs a yes or no, hides the trip from
-    // the map and keeps it in the log, and a merge leaves one trip where there were two.
+    // the map and keeps it in the log, the compact format serves the same trips, and a merge leaves
+    // one trip where there were two.
     [Fact]
     public async Task Trips_CanBeHiddenAndShownAgain_AndJoinedWithTheNextOne()
     {
@@ -408,6 +410,8 @@ public class AuthenticationFlowTests
         var hidden = await (await client.PutAsJsonAsync($"/api/vehicles/{vin}/trips/{first.Id}/hidden", new { hidden = true }, ct))
             .Content.ReadFromJsonAsync<TripLogEntry>(ct);
         var mapWhileHidden = (await client.GetFromJsonAsync<List<JsonElement>>(Url(""), ct))!;
+        var compactWhileHidden = (await client.GetFromJsonAsync<List<JsonElement>>($"{Url("")}&format=compact", ct))!;
+        var unknownFormat = await client.GetAsync($"{Url("")}&format=gpx", ct);
         await client.PutAsJsonAsync($"/api/vehicles/{vin}/trips/{first.Id}/hidden", new { hidden = false }, ct);
         var merge = await client.PostAsync($"/api/vehicles/{vin}/trips/{first.Id}/merge-next", null, ct);
         var merged = await merge.Content.ReadFromJsonAsync<TripLogEntry>(ct);
@@ -418,6 +422,28 @@ public class AuthenticationFlowTests
         Assert.True(hidden!.IsHidden);
         // The trip being driven has no id yet.
         Assert.DoesNotContain(mapWhileHidden, t => t.GetProperty("id") is { ValueKind: JsonValueKind.Number } id && id.GetInt64() == first.Id);
+        // The compact format is the same trips, the fixes packed.
+        Assert.Equal(mapWhileHidden.Select(t => t.GetProperty("startedAt").GetDateTime()), compactWhileHidden.Select(t => t.GetProperty("startedAt").GetDateTime()));
+        Assert.All(compactWhileHidden.Zip(mapWhileHidden), pair =>
+        {
+            var (compactTrip, plainTrip) = pair;
+            var fixes = plainTrip.GetProperty("points").EnumerateArray().ToList();
+            var line = PolylineCodec.Decode(compactTrip.GetProperty("line").GetString());
+            var intervals = compactTrip.GetProperty("intervalsMs").EnumerateArray().Select(i => i.GetInt64()).ToList();
+            var speeds = compactTrip.GetProperty("speeds").EnumerateArray().ToList();
+            Assert.Equal(fixes.Count, line.Count);
+            var at = compactTrip.GetProperty("startedAt").GetDateTime();
+            for (var i = 0; i < fixes.Count; i++)
+            {
+                at = at.AddMilliseconds(intervals[i]);
+                Assert.Equal(fixes[i].GetProperty("recordedAt").GetDateTime(), at, TimeSpan.FromMilliseconds(1));
+                Assert.Equal(fixes[i].GetProperty("latitude").GetDouble(), line[i].Lat, 6);
+                Assert.Equal(fixes[i].GetProperty("longitude").GetDouble(), line[i].Lng, 6);
+                Assert.Equal(fixes[i].GetProperty("speed").ToString(), speeds[i].ToString());
+            }
+        });
+        Assert.Equal(HttpStatusCode.BadRequest, unknownFormat.StatusCode);
+        Assert.Equal("trip.unknownFormat", await ProblemCodeAsync(unknownFormat, ct));
         Assert.Equal(HttpStatusCode.OK, merge.StatusCode);
         Assert.Equal((first.StartedAt, second.EndedAt), (merged!.StartedAt, merged.EndedAt));
         Assert.Equal(log.Count - 1, logAfter.Count);

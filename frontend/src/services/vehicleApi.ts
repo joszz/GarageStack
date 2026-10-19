@@ -1,4 +1,5 @@
 import { request, send, buildQuery } from '@/services/apiCore'
+import { decodePolyline } from '@/utils/polyline'
 
 /** Drivetrains the API can report, detected from the vehicle's hardware version. */
 export type VehicleType = 'hev' | 'phev' | 'bev' | 'unknown'
@@ -169,6 +170,27 @@ export interface Trip extends TripSummary {
 }
 
 /**
+ * A trip as `format=compact` serves it: its fixes as an encoded polyline, the milliseconds from
+ * each fix to the next (from the trip's start for the first) and the speeds, about half the size
+ * of a JSON object per fix.
+ */
+export interface CompactTrip extends TripSummary {
+  line: string
+  intervalsMs: number[]
+  speeds: (number | null)[]
+}
+
+/** The compact trip as the plain one it was packed from. */
+export function unpackTrip({ line, intervalsMs, speeds, ...summary }: CompactTrip): Trip {
+  let at = Date.parse(summary.startedAt)
+  const points = decodePolyline(line).map(([latitude, longitude], i) => {
+    at += intervalsMs[i] ?? 0
+    return { recordedAt: new Date(at).toISOString(), latitude, longitude, speed: speeds[i] ?? null }
+  })
+  return { ...summary, points }
+}
+
+/**
  * The gateway's answer to a command, pushed over SignalR once the car carried it out or refused.
  * `command` is the name it was sent under (e.g. "lock"); `detail` is the gateway's reason for a
  * refusal, in its own words (English), or null.
@@ -223,9 +245,11 @@ export const vehicleApi = {
   /** A month of daily tyre pressures, in the browser's days, and each tyre's trend against the others. */
   tyreHistory: (vin: string, timeZone: string) =>
     request<TyreHistory>(`/api/vehicles/${vin}/tyres${buildQuery({ timeZone })}`),
-  trips: (vin: string, from?: string, to?: string) => {
-    const query = buildQuery({ from, to })
-    return request<Trip[]>(`/api/vehicles/${vin}/trips${query}`)
+  // Compact: up to 90 days of fixes, which as an object each would be twice the download.
+  trips: async (vin: string, from?: string, to?: string) => {
+    const query = buildQuery({ from, to, format: 'compact' })
+    const trips = await request<CompactTrip[]>(`/api/vehicles/${vin}/trips${query}`)
+    return trips.map(unpackTrip)
   },
   /** The same period of trips without their fixes, for pages that only need the figures. */
   tripSummaries: (vin: string, from?: string, to?: string) => {

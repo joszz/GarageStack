@@ -23,9 +23,14 @@ public static class TripEndpoints
             DateTimeOffset? from,
             DateTimeOffset? to,
             bool? points,
+            string? format,
             CancellationToken ct) =>
         {
             var vehicle = httpContext.ResolvedVehicle();
+
+            var compact = format == "compact";
+            if (format is not null && !compact)
+                return ApiProblems.BadRequest("trip.unknownFormat", "format must be compact, or left out for the plain format");
 
             // Without their fixes a trip is one small row, so the statistics page can ask for years;
             // with them (the map) a period stays at most 90 days.
@@ -34,11 +39,12 @@ public static class TripEndpoints
                 summariesOnly ? DateRange.LongestStatisticsSpan : TimeSpan.FromDays(90), out var start, out var end);
             if (rangeError is not null) return rangeError;
 
-            return summariesOnly
-                ? Results.Ok(await trips.GetSummariesAsync(vehicle.Id, start, end, ct))
-                : Results.Ok(await trips.GetTripsAsync(vehicle.Id, start, end, ct));
+            if (summariesOnly) return Results.Ok(await trips.GetSummariesAsync(vehicle.Id, start, end, ct));
+
+            var found = await trips.GetTripsAsync(vehicle.Id, start, end, ct);
+            return compact ? Results.Ok(found.Select(t => t.ToCompact()).ToList()) : Results.Ok(found);
         })
-        .WithSummary("Get trip history (saved trips, then the ones not saved yet, including the trip being driven); points=false leaves out the fixes");
+        .WithSummary("Get trip history (saved trips, then the ones not saved yet, including the trip being driven); points=false leaves out the fixes, format=compact packs them into a polyline and two arrays");
 
         // The dashboard shows one trip, so it asks for that one rather than a period of them.
         group.MapGet("/latest", async (HttpContext httpContext, ITripRepository trips, CancellationToken ct) =>
