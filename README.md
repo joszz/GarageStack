@@ -48,7 +48,7 @@ The statistics, trip log, maintenance list and light theme are in the [screensho
 - **Trip history** -- Browse past journeys on an interactive map, each drawn on the roads it took and coloured by speed or by the speed limit, with a heatmap of the roads you drive most. Each trip is saved to the database a few minutes after the car parks. After upgrading from a version that did not save trips, the existing history is saved in the background on the Worker's first start.
 - **Trip log** -- Mark each trip as business, commute or private (commutes between your home and work are marked automatically), add notes, and export a month or a year as a spreadsheet with the addresses and odometer readings a tax trip log (such as the Dutch *rittenregistratie*) asks for. See [Trip log](#trip-log).
 - **Maintenance** -- Keep the car's service items (oil, tyres, the yearly inspection, ...) with a distance interval, a time interval or both. GarageStack works out from the odometer and your service log when each one is due, shows the most urgent on the dashboard, and sends a notification when an item reaches 90 % of its interval. Log each service with its date, odometer reading and notes.
-- **Dutch registration (RDW)** -- For a car with a Dutch licence plate, a dashboard card with the date the APK runs out and the days left, open recalls with what can go wrong and what the dealer does about it, and whether the car is insured, from the [RDW's open data](https://opendata.rdw.nl). Notifications come for a new recall, the APK a month and a week ahead, and a car with no insurance on record. Off until `RDW_ENABLED=true`; the plate, entered under Settings, is the only thing sent. See [`CONFIGURATION.md`](documentation/CONFIGURATION.md#dutch-registration-rdw).
+- **Dutch registration (RDW)** -- For a car with a Dutch licence plate, a dashboard card with the date the APK runs out and the days left, open recalls with what can go wrong and what the dealer does about it, and whether the car is insured, from the [RDW's open data](https://opendata.rdw.nl). Notifications come for a new recall, the APK a month and a week ahead, and a car with no insurance on record. Off until `RDW_ENABLED=true`; the plate, entered under Settings, is the only thing sent. See [Dutch registration (RDW)](#dutch-registration-rdw).
 - **Energy statistics** -- Track daily energy consumption, efficiency (Wh/km on a plug-in car, L/100 km on a hybrid), fuel use, electric share, average driving speed, and more, for any period from a week to several years.
 - **Remote commands** -- Trigger climate pre-conditioning (normal climate, fan only or front defrost), lock or unlock the car, open the boot, and activate the horn and lights remotely from the dashboard. On a plug-in car also start or stop charging, lock or unlock the charging cable, switch battery heating on or off, set the charging and battery heating schedules, and set the charge current limit and, where the car takes one, the charge target. Opening the boot and unlocking the cable ask for a second tap. Each command reports whether the car carried it out, and if it refused, the reason the MG servers gave.
 - **Climate schedules** -- Switch climate on at a set time on chosen weekdays, or once. A schedule sets the temperature or mode, seat heating and the rear defroster, and can skip mild days by the car's outside temperature. Schedules run on the server, so no browser needs to be open, and each run sends a push notification saying whether the car started climate.
@@ -104,7 +104,7 @@ Cards are shown or hidden automatically based on vehicle type (HEV / PHEV / BEV)
 | Charging Session | OBC power, cable lock, charging type, last start and end; start or stop charging, lock or unlock the cable, set the charging schedule | PHEV, BEV |
 | Battery Heating | Pre-heating status and schedule; switch it on or off, set the schedule | PHEV, BEV |
 | Maintenance | The most urgent state of your maintenance items, linking to the Maintenance page | All |
-| RDW | The APK expiry date and days left, open recalls with their risk and repair, and the insurance on record | All (only with `RDW_ENABLED` and a plate set) |
+| APK & recalls | The APK expiry date and days left, open recalls with their risk and repair, and the insurance on record, from the RDW | All (only with `RDW_ENABLED` and a plate set) |
 | Climate Schedule | When a climate schedule starts climate next | All (off by default) |
 
 ### Statistics insights
@@ -148,7 +148,7 @@ Before installing, make sure the following are available on your host:
 - **Docker** 23.0 or later (or Podman with Docker Compose compatibility); the quick start's relative `./garagestack-data` mount needs 23.0
 - **Docker Compose** 2.20 or later (bundled with Docker Desktop; on Linux install the `docker-compose-plugin` package) -- required for Option B only
 - An **MG iSmart account** with your vehicle already linked in the official app
-- Outbound internet access on the host so the container can reach the SAIC API and (optionally) Overpass / Open Charge Map
+- Outbound internet access on the host so the container can reach the SAIC API and (optionally) Overpass / Open Charge Map / the RDW
 
 ---
 
@@ -362,7 +362,7 @@ GarageStack checks your vehicle's state every 5 minutes and sends both a browser
 
 Push notifications require VAPID keys to be configured (`VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY`). Without them, alerts still appear in the in-app notification panel. While GarageStack is open in a browser that allowed notifications but is not subscribed to push, the same alerts show up as system notifications too; a subscribed browser gets them through push instead, so nothing arrives twice.
 
-Settings has a push switch for the device you are on and a per-type checklist for these alerts, which offers only the types the car's drivetrain can produce: the plug-in alerts (low EV battery, charging complete, charging interrupted) are left out for a plain hybrid, and low fuel for a full electric car. Both are kept per device: a type switched off on your phone still reaches your laptop, and still shows up in the notification panel. Only the switch turns push on or off; the checklist never asks the browser for permission.
+Settings has a push switch for the device you are on and a per-type checklist for these alerts, which offers only the types the car's drivetrain can produce: the plug-in alerts (low EV battery, charging complete, charging interrupted) are left out for a plain hybrid, low fuel for a full electric car, and the RDW type (APK, recalls and insurance) wherever `RDW_ENABLED` is off. Both are kept per device: a type switched off on your phone still reaches your laptop, and still shows up in the notification panel. Only the switch turns push on or off; the checklist never asks the browser for permission.
 
 Notification texts are written by the background worker, which has no browser to take a language from, so their language is a deployment setting: `NOTIFICATION_LANGUAGE=en` (default) or `nl`. The web UI's own language toggle does not affect them.
 
@@ -401,6 +401,19 @@ Note: "keys left in the car" is not currently supported because the SAIC MQTT ga
 - **Export CSV** saves the period as a spreadsheet: date, departure and arrival time, from and to address, odometer start and end, distance, purpose and notes. The file follows the interface language: comma-separated in English, and semicolon-separated with decimal commas in Dutch, so it opens in columns in Excel either way.
 
 Only trips the Worker has saved can be logged, so the trip being driven, and one finished in the last few minutes, appear once the car has been parked for a while.
+
+---
+
+## Dutch registration (RDW)
+
+For a car with a Dutch licence plate, GarageStack shows what the [RDW](https://opendata.rdw.nl) has on record for it: when the APK runs out, the recalls on the car, and whether it is WAM insured. It is off until the deployment sets `RDW_ENABLED=true`; until then nothing is sent and none of the below appears.
+
+- **The plate.** Enter it under **Settings > Licence plate**, which is drawn as a Dutch plate. Type it with or without dashes: they are placed as the plate has them while you type (`HPK-98-B`, `12-ABC-3`). The plate is kept per car in GarageStack's own database, without the dashes, and **Remove** clears it along with what the RDW said about it.
+- **The lookup.** Saving the plate looks it up straight away, so the card fills at once. After that the Worker asks again every `RDW_REFRESH_HOURS` (a day by default). The plate is the only thing sent, to `opendata.rdw.nl`, together with the RDW's own reference codes for the recalls it lists; no key is needed.
+- **The card.** The **APK & recalls** card shows the days the APK has left and how many recalls are open. Clicking it shows the APK date, the insurance on record, each open recall with what can happen and what the dealer does about it, the recalls already repaired, and when the RDW was last asked. The recall texts are the RDW's own, in Dutch. A plate the RDW does not know is said so, rather than shown as an error.
+- **Notifications.** A new open recall (once per recall: one reported repaired later sends nothing), the APK a month and a week before it runs out and once it has, and a car with no WAM insurance on record. They are listed under [Push notifications](#push-notifications), and can be switched off per device like the other types.
+
+The settings, including an optional Socrata app token for a higher rate limit, are in [`CONFIGURATION.md`](documentation/CONFIGURATION.md#dutch-registration-rdw).
 
 ---
 

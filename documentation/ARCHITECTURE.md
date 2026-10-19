@@ -118,6 +118,11 @@ anything while the feature is off.
   24-hour spans. The expired APK and a car without insurance repeat at most monthly through the
   cooldown gate. Nothing is pushed from a lookup older than two refresh intervals: an APK renewed
   while the RDW could not be reached must not be reported as running out.
+- **In the browser.** `stores/rdw.ts` reads the lookup with the rest of the dashboard and learns
+  from that first answer whether the deployment looks plates up at all. The plate field
+  (`LicensePlateInput`) writes a plate the way the car has it: `utils/licensePlate.ts` puts a dash
+  wherever letters change to digits and splits a group of four in two, which covers every Dutch
+  side code. The API stores it without the dashes (`LicensePlate.Normalize`), as the RDW keys it.
 - **Off.** Both endpoints answer 404 with `rdw.disabled`, which is how the browser learns to leave
   out the plate field, the card and the notification type; the Worker job stops before its first
   pass. Demo mode switches it on with a stand-in client (`DemoRdwClient`), so no plate leaves there
@@ -177,6 +182,8 @@ process-local one doesn't already provide. The caches, each in memory or in Post
   and be queried by bounding box - a job a plain in-memory cache isn't suited for anyway. The
   brand filter list is a DISTINCT over the `Brand` column, extracted from the upstream metadata
   at ingest, with a short in-memory cache on top that every tile upsert invalidates.
+- RDW lookups (`RdwVehicleInfo`) are kept in Postgres, one row per vehicle, and asked again only
+  once they are older than `RDW_REFRESH_HOURS`; see [The Dutch registration (RDW)](#the-dutch-registration-rdw).
 - Reverse-geocoded place names (`GeocodeCacheEntry`) are cached in Postgres for the same reason,
   keyed by a per-precision coordinate grid plus language. Nominatim's usage policy requires
   caching rather than re-requesting, and a 90-day TTL is honest for data that changes when a
@@ -211,7 +218,7 @@ All four POI types share the same tile-based PostgreSQL cache:
 
 If GarageStack ever needs to run more than one Api/Worker instance, revisit this: per-vehicle
 in-memory state (this cache, the revocation cache, `VehicleCommandGate`,
-`NotificationCooldownGate`, the shared `UpstreamRateGate` behind the Overpass/OCM/Nominatim clients)
+`NotificationCooldownGate`, the shared `UpstreamRateGate` behind the Overpass/OCM/Nominatim/Valhalla/RDW clients)
 would all need to move to something shared.
 
 ## Authentication

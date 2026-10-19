@@ -19,8 +19,8 @@ Accept: application/json
 
 ###
 
-### Get telemetry history (last 7 days by default)
-GET {{GarageStack.Api_HostAddress}}/api/vehicles/{{VIN}}/history
+### Get daily statistics (the last 30 days by default), one row per day in the given time zone
+GET {{GarageStack.Api_HostAddress}}/api/vehicles/{{VIN}}/stats/daily?timeZone=Europe/Amsterdam
 Accept: application/json
 
 ###
@@ -50,6 +50,20 @@ POST {{GarageStack.Api_HostAddress}}/api/vehicles/{{VIN}}/commands/climate
 Content-Type: application/json
 
 { "value": "on" }
+
+###
+
+### Get the Dutch plate and what the RDW says about it (404 rdw.disabled unless RDW_ENABLED)
+GET {{GarageStack.Api_HostAddress}}/api/vehicles/{{VIN}}/rdw
+Accept: application/json
+
+###
+
+### Set the Dutch plate and look it up at the RDW right away (null removes it)
+PUT {{GarageStack.Api_HostAddress}}/api/vehicles/{{VIN}}/license-plate
+Content-Type: application/json
+
+{ "licensePlate": "AB-123-C" }
 
 ###
 

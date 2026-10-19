@@ -140,7 +140,7 @@ rest:
         unit_of_measurement: km
 ```
 
-A token only reads, never sees the full export or the server logs, and counts against the same rate limit as the app, so keep `scan_interval` at a minute or more. Other useful endpoints are `/api/vehicles/YOUR_VIN/maintenance` and `/api/vehicles/YOUR_VIN/trips/latest`.
+A token only reads, never sees the full export or the server logs, and counts against the same rate limit as the app, so keep `scan_interval` at a minute or more. Other useful endpoints are `/api/vehicles/YOUR_VIN/maintenance` and `/api/vehicles/YOUR_VIN/trips/latest`, and, where `RDW_ENABLED` is on, `/api/vehicles/YOUR_VIN/rdw` (`info.apkDaysLeft` counts the days the APK has left).
 
 ---
 

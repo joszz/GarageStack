@@ -6,7 +6,7 @@ namespace GarageStack.Api.Endpoints;
 /// <summary>
 /// Resolves the {vin} route value to a Vehicle before the handler runs, short-circuiting with 404
 /// when no such vehicle exists. Shared by every endpoint group that takes a {vin} route parameter
-/// (vehicles, trips, maintenance, climate schedules, commute places, widget, demo); handlers read
+/// (vehicles, trips, maintenance, climate schedules, commute places, RDW, widget, demo); handlers read
 /// the result with <see cref="ResolvedVehicleExtensions.ResolvedVehicle"/>.
 /// </summary>
 public sealed class ResolveVehicleFilter : IEndpointFilter
