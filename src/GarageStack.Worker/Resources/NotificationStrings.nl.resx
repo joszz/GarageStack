@@ -66,6 +66,30 @@
   <data name="MovedParkedBody" xml:space="preserve">
     <value>Je auto staat {0} km van waar hij geparkeerd werd, met de motor uit.</value>
   </data>
+  <data name="PlaceArrivedHomeTitle" xml:space="preserve">
+    <value>Thuis aangekomen</value>
+  </data>
+  <data name="PlaceArrivedWorkTitle" xml:space="preserve">
+    <value>Aangekomen op het werk</value>
+  </data>
+  <data name="PlaceArrivedTitle" xml:space="preserve">
+    <value>Aangekomen bij {0}</value>
+  </data>
+  <data name="PlaceArrivedBody" xml:space="preserve">
+    <value>Je auto staat daar geparkeerd.</value>
+  </data>
+  <data name="PlaceLeftHomeTitle" xml:space="preserve">
+    <value>Van huis vertrokken</value>
+  </data>
+  <data name="PlaceLeftWorkTitle" xml:space="preserve">
+    <value>Van het werk vertrokken</value>
+  </data>
+  <data name="PlaceLeftTitle" xml:space="preserve">
+    <value>Vertrokken van {0}</value>
+  </data>
+  <data name="PlaceLeftBody" xml:space="preserve">
+    <value>Je auto is weggereden.</value>
+  </data>
   <data name="TyreFrontLeft" xml:space="preserve">
     <value>Linksvoor</value>
   </data>

@@ -36,6 +36,7 @@ const home: CommutePlace = {
   latitude: 52.0,
   longitude: 5.0,
   radiusMeters: 250,
+  notify: false,
 }
 
 function mountModal(props: Partial<{ pick: { latitude: number; longitude: number } | null }> = {}) {
@@ -123,11 +124,45 @@ describe('CommutePlacesModal', () => {
 
     expect(save).toHaveBeenCalledWith(
       'VIN1',
-      { kind: 'home', label: 'Home sweet home', latitude: 52.3, longitude: 4.9, radiusMeters: 250 },
+      {
+        kind: 'home',
+        label: 'Home sweet home',
+        latitude: 52.3,
+        longitude: 4.9,
+        radiusMeters: 250,
+        notify: false,
+      },
       undefined,
     )
     expect(wrapper.emitted('changed')).toEqual([[change]])
     expect(wrapper.find('[role="status"]').text()).toBe('2 trips marked as commute.')
+  })
+
+  it('saves a place that asks for arrival and departure notifications', async () => {
+    const store = useCommutePlacesStore()
+    const save = vi
+      .spyOn(store, 'savePlace')
+      .mockResolvedValue({ place: home, marked: 0, cleared: 0 })
+    const wrapper = mountModal({ pick: { latitude: 52.3, longitude: 4.9 } })
+    await open(wrapper)
+
+    await wrapper.find('#commute-place-notify').setValue(true)
+    await wrapper
+      .findAll('button')
+      .find((b) => b.text() === 'Save')!
+      .trigger('click')
+    await flushPromises()
+
+    expect(save.mock.calls[0]![1]).toMatchObject({ notify: true })
+  })
+
+  it('marks the places that notify in the list', async () => {
+    const store = useCommutePlacesStore()
+    store.places = [home, { ...home, id: 2, kind: 'work', notify: true }]
+    const wrapper = mountModal()
+    await open(wrapper)
+
+    expect(wrapper.findAll('.commute-places__notify')).toHaveLength(1)
   })
 
   it('removes a place only after it is confirmed', async () => {

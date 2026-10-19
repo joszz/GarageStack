@@ -73,6 +73,21 @@ public interface ITripRepository
     Task<CommuteRelabel> RelabelCommutesAsync(int vehicleId, IReadOnlyList<CommutePlace> places, CancellationToken ct = default);
 
     /// <summary>
+    /// Hides a saved trip from the map, the statistics, the dashboard and the trip log's totals,
+    /// or shows it again. Returns the updated entry, or null when the vehicle has no such trip.
+    /// </summary>
+    Task<TripLogEntry?> SetHiddenAsync(int vehicleId, long id, bool hidden, CancellationToken ct = default);
+
+    /// <summary>
+    /// Joins a saved trip with the saved trip after it, into one from the first one's start to the
+    /// second one's end: two trips a short stop (a fuel station, a drop-off) split. The joined trip
+    /// keeps the first one's id; the second is removed. A purpose someone chose is kept, the first
+    /// trip's before the second's; otherwise it is labelled again from its new ends, so home to a
+    /// fuel station to work becomes a commute.
+    /// </summary>
+    Task<TripMergeResult> MergeWithNextAsync(int vehicleId, long id, CancellationToken ct = default);
+
+    /// <summary>
     /// Keeps the places now known for these trips. A null place leaves what is stored alone, so a
     /// caller can pass only what it has just resolved.
     /// </summary>

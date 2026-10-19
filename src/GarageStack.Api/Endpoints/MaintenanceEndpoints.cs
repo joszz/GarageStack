@@ -179,13 +179,7 @@ public static class MaintenanceEndpoints
             item.LastServiceDate, item.LastServiceOdometerKm,
             currentOdometerKm, DateTime.UtcNow);
 
-        var status = result.Status switch
-        {
-            MaintenanceDueStatus.Ok => "ok",
-            MaintenanceDueStatus.DueSoon => "dueSoon",
-            MaintenanceDueStatus.Overdue => "overdue",
-            _ => "unknown",
-        };
+        var status = result.Status.ApiName();
 
         return new MaintenanceItemDto(
             item.Id, item.VehicleId, item.Name, item.Notes,

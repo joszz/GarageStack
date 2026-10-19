@@ -60,5 +60,12 @@ public class Trip
 
     public string? Notes { get; set; }
 
+    /// <summary>
+    /// Kept out of the map, the statistics, the dashboard and the trip log's totals and export: a
+    /// positioning glitch or a trip nobody wants counted. Hidden rather than deleted, so it can be
+    /// shown again, and so nothing that records trips again ever brings it back unasked.
+    /// </summary>
+    public bool IsHidden { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }

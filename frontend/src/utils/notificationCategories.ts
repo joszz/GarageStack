@@ -19,6 +19,8 @@ export const NOTIFICATION_CATEGORY_IDS = [
   'low-fuel',
   'gateway-login',
   'data-stale',
+  'place-arrival',
+  'place-departure',
   'maintenance',
   'rdw',
 ] as const

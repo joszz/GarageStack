@@ -31,7 +31,11 @@ export const useTripLogStore = defineStore('tripLog', () => {
   let latestLoad = 0
   let placesStopped = false
 
-  const totals = computed(() => purposeTotals(entries.value))
+  /** The trips that count: everything but the hidden ones, which stay listable to show again. */
+  const visibleEntries = computed(() => entries.value.filter((entry) => !entry.isHidden))
+  const hiddenCount = computed(() => entries.value.length - visibleEntries.value.length)
+
+  const totals = computed(() => purposeTotals(visibleEntries.value))
 
   async function fetchLog(vin: string, period: TripLogPeriod) {
     const load = ++latestLoad
@@ -66,17 +70,7 @@ export const useTripLogStore = defineStore('tripLog', () => {
     actionError.value = null
     try {
       const updated = await tripLogApi.update(vin, id, purpose, notes)
-      // Places this page looked up but the server does not keep ("nothing mapped here") stay
-      // as they are rather than being looked up all over again.
-      patchEntries((entry) =>
-        entry.id === id
-          ? {
-              ...updated,
-              startPlace: updated.startPlace ?? entry.startPlace,
-              endPlace: updated.endPlace ?? entry.endPlace,
-            }
-          : entry,
-      )
+      patchEntries((entry) => (entry.id === id ? keepPlaces(updated, entry) : entry))
       return true
     } catch (e) {
       actionError.value = asError(e)
@@ -88,7 +82,9 @@ export const useTripLogStore = defineStore('tripLog', () => {
 
   /** Gives every trip on the page that has no purpose yet this one. */
   async function classifyUnclassified(vin: string, purpose: TripPurpose): Promise<boolean> {
-    const ids = entries.value.filter((entry) => entry.purpose === null).map((entry) => entry.id)
+    const ids = visibleEntries.value
+      .filter((entry) => entry.purpose === null)
+      .map((entry) => entry.id)
     if (ids.length === 0) return true
 
     markSaving(ids, true)
@@ -106,6 +102,55 @@ export const useTripLogStore = defineStore('tripLog', () => {
       return false
     } finally {
       markSaving(ids, false)
+    }
+  }
+
+  // Places this page looked up but the server does not keep ("nothing mapped here") stay as they
+  // are rather than being looked up all over again.
+  function keepPlaces(updated: TripLogEntry, entry: TripLogEntry): TripLogEntry {
+    return {
+      ...updated,
+      startPlace: updated.startPlace ?? entry.startPlace,
+      endPlace: updated.endPlace ?? entry.endPlace,
+    }
+  }
+
+  /** Hides a trip from the map, the statistics and these totals, or shows it again. */
+  async function setHidden(vin: string, id: number, hidden: boolean): Promise<boolean> {
+    markSaving([id], true)
+    actionError.value = null
+    try {
+      const updated = await tripLogApi.setHidden(vin, id, hidden)
+      patchEntries((entry) => (entry.id === id ? keepPlaces(updated, entry) : entry))
+      return true
+    } catch (e) {
+      actionError.value = asError(e)
+      return false
+    } finally {
+      markSaving([id], false)
+    }
+  }
+
+  /**
+   * Joins a trip with the saved trip after it. The joined trip takes this one's place in the list
+   * and the next one goes; the server removes it the same way.
+   */
+  async function mergeWithNext(vin: string, id: number): Promise<boolean> {
+    const index = entries.value.findIndex((entry) => entry.id === id)
+    const next = entries.value[index + 1]
+    markSaving(next ? [id, next.id] : [id], true)
+    actionError.value = null
+    try {
+      const merged = await tripLogApi.mergeWithNext(vin, id)
+      entries.value = entries.value
+        .filter((entry) => entry.id !== next?.id)
+        .map((entry) => (entry.id === id ? keepPlaces(merged, entry) : entry))
+      return true
+    } catch (e) {
+      actionError.value = asError(e)
+      return false
+    } finally {
+      markSaving(next ? [id, next.id] : [id], false)
     }
   }
 
@@ -182,6 +227,8 @@ export const useTripLogStore = defineStore('tripLog', () => {
 
   return {
     entries,
+    visibleEntries,
+    hiddenCount,
     loading,
     loadError,
     actionError,
@@ -192,6 +239,8 @@ export const useTripLogStore = defineStore('tripLog', () => {
     fetchLog,
     updateEntry,
     classifyUnclassified,
+    setHidden,
+    mergeWithNext,
     resolvePlaces,
     stopResolvingPlaces,
   }

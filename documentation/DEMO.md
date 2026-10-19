@@ -18,7 +18,7 @@ docker compose --env-file .env.demo -f docker-compose.demo.yml up --build
 
 Open [http://localhost:8080](http://localhost:8080) and log in with **demo / demo**.
 
-The API is available at `http://localhost:5001`. Scalar API docs are not served in production mode, so start the API locally (see below) if you need them.
+The API is available at `http://localhost:5001`. Its OpenAPI document is at `/api/openapi/v1.json` for anyone signed in, as in every deployment; the Scalar viewer for it is served only when the API runs locally (see below).
 
 This stack is also what the Playwright smoke tests run against, in CI and locally, because it is the production frontend image with the real nginx config. See [CONTRIBUTING.md](../.github/CONTRIBUTING.md).
 
@@ -45,7 +45,7 @@ dotnet run --launch-profile Demo
 
 This starts the API at `http://localhost:5000` with `DEMO_MODE=true`, `Auth:Username=demo`, and `Auth:Password=demo` pre-configured. No database or MQTT connection is made.
 
-The API reference (Scalar) is at [http://localhost:5000/scalar/v1](http://localhost:5000/scalar/v1), and the OpenAPI document at `/openapi/v1.json`. Both are served only in the `Development` and `Demo` environments (`ASPNETCORE_ENVIRONMENT`), never by the Docker images.
+The API reference (Scalar) is at [http://localhost:5000/scalar/v1](http://localhost:5000/scalar/v1), and the OpenAPI document at `/openapi/v1.json`. Both are served only in the `Development` and `Demo` environments (`ASPNETCORE_ENVIRONMENT`). Every deployment, the Docker images included, also serves the document at `/api/openapi/v1.json` to whoever is signed in or holds an API token.
 
 **Frontend:**
 

@@ -217,6 +217,9 @@ namespace GarageStack.Data.Migrations
                     b.Property<double>("Longitude")
                         .HasColumnType("double precision");
 
+                    b.Property<bool>("Notify")
+                        .HasColumnType("boolean");
+
                     b.Property<int>("RadiusMeters")
                         .HasColumnType("integer");
 
@@ -932,6 +935,9 @@ namespace GarageStack.Data.Migrations
 
                     b.Property<DateTime>("EndedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsHidden")
+                        .HasColumnType("boolean");
 
                     b.Property<double?>("MaxSpeedKmh")
                         .HasColumnType("double precision");

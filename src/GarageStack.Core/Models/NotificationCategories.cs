@@ -33,6 +33,9 @@ public static class NotificationCategories
     public const string GatewayLogin = "gateway-login";
     // The car has not reported for longer than it should.
     public const string DataStale = "data-stale";
+    // The car parked at, or drove away from, a home or work place that asks for it (CommutePlace.Notify).
+    public const string PlaceArrival = "place-arrival";
+    public const string PlaceDeparture = "place-departure";
 
     // What the maintenance categories below are grouped as wherever the user picks types.
     public const string Maintenance = "maintenance";
@@ -66,7 +69,7 @@ public static class NotificationCategories
     {
         LowTyre, HighTyre, SlowPuncture, LowEv, ChargingComplete, ChargingInterrupted, EngineStart, UnlockedParked, DoorsOpenParked,
         WindowsOpenParked, MovedParked, VehicleMessage, ClimateSchedule, Low12V, LowFuel, GatewayLogin, DataStale,
-        Maintenance, Rdw,
+        PlaceArrival, PlaceDeparture, Maintenance, Rdw,
     };
 
     /// <summary>

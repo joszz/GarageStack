@@ -585,3 +585,147 @@ public class TripRepositoryTests
         Assert.Equal([50, 50, null], trips.Select(t => t.MaxSpeedKmh));
     }
 }
+
+// Hiding a glitch, and joining two trips a short stop split.
+public class TripManagementTests
+{
+    private static readonly DateTime T0 = new(2026, 1, 1, 8, 0, 0, DateTimeKind.Utc);
+
+    private static async Task<(AppDbContext Db, TripRepository Repo, Vehicle Vehicle)> SetupAsync(CancellationToken ct)
+    {
+        var db = new AppDbContext(new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options);
+        var vehicle = new Vehicle { Vin = "FAKEVN00000000001" };
+        db.Vehicles.Add(vehicle);
+        await db.SaveChangesAsync(ct);
+        return (db, new TripRepository(db, new TelemetryRepository(db)), vehicle);
+    }
+
+    // A drive north from one latitude to another, a fix every five minutes.
+    private static RecordedTrip Leg(DateTime start, double fromLatitude, double toLatitude, double odometerStart, double odometerEnd)
+    {
+        var middle = (fromLatitude + toLatitude) / 2;
+        TripPoint[] fixes =
+        [
+            new(start, fromLatitude, 5.0, 40),
+            new(start.AddMinutes(5), middle, 5.0, 80),
+            new(start.AddMinutes(10), toLatitude, 5.0, 60),
+        ];
+        var trip = new TripDto(0, start, start.AddMinutes(10), GeoHelper.Haversine(fromLatitude, 5.0, toLatitude, 5.0), fixes.Length, fixes);
+        return new RecordedTrip(trip, odometerStart, odometerEnd);
+    }
+
+    // Home, a fuel stop on the way, and work.
+    private static async Task<(long ToFuel, long ToWork)> SaveCommuteWithAStopAsync(
+        AppDbContext db, TripRepository repo, Vehicle vehicle, CancellationToken ct)
+    {
+        db.CommutePlaces.AddRange(
+            new CommutePlace { VehicleId = vehicle.Id, Kind = CommutePlaceKind.Home, Latitude = 52.00, Longitude = 5.0 },
+            new CommutePlace { VehicleId = vehicle.Id, Kind = CommutePlaceKind.Work, Latitude = 52.20, Longitude = 5.0 });
+        await db.SaveChangesAsync(ct);
+        await repo.SaveRecordedAsync(vehicle.Id,
+            [Leg(T0, 52.00, 52.10, 1000, 1011), Leg(T0.AddMinutes(20), 52.10, 52.20, 1011, 1022)], T0.AddHours(1), ct);
+        var ids = await db.Trips.OrderBy(t => t.StartedAt).Select(t => t.Id).ToListAsync(ct);
+        return (ids[0], ids[1]);
+    }
+
+    [Fact]
+    public async Task AHiddenTrip_IsLeftOutOfEverythingButTheLog()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (db, repo, vehicle) = await SetupAsync(ct);
+        await using var _ = db;
+        var (first, second) = await SaveCommuteWithAStopAsync(db, repo, vehicle, ct);
+
+        var entry = await repo.SetHiddenAsync(vehicle.Id, second, hidden: true, ct);
+
+        Assert.True(entry!.IsHidden);
+        Assert.Equal([first], (await repo.GetTripsAsync(vehicle.Id, T0.AddDays(-1), T0.AddDays(1), ct)).Select(t => t.Id));
+        Assert.Equal([first], (await repo.GetSummariesAsync(vehicle.Id, T0.AddDays(-1), T0.AddDays(1), ct)).Select(t => t.Id));
+        Assert.Equal(first, (await repo.GetLatestAsync(vehicle.Id, T0.AddHours(2), ct))!.Id);
+        Assert.Equal([false, true], (await repo.GetLogAsync(vehicle.Id, T0.AddDays(-1), T0.AddDays(1), ct)).Select(e => e.IsHidden));
+    }
+
+    [Fact]
+    public async Task AHiddenTrip_ShownAgain_IsBackEverywhere()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (db, repo, vehicle) = await SetupAsync(ct);
+        await using var _ = db;
+        var (_, second) = await SaveCommuteWithAStopAsync(db, repo, vehicle, ct);
+
+        await repo.SetHiddenAsync(vehicle.Id, second, hidden: true, ct);
+        await repo.SetHiddenAsync(vehicle.Id, second, hidden: false, ct);
+
+        Assert.Equal(2, (await repo.GetTripsAsync(vehicle.Id, T0.AddDays(-1), T0.AddDays(1), ct)).Count);
+    }
+
+    [Fact]
+    public async Task SetHidden_OnAnotherCarsTrip_FindsNothing()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (db, repo, vehicle) = await SetupAsync(ct);
+        await using var _ = db;
+        var (first, _) = await SaveCommuteWithAStopAsync(db, repo, vehicle, ct);
+
+        Assert.Null(await repo.SetHiddenAsync(vehicle.Id + 1, first, hidden: true, ct));
+    }
+
+    [Fact]
+    public async Task Merge_JoinsTheTwoIntoOne_FromTheFirstsStartToTheSecondsEnd()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (db, repo, vehicle) = await SetupAsync(ct);
+        await using var _ = db;
+        var (first, second) = await SaveCommuteWithAStopAsync(db, repo, vehicle, ct);
+        var distances = await db.Trips.OrderBy(t => t.StartedAt).Select(t => t.DistanceKm).ToListAsync(ct);
+
+        var result = await repo.MergeWithNextAsync(vehicle.Id, first, ct);
+
+        Assert.Equal(TripMergeOutcome.Merged, result.Outcome);
+        var trip = Assert.Single(await db.Trips.AsNoTracking().ToListAsync(ct));
+        Assert.Equal(first, trip.Id);
+        Assert.DoesNotContain(second, await db.Trips.Select(t => t.Id).ToListAsync(ct));
+        Assert.Equal((T0, T0.AddMinutes(30)), (trip.StartedAt, trip.EndedAt));
+        Assert.Equal(6, trip.PointCount);
+        Assert.Equal(distances.Sum(), trip.DistanceKm, precision: 6);
+        Assert.Equal((1000.0, 1022.0), (trip.OdometerStartKm, trip.OdometerEndKm));
+        Assert.Equal((52.20, 5.0), (trip.EndLatitude, trip.EndLongitude));
+        Assert.Equal(80, trip.MaxSpeedKmh);
+        Assert.Equal(6, trip.MovingSpeedSamples);
+        // Home to work, now that the fuel stop no longer splits it.
+        Assert.Equal(TripPurpose.Commute, trip.Purpose);
+        Assert.True(result.Merged!.PurposeIsAutomatic);
+    }
+
+    [Fact]
+    public async Task Merge_KeepsAPurposeSomeoneChose_AndBothNotes()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (db, repo, vehicle) = await SetupAsync(ct);
+        await using var _ = db;
+        var (first, second) = await SaveCommuteWithAStopAsync(db, repo, vehicle, ct);
+        await repo.SetPurposeAndNotesAsync(vehicle.Id, first, null, "Fuel", ct);
+        await repo.SetPurposeAndNotesAsync(vehicle.Id, second, TripPurpose.Business, "Client visit", ct);
+
+        var result = await repo.MergeWithNextAsync(vehicle.Id, first, ct);
+
+        Assert.Equal(TripPurpose.Business, result.Merged!.Purpose);
+        Assert.False(result.Merged.PurposeIsAutomatic);
+        Assert.Equal("Fuel / Client visit", result.Merged.Notes);
+    }
+
+    [Fact]
+    public async Task Merge_TheLastTrip_HasNothingToJoin()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (db, repo, vehicle) = await SetupAsync(ct);
+        await using var _ = db;
+        var (_, second) = await SaveCommuteWithAStopAsync(db, repo, vehicle, ct);
+
+        Assert.Equal(TripMergeOutcome.NoNextTrip, (await repo.MergeWithNextAsync(vehicle.Id, second, ct)).Outcome);
+        Assert.Equal(TripMergeOutcome.NotFound, (await repo.MergeWithNextAsync(vehicle.Id, second + 100, ct)).Outcome);
+        Assert.Equal(2, await db.Trips.CountAsync(ct));
+    }
+}

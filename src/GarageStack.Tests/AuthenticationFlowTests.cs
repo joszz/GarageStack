@@ -361,7 +361,17 @@ public class AuthenticationFlowTests
         Assert.True(work!.Marked >= 1);
         Assert.Equal(HttpStatusCode.BadRequest, secondHome.StatusCode);
         Assert.Equal("commutePlace.homeExists", await ProblemCodeAsync(secondHome, ct));
-        Assert.Equal(new CommutePlaceDto(work.Place!.Id, CommutePlaceKind.Work, "Office", open.EndLatitude, open.EndLongitude, 300), work.Place);
+        Assert.Equal(new CommutePlaceDto(work.Place!.Id, CommutePlaceKind.Work, "Office", open.EndLatitude, open.EndLongitude, 300, false), work.Place);
+
+        // A place notifies only once asked to, and a change that does not mention it keeps it.
+        var notifying = await (await client.PutAsJsonAsync($"{placesUrl}/{work.Place.Id}",
+            new { kind = "work", label = "Office", latitude = open.EndLatitude, longitude = open.EndLongitude, radiusMeters = 300, notify = true }, ct))
+            .Content.ReadFromJsonAsync<CommutePlaceChange>(ct);
+        var moved = await (await client.PutAsJsonAsync($"{placesUrl}/{work.Place.Id}",
+            new { kind = "work", label = "Office", latitude = open.EndLatitude, longitude = open.EndLongitude, radiusMeters = 350 }, ct))
+            .Content.ReadFromJsonAsync<CommutePlaceChange>(ct);
+        Assert.True(notifying!.Place!.Notify);
+        Assert.True(moved!.Place!.Notify);
         var labelled = await EntryAsync(open.Id);
         Assert.Equal(TripPurpose.Commute, labelled.Purpose);
         Assert.True(labelled.PurposeIsAutomatic);
@@ -373,6 +383,66 @@ public class AuthenticationFlowTests
         Assert.Null(removed!.Place);
         Assert.Null((await EntryAsync(open.Id)).Purpose);
         Assert.Empty((await client.GetFromJsonAsync<List<CommutePlaceDto>>(placesUrl, ct))!);
+    }
+
+    // Through the whole stack, on the demo's trips: hiding needs a yes or no, hides the trip from
+    // the map and keeps it in the log, and a merge leaves one trip where there were two.
+    [Fact]
+    public async Task Trips_CanBeHiddenAndShownAgain_AndJoinedWithTheNextOne()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var factory = CreatePasswordOnlyFactory();
+        using var client = CreateClient(factory);
+        var login = await client.PostAsJsonAsync(
+            "/api/auth/login",
+            new { username = DemoUsername, password = DemoPassword, rememberMe = false },
+            ct);
+        Assert.Equal(HttpStatusCode.OK, login.StatusCode);
+        var vin = (await client.GetFromJsonAsync<JsonElement>("/api/vehicles", ct))[0].GetProperty("vin").GetString();
+        string Url(string path) => $"/api/vehicles/{vin}/trips{path}?from={DateTimeOffset.UtcNow.AddDays(-60):O}&to={DateTimeOffset.UtcNow:O}"
+            .Replace("+", "%2B", StringComparison.Ordinal);
+        var log = (await client.GetFromJsonAsync<List<TripLogEntry>>(Url("/log"), ct))!;
+        var (first, second) = (log[0], log[1]);
+
+        var unsaid = await client.PutAsJsonAsync($"/api/vehicles/{vin}/trips/{first.Id}/hidden", new { }, ct);
+        var hidden = await (await client.PutAsJsonAsync($"/api/vehicles/{vin}/trips/{first.Id}/hidden", new { hidden = true }, ct))
+            .Content.ReadFromJsonAsync<TripLogEntry>(ct);
+        var mapWhileHidden = (await client.GetFromJsonAsync<List<JsonElement>>(Url(""), ct))!;
+        await client.PutAsJsonAsync($"/api/vehicles/{vin}/trips/{first.Id}/hidden", new { hidden = false }, ct);
+        var merge = await client.PostAsync($"/api/vehicles/{vin}/trips/{first.Id}/merge-next", null, ct);
+        var merged = await merge.Content.ReadFromJsonAsync<TripLogEntry>(ct);
+        var logAfter = (await client.GetFromJsonAsync<List<TripLogEntry>>(Url("/log"), ct))!;
+
+        Assert.Equal(HttpStatusCode.BadRequest, unsaid.StatusCode);
+        Assert.Equal("trip.hiddenRequired", await ProblemCodeAsync(unsaid, ct));
+        Assert.True(hidden!.IsHidden);
+        // The trip being driven has no id yet.
+        Assert.DoesNotContain(mapWhileHidden, t => t.GetProperty("id") is { ValueKind: JsonValueKind.Number } id && id.GetInt64() == first.Id);
+        Assert.Equal(HttpStatusCode.OK, merge.StatusCode);
+        Assert.Equal((first.StartedAt, second.EndedAt), (merged!.StartedAt, merged.EndedAt));
+        Assert.Equal(log.Count - 1, logAfter.Count);
+        Assert.DoesNotContain(logAfter, e => e.Id == second.Id);
+    }
+
+    // The API reference is there for whoever is signed in (a token reads it too), and nobody else.
+    [Fact]
+    public async Task ApiReference_IsServedUnderApi_ToSignedInCallersOnly()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var factory = CreatePasswordOnlyFactory();
+        using var client = CreateClient(factory);
+
+        var anonymous = await client.GetAsync("/api/openapi/v1.json", ct);
+        var login = await client.PostAsJsonAsync(
+            "/api/auth/login",
+            new { username = DemoUsername, password = DemoPassword, rememberMe = false },
+            ct);
+        var reference = await client.GetFromJsonAsync<JsonElement>("/api/openapi/v1.json", ct);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, anonymous.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, login.StatusCode);
+        Assert.Equal("GarageStack API", reference.GetProperty("info").GetProperty("title").GetString());
+        Assert.True(reference.GetProperty("paths").TryGetProperty("/api/vehicles/{vin}/trips/{id}/merge-next", out _));
     }
 
     // The statistics page asks for its period by local day, however long it is.

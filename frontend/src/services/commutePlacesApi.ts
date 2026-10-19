@@ -18,6 +18,8 @@ export interface CommutePlace {
   latitude: number
   longitude: number
   radiusMeters: number
+  /** Reaching or leaving the place sends a notification (place-arrival, place-departure). */
+  notify: boolean
 }
 
 export type CommutePlaceInput = Omit<CommutePlace, 'id'>

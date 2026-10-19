@@ -46,6 +46,8 @@ const NOTIFICATION_CATEGORY_LABEL_KEYS: Record<NotificationCategoryId, string> =
   'low-fuel': 'lowFuel',
   'gateway-login': 'gatewayLogin',
   'data-stale': 'dataStale',
+  'place-arrival': 'placeArrival',
+  'place-departure': 'placeDeparture',
   maintenance: 'maintenance',
   rdw: 'rdw',
 }

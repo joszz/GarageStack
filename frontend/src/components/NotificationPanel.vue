@@ -29,6 +29,8 @@ const CATEGORY_ICONS: Record<string, string[]> = {
   'low-fuel': ['fas', 'gas-pump'],
   'gateway-login': ['fas', 'triangle-exclamation'],
   'data-stale': ['fas', 'clock'],
+  'place-arrival': ['fas', 'house'],
+  'place-departure': ['fas', 'arrow-right-from-bracket'],
 }
 
 function categoryIcon(category: string | null): string[] {

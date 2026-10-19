@@ -38,9 +38,11 @@ if [ -n "$HA_MQTT_USERNAME" ]; then
     # holds on each connect, so write access to all of saic/# would let a restarted Home
     # Assistant broker overwrite fresh state here with its stale copies (the gateway's LWT
     # among them, which leaves every entity Unavailable).
-    # homeassistant/#: the gateway's retained discovery configs. homeassistant/status: Home
-    # Assistant's own online/offline message, which makes the gateway re-publish discovery.
-    printf '\nuser %s\ntopic read saic/#\ntopic write saic/+/vehicles/+/+/+/set\ntopic write saic/+/vehicles/+/+/+/+/set\ntopic read homeassistant/#\ntopic write homeassistant/status\n' \
+    # homeassistant/#: the gateway's retained discovery configs, and GarageStack's own (APK,
+    # recalls, maintenance, last trip). garagestack/#: the state those read their values from.
+    # homeassistant/status: Home Assistant's own online/offline message, which makes the gateway
+    # re-publish discovery.
+    printf '\nuser %s\ntopic read saic/#\ntopic write saic/+/vehicles/+/+/+/set\ntopic write saic/+/vehicles/+/+/+/+/set\ntopic read homeassistant/#\ntopic write homeassistant/status\ntopic read garagestack/#\n' \
         "$HA_MQTT_USERNAME" >> "$acl_file"
 fi
 

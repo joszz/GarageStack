@@ -51,7 +51,7 @@ public class TripRepository(
     {
         var rows = await db.Trips
             .AsNoTracking()
-            .Where(t => t.VehicleId == vehicleId && t.StartedAt >= from && t.StartedAt < before)
+            .Where(t => t.VehicleId == vehicleId && t.StartedAt >= from && t.StartedAt < before && !t.IsHidden)
             .OrderBy(t => t.StartedAt)
             // -1 samples marks a trip saved before its figures were stored.
             .Select(t => new TripSummaryDto(
@@ -114,7 +114,7 @@ public class TripRepository(
         // rather than reported as the latest.
         var rows = db.Trips
             .AsNoTracking()
-            .Where(t => t.VehicleId == vehicleId)
+            .Where(t => t.VehicleId == vehicleId && !t.IsHidden)
             .OrderByDescending(t => t.StartedAt)
             .AsAsyncEnumerable();
 
@@ -247,6 +247,77 @@ public class TripRepository(
         return new CommuteRelabel(marked, changes.Count - marked);
     }
 
+    public async Task<TripLogEntry?> SetHiddenAsync(int vehicleId, long id, bool hidden, CancellationToken ct = default)
+    {
+        var trip = await db.Trips.FirstOrDefaultAsync(t => t.Id == id && t.VehicleId == vehicleId, ct);
+        if (trip is null) return null;
+
+        trip.IsHidden = hidden;
+        await db.SaveChangesAsync(ct);
+        return (await GetLogEntriesAsync(vehicleId, [id], ct)).SingleOrDefault();
+    }
+
+    public async Task<TripMergeResult> MergeWithNextAsync(int vehicleId, long id, CancellationToken ct = default)
+    {
+        var first = await db.Trips.FirstOrDefaultAsync(t => t.Id == id && t.VehicleId == vehicleId, ct);
+        if (first is null) return new(TripMergeOutcome.NotFound);
+
+        // The very next saved trip, a hidden one included: joining past it would swallow it.
+        var second = await db.Trips
+            .Where(t => t.VehicleId == vehicleId && t.StartedAt > first.StartedAt)
+            .OrderBy(t => t.StartedAt)
+            .FirstOrDefaultAsync(ct);
+        if (second is null) return new(TripMergeOutcome.NoNextTrip);
+
+        if (ToDto(first) is not { } before || ToDto(second) is not { } after) return new(TripMergeOutcome.Unreadable);
+
+        List<TripPoint> points = [.. before.Points, .. after.Points];
+        var joined = new TripDto(0, first.StartedAt, second.EndedAt, 0, points.Count, points);
+        var stop = GeoHelper.Haversine(
+            before.Points[^1].Latitude, before.Points[^1].Longitude, after.Points[0].Latitude, after.Points[0].Longitude);
+
+        // The distance along the fixes, as each trip counted its own, with the hop across the stop.
+        first.DistanceKm += second.DistanceKm + stop;
+        first.EndedAt = second.EndedAt;
+        first.PointCount = points.Count;
+        first.PointsJson = JsonSerializer.Serialize(points);
+        first.EndLatitude = second.EndLatitude;
+        first.EndLongitude = second.EndLongitude;
+        first.OdometerEndKm = second.OdometerEndKm;
+        first.EndPlaceJson = second.EndPlaceJson;
+        first.MaxSpeedKmh = joined.MaxSpeedKmh;
+        first.AvgMovingSpeedKmh = joined.AvgMovingSpeedKmh;
+        first.MovingSpeedSamples = joined.MovingSpeedSamples;
+        // Joining a trip someone hid with one they did not is asking to see the whole drive.
+        first.IsHidden = first.IsHidden && second.IsHidden;
+        first.Notes = JoinNotes(first.Notes, second.Notes);
+
+        if (!first.PurposeIsManual && second.PurposeIsManual)
+        {
+            first.Purpose = second.Purpose;
+            first.PurposeIsManual = true;
+        }
+        else if (!first.PurposeIsManual)
+        {
+            var places = await db.CommutePlaces.AsNoTracking().Where(p => p.VehicleId == vehicleId).ToListAsync(ct);
+            first.Purpose = CommuteRule.AutomaticPurpose(
+                first.StartLatitude, first.StartLongitude, first.EndLatitude, first.EndLongitude, places);
+        }
+
+        // One SaveChanges: the second trip goes in the same transaction that extends the first.
+        db.Trips.Remove(second);
+        await db.SaveChangesAsync(ct);
+        return new(TripMergeOutcome.Merged, (await GetLogEntriesAsync(vehicleId, [id], ct)).SingleOrDefault());
+    }
+
+    private static string? JoinNotes(string? first, string? second) =>
+        (first, second) switch
+        {
+            (null, _) => second,
+            (_, null) => first,
+            _ => $"{first} / {second}".Truncate(Trip.NotesMaxLength),
+        };
+
     public async Task SavePlacesAsync(int vehicleId, IReadOnlyList<TripPlaces> places, CancellationToken ct = default)
     {
         var byId = places.ToDictionary(p => p.Id);
@@ -270,20 +341,20 @@ public class TripRepository(
         t.Id, t.StartedAt, t.EndedAt, t.DistanceKm,
         t.StartLatitude, t.StartLongitude, t.EndLatitude, t.EndLongitude,
         t.OdometerStartKm, t.OdometerEndKm,
-        t.StartPlaceJson, t.EndPlaceJson, t.Purpose, t.Notes, t.PurposeIsManual);
+        t.StartPlaceJson, t.EndPlaceJson, t.Purpose, t.Notes, t.PurposeIsManual, t.IsHidden);
 
     private sealed record LogRow(
         long Id, DateTime StartedAt, DateTime EndedAt, double DistanceKm,
         double StartLatitude, double StartLongitude, double EndLatitude, double EndLongitude,
         double? OdometerStartKm, double? OdometerEndKm,
-        string? StartPlaceJson, string? EndPlaceJson, TripPurpose? Purpose, string? Notes, bool PurposeIsManual);
+        string? StartPlaceJson, string? EndPlaceJson, TripPurpose? Purpose, string? Notes, bool PurposeIsManual, bool IsHidden);
 
     private TripLogEntry ToEntry(LogRow r) => new(
         r.Id, r.StartedAt, r.EndedAt, r.DistanceKm,
         r.StartLatitude, r.StartLongitude, r.EndLatitude, r.EndLongitude,
         r.OdometerStartKm, r.OdometerEndKm,
         ReadPlace(r.Id, r.StartPlaceJson), ReadPlace(r.Id, r.EndPlaceJson),
-        r.Purpose, r.Notes, PurposeIsAutomatic: r.Purpose is not null && !r.PurposeIsManual);
+        r.Purpose, r.Notes, PurposeIsAutomatic: r.Purpose is not null && !r.PurposeIsManual, IsHidden: r.IsHidden);
 
     // An unreadable place is as good as none: the trip log looks it up again.
     private PlaceAddress? ReadPlace(long tripId, string? json) =>
@@ -295,7 +366,7 @@ public class TripRepository(
     {
         var rows = await db.Trips
             .AsNoTracking()
-            .Where(t => t.VehicleId == vehicleId && t.StartedAt >= from && t.StartedAt < before)
+            .Where(t => t.VehicleId == vehicleId && t.StartedAt >= from && t.StartedAt < before && !t.IsHidden)
             .OrderBy(t => t.StartedAt)
             .ToListAsync(ct);
 

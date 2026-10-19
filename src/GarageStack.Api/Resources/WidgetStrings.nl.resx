@@ -78,4 +78,22 @@
   <data name="Offline" xml:space="preserve">
     <value>Offline</value>
   </data>
+  <data name="Insured" xml:space="preserve">
+    <value>Verzekerd</value>
+  </data>
+  <data name="Uninsured" xml:space="preserve">
+    <value>Niet verzekerd</value>
+  </data>
+  <data name="MaintenanceOk" xml:space="preserve">
+    <value>In orde</value>
+  </data>
+  <data name="MaintenanceDueSoon" xml:space="preserve">
+    <value>Bijna</value>
+  </data>
+  <data name="MaintenanceOverdue" xml:space="preserve">
+    <value>Te laat</value>
+  </data>
+  <data name="MaintenanceUnknown" xml:space="preserve">
+    <value>Nog niet bijgehouden</value>
+  </data>
 </root>

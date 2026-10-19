@@ -13,6 +13,8 @@ vi.mock('@/services/tripLogApi', async (importOriginal) => {
       log: vi.fn<typeof actual.tripLogApi.log>(),
       update: vi.fn<typeof actual.tripLogApi.update>(),
       setPurpose: vi.fn<typeof actual.tripLogApi.setPurpose>(),
+      setHidden: vi.fn<typeof actual.tripLogApi.setHidden>(),
+      mergeWithNext: vi.fn<typeof actual.tripLogApi.mergeWithNext>(),
       resolvePlaces: vi.fn<typeof actual.tripLogApi.resolvePlaces>(),
     },
   }
@@ -116,6 +118,65 @@ describe('useTripLogStore', () => {
 
     expect(api.setPurpose).toHaveBeenCalledWith('VIN1', [1, 3], 'commute')
     expect(store.entries.map((e) => e.purpose)).toEqual(['commute', 'business', 'commute'])
+  })
+
+  it('leaves hidden trips out of the totals and out of classifying them all', async () => {
+    api.log.mockResolvedValue([
+      logEntry({ id: 1 }),
+      logEntry({ id: 2, isHidden: true }),
+      logEntry({ id: 3, purpose: 'business' }),
+    ])
+    api.setPurpose.mockResolvedValue({ changed: 1 })
+    const store = useTripLogStore()
+    await store.fetchLog('VIN1', { year: 2026, month: 8 })
+
+    await store.classifyUnclassified('VIN1', 'private')
+
+    expect(store.hiddenCount).toBe(1)
+    expect(store.visibleEntries.map((e) => e.id)).toEqual([1, 3])
+    expect(store.totals.business.trips).toBe(1)
+    expect(api.setPurpose).toHaveBeenCalledWith('VIN1', [1], 'private')
+  })
+
+  it('hides a trip and shows it again, keeping the places it has', async () => {
+    api.log.mockResolvedValue([logEntry({ id: 1, startPlace: zwolle })])
+    api.setHidden.mockResolvedValue(logEntry({ id: 1, isHidden: true }))
+    const store = useTripLogStore()
+    await store.fetchLog('VIN1', { year: 2026, month: 8 })
+
+    await store.setHidden('VIN1', 1, true)
+
+    expect(api.setHidden).toHaveBeenCalledWith('VIN1', 1, true)
+    expect(store.entries[0]).toMatchObject({ isHidden: true, startPlace: zwolle })
+    expect(store.totals.unclassified.trips).toBe(0)
+  })
+
+  it('joins a trip with the next one: the joined trip stays, the next one goes', async () => {
+    api.log.mockResolvedValue([logEntry({ id: 1 }), logEntry({ id: 2 }), logEntry({ id: 3 })])
+    api.mergeWithNext.mockResolvedValue(logEntry({ id: 1, distanceKm: 80 }))
+    const store = useTripLogStore()
+    await store.fetchLog('VIN1', { year: 2026, month: 8 })
+
+    const ok = await store.mergeWithNext('VIN1', 1)
+
+    expect(ok).toBe(true)
+    expect(store.entries.map((e) => [e.id, e.distanceKm])).toEqual([
+      [1, 80],
+      [3, 40],
+    ])
+  })
+
+  it('keeps both trips when the join is refused', async () => {
+    api.log.mockResolvedValue([logEntry({ id: 1 }), logEntry({ id: 2 })])
+    api.mergeWithNext.mockRejectedValue(new Error('409'))
+    const store = useTripLogStore()
+    await store.fetchLog('VIN1', { year: 2026, month: 8 })
+
+    const ok = await store.mergeWithNext('VIN1', 1)
+
+    expect(ok).toBe(false)
+    expect(store.entries).toHaveLength(2)
+    expect(store.actionError).not.toBeNull()
   })
 
   describe('resolvePlaces', () => {

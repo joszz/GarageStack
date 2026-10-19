@@ -17,11 +17,19 @@ public sealed class DemoTripRepository : ITripRepository
     // The trips a visitor chose a purpose for, as Trip.PurposeIsManual records it for real trips.
     private readonly HashSet<long> _manual = [.. DemoTrips.Log.Where(e => e.Purpose is not null).Select(e => e.Id)];
 
-    public Task<IReadOnlyList<TripDto>> GetTripsAsync(int vehicleId, DateTime from, DateTime to, CancellationToken ct = default) =>
-        Task.FromResult<IReadOnlyList<TripDto>>(
-            [.. DemoTrips.All
-                .Where(t => t.StartedAt >= from && t.StartedAt < to)
-                .Select((t, i) => t with { Index = i })]);
+    // Trips a visitor hid, and the ones joined into the trip before them: both stay off the map.
+    private readonly HashSet<long> _gone = [];
+
+    public Task<IReadOnlyList<TripDto>> GetTripsAsync(int vehicleId, DateTime from, DateTime to, CancellationToken ct = default)
+    {
+        lock (_lock)
+        {
+            return Task.FromResult<IReadOnlyList<TripDto>>(
+                [.. DemoTrips.All
+                    .Where(t => t.StartedAt >= from && t.StartedAt < to && (t.Id is not { } id || !_gone.Contains(id)))
+                    .Select((t, i) => t with { Index = i })]);
+        }
+    }
 
     public async Task<IReadOnlyList<TripSummaryDto>> GetSummariesAsync(int vehicleId, DateTime from, DateTime to, CancellationToken ct = default) =>
         [.. (await GetTripsAsync(vehicleId, from, to, ct)).Select(t => t.ToSummary())];
@@ -107,6 +115,44 @@ public sealed class DemoTripRepository : ITripRepository
             }
 
             return Task.FromResult(new CommuteRelabel(marked, cleared));
+        }
+    }
+
+    public Task<TripLogEntry?> SetHiddenAsync(int vehicleId, long id, bool hidden, CancellationToken ct = default)
+    {
+        lock (_lock)
+        {
+            if (!_log.TryGetValue(id, out var entry)) return Task.FromResult<TripLogEntry?>(null);
+            if (hidden) _gone.Add(id);
+            else _gone.Remove(id);
+            return Task.FromResult<TripLogEntry?>(_log[id] = entry with { IsHidden = hidden });
+        }
+    }
+
+    // The demo's trips are drawn from a fixed timeline, so a join shows in the trip log; the map
+    // keeps drawing the first trip's own line.
+    public Task<TripMergeResult> MergeWithNextAsync(int vehicleId, long id, CancellationToken ct = default)
+    {
+        lock (_lock)
+        {
+            if (!_log.TryGetValue(id, out var first)) return Task.FromResult(new TripMergeResult(TripMergeOutcome.NotFound));
+            var second = _log.Values.Where(e => e.StartedAt > first.StartedAt).MinBy(e => e.StartedAt);
+            if (second is null) return Task.FromResult(new TripMergeResult(TripMergeOutcome.NoNextTrip));
+
+            var merged = first with
+            {
+                EndedAt = second.EndedAt,
+                DistanceKm = first.DistanceKm + second.DistanceKm,
+                EndLatitude = second.EndLatitude,
+                EndLongitude = second.EndLongitude,
+                OdometerEndKm = second.OdometerEndKm,
+                EndPlace = second.EndPlace,
+                IsHidden = first.IsHidden && second.IsHidden,
+            };
+            _log[id] = merged;
+            _log.Remove(second.Id);
+            _gone.Add(second.Id);
+            return Task.FromResult(new TripMergeResult(TripMergeOutcome.Merged, merged));
         }
     }
 

@@ -21,6 +21,7 @@ const home: CommutePlace = {
   latitude: 52.0,
   longitude: 5.0,
   radiusMeters: 250,
+  notify: false,
 }
 const work: CommutePlace = { ...home, id: 2, kind: 'work', label: 'Office', latitude: 52.1 }
 

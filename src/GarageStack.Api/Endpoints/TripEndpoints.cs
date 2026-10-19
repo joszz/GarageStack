@@ -102,6 +102,44 @@ public static class TripEndpoints
         })
         .WithSummary("Set the purpose of several trips at once, leaving their notes alone");
 
+        group.MapPut("/{id:long}/hidden", async (
+            HttpContext httpContext,
+            long id,
+            TripHiddenRequest req,
+            ITripRepository trips,
+            CancellationToken ct) =>
+        {
+            var vehicle = httpContext.ResolvedVehicle();
+
+            if (req.Hidden is not { } hidden)
+                return ApiProblems.BadRequest("trip.hiddenRequired", "hidden is required: true or false");
+
+            var entry = await trips.SetHiddenAsync(vehicle.Id, id, hidden, ct);
+            return entry is null ? Results.NotFound() : Results.Ok(entry);
+        })
+        .WithSummary("Hide a trip from the map, the statistics, the dashboard and the trip log's totals, or show it again");
+
+        group.MapPost("/{id:long}/merge-next", async (
+            HttpContext httpContext,
+            long id,
+            ITripRepository trips,
+            CancellationToken ct) =>
+        {
+            var vehicle = httpContext.ResolvedVehicle();
+
+            var result = await trips.MergeWithNextAsync(vehicle.Id, id, ct);
+            return result.Outcome switch
+            {
+                TripMergeOutcome.Merged => Results.Ok(result.Merged),
+                TripMergeOutcome.NoNextTrip => ApiProblems.Problem(StatusCodes.Status409Conflict, "trip.noNextTrip",
+                    "No saved trip follows this one yet"),
+                TripMergeOutcome.Unreadable => ApiProblems.Problem(StatusCodes.Status409Conflict, "trip.unreadable",
+                    "The fixes of one of the two trips cannot be read"),
+                _ => Results.NotFound(),
+            };
+        })
+        .WithSummary("Join a trip with the saved trip after it, such as two trips a fuel stop split");
+
         // POST for the same reason as the map's reverse geocoding: a batch of ids, and a lookup
         // that may call upstream. The addresses found are kept on the trips.
         group.MapPost("/places", async (
@@ -143,5 +181,7 @@ public record TripLogUpdateRequest(TripPurpose? Purpose, string? Notes);
 public record TripPurposeRequest(IReadOnlyList<long>? Ids, TripPurpose? Purpose);
 
 public record TripPurposeResult(int Changed);
+
+public record TripHiddenRequest(bool? Hidden);
 
 public record TripPlacesRequest(IReadOnlyList<long>? Ids, string? Language);

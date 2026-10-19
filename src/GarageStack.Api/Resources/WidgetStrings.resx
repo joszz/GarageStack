@@ -78,4 +78,22 @@
   <data name="Offline" xml:space="preserve">
     <value>Offline</value>
   </data>
+  <data name="Insured" xml:space="preserve">
+    <value>Insured</value>
+  </data>
+  <data name="Uninsured" xml:space="preserve">
+    <value>Not insured</value>
+  </data>
+  <data name="MaintenanceOk" xml:space="preserve">
+    <value>OK</value>
+  </data>
+  <data name="MaintenanceDueSoon" xml:space="preserve">
+    <value>Due soon</value>
+  </data>
+  <data name="MaintenanceOverdue" xml:space="preserve">
+    <value>Overdue</value>
+  </data>
+  <data name="MaintenanceUnknown" xml:space="preserve">
+    <value>Not tracked yet</value>
+  </data>
 </root>

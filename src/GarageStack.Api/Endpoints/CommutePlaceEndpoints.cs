@@ -115,15 +115,20 @@ public static class CommutePlaceEndpoints
         place.Latitude = req.Latitude!.Value;
         place.Longitude = req.Longitude!.Value;
         place.RadiusMeters = req.RadiusMeters ?? CommutePlaceLimits.DefaultRadiusMeters;
+        // Left out, a change keeps the place's choice, and a new place stays quiet.
+        if (req.Notify is { } notify) place.Notify = notify;
     }
 
     private static CommutePlaceDto ToDto(CommutePlace p) =>
-        new(p.Id, p.Kind, p.Label, p.Latitude, p.Longitude, p.RadiusMeters);
+        new(p.Id, p.Kind, p.Label, p.Latitude, p.Longitude, p.RadiusMeters, p.Notify);
 }
 
-public record CommutePlaceRequest(CommutePlaceKind? Kind, string? Label, double? Latitude, double? Longitude, int? RadiusMeters);
+/// <summary><c>Notify</c>: whether reaching or leaving the place sends a notification; left out, it stays as it was.</summary>
+public record CommutePlaceRequest(
+    CommutePlaceKind? Kind, string? Label, double? Latitude, double? Longitude, int? RadiusMeters, bool? Notify = null);
 
-public record CommutePlaceDto(int Id, CommutePlaceKind Kind, string? Label, double Latitude, double Longitude, int RadiusMeters);
+public record CommutePlaceDto(
+    int Id, CommutePlaceKind Kind, string? Label, double Latitude, double Longitude, int RadiusMeters, bool Notify);
 
 /// <summary>The place as saved (null once removed), and how many trips the change marked and unmarked as commutes.</summary>
 public record CommutePlaceChange(CommutePlaceDto? Place, int Marked, int Cleared);

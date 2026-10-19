@@ -63,6 +63,7 @@ try
         builder.Services.AddHostedService(sp => sp.GetRequiredService<MqttPublisher>());
         builder.Services.AddSingleton<VehicleCommandRequestHandler>();
         builder.Services.AddHostedService<TelemetryNotificationService>();
+        builder.Services.AddHostedService<HomeAssistantPublisher>();
     }
     builder.Services.AddOpenApi(opts =>
     {
@@ -95,6 +96,7 @@ try
     builder.Services.AddScoped<TripPlaceService>();
     builder.Services.AddScoped<MapMatchService>();
     builder.Services.AddScoped<DataExport>();
+    builder.Services.AddScoped<VehicleFactsService>();
     builder.Services.AddSingleton<VehicleCommandGate>();
     builder.Services.AddSingleton<VehicleCommandSender>();
 
@@ -153,6 +155,10 @@ try
     app.UseAuthentication();
     app.UseMiddleware<ApiTokenAuthentication.ReadOnlyMiddleware>();
     app.UseAuthorization();
+
+    // The API reference, for scripts with a read-only token: under /api/, which the frontend's nginx
+    // passes on, and for signed-in callers only, like every endpoint it describes.
+    app.MapOpenApi("/api/openapi/{documentName}.json").RequireAuthorization();
 
     if (app.Environment.IsDevelopment() || app.Environment.IsEnvironment("Demo"))
     {

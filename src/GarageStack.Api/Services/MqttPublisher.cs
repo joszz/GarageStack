@@ -71,7 +71,17 @@ public class MqttPublisher(IOptions<MqttOptions> options, ILogger<MqttPublisher>
         }
     }
 
-    public async Task PublishAsync(string topic, string payload, CancellationToken ct = default)
+    public Task PublishAsync(string topic, string payload, CancellationToken ct = default) =>
+        PublishAsync(topic, payload, retain: false, ct);
+
+    /// <summary>
+    /// Publishes a message the broker keeps for whoever subscribes later, such as Home Assistant's
+    /// discovery configs. An empty payload removes the retained message.
+    /// </summary>
+    public Task PublishRetainedAsync(string topic, string payload, CancellationToken ct = default) =>
+        PublishAsync(topic, payload, retain: true, ct);
+
+    private async Task PublishAsync(string topic, string payload, bool retain, CancellationToken ct)
     {
         if (_client is null || !await EnsureConnectedAsync(ct))
             throw new InvalidOperationException("MQTT broker not reachable");
@@ -80,7 +90,7 @@ public class MqttPublisher(IOptions<MqttOptions> options, ILogger<MqttPublisher>
             .WithTopic(topic)
             .WithPayload(Encoding.UTF8.GetBytes(payload))
             .WithQualityOfServiceLevel(MQTTnet.Protocol.MqttQualityOfServiceLevel.AtLeastOnce)
-            .WithRetainFlag(false)
+            .WithRetainFlag(retain)
             .Build();
 
         await _client.PublishAsync(message, ct);
