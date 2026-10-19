@@ -17,7 +17,6 @@ public static class TelemetryFields
     [
         nameof(TelemetrySnapshot.Id), nameof(TelemetrySnapshot.VehicleId),
         nameof(TelemetrySnapshot.Vehicle), nameof(TelemetrySnapshot.RecordedAt),
-        nameof(TelemetrySnapshot.RawTopic),
     ];
 
     /// <summary>Every property that carries telemetry, in declaration order.</summary>

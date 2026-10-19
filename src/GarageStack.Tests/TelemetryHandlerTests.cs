@@ -46,7 +46,6 @@ file sealed class SlowFakeTelemetryRepository : ITelemetryRepository
     public Task<DateTime?> GetFirstGpsFixAtAsync(int vehicleId, CancellationToken ct = default) => throw new NotImplementedException();
     public Task<double?> GetOdometerAtAsync(int vehicleId, DateTime at, CancellationToken ct = default) => throw new NotImplementedException();
     public Task<IReadOnlyList<StatusReading>> GetStatusReadingsAsync(int vehicleId, int count, CancellationToken ct = default) => throw new NotImplementedException();
-    public Task<IReadOnlyList<RawTopicStat>> GetRawTopicStatsAsync(int vehicleId, DateTime since, CancellationToken ct = default) => throw new NotImplementedException();
     public IAsyncEnumerable<TelemetrySnapshot> StreamAllAsync(int vehicleId, CancellationToken ct = default) => throw new NotImplementedException();
     public Task<PositionFix?> GetLatestPositionAsync(int vehicleId, CancellationToken ct = default) => throw new NotImplementedException();
     public Task<string?> GetChargingStopReasonAsync(int vehicleId, CancellationToken ct = default) => throw new NotImplementedException();
@@ -82,8 +81,8 @@ public class TelemetryHandlerTests
 
         // Fire both "concurrently", as two overlapping MQTT dispatches for the same vehicle would.
         await Task.WhenAll(
-            handler.MergeOrAddTelemetryAsync(1, patch1, "saic/vin/topic1", repo, ct),
-            handler.MergeOrAddTelemetryAsync(1, patch2, "saic/vin/topic2", repo, ct));
+            handler.MergeOrAddTelemetryAsync(1, patch1, repo, ct),
+            handler.MergeOrAddTelemetryAsync(1, patch2, repo, ct));
 
         Assert.Equal(1, repo.AddCount);
         Assert.Equal(1, repo.MergeCount);

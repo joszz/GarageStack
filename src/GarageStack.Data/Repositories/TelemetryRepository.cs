@@ -339,15 +339,6 @@ public class TelemetryRepository(
             yield return row;
     }
 
-    public async Task<IReadOnlyList<RawTopicStat>> GetRawTopicStatsAsync(int vehicleId, DateTime since, CancellationToken ct = default) =>
-        await db.TelemetrySnapshots
-            .AsNoTracking()
-            .Where(s => s.VehicleId == vehicleId && s.RecordedAt >= since && s.RawTopic != null)
-            .GroupBy(s => s.RawTopic!)
-            .OrderByDescending(g => g.Count())
-            .Select(g => new RawTopicStat(g.Key, g.Count(), g.Max(s => s.RecordedAt)))
-            .ToListAsync(ct);
-
     public async Task<VehicleAggregateStats> GetAggregateStatsAsync(int vehicleId, DateTime from, DateTime to, CancellationToken ct = default)
     {
         // Single grouped query instead of two round-trips: total count and the

@@ -11,8 +11,6 @@ public static class VehicleEndpoints
     // What the tyre history dialog charts.
     private const int TyreHistoryDays = 30;
 
-    private static readonly TimeSpan TopicsWindow = TimeSpan.FromDays(7);
-
     public static IEndpointRouteBuilder MapVehicleEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/vehicles")
@@ -159,16 +157,6 @@ public static class VehicleEndpoints
             return Results.Ok(stats);
         })
         .WithSummary("Get aggregate statistics for a vehicle over a date range");
-
-        // A diagnostic: what the gateway has been sending lately. Bounded to a week, so it reads
-        // a slice of the telemetry instead of every row the car ever sent.
-        vehicleGroup.MapGet("/topics", async (HttpContext httpContext, ITelemetryRepository telemetry, CancellationToken ct) =>
-        {
-            var vehicle = httpContext.ResolvedVehicle();
-            var topics = await telemetry.GetRawTopicStatsAsync(vehicle.Id, DateTime.UtcNow - TopicsWindow, ct);
-            return Results.Ok(topics);
-        })
-        .WithSummary("Distinct raw MQTT topics seen for a vehicle in the last 7 days (one entry per 15-second merge window; topics arriving mid-window are not recorded)");
 
         return app;
     }

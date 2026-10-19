@@ -595,44 +595,6 @@ public class TelemetryRepositoryMergeTests
         Assert.Equal(1, await db.TelemetrySnapshots.CountAsync(ct));
     }
 
-    // Regression: sorting after projecting into the RawTopicStat record could not be translated
-    // by EF and returned a 500 from /topics on PostgreSQL.
-    [Fact]
-    public async Task GetRawTopicStatsAsync_GroupsByTopic_MostFrequentFirst()
-    {
-        var ct = TestContext.Current.CancellationToken;
-        var (db, repo, vehicle) = await SetupAsync();
-        var t0 = new DateTime(2026, 1, 1, 10, 0, 0, DateTimeKind.Utc);
-        db.TelemetrySnapshots.AddRange(
-            new TelemetrySnapshot { VehicleId = vehicle.Id, RecordedAt = t0, RawTopic = "a", EvSocPercent = 1 },
-            new TelemetrySnapshot { VehicleId = vehicle.Id, RecordedAt = t0.AddMinutes(1), RawTopic = "b", EvSocPercent = 1 },
-            new TelemetrySnapshot { VehicleId = vehicle.Id, RecordedAt = t0.AddMinutes(2), RawTopic = "b", EvSocPercent = 1 },
-            new TelemetrySnapshot { VehicleId = vehicle.Id, RecordedAt = t0.AddMinutes(3), EvSocPercent = 1 });
-        await db.SaveChangesAsync(ct);
-
-        var stats = await repo.GetRawTopicStatsAsync(vehicle.Id, t0.AddDays(-7), ct);
-
-        Assert.Equal(2, stats.Count);
-        Assert.Equal(new RawTopicStat("b", 2, t0.AddMinutes(2)), stats[0]);
-        Assert.Equal(new RawTopicStat("a", 1, t0), stats[1]);
-    }
-
-    [Fact]
-    public async Task GetRawTopicStatsAsync_LeavesOutTopicsBeforeTheWindow()
-    {
-        var ct = TestContext.Current.CancellationToken;
-        var (db, repo, vehicle) = await SetupAsync();
-        var t0 = new DateTime(2026, 1, 1, 10, 0, 0, DateTimeKind.Utc);
-        db.TelemetrySnapshots.AddRange(
-            new TelemetrySnapshot { VehicleId = vehicle.Id, RecordedAt = t0.AddDays(-30), RawTopic = "old", EvSocPercent = 1 },
-            new TelemetrySnapshot { VehicleId = vehicle.Id, RecordedAt = t0, RawTopic = "recent", EvSocPercent = 1 });
-        await db.SaveChangesAsync(ct);
-
-        var stats = await repo.GetRawTopicStatsAsync(vehicle.Id, t0.AddDays(-7), ct);
-
-        Assert.Equal("recent", Assert.Single(stats).Topic);
-    }
-
     // Parked, the car keeps sending rows without a position; the newest fix is still the answer.
     [Fact]
     public async Task GetLatestPositionAsync_IsTheNewestFix_PastRowsWithoutOne()

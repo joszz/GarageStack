@@ -838,9 +838,6 @@ namespace GarageStack.Data.Migrations
                     b.Property<double?>("PowerUsageSinceLastCharge")
                         .HasColumnType("double precision");
 
-                    b.Property<string>("RawTopic")
-                        .HasColumnType("text");
-
                     b.Property<bool?>("RearLeftDoorOpen")
                         .HasColumnType("boolean");
 

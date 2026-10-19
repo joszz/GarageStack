@@ -93,8 +93,6 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
     }
 
     // Demo data is not ingested from MQTT, so there are no raw topics to report.
-    public Task<IReadOnlyList<RawTopicStat>> GetRawTopicStatsAsync(int vehicleId, DateTime since, CancellationToken ct = default) =>
-        Task.FromResult<IReadOnlyList<RawTopicStat>>([]);
 
     public Task<VehicleAggregateStats> GetAggregateStatsAsync(
         int vehicleId, DateTime from, DateTime to, CancellationToken ct = default)
