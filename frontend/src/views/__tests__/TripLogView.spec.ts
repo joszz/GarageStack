@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
-import { createPinia, setActivePinia } from 'pinia'
+import { createPinia, setActivePinia, type Pinia } from 'pinia'
 import { createI18n } from 'vue-i18n'
 import en from '@/locales/en.json'
 import TripLogView from '../TripLogView.vue'
@@ -56,7 +56,7 @@ const trips: TripLogEntry[] = [
 async function mountView() {
   const wrapper = mount(TripLogView, {
     global: {
-      plugins: [i18n],
+      plugins: [i18n, pinia],
       stubs: { FontAwesomeIcon: true, CommutePlacesModal: true },
     },
   })
@@ -72,9 +72,14 @@ function button(wrapper: Awaited<ReturnType<typeof mountView>>, text: string) {
   return wrapper.findAll('button').filter((b) => b.text() === text)
 }
 
+// Handed to the mount and to every store the test reads, rather than left to the active pinia,
+// which a busy test run has been seen to switch between a mount and its assertions.
+let pinia: Pinia
+
 describe('TripLogView', () => {
   beforeEach(() => {
-    setActivePinia(createPinia())
+    pinia = createPinia()
+    setActivePinia(pinia)
     vi.clearAllMocks()
     vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(new Date('2026-10-19T12:00:00Z'))
@@ -165,8 +170,9 @@ describe('TripLogView', () => {
   })
 
   it('asks for no addresses while place names are switched off', async () => {
-    setActivePinia(createPinia())
-    useUiSettingsStore().placeNamesEnabled = false
+    pinia = createPinia()
+    setActivePinia(pinia)
+    useUiSettingsStore(pinia).placeNamesEnabled = false
 
     const wrapper = await mountView()
 

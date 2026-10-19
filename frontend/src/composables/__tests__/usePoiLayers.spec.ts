@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest'
 import { computed, defineComponent, nextTick, ref, shallowRef } from 'vue'
 import { flushPromises, mount } from '@vue/test-utils'
-import { createPinia, setActivePinia } from 'pinia'
+import { createPinia, setActivePinia, type Pinia } from 'pinia'
 import { createI18n } from 'vue-i18n'
 import en from '@/locales/en.json'
 import type { LeafletMap } from '@/utils/leaflet'
@@ -121,23 +121,28 @@ function setup(type: VehicleType, map: ReturnType<typeof fakeMap> | null = fakeM
         return () => null
       },
     }),
-    { global: { plugins: [i18n] } },
+    { global: { plugins: [i18n, pinia] } },
   )
   mapInstance.value = map as unknown as LeafletMap
   return { wrapper, result, vehicleType, mapInstance, map }
 }
 
+// Handed to the mount and to every store the test reads, rather than left to the active pinia,
+// which a busy test run has been seen to switch between a mount and its assertions.
+let pinia: Pinia
+
 describe('usePoiLayers', () => {
   beforeEach(() => {
     layers.length = 0
     localStorage.clear()
-    setActivePinia(createPinia())
+    pinia = createPinia()
+    setActivePinia(pinia)
     vi.clearAllMocks()
     vi.mocked(mapApi.poiBrands).mockResolvedValue([])
   })
 
   it('offers charging stations only to a car with a plug, and fuel stations only to one with a tank', () => {
-    const settings = useMapSettingsStore()
+    const settings = useMapSettingsStore(pinia)
     settings.chargingStationsEnabled = true
     settings.fuelStationsEnabled = true
 
@@ -152,7 +157,7 @@ describe('usePoiLayers', () => {
   })
 
   it('keeps the charging stations within the power range, and redraws when it changes', async () => {
-    const settings = useMapSettingsStore()
+    const settings = useMapSettingsStore(pinia)
     setup('bev')
     const keeps = (s: ChargingStation) => charging().options.include!(s)
 
@@ -169,7 +174,7 @@ describe('usePoiLayers', () => {
   })
 
   it('keeps the fuel stations that pass both the brand and the fuel type, and redraws when either changes', async () => {
-    const settings = useMapSettingsStore()
+    const settings = useMapSettingsStore(pinia)
     setup('hev')
     const keeps = (item: PoiItem) => fuel().options.include!(item)
 
@@ -215,7 +220,7 @@ describe('usePoiLayers', () => {
   })
 
   it('drops the speed camera layer once the server says it does not serve one', async () => {
-    useMapSettingsStore().speedCamerasEnabled = true
+    useMapSettingsStore(pinia).speedCamerasEnabled = true
     vi.mocked(mapApi.poi).mockResolvedValue({ items: [], hasMore: false, available: false })
     const { result } = setup('hev')
     expect(speedCameras().options.enabled.value).toBe(true)

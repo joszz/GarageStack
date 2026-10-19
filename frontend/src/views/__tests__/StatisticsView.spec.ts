@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { defineComponent, h } from 'vue'
 import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils'
-import { createPinia, setActivePinia } from 'pinia'
+import { createPinia, setActivePinia, type Pinia } from 'pinia'
 import { createI18n } from 'vue-i18n'
 import en from '@/locales/en.json'
 import StatisticsView from '../StatisticsView.vue'
@@ -87,7 +87,7 @@ const parked = { recordedAt: '2026-10-19T10:00:00Z', batteryVoltage: 12.6 } as T
 async function mountView() {
   const wrapper = mount(StatisticsView, {
     global: {
-      plugins: [i18n],
+      plugins: [i18n, pinia],
       stubs: {
         FontAwesomeIcon: true,
         StatsPeriodFilter: true,
@@ -113,10 +113,15 @@ function shownInsights(wrapper: Awaited<ReturnType<typeof mountView>>) {
   )
 }
 
+// Handed to the mount and to every store the test reads, rather than left to the active pinia,
+// which a busy test run has been seen to switch between a mount and its assertions.
+let pinia: Pinia
+
 describe('StatisticsView', () => {
   beforeEach(() => {
     localStorage.clear()
-    setActivePinia(createPinia())
+    pinia = createPinia()
+    setActivePinia(pinia)
     vi.clearAllMocks()
     vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(new Date('2026-10-19T12:00:00Z'))
@@ -194,7 +199,7 @@ describe('StatisticsView', () => {
     expect(wrapper.find('.month-table').exists()).toBe(false)
     vi.mocked(vehicleApi.dailyStats).mockClear()
 
-    useUiSettingsStore().statsPeriod = { preset: 'last90', from: null, to: null }
+    useUiSettingsStore(pinia).statsPeriod = { preset: 'last90', from: null, to: null }
     await flushPromises()
 
     const [, from, to] = vi.mocked(vehicleApi.dailyStats).mock.calls[0]!
@@ -207,7 +212,7 @@ describe('StatisticsView', () => {
     await mountView()
     vi.mocked(vehicleApi.tripSummaries).mockClear()
 
-    useVehicleStore().notifyTripCompleted()
+    useVehicleStore(pinia).notifyTripCompleted()
     await flushPromises()
 
     expect(vehicleApi.tripSummaries).toHaveBeenCalledOnce()

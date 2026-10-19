@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils'
-import { createPinia, setActivePinia } from 'pinia'
+import { createPinia, setActivePinia, type Pinia } from 'pinia'
 import { createI18n } from 'vue-i18n'
 import en from '@/locales/en.json'
 import DashboardView from '../DashboardView.vue'
@@ -56,7 +56,7 @@ const parked = {
 async function mountView() {
   const wrapper = mount(DashboardView, {
     global: {
-      plugins: [i18n],
+      plugins: [i18n, pinia],
       stubs: {
         FontAwesomeIcon: true,
         CarDiagram: true,
@@ -76,10 +76,15 @@ async function mountView() {
 const cardIds = (wrapper: Awaited<ReturnType<typeof mountView>>) =>
   wrapper.findAll('.card').map((c) => c.attributes('data-id'))
 
+// Handed to the mount and to every store the test reads, rather than left to the active pinia,
+// which a busy test run has been seen to switch between a mount and its assertions.
+let pinia: Pinia
+
 describe('DashboardView', () => {
   beforeEach(() => {
     localStorage.clear()
-    setActivePinia(createPinia())
+    pinia = createPinia()
+    setActivePinia(pinia)
     vi.clearAllMocks()
     vi.mocked(vehicleApi.list).mockResolvedValue([car('bev')])
     vi.mocked(vehicleApi.status).mockResolvedValue(parked)
@@ -143,7 +148,7 @@ describe('DashboardView', () => {
     await mountView()
     vi.mocked(vehicleApi.latestTrip).mockClear()
 
-    useVehicleStore().notifyTripCompleted()
+    useVehicleStore(pinia).notifyTripCompleted()
     await flushPromises()
 
     expect(vehicleApi.latestTrip).toHaveBeenCalledOnce()

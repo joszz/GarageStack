@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { defineComponent, h, ref } from 'vue'
 import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils'
-import { createPinia, setActivePinia } from 'pinia'
+import { createPinia, setActivePinia, type Pinia } from 'pinia'
 import { createI18n } from 'vue-i18n'
 import en from '@/locales/en.json'
 import MapView from '../MapView.vue'
@@ -112,7 +112,7 @@ function trip(index: number): Trip {
 async function mountView() {
   const wrapper = mount(MapView, {
     global: {
-      plugins: [i18n],
+      plugins: [i18n, pinia],
       stubs: {
         FontAwesomeIcon: true,
         MapFilterPanel: true,
@@ -137,10 +137,15 @@ const sidebar = (wrapper: Awaited<ReturnType<typeof mountView>>) => wrapper.find
 const findCar = (wrapper: Awaited<ReturnType<typeof mountView>>) =>
   wrapper.findAll('button').find((b) => b.text() === en.trips.findCar)!
 
+// Handed to the mount and to every store the test reads, rather than left to the active pinia,
+// which a busy test run has been seen to switch between a mount and its assertions.
+let pinia: Pinia
+
 describe('MapView', () => {
   beforeEach(() => {
     localStorage.clear()
-    setActivePinia(createPinia())
+    pinia = createPinia()
+    setActivePinia(pinia)
     vi.clearAllMocks()
     route.query = {}
     match.value = null
@@ -157,7 +162,7 @@ describe('MapView', () => {
   })
 
   it("loads the car's position and the trips of the date filter's days", async () => {
-    useUiSettingsStore().filterDays = 7
+    useUiSettingsStore(pinia).filterDays = 7
     await mountView()
 
     expect(vehicleApi.status).toHaveBeenCalledWith(car.vin)
@@ -193,7 +198,8 @@ describe('MapView', () => {
     expect(requestPlaces).toHaveBeenCalledWith([{ lat: 52.09, lng: 5.12 }], 'address')
 
     requestPlaces.mockClear()
-    setActivePinia(createPinia())
+    pinia = createPinia()
+    setActivePinia(pinia)
     vi.mocked(vehicleApi.status).mockResolvedValue({ ...parked, currentJourneyDistance: 4 })
     await mountView()
     expect(requestPlaces).not.toHaveBeenCalledWith(expect.anything(), 'address')
@@ -204,7 +210,7 @@ describe('MapView', () => {
     await sidebar(wrapper).findAll('li')[0]!.trigger('click')
     vi.mocked(vehicleApi.trips).mockClear()
 
-    useUiSettingsStore().filterDays = 90
+    useUiSettingsStore(pinia).filterDays = 90
     await flushPromises()
 
     expect(vehicleApi.trips).toHaveBeenCalledWith(car.vin, '2026-07-21T12:00:00.000Z', undefined)
@@ -216,7 +222,7 @@ describe('MapView', () => {
     await sidebar(wrapper).findAll('li')[0]!.trigger('click')
     vi.mocked(vehicleApi.trips).mockClear()
 
-    useVehicleStore().notifyTripCompleted()
+    useVehicleStore(pinia).notifyTripCompleted()
     await flushPromises()
 
     expect(vehicleApi.trips).toHaveBeenCalledOnce()
@@ -229,7 +235,8 @@ describe('MapView', () => {
     await findCar(wrapper).trigger('click')
     expect(tripLayers.showCar).toHaveBeenCalledWith([52.09, 5.12])
 
-    setActivePinia(createPinia())
+    pinia = createPinia()
+    setActivePinia(pinia)
     vi.mocked(vehicleApi.status).mockResolvedValue({
       currentJourneyDistance: 0,
     } as TelemetrySnapshot)

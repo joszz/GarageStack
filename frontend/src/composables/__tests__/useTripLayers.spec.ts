@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { defineComponent, nextTick, ref, shallowRef } from 'vue'
 import { flushPromises, mount } from '@vue/test-utils'
-import { createPinia, setActivePinia } from 'pinia'
+import { createPinia, setActivePinia, type Pinia } from 'pinia'
 import type { LeafletMap } from '@/utils/leaflet'
 import type { TelemetrySnapshot, Trip, TripPoint } from '@/services/vehicleApi'
 import type { TripMatch } from '../useTripMatch'
@@ -97,15 +97,21 @@ function setup(overrides: Partial<TripLayersOptions> = {}) {
         return () => null
       },
     }),
+    { global: { plugins: [pinia] } },
   )
   return { o, map, api, wrapper }
 }
+
+// Handed to the mount and to every store the test reads, rather than left to the active pinia,
+// which a busy test run has been seen to switch between a mount and its assertions.
+let pinia: Pinia
 
 describe('useTripLayers', () => {
   beforeEach(() => {
     drawn.length = 0
     localStorage.clear()
-    setActivePinia(createPinia())
+    pinia = createPinia()
+    setActivePinia(pinia)
     vi.clearAllMocks()
     // The redraws wait for the next frame; here that frame comes at once.
     vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => {
@@ -148,7 +154,7 @@ describe('useTripLayers', () => {
   })
 
   it('outlines every line when the route outline is on', () => {
-    useMapSettingsStore().routeOutlineEnabled = true
+    useMapSettingsStore(pinia).routeOutlineEnabled = true
     const { api } = setup()
 
     api.drawInitial()
@@ -199,7 +205,7 @@ describe('useTripLayers', () => {
   })
 
   it('colours the selected trip by speed, one line per stretch between fixes', async () => {
-    useMapSettingsStore().speedOverlayEnabled = true
+    useMapSettingsStore(pinia).speedOverlayEnabled = true
     const { o } = setup()
 
     o.selectedIndex.value = 0
@@ -210,7 +216,7 @@ describe('useTripLayers', () => {
   })
 
   it('colours the snapped trip against the speed limits, and switches the speed colours off for it', async () => {
-    const settings = useMapSettingsStore()
+    const settings = useMapSettingsStore(pinia)
     settings.speedOverlayEnabled = true
     const { o } = setup()
     o.selectedIndex.value = 0
