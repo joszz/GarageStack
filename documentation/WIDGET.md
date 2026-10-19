@@ -114,3 +114,15 @@ The endpoint returns a flat JSON object. Numeric fields are `null` when the vehi
 | `chargingScheduleEndTime` | string | Scheduled charge end time (HH:MM) |
 | `onboardChargerPlugStatus` | number | Onboard charger plug presence status (raw integer) |
 | `offboardChargerPlugStatus` | number | Offboard (DC) charger plug presence status (raw integer) |
+| `apkExpiresOn` | string (date) | The APK's last valid day, as the RDW has it (`RDW_ENABLED` and a plate set; `null` otherwise) |
+| `apkDaysLeft` | number | Days until then on the Dutch calendar, negative once it has run out |
+| `openRecalls` | number | Recalls on the plate the RDW has not seen repaired |
+| `wamInsured` | string | `"Insured"` or `"Not insured"`: whether the RDW has WAM insurance on record |
+| `nextMaintenance` | string | The maintenance item due first: the most urgent, then the soonest (`null` without items) |
+| `nextMaintenanceStatus` | string | `"OK"`, `"Due soon"`, `"Overdue"` or `"Not tracked yet"`, as the Maintenance page shows it |
+| `nextMaintenanceDueDate` | string (ISO 8601) | When it is due by its time interval, if it has one |
+| `nextMaintenanceDaysLeft` | number | Days until then, negative once passed |
+| `nextMaintenanceKmLeft` | number | Kilometres until it is due by its distance interval, negative once passed |
+| `lastTripStartedAt` | string (ISO 8601) | When the newest trip started, the one being driven included |
+| `lastTripEndedAt` | string (ISO 8601) | When it ended, or its latest fix while it is still being driven |
+| `lastTripDistanceKm` | number | Its distance along the GPS fixes (km) |

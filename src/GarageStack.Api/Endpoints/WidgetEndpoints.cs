@@ -1,4 +1,5 @@
 using GarageStack.Api.Security;
+using GarageStack.Api.Services;
 using GarageStack.Core.Interfaces;
 using GarageStack.Core.Models;
 using Microsoft.Extensions.Localization;
@@ -33,12 +34,15 @@ public static class WidgetEndpoints
             .MapGet("/status", async (
                 HttpContext httpContext,
                 ITelemetryRepository telemetry,
+                VehicleFactsService facts,
                 IStringLocalizer<WidgetStrings> localizer,
                 CancellationToken ct) =>
             {
                 var vehicle = httpContext.ResolvedVehicle();
                 var snapshot = await telemetry.GetMergedLatestAsync(vehicle.Id, ct);
-                return snapshot is null ? Results.NoContent() : Results.Ok(WidgetStatusDto.FromSnapshot(snapshot, localizer));
+                return snapshot is null
+                    ? Results.NoContent()
+                    : Results.Ok(WidgetStatusDto.FromSnapshot(snapshot, await facts.GetAsync(vehicle, ct), localizer));
             })
             .WithSummary("Get latest vehicle status for Homepage widget (requires X-Widget-Key header)");
 
@@ -128,10 +132,25 @@ public record WidgetStatusDto(
     string? ChargingScheduleStartTime,
     string? ChargingScheduleEndTime,
     int? OnboardChargerPlugStatus,
-    int? OffboardChargerPlugStatus
+    int? OffboardChargerPlugStatus,
+    // The Dutch registration (RDW), with RDW_ENABLED and a plate set
+    DateOnly? ApkExpiresOn,
+    int? ApkDaysLeft,
+    int? OpenRecalls,
+    string? WamInsured,
+    // The maintenance item due first
+    string? NextMaintenance,
+    string? NextMaintenanceStatus,
+    DateTime? NextMaintenanceDueDate,
+    int? NextMaintenanceDaysLeft,
+    double? NextMaintenanceKmLeft,
+    // The newest trip, the one being driven included
+    DateTime? LastTripStartedAt,
+    DateTime? LastTripEndedAt,
+    double? LastTripDistanceKm
 )
 {
-    public static WidgetStatusDto FromSnapshot(TelemetrySnapshot s, IStringLocalizer<WidgetStrings> l)
+    public static WidgetStatusDto FromSnapshot(TelemetrySnapshot s, VehicleFacts f, IStringLocalizer<WidgetStrings> l)
     {
         static string? Loc(bool? v, string trueKey, string falseKey, IStringLocalizer<WidgetStrings> l) =>
             v is null ? null : l[v.Value ? trueKey : falseKey].Value;
@@ -228,7 +247,26 @@ public record WidgetStatusDto(
             ChargingScheduleStartTime: s.ChargingScheduleStartTime,
             ChargingScheduleEndTime: s.ChargingScheduleEndTime,
             OnboardChargerPlugStatus: s.OnboardChargerPlugStatus,
-            OffboardChargerPlugStatus: s.OffboardChargerPlugStatus
+            OffboardChargerPlugStatus: s.OffboardChargerPlugStatus,
+            ApkExpiresOn: f.ApkExpiresOn,
+            ApkDaysLeft: f.ApkDaysLeft,
+            OpenRecalls: f.OpenRecalls,
+            WamInsured: Loc(f.WamInsured, "Insured", "Uninsured", l),
+            NextMaintenance: f.NextMaintenance,
+            NextMaintenanceStatus: f.NextMaintenanceStatus switch
+            {
+                null => null,
+                "ok" => l["MaintenanceOk"].Value,
+                "dueSoon" => l["MaintenanceDueSoon"].Value,
+                "overdue" => l["MaintenanceOverdue"].Value,
+                _ => l["MaintenanceUnknown"].Value,
+            },
+            NextMaintenanceDueDate: f.NextMaintenanceDueDate,
+            NextMaintenanceDaysLeft: f.NextMaintenanceDaysLeft,
+            NextMaintenanceKmLeft: f.NextMaintenanceKmLeft,
+            LastTripStartedAt: f.LastTripStartedAt,
+            LastTripEndedAt: f.LastTripEndedAt,
+            LastTripDistanceKm: f.LastTripDistanceKm
         );
     }
 }

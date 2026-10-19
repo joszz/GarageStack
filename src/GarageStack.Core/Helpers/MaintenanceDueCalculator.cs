@@ -8,6 +8,18 @@ public enum MaintenanceDueStatus
     Overdue,
 }
 
+public static class MaintenanceDueStatusNames
+{
+    /// <summary>The status as the API, the widget and Home Assistant name it: ok, dueSoon, overdue or unknown.</summary>
+    public static string ApiName(this MaintenanceDueStatus status) => status switch
+    {
+        MaintenanceDueStatus.Ok => "ok",
+        MaintenanceDueStatus.DueSoon => "dueSoon",
+        MaintenanceDueStatus.Overdue => "overdue",
+        _ => "unknown",
+    };
+}
+
 public readonly record struct MaintenanceDueResult(
     MaintenanceDueStatus Status,
     DateTime? NextDueDate,

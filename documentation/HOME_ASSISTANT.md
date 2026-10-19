@@ -2,6 +2,8 @@
 
 GarageStack and [Home Assistant](https://www.home-assistant.io) can share the same car data. The SAIC MQTT gateway inside GarageStack already publishes [Home Assistant MQTT discovery](https://www.home-assistant.io/integrations/mqtt/#mqtt-discovery) messages, so all Home Assistant needs is a login on GarageStack's Mosquitto broker. Your car then shows up as a device with sensors (battery, range, tyre pressures, doors, location and more) and controls (lock, climate, charging), with no custom component or YAML.
 
+GarageStack adds sensors of its own to the same device, for what only it knows: the APK date and the days it has left, the open recalls and the insurance from the RDW, the maintenance item due first, and the last trip. See [GarageStack's own sensors](#garagestacks-own-sensors).
+
 **Don't install a separate MG / SAIC integration in Home Assistant as well.** The MG iSmart API allows one active session per account, so a second client logging in with the same account keeps kicking GarageStack out (see [MG iSmart account and session limits](../README.md#mg-ismart-account-and-session-limits)). Sharing the broker means one login and one set of polls against the MG cloud, used by both.
 
 ---
@@ -15,6 +17,8 @@ GarageStack and [Home Assistant](https://www.home-assistant.io) can share the sa
         │                             homeassistant/.../config            (discovery, retained)
         ▼
     Mosquitto ◄──── GarageStack Worker and Api   (internal login, full access)
+        │           the Api publishes ──►  garagestack/<vin>/state        (its own sensors' values, retained)
+        │                                  homeassistant/.../garagestack_<vin>/.../config
         ▲
         └──────── Home Assistant                 (HA_MQTT_USERNAME, restricted)
 ```
@@ -92,6 +96,7 @@ topic saic/+/vehicles/+/+/+/set out 0
 topic saic/+/vehicles/+/+/+/+/set out 0
 topic homeassistant/# in 0
 topic homeassistant/status out 0
+topic garagestack/# in 0
 ```
 
 The car's data only flows in. Only the command topics and `homeassistant/status` go out to GarageStack, so your existing broker's own discovery messages stay local.
@@ -123,9 +128,28 @@ For any other Mosquitto broker, add the same lines to its configuration file and
 
 ---
 
+## GarageStack's own sensors
+
+The Api publishes these every five minutes, and as soon as one changes, on the car's device in Home Assistant. They need nothing beyond the broker login above (and, through a bridge, its `garagestack/#` line). A sensor appears once it has something to show and disappears again when it no longer does: the RDW ones need `RDW_ENABLED` and a plate, the maintenance ones a maintenance item, the trip ones a trip.
+
+| Entity | Shows |
+| ------ | ----- |
+| APK expires | The APK's last valid day (a date) |
+| APK days left | Days until then, negative once it has run out |
+| Open recalls | Recalls on the plate the RDW has not seen repaired |
+| WAM insured | On while the RDW has WAM insurance on record |
+| Next maintenance | The name of the item due first: the most urgent, then the soonest |
+| Next maintenance status | `ok`, `due_soon`, `overdue` or `unknown` |
+| Next maintenance due | The date it is due by its time interval |
+| Next maintenance days left / distance left | How far off it is, in days and in kilometres |
+| Last trip distance | The newest trip's distance (km), the one being driven included |
+| Last trip started / ended | When it started and ended |
+
+Each reads its value from one retained JSON message, `garagestack/<VIN>/state`, so an automation can also use the whole object. The Homepage widget serves the same values (see [`WIDGET.md`](WIDGET.md)).
+
 ## Reading GarageStack with an API token
 
-The bridge above gives Home Assistant the car's own entities. What GarageStack works out itself (maintenance due, the latest trip, the merged status it shows on the dashboard) can be read with a [read-only API token](../README.md#read-only-api-tokens) and a [REST sensor](https://www.home-assistant.io/integrations/sensor.rest/). Make the token under **Settings > API tokens**, keep it in `secrets.yaml`, and use the car's VIN in the URL:
+The broker gives Home Assistant the car's entities and the sensors above. Anything else GarageStack works out (the full maintenance list, the merged status it shows on the dashboard) can be read with a [read-only API token](../README.md#read-only-api-tokens) and a [REST sensor](https://www.home-assistant.io/integrations/sensor.rest/). Make the token under **Settings > API tokens**, keep it in `secrets.yaml`, and use the car's VIN in the URL:
 
 ```yaml
 # configuration.yaml

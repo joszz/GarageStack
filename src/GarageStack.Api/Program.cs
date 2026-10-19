@@ -63,6 +63,7 @@ try
         builder.Services.AddHostedService(sp => sp.GetRequiredService<MqttPublisher>());
         builder.Services.AddSingleton<VehicleCommandRequestHandler>();
         builder.Services.AddHostedService<TelemetryNotificationService>();
+        builder.Services.AddHostedService<HomeAssistantPublisher>();
     }
     builder.Services.AddOpenApi(opts =>
     {
@@ -95,6 +96,7 @@ try
     builder.Services.AddScoped<TripPlaceService>();
     builder.Services.AddScoped<MapMatchService>();
     builder.Services.AddScoped<DataExport>();
+    builder.Services.AddScoped<VehicleFactsService>();
     builder.Services.AddSingleton<VehicleCommandGate>();
     builder.Services.AddSingleton<VehicleCommandSender>();
 
