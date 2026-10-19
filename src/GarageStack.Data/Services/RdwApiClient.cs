@@ -90,21 +90,19 @@ public sealed class RdwApiClient(
         if (!entry.Entered)
             throw new RdwUnavailableException("Another RDW lookup is still running");
 
-        await _gate.ThrottleAsync(MinInterval, honourBackoff: false, ct);
-
         using var request = new HttpRequestMessage(HttpMethod.Get, $"{RdwOptions.BaseUrl}/resource/{dataset}.json?{query}");
         if (options.AppToken is { } token)
             request.Headers.Add("X-App-Token", token);
 
         var client = httpClientFactory.CreateClient(HttpClientName);
-        _gate.MarkRequestSent();
         try
         {
-            using var response = await client.SendAsync(request, ct);
+            using var answer = await _gate.SendAsync(
+                token => client.SendAsync(request, token), MinInterval, honourBackoff: false, RetryAfterThrottle, ct);
+            var response = answer.Response;
 
-            if (UpstreamRateGate.IsThrottlingStatus((int)response.StatusCode))
+            if (answer.Backoff is { } backoff)
             {
-                var backoff = _gate.SetBackoff(response, RetryAfterThrottle);
                 logger.LogWarning("RDW rate-limited ({Status}); pausing lookups for {Seconds}s",
                     (int)response.StatusCode, (int)backoff.TotalSeconds);
                 throw new RdwUnavailableException("The RDW asked to slow down; trying again later");

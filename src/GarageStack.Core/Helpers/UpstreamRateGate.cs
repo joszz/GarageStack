@@ -19,8 +19,8 @@ public enum GateRefusal
 /// The politeness rules every third-party API client (Open Charge Map, Overpass, Nominatim,
 /// Valhalla, the RDW) needs: one request in flight at a time, a minimum interval between requests, and a
 /// backoff window after the upstream answers 429/503/504, as long as its Retry-After asks. A client takes the gate with
-/// <see cref="TryEnterAsync"/>, calls <see cref="ThrottleAsync"/> and <see cref="MarkRequestSent"/>
-/// around its request, and disposes the entry; the backoff can be read outside the gate so a
+/// <see cref="TryEnterAsync"/>, sends its request through <see cref="SendAsync"/>, which keeps the
+/// interval and reads the upstream's answer for a "slow down", and disposes the entry; the backoff can be read outside the gate so a
 /// foreground caller fails fast without waiting.
 /// </summary>
 public sealed class UpstreamRateGate
@@ -71,11 +71,31 @@ public sealed class UpstreamRateGate
     }
 
     /// <summary>
-    /// Call while holding the gate. Delays until <paramref name="minInterval"/> has passed since
-    /// the previous request and, when <paramref name="honourBackoff"/> is set, until any active
-    /// backoff window has ended.
+    /// Call while holding the gate. Sends one request: waits until <paramref name="minInterval"/>
+    /// has passed since the previous one and, with <paramref name="honourBackoff"/>, until any
+    /// backoff window has closed, then sends it. When the upstream answers that it is busy
+    /// (<see cref="IsThrottlingStatus"/>), opens the backoff window its Retry-After asks for, or
+    /// <paramref name="fallbackBackoff"/> without one, and says how long in the answer.
     /// </summary>
-    public async Task ThrottleAsync(TimeSpan minInterval, bool honourBackoff, CancellationToken ct)
+    public async Task<UpstreamAnswer> SendAsync(
+        Func<CancellationToken, Task<HttpResponseMessage>> send,
+        TimeSpan minInterval,
+        bool honourBackoff,
+        TimeSpan fallbackBackoff,
+        CancellationToken ct)
+    {
+        await ThrottleAsync(minInterval, honourBackoff, ct);
+        _lastRequestAt = DateTimeOffset.UtcNow;
+        var response = await send(ct);
+        var backoff = IsThrottlingStatus((int)response.StatusCode)
+            ? SetBackoff(response, fallbackBackoff)
+            : (TimeSpan?)null;
+        return new UpstreamAnswer(response, backoff);
+    }
+
+    // Delays until minInterval has passed since the previous request and, with honourBackoff,
+    // until any active backoff window has ended.
+    private async Task ThrottleAsync(TimeSpan minInterval, bool honourBackoff, CancellationToken ct)
     {
         var nextAllowed = _lastRequestAt + minInterval;
         if (honourBackoff && BackoffUntil > nextAllowed)
@@ -85,9 +105,6 @@ public sealed class UpstreamRateGate
         if (wait > TimeSpan.Zero)
             await Task.Delay(wait, ct);
     }
-
-    /// <summary>Call while holding the gate, right before the HTTP request goes out.</summary>
-    public void MarkRequestSent() => _lastRequestAt = DateTimeOffset.UtcNow;
 
     // The bounds on a Retry-After an upstream sends: a second at the least, so a "0" cannot
     // turn a refusal into an immediate retry, and an hour at the most, so a mistaken header
@@ -103,7 +120,7 @@ public sealed class UpstreamRateGate
     /// Retry-After header says, or <paramref name="fallback"/> when it sends none.
     /// </summary>
     /// <returns>How long the window is, for the log line.</returns>
-    public TimeSpan SetBackoff(HttpResponseMessage response, TimeSpan fallback)
+    internal TimeSpan SetBackoff(HttpResponseMessage response, TimeSpan fallback)
     {
         var duration = BackoffFor(response.Headers.RetryAfter, fallback, DateTimeOffset.UtcNow);
         SetBackoff(duration);
@@ -124,7 +141,22 @@ public sealed class UpstreamRateGate
     }
 
     /// <summary>True for the upstream status codes that mean "slow down", not "your request is wrong".</summary>
-    public static bool IsThrottlingStatus(int statusCode) => statusCode is 429 or 503 or 504;
+    private static bool IsThrottlingStatus(int statusCode) => statusCode is 429 or 503 or 504;
+}
+
+/// <summary>
+/// What the upstream answered one request through <see cref="UpstreamRateGate.SendAsync"/>, and
+/// whether that answer asked to slow down: <see cref="Backoff"/> is then how long the gate now
+/// waits. Disposing it disposes the response.
+/// </summary>
+public sealed class UpstreamAnswer(HttpResponseMessage response, TimeSpan? backoff) : IDisposable
+{
+    public HttpResponseMessage Response { get; } = response;
+
+    /// <summary>How long the gate backs off, when the upstream said it was busy; null otherwise.</summary>
+    public TimeSpan? Backoff { get; } = backoff;
+
+    public void Dispose() => Response.Dispose();
 }
 
 /// <summary>

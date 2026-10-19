@@ -3,6 +3,7 @@ using GarageStack.Core.Models;
 using GarageStack.Data;
 using GarageStack.Data.Repositories;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace GarageStack.Tests;
 
@@ -133,5 +134,108 @@ public class TelemetryRepositoryDailyStatsTests
         Assert.Equal(40, march2.EvSocPercent);
         Assert.Equal(4.0, march2.CounterTotal);
         Assert.Null(stats[0].EvSocPercent);
+    }
+}
+
+public class TelemetryRepositoryDailyStatsCacheTests
+{
+    private static readonly TimeZoneInfo Amsterdam = TimeZoneInfo.FindSystemTimeZoneById("Europe/Amsterdam");
+
+    // 14:00 on 12 October in Amsterdam (UTC+2).
+    private static readonly DateTimeOffset Now = new(2026, 10, 12, 12, 0, 0, TimeSpan.Zero);
+    private static readonly DateOnly Today = new(2026, 10, 12);
+
+    private sealed record Setup(AppDbContext Db, TelemetryRepository Repo, int VehicleId, FixedTimeProvider Clock) : IAsyncDisposable
+    {
+        public async Task AddReadingAsync(DateTime utc, double soc, CancellationToken ct)
+        {
+            Db.TelemetrySnapshots.Add(new TelemetrySnapshot { VehicleId = VehicleId, RecordedAt = utc, EvSocPercent = soc });
+            await Db.SaveChangesAsync(ct);
+        }
+
+        public Task<IReadOnlyList<DailyStat>> StatsAsync(DateOnly from, DateOnly to, CancellationToken ct) =>
+            Repo.GetDailyStatsAsync(VehicleId, from, to, Amsterdam, ZoneTime.DateOf(Clock.GetUtcNow().UtcDateTime, Amsterdam), ct);
+
+        public ValueTask DisposeAsync() => Db.DisposeAsync();
+    }
+
+    private static async Task<Setup> SetupAsync(DateTimeOffset now)
+    {
+        var db = new AppDbContext(new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options);
+        var vehicle = new Vehicle { Vin = "FAKEVN00000000001" };
+        db.Vehicles.Add(vehicle);
+        await db.SaveChangesAsync();
+        var clock = new FixedTimeProvider(now);
+        var repo = new TelemetryRepository(db, cache: new MemoryCache(new MemoryCacheOptions()), time: clock);
+        return new Setup(db, repo, vehicle.Id, clock);
+    }
+
+    [Fact]
+    public async Task AFinishedDay_IsReadOnce()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var setup = await SetupAsync(Now);
+        var yesterday = new DateTime(2026, 10, 11, 8, 0, 0, DateTimeKind.Utc);
+        await setup.AddReadingAsync(yesterday, 40, ct);
+
+        var first = await setup.StatsAsync(Today.AddDays(-1), Today, ct);
+        // Nothing lands on a finished day in practice; here it shows the answer came from the cache.
+        await setup.AddReadingAsync(yesterday.AddHours(1), 80, ct);
+        var second = await setup.StatsAsync(Today.AddDays(-1), Today, ct);
+
+        Assert.Equal(40, first[0].EvSocPercent);
+        Assert.Equal(40, second[0].EvSocPercent);
+    }
+
+    [Fact]
+    public async Task Today_IsReadEveryTime()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var setup = await SetupAsync(Now);
+        var morning = new DateTime(2026, 10, 12, 7, 0, 0, DateTimeKind.Utc);
+        await setup.AddReadingAsync(morning, 40, ct);
+
+        await setup.StatsAsync(Today, Today, ct);
+        await setup.AddReadingAsync(morning.AddHours(1), 80, ct);
+        var stats = await setup.StatsAsync(Today, Today, ct);
+
+        Assert.Equal(60, Assert.Single(stats).EvSocPercent);
+    }
+
+    [Fact]
+    public async Task ADayEndedWithinTheHour_IsReadAgain()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        // 00:30 on 12 October in Amsterdam: yesterday ended half an hour ago.
+        await using var setup = await SetupAsync(new DateTimeOffset(2026, 10, 11, 22, 30, 0, TimeSpan.Zero));
+        var lateEvening = new DateTime(2026, 10, 11, 21, 0, 0, DateTimeKind.Utc);
+        await setup.AddReadingAsync(lateEvening, 40, ct);
+
+        await setup.StatsAsync(Today.AddDays(-1), Today, ct);
+        // A message folded into the last row before midnight.
+        await setup.AddReadingAsync(lateEvening.AddMinutes(59), 80, ct);
+        var stats = await setup.StatsAsync(Today.AddDays(-1), Today, ct);
+
+        Assert.Equal(60, stats[0].EvSocPercent);
+    }
+
+    [Fact]
+    public async Task APeriodWithCachedAndUncachedDays_AnswersAsAColdRead()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var setup = await SetupAsync(Now);
+        for (var day = 1; day <= 10; day += 3)
+            await setup.AddReadingAsync(new DateTime(2026, 10, day, 9, 0, 0, DateTimeKind.Utc), day * 5, ct);
+        var from = new DateOnly(2026, 10, 1);
+
+        // The middle of the period is cached first, then the whole of it is asked for.
+        await setup.StatsAsync(new DateOnly(2026, 10, 4), new DateOnly(2026, 10, 7), ct);
+        var warm = await setup.StatsAsync(from, Today, ct);
+        var cold = await new TelemetryRepository(setup.Db).GetDailyStatsAsync(setup.VehicleId, from, Today, Amsterdam, Today, ct);
+
+        Assert.Equal(cold, warm);
+        Assert.Equal(12, warm.Count);
     }
 }

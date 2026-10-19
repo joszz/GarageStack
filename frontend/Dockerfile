@@ -41,6 +41,7 @@ RUN echo "os patch date: ${OS_PATCH_DATE}" && apk upgrade --no-cache
 COPY --from=build /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY nginx-security-headers.conf /etc/nginx/snippets/garagestack-security-headers.conf
+COPY nginx-app.conf /etc/nginx/snippets/garagestack-app.conf
 EXPOSE 80
 HEALTHCHECK --interval=10s --timeout=5s --start-period=5s --retries=5 \
 	CMD wget --quiet --tries=1 --spider http://127.0.0.1/ || exit 1

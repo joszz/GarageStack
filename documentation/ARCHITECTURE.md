@@ -177,6 +177,12 @@ process-local one doesn't already provide. The caches, each in memory or in Post
   widget, and every SignalR broadcast) uses a short-TTL `IMemoryCache` entry, invalidated
   immediately on every telemetry write so it can never serve data older than the write that
   triggered a SignalR broadcast.
+- `ITelemetryRepository.GetDailyStatsAsync` (the statistics page, the tyre history and the
+  slow-puncture check) keeps each finished day in `IMemoryCache`, per vehicle and time zone, and
+  reads only the span from the first day it lacks to the last: a page opened again reads today
+  rather than the whole period. A finished day cannot change, since every row is stamped when it
+  arrives; a day counts as finished an hour after its local midnight, which covers the merge
+  window folding a message just after midnight into a row stamped before it.
 - Map POI tiles (charging stations, fuel stations, service areas, speed cameras) are cached in Postgres itself
   (`PoiCacheTile`/`PoiItem`), not in memory, since that data needs to survive process restarts
   and be queried by bounding box - a job a plain in-memory cache isn't suited for anyway. The
