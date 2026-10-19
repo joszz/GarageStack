@@ -19,22 +19,11 @@ public static class ServiceCollectionExtensions
         // before MigrateAsync fails on a real database.
         services.AddDbContext<AppDbContext>(opts => opts.UseNpgsql(connectionString));
 
-        services.AddMemoryCache();
+        services.AddSharedRepositories();
         services.AddScoped<IVehicleRepository, VehicleRepository>();
         services.AddScoped<ITelemetryRepository, TelemetryRepository>();
         services.AddScoped<ITripRepository, TripRepository>();
-        services.AddScoped<IPoiRepository, PoiRepository>();
-        services.AddScoped<IGeocodeRepository, GeocodeRepository>();
-        services.AddScoped<IMapMatchRepository, MapMatchRepository>();
         services.AddScoped<IHousekeepingRepository, HousekeepingRepository>();
-        services.AddScoped<IUserSettingsRepository, UserSettingsRepository>();
-        services.AddScoped<IClimateScheduleRepository, ClimateScheduleRepository>();
-        services.AddScoped<ICommutePlaceRepository, CommutePlaceRepository>();
-        services.AddScoped<IMaintenanceRepository, MaintenanceRepository>();
-        services.AddScoped<INotificationRepository, NotificationRepository>();
-        services.AddScoped<IPushSubscriptionRepository, PushSubscriptionRepository>();
-        services.AddScoped<IApiTokenRepository, ApiTokenRepository>();
-        services.AddGarageStackPoiClients();
         services.AddGarageStackRdw();
 
         return services;
@@ -45,22 +34,11 @@ public static class ServiceCollectionExtensions
         services.AddDbContext<AppDbContext>(opts =>
             opts.UseInMemoryDatabase("garagestack-demo"));
 
-        services.AddMemoryCache();
+        // Every repository but these three is the real one, over the in-memory database.
+        services.AddSharedRepositories();
         services.AddScoped<IVehicleRepository, DemoVehicleRepository>();
         services.AddSingleton<ITelemetryRepository, DemoTelemetryRepository>();
         services.AddSingleton<ITripRepository, DemoTripRepository>();
-        services.AddScoped<IPoiRepository, PoiRepository>();
-        services.AddScoped<IGeocodeRepository, GeocodeRepository>();
-        services.AddScoped<IMapMatchRepository, MapMatchRepository>();
-        // The real one: demo settings live in the in-memory database like everything else there.
-        services.AddScoped<IUserSettingsRepository, UserSettingsRepository>();
-        services.AddScoped<IClimateScheduleRepository, ClimateScheduleRepository>();
-        services.AddScoped<ICommutePlaceRepository, CommutePlaceRepository>();
-        services.AddScoped<IMaintenanceRepository, MaintenanceRepository>();
-        services.AddScoped<INotificationRepository, NotificationRepository>();
-        services.AddScoped<IPushSubscriptionRepository, PushSubscriptionRepository>();
-        services.AddScoped<IApiTokenRepository, ApiTokenRepository>();
-        services.AddGarageStackPoiClients();
         // The RDW card is part of what the demo shows, answered by a stand-in so no plate leaves:
         // on unless RDW_ENABLED says false.
         services.AddSingleton(sp => new RdwOptions
@@ -71,6 +49,24 @@ public static class ServiceCollectionExtensions
         services.AddRdwLookups();
 
         return services;
+    }
+
+    // The repositories demo mode shares with a real deployment, and the upstream clients behind
+    // them: the same classes over whichever database the caller registered.
+    private static IServiceCollection AddSharedRepositories(this IServiceCollection services)
+    {
+        services.AddMemoryCache();
+        services.AddScoped<IPoiRepository, PoiRepository>();
+        services.AddScoped<IGeocodeRepository, GeocodeRepository>();
+        services.AddScoped<IMapMatchRepository, MapMatchRepository>();
+        services.AddScoped<IUserSettingsRepository, UserSettingsRepository>();
+        services.AddScoped<IClimateScheduleRepository, ClimateScheduleRepository>();
+        services.AddScoped<ICommutePlaceRepository, CommutePlaceRepository>();
+        services.AddScoped<IMaintenanceRepository, MaintenanceRepository>();
+        services.AddScoped<INotificationRepository, NotificationRepository>();
+        services.AddScoped<IPushSubscriptionRepository, PushSubscriptionRepository>();
+        services.AddScoped<IApiTokenRepository, ApiTokenRepository>();
+        return services.AddGarageStackPoiClients();
     }
 
     // The RDW lookups. Switched off (RDW_ENABLED unset), the client is still there for the API to
