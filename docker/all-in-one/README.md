@@ -181,6 +181,46 @@ docker start garagestack
 
 To restore, stop the container, replace `garagestack-data` with the backup, and start it again. Only the database (`garagestack-data/db/postgres`) and DataProtection keys (`garagestack-data/dataprotection`) actually matter for disaster recovery -- losing the keys just logs everyone out, it doesn't lose any vehicle data.
 
+A dump of the database alone, taken while the container runs, is a smaller backup that also moves between PostgreSQL versions:
+
+```bash
+docker exec -u postgres garagestack pg_dump --clean --if-exists garagestack > garagestack-backup.sql
+```
+
+### Moving to a new PostgreSQL major version
+
+The image bundles PostgreSQL 18, and a PostgreSQL major version cannot read the data directory of another. An update never changes it on its own: when a release moves the image to the next major version, its release notes say so, and the database moves over by dump and restore. Replace `garagestack` with your `POSTGRES_DB` if you changed it.
+
+1. **Dump the database with the image you run now**, as above, and keep a copy of the whole folder too:
+
+   ```bash
+   docker exec -u postgres garagestack pg_dump --clean --if-exists garagestack > garagestack-backup.sql
+   docker stop garagestack
+   cp -r garagestack-data garagestack-data-backup
+   ```
+
+2. **Put the old database aside**, so the new image starts a fresh one. `.db_initialized` is what tells the container its database is set up already:
+
+   ```bash
+   docker rm garagestack
+   mv garagestack-data/db/postgres garagestack-data/db/postgres-old
+   rm garagestack-data/.db_initialized
+   ```
+
+3. **Start the new image** with your usual `docker run` command, and wait for the web interface to answer. It creates an empty database, keeping the password in `.postgres_password`.
+
+4. **Load the dump into it**, with the API and the Worker stopped so nothing writes meanwhile. The dump drops the empty tables before it loads its own:
+
+   ```bash
+   docker exec garagestack supervisorctl stop api worker
+   docker exec -i -u postgres garagestack psql -v ON_ERROR_STOP=1 garagestack < garagestack-backup.sql
+   docker exec garagestack supervisorctl start api worker
+   ```
+
+5. **Check the app**, then remove `garagestack-data/db/postgres-old` and the backup copy once you are sure. To go back instead, stop the container, put `garagestack-data-backup` back in place of `garagestack-data`, and run the previous image.
+
+Docker Compose with the bundled database works the same way: dump with `docker compose exec postgres pg_dump ...`, start the new `postgres` image on a fresh volume, and restore with `psql` (see [Backup and restore](../../README.md#backup-and-restore)).
+
 ## Troubleshooting
 
 ### 28P01: password authentication failed for user "garagestack"

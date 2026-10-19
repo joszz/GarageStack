@@ -156,6 +156,10 @@ try
     app.UseMiddleware<ApiTokenAuthentication.ReadOnlyMiddleware>();
     app.UseAuthorization();
 
+    // The API reference, for scripts with a read-only token: under /api/, which the frontend's nginx
+    // passes on, and for signed-in callers only, like every endpoint it describes.
+    app.MapOpenApi("/api/openapi/{documentName}.json").RequireAuthorization();
+
     if (app.Environment.IsDevelopment() || app.Environment.IsEnvironment("Demo"))
     {
         app.MapOpenApi();

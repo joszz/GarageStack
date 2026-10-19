@@ -48,7 +48,7 @@ The statistics, trip log, maintenance list and light theme are in the [screensho
 - [Prerequisites](#prerequisites) and [Installation](#installation)
 - [Updating](#updating), [Monitoring](#monitoring) and [Backup and restore](#backup-and-restore)
 - [Push notifications](#push-notifications)
-- [Trip log](#trip-log)
+- [Trip log](#trip-log), [Climate schedules](#climate-schedules) and [Maintenance](#maintenance)
 - [Dutch registration (RDW)](#dutch-registration-rdw)
 - [Homepage dashboard widget](#homepage-dashboard-widget) and [Read-only API tokens](#read-only-api-tokens)
 - [Map overlays](#map-overlays)
@@ -253,7 +253,7 @@ The frontend is served on port `8080` by default (configurable via `FRONTEND_POR
 
 ## Updating
 
-Read the release notes first: anything an upgrade needs from you is listed under **Upgrade Notes** at the top. Database migrations run automatically on startup and only forwards, so to go back to an older version, restore the backup you took before upgrading (see [Backup and restore](#backup-and-restore)). A new PostgreSQL major version is never installed by an update: moving from 18 to the next one means a `pg_dump` from the old version and a restore into a fresh volume on the new one.
+Read the release notes first: anything an upgrade needs from you is listed under **Upgrade Notes** at the top. Database migrations run automatically on startup and only forwards, so to go back to an older version, restore the backup you took before upgrading (see [Backup and restore](#backup-and-restore)). A new PostgreSQL major version is never installed by an update: moving from 18 to the next one means a `pg_dump` from the old version and a restore into a fresh volume on the new one, step by step in [Moving to a new PostgreSQL major version](docker/all-in-one/README.md#moving-to-a-new-postgresql-major-version).
 
 **Docker Compose** builds GarageStack from the cloned source, so update the source and rebuild. `docker compose pull` fetches the gateway, Postgres and Mosquitto images:
 
@@ -423,6 +423,31 @@ Only trips the Worker has saved can be logged, so the trip being driven, and one
 
 ---
 
+## Climate schedules
+
+**Climate schedules** in the sidebar switch the car's climate on at a time you set, so it is warm (or cool) when you leave. They run on the GarageStack server: no phone or browser has to be open.
+
+- **When.** A time on the chosen weekdays, or once, on the next day that time comes round, when no weekday is chosen. The time is kept in the time zone the browser had when the schedule was made, so 07:30 stays 07:30 across daylight saving time.
+- **What.** A temperature (16 to 28 °C), or the fan only, or the front defrost; seat heating for either front seat, and the rear defroster.
+- **Only when it is needed.** A schedule can run only below or above an outside temperature: warming the car on cold mornings only, say. The car's own outside temperature from the last three hours decides; without a recent one the schedule runs.
+- **When it does not run.** Not while the engine runs, and not when the GarageStack Worker finds it more than 10 minutes late (after a restart, say): a car warmed long after you left is no use, so that run is recorded as missed. A car that answers that it is still busy, as one woken from a long sleep can, is asked again, up to three times.
+- **What you hear.** Each run sends a notification saying whether the car started climate, refused, or did not answer. The schedule's card shows the last run and when it runs next, and the optional dashboard card the next start.
+
+Commands sent by hand at the same moment as a scheduled run share the car's one command at a time; see [`ARCHITECTURE.md`](documentation/ARCHITECTURE.md#climate-schedules) for how a run is carried out.
+
+---
+
+## Maintenance
+
+**Maintenance** in the sidebar keeps the car's service items, such as the oil, the tyres or the yearly inspection.
+
+- **Intervals.** Each item has a distance interval, a time interval, or both; with both, it is due at whichever comes first.
+- **When it is due.** From the last service you logged and the car's odometer, an item is *OK*, *due soon* once 90 % of its interval has passed, or *overdue*. One without a service logged yet is *not tracked yet*.
+- **Logging a service.** Record the date, the odometer reading (the current one is filled in) and notes. The item's interval starts again from there, and its history is kept.
+- **Where it shows.** The dashboard's maintenance card shows the most urgent item, and so do the [Homepage widget](#homepage-dashboard-widget) and [Home Assistant](documentation/HOME_ASSISTANT.md#garagestacks-own-sensors). A notification comes when an item becomes due soon or overdue (checked every 6 hours, at most once a week per item).
+
+---
+
 ## Dutch registration (RDW)
 
 For a car with a Dutch licence plate, GarageStack shows what the [RDW](https://opendata.rdw.nl) has on record for it: when the APK runs out, the recalls on the car, and whether it is WAM insured. It is off until the deployment sets `RDW_ENABLED=true`; until then nothing is sent and none of the below appears.
@@ -450,7 +475,13 @@ To read GarageStack's data from a script, a dashboard or a watch, make a token u
 curl -H "Authorization: Bearer gs_..." https://garagestack.example.com/api/vehicles
 ```
 
-A token reads as the account that made it, through the same endpoints the app uses (the API reference lists them, see [`DEMO.md`](documentation/DEMO.md#manual-start)), and it can only read: any request that would change something, send a command or make another token is refused with `403`. The full data export and the server logs are refused too: they hold the car's whole history and the services' diagnostics, so they need a signed-in session. The list under Settings shows when each token was last used; revoking one stops it at once. GarageStack keeps only a hash of each token, so a lost one cannot be shown again: revoke it and make a new one.
+A token reads as the account that made it, through the same endpoints the app uses, and it can only read: any request that would change something, send a command or make another token is refused with `403`. The full data export and the server logs are refused too: they hold the car's whole history and the services' diagnostics, so they need a signed-in session. The list under Settings shows when each token was last used; revoking one stops it at once. GarageStack keeps only a hash of each token, so a lost one cannot be shown again: revoke it and make a new one.
+
+**The API reference** is at `/api/openapi/v1.json`, readable with the token like any other endpoint: every endpoint, what it takes and what it answers, as an OpenAPI document. Load it into any OpenAPI viewer, for example:
+
+```bash
+curl -H "Authorization: Bearer gs_..." https://garagestack.example.com/api/openapi/v1.json -o garagestack-openapi.json
+```
 
 A few things to know before building on a token:
 
