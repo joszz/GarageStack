@@ -23,6 +23,14 @@ To work against the full stack (real or self-provided credentials):
 - Run the test suite before opening a PR:
   - Backend: `dotnet test --project src/GarageStack.Tests`
   - Frontend: `pnpm test:unit`
+- The backend tests in `src/GarageStack.Tests/Postgres` run against a real PostgreSQL, for what the in-memory database cannot show (indexes, concurrency tokens, bulk updates, the SQL a query becomes). Without one they are skipped; CI always runs them. To run them, start a server and say where it is:
+
+  ```bash
+  docker run -d --name garagestack-test-db -p 5432:5432 -e POSTGRES_PASSWORD=postgres postgres:18-alpine
+  GARAGESTACK_TEST_POSTGRES="Host=localhost;Username=postgres;Password=postgres" dotnet test --project src/GarageStack.Tests
+  ```
+
+  Each test gets a database of its own, copied from one the migrations build at the start of the run, and drops it afterwards.
 - Coverage, which CI reports on every run:
   - Backend: add `--coverage --coverage-output-format cobertura --coverage-settings src/GarageStack.Tests/coverage.settings.xml` to the test command; the report lands in `TestResults/`.
   - Frontend: `pnpm test:coverage`, with an HTML report in `frontend/coverage/`.
