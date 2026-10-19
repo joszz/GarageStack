@@ -1,15 +1,13 @@
 <script setup lang="ts">
 import '@/assets/carDiagram.css'
 import { useI18n } from 'vue-i18n'
-import { computed, ref } from 'vue'
+import { computed, nextTick, ref, shallowRef } from 'vue'
 import CardInfoWrap from './CardInfoWrap.vue'
 import CarLightBeams from './carDiagram/CarLightBeams.vue'
 import LevelBadge from './carDiagram/LevelBadge.vue'
 import SpeedGauge from './carDiagram/SpeedGauge.vue'
 import TyreIndicators from './carDiagram/TyreIndicators.vue'
 import TyreLabels from './carDiagram/TyreLabels.vue'
-import TyreHistoryModal from './TyreHistoryModal.vue'
-import LevelHistoryModal from './LevelHistoryModal.vue'
 import { CAR_SILHOUETTE_VIEWBOX, CAR_SILHOUETTE_MARKUP } from '@/assets/carSilhouette'
 import type { LevelKind } from '@/composables/useStatisticsCharts'
 import { useTyrePressureThresholds } from '@/composables/useTyrePressureThresholds'
@@ -26,8 +24,23 @@ const tyreHistoryOpen = ref(false)
 const levelHistoryOpen = ref(false)
 const levelHistory = ref<LevelKind>('fuel')
 
-function openLevelHistory(level: LevelKind) {
+// The dialogs chart with Chart.js, which is as large as the rest of the dashboard together, so
+// each is fetched on its first tap rather than with the page. It is mounted closed and opened on
+// the next tick: a dialog mounted already open would skip its fade-in and the fetch its watcher
+// starts when it opens.
+const TyreHistoryModal = shallowRef<typeof import('./TyreHistoryModal.vue').default | null>(null)
+const LevelHistoryModal = shallowRef<typeof import('./LevelHistoryModal.vue').default | null>(null)
+
+async function openTyreHistory() {
+  TyreHistoryModal.value ??= (await import('./TyreHistoryModal.vue')).default
+  await nextTick()
+  tyreHistoryOpen.value = true
+}
+
+async function openLevelHistory(level: LevelKind) {
+  LevelHistoryModal.value ??= (await import('./LevelHistoryModal.vue')).default
   levelHistory.value = level
+  await nextTick()
   levelHistoryOpen.value = true
 }
 
@@ -289,7 +302,7 @@ const motionBlurAmount = computed(() => {
             <TyreIndicators :pressures="tyrePressures" />
           </svg>
 
-          <TyreLabels :pressures="tyrePressures" @select="tyreHistoryOpen = true" />
+          <TyreLabels :pressures="tyrePressures" @select="openTyreHistory" />
 
           <!-- Open panel icon badges – positioned over SVG at each panel location -->
           <template v-for="badge in doorBadges" :key="badge.key">
@@ -333,8 +346,15 @@ const motionBlurAmount = computed(() => {
         </div>
       </div>
     </div>
-    <TyreHistoryModal :open="tyreHistoryOpen" @close="tyreHistoryOpen = false" />
-    <LevelHistoryModal
+    <component
+      :is="TyreHistoryModal"
+      v-if="TyreHistoryModal"
+      :open="tyreHistoryOpen"
+      @close="tyreHistoryOpen = false"
+    />
+    <component
+      :is="LevelHistoryModal"
+      v-if="LevelHistoryModal"
       :open="levelHistoryOpen"
       :level="levelHistory"
       @close="levelHistoryOpen = false"
