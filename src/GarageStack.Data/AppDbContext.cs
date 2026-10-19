@@ -1,3 +1,4 @@
+using GarageStack.Core.Helpers;
 using GarageStack.Core.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -21,6 +22,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<ClimateSchedule> ClimateSchedules => Set<ClimateSchedule>();
     public DbSet<CommutePlace> CommutePlaces => Set<CommutePlace>();
     public DbSet<ApiToken> ApiTokens => Set<ApiToken>();
+    public DbSet<RdwVehicleInfo> RdwVehicleInfos => Set<RdwVehicleInfo>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -30,6 +32,23 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.HasIndex(v => v.Vin).IsUnique();
             e.Property(v => v.Vin).HasMaxLength(17).IsRequired();
             e.Property(v => v.LastMessageId).HasMaxLength(VehicleLimits.MessageIdMaxLength);
+            e.Property(v => v.LicensePlate).HasMaxLength(LicensePlate.MaxLength);
+        });
+
+        modelBuilder.Entity<RdwVehicleInfo>(e =>
+        {
+            e.HasKey(r => r.Id);
+            // One lookup per vehicle, which is also how every read finds it.
+            e.HasIndex(r => r.VehicleId).IsUnique();
+            e.Property(r => r.LicensePlate).HasMaxLength(LicensePlate.MaxLength).IsRequired();
+            e.Property(r => r.Make).HasMaxLength(RdwLimits.NameMaxLength);
+            e.Property(r => r.Model).HasMaxLength(RdwLimits.NameMaxLength);
+            e.Property(r => r.RecallsJson).IsRequired();
+            e.Property(r => r.LastError).HasMaxLength(RdwLimits.ErrorMaxLength);
+            e.HasOne(r => r.Vehicle)
+             .WithMany()
+             .HasForeignKey(r => r.VehicleId)
+             .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<TelemetrySnapshot>(e =>

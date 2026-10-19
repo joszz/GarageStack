@@ -18,7 +18,7 @@ namespace GarageStack.Data.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.12")
+                .HasAnnotation("ProductVersion", "10.0.13")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -565,6 +565,61 @@ namespace GarageStack.Data.Migrations
                     b.ToTable("PushSubscriptions");
                 });
 
+            modelBuilder.Entity("GarageStack.Core.Models.RdwVehicleInfo", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateOnly?>("ApkExpiresOn")
+                        .HasColumnType("date");
+
+                    b.Property<DateTime?>("FetchedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("Found")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("LastError")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<string>("LicensePlate")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)");
+
+                    b.Property<string>("Make")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("Model")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<bool?>("OpenRecallIndicator")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("RecallsJson")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("VehicleId")
+                        .HasColumnType("integer");
+
+                    b.Property<bool?>("WamInsured")
+                        .HasColumnType("boolean");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("VehicleId")
+                        .IsUnique();
+
+                    b.ToTable("RdwVehicleInfos");
+                });
+
             modelBuilder.Entity("GarageStack.Core.Models.RevokedToken", b =>
                 {
                     b.Property<long>("Id")
@@ -992,6 +1047,10 @@ namespace GarageStack.Data.Migrations
                     b.Property<DateTime?>("LastParkedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("LicensePlate")
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)");
+
                     b.Property<string>("Model")
                         .HasColumnType("text");
 
@@ -1068,6 +1127,17 @@ namespace GarageStack.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("MaintenanceItem");
+                });
+
+            modelBuilder.Entity("GarageStack.Core.Models.RdwVehicleInfo", b =>
+                {
+                    b.HasOne("GarageStack.Core.Models.Vehicle", "Vehicle")
+                        .WithMany()
+                        .HasForeignKey("VehicleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Vehicle");
                 });
 
             modelBuilder.Entity("GarageStack.Core.Models.TelemetrySnapshot", b =>

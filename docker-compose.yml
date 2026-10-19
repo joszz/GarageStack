@@ -32,6 +32,11 @@ x-dotnet-environment: &dotnet-environment
   OVERPASS__BASEURL: "${OVERPASS__BASEURL:-}"
   SPEEDCAMERAS__ENABLED: "${SPEEDCAMERAS__ENABLED:-}"
   OPENCHARGEMAP_API_KEY: "${OPENCHARGEMAP_API_KEY:-}"
+  # The Dutch registration: the API looks a plate up as it is entered, the Worker keeps it current
+  # and sends the notifications, so both need the switch. See .env.example.
+  RDW_ENABLED: "${RDW_ENABLED:-}"
+  RDW_REFRESH_HOURS: "${RDW_REFRESH_HOURS:-}"
+  RDW_APP_TOKEN: "${RDW_APP_TOKEN:-}"
 
 # Docker keeps container output forever unless told otherwise. The .NET services also write their
 # own rotated files (LOG_RETAINED_FILES), so a few megabytes of console history per container is

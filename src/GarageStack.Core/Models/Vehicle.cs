@@ -42,6 +42,13 @@ public class Vehicle
     /// </summary>
     public DateTime? TelemetryCompactedUntil { get; set; }
 
+    /// <summary>
+    /// The Dutch registration, as <see cref="Helpers.LicensePlate.Normalize"/> writes it, for the
+    /// RDW lookup. Neither the gateway nor SAIC reports it, so the user enters it. Kept on the
+    /// vehicle rather than in the browser's settings because the Worker looks it up.
+    /// </summary>
+    public string? LicensePlate { get; set; }
+
     public ICollection<TelemetrySnapshot> TelemetrySnapshots { get; set; } = [];
 }
 

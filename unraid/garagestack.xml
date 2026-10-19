@@ -450,6 +450,39 @@
     Mask="true"/>
 
   <Config
+    Name="RDW Lookups Enabled"
+    Target="RDW_ENABLED"
+    Default="false"
+    Mode=""
+    Description="For a car with a Dutch licence plate: shows the APK expiry date, open recalls and whether the car is insured, from the RDW's open data, and sends notifications about them. The plate, entered under Settings, is the only thing sent (to opendata.rdw.nl); nothing about your account or the car's position goes with it. No API key required. Set to true to switch it on."
+    Type="Variable"
+    Display="advanced"
+    Required="false"
+    Mask="false">false</Config>
+
+  <Config
+    Name="RDW Refresh Hours"
+    Target="RDW_REFRESH_HOURS"
+    Default="24"
+    Mode=""
+    Description="Hours an RDW lookup is kept before it is asked again. One hour at the least."
+    Type="Variable"
+    Display="advanced"
+    Required="false"
+    Mask="false">24</Config>
+
+  <Config
+    Name="RDW App Token"
+    Target="RDW_APP_TOKEN"
+    Default=""
+    Mode=""
+    Description="Optional Socrata app token for the RDW's open data, sent as X-App-Token. Without one, requests share the lower rate limit every anonymous caller gets."
+    Type="Variable"
+    Display="advanced"
+    Required="false"
+    Mask="true"/>
+
+  <Config
     Name="Overpass API Base URL"
     Target="OVERPASS__BASEURL"
     Default="https://overpass-api.de/api/interpreter"

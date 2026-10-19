@@ -22,6 +22,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Upstream responses recorded as they came, which the parsers are tested against. -->
+    <None Include="Fixtures\**\*" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\GarageStack.Core\GarageStack.Core.csproj" />
     <ProjectReference Include="..\GarageStack.Data\GarageStack.Data.csproj" />
     <ProjectReference Include="..\GarageStack.Api\GarageStack.Api.csproj" />

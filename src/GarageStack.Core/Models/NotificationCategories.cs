@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace GarageStack.Core.Models;
 
 /// <summary>
@@ -40,23 +42,44 @@ public static class NotificationCategories
 
     public static string MaintenanceDueSoon(int itemId) => $"maintenance-due-soon-{itemId}";
 
+    // What the RDW categories below are grouped as: the Dutch registration's APK, recalls and insurance.
+    public const string Rdw = "rdw";
+
+    /// <summary>One per recall code, so each new recall is its own notification.</summary>
+    public static string RdwRecall(string code) => $"rdw-recall-{code}";
+
+    /// <summary>
+    /// The APK notice <paramref name="days"/> days ahead. The expiry date is part of it, so next
+    /// year's APK, or the right car's after a mistyped plate, is not held back by this one's.
+    /// </summary>
+    public static string RdwApkDue(int days, DateOnly expiresOn) =>
+        string.Create(CultureInfo.InvariantCulture, $"rdw-apk-due-{days}-{expiresOn:yyyyMMdd}");
+
+    public static string RdwApkExpired(DateOnly expiresOn) =>
+        string.Create(CultureInfo.InvariantCulture, $"rdw-apk-expired-{expiresOn:yyyyMMdd}");
+
+    // The RDW has no WAM (third-party liability) insurance on record for the car.
+    public const string RdwUninsured = "rdw-uninsured";
+
     /// <summary>The types a user can switch off, as the frontend's notification checklist offers them.</summary>
     public static readonly IReadOnlySet<string> Groups = new HashSet<string>(StringComparer.Ordinal)
     {
         LowTyre, HighTyre, SlowPuncture, LowEv, ChargingComplete, ChargingInterrupted, EngineStart, UnlockedParked, DoorsOpenParked,
         WindowsOpenParked, MovedParked, VehicleMessage, ClimateSchedule, Low12V, LowFuel, GatewayLogin, DataStale,
-        Maintenance,
+        Maintenance, Rdw,
     };
 
     /// <summary>
-    /// The type <paramref name="category"/> is switched off as: itself, or "maintenance" for the
-    /// per-item maintenance categories. Mirrors notificationCategoryId in the frontend.
+    /// The type <paramref name="category"/> is switched off as: itself, "maintenance" for the
+    /// per-item maintenance categories, or "rdw" for the RDW ones. Mirrors notificationCategoryId
+    /// in the frontend.
     /// </summary>
     public static string? GroupOf(string? category) =>
         category switch
         {
             null => null,
             _ when category.StartsWith(Maintenance + "-", StringComparison.Ordinal) => Maintenance,
+            _ when category.StartsWith(Rdw + "-", StringComparison.Ordinal) => Rdw,
             _ when Groups.Contains(category) => category,
             _ => null,
         };

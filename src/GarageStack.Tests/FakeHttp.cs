@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Http.Headers;
 using System.Text;
 
 namespace GarageStack.Tests;
@@ -30,6 +31,8 @@ internal sealed class FakeHttpHandler : HttpMessageHandler
 
     public List<string> RequestBodies { get; } = [];
 
+    public List<HttpRequestHeaders> RequestHeaders { get; } = [];
+
     public int CallCount => RequestUris.Count;
 
     public string? LastRequestBody => RequestBodies.LastOrDefault();
@@ -38,6 +41,7 @@ internal sealed class FakeHttpHandler : HttpMessageHandler
     {
         RequestUris.Add(request.RequestUri!.ToString());
         RequestBodies.Add(request.Content is null ? "" : await request.Content.ReadAsStringAsync(ct));
+        RequestHeaders.Add(request.Headers);
 
         var (status, body) = _queued.Count > 0 ? _queued.Dequeue() : _otherwise;
         return new HttpResponseMessage(status)

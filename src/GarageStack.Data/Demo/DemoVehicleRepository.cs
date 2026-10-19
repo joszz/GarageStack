@@ -15,6 +15,8 @@ public sealed class DemoVehicleRepository : IVehicleRepository
         CreatedAt = DateTime.UtcNow.AddMonths(-6),
         // BType 1: a ZS EV takes a charge target, so the demo shows that control.
         ConfigJson = """{"hw_version":"MG_BEV_1.0","BType":"1"}""",
+        // A made-up plate in the current Dutch format; the demo's RDW client answers for any plate.
+        LicensePlate = "ZZ123Z",
     };
 
     public Task<IReadOnlyList<Vehicle>> GetAllAsync(CancellationToken ct = default) =>
@@ -38,4 +40,11 @@ public sealed class DemoVehicleRepository : IVehicleRepository
 
     public Task SetLastMessageIdAsync(int vehicleId, string messageId, CancellationToken ct = default) =>
         Task.CompletedTask;
+
+    // The one setting the demo keeps: entering a plate is how the RDW card is tried out.
+    public Task SetLicensePlateAsync(int vehicleId, string? licensePlate, CancellationToken ct = default)
+    {
+        if (vehicleId == DemoVehicle.Id) DemoVehicle.LicensePlate = licensePlate;
+        return Task.CompletedTask;
+    }
 }

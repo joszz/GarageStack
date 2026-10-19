@@ -180,6 +180,7 @@ try
     app.MapMaintenanceEndpoints();
     app.MapClimateScheduleEndpoints();
     app.MapCommutePlaceEndpoints();
+    app.MapRdwEndpoints();
     app.MapWidgetEndpoints();
     app.MapUpdateEndpoints();
     app.MapClientErrorEndpoints();

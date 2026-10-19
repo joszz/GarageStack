@@ -231,4 +231,37 @@
   <data name="ChargingStopReason_CHARGER_VOLTAGE_MISMATCH" xml:space="preserve">
     <value>de spanning van de laadpaal past niet bij de auto</value>
   </data>
+  <data name="RdwRecallTitle" xml:space="preserve">
+    <value>Openstaande terugroepactie</value>
+  </data>
+  <data name="RdwRecallBody" xml:space="preserve">
+    <value>De RDW meldt een openstaande terugroepactie ({0}): {1}</value>
+  </data>
+  <data name="RdwRecallBodyNoDetails" xml:space="preserve">
+    <value>De RDW meldt een openstaande terugroepactie ({0}). Een dealer van het merk weet waar die over gaat.</value>
+  </data>
+  <data name="RdwApkDueTitle" xml:space="preserve">
+    <value>APK verloopt binnenkort</value>
+  </data>
+  <data name="RdwApkDueBody" xml:space="preserve">
+    <value>De APK verloopt op {0}, over {1} dagen.</value>
+  </data>
+  <data name="RdwApkDueTomorrowBody" xml:space="preserve">
+    <value>De APK verloopt morgen, {0}.</value>
+  </data>
+  <data name="RdwApkDueTodayBody" xml:space="preserve">
+    <value>Vandaag, {0}, is de laatste dag van de APK.</value>
+  </data>
+  <data name="RdwApkExpiredTitle" xml:space="preserve">
+    <value>APK verlopen</value>
+  </data>
+  <data name="RdwApkExpiredBody" xml:space="preserve">
+    <value>De APK is op {0} verlopen. Zonder APK mag de auto niet de openbare weg op.</value>
+  </data>
+  <data name="RdwUninsuredTitle" xml:space="preserve">
+    <value>Geen verzekering geregistreerd</value>
+  </data>
+  <data name="RdwUninsuredBody" xml:space="preserve">
+    <value>De RDW heeft voor de auto geen WAM-verzekering geregistreerd. Een auto op de openbare weg moet verzekerd zijn.</value>
+  </data>
 </root>

@@ -231,4 +231,37 @@
   <data name="ChargingStopReason_CHARGER_VOLTAGE_MISMATCH" xml:space="preserve">
     <value>the charger's voltage does not match the car</value>
   </data>
+  <data name="RdwRecallTitle" xml:space="preserve">
+    <value>Open recall</value>
+  </data>
+  <data name="RdwRecallBody" xml:space="preserve">
+    <value>The RDW lists an open recall ({0}): {1}</value>
+  </data>
+  <data name="RdwRecallBodyNoDetails" xml:space="preserve">
+    <value>The RDW lists an open recall ({0}). A dealer of the make can tell you what it is about.</value>
+  </data>
+  <data name="RdwApkDueTitle" xml:space="preserve">
+    <value>APK due soon</value>
+  </data>
+  <data name="RdwApkDueBody" xml:space="preserve">
+    <value>The APK runs out on {0}, in {1} days.</value>
+  </data>
+  <data name="RdwApkDueTomorrowBody" xml:space="preserve">
+    <value>The APK runs out tomorrow, {0}.</value>
+  </data>
+  <data name="RdwApkDueTodayBody" xml:space="preserve">
+    <value>Today, {0}, is the APK's last day.</value>
+  </data>
+  <data name="RdwApkExpiredTitle" xml:space="preserve">
+    <value>APK expired</value>
+  </data>
+  <data name="RdwApkExpiredBody" xml:space="preserve">
+    <value>The APK ran out on {0}. Without one the car may not be driven on public roads.</value>
+  </data>
+  <data name="RdwUninsuredTitle" xml:space="preserve">
+    <value>No insurance on record</value>
+  </data>
+  <data name="RdwUninsuredBody" xml:space="preserve">
+    <value>The RDW has no WAM insurance on record for the car. A car on the public road must be insured.</value>
+  </data>
 </root>

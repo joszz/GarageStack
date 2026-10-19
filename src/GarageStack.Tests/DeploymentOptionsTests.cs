@@ -114,4 +114,56 @@ public class DeploymentOptionsTests
     {
         Assert.Equal(expected, TelemetryRetentionOptions.From(Config(("TelemetryRetention:FullDetailDays", configured))).FullDetailDays);
     }
+
+    // ── RDW ───────────────────────────────────────────────────────────────────
+
+    // The plate leaves the network only when the operator asks for it.
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("yes")]
+    [InlineData("false")]
+    public void Rdw_IsOffUnlessExplicitlyOn(string? configured)
+    {
+        Assert.False(RdwOptions.From(Config(("Rdw:Enabled", configured))).Enabled);
+    }
+
+    [Fact]
+    public void Rdw_WithBlankSettings_RefreshesDailyWithoutAToken()
+    {
+        var rdw = RdwOptions.From(Config(("Rdw:Enabled", "true"), ("Rdw:RefreshHours", ""), ("Rdw:AppToken", " ")));
+
+        Assert.True(rdw.Enabled);
+        Assert.Equal(TimeSpan.FromHours(24), rdw.RefreshInterval);
+        Assert.Null(rdw.AppToken);
+    }
+
+    [Theory]
+    [InlineData("6", 6)]
+    [InlineData("0", 1)]
+    [InlineData("-3", 1)]
+    [InlineData("often", 24)]
+    public void Rdw_RefreshHours_IsAnHourAtTheLeast(string configured, int expected)
+    {
+        Assert.Equal(expected, RdwOptions.From(Config(("Rdw:RefreshHours", configured))).RefreshHours);
+    }
+
+    [Fact]
+    public void Rdw_TakesTheVariables()
+    {
+        var configuration = new ConfigurationBuilder()
+            .AddGarageStackEnvironment(new Dictionary<string, string?>
+            {
+                ["RDW_ENABLED"] = "true",
+                ["RDW_REFRESH_HOURS"] = "12",
+                ["RDW_APP_TOKEN"] = "app-token",
+            })
+            .Build();
+
+        var rdw = RdwOptions.From(configuration);
+
+        Assert.True(rdw.Enabled);
+        Assert.Equal(12, rdw.RefreshHours);
+        Assert.Equal("app-token", rdw.AppToken);
+    }
 }
