@@ -240,6 +240,7 @@ public class TelemetryHandlerTests
             .AddScoped<IVehicleRepository, VehicleRepository>()
             .AddScoped<ITelemetryRepository>(sp => new TelemetryRepository(sp.GetRequiredService<AppDbContext>()))
             .AddScoped<INotificationRepository, NotificationRepository>()
+            .AddScoped<ICommutePlaceRepository, CommutePlaceRepository>()
             .BuildServiceProvider();
         var handler = new TelemetryHandler(
             NullLogger.Instance,
@@ -275,6 +276,7 @@ public class TelemetryHandlerTests
             .AddScoped<IVehicleRepository, VehicleRepository>()
             .AddScoped<ITelemetryRepository>(sp => new TelemetryRepository(sp.GetRequiredService<AppDbContext>()))
             .AddScoped<INotificationRepository, NotificationRepository>()
+            .AddScoped<ICommutePlaceRepository, CommutePlaceRepository>()
             .BuildServiceProvider();
         var handler = new TelemetryHandler(
             NullLogger.Instance,
@@ -351,5 +353,158 @@ public class TelemetryHandlerLoggingTests
 
         var warning = Assert.Single(logger.Entries, e => e.Level == LogLevel.Warning);
         Assert.StartsWith("Unreadable payload", warning.Message);
+    }
+}
+
+// Reaching and leaving home or work, told for the places that ask for it.
+public class PlaceAlertsOverMqttTests
+{
+    private const string VehicleTopic = "saic/user@example.com/vehicles/FAKEVN00000000001";
+
+    // Home, and a spot two kilometres away from it.
+    private const string AtHome = """{"latitude":52.3700,"longitude":4.8900}""";
+    private const string NearHome = """{"latitude":52.3710,"longitude":4.8910}""";
+    private const string AwayFromHome = """{"latitude":52.3880,"longitude":4.8900}""";
+
+    private sealed class Rig(ServiceProvider services, TelemetryHandler handler, FakePushSender push) : IAsyncDisposable
+    {
+        public FakePushSender Push => push;
+
+        public IEnumerable<(string Title, string? Category)> PlacePushes =>
+            push.Sent.Where(p => p.Category?.StartsWith("place-", StringComparison.Ordinal) == true)
+                .Select(p => (p.Title, p.Category));
+
+        public Task SendAsync(string subtopic, string payload, CancellationToken ct) =>
+            handler.TryHandleAsync(new MqttMessage($"{VehicleTopic}/{subtopic}", payload, Retain: false), ct);
+
+        public Task EngineAsync(bool running, CancellationToken ct) => SendAsync("drivetrain/running", running ? "true" : "false", ct);
+
+        public Task PositionAsync(string position, CancellationToken ct) => SendAsync("location/position", position, ct);
+
+        // Parked at home, as the last drive left the car, beside a place set up as asked.
+        public async Task ParkedAtHomeAsync(CommutePlace place, CancellationToken ct)
+        {
+            await EngineAsync(false, ct);
+            await using var scope = services.CreateAsyncScope();
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var vehicle = await db.Vehicles.SingleAsync(ct);
+            vehicle.ParkedLatitude = 52.37;
+            vehicle.ParkedLongitude = 4.89;
+            place.VehicleId = vehicle.Id;
+            db.CommutePlaces.Add(place);
+            await db.SaveChangesAsync(ct);
+        }
+
+        public ValueTask DisposeAsync() => services.DisposeAsync();
+    }
+
+    private static Rig Build()
+    {
+        var databaseName = Guid.NewGuid().ToString();
+        var services = new ServiceCollection()
+            .AddDbContext<AppDbContext>(o => o.UseInMemoryDatabase(databaseName))
+            .AddScoped<IVehicleRepository, VehicleRepository>()
+            .AddScoped<ITelemetryRepository>(sp => new TelemetryRepository(sp.GetRequiredService<AppDbContext>()))
+            .AddScoped<INotificationRepository, NotificationRepository>()
+            .AddScoped<ICommutePlaceRepository, CommutePlaceRepository>()
+            .BuildServiceProvider();
+        var push = new FakePushSender();
+        var handler = new TelemetryHandler(
+            NullLogger.Instance,
+            new VehicleResolver(services.GetRequiredService<IServiceScopeFactory>()),
+            push,
+            WorkerLocalizer.Notifications());
+        return new Rig(services, handler, push);
+    }
+
+    private static CommutePlace Home(bool notify = true, string? label = null) => new()
+    {
+        Kind = CommutePlaceKind.Home,
+        Label = label,
+        Latitude = 52.37,
+        Longitude = 4.89,
+        RadiusMeters = 250,
+        Notify = notify,
+    };
+
+    [Fact]
+    public async Task ADriveFromHomeAndBack_TellsTheLeavingOnceItIsOutside_AndTheArrival()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var rig = Build();
+        await rig.ParkedAtHomeAsync(Home(), ct);
+
+        await rig.EngineAsync(true, ct);
+        await rig.PositionAsync(NearHome, ct);
+        Assert.Empty(rig.PlacePushes);
+
+        await rig.PositionAsync(AwayFromHome, ct);
+        await rig.PositionAsync(AwayFromHome, ct);
+        await rig.EngineAsync(false, ct);
+        await rig.PositionAsync(AtHome, ct);
+
+        Assert.Equal(
+            [("Left home", NotificationCategories.PlaceDeparture), ("Arrived home", NotificationCategories.PlaceArrival)],
+            rig.PlacePushes);
+    }
+
+    [Fact]
+    public async Task AnEngineRunThatNeverLeaves_TellsNothing()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var rig = Build();
+        await rig.ParkedAtHomeAsync(Home(), ct);
+
+        await rig.EngineAsync(true, ct);
+        await rig.PositionAsync(NearHome, ct);
+        await rig.EngineAsync(false, ct);
+        await rig.PositionAsync(AtHome, ct);
+
+        Assert.Empty(rig.PlacePushes);
+    }
+
+    [Fact]
+    public async Task APlaceThatDoesNotAskForIt_TellsNothing()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var rig = Build();
+        await rig.ParkedAtHomeAsync(Home(notify: false), ct);
+
+        await rig.EngineAsync(true, ct);
+        await rig.PositionAsync(AwayFromHome, ct);
+        await rig.EngineAsync(false, ct);
+        await rig.PositionAsync(AtHome, ct);
+
+        Assert.Empty(rig.PlacePushes);
+    }
+
+    [Fact]
+    public async Task ANamedPlace_IsToldByItsName()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var rig = Build();
+        await rig.ParkedAtHomeAsync(Home(label: "Zwolle"), ct);
+
+        await rig.EngineAsync(true, ct);
+        await rig.PositionAsync(AwayFromHome, ct);
+        await rig.EngineAsync(false, ct);
+        await rig.PositionAsync(AtHome, ct);
+
+        Assert.Equal(["Left Zwolle", "Arrived at Zwolle"], rig.PlacePushes.Select(p => p.Title));
+    }
+
+    [Fact]
+    public async Task ParkingElsewhere_TellsNoArrival()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var rig = Build();
+        await rig.ParkedAtHomeAsync(Home(), ct);
+
+        await rig.EngineAsync(true, ct);
+        await rig.PositionAsync(AwayFromHome, ct);
+        await rig.EngineAsync(false, ct);
+        await rig.PositionAsync(AwayFromHome, ct);
+
+        Assert.Equal(["Left home"], rig.PlacePushes.Select(p => p.Title));
     }
 }

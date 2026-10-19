@@ -53,6 +53,9 @@ public sealed class TelemetryHandler(
     // of metres back, which the moved-while-parked check then took for a move.
     private readonly ConcurrentDictionary<int, DateTime> _awaitingParkedFix = new();
 
+    // Arriving at and leaving home or work, for the places that ask for it.
+    private readonly PlaceAlerts _placeAlerts = new(logger, pushSender, strings);
+
     // Topics the gateway publishes that are left out on purpose, so they are no news either:
     // hybrid_electrical_range repeats drivetrain/range (see TelemetryMapper), nothing reads why
     // battery heating stopped, and chargingDataAvailable only goes offline after charge status
@@ -108,14 +111,24 @@ public sealed class TelemetryHandler(
             var telemetryRepo = resolved.Services.GetRequiredService<ITelemetryRepository>();
             var db = resolved.Services.GetRequiredService<AppDbContext>();
             var notifications = resolved.Services.GetRequiredService<INotificationRepository>();
+            var places = resolved.Services.GetRequiredService<ICommutePlaceRepository>();
 
             patch.VehicleId = vehicleId;
             patch.RecordedAt = DateTime.UtcNow;
 
             await MergeOrAddTelemetryAsync(vehicleId, patch, telemetryRepo, ct);
-            await ParkAtThisPollsFixAsync(vehicleId, patch, telemetryRepo, resolved.Vehicles, ct);
+            await ParkAtThisPollsFixAsync(vehicleId, patch, telemetryRepo, resolved.Vehicles, places, ct);
+            await ArriveWithoutAFixAsync(vin, vehicleId, patch.RecordedAt, resolved.Vehicles, places, ct);
 
-            if (await ObserveEngineAsync(vin, patch, notifications, ct) == StateTransition.TurnedOff && vehicleId > 0)
+            var transition = await ObserveEngineAsync(vin, patch, notifications, ct);
+            if (transition == StateTransition.TurnedOn && vehicleId > 0)
+                await _placeAlerts.EngineStartedAsync(vehicleId, await resolved.Vehicles.GetByVinAsync(vin, ct), places, ct);
+
+            if (patch is not { Latitude: null, Longitude: null } && _placeAlerts.IsLeaving(vehicleId)
+                && await telemetryRepo.GetMergedLatestAsync(vehicleId, ct) is { Latitude: { } lat, Longitude: { } lon })
+                await _placeAlerts.PositionAsync(vehicleId, lat, lon, ct);
+
+            if (transition == StateTransition.TurnedOff && vehicleId > 0)
             {
                 // The engine stopping ends the trip and parks the car: the Api refreshes the trip
                 // list, and the push checks give the driver a grace period before warning about an
@@ -123,6 +136,7 @@ public sealed class TelemetryHandler(
                 var parkedAt = await telemetryRepo.GetMergedLatestAsync(vehicleId, ct);
                 await resolved.Vehicles.SetParkedAsync(vehicleId, patch.RecordedAt, parkedAt?.Latitude, parkedAt?.Longitude, ct);
                 _awaitingParkedFix[vehicleId] = patch.RecordedAt;
+                _placeAlerts.Parked(vehicleId, patch.RecordedAt);
                 await db.Database.NotifyAsync(PgChannels.TripCompleted, vehicleId.ToString(), ct);
                 logger.LogInformation("Trip completed for vehicleId={VehicleId} - notifying SignalR clients", vehicleId);
             }
@@ -142,7 +156,8 @@ public sealed class TelemetryHandler(
     /// fixes are the car reporting from its spot, which the moved-while-parked check compares.
     /// </summary>
     internal async Task ParkAtThisPollsFixAsync(
-        int vehicleId, TelemetrySnapshot patch, ITelemetryRepository telemetryRepo, IVehicleRepository vehicleRepo, CancellationToken ct)
+        int vehicleId, TelemetrySnapshot patch, ITelemetryRepository telemetryRepo, IVehicleRepository vehicleRepo,
+        ICommutePlaceRepository places, CancellationToken ct)
     {
         if (patch is { Latitude: null, Longitude: null }) return;
         if (!_awaitingParkedFix.TryGetValue(vehicleId, out var parkedAt)) return;
@@ -154,6 +169,21 @@ public sealed class TelemetryHandler(
 
         var merged = await telemetryRepo.GetMergedLatestAsync(vehicleId, ct);
         await vehicleRepo.SetParkedAsync(vehicleId, parkedAt, merged?.Latitude, merged?.Longitude, ct);
+        await _placeAlerts.ParkedAtAsync(vehicleId, merged?.Latitude, merged?.Longitude, places, ct);
+    }
+
+    /// <summary>
+    /// A parking whose poll sent no position within <see cref="MergeWindow"/> (a garage without GPS,
+    /// a gateway that skipped it): the arrival is told from where the car was taken to have parked,
+    /// the position the engine stopping found.
+    /// </summary>
+    private async Task ArriveWithoutAFixAsync(
+        string vin, int vehicleId, DateTime now, IVehicleRepository vehicleRepo, ICommutePlaceRepository places, CancellationToken ct)
+    {
+        if (!_placeAlerts.IsAwaitingArrival(vehicleId, out var parkedAt) || now - parkedAt <= MergeWindow) return;
+
+        var vehicle = await vehicleRepo.GetByVinAsync(vin, ct);
+        await _placeAlerts.ParkedAtAsync(vehicleId, vehicle?.ParkedLatitude, vehicle?.ParkedLongitude, places, ct);
     }
 
     // Serializes read-await-write access to _mergeState per vehicle so two concurrently

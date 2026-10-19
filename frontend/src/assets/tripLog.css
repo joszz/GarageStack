@@ -74,6 +74,12 @@
   }
 }
 
+/* After the radius, at the row's far end: this place sends arrival and departure notifications. */
+.commute-places__notify {
+  margin-left: auto;
+  color: var(--color-text-muted);
+}
+
 /* ── Trip list ────────────────────────────────────────────── */
 
 .trip-log-list {

@@ -7,6 +7,7 @@ import DetailModal from './DetailModal.vue'
 import ConfirmFooter from './ConfirmFooter.vue'
 import ChipGroup from './ChipGroup.vue'
 import RangeControl from './RangeControl.vue'
+import SettingsToggle from './SettingsToggle.vue'
 import { useCommutePlacesStore } from '@/stores/commutePlaces'
 import {
   COMMUTE_PLACE_KINDS,
@@ -51,6 +52,7 @@ interface Draft {
   latitude: number
   longitude: number
   radiusMeters: number
+  notify: boolean
 }
 
 // Null shows the list; a draft shows the editor for a new or an existing place.
@@ -86,6 +88,7 @@ function newDraft(latitude: number, longitude: number, kind?: CommutePlaceKind):
     latitude,
     longitude,
     radiusMeters: COMMUTE_RADIUS.default,
+    notify: false,
   }
 }
 
@@ -167,12 +170,12 @@ function done(change: CommutePlaceChange | null) {
 
 async function save() {
   if (!props.vin || !draft.value) return
-  const { id, kind, label, latitude, longitude, radiusMeters } = draft.value
+  const { id, kind, label, latitude, longitude, radiusMeters, notify } = draft.value
   const trimmed = label.trim()
   done(
     await store.savePlace(
       props.vin,
-      { kind, label: trimmed === '' ? null : trimmed, latitude, longitude, radiusMeters },
+      { kind, label: trimmed === '' ? null : trimmed, latitude, longitude, radiusMeters, notify },
       id,
     ),
   )
@@ -221,6 +224,12 @@ function close() {
           <span class="detail-list__item-label">{{
             t('tripLog.places.within', { distance: radiusText(place.radiusMeters) })
           }}</span>
+          <font-awesome-icon
+            v-if="place.notify"
+            icon="bell"
+            class="commute-places__notify"
+            :title="t('tripLog.places.notifies')"
+          />
         </button>
       </div>
     </template>
@@ -265,6 +274,14 @@ function close() {
         :step="COMMUTE_RADIUS.step"
       />
       <p class="text-xs text-muted">{{ t('tripLog.places.radiusHint') }}</p>
+
+      <SettingsToggle
+        v-model="draft.notify"
+        input-id="commute-place-notify"
+        icon="bell"
+        :label="t('tripLog.places.notify')"
+        :desc="t('tripLog.places.notifyHint')"
+      />
     </form>
 
     <p v-if="store.actionError" class="text-danger text-sm" role="alert">

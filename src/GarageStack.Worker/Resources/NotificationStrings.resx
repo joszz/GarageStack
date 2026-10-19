@@ -66,6 +66,30 @@
   <data name="MovedParkedBody" xml:space="preserve">
     <value>Your car is {0} km from where it was parked, with the engine off.</value>
   </data>
+  <data name="PlaceArrivedHomeTitle" xml:space="preserve">
+    <value>Arrived home</value>
+  </data>
+  <data name="PlaceArrivedWorkTitle" xml:space="preserve">
+    <value>Arrived at work</value>
+  </data>
+  <data name="PlaceArrivedTitle" xml:space="preserve">
+    <value>Arrived at {0}</value>
+  </data>
+  <data name="PlaceArrivedBody" xml:space="preserve">
+    <value>Your car has parked there.</value>
+  </data>
+  <data name="PlaceLeftHomeTitle" xml:space="preserve">
+    <value>Left home</value>
+  </data>
+  <data name="PlaceLeftWorkTitle" xml:space="preserve">
+    <value>Left work</value>
+  </data>
+  <data name="PlaceLeftTitle" xml:space="preserve">
+    <value>Left {0}</value>
+  </data>
+  <data name="PlaceLeftBody" xml:space="preserve">
+    <value>Your car has driven away.</value>
+  </data>
   <data name="TyreFrontLeft" xml:space="preserve">
     <value>Front left</value>
   </data>

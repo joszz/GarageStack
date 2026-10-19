@@ -361,7 +361,17 @@ public class AuthenticationFlowTests
         Assert.True(work!.Marked >= 1);
         Assert.Equal(HttpStatusCode.BadRequest, secondHome.StatusCode);
         Assert.Equal("commutePlace.homeExists", await ProblemCodeAsync(secondHome, ct));
-        Assert.Equal(new CommutePlaceDto(work.Place!.Id, CommutePlaceKind.Work, "Office", open.EndLatitude, open.EndLongitude, 300), work.Place);
+        Assert.Equal(new CommutePlaceDto(work.Place!.Id, CommutePlaceKind.Work, "Office", open.EndLatitude, open.EndLongitude, 300, false), work.Place);
+
+        // A place notifies only once asked to, and a change that does not mention it keeps it.
+        var notifying = await (await client.PutAsJsonAsync($"{placesUrl}/{work.Place.Id}",
+            new { kind = "work", label = "Office", latitude = open.EndLatitude, longitude = open.EndLongitude, radiusMeters = 300, notify = true }, ct))
+            .Content.ReadFromJsonAsync<CommutePlaceChange>(ct);
+        var moved = await (await client.PutAsJsonAsync($"{placesUrl}/{work.Place.Id}",
+            new { kind = "work", label = "Office", latitude = open.EndLatitude, longitude = open.EndLongitude, radiusMeters = 350 }, ct))
+            .Content.ReadFromJsonAsync<CommutePlaceChange>(ct);
+        Assert.True(notifying!.Place!.Notify);
+        Assert.True(moved!.Place!.Notify);
         var labelled = await EntryAsync(open.Id);
         Assert.Equal(TripPurpose.Commute, labelled.Purpose);
         Assert.True(labelled.PurposeIsAutomatic);

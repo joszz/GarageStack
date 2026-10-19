@@ -144,6 +144,7 @@ describe('TripLogItem', () => {
     latitude: 52.5123,
     longitude: 6.0921,
     radiusMeters: 250,
+    notify: false,
   }
 
   it('marks the end that is at home', () => {

@@ -455,7 +455,9 @@
       "low12v": "Low 12V battery",
       "lowFuel": "Low fuel",
       "gatewayLogin": "MG sign-in failed",
-      "dataStale": "No data from the car"
+      "dataStale": "No data from the car",
+      "placeArrival": "Arrived at home or work",
+      "placeDeparture": "Left home or work"
     }
   },
   "auth": {
@@ -758,6 +760,9 @@
       "mapHint": "Click the map or drag the pin to where the car parks.",
       "radius": "Radius",
       "radiusHint": "A trip ending within this distance of the pin counts as ending here.",
+      "notify": "Notify on arrival and departure",
+      "notifyHint": "A notification when the car parks here, and when it drives away. Each device can still switch these types off under Settings > Notifications.",
+      "notifies": "Notifies on arrival and departure",
       "within": "Trips ending within {distance}",
       "editPlace": "Edit {place}",
       "save": "Save",

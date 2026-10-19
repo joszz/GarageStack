@@ -27,6 +27,12 @@ public class CommutePlace
     /// </summary>
     public int RadiusMeters { get; set; } = CommutePlaceLimits.DefaultRadiusMeters;
 
+    /// <summary>
+    /// Whether the car reaching or leaving this place sends a notification. Off until asked for:
+    /// home and work are set up for the trip log, and a push on every commute is not what that asks.
+    /// </summary>
+    public bool Notify { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
 
