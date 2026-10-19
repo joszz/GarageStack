@@ -556,7 +556,7 @@
       "title": "Kenteken",
       "desc": "Het Nederlandse kenteken van de auto, voor de APK-datum, terugroepacties en verzekering die de RDW heeft geregistreerd. Alleen het kenteken gaat naar de RDW.",
       "label": "Kenteken",
-      "placeholder": "bijv. AB-123-C",
+      "placeholder": "AB-123-C",
       "save": "Opslaan",
       "clear": "Verwijderen",
       "saved": "Opgeslagen en bij de RDW opgezocht.",

@@ -121,14 +121,14 @@ describe('RdwCard', () => {
     const wrapper = mountWith(info({ found: false, recalls: [] }), 'ZZ999Z')
 
     expect(wrapper.find('.status-card__value').text()).toBe('Plate unknown')
-    expect(wrapper.text()).toContain('ZZ999Z')
+    expect(wrapper.text()).toContain('ZZ-999-Z')
   })
 
   it('waits for a first lookup', () => {
     const card = mountWith(null).find('.status-card')
 
     expect(card.find('.status-card__value').text()).toBe('Not looked up yet')
-    expect(card.find('.status-card__note').text()).toBe('Plate HPK98B')
+    expect(card.find('.status-card__note').text()).toBe('Plate HPK-98-B')
   })
 
   it('says when the last attempt failed', () => {

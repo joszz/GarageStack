@@ -3,9 +3,6 @@ import { request, requestJson } from '@/services/apiCore'
 /** The code both RDW endpoints answer with while the deployment has RDW lookups switched off. */
 export const RDW_DISABLED_CODE = 'rdw.disabled'
 
-/** Room for a plate as it is written, dashes and spaces included; the API keeps eight characters. */
-export const LICENSE_PLATE_INPUT_MAX_LENGTH = 12
-
 /** A recall on the plate. The texts are the RDW's own, in Dutch. */
 export interface RdwRecall {
   code: string

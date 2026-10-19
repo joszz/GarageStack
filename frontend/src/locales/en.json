@@ -556,7 +556,7 @@
       "title": "Licence plate",
       "desc": "The car's Dutch licence plate, for the APK date, recalls and insurance the RDW has on record. Only the plate is sent to the RDW.",
       "label": "Licence plate",
-      "placeholder": "e.g. AB-123-C",
+      "placeholder": "AB-123-C",
       "save": "Save",
       "clear": "Remove",
       "saved": "Saved and looked up at the RDW.",

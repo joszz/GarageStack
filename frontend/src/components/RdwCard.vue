@@ -5,6 +5,7 @@ import { useVehicleStore } from '@/stores/vehicle'
 import { useRdwStore } from '@/stores/rdw'
 import type { RdwRecall } from '@/services/rdwApi'
 import { formatDate, formatDateTime } from '@/utils/format'
+import { formatPlate } from '@/utils/licensePlate'
 import { parseLocalDate } from '@/utils/statsPeriod'
 import type { BadgeVariant } from '@/utils/levels'
 import ExpandableStatusCard from './ExpandableStatusCard.vue'
@@ -27,7 +28,10 @@ watch(
   { immediate: true },
 )
 
-const plate = computed(() => store.status?.licensePlate ?? null)
+// Written as on the car: HPK-98-B.
+const plate = computed(() =>
+  store.status?.licensePlate ? formatPlate(store.status.licensePlate) : null,
+)
 const info = computed(() => store.status?.info ?? null)
 const known = computed(() => (info.value?.found ? info.value : null))
 const openRecalls = computed(() => known.value?.recalls.filter((r) => r.open) ?? [])

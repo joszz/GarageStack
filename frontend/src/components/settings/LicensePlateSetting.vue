@@ -3,8 +3,9 @@ import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRdwStore } from '@/stores/rdw'
 import { useVehicleStore } from '@/stores/vehicle'
-import { LICENSE_PLATE_INPUT_MAX_LENGTH } from '@/services/rdwApi'
 import { useErrorMessage } from '@/composables/useErrorMessage'
+import { formatPlate, normalizePlate } from '@/utils/licensePlate'
+import LicensePlateInput from './LicensePlateInput.vue'
 
 // The car's Dutch plate, kept on the vehicle (the Worker looks it up) rather than in the
 // browser's settings. Saving looks it up at once, so the dashboard card fills straight away.
@@ -13,7 +14,8 @@ const errorMessage = useErrorMessage()
 const rdw = useRdwStore()
 const vehicleStore = useVehicleStore()
 
-const saved = computed(() => rdw.status?.licensePlate ?? '')
+// As written on the car, dashes and all; the API stores it without them.
+const saved = computed(() => formatPlate(rdw.status?.licensePlate ?? ''))
 const plate = ref(saved.value)
 const busy = ref(false)
 const error = ref<string | null>(null)
@@ -24,9 +26,7 @@ watch(saved, (value, previous) => {
   if (plate.value === previous) plate.value = value
 })
 
-// The API keys a plate without its dashes and spaces, as the RDW does.
-const normalized = computed(() => plate.value.replace(/[\s-]/g, '').toUpperCase())
-const changed = computed(() => normalized.value !== saved.value)
+const changed = computed(() => normalizePlate(plate.value) !== normalizePlate(saved.value))
 
 async function save(value: string) {
   const vin = vehicleStore.activeVin
@@ -36,7 +36,7 @@ async function save(value: string) {
   busy.value = true
   try {
     await rdw.setLicensePlate(vin, value)
-    plate.value = rdw.status?.licensePlate ?? ''
+    plate.value = saved.value
     done.value = plate.value ? t('settings.licensePlate.saved') : t('settings.licensePlate.cleared')
   } catch (e) {
     error.value = errorMessage(e)
@@ -51,15 +51,10 @@ async function save(value: string) {
     <p class="settings-toggle__desc">{{ t('settings.licensePlate.desc') }}</p>
 
     <form class="license-plate-form" @submit.prevent="save(plate)">
-      <input
+      <LicensePlateInput
         v-model="plate"
-        class="form-control license-plate-form__input"
-        autocomplete="off"
-        autocapitalize="characters"
-        spellcheck="false"
-        :maxlength="LICENSE_PLATE_INPUT_MAX_LENGTH"
+        :label="t('settings.licensePlate.label')"
         :placeholder="t('settings.licensePlate.placeholder')"
-        :aria-label="t('settings.licensePlate.label')"
       />
       <button type="submit" class="btn btn-primary btn-sm" :disabled="busy || !changed">
         {{ t('settings.licensePlate.save') }}
