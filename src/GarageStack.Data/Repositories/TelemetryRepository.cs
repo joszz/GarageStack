@@ -232,8 +232,57 @@ public class TelemetryRepository(
         return merged;
     }
 
+    // A finished day's statistics cannot change: every row is stamped when it arrives, so no row
+    // lands on a day that has ended. The margin covers the merge window, which folds messages
+    // arriving just after midnight into a row stamped before it; compaction folds old rows but
+    // keeps each day's figures. The expiry only bounds how long an idle period stays in memory.
+    private static readonly TimeSpan DayFinishedMargin = TimeSpan.FromHours(1);
+    private static readonly TimeSpan DailyStatCacheTtl = TimeSpan.FromDays(7);
+
+    private static string DailyStatCacheKey(int vehicleId, TimeZoneInfo zone, DateOnly date) =>
+        $"daily-stat/{vehicleId}/{zone.Id}/{date:yyyy-MM-dd}";
+
     public async Task<IReadOnlyList<DailyStat>> GetDailyStatsAsync(
         int vehicleId, DateOnly from, DateOnly to, TimeZoneInfo zone, DateOnly today, CancellationToken ct = default)
+    {
+        if (cache is null) return await ReadDailyStatsAsync(vehicleId, from, to, zone, today, ct);
+
+        // Finished days come from the cache, and only the span from the first day it lacks to the
+        // last is read: a statistics page opened again reads today (and, for an hour after
+        // midnight, yesterday) rather than the whole period.
+        var last = to < today ? to : today;
+        var finishedBefore = UtcNow - DayFinishedMargin;
+        bool IsFinished(DateOnly date) => ZoneTime.StartOfDay(date.AddDays(1), zone) <= finishedBefore;
+
+        var byDate = new SortedDictionary<DateOnly, DailyStat>();
+        DateOnly? firstMissing = null, lastMissing = null;
+        for (var date = from; date <= last; date = date.AddDays(1))
+        {
+            if (IsFinished(date) && cache.TryGetValue(DailyStatCacheKey(vehicleId, zone, date), out DailyStat? hit) && hit is not null)
+            {
+                byDate[date] = hit;
+                continue;
+            }
+            firstMissing ??= date;
+            lastMissing = date;
+        }
+
+        if (firstMissing is { } readFrom && lastMissing is { } readTo)
+        {
+            // A day the cache held inside the span is read again too; the fresh answer wins.
+            foreach (var day in await ReadDailyStatsAsync(vehicleId, readFrom, readTo, zone, today, ct))
+            {
+                if (IsFinished(day.Date))
+                    cache.Set(DailyStatCacheKey(vehicleId, zone, day.Date), day, DailyStatCacheTtl);
+                byDate[day.Date] = day;
+            }
+        }
+
+        return [.. byDate.Values];
+    }
+
+    private async Task<IReadOnlyList<DailyStat>> ReadDailyStatsAsync(
+        int vehicleId, DateOnly from, DateOnly to, TimeZoneInfo zone, DateOnly today, CancellationToken ct)
     {
         var builder = new DailyStatsBuilder(zone, from, to, today);
         var (start, end) = DailyStatsBuilder.UtcRange(from, to < today ? to : today, zone);
