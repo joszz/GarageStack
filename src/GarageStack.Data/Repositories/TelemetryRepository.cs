@@ -91,20 +91,32 @@ public class TelemetryRepository(
 
     public async Task MergeIntoAsync(long rowId, TelemetrySnapshot patch, CancellationToken ct = default)
     {
-        var existing = await db.TelemetrySnapshots.FindAsync([rowId], ct);
-        if (existing is null)
+        // Every MQTT message of a poll lands here, so the row is not read first: a stand-in with
+        // only its key is attached, the patch's fields are set on it, and the UPDATE writes exactly
+        // those (last write wins per field). Every telemetry field is nullable, so a field the
+        // stand-in leaves empty is one the patch did not carry, and stays as the row has it.
+        var row = db.TelemetrySnapshots.Local.FirstOrDefault(s => s.Id == rowId);
+        if (row is null)
         {
+            row = new TelemetrySnapshot { Id = rowId, VehicleId = patch.VehicleId };
+            db.TelemetrySnapshots.Attach(row);
+        }
+        TelemetryFields.ApplyNonNullFields(row, patch);
+
+        try
+        {
+            await db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            // The row is gone (nothing deletes recent telemetry, but a merge must never lose a
+            // message): the patch becomes a row of its own.
+            db.Entry(row).State = EntityState.Detached;
             db.TelemetrySnapshots.Add(patch);
             await db.SaveChangesAsync(ct);
-            await NotifyUpdatedAsync(patch.VehicleId, ct);
-            return;
         }
 
-        // Last-write-wins per field: overwrite with any non-null value from the patch.
-        TelemetryFields.ApplyNonNullFields(existing, patch);
-
-        await db.SaveChangesAsync(ct);
-        await NotifyUpdatedAsync(existing.VehicleId, ct);
+        await NotifyUpdatedAsync(patch.VehicleId, ct);
     }
 
     private async Task NotifyUpdatedAsync(int vehicleId, CancellationToken ct)

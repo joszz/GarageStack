@@ -531,6 +531,61 @@ public class TelemetryRepositoryMergeTests
         return (db, new TelemetryRepository(db), vehicle);
     }
 
+    // The Worker merges every message in a scope of its own, so the row is never tracked yet.
+    [Fact]
+    public async Task MergeIntoAsync_FromAFreshContext_WritesThePatchAndKeepsTheRest()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+        long id;
+        int vehicleId;
+        var recordedAt = new DateTime(2026, 10, 19, 8, 0, 0, DateTimeKind.Utc);
+        await using (var first = new AppDbContext(options))
+        {
+            var vehicle = new Vehicle { Vin = "FAKEVN00000000001" };
+            first.Vehicles.Add(vehicle);
+            await first.SaveChangesAsync(ct);
+            vehicleId = vehicle.Id;
+            id = await new TelemetryRepository(first).AddAsync(
+                new TelemetrySnapshot { VehicleId = vehicleId, RecordedAt = recordedAt, FuelLevelPercent = 60, BatteryVoltage = 12.6 }, ct);
+        }
+
+        await using (var second = new AppDbContext(options))
+        {
+            await new TelemetryRepository(second).MergeIntoAsync(
+                id, new TelemetrySnapshot { VehicleId = vehicleId, FuelLevelPercent = 55, EvSocPercent = 80 }, ct);
+        }
+
+        await using var check = new AppDbContext(options);
+        var row = Assert.Single(await check.TelemetrySnapshots.ToListAsync(ct));
+        Assert.Equal(55, row.FuelLevelPercent);
+        Assert.Equal(80, row.EvSocPercent);
+        Assert.Equal(12.6, row.BatteryVoltage);
+        Assert.Equal(recordedAt, row.RecordedAt);
+    }
+
+    [Fact]
+    public async Task MergeIntoAsync_FromAFreshContext_AddsThePatch_WhenTheRowIsGone()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+        await using var db = new AppDbContext(options);
+        var vehicle = new Vehicle { Vin = "FAKEVN00000000001" };
+        db.Vehicles.Add(vehicle);
+        await db.SaveChangesAsync(ct);
+
+        await using (var merging = new AppDbContext(options))
+            await new TelemetryRepository(merging).MergeIntoAsync(
+                99999, new TelemetrySnapshot { VehicleId = vehicle.Id, FuelLevelPercent = 70 }, ct);
+
+        var row = Assert.Single(await db.TelemetrySnapshots.AsNoTracking().ToListAsync(ct));
+        Assert.Equal(70, row.FuelLevelPercent);
+    }
+
     [Fact]
     public async Task AddAsync_ReturnsNewRowId()
     {
