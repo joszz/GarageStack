@@ -103,15 +103,15 @@ public sealed class OverpassApiClient(
             {
                 // Short backoff so subsequent pans don't immediately retry the same
                 // rate-limited tile and keep getting 429 forever ("area stays blank").
-                _gate.SetBackoff(ForegroundRetryAfter429);
+                var backoff = _gate.SetBackoff(response, ForegroundRetryAfter429);
                 logger.LogDebug("Overpass {Status} for {PoiType} ({CellLat},{CellLng}) on foreground path, backing off {Seconds}s",
-                    (int)response.StatusCode, poiType, cellLat, cellLng, (int)ForegroundRetryAfter429.TotalSeconds);
+                    (int)response.StatusCode, poiType, cellLat, cellLng, (int)backoff.TotalSeconds);
                 return null;
             }
 
             // Background: record backoff window so the foreground path skips Overpass for
-            // the next BackgroundRetryAfter429 seconds.
-            _gate.SetBackoff(BackgroundRetryAfter429);
+            // as long as Overpass asked, or the next BackgroundRetryAfter429 seconds.
+            _gate.SetBackoff(response, BackgroundRetryAfter429);
             throw new HttpRequestException(
                 $"Overpass rate-limited ({(int)response.StatusCode}) for {poiType} ({cellLat},{cellLng})");
         }

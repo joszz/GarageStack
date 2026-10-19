@@ -69,9 +69,9 @@ public sealed class NominatimApiClient(
 
             if (UpstreamRateGate.IsThrottlingStatus((int)response.StatusCode))
             {
-                _gate.SetBackoff(RetryAfter429);
+                var backoff = _gate.SetBackoff(response, RetryAfter429);
                 logger.LogDebug("Nominatim {Status}, backing off {Seconds}s",
-                    (int)response.StatusCode, (int)RetryAfter429.TotalSeconds);
+                    (int)response.StatusCode, (int)backoff.TotalSeconds);
                 return null;
             }
 

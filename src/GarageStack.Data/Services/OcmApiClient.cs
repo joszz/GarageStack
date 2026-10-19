@@ -73,9 +73,9 @@ public sealed class OcmApiClient(
 
         if (UpstreamRateGate.IsThrottlingStatus((int)response.StatusCode))
         {
-            _gate.SetBackoff(RetryAfter429);
+            var backoff = _gate.SetBackoff(response, RetryAfter429);
             logger.LogWarning("OCM rate-limited ({Status}); pausing charging station requests for {Seconds}s",
-                (int)response.StatusCode, (int)RetryAfter429.TotalSeconds);
+                (int)response.StatusCode, (int)backoff.TotalSeconds);
             return null;
         }
 

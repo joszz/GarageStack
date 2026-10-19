@@ -72,11 +72,6 @@ public interface ITelemetryRepository
     /// </summary>
     Task<string?> GetChargingStopReasonAsync(int vehicleId, CancellationToken ct = default);
 
-    /// <summary>
-    /// The raw MQTT topics that started telemetry rows for <paramref name="vehicleId"/> since
-    /// <paramref name="since"/>, most frequent first.
-    /// </summary>
-    Task<IReadOnlyList<RawTopicStat>> GetRawTopicStatsAsync(int vehicleId, DateTime since, CancellationToken ct = default);
 
     /// <summary>
     /// Every row recorded for <paramref name="vehicleId"/>, oldest first, one at a time: for the data

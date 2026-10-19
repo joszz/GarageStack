@@ -164,6 +164,12 @@ describe('router guard', () => {
 
     expect(dashboard?.meta.preconnect).toContain(RASTER_TILE_ORIGIN)
   })
+  it('sends an address no view answers to on to the dashboard', () => {
+    const unknown = router.resolve('/no/such/page')
+
+    expect(unknown.name).toBe('notFound')
+    expect(unknown.matched[0]?.redirect).toEqual({ name: 'dashboard' })
+  })
 })
 
 function preconnectLink(origin: string): Element | null {

@@ -112,7 +112,7 @@ public sealed class TelemetryHandler(
             patch.VehicleId = vehicleId;
             patch.RecordedAt = DateTime.UtcNow;
 
-            await MergeOrAddTelemetryAsync(vehicleId, patch, message.Topic, telemetryRepo, ct);
+            await MergeOrAddTelemetryAsync(vehicleId, patch, telemetryRepo, ct);
             await ParkAtThisPollsFixAsync(vehicleId, patch, telemetryRepo, resolved.Vehicles, ct);
 
             if (await ObserveEngineAsync(vin, patch, notifications, ct) == StateTransition.TurnedOff && vehicleId > 0)
@@ -159,7 +159,7 @@ public sealed class TelemetryHandler(
     // Serializes read-await-write access to _mergeState per vehicle so two concurrently
     // dispatched messages for the same vehicle can't race on which row they merge into.
     internal async Task MergeOrAddTelemetryAsync(
-        int vehicleId, TelemetrySnapshot patch, string topic, ITelemetryRepository telemetryRepo, CancellationToken ct)
+        int vehicleId, TelemetrySnapshot patch, ITelemetryRepository telemetryRepo, CancellationToken ct)
     {
         var gate = _mergeGates.GetOrAdd(vehicleId, static _ => new SemaphoreSlim(1, 1));
         await gate.WaitAsync(ct);
@@ -173,7 +173,6 @@ public sealed class TelemetryHandler(
             }
             else
             {
-                patch.RawTopic = topic;
                 var newId = await telemetryRepo.AddAsync(patch, ct);
                 _mergeState[vehicleId] = (newId, patch.RecordedAt);
             }

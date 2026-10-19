@@ -59,6 +59,13 @@ const router = createRouter({
       name: 'logs',
       component: () => import('@/views/LogsView.vue'),
     },
+    {
+      // An address no view answers to (an old bookmark, a typo) lands on the dashboard rather than
+      // on an empty page.
+      path: '/:pathMatch(.*)*',
+      name: 'notFound',
+      redirect: { name: 'dashboard' },
+    },
   ],
   // No scrollBehavior: the scroll container is the main content element, not the window, so
   // App.vue scrolls it to the top on every route change itself.

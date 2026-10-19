@@ -9,6 +9,11 @@ export interface SignalRCallbacks {
   onNotificationReceived: (notification: AppNotification) => void
   onTripCompleted: (vehicleId: number) => void
   onCommandResult: (result: CommandResult) => void
+  /**
+   * The connection is back after dropping. Whatever the server pushed in between is lost, so this
+   * is the moment to read the live state again.
+   */
+  onReconnected?: () => void
 }
 
 // Backoff between reconnect attempts, reused for both the automatic reconnect and our own
@@ -53,6 +58,8 @@ export function useSignalR(callbacks: SignalRCallbacks) {
   // Bumped by every start() and stop(), so an attempt still waiting for the client library can
   // tell that the caller has since ended it or asked for another vehicle.
   let session = 0
+  // Whether this session's connection has been up before, so a later start is a reconnect.
+  let hasConnected = false
 
   // Only warming the download here; a failure surfaces, and is retried, when a connection opens.
   loadClient().catch(() => {})
@@ -105,6 +112,7 @@ export function useSignalR(callbacks: SignalRCallbacks) {
     created.onreconnected(async () => {
       connected.value = true
       await created.invoke('JoinVehicle', vehicleId)
+      callbacks.onReconnected?.()
     })
     created.onclose(() => {
       connected.value = false
@@ -128,6 +136,8 @@ export function useSignalR(callbacks: SignalRCallbacks) {
       await connection.invoke('JoinVehicle', vehicleId)
       connected.value = true
       restartAttempt = 0
+      if (hasConnected) callbacks.onReconnected?.()
+      hasConnected = true
     } catch {
       if (attempt !== session) return
       // The server is unreachable (still starting, restarting, or the network is down), or the
@@ -143,6 +153,7 @@ export function useSignalR(callbacks: SignalRCallbacks) {
     session += 1
     stopped = false
     restartAttempt = 0
+    hasConnected = false
     await openConnection(vehicleId)
   }
 

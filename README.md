@@ -41,6 +41,20 @@ The statistics, trip log, maintenance list and light theme are in the [screensho
 
 **Want to try it?** Read [MG iSmart account and session limits](#mg-ismart-account-and-session-limits) first, because GarageStack and the MG app cannot be signed in to the same account at once, then pick an [installation option](#installation). A single `docker run` is enough to get going.
 
+## Contents
+
+- [Features](#features)
+- [MG iSmart account and session limits](#mg-ismart-account-and-session-limits)
+- [Prerequisites](#prerequisites) and [Installation](#installation)
+- [Updating](#updating), [Monitoring](#monitoring) and [Backup and restore](#backup-and-restore)
+- [Push notifications](#push-notifications)
+- [Trip log](#trip-log)
+- [Dutch registration (RDW)](#dutch-registration-rdw)
+- [Homepage dashboard widget](#homepage-dashboard-widget) and [Read-only API tokens](#read-only-api-tokens)
+- [Map overlays](#map-overlays)
+- [Security defaults](#security-defaults), [HTTPS](#https) and [What leaves your network](#what-leaves-your-network)
+- [Documentation](#documentation)
+
 ## Features
 
 - **Live dashboard** -- Real-time vehicle telemetry displayed as configurable cards. Cards are automatically shown or hidden based on your vehicle type (HEV, PHEV, BEV) and can be reordered or toggled individually in the dashboard's edit mode. The car drawn on the dashboard takes your car's colour (Settings > Car colour), and the vehicle type can be set by hand under Settings > Vehicle type when detection gets it wrong.
@@ -148,7 +162,7 @@ Before installing, make sure the following are available on your host:
 - **Docker** 23.0 or later (or Podman with Docker Compose compatibility); the quick start's relative `./garagestack-data` mount needs 23.0
 - **Docker Compose** 2.20 or later (bundled with Docker Desktop; on Linux install the `docker-compose-plugin` package) -- required for Option B only
 - An **MG iSmart account** with your vehicle already linked in the official app
-- Outbound internet access on the host so the container can reach the SAIC API and (optionally) Overpass / Open Charge Map / the RDW
+- Outbound internet access on the host, for the MG servers and the map and lookup services listed under [What leaves your network](#what-leaves-your-network)
 
 ---
 
@@ -197,7 +211,7 @@ git clone https://github.com/joszz/garagestack.git
 cd garagestack
 ```
 
-**2. Create your `.env` file**
+#### 2. Create your `.env` file
 
 ```bash
 cp .env.example .env
@@ -475,7 +489,7 @@ Sourced from OpenStreetMap via the free [Overpass API](https://overpass-api.de) 
 - Shows petrol and diesel stations from OSM data. Accuracy and completeness depend on OSM coverage in your area.
 - **Brand filter** -- select one or more brands (e.g. BP, Shell, Total) from the Filters panel. Only stations with a matching `brand` or `operator` OSM tag are shown; untagged stations are hidden when any filter is active. The filter is applied client-side with no additional API call.
 - The Worker pre-populates a 100 km radius around your car's last known position every 6 hours, so the layer loads instantly on first view without hitting Overpass.
-- If Overpass returns a 429 rate-limit response, the client backs off and retries automatically; existing cached data is shown in the meantime.
+- If Overpass answers that it is busy (429, 503 or 504), GarageStack waits as long as Overpass asks (its `Retry-After`) before asking again, and shows the cached data in the meantime. The same goes for every other service GarageStack asks.
 - Tile data is cached for 7 days. Zooming or panning to a new area triggers on-demand fetching for uncached tiles.
 - Hidden for BEV vehicles (petrol stations are not relevant).
 
@@ -546,6 +560,24 @@ A reading counts as over the limit only past 5 km/h above it: speedometers read 
 - The optional Home Assistant broker login can only use the car's `saic/#` topics and read Home Assistant discovery, so it cannot publish fake discovery configs or reach anything else on the broker.
 - The frontend sends a strict Content-Security-Policy with every response, which allows scripts only from GarageStack itself. See [Behind a reverse proxy or CDN](#behind-a-reverse-proxy-or-cdn) for keeping it intact.
 
+### What leaves your network
+
+GarageStack runs on your own hardware, but a few features ask public services for what they know. Each one is listed here with what it sends, and each one except the MG servers can be switched off.
+
+| Service | Asked by | What it receives | Switch it off |
+| ------- | -------- | ---------------- | ------------- |
+| MG / SAIC iSmart API | the gateway | Your MG login, and the commands you send the car | Cannot be: it is where the car's data comes from |
+| [Nominatim](https://nominatim.openstreetmap.org) (place names) | the API | The coordinates of a trip's ends, or of where the car is parked, and the interface language | Settings > Map > Show place names, or `GEOCODING__ENABLED=false` |
+| [Valhalla](https://valhalla1.openstreetmap.de) (snapped trips, speed limits) | the API | The GPS fixes of the trip you select on the map | The map's filter panel > Snap to roads, or `MAPMATCHING__ENABLED=false` |
+| [Overpass](https://overpass-api.de) (fuel stations, service areas, speed cameras) | the API and the Worker | The map tiles being looked at, and the ones around the car (0.5° squares, not the car's position) | Turn the layers off; `SPEEDCAMERAS__ENABLED=false` removes the camera layer |
+| [Open Charge Map](https://openchargemap.org) (charging stations) | the API and the Worker | The map tiles being looked at, and your OCM key | Leave `OPENCHARGEMAP_API_KEY` empty |
+| [RDW open data](https://opendata.rdw.nl) (APK, recalls, insurance) | the API and the Worker | The licence plate, and the RDW's own codes for the recalls it lists | Off until `RDW_ENABLED=true` |
+| [GitHub](https://github.com/joszz/GarageStack/releases) (update notice) | the API | One request a day for the latest release | `UPDATE_CHECK_ENABLED=false` |
+| [OpenFreeMap](https://openfreemap.org) and [OpenStreetMap](https://www.openstreetmap.org) tiles (the basemap) | your browser | The map tiles your browser shows | Serve your own tiles, see [Basemap](#basemap) |
+| Your browser's push service (Google, Mozilla, Apple) | the Worker | Each notification, encrypted so only your browser can read it, and `VAPID_SUBJECT` | Leave the VAPID keys empty, or switch push off per device |
+
+Requests to the map, lookup and update services identify themselves as `GarageStack/1.0 (+https://github.com/joszz/GarageStack)`, as Nominatim's usage policy asks. Apart from what the table lists, the car's telemetry, its trips, your notifications and your settings stay on your server, unless you connect something to it yourself, such as Home Assistant.
+
 ### HTTPS
 
 GarageStack serves plain HTTP, which is all it needs on your own network, except for three things browsers keep for secure pages: push notifications, installing it as an app, and the service worker behind both. Browsers count `http://localhost` as secure, but not `http://192.168.1.100:8080`. To use those on your phone, give GarageStack an `https://` address: put it behind a reverse proxy that terminates TLS (examples below), or reach it through a VPN that provides HTTPS certificates. Over plain HTTP, Settings > Notifications says why push is not available.
@@ -588,6 +620,29 @@ Every proxy in front of the API (yours, and with Compose the frontend container)
 
 - **Let GarageStack's security headers through.** A proxy that sets its own `Content-Security-Policy`, `X-Frame-Options` or `Permissions-Policy` replaces GarageStack's rather than adding to them. A Traefik headers middleware does this, for example. The page then runs without its script restrictions. Leave those three headers out of whatever headers the proxy adds for GarageStack; transport headers such as HSTS are fine.
 - **On Cloudflare, switch Rocket Loader off for this host** (Speed > Optimization, or a Configuration Rule). It rewrites every script on the page and delays the one that applies the stylesheet, which wastes the stylesheet preload and fills the console with warnings. With GarageStack's policy in place it is blocked outright. Cloudflare's injected Web Analytics beacon and bot-detection script are blocked by the policy too, so switch those off for the host if you would rather not see the console reports.
+
+---
+
+## Documentation
+
+For running GarageStack:
+
+- [`CONFIGURATION.md`](documentation/CONFIGURATION.md): every setting, with its default
+- [`AUTHENTICATION.md`](documentation/AUTHENTICATION.md): single sign-on, the built-in login, and provider examples
+- [`HOME_ASSISTANT.md`](documentation/HOME_ASSISTANT.md): the car in Home Assistant, through MQTT or an API token
+- [`WIDGET.md`](documentation/WIDGET.md): the gethomepage.dev widget
+- [`docker/all-in-one/README.md`](docker/all-in-one/README.md): the all-in-one image and Unraid
+- [Screenshots](documentation/screenshots/README.md) of the main pages
+
+For working on it:
+
+- [`CONTRIBUTING.md`](.github/CONTRIBUTING.md): setting up, tests, and adding a language
+- [`ARCHITECTURE.md`](documentation/ARCHITECTURE.md): how the services fit together
+- [`DEMO.md`](documentation/DEMO.md): the app on sample data, without a car, and the API reference
+- [`RELEASING.md`](documentation/RELEASING.md): versions, tags and release notes
+- [`ACCESSIBILITY.md`](.github/ACCESSIBILITY.md) and [`SECURITY.md`](.github/SECURITY.md), which also says how to report a vulnerability
+
+What changed in each version is on the [releases page](https://github.com/joszz/GarageStack/releases).
 
 ---
 

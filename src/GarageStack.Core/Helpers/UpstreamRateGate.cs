@@ -1,3 +1,5 @@
+using System.Net.Http.Headers;
+
 namespace GarageStack.Core.Helpers;
 
 /// <summary>Why a request did not get to go upstream just now.</summary>
@@ -16,7 +18,7 @@ public enum GateRefusal
 /// <summary>
 /// The politeness rules every third-party API client (Open Charge Map, Overpass, Nominatim,
 /// Valhalla, the RDW) needs: one request in flight at a time, a minimum interval between requests, and a
-/// backoff window after the upstream answers 429/503/504. A client takes the gate with
+/// backoff window after the upstream answers 429/503/504, as long as its Retry-After asks. A client takes the gate with
 /// <see cref="TryEnterAsync"/>, calls <see cref="ThrottleAsync"/> and <see cref="MarkRequestSent"/>
 /// around its request, and disposes the entry; the backoff can be read outside the gate so a
 /// foreground caller fails fast without waiting.
@@ -87,8 +89,39 @@ public sealed class UpstreamRateGate
     /// <summary>Call while holding the gate, right before the HTTP request goes out.</summary>
     public void MarkRequestSent() => _lastRequestAt = DateTimeOffset.UtcNow;
 
+    // The bounds on a Retry-After an upstream sends: a second at the least, so a "0" cannot
+    // turn a refusal into an immediate retry, and an hour at the most, so a mistaken header
+    // cannot switch a feature off for the day.
+    internal static readonly TimeSpan MinRetryAfter = TimeSpan.FromSeconds(1);
+    internal static readonly TimeSpan MaxRetryAfter = TimeSpan.FromHours(1);
+
     public void SetBackoff(TimeSpan duration) =>
         Interlocked.Exchange(ref _backoffUntilTicks, (DateTimeOffset.UtcNow + duration).UtcTicks);
+
+    /// <summary>
+    /// Opens the backoff window an upstream's "slow down" answer asks for: as long as its
+    /// Retry-After header says, or <paramref name="fallback"/> when it sends none.
+    /// </summary>
+    /// <returns>How long the window is, for the log line.</returns>
+    public TimeSpan SetBackoff(HttpResponseMessage response, TimeSpan fallback)
+    {
+        var duration = BackoffFor(response.Headers.RetryAfter, fallback, DateTimeOffset.UtcNow);
+        SetBackoff(duration);
+        return duration;
+    }
+
+    /// <summary>
+    /// The wait a Retry-After header asks for, in seconds or as a date, kept between
+    /// <see cref="MinRetryAfter"/> and <see cref="MaxRetryAfter"/>. A missing header, or a date
+    /// already past, leaves the caller's own <paramref name="fallback"/>.
+    /// </summary>
+    internal static TimeSpan BackoffFor(RetryConditionHeaderValue? retryAfter, TimeSpan fallback, DateTimeOffset now)
+    {
+        var asked = retryAfter?.Delta ?? (retryAfter?.Date is { } date ? date - now : null);
+        if (asked is not { } wait || wait <= TimeSpan.Zero) return fallback;
+        if (wait < MinRetryAfter) return MinRetryAfter;
+        return wait > MaxRetryAfter ? MaxRetryAfter : wait;
+    }
 
     /// <summary>True for the upstream status codes that mean "slow down", not "your request is wrong".</summary>
     public static bool IsThrottlingStatus(int statusCode) => statusCode is 429 or 503 or 504;

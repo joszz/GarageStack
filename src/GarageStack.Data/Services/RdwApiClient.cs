@@ -104,9 +104,9 @@ public sealed class RdwApiClient(
 
             if (UpstreamRateGate.IsThrottlingStatus((int)response.StatusCode))
             {
-                _gate.SetBackoff(RetryAfterThrottle);
-                logger.LogWarning("RDW rate-limited ({Status}); pausing lookups for {Minutes} minutes",
-                    (int)response.StatusCode, (int)RetryAfterThrottle.TotalMinutes);
+                var backoff = _gate.SetBackoff(response, RetryAfterThrottle);
+                logger.LogWarning("RDW rate-limited ({Status}); pausing lookups for {Seconds}s",
+                    (int)response.StatusCode, (int)backoff.TotalSeconds);
                 throw new RdwUnavailableException("The RDW asked to slow down; trying again later");
             }
 
