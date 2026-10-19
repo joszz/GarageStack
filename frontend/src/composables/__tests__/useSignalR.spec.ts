@@ -43,6 +43,7 @@ const callbacks: SignalRCallbacks = {
   onNotificationReceived: vi.fn<SignalRCallbacks['onNotificationReceived']>(),
   onTripCompleted: vi.fn<SignalRCallbacks['onTripCompleted']>(),
   onCommandResult: vi.fn<SignalRCallbacks['onCommandResult']>(),
+  onReconnected: vi.fn<NonNullable<SignalRCallbacks['onReconnected']>>(),
 }
 
 function mountSignalR() {
@@ -60,7 +61,13 @@ function mountSignalR() {
 
 afterEach(() => {
   hub.connections.length = 0
+  vi.clearAllMocks()
 })
+
+// The handler the composable registered through one of the connection's on... methods.
+function handlerOf(connection: Record<string, ReturnType<typeof vi.fn>>, method: string) {
+  return connection[method]!.mock.calls[0]![0] as () => Promise<void> | void
+}
 
 describe('useSignalR', () => {
   it('connects and joins the vehicle group', async () => {
@@ -106,5 +113,39 @@ describe('useSignalR', () => {
     await flushPromises()
 
     expect(hub.connections[0]!.stop).toHaveBeenCalledOnce()
+  })
+
+  it('does not count the first connection as a reconnect', async () => {
+    const { api } = mountSignalR()
+
+    await api.start(7)
+
+    expect(callbacks.onReconnected).not.toHaveBeenCalled()
+  })
+
+  it('reports an automatic reconnect once the vehicle group is joined again', async () => {
+    const { api } = mountSignalR()
+    await api.start(7)
+    const connection = hub.connections[0]!
+
+    await handlerOf(connection, 'onreconnected')()
+
+    expect(connection.invoke).toHaveBeenLastCalledWith('JoinVehicle', 7)
+    expect(callbacks.onReconnected).toHaveBeenCalledOnce()
+  })
+
+  it('reports a reconnect after the connection closed and was started again', async () => {
+    const { api } = mountSignalR()
+    await api.start(7)
+    const connection = hub.connections[0]!
+
+    handlerOf(connection, 'onclose')()
+    // The first retry waits no time at all, but still goes through a timer.
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    await flushPromises()
+
+    expect(connection.start).toHaveBeenCalledTimes(2)
+    expect(callbacks.onReconnected).toHaveBeenCalledOnce()
+    expect(api.connected.value).toBe(true)
   })
 })

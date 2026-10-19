@@ -111,6 +111,10 @@ const {
   },
   onTripCompleted: () => vehicleStore.notifyTripCompleted(),
   onCommandResult: (result) => vehicleStore.applyCommandResult(result),
+  // Telemetry that arrived while the connection was down never reached this page.
+  onReconnected: () => {
+    if (vehicleStore.activeVin) void vehicleStore.fetchStatus(vehicleStore.activeVin)
+  },
 })
 
 // Only show "paused" once we've actually attempted a connection, not during the
