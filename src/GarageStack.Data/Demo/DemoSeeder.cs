@@ -13,7 +13,10 @@ namespace GarageStack.Data.Demo;
 /// </summary>
 public static class DemoSeeder
 {
-    public static async Task SeedAsync(AppDbContext db, CancellationToken ct = default)
+    /// <param name="db">The in-memory demo database.</param>
+    /// <param name="rdwEnabled">Whether to seed the RDW lookup and its notifications: not when RDW_ENABLED=false.</param>
+    /// <param name="ct">Cancels the seeding.</param>
+    public static async Task SeedAsync(AppDbContext db, bool rdwEnabled = true, CancellationToken ct = default)
     {
         await db.Database.EnsureCreatedAsync(ct);
 
@@ -26,7 +29,7 @@ public static class DemoSeeder
         if (!await db.ClimateSchedules.AnyAsync(ct))
             await SeedClimateSchedulesAsync(db, ct);
 
-        if (!await db.RdwVehicleInfos.AnyAsync(ct))
+        if (rdwEnabled && !await db.RdwVehicleInfos.AnyAsync(ct))
             await SeedRdwAsync(db, ct);
 
         if (await db.MaintenanceItems.AnyAsync(ct))

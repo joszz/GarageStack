@@ -186,15 +186,23 @@
 /* ── API tokens ───────────────────────────────────────────── */
 
 /* A name and its button, or a new token and its copy button, on one line. */
-.api-token-form {
+.api-token-form,
+.license-plate-form {
   display: flex;
   gap: 0.5rem;
   align-items: center;
 }
 
-.api-token-form .form-control {
+.api-token-form .form-control,
+.license-plate-form .form-control {
   flex: 1;
   min-width: 0;
+}
+
+/* Written the way it is on the plate; what is saved is upper case anyway. */
+.license-plate-form__input {
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .api-token-row {

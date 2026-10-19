@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import gbFlag from 'flag-icons/flags/4x3/gb.svg'
 import nlFlag from 'flag-icons/flags/4x3/nl.svg'
 import { useUiSettingsStore } from '@/stores/settingsUi'
+import { useRdwStore } from '@/stores/rdw'
+import { useVehicleStore } from '@/stores/vehicle'
 import DetailModal from '../DetailModal.vue'
 import SettingsToggle from '../SettingsToggle.vue'
 import RegionalSettings from '../RegionalSettings.vue'
@@ -11,15 +13,27 @@ import SettingsSection from './SettingsSection.vue'
 import SideIconSwitch from './SideIconSwitch.vue'
 import CarColorPicker from './CarColorPicker.vue'
 import VehicleTypeSetting from './VehicleTypeSetting.vue'
+import LicensePlateSetting from './LicensePlateSetting.vue'
 import NotificationTypeSettings from './NotificationTypeSettings.vue'
 import ApiTokenSettings from './ApiTokenSettings.vue'
 import { apiUrl } from '@/services/apiCore'
 
-defineProps<{ open: boolean }>()
+const props = defineProps<{ open: boolean }>()
 defineEmits<{ close: [] }>()
 
 const { t } = useI18n()
 const settings = useUiSettingsStore()
+const rdw = useRdwStore()
+const vehicleStore = useVehicleStore()
+
+// The plate field only exists where the deployment looks plates up, which only the API knows.
+watch(
+  () => [props.open, vehicleStore.activeVin] as const,
+  ([open, vin]) => {
+    if (open && vin) rdw.ensureLoaded(vin)
+  },
+  { immediate: true },
+)
 
 const isLightTheme = computed({
   get: () => settings.theme === 'light',
@@ -107,6 +121,10 @@ const isNL = computed({
 
     <SettingsSection :title="t('settings.vehicleType.title')">
       <VehicleTypeSetting />
+    </SettingsSection>
+
+    <SettingsSection v-if="rdw.available" :title="t('settings.licensePlate.title')">
+      <LicensePlateSetting />
     </SettingsSection>
 
     <SettingsSection :title="t('settings.notificationTypes.title')">

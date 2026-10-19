@@ -17,8 +17,9 @@ function context(
   status: Partial<TelemetrySnapshot>,
   vehicleType: VehicleType = 'phev',
   latestTrip: TripSummary | null = null,
+  rdwPlateSet = false,
 ): CardDataContext {
-  return { status: status as TelemetrySnapshot, vehicleType, latestTrip }
+  return { status: status as TelemetrySnapshot, vehicleType, latestTrip, rdwPlateSet }
 }
 
 describe('card registry', () => {
@@ -26,6 +27,11 @@ describe('card registry', () => {
     const withoutIcon = ALL_CARD_IDS.filter((id) => !cardIcon(id))
 
     expect(withoutIcon).toEqual([])
+  })
+
+  it('shows the RDW card only for a plate the deployment looks up', () => {
+    expect(cardHasData('rdw', context({}))).toBe(false)
+    expect(cardHasData('rdw', context({}, 'phev', null, true))).toBe(true)
   })
 
   it('treats a card without a predicate as always having data', () => {

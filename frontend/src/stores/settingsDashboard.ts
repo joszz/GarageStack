@@ -92,6 +92,8 @@ export function cardsHiddenByType(type: VehicleType): ReadonlySet<CardId> {
   )
 }
 
+const NONE: ReadonlySet<CardId> = new Set()
+
 function visibleFirst(cards: CardConfig[]): CardConfig[] {
   return [...cards.filter((c) => c.visible), ...cards.filter((c) => !c.visible)]
 }
@@ -166,17 +168,28 @@ export const useDashboardSettingsStore = defineStore('settingsDashboard', () => 
   }
 
   /**
-   * The order the edit grid offers: the cards that apply to the drivetrain. Setting it puts the
-   * ones that do not apply back behind them.
+   * The order the edit grid offers: the cards that apply to the drivetrain and that this
+   * deployment serves (`unavailable` names the ones it does not, such as the RDW card without
+   * RDW lookups). Setting it puts the others back behind them.
    */
-  function applicableCards(type: VehicleType): CardConfig[] {
+  function applicableCards(
+    type: VehicleType,
+    unavailable: ReadonlySet<CardId> = NONE,
+  ): CardConfig[] {
     const hidden = cardsHiddenByType(type)
-    return settings.cards.filter((c) => !hidden.has(c.id))
+    return settings.cards.filter((c) => !hidden.has(c.id) && !unavailable.has(c.id))
   }
 
-  function setApplicableCards(type: VehicleType, cards: CardConfig[]) {
+  function setApplicableCards(
+    type: VehicleType,
+    cards: CardConfig[],
+    unavailable: ReadonlySet<CardId> = NONE,
+  ) {
     const hidden = cardsHiddenByType(type)
-    settings.cards = [...cards, ...settings.cards.filter((c) => hidden.has(c.id))]
+    settings.cards = [
+      ...cards,
+      ...settings.cards.filter((c) => hidden.has(c.id) || unavailable.has(c.id)),
+    ]
   }
 
   /** Puts the cards with something to show first, for a first visit. */

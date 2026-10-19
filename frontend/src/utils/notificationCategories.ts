@@ -20,6 +20,7 @@ export const NOTIFICATION_CATEGORY_IDS = [
   'gateway-login',
   'data-stale',
   'maintenance',
+  'rdw',
 ] as const
 
 export type NotificationCategoryId = (typeof NOTIFICATION_CATEGORY_IDS)[number]
@@ -51,10 +52,12 @@ export function notificationCategoryIdsFor(
 }
 
 // Maintenance notifications carry a dynamic per-item suffix (maintenance-<id>) rather than a
-// single fixed string, so they're grouped under one "maintenance" id here.
+// single fixed string, so they're grouped under one "maintenance" id here. The RDW's carry the
+// recall code or the APK date (rdw-recall-<code>, rdw-apk-due-30-<date>) and group as "rdw".
 export function notificationCategoryId(category: string | null): NotificationCategoryId | null {
   if (!category) return null
   if (category.startsWith('maintenance-')) return 'maintenance'
+  if (category.startsWith('rdw-')) return 'rdw'
   return (NOTIFICATION_CATEGORY_IDS as readonly string[]).includes(category)
     ? (category as NotificationCategoryId)
     : null

@@ -13,6 +13,8 @@ export interface CardDataContext {
   status: TelemetrySnapshot
   vehicleType: VehicleType
   latestTrip: TripSummary | null
+  /** The deployment looks plates up at the RDW, and the car has one. */
+  rdwPlateSet: boolean
 }
 
 interface CardDefinition {
@@ -129,6 +131,8 @@ export const CARD_DEFINITIONS = [
     hasData: ({ latestTrip }) => latestTrip !== null && latestTrip.maxSpeedKmh !== null,
   },
   { id: 'maintenance', icon: 'screwdriver-wrench' },
+  // Shown wherever there is a plate to show it for; a deployment without RDW lookups never has one.
+  { id: 'rdw', icon: 'clipboard-check', hasData: ({ rdwPlateSet }) => rdwPlateSet },
   // Off until asked for: most cars have no schedule, and the climate card links to them anyway.
   { id: 'climateSchedule', icon: 'calendar-days', defaultVisible: () => false },
 ] as const satisfies readonly CardDefinition[]

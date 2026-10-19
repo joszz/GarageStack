@@ -10,6 +10,12 @@ vi.mock('@/stores/vehicle', () => ({
   useVehicleStore: () => ({ effectiveVehicleType: vehicleType.value }),
 }))
 
+const rdwAvailable = vi.hoisted(() => ({ value: null as boolean | null }))
+
+vi.mock('@/stores/rdw', () => ({
+  useRdwStore: () => ({ available: rdwAvailable.value }),
+}))
+
 vi.mock('@/stores/settingsUi', () => ({
   useUiSettingsStore: () => ({ notificationTypeExclusions: [] }),
 }))
@@ -42,6 +48,17 @@ describe('NotificationTypeSettings', () => {
   beforeEach(() => {
     vehicleType.value = 'unknown'
     pushSupported.value = true
+    rdwAvailable.value = null
+  })
+
+  it('offers the RDW type only where the deployment looks plates up', () => {
+    expect(labels()).not.toContain('notifications.categories.rdw')
+
+    rdwAvailable.value = false
+    expect(labels()).not.toContain('notifications.categories.rdw')
+
+    rdwAvailable.value = true
+    expect(labels()).toContain('notifications.categories.rdw')
   })
 
   it('hides the charging notification types for a hybrid', () => {

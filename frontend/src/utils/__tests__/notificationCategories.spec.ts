@@ -19,6 +19,12 @@ describe('notificationCategoryId', () => {
     expect(notificationCategoryId('maintenance-oil-change')).toBe('maintenance')
   })
 
+  it('groups the RDW categories, which carry a recall code or an APK date, under "rdw"', () => {
+    expect(notificationCategoryId('rdw-recall-MGP230061')).toBe('rdw')
+    expect(notificationCategoryId('rdw-apk-due-30-20261108')).toBe('rdw')
+    expect(notificationCategoryId('rdw-uninsured')).toBe('rdw')
+  })
+
   it.each(NOTIFICATION_CATEGORY_IDS.filter((id) => id !== 'maintenance'))(
     'maps the fixed backend category "%s" to itself',
     (id) => {
