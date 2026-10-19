@@ -47,8 +47,16 @@ const months = computed(() =>
   })),
 )
 
+// Hidden trips stay out of the list unless asked for, as they stay out of the totals and export.
+const showHidden = ref(false)
+const listed = computed(() => (showHidden.value ? store.entries : store.visibleEntries))
+
 // Newest first on screen, where the trips still to classify are; the export stays in date order.
-const newestFirst = computed(() => [...store.entries].reverse())
+const newestFirst = computed(() => [...listed.value].reverse())
+
+// Every trip but the newest has a saved trip after it to join with. The newest of a past month
+// may too, in the month after; the server says so when there is none.
+const newestId = computed(() => store.entries[store.entries.length - 1]?.id)
 
 const placesShown = computed(() => uiSettings.placeNamesEnabled && store.placesAvailable)
 const unclassified = computed(() => store.totals.unclassified.trips)
@@ -109,12 +117,20 @@ function save(id: number, purpose: TripPurpose | null, notes: string | null) {
   if (vin.value) void store.updateEntry(vin.value, id, purpose, notes)
 }
 
+function setHidden(id: number, hidden: boolean) {
+  if (vin.value) void store.setHidden(vin.value, id, hidden)
+}
+
+function joinNext(id: number) {
+  if (vin.value) void store.mergeWithNext(vin.value, id)
+}
+
 function classifyAll(purpose: TripPurpose) {
   if (vin.value) void store.classifyUnclassified(vin.value, purpose)
 }
 
 function exportCsv() {
-  const csv = tripLogCsv(store.entries, {
+  const csv = tripLogCsv(store.visibleEntries, {
     t,
     units: units.value,
     placesShown: placesShown.value,
@@ -133,7 +149,7 @@ function exportCsv() {
         <button
           type="button"
           class="btn btn-primary btn-sm"
-          :disabled="store.entries.length === 0"
+          :disabled="store.visibleEntries.length === 0"
           :title="store.placesResolving ? t('tripLog.exportWhileResolving') : undefined"
           @click="exportCsv"
         >
@@ -155,6 +171,10 @@ function exportCsv() {
           <option :value="null">{{ t('tripLog.wholeYear') }}</option>
           <option v-for="m in months" :key="m.value" :value="m.value">{{ m.label }}</option>
         </select>
+      </label>
+      <label v-if="store.hiddenCount > 0" class="trip-log-hidden-toggle text-sm">
+        <input v-model="showHidden" type="checkbox" class="form-check-input" />
+        {{ t('tripLog.showHidden', store.hiddenCount) }}
       </label>
     </div>
 
@@ -192,13 +212,13 @@ function exportCsv() {
 
     <p v-if="!placesShown" class="text-xs text-muted">{{ t('tripLog.placesOff') }}</p>
     <p v-if="store.actionError" class="text-sm text-danger" role="alert">
-      {{ t('tripLog.saveFailed') }}
+      {{ errorMessage(store.actionError) }}
     </p>
 
     <div v-if="store.loadError" class="empty-state text-danger" role="alert">
       {{ errorMessage(store.loadError) }}
     </div>
-    <div v-else-if="!store.loading && store.entries.length === 0" class="empty-state">
+    <div v-else-if="!store.loading && listed.length === 0" class="empty-state">
       {{ t('tripLog.empty') }}
     </div>
     <ul v-else class="trip-log-list">
@@ -210,8 +230,11 @@ function exportCsv() {
         :places-resolving="store.placesResolving"
         :saving="store.saving.has(entry.id)"
         :commute-places="commutePlaces.places"
+        :can-join-next="entry.id !== newestId"
         @save="(purpose, notes) => save(entry.id, purpose, notes)"
         @pick-place="openPlaces"
+        @set-hidden="(hidden) => setHidden(entry.id, hidden)"
+        @join-next="joinNext(entry.id)"
       />
     </ul>
 

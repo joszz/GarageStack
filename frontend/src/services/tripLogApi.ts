@@ -34,6 +34,8 @@ export interface TripLogEntry {
   notes: string | null
   /** Marked a commute from home and work, rather than chosen by someone. */
   purposeIsAutomatic: boolean
+  /** Left out of the map, the statistics, the dashboard and this log's totals and export. */
+  isHidden: boolean
 }
 
 export interface TripPlaces {
@@ -55,6 +57,11 @@ export const tripLogApi = {
     request<TripLogEntry[]>(`/api/vehicles/${vin}/trips/log${buildQuery({ from, to })}`),
   update: (vin: string, id: number, purpose: TripPurpose | null, notes: string | null) =>
     requestJson<TripLogEntry>(`/api/vehicles/${vin}/trips/${id}`, 'PUT', { purpose, notes }),
+  setHidden: (vin: string, id: number, hidden: boolean) =>
+    requestJson<TripLogEntry>(`/api/vehicles/${vin}/trips/${id}/hidden`, 'PUT', { hidden }),
+  // Joins the trip with the saved trip after it; the joined trip keeps this one's id.
+  mergeWithNext: (vin: string, id: number) =>
+    requestJson<TripLogEntry>(`/api/vehicles/${vin}/trips/${id}/merge-next`, 'POST'),
   setPurpose: (vin: string, ids: number[], purpose: TripPurpose | null) =>
     requestJson<{ changed: number }>(`/api/vehicles/${vin}/trips/purpose`, 'POST', {
       ids,

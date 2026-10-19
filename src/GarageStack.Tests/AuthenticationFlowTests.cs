@@ -385,6 +385,45 @@ public class AuthenticationFlowTests
         Assert.Empty((await client.GetFromJsonAsync<List<CommutePlaceDto>>(placesUrl, ct))!);
     }
 
+    // Through the whole stack, on the demo's trips: hiding needs a yes or no, hides the trip from
+    // the map and keeps it in the log, and a merge leaves one trip where there were two.
+    [Fact]
+    public async Task Trips_CanBeHiddenAndShownAgain_AndJoinedWithTheNextOne()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var factory = CreatePasswordOnlyFactory();
+        using var client = CreateClient(factory);
+        var login = await client.PostAsJsonAsync(
+            "/api/auth/login",
+            new { username = DemoUsername, password = DemoPassword, rememberMe = false },
+            ct);
+        Assert.Equal(HttpStatusCode.OK, login.StatusCode);
+        var vin = (await client.GetFromJsonAsync<JsonElement>("/api/vehicles", ct))[0].GetProperty("vin").GetString();
+        string Url(string path) => $"/api/vehicles/{vin}/trips{path}?from={DateTimeOffset.UtcNow.AddDays(-60):O}&to={DateTimeOffset.UtcNow:O}"
+            .Replace("+", "%2B", StringComparison.Ordinal);
+        var log = (await client.GetFromJsonAsync<List<TripLogEntry>>(Url("/log"), ct))!;
+        var (first, second) = (log[0], log[1]);
+
+        var unsaid = await client.PutAsJsonAsync($"/api/vehicles/{vin}/trips/{first.Id}/hidden", new { }, ct);
+        var hidden = await (await client.PutAsJsonAsync($"/api/vehicles/{vin}/trips/{first.Id}/hidden", new { hidden = true }, ct))
+            .Content.ReadFromJsonAsync<TripLogEntry>(ct);
+        var mapWhileHidden = (await client.GetFromJsonAsync<List<JsonElement>>(Url(""), ct))!;
+        await client.PutAsJsonAsync($"/api/vehicles/{vin}/trips/{first.Id}/hidden", new { hidden = false }, ct);
+        var merge = await client.PostAsync($"/api/vehicles/{vin}/trips/{first.Id}/merge-next", null, ct);
+        var merged = await merge.Content.ReadFromJsonAsync<TripLogEntry>(ct);
+        var logAfter = (await client.GetFromJsonAsync<List<TripLogEntry>>(Url("/log"), ct))!;
+
+        Assert.Equal(HttpStatusCode.BadRequest, unsaid.StatusCode);
+        Assert.Equal("trip.hiddenRequired", await ProblemCodeAsync(unsaid, ct));
+        Assert.True(hidden!.IsHidden);
+        // The trip being driven has no id yet.
+        Assert.DoesNotContain(mapWhileHidden, t => t.GetProperty("id") is { ValueKind: JsonValueKind.Number } id && id.GetInt64() == first.Id);
+        Assert.Equal(HttpStatusCode.OK, merge.StatusCode);
+        Assert.Equal((first.StartedAt, second.EndedAt), (merged!.StartedAt, merged.EndedAt));
+        Assert.Equal(log.Count - 1, logAfter.Count);
+        Assert.DoesNotContain(logAfter, e => e.Id == second.Id);
+    }
+
     // The statistics page asks for its period by local day, however long it is.
     [Fact]
     public async Task DailyStats_ServeEveryDayOfThePeriod_InTheBrowsersZone()

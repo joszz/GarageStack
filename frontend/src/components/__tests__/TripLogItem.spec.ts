@@ -23,6 +23,7 @@ function mountItem(
     placesResolving: boolean
     saving: boolean
     commutePlaces: CommutePlace[]
+    canJoinNext: boolean
   }> = {},
 ) {
   return mount(TripLogItem, {
@@ -32,6 +33,7 @@ function mountItem(
       placesResolving: false,
       saving: false,
       commutePlaces: [],
+      canJoinNext: true,
       ...props,
     },
     global: { plugins: [i18n], stubs: { FontAwesomeIcon: true } },
@@ -163,6 +165,45 @@ describe('TripLogItem', () => {
     await wrapper.findAll('.trip-log-item__place')[1]!.trigger('click')
 
     expect(wrapper.emitted('pickPlace')).toEqual([[52.2554, 6.1639]])
+  })
+
+  it('hides a trip, and shows a hidden one again', async () => {
+    const shown = mountItem(logEntry())
+    const hidden = mountItem(logEntry({ isHidden: true }))
+
+    await shown
+      .findAll('button')
+      .find((b) => b.text() === 'Hide')!
+      .trigger('click')
+    await hidden
+      .findAll('button')
+      .find((b) => b.text() === 'Show again')!
+      .trigger('click')
+
+    expect(shown.emitted('setHidden')).toEqual([[true]])
+    expect(hidden.emitted('setHidden')).toEqual([[false]])
+    expect(hidden.classes()).toContain('trip-log-item--hidden')
+  })
+
+  it('joins with the next trip only on a second tap', async () => {
+    const wrapper = mountItem(logEntry())
+    const join = () =>
+      wrapper
+        .findAll('button')
+        .find((b) => b.text().startsWith('Join') || b.text().startsWith('Tap'))!
+
+    await join().trigger('click')
+    expect(wrapper.emitted('joinNext')).toBeUndefined()
+    expect(join().text()).toBe('Tap again to join')
+
+    await join().trigger('click')
+    expect(wrapper.emitted('joinNext')).toHaveLength(1)
+  })
+
+  it('offers no join for the newest trip', () => {
+    const wrapper = mountItem(logEntry(), { canJoinNext: false })
+
+    expect(wrapper.findAll('button').some((b) => b.text() === 'Join with next trip')).toBe(false)
   })
 
   it('says when a commute was marked automatically', () => {

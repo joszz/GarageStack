@@ -13,6 +13,7 @@ import { endLabel, loggedDistanceKm, odometerDistanceKm, PURPOSE_ICONS } from '@
 import { COMMUTE_PLACE_ICONS, commutePlaceAt } from '@/utils/commutePlaces'
 import type { CommutePlace } from '@/services/commutePlacesApi'
 import { useUnits } from '@/composables/useUnits'
+import { useTwoTapConfirm } from '@/composables/useTwoTapConfirm'
 import ChipGroup from './ChipGroup.vue'
 import type { ChipOption } from '@/utils/chips'
 
@@ -25,12 +26,17 @@ const props = defineProps<{
   saving: boolean
   /** Home and work, to mark the ends that are at one of them. */
   commutePlaces: readonly CommutePlace[]
+  /** A saved trip follows this one, so it can be joined with it. */
+  canJoinNext: boolean
 }>()
 
 const emit = defineEmits<{
   (e: 'save', purpose: TripPurpose | null, notes: string | null): void
   /** One of the trip's ends, to set as home or work. */
   (e: 'pickPlace', latitude: number, longitude: number): void
+  (e: 'setHidden', hidden: boolean): void
+  /** Join with the trip after it; confirmed with a second tap, since it cannot be undone. */
+  (e: 'joinNext'): void
 }>()
 
 const { t } = useI18n()
@@ -101,6 +107,12 @@ function choosePurpose(purpose: TripPurpose | null) {
   emit('save', purpose, props.entry.notes)
 }
 
+const joinConfirm = useTwoTapConfirm<true>()
+
+function joinNext() {
+  if (joinConfirm.tap(true)) emit('joinNext')
+}
+
 function saveNotes() {
   const notes = normalizedNotes()
   if (notes === props.entry.notes) return
@@ -109,7 +121,10 @@ function saveNotes() {
 </script>
 
 <template>
-  <li class="trip-log-item" :class="{ 'trip-log-item--saving': saving }">
+  <li
+    class="trip-log-item"
+    :class="{ 'trip-log-item--saving': saving, 'trip-log-item--hidden': entry.isHidden }"
+  >
     <div class="trip-log-item__when">
       <span class="trip-log-item__date">{{ dateLabel }}</span>
       <span class="text-xs text-muted">{{ timeLabel }}</span>
@@ -197,6 +212,33 @@ function saveNotes() {
         @change="saveNotes"
         @keydown.enter="($event.target as HTMLInputElement).blur()"
       />
+
+      <div class="trip-log-item__manage">
+        <button
+          type="button"
+          class="btn btn-outline-secondary btn-sm"
+          :disabled="saving"
+          :title="entry.isHidden ? undefined : t('tripLog.hideHint')"
+          @click="emit('setHidden', !entry.isHidden)"
+        >
+          <font-awesome-icon :icon="entry.isHidden ? 'eye' : 'eye-slash'" />{{
+            entry.isHidden ? t('tripLog.show') : t('tripLog.hide')
+          }}
+        </button>
+        <button
+          v-if="canJoinNext"
+          type="button"
+          class="btn btn-sm"
+          :class="joinConfirm.armed.value ? 'btn-warning' : 'btn-outline-secondary'"
+          :disabled="saving"
+          :title="t('tripLog.joinNextHint')"
+          @click="joinNext"
+        >
+          <font-awesome-icon icon="link" />{{
+            joinConfirm.armed.value ? t('tripLog.joinNextConfirm') : t('tripLog.joinNext')
+          }}
+        </button>
+      </div>
     </div>
   </li>
 </template>

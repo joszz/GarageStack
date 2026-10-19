@@ -936,6 +936,9 @@ namespace GarageStack.Data.Migrations
                     b.Property<DateTime>("EndedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<bool>("IsHidden")
+                        .HasColumnType("boolean");
+
                     b.Property<double?>("MaxSpeedKmh")
                         .HasColumnType("double precision");
 

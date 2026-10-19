@@ -111,6 +111,12 @@
   opacity: 0.7;
 }
 
+/* Listed only so it can be shown again: it counts nowhere. */
+.trip-log-item--hidden {
+  border-style: dashed;
+  opacity: 0.6;
+}
+
 .trip-log-item__when {
   grid-area: when;
   display: flex;
@@ -195,6 +201,20 @@
   border-radius: 6px;
   background: var(--field-bg);
   color: var(--color-text);
+}
+
+/* Hide and join, after the notes: rarer than choosing a purpose, so they come last. */
+.trip-log-item__manage {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.trip-log-hidden-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  align-self: flex-end;
 }
 
 /* ── Purpose chips (ChipGroup, main.css) ─────────────────── */

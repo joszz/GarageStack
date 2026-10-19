@@ -23,7 +23,27 @@ public sealed record TripLogEntry(
     TripPurpose? Purpose,
     string? Notes,
     // Set from home and work rather than by someone (Trip.PurposeIsManual).
-    bool PurposeIsAutomatic = false);
+    bool PurposeIsAutomatic = false,
+    // Left out of everything but the trip log's list of hidden trips (Trip.IsHidden).
+    bool IsHidden = false);
+
+/// <summary>How joining a trip with the next one went (<see cref="Interfaces.ITripRepository.MergeWithNextAsync"/>).</summary>
+public enum TripMergeOutcome
+{
+    Merged,
+
+    /// <summary>The vehicle has no such saved trip.</summary>
+    NotFound,
+
+    /// <summary>No saved trip follows it yet.</summary>
+    NoNextTrip,
+
+    /// <summary>The fixes of one of the two cannot be read, so there is nothing to join.</summary>
+    Unreadable,
+}
+
+/// <summary>The joined trip as the trip log shows it, when <see cref="Outcome"/> is <see cref="TripMergeOutcome.Merged"/>.</summary>
+public sealed record TripMergeResult(TripMergeOutcome Outcome, TripLogEntry? Merged = null);
 
 /// <summary>How many trips a re-label marked as commutes, and how many it unmarked.</summary>
 public sealed record CommuteRelabel(int Marked, int Cleared);

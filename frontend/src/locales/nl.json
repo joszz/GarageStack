@@ -723,7 +723,6 @@
     "placesOff": "Plaatsnamen staan uit, dus adressen worden als coördinaten getoond. Zet ze aan onder Instellingen > Kaart.",
     "export": "CSV exporteren",
     "exportWhileResolving": "Sommige adressen worden nog opgezocht; die worden als coördinaten geëxporteerd",
-    "saveFailed": "Je wijziging kon niet worden opgeslagen. Probeer het opnieuw.",
     "empty": "Geen opgeslagen ritten in deze periode.",
     "csv": {
       "date": "Datum",
@@ -774,7 +773,14 @@
       "automatic": "Automatisch",
       "automaticHint": "Als woon-werk gemarkeerd omdat de rit tussen thuis en werk loopt. Kies een ander doel om dit te wijzigen.",
       "useEnd": "{place} instellen als thuis of werk"
-    }
+    },
+    "hide": "Verbergen",
+    "show": "Weer tonen",
+    "hideHint": "Laat deze rit weg uit de kaart, de statistieken, het dashboard en deze totalen, bij een fout in de positie. Hij blijft staan bij de verborgen ritten.",
+    "joinNext": "Samenvoegen met volgende rit",
+    "joinNextConfirm": "Tik nogmaals om samen te voegen",
+    "joinNextHint": "Voegt deze rit samen met de rit erna, voor een rit die door een korte stop, zoals bij een tankstation, in tweeën is gesplitst. Kan niet ongedaan worden gemaakt.",
+    "showHidden": "Verborgen rit tonen | {n} verborgen ritten tonen"
   },
   "maintenance": {
     "title": "Onderhoud",
@@ -932,7 +938,10 @@
       },
       "trip": {
         "notesTooLong": "De notities mogen hoogstens 500 tekens lang zijn.",
-        "tooManyIds": "Te veel ritten tegelijk. Kies een kortere periode."
+        "tooManyIds": "Te veel ritten tegelijk. Kies een kortere periode.",
+        "hiddenRequired": "Geef aan of de rit verborgen is.",
+        "noNextTrip": "Er is nog geen opgeslagen rit na deze om hem mee samen te voegen.",
+        "unreadable": "Een van de twee ritten kan niet worden gelezen, dus ze kunnen niet worden samengevoegd."
       },
       "push": {
         "notConfigured": "Pushmeldingen zijn op deze server niet ingesteld.",
