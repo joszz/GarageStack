@@ -60,16 +60,14 @@ public sealed class NominatimApiClient(
 
         try
         {
-            await _gate.ThrottleAsync(MinInterval, honourBackoff: true, ct);
-
             var url = BuildReverseUrl(lat, lng, precision, language);
             var client = httpClientFactory.CreateClient(HttpClientName);
-            _gate.MarkRequestSent();
-            using var response = await client.GetAsync(url, ct);
+            using var answer = await _gate.SendAsync(
+                token => client.GetAsync(url, token), MinInterval, honourBackoff: true, RetryAfter429, ct);
+            var response = answer.Response;
 
-            if (UpstreamRateGate.IsThrottlingStatus((int)response.StatusCode))
+            if (answer.Backoff is { } backoff)
             {
-                var backoff = _gate.SetBackoff(response, RetryAfter429);
                 logger.LogDebug("Nominatim {Status}, backing off {Seconds}s",
                     (int)response.StatusCode, (int)backoff.TotalSeconds);
                 return null;

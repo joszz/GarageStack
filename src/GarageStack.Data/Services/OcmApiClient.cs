@@ -55,8 +55,6 @@ public sealed class OcmApiClient(
             return null;
         }
 
-        await _gate.ThrottleAsync(MinInterval, honourBackoff: false, ct);
-
         // currenttypeid=30 = DC only; excludes AC slow chargers (Type 1/2, Schuko, etc.)
         // distance=50 covers the full 0.5°×0.5° tile diagonal at European latitudes (~33 km)
         var url = BaseUrl +
@@ -68,12 +66,12 @@ public sealed class OcmApiClient(
         request.Headers.Add("X-API-Key", apiKey);
 
         var client = httpClientFactory.CreateClient(HttpClientName);
-        _gate.MarkRequestSent();
-        using var response = await client.SendAsync(request, ct);
+        using var answer = await _gate.SendAsync(
+            token => client.SendAsync(request, token), MinInterval, honourBackoff: false, RetryAfter429, ct);
+        var response = answer.Response;
 
-        if (UpstreamRateGate.IsThrottlingStatus((int)response.StatusCode))
+        if (answer.Backoff is { } backoff)
         {
-            var backoff = _gate.SetBackoff(response, RetryAfter429);
             logger.LogWarning("OCM rate-limited ({Status}); pausing charging station requests for {Seconds}s",
                 (int)response.StatusCode, (int)backoff.TotalSeconds);
             return null;

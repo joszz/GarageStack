@@ -66,15 +66,15 @@ public sealed class ValhallaApiClient(
 
         try
         {
-            await _gate.ThrottleAsync(MinInterval, honourBackoff: true, ct);
-
             var client = httpClientFactory.CreateClient(HttpClientName);
-            _gate.MarkRequestSent();
-            using var response = await client.PostAsJsonAsync($"{BaseUrl}/trace_attributes", BuildRequest(points), ct);
+            var body = BuildRequest(points);
+            using var answer = await _gate.SendAsync(
+                token => client.PostAsJsonAsync($"{BaseUrl}/trace_attributes", body, token),
+                MinInterval, honourBackoff: true, RetryAfter429, ct);
+            var response = answer.Response;
 
-            if (UpstreamRateGate.IsThrottlingStatus((int)response.StatusCode))
+            if (answer.Backoff is { } backoff)
             {
-                var backoff = _gate.SetBackoff(response, RetryAfter429);
                 logger.LogDebug("Valhalla {Status}, backing off {Seconds}s",
                     (int)response.StatusCode, (int)backoff.TotalSeconds);
                 return TraceMatch.Unavailable;

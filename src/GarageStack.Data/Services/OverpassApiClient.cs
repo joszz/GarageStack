@@ -87,31 +87,29 @@ public sealed class OverpassApiClient(
             return null;
         }
 
-        await _gate.ThrottleAsync(
-            foreground ? ForegroundMinInterval : BackgroundMinInterval,
-            honourBackoff: !foreground,
-            ct);
-
         var client = httpClientFactory.CreateClient(HttpClientName);
         using var content = new FormUrlEncodedContent([new KeyValuePair<string, string>("data", query)]);
-        _gate.MarkRequestSent();
-        using var response = await client.PostAsync(options.BaseUrl, content, ct);
+        // A foreground 429 backs off briefly, so later pans don't retry the same rate-limited
+        // tile and keep getting 429 forever ("area stays blank"); a background one for longer,
+        // and the foreground path skips Overpass for as long. Either way as long as Overpass
+        // asks, when it says.
+        using var answer = await _gate.SendAsync(
+            token => client.PostAsync(options.BaseUrl, content, token),
+            foreground ? ForegroundMinInterval : BackgroundMinInterval,
+            honourBackoff: !foreground,
+            foreground ? ForegroundRetryAfter429 : BackgroundRetryAfter429,
+            ct);
+        var response = answer.Response;
 
-        if (UpstreamRateGate.IsThrottlingStatus((int)response.StatusCode))
+        if (answer.Backoff is { } backoff)
         {
             if (foreground)
             {
-                // Short backoff so subsequent pans don't immediately retry the same
-                // rate-limited tile and keep getting 429 forever ("area stays blank").
-                var backoff = _gate.SetBackoff(response, ForegroundRetryAfter429);
                 logger.LogDebug("Overpass {Status} for {PoiType} ({CellLat},{CellLng}) on foreground path, backing off {Seconds}s",
                     (int)response.StatusCode, poiType, cellLat, cellLng, (int)backoff.TotalSeconds);
                 return null;
             }
 
-            // Background: record backoff window so the foreground path skips Overpass for
-            // as long as Overpass asked, or the next BackgroundRetryAfter429 seconds.
-            _gate.SetBackoff(response, BackgroundRetryAfter429);
             throw new HttpRequestException(
                 $"Overpass rate-limited ({(int)response.StatusCode}) for {poiType} ({cellLat},{cellLng})");
         }

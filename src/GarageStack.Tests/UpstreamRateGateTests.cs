@@ -128,4 +128,66 @@ public class UpstreamRateGateTests
         Assert.Equal(TimeSpan.FromSeconds(300), wait);
         Assert.InRange(gate.BackoffUntil, before.AddSeconds(300), DateTimeOffset.UtcNow.AddSeconds(300));
     }
+
+    private static Func<CancellationToken, Task<HttpResponseMessage>> Answering(HttpStatusCode status, TimeSpan? retryAfter = null) =>
+        _ =>
+        {
+            var response = new HttpResponseMessage(status);
+            if (retryAfter is { } wait) response.Headers.RetryAfter = new RetryConditionHeaderValue(wait);
+            return Task.FromResult(response);
+        };
+
+    [Fact]
+    public async Task SendAsync_PassesAnOrdinaryAnswerThrough_WithoutBackingOff()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var gate = new UpstreamRateGate();
+
+        using var answer = await gate.SendAsync(Answering(HttpStatusCode.OK), TimeSpan.Zero, honourBackoff: true, Fallback, ct);
+
+        Assert.Equal(HttpStatusCode.OK, answer.Response.StatusCode);
+        Assert.Null(answer.Backoff);
+        Assert.False(gate.IsBackingOff);
+    }
+
+    [Theory]
+    [InlineData(HttpStatusCode.TooManyRequests)]
+    [InlineData(HttpStatusCode.ServiceUnavailable)]
+    [InlineData(HttpStatusCode.GatewayTimeout)]
+    public async Task SendAsync_BacksOffAsLongAsABusyUpstreamAsks(HttpStatusCode status)
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var gate = new UpstreamRateGate();
+
+        using var answer = await gate.SendAsync(Answering(status, TimeSpan.FromSeconds(300)), TimeSpan.Zero, honourBackoff: true, Fallback, ct);
+
+        Assert.Equal(TimeSpan.FromSeconds(300), answer.Backoff);
+        Assert.True(gate.IsBackingOff);
+    }
+
+    [Fact]
+    public async Task SendAsync_BacksOffForTheFallback_WhenABusyUpstreamSaysNothing()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var gate = new UpstreamRateGate();
+
+        using var answer = await gate.SendAsync(Answering(HttpStatusCode.TooManyRequests), TimeSpan.Zero, honourBackoff: true, Fallback, ct);
+
+        Assert.Equal(Fallback, answer.Backoff);
+    }
+
+    [Fact]
+    public async Task SendAsync_KeepsTheIntervalBetweenRequests()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var gate = new UpstreamRateGate();
+        var interval = TimeSpan.FromMilliseconds(200);
+
+        using (await gate.SendAsync(Answering(HttpStatusCode.OK), interval, honourBackoff: false, Fallback, ct)) { }
+        var started = DateTimeOffset.UtcNow;
+        using (await gate.SendAsync(Answering(HttpStatusCode.OK), interval, honourBackoff: false, Fallback, ct)) { }
+
+        // A little short of the interval, for the clock's resolution.
+        Assert.True(DateTimeOffset.UtcNow - started >= interval - TimeSpan.FromMilliseconds(20));
+    }
 }
