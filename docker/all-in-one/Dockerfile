@@ -185,6 +185,8 @@ COPY --from=dotnet-build /publish/worker /app/worker
 COPY docker/all-in-one/nginx.conf       /etc/nginx/conf.d/default.conf
 # Same security-header snippet the frontend image uses, so the two never drift apart.
 COPY frontend/nginx-security-headers.conf /etc/nginx/snippets/garagestack-security-headers.conf
+# And the same locations, behind this image's own upstream (docker/all-in-one/nginx.conf).
+COPY frontend/nginx-app.conf /etc/nginx/snippets/garagestack-app.conf
 COPY docker/all-in-one/mosquitto.conf   /etc/mosquitto/conf.d/garagestack.conf
 COPY docker/all-in-one/supervisord.conf /etc/supervisor/supervisord.conf
 COPY --chmod=755 \
