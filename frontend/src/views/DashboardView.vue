@@ -3,6 +3,7 @@ import '@/assets/dashboard.css'
 import { onMounted, onUnmounted, computed, defineAsyncComponent, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useVehicleStore } from '@/stores/vehicle'
+import { useRdwStore } from '@/stores/rdw'
 import { cardsHiddenByType, useDashboardSettingsStore } from '@/stores/settingsDashboard'
 import type { CardId } from '@/cards/registry'
 import { cardHasData, cardIcon } from '@/cards/registry'
@@ -29,6 +30,7 @@ const EditableCardGrid = defineAsyncComponent(
 
 const { t } = useI18n()
 const store = useVehicleStore()
+const rdw = useRdwStore()
 const settings = useDashboardSettingsStore()
 
 const vin = computed(() => store.activeVin)
@@ -64,14 +66,21 @@ const carDiagramProps = computed(() => {
   }
 })
 
+// Cards this deployment does not serve at all: not offered in edit mode, not even as a placeholder.
+const unavailableCards = computed(
+  (): ReadonlySet<CardId> => new Set<CardId>(rdw.available === true ? [] : ['rdw']),
+)
+
 const skeletonCards = computed(() => {
   const hidden = cardsHiddenByType(vehicleType.value)
-  return settings.cards.filter((c) => c.visible && !hidden.has(c.id))
+  return settings.cards.filter(
+    (c) => c.visible && !hidden.has(c.id) && !unavailableCards.value.has(c.id),
+  )
 })
 
 const editableCards = computed({
-  get: () => settings.applicableCards(vehicleType.value),
-  set: (cards) => settings.setApplicableCards(vehicleType.value, cards),
+  get: () => settings.applicableCards(vehicleType.value, unavailableCards.value),
+  set: (cards) => settings.setApplicableCards(vehicleType.value, cards, unavailableCards.value),
 })
 
 const units = useUnits()
@@ -103,7 +112,8 @@ function resetLayout() {
 }
 
 // Everything the dashboard shows: vehicle list (cached after the first call), live status,
-// capability config and the newest trip behind the active-trip and top-speed cards.
+// capability config, the newest trip behind the active-trip and top-speed cards, and the RDW
+// lookup (which also says whether the deployment does RDW lookups at all).
 async function refresh() {
   await store.fetchVehicles()
   if (vin.value) {
@@ -111,6 +121,7 @@ async function refresh() {
       store.fetchStatus(vin.value),
       store.fetchConfig(vin.value),
       store.fetchLatestTrip(vin.value),
+      rdw.fetchStatus(vin.value),
     ])
   }
 }

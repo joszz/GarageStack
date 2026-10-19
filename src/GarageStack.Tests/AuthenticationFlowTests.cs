@@ -7,6 +7,7 @@ using GarageStack.Api.Endpoints;
 using GarageStack.Api.Services;
 using GarageStack.Core.Configuration;
 using GarageStack.Core.Models;
+using GarageStack.Data.Demo;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -1262,6 +1263,78 @@ public class AuthenticationFlowTests
         Assert.Equal(HttpStatusCode.BadRequest, numericMode.StatusCode);
         Assert.Equal(HttpStatusCode.OK, deleted.StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, deletedAgain.StatusCode);
+    }
+
+    // ── RDW ───────────────────────────────────────────────────────────────────
+
+    // The demo answers for the RDW itself: a plate goes in as typed, comes back as the RDW keys it,
+    // and is looked up straight away. A read-only token reads it but cannot change it. The demo
+    // car's plate is put back at the end, since every host in this run shares it.
+    [Fact]
+    public async Task Rdw_PlateIsNormalizedAndLookedUpAtOnce_AndTokensOnlyRead()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var factory = CreatePasswordOnlyFactory();
+        using var client = CreateClient(factory);
+        await PasswordLoginAsync(client, ct);
+        var rdwUrl = $"/api/vehicles/{DemoVin}/rdw";
+        var plateUrl = $"/api/vehicles/{DemoVin}/license-plate";
+
+        var seeded = await client.GetFromJsonAsync<RdwStatusDto>(rdwUrl, ct);
+        try
+        {
+            var changed = await client.PutAsJsonAsync(plateUrl, new { licensePlate = " ab-12-cd " }, ct);
+            var status = await changed.Content.ReadFromJsonAsync<RdwStatusDto>(ct);
+            var invalid = await client.PutAsJsonAsync(plateUrl, new { licensePlate = "AB.12" }, ct);
+            var cleared = await (await client.PutAsJsonAsync(plateUrl, new { licensePlate = "" }, ct))
+                .Content.ReadFromJsonAsync<RdwStatusDto>(ct);
+
+            Assert.Equal("ZZ123Z", seeded!.LicensePlate);
+            Assert.Equal(DemoRdwClient.ApkDaysLeft, seeded.Info!.ApkDaysLeft);
+            Assert.Single(seeded.Info.Recalls, r => r.Open);
+
+            Assert.Equal(HttpStatusCode.OK, changed.StatusCode);
+            Assert.Equal("AB12CD", status!.LicensePlate);
+            Assert.True(status.Info!.Found);
+            Assert.NotNull(status.Info.FetchedAt);
+            Assert.Equal(HttpStatusCode.BadRequest, invalid.StatusCode);
+            Assert.Equal("rdw.invalidPlate", await ProblemCodeAsync(invalid, ct));
+            Assert.Equal(new RdwStatusDto(null, null), cleared);
+
+            var created = await client.PostAsJsonAsync("/api/tokens", new { name = "RDW" }, ct);
+            var token = (await created.Content.ReadFromJsonAsync<JsonElement>(ct)).GetProperty("token").GetString()!;
+            using var bearer = CreateClient(factory, handleCookies: false);
+            bearer.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+            var read = await bearer.GetAsync(rdwUrl, ct);
+            var write = await bearer.PutAsJsonAsync(plateUrl, new { licensePlate = "AB12CD" }, ct);
+
+            Assert.Equal(HttpStatusCode.OK, read.StatusCode);
+            Assert.Equal(HttpStatusCode.Forbidden, write.StatusCode);
+            Assert.Equal("token.readOnly", await ProblemCodeAsync(write, ct));
+        }
+        finally
+        {
+            await client.PutAsJsonAsync(plateUrl, new { licensePlate = "ZZ123Z" }, ct);
+        }
+    }
+
+    // Switched off, the API says so in a way the browser recognises, and asks the RDW nothing.
+    [Fact]
+    public async Task Rdw_SwitchedOff_AnswersDisabled()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var factory = CreatePasswordOnlyFactory(s => s["RDW_ENABLED"] = "false");
+        using var client = CreateClient(factory);
+        await PasswordLoginAsync(client, ct);
+
+        var read = await client.GetAsync($"/api/vehicles/{DemoVin}/rdw", ct);
+        var write = await client.PutAsJsonAsync($"/api/vehicles/{DemoVin}/license-plate", new { licensePlate = "AB12CD" }, ct);
+
+        Assert.Equal(HttpStatusCode.NotFound, read.StatusCode);
+        Assert.Equal(RdwEndpoints.DisabledCode, await ProblemCodeAsync(read, ct));
+        Assert.Equal(HttpStatusCode.NotFound, write.StatusCode);
+        Assert.Equal(RdwEndpoints.DisabledCode, await ProblemCodeAsync(write, ct));
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

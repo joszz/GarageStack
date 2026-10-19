@@ -54,7 +54,7 @@ By default the web login uses the same `SAIC_USER` and `SAIC_PASSWORD` credentia
 
 ### Optional
 
-Every other variable works here as well, under the same name as in Docker Compose. They are all listed, with their defaults, in [`CONFIGURATION.md`](../../documentation/CONFIGURATION.md): push notifications, single sign-on, the map's data sources, tyre pressure bands, the traction battery's real size, the rate limit and the Home Assistant broker login. A few behave differently in this image:
+Every other variable works here as well, under the same name as in Docker Compose. They are all listed, with their defaults, in [`CONFIGURATION.md`](../../documentation/CONFIGURATION.md): push notifications, single sign-on, the map's data sources, the Dutch registration (RDW) lookups, tyre pressure bands, the traction battery's real size, the rate limit and the Home Assistant broker login. A few behave differently in this image:
 
 | Variable | In this image |
 |----------|---------------|

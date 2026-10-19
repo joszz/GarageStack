@@ -128,7 +128,7 @@ try
     {
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         if (isDemoMode)
-            await DemoSeeder.SeedAsync(db);
+            await DemoSeeder.SeedAsync(db, scope.ServiceProvider.GetRequiredService<RdwOptions>().Enabled);
         else
             await db.Database.MigrateAsync();
     }
@@ -180,6 +180,7 @@ try
     app.MapMaintenanceEndpoints();
     app.MapClimateScheduleEndpoints();
     app.MapCommutePlaceEndpoints();
+    app.MapRdwEndpoints();
     app.MapWidgetEndpoints();
     app.MapUpdateEndpoints();
     app.MapClientErrorEndpoints();

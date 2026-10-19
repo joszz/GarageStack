@@ -86,6 +86,14 @@ public class VehicleRepository(AppDbContext db, ILogger<VehicleRepository>? logg
         await db.SaveChangesAsync(ct);
     }
 
+    public async Task SetLicensePlateAsync(int vehicleId, string? licensePlate, CancellationToken ct = default)
+    {
+        var vehicle = await db.Vehicles.FindAsync([vehicleId], ct);
+        if (vehicle is null || vehicle.LicensePlate == licensePlate) return;
+        vehicle.LicensePlate = licensePlate;
+        await db.SaveChangesAsync(ct);
+    }
+
     public async Task SetConfigValueAsync(int vehicleId, string key, string value, CancellationToken ct = default)
     {
         var vehicle = await db.Vehicles.FindAsync([vehicleId], ct);

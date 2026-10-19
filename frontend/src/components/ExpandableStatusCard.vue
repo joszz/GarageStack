@@ -7,6 +7,8 @@ withDefaults(
     icon: string
     title: string
     value: string | number | null
+    /** A short line under the value, as on a plain status card. */
+    note?: string
     variant?: 'success' | 'warning' | 'danger' | 'info'
     clickable?: boolean
   }>(),
@@ -24,6 +26,7 @@ const open = defineModel<boolean>('open', { default: false })
     :icon="icon"
     :label="title"
     :value="value"
+    :note="note"
     :variant="variant"
     :clickable="clickable"
     @click="open = true"

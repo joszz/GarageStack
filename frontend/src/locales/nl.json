@@ -46,6 +46,7 @@
       "chargingSession": "Live gegevens van de boordlader: AC-vermogen (één of driefasig), kabelslot, laadtype en wanneer de laatste laadbeurt begon en eindigde. Alleen relevant voor PHEV en BEV.",
       "batteryHeating": "Voorverwarmingsstatus en schema van de hoogspanningsaccu. Opwarmen voor een laadsessie verbetert de laadsnelheid bij koud weer. Alleen relevant voor PHEV en BEV.",
       "maintenance": "Aankomende en verlopen onderhoudsitems op basis van de servicetermijnen die je zelf instelt. Klik door naar de onderhoudspagina om items toe te voegen of een uitgevoerde service te registreren.",
+      "rdw": "De vervaldatum van de APK en de dagen die resten, openstaande terugroepacties en de WAM-verzekering, zoals de RDW ze voor het Nederlandse kenteken heeft geregistreerd. Klik voor de gevolgen en het herstel van elke terugroepactie.",
       "climateSchedule": "Wanneer een klimaatschema de auto weer voorverwarmt of koelt"
     }
   },
@@ -450,6 +451,7 @@
       "vehicleMessage": "Berichten uit de MG-app",
       "climateSchedule": "Geplande klimaatregeling",
       "maintenance": "Onderhoudsherinneringen",
+      "rdw": "APK, terugroepacties en verzekering (RDW)",
       "low12v": "Lage 12V-accu",
       "lowFuel": "Weinig brandstof",
       "gatewayLogin": "Inloggen bij MG mislukt",
@@ -514,6 +516,7 @@
       "chargingSession": "Laadsessie",
       "batteryHeating": "Accuverwarming",
       "maintenance": "Onderhoud",
+      "rdw": "APK & terugroepacties",
       "climateSchedule": "Volgende klimaatstart"
     },
     "carColor": {
@@ -548,6 +551,16 @@
       "hev": "HEV (Hybride, geen stekker)",
       "phev": "PHEV (Plug-in hybride)",
       "bev": "BEV (Volledig elektrisch)"
+    },
+    "licensePlate": {
+      "title": "Kenteken",
+      "desc": "Het Nederlandse kenteken van de auto, voor de APK-datum, terugroepacties en verzekering die de RDW heeft geregistreerd. Alleen het kenteken gaat naar de RDW.",
+      "label": "Kenteken",
+      "placeholder": "AB-123-C",
+      "save": "Opslaan",
+      "clear": "Verwijderen",
+      "saved": "Opgeslagen en bij de RDW opgezocht.",
+      "cleared": "Verwijderd."
     },
     "notificationTypes": {
       "title": "Meldingen"
@@ -940,6 +953,10 @@
       "logs": {
         "sourceUnknown": "De bron moet api, worker of all zijn.",
         "cursorInvalid": "Die plek in de logbestanden komt niet van een eerdere pagina. Vernieuw om opnieuw te beginnen."
+      },
+      "rdw": {
+        "disabled": "Opzoeken bij de RDW staat uit op deze server.",
+        "invalidPlate": "Een kenteken bestaat uit letters en cijfers, hoogstens 8 zonder de streepjes."
       }
     }
   },
@@ -998,5 +1015,41 @@
     "end": "Geen oudere regels in de logbestanden.",
     "workerMissing": "De logbestanden van de Worker zijn hier niet zichtbaar: zet WORKER_LOG_DIRECTORY op de map waar ze staan (zie CONFIGURATION.md).",
     "exception": "Uitzondering"
+  },
+  "rdw": {
+    "title": "APK & terugroepacties",
+    "notLookedUp": "Nog niet opgezocht",
+    "plateUnknown": "Kenteken onbekend",
+    "daysLeft": "nog {n} dag | nog {n} dagen",
+    "lastDay": "Laatste dag",
+    "expired": "Verlopen",
+    "openRecalls": "Geen openstaande terugroepacties | 1 openstaande terugroepactie | {n} openstaande terugroepacties",
+    "apkExpires": "APK geldig tot",
+    "apkDaysLeft": "vandaag is de laatste dag | nog 1 dag | nog {n} dagen",
+    "apkExpiredOn": "{n} dag geleden verlopen | {n} dagen geleden verlopen",
+    "apkUnknown": "Geen APK-datum bekend",
+    "insurance": "WAM-verzekering",
+    "insured": "Geregistreerd",
+    "notInsured": "Niet geregistreerd",
+    "insuranceUnknown": "Onbekend",
+    "registeredAs": "Geregistreerd als",
+    "plate": "Kenteken {plate}",
+    "openRecallsTitle": "Openstaande terugroepacties",
+    "noOpenRecalls": "De RDW meldt geen openstaande terugroepacties voor deze auto.",
+    "repairedTitle": "Herstelde terugroepacties",
+    "repaired": "Hersteld",
+    "recallDefect": "Defect",
+    "recallRisk": "Gevolgen",
+    "recallRepair": "Herstel",
+    "severity": {
+      "ERN": "Ernstig",
+      "GEM": "Gemiddeld",
+      "NNB": "Nog niet beoordeeld"
+    },
+    "dutchTexts": "De teksten van de terugroepacties zijn die van de RDW.",
+    "notFound": "De RDW kent geen voertuig met kenteken {plate}. Controleer het onder Instellingen > Kenteken.",
+    "fetchedAt": "Van de RDW, {time}",
+    "lastAttemptFailed": "De laatste poging de RDW te vragen is mislukt; later wordt het opnieuw geprobeerd.",
+    "source": "Bron: open data van de RDW"
   }
 }

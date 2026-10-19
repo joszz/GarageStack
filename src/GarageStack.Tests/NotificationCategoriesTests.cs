@@ -12,6 +12,10 @@ public class NotificationCategoriesTests
     [InlineData("gateway-login", "gateway-login")]
     [InlineData("maintenance-overdue-7", "maintenance")]
     [InlineData("maintenance-due-soon-12", "maintenance")]
+    [InlineData("rdw-recall-MGP230061", "rdw")]
+    [InlineData("rdw-apk-due-30-20261108", "rdw")]
+    [InlineData("rdw-apk-expired-20261108", "rdw")]
+    [InlineData("rdw-uninsured", "rdw")]
     public void GroupOf_KnownCategory_IsTheTypeTheChecklistOffers(string category, string group)
     {
         Assert.Equal(group, NotificationCategories.GroupOf(category));

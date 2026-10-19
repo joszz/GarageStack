@@ -75,6 +75,11 @@ public static class EnvironmentAliases
         // Optional extras, each off until given a key.
         ["WIDGET_API_KEY"] = "Widget:ApiKey",
         ["OPENCHARGEMAP_API_KEY"] = "OpenChargeMap:ApiKey",
+
+        // The Dutch registration (APK, recalls, insurance), off until switched on.
+        ["RDW_ENABLED"] = "Rdw:Enabled",
+        ["RDW_REFRESH_HOURS"] = "Rdw:RefreshHours",
+        ["RDW_APP_TOKEN"] = "Rdw:AppToken",
     };
 
     /// <summary>

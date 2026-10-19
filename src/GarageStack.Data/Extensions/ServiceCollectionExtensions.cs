@@ -6,6 +6,7 @@ using GarageStack.Data.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace GarageStack.Data.Extensions;
 
@@ -34,6 +35,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IPushSubscriptionRepository, PushSubscriptionRepository>();
         services.AddScoped<IApiTokenRepository, ApiTokenRepository>();
         services.AddGarageStackPoiClients();
+        services.AddGarageStackRdw();
 
         return services;
     }
@@ -59,7 +61,37 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IPushSubscriptionRepository, PushSubscriptionRepository>();
         services.AddScoped<IApiTokenRepository, ApiTokenRepository>();
         services.AddGarageStackPoiClients();
+        // The RDW card is part of what the demo shows, answered by a stand-in so no plate leaves:
+        // on unless RDW_ENABLED says false.
+        services.AddSingleton(sp => new RdwOptions
+        {
+            Enabled = sp.GetRequiredService<IConfiguration>().SwitchOrDefault("Rdw:Enabled", fallback: true),
+        });
+        services.AddSingleton<IRdwClient, DemoRdwClient>();
+        services.AddRdwLookups();
 
+        return services;
+    }
+
+    // The RDW lookups. Switched off (RDW_ENABLED unset), the client is still there for the API to
+    // answer "off" with, but it refuses before sending anything, and nothing calls it anyway.
+    private static IServiceCollection AddGarageStackRdw(this IServiceCollection services)
+    {
+        services.AddHttpClient(RdwApiClient.HttpClientName, client =>
+        {
+            client.DefaultRequestHeaders.UserAgent.ParseAdd(UpstreamHttp.UserAgent);
+            client.Timeout = TimeSpan.FromSeconds(20);
+        });
+        services.AddSingleton(sp => RdwOptions.From(sp.GetRequiredService<IConfiguration>()));
+        services.AddSingleton<IRdwClient, RdwApiClient>();
+        return services.AddRdwLookups();
+    }
+
+    private static IServiceCollection AddRdwLookups(this IServiceCollection services)
+    {
+        services.TryAddSingleton(TimeProvider.System);
+        services.AddScoped<IRdwRepository, RdwRepository>();
+        services.AddScoped<RdwRefresher>();
         return services;
     }
 

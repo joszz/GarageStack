@@ -15,7 +15,7 @@ public enum GateRefusal
 
 /// <summary>
 /// The politeness rules every third-party API client (Open Charge Map, Overpass, Nominatim,
-/// Valhalla) needs: one request in flight at a time, a minimum interval between requests, and a
+/// Valhalla, the RDW) needs: one request in flight at a time, a minimum interval between requests, and a
 /// backoff window after the upstream answers 429/503/504. A client takes the gate with
 /// <see cref="TryEnterAsync"/>, calls <see cref="ThrottleAsync"/> and <see cref="MarkRequestSent"/>
 /// around its request, and disposes the entry; the backoff can be read outside the gate so a

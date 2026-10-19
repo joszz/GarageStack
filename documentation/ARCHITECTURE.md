@@ -93,6 +93,41 @@ The trip log (`/trip-log`, `TripEndpoints`) shows only saved trips, because only
 
 The `AddTripLog` migration clears the trips saved before it and resets the recording line, and the Worker saves them again with their new columns. Nothing is lost: until that migration, nothing a driver could enter was kept on a trip.
 
+## The Dutch registration (RDW)
+
+With `RDW_ENABLED`, a car's Dutch plate (`Vehicle.LicensePlate`, entered by the user: neither the
+gateway nor SAIC reports it) is looked up in the RDW's open data, three Socrata datasets on
+`opendata.rdw.nl` asked by plate. `RdwApiClient` sends nothing else, and refuses before sending
+anything while the feature is off.
+
+- **The lookup.** `RdwRefresher` asks for the registration (`m9d7-ebf2`: the APK date, the WAM
+  insurance and the open-recall flag), then the recall statuses on the plate (`t49b-isb7`: O for
+  open, P once the manufacturer reported the repair), and the details (`j9yg-7rg9`) only of codes
+  it has not seen before. A plate the RDW does not know comes back as an empty array, saved as "not
+  found" rather than as an error. A failure keeps the last good answer and records why
+  (`LastError`). The result is one `RdwVehicleInfo` row per vehicle, its recalls a JSON array.
+- **Who looks.** The API looks a plate up the moment it is entered (`PUT .../license-plate`), so the
+  card has something to show at once; `RdwSyncService` in the Worker looks every hour for lookups
+  older than `RDW_REFRESH_HOURS`. Both go through the same refresher and the same row.
+- **Notifications.** Only the Worker sends them, from the saved row whoever wrote it. A recall is
+  pushed once, while open: it keeps when it was first seen and when it was pushed (`FirstSeenAt`,
+  `NotifiedAt`) across every lookup, so a change from O to P is no news, and a save from a lookup
+  that started before a push keeps that push's mark. The APK reminders a month and a week ahead and
+  the expired one name the APK date in their category, so each fires once per date and a renewed
+  APK starts afresh; days are counted between calendar dates in Amsterdam (`ApkReminder`), never in
+  24-hour spans. The expired APK and a car without insurance repeat at most monthly through the
+  cooldown gate. Nothing is pushed from a lookup older than two refresh intervals: an APK renewed
+  while the RDW could not be reached must not be reported as running out.
+- **In the browser.** `stores/rdw.ts` reads the lookup with the rest of the dashboard and learns
+  from that first answer whether the deployment looks plates up at all. The plate field
+  (`LicensePlateInput`) writes a plate the way the car has it: `utils/licensePlate.ts` puts a dash
+  wherever letters change to digits and splits a group of four in two, which covers every Dutch
+  side code. The API stores it without the dashes (`LicensePlate.Normalize`), as the RDW keys it.
+- **Off.** Both endpoints answer 404 with `rdw.disabled`, which is how the browser learns to leave
+  out the plate field, the card and the notification type; the Worker job stops before its first
+  pass. Demo mode switches it on with a stand-in client (`DemoRdwClient`), so no plate leaves there
+  either.
+
 ## Data kept over time
 
 Telemetry is the one table that grows with every poll. The Worker's `HousekeepingService` runs every six hours and keeps it in check.
@@ -110,7 +145,7 @@ PostgreSQL reuses the space of removed rows for new ones rather than handing it 
 | --- | --- | --- |
 | `GarageStack.Core` | Domain models (`Models/`), repository/service interfaces (`Interfaces/`), and pure helpers with no I/O (`Helpers/`) - the shared vocabulary every other project builds on. | nothing (leaf project) |
 | `GarageStack.Data` | EF Core: `AppDbContext`, migrations, concrete repository implementations, and `Demo/` (in-memory fakes used when `DEMO_MODE=true`). | `Core` |
-| `GarageStack.Worker` | The MQTT-ingestion process: `Mqtt/MqttConsumerService` and the message handlers beside it, plus the periodic jobs (maintenance reminders, POI pre-caching, push-notification checks, the slow-puncture check over two weeks of tyre pressures, saving finished trips, housekeeping and telemetry compaction, climate schedules, and the heartbeat the API's readiness check listens for), each a `PeriodicBackgroundService`. | `Core`, `Data` |
+| `GarageStack.Worker` | The MQTT-ingestion process: `Mqtt/MqttConsumerService` and the message handlers beside it, plus the periodic jobs (maintenance reminders, POI pre-caching, push-notification checks, the slow-puncture check over two weeks of tyre pressures, saving finished trips, housekeeping and telemetry compaction, climate schedules, RDW lookups, and the heartbeat the API's readiness check listens for), each a `PeriodicBackgroundService`. | `Core`, `Data` |
 | `GarageStack.Api` | ASP.NET Core minimal APIs (`Endpoints/`), the SignalR hub (`Hubs/`), and Api-only services (outbound MQTT publishing, POI/charging-station lookups, the Postgres-LISTEN-to-SignalR bridge). | `Core`, `Data` |
 | `GarageStack.Tests` | xUnit tests across all of the above. | all four |
 
@@ -118,7 +153,7 @@ PostgreSQL reuses the space of removed rows for new ones rather than handing it 
 
 Deployments configure GarageStack through environment variables named for people (`MQTT_HOST`, `OIDC_AUTHORITY`), not in .NET's `Section__Key` form. `EnvironmentAliases` ([src/GarageStack.Core/Configuration/EnvironmentAliases.cs](../src/GarageStack.Core/Configuration/EnvironmentAliases.cs)) is the one table that maps each name onto its setting; both hosts add it as their last configuration source. An empty variable counts as unset, and a setting given by its own key wins over the name, which is how the all-in-one entrypoint passes the values it derives. The compose files therefore pass the variables straight through, and the defaults live in the code. `EnvironmentAliasesTests` fails when `.env.example`, the Unraid template or a compose file mentions a variable that is neither in the table nor consumed by the deployment itself.
 
-The upstream clients and the push sender take typed options (`GeocodingOptions`, `MapMatchingOptions`, `OverpassOptions`, `OpenChargeMapOptions`, `VapidOptions` in `Core/Configuration`), each built once by a `From(IConfiguration)` that reads blank values as defaults. The operator-facing list of every variable is [CONFIGURATION.md](CONFIGURATION.md).
+The upstream clients and the push sender take typed options (`GeocodingOptions`, `MapMatchingOptions`, `OverpassOptions`, `OpenChargeMapOptions`, `RdwOptions`, `VapidOptions` in `Core/Configuration`), each built once by a `From(IConfiguration)` that reads blank values as defaults. The operator-facing list of every variable is [CONFIGURATION.md](CONFIGURATION.md).
 
 ## Errors
 
@@ -147,6 +182,8 @@ process-local one doesn't already provide. The caches, each in memory or in Post
   and be queried by bounding box - a job a plain in-memory cache isn't suited for anyway. The
   brand filter list is a DISTINCT over the `Brand` column, extracted from the upstream metadata
   at ingest, with a short in-memory cache on top that every tile upsert invalidates.
+- RDW lookups (`RdwVehicleInfo`) are kept in Postgres, one row per vehicle, and asked again only
+  once they are older than `RDW_REFRESH_HOURS`; see [The Dutch registration (RDW)](#the-dutch-registration-rdw).
 - Reverse-geocoded place names (`GeocodeCacheEntry`) are cached in Postgres for the same reason,
   keyed by a per-precision coordinate grid plus language. Nominatim's usage policy requires
   caching rather than re-requesting, and a 90-day TTL is honest for data that changes when a
@@ -181,7 +218,7 @@ All four POI types share the same tile-based PostgreSQL cache:
 
 If GarageStack ever needs to run more than one Api/Worker instance, revisit this: per-vehicle
 in-memory state (this cache, the revocation cache, `VehicleCommandGate`,
-`NotificationCooldownGate`, the shared `UpstreamRateGate` behind the Overpass/OCM/Nominatim clients)
+`NotificationCooldownGate`, the shared `UpstreamRateGate` behind the Overpass/OCM/Nominatim/Valhalla/RDW clients)
 would all need to move to something shared.
 
 ## Authentication

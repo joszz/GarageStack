@@ -74,6 +74,7 @@ internal sealed class DataExport(
             {
                 car.Vin,
                 car.Model,
+                car.LicensePlate,
                 vehicleType = VehicleTypeHelper.GetVehicleType(car),
                 car.CreatedAt,
                 car.LastParkedAt,

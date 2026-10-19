@@ -22,6 +22,7 @@ import LightsCard from './LightsCard.vue'
 import ChargingSessionCard from './ChargingSessionCard.vue'
 import BatteryHeatingCard from './BatteryHeatingCard.vue'
 import MaintenanceSummaryCard from './MaintenanceSummaryCard.vue'
+import RdwCard from './RdwCard.vue'
 import ClimateScheduleSummaryCard from './ClimateScheduleSummaryCard.vue'
 import { formatNumber } from '@/utils/format'
 import { energyUnit, hvBatteryReading, litres, litresPer100Km, whPerKm } from '@/utils/energy'
@@ -365,6 +366,9 @@ const activeSimpleCard = computed(() => {
 
     <!-- maintenance -->
     <MaintenanceSummaryCard v-else-if="cardId === 'maintenance'" />
+
+    <!-- the Dutch registration (RDW) -->
+    <RdwCard v-else-if="cardId === 'rdw'" />
     <ClimateScheduleSummaryCard v-else-if="cardId === 'climateSchedule'" />
   </template>
 </template>

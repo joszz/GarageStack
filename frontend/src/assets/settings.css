@@ -186,7 +186,8 @@
 /* ── API tokens ───────────────────────────────────────────── */
 
 /* A name and its button, or a new token and its copy button, on one line. */
-.api-token-form {
+.api-token-form,
+.license-plate-form {
   display: flex;
   gap: 0.5rem;
   align-items: center;

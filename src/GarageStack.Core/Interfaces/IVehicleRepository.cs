@@ -37,4 +37,7 @@ public interface IVehicleRepository
     /// repeats it after a restart. See <see cref="Vehicle.LastMessageId"/>.
     /// </summary>
     Task SetLastMessageIdAsync(int vehicleId, string messageId, CancellationToken ct = default);
+
+    /// <summary>Stores the registration (normalized, or null to clear it). See <see cref="Vehicle.LicensePlate"/>.</summary>
+    Task SetLicensePlateAsync(int vehicleId, string? licensePlate, CancellationToken ct = default);
 }
