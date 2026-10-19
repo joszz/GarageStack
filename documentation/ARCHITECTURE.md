@@ -329,7 +329,7 @@ vector map gets that variant's style; a raster map gets a `data-raster-basemap` 
 
 ## Tests
 
-Backend tests (xUnit) and frontend unit tests (Vitest) cover logic in isolation. On top of those,
+Backend tests (xUnit) and frontend unit tests (Vitest) cover logic in isolation. Most backend tests use EF's in-memory database, which has no indexes, transactions, concurrency tokens or bulk updates, so the tests in `GarageStack.Tests/Postgres` run the repositories against a real PostgreSQL (`PostgresDatabase`: a fresh database per test, copied from a template every migration has been applied to). They need `GARAGESTACK_TEST_POSTGRES`; CI's backend job runs a `postgres:18` service for them and fails rather than skips without it. On top of those,
 `frontend/e2e/` holds Playwright smoke tests that run against the demo stack from
 `docker-compose.demo.yml`, which is the production frontend image with the real nginx config.
 
