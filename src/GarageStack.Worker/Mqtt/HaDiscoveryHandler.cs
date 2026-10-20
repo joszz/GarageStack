@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Text.Json;
 using GarageStack.Core.Helpers;
 
@@ -9,6 +10,11 @@ namespace GarageStack.Worker.Mqtt;
 /// </summary>
 public sealed class HaDiscoveryHandler(ILogger logger, VehicleResolver vehicles) : IMqttMessageHandler
 {
+    // Per VIN, the hardware version and model last stored. The gateway announces every one of a
+    // car's ~100 entities with the same device block, and does so again on each start and each
+    // time Home Assistant comes online, so only a change is logged and written.
+    private readonly ConcurrentDictionary<string, (string HwVersion, string? Model)> _stored = new();
+
     public async Task<bool> TryHandleAsync(MqttMessage message, CancellationToken ct)
     {
         if (!message.Topic.StartsWith("homeassistant/", StringComparison.OrdinalIgnoreCase))
@@ -51,6 +57,7 @@ public sealed class HaDiscoveryHandler(ILogger logger, VehicleResolver vehicles)
             // Other devices announce themselves under homeassistant/ too (zigbee2mqtt, ESPHome),
             // with identifiers of their own; only a car's VIN may create a vehicle.
             if (!VinFormat.IsValid(vin)) return;
+            if (_stored.TryGetValue(vin, out var stored) && stored == (hwVersion, model)) return;
 
             logger.LogInformation("HA discovery - VIN={Vin} hw_version={HwVersion} model={Model}", LogRedaction.Vin(vin), hwVersion, model);
 
@@ -58,6 +65,8 @@ public sealed class HaDiscoveryHandler(ILogger logger, VehicleResolver vehicles)
             await resolved.Vehicles.SetConfigValueAsync(resolved.VehicleId, "hw_version", hwVersion, ct);
             if (!string.IsNullOrWhiteSpace(model))
                 await resolved.Vehicles.SetModelAsync(resolved.VehicleId, model, ct);
+            // Only once written, so a failed write is tried again on the next announcement.
+            _stored[vin] = (hwVersion, model);
         }
         catch (Exception ex)
         {

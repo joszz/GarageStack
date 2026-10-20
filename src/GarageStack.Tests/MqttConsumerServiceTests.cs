@@ -312,6 +312,45 @@ public class MqttConsumerServiceHaDiscoveryTests
         await using var scope = services.CreateAsyncScope();
         Assert.Equal(creates ? 1 : 0, await scope.ServiceProvider.GetRequiredService<AppDbContext>().Vehicles.CountAsync(ct));
     }
+    // The gateway announces each of a car's entities with the same device block.
+    [Fact]
+    public async Task HandleHaDiscovery_RepeatedDeviceBlock_IsStoredOnceUntilItChanges()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var databaseName = Guid.NewGuid().ToString();
+        await using var services = new ServiceCollection()
+            .AddDbContext<AppDbContext>(o => o.UseInMemoryDatabase(databaseName))
+            .AddScoped<IVehicleRepository, VehicleRepository>()
+            .BuildServiceProvider();
+        var scopes = new CountingScopeFactory(services.GetRequiredService<IServiceScopeFactory>());
+        var handler = new HaDiscoveryHandler(NullLogger.Instance, new VehicleResolver(scopes));
+        static MqttMessage Announce(string entity, string hwVersion) => new(
+            $"homeassistant/sensor/{entity}/config",
+            $$$"""{"device":{"hw_version":"{{{hwVersion}}}","identifiers":["FAKEVN00000000001"],"model":"MG4"}}""",
+            Retain: true);
+
+        await handler.TryHandleAsync(Announce("soc", "1.0"), ct);
+        await handler.TryHandleAsync(Announce("range", "1.0"), ct);
+        await handler.TryHandleAsync(Announce("mileage", "1.0"), ct);
+        Assert.Equal(1, scopes.Created);
+
+        await handler.TryHandleAsync(Announce("soc", "2.0"), ct);
+        Assert.Equal(2, scopes.Created);
+        await using var scope = services.CreateAsyncScope();
+        var vehicle = await scope.ServiceProvider.GetRequiredService<AppDbContext>().Vehicles.SingleAsync(ct);
+        Assert.Contains("\"hw_version\":\"2.0\"", vehicle.ConfigJson);
+    }
+
+    private sealed class CountingScopeFactory(IServiceScopeFactory inner) : IServiceScopeFactory
+    {
+        public int Created { get; private set; }
+
+        public IServiceScope CreateScope()
+        {
+            Created++;
+            return inner.CreateScope();
+        }
+    }
 }
 
 // ---------------------------------------------------------------------------
