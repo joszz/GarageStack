@@ -145,8 +145,10 @@ public class PushNotificationCheckService(
             await SendAsync(vehicle, moved, notifications, ct, onceSince: vehicle.LastParkedAt);
     }
 
-    // Further than GPS wanders in a car park or a garage, nearer than a tow truck takes a car.
-    internal const double MovedWhileParkedMeters = 300;
+    // Further than a parked car's fix strays, nearer than a tow truck or a ferry takes it. A fix
+    // from a garage, a multi-storey or between tall buildings has put a car standing still 700 m
+    // off its spot, so the margin is wide.
+    internal const double MovedWhileParkedMeters = 1500;
 
     /// <summary>
     /// Warns when the car reports a position well away from where it parked while the engine stayed

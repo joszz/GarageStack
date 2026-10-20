@@ -363,7 +363,7 @@ GarageStack checks your vehicle's state every 5 minutes and sends both a browser
 | Car left unlocked | `doors/locked = false` while engine is off |
 | Door left open | Any door, boot, or bonnet open while engine is off |
 | Window left open | Any window open while engine is off |
-| Moved while parked | The car reports a position more than 300 m from where it parked, with the engine off: towed, lifted onto a truck, or taken on a ferry. Sent once per parking, with the car's first report after the move (a sleeping car only reports now and then) |
+| Moved while parked | The car reports a position more than 1.5 km from where it parked, with the engine off: towed, lifted onto a truck, or taken on a ferry. Sent once per parking, with the car's first report after the move (a sleeping car only reports now and then) |
 | Arrived home or at work | The car parks at a home or work place with **Notify on arrival and departure** switched on (Trip log > Home and work), judged by the position of the poll it parked in. Not sent for a drive that never left the place it started in |
 | Left home or work | The car drives out of such a place: sent on its first position outside the place's radius, so starting the engine to warm the car up sends nothing |
 | Charging complete | Charging stops while the cable is still connected (plug-in vehicles) |

@@ -695,6 +695,18 @@ public class PushNotificationCheckServiceTests
         Assert.Empty(alerts);
     }
 
+    // A fix that strayed further still, as one from under a roof can: 0,7 km.
+    [Fact]
+    public void CheckMovedWhileParked_GpsStrayingUnderAKilometre_StaysQuiet()
+    {
+        var alerts = new List<(string, string, string)>();
+
+        CreateService().CheckMovedWhileParked(
+            ParkedInAmsterdam(), Parked(s => { s.Latitude = 52.3763; s.Longitude = 4.8900; }), alerts);
+
+        Assert.Empty(alerts);
+    }
+
     [Fact]
     public void CheckMovedWhileParked_NoParkedPositionOrNoFix_StaysQuiet()
     {
