@@ -49,6 +49,37 @@ public class ForwardedHeadersTests
         Assert.Equal(IPAddress.Parse(Browser), context.Connection.RemoteIpAddress);
     }
 
+    // Traefik and the frontend container talk over a Docker network, whose addresses change when a
+    // container is recreated: a range for that network keeps both believed, scheme included.
+    [Fact]
+    public async Task ARangeOfTrustedProxies_CoversTheDockerNetwork()
+    {
+        const string Traefik = "172.18.0.7";
+        var context = await ThroughMiddleware(["192.168.1.30", "172.18.0.0/16"], Nginx, $"{Browser}, {Traefik}");
+
+        Assert.Equal(IPAddress.Parse(Browser), context.Connection.RemoteIpAddress);
+        Assert.Equal("https", context.Request.Scheme);
+    }
+
+    // Only the outer proxy listed: nginx is not believed, so the request stays plain HTTP and the
+    // OIDC redirect URI built from it does not match the registered https one.
+    [Fact]
+    public async Task WithNginxLeftOut_NothingForwardedIsBelieved()
+    {
+        var context = await ThroughMiddleware([OuterProxy], Nginx, $"{Browser}, {OuterProxy}");
+
+        Assert.Equal(IPAddress.Parse(Nginx), context.Connection.RemoteIpAddress);
+        Assert.NotEqual("https", context.Request.Scheme);
+    }
+
+    [Fact]
+    public void UnreadableProxies_AreTheEntriesThatAreNeitherAnAddressNorARange()
+    {
+        string[] entries = ["192.168.1.30", " 172.18.0.0/16 ", "fd00::/8", "traefik", "172.18.0.0/99"];
+
+        Assert.Equal(["traefik", "172.18.0.0/99"], ApiHostingExtensions.UnreadableProxies(entries));
+    }
+
     // A forwarded address is only believed from a trusted hop: a browser cannot claim to be
     // someone else by sending its own X-Forwarded-For through nginx.
     [Fact]
