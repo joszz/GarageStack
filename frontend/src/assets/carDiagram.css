@@ -5,38 +5,50 @@
 
 /* ── Tyre diagram ─────────────────────────────────────────── */
 
-/* ── Road driving animation ───────────────────────────── */
+/* ── Car contour and shadow ─────────────────────────────── */
 
-.road-surface {
-  fill: #2a2a2a;
-  opacity: 0.5;
+/* A contour a shade darker than the paint and a soft shadow (#car-shadow), so a pale paint
+   such as pearl white doesn't wash into the white card, and a dark one into the road. Only here:
+   the map marker draws the same silhouette at a size where an outline would be clutter. */
+.tyre-diagram__car .car-svg-body {
+  stroke: color-mix(in srgb, var(--car-secondary, #f39200) 65%, #000);
+  stroke-width: 0.8;
+  paint-order: stroke;
 }
 
-/* A pale slate road on a white card, with lane lines dark enough to see: white lines on a light
-   grey road barely showed. */
+.car-shadow {
+  flood-color: #000;
+  flood-opacity: 0.55;
+}
+
+[data-theme='light'] .car-shadow {
+  flood-color: #0f172a;
+  flood-opacity: 0.3;
+}
+
+/* ── Road driving animation ───────────────────────────── */
+
+/* Asphalt with white markings in both themes: a pale road on a white card read as washed out,
+   and the car itself is easier to see on a darker surface. The mask (#road-fade) fades the
+   road out towards the top and bottom of the card. */
+.road-surface {
+  fill: #2c303b;
+}
+
 [data-theme='light'] .road-surface {
-  fill: #e2e8f0;
-  opacity: 1;
+  fill: #64748b;
 }
 
 .road-edge {
-  stroke: rgb(255 255 255 / 35%);
-  stroke-width: 1.5;
-}
-
-[data-theme='light'] .road-edge {
-  stroke: #94a3b8;
+  stroke: rgb(255 255 255 / 55%);
+  stroke-width: 2.5;
 }
 
 .road-center-dash {
-  stroke: rgb(255 255 255 / 60%);
-  stroke-width: 2.5;
-  stroke-dasharray: 30 15;
+  stroke: rgb(255 255 255 / 75%);
+  stroke-width: 3;
+  stroke-dasharray: 30 18;
   animation: road-scroll 1s linear infinite;
-}
-
-[data-theme='light'] .road-center-dash {
-  stroke: #94a3b8;
 }
 
 @keyframes road-scroll {
@@ -45,7 +57,7 @@
   }
 
   to {
-    stroke-dashoffset: -45;
+    stroke-dashoffset: -48;
   }
 }
 

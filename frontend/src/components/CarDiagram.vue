@@ -236,16 +236,31 @@ const motionBlurAmount = computed(() => {
                   <feMergeNode in="SourceGraphic" />
                 </feMerge>
               </filter>
+              <!-- A soft shadow under the car, so a pale paint (white, silver) stands off the
+                   white card and a dark one off the road. -->
+              <filter id="car-shadow" x="-20%" y="-10%" width="140%" height="120%">
+                <feDropShadow dx="0" dy="3" stdDeviation="4" class="car-shadow" />
+              </filter>
+              <!-- The road fades out at the top and bottom instead of ending on a hard edge. -->
+              <linearGradient id="road-fade-grad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stop-color="#fff" stop-opacity="0" />
+                <stop offset="0.14" stop-color="#fff" />
+                <stop offset="0.86" stop-color="#fff" />
+                <stop offset="1" stop-color="#fff" stop-opacity="0" />
+              </linearGradient>
+              <mask id="road-fade" maskContentUnits="userSpaceOnUse">
+                <rect x="-40" y="0" width="420" height="480" fill="url(#road-fade-grad)" />
+              </mask>
             </defs>
 
             <!-- Road animation: visible only while driving (speed > 0).
                  ViewBox is -40 0 420 480. 3 equal lanes of 140 px each.
                  Left lane: x=-40–100. Center lane: x=100–240 (car body x≈119–222, ~20 px margin).
-                 Right lane: x=240–380. Edges at x=-38 and x=378. -->
-            <g v-if="isMoving">
+                 Right lane: x=240–380. Edges at x=-30 and x=370. -->
+            <g v-if="isMoving" mask="url(#road-fade)">
               <rect x="-40" y="0" width="420" height="480" class="road-surface" />
-              <line x1="-38" y1="0" x2="-38" y2="480" class="road-edge" />
-              <line x1="378" y1="0" x2="378" y2="480" class="road-edge" />
+              <line x1="-30" y1="0" x2="-30" y2="480" class="road-edge" />
+              <line x1="370" y1="0" x2="370" y2="480" class="road-edge" />
               <line
                 x1="100"
                 y1="0"
@@ -272,15 +287,17 @@ const motionBlurAmount = computed(() => {
             />
 
             <!-- Orange car illustration (top-view) -->
-            <g :filter="motionBlurAmount > 0 ? 'url(#motion-blur)' : undefined">
-              <svg
-                :viewBox="CAR_SILHOUETTE_VIEWBOX"
-                x="105"
-                y="115"
-                width="130"
-                height="250"
-                v-html="CAR_SILHOUETTE_MARKUP"
-              />
+            <g filter="url(#car-shadow)" class="tyre-diagram__car">
+              <g :filter="motionBlurAmount > 0 ? 'url(#motion-blur)' : undefined">
+                <svg
+                  :viewBox="CAR_SILHOUETTE_VIEWBOX"
+                  x="105"
+                  y="115"
+                  width="130"
+                  height="250"
+                  v-html="CAR_SILHOUETTE_MARKUP"
+                />
+              </g>
             </g>
 
             <!-- Charging cable: rear bumper → charger off-screen below.
