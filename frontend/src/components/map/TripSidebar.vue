@@ -30,27 +30,32 @@ const sentinel = useTemplateRef<HTMLElement>('sentinel')
 defineExpose({ root, sentinel })
 
 // A trip selected from here or from its line on the map is brought into view below the sticky
-// header, without jumping when it is already visible.
+// header, without jumping when it is already visible. One selected while the list is still
+// placeholders, such as a trip opened from the trip log, is brought into view once its row is
+// there, at once rather than scrolling down past every trip before it.
+function scrollToSelected(behavior: ScrollBehavior) {
+  const sidebar = root.value
+  const active = sidebar?.querySelector('.trip-list__item--active') as HTMLElement | null
+  if (!sidebar || !active) return
+  const header = sidebar.querySelector('.trip-sidebar__header') as HTMLElement | null
+  const headerHeight = header?.offsetHeight ?? 0
+  const sidebarRect = sidebar.getBoundingClientRect()
+  const itemRect = active.getBoundingClientRect()
+  const itemTop = itemRect.top - sidebarRect.top
+  const itemBottom = itemRect.bottom - sidebarRect.top
+  if (itemTop < headerHeight) {
+    sidebar.scrollBy({ top: itemTop - headerHeight, behavior })
+  } else if (itemBottom > sidebarRect.height) {
+    sidebar.scrollBy({ top: itemBottom - sidebarRect.height, behavior })
+  }
+}
+
 watch(
-  () => props.selectedIndex,
-  (idx) => {
-    if (idx === null) return
-    nextTick(() => {
-      const sidebar = root.value
-      const active = sidebar?.querySelector('.trip-list__item--active') as HTMLElement | null
-      if (!sidebar || !active) return
-      const header = sidebar.querySelector('.trip-sidebar__header') as HTMLElement | null
-      const headerHeight = header?.offsetHeight ?? 0
-      const sidebarRect = sidebar.getBoundingClientRect()
-      const itemRect = active.getBoundingClientRect()
-      const itemTop = itemRect.top - sidebarRect.top
-      const itemBottom = itemRect.bottom - sidebarRect.top
-      if (itemTop < headerHeight) {
-        sidebar.scrollBy({ top: itemTop - headerHeight, behavior: 'smooth' })
-      } else if (itemBottom > sidebarRect.height) {
-        sidebar.scrollBy({ top: itemBottom - sidebarRect.height, behavior: 'smooth' })
-      }
-    })
+  () => [props.selectedIndex, props.loading] as const,
+  ([idx, loading], [prevIdx, wasLoading]) => {
+    if (idx === null || loading) return
+    if (idx === prevIdx && !wasLoading) return
+    nextTick(() => scrollToSelected(wasLoading ? 'instant' : 'smooth'))
   },
 )
 </script>
