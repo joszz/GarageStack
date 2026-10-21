@@ -182,6 +182,10 @@ internal static class ApiHostingExtensions
     {
         var trustedProxies = TrustedProxiesFrom(app.Configuration);
         var options = ForwardedHeadersOptionsFor(trustedProxies);
+        foreach (var entry in UnreadableProxies(trustedProxies))
+            Log.Warning("ForwardedHeaders:TrustedProxies entry {Entry} is neither an IP address nor a range " +
+                        "such as 172.18.0.0/16, and is ignored.", entry);
+
         if (trustedProxies is not { Length: > 0 })
         {
             if (!app.Environment.IsDevelopment())
@@ -197,8 +201,43 @@ internal static class ApiHostingExtensions
             });
         }
 
+        // A proxy left out of the list is not believed, so the API sees plain HTTP and its own
+        // address, and an OIDC redirect URI built from that does not match the registered one.
+        // Said once, because every request through that proxy would say it again.
+        var warnedUntrusted = 0;
+        app.Use((context, next) =>
+        {
+            if (Volatile.Read(ref warnedUntrusted) == 0 &&
+                context.Request.Headers.ContainsKey("X-Forwarded-Proto") &&
+                context.Connection.RemoteIpAddress is { } remote &&
+                !IsTrusted(remote, options) &&
+                Interlocked.Exchange(ref warnedUntrusted, 1) == 0)
+            {
+                Log.Warning("Forwarded headers from {Proxy} are ignored because it is not in " +
+                            "ForwardedHeaders:TrustedProxies, so requests through it count as plain HTTP from that " +
+                            "address. Add it, or its network as a range such as 172.18.0.0/16.", Unmapped(remote).ToString());
+            }
+
+            return next(context);
+        });
+
         app.UseForwardedHeaders(options);
         return app;
+    }
+
+    internal static IEnumerable<string> UnreadableProxies(string[]? trustedProxies) =>
+        (trustedProxies ?? []).Where(entry =>
+            !IPAddress.TryParse(entry.Trim(), out _) && !System.Net.IPNetwork.TryParse(entry.Trim(), out _));
+
+    private static IPAddress Unmapped(IPAddress address) =>
+        address.IsIPv4MappedToIPv6 ? address.MapToIPv4() : address;
+
+    private static bool IsTrusted(IPAddress address, ForwardedHeadersOptions options)
+    {
+        address = Unmapped(address);
+        return IPAddress.IsLoopback(address) ||
+               options.KnownProxies.Contains(address) ||
+               options.KnownIPNetworks.Any(n => n.Contains(address));
     }
 
     internal static string[]? TrustedProxiesFrom(IConfiguration configuration) =>
@@ -213,7 +252,7 @@ internal static class ApiHostingExtensions
     {
         var connection = context.Connection.RemoteIpAddress;
         if (connection is null) return "unknown";
-        if (connection.IsIPv4MappedToIPv6) connection = connection.MapToIPv4();
+        connection = Unmapped(connection);
 
         var trusted = options.KnownProxies.Contains(connection) || options.KnownIPNetworks.Any(n => n.Contains(connection));
         var forwardedFor = context.Request.Headers["X-Forwarded-For"].ToString();
@@ -241,10 +280,21 @@ internal static class ApiHostingExtensions
 
         if (trustedProxies is { Length: > 0 })
         {
-            // Prefer explicit proxy IPs to limit header-spoofing surface.
-            foreach (var proxyIp in trustedProxies)
-                if (IPAddress.TryParse(proxyIp, out var ip))
+            // Prefer explicit proxy IPs to limit header-spoofing surface. A range ("172.18.0.0/16")
+            // covers a Docker network, whose containers get a new address when they are recreated.
+            foreach (var entry in trustedProxies)
+            {
+                var proxy = entry.Trim();
+                if (proxy.Contains('/'))
+                {
+                    if (System.Net.IPNetwork.TryParse(proxy, out var network))
+                        options.KnownIPNetworks.Add(network);
+                }
+                else if (IPAddress.TryParse(proxy, out var ip))
+                {
                     options.KnownProxies.Add(ip);
+                }
+            }
         }
         else
         {
