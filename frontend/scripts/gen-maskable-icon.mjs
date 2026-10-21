@@ -16,6 +16,9 @@ const FG = '#3b82f6'
 // size*0.38/344 to keep all corners inside the circle with breathing room.
 // All icons, maskable and non-maskable, use the same layout so they are
 // visually identical regardless of which one the OS or browser picks.
+const carPath =
+  'M135.2 117.4L109.1 192H402.9l-26.1-74.6C372.3 104.6 360.2 96 346.6 96H165.4c-13.6 0-25.7 8.6-30.2 21.4zM39.6 196.8L74.8 96.3C88.3 57.8 124.6 32 165.4 32H346.6c40.8 0 77.1 25.8 90.6 64.3l35.2 100.5c23.2 9.6 39.6 32.5 39.6 59.2V400v48c0 17.7-14.3 32-32 32H448c-17.7 0-32-14.3-32-32V400H96v48c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32V400 256c0-26.7 16.4-49.6 39.6-59.2zM128 288a32 32 0 1 0-64 0 32 32 0 1 0 64 0zm288 32a32 32 0 1 0 0-64 32 32 0 1 0 0 64z'
+
 function buildIconSvg(size) {
   const scale = (size * 0.38) / 344
 
@@ -28,15 +31,25 @@ function buildIconSvg(size) {
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}">
   <rect width="${size}" height="${size}" fill="${BG}"/>
   <path transform="translate(${carTx},${carTy}) scale(${scale.toFixed(4)})" fill="${FG}"
-    d="M135.2 117.4L109.1 192H402.9l-26.1-74.6C372.3 104.6 360.2 96 346.6 96H165.4
-       c-13.6 0-25.7 8.6-30.2 21.4zM39.6 196.8L74.8 96.3C88.3 57.8 124.6 32 165.4 32H346.6
-       c40.8 0 77.1 25.8 90.6 64.3l35.2 100.5c23.2 9.6 39.6 32.5 39.6 59.2V400v48
-       c0 17.7-14.3 32-32 32H448c-17.7 0-32-14.3-32-32V400H96v48c0 17.7-14.3 32-32 32H32
-       c-17.7 0-32-14.3-32-32V400 256c0-26.7 16.4-49.6 39.6-59.2zM128 288a32 32 0 1 0-64 0
-       32 32 0 1 0 64 0zm288 32a32 32 0 1 0 0-64 32 32 0 1 0 0 64z"/>
+    d="${carPath}"/>
   <text x="${size / 2}" y="${textY}" text-anchor="middle"
         font-family="Arial,sans-serif" font-size="${fontSize}"
         font-weight="700" letter-spacing="-1" fill="${FG}">GS</text>
+</svg>`
+}
+
+// Android draws a notification badge from its alpha channel alone, tinting it to suit the status
+// bar, so an opaque icon shows as a solid square. The badge is therefore the car alone, in white on
+// transparency: no background, and no "GS", which would be unreadable at status-bar size.
+// The car spans x 0–512, y 32–480 in its own coordinate space.
+function buildBadgeSvg(size) {
+  const scale = (size * 0.9) / 512
+  const tx = ((size - 512 * scale) / 2).toFixed(2)
+  const ty = ((size - 448 * scale) / 2 - 32 * scale).toFixed(2)
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}">
+  <path transform="translate(${tx},${ty}) scale(${scale.toFixed(4)})" fill="#ffffff"
+    d="${carPath}"/>
 </svg>`
 }
 
@@ -65,10 +78,10 @@ const mapIconPath =
 const statsIconPath =
   'M160 80c0-26.5 21.5-48 48-48h32c26.5 0 48 21.5 48 48V432c0 26.5-21.5 48-48 48H208c-26.5 0-48-21.5-48-48V80zM0 272c0-26.5 21.5-48 48-48H80c26.5 0 48 21.5 48 48V432c0 26.5-21.5 48-48 48H48c-26.5 0-48-21.5-48-48V272zM368 96h32c26.5 0 48 21.5 48 48V432c0 26.5-21.5 48-48 48H368c-26.5 0-48-21.5-48-48V144c0-26.5 21.5-48 48-48z'
 
-function write(filePath, svg, size) {
+function write(filePath, svg, size, background = BG) {
   const resvg = new Resvg(svg, {
     fitTo: { mode: 'width', value: size },
-    background: BG,
+    ...(background ? { background } : {}),
   })
   const png = resvg.render().asPng()
   writeFileSync(filePath, png)
@@ -86,3 +99,6 @@ write(join(pub, 'apple-touch-icon-180x180.png'), buildIconSvg(180), 180)
 // Shortcut icons
 write(join(pub, 'shortcut-map-96x96.png'), buildShortcutSvg(96, mapIconPath, 384, 512), 96)
 write(join(pub, 'shortcut-stats-96x96.png'), buildShortcutSvg(96, statsIconPath, 448, 512), 96)
+
+// Notification badge: transparent, so Android can draw its shape (96px is Android's badge size)
+write(join(pub, 'badge-96x96.png'), buildBadgeSvg(96), 96, null)
