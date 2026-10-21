@@ -49,7 +49,7 @@ self.addEventListener('push', (event) => {
   const options: NotificationOptions & { renotify?: boolean } = {
     body: payload.body ?? '',
     icon: '/pwa-192x192.png',
-    badge: '/pwa-64x64.png',
+    badge: '/badge-96x96.png',
     tag,
     renotify: true,
     data: { url: payload.url ?? '/' },
