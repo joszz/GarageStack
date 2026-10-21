@@ -16,9 +16,11 @@ const props = defineProps<{
   activeIndex: number | null
   /** How many placeholder rows to show while loading. */
   skeletonRows: number
+  /** The one day shown instead of the period, for a trip opened from the trip log. */
+  shownDay?: string | null
 }>()
 
-defineEmits<{ select: [realIdx: number] }>()
+defineEmits<{ select: [realIdx: number]; showPeriod: [] }>()
 
 const { t } = useI18n()
 const root = useTemplateRef<HTMLElement>('root')
@@ -28,27 +30,32 @@ const sentinel = useTemplateRef<HTMLElement>('sentinel')
 defineExpose({ root, sentinel })
 
 // A trip selected from here or from its line on the map is brought into view below the sticky
-// header, without jumping when it is already visible.
+// header, without jumping when it is already visible. One selected while the list is still
+// placeholders, such as a trip opened from the trip log, is brought into view once its row is
+// there, at once rather than scrolling down past every trip before it.
+function scrollToSelected(behavior: ScrollBehavior) {
+  const sidebar = root.value
+  const active = sidebar?.querySelector('.trip-list__item--active') as HTMLElement | null
+  if (!sidebar || !active) return
+  const header = sidebar.querySelector('.trip-sidebar__header') as HTMLElement | null
+  const headerHeight = header?.offsetHeight ?? 0
+  const sidebarRect = sidebar.getBoundingClientRect()
+  const itemRect = active.getBoundingClientRect()
+  const itemTop = itemRect.top - sidebarRect.top
+  const itemBottom = itemRect.bottom - sidebarRect.top
+  if (itemTop < headerHeight) {
+    sidebar.scrollBy({ top: itemTop - headerHeight, behavior })
+  } else if (itemBottom > sidebarRect.height) {
+    sidebar.scrollBy({ top: itemBottom - sidebarRect.height, behavior })
+  }
+}
+
 watch(
-  () => props.selectedIndex,
-  (idx) => {
-    if (idx === null) return
-    nextTick(() => {
-      const sidebar = root.value
-      const active = sidebar?.querySelector('.trip-list__item--active') as HTMLElement | null
-      if (!sidebar || !active) return
-      const header = sidebar.querySelector('.trip-sidebar__header') as HTMLElement | null
-      const headerHeight = header?.offsetHeight ?? 0
-      const sidebarRect = sidebar.getBoundingClientRect()
-      const itemRect = active.getBoundingClientRect()
-      const itemTop = itemRect.top - sidebarRect.top
-      const itemBottom = itemRect.bottom - sidebarRect.top
-      if (itemTop < headerHeight) {
-        sidebar.scrollBy({ top: itemTop - headerHeight, behavior: 'smooth' })
-      } else if (itemBottom > sidebarRect.height) {
-        sidebar.scrollBy({ top: itemBottom - sidebarRect.height, behavior: 'smooth' })
-      }
-    })
+  () => [props.selectedIndex, props.loading] as const,
+  ([idx, loading], [prevIdx, wasLoading]) => {
+    if (idx === null || loading) return
+    if (idx === prevIdx && !wasLoading) return
+    nextTick(() => scrollToSelected(wasLoading ? 'instant' : 'smooth'))
   },
 )
 </script>
@@ -60,6 +67,12 @@ watch(
         <font-awesome-icon icon="route" />
         {{ t('trips.title') }}
       </h2>
+      <div v-if="shownDay" class="trip-sidebar__day text-xs">
+        <span class="text-muted">{{ t('trips.shownDay', { day: shownDay }) }}</span>
+        <button type="button" class="btn btn-outline-secondary btn-sm" @click="$emit('showPeriod')">
+          <font-awesome-icon icon="rotate-left" />{{ t('trips.showPeriod') }}
+        </button>
+      </div>
     </div>
 
     <div v-if="loading" class="trip-list">
@@ -127,6 +140,20 @@ watch(
 </template>
 
 <style scoped>
+/* The day opened from the trip log takes a line of its own under the title. */
+.trip-sidebar__header:has(.trip-sidebar__day) {
+  flex-wrap: wrap;
+}
+
+.trip-sidebar__day {
+  display: flex;
+  flex-basis: 100%;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.5rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
 .trip-list__dot--live {
   animation: trip-start-pulse 2s ease-in-out infinite;
 }

@@ -214,6 +214,14 @@ function saveNotes() {
       />
 
       <div class="trip-log-item__manage">
+        <!-- A hidden trip is left off the map, so there is nothing there to show it on. -->
+        <RouterLink
+          v-if="!entry.isHidden"
+          class="btn btn-outline-secondary btn-sm"
+          :to="{ name: 'map', query: { trip: entry.id, at: entry.startedAt } }"
+        >
+          <font-awesome-icon icon="map" />{{ t('tripLog.showOnMap') }}
+        </RouterLink>
         <button
           type="button"
           class="btn btn-outline-secondary btn-sm"

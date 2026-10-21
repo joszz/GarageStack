@@ -36,7 +36,16 @@ function mountItem(
       canJoinNext: true,
       ...props,
     },
-    global: { plugins: [i18n], stubs: { FontAwesomeIcon: true } },
+    global: {
+      plugins: [i18n],
+      stubs: {
+        FontAwesomeIcon: true,
+        RouterLink: {
+          props: ['to'],
+          template: '<a class="router-link" :data-to="JSON.stringify(to)"><slot /></a>',
+        },
+      },
+    },
   })
 }
 
@@ -183,6 +192,22 @@ describe('TripLogItem', () => {
     expect(shown.emitted('setHidden')).toEqual([[true]])
     expect(hidden.emitted('setHidden')).toEqual([[false]])
     expect(hidden.classes()).toContain('trip-log-item--hidden')
+  })
+
+  it('links to the trip on the map, but not for a hidden one the map leaves out', () => {
+    const entry = logEntry()
+    const link = mountItem(entry).find('.router-link')
+
+    expect(link.text()).toBe(en.tripLog.showOnMap)
+    expect(JSON.parse(link.attributes('data-to')!)).toEqual({
+      name: 'map',
+      query: { trip: entry.id, at: entry.startedAt },
+    })
+    expect(
+      mountItem(logEntry({ isHidden: true }))
+        .find('.router-link')
+        .exists(),
+    ).toBe(false)
   })
 
   it('joins with the next trip only on a second tap', async () => {

@@ -28,7 +28,8 @@ import { DEFAULT_MAP_CENTER, type LeafletMap } from '@/utils/leaflet'
 import '@/assets/map.css'
 import type { Trip } from '@/services/vehicleApi'
 import { speedLimitSummary } from '@/utils/speedLimits'
-import { daysAgoIso } from '@/utils/dates'
+import { daysAgoIso, MS_PER_DAY, startOfLocalDay } from '@/utils/dates'
+import { DAY_MONTH, formatDate } from '@/utils/format'
 import { isPhoneViewport } from '@/utils/viewport'
 import { useUnits } from '@/composables/useUnits'
 import { burnsFuel, plugsIn } from '@/utils/vehicleType'
@@ -60,6 +61,35 @@ const { speedOverlayEnabled, speedLimitOverlayEnabled } = storeToRefs(settingsSt
 const { filterDays: dateRangeDays } = storeToRefs(uiSettingsStore)
 
 let shouldSelectLatest = route.query.selectLatest === '1'
+
+// A trip opened from the trip log, selected once the trips have loaded. One from before the
+// period is shown with the rest of its day instead, as the map cannot load years of fixes at
+// once, until the period is asked for again.
+let pendingTripId = Number(route.query.trip) || null
+const shownDay = ref<{ from: string; to: string } | null>(dayOf(route.query.at))
+
+function dayOf(at: unknown): { from: string; to: string } | null {
+  if (pendingTripId === null || typeof at !== 'string') return null
+  const startedAt = new Date(at)
+  if (Number.isNaN(startedAt.getTime())) return null
+  if (+startedAt >= Date.now() - dateRangeDays.value * MS_PER_DAY) return null
+  const from = startOfLocalDay(startedAt)
+  const to = new Date(from.getFullYear(), from.getMonth(), from.getDate() + 1)
+  return { from: from.toISOString(), to: new Date(Math.min(+to, Date.now())).toISOString() }
+}
+
+const shownDayLabel = computed(() =>
+  shownDay.value
+    ? formatDate(shownDay.value.from, { weekday: 'short', ...DAY_MONTH, year: 'numeric' })
+    : null,
+)
+
+function fetchShownTrips(v: string) {
+  const day = shownDay.value
+  return day
+    ? store.fetchTrips(v, day.from, day.to)
+    : store.fetchTrips(v, daysAgoIso(dateRangeDays.value))
+}
 const LOAD_MORE_SIZE = 10
 
 // How many samples the heatmap is drawn from. It renders to a canvas rather than one DOM element
@@ -91,6 +121,7 @@ const newestFirstTrips = computed(() => [...store.trips].reverse())
 const {
   displayItems: displayTrips,
   reset: resetTripScroll,
+  showAtLeast: showTripsAtLeast,
   observe: observeTrips,
 } = useInfiniteScroll(newestFirstTrips, LOAD_MORE_SIZE)
 
@@ -179,8 +210,14 @@ const limitColoursShown = computed(
 )
 
 // Whichever speed key is showing opens and folds as one. A phone's map is too short to give the
-// key its room by default, so there it starts folded to its button.
-const legendExpanded = ref(!isPhoneViewport())
+// key its room by default, so there it starts folded to its button. Once opened or folded, the
+// key stays that way on this device.
+const legendExpanded = computed({
+  get: () => settingsStore.legendExpanded ?? !isPhoneViewport(),
+  set: (expanded: boolean) => {
+    settingsStore.legendExpanded = expanded
+  },
+})
 
 // ── Drawing ────────────────────────────────────────────────────────────────────
 const tripLayers = useTripLayers({
@@ -194,10 +231,14 @@ const tripLayers = useTripLayers({
   limitColoursShown,
   heatPoints,
   onSelect: selectTrip,
-  takeSelectLatest: () => {
-    const take = shouldSelectLatest
+  takePendingSelection: () => {
+    const latest = shouldSelectLatest
+    const id = pendingTripId
     shouldSelectLatest = false
-    return take
+    pendingTripId = null
+    if (latest) return store.trips.length - 1
+    const idx = id === null ? -1 : store.trips.findIndex((trip) => trip.id === id)
+    return idx === -1 ? null : idx
   },
 })
 
@@ -285,20 +326,22 @@ function onMapReady(map: LeafletMap) {
   })
 }
 
-// Date range change: reload trips and reset state
-watch(dateRangeDays, async (days) => {
+// Date range change, or back to it from a single day: reload trips and reset state
+async function showPeriod() {
+  shownDay.value = null
   resetTripScroll()
   selectedTripIndex.value = null
-  if (vin.value) {
-    await store.fetchTrips(vin.value, daysAgoIso(days))
-  }
-})
+  if (vin.value) await fetchShownTrips(vin.value)
+}
 
-// Trip just finished: silently prepend without resetting selection or page
+watch(dateRangeDays, showPeriod)
+
+// Trip just finished: silently prepend without resetting selection or page. A day shown from
+// the trip log is in the past, so a new trip is not one of its own.
 watch(
   () => store.tripJustCompleted,
   async (completed) => {
-    if (!completed || !vin.value) return
+    if (!completed || !vin.value || shownDay.value) return
     await store.fetchTrips(vin.value, daysAgoIso(dateRangeDays.value))
   },
 )
@@ -307,8 +350,14 @@ function selectTrip(realIdx: number) {
   selectedTripIndex.value = selectedTripIndex.value === realIdx ? null : realIdx
 }
 
+// A trip selected on the map, or opened from the trip log, may be further down the list than it
+// has grown yet; its row is shown, so the sidebar can bring it into view.
+watch(selectedTripIndex, (idx) => {
+  if (idx !== null) showTripsAtLeast(store.trips.length - idx)
+})
+
 onMounted(async () => {
-  if (route.query.selectLatest) {
+  if (route.query.selectLatest || route.query.trip) {
     router.replace({ name: 'map' })
   }
   await store.fetchVehicles()
@@ -316,7 +365,7 @@ onMounted(async () => {
     await Promise.all([
       store.fetchStatus(vin.value),
       store.fetchConfig(vin.value),
-      store.fetchTrips(vin.value, daysAgoIso(dateRangeDays.value)),
+      fetchShownTrips(vin.value),
     ])
   }
   nextTick(() => {
@@ -362,7 +411,9 @@ onMounted(async () => {
         :selected-index="selectedTripIndex"
         :active-index="activeTripIndex"
         :skeleton-rows="LOAD_MORE_SIZE"
+        :shown-day="shownDayLabel"
         @select="selectTrip"
+        @show-period="showPeriod"
       />
 
       <!-- Map -->

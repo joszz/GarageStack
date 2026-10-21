@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest'
-import { mount } from '@vue/test-utils'
+import { describe, it, expect, vi } from 'vitest'
+import { flushPromises, mount } from '@vue/test-utils'
 import { createI18n } from 'vue-i18n'
 import TripSidebar from '../TripSidebar.vue'
 import type { TripRow } from '@/utils/tripRows'
@@ -67,5 +67,24 @@ describe('TripSidebar', () => {
 
     expect(exposed.root).toBeInstanceOf(HTMLElement)
     expect(exposed.sentinel).toBeInstanceOf(HTMLElement)
+  })
+
+  it('brings a trip selected while loading into view once its row is there', async () => {
+    const wrapper = mountSidebar({ loading: true })
+    const root = wrapper.find('.trip-sidebar').element as HTMLElement
+    const scrollBy = vi.fn<(options?: ScrollToOptions) => void>()
+    root.scrollBy = scrollBy as HTMLElement['scrollBy']
+    root.getBoundingClientRect = () => ({ top: 0, bottom: 100, height: 100 }) as DOMRect
+
+    await wrapper.setProps({ selectedIndex: 0 })
+    await flushPromises()
+    expect(scrollBy).not.toHaveBeenCalled()
+
+    await wrapper.setProps({ loading: false })
+    const active = wrapper.find('.trip-list__item--active').element as HTMLElement
+    active.getBoundingClientRect = () => ({ top: 400, bottom: 460, height: 60 }) as DOMRect
+    await flushPromises()
+
+    expect(scrollBy).toHaveBeenCalledWith({ top: 360, behavior: 'instant' })
   })
 })

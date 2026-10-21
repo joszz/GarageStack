@@ -19,6 +19,11 @@ interface MapSettings {
   fuelTypeFilter: string[]
   serviceAreasEnabled: boolean
   speedCamerasEnabled: boolean
+  /**
+   * Whether the speed key on the map is open; null until it is opened or folded here, when it
+   * follows the screen. Kept per device, as a phone's map is too short for what suits a desktop.
+   */
+  legendExpanded: boolean | null
 }
 
 // A function rather than a constant: the lists in it are the store's own once loaded, and a
@@ -38,6 +43,7 @@ function defaultsFor(): MapSettings {
     fuelTypeFilter: [],
     serviceAreasEnabled: false,
     speedCamerasEnabled: false,
+    legendExpanded: null,
   }
 }
 
@@ -66,6 +72,7 @@ function parseMapFields(parsed: Record<string, unknown>): MapSettings {
       : [],
     serviceAreasEnabled: parsed.serviceAreasEnabled === true,
     speedCamerasEnabled: parsed.speedCamerasEnabled === true,
+    legendExpanded: typeof parsed.legendExpanded === 'boolean' ? parsed.legendExpanded : null,
   }
 }
 
@@ -76,6 +83,7 @@ export const useMapSettingsStore = defineStore('settingsMap', () => {
     section: 'map',
     state: settings,
     parse: parseMapFields,
+    localKeys: ['legendExpanded'],
   })
   return toRefs(settings)
 })

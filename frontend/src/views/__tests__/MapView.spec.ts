@@ -7,6 +7,7 @@ import en from '@/locales/en.json'
 import MapView from '../MapView.vue'
 import { vehicleApi, type TelemetrySnapshot, type Trip, type Vehicle } from '@/services/vehicleApi'
 import type { TripMatch } from '@/composables/useTripMatch'
+import type { TripLayersOptions } from '@/composables/useTripLayers'
 import { useVehicleStore } from '@/stores/vehicle'
 import { useUiSettingsStore } from '@/stores/settingsUi'
 
@@ -29,7 +30,13 @@ const tripLayers = {
   drawInitial: vi.fn<() => void>(),
   showCar: vi.fn<(latLng: [number, number]) => void>(),
 }
-vi.mock('@/composables/useTripLayers', () => ({ useTripLayers: () => tripLayers }))
+let tripLayerOptions: TripLayersOptions
+vi.mock('@/composables/useTripLayers', () => ({
+  useTripLayers: (o: TripLayersOptions) => {
+    tripLayerOptions = o
+    return tripLayers
+  },
+}))
 vi.mock('@/composables/usePoiLayers', () => ({
   usePoiLayers: () => ({
     speedCamerasAvailable: ref(true),
@@ -120,10 +127,11 @@ async function mountView() {
         SpeedLegend: true,
         SpeedLimitLegend: true,
         TripSidebar: {
-          props: ['rows', 'selectedIndex', 'activeIndex'],
-          emits: ['select'],
+          props: ['rows', 'selectedIndex', 'activeIndex', 'shownDay'],
+          emits: ['select', 'showPeriod'],
           template:
-            '<ul class="sidebar" :data-selected="selectedIndex" :data-active="activeIndex">' +
+            '<ul class="sidebar" :data-selected="selectedIndex" :data-active="activeIndex" :data-day="shownDay">' +
+            '<button v-if="shownDay" class="show-period" @click="$emit(\'showPeriod\')" />' +
             '<li v-for="r in rows" :key="r.realIdx" @click="$emit(\'select\', r.realIdx)">{{ r.realIdx }}</li></ul>',
         },
       },
@@ -266,5 +274,43 @@ describe('MapView', () => {
     await mountView()
 
     expect(router.replace).toHaveBeenCalledWith({ name: 'map' })
+  })
+
+  it('selects the trip it was opened for from the trip log, once the trips are in', async () => {
+    route.query = { trip: '2', at: trip(1).startedAt }
+    useUiSettingsStore(pinia).filterDays = 30
+
+    const wrapper = await mountView()
+
+    expect(router.replace).toHaveBeenCalledWith({ name: 'map' })
+    expect(vehicleApi.trips).toHaveBeenCalledWith(car.vin, '2026-09-19T12:00:00.000Z', undefined)
+    expect(tripLayerOptions.takePendingSelection()).toBe(1)
+    // Asked once: a later reload of the trips does not select it again.
+    expect(tripLayerOptions.takePendingSelection()).toBeNull()
+    expect(sidebar(wrapper).attributes('data-day')).toBeUndefined()
+  })
+
+  it('shows an older trip with the rest of its day, until the period is asked for again', async () => {
+    route.query = { trip: '7', at: '2025-03-04T09:15:00Z' }
+    const old = { ...trip(0), id: 7 }
+    vi.mocked(vehicleApi.trips).mockResolvedValueOnce([old])
+
+    const wrapper = await mountView()
+
+    const [, from, to] = vi.mocked(vehicleApi.trips).mock.calls[0]!
+    expect(new Date(from!).getTime()).toBeLessThanOrEqual(Date.parse('2025-03-04T09:15:00Z'))
+    expect(new Date(to!).getTime() - new Date(from!).getTime()).toBe(86_400_000)
+    expect(tripLayerOptions.takePendingSelection()).toBe(0)
+    expect(sidebar(wrapper).attributes('data-day')).toBeTruthy()
+
+    await wrapper.find('.show-period').trigger('click')
+    await flushPromises()
+
+    expect(vehicleApi.trips).toHaveBeenLastCalledWith(
+      car.vin,
+      '2026-10-12T12:00:00.000Z',
+      undefined,
+    )
+    expect(sidebar(wrapper).attributes('data-day')).toBeUndefined()
   })
 })

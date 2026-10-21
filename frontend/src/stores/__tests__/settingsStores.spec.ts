@@ -331,6 +331,17 @@ describe('useMapSettingsStore', () => {
     const store = useMapSettingsStore()
     expect(store.fuelTypeFilter).toEqual(['diesel', 'petrol'])
   })
+
+  it('remembers whether the speed key was folded, and leaves it to the screen until then', async () => {
+    expect(useMapSettingsStore().legendExpanded).toBeNull()
+
+    useMapSettingsStore().legendExpanded = false
+    await nextTick()
+    vi.advanceTimersByTime(SAVE_DEBOUNCE_MS)
+    setActivePinia(createPinia())
+
+    expect(useMapSettingsStore().legendExpanded).toBe(false)
+  })
 })
 
 describe('useDashboardSettingsStore', () => {
