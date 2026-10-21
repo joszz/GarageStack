@@ -210,8 +210,14 @@ const limitColoursShown = computed(
 )
 
 // Whichever speed key is showing opens and folds as one. A phone's map is too short to give the
-// key its room by default, so there it starts folded to its button.
-const legendExpanded = ref(!isPhoneViewport())
+// key its room by default, so there it starts folded to its button. Once opened or folded, the
+// key stays that way on this device.
+const legendExpanded = computed({
+  get: () => settingsStore.legendExpanded ?? !isPhoneViewport(),
+  set: (expanded: boolean) => {
+    settingsStore.legendExpanded = expanded
+  },
+})
 
 // ── Drawing ────────────────────────────────────────────────────────────────────
 const tripLayers = useTripLayers({

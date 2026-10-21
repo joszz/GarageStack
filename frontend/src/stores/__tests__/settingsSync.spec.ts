@@ -88,8 +88,13 @@ describe('settings kept on the account', () => {
     await vi.waitFor(() => expect(save).toHaveBeenCalledOnce())
     const [section, changes] = save.mock.calls[0]!
     expect(section).toBe('map')
-    // Every key, so the account holds the whole section from here on.
-    expect(Object.keys(changes).sort()).toEqual(Object.keys(map.$state).sort())
+    // Every key but the ones kept on this device, so the account holds the whole section from
+    // here on.
+    expect(Object.keys(changes).sort()).toEqual(
+      Object.keys(map.$state)
+        .filter((key) => key !== 'legendExpanded')
+        .sort(),
+    )
     expect(changes.heatmapEnabled).toBe(false)
   })
 
