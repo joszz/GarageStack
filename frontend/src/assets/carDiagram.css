@@ -18,12 +18,12 @@
 
 .car-shadow {
   flood-color: #000;
-  flood-opacity: 0.55;
+  flood-opacity: 0.7;
 }
 
 [data-theme='light'] .car-shadow {
   flood-color: #0f172a;
-  flood-opacity: 0.3;
+  flood-opacity: 0.42;
 }
 
 /* ── Road driving animation ───────────────────────────── */

@@ -239,7 +239,7 @@ const motionBlurAmount = computed(() => {
               <!-- A soft shadow under the car, so a pale paint (white, silver) stands off the
                    white card and a dark one off the road. -->
               <filter id="car-shadow" x="-20%" y="-10%" width="140%" height="120%">
-                <feDropShadow dx="0" dy="3" stdDeviation="4" class="car-shadow" />
+                <feDropShadow dx="0" dy="4" stdDeviation="5" class="car-shadow" />
               </filter>
               <!-- The road fades out at the top and bottom instead of ending on a hard edge. -->
               <linearGradient id="road-fade-grad" x1="0" y1="0" x2="0" y2="1">
