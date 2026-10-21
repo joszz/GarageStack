@@ -16,9 +16,11 @@ const props = defineProps<{
   activeIndex: number | null
   /** How many placeholder rows to show while loading. */
   skeletonRows: number
+  /** The one day shown instead of the period, for a trip opened from the trip log. */
+  shownDay?: string | null
 }>()
 
-defineEmits<{ select: [realIdx: number] }>()
+defineEmits<{ select: [realIdx: number]; showPeriod: [] }>()
 
 const { t } = useI18n()
 const root = useTemplateRef<HTMLElement>('root')
@@ -60,6 +62,12 @@ watch(
         <font-awesome-icon icon="route" />
         {{ t('trips.title') }}
       </h2>
+      <div v-if="shownDay" class="trip-sidebar__day text-xs">
+        <span class="text-muted">{{ t('trips.shownDay', { day: shownDay }) }}</span>
+        <button type="button" class="btn btn-outline-secondary btn-sm" @click="$emit('showPeriod')">
+          <font-awesome-icon icon="rotate-left" />{{ t('trips.showPeriod') }}
+        </button>
+      </div>
     </div>
 
     <div v-if="loading" class="trip-list">
@@ -127,6 +135,20 @@ watch(
 </template>
 
 <style scoped>
+/* The day opened from the trip log takes a line of its own under the title. */
+.trip-sidebar__header:has(.trip-sidebar__day) {
+  flex-wrap: wrap;
+}
+
+.trip-sidebar__day {
+  display: flex;
+  flex-basis: 100%;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.5rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
 .trip-list__dot--live {
   animation: trip-start-pulse 2s ease-in-out infinite;
 }

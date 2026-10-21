@@ -16,5 +16,10 @@ export function useInfiniteScroll<T>(items: Ref<T[]>, pageSize: number) {
     displayCount.value = pageSize
   }
 
-  return { displayItems, sentinelRef, reset, observe, disconnect }
+  /** Shows whole pages up to at least the first `count` items, for one further down the list. */
+  function showAtLeast(count: number) {
+    if (count > displayCount.value) displayCount.value = Math.ceil(count / pageSize) * pageSize
+  }
+
+  return { displayItems, sentinelRef, reset, showAtLeast, observe, disconnect }
 }

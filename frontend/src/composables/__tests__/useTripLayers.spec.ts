@@ -86,7 +86,7 @@ function setup(overrides: Partial<TripLayersOptions> = {}) {
     limitColoursShown: ref(false),
     heatPoints: ref<[number, number][]>([[52, 5]]),
     onSelect: vi.fn<(index: number) => void>(),
-    takeSelectLatest: () => false,
+    takePendingSelection: () => null,
     ...overrides,
   }
   let api!: ReturnType<typeof useTripLayers>
@@ -271,9 +271,9 @@ describe('useTripLayers', () => {
     expect(fitToPoints).not.toHaveBeenCalled()
   })
 
-  it('selects the newest trip when the trips arrive, if the view was opened for it', async () => {
+  it('selects the trip the view was opened for when the trips arrive', async () => {
     const onSelect = vi.fn<(index: number) => void>()
-    const { o } = setup({ trips: ref([]), onSelect, takeSelectLatest: () => true })
+    const { o } = setup({ trips: ref([]), onSelect, takePendingSelection: () => 1 })
 
     o.trips.value = twoTrips()
     await flushPromises()

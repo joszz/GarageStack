@@ -314,6 +314,8 @@
   },
   "trips": {
     "title": "Ritgeschiedenis",
+    "shownDay": "{day} wordt getoond",
+    "showPeriod": "Terug naar de periode",
     "noTrips": "Geen ritten opgeslagen",
     "dateRange": "Periode",
     "last7days": "Afgelopen 7 dagen",
@@ -774,6 +776,7 @@
       "automaticHint": "Als woon-werk gemarkeerd omdat de rit tussen thuis en werk loopt. Kies een ander doel om dit te wijzigen.",
       "useEnd": "{place} instellen als thuis of werk"
     },
+    "showOnMap": "Toon op kaart",
     "hide": "Verbergen",
     "show": "Weer tonen",
     "hideHint": "Laat deze rit weg uit de kaart, de statistieken, het dashboard en deze totalen, bij een fout in de positie. Hij blijft staan bij de verborgen ritten.",

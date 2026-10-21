@@ -29,8 +29,11 @@ export interface TripLayersOptions {
   heatPoints: Ref<HeatPoints>
   /** A trip's line was clicked. */
   onSelect: (index: number) => void
-  /** Whether the view was opened to show the newest trip; true once, when trips first arrive. */
-  takeSelectLatest: () => boolean
+  /**
+   * The trip the view was opened to show, as an index into `trips`, once they have arrived;
+   * asked once, and null when there is none or it is not among them.
+   */
+  takePendingSelection: () => number | null
 }
 
 /**
@@ -219,6 +222,13 @@ export function useTripLayers(o: TripLayersOptions) {
     fitPoints(latLngsOf(trip.points))
   }
 
+  // Selecting frames the trip itself, so the frame around every trip is left out then.
+  function selectPendingOrFitAll() {
+    const pending = o.takePendingSelection()
+    if (pending !== null) o.onSelect(pending)
+    else fitAll()
+  }
+
   /**
    * The first picture once the map exists: every trip, framed, or the car when there are none
    * yet. Later arrivals of trips redraw on their own.
@@ -230,7 +240,7 @@ export function useTripLayers(o: TripLayersOptions) {
     if (allPoints.value.length > 0) {
       buildHeatLayer()
       buildRouteLines()
-      fitAll()
+      selectPendingOrFitAll()
     } else if (s?.latitude != null && s?.longitude != null) {
       hasCenteredOnStatus = true
       map.setView([s.latitude, s.longitude], 14, { animate: false })
@@ -286,8 +296,7 @@ export function useTripLayers(o: TripLayersOptions) {
     await nextTick()
     buildHeatLayer()
     buildRouteLines()
-    if (o.takeSelectLatest()) o.onSelect(o.trips.value.length - 1)
-    else fitAll()
+    selectPendingOrFitAll()
   })
 
   // Trip selection drives map display and popover position.
