@@ -280,4 +280,44 @@ describe('useTripLayers', () => {
 
     expect(onSelect).toHaveBeenCalledWith(1)
   })
+
+  it('keeps the trip it was opened for on its own when the map is laid out after the trips arrived', async () => {
+    // The trips land while the map is still waiting for its first layout; the first picture
+    // then comes after the trip has been selected, and must not draw every trip over it.
+    let pending: number | null = 1
+    const { o, api } = setup({
+      trips: ref([]),
+      takePendingSelection: () => {
+        const take = pending
+        pending = null
+        return take
+      },
+    })
+    o.onSelect = vi.fn<(idx: number) => void>((idx) => (o.selectedIndex.value = idx))
+
+    o.trips.value = twoTrips()
+    await flushPromises()
+    vi.mocked(fitToPoints).mockClear()
+    api.drawInitial()
+
+    expect(o.selectedIndex.value).toBe(1)
+    expect(heat()).toBe(false)
+    expect(lines()).toHaveLength(1)
+    const frames = vi.mocked(fitToPoints).mock.calls
+    expect(frames[frames.length - 1]![1]).toHaveLength(2)
+  })
+
+  it('keeps a selected trip on its own, where it is, when the trips are loaded again', async () => {
+    const { o } = setup()
+    o.selectedIndex.value = 0
+    await nextTick()
+    vi.mocked(fitToPoints).mockClear()
+
+    o.trips.value = [...twoTrips(), trip(2, points(10, 20))]
+    await flushPromises()
+
+    expect(heat()).toBe(false)
+    expect(lines()).toHaveLength(1)
+    expect(fitToPoints).not.toHaveBeenCalled()
+  })
 })
