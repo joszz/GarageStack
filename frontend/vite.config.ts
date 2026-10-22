@@ -97,6 +97,30 @@ export default defineConfig({
             url: '/statistics',
             icons: [{ src: 'shortcut-stats-96x96.png', sizes: '96x96', type: 'image/png' }],
           },
+          {
+            name: 'Trip log',
+            short_name: 'Trips',
+            url: '/trip-log',
+            icons: [{ src: 'shortcut-trip-log-96x96.png', sizes: '96x96', type: 'image/png' }],
+          },
+          {
+            name: 'Climate schedules',
+            short_name: 'Climate',
+            url: '/climate-schedules',
+            icons: [{ src: 'shortcut-climate-96x96.png', sizes: '96x96', type: 'image/png' }],
+          },
+          {
+            name: 'Maintenance',
+            short_name: 'Maintenance',
+            url: '/maintenance',
+            icons: [{ src: 'shortcut-maintenance-96x96.png', sizes: '96x96', type: 'image/png' }],
+          },
+          {
+            name: 'Logs',
+            short_name: 'Logs',
+            url: '/logs',
+            icons: [{ src: 'shortcut-logs-96x96.png', sizes: '96x96', type: 'image/png' }],
+          },
         ],
         screenshots: [
           {
