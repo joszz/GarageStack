@@ -153,6 +153,10 @@ COPY --from=saic-source /tmp/release-version /opt/saic/release-version
 # httpx 0.28 accepts any anyio 4.x, so the upgrade stays inside the gateway's own bounds.
 # Drop this once the pinned gateway tag ships anyio >= 4.14.2.
 #
+# certifi too: the gateway ships 2026.2.25, whose CA bundle still trusts emSign roots with
+# compromised intermediate keys (GHSA-6q48-6c7w-9gw2), fixed in 2026.10.19. certifi is data only,
+# so a newer bundle cannot break the code using it. Drop this once the gateway ships it.
+#
 # Importing main.py loads every gateway module, so a venv that no longer runs on this image's
 # Python, or a package the upgrade above broke, fails the build here instead of the gateway at
 # startup.
@@ -168,7 +172,7 @@ COPY --from=saic-source /tmp/release-version /opt/saic/release-version
 # The import check runs from the app directory, as the gateway does, without moving WORKDIR.
 # hadolint ignore=DL3003
 RUN --mount=type=bind,source=docker/all-in-one/requirements.txt,target=/tmp/requirements.txt \
-    /opt/saic/app/.venv/bin/python -m pip install --no-cache-dir --upgrade "anyio==4.15.1" \
+    /opt/saic/app/.venv/bin/python -m pip install --no-cache-dir --upgrade "anyio==4.15.1" "certifi==2026.10.19" \
     && cd /opt/saic/app && .venv/bin/python -B -c "import main" \
     && /opt/saic/app/.venv/bin/python -m pip uninstall --yes pip \
     && python -m pip install --no-cache-dir --require-hashes -r /tmp/requirements.txt \

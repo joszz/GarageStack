@@ -219,19 +219,25 @@ function saveNotes() {
           v-if="!entry.isHidden"
           class="btn btn-outline-secondary btn-sm"
           :to="{ name: 'map', query: { trip: entry.id, at: entry.startedAt } }"
+          :aria-label="t('tripLog.showOnMap')"
+          :title="t('tripLog.showOnMap')"
         >
-          <font-awesome-icon icon="map" />{{ t('tripLog.showOnMap') }}
+          <font-awesome-icon icon="map" /><span class="trip-log-item__label">{{
+            t('tripLog.showOnMap')
+          }}</span>
         </RouterLink>
         <button
           type="button"
           class="btn btn-outline-secondary btn-sm"
           :disabled="saving"
-          :title="entry.isHidden ? undefined : t('tripLog.hideHint')"
+          :title="entry.isHidden ? t('tripLog.show') : t('tripLog.hideHint')"
+          :aria-label="entry.isHidden ? t('tripLog.show') : t('tripLog.hide')"
           @click="emit('setHidden', !entry.isHidden)"
         >
-          <font-awesome-icon :icon="entry.isHidden ? 'eye' : 'eye-slash'" />{{
-            entry.isHidden ? t('tripLog.show') : t('tripLog.hide')
-          }}
+          <font-awesome-icon :icon="entry.isHidden ? 'eye' : 'eye-slash'" /><span
+            class="trip-log-item__label"
+            >{{ entry.isHidden ? t('tripLog.show') : t('tripLog.hide') }}</span
+          >
         </button>
         <button
           v-if="canJoinNext"
@@ -240,11 +246,19 @@ function saveNotes() {
           :class="joinConfirm.armed.value ? 'btn-warning' : 'btn-outline-secondary'"
           :disabled="saving"
           :title="t('tripLog.joinNextHint')"
+          :aria-label="
+            joinConfirm.armed.value ? t('tripLog.joinNextConfirm') : t('tripLog.joinNext')
+          "
           @click="joinNext"
         >
-          <font-awesome-icon icon="link" />{{
-            joinConfirm.armed.value ? t('tripLog.joinNextConfirm') : t('tripLog.joinNext')
-          }}
+          <!-- Armed, the label stays even where the others go, so the second tap is asked for. -->
+          <font-awesome-icon icon="link" /><span
+            class="trip-log-item__label"
+            :class="{ 'trip-log-item__label--kept': joinConfirm.armed.value }"
+            >{{
+              joinConfirm.armed.value ? t('tripLog.joinNextConfirm') : t('tripLog.joinNext')
+            }}</span
+          >
         </button>
       </div>
     </div>

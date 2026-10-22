@@ -246,14 +246,30 @@
     grid-template-columns: minmax(0, 1fr) auto;
   }
 
-  /* With the route on a row of its own, a long address wraps rather than ending in an ellipsis. */
+  /* With the route on a row of its own, from and to go one under the other, set off by a line
+     down their side rather than an arrow that wraps wherever the first address happens to end.
+     A long address wraps rather than ending in an ellipsis. */
   .trip-log-item__route {
-    flex-wrap: wrap;
-    row-gap: 0.1rem;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.2rem;
+    padding-left: 0.65rem;
+    border-left: 2px solid var(--color-border);
+  }
+
+  /* Through the route, to outweigh Font Awesome's own display on the icon. */
+  .trip-log-item__route .trip-log-item__arrow {
+    display: none;
   }
 
   .trip-log-item__place {
     white-space: normal;
+  }
+
+  /* The controls set off from the trip they describe. */
+  .trip-log-item__actions {
+    padding-top: 0.6rem;
+    border-top: 1px solid var(--color-border);
   }
 }
 
@@ -271,9 +287,35 @@
 
   .trip-log-purpose {
     flex: 1;
+    min-width: 0;
+    padding-inline: 0.4rem;
   }
 
-  .trip-log-item__notes {
+  .trip-log-item__auto {
     flex-basis: 100%;
+    margin-top: -0.2rem;
+  }
+
+  /* The notes share their row with map, hide and join, which keep only their icons (and their
+     names for screen readers and as tooltips): their labels made a row and a half of their own. */
+  .trip-log-item__notes {
+    flex: 1 1 8rem;
+    align-self: stretch;
+  }
+
+  .trip-log-item__manage {
+    flex-wrap: nowrap;
+    gap: 0.35rem;
+  }
+
+  .trip-log-item__manage .btn {
+    justify-content: center;
+    min-width: 2.1rem;
+    min-height: 2.1rem;
+    padding-inline: 0.55rem;
+  }
+
+  .trip-log-item__label:not(.trip-log-item__label--kept) {
+    display: none;
   }
 }
