@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { flushPromises, mount } from '@vue/test-utils'
+import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia, type Pinia } from 'pinia'
 import { createI18n } from 'vue-i18n'
 import en from '@/locales/en.json'
@@ -43,6 +43,10 @@ vi.mock('@/services/vehicleApi', () => ({
 
 vi.mock('@/utils/download', () => ({ downloadCsv: vi.fn<typeof downloadCsv>() }))
 
+// The page looks up addresses in rounds with pauses between them, and stops when it closes; left
+// open, a test's page would carry on asking in the tests after it.
+enableAutoUnmount(afterEach)
+
 const i18n = createI18n({ legacy: false, locale: 'en', messages: { en } })
 const car = { id: 1, vin: 'FAKEVN00000000001', vehicleType: 'hev' } as Vehicle
 
@@ -57,7 +61,7 @@ async function mountView() {
   const wrapper = mount(TripLogView, {
     global: {
       plugins: [i18n, pinia],
-      stubs: { FontAwesomeIcon: true, CommutePlacesModal: true },
+      stubs: { FontAwesomeIcon: true, CommutePlacesModal: true, teleport: true },
     },
   })
   await flushPromises()
@@ -129,18 +133,30 @@ describe('TripLogView', () => {
     expect(wrapper.find('.trip-log-totals').text()).toContain('Unclassified (0)')
   })
 
-  it('joins a trip with the next one on a second tap, and offers none for the newest', async () => {
+  it('joins a trip with the next one once confirmed, and offers none for the newest', async () => {
     vi.mocked(tripLogApi.mergeWithNext).mockResolvedValue(logEntry({ id: 1, distanceKm: 80 }))
     const wrapper = await mountView()
     const items = wrapper.findAll('.trip-log-item')
 
     expect(items[0]!.text()).not.toContain('Join with next trip')
-    const join = () => items[1]!.findAll('button').find((b) => /join/i.test(b.text()))!
-    await join().trigger('click')
-    await join().trigger('click')
+    await button(wrapper, 'Join with next trip')[0]!.trigger('click')
+    expect(tripLogApi.mergeWithNext).not.toHaveBeenCalled()
+
+    await button(wrapper, 'Join trips')[0]!.trigger('click')
     await flushPromises()
 
     expect(tripLogApi.mergeWithNext).toHaveBeenCalledWith(car.vin, 1)
+    expect(button(wrapper, 'Join trips')).toHaveLength(0)
+  })
+
+  it('leaves the trips as they are when the join is cancelled', async () => {
+    const wrapper = await mountView()
+
+    await button(wrapper, 'Join with next trip')[0]!.trigger('click')
+    await button(wrapper, 'Cancel')[0]!.trigger('click')
+
+    expect(tripLogApi.mergeWithNext).not.toHaveBeenCalled()
+    expect(button(wrapper, 'Join trips')).toHaveLength(0)
   })
 
   it('hides a trip, which then leaves the list', async () => {

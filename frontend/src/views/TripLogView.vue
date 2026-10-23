@@ -8,6 +8,7 @@ import { useUiSettingsStore } from '@/stores/settingsUi'
 import StatusCard from '@/components/StatusCard.vue'
 import TripLogItem from '@/components/TripLogItem.vue'
 import CommutePlacesModal from '@/components/CommutePlacesModal.vue'
+import DetailModal from '@/components/DetailModal.vue'
 import { useCommutePlacesStore } from '@/stores/commutePlaces'
 import { TRIP_PURPOSES, type TripPurpose } from '@/services/tripLogApi'
 import { downloadCsv } from '@/utils/download'
@@ -121,8 +122,17 @@ function setHidden(id: number, hidden: boolean) {
   if (vin.value) void store.setHidden(vin.value, id, hidden)
 }
 
-function joinNext(id: number) {
-  if (vin.value) void store.mergeWithNext(vin.value, id)
+// Joining cannot be undone, so it is asked for in a dialog rather than on the trip's own row.
+const joiningId = ref<number | null>(null)
+const joinBusy = computed(() => joiningId.value !== null && store.saving.has(joiningId.value))
+
+function cancelJoin() {
+  if (!joinBusy.value) joiningId.value = null
+}
+
+async function confirmJoin() {
+  if (vin.value && joiningId.value !== null) await store.mergeWithNext(vin.value, joiningId.value)
+  joiningId.value = null
 }
 
 function classifyAll(purpose: TripPurpose) {
@@ -234,9 +244,26 @@ function exportCsv() {
         @save="(purpose, notes) => save(entry.id, purpose, notes)"
         @pick-place="openPlaces"
         @set-hidden="(hidden) => setHidden(entry.id, hidden)"
-        @join-next="joinNext(entry.id)"
+        @join-next="joiningId = entry.id"
       />
     </ul>
+
+    <DetailModal :open="joiningId !== null" :title="t('tripLog.joinNext')" @close="cancelJoin">
+      <p class="text-sm">{{ t('tripLog.joinNextHint') }}</p>
+      <template #footer>
+        <button
+          type="button"
+          class="btn btn-outline-secondary"
+          :disabled="joinBusy"
+          @click="cancelJoin"
+        >
+          {{ t('common.cancel') }}
+        </button>
+        <button type="button" class="btn btn-warning" :disabled="joinBusy" @click="confirmJoin">
+          <font-awesome-icon icon="link" />{{ t('tripLog.joinNextConfirm') }}
+        </button>
+      </template>
+    </DetailModal>
 
     <CommutePlacesModal
       :open="placesOpen"

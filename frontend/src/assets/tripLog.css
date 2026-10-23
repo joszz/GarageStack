@@ -315,7 +315,7 @@
     padding-inline: 0.55rem;
   }
 
-  .trip-log-item__label:not(.trip-log-item__label--kept) {
+  .trip-log-item__label {
     display: none;
   }
 }

@@ -781,7 +781,7 @@
     "show": "Show again",
     "hideHint": "Leave this trip out of the map, the statistics, the dashboard and these totals, for a positioning glitch. It stays listed under the hidden trips.",
     "joinNext": "Join with next trip",
-    "joinNextConfirm": "Tap again to join",
+    "joinNextConfirm": "Join trips",
     "joinNextHint": "Joins this trip with the one after it, for a drive a short stop such as a fuel station split in two. Cannot be undone.",
     "showHidden": "Show hidden trip | Show {n} hidden trips"
   },

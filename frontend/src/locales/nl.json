@@ -781,7 +781,7 @@
     "show": "Weer tonen",
     "hideHint": "Laat deze rit weg uit de kaart, de statistieken, het dashboard en deze totalen, bij een fout in de positie. Hij blijft staan bij de verborgen ritten.",
     "joinNext": "Samenvoegen met volgende rit",
-    "joinNextConfirm": "Tik nogmaals om samen te voegen",
+    "joinNextConfirm": "Ritten samenvoegen",
     "joinNextHint": "Voegt deze rit samen met de rit erna, voor een rit die door een korte stop, zoals bij een tankstation, in tweeën is gesplitst. Kan niet ongedaan worden gemaakt.",
     "showHidden": "Verborgen rit tonen | {n} verborgen ritten tonen"
   },

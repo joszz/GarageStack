@@ -13,7 +13,6 @@ import { endLabel, loggedDistanceKm, odometerDistanceKm, PURPOSE_ICONS } from '@
 import { COMMUTE_PLACE_ICONS, commutePlaceAt } from '@/utils/commutePlaces'
 import type { CommutePlace } from '@/services/commutePlacesApi'
 import { useUnits } from '@/composables/useUnits'
-import { useTwoTapConfirm } from '@/composables/useTwoTapConfirm'
 import ChipGroup from './ChipGroup.vue'
 import type { ChipOption } from '@/utils/chips'
 
@@ -35,7 +34,7 @@ const emit = defineEmits<{
   /** One of the trip's ends, to set as home or work. */
   (e: 'pickPlace', latitude: number, longitude: number): void
   (e: 'setHidden', hidden: boolean): void
-  /** Join with the trip after it; confirmed with a second tap, since it cannot be undone. */
+  /** Asks to join with the trip after it; the page confirms, since it cannot be undone. */
   (e: 'joinNext'): void
 }>()
 
@@ -105,12 +104,6 @@ const purposeOptions = computed((): ChipOption<TripPurpose>[] =>
 // Choosing the purpose a trip already has clears it again, back to unclassified.
 function choosePurpose(purpose: TripPurpose | null) {
   emit('save', purpose, props.entry.notes)
-}
-
-const joinConfirm = useTwoTapConfirm<true>()
-
-function joinNext() {
-  if (joinConfirm.tap(true)) emit('joinNext')
 }
 
 function saveNotes() {
@@ -242,23 +235,15 @@ function saveNotes() {
         <button
           v-if="canJoinNext"
           type="button"
-          class="btn btn-sm"
-          :class="joinConfirm.armed.value ? 'btn-warning' : 'btn-outline-secondary'"
+          class="btn btn-outline-secondary btn-sm"
           :disabled="saving"
           :title="t('tripLog.joinNextHint')"
-          :aria-label="
-            joinConfirm.armed.value ? t('tripLog.joinNextConfirm') : t('tripLog.joinNext')
-          "
-          @click="joinNext"
+          :aria-label="t('tripLog.joinNext')"
+          @click="emit('joinNext')"
         >
-          <!-- Armed, the label stays even where the others go, so the second tap is asked for. -->
-          <font-awesome-icon icon="link" /><span
-            class="trip-log-item__label"
-            :class="{ 'trip-log-item__label--kept': joinConfirm.armed.value }"
-            >{{
-              joinConfirm.armed.value ? t('tripLog.joinNextConfirm') : t('tripLog.joinNext')
-            }}</span
-          >
+          <font-awesome-icon icon="link" /><span class="trip-log-item__label">{{
+            t('tripLog.joinNext')
+          }}</span>
         </button>
       </div>
     </div>
