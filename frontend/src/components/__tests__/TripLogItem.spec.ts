@@ -210,18 +210,14 @@ describe('TripLogItem', () => {
     ).toBe(false)
   })
 
-  it('joins with the next trip only on a second tap', async () => {
+  it('asks to join with the next trip', async () => {
     const wrapper = mountItem(logEntry())
-    const join = () =>
-      wrapper
-        .findAll('button')
-        .find((b) => b.text().startsWith('Join') || b.text().startsWith('Tap'))!
 
-    await join().trigger('click')
-    expect(wrapper.emitted('joinNext')).toBeUndefined()
-    expect(join().text()).toBe('Tap again to join')
+    await wrapper
+      .findAll('button')
+      .find((b) => b.text() === 'Join with next trip')!
+      .trigger('click')
 
-    await join().trigger('click')
     expect(wrapper.emitted('joinNext')).toHaveLength(1)
   })
 
