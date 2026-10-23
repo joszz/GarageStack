@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { flushPromises, mount } from '@vue/test-utils'
+import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia, type Pinia } from 'pinia'
 import { createI18n } from 'vue-i18n'
 import en from '@/locales/en.json'
@@ -42,6 +42,10 @@ vi.mock('@/services/vehicleApi', () => ({
 }))
 
 vi.mock('@/utils/download', () => ({ downloadCsv: vi.fn<typeof downloadCsv>() }))
+
+// The page looks up addresses in rounds with pauses between them, and stops when it closes; left
+// open, a test's page would carry on asking in the tests after it.
+enableAutoUnmount(afterEach)
 
 const i18n = createI18n({ legacy: false, locale: 'en', messages: { en } })
 const car = { id: 1, vin: 'FAKEVN00000000001', vehicleType: 'hev' } as Vehicle
