@@ -60,7 +60,7 @@ RUN dotnet publish GarageStack.Api/GarageStack.Api.csproj -c Release -o /publish
 # ── Stage 3: Pull SAIC MQTT Gateway (source of truth for the gateway app) ────
 # The gateway is not on PyPI. We copy its pre-built venv + source directly from
 # the official image so we always match the tested Python/dependency versions.
-FROM saicismartapi/saic-python-mqtt-gateway:0.13.0-rc5 AS saic-source
+FROM saicismartapi/saic-python-mqtt-gateway:0.14.0-rc1 AS saic-source
 # The gateway reports its version from RELEASE_VERSION, an ENV of this image that copying its
 # files leaves behind, so keep it in a file for supervisord to pass on (see supervisord.conf).
 # The image runs as an unprivileged user, hence /tmp. Without the variable the gateway says
@@ -146,20 +146,8 @@ RUN echo "deb [signed-by=/usr/share/keyrings/postgresql.asc] http://apt.postgres
 # non-root user does.
 COPY --from=saic-source /usr/src/app /opt/saic/app
 COPY --from=saic-source /tmp/release-version /opt/saic/release-version
-# The gateway pins anyio 4.12.1 (transitively, via httpx), which carries CVE-2026-63374
-# (TLS certificate spoofing through IDNA 2003 host name encoding) and CVE-2026-64847
-# (process-pool workers deadlock on an undrained stderr pipe). Both are fixed in 4.14.2
-# and the newest gateway release still ships 4.12.1, so patch the copied venv here.
-# httpx 0.28 accepts any anyio 4.x, so the upgrade stays inside the gateway's own bounds.
-# Drop this once the pinned gateway tag ships anyio >= 4.14.2.
-#
-# certifi too: the gateway ships 2026.2.25, whose CA bundle still trusts emSign roots with
-# compromised intermediate keys (GHSA-6q48-6c7w-9gw2), fixed in 2026.10.19. certifi is data only,
-# so a newer bundle cannot break the code using it. Drop this once the gateway ships it.
-#
 # Importing main.py loads every gateway module, so a venv that no longer runs on this image's
-# Python, or a package the upgrade above broke, fails the build here instead of the gateway at
-# startup.
+# Python fails the build here instead of the gateway at startup.
 #
 # supervisord comes from PyPI into the image's own Python rather than from apt: Debian's package
 # pulls in a whole second Python (3.13, ~23 MB). requirements.txt pins it with hashes, and
@@ -172,8 +160,7 @@ COPY --from=saic-source /tmp/release-version /opt/saic/release-version
 # The import check runs from the app directory, as the gateway does, without moving WORKDIR.
 # hadolint ignore=DL3003
 RUN --mount=type=bind,source=docker/all-in-one/requirements.txt,target=/tmp/requirements.txt \
-    /opt/saic/app/.venv/bin/python -m pip install --no-cache-dir --upgrade "anyio==4.15.1" "certifi==2026.10.19" \
-    && cd /opt/saic/app && .venv/bin/python -B -c "import main" \
+    cd /opt/saic/app && .venv/bin/python -B -c "import main" \
     && /opt/saic/app/.venv/bin/python -m pip uninstall --yes pip \
     && python -m pip install --no-cache-dir --require-hashes -r /tmp/requirements.txt \
     && python -m pip uninstall --yes pip

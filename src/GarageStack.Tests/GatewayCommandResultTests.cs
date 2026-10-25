@@ -2,7 +2,7 @@ using GarageStack.Worker.Mqtt;
 
 namespace GarageStack.Tests;
 
-// Payloads as saic-python-mqtt-gateway 0.13.0-rc5 publishes them (handlers/vehicle_command.py).
+// Payloads as saic-python-mqtt-gateway 0.14.0-rc1 publishes them (handlers/vehicle_command.py).
 public class GatewayCommandResultTests
 {
     [Fact]
