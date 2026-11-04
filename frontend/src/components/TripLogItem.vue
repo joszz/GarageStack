@@ -193,6 +193,13 @@ function saveNotes() {
       >
         <font-awesome-icon icon="wand-magic-sparkles" />{{ t('tripLog.places.automatic') }}
       </span>
+      <span
+        v-if="entry.isEdited"
+        class="trip-log-item__auto trip-log-item__edited text-xs text-muted"
+        :title="t('tripLog.editedHint')"
+      >
+        <font-awesome-icon icon="pen-to-square" />{{ t('tripLog.edited') }}
+      </span>
 
       <input
         v-model="notesDraft"
@@ -217,6 +224,16 @@ function saveNotes() {
         >
           <font-awesome-icon icon="map" /><span class="trip-log-item__label">{{
             t('tripLog.showOnMap')
+          }}</span>
+        </RouterLink>
+        <RouterLink
+          class="btn btn-outline-secondary btn-sm trip-log-item__edit"
+          :to="{ name: 'tripEdit', params: { id: entry.id } }"
+          :aria-label="t('tripLog.editRoute')"
+          :title="t('tripLog.editRoute')"
+        >
+          <font-awesome-icon icon="pen-to-square" /><span class="trip-log-item__label">{{
+            t('tripLog.editRoute')
           }}</span>
         </RouterLink>
         <button

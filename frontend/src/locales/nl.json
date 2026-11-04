@@ -392,7 +392,8 @@
     "resolvingPlaces": "Plaatsnamen opzoeken",
     "inProgress": "Rit onderweg",
     "durationMinutes": "{n} min",
-    "durationHoursMinutes": "{h} u {m} min"
+    "durationHoursMinutes": "{h} u {m} min",
+    "editRoute": "Route bewerken"
   },
   "pwa": {
     "install": {
@@ -783,7 +784,43 @@
     "joinNext": "Samenvoegen met volgende rit",
     "joinNextConfirm": "Ritten samenvoegen",
     "joinNextHint": "Voegt deze rit samen met de rit erna, voor een rit die door een korte stop, zoals bij een tankstation, in tweeën is gesplitst. Kan niet ongedaan worden gemaakt.",
-    "showHidden": "Verborgen rit tonen | {n} verborgen ritten tonen"
+    "showHidden": "Verborgen rit tonen | {n} verborgen ritten tonen",
+    "editRoute": "Route bewerken",
+    "edited": "Bewerkt",
+    "editedHint": "De route is met de hand bewerkt. De afstand komt nog steeds van de kilometerteller."
+  },
+  "tripEdit": {
+    "title": "Route bewerken",
+    "panelLabel": "Routebewerker",
+    "loading": "Route laden",
+    "notFound": "Deze rit kan niet worden bewerkt. Dat kan alleen bij opgeslagen ritten, een paar minuten nadat de auto is geparkeerd.",
+    "backToLog": "Terug naar het rittenregister",
+    "suggestion": "Deze rit begon waarschijnlijk waar de auto ervoor geparkeerd stond, wat de auto niet heeft doorgegeven. Daar laten beginnen?",
+    "usePreviousStop": "Vorige parkeerplek gebruiken",
+    "useNextStop": "Volgende parkeerplek gebruiken",
+    "distance": "Afstand langs de route",
+    "distanceChange": "{before} naar {after}",
+    "from": "Van",
+    "to": "Naar",
+    "odometerNote": "Het bewerken van de route verandert de kaart en de adressen. Het rittenregister houdt de afstand die de kilometerteller telde.",
+    "modeLabel": "Wat verplaatsen",
+    "mode": {
+      "start": "Begin",
+      "end": "Einde",
+      "points": "Punten"
+    },
+    "hint": {
+      "start": "Tik op de kaart waar de rit begon, of sleep de groene markering.",
+      "end": "Tik op de kaart waar de rit eindigde, of sleep de rode markering.",
+      "points": "Tik op de kaart om een punt toe te voegen, of tik op een punt om het te selecteren."
+    },
+    "removePoint": "Punt verwijderen",
+    "undo": "Ongedaan maken",
+    "reset": "Terug naar opgenomen",
+    "resetHint": "Terug naar de route zoals de auto die opnam. Sla op om dat te bewaren.",
+    "save": "Opslaan",
+    "markerStart": "Begin van de rit",
+    "markerEnd": "Einde van de rit"
   },
   "maintenance": {
     "title": "Onderhoud",
@@ -944,7 +981,14 @@
         "tooManyIds": "Te veel ritten tegelijk. Kies een kortere periode.",
         "hiddenRequired": "Geef aan of de rit verborgen is.",
         "noNextTrip": "Er is nog geen opgeslagen rit na deze om hem mee samen te voegen.",
-        "unreadable": "Een van de twee ritten kan niet worden gelezen, dus ze kunnen niet worden samengevoegd."
+        "unreadable": "Een van de twee ritten kan niet worden gelezen, dus ze kunnen niet worden samengevoegd.",
+        "pointCount": "Een route heeft minstens 2 punten nodig, en mag er hoogstens 200 meer hebben dan de auto opnam.",
+        "pointInvalid": "Een punt ligt niet op de kaart.",
+        "pointOrder": "De punten moeten in de volgorde staan waarin ze zijn gereden.",
+        "overlapsPrevious": "De rit kan niet beginnen voordat de rit ervoor was afgelopen.",
+        "overlapsNext": "De rit kan niet eindigen nadat de volgende rit begon.",
+        "pointTooFast": "Een stuk van deze route zou betekenen dat er harder dan 250 km/u is gereden.",
+        "routeUnreadable": "De route van deze rit kan niet worden gelezen, dus hij kan niet worden bewerkt."
       },
       "push": {
         "notConfigured": "Pushmeldingen zijn op deze server niet ingesteld.",

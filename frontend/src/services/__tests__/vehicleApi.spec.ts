@@ -104,4 +104,31 @@ describe('vehicleApi', () => {
     expect(options!.method).toBe('POST')
     expect(JSON.parse(options!.body as string)).toEqual({ value: 'True' })
   })
+
+  it('trips() gives a fix its source when the compact trip names one', async () => {
+    const compact: CompactTrip = {
+      index: 0,
+      id: 7,
+      startedAt: '2026-10-19T07:00:00Z',
+      endedAt: '2026-10-19T07:01:25Z',
+      distanceKm: 0.4,
+      pointCount: 2,
+      endLatitude: 52.092346,
+      endLongitude: 5.119877,
+      maxSpeedKmh: 48.5,
+      avgMovingSpeedKmh: 48.5,
+      movingSpeedSamples: 1,
+      line: 'eukjbBelqwHmdAzsA',
+      intervalsMs: [2000, 40500],
+      speeds: [null, 48.5],
+      sources: ['anchored', null],
+    }
+    vi.stubGlobal('fetch', vi.fn<FetchSpy>().mockResolvedValue(makeResponse(200, [compact])))
+
+    const [trip] = await vehicleApi.trips('VIN1', '2026-10-01')
+
+    expect(trip!.points[0]!.source).toBe('anchored')
+    expect(trip!.points[1]).not.toHaveProperty('source')
+    expect(trip).not.toHaveProperty('sources')
+  })
 })

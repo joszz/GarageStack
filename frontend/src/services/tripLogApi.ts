@@ -1,5 +1,6 @@
 import { buildQuery, request, requestJson } from '@/services/apiCore'
 import { MAX_GEOCODE_POINTS_PER_REQUEST, type Place } from '@/services/mapApi'
+import type { TripPoint } from '@/services/vehicleApi'
 
 /** What a trip was for, in the order the trip log offers them. */
 export const TRIP_PURPOSES = ['business', 'commute', 'private'] as const
@@ -36,6 +37,46 @@ export interface TripLogEntry {
   purposeIsAutomatic: boolean
   /** Left out of the map, the statistics, the dashboard and this log's totals and export. */
   isHidden: boolean
+  /** Its route was edited by hand. */
+  isEdited: boolean
+}
+
+/**
+ * Where the car stood before or after a trip: a parked fix, or the neighbouring trip's end.
+ * `suggestedAt` is the time to give a point placed there: when the car left it, or got there.
+ */
+export interface TripStop {
+  latitude: number
+  longitude: number
+  recordedAt: string
+  suggestedAt: string
+}
+
+/** What the route editor needs for a saved trip (`GET .../trips/{id}/editor`). */
+export interface TripEditor {
+  id: number
+  /** The route as it is now. */
+  points: TripPoint[]
+  /** The route as recorded, once the trip was edited; null while it is as recorded. */
+  originalPoints: TripPoint[] | null
+  editedAt: string | null
+  previousStop: TripStop | null
+  nextStop: TripStop | null
+  /** The trip probably left from `previousStop`: one tap fixes a trip saved before anchoring. */
+  suggestion: boolean
+  /** No point may be earlier than the trip before it ended. */
+  notBefore: string | null
+  /** Nor later than the next trip started, or the trips not saved yet. */
+  notAfter: string | null
+  /** The most points a save may send. */
+  maxPoints: number
+}
+
+/** A point as the editor sends it; the server decides its speed and source. */
+export interface TripPointInput {
+  recordedAt: string
+  latitude: number
+  longitude: number
 }
 
 export interface TripPlaces {
@@ -67,6 +108,13 @@ export const tripLogApi = {
       ids,
       purpose,
     }),
+  editor: (vin: string, id: number) =>
+    request<TripEditor>(`/api/vehicles/${vin}/trips/${id}/editor`),
+  // The whole route at once; the answer is the editor as the trip now is.
+  setPoints: (vin: string, id: number, points: TripPointInput[]) =>
+    requestJson<TripEditor>(`/api/vehicles/${vin}/trips/${id}/points`, 'PUT', { points }),
+  resetPoints: (vin: string, id: number) =>
+    requestJson<TripEditor>(`/api/vehicles/${vin}/trips/${id}/points/reset`, 'POST'),
   // Batched, and the addresses found are kept on the trips, so a trip is looked up only once.
   resolvePlaces: (vin: string, ids: number[], language: string) =>
     requestJson<TripPlacesResult>(`/api/vehicles/${vin}/trips/places`, 'POST', {

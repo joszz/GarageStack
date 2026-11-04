@@ -9,6 +9,7 @@ import { buildCarMarkerIcon, moveCarMarker } from '@/utils/mapCarIcon'
 import { speedLimitSegments } from '@/utils/speedLimits'
 import { speedSegments, speedToColor, tripColor } from '@/utils/speedColors'
 import { latLngsOf } from '@/utils/geo'
+import { addedStretches } from '@/utils/tripSources'
 
 type HeatPoints = Parameters<typeof createHeatLayer>[0]
 
@@ -114,7 +115,25 @@ export function useTripLayers(o: TripLayersOptions) {
       line.on('click', () => o.onSelect(i))
       line.addTo(map)
       routeLines.push(line)
+      drawAddedStretches(trip, null, 3)
     })
+  }
+
+  // The stretches nobody saw the car drive (to a parking spot, or placed by hand) are dashed: a
+  // line in the map's own colour over them cuts the trip's colour into dashes.
+  function drawAddedStretches(trip: Trip, match: TripMatch | null, weight: number) {
+    const map = o.map.value
+    if (!map) return
+    for (const run of addedStretches(trip.points, match)) {
+      const dashes = L.polyline(run, {
+        className: 'trip-added-line',
+        weight,
+        dashArray: '6 8',
+        interactive: false,
+      })
+      dashes.addTo(map)
+      routeLines.push(dashes)
+    }
   }
 
   function buildSelectedLine() {
@@ -168,6 +187,7 @@ export function useTripLayers(o: TripLayersOptions) {
       routeLines.push(line)
     }
 
+    drawAddedStretches(trip, match, 5)
     buildTripMarkers(trip, idx)
   }
 

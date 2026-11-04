@@ -25,6 +25,7 @@ export function logEntry(overrides: Partial<TripLogEntry> = {}): TripLogEntry {
     notes: null,
     purposeIsAutomatic: false,
     isHidden: false,
+    isEdited: false,
     ...overrides,
   }
 }

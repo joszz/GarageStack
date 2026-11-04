@@ -144,6 +144,11 @@
   height: 100%;
 }
 
+/* Laid over a trip's line where nobody saw the car drive, so the line shows there as dashes. */
+.trip-added-line {
+  stroke: var(--color-surface);
+}
+
 /* Contents of the two speed keys; the box around them and its toggle are MapLegend's. */
 .speed-legend__bar {
   height: 8px;
