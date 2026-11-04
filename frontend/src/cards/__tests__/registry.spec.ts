@@ -91,6 +91,21 @@ describe('card registry', () => {
     expect(hasFuelConsumption(context(driven, 'phev'))).toBe(false)
   })
 
+  // Issue #551: 141 kWh on a 3 km day, with 11 kWh used since the last charge.
+  it('hides a plug-in day counter that does not fit what left the battery', () => {
+    const status = {
+      powerUsageOfDay: 141.12,
+      powerUsageSinceLastCharge: 11.12,
+      mileageOfTheDay: 3,
+      isCharging: false,
+      chargingLastEndAt: null,
+    }
+    expect(cardHasData('efficiencyEnergy', context(status, 'bev'))).toBe(false)
+    expect(hasEnergyEfficiency(context(status, 'bev'))).toBe(false)
+    // A hybrid's counter holds fuel and is not checked this way.
+    expect(cardHasData('efficiencyEnergy', context(status, 'hev'))).toBe(true)
+  })
+
   it('needs a trip with recorded speeds for the top speed card', () => {
     expect(cardHasData('topSpeed', context({}, 'bev', null))).toBe(false)
     expect(cardHasData('topSpeed', context({}, 'bev', tripSummary({ maxSpeedKmh: null })))).toBe(

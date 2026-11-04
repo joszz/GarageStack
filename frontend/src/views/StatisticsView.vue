@@ -137,7 +137,13 @@ const hasPeriodData = computed(() => hasReadings.value || store.tripSummaries.le
 // The month table, for a period longer than a month: the last 30 days would only show the two
 // halves of the months they straddle.
 const months = computed(() =>
-  monthlyTotals(store.tripSummaries, store.dailyStats, period.value.first, period.value.last),
+  monthlyTotals(
+    store.tripSummaries,
+    store.dailyStats,
+    period.value.first,
+    period.value.last,
+    vehicleType.value,
+  ),
 )
 const showMonths = computed(
   () => period.value.days > 31 && months.value.length > 1 && hasPeriodData.value,

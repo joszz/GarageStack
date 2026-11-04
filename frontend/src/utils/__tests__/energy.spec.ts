@@ -2,10 +2,12 @@ import { describe, it, expect } from 'vitest'
 import {
   chargeEndPercent,
   chargerPowerKw,
+  dailyCounterTotal,
   energyUnit,
   hvBatteryReading,
   litres,
   litresPer100Km,
+  todaysEnergyKwh,
   whPerKm,
 } from '@/utils/energy'
 import type { TelemetrySnapshot } from '@/services/vehicleApi'
@@ -22,6 +24,71 @@ describe('energyUnit', () => {
     expect(energyUnit('phev')).toBe('kwh')
     expect(energyUnit('bev')).toBe('kwh')
     expect(energyUnit('unknown')).toBe('kwh')
+  })
+})
+
+type TodayFields = Pick<
+  TelemetrySnapshot,
+  'powerUsageOfDay' | 'powerUsageSinceLastCharge' | 'isCharging' | 'chargingLastEndAt'
+>
+
+function today(fields: Partial<TodayFields>): TodayFields {
+  return {
+    powerUsageOfDay: null,
+    powerUsageSinceLastCharge: null,
+    isCharging: false,
+    chargingLastEndAt: null,
+    ...fields,
+  }
+}
+
+const NOW = Date.parse('2026-11-03T21:31:20Z')
+
+describe('todaysEnergyKwh', () => {
+  // Issue #551: the MG ZS EV's day counter read 141.12 kWh with 11.12 kWh used since the last charge.
+  it('drops a day counter that holds more than left the battery since the last charge', () => {
+    const status = today({ powerUsageOfDay: 141.12, powerUsageSinceLastCharge: 11.12 })
+    expect(todaysEnergyKwh(status, NOW)).toBeNull()
+  })
+
+  it('keeps a day counter that fits, with room for regeneration', () => {
+    expect(
+      todaysEnergyKwh(today({ powerUsageOfDay: 5.4, powerUsageSinceLastCharge: 25 }), NOW),
+    ).toBe(5.4)
+    expect(
+      todaysEnergyKwh(today({ powerUsageOfDay: 7.5, powerUsageSinceLastCharge: 6 }), NOW),
+    ).toBe(7.5)
+  })
+
+  it('keeps the counter when a charge today may have started the other one again', () => {
+    const charged = { powerUsageOfDay: 22, powerUsageSinceLastCharge: 2 }
+    expect(
+      todaysEnergyKwh(today({ ...charged, chargingLastEndAt: '2026-11-03T12:00:00Z' }), NOW),
+    ).toBe(22)
+    expect(todaysEnergyKwh(today({ ...charged, isCharging: true }), NOW)).toBe(22)
+    expect(
+      todaysEnergyKwh(today({ ...charged, chargingLastEndAt: '2026-10-30T12:00:00Z' }), NOW),
+    ).toBeNull()
+  })
+
+  it('keeps the counter without a since-last-charge reading to check it against', () => {
+    expect(todaysEnergyKwh(today({ powerUsageOfDay: 60 }), NOW)).toBe(60)
+    expect(todaysEnergyKwh(today({}), NOW)).toBeNull()
+  })
+})
+
+describe('dailyCounterTotal', () => {
+  const unbacked = { counterTotal: 134.24, sinceChargeTotal: 0.75, counterUnbacked: true }
+
+  it('reads a plug-in day off the since-last-charge counter when the day counter is unbacked', () => {
+    expect(dailyCounterTotal(unbacked, 'bev')).toBe(0.75)
+    expect(dailyCounterTotal(unbacked, 'phev')).toBe(0.75)
+    expect(dailyCounterTotal({ ...unbacked, counterUnbacked: false }, 'bev')).toBe(134.24)
+  })
+
+  // A hybrid's two counters hold fuel and were never checked against each other on one.
+  it('leaves a hybrid on its day counter', () => {
+    expect(dailyCounterTotal(unbacked, 'hev')).toBe(134.24)
   })
 })
 

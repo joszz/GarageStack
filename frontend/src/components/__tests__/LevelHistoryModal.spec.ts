@@ -41,6 +41,8 @@ function day(date: string, values: Partial<DailyStat> = {}): DailyStat {
     tyrePressureRearRight: null,
     batteryVoltage: null,
     counterTotal: null,
+    sinceChargeTotal: null,
+    counterUnbacked: false,
     ...values,
   }
 }

@@ -135,6 +135,10 @@ export interface DailyStat {
   tyrePressureRearRight: number | null
   batteryVoltage: number | null
   counterTotal: number | null
+  /** The same day off the since-last-charge counter, in the same unit. */
+  sinceChargeTotal: number | null
+  /** The day counter rose more than the since-last-charge counter allows (issue #551). */
+  counterUnbacked: boolean
 }
 
 export interface VehicleAggregateStats {
