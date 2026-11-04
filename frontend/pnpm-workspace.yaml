@@ -7,3 +7,9 @@ allowBuilds:
 # that pnpm no longer switches itself to the packageManager pin; Docker (npm) and CI
 # (pnpm/action-setup) pin the version on their own, so only a local pnpm has to match it.
 pmOnFail: ignore
+
+overrides:
+  # workbox-build 7.4.1 still asks for 3.0.0-pre1, which pulls ejs 3 > jake 10 > filelist 1 >
+  # minimatch 5 (GHSA-g3hv-75wg-m249). 4.0.0 only swaps the matchAll polyfill for the native
+  # method and moves to ejs 7, which has no dependencies. Drop this once workbox-build moves on.
+  "@trickfilm400/rollup-plugin-off-main-thread": "^4.0.0"
