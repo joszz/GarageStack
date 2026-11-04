@@ -20,6 +20,9 @@ public sealed class DemoTripRepository : ITripRepository
     // Trips a visitor hid, and the ones joined into the trip before them: both stay off the map.
     private readonly HashSet<long> _gone = [];
 
+    // The routes a visitor edited, and when, by trip id.
+    private readonly Dictionary<long, (IReadOnlyList<TripPoint> Points, DateTime At)> _routes = [];
+
     public Task<IReadOnlyList<TripDto>> GetTripsAsync(int vehicleId, DateTime from, DateTime to, CancellationToken ct = default)
     {
         lock (_lock)
@@ -27,7 +30,7 @@ public sealed class DemoTripRepository : ITripRepository
             return Task.FromResult<IReadOnlyList<TripDto>>(
                 [.. DemoTrips.All
                     .Where(t => t.StartedAt >= from && t.StartedAt < to && (t.Id is not { } id || !_gone.Contains(id)))
-                    .Select((t, i) => t with { Index = i })]);
+                    .Select((t, i) => Current(t) with { Index = i })]);
         }
     }
 
@@ -154,6 +157,108 @@ public sealed class DemoTripRepository : ITripRepository
             _gone.Add(second.Id);
             return Task.FromResult(new TripMergeResult(TripMergeOutcome.Merged, merged));
         }
+    }
+
+    public Task<TripEditResult> GetEditorAsync(int vehicleId, long id, CancellationToken ct = default)
+    {
+        lock (_lock)
+        {
+            if (Recorded(id) is not { } recorded) return Task.FromResult(new TripEditResult(TripEditOutcome.NotFound));
+            return Task.FromResult(new TripEditResult(TripEditOutcome.Ok, Editor(recorded)));
+        }
+    }
+
+    public Task<TripEditResult> SetPointsAsync(int vehicleId, long id, IReadOnlyList<TripPointInput>? points, CancellationToken ct = default)
+    {
+        lock (_lock)
+        {
+            if (Recorded(id) is not { } recorded) return Task.FromResult(new TripEditResult(TripEditOutcome.NotFound));
+
+            var (previous, next) = Neighbours(recorded);
+            if (TripEdit.TryBuild(points, recorded.Points, previous?.EndedAt, NotAfter(next), out var built) is { } problem)
+                return Task.FromResult(new TripEditResult(TripEditOutcome.Invalid, Problem: problem));
+
+            _routes[id] = (built, DateTime.UtcNow);
+            ApplyRoute(id, built, edited: true);
+            return Task.FromResult(new TripEditResult(TripEditOutcome.Ok, Editor(recorded)));
+        }
+    }
+
+    public Task<TripEditResult> ResetPointsAsync(int vehicleId, long id, CancellationToken ct = default)
+    {
+        lock (_lock)
+        {
+            if (Recorded(id) is not { } recorded) return Task.FromResult(new TripEditResult(TripEditOutcome.NotFound));
+
+            if (_routes.Remove(id)) ApplyRoute(id, recorded.Points, edited: false);
+            return Task.FromResult(new TripEditResult(TripEditOutcome.Ok, Editor(recorded)));
+        }
+    }
+
+    // A finished demo trip still in the log, as the demo timeline recorded it.
+    private TripDto? Recorded(long id) =>
+        _log.ContainsKey(id) ? DemoTrips.All.FirstOrDefault(t => t.Id == id) : null;
+
+    // The trip as a visitor left it: their route when they edited one.
+    private TripDto Current(TripDto recorded) =>
+        recorded.Id is { } id && _routes.TryGetValue(id, out var route)
+            ? TripEdit.Summarize(route.Points, id) with { Index = recorded.Index }
+            : recorded;
+
+    // The finished trips either side, by where they start now. The trip being driven stands in for
+    // the recording line: no edit may run into it.
+    private (TripDto? Previous, TripDto? Next) Neighbours(TripDto recorded)
+    {
+        var finished = DemoTrips.All
+            .Where(t => t.Id is { } other && other != recorded.Id && _log.ContainsKey(other))
+            .Select(Current)
+            .ToList();
+        var start = Current(recorded).StartedAt;
+        return (finished.Where(t => t.StartedAt < start).MaxBy(t => t.StartedAt),
+                finished.Where(t => t.StartedAt > start).MinBy(t => t.StartedAt));
+    }
+
+    private static DateTime? NotAfter(TripDto? next) =>
+        next?.StartedAt ?? DemoTrips.All.LastOrDefault(t => t.Id is null)?.StartedAt;
+
+    // The demo has no parked fixes, so the car stood where the trips either side end and start.
+    private TripEditor Editor(TripDto recorded)
+    {
+        var current = Current(recorded);
+        var edited = _routes.TryGetValue(recorded.Id!.Value, out var route) ? route : default;
+        var (previous, next) = Neighbours(recorded);
+        var first = current.Points[0];
+        var last = current.Points[^1];
+
+        var previousStop = previous is null
+            ? null
+            : TripEdit.Departing(previous.Points[^1], TripAnchor.Departure(previous.Points[^1], first, null));
+        var nextStop = next is null ? null : TripEdit.Arriving(last, next.Points[0], isParkedFix: false);
+
+        return TripEdit.Editor(
+            recorded.Id!.Value, current.Points, edited.Points is null ? null : recorded.Points, edited.Points is null ? null : edited.At,
+            previousStop, nextStop, previous?.EndedAt, NotAfter(next));
+    }
+
+    // The trip log follows the route, as the saved trip's row does. The demo labels commutes only
+    // when home or work move, so the purpose stays.
+    private void ApplyRoute(long id, IReadOnlyList<TripPoint> points, bool edited)
+    {
+        var entry = _log[id];
+        var trip = TripEdit.Summarize(points, id);
+        _log[id] = entry with
+        {
+            StartedAt = trip.StartedAt,
+            EndedAt = trip.EndedAt,
+            DistanceKm = trip.DistanceKm,
+            StartLatitude = points[0].Latitude,
+            StartLongitude = points[0].Longitude,
+            EndLatitude = points[^1].Latitude,
+            EndLongitude = points[^1].Longitude,
+            StartPlace = TripEdit.AddressMoved(entry.StartLatitude, entry.StartLongitude, points[0]) ? null : entry.StartPlace,
+            EndPlace = TripEdit.AddressMoved(entry.EndLatitude, entry.EndLongitude, points[^1]) ? null : entry.EndPlace,
+            IsEdited = edited,
+        };
     }
 
     public Task SavePlacesAsync(int vehicleId, IReadOnlyList<TripPlaces> places, CancellationToken ct = default)

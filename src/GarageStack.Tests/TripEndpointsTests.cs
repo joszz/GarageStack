@@ -63,4 +63,42 @@ public class TripEndpointsTests
     [InlineData("  Client visit \n", "Client visit")]
     public void NormalizeNotes_TrimsAndTreatsBlankAsNone(string? notes, string? expected) =>
         Assert.Equal(expected, TripEndpoints.NormalizeNotes(notes));
+
+    [Fact]
+    public void Point_ServesItsSourceByName_AndLeavesItOutForTheCarsOwnFixes()
+    {
+        var at = new DateTime(2026, 1, 1, 10, 0, 0, DateTimeKind.Utc);
+
+        using var reported = JsonDocument.Parse(JsonSerializer.Serialize(new TripPoint(at, 52, 5, 50), Web));
+        using var placed = JsonDocument.Parse(JsonSerializer.Serialize(new TripPoint(at, 52, 5, null, TripPointSource.Manual), Web));
+
+        Assert.False(reported.RootElement.TryGetProperty("source", out _));
+        Assert.Equal("manual", placed.RootElement.GetProperty("source").GetString());
+        Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<TripPoint>(
+            """{"recordedAt":"2026-01-01T10:00:00Z","latitude":52,"longitude":5,"speed":null,"source":1}""", Web));
+    }
+
+    [Fact]
+    public void CompactTrip_CarriesSourcesOnlyWhenAPointHasOne()
+    {
+        var at = new DateTime(2026, 1, 1, 10, 0, 0, DateTimeKind.Utc);
+        TripPoint[] reported = [new(at, 52.00, 5, 50), new(at.AddMinutes(5), 52.05, 5, 50)];
+        TripPoint[] anchored = [reported[0] with { Source = TripPointSource.Anchored }, reported[1]];
+
+        using var plain = JsonDocument.Parse(JsonSerializer.Serialize(new TripDto(0, at, at, 5.56, 2, reported).ToCompact(), Web));
+        using var mixed = JsonDocument.Parse(JsonSerializer.Serialize(new TripDto(0, at, at, 5.56, 2, anchored).ToCompact(), Web));
+
+        Assert.False(plain.RootElement.TryGetProperty("sources", out _));
+        Assert.Equal(["anchored", null], mixed.RootElement.GetProperty("sources").EnumerateArray().Select(s => s.GetString()));
+    }
+
+    [Fact]
+    public void PointsRequest_ReadsTimesWithAnOffset_AndMissingFieldsAsNull()
+    {
+        var req = JsonSerializer.Deserialize<TripPointsRequest>(
+            """{"points":[{"recordedAt":"2026-01-01T12:00:00+02:00","latitude":52.1,"longitude":5.2},{"latitude":52.2}]}""", Web);
+
+        Assert.Equal(new DateTime(2026, 1, 1, 10, 0, 0, DateTimeKind.Utc), req!.Points![0].RecordedAt!.Value.UtcDateTime);
+        Assert.Equal(new TripPointInput(null, 52.2, null), req.Points[1]);
+    }
 }

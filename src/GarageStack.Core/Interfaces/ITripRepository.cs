@@ -88,6 +88,23 @@ public interface ITripRepository
     Task<TripMergeResult> MergeWithNextAsync(int vehicleId, long id, CancellationToken ct = default);
 
     /// <summary>
+    /// What the trip editor needs for a saved trip: its points, the points as recorded when it was
+    /// edited, where the car stood before and after it, and the times its points must stay within.
+    /// </summary>
+    Task<TripEditResult> GetEditorAsync(int vehicleId, long id, CancellationToken ct = default);
+
+    /// <summary>
+    /// Replaces a saved trip's route with <paramref name="points"/>, once <see cref="Helpers.TripEdit.TryBuild"/>
+    /// accepts them. The points as recorded are kept on the first edit. The distance, the ends and
+    /// the speed figures follow the new points; an end that moved has its address looked up again,
+    /// and a purpose nobody chose is labelled again. The odometer readings stay as they are.
+    /// </summary>
+    Task<TripEditResult> SetPointsAsync(int vehicleId, long id, IReadOnlyList<TripPointInput>? points, CancellationToken ct = default);
+
+    /// <summary>Puts a saved trip's route back as it was recorded, undoing every edit.</summary>
+    Task<TripEditResult> ResetPointsAsync(int vehicleId, long id, CancellationToken ct = default);
+
+    /// <summary>
     /// Keeps the places now known for these trips. A null place leaves what is stored alone, so a
     /// caller can pass only what it has just resolved.
     /// </summary>

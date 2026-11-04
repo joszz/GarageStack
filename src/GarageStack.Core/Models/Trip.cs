@@ -19,8 +19,20 @@ public class Trip
     public double DistanceKm { get; set; }
     public int PointCount { get; set; }
 
-    /// <summary>The trip's fixes as a JSON array of <see cref="TripPoint"/>, oldest first.</summary>
+    /// <summary>
+    /// The trip's points as a JSON array of <see cref="TripPoint"/>, oldest first: the route as it
+    /// is now, edited or not, so everything that draws or counts a trip reads it the same way.
+    /// </summary>
     public string PointsJson { get; set; } = "[]";
+
+    /// <summary>
+    /// The points as recorded, copied from <see cref="PointsJson"/> on the first edit so the trip
+    /// can be reset. Null for a trip nobody edited.
+    /// </summary>
+    public string? OriginalPointsJson { get; set; }
+
+    /// <summary>When the route was last edited, or null while it is as recorded.</summary>
+    public DateTime? EditedAt { get; set; }
 
     // The first and last fix, kept beside the fixes so the trip log can list a year of trips
     // without reading every fix of every one of them.

@@ -146,6 +146,42 @@ public static class TripEndpoints
         })
         .WithSummary("Join a trip with the saved trip after it, such as two trips a fuel stop split");
 
+        group.MapGet("/{id:long}/editor", async (
+            HttpContext httpContext,
+            long id,
+            ITripRepository trips,
+            CancellationToken ct) =>
+        {
+            var vehicle = httpContext.ResolvedVehicle();
+            return EditResult(await trips.GetEditorAsync(vehicle.Id, id, ct));
+        })
+        .WithSummary("Get what the route editor needs for a saved trip: its points, the points as recorded, and where the car stood before and after it");
+
+        // The whole route at once, so a save is one step to undo, and the server decides which
+        // points are the car's own: any point that is not one it recorded counts as placed by hand.
+        group.MapPut("/{id:long}/points", async (
+            HttpContext httpContext,
+            long id,
+            TripPointsRequest req,
+            ITripRepository trips,
+            CancellationToken ct) =>
+        {
+            var vehicle = httpContext.ResolvedVehicle();
+            return EditResult(await trips.SetPointsAsync(vehicle.Id, id, req.Points, ct));
+        })
+        .WithSummary("Replace a saved trip's route; its distance, ends and speed figures follow, the odometer readings stay");
+
+        group.MapPost("/{id:long}/points/reset", async (
+            HttpContext httpContext,
+            long id,
+            ITripRepository trips,
+            CancellationToken ct) =>
+        {
+            var vehicle = httpContext.ResolvedVehicle();
+            return EditResult(await trips.ResetPointsAsync(vehicle.Id, id, ct));
+        })
+        .WithSummary("Put a saved trip's route back as it was recorded");
+
         // POST for the same reason as the map's reverse geocoding: a batch of ids, and a lookup
         // that may call upstream. The addresses found are kept on the trips.
         group.MapPost("/places", async (
@@ -177,6 +213,15 @@ public static class TripEndpoints
         return app;
     }
 
+    private static IResult EditResult(TripEditResult result) => result.Outcome switch
+    {
+        TripEditOutcome.Ok => Results.Ok(result.Editor),
+        TripEditOutcome.Invalid => ApiProblems.BadRequest(result.Problem!.Code, result.Problem.Message),
+        TripEditOutcome.Unreadable => ApiProblems.Problem(StatusCodes.Status409Conflict, "trip.unreadable",
+            "The trip's points cannot be read"),
+        _ => Results.NotFound(),
+    };
+
     // Blank notes are no notes, so clearing the field in the browser clears it in the log.
     internal static string? NormalizeNotes(string? notes) =>
         string.IsNullOrWhiteSpace(notes) ? null : notes.Trim();
@@ -191,3 +236,5 @@ public record TripPurposeResult(int Changed);
 public record TripHiddenRequest(bool? Hidden);
 
 public record TripPlacesRequest(IReadOnlyList<long>? Ids, string? Language);
+
+public record TripPointsRequest(IReadOnlyList<TripPointInput>? Points);

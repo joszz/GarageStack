@@ -84,7 +84,8 @@ public record TripDto(int Index, DateTime StartedAt, DateTime EndedAt, double Di
             EndLatitude, EndLongitude, MaxSpeedKmh, AvgMovingSpeedKmh, MovingSpeedSamples,
             PolylineCodec.Encode([.. Points.Select(p => new GeoCoordinate(p.Latitude, p.Longitude))]),
             intervals,
-            [.. Points.Select(p => p.Speed)]);
+            [.. Points.Select(p => p.Speed)],
+            Points.Any(p => p.Source is not null) ? [.. Points.Select(p => p.Source)] : null);
     }
 }
 
@@ -114,6 +115,8 @@ public record TripSummaryDto(
 /// <see cref="PolylineCodec.DefaultPrecision"/> decimals, about 10 cm) and reported
 /// <see cref="Speeds"/>[i]. <see cref="IntervalsMs"/>[i] is the milliseconds since the fix before
 /// it, or since <see cref="StartedAt"/> for the first, so a fix's time is their running total.
+/// <see cref="Sources"/>[i] is its <see cref="TripPoint.Source"/>; the array is left out when every
+/// point is a fix the car reported while driving, as almost every trip's are.
 /// </para>
 /// </summary>
 public record CompactTripDto(
@@ -130,4 +133,5 @@ public record CompactTripDto(
     int MovingSpeedSamples,
     string Line,
     IReadOnlyList<long> IntervalsMs,
-    IReadOnlyList<double?> Speeds);
+    IReadOnlyList<double?> Speeds,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] IReadOnlyList<TripPointSource?>? Sources = null);

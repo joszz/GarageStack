@@ -269,7 +269,9 @@ public class TripRepository(
             .FirstOrDefaultAsync(ct);
         if (second is null) return new(TripMergeOutcome.NoNextTrip);
 
-        if (ToDto(first) is not { } before || ToDto(second) is not { } after) return new(TripMergeOutcome.Unreadable);
+        if (ToDto(first) is not { } before || ToDto(second) is not { } after ||
+            !TryReadOriginal(first, out var firstOriginal) || !TryReadOriginal(second, out var secondOriginal))
+            return new(TripMergeOutcome.Unreadable);
 
         List<TripPoint> points = [.. before.Points, .. after.Points];
         var joined = new TripDto(0, first.StartedAt, second.EndedAt, 0, points.Count, points);
@@ -292,6 +294,15 @@ public class TripRepository(
         first.IsHidden = first.IsHidden && second.IsHidden;
         first.Notes = JoinNotes(first.Notes, second.Notes);
 
+        // The joined trip as recorded is the two as recorded, so a reset undoes the edits of both
+        // and keeps the join.
+        if (firstOriginal is not null || secondOriginal is not null)
+        {
+            first.OriginalPointsJson = JsonSerializer.Serialize<List<TripPoint>>(
+                [.. firstOriginal ?? before.Points, .. secondOriginal ?? after.Points]);
+            first.EditedAt = Max(first.EditedAt, second.EditedAt);
+        }
+
         if (!first.PurposeIsManual && second.PurposeIsManual)
         {
             first.Purpose = second.Purpose;
@@ -309,6 +320,158 @@ public class TripRepository(
         await db.SaveChangesAsync(ct);
         return new(TripMergeOutcome.Merged, (await GetLogEntriesAsync(vehicleId, [id], ct)).SingleOrDefault());
     }
+
+    public async Task<TripEditResult> GetEditorAsync(int vehicleId, long id, CancellationToken ct = default)
+    {
+        var trip = await db.Trips.AsNoTracking().FirstOrDefaultAsync(t => t.Id == id && t.VehicleId == vehicleId, ct);
+        if (trip is null) return new(TripEditOutcome.NotFound);
+        if (ToDto(trip) is not { } current || !TryReadOriginal(trip, out var original)) return new(TripEditOutcome.Unreadable);
+
+        return new(TripEditOutcome.Ok, await EditorAsync(trip, current.Points, original, ct));
+    }
+
+    public async Task<TripEditResult> SetPointsAsync(int vehicleId, long id, IReadOnlyList<TripPointInput>? points, CancellationToken ct = default)
+    {
+        var trip = await db.Trips.FirstOrDefaultAsync(t => t.Id == id && t.VehicleId == vehicleId, ct);
+        if (trip is null) return new(TripEditOutcome.NotFound);
+        if (ToDto(trip) is not { } current || !TryReadOriginal(trip, out var original)) return new(TripEditOutcome.Unreadable);
+
+        var recorded = original ?? current.Points;
+        var (previous, _, notAfter) = await NeighboursAsync(trip, ct);
+        if (TripEdit.TryBuild(points, recorded, previous?.EndedAt, notAfter, out var built) is { } problem)
+            return new(TripEditOutcome.Invalid, Problem: problem);
+
+        trip.OriginalPointsJson ??= trip.PointsJson;
+        trip.EditedAt = DateTime.UtcNow;
+        await ApplyPointsAsync(trip, built, ct);
+        await db.SaveChangesAsync(ct);
+
+        return new(TripEditOutcome.Ok, await EditorAsync(trip, built, recorded, ct));
+    }
+
+    public async Task<TripEditResult> ResetPointsAsync(int vehicleId, long id, CancellationToken ct = default)
+    {
+        var trip = await db.Trips.FirstOrDefaultAsync(t => t.Id == id && t.VehicleId == vehicleId, ct);
+        if (trip is null) return new(TripEditOutcome.NotFound);
+        if (ToDto(trip) is not { } current || !TryReadOriginal(trip, out var original)) return new(TripEditOutcome.Unreadable);
+
+        // Nothing was edited, so it is as recorded already.
+        if (original is null) return new(TripEditOutcome.Ok, await EditorAsync(trip, current.Points, null, ct));
+
+        await ApplyPointsAsync(trip, original, ct);
+        trip.OriginalPointsJson = null;
+        trip.EditedAt = null;
+        await db.SaveChangesAsync(ct);
+
+        return new(TripEditOutcome.Ok, await EditorAsync(trip, original, null, ct));
+    }
+
+    // Everything read off a trip's points follows them. The odometer readings stay: the trip log
+    // counts what the car's own odometer counted, whatever line is drawn on the map.
+    private async Task ApplyPointsAsync(Trip trip, IReadOnlyList<TripPoint> points, CancellationToken ct)
+    {
+        var dto = TripEdit.Summarize(points);
+        if (TripEdit.AddressMoved(trip.StartLatitude, trip.StartLongitude, points[0])) trip.StartPlaceJson = null;
+        if (TripEdit.AddressMoved(trip.EndLatitude, trip.EndLongitude, points[^1])) trip.EndPlaceJson = null;
+
+        trip.StartedAt = dto.StartedAt;
+        trip.EndedAt = dto.EndedAt;
+        trip.DistanceKm = dto.DistanceKm;
+        trip.PointCount = dto.PointCount;
+        trip.PointsJson = JsonSerializer.Serialize(points);
+        trip.StartLatitude = points[0].Latitude;
+        trip.StartLongitude = points[0].Longitude;
+        trip.EndLatitude = points[^1].Latitude;
+        trip.EndLongitude = points[^1].Longitude;
+        trip.MaxSpeedKmh = dto.MaxSpeedKmh;
+        trip.AvgMovingSpeedKmh = dto.AvgMovingSpeedKmh;
+        trip.MovingSpeedSamples = dto.MovingSpeedSamples;
+
+        if (!trip.PurposeIsManual)
+        {
+            var places = await db.CommutePlaces.AsNoTracking().Where(p => p.VehicleId == trip.VehicleId).ToListAsync(ct);
+            trip.Purpose = CommuteRule.AutomaticPurpose(
+                trip.StartLatitude, trip.StartLongitude, trip.EndLatitude, trip.EndLongitude, places);
+        }
+    }
+
+    private async Task<TripEditor> EditorAsync(
+        Trip trip, IReadOnlyList<TripPoint> points, IReadOnlyList<TripPoint>? original, CancellationToken ct)
+    {
+        var (previous, next, notAfter) = await NeighboursAsync(trip, ct);
+        var first = points[0];
+        var last = points[^1];
+
+        // Before: the car's last parked fix, when it reported one after the trip before ended;
+        // otherwise where that trip ended.
+        var fixBefore = await telemetry.GetLastGpsFixBeforeAsync(trip.VehicleId, first.RecordedAt, ct);
+        var parkedBefore = fixBefore is { Speed: not > 0 } && (previous is null || fixBefore.RecordedAt >= previous.EndedAt)
+            ? fixBefore
+            : previous is null ? null : new TripPoint(previous.EndedAt, previous.EndLatitude, previous.EndLongitude, null);
+        var previousStop = parkedBefore is null
+            ? null
+            : TripEdit.Departing(parkedBefore, await telemetry.GetDepartureAsync(trip.VehicleId, parkedBefore, first, ct));
+
+        // After: the car's first fix once the trip ended, when it reported standing still there;
+        // otherwise where the next trip started.
+        var until = last.RecordedAt + TripSegmenter.GapThreshold;
+        if (notAfter is { } limit && limit < until) until = limit;
+        IReadOnlyList<TripPoint> fixesAfter = until > last.RecordedAt
+            ? await telemetry.GetGpsFixesAsync(trip.VehicleId, last.RecordedAt.AddTicks(1), until, ct)
+            : [];
+        var nextStop = fixesAfter is [{ Speed: not > 0 } parkedAfter, ..]
+            ? TripEdit.Arriving(last, parkedAfter, isParkedFix: true)
+            : next is null
+                ? null
+                : TripEdit.Arriving(last, new TripPoint(next.StartedAt, next.StartLatitude, next.StartLongitude, null), isParkedFix: false);
+
+        return TripEdit.Editor(trip.Id, points, original, trip.EditedAt, previousStop, nextStop, previous?.EndedAt, notAfter);
+    }
+
+    // The saved trips either side, hidden ones included, since an edit may not run into either.
+    // The recording line bounds the end too: past it lie the trips not saved yet.
+    private async Task<(Neighbour? Previous, Neighbour? Next, DateTime? NotAfter)> NeighboursAsync(Trip trip, CancellationToken ct)
+    {
+        var previous = await db.Trips
+            .AsNoTracking()
+            .Where(t => t.VehicleId == trip.VehicleId && t.StartedAt < trip.StartedAt && t.Id != trip.Id)
+            .OrderByDescending(t => t.StartedAt)
+            .Select(ToNeighbour)
+            .FirstOrDefaultAsync(ct);
+        var next = await db.Trips
+            .AsNoTracking()
+            .Where(t => t.VehicleId == trip.VehicleId && t.StartedAt > trip.StartedAt && t.Id != trip.Id)
+            .OrderBy(t => t.StartedAt)
+            .Select(ToNeighbour)
+            .FirstOrDefaultAsync(ct);
+
+        var line = await GetRecordedUntilAsync(trip.VehicleId, ct);
+        var notAfter = next?.StartedAt;
+        if (line is { } recordedUntil && (notAfter is null || recordedUntil < notAfter)) notAfter = recordedUntil;
+        return (previous, next, notAfter);
+    }
+
+    private static readonly Expression<Func<Trip, Neighbour>> ToNeighbour = t => new Neighbour(
+        t.StartedAt, t.EndedAt, t.StartLatitude, t.StartLongitude, t.EndLatitude, t.EndLongitude);
+
+    private sealed record Neighbour(
+        DateTime StartedAt, DateTime EndedAt,
+        double StartLatitude, double StartLongitude, double EndLatitude, double EndLongitude);
+
+    // The points as recorded: null while the trip is unedited. False when they cannot be read.
+    private bool TryReadOriginal(Trip trip, out List<TripPoint>? original)
+    {
+        original = null;
+        if (trip.OriginalPointsJson is null) return true;
+
+        original = SafeJson.TryDeserialize<List<TripPoint>>(
+            trip.OriginalPointsJson,
+            ex => logger?.LogWarning(ex, "Trip {Id} has unreadable recorded points", trip.Id));
+        return original is { Count: > 0 };
+    }
+
+    private static DateTime? Max(DateTime? a, DateTime? b) => a is null ? b : b is null ? a : a > b ? a : b;
+
 
     private static string? JoinNotes(string? first, string? second) =>
         (first, second) switch
@@ -341,20 +504,22 @@ public class TripRepository(
         t.Id, t.StartedAt, t.EndedAt, t.DistanceKm,
         t.StartLatitude, t.StartLongitude, t.EndLatitude, t.EndLongitude,
         t.OdometerStartKm, t.OdometerEndKm,
-        t.StartPlaceJson, t.EndPlaceJson, t.Purpose, t.Notes, t.PurposeIsManual, t.IsHidden);
+        t.StartPlaceJson, t.EndPlaceJson, t.Purpose, t.Notes, t.PurposeIsManual, t.IsHidden, t.EditedAt != null);
 
     private sealed record LogRow(
         long Id, DateTime StartedAt, DateTime EndedAt, double DistanceKm,
         double StartLatitude, double StartLongitude, double EndLatitude, double EndLongitude,
         double? OdometerStartKm, double? OdometerEndKm,
-        string? StartPlaceJson, string? EndPlaceJson, TripPurpose? Purpose, string? Notes, bool PurposeIsManual, bool IsHidden);
+        string? StartPlaceJson, string? EndPlaceJson, TripPurpose? Purpose, string? Notes, bool PurposeIsManual, bool IsHidden,
+        bool IsEdited);
 
     private TripLogEntry ToEntry(LogRow r) => new(
         r.Id, r.StartedAt, r.EndedAt, r.DistanceKm,
         r.StartLatitude, r.StartLongitude, r.EndLatitude, r.EndLongitude,
         r.OdometerStartKm, r.OdometerEndKm,
         ReadPlace(r.Id, r.StartPlaceJson), ReadPlace(r.Id, r.EndPlaceJson),
-        r.Purpose, r.Notes, PurposeIsAutomatic: r.Purpose is not null && !r.PurposeIsManual, IsHidden: r.IsHidden);
+        r.Purpose, r.Notes, PurposeIsAutomatic: r.Purpose is not null && !r.PurposeIsManual, IsHidden: r.IsHidden,
+        IsEdited: r.IsEdited);
 
     // An unreadable place is as good as none: the trip log looks it up again.
     private PlaceAddress? ReadPlace(long tripId, string? json) =>

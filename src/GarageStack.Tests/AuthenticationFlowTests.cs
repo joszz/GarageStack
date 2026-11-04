@@ -1361,6 +1361,68 @@ public class AuthenticationFlowTests
         Assert.Equal(HttpStatusCode.NotFound, deletedAgain.StatusCode);
     }
 
+    // ── Trip routes ──────────────────────────────────────────────────────────
+
+    // Through the whole stack, on the demo's trips: the editor answers for a saved trip, a route it
+    // cannot take is refused with a problem code, a point the car never reported comes back placed
+    // by hand in both formats, and a read-only token can read the editor but not save. The route is
+    // reset at the end, since every host in this run shares the demo.
+    [Fact]
+    public async Task TripRoutes_CanBeEditedAndReset_ButNotWithAReadOnlyToken()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var factory = CreatePasswordOnlyFactory();
+        using var client = CreateClient(factory);
+        await PasswordLoginAsync(client, ct);
+        var trips = $"/api/vehicles/{DemoVin}/trips";
+        var period = $"?from={DateTimeOffset.UtcNow.AddDays(-60):O}&to={DateTimeOffset.UtcNow:O}".Replace("+", "%2B", StringComparison.Ordinal);
+        // Amsterdam to Almere: the demo has it leave 8 km from where the trip before it ended.
+        var editor = (await client.GetFromJsonAsync<TripEditor>($"{trips}/5/editor", ct))!;
+        var stop = editor.PreviousStop!;
+        List<TripPointInput> route =
+        [
+            new(new DateTimeOffset(stop.SuggestedAt), stop.Latitude, stop.Longitude),
+            .. editor.Points.Select(p => new TripPointInput(new DateTimeOffset(p.RecordedAt), p.Latitude, p.Longitude)),
+        ];
+
+        try
+        {
+            var unknown = await client.GetAsync($"{trips}/999/editor", ct);
+            var tooShort = await client.PutAsJsonAsync($"{trips}/5/points", new TripPointsRequest(route[..1]), ct);
+            var saved = await client.PutAsJsonAsync($"{trips}/5/points", new TripPointsRequest(route), ct);
+            var after = await saved.Content.ReadFromJsonAsync<TripEditor>(ct);
+            var compact = (await client.GetFromJsonAsync<List<JsonElement>>($"{trips}{period}&format=compact", ct))!;
+
+            var created = await client.PostAsJsonAsync("/api/tokens", new { name = "Routes" }, ct);
+            var token = (await created.Content.ReadFromJsonAsync<JsonElement>(ct)).GetProperty("token").GetString()!;
+            using var bearer = CreateClient(factory, handleCookies: false);
+            bearer.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+            var read = await bearer.GetAsync($"{trips}/5/editor", ct);
+            var write = await bearer.PutAsJsonAsync($"{trips}/5/points", new TripPointsRequest(route), ct);
+            var reset = await bearer.PostAsync($"{trips}/5/points/reset", null, ct);
+
+            Assert.True(editor.Suggestion);
+            Assert.Equal(HttpStatusCode.NotFound, unknown.StatusCode);
+            Assert.Equal(HttpStatusCode.BadRequest, tooShort.StatusCode);
+            Assert.Equal("trip.pointCount", await ProblemCodeAsync(tooShort, ct));
+            Assert.Equal(HttpStatusCode.OK, saved.StatusCode);
+            Assert.Equal(TripPointSource.Manual, after!.Points[0].Source);
+            Assert.Equal(editor.Points, after.OriginalPoints);
+            var sources = compact.Single(t => t.GetProperty("id") is { ValueKind: JsonValueKind.Number } id && id.GetInt64() == 5)
+                .GetProperty("sources");
+            Assert.Equal("manual", sources[0].GetString());
+            Assert.Equal(HttpStatusCode.OK, read.StatusCode);
+            Assert.Equal(HttpStatusCode.Forbidden, write.StatusCode);
+            Assert.Equal("token.readOnly", await ProblemCodeAsync(write, ct));
+            Assert.Equal(HttpStatusCode.Forbidden, reset.StatusCode);
+        }
+        finally
+        {
+            var undone = await client.PostAsync($"{trips}/5/points/reset", null, ct);
+            Assert.Null((await undone.Content.ReadFromJsonAsync<TripEditor>(ct))!.OriginalPoints);
+        }
+    }
+
     // ── RDW ───────────────────────────────────────────────────────────────────
 
     // The demo answers for the RDW itself: a plate goes in as typed, comes back as the RDW keys it,

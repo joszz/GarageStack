@@ -1,3 +1,4 @@
+using GarageStack.Core.Interfaces;
 using GarageStack.Core.Models;
 
 namespace GarageStack.Core.Helpers;
@@ -41,6 +42,23 @@ public static class TripAnchor
 
     /// <summary>The odometer reports whole kilometres, so a difference is out by up to this either way.</summary>
     public const double OdometerResolutionKm = 1;
+
+    /// <summary>
+    /// How many reports before a trip's first fix are read to find when the car woke up. A parked
+    /// car reports a handful of polls before it sleeps, so a quiet period is found well within this.
+    /// </summary>
+    public const int WakeUpReportLimit = 200;
+
+    /// <summary>
+    /// When the car left <paramref name="parked"/> for the trip starting at <paramref name="first"/>:
+    /// <see cref="Departure"/> with the wake-up read from the reports in between.
+    /// </summary>
+    public static async Task<DateTime> GetDepartureAsync(
+        this ITelemetryRepository telemetry, int vehicleId, TripPoint parked, TripPoint first, CancellationToken ct = default)
+    {
+        var reports = await telemetry.GetReportTimesAsync(vehicleId, parked.RecordedAt, first.RecordedAt, WakeUpReportLimit, ct);
+        return Departure(parked, first, WakeUp(parked, first, reports, complete: reports.Count < WakeUpReportLimit));
+    }
 
     /// <summary>The straight-line distance from the parked spot to the trip's first fix.</summary>
     public static double GapKm(TripPoint parked, TripPoint first) =>

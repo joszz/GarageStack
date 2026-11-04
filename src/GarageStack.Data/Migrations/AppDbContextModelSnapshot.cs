@@ -18,7 +18,7 @@ namespace GarageStack.Data.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.13")
+                .HasAnnotation("ProductVersion", "10.0.14")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -924,6 +924,9 @@ namespace GarageStack.Data.Migrations
                     b.Property<double>("DistanceKm")
                         .HasColumnType("double precision");
 
+                    b.Property<DateTime?>("EditedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<double>("EndLatitude")
                         .HasColumnType("double precision");
 
@@ -954,6 +957,9 @@ namespace GarageStack.Data.Migrations
 
                     b.Property<double?>("OdometerStartKm")
                         .HasColumnType("double precision");
+
+                    b.Property<string>("OriginalPointsJson")
+                        .HasColumnType("text");
 
                     b.Property<int>("PointCount")
                         .HasColumnType("integer");
