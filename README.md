@@ -676,6 +676,7 @@ For working on it:
 - [`ARCHITECTURE.md`](documentation/ARCHITECTURE.md): how the services fit together
 - [`DEMO.md`](documentation/DEMO.md): the app on sample data, without a car, and the API reference
 - [`RELEASING.md`](documentation/RELEASING.md): versions, tags and release notes
+- [`PREVIEW_BUILDS.md`](documentation/PREVIEW_BUILDS.md): throwaway `pr-<number>` images for testing a fix on someone else's car, and how to run one
 - [`ACCESSIBILITY.md`](.github/ACCESSIBILITY.md) and [`SECURITY.md`](.github/SECURITY.md), which also says how to report a vulnerability
 
 What changed in each version is on the [releases page](https://github.com/joszz/GarageStack/releases).

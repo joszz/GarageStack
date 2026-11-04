@@ -1,0 +1,106 @@
+name: Preview build
+
+# Publishes images for a pull request labelled test-build, tagged pr-<number>, so someone with the
+# car the change is for can run it before it is merged. Every push to the pull request replaces
+# them; preview-cleanup.yml deletes them when the label comes off or the pull request closes.
+# See documentation/PREVIEW_BUILDS.md.
+
+on:
+  pull_request:
+    branches: [main]
+    types: [labeled, synchronize, reopened]
+
+permissions:
+  contents: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  build:
+    name: Publish pr-${{ github.event.pull_request.number }}
+    # Only for branches of this repository: a fork's pull request gets no packages permission.
+    # Adding another label to a labelled pull request is not a reason to build again.
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      contains(github.event.pull_request.labels.*.name, 'test-build') &&
+      (github.event.action != 'labeled' || github.event.label.name == 'test-build')
+    # Shared with the cleanup, so closing the pull request stops a build that is still pushing.
+    concurrency:
+      group: preview-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    uses: ./.github/workflows/docker-publish.yml
+    with:
+      pr_number: ${{ github.event.pull_request.number }}
+    secrets: inherit
+
+  comment:
+    name: Tell the tester
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+      OWNER: ${{ github.repository_owner }}
+      PR: ${{ github.event.pull_request.number }}
+      HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      VERSION: ${{ needs.build.outputs.version }}
+    steps:
+      - name: Post or update the preview comment
+        shell: bash
+        run: |
+          set -euo pipefail
+          MARKER='<!-- garagestack-preview-build -->'
+          SHORT="${HEAD_SHA:0:7}"
+          DOCS="https://github.com/$REPO/blob/main/documentation/PREVIEW_BUILDS.md"
+
+          MIGRATIONS=$(gh api --paginate "repos/$REPO/pulls/$PR/files" --jq '.[].filename' \
+            | grep -c '^src/GarageStack.Data/Migrations/' || true)
+
+          {
+            echo "$MARKER"
+            echo "### Preview build \`pr-$PR\`"
+            echo
+            echo "Images for this pull request are published, built from $SHORT (version \`$VERSION\`, shown in the footer)."
+            echo "Every push here replaces them. Closing the pull request or removing the \`test-build\` label deletes them."
+            echo
+            if [ "$MIGRATIONS" -gt 0 ]; then
+              echo "> [!WARNING]"
+              echo "> This build changes the database. Going back to \`latest\` afterwards leaves that change in place, so **back up the database before trying it**."
+              echo
+            fi
+            echo "**All-in-one or Unraid:** change the image to"
+            echo
+            echo '```'
+            echo "ghcr.io/$OWNER/garagestack:pr-$PR"
+            echo '```'
+            echo
+            echo "**Docker Compose** (from a clone of this repository, on \`main\`):"
+            echo
+            echo '```sh'
+            echo "git pull"
+            echo "PREVIEW_TAG=pr-$PR docker compose -f docker-compose.yml -f docker-compose.preview.yml up -d"
+            echo '```'
+            echo
+            echo "To pin this exact build rather than follow the pull request, use \`pr-$PR-$SHORT\` as the tag."
+            echo
+            echo "**Going back:** change the image back to \`latest\`, or with Compose run \`docker compose up -d --build\`."
+            echo
+            echo "Step by step: [Testing a preview build]($DOCS#testing-a-preview-build)."
+          } > body.md
+
+          ID=$(gh api --paginate "repos/$REPO/issues/$PR/comments" \
+            --jq ".[] | select(.body | startswith(\"$MARKER\")) | .id" | head -n 1)
+          if [ -n "$ID" ]; then
+            gh api -X PATCH "repos/$REPO/issues/comments/$ID" -F body=@body.md > /dev/null
+          else
+            gh api -X POST "repos/$REPO/issues/$PR/comments" -F body=@body.md > /dev/null
+          fi

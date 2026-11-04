@@ -1,0 +1,23 @@
+# Runs the published preview images of a pull request instead of building this clone.
+# Layer it on top of docker-compose.yml:
+#
+#   PREVIEW_TAG=pr-123 docker compose -f docker-compose.yml -f docker-compose.preview.yml up -d
+#
+# Go back to your own build with: docker compose up -d --build
+# See documentation/PREVIEW_BUILDS.md.
+
+services:
+  worker:
+    build: !reset null
+    image: "ghcr.io/joszz/garagestack-worker:${PREVIEW_TAG:?Set PREVIEW_TAG to the preview tag, for example pr-123}"
+    pull_policy: always
+
+  api:
+    build: !reset null
+    image: "ghcr.io/joszz/garagestack-api:${PREVIEW_TAG:?Set PREVIEW_TAG to the preview tag, for example pr-123}"
+    pull_policy: always
+
+  frontend:
+    build: !reset null
+    image: "ghcr.io/joszz/garagestack-frontend:${PREVIEW_TAG:?Set PREVIEW_TAG to the preview tag, for example pr-123}"
+    pull_policy: always
