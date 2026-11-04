@@ -22,6 +22,29 @@ public class TelemetryRepositoryPostgresTests
     }
 
     [Fact]
+    public async Task WhatTheRecorderReadsToAnchorATrip_TranslatesToSql()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var database = await PostgresDatabase.CreateAsync(ct);
+        await using var db = database.CreateContext();
+        var vehicleId = await AddVehicleAsync(db, ct);
+        var parkedAt = new DateTime(2026, 1, 1, 18, 0, 0, DateTimeKind.Utc);
+        db.TelemetrySnapshots.AddRange(
+            new TelemetrySnapshot { VehicleId = vehicleId, RecordedAt = parkedAt, Latitude = 51.60, Longitude = 5.10, Speed = 0 },
+            new TelemetrySnapshot { VehicleId = vehicleId, RecordedAt = parkedAt.AddHours(13), BatteryVoltage = 12.6 },
+            new TelemetrySnapshot { VehicleId = vehicleId, RecordedAt = parkedAt.AddHours(13.2), Latitude = 51.65, Longitude = 5.10, Speed = 50 });
+        await db.SaveChangesAsync(ct);
+        var repo = new TelemetryRepository(db);
+
+        Assert.Equal(
+            new TripPoint(parkedAt, 51.60, 5.10, 0),
+            await repo.GetLastGpsFixBeforeAsync(vehicleId, parkedAt.AddHours(13.2), ct));
+        Assert.Equal(
+            [parkedAt.AddHours(13)],
+            await repo.GetReportTimesAsync(vehicleId, parkedAt, parkedAt.AddHours(13.2), 10, ct));
+    }
+
+    [Fact]
     public async Task AMergedMessage_UpdatesOnlyItsOwnFields()
     {
         var ct = TestContext.Current.CancellationToken;

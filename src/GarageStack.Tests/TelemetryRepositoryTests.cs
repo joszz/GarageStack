@@ -68,6 +68,52 @@ public class TelemetryRepositoryTests
         Assert.Equal(t0.AddHours(1), await repo.GetFirstGpsFixAtAsync(vehicle.Id, ct));
     }
 
+    [Fact]
+    public async Task GetLastGpsFixBefore_IsTheNewestPositionedRowBeforeTheTime()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var db = CreateDb();
+        var vehicle = new Vehicle { Vin = "FAKEVN00000000001" };
+        db.Vehicles.Add(vehicle);
+        await db.SaveChangesAsync(ct);
+
+        var t0 = new DateTime(2026, 1, 1, 10, 0, 0, DateTimeKind.Utc);
+        var repo = new TelemetryRepository(db);
+        db.TelemetrySnapshots.AddRange(
+            MakePoint(vehicle.Id, t0.AddMinutes(-20), 51.49, 0.0, 50),
+            MakePoint(vehicle.Id, t0.AddMinutes(-10), 51.50, 0.0, 0),
+            new TelemetrySnapshot { VehicleId = vehicle.Id, RecordedAt = t0.AddMinutes(-5), BatteryVoltage = 12.6 },
+            MakePoint(vehicle.Id, t0, 51.60, 0.0, 50),
+            MakePoint(vehicle.Id + 1, t0.AddMinutes(-1), 51.53, 0.0, 0));
+        await db.SaveChangesAsync(ct);
+
+        Assert.Equal(new TripPoint(t0.AddMinutes(-10), 51.50, 0.0, 0), await repo.GetLastGpsFixBeforeAsync(vehicle.Id, t0, ct));
+        Assert.Null(await repo.GetLastGpsFixBeforeAsync(vehicle.Id, t0.AddMinutes(-20), ct));
+    }
+
+    [Fact]
+    public async Task GetReportTimes_AreEveryRowBetweenTheTimes_NewestFirstAndCapped()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var db = CreateDb();
+        var vehicle = new Vehicle { Vin = "FAKEVN00000000001" };
+        db.Vehicles.Add(vehicle);
+        await db.SaveChangesAsync(ct);
+
+        var t0 = new DateTime(2026, 1, 1, 10, 0, 0, DateTimeKind.Utc);
+        var repo = new TelemetryRepository(db);
+        db.TelemetrySnapshots.AddRange(
+            MakePoint(vehicle.Id, t0, 51.50, 0.0, 0),
+            new TelemetrySnapshot { VehicleId = vehicle.Id, RecordedAt = t0.AddMinutes(1), BatteryVoltage = 12.6 },
+            new TelemetrySnapshot { VehicleId = vehicle.Id, RecordedAt = t0.AddMinutes(2), OdometerKm = 100 },
+            MakePoint(vehicle.Id, t0.AddMinutes(3), 51.51, 0.0, 50),
+            new TelemetrySnapshot { VehicleId = vehicle.Id + 1, RecordedAt = t0.AddMinutes(2), BatteryVoltage = 12.6 });
+        await db.SaveChangesAsync(ct);
+
+        Assert.Equal([t0.AddMinutes(2), t0.AddMinutes(1)], await repo.GetReportTimesAsync(vehicle.Id, t0, t0.AddMinutes(3), 10, ct));
+        Assert.Equal([t0.AddMinutes(2)], await repo.GetReportTimesAsync(vehicle.Id, t0, t0.AddMinutes(3), 1, ct));
+    }
+
     // ── RemoteTemperature regression tests ──────────────────────────────────
     // These cover the two-part bug: (1) HasData must not filter out rows whose
     // only non-null field is RemoteTemperature, and (2) the merge loop must

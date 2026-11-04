@@ -323,7 +323,7 @@ public class TelemetryRepository(
             .Where(s => s.VehicleId == vehicleId && s.RecordedAt >= from && s.RecordedAt < to
                         && s.Latitude != null && s.Longitude != null)
             .OrderByDescending(s => s.RecordedAt)
-            .Select(s => new TripPoint(s.RecordedAt, s.Latitude!.Value, s.Longitude!.Value, s.Speed))
+            .Select(s => new TripPoint(s.RecordedAt, s.Latitude!.Value, s.Longitude!.Value, s.Speed, null))
             .Take(MaxRawRowsPerQuery)
             .ToListAsync(ct);
 
@@ -343,6 +343,24 @@ public class TelemetryRepository(
             .OrderBy(s => s.RecordedAt)
             .Select(s => (DateTime?)s.RecordedAt)
             .FirstOrDefaultAsync(ct);
+
+    public Task<TripPoint?> GetLastGpsFixBeforeAsync(int vehicleId, DateTime before, CancellationToken ct = default) =>
+        db.TelemetrySnapshots
+            .AsNoTracking()
+            .Where(s => s.VehicleId == vehicleId && s.RecordedAt < before && s.Latitude != null && s.Longitude != null)
+            .OrderByDescending(s => s.RecordedAt)
+            .Select(s => new TripPoint(s.RecordedAt, s.Latitude!.Value, s.Longitude!.Value, s.Speed, null))
+            .FirstOrDefaultAsync(ct);
+
+    public async Task<IReadOnlyList<DateTime>> GetReportTimesAsync(
+        int vehicleId, DateTime after, DateTime before, int limit, CancellationToken ct = default) =>
+        await db.TelemetrySnapshots
+            .AsNoTracking()
+            .Where(s => s.VehicleId == vehicleId && s.RecordedAt > after && s.RecordedAt < before)
+            .OrderByDescending(s => s.RecordedAt)
+            .Select(s => s.RecordedAt)
+            .Take(limit)
+            .ToListAsync(ct);
 
     // Newest first rather than a MAX: this walks the (VehicleId, RecordedAt) index backwards and
     // stops at the first row carrying a reading, where MAX would read every row before `at`.

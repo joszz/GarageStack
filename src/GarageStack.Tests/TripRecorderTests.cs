@@ -1,3 +1,4 @@
+using System.Text.Json;
 using GarageStack.Core.Models;
 using GarageStack.Data;
 using GarageStack.Data.Repositories;
@@ -197,5 +198,92 @@ public class TripRecorderTests
         Assert.Equal(1, await s.Recorder.RecordAsync(s.Vehicle.Id, T0.AddDays(8), ct));
 
         Assert.Equal(T0 + TripRecorder.Chunk, await s.Trips.GetRecordedUntilAsync(s.Vehicle.Id, ct));
+    }
+
+    // ── Starting a trip where the car was parked ─────────────────────────────
+
+    // The next morning's drive, whose first fix lands about 5.6 km north of where Drive parked.
+    private static (DateTime, double, double?)[] MorningDrive(DateTime first) =>
+    [
+        (first, 51.65, 50),
+        (first.AddMinutes(5), 51.70, 50),
+        (first.AddMinutes(10), 51.75, 50),
+        (first.AddMinutes(11), 51.75, 0),
+    ];
+
+    [Fact]
+    public async Task TripAfterTheCarSlept_StartsWhereItParkedWhenTheOdometerAgrees()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var s = new Setup();
+        var morning = T0.AddHours(20);
+        await s.AddFixesAsync([.. Drive(T0), .. MorningDrive(morning)], ct);
+        await s.AddOdometerAsync(T0.AddMinutes(12), 24021.0, ct);
+        await s.AddOdometerAsync(morning, 24027.0, ct);
+
+        await s.Recorder.RecordAsync(s.Vehicle.Id, morning.AddHours(1), ct);
+
+        var trip = (await s.SavedAsync(ct))[1];
+        var points = JsonSerializer.Deserialize<List<TripPoint>>(trip.PointsJson)!;
+        Assert.Equal((51.60, 0.0, TripPointSource.Anchored), (points[0].Latitude, points[0].Speed, points[0].Source));
+        Assert.Equal(points[0].RecordedAt, trip.StartedAt);
+        // No wake-up was reported, so it left the 5.6 km at town speed before the first fix.
+        Assert.InRange(trip.StartedAt, morning.AddMinutes(-13.5), morning.AddMinutes(-13.2));
+        Assert.Equal((51.60, 4, 16.68), (trip.StartLatitude, trip.PointCount, trip.DistanceKm));
+        Assert.Equal(24021.0, trip.OdometerStartKm);
+        Assert.Null(points[1].Source);
+    }
+
+    [Fact]
+    public async Task TripAfterTheCarSlept_LeavesWhenTheCarWokeUp()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var s = new Setup();
+        var morning = T0.AddHours(20);
+        await s.AddFixesAsync([.. Drive(T0), .. MorningDrive(morning)], ct);
+        await s.AddOdometerAsync(T0.AddMinutes(12), 24021.0, ct);
+        await s.AddOdometerAsync(morning, 24027.0, ct);
+        // The car woke up, without a fix, eight minutes before its first one.
+        s.Db.TelemetrySnapshots.Add(new TelemetrySnapshot { VehicleId = s.Vehicle.Id, RecordedAt = morning.AddMinutes(-8), BatteryVoltage = 12.6 });
+        await s.Db.SaveChangesAsync(ct);
+
+        await s.Recorder.RecordAsync(s.Vehicle.Id, morning.AddHours(1), ct);
+
+        Assert.Equal(morning.AddMinutes(-8), (await s.SavedAsync(ct))[1].StartedAt);
+    }
+
+    [Fact]
+    public async Task TripAfterTheCarSlept_StaysAsRecordedWhenTheOdometerDidNotMove()
+    {
+        // 5.6 km without a kilometre on the clock: a ferry, a tow truck or a GPS jump.
+        var ct = TestContext.Current.CancellationToken;
+        await using var s = new Setup();
+        var morning = T0.AddHours(20);
+        await s.AddFixesAsync([.. Drive(T0), .. MorningDrive(morning)], ct);
+        await s.AddOdometerAsync(T0.AddMinutes(12), 24021.0, ct);
+        await s.AddOdometerAsync(morning, 24021.0, ct);
+
+        await s.Recorder.RecordAsync(s.Vehicle.Id, morning.AddHours(1), ct);
+
+        var trip = (await s.SavedAsync(ct))[1];
+        Assert.Equal((morning, 51.65, 3), (trip.StartedAt, trip.StartLatitude, trip.PointCount));
+    }
+
+    [Fact]
+    public async Task FirstTripOfAWeek_StartsWhereTheCarParkedTheWeekBefore()
+    {
+        // The recorder reads a week at a time, so the parked fix is not among the fixes it cuts.
+        var ct = TestContext.Current.CancellationToken;
+        await using var s = new Setup();
+        var later = T0 + TripRecorder.Chunk + TimeSpan.FromDays(1);
+        await s.AddFixesAsync([.. Drive(T0), .. MorningDrive(later)], ct);
+        await s.AddOdometerAsync(T0.AddMinutes(12), 24021.0, ct);
+        await s.AddOdometerAsync(later, 24027.0, ct);
+
+        Assert.Equal(2, await s.Recorder.RecordAsync(s.Vehicle.Id, later.AddHours(1), ct));
+
+        var trip = (await s.SavedAsync(ct))[1];
+        Assert.Equal((51.60, 4), (trip.StartLatitude, trip.PointCount));
+        Assert.True(trip.StartedAt < later);
     }
 }
