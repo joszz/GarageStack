@@ -132,7 +132,7 @@ gh label create test-build --color 5319E7 --description "Publish pr-<number> pre
 
 **The cleanup fails with 403 or "not found".** The workflow token may delete a package version only when the repository has the *Admin* role on that package. For each of `garagestack`, `garagestack-frontend`, `garagestack-api` and `garagestack-worker`: open the package on GitHub, *Package settings*, *Manage Actions access*, and set this repository to *Admin*. Then run *Preview cleanup* by hand with the pull request number.
 
-**Images are left behind** (for example after a failed cleanup). Run *Preview cleanup* from the Actions tab with the pull request number. To see what is there:
+**Images are left behind** (for example after a failed cleanup). Run *Preview cleanup* from the Actions tab with the pull request number. To see what is there (a local `gh` login needs the `read:packages` scope for this: `gh auth refresh -s read:packages`):
 
 ```sh
 gh api --paginate "users/joszz/packages/container/garagestack/versions" \
