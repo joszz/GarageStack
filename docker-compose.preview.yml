@@ -3,6 +3,9 @@
 #
 #   PREVIEW_TAG=pr-123 docker compose -f docker-compose.yml -f docker-compose.preview.yml up -d
 #
+# Add --profile bundled-postgres after "docker compose" when you use the bundled database, as you
+# do for a normal start. The database, broker and gateway stay as they are.
+#
 # Go back to your own build with: docker compose up -d --build
 # See documentation/PREVIEW_BUILDS.md.
 

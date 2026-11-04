@@ -1,3 +1,9 @@
+# Compose puts the project name in front of every volume and network (garagestack_postgres_data).
+# Without this line it takes the folder's name, so the same file run from another folder (a fresh
+# clone, a renamed directory) starts on new, empty volumes. An install that began in a folder with
+# another name keeps its volumes by setting COMPOSE_PROJECT_NAME in .env, see "Updating" in README.md.
+name: garagestack
+
 # Settings both .NET services need. Compose reads .env for ${...} interpolation on its own, so
 # every value a container gets is listed explicitly here: no env_file, and no secret reaching a
 # container that has no use for it (the Worker never sees the OIDC or widget credentials, the API

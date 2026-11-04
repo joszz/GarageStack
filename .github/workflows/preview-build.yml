@@ -54,6 +54,14 @@ jobs:
       HEAD_SHA: ${{ github.event.pull_request.head.sha }}
       VERSION: ${{ needs.build.outputs.version }}
     steps:
+      # The same commit the build used (the pull request merged into main), with history and
+      # tags, to see which migrations it carries that the latest release does not.
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
       - name: Post or update the preview comment
         shell: bash
         run: |
@@ -61,9 +69,14 @@ jobs:
           MARKER='<!-- garagestack-preview-build -->'
           SHORT="${HEAD_SHA:0:7}"
           DOCS="https://github.com/$REPO/blob/main/documentation/PREVIEW_BUILDS.md"
+          BACKUP="https://github.com/$REPO/blob/main/README.md#backup-and-restore"
 
-          MIGRATIONS=$(gh api --paginate "repos/$REPO/pulls/$PR/files" --jq '.[].filename' \
-            | grep -c '^src/GarageStack.Data/Migrations/' || true)
+          # A tester runs on top of their current release, so a migration counts whether it comes
+          # from this pull request or was merged into main after that release. Without any
+          # release, every migration counts.
+          LATEST=$(gh api "repos/$REPO/releases/latest" --jq .tag_name 2>/dev/null || true)
+          BASE="${LATEST:-$(git hash-object -t tree /dev/null)}"
+          MIGRATIONS=$(git diff --name-only "$BASE" HEAD -- src/GarageStack.Data/Migrations/ | wc -l)
 
           {
             echo "$MARKER"
@@ -74,25 +87,48 @@ jobs:
             echo
             if [ "$MIGRATIONS" -gt 0 ]; then
               echo "> [!WARNING]"
-              echo "> This build changes the database. Going back to \`latest\` afterwards leaves that change in place, so **back up the database before trying it**."
+              if [ -n "$LATEST" ]; then
+                SINCE="the latest release (\`$LATEST\`) does not have"
+              else
+                SINCE="no release has yet"
+              fi
+              echo "> This build changes the database: it carries database changes that $SINCE."
+              echo "> Going back afterwards leaves them in place, so **[back up the database]($BACKUP) before trying it**."
               echo
             fi
+            echo "> [!IMPORTANT]"
+            echo "> Switch where you always run GarageStack: the same folder, Portainer stack or Unraid container. Compose names the database volume after the folder or stack, so starting from anywhere else runs on a new, empty database."
+            echo "> Don't use \`docker compose down -v\` or \`docker volume prune\` while testing. A [backup]($BACKUP) first never hurts."
+            echo
             echo "**All-in-one or Unraid:** change the image to"
             echo
             echo '```'
             echo "ghcr.io/$OWNER/garagestack:pr-$PR"
             echo '```'
             echo
-            echo "**Docker Compose** (from a clone of this repository, on \`main\`):"
+            echo "**Docker Compose with the published images** (your own compose file with \`garagestack-api\`, \`garagestack-worker\` and \`garagestack-frontend\`): change the tag of those three images to \`pr-$PR\`, then"
+            echo
+            echo '```sh'
+            echo "docker compose pull"
+            echo "docker compose up -d"
+            echo '```'
+            echo
+            echo "**Docker Compose from a clone of this repository**, in the clone's folder on \`main\`:"
             echo
             echo '```sh'
             echo "git pull"
             echo "PREVIEW_TAG=pr-$PR docker compose -f docker-compose.yml -f docker-compose.preview.yml up -d"
             echo '```'
             echo
+            echo "With the bundled database, put \`--profile bundled-postgres\` after \`docker compose\`, as you do for a normal start."
+            echo
             echo "To pin this exact build rather than follow the pull request, use \`pr-$PR-$SHORT\` as the tag."
             echo
-            echo "**Going back:** change the image back to \`latest\`, or with Compose run \`docker compose up -d --build\`."
+            if [ -n "$LATEST" ]; then
+              echo "**Going back:** change the image back to the version you ran before, for example \`${LATEST#v}\` (the latest release). \`latest\` works too, but it follows \`main\`, so it can hold changes that are not released yet, database ones included. From a clone, run \`docker compose up -d --build\` in the same folder."
+            else
+              echo "**Going back:** change the image back to the version you ran before. From a clone, run \`docker compose up -d --build\` in the same folder."
+            fi
             echo
             echo "Step by step: [Testing a preview build]($DOCS#testing-a-preview-build)."
           } > body.md
