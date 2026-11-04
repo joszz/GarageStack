@@ -1,0 +1,92 @@
+name: Preview cleanup
+
+# Deletes the pr-<number> images preview-build.yml published, once the pull request closes (merged
+# or not) or loses its test-build label. See documentation/PREVIEW_BUILDS.md.
+
+on:
+  pull_request:
+    branches: [main]
+    types: [closed, unlabeled]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: Pull request whose preview images to delete
+        type: number
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  cleanup:
+    name: Delete pr-${{ inputs.pr_number || github.event.pull_request.number }}
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.pull_request.head.repo.full_name == github.repository &&
+       ((github.event.action == 'closed' && contains(github.event.pull_request.labels.*.name, 'test-build')) ||
+        (github.event.action == 'unlabeled' && github.event.label.name == 'test-build')))
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Shared with the build, so a build still pushing is stopped before its images are deleted.
+    concurrency:
+      group: preview-${{ inputs.pr_number || github.event.pull_request.number }}
+      cancel-in-progress: true
+    permissions:
+      contents: read
+      packages: write
+      pull-requests: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+      OWNER: ${{ github.repository_owner }}
+      PR: ${{ inputs.pr_number || github.event.pull_request.number }}
+    steps:
+      - name: Delete the preview image versions
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "$(gh api "users/$OWNER" --jq .type)" = Organization ]; then
+            BASE="orgs/$OWNER"
+          else
+            BASE="users/$OWNER"
+          fi
+
+          # pr-123 and every pr-123-<commit>; never pr-1234.
+          PATTERN="^pr-$PR(-[0-9a-f]+)?\$"
+          FAILED=0
+          for PACKAGE in garagestack garagestack-frontend garagestack-api garagestack-worker; do
+            IDS=$(gh api --paginate "$BASE/packages/container/$PACKAGE/versions?per_page=100" \
+              --jq ".[] | select(any(.metadata.container.tags[]; test(\"$PATTERN\"))) | .id")
+            if [ -z "$IDS" ]; then
+              echo "$PACKAGE: no preview versions for pr-$PR"
+              continue
+            fi
+            for ID in $IDS; do
+              if gh api -X DELETE "$BASE/packages/container/$PACKAGE/versions/$ID" > /dev/null; then
+                echo "$PACKAGE: deleted version $ID"
+              else
+                echo "::error::Could not delete $PACKAGE version $ID. Give this repository the Admin role under the package's Manage Actions access, see documentation/PREVIEW_BUILDS.md."
+                FAILED=1
+              fi
+            done
+          done
+          exit "$FAILED"
+
+      - name: Mark the preview comment as removed
+        shell: bash
+        run: |
+          set -euo pipefail
+          MARKER='<!-- garagestack-preview-build -->'
+          ID=$(gh api --paginate "repos/$REPO/issues/$PR/comments" \
+            --jq ".[] | select(.body | startswith(\"$MARKER\")) | .id" | head -n 1)
+          if [ -z "$ID" ]; then
+            exit 0
+          fi
+          {
+            echo "$MARKER"
+            echo "### Preview build \`pr-$PR\`"
+            echo
+            echo "The preview images are deleted. Anyone who ran them should change the image back to \`latest\`, or with Compose run \`docker compose up -d --build\`."
+            echo "Adding the \`test-build\` label again publishes a fresh build."
+          } > body.md
+          gh api -X PATCH "repos/$REPO/issues/comments/$ID" -F body=@body.md > /dev/null

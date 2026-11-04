@@ -33,6 +33,8 @@ All images live on GitHub Container Registry (`ghcr.io`). Replace `joszz` with t
 | `1.2` | `garagestack:1.2` | On any `v1.2.x` tag |
 | `1` | `garagestack:1` | On any `v1.x.x` tag |
 | `sha-abc1234` | `garagestack:sha-abc1234` | Every published build: pushes to `main`, tags, weekly rebuild, manual dispatch |
+| `pr-123` | `garagestack:pr-123` | Preview of pull request 123 while it has the `test-build` label; follows every push, deleted when the label comes off or the PR closes. See [`PREVIEW_BUILDS.md`](PREVIEW_BUILDS.md) |
+| `pr-123-abc1234` | `garagestack:pr-123-abc1234` | One exact commit of that preview; deleted with it |
 
 ---
 
@@ -46,6 +48,14 @@ PR opened
   CodeQL (actions, C#, JS/TS analysis)
   Security (Trivy filesystem scan)
   docker-publish (only when the PR changes docker-publish.yml itself; pushes nothing)
+
+PR labelled test-build (see PREVIEW_BUILDS.md)
+  Preview build (calls docker-publish: push pr-<number> and pr-<number>-<commit>, no signing/SBOM)
+  Comment on the PR with the image names and commands for the tester
+  Repeats on every push while the label is on
+
+PR closed or test-build label removed
+  Preview cleanup (delete the pr-<number> image versions)
 
 Merge to main
   CI (without container-build: docker-publish builds the images)

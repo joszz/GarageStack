@@ -71,6 +71,7 @@ Commits follow [Conventional Commits](https://www.conventionalcommits.org/), wit
 - Fill in the PR template fully.
 - Link any related issues with `Closes #<number>`.
 - PRs require at least one approving review before merge.
+- A change that needs someone else's car to prove it (charging, battery counters, a model the maintainer does not drive) can get a throwaway preview build: the maintainer adds the `test-build` label and the images are published as `pr-<number>`. See [PREVIEW_BUILDS.md](../documentation/PREVIEW_BUILDS.md).
 
 ## CI on a fork
 
