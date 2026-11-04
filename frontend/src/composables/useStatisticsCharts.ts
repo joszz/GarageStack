@@ -5,7 +5,7 @@ import type { StatsChartType } from '@/components/StatsChartCard.vue'
 import type { DailyStat } from '@/services/vehicleApi'
 import type { StatsChartId } from '@/stores/settingsShared'
 import type { VehicleType } from '@/stores/vehicle'
-import { energyUnit, litres } from '@/utils/energy'
+import { dailyCounterTotal, energyUnit, litres } from '@/utils/energy'
 import { formatDate, numberLocale } from '@/utils/format'
 import {
   bucketAverages,
@@ -225,11 +225,13 @@ export function useStatisticsCharts(
     datasets: [
       {
         label: reportsFuelCounter.value ? units.value.symbol('volume') : t('common.kwh'),
-        data: bucketTotals(buckets.value, (d) => d.counterTotal).map((total) => {
-          const fuel = reportsFuelCounter.value ? litres(total) : null
-          const used = fuel !== null ? units.value.convert('volume', fuel) : total
-          return used !== null ? roundTo2(used) : null
-        }),
+        data: bucketTotals(buckets.value, (d) => dailyCounterTotal(d, vehicleType.value)).map(
+          (total) => {
+            const fuel = reportsFuelCounter.value ? litres(total) : null
+            const used = fuel !== null ? units.value.convert('volume', fuel) : total
+            return used !== null ? roundTo2(used) : null
+          },
+        ),
         borderColor: '#f59e0b',
         backgroundColor: 'rgba(245,158,11,0.7)',
       },

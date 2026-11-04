@@ -25,7 +25,14 @@ import MaintenanceSummaryCard from './MaintenanceSummaryCard.vue'
 import RdwCard from './RdwCard.vue'
 import ClimateScheduleSummaryCard from './ClimateScheduleSummaryCard.vue'
 import { formatNumber } from '@/utils/format'
-import { energyUnit, hvBatteryReading, litres, litresPer100Km, whPerKm } from '@/utils/energy'
+import {
+  energyUnit,
+  hvBatteryReading,
+  litres,
+  litresPer100Km,
+  todaysEnergyKwh,
+  whPerKm,
+} from '@/utils/energy'
 import { evLevelVariant, fuelLevelVariant } from '@/utils/levels'
 import { plugsIn } from '@/utils/vehicleType'
 import { ODOMETER_FORMAT, type Measure, type MeasureOptions, type Quantity } from '@/utils/units'
@@ -103,7 +110,8 @@ const simpleCards = computed((): SimpleCardConfig[] => {
   const s = status.value
   const ctx = cardData.value
   if (!s || !ctx) return []
-  const efficiencyWhPerKm = whPerKm(s.powerUsageOfDay, s.mileageOfTheDay)
+  const energyTodayKwh = todaysEnergyKwh(s)
+  const efficiencyWhPerKm = whPerKm(energyTodayKwh, s.mileageOfTheDay)
   const fuelUsedLitres = litres(s.powerUsageOfDay)
   const consumptionL100Km = litresPer100Km(s.powerUsageOfDay, s.mileageOfTheDay)
   return [
@@ -163,9 +171,9 @@ const simpleCards = computed((): SimpleCardConfig[] => {
     // efficiencyEnergy - kWh through the traction battery on a plug-in car
     {
       id: 'efficiencyEnergy',
-      match: !reportsFuelCounter.value && s.powerUsageOfDay !== null,
+      match: !reportsFuelCounter.value && energyTodayKwh !== null,
       label: t('vehicle.efficiency.todayEnergy'),
-      value: s.powerUsageOfDay !== null ? formatNumber(s.powerUsageOfDay) : null,
+      value: energyTodayKwh !== null ? formatNumber(energyTodayKwh) : null,
       unit: t('common.kwh'),
     },
     // efficiencyEnergy - litres burned on a hybrid, whose counter reports fuel

@@ -1,5 +1,6 @@
-import type { DailyStat, TripSummary } from '@/services/vehicleApi'
+import type { DailyStat, TripSummary, VehicleType } from '@/services/vehicleApi'
 import { localDateKey } from '@/utils/dates'
+import { dailyCounterTotal } from '@/utils/energy'
 import { DAY_MONTH } from '@/utils/format'
 import { parseLocalDate, type StatsGrouping } from '@/utils/statsPeriod'
 
@@ -200,6 +201,7 @@ export function monthlyTotals(
   stats: readonly DailyStat[],
   first: Date,
   last: Date,
+  vehicleType: VehicleType,
 ): MonthTotal[] {
   const months = new Map<string, MonthTotal>()
   for (
@@ -225,8 +227,8 @@ export function monthlyTotals(
 
   for (const stat of stats) {
     const month = months.get(stat.date.slice(0, 7))
-    if (month && stat.counterTotal !== null)
-      month.counterTotal = (month.counterTotal ?? 0) + stat.counterTotal
+    const total = dailyCounterTotal(stat, vehicleType)
+    if (month && total !== null) month.counterTotal = (month.counterTotal ?? 0) + total
   }
 
   return [...months.values()]
