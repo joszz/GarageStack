@@ -21,10 +21,6 @@ public class TripRecorder(ITelemetryRepository telemetry, ITripRepository trips,
     // than this are left for the next run rather than judged before they are all in.
     internal static readonly TimeSpan SettleTime = TimeSpan.FromMinutes(1);
 
-    // How many reports before a trip's first fix are read to find when the car woke up. A parked
-    // car reports a handful of polls before it sleeps, so a quiet period is found well within this.
-    private const int WakeUpReports = 200;
-
     /// <returns>How many trips were saved.</returns>
     public async Task<int> RecordAsync(int vehicleId, DateTime now, CancellationToken ct)
     {
@@ -106,9 +102,7 @@ public class TripRecorder(ITelemetryRepository telemetry, ITripRepository trips,
         var first = trip.Points[0];
         if (!TripAnchor.IsCandidate(parked, first)) return null;
 
-        var reports = await telemetry.GetReportTimesAsync(vehicleId, parked.RecordedAt, first.RecordedAt, WakeUpReports, ct);
-        var departure = TripAnchor.Departure(
-            parked, first, TripAnchor.WakeUp(parked, first, reports, complete: reports.Count < WakeUpReports));
+        var departure = await telemetry.GetDepartureAsync(vehicleId, parked, first, ct);
 
         // The first fix's poll lands its mileage within the settle time, often in a row of its own.
         var before = await telemetry.GetOdometerAtAsync(vehicleId, departure, ct);

@@ -124,4 +124,42 @@ public class TripRepositoryPostgresTests
         await using var check = database.CreateContext();
         Assert.Equal([TripPurpose.Commute, null], await check.Trips.OrderBy(t => t.StartedAt).Select(t => t.Purpose).ToListAsync(ct));
     }
+
+    // Editing a route as PostgreSQL stores it: the neighbours and the recording line bound it, the
+    // log reads the edit off EditedAt, and a join and a reset keep the points as recorded.
+    [Fact]
+    public async Task EditingARoute_IsKeptWithTheRecordedPoints_ThroughAJoinAndAReset()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var database = await PostgresDatabase.CreateAsync(ct);
+        await using var db = database.CreateContext();
+        var vehicleId = await AddVehicleAsync(db, ct);
+        await Repository(db).SaveRecordedAsync(vehicleId,
+            [Leg(T0, 52.0, 52.1, 1000, 1011), Leg(T0.AddMinutes(20), 52.1, 52.2, 1011, 1022)], T0.AddHours(1), ct);
+        var ids = await db.Trips.OrderBy(t => t.StartedAt).Select(t => t.Id).ToListAsync(ct);
+
+        await using var editing = database.CreateContext();
+        var repo = Repository(editing);
+        var editor = (await repo.GetEditorAsync(vehicleId, ids[1], ct)).Editor!;
+        var saved = await repo.SetPointsAsync(vehicleId, ids[1],
+            [new(new DateTimeOffset(T0.AddMinutes(18)), 52.09, 5.0),
+             .. editor.Points.Select(p => new TripPointInput(new DateTimeOffset(p.RecordedAt), p.Latitude, p.Longitude))], ct);
+        var log = await repo.GetLogAsync(vehicleId, T0, T0.AddDays(1), ct);
+
+        Assert.Equal((T0.AddMinutes(10), T0.AddHours(1)), (editor.NotBefore, editor.NotAfter));
+        Assert.Equal(TripEditOutcome.Ok, saved.Outcome);
+        Assert.Equal([false, true], log.Select(e => e.IsEdited));
+        Assert.Equal(T0.AddMinutes(18), log[1].StartedAt);
+
+        await using var joining = database.CreateContext();
+        await Repository(joining).MergeWithNextAsync(vehicleId, ids[0], ct);
+        await using var resetting = database.CreateContext();
+        await Repository(resetting).ResetPointsAsync(vehicleId, ids[0], ct);
+
+        await using var check = database.CreateContext();
+        var trip = Assert.Single(await check.Trips.ToListAsync(ct));
+        Assert.Equal((T0, 6), (trip.StartedAt, trip.PointCount));
+        Assert.Null(trip.OriginalPointsJson);
+        Assert.Null(trip.EditedAt);
+    }
 }

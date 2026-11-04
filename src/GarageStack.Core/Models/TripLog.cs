@@ -25,7 +25,9 @@ public sealed record TripLogEntry(
     // Set from home and work rather than by someone (Trip.PurposeIsManual).
     bool PurposeIsAutomatic = false,
     // Left out of everything but the trip log's list of hidden trips (Trip.IsHidden).
-    bool IsHidden = false);
+    bool IsHidden = false,
+    // Its route was edited by hand (Trip.EditedAt).
+    bool IsEdited = false);
 
 /// <summary>How joining a trip with the next one went (<see cref="Interfaces.ITripRepository.MergeWithNextAsync"/>).</summary>
 public enum TripMergeOutcome
