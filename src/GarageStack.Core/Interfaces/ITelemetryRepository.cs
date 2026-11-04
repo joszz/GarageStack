@@ -52,6 +52,20 @@ public interface ITelemetryRepository
     Task<DateTime?> GetFirstGpsFixAtAsync(int vehicleId, CancellationToken ct = default);
 
     /// <summary>
+    /// The newest GPS fix recorded before <paramref name="before"/>, or null when there is none:
+    /// where the car stood when the fixes read from <paramref name="before"/> onwards begin.
+    /// </summary>
+    Task<TripPoint?> GetLastGpsFixBeforeAsync(int vehicleId, DateTime before, CancellationToken ct = default);
+
+    /// <summary>
+    /// When each report of any kind arrived after <paramref name="after"/> and before
+    /// <paramref name="before"/>, newest first and at most <paramref name="limit"/> of them: enough
+    /// to tell when a parked car woke up.
+    /// </summary>
+    Task<IReadOnlyList<DateTime>> GetReportTimesAsync(
+        int vehicleId, DateTime after, DateTime before, int limit, CancellationToken ct = default);
+
+    /// <summary>
     /// The odometer as last reported at or before <paramref name="at"/>, or null when the vehicle
     /// had not reported one by then. The odometer only counts up, so the latest reading is the
     /// reading at that moment.

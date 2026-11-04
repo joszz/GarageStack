@@ -56,6 +56,14 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
     public Task<DateTime?> GetFirstGpsFixAtAsync(int vehicleId, CancellationToken ct = default) =>
         Task.FromResult<DateTime?>(null);
 
+    // Only the Worker's recorder anchors trips, and demo mode runs no Worker.
+    public Task<TripPoint?> GetLastGpsFixBeforeAsync(int vehicleId, DateTime before, CancellationToken ct = default) =>
+        Task.FromResult<TripPoint?>(null);
+
+    public Task<IReadOnlyList<DateTime>> GetReportTimesAsync(
+        int vehicleId, DateTime after, DateTime before, int limit, CancellationToken ct = default) =>
+        Task.FromResult<IReadOnlyList<DateTime>>([]);
+
     // Maintenance asks for the reading now, which is the live snapshot's. Past readings are only
     // asked for by the Worker's recorder, and demo mode runs no Worker: DemoTrips carries those.
     public Task<double?> GetOdometerAtAsync(int vehicleId, DateTime at, CancellationToken ct = default)

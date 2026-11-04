@@ -1,8 +1,36 @@
+using System.Text.Json.Serialization;
 using GarageStack.Core.Helpers;
 
 namespace GarageStack.Core.Models;
 
-public record TripPoint(DateTime RecordedAt, double Latitude, double Longitude, double? Speed);
+/// <summary>
+/// A position on a trip's path. <paramref name="Source"/> is null for a fix the car reported as it
+/// drove, and otherwise says why the point is there: left out of the JSON when null, so the trips
+/// saved before it existed read the same.
+/// </summary>
+public record TripPoint(
+    DateTime RecordedAt,
+    double Latitude,
+    double Longitude,
+    double? Speed,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] TripPointSource? Source = null);
+
+/// <summary>Where a trip point came from, when the car did not report it while driving.</summary>
+[JsonConverter(typeof(TripPointSourceJsonConverter))]
+public enum TripPointSource
+{
+    /// <summary>A parked position the car reported, added where the trip left or reached it.</summary>
+    [JsonStringEnumMemberName("anchored")]
+    Anchored,
+
+    /// <summary>Placed by someone editing the trip.</summary>
+    [JsonStringEnumMemberName("manual")]
+    Manual,
+}
+
+/// <summary>Reads and writes a source by name only, as <see cref="TripPurposeJsonConverter"/> does.</summary>
+public sealed class TripPointSourceJsonConverter()
+    : JsonStringEnumConverter<TripPointSource>(namingPolicy: null, allowIntegerValues: false);
 
 /// <summary>
 /// A trip as the Api serves it. <paramref name="Id"/> is the saved trip's id, or null for a trip

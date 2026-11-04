@@ -138,11 +138,19 @@ export interface VehicleAggregateStats {
   totalClimateSnapshots: number
 }
 
+/**
+ * Why a trip point is there, when the car did not report it while driving: `anchored` is a parked
+ * position added where the trip left or reached it, `manual` was placed by someone editing the trip.
+ */
+export type TripPointSource = 'anchored' | 'manual'
+
 export interface TripPoint {
   recordedAt: string
   latitude: number
   longitude: number
   speed: number | null
+  /** Absent for a fix the car reported while driving. */
+  source?: TripPointSource
 }
 
 /** A trip without its fixes, with the figures the API reads off them. */

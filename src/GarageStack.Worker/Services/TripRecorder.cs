@@ -21,6 +21,10 @@ public class TripRecorder(ITelemetryRepository telemetry, ITripRepository trips,
     // than this are left for the next run rather than judged before they are all in.
     internal static readonly TimeSpan SettleTime = TimeSpan.FromMinutes(1);
 
+    // How many reports before a trip's first fix are read to find when the car woke up. A parked
+    // car reports a handful of polls before it sleeps, so a quiet period is found well within this.
+    private const int WakeUpReports = 200;
+
     /// <returns>How many trips were saved.</returns>
     public async Task<int> RecordAsync(int vehicleId, DateTime now, CancellationToken ct)
     {
@@ -53,7 +57,7 @@ public class TripRecorder(ITelemetryRepository telemetry, ITripRepository trips,
                 segmentation = TripSegmenter.Segment(fixes, DateTime.MaxValue);
             }
 
-            var closed = await WithOdometerAsync(vehicleId, segmentation.Closed, ct);
+            var closed = await CompleteAsync(vehicleId, segmentation, fixes, ct);
             var next = segmentation.OpenSince ?? until;
             await trips.SaveRecordedAsync(vehicleId, closed, next, ct);
             saved += closed.Count;
@@ -65,15 +69,19 @@ public class TripRecorder(ITelemetryRepository telemetry, ITripRepository trips,
         return saved;
     }
 
-    // The start reading is the last one before the car moved off. The end reading is taken once the
-    // car has been parked for as long as it takes to end a trip: the car reports its final mileage
-    // a poll or two after it stops, and the next trip cannot start before that much time has passed.
-    private async Task<IReadOnlyList<RecordedTrip>> WithOdometerAsync(
-        int vehicleId, IReadOnlyList<TripDto> closed, CancellationToken ct)
+    // Each closed trip, started where the car was parked when that checks out, with its odometer
+    // readings. The start reading is the last one before the car moved off, so it is taken at the
+    // corrected start. The end reading is taken once the car has been parked for as long as it takes
+    // to end a trip: the car reports its final mileage a poll or two after it stops, and the next
+    // trip cannot start before that much time has passed.
+    private async Task<IReadOnlyList<RecordedTrip>> CompleteAsync(
+        int vehicleId, TripSegmentation segmentation, IReadOnlyList<TripPoint> fixes, CancellationToken ct)
     {
-        var recorded = new List<RecordedTrip>(closed.Count);
-        foreach (var trip in closed)
+        var recorded = new List<RecordedTrip>(segmentation.Closed.Count);
+        foreach (var cut in segmentation.Closed)
         {
+            var parked = segmentation.ParkedBefore[cut.Index] ?? await ParkedBeforeTheFixesAsync(vehicleId, cut, fixes, ct);
+            var trip = parked is null ? cut : await AnchorAsync(vehicleId, cut, parked, ct) ?? cut;
             recorded.Add(new RecordedTrip(
                 trip,
                 await telemetry.GetOdometerAtAsync(vehicleId, trip.StartedAt, ct),
@@ -81,5 +89,41 @@ public class TripRecorder(ITelemetryRepository telemetry, ITripRepository trips,
         }
 
         return recorded;
+    }
+
+    // A trip that starts the week's fixes has its parking spot in the week before, which the
+    // segmenter never saw. Any other trip without one had the car moving before it, not parked.
+    private async Task<TripPoint?> ParkedBeforeTheFixesAsync(
+        int vehicleId, TripDto trip, IReadOnlyList<TripPoint> fixes, CancellationToken ct)
+    {
+        if (fixes.Count == 0 || fixes[0].RecordedAt != trip.StartedAt) return null;
+        var last = await telemetry.GetLastGpsFixBeforeAsync(vehicleId, trip.StartedAt, ct);
+        return last is { Speed: > 0 } ? null : last;
+    }
+
+    private async Task<TripDto?> AnchorAsync(int vehicleId, TripDto trip, TripPoint parked, CancellationToken ct)
+    {
+        var first = trip.Points[0];
+        if (!TripAnchor.IsCandidate(parked, first)) return null;
+
+        var reports = await telemetry.GetReportTimesAsync(vehicleId, parked.RecordedAt, first.RecordedAt, WakeUpReports, ct);
+        var departure = TripAnchor.Departure(
+            parked, first, TripAnchor.WakeUp(parked, first, reports, complete: reports.Count < WakeUpReports));
+
+        // The first fix's poll lands its mileage within the settle time, often in a row of its own.
+        var before = await telemetry.GetOdometerAtAsync(vehicleId, departure, ct);
+        var after = await telemetry.GetOdometerAtAsync(vehicleId, first.RecordedAt + SettleTime, ct);
+        var gapKm = TripAnchor.GapKm(parked, first);
+
+        var anchored = TripAnchor.Apply(trip, parked, departure, before, after);
+        if (anchored is null)
+            logger.LogDebug(
+                "Trip for vehicleId={VehicleId} starting {Start:o} not anchored to the parking spot {Gap:F2} km away; odometer {Before} to {After} km",
+                vehicleId, trip.StartedAt, gapKm, before, after);
+        else
+            logger.LogInformation(
+                "Trip for vehicleId={VehicleId} starting {Start:o} now starts at its parking spot {Gap:F2} km away, from {Departure:o}",
+                vehicleId, trip.StartedAt, gapKm, departure);
+        return anchored;
     }
 }
