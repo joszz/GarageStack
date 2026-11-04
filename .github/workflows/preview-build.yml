@@ -97,6 +97,9 @@ jobs:
               echo
             fi
             echo "> [!IMPORTANT]"
+            if [ -n "$LATEST" ]; then
+              echo "> **Update to the latest release (\`${LATEST#v}\`) first** if you run an older version, as a normal update. The preview is built on top of it, the database warning on this comment compares with it, and going back means going back to it."
+            fi
             echo "> Switch where you always run GarageStack: the same folder, Portainer stack or Unraid container. Compose names the database volume after the folder or stack, so starting from anywhere else runs on a new, empty database."
             echo "> Don't use \`docker compose down -v\` or \`docker volume prune\` while testing. A [backup]($BACKUP) first never hurts."
             echo
@@ -125,7 +128,7 @@ jobs:
             echo "To pin this exact build rather than follow the pull request, use \`pr-$PR-$SHORT\` as the tag."
             echo
             if [ -n "$LATEST" ]; then
-              echo "**Going back:** change the image back to the version you ran before, for example \`${LATEST#v}\` (the latest release). \`latest\` works too, but it follows \`main\`, so it can hold changes that are not released yet, database ones included. From a clone, run \`docker compose up -d --build\` in the same folder."
+              echo "**Going back:** change the image back to the latest release, \`${LATEST#v}\`. \`latest\` works too, but it follows \`main\`, so it can hold changes that are not released yet, database ones included. From a clone, run \`docker compose up -d --build\` in the same folder."
             else
               echo "**Going back:** change the image back to the version you ran before. From a clone, run \`docker compose up -d --build\` in the same folder."
             fi
