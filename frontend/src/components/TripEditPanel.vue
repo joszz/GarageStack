@@ -124,45 +124,48 @@ const distanceText = computed(() =>
 
     <p v-if="errorText" class="text-danger text-sm" role="alert">{{ errorText }}</p>
 
-    <div class="trip-edit-panel__actions">
-      <button
-        type="button"
-        class="btn btn-outline-secondary btn-sm"
-        :disabled="!canUndo || saving"
-        :title="t('tripEdit.undo')"
-        :aria-label="t('tripEdit.undo')"
-        @click="emit('undo')"
-      >
-        <font-awesome-icon icon="rotate-left" /><span class="trip-edit-panel__label">{{
-          t('tripEdit.undo')
-        }}</span>
-      </button>
-      <button
-        type="button"
-        class="btn btn-outline-secondary btn-sm"
-        :disabled="!canReset || saving"
-        :title="t('tripEdit.resetHint')"
-        :aria-label="t('tripEdit.reset')"
-        @click="emit('reset')"
-      >
-        <font-awesome-icon icon="clock-rotate-left" /><span class="trip-edit-panel__label">{{
-          t('tripEdit.reset')
-        }}</span>
-      </button>
-      <span class="trip-edit-panel__spacer" />
-      <button type="button" class="btn btn-outline-secondary btn-sm" @click="emit('cancel')">
-        {{ t('common.cancel') }}
-      </button>
-      <button
-        type="button"
-        class="btn btn-primary btn-sm"
-        :disabled="!dirty || saving"
-        @click="emit('save')"
-      >
-        <font-awesome-icon :icon="saving ? 'spinner' : 'check'" :spin="saving" />{{
-          t('tripEdit.save')
-        }}
-      </button>
+    <div class="trip-edit-panel__footer">
+      <div class="trip-edit-panel__history">
+        <button
+          type="button"
+          class="btn btn-outline-secondary btn-sm"
+          :disabled="!canUndo || saving"
+          :title="t('tripEdit.undo')"
+          :aria-label="t('tripEdit.undo')"
+          @click="emit('undo')"
+        >
+          <font-awesome-icon icon="rotate-left" /><span class="trip-edit-panel__label">{{
+            t('tripEdit.undo')
+          }}</span>
+        </button>
+        <button
+          type="button"
+          class="btn btn-outline-secondary btn-sm"
+          :disabled="!canReset || saving"
+          :title="t('tripEdit.resetHint')"
+          :aria-label="t('tripEdit.reset')"
+          @click="emit('reset')"
+        >
+          <font-awesome-icon icon="clock-rotate-left" /><span class="trip-edit-panel__label">{{
+            t('tripEdit.reset')
+          }}</span>
+        </button>
+      </div>
+      <div class="trip-edit-panel__actions">
+        <button type="button" class="btn btn-outline-secondary btn-sm" @click="emit('cancel')">
+          {{ t('common.cancel') }}
+        </button>
+        <button
+          type="button"
+          class="btn btn-primary btn-sm"
+          :disabled="!dirty || saving"
+          @click="emit('save')"
+        >
+          <font-awesome-icon :icon="saving ? 'spinner' : 'check'" :spin="saving" />{{
+            t('tripEdit.save')
+          }}
+        </button>
+      </div>
     </div>
   </section>
 </template>

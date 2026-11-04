@@ -95,7 +95,11 @@ watch(
     </div>
 
     <ul v-else class="trip-list">
-      <li v-for="{ row, realIdx } in rows" :key="realIdx">
+      <li
+        v-for="{ row, realIdx } in rows"
+        :key="realIdx"
+        :class="{ 'trip-list__entry--editable': selectedIndex === realIdx && editableId != null }"
+      >
         <button
           type="button"
           class="trip-list__item trip-list__button"
@@ -149,9 +153,24 @@ watch(
 </template>
 
 <style scoped>
-/* Under the selected trip, lined up with its text rather than its colour dot. */
+/* The selected trip and its edit button share one highlight, so the button reads as part of the
+   trip rather than as a row of its own. The entry takes over the row's background and accent
+   line, and the row inside keeps neither. */
+.trip-list__entry--editable {
+  margin: 0 -1rem;
+  padding: 0 1rem 0.6rem;
+  background: var(--color-surface-2);
+  border-left: 2px solid var(--color-primary);
+}
+
+.trip-list__entry--editable > .trip-list__item--active {
+  background: none;
+  border-left: 0;
+}
+
+/* Lined up with the trip's text: past its colour dot and the gap after it. */
 .trip-list__edit {
-  margin: 0.25rem 0 0.5rem 1.5rem;
+  margin-left: calc(10px + 0.5rem);
 }
 
 /* The day opened from the trip log takes a line of its own under the title. */
