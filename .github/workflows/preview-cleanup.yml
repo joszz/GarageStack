@@ -86,7 +86,7 @@ jobs:
             echo "$MARKER"
             echo "### Preview build \`pr-$PR\`"
             echo
-            echo "The preview images are deleted. Anyone who ran them should change the image back to the version they ran before (or \`latest\`, which follows \`main\`), or from a clone run \`docker compose up -d --build\` in the same folder."
+            echo "The preview images are deleted. Anyone who ran them should change the image back to the latest release (or \`latest\`, which follows \`main\` and carries the fix once it is merged), or from a clone run \`docker compose up -d --build\` in the same folder."
             echo "Adding the \`test-build\` label again publishes a fresh build."
           } > body.md
           gh api -X PATCH "repos/$REPO/issues/comments/$ID" -F body=@body.md > /dev/null

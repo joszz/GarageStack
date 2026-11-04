@@ -25,7 +25,7 @@ Contents:
 3. **Add the `test-build` label.** The *Preview build* workflow publishes the four images (a few minutes, since it reuses the build cache of `main`) and then posts a comment on the pull request with the exact image names and commands. That comment is updated on every later push.
 4. **Point the tester at it.** Comment on the issue, for example:
 
-   > A build with a possible fix is ready to try. Switch your GarageStack image to `pr-123` as described in [this comment](link to the preview comment), use the car as usual for a day, and let me know what the dashboard shows. Afterwards switch back to `latest`. Step by step: [Testing a preview build](https://github.com/joszz/GarageStack/blob/main/documentation/PREVIEW_BUILDS.md#testing-a-preview-build).
+   > A build with a possible fix is ready to try. If you're not on the latest release yet, update to it first. Then switch your GarageStack image to `pr-123` as described in [this comment](link to the preview comment), use the car as usual for a day, and let me know what the dashboard shows. Afterwards switch back to the latest release. Step by step: [Testing a preview build](https://github.com/joszz/GarageStack/blob/main/documentation/PREVIEW_BUILDS.md#testing-a-preview-build).
 
 5. **Iterate.** Push more commits to the same branch. The `pr-123` tag follows the pull request, so the tester only has to pull again (Unraid: *Force update*; Compose: run the same command again). The footer version ends in `.pr.123`, and the comment shows which commit it is.
 6. **Finish.**
@@ -44,6 +44,7 @@ A preview build is GarageStack with one change in it that has not been released 
 
 **Before you start:**
 
+- **Run the latest release first.** On an older version, update to the latest release as usual (its release notes say whether anything needs doing), check that it runs, and only then switch to the preview. The preview is built on top of that release, the database warning in the preview comment compares with it, and going back means going back to it. Skipping it means the preview also applies the database changes of every release in between, and going back to your old version is then not supported. A clone on `main` is already past the latest release.
 - **Switch where you always run GarageStack:** the same folder, Portainer stack or Unraid container, changing only the image. Docker Compose names the database volume after the folder or stack (`mg_postgres_data` for a folder called `mg`), so the same stack started from another folder, a fresh clone for example, runs on a new, empty database. Your old data is then still there, just not in use (see [My data is gone after switching](#my-data-is-gone-after-switching)).
 - **Never run** `docker compose down -v`, `docker volume prune` or `docker system prune --volumes` while testing. Those do delete data.
 - **Back up the database** when the preview comment warns that the build changes the database (see [Backup and restore](../README.md#backup-and-restore)). Without the warning a backup is not required, but it takes one command and never hurts.
@@ -96,7 +97,7 @@ The version in the footer ends in `.pr.123` (for example `v0.13.2-preview.0.4.pr
 
 ### Going back
 
-- **All-in-one, Unraid or Compose with the published images:** change the tag back to the version you ran before, for example `0.13.2`. `latest` works too, but it is rebuilt on every change to `main`, so it can hold changes that are not released yet, database changes included. Use the version tag to get exactly what you had.
+- **All-in-one, Unraid or Compose with the published images:** change the tag back to the latest release, for example `0.14.0`. `latest` works too, but it is rebuilt on every change to `main`, so it can hold changes that are not released yet, database changes included. Use the version tag to get exactly what you had.
 - **Compose from a clone:** `docker compose up -d --build` in the same folder, which builds your clone again without the preview file.
 
 Your data stays. Readings collected while the preview ran stay too.
@@ -135,7 +136,7 @@ Readings the car sent while the empty database was in use stay in that one; ever
 
 ## Database changes
 
-A tester runs the preview against their real database. If the build carries an EF Core migration, it is applied on start, and switching back does **not** undo it. The build is the pull request merged into the current `main`, so a migration merged into `main` after the latest release reaches the tester too, even when the pull request itself has none. Usually the older version still runs on the newer schema, but not always (for example a new non-nullable column without a default).
+A tester runs the preview against their real database. If the build carries an EF Core migration, it is applied on start, and switching back does **not** undo it. The build is the pull request merged into the current `main`, so a migration merged into `main` after the latest release reaches the tester too, even when the pull request itself has none. The warning compares with the latest release because testers are asked to run it before they switch; one who skips that also gets the migrations of the releases in between. Usually the older version still runs on the newer schema, but not always (for example a new non-nullable column without a default).
 
 - Prefer fixes without a migration in a preview. Display, mapping and calculation fixes rarely need one.
 - When a migration is unavoidable, the preview comment carries a warning automatically (it compares `src/GarageStack.Data/Migrations/` in the build with the latest release, so a migration only on `main` counts too). Say it in your issue comment too. GarageStack has no built-in backups, so the tester makes their own.
@@ -180,7 +181,7 @@ gh api --paginate "users/joszz/packages/container/garagestack/versions" \
   --jq '.[] | select(any(.metadata.container.tags[]; startswith("pr-"))) | {id, tags: .metadata.container.tags}'
 ```
 
-**The tester's update fails after the pull request closed.** The images are gone by design. They switch back to `latest`.
+**The tester's update fails after the pull request closed.** The images are gone by design. They switch back to the latest release, or to `latest` once the fix is merged.
 
 **A tester runs the all-in-one image on ARM.** Previews are built for the same platforms as releases (amd64), so the same limits apply.
 
