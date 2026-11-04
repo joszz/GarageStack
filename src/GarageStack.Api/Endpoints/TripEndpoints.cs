@@ -217,7 +217,7 @@ public static class TripEndpoints
     {
         TripEditOutcome.Ok => Results.Ok(result.Editor),
         TripEditOutcome.Invalid => ApiProblems.BadRequest(result.Problem!.Code, result.Problem.Message),
-        TripEditOutcome.Unreadable => ApiProblems.Problem(StatusCodes.Status409Conflict, "trip.unreadable",
+        TripEditOutcome.Unreadable => ApiProblems.Problem(StatusCodes.Status409Conflict, "trip.routeUnreadable",
             "The trip's points cannot be read"),
         _ => Results.NotFound(),
     };
