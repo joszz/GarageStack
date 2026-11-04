@@ -40,6 +40,7 @@ all-in-one container and the Unraid template take them as container variables.
 | `POSTGRES_PORT` | `5432` | Database port. |
 | `POSTGRES_DB` | `garagestack` | Database name. Also used by the all-in-one container. |
 | `POSTGRES_USER` | `garagestack` | Database user. Also used by the all-in-one container. |
+| `COMPOSE_PROJECT_NAME` | `garagestack` | Read by Compose itself: the prefix of every volume and network (`garagestack_postgres_data`). `docker-compose.yml` fixes it to `garagestack` so the folder it runs from does not matter. Set it only when your install started in a folder with another name, see [Updating](../README.md#updating). |
 
 ## MQTT broker
 

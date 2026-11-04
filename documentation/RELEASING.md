@@ -309,7 +309,9 @@ api:
   # build: ...  <-- remove
 ```
 
-Repeat for `frontend` and `worker`. Leave `mosquitto` and `postgres` services unchanged.
+Repeat for `frontend` and `worker`. Leave `mosquitto` and `postgres` services unchanged, and keep the `name: garagestack` line at the top: it keeps the volumes the same whichever folder the file runs from.
+
+A version tag (`1.2.3`) gives exactly that release. `latest` is rebuilt on every push to `main`, so it carries unreleased changes, migrations included, as soon as they are merged.
 
 ---
 

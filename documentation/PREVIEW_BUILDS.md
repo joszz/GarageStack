@@ -10,7 +10,7 @@ A preview build is a set of throwaway images for one pull request, so someone wi
 Contents:
 
 - [Maintainer checklist](#maintainer-checklist)
-- [Testing a preview build](#testing-a-preview-build) (the part to send testers to)
+- [Testing a preview build](#testing-a-preview-build) (the part to send testers to), with [My data is gone after switching](#my-data-is-gone-after-switching)
 - [Database changes](#database-changes)
 - [How it works](#how-it-works)
 - [Troubleshooting](#troubleshooting)
@@ -42,7 +42,11 @@ Need a fresh build without a new commit, for example to pick up a newer `main`? 
 
 A preview build is GarageStack with one change in it that has not been released yet. It runs on your own data like a normal update, and you can go back to the normal version at any time.
 
-**Before you start:** if the preview comment on the pull request carries a warning that the build changes the database, back up your database first (see [Backup and restore](../README.md#backup-and-restore)). Otherwise nothing special is needed.
+**Before you start:**
+
+- **Switch where you always run GarageStack:** the same folder, Portainer stack or Unraid container, changing only the image. Docker Compose names the database volume after the folder or stack (`mg_postgres_data` for a folder called `mg`), so the same stack started from another folder, a fresh clone for example, runs on a new, empty database. Your old data is then still there, just not in use (see [My data is gone after switching](#my-data-is-gone-after-switching)).
+- **Never run** `docker compose down -v`, `docker volume prune` or `docker system prune --volumes` while testing. Those do delete data.
+- **Back up the database** when the preview comment warns that the build changes the database (see [Backup and restore](../README.md#backup-and-restore)). Without the warning a backup is not required, but it takes one command and never hurts.
 
 Replace `pr-123` below with the tag from the pull request comment.
 
@@ -60,14 +64,27 @@ ghcr.io/joszz/garagestack:pr-123
 
 When the maintainer says a new version is ready, pull the same tag again (Unraid: *Force update*).
 
+### Docker Compose with the published images
+
+Your own compose file runs `ghcr.io/joszz/garagestack-api`, `garagestack-worker` and `garagestack-frontend`. Change the tag of those three images to `pr-123`, leave everything else (database, broker, gateway, volumes) as it is, and in the folder you always run it from:
+
+```sh
+docker compose pull
+docker compose up -d
+```
+
+For a newer version of the same preview, run both commands again.
+
 ### Docker Compose from a clone of this repository
 
-The repository's `docker-compose.yml` builds GarageStack from source. `docker-compose.preview.yml` swaps the three GarageStack services for the preview images and leaves the database, broker and gateway as they are:
+The repository's `docker-compose.yml` builds GarageStack from source. `docker-compose.preview.yml` swaps the three GarageStack services for the preview images and leaves the database, broker and gateway as they are. In the clone's folder:
 
 ```sh
 git pull
 PREVIEW_TAG=pr-123 docker compose -f docker-compose.yml -f docker-compose.preview.yml up -d
 ```
+
+With the bundled database, add `--profile bundled-postgres` after `docker compose`, as you do for a normal start.
 
 For a newer version of the same preview, run that command again: it always pulls.
 
@@ -79,8 +96,8 @@ The version in the footer ends in `.pr.123` (for example `v0.13.2-preview.0.4.pr
 
 ### Going back
 
-- **All-in-one or Unraid:** change the image back to `ghcr.io/joszz/garagestack:latest`.
-- **Compose from a clone:** `docker compose up -d --build`, which builds your clone again without the preview file.
+- **All-in-one, Unraid or Compose with the published images:** change the tag back to the version you ran before, for example `0.13.2`. `latest` works too, but it is rebuilt on every change to `main`, so it can hold changes that are not released yet, database changes included. Use the version tag to get exactly what you had.
+- **Compose from a clone:** `docker compose up -d --build` in the same folder, which builds your clone again without the preview file.
 
 Your data stays. Readings collected while the preview ran stay too.
 
@@ -88,16 +105,40 @@ Your data stays. Readings collected while the preview ran stay too.
 
 On the issue: what you did, what GarageStack showed, and what the MG app showed for the same moment. Screenshots help. **Remove your VIN, location and other personal details first.**
 
-Preview images are deleted when the pull request is closed or merged. If your container then fails to update, that is why: switch back to `latest`.
+Preview images are deleted when the pull request is closed or merged. If your container then fails to update, that is why: switch back as described above.
+
+### My data is gone after switching
+
+The preview almost certainly did not delete it. GarageStack is running on another, empty database, and the old one is still on your disk. **Don't prune or remove volumes** until it is back.
+
+1. List the volumes and stacks:
+
+   ```sh
+   docker volume ls
+   docker compose ls
+   ```
+
+2. **Two database volumes** (for example `mg_postgres_data` and `garagestack_postgres_data`): the preview ran under another project name. Stop the stack you run now with `docker compose down` (no `-v`), go to the folder you used before and start it there as you always do. Or keep the current folder and point it at the old volume at the bottom of its compose file:
+
+   ```yaml
+   volumes:
+     postgres_data:
+       external: true
+       name: mg_postgres_data
+   ```
+
+3. **All-in-one image without a `/data` volume** in your compose file or `docker run` command: Docker kept the data in an unnamed volume, and the new container got a fresh one. `docker volume ls -f dangling=true` lists the volumes no container uses; the old database is one of them. Mount it at `/data` (as `external: true` in compose, or `-v <volume>:/data`), and keep it mounted from then on.
+
+Readings the car sent while the empty database was in use stay in that one; everything from before is in the old one. Not sure which volume is which? Post the output of step 1 on the issue.
 
 ---
 
 ## Database changes
 
-A tester runs the preview against their real database. If the build carries an EF Core migration, it is applied on start, and switching back to `latest` does **not** undo it. Usually the older version still runs on the newer schema, but not always (for example a new non-nullable column without a default).
+A tester runs the preview against their real database. If the build carries an EF Core migration, it is applied on start, and switching back does **not** undo it. The build is the pull request merged into the current `main`, so a migration merged into `main` after the latest release reaches the tester too, even when the pull request itself has none. Usually the older version still runs on the newer schema, but not always (for example a new non-nullable column without a default).
 
 - Prefer fixes without a migration in a preview. Display, mapping and calculation fixes rarely need one.
-- When a migration is unavoidable, the preview comment carries a warning automatically (it checks for files under `src/GarageStack.Data/Migrations/`). Say it in your issue comment too. GarageStack has no built-in backups, so the tester makes their own.
+- When a migration is unavoidable, the preview comment carries a warning automatically (it compares `src/GarageStack.Data/Migrations/` in the build with the latest release, so a migration only on `main` counts too). Say it in your issue comment too. GarageStack has no built-in backups, so the tester makes their own.
 - If the fix is dropped, a migration left in a tester's database stays there. Make the eventual real migration tolerate that (for example `IF NOT EXISTS` in raw SQL), or ask the tester to restore their backup.
 
 ---
