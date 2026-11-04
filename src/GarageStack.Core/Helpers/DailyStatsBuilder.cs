@@ -17,6 +17,10 @@ public sealed class DailyStatsBuilder(TimeZoneInfo zone, DateOnly from, DateOnly
 
     private readonly Dictionary<DateOnly, Day> _days = [];
 
+    // The since-last-charge reading before the one being added, across days, so a day's share of
+    // that counter includes what it rose by while the car slept since the day before.
+    private double? _lastSinceCharge;
+
     private sealed class Mean
     {
         private double _sum;
@@ -37,19 +41,34 @@ public sealed class DailyStatsBuilder(TimeZoneInfo zone, DateOnly from, DateOnly
         public readonly Mean EvSoc = new(), Fuel = new(), FrontLeft = new(), FrontRight = new(),
             RearLeft = new(), RearRight = new(), Voltage = new();
         public readonly List<double> Counter = [];
+        public readonly EnergyCheck Energy = new();
     }
 
     /// <summary>The UTC instants the local days from <paramref name="first"/> to <paramref name="last"/> span, end exclusive.</summary>
     public static (DateTime Start, DateTime End) UtcRange(DateOnly first, DateOnly last, TimeZoneInfo zone) =>
         (ZoneTime.StartOfDay(first, zone), ZoneTime.StartOfDay(last.AddDays(1), zone));
 
+    /// <summary>
+    /// Folds one reading into its day. A reading from before the period only carries its
+    /// since-last-charge value forward, so the first day's share of that counter can start from it;
+    /// the repository passes the last one before the period for that.
+    /// </summary>
     public void Add(TelemetryHistoryPoint reading)
     {
         var utc = DateTime.SpecifyKind(reading.RecordedAt, DateTimeKind.Utc);
         var date = ZoneTime.DateOf(utc, zone);
-        if (date < from || date > to) return;
+        var since = reading.PowerUsageSinceLastCharge is { } s && double.IsFinite(s) ? s : (double?)null;
+        if (date < from)
+        {
+            _lastSinceCharge = since ?? _lastSinceCharge;
+            return;
+        }
+        if (date > to) return;
 
         if (!_days.TryGetValue(date, out var day)) _days[date] = day = new Day();
+        day.Energy.Add(reading.PowerUsageOfDay is { } c && double.IsFinite(c) ? c : null, since, _lastSinceCharge,
+            reading.IsCharging == true);
+        _lastSinceCharge = since ?? _lastSinceCharge;
         day.EvSoc.Add(reading.EvSocPercent);
         day.Fuel.Add(reading.FuelLevelPercent);
         day.FrontLeft.Add(reading.TyrePressureFrontLeft);
@@ -67,12 +86,112 @@ public sealed class DailyStatsBuilder(TimeZoneInfo zone, DateOnly from, DateOnly
         var stats = new List<DailyStat>();
         for (var date = from; date <= last; date = date.AddDays(1))
         {
-            stats.Add(_days.TryGetValue(date, out var day)
-                ? new DailyStat(date, day.EvSoc.Value, day.Fuel.Value, day.FrontLeft.Value, day.FrontRight.Value,
-                    day.RearLeft.Value, day.RearRight.Value, day.Voltage.Value, CounterTotal(day.Counter, date == today))
-                : new DailyStat(date, null, null, null, null, null, null, null, null));
+            if (!_days.TryGetValue(date, out var day))
+            {
+                stats.Add(new DailyStat(date, null, null, null, null, null, null, null, null));
+                continue;
+            }
+            var counter = CounterTotal(day.Counter, date == today);
+            stats.Add(new DailyStat(date, day.EvSoc.Value, day.Fuel.Value, day.FrontLeft.Value, day.FrontRight.Value,
+                day.RearLeft.Value, day.RearRight.Value, day.Voltage.Value, counter,
+                day.Energy.SinceChargeTotal, day.Energy.IsUnbacked(counter)));
         }
         return stats;
+    }
+
+    /// <summary>
+    /// One day of the two energy counters side by side. Both come out of the same charge status
+    /// message, so on a sound car the day counter rises with the since-last-charge counter. The
+    /// MG ZS EV in issue #551 does not: its day counter gains 33 to 35 kWh at some polls while the
+    /// car is parked, with the battery's charge and the since-last-charge counter unmoved, which
+    /// added up to 134 kWh on a 4 km day. The since-last-charge counter on that car matches the
+    /// state of charge drop to the hundredth, so it is the one to check against.
+    /// </summary>
+    private sealed class EnergyCheck
+    {
+        // The since-last-charge counter halving, and by more than this, is a charge resetting it
+        // rather than regenerative braking taking a little back.
+        private const double SinceResetFloor = 0.5;
+
+        // How far the day counter may rise beyond the since-last-charge counter: a margin for
+        // rounding, on top of the battery counter's own rise for the regeneration it nets out
+        // and the day counter may not.
+        private const double Margin = 1.0;
+
+        // The most a day counter may hold, as a multiple of the highest since-last-charge reading
+        // of a day without a charge, before the margin: the day's use is part of what left the
+        // battery since its last charge, with room for regeneration again.
+        private const double SincePeakFactor = 1.5;
+
+        private (double Counter, double Since)? _lastPair;
+        private double _runCounter, _runSince, _backed, _unbacked, _sinceTotal, _sincePeak;
+        private bool _sinceSeen, _charged;
+
+        /// <summary>What the since-last-charge counter says the day used, or null without a reading of it.</summary>
+        public double? SinceChargeTotal => _sinceSeen ? Math.Round(Math.Max(_sinceTotal, 0), 2) : null;
+
+        public static bool IsSinceReset(double before, double after) =>
+            after < before / 2 && before - after > SinceResetFloor;
+
+        public void Add(double? counter, double? since, double? previousSince, bool charging)
+        {
+            if (charging) _charged = true;
+            if (since is not { } s) return;
+
+            _sinceSeen = true;
+            _sincePeak = Math.Max(_sincePeak, s);
+            if (previousSince is { } p)
+            {
+                // After a charge the counter starts again from zero, so all of it is new use.
+                if (IsSinceReset(p, s))
+                {
+                    _charged = true;
+                    _sinceTotal += s;
+                }
+                else
+                {
+                    _sinceTotal += s - p;
+                }
+            }
+
+            if (counter is not { } c) return;
+            if (_lastPair is { } last)
+            {
+                if (c < last.Counter - ResetNoiseFloor || IsSinceReset(last.Since, s))
+                {
+                    CloseRun();
+                }
+                else
+                {
+                    _runCounter += c - last.Counter;
+                    _runSince += s - last.Since;
+                }
+            }
+            _lastPair = (c, s);
+        }
+
+        // A run is a stretch in which neither counter reset, so their rises compare like for like.
+        // Comparing whole runs rather than single steps leaves room for one counter updating a
+        // poll before the other.
+        private void CloseRun()
+        {
+            var since = Math.Max(_runSince, 0);
+            _backed += since;
+            _unbacked += Math.Max(_runCounter - since, 0);
+            _runCounter = _runSince = 0;
+        }
+
+        /// <summary>
+        /// Whether the day counter rose by more than the since-last-charge counter allows, judged
+        /// on its rises within the day, or, for a day without a charge, on its total against the
+        /// energy that had left the battery since the last one.
+        /// </summary>
+        public bool IsUnbacked(double? counterTotal)
+        {
+            CloseRun();
+            if (_unbacked > Math.Max(Margin, _backed)) return true;
+            return !_charged && _sinceSeen && counterTotal is { } total && total > _sincePeak * SincePeakFactor + Margin;
+        }
     }
 
     /// <summary>

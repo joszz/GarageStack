@@ -287,6 +287,17 @@ public class TelemetryRepository(
         var builder = new DailyStatsBuilder(zone, from, to, today);
         var (start, end) = DailyStatsBuilder.UtcRange(from, to < today ? to : today, zone);
 
+        // The since-last-charge reading the first day's share of that counter starts from. Always
+        // the last one before that day, whichever span is read, so a cached day and a day read
+        // inside a longer span come out the same.
+        var before = await db.TelemetrySnapshots
+            .AsNoTracking()
+            .Where(s => s.VehicleId == vehicleId && s.RecordedAt < start && s.PowerUsageSinceLastCharge != null)
+            .OrderByDescending(s => s.RecordedAt)
+            .Select(TelemetryHistoryPoint.Projection)
+            .FirstOrDefaultAsync(ct);
+        if (before is not null) builder.Add(before);
+
         // Streamed in arrival order rather than loaded: a year is a few hundred thousand rows, each
         // folded into its day as it arrives. Only the chart fields are read (TelemetryHistoryPoint),
         // which the partial chart index covers.
