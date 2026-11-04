@@ -392,7 +392,8 @@
     "resolvingPlaces": "Looking up place names",
     "inProgress": "Trip in progress",
     "durationMinutes": "{n} min",
-    "durationHoursMinutes": "{h}h {m}m"
+    "durationHoursMinutes": "{h}h {m}m",
+    "editRoute": "Edit route"
   },
   "pwa": {
     "install": {
@@ -783,7 +784,43 @@
     "joinNext": "Join with next trip",
     "joinNextConfirm": "Join trips",
     "joinNextHint": "Joins this trip with the one after it, for a drive a short stop such as a fuel station split in two. Cannot be undone.",
-    "showHidden": "Show hidden trip | Show {n} hidden trips"
+    "showHidden": "Show hidden trip | Show {n} hidden trips",
+    "editRoute": "Edit route",
+    "edited": "Edited",
+    "editedHint": "The route was edited by hand. The distance still comes from the odometer."
+  },
+  "tripEdit": {
+    "title": "Edit route",
+    "panelLabel": "Route editor",
+    "loading": "Loading the route",
+    "notFound": "This trip cannot be edited. Only saved trips can be, a few minutes after the car parks.",
+    "backToLog": "Back to the trip log",
+    "suggestion": "This trip probably started where the car was parked before it, which the car did not report. Start it there?",
+    "usePreviousStop": "Use previous parking spot",
+    "useNextStop": "Use next parking spot",
+    "distance": "Distance along the route",
+    "distanceChange": "{before} to {after}",
+    "from": "From",
+    "to": "To",
+    "odometerNote": "Editing the route changes the map and the addresses. The trip log keeps the distance the odometer counted.",
+    "modeLabel": "What to move",
+    "mode": {
+      "start": "Start",
+      "end": "End",
+      "points": "Points"
+    },
+    "hint": {
+      "start": "Tap the map where the trip started, or drag the green marker.",
+      "end": "Tap the map where the trip ended, or drag the red marker.",
+      "points": "Tap the map to add a point, or tap a point to select it."
+    },
+    "removePoint": "Remove point",
+    "undo": "Undo",
+    "reset": "Reset to recorded",
+    "resetHint": "Back to the route as the car recorded it. Save to keep it.",
+    "save": "Save",
+    "markerStart": "Start of the trip",
+    "markerEnd": "End of the trip"
   },
   "maintenance": {
     "title": "Maintenance",
@@ -944,7 +981,14 @@
         "tooManyIds": "Too many trips at once. Choose a shorter period.",
         "hiddenRequired": "Say whether the trip is hidden.",
         "noNextTrip": "There is no saved trip after this one to join it with yet.",
-        "unreadable": "One of the two trips cannot be read, so they cannot be joined."
+        "unreadable": "One of the two trips cannot be read, so they cannot be joined.",
+        "pointCount": "A route needs at least 2 points, and can have at most 200 more than the car recorded.",
+        "pointInvalid": "A point is not on the map.",
+        "pointOrder": "The points must be in the order they were driven.",
+        "overlapsPrevious": "The trip cannot start before the trip before it ended.",
+        "overlapsNext": "The trip cannot end after the next trip started.",
+        "pointTooFast": "A stretch of this route would mean driving faster than 250 km/h.",
+        "routeUnreadable": "This trip's route cannot be read, so it cannot be edited."
       },
       "push": {
         "notConfigured": "Push notifications are not set up on this server.",

@@ -45,6 +45,12 @@ const router = createRouter({
       component: () => import('@/views/TripLogView.vue'),
     },
     {
+      // A saved trip's route, opened from the trip log or the map.
+      path: '/trips/:id(\\d+)/edit',
+      name: 'tripEdit',
+      component: () => import('@/views/TripEditView.vue'),
+    },
+    {
       path: '/climate-schedules',
       name: 'climateSchedules',
       component: () => import('@/views/ClimateSchedulesView.vue'),

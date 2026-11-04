@@ -412,6 +412,7 @@ onMounted(async () => {
         :active-index="activeTripIndex"
         :skeleton-rows="LOAD_MORE_SIZE"
         :shown-day="shownDayLabel"
+        :editable-id="selectedTrip?.id ?? null"
         @select="selectTrip"
         @show-period="showPeriod"
       />

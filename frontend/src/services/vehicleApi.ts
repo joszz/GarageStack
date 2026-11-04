@@ -186,14 +186,23 @@ export interface CompactTrip extends TripSummary {
   line: string
   intervalsMs: number[]
   speeds: (number | null)[]
+  /** Each fix's source, left out when every fix is one the car reported while driving. */
+  sources?: (TripPointSource | null)[]
 }
 
 /** The compact trip as the plain one it was packed from. */
-export function unpackTrip({ line, intervalsMs, speeds, ...summary }: CompactTrip): Trip {
+export function unpackTrip({ line, intervalsMs, speeds, sources, ...summary }: CompactTrip): Trip {
   let at = Date.parse(summary.startedAt)
-  const points = decodePolyline(line).map(([latitude, longitude], i) => {
+  const points = decodePolyline(line).map(([latitude, longitude], i): TripPoint => {
     at += intervalsMs[i] ?? 0
-    return { recordedAt: new Date(at).toISOString(), latitude, longitude, speed: speeds[i] ?? null }
+    const point = {
+      recordedAt: new Date(at).toISOString(),
+      latitude,
+      longitude,
+      speed: speeds[i] ?? null,
+    }
+    const source = sources?.[i]
+    return source ? { ...point, source } : point
   })
   return { ...summary, points }
 }

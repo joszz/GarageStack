@@ -205,8 +205,8 @@ describe('TripLogItem', () => {
     })
     expect(
       mountItem(logEntry({ isHidden: true }))
-        .find('.router-link')
-        .exists(),
+        .findAll('.router-link')
+        .some((l) => JSON.parse(l.attributes('data-to')!).name === 'map'),
     ).toBe(false)
   })
 
@@ -233,5 +233,26 @@ describe('TripLogItem', () => {
 
     expect(automatic.find('.trip-log-item__auto').text()).toBe('Automatic')
     expect(chosen.find('.trip-log-item__auto').exists()).toBe(false)
+  })
+
+  it('opens the route editor, for a hidden trip too', () => {
+    const editLink = (entry: TripLogEntry) =>
+      mountItem(entry)
+        .findAll('.router-link')
+        .find((l) => JSON.parse(l.attributes('data-to')!).name === 'tripEdit')
+
+    expect(JSON.parse(editLink(logEntry({ id: 9 }))!.attributes('data-to')!)).toEqual({
+      name: 'tripEdit',
+      params: { id: 9 },
+    })
+    expect(editLink(logEntry({ isHidden: true }))).toBeDefined()
+  })
+
+  it('marks a trip whose route was edited', () => {
+    const edited = mountItem(logEntry({ isEdited: true }))
+    const recorded = mountItem(logEntry())
+
+    expect(edited.find('.trip-log-item__edited').text()).toBe(en.tripLog.edited)
+    expect(recorded.find('.trip-log-item__edited').exists()).toBe(false)
   })
 })

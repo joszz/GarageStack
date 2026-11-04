@@ -18,6 +18,8 @@ const props = defineProps<{
   skeletonRows: number
   /** The one day shown instead of the period, for a trip opened from the trip log. */
   shownDay?: string | null
+  /** The selected trip's saved id, which its route editor opens by; null for an unsaved trip. */
+  editableId?: number | null
 }>()
 
 defineEmits<{ select: [realIdx: number]; showPeriod: [] }>()
@@ -133,6 +135,13 @@ watch(
             <span class="trip-list__meta" :title="row.metaTitle">{{ row.meta }}</span>
           </div>
         </button>
+        <RouterLink
+          v-if="selectedIndex === realIdx && editableId != null"
+          class="btn btn-outline-secondary btn-sm trip-list__edit"
+          :to="{ name: 'tripEdit', params: { id: editableId } }"
+        >
+          <font-awesome-icon icon="pen-to-square" />{{ t('trips.editRoute') }}
+        </RouterLink>
       </li>
     </ul>
     <div ref="sentinel" />
@@ -140,6 +149,11 @@ watch(
 </template>
 
 <style scoped>
+/* Under the selected trip, lined up with its text rather than its colour dot. */
+.trip-list__edit {
+  margin: 0.25rem 0 0.5rem 1.5rem;
+}
+
 /* The day opened from the trip log takes a line of its own under the title. */
 .trip-sidebar__header:has(.trip-sidebar__day) {
   flex-wrap: wrap;
