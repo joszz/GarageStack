@@ -7,16 +7,28 @@ import { useTripLogStore } from '@/stores/tripLog'
 import { useUiSettingsStore } from '@/stores/settingsUi'
 import StatusCard from '@/components/StatusCard.vue'
 import TripLogItem from '@/components/TripLogItem.vue'
+import TripLogDetail from '@/components/TripLogDetail.vue'
 import CommutePlacesModal from '@/components/CommutePlacesModal.vue'
 import DetailModal from '@/components/DetailModal.vue'
 import { useCommutePlacesStore } from '@/stores/commutePlaces'
 import { TRIP_PURPOSES, type TripPurpose } from '@/services/tripLogApi'
 import { downloadCsv } from '@/utils/download'
-import { formatDate } from '@/utils/format'
-import { PURPOSE_ICONS, PURPOSE_KEYS, type TripLogPeriod } from '@/utils/tripLog'
+import { formatDate, formatNumber } from '@/utils/format'
+import {
+  distanceShare,
+  PURPOSE_CARD_VARIANTS,
+  PURPOSE_ICONS,
+  PURPOSE_KEYS,
+  type TripLogPeriod,
+} from '@/utils/tripLog'
 import { tripLogCsv, tripLogFileName } from '@/utils/tripLogCsv'
+import { formatDurationMs } from '@/utils/tripRows'
+import { WIDE_MEDIA_QUERY } from '@/utils/viewport'
+import type { Measure } from '@/utils/units'
 import { useUnits } from '@/composables/useUnits'
 import { useErrorMessage } from '@/composables/useErrorMessage'
+import { useMediaQuery } from '@/composables/useMediaQuery'
+import { useTripRoute } from '@/composables/useTripRoute'
 import ViewHeader from '@/components/ViewHeader.vue'
 
 const { t } = useI18n()
@@ -61,6 +73,119 @@ const newestId = computed(() => store.entries[store.entries.length - 1]?.id)
 
 const placesShown = computed(() => uiSettings.placeNamesEnabled && store.placesAvailable)
 const unclassified = computed(() => store.totals.unclassified.trips)
+const unclassifiedDistance = computed(
+  () => units.value.format('distance', store.totals.unclassified.km) ?? '',
+)
+
+// ── Totals ────────────────────────────────────────────────
+
+const allTrips = computed(() => units.value.measure('distance', store.summary.km))
+
+const purposeCards = computed(() =>
+  PURPOSE_KEYS.map((key) => {
+    const total = store.totals[key]
+    const share = distanceShare(total, store.summary.km)
+    return {
+      key,
+      label: t('tripLog.totalLabel', { purpose: t(`tripLog.purpose.${key}`), n: total.trips }),
+      value: units.value.measure('distance', total.km)?.value ?? null,
+      // Nothing left to classify is nothing to warn about.
+      variant: key === 'unclassified' && total.trips === 0 ? undefined : PURPOSE_CARD_VARIANTS[key],
+      share,
+      note: t('tripLog.shareOfDistance', { percent: formatNumber(share * 100, 0) }),
+    }
+  }),
+)
+
+function measured(m: Measure | null) {
+  return { value: m?.value ?? null, unit: m?.unit }
+}
+
+const summaryCards = computed(() => {
+  const s = store.summary
+  return [
+    {
+      key: 'drivingTime',
+      icon: 'clock',
+      label: t('tripLog.summary.drivingTime'),
+      value: s.trips > 0 ? formatDurationMs(s.drivingMs, t) : null,
+      unit: undefined,
+      subtitle: undefined,
+    },
+    {
+      key: 'averageTrip',
+      icon: 'route',
+      label: t('tripLog.summary.averageTrip'),
+      ...measured(units.value.measure('distance', s.averageTripKm)),
+      subtitle: undefined,
+    },
+    {
+      key: 'longestTrip',
+      icon: 'flag-checkered',
+      label: t('tripLog.summary.longestTrip'),
+      ...measured(units.value.measure('distance', s.longestTripKm)),
+      subtitle: undefined,
+    },
+    {
+      key: 'averageSpeed',
+      icon: 'gauge',
+      label: t('tripLog.summary.averageSpeed'),
+      ...measured(units.value.measure('speed', s.averageSpeedKmh, { decimals: 0 })),
+      subtitle: t('tripLog.summary.averageSpeedHint'),
+    },
+  ]
+})
+
+// ── The trip shown in detail ──────────────────────────────
+
+// Beside the list on a wide screen, where a trip is always shown: the newest until another is
+// picked. In a dialog on a narrower one, once a trip is picked.
+const wide = useMediaQuery(WIDE_MEDIA_QUERY)
+const pickedId = ref<number | null>(null)
+
+// Looked up among all trips, hidden ones too: a trip just hidden stays in view to show again.
+const selected = computed(() => {
+  const picked =
+    pickedId.value === null ? undefined : store.entries.find((e) => e.id === pickedId.value)
+  if (picked) return picked
+  return wide.value ? (newestFirst.value[0] ?? null) : null
+})
+
+const route = useTripRoute(vin, selected)
+const detailInModal = computed(() => !wide.value && selected.value !== null)
+
+function closeDetail() {
+  pickedId.value = null
+}
+
+// What the detail shows and does, the same beside the list and in the dialog.
+const detail = computed(() => {
+  const entry = selected.value
+  if (!entry) return null
+  return {
+    props: {
+      entry,
+      routePoints: route.points.value,
+      routeLoading: route.loading.value,
+      routeError: route.error.value,
+      placesShown: placesShown.value,
+      placesResolving: store.placesResolving,
+      saving: store.saving.has(entry.id),
+      commutePlaces: commutePlaces.places,
+      canJoinNext: entry.id !== newestId.value,
+    },
+    on: {
+      save: (purpose: TripPurpose | null, notes: string | null) => save(entry.id, purpose, notes),
+      pickPlace: openPlaces,
+      setHidden: (hidden: boolean) => setHidden(entry.id, hidden),
+      joinNext: () => {
+        joiningId.value = entry.id
+      },
+    },
+  }
+})
+
+// ── Loading ───────────────────────────────────────────────
 
 function lookUpPlaces() {
   if (vin.value && placesShown.value) void store.resolvePlaces(vin.value, uiSettings.locale)
@@ -72,6 +197,12 @@ async function load() {
   void commutePlaces.fetchPlaces(vin.value)
   await store.fetchLog(vin.value, period.value)
   lookUpPlaces()
+}
+
+// Another period or car shows other trips: the newest of those, not one picked before.
+function reload() {
+  pickedId.value = null
+  void load()
 }
 
 // ── Home and work ─────────────────────────────────────────
@@ -99,8 +230,8 @@ async function reloadLog() {
 }
 
 onMounted(load)
-watch(period, load)
-watch(vin, load)
+watch(period, reload)
+watch(vin, reload)
 
 // Switching place names off stops the lookups and shows coordinates; switching them back on asks
 // for whatever this page is still missing.
@@ -190,22 +321,48 @@ function exportCsv() {
 
     <section class="trip-log-totals" :aria-label="t('tripLog.totalsLabel')">
       <StatusCard
-        v-for="key in PURPOSE_KEYS"
-        :key="key"
-        :icon="PURPOSE_ICONS[key]"
-        :label="
-          t('tripLog.totalLabel', {
-            purpose: t(`tripLog.purpose.${key}`),
-            n: store.totals[key].trips,
-          })
-        "
-        :value="units.measure('distance', store.totals[key].km)?.value ?? null"
+        class="trip-log-totals__all"
+        icon="car"
+        :label="t('tripLog.allTrips', { n: store.summary.trips })"
+        :value="allTrips?.value ?? null"
+        :unit="allTrips?.unit"
+      />
+      <StatusCard
+        v-for="card in purposeCards"
+        :key="card.key"
+        :icon="PURPOSE_ICONS[card.key]"
+        :label="card.label"
+        :value="card.value"
         :unit="units.symbol('distance')"
+        :variant="card.variant"
+        :note="card.note"
+        :share="card.share"
+        :share-label="card.note"
+      />
+    </section>
+
+    <section class="trip-log-summary" :aria-label="t('tripLog.summary.label')">
+      <StatusCard
+        v-for="card in summaryCards"
+        :key="card.key"
+        :icon="card.icon"
+        :label="card.label"
+        :value="card.value"
+        :unit="card.unit"
+        :subtitle="card.subtitle"
       />
     </section>
 
     <div v-if="unclassified > 0 && !store.loading" class="trip-log-bulk">
-      <span class="text-sm">{{ t('tripLog.classifyAll', unclassified) }}</span>
+      <span class="text-sm">
+        <font-awesome-icon icon="circle-exclamation" class="trip-log-bulk__icon" />{{
+          t(
+            'tripLog.classifyAll',
+            { n: unclassified, distance: unclassifiedDistance },
+            unclassified,
+          )
+        }}
+      </span>
       <div class="trip-log-bulk__actions">
         <button
           v-for="purpose in TRIP_PURPOSES"
@@ -231,22 +388,33 @@ function exportCsv() {
     <div v-else-if="!store.loading && listed.length === 0" class="empty-state">
       {{ t('tripLog.empty') }}
     </div>
-    <ul v-else class="trip-log-list">
-      <TripLogItem
-        v-for="entry in newestFirst"
-        :key="entry.id"
-        :entry="entry"
-        :places-shown="placesShown"
-        :places-resolving="store.placesResolving"
-        :saving="store.saving.has(entry.id)"
-        :commute-places="commutePlaces.places"
-        :can-join-next="entry.id !== newestId"
-        @save="(purpose, notes) => save(entry.id, purpose, notes)"
-        @pick-place="openPlaces"
-        @set-hidden="(hidden) => setHidden(entry.id, hidden)"
-        @join-next="joiningId = entry.id"
-      />
-    </ul>
+    <div v-else class="trip-log-layout">
+      <ul class="trip-log-list">
+        <TripLogItem
+          v-for="entry in newestFirst"
+          :key="entry.id"
+          :entry="entry"
+          :places-shown="placesShown"
+          :places-resolving="store.placesResolving"
+          :saving="store.saving.has(entry.id)"
+          :commute-places="commutePlaces.places"
+          :selected="selected?.id === entry.id"
+          @select="pickedId = entry.id"
+        />
+      </ul>
+
+      <aside
+        v-if="wide && detail"
+        class="trip-log-layout__detail"
+        :aria-label="t('tripLog.detail.title')"
+      >
+        <TripLogDetail v-bind="detail.props" v-on="detail.on" />
+      </aside>
+    </div>
+
+    <DetailModal :open="detailInModal" :title="t('tripLog.detail.title')" wide @close="closeDetail">
+      <TripLogDetail v-if="detailInModal && detail" v-bind="detail.props" v-on="detail.on" />
+    </DetailModal>
 
     <DetailModal :open="joiningId !== null" :title="t('tripLog.joinNext')" @close="cancelJoin">
       <p class="text-sm">{{ t('tripLog.joinNextHint') }}</p>

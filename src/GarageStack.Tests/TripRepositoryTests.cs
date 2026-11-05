@@ -268,6 +268,21 @@ public class TripRepositoryTests
         Assert.Null(entry.Notes);
     }
 
+    // Drive()'s trip is its three fixes at 50 km/h: the log shows the figures stored for it.
+    [Fact]
+    public async Task GetLog_ServesTheStoredSpeedFigures()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (db, repo, vehicle) = await SetupAsync(ct);
+        await using var _ = db;
+        await SaveOneAsync(repo, vehicle, T0, ct);
+
+        var entry = Assert.Single(await repo.GetLogAsync(vehicle.Id, T0.AddDays(-1), T0.AddDays(1), ct));
+
+        Assert.Equal(50, entry.MaxSpeedKmh);
+        Assert.Equal(50, entry.AvgMovingSpeedKmh);
+    }
+
     [Fact]
     public async Task GetLog_IsOldestFirst_AndLeavesOutTripsOutsideTheWindow()
     {

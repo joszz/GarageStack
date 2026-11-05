@@ -26,6 +26,8 @@ export function logEntry(overrides: Partial<TripLogEntry> = {}): TripLogEntry {
     purposeIsAutomatic: false,
     isHidden: false,
     isEdited: false,
+    maxSpeedKmh: 104,
+    avgMovingSpeedKmh: 71.5,
     ...overrides,
   }
 }

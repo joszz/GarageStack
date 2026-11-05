@@ -504,14 +504,15 @@ public class TripRepository(
         t.Id, t.StartedAt, t.EndedAt, t.DistanceKm,
         t.StartLatitude, t.StartLongitude, t.EndLatitude, t.EndLongitude,
         t.OdometerStartKm, t.OdometerEndKm,
-        t.StartPlaceJson, t.EndPlaceJson, t.Purpose, t.Notes, t.PurposeIsManual, t.IsHidden, t.EditedAt != null);
+        t.StartPlaceJson, t.EndPlaceJson, t.Purpose, t.Notes, t.PurposeIsManual, t.IsHidden, t.EditedAt != null,
+        t.MaxSpeedKmh, t.AvgMovingSpeedKmh);
 
     private sealed record LogRow(
         long Id, DateTime StartedAt, DateTime EndedAt, double DistanceKm,
         double StartLatitude, double StartLongitude, double EndLatitude, double EndLongitude,
         double? OdometerStartKm, double? OdometerEndKm,
         string? StartPlaceJson, string? EndPlaceJson, TripPurpose? Purpose, string? Notes, bool PurposeIsManual, bool IsHidden,
-        bool IsEdited);
+        bool IsEdited, double? MaxSpeedKmh, double? AvgMovingSpeedKmh);
 
     private TripLogEntry ToEntry(LogRow r) => new(
         r.Id, r.StartedAt, r.EndedAt, r.DistanceKm,
@@ -519,7 +520,7 @@ public class TripRepository(
         r.OdometerStartKm, r.OdometerEndKm,
         ReadPlace(r.Id, r.StartPlaceJson), ReadPlace(r.Id, r.EndPlaceJson),
         r.Purpose, r.Notes, PurposeIsAutomatic: r.Purpose is not null && !r.PurposeIsManual, IsHidden: r.IsHidden,
-        IsEdited: r.IsEdited);
+        IsEdited: r.IsEdited, MaxSpeedKmh: r.MaxSpeedKmh, AvgMovingSpeedKmh: r.AvgMovingSpeedKmh);
 
     // An unreadable place is as good as none: the trip log looks it up again.
     private PlaceAddress? ReadPlace(long tripId, string? json) =>

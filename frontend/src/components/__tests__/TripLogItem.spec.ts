@@ -23,7 +23,7 @@ function mountItem(
     placesResolving: boolean
     saving: boolean
     commutePlaces: CommutePlace[]
-    canJoinNext: boolean
+    selected: boolean
   }> = {},
 ) {
   return mount(TripLogItem, {
@@ -33,24 +33,11 @@ function mountItem(
       placesResolving: false,
       saving: false,
       commutePlaces: [],
-      canJoinNext: true,
+      selected: false,
       ...props,
     },
-    global: {
-      plugins: [i18n],
-      stubs: {
-        FontAwesomeIcon: true,
-        RouterLink: {
-          props: ['to'],
-          template: '<a class="router-link" :data-to="JSON.stringify(to)"><slot /></a>',
-        },
-      },
-    },
+    global: { plugins: [i18n], stubs: { FontAwesomeIcon: true } },
   })
-}
-
-function purposeButton(wrapper: ReturnType<typeof mountItem>, label: string) {
-  return wrapper.findAll('.trip-log-purpose').find((b) => b.text() === label)!
 }
 
 describe('TripLogItem', () => {
@@ -78,6 +65,10 @@ describe('TripLogItem', () => {
     expect(wrapper.findAll('.trip-log-item__place')).toHaveLength(1)
   })
 
+  it('shows how long the trip took', () => {
+    expect(mountItem(logEntry()).find('.trip-log-item__duration').text()).toBe('34 min')
+  })
+
   it('counts the trip for the distance on the odometer, and shows both readings', () => {
     const wrapper = mountItem(logEntry())
 
@@ -93,72 +84,46 @@ describe('TripLogItem', () => {
     expect(wrapper.find('.trip-log-item__distance').text()).toContain('14919.1 - 14945.5')
   })
 
-  it('marks the purpose the trip has', () => {
-    const wrapper = mountItem(logEntry({ purpose: 'commute' }))
+  it('shows the purpose as a badge, and unclassified for a trip without one', () => {
+    const commute = mountItem(logEntry({ purpose: 'commute' })).find('.trip-log-item__purpose')
+    const none = mountItem(logEntry()).find('.trip-log-item__purpose')
 
-    expect(purposeButton(wrapper, 'Commute').attributes('aria-pressed')).toBe('true')
-    expect(purposeButton(wrapper, 'Business').attributes('aria-pressed')).toBe('false')
+    expect(commute.text()).toBe('Commute')
+    expect(commute.classes()).toContain('badge-info')
+    expect(none.text()).toBe('Unclassified')
+    expect(none.classes()).toContain('badge-warning')
   })
 
-  it('saves a purpose with the notes the trip already has', async () => {
-    const wrapper = mountItem(logEntry({ notes: 'Client visit' }))
+  it('says when a commute was marked automatically, and when the route was edited', () => {
+    const marked = mountItem(
+      logEntry({ purpose: 'commute', purposeIsAutomatic: true, isEdited: true }),
+    )
+    const plain = mountItem(logEntry({ purpose: 'commute' }))
 
-    await purposeButton(wrapper, 'Business').trigger('click')
-
-    expect(wrapper.emitted('save')).toEqual([['business', 'Client visit']])
+    expect(marked.find('.trip-log-item__auto').text()).toBe('Automatic')
+    expect(marked.find('.trip-log-item__edited').text()).toBe(en.tripLog.edited)
+    expect(plain.find('.trip-log-item__auto').exists()).toBe(false)
   })
 
-  it('clears the purpose when the one it has is chosen again', async () => {
-    const wrapper = mountItem(logEntry({ purpose: 'private' }))
-
-    await purposeButton(wrapper, 'Private').trigger('click')
-
-    expect(wrapper.emitted('save')).toEqual([[null, null]])
-  })
-
-  it('saves trimmed notes once the field changes, and a blank field as no notes', async () => {
-    const wrapper = mountItem(logEntry({ purpose: 'business', notes: 'Old' }))
-    const notes = wrapper.find('input.trip-log-item__notes')
-
-    await notes.setValue('  New notes ')
-    await notes.setValue('   ')
-
-    expect(wrapper.emitted('save')).toEqual([
-      ['business', 'New notes'],
-      ['business', null],
-    ])
-  })
-
-  it('does not save notes that did not change', async () => {
-    const wrapper = mountItem(logEntry({ notes: 'Same' }))
-
-    await wrapper.find('input.trip-log-item__notes').setValue('Same ')
-
-    expect(wrapper.emitted('save')).toBeUndefined()
-  })
-
-  it('holds its controls while a change is being saved', () => {
-    const wrapper = mountItem(logEntry(), { saving: true })
-
+  it('shows the notes the trip has', () => {
     expect(
-      wrapper.findAll('.trip-log-purpose').every((b) => b.attributes('disabled') !== undefined),
-    ).toBe(true)
-    expect(wrapper.find('input.trip-log-item__notes').attributes('disabled')).toBeDefined()
+      mountItem(logEntry({ notes: 'Client visit' }))
+        .find('.trip-log-item__note')
+        .text(),
+    ).toBe('Client visit')
+    expect(mountItem(logEntry()).find('.trip-log-item__note').exists()).toBe(false)
   })
-
-  // ── Home and work ──────────────────────────────────────────
-
-  const home: CommutePlace = {
-    id: 1,
-    kind: 'home',
-    label: null,
-    latitude: 52.5123,
-    longitude: 6.0921,
-    radiusMeters: 250,
-    notify: false,
-  }
 
   it('marks the end that is at home', () => {
+    const home: CommutePlace = {
+      id: 1,
+      kind: 'home',
+      label: null,
+      latitude: 52.5123,
+      longitude: 6.0921,
+      radiusMeters: 250,
+      notify: false,
+    }
     const wrapper = mountItem(logEntry({ startPlace: zwolle, endPlace: deventer }), {
       commutePlaces: [home],
     })
@@ -168,91 +133,20 @@ describe('TripLogItem', () => {
     expect(to!.find('.trip-log-item__place-icon').exists()).toBe(false)
   })
 
-  it('offers a trip end to set as home or work', async () => {
-    const wrapper = mountItem(logEntry({ startPlace: zwolle, endPlace: deventer }))
-
-    await wrapper.findAll('.trip-log-item__place')[1]!.trigger('click')
-
-    expect(wrapper.emitted('pickPlace')).toEqual([[52.2554, 6.1639]])
-  })
-
-  it('hides a trip, and shows a hidden one again', async () => {
-    const shown = mountItem(logEntry())
-    const hidden = mountItem(logEntry({ isHidden: true }))
-
-    await shown
-      .findAll('button')
-      .find((b) => b.text() === 'Hide')!
-      .trigger('click')
-    await hidden
-      .findAll('button')
-      .find((b) => b.text() === 'Show again')!
-      .trigger('click')
-
-    expect(shown.emitted('setHidden')).toEqual([[true]])
-    expect(hidden.emitted('setHidden')).toEqual([[false]])
-    expect(hidden.classes()).toContain('trip-log-item--hidden')
-  })
-
-  it('links to the trip on the map, but not for a hidden one the map leaves out', () => {
-    const entry = logEntry()
-    const link = mountItem(entry).find('.router-link')
-
-    expect(link.text()).toBe(en.tripLog.showOnMap)
-    expect(JSON.parse(link.attributes('data-to')!)).toEqual({
-      name: 'map',
-      query: { trip: entry.id, at: entry.startedAt },
-    })
-    expect(
-      mountItem(logEntry({ isHidden: true }))
-        .findAll('.router-link')
-        .some((l) => JSON.parse(l.attributes('data-to')!).name === 'map'),
-    ).toBe(false)
-  })
-
-  it('asks to join with the next trip', async () => {
+  it('is one button that picks the trip, pressed while the detail shows it', async () => {
     const wrapper = mountItem(logEntry())
+    const selected = mountItem(logEntry(), { selected: true })
 
-    await wrapper
-      .findAll('button')
-      .find((b) => b.text() === 'Join with next trip')!
-      .trigger('click')
+    expect(wrapper.findAll('button')).toHaveLength(1)
+    await wrapper.find('button').trigger('click')
 
-    expect(wrapper.emitted('joinNext')).toHaveLength(1)
+    expect(wrapper.emitted('select')).toHaveLength(1)
+    expect(wrapper.find('button').attributes('aria-pressed')).toBe('false')
+    expect(selected.find('button').attributes('aria-pressed')).toBe('true')
+    expect(selected.classes()).toContain('trip-log-item--selected')
   })
 
-  it('offers no join for the newest trip', () => {
-    const wrapper = mountItem(logEntry(), { canJoinNext: false })
-
-    expect(wrapper.findAll('button').some((b) => b.text() === 'Join with next trip')).toBe(false)
-  })
-
-  it('says when a commute was marked automatically', () => {
-    const automatic = mountItem(logEntry({ purpose: 'commute', purposeIsAutomatic: true }))
-    const chosen = mountItem(logEntry({ purpose: 'commute' }))
-
-    expect(automatic.find('.trip-log-item__auto').text()).toBe('Automatic')
-    expect(chosen.find('.trip-log-item__auto').exists()).toBe(false)
-  })
-
-  it('opens the route editor, for a hidden trip too', () => {
-    const editLink = (entry: TripLogEntry) =>
-      mountItem(entry)
-        .findAll('.router-link')
-        .find((l) => JSON.parse(l.attributes('data-to')!).name === 'tripEdit')
-
-    expect(JSON.parse(editLink(logEntry({ id: 9 }))!.attributes('data-to')!)).toEqual({
-      name: 'tripEdit',
-      params: { id: 9 },
-    })
-    expect(editLink(logEntry({ isHidden: true }))).toBeDefined()
-  })
-
-  it('marks a trip whose route was edited', () => {
-    const edited = mountItem(logEntry({ isEdited: true }))
-    const recorded = mountItem(logEntry())
-
-    expect(edited.find('.trip-log-item__edited').text()).toBe(en.tripLog.edited)
-    expect(recorded.find('.trip-log-item__edited').exists()).toBe(false)
+  it('marks a hidden trip', () => {
+    expect(mountItem(logEntry({ isHidden: true })).classes()).toContain('trip-log-item--hidden')
   })
 })

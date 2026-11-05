@@ -12,7 +12,13 @@ import {
   type TripPlaces,
   type TripPurpose,
 } from '@/services/tripLogApi'
-import { missingPlaces, periodRange, purposeTotals, type TripLogPeriod } from '@/utils/tripLog'
+import {
+  missingPlaces,
+  periodRange,
+  periodSummary,
+  purposeTotals,
+  type TripLogPeriod,
+} from '@/utils/tripLog'
 
 export const useTripLogStore = defineStore('tripLog', () => {
   // shallowRef: entries are only ever replaced, never mutated in place.
@@ -36,6 +42,7 @@ export const useTripLogStore = defineStore('tripLog', () => {
   const hiddenCount = computed(() => entries.value.length - visibleEntries.value.length)
 
   const totals = computed(() => purposeTotals(visibleEntries.value))
+  const summary = computed(() => periodSummary(visibleEntries.value))
 
   async function fetchLog(vin: string, period: TripLogPeriod) {
     const load = ++latestLoad
@@ -236,6 +243,7 @@ export const useTripLogStore = defineStore('tripLog', () => {
     placesResolving,
     placesAvailable,
     totals,
+    summary,
     fetchLog,
     updateEntry,
     classifyUnclassified,

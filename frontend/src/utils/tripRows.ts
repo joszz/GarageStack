@@ -41,7 +41,11 @@ export interface TripRowContext {
 }
 
 export function formatTripDuration(startedAt: string, endedAt: string, t: Translate): string {
-  const ms = new Date(endedAt).getTime() - new Date(startedAt).getTime()
+  return formatDurationMs(new Date(endedAt).getTime() - new Date(startedAt).getTime(), t)
+}
+
+/** "25 min", or "1h 13m" from an hour on: a trip's length, or a period's driving time. */
+export function formatDurationMs(ms: number, t: Translate): string {
   const mins = Math.round(ms / 60_000)
   if (mins < 60) return t('trips.durationMinutes', { n: mins })
   return t('trips.durationHoursMinutes', { h: Math.floor(mins / 60), m: mins % 60 })

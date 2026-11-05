@@ -343,6 +343,24 @@ public class TripEditorRepositoryTests
         Assert.Equal(TripPointSource.Manual, drawn.Points[0].Source);
         Assert.False(reset.IsEdited);
         Assert.Equal((entry.StartedAt, entry.StartLatitude), (reset.StartedAt, reset.StartLatitude));
+        Assert.Equal((entry.MaxSpeedKmh, entry.AvgMovingSpeedKmh), (reset.MaxSpeedKmh, reset.AvgMovingSpeedKmh));
+    }
+
+    // The trip log's speeds come from the demo's fixes, and a join reads them off both trips' fixes.
+    [Fact]
+    public async Task Demo_LogCarriesSpeedFigures_ThroughAJoin()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var demo = new DemoTripRepository();
+        var log = await demo.GetLogAsync(1, DateTime.UtcNow.AddDays(-60), DateTime.UtcNow, ct);
+        var first = log[0];
+        var second = log[1];
+
+        var merged = (await demo.MergeWithNextAsync(1, first.Id, ct)).Merged!;
+
+        Assert.All(log, e => Assert.NotNull(e.MaxSpeedKmh));
+        Assert.Equal(Math.Max(first.MaxSpeedKmh!.Value, second.MaxSpeedKmh!.Value), merged.MaxSpeedKmh);
+        Assert.NotNull(merged.AvgMovingSpeedKmh);
     }
 
     [Fact]

@@ -709,7 +709,29 @@
     "wholeYear": "Heel het jaar",
     "totalsLabel": "Afstand per doel",
     "totalLabel": "{purpose} ({n})",
-    "classifyAll": "{n} rit heeft nog geen doel. Markeer als: | {n} ritten hebben nog geen doel. Markeer ze allemaal als:",
+    "classifyAll": "{n} rit ({distance}) heeft nog geen doel. Markeer als: | {n} ritten ({distance}) hebben nog geen doel. Markeer ze allemaal als:",
+    "allTrips": "Alle ritten ({n})",
+    "shareOfDistance": "{percent}% van de afstand",
+    "summary": {
+      "label": "Rijden in deze periode",
+      "drivingTime": "Rijtijd",
+      "averageTrip": "Gemiddelde rit",
+      "longestTrip": "Langste rit",
+      "averageSpeed": "Gemiddelde snelheid",
+      "averageSpeedHint": "De afstand gedeeld door de tijd die het rijden kostte, stilstand in het verkeer meegerekend"
+    },
+    "detail": {
+      "title": "Ritdetails",
+      "routePreview": "Route van de rit",
+      "routeUnavailable": "De route kon niet worden geladen, dus de kaart verbindt begin en eind met een rechte lijn.",
+      "distance": "Afstand",
+      "duration": "Duur",
+      "averageSpeed": "Gem. snelheid",
+      "averageSpeedHint": "Het gemiddelde van de snelheden die de auto tijdens het rijden doorgaf",
+      "topSpeed": "Topsnelheid",
+      "speed": "Snelheid",
+      "speedChart": "Snelheid tijdens de rit"
+    },
     "purposeLabel": "Doel",
     "purpose": {
       "business": "Zakelijk",

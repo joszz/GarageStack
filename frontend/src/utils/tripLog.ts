@@ -58,6 +58,23 @@ export const PURPOSE_ICONS: Record<PurposeKey, string> = {
   unclassified: 'circle-question',
 }
 
+/** The badge a trip's purpose shows as in the list, coloured as its chip and its total. */
+export const PURPOSE_BADGE_CLASSES: Record<PurposeKey, string> = {
+  business: 'badge trip-log-badge--business',
+  commute: 'badge badge-info',
+  private: 'badge badge-success',
+  unclassified: 'badge badge-warning',
+}
+
+/** The status card variant each purpose's total takes, matching its badge. */
+export const PURPOSE_CARD_VARIANTS: Record<PurposeKey, 'info' | 'success' | 'warning' | undefined> =
+  {
+    business: undefined,
+    commute: 'info',
+    private: 'success',
+    unclassified: 'warning',
+  }
+
 export interface PurposeTotal {
   trips: number
   km: number
@@ -73,6 +90,49 @@ export function purposeTotals(entries: readonly TripLogEntry[]): Record<PurposeK
     total.km += loggedDistanceKm(entry)
   }
   return totals
+}
+
+/** How long the trip took, from leaving to arriving; never negative. */
+export function tripDurationMs(entry: TripLogEntry): number {
+  return Math.max(0, Date.parse(entry.endedAt) - Date.parse(entry.startedAt))
+}
+
+/** What the period's trips add up to, all purposes together. */
+export interface PeriodSummary {
+  trips: number
+  km: number
+  drivingMs: number
+  /** Null without trips, as are the two below. */
+  averageTripKm: number | null
+  longestTripKm: number | null
+  /** The distance over the time spent driving it, stops at lights and in traffic included. */
+  averageSpeedKmh: number | null
+}
+
+export function periodSummary(entries: readonly TripLogEntry[]): PeriodSummary {
+  let km = 0
+  let drivingMs = 0
+  let longest: number | null = null
+  for (const entry of entries) {
+    const distance = loggedDistanceKm(entry)
+    km += distance
+    drivingMs += tripDurationMs(entry)
+    longest = longest === null ? distance : Math.max(longest, distance)
+  }
+  const trips = entries.length
+  return {
+    trips,
+    km,
+    drivingMs,
+    averageTripKm: trips > 0 ? km / trips : null,
+    longestTripKm: longest,
+    averageSpeedKmh: drivingMs > 0 ? km / (drivingMs / 3_600_000) : null,
+  }
+}
+
+/** The part of the period's distance one purpose takes, from 0 to 1; 0 when nothing was driven. */
+export function distanceShare(total: PurposeTotal, allKm: number): number {
+  return allKm > 0 ? Math.min(1, total.km / allKm) : 0
 }
 
 /**
