@@ -308,6 +308,49 @@
   font-size: 0.75rem;
 }
 
+/* The selected trip's tools, top left under the zoom control: its edit button, then the keys to
+   its colours. The bottom edge belongs to the attribution strip, whose width depends on how many
+   sources are credited and how wide the map happens to be: on a narrow map it reaches the
+   bottom-left corner, so the column keeps off that edge entirely. */
+.map-tools {
+  position: absolute;
+  top: 80px;
+  left: 10px;
+  z-index: var(--z-map-overlay);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+
+  /* A phone-width map needs an open key to stay inside it. */
+  max-width: calc(100% - 20px);
+
+  /* Only the buttons take clicks: the map under the rest of the column stays draggable. */
+  pointer-events: none;
+}
+
+/* Dressed as one more button of the zoom control above it, whose frame is Leaflet's touch one:
+   a 30px button inside a 2px translucent border, and no shadow. */
+.map-control-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 2px solid rgb(0 0 0 / 20%);
+  border-radius: 4px;
+  background: var(--color-surface) padding-box;
+  color: var(--color-text);
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.map-control-btn:hover {
+  background: var(--color-surface-2);
+  color: var(--color-text);
+}
+
 /* Status overlays on the map canvas: POI loading, trip snapping. Stacked in one column so two
    of them never land on top of each other. */
 .map-pill-stack {

@@ -18,8 +18,6 @@ const props = defineProps<{
   skeletonRows: number
   /** The one day shown instead of the period, for a trip opened from the trip log. */
   shownDay?: string | null
-  /** The selected trip's saved id, which its route editor opens by; null for an unsaved trip. */
-  editableId?: number | null
 }>()
 
 defineEmits<{ select: [realIdx: number]; showPeriod: [] }>()
@@ -95,11 +93,7 @@ watch(
     </div>
 
     <ul v-else class="trip-list">
-      <li
-        v-for="{ row, realIdx } in rows"
-        :key="realIdx"
-        :class="{ 'trip-list__entry--editable': selectedIndex === realIdx && editableId != null }"
-      >
+      <li v-for="{ row, realIdx } in rows" :key="realIdx">
         <button
           type="button"
           class="trip-list__item trip-list__button"
@@ -139,15 +133,6 @@ watch(
             <span class="trip-list__meta" :title="row.metaTitle">{{ row.meta }}</span>
           </div>
         </button>
-        <RouterLink
-          v-if="selectedIndex === realIdx && editableId != null"
-          class="btn btn-sm trip-list__edit"
-          :to="{ name: 'tripEdit', params: { id: editableId } }"
-          :title="t('trips.editRoute')"
-          :aria-label="t('trips.editRoute')"
-        >
-          <font-awesome-icon icon="pen-to-square" />
-        </RouterLink>
       </li>
     </ul>
     <div ref="sentinel" />
@@ -155,38 +140,6 @@ watch(
 </template>
 
 <style scoped>
-/* The selected trip's edit button sits inside its row, on the date line under the time. The row is
-   a button itself and cannot hold a link, so the two share one grid cell and the link is laid over
-   the row's bottom right corner. */
-.trip-list__entry--editable {
-  display: grid;
-}
-
-.trip-list__entry--editable > * {
-  grid-area: 1 / 1;
-}
-
-/* The date line stops short of the button rather than running under it. */
-.trip-list__entry--editable .trip-list__meta {
-  padding-right: 2rem;
-}
-
-/* A quiet icon in the accent colour, centred on the date line: the row's bottom padding less half
-   of the height the button has over that line. Its right edge is the time's. Positioned like the
-   row, so it paints, and takes clicks, on top of it. */
-.trip-list__edit {
-  position: relative;
-  place-self: end;
-  margin-bottom: 0.3rem;
-  padding: 0.3rem 0.45rem;
-  color: var(--color-primary-light);
-}
-
-.trip-list__edit:hover,
-.trip-list__edit:focus-visible {
-  background: var(--color-surface);
-}
-
 /* The day opened from the trip log takes a line of its own under the title. */
 .trip-sidebar__header:has(.trip-sidebar__day) {
   flex-wrap: wrap;

@@ -87,43 +87,4 @@ describe('TripSidebar', () => {
 
     expect(scrollBy).toHaveBeenCalledWith({ top: 360, behavior: 'instant' })
   })
-
-  it('offers the route editor under the selected trip when it is saved', () => {
-    const stubs = {
-      FontAwesomeIcon: true,
-      RouterLink: {
-        props: ['to'],
-        template: '<a class="router-link" :data-to="JSON.stringify(to)"><slot /></a>',
-      },
-    }
-    const mountWith = (props: Partial<InstanceType<typeof TripSidebar>['$props']>) =>
-      mount(TripSidebar, {
-        props: {
-          rows: [
-            { realIdx: 1, row: row('Zwolle') },
-            { realIdx: 0, row: row('Deventer') },
-          ],
-          loading: false,
-          empty: false,
-          activeIndex: null,
-          skeletonRows: 3,
-          selectedIndex: null,
-          ...props,
-        },
-        global: { plugins: [i18n], stubs },
-      })
-
-    const saved = mountWith({ selectedIndex: 0, editableId: 42 })
-    const unsaved = mountWith({ selectedIndex: 0, editableId: null })
-
-    const links = saved.findAll('.router-link')
-    expect(links).toHaveLength(1)
-    expect(JSON.parse(links[0]!.attributes('data-to')!)).toEqual({
-      name: 'tripEdit',
-      params: { id: 42 },
-    })
-    // Under the selected row, the second in the list.
-    expect(saved.findAll('li')[1]!.find('.router-link').exists()).toBe(true)
-    expect(unsaved.find('.router-link').exists()).toBe(false)
-  })
 })
