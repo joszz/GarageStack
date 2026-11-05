@@ -3,8 +3,9 @@ import { useId } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 /**
- * A key laid over the map, under the zoom control. It folds away to a single button the size of a
- * zoom button, so on a phone's short map it covers nothing until it is asked for.
+ * A key laid over the map, in the map's tool column under the zoom control (map.css's
+ * .map-tools). It folds away to a single button the size of a zoom button, so on a phone's short
+ * map it covers nothing until it is asked for.
  *
  * @param label What the key explains, which names it for assistive tech.
  * @model expanded Whether the key is open. Owned by the parent so it outlives the key itself: the
@@ -22,7 +23,7 @@ const panelId = useId()
   <div class="map-legend">
     <button
       type="button"
-      class="map-legend__toggle"
+      class="map-control-btn map-legend__toggle"
       :aria-expanded="expanded"
       :aria-controls="panelId"
       :aria-label="t('trips.legend')"
@@ -38,46 +39,13 @@ const panelId = useId()
 </template>
 
 <style scoped>
-/* Top left, under the zoom control. The bottom edge belongs to the attribution strip, whose width
-   depends on how many sources are credited and how wide the map happens to be: on a narrow map, in
-   any layout, it reaches the bottom-left corner this legend used to sit in. Keeping the legend off
-   that edge entirely is one rule instead of a breakpoint per layout. */
+/* The column it sits in places it; the key only stacks its button over its panel. */
 .map-legend {
-  position: absolute;
-  top: 80px;
-  left: 10px;
-  z-index: var(--z-map-overlay);
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 6px;
-
-  /* A phone-width map needs the open key to stay inside it. */
-  max-width: calc(100% - 20px);
-
-  /* Only the button takes clicks: the map under the rest of the key stays draggable. */
-  pointer-events: none;
-}
-
-/* Dressed as one more button of the zoom control above it, whose frame is Leaflet's touch one:
-   a 30px button inside a 2px translucent border, and no shadow. */
-.map-legend__toggle {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 34px;
-  height: 34px;
-  padding: 0;
-  border: 2px solid rgb(0 0 0 / 20%);
-  border-radius: 4px;
-  background: var(--color-surface) padding-box;
-  color: var(--color-text);
-  cursor: pointer;
-  pointer-events: auto;
-}
-
-.map-legend__toggle:hover {
-  background: var(--color-surface-2);
+  max-width: 100%;
 }
 
 .map-legend__toggle[aria-expanded='true'] {

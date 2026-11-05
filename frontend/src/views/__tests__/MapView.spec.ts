@@ -126,6 +126,10 @@ async function mountView() {
         MapLayerPanel: true,
         SpeedLegend: true,
         SpeedLimitLegend: true,
+        RouterLink: {
+          props: ['to'],
+          template: '<a class="router-link" :data-to="JSON.stringify(to)"><slot /></a>',
+        },
         TripSidebar: {
           props: ['rows', 'selectedIndex', 'activeIndex', 'shownDay'],
           emits: ['select', 'showPeriod'],
@@ -250,6 +254,27 @@ describe('MapView', () => {
     } as TelemetrySnapshot)
     const unplaced = await mountView()
     expect(findCar(unplaced).attributes('disabled')).toBeDefined()
+  })
+
+  it('offers the route editor on the map for a selected trip once it is saved', async () => {
+    vi.mocked(vehicleApi.trips).mockResolvedValue([trip(0), { ...trip(1), id: null }])
+    const wrapper = await mountView()
+    const rows = () => sidebar(wrapper).findAll('li')
+    const editLink = () => wrapper.find('.map-tools .router-link')
+
+    expect(editLink().exists()).toBe(false)
+
+    // The newest, still unsaved, has nothing to edit yet.
+    await rows()[0]!.trigger('click')
+    expect(wrapper.find('.map-tools').exists()).toBe(true)
+    expect(editLink().exists()).toBe(false)
+
+    await rows()[1]!.trigger('click')
+    expect(JSON.parse(editLink().attributes('data-to')!)).toEqual({
+      name: 'tripEdit',
+      params: { id: 1 },
+    })
+    expect(editLink().attributes('aria-label')).toBe(en.trips.editRoute)
   })
 
   it('snaps the selected trip, and says how long it turned out to be', async () => {

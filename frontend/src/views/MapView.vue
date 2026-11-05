@@ -412,7 +412,6 @@ onMounted(async () => {
         :active-index="activeTripIndex"
         :skeleton-rows="LOAD_MORE_SIZE"
         :shown-day="shownDayLabel"
-        :editable-id="selectedTrip?.id ?? null"
         @select="selectTrip"
         @show-period="showPeriod"
       />
@@ -462,17 +461,26 @@ onMounted(async () => {
           </div>
         </div>
 
-        <SpeedLegend
-          v-if="speedOverlayEnabled && selectedTripIndex !== null"
-          v-model:expanded="legendExpanded"
-        />
+        <div v-if="selectedTrip" class="map-tools">
+          <RouterLink
+            v-if="selectedTrip.id != null"
+            class="map-control-btn"
+            :to="{ name: 'tripEdit', params: { id: selectedTrip.id } }"
+            :title="t('trips.editRoute')"
+            :aria-label="t('trips.editRoute')"
+          >
+            <font-awesome-icon icon="pen-to-square" />
+          </RouterLink>
 
-        <SpeedLimitLegend
-          v-if="speedLimitSummaryOfTrip"
-          v-model:expanded="legendExpanded"
-          :summary="speedLimitSummaryOfTrip"
-          :coloured="limitColoursShown"
-        />
+          <SpeedLegend v-if="speedOverlayEnabled" v-model:expanded="legendExpanded" />
+
+          <SpeedLimitLegend
+            v-if="speedLimitSummaryOfTrip"
+            v-model:expanded="legendExpanded"
+            :summary="speedLimitSummaryOfTrip"
+            :coloured="limitColoursShown"
+          />
+        </div>
       </div>
     </div>
   </div>
