@@ -141,7 +141,7 @@ watch(
         </button>
         <RouterLink
           v-if="selectedIndex === realIdx && editableId != null"
-          class="btn btn-outline-secondary btn-sm trip-list__edit"
+          class="btn btn-sm trip-list__edit"
           :to="{ name: 'tripEdit', params: { id: editableId } }"
         >
           <font-awesome-icon icon="pen-to-square" />{{ t('trips.editRoute') }}
@@ -168,9 +168,17 @@ watch(
   border-left: 0;
 }
 
-/* Lined up with the trip's text: past its colour dot and the gap after it. */
+/* A quiet text action rather than a boxed button: a field-coloured box read as a dark patch on the
+   highlight. Lined up with the trip's text (past its colour dot and the gap after it), the button
+   padding pulled back so the label itself sits on that line. */
 .trip-list__edit {
-  margin-left: calc(10px + 0.5rem);
+  margin-left: calc(10px + 0.5rem - 0.6rem);
+  color: var(--color-primary-light);
+}
+
+.trip-list__edit:hover,
+.trip-list__edit:focus-visible {
+  background: var(--color-surface);
 }
 
 /* The day opened from the trip log takes a line of its own under the title. */
