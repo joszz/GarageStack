@@ -83,7 +83,7 @@ function defaultsFor(): UiSettings {
 }
 
 const THEMES: readonly Theme[] = ['dark', 'light']
-const LOCALES: readonly Locale[] = ['en', 'nl']
+const LOCALES: readonly Locale[] = ['en', 'nl', 'es']
 const VEHICLE_TYPE_OVERRIDES: readonly VehicleTypeOverride[] = ['auto', 'hev', 'phev', 'bev']
 const CAR_COLOR_SCHEME_IDS = CAR_COLOR_SCHEMES.map((s) => s.id)
 // The map's trips are clamped to 90 days by the API; anything up to a year is accepted here so an

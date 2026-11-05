@@ -13,7 +13,7 @@ export type { CardConfig, CardId }
 
 export type VehicleTypeOverride = 'auto' | VehicleType
 export type Theme = 'dark' | 'light'
-export type Locale = 'en' | 'nl'
+export type Locale = 'en' | 'nl' | 'es'
 
 export interface CarColorScheme {
   id: string
@@ -128,7 +128,8 @@ export function osPreferredTheme(): Theme {
 
 export function browserLocale(): Locale {
   const lang = navigator.language.toLowerCase()
-  return lang.startsWith('nl') ? 'nl' : 'en'
+  if (lang.startsWith('nl')) return 'nl'
+  return lang.startsWith('es') ? 'es' : 'en'
 }
 
 // Pre-split combined settings blob (single "garagestack-settings" key holding everything).

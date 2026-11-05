@@ -1,14 +1,13 @@
 <script setup lang="ts">
 import { computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import gbFlag from 'flag-icons/flags/4x3/gb.svg'
-import nlFlag from 'flag-icons/flags/4x3/nl.svg'
 import { useUiSettingsStore } from '@/stores/settingsUi'
 import { useRdwStore } from '@/stores/rdw'
 import { useVehicleStore } from '@/stores/vehicle'
 import DetailModal from '../DetailModal.vue'
 import SettingsToggle from '../SettingsToggle.vue'
 import RegionalSettings from '../RegionalSettings.vue'
+import SettingsSelect from '../SettingsSelect.vue'
 import SettingsSection from './SettingsSection.vue'
 import SideIconSwitch from './SideIconSwitch.vue'
 import CarColorPicker from './CarColorPicker.vue'
@@ -42,12 +41,11 @@ const isLightTheme = computed({
   },
 })
 
-const isNL = computed({
-  get: () => settings.locale === 'nl',
-  set: (val: boolean) => {
-    settings.locale = val ? 'nl' : 'en'
-  },
-})
+const languageOptions = [
+  { value: 'en', label: 'English' },
+  { value: 'nl', label: 'Nederlands' },
+  { value: 'es', label: 'Español' },
+] as const
 </script>
 
 <template>
@@ -96,18 +94,12 @@ const isNL = computed({
 
     <SettingsSection :title="t('settings.language.title')">
       <div class="settings-toggles">
-        <SideIconSwitch
-          v-model="isNL"
-          :label="isNL ? 'Nederlands' : 'English'"
-          input-id="footer-toggle-lang"
-        >
-          <template #off>
-            <img :src="gbFlag" alt="English" class="settings-toggle__flag" />
-          </template>
-          <template #on>
-            <img :src="nlFlag" alt="Nederlands" class="settings-toggle__flag" />
-          </template>
-        </SideIconSwitch>
+        <SettingsSelect
+          id="footer-toggle-lang"
+          v-model="settings.locale"
+          :label="t('settings.language.title')"
+          :options="languageOptions"
+        />
       </div>
     </SettingsSection>
 
