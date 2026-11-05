@@ -11,7 +11,7 @@
 }
 
 .trip-edit-panel {
-  width: 320px;
+  width: 360px;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
@@ -57,28 +57,33 @@
   overflow-wrap: anywhere;
 }
 
-.trip-edit-panel__tools,
-.trip-edit-panel__history,
-.trip-edit-panel__actions {
+.trip-edit-panel__tools {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
 }
 
-/* At the bottom of the panel, set off by a rule: Undo and Reset over Cancel and Save, which split
-   the panel's width between them. */
+/* At the bottom of the panel, set off by a rule: Undo and Reset over Cancel and Save, in two
+   shared columns so each pair splits the panel's width the same way. A label too long for half
+   the width widens its column for both rows, so the buttons stay lined up. */
 .trip-edit-panel__footer {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem 0.5rem;
   margin-top: auto;
   padding-top: 0.75rem;
   border-top: 1px solid var(--color-border);
 }
 
-.trip-edit-panel__actions .btn {
-  flex: 1;
+.trip-edit-panel__history,
+.trip-edit-panel__actions {
+  display: contents;
+}
+
+/* One line each: a wrapped label made one button of a pair twice as tall as the other. */
+.trip-edit-panel__footer .btn {
   justify-content: center;
+  white-space: nowrap;
 }
 
 @media (width <= 991px) {
@@ -101,18 +106,22 @@
   /* The panel spans the screen here, so the footer is one row: Undo and Reset on the left, Cancel
      and Save on the right. */
   .trip-edit-panel__footer {
+    display: flex;
     flex-flow: row wrap;
     justify-content: space-between;
     padding-top: 0.5rem;
   }
 
+  .trip-edit-panel__history,
+  .trip-edit-panel__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
   /* Still on the right when a long translation pushes them onto a line of their own. */
   .trip-edit-panel__actions {
     margin-left: auto;
-  }
-
-  .trip-edit-panel__actions .btn {
-    flex: none;
   }
 
   /* The addresses and the odometer note make way for the map; the distance stays. */
