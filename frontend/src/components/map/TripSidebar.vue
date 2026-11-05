@@ -143,8 +143,10 @@ watch(
           v-if="selectedIndex === realIdx && editableId != null"
           class="btn btn-sm trip-list__edit"
           :to="{ name: 'tripEdit', params: { id: editableId } }"
+          :title="t('trips.editRoute')"
+          :aria-label="t('trips.editRoute')"
         >
-          <font-awesome-icon icon="pen-to-square" />{{ t('trips.editRoute') }}
+          <font-awesome-icon icon="pen-to-square" />
         </RouterLink>
       </li>
     </ul>
@@ -153,26 +155,30 @@ watch(
 </template>
 
 <style scoped>
-/* The selected trip and its edit button share one highlight, so the button reads as part of the
-   trip rather than as a row of its own. The entry takes over the row's background and accent
-   line, and the row inside keeps neither. */
+/* The selected trip's edit button sits inside its row, on the date line under the time. The row is
+   a button itself and cannot hold a link, so the two share one grid cell and the link is laid over
+   the row's bottom right corner. */
 .trip-list__entry--editable {
-  margin: 0 -1rem;
-  padding: 0 1rem 0.6rem;
-  background: var(--color-surface-2);
-  border-left: 2px solid var(--color-primary);
+  display: grid;
 }
 
-.trip-list__entry--editable > .trip-list__item--active {
-  background: none;
-  border-left: 0;
+.trip-list__entry--editable > * {
+  grid-area: 1 / 1;
 }
 
-/* A quiet text action rather than a boxed button: a field-coloured box read as a dark patch on the
-   highlight. Lined up with the trip's text (past its colour dot and the gap after it), the button
-   padding pulled back so the label itself sits on that line. */
+/* The date line stops short of the button rather than running under it. */
+.trip-list__entry--editable .trip-list__meta {
+  padding-right: 2rem;
+}
+
+/* A quiet icon in the accent colour, centred on the date line: the row's bottom padding less half
+   of the height the button has over that line. Its right edge is the time's. Positioned like the
+   row, so it paints, and takes clicks, on top of it. */
 .trip-list__edit {
-  margin-left: calc(10px + 0.5rem - 0.6rem);
+  position: relative;
+  place-self: end;
+  margin-bottom: 0.3rem;
+  padding: 0.3rem 0.45rem;
   color: var(--color-primary-light);
 }
 
