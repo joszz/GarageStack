@@ -69,48 +69,46 @@ describe('TripLogItem', () => {
     expect(mountItem(logEntry()).find('.trip-log-item__duration').text()).toBe('34 min')
   })
 
-  it('counts the trip for the distance on the odometer, and shows both readings', () => {
+  it('counts the trip for the distance on the odometer, and leaves the readings to the detail', () => {
     const wrapper = mountItem(logEntry())
 
     expect(wrapper.find('.trip-log-item__km').text()).toBe('42.5 km')
-    expect(wrapper.find('.trip-log-item__distance').text()).toContain('24010.0 - 24052.5')
+    expect(wrapper.text()).not.toContain('24010.0')
   })
 
-  it('shows the distance and the readings in miles for a browser set to miles', () => {
+  it('shows the distance in miles for a browser set to miles', () => {
     useUiSettingsStore().units.distance = 'mi'
-    const wrapper = mountItem(logEntry())
 
-    expect(wrapper.find('.trip-log-item__km').text()).toBe('26.4 mi')
-    expect(wrapper.find('.trip-log-item__distance').text()).toContain('14919.1 - 14945.5')
+    expect(mountItem(logEntry()).find('.trip-log-item__km').text()).toBe('26.4 mi')
   })
 
-  it('shows the purpose as a badge, and unclassified for a trip without one', () => {
-    const commute = mountItem(logEntry({ purpose: 'commute' })).find('.trip-log-item__purpose')
-    const none = mountItem(logEntry()).find('.trip-log-item__purpose')
+  it('shows the purpose as an icon, and unclassified for a trip without one', () => {
+    const commute = mountItem(logEntry({ purpose: 'commute' })).find('.trip-log-item__icon')
+    const none = mountItem(logEntry()).find('.trip-log-item__icon')
 
-    expect(commute.text()).toBe('Commute')
+    expect(commute.attributes('aria-label')).toBe('Commute')
     expect(commute.classes()).toContain('badge-info')
-    expect(none.text()).toBe('Unclassified')
+    expect(none.attributes('aria-label')).toBe('Unclassified')
     expect(none.classes()).toContain('badge-warning')
   })
 
-  it('says when a commute was marked automatically, and when the route was edited', () => {
+  it('marks an automatic commute on its icon, and an edited route with an icon', () => {
     const marked = mountItem(
       logEntry({ purpose: 'commute', purposeIsAutomatic: true, isEdited: true }),
     )
     const plain = mountItem(logEntry({ purpose: 'commute' }))
 
-    expect(marked.find('.trip-log-item__auto').text()).toBe('Automatic')
-    expect(marked.find('.trip-log-item__edited').text()).toBe(en.tripLog.edited)
+    expect(marked.find('.trip-log-item__icon .trip-log-item__auto').exists()).toBe(true)
+    expect(marked.find('.trip-log-item__icon').attributes('aria-label')).toBe('Commute (Automatic)')
+    expect(marked.find('.trip-log-item__edited').attributes('aria-label')).toBe(en.tripLog.edited)
     expect(plain.find('.trip-log-item__auto').exists()).toBe(false)
+    expect(plain.find('.trip-log-item__edited').exists()).toBe(false)
   })
 
-  it('shows the notes the trip has', () => {
-    expect(
-      mountItem(logEntry({ notes: 'Client visit' }))
-        .find('.trip-log-item__note')
-        .text(),
-    ).toBe('Client visit')
+  it('marks a trip with notes, which read on hover', () => {
+    const note = mountItem(logEntry({ notes: 'Client visit' })).find('.trip-log-item__note')
+
+    expect(note.attributes('title')).toBe('Client visit')
     expect(mountItem(logEntry()).find('.trip-log-item__note').exists()).toBe(false)
   })
 

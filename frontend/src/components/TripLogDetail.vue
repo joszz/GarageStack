@@ -11,7 +11,12 @@ import type { CommutePlace } from '@/services/commutePlacesApi'
 import type { TripPoint } from '@/services/vehicleApi'
 import { formatDate, formatTime } from '@/utils/format'
 import { formatTripDuration } from '@/utils/tripRows'
-import { loggedDistanceKm, odometerDistanceKm, PURPOSE_ICONS } from '@/utils/tripLog'
+import {
+  loggedDistanceKm,
+  odometerDistanceKm,
+  PURPOSE_BADGE_CLASSES,
+  PURPOSE_ICONS,
+} from '@/utils/tripLog'
 import { COMMUTE_PLACE_ICONS } from '@/utils/commutePlaces'
 import type { ChipOption } from '@/utils/chips'
 import { useUnits } from '@/composables/useUnits'
@@ -75,6 +80,15 @@ const durationLabel = computed(() =>
   formatTripDuration(props.entry.startedAt, props.entry.endedAt, t),
 )
 
+const purposeKey = computed(() => props.entry.purpose ?? 'unclassified')
+
+// The odometer at either end, which the tax log records; the list leaves it to this detail.
+const odometerLabel = computed(() => {
+  const start = units.value.measure('distance', props.entry.odometerStartKm)
+  const finish = units.value.measure('distance', props.entry.odometerEndKm)
+  return start && finish ? `${start.value} - ${finish.value}` : null
+})
+
 const figures = computed(() => [
   {
     key: 'distance',
@@ -85,6 +99,7 @@ const figures = computed(() => [
       odometerDistanceKm(props.entry) !== null
         ? t('tripLog.distanceFromOdometer')
         : t('tripLog.distanceFromGps'),
+    note: odometerLabel.value,
   },
   {
     key: 'duration',
@@ -92,6 +107,7 @@ const figures = computed(() => [
     label: t('tripLog.detail.duration'),
     measure: { value: durationLabel.value, unit: '' },
     title: undefined,
+    note: null,
   },
   {
     key: 'avgSpeed',
@@ -99,6 +115,7 @@ const figures = computed(() => [
     label: t('tripLog.detail.averageSpeed'),
     measure: units.value.measure('speed', props.entry.avgMovingSpeedKmh, { decimals: 0 }),
     title: t('tripLog.detail.averageSpeedHint'),
+    note: null,
   },
   {
     key: 'topSpeed',
@@ -106,6 +123,7 @@ const figures = computed(() => [
     label: t('tripLog.detail.topSpeed'),
     measure: units.value.measure('speed', props.entry.maxSpeedKmh, { decimals: 0 }),
     title: undefined,
+    note: null,
   },
 ])
 
@@ -157,6 +175,22 @@ const notesId = computed(() => `trip-log-notes-${props.entry.id}`)
     <header class="trip-log-detail__header">
       <h2 class="trip-log-detail__title">{{ dateLabel }}</h2>
       <span class="text-sm text-muted">{{ timeLabel }}</span>
+      <div class="trip-log-detail__status">
+        <span class="trip-log-detail__badge" :class="PURPOSE_BADGE_CLASSES[purposeKey]">
+          <font-awesome-icon :icon="PURPOSE_ICONS[purposeKey]" />{{
+            t(`tripLog.purpose.${purposeKey}`)
+          }}
+        </span>
+        <span v-if="entry.purposeIsAutomatic" class="trip-log-detail__mark text-xs text-muted">
+          <font-awesome-icon icon="wand-magic-sparkles" />{{ t('tripLog.places.automaticHint') }}
+        </span>
+        <span
+          v-if="entry.isEdited"
+          class="trip-log-detail__mark trip-log-detail__edited text-xs text-muted"
+        >
+          <font-awesome-icon icon="pen-to-square" />{{ t('tripLog.editedHint') }}
+        </span>
+      </div>
     </header>
 
     <div class="trip-log-detail__ends">
@@ -214,6 +248,13 @@ const notesId = computed(() => `trip-log-notes-${props.entry.id}`)
             {{ figure.measure.unit }}</span
           >
         </dd>
+        <dd
+          v-if="figure.note"
+          class="trip-log-detail__figure-note text-xs text-muted"
+          :title="t('tripLog.odometer')"
+        >
+          <font-awesome-icon icon="gauge" aria-hidden="true" /> {{ figure.note }}
+        </dd>
       </div>
     </dl>
 
@@ -229,31 +270,15 @@ const notesId = computed(() => `trip-log-notes-${props.entry.id}`)
     />
 
     <section class="trip-log-detail__classify" :aria-label="t('tripLog.purposeLabel')">
-      <div class="trip-log-detail__purpose-row">
-        <ChipGroup
-          class="trip-log-detail__purpose"
-          :options="purposeOptions"
-          :model-value="entry.purpose"
-          :group-label="t('tripLog.purposeLabel')"
-          :disabled="saving"
-          deselectable
-          @update:model-value="choosePurpose"
-        />
-        <span
-          v-if="entry.purposeIsAutomatic"
-          class="trip-log-detail__mark text-xs text-muted"
-          :title="t('tripLog.places.automaticHint')"
-        >
-          <font-awesome-icon icon="wand-magic-sparkles" />{{ t('tripLog.places.automatic') }}
-        </span>
-        <span
-          v-if="entry.isEdited"
-          class="trip-log-detail__mark trip-log-detail__edited text-xs text-muted"
-          :title="t('tripLog.editedHint')"
-        >
-          <font-awesome-icon icon="pen-to-square" />{{ t('tripLog.edited') }}
-        </span>
-      </div>
+      <ChipGroup
+        class="trip-log-detail__purpose"
+        :options="purposeOptions"
+        :model-value="entry.purpose"
+        :group-label="t('tripLog.purposeLabel')"
+        :disabled="saving"
+        deselectable
+        @update:model-value="choosePurpose"
+      />
 
       <label :for="notesId" class="text-xs text-muted">{{ t('tripLog.notesLabel') }}</label>
       <input

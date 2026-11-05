@@ -5,7 +5,7 @@ import { LCircleMarker, LMap, LPolyline } from '@vue-leaflet/vue-leaflet'
 import type { TripPoint } from '@/services/vehicleApi'
 import { useLeafletMap } from '@/composables/useLeafletMap'
 import { useBasemap } from '@/composables/useBasemap'
-import { fitToPoints, type LeafletMap } from '@/utils/leaflet'
+import { fitToPoints, type FitPadding, type LeafletMap } from '@/utils/leaflet'
 import { latLngsOf, type LatLng } from '@/utils/geo'
 import { speedSegments, speedToColor } from '@/utils/speedColors'
 
@@ -63,12 +63,22 @@ const framed = computed<LatLng[]>(() =>
   props.points && props.points.length > 0 ? latLngsOf(props.points) : [props.start, props.end],
 )
 
+// Both ends stay in view and out from under what lies over the map: the full map button in the
+// top right corner (0.5rem in, 2.1rem tall) and the attribution along the bottom.
+const ROUTE_PADDING: FitPadding = { topLeft: [28, 56], bottomRight: [28, 32] }
+
 function frame(map: LeafletMap) {
-  fitToPoints(map, framed.value, 24)
+  fitToPoints(map, framed.value, ROUTE_PADDING)
 }
 
+// The panel's width can change after the first frame, as when the speed chart arrives and gives
+// it a scrollbar. Leaflet keeps the centre on a resize, which can push an end off the edge, so
+// the route is framed again instead.
 function onMapReady(map: LeafletMap) {
-  bindMapReady(map, frame)
+  bindMapReady(map, (ready) => {
+    frame(ready)
+    ready.on('resize', () => frame(ready))
+  })
 }
 
 watch(framed, () => {

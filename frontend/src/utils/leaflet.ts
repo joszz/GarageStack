@@ -31,16 +31,27 @@ const STREET_ZOOM = 15
 export const DEFAULT_MAP_CENTER: [number, number] = [52.3676, 4.9041]
 
 /**
+ * Pixels kept free around what a map frames: the same on every side, or [x, y] from the top-left
+ * and bottom-right corners, to stay clear of a button or attribution laid over the map.
+ */
+export type FitPadding =
+  number | { topLeft: readonly [number, number]; bottomRight: readonly [number, number] }
+
+/**
  * Frames `bounds` without animating. A single point has no extent to fit, so the map centres on
  * it at street level instead of zooming in as far as it can go.
- *
- * @param padding Pixels kept free around the bounds on every side.
  */
-export function fitToBounds(map: LeafletMap, bounds: LatLngBounds, padding: number): void {
+export function fitToBounds(map: LeafletMap, bounds: LatLngBounds, padding: FitPadding): void {
   if (bounds.getNorthEast().equals(bounds.getSouthWest())) {
     map.setView(bounds.getCenter(), STREET_ZOOM, { animate: false })
-  } else {
+  } else if (typeof padding === 'number') {
     map.fitBounds(bounds, { padding: [padding, padding], animate: false })
+  } else {
+    map.fitBounds(bounds, {
+      paddingTopLeft: [...padding.topLeft],
+      paddingBottomRight: [...padding.bottomRight],
+      animate: false,
+    })
   }
 }
 
@@ -48,7 +59,7 @@ export function fitToBounds(map: LeafletMap, bounds: LatLngBounds, padding: numb
 export function fitToPoints(
   map: LeafletMap,
   points: readonly [number, number][],
-  padding: number,
+  padding: FitPadding,
 ): void {
   if (points.length === 0) return
   fitToBounds(map, L.latLngBounds([...points]), padding)

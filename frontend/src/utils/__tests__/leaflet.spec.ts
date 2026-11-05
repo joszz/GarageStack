@@ -54,4 +54,23 @@ describe('fitToPoints', () => {
     expect(map.setView).not.toHaveBeenCalled()
     expect(map.fitBounds).not.toHaveBeenCalled()
   })
+
+  it('keeps more room free on the sides it is asked to', () => {
+    const map = fakeMap()
+
+    fitToPoints(
+      map as unknown as LeafletMap,
+      [
+        [52.3, 4.8],
+        [52.4, 4.9],
+      ],
+      { topLeft: [28, 56], bottomRight: [28, 32] },
+    )
+
+    expect(map.fitBounds).toHaveBeenCalledWith(expect.anything(), {
+      paddingTopLeft: [28, 56],
+      paddingBottomRight: [28, 32],
+      animate: false,
+    })
+  })
 })

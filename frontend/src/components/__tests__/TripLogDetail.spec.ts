@@ -105,6 +105,24 @@ describe('TripLogDetail', () => {
     expect(figure(wrapper, 'Top speed')).toBe('104km/h')
   })
 
+  it('shows the odometer at either end under the distance', () => {
+    expect(mountDetail(logEntry()).find('.trip-log-detail__figure-note').text()).toBe(
+      '24010.0 - 24052.5',
+    )
+    expect(
+      mountDetail(logEntry({ odometerEndKm: null }))
+        .find('.trip-log-detail__figure-note')
+        .exists(),
+    ).toBe(false)
+  })
+
+  it('names the purpose under the date', () => {
+    const badge = mountDetail(logEntry({ purpose: 'private' })).find('.trip-log-detail__badge')
+
+    expect(badge.text()).toBe('Private')
+    expect(badge.classes()).toContain('badge-success')
+  })
+
   it('shows a dash for speeds the car did not report', () => {
     const wrapper = mountDetail(logEntry({ maxSpeedKmh: null, avgMovingSpeedKmh: null }))
 
@@ -259,7 +277,7 @@ describe('TripLogDetail', () => {
     const automatic = mountDetail(logEntry({ purpose: 'commute', purposeIsAutomatic: true }))
     const chosen = mountDetail(logEntry({ purpose: 'commute' }))
 
-    expect(automatic.find('.trip-log-detail__mark').text()).toBe('Automatic')
+    expect(automatic.find('.trip-log-detail__mark').text()).toBe(en.tripLog.places.automaticHint)
     expect(chosen.find('.trip-log-detail__mark').exists()).toBe(false)
   })
 
@@ -268,6 +286,6 @@ describe('TripLogDetail', () => {
       mountDetail(logEntry({ isEdited: true }))
         .find('.trip-log-detail__edited')
         .text(),
-    ).toBe(en.tripLog.edited)
+    ).toBe(en.tripLog.editedHint)
   })
 })

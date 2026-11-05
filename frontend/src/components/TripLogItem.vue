@@ -45,9 +45,8 @@ const dateLabel = computed(() =>
   formatDate(props.entry.startedAt, { weekday: 'short', ...DAY_MONTH }),
 )
 
-const timeLabel = computed(
-  () => `${formatTime(props.entry.startedAt)} - ${formatTime(props.entry.endedAt)}`,
-)
+const startTime = computed(() => formatTime(props.entry.startedAt))
+const endTime = computed(() => formatTime(props.entry.endedAt))
 
 const durationLabel = computed(() =>
   formatTripDuration(props.entry.startedAt, props.entry.endedAt, t),
@@ -55,13 +54,13 @@ const durationLabel = computed(() =>
 
 const distanceLabel = computed(() => units.value.format('distance', loggedDistanceKm(props.entry)))
 const fromOdometer = computed(() => odometerDistanceKm(props.entry) !== null)
-const odometerLabel = computed(() => {
-  const start = units.value.measure('distance', props.entry.odometerStartKm)
-  const finish = units.value.measure('distance', props.entry.odometerEndKm)
-  return start && finish ? `${start.value} - ${finish.value}` : null
-})
-
 const purposeKey = computed(() => props.entry.purpose ?? 'unclassified')
+
+// The icon's name, with how the purpose was set when it was set automatically.
+const purposeTitle = computed(() => {
+  const purpose = t(`tripLog.purpose.${purposeKey.value}`)
+  return props.entry.purposeIsAutomatic ? `${purpose} (${t('tripLog.places.automatic')})` : purpose
+})
 </script>
 
 <template>
@@ -79,13 +78,49 @@ const purposeKey = computed(() => props.entry.purpose ?? 'unclassified')
       :aria-pressed="selected"
       @click="emit('select')"
     >
+      <!-- The purpose at a glance; the detail spells it out. -->
+      <span
+        class="trip-log-item__icon"
+        :class="PURPOSE_BADGE_CLASSES[purposeKey]"
+        role="img"
+        :title="purposeTitle"
+        :aria-label="purposeTitle"
+      >
+        <font-awesome-icon :icon="PURPOSE_ICONS[purposeKey]" />
+        <span v-if="entry.purposeIsAutomatic" class="trip-log-item__auto">
+          <font-awesome-icon icon="wand-magic-sparkles" />
+        </span>
+      </span>
+
       <span class="trip-log-item__when">
         <span class="trip-log-item__date">{{ dateLabel }}</span>
         <span class="trip-log-item__time text-xs text-muted">
-          {{ timeLabel }}
-          <span class="trip-log-item__duration">{{ durationLabel }}</span>
+          {{ startTime }}<span class="trip-log-item__end-time"> - {{ endTime }}</span>
         </span>
+        <span class="trip-log-item__duration text-xs">{{ durationLabel }}</span>
+        <font-awesome-icon
+          v-if="entry.isEdited"
+          icon="pen-to-square"
+          class="trip-log-item__mark trip-log-item__edited"
+          :title="t('tripLog.editedHint')"
+          role="img"
+          :aria-label="t('tripLog.edited')"
+        />
+        <font-awesome-icon
+          v-if="entry.notes"
+          icon="message"
+          class="trip-log-item__mark trip-log-item__note"
+          :title="entry.notes"
+          role="img"
+          :aria-label="entry.notes"
+        />
       </span>
+
+      <span
+        class="trip-log-item__km"
+        :title="fromOdometer ? t('tripLog.distanceFromOdometer') : t('tripLog.distanceFromGps')"
+        >{{ distanceLabel }}</span
+      >
 
       <span class="trip-log-item__route">
         <span
@@ -115,46 +150,7 @@ const purposeKey = computed(() => props.entry.purpose ?? 'unclassified')
         </span>
       </span>
 
-      <span class="trip-log-item__distance">
-        <span
-          class="trip-log-item__km"
-          :title="fromOdometer ? t('tripLog.distanceFromOdometer') : t('tripLog.distanceFromGps')"
-          >{{ distanceLabel }}</span
-        >
-        <span v-if="odometerLabel" class="text-xs text-muted" :title="t('tripLog.odometer')">
-          <font-awesome-icon icon="gauge" aria-hidden="true" /> {{ odometerLabel }}
-        </span>
-      </span>
-
-      <span class="trip-log-item__tags">
-        <span class="trip-log-item__purpose" :class="PURPOSE_BADGE_CLASSES[purposeKey]">
-          <font-awesome-icon :icon="PURPOSE_ICONS[purposeKey]" />{{
-            t(`tripLog.purpose.${purposeKey}`)
-          }}
-        </span>
-        <span
-          v-if="entry.purposeIsAutomatic"
-          class="trip-log-item__auto text-xs text-muted"
-          :title="t('tripLog.places.automaticHint')"
-        >
-          <font-awesome-icon icon="wand-magic-sparkles" />{{ t('tripLog.places.automatic') }}
-        </span>
-        <span
-          v-if="entry.isEdited"
-          class="trip-log-item__auto trip-log-item__edited text-xs text-muted"
-          :title="t('tripLog.editedHint')"
-        >
-          <font-awesome-icon icon="pen-to-square" />{{ t('tripLog.edited') }}
-        </span>
-        <span
-          v-if="entry.notes"
-          class="trip-log-item__note text-xs text-muted"
-          :title="entry.notes"
-        >
-          {{ entry.notes }}
-        </span>
-        <font-awesome-icon icon="chevron-right" class="trip-log-item__chevron" aria-hidden="true" />
-      </span>
+      <font-awesome-icon icon="chevron-right" class="trip-log-item__chevron" aria-hidden="true" />
     </button>
   </li>
 </template>

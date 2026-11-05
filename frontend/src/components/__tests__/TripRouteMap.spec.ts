@@ -1,10 +1,11 @@
-import { describe, it, expect, vi } from 'vitest'
-import { defineComponent, h } from 'vue'
-import { mount } from '@vue/test-utils'
+import { describe, it, expect, vi, afterEach } from 'vitest'
+import { defineComponent, h, onMounted } from 'vue'
+import { flushPromises, mount } from '@vue/test-utils'
 import { createI18n } from 'vue-i18n'
 import en from '@/locales/en.json'
 import TripRouteMap from '../TripRouteMap.vue'
 import type { TripPoint } from '@/services/vehicleApi'
+import { fitToPoints } from '@/utils/leaflet'
 
 // The map itself is Leaflet's business; these stand-ins keep its props in reach.
 vi.mock('@vue-leaflet/vue-leaflet', () => {
@@ -18,8 +19,28 @@ vi.mock('@vue-leaflet/vue-leaflet', () => {
         () =>
           h('div', slots.default?.()),
     })
+  // The map hands a fake Leaflet map to @ready once mounted, as vue-leaflet does, so the
+  // framing can be watched; `fire` stands in for Leaflet raising an event on it.
+  const handlers: Record<string, () => void> = {}
+  const fakeMap = {
+    invalidateSize: () => {},
+    on: (event: string, handler: () => void) => {
+      handlers[event] = handler
+    },
+    fire: (event: string) => handlers[event]?.(),
+  }
+  const LMap = defineComponent({
+    name: 'LMap',
+    props: ['zoom', 'center', 'options'],
+    emits: ['ready'],
+    setup(_, { slots, emit }) {
+      onMounted(() => emit('ready', fakeMap))
+      return () => h('div', slots.default?.())
+    },
+  })
   return {
-    LMap: stub('LMap', ['zoom', 'center', 'options']),
+    fakeMap,
+    LMap,
     LPolyline: stub('LPolyline', [
       'latLngs',
       'color',
@@ -33,6 +54,24 @@ vi.mock('@vue-leaflet/vue-leaflet', () => {
   }
 })
 vi.mock('@/composables/useBasemap', () => ({ useBasemap: () => undefined }))
+vi.mock('@/utils/leaflet', () => ({ fitToPoints: vi.fn<typeof fitToPoints>() }))
+
+// jsdom has no layout, so neither ResizeObserver nor a frame to wait for.
+vi.stubGlobal(
+  'ResizeObserver',
+  class {
+    observe() {}
+    disconnect() {}
+  },
+)
+vi.stubGlobal('requestAnimationFrame', (callback: () => void) => {
+  callback()
+  return 0
+})
+
+afterEach(() => {
+  vi.mocked(fitToPoints).mockClear()
+})
 
 const i18n = createI18n({ legacy: false, locale: 'en', messages: { en } })
 
@@ -114,5 +153,25 @@ describe('TripRouteMap', () => {
       query: { trip: 7, at: '2026-09-24T12:32:00.000Z' },
     })
     expect(mountMap({ linkToMap: false }).find('.router-link').exists()).toBe(false)
+  })
+
+  it('frames both ends clear of the map button and the attribution, again on a resize', async () => {
+    const { fakeMap } = (await import('@vue-leaflet/vue-leaflet')) as unknown as {
+      fakeMap: { fire: (event: string) => void }
+    }
+    mountMap({ points: [fix(52.5, 20), fix(52.2, 60)] })
+    await flushPromises()
+
+    expect(fitToPoints).toHaveBeenCalledTimes(1)
+    const [, framed, padding] = vi.mocked(fitToPoints).mock.calls[0]!
+    expect(framed).toEqual([
+      [52.5, 6],
+      [52.2, 6],
+    ])
+    expect(padding).toEqual({ topLeft: [28, 56], bottomRight: [28, 32] })
+
+    fakeMap.fire('resize')
+
+    expect(fitToPoints).toHaveBeenCalledTimes(2)
   })
 })
