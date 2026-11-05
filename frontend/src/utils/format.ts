@@ -8,7 +8,7 @@ import type { HourCycle, Region } from '@/utils/region'
  * names only a language, and Intl needs a region to pick a date order.
  */
 function languageLocale(locale: Locale): string {
-  return locale === 'nl' ? 'nl-NL' : 'en-US'
+  return locale === 'nl' ? 'nl-NL' : locale === 'es' ? 'es-ES' : 'en-US'
 }
 
 // Read through the i18n instance's reactive locale, so a computed or template that formats a
