@@ -88,6 +88,8 @@ export function day(date: string, overrides: Partial<DailyStat> = {}): DailyStat
     tyrePressureRearRight: null,
     batteryVoltage: null,
     counterTotal: null,
+    sinceChargeTotal: null,
+    counterUnbacked: false,
     ...overrides,
   }
 }
@@ -183,7 +185,7 @@ describe('monthlyTotals', () => {
       day('2026-09-03', { counterTotal: 1 }),
     ]
 
-    const months = monthlyTotals(trips, days, new Date(2026, 6, 20), new Date(2026, 8, 3))
+    const months = monthlyTotals(trips, days, new Date(2026, 6, 20), new Date(2026, 8, 3), 'bev')
 
     expect(months.map((m) => [m.key, m.trips, m.distanceKm, m.counterTotal])).toEqual([
       ['2026-07', 0, 0, null],

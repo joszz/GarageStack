@@ -15,7 +15,7 @@ import {
 import { useLevelDetails } from '@/composables/useLevelDetails'
 import { useAsyncRequest } from '@/composables/useAsyncRequest'
 import { browserTimeZone, localDateKey } from '@/utils/dates'
-import { energyUnit } from '@/utils/energy'
+import { dailyCounterTotal, energyUnit } from '@/utils/energy'
 import { bucketDays } from '@/utils/statistics'
 import type { StatsGrouping } from '@/utils/statsPeriod'
 
@@ -65,7 +65,8 @@ const usageChart = computed(() => {
   const chart = charts.value.find((c) => c.id === 'dailyKwhChart')!
   const countsFuel = energyUnit(vehicleType.value) === 'litres'
   const countsThisLevel = countsFuel === (level.value === 'fuel')
-  const hasUsage = days.value?.some((d) => d.counterTotal !== null) ?? false
+  const hasUsage =
+    days.value?.some((d) => dailyCounterTotal(d, vehicleType.value) !== null) ?? false
   return chart.vehicleApplicable && countsThisLevel && hasUsage ? chart : null
 })
 </script>

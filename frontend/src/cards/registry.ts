@@ -1,6 +1,6 @@
 import type { TelemetrySnapshot, TripSummary } from '@/services/vehicleApi'
 import type { VehicleType } from '@/stores/vehicle'
-import { energyUnit, litresPer100Km, whPerKm } from '@/utils/energy'
+import { energyUnit, litresPer100Km, todaysEnergyKwh, whPerKm } from '@/utils/energy'
 import { burnsFuel, mayBurnFuel, mayPlugIn, plugsIn } from '@/utils/vehicleType'
 
 /**
@@ -82,7 +82,11 @@ export const CARD_DEFINITIONS = [
   {
     id: 'efficiencyEnergy',
     icon: 'plug-circle-bolt',
-    hasData: ({ status }) => status.powerUsageOfDay !== null,
+    // A plug-in car's day counter only counts when it fits what left the battery (utils/energy).
+    hasData: ({ status, vehicleType }) =>
+      energyUnit(vehicleType) === 'kwh'
+        ? todaysEnergyKwh(status) !== null
+        : status.powerUsageOfDay !== null,
   },
   {
     id: 'efficiencyCharge',
@@ -178,7 +182,7 @@ export function defaultCards(type: VehicleType = 'unknown'): CardConfig[] {
 export function hasEnergyEfficiency({ status, vehicleType }: CardDataContext): boolean {
   return (
     energyUnit(vehicleType) === 'kwh' &&
-    whPerKm(status.powerUsageOfDay, status.mileageOfTheDay) !== null
+    whPerKm(todaysEnergyKwh(status), status.mileageOfTheDay) !== null
   )
 }
 

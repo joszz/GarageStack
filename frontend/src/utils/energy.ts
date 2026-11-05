@@ -1,4 +1,4 @@
-import type { TelemetrySnapshot, VehicleType } from '@/services/vehicleApi'
+import type { DailyStat, TelemetrySnapshot, VehicleType } from '@/services/vehicleApi'
 
 // The gateway publishes powerUsageOfDay and powerUsageSinceLastCharge on the same topics for
 // every drivetrain, but they do not measure the same thing on every drivetrain. A car with a
@@ -22,6 +22,55 @@ const COUNTER_UNITS_PER_LITRE = 100
  */
 export function energyUnit(vehicleType: VehicleType): EnergyUnit {
   return vehicleType === 'hev' ? 'litres' : 'kwh'
+}
+
+// Not every plug-in car keeps its day counter straight. An MG ZS EV (issue #551) adds 33 to 35 kWh
+// to it at some polls while parked, so a 4 km day read 134 kWh. Its since-last-charge counter
+// comes out of the same charge status message and matches the state of charge drop to the
+// hundredth, so that counter is what the day counter is checked against: the API does it per day
+// over every reading (DailyStatsBuilder), and todaysEnergyKwh below does it for the live reading.
+
+// Today's use is part of what left the battery since its last charge. The factor leaves room for
+// regeneration, which the since-last-charge counter takes back off and a day counter may not, and
+// the margin for rounding. The API's per-day check uses the same two numbers.
+const SINCE_CHARGE_FACTOR = 1.5
+const SINCE_CHARGE_MARGIN_KWH = 1
+
+// A charge this recent may have happened today, after which today's use can exceed what the
+// since-last-charge counter has counted.
+const RECENT_CHARGE_MS = 24 * 60 * 60 * 1000
+
+/**
+ * A day's total from the statistics, in the counter's own unit. On a car that plugs in, the day
+ * counter gives way to the since-last-charge counter on a day the API found it rising past it.
+ */
+export function dailyCounterTotal(
+  day: Pick<DailyStat, 'counterTotal' | 'sinceChargeTotal' | 'counterUnbacked'>,
+  vehicleType: VehicleType,
+): number | null {
+  return energyUnit(vehicleType) === 'kwh' && day.counterUnbacked
+    ? day.sinceChargeTotal
+    : day.counterTotal
+}
+
+/**
+ * Today's energy off the day counter in kWh, or null when it holds more than had left the battery
+ * since its last charge. Without a since-last-charge reading, or after a charge that may have been
+ * today, there is nothing to check it against and the counter stands.
+ */
+export function todaysEnergyKwh(
+  status: Pick<
+    TelemetrySnapshot,
+    'powerUsageOfDay' | 'powerUsageSinceLastCharge' | 'isCharging' | 'chargingLastEndAt'
+  >,
+  now: number = Date.now(),
+): number | null {
+  const today = status.powerUsageOfDay
+  const sinceCharge = status.powerUsageSinceLastCharge
+  if (today === null || sinceCharge === null || status.isCharging) return today
+  const lastEnd = status.chargingLastEndAt ? Date.parse(status.chargingLastEndAt) : NaN
+  if (now - lastEnd < RECENT_CHARGE_MS) return today
+  return today > sinceCharge * SINCE_CHARGE_FACTOR + SINCE_CHARGE_MARGIN_KWH ? null : today
 }
 
 export function whPerKm(energyKwh: number | null, distanceKm: number | null): number | null {
