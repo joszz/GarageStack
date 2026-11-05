@@ -13,15 +13,44 @@
   gap: 0.25rem;
 }
 
-/* ── Totals per purpose ───────────────────────────────────── */
+/* ── Totals ───────────────────────────────────────────────── */
 
-/* Spaced like the status grid it borrows its cards from, and set off from the trips below as the
-   dashboard and statistics set their summaries off from what follows. */
-.trip-log-totals {
+/* Spaced like the status grid it borrows its cards from. On a phone and on a tablet beside the
+   sidebar the content column is narrow, so "All trips" takes a row of its own and the purposes
+   share two columns; from 1024px they share a row of four, and from 1280px all five fit. */
+.trip-log-totals,
+.trip-log-summary {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.trip-log-totals__all {
+  grid-column: 1 / -1;
+}
+
+/* The driving figures are set off from the trips below, as the dashboard and statistics set
+   their summaries off from what follows. */
+.trip-log-summary {
   margin-bottom: 1.5rem;
+}
+
+@media (width >= 1024px) {
+  .trip-log-totals,
+  .trip-log-summary {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (width >= 1280px) {
+  .trip-log-totals {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  .trip-log-totals__all {
+    grid-column: auto;
+  }
 }
 
 /* ── Classify every unclassified trip at once ─────────────── */
@@ -34,9 +63,15 @@
   padding: 0.6rem 0.9rem;
   margin-bottom: 1rem;
   border: 1px solid var(--color-border);
+  border-left: 3px solid var(--color-warning);
   border-radius: var(--radius);
   background: var(--color-surface);
   box-shadow: var(--shadow-card);
+}
+
+.trip-log-bulk__icon {
+  margin-right: 0.4rem;
+  color: var(--color-warning-text);
 }
 
 .trip-log-bulk__actions {
@@ -80,9 +115,45 @@
   color: var(--color-text-muted);
 }
 
-/* ── Trip list ────────────────────────────────────────────── */
+/* ── Trip list and detail ─────────────────────────────────── */
 
+/* One column; from 1280px the detail stands beside the list and stays in view as it scrolls. */
+.trip-log-layout {
+  display: grid;
+  gap: 1rem;
+  align-items: start;
+}
+
+@media (width >= 1280px) {
+  .trip-log-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(22rem, 30rem);
+  }
+
+  /* No taller than the column it scrolls in: the window less the footer, the demo banner when
+     there is one, and a margin above and below. */
+  .trip-log-layout__detail {
+    --detail-chrome: var(--footer-height);
+
+    position: sticky;
+    top: 1rem;
+    max-height: calc(100dvh - var(--detail-chrome) - 2rem);
+    overflow-y: auto;
+    padding: 1.25rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    background: var(--color-surface);
+    box-shadow: var(--shadow-card);
+  }
+
+  .has-demo-banner .trip-log-layout__detail {
+    --detail-chrome: calc(var(--footer-height) + var(--demo-banner-height));
+  }
+}
+
+/* A container, so a row lays itself out by the room it has: the list is narrower beside the
+   detail than on its own, whatever the window. */
 .trip-log-list {
+  container-type: inline-size;
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
@@ -92,19 +163,13 @@
 }
 
 .trip-log-item {
-  display: grid;
-  grid-template-areas:
-    'when route distance'
-    'actions actions actions';
-  grid-template-columns: 9rem minmax(0, 1fr) auto;
-  gap: 0.6rem 1rem;
-  align-items: center;
-  padding: 0.75rem 0.9rem;
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   background: var(--color-surface);
   box-shadow: var(--shadow-card);
-  transition: opacity 0.15s;
+  transition:
+    opacity 0.15s,
+    border-color 0.15s;
 }
 
 .trip-log-item--saving {
@@ -117,15 +182,119 @@
   opacity: 0.6;
 }
 
+/* The trip the detail shows: a bar down its side, as a status card marks its own state. */
+.trip-log-item--selected {
+  border-color: var(--color-primary);
+  box-shadow:
+    inset 3px 0 0 var(--color-primary),
+    var(--shadow-card);
+}
+
+/* The whole row picks the trip, so it is one button laid out as the row: the purpose icon down
+   the left, when on the first line, from and to on the second, and the distance and chevron down
+   the right, centred on both lines. */
+.trip-log-item__select {
+  display: grid;
+  grid-template-areas:
+    'icon when km chevron'
+    'icon route km chevron';
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  gap: 0.2rem 0.75rem;
+  align-items: center;
+  width: 100%;
+  padding: 0.6rem 0.9rem;
+  border: 0;
+  border-radius: inherit;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.trip-log-item__select:hover {
+  background: var(--color-surface-2);
+}
+
+.trip-log-item__select:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: -2px;
+}
+
+/* A badge with only its icon, square, coloured as the purpose's badge and chip. */
+.trip-log-item__icon.badge {
+  grid-area: icon;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border-radius: 6px;
+  font-size: 0.85rem;
+}
+
+/* Set from home and work: a small wand in the icon's corner. */
+.trip-log-item__auto {
+  position: absolute;
+  right: -0.35rem;
+  bottom: -0.35rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1rem;
+  height: 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 50%;
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font-size: 0.55rem;
+}
+
+/* One line whatever the width, so a row stays two lines tall: the time gives way first. */
 .trip-log-item__when {
   grid-area: when;
   display: flex;
-  flex-direction: column;
+  align-items: baseline;
+  gap: 0.45rem;
+  min-width: 0;
+  white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
 
 .trip-log-item__date {
+  flex: none;
   font-weight: 600;
+}
+
+.trip-log-item__time {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.trip-log-item__duration {
+  flex: none;
+  padding: 0 0.35rem;
+  border-radius: 4px;
+  background: var(--color-surface-2);
+  color: var(--color-text-muted);
+}
+
+/* Edited route and notes, as icons only: the detail names them. */
+.trip-log-item__mark {
+  flex: none;
+  align-self: center;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.trip-log-item__km {
+  grid-area: km;
+  font-weight: 600;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 
 .trip-log-item__route {
@@ -134,25 +303,14 @@
   align-items: center;
   gap: 0.5rem;
   min-width: 0;
+  font-size: 0.9rem;
 }
 
-/* A button, so a trip end can be set as home or work, that still reads as the address. */
 .trip-log-item__place {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  padding: 0;
-  border: 0;
-  background: none;
-  color: inherit;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-
-.trip-log-item__place:hover {
-  text-decoration: underline;
 }
 
 .trip-log-item__place-icon {
@@ -160,54 +318,16 @@
   color: var(--color-text-muted);
 }
 
-.trip-log-item__auto {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-}
-
 .trip-log-item__arrow {
   flex: none;
   color: var(--color-text-muted);
 }
 
-.trip-log-item__distance {
-  grid-area: distance;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-}
-
-.trip-log-item__km {
-  font-weight: 600;
-}
-
-.trip-log-item__actions {
-  grid-area: actions;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  align-items: center;
-}
-
-.trip-log-item__notes {
-  flex: 1 1 12rem;
-  min-width: 0;
-  padding: 0.35rem 0.6rem;
-  font-size: 0.85rem;
-  border: 1px solid var(--color-border);
-  border-radius: 6px;
-  background: var(--field-bg);
-  color: var(--color-text);
-}
-
-/* Hide and join, after the notes: rarer than choosing a purpose, so they come last. */
-.trip-log-item__manage {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
+.trip-log-item__chevron {
+  grid-area: chevron;
+  justify-self: end;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
 }
 
 .trip-log-hidden-toggle {
@@ -217,7 +337,20 @@
   align-self: flex-end;
 }
 
-/* ── Purpose chips (ChipGroup, main.css) ─────────────────── */
+/* On a phone the first line has room for the start time only; the detail has both. */
+@container (width < 26rem) {
+  .trip-log-item__end-time {
+    display: none;
+  }
+}
+
+/* ── Purpose colours ──────────────────────────────────────── */
+
+/* Business has no status colour of its own, so its badge takes the primary one, as its chip. */
+.trip-log-badge--business {
+  --badge-color: var(--color-primary);
+  --badge-text: var(--badge-on, var(--color-primary));
+}
 
 /* Two classes, so the colour wins over .toggle-chip whichever stylesheet loads last. */
 .toggle-chip.trip-log-purpose--commute {
@@ -228,94 +361,255 @@
   --chip-color: var(--color-success);
 }
 
-/* ── Tablets and phones ───────────────────────────────────── */
+/* ── Trip detail ──────────────────────────────────────────── */
 
-/* Beside the sidebar, a tablet leaves the content column barely wider than a phone: four totals
-   in a row cut their labels short, and the route squeezed between date and distance cuts most
-   addresses down to a street name. */
-@media (width <= 1023px) {
-  .trip-log-totals {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+.trip-log-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  transition: opacity 0.15s;
+}
+
+.trip-log-detail--saving {
+  opacity: 0.7;
+}
+
+.trip-log-detail__header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.trip-log-detail__title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+/* The purpose, and how it and the route came to be, spelled out where the row has only icons. */
+.trip-log-detail__status {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.3rem;
+  margin-top: 0.5rem;
+}
+
+.trip-log-detail__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.trip-log-detail__figure-note {
+  margin: 0.1rem 0 0;
+  font-variant-numeric: tabular-nums;
+}
+
+/* From over to, set off by a line down their side as in a narrow row. */
+.trip-log-detail__ends {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
+  padding-left: 0.65rem;
+  border-left: 2px solid var(--color-border);
+}
+
+/* A button, so a trip end can be set as home or work, that still reads as the address. */
+.trip-log-detail__place {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.trip-log-detail__place:hover {
+  text-decoration: underline;
+}
+
+.trip-log-detail__place--end {
+  color: var(--color-text-muted);
+}
+
+.trip-log-detail__place-icon {
+  margin-right: 0.35rem;
+  color: var(--color-text-muted);
+}
+
+/* The route, as tall as the dashboard's location preview. */
+.trip-route-map {
+  position: relative;
+  height: 220px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.trip-route-map__canvas {
+  width: 100%;
+  height: 100%;
+}
+
+.trip-route-map__loading {
+  position: absolute;
+  inset: 0;
+  z-index: 450;
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* Over Leaflet's panes (400) and under its controls (800). */
+.trip-route-map__open {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  z-index: 500;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.1rem;
+  min-height: 2.1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--field-bg);
+  color: var(--color-text);
+  box-shadow: var(--shadow-card);
+}
+
+.trip-route-map__open:hover {
+  border-color: var(--color-primary);
+}
+
+.trip-route-map__straight {
+  stroke: var(--color-text-muted);
+}
+
+.trip-route-map__end {
+  stroke: #fff;
+  stroke-width: 2;
+  fill-opacity: 1;
+}
+
+.trip-route-map__end--start {
+  fill: var(--color-success);
+}
+
+.trip-route-map__end--finish {
+  fill: var(--color-danger);
+}
+
+/* Distance, duration and speeds: two by two in the panel, four across in a wide dialog. */
+.trip-log-detail__figures {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.trip-log-detail__figure {
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-surface-2);
+}
+
+.trip-log-detail__figure-label {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.trip-log-detail__figure-value {
+  margin: 0.15rem 0 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Spaced by a margin: the template's line break before it is not kept as a space. */
+.trip-log-detail__figure-unit {
+  margin-left: 0.25em;
+  font-size: 0.78rem;
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+
+@media (width >= 768px) and (width < 1280px) {
+  .trip-log-detail__figures {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
-  .trip-log-item {
-    grid-template-areas:
-      'when distance'
-      'route route'
-      'actions actions';
-    grid-template-columns: minmax(0, 1fr) auto;
+  .trip-route-map {
+    height: 260px;
   }
+}
 
-  /* With the route on a row of its own, from and to go one under the other, set off by a line
-     down their side rather than an arrow that wraps wherever the first address happens to end.
-     A long address wraps rather than ending in an ellipsis. */
-  .trip-log-item__route {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.2rem;
-    padding-left: 0.65rem;
-    border-left: 2px solid var(--color-border);
-  }
+/* The chart sits in the panel, which is its card already. */
+.trip-log-detail__chart.chart-container {
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+}
 
-  /* Through the route, to outweigh Font Awesome's own display on the icon. */
-  .trip-log-item__route .trip-log-item__arrow {
-    display: none;
-  }
+.trip-log-detail__classify {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
 
-  .trip-log-item__place {
-    white-space: normal;
-  }
+/* The three purposes share the row equally. */
+.trip-log-detail__purpose {
+  margin-bottom: 0.4rem;
+}
 
-  /* The controls set off from the trip they describe. */
-  .trip-log-item__actions {
-    padding-top: 0.6rem;
-    border-top: 1px solid var(--color-border);
-  }
+.trip-log-purpose {
+  flex: 1;
+  min-width: 0;
+  padding-inline: 0.4rem;
+}
+
+.trip-log-detail__mark {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.35rem;
+}
+
+.trip-log-detail__notes {
+  width: 100%;
+  min-width: 0;
+  padding: 0.35rem 0.6rem;
+  font-size: 0.85rem;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--field-bg);
+  color: var(--color-text);
+}
+
+.trip-log-detail__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+/* Hiding takes the trip out of everything, so it stands apart from the rest. */
+.trip-log-detail__hide {
+  margin-left: auto;
 }
 
 /* ── Phones ───────────────────────────────────────────────── */
 
 @media (width <= 767px) {
-  .trip-log-totals {
+  .trip-log-totals,
+  .trip-log-summary {
     gap: 0.5rem;
-  }
-
-  /* The three purposes share the row equally, and the notes take the next one. */
-  .trip-log-item__purpose {
-    flex: 1 1 100%;
-  }
-
-  .trip-log-purpose {
-    flex: 1;
-    min-width: 0;
-    padding-inline: 0.4rem;
-  }
-
-  .trip-log-item__auto {
-    flex-basis: 100%;
-    margin-top: -0.2rem;
-  }
-
-  /* The notes share their row with map, hide and join, which keep only their icons (and their
-     names for screen readers and as tooltips): their labels made a row and a half of their own. */
-  .trip-log-item__notes {
-    flex: 1 1 8rem;
-    align-self: stretch;
-  }
-
-  .trip-log-item__manage {
-    flex-wrap: nowrap;
-    gap: 0.35rem;
-  }
-
-  .trip-log-item__manage .btn {
-    justify-content: center;
-    min-width: 2.1rem;
-    min-height: 2.1rem;
-    padding-inline: 0.55rem;
-  }
-
-  .trip-log-item__label {
-    display: none;
   }
 }

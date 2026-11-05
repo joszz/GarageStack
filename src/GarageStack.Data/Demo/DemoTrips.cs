@@ -92,7 +92,8 @@ internal static class DemoTrips
                 Math.Round(start, 1), Math.Round(odometer, 1),
                 StartPlace: null, EndPlace: null,
                 Purposes.TryGetValue(id, out var purpose) ? purpose : null,
-                Notes.GetValueOrDefault(id));
+                Notes.GetValueOrDefault(id),
+                MaxSpeedKmh: trip.MaxSpeedKmh, AvgMovingSpeedKmh: trip.AvgMovingSpeedKmh);
             odometer = start;
         }
 

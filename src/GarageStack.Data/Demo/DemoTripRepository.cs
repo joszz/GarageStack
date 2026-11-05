@@ -142,6 +142,7 @@ public sealed class DemoTripRepository : ITripRepository
             var second = _log.Values.Where(e => e.StartedAt > first.StartedAt).MinBy(e => e.StartedAt);
             if (second is null) return Task.FromResult(new TripMergeResult(TripMergeOutcome.NoNextTrip));
 
+            var joined = TripEdit.Summarize([.. CurrentPoints(first.Id), .. CurrentPoints(second.Id)], id);
             var merged = first with
             {
                 EndedAt = second.EndedAt,
@@ -151,6 +152,8 @@ public sealed class DemoTripRepository : ITripRepository
                 OdometerEndKm = second.OdometerEndKm,
                 EndPlace = second.EndPlace,
                 IsHidden = first.IsHidden && second.IsHidden,
+                MaxSpeedKmh = joined.MaxSpeedKmh,
+                AvgMovingSpeedKmh = joined.AvgMovingSpeedKmh,
             };
             _log[id] = merged;
             _log.Remove(second.Id);
@@ -194,6 +197,10 @@ public sealed class DemoTripRepository : ITripRepository
             return Task.FromResult(new TripEditResult(TripEditOutcome.Ok, Editor(recorded)));
         }
     }
+
+    // A trip's fixes as a visitor left them, or none for a trip the timeline does not hold.
+    private IReadOnlyList<TripPoint> CurrentPoints(long id) =>
+        DemoTrips.All.FirstOrDefault(t => t.Id == id) is { } recorded ? Current(recorded).Points : [];
 
     // A finished demo trip still in the log, as the demo timeline recorded it.
     private TripDto? Recorded(long id) =>
@@ -258,6 +265,8 @@ public sealed class DemoTripRepository : ITripRepository
             StartPlace = TripEdit.AddressMoved(entry.StartLatitude, entry.StartLongitude, points[0]) ? null : entry.StartPlace,
             EndPlace = TripEdit.AddressMoved(entry.EndLatitude, entry.EndLongitude, points[^1]) ? null : entry.EndPlace,
             IsEdited = edited,
+            MaxSpeedKmh = trip.MaxSpeedKmh,
+            AvgMovingSpeedKmh = trip.AvgMovingSpeedKmh,
         };
     }
 

@@ -1,13 +1,16 @@
 import { describe, it, expect } from 'vitest'
 import { deventer, logEntry, place } from '@/services/__tests__/tripLogFixtures'
 import {
+  distanceShare,
   endLabel,
   loggedDistanceKm,
   missingPlaces,
   odometerDistanceKm,
   periodKey,
   periodRange,
+  periodSummary,
   purposeTotals,
+  tripDurationMs,
 } from '../tripLog'
 
 describe('periodRange', () => {
@@ -87,5 +90,50 @@ describe('missingPlaces', () => {
     expect(missingPlaces(logEntry())).toBe(true)
     expect(missingPlaces(logEntry({ startPlace: deventer }))).toBe(true)
     expect(missingPlaces(logEntry({ startPlace: deventer, endPlace: deventer }))).toBe(false)
+  })
+})
+
+describe('tripDurationMs', () => {
+  it('is the time from leaving to arriving, and never negative', () => {
+    expect(tripDurationMs(logEntry())).toBe(34 * 60_000)
+    expect(
+      tripDurationMs(
+        logEntry({ startedAt: '2026-09-24T13:00:00Z', endedAt: '2026-09-24T12:00:00Z' }),
+      ),
+    ).toBe(0)
+  })
+})
+
+describe('periodSummary', () => {
+  it('adds up distance and driving time, and reads the averages and longest trip off them', () => {
+    const summary = periodSummary([
+      logEntry(),
+      logEntry({ id: 2, odometerStartKm: null, distanceKm: 17.5 }),
+    ])
+
+    expect(summary.trips).toBe(2)
+    expect(summary.km).toBeCloseTo(60)
+    expect(summary.drivingMs).toBe(68 * 60_000)
+    expect(summary.averageTripKm).toBeCloseTo(30)
+    expect(summary.longestTripKm).toBeCloseTo(42.5)
+    expect(summary.averageSpeedKmh).toBeCloseTo(60 / (68 / 60))
+  })
+
+  it('has no averages without trips', () => {
+    expect(periodSummary([])).toEqual({
+      trips: 0,
+      km: 0,
+      drivingMs: 0,
+      averageTripKm: null,
+      longestTripKm: null,
+      averageSpeedKmh: null,
+    })
+  })
+})
+
+describe('distanceShare', () => {
+  it('is the part of the distance, and 0 when nothing was driven', () => {
+    expect(distanceShare({ trips: 1, km: 25 }, 100)).toBe(0.25)
+    expect(distanceShare({ trips: 0, km: 0 }, 0)).toBe(0)
   })
 })

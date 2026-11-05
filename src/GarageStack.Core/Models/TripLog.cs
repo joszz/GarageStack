@@ -27,7 +27,10 @@ public sealed record TripLogEntry(
     // Left out of everything but the trip log's list of hidden trips (Trip.IsHidden).
     bool IsHidden = false,
     // Its route was edited by hand (Trip.EditedAt).
-    bool IsEdited = false);
+    bool IsEdited = false,
+    // The highest speed a fix reported, and the mean while moving; null when no fix carried one.
+    double? MaxSpeedKmh = null,
+    double? AvgMovingSpeedKmh = null);
 
 /// <summary>How joining a trip with the next one went (<see cref="Interfaces.ITripRepository.MergeWithNextAsync"/>).</summary>
 public enum TripMergeOutcome

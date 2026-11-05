@@ -709,7 +709,29 @@
     "wholeYear": "Whole year",
     "totalsLabel": "Distance per purpose",
     "totalLabel": "{purpose} ({n})",
-    "classifyAll": "{n} trip has no purpose yet. Mark it as: | {n} trips have no purpose yet. Mark them all as:",
+    "classifyAll": "{n} trip ({distance}) has no purpose yet. Mark it as: | {n} trips ({distance}) have no purpose yet. Mark them all as:",
+    "allTrips": "All trips ({n})",
+    "shareOfDistance": "{percent}% of the distance",
+    "summary": {
+      "label": "Driving in this period",
+      "drivingTime": "Driving time",
+      "averageTrip": "Average trip",
+      "longestTrip": "Longest trip",
+      "averageSpeed": "Average speed",
+      "averageSpeedHint": "The distance over the time spent driving it, stops in traffic included"
+    },
+    "detail": {
+      "title": "Trip details",
+      "routePreview": "Route of the trip",
+      "routeUnavailable": "The route could not be loaded, so the map joins the ends with a straight line.",
+      "distance": "Distance",
+      "duration": "Duration",
+      "averageSpeed": "Avg speed",
+      "averageSpeedHint": "The mean of the speeds the car reported while moving",
+      "topSpeed": "Top speed",
+      "speed": "Speed",
+      "speedChart": "Speed during the trip"
+    },
     "purposeLabel": "Purpose",
     "purpose": {
       "business": "Business",

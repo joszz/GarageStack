@@ -562,6 +562,50 @@ body,
   overflow-wrap: break-word;
 }
 
+/* A part of a whole under the value, in the card's own accent: primary unless a variant sets one. */
+.status-card__share {
+  --share-color: var(--color-primary);
+
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  margin-top: 0.15rem;
+  border: 0;
+  border-radius: 2px;
+  background: var(--color-surface-2);
+  overflow: hidden;
+}
+
+.status-card__share::-webkit-progress-bar {
+  background: var(--color-surface-2);
+}
+
+.status-card__share::-webkit-progress-value {
+  background: var(--share-color);
+  border-radius: 2px;
+}
+
+.status-card__share::-moz-progress-bar {
+  background: var(--share-color);
+  border-radius: 2px;
+}
+
+.status-card--success .status-card__share {
+  --share-color: var(--color-success);
+}
+
+.status-card--warning .status-card__share {
+  --share-color: var(--color-warning);
+}
+
+.status-card--info .status-card__share {
+  --share-color: var(--color-info);
+}
+
+.status-card--danger .status-card__share {
+  --share-color: var(--color-danger);
+}
+
 .status-card__unit {
   font-size: 0.78rem;
   color: var(--color-text-muted);

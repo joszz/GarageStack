@@ -1,20 +1,19 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, toRef } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { Place } from '@/services/mapApi'
-import {
-  TRIP_NOTES_MAX_LENGTH,
-  TRIP_PURPOSES,
-  type TripLogEntry,
-  type TripPurpose,
-} from '@/services/tripLogApi'
-import { DAY_MONTH, formatDate, formatTime } from '@/utils/format'
-import { endLabel, loggedDistanceKm, odometerDistanceKm, PURPOSE_ICONS } from '@/utils/tripLog'
-import { COMMUTE_PLACE_ICONS, commutePlaceAt } from '@/utils/commutePlaces'
+import type { TripLogEntry } from '@/services/tripLogApi'
 import type { CommutePlace } from '@/services/commutePlacesApi'
+import { DAY_MONTH, formatDate, formatTime } from '@/utils/format'
+import { formatTripDuration } from '@/utils/tripRows'
+import {
+  loggedDistanceKm,
+  odometerDistanceKm,
+  PURPOSE_BADGE_CLASSES,
+  PURPOSE_ICONS,
+} from '@/utils/tripLog'
+import { COMMUTE_PLACE_ICONS } from '@/utils/commutePlaces'
 import { useUnits } from '@/composables/useUnits'
-import ChipGroup from './ChipGroup.vue'
-import type { ChipOption } from '@/utils/chips'
+import { useTripEnds } from '@/composables/useTripEnds'
 
 const props = defineProps<{
   entry: TripLogEntry
@@ -25,244 +24,133 @@ const props = defineProps<{
   saving: boolean
   /** Home and work, to mark the ends that are at one of them. */
   commutePlaces: readonly CommutePlace[]
-  /** A saved trip follows this one, so it can be joined with it. */
-  canJoinNext: boolean
+  /** The trip the detail shows. */
+  selected: boolean
 }>()
 
-const emit = defineEmits<{
-  (e: 'save', purpose: TripPurpose | null, notes: string | null): void
-  /** One of the trip's ends, to set as home or work. */
-  (e: 'pickPlace', latitude: number, longitude: number): void
-  (e: 'setHidden', hidden: boolean): void
-  /** Asks to join with the trip after it; the page confirms, since it cannot be undone. */
-  (e: 'joinNext'): void
-}>()
+/** Asks for this trip's detail: beside the list, or in a dialog on a narrower screen. */
+const emit = defineEmits<{ (e: 'select'): void }>()
 
 const { t } = useI18n()
 const units = useUnits()
+
+const { from, to } = useTripEnds({
+  entry: toRef(props, 'entry'),
+  placesShown: toRef(props, 'placesShown'),
+  placesResolving: toRef(props, 'placesResolving'),
+  commutePlaces: toRef(props, 'commutePlaces'),
+})
 
 const dateLabel = computed(() =>
   formatDate(props.entry.startedAt, { weekday: 'short', ...DAY_MONTH }),
 )
 
-const timeLabel = computed(
-  () => `${formatTime(props.entry.startedAt)} - ${formatTime(props.entry.endedAt)}`,
-)
+const startTime = computed(() => formatTime(props.entry.startedAt))
+const endTime = computed(() => formatTime(props.entry.endedAt))
 
-// A placeholder while the address is on its way, then the address, or the coordinates when
-// there is none to be had; and the home or work place it is at, if any.
-function tripEnd(place: Place | null, lat: number, lng: number) {
-  const pending = props.placesShown && place === null && props.placesResolving
-  return {
-    pending,
-    label: pending ? null : endLabel(props.placesShown ? place : null, lat, lng),
-    commutePlace: commutePlaceAt(props.commutePlaces, lat, lng),
-    lat,
-    lng,
-  }
-}
-
-const from = computed(() =>
-  tripEnd(props.entry.startPlace, props.entry.startLatitude, props.entry.startLongitude),
-)
-const to = computed(() =>
-  tripEnd(props.entry.endPlace, props.entry.endLatitude, props.entry.endLongitude),
+const durationLabel = computed(() =>
+  formatTripDuration(props.entry.startedAt, props.entry.endedAt, t),
 )
 
 const distanceLabel = computed(() => units.value.format('distance', loggedDistanceKm(props.entry)))
 const fromOdometer = computed(() => odometerDistanceKm(props.entry) !== null)
-const odometerLabel = computed(() => {
-  const start = units.value.measure('distance', props.entry.odometerStartKm)
-  const finish = units.value.measure('distance', props.entry.odometerEndKm)
-  return start && finish ? `${start.value} - ${finish.value}` : null
+const purposeKey = computed(() => props.entry.purpose ?? 'unclassified')
+
+// The icon's name, with how the purpose was set when it was set automatically.
+const purposeTitle = computed(() => {
+  const purpose = t(`tripLog.purpose.${purposeKey.value}`)
+  return props.entry.purposeIsAutomatic ? `${purpose} (${t('tripLog.places.automatic')})` : purpose
 })
-
-// The field is edited locally and sent when it loses focus, rather than on every keystroke.
-const notesDraft = ref(props.entry.notes ?? '')
-watch(
-  () => props.entry.notes,
-  (notes) => {
-    notesDraft.value = notes ?? ''
-  },
-)
-
-function normalizedNotes(): string | null {
-  const trimmed = notesDraft.value.trim()
-  return trimmed === '' ? null : trimmed
-}
-
-// Each purpose's modifier class sets its own chip colour (tripLog.css).
-const purposeOptions = computed((): ChipOption<TripPurpose>[] =>
-  TRIP_PURPOSES.map((purpose) => ({
-    value: purpose,
-    label: t(`tripLog.purpose.${purpose}`),
-    icon: PURPOSE_ICONS[purpose],
-    class: `trip-log-purpose trip-log-purpose--${purpose}`,
-  })),
-)
-
-// Choosing the purpose a trip already has clears it again, back to unclassified.
-function choosePurpose(purpose: TripPurpose | null) {
-  emit('save', purpose, props.entry.notes)
-}
-
-function saveNotes() {
-  const notes = normalizedNotes()
-  if (notes === props.entry.notes) return
-  emit('save', props.entry.purpose, notes)
-}
 </script>
 
 <template>
   <li
     class="trip-log-item"
-    :class="{ 'trip-log-item--saving': saving, 'trip-log-item--hidden': entry.isHidden }"
+    :class="{
+      'trip-log-item--saving': saving,
+      'trip-log-item--hidden': entry.isHidden,
+      'trip-log-item--selected': selected,
+    }"
   >
-    <div class="trip-log-item__when">
-      <span class="trip-log-item__date">{{ dateLabel }}</span>
-      <span class="text-xs text-muted">{{ timeLabel }}</span>
-    </div>
-
-    <div class="trip-log-item__route">
+    <button
+      type="button"
+      class="trip-log-item__select"
+      :aria-pressed="selected"
+      @click="emit('select')"
+    >
+      <!-- The purpose at a glance; the detail spells it out. -->
       <span
-        v-if="from.pending"
-        class="skeleton skeleton--text skeleton--text-md"
-        :aria-label="t('tripLog.resolvingPlaces')"
-      />
-      <button
-        v-else
-        type="button"
-        class="trip-log-item__place"
-        :title="from.label ?? undefined"
-        :aria-label="t('tripLog.places.useEnd', { place: from.label })"
-        @click="emit('pickPlace', from.lat, from.lng)"
+        class="trip-log-item__icon"
+        :class="PURPOSE_BADGE_CLASSES[purposeKey]"
+        role="img"
+        :title="purposeTitle"
+        :aria-label="purposeTitle"
       >
-        <font-awesome-icon
-          v-if="from.commutePlace"
-          :icon="COMMUTE_PLACE_ICONS[from.commutePlace.kind]"
-          class="trip-log-item__place-icon"
-        />{{ from.label }}
-      </button>
-      <font-awesome-icon icon="arrow-right" class="trip-log-item__arrow" aria-hidden="true" />
-      <span
-        v-if="to.pending"
-        class="skeleton skeleton--text skeleton--text-md"
-        :aria-label="t('tripLog.resolvingPlaces')"
-      />
-      <button
-        v-else
-        type="button"
-        class="trip-log-item__place"
-        :title="to.label ?? undefined"
-        :aria-label="t('tripLog.places.useEnd', { place: to.label })"
-        @click="emit('pickPlace', to.lat, to.lng)"
-      >
-        <font-awesome-icon
-          v-if="to.commutePlace"
-          :icon="COMMUTE_PLACE_ICONS[to.commutePlace.kind]"
-          class="trip-log-item__place-icon"
-        />{{ to.label }}
-      </button>
-    </div>
+        <font-awesome-icon :icon="PURPOSE_ICONS[purposeKey]" />
+        <span v-if="entry.purposeIsAutomatic" class="trip-log-item__auto">
+          <font-awesome-icon icon="wand-magic-sparkles" />
+        </span>
+      </span>
 
-    <div class="trip-log-item__distance">
+      <span class="trip-log-item__when">
+        <span class="trip-log-item__date">{{ dateLabel }}</span>
+        <span class="trip-log-item__time text-xs text-muted">
+          {{ startTime }}<span class="trip-log-item__end-time"> - {{ endTime }}</span>
+        </span>
+        <span class="trip-log-item__duration text-xs">{{ durationLabel }}</span>
+        <font-awesome-icon
+          v-if="entry.isEdited"
+          icon="pen-to-square"
+          class="trip-log-item__mark trip-log-item__edited"
+          :title="t('tripLog.editedHint')"
+          role="img"
+          :aria-label="t('tripLog.edited')"
+        />
+        <font-awesome-icon
+          v-if="entry.notes"
+          icon="message"
+          class="trip-log-item__mark trip-log-item__note"
+          :title="entry.notes"
+          role="img"
+          :aria-label="entry.notes"
+        />
+      </span>
+
       <span
         class="trip-log-item__km"
         :title="fromOdometer ? t('tripLog.distanceFromOdometer') : t('tripLog.distanceFromGps')"
         >{{ distanceLabel }}</span
       >
-      <span v-if="odometerLabel" class="text-xs text-muted" :title="t('tripLog.odometer')">
-        <font-awesome-icon icon="gauge" aria-hidden="true" /> {{ odometerLabel }}
-      </span>
-    </div>
 
-    <div class="trip-log-item__actions">
-      <ChipGroup
-        class="trip-log-item__purpose"
-        :options="purposeOptions"
-        :model-value="entry.purpose"
-        :group-label="t('tripLog.purposeLabel')"
-        :disabled="saving"
-        deselectable
-        @update:model-value="choosePurpose"
-      />
-      <span
-        v-if="entry.purposeIsAutomatic"
-        class="trip-log-item__auto text-xs text-muted"
-        :title="t('tripLog.places.automaticHint')"
-      >
-        <font-awesome-icon icon="wand-magic-sparkles" />{{ t('tripLog.places.automatic') }}
-      </span>
-      <span
-        v-if="entry.isEdited"
-        class="trip-log-item__auto trip-log-item__edited text-xs text-muted"
-        :title="t('tripLog.editedHint')"
-      >
-        <font-awesome-icon icon="pen-to-square" />{{ t('tripLog.edited') }}
+      <span class="trip-log-item__route">
+        <span
+          v-if="from.pending"
+          class="skeleton skeleton--text skeleton--text-md"
+          :aria-label="t('tripLog.resolvingPlaces')"
+        />
+        <span v-else class="trip-log-item__place" :title="from.label ?? undefined">
+          <font-awesome-icon
+            v-if="from.commutePlace"
+            :icon="COMMUTE_PLACE_ICONS[from.commutePlace.kind]"
+            class="trip-log-item__place-icon"
+          />{{ from.label }}
+        </span>
+        <font-awesome-icon icon="arrow-right" class="trip-log-item__arrow" aria-hidden="true" />
+        <span
+          v-if="to.pending"
+          class="skeleton skeleton--text skeleton--text-md"
+          :aria-label="t('tripLog.resolvingPlaces')"
+        />
+        <span v-else class="trip-log-item__place" :title="to.label ?? undefined">
+          <font-awesome-icon
+            v-if="to.commutePlace"
+            :icon="COMMUTE_PLACE_ICONS[to.commutePlace.kind]"
+            class="trip-log-item__place-icon"
+          />{{ to.label }}
+        </span>
       </span>
 
-      <input
-        v-model="notesDraft"
-        type="text"
-        class="trip-log-item__notes"
-        :maxlength="TRIP_NOTES_MAX_LENGTH"
-        :placeholder="t('tripLog.notesPlaceholder')"
-        :aria-label="t('tripLog.notesLabel')"
-        :disabled="saving"
-        @change="saveNotes"
-        @keydown.enter="($event.target as HTMLInputElement).blur()"
-      />
-
-      <div class="trip-log-item__manage">
-        <!-- A hidden trip is left off the map, so there is nothing there to show it on. -->
-        <RouterLink
-          v-if="!entry.isHidden"
-          class="btn btn-outline-secondary btn-sm"
-          :to="{ name: 'map', query: { trip: entry.id, at: entry.startedAt } }"
-          :aria-label="t('tripLog.showOnMap')"
-          :title="t('tripLog.showOnMap')"
-        >
-          <font-awesome-icon icon="map" /><span class="trip-log-item__label">{{
-            t('tripLog.showOnMap')
-          }}</span>
-        </RouterLink>
-        <RouterLink
-          class="btn btn-outline-secondary btn-sm trip-log-item__edit"
-          :to="{ name: 'tripEdit', params: { id: entry.id } }"
-          :aria-label="t('tripLog.editRoute')"
-          :title="t('tripLog.editRoute')"
-        >
-          <font-awesome-icon icon="pen-to-square" /><span class="trip-log-item__label">{{
-            t('tripLog.editRoute')
-          }}</span>
-        </RouterLink>
-        <button
-          type="button"
-          class="btn btn-outline-secondary btn-sm"
-          :disabled="saving"
-          :title="entry.isHidden ? t('tripLog.show') : t('tripLog.hideHint')"
-          :aria-label="entry.isHidden ? t('tripLog.show') : t('tripLog.hide')"
-          @click="emit('setHidden', !entry.isHidden)"
-        >
-          <font-awesome-icon :icon="entry.isHidden ? 'eye' : 'eye-slash'" /><span
-            class="trip-log-item__label"
-            >{{ entry.isHidden ? t('tripLog.show') : t('tripLog.hide') }}</span
-          >
-        </button>
-        <button
-          v-if="canJoinNext"
-          type="button"
-          class="btn btn-outline-secondary btn-sm"
-          :disabled="saving"
-          :title="t('tripLog.joinNextHint')"
-          :aria-label="t('tripLog.joinNext')"
-          @click="emit('joinNext')"
-        >
-          <font-awesome-icon icon="link" /><span class="trip-log-item__label">{{
-            t('tripLog.joinNext')
-          }}</span>
-        </button>
-      </div>
-    </div>
+      <font-awesome-icon icon="chevron-right" class="trip-log-item__chevron" aria-hidden="true" />
+    </button>
   </li>
 </template>

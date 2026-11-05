@@ -7,6 +7,10 @@ const props = defineProps<{
   subtitle?: string
   /** A short line under the value, shown on the card itself (subtitle is only a tooltip). */
   note?: string
+  /** A part of a whole, from 0 to 1, drawn as a thin bar under the value. */
+  share?: number
+  /** Names the bar for screen readers; the note usually says the same. */
+  shareLabel?: string
   variant?: 'success' | 'warning' | 'danger' | 'info'
   clickable?: boolean
 }>()
@@ -44,6 +48,13 @@ function valueTitle(): string {
         }}<span v-if="unit && value !== null" class="status-card__unit"> {{ unit }}</span>
       </span>
       <span v-if="note" class="status-card__note" :title="note">{{ note }}</span>
+      <progress
+        v-if="share !== undefined"
+        class="status-card__share"
+        max="1"
+        :value="share"
+        :aria-label="shareLabel"
+      />
     </div>
     <font-awesome-icon
       v-if="clickable"

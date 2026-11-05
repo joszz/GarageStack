@@ -62,7 +62,7 @@ export interface SpeedSegment {
  * fixes it spans, so the colours sit on the route that was driven rather than on the line cutting
  * across it.
  */
-export function speedSegments(trip: Trip, match: TripMatch | null): SpeedSegment[] {
+export function speedSegments(trip: Pick<Trip, 'points'>, match: TripMatch | null): SpeedSegment[] {
   const segments: SpeedSegment[] = []
 
   if (!match) {

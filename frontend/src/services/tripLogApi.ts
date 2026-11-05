@@ -39,6 +39,9 @@ export interface TripLogEntry {
   isHidden: boolean
   /** Its route was edited by hand. */
   isEdited: boolean
+  /** The highest speed a fix reported, and the mean while moving; null when no fix carried one. */
+  maxSpeedKmh: number | null
+  avgMovingSpeedKmh: number | null
 }
 
 /**

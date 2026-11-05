@@ -10,6 +10,7 @@ import { vehicleApi, type Vehicle } from '@/services/vehicleApi'
 import { downloadCsv } from '@/utils/download'
 import { useUiSettingsStore } from '@/stores/settingsUi'
 import { logEntry } from '@/services/__tests__/tripLogFixtures'
+import { WIDE_MEDIA_QUERY } from '@/utils/viewport'
 
 vi.mock('@/services/tripLogApi', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/services/tripLogApi')>()
@@ -22,6 +23,7 @@ vi.mock('@/services/tripLogApi', async (importOriginal) => {
       setHidden: vi.fn<typeof actual.tripLogApi.setHidden>(),
       mergeWithNext: vi.fn<typeof actual.tripLogApi.mergeWithNext>(),
       resolvePlaces: vi.fn<typeof actual.tripLogApi.resolvePlaces>(),
+      editor: vi.fn<typeof actual.tripLogApi.editor>(),
     },
   }
 })
@@ -61,7 +63,14 @@ async function mountView() {
   const wrapper = mount(TripLogView, {
     global: {
       plugins: [i18n, pinia],
-      stubs: { FontAwesomeIcon: true, CommutePlacesModal: true, teleport: true },
+      stubs: {
+        FontAwesomeIcon: true,
+        CommutePlacesModal: true,
+        TripRouteMap: true,
+        StatsChartCard: true,
+        RouterLink: true,
+        teleport: true,
+      },
     },
   })
   await flushPromises()
@@ -74,6 +83,22 @@ function listedIds(wrapper: Awaited<ReturnType<typeof mountView>>) {
 
 function button(wrapper: Awaited<ReturnType<typeof mountView>>, text: string) {
   return wrapper.findAll('button').filter((b) => b.text() === text)
+}
+
+// Picks the trip at this place in the list, which opens its detail.
+async function pickTrip(wrapper: Awaited<ReturnType<typeof mountView>>, index: number) {
+  await wrapper.findAll('.trip-log-item__select')[index]!.trigger('click')
+  await flushPromises()
+}
+
+// A window wide enough for the detail beside the list.
+function wideWindow() {
+  vi.stubGlobal('matchMedia', (query: string) => ({
+    matches: query === WIDE_MEDIA_QUERY,
+    media: query,
+    addEventListener: () => {},
+    removeEventListener: () => {},
+  }))
 }
 
 // Handed to the mount and to every store the test reads, rather than left to the active pinia,
@@ -90,6 +115,18 @@ describe('TripLogView', () => {
     vi.mocked(vehicleApi.list).mockResolvedValue([car])
     vi.mocked(commutePlacesApi.list).mockResolvedValue([])
     vi.mocked(tripLogApi.log).mockResolvedValue(trips)
+    vi.mocked(tripLogApi.editor).mockResolvedValue({
+      id: 1,
+      points: [],
+      originalPoints: null,
+      editedAt: null,
+      previousStop: null,
+      nextStop: null,
+      suggestion: false,
+      notBefore: null,
+      notAfter: null,
+      maxPoints: 2000,
+    })
     vi.mocked(tripLogApi.resolvePlaces).mockResolvedValue({
       trips: [],
       available: true,
@@ -99,6 +136,7 @@ describe('TripLogView', () => {
 
   afterEach(() => {
     vi.useRealTimers()
+    vi.unstubAllGlobals()
   })
 
   it("loads this month's trips for the car, newest first, without the hidden one", async () => {
@@ -136,9 +174,10 @@ describe('TripLogView', () => {
   it('joins a trip with the next one once confirmed, and offers none for the newest', async () => {
     vi.mocked(tripLogApi.mergeWithNext).mockResolvedValue(logEntry({ id: 1, distanceKm: 80 }))
     const wrapper = await mountView()
-    const items = wrapper.findAll('.trip-log-item')
 
-    expect(items[0]!.text()).not.toContain('Join with next trip')
+    await pickTrip(wrapper, 0)
+    expect(button(wrapper, 'Join with next trip')).toHaveLength(0)
+    await pickTrip(wrapper, 1)
     await button(wrapper, 'Join with next trip')[0]!.trigger('click')
     expect(tripLogApi.mergeWithNext).not.toHaveBeenCalled()
 
@@ -152,6 +191,7 @@ describe('TripLogView', () => {
   it('leaves the trips as they are when the join is cancelled', async () => {
     const wrapper = await mountView()
 
+    await pickTrip(wrapper, 1)
     await button(wrapper, 'Join with next trip')[0]!.trigger('click')
     await button(wrapper, 'Cancel')[0]!.trigger('click')
 
@@ -163,6 +203,7 @@ describe('TripLogView', () => {
     vi.mocked(tripLogApi.setHidden).mockResolvedValue({ ...trips[2]!, isHidden: true })
     const wrapper = await mountView()
 
+    await pickTrip(wrapper, 0)
     await button(wrapper, 'Hide')[0]!.trigger('click')
     await flushPromises()
 
@@ -194,5 +235,65 @@ describe('TripLogView', () => {
 
     expect(tripLogApi.resolvePlaces).not.toHaveBeenCalled()
     expect(wrapper.text()).toContain(en.tripLog.placesOff)
+  })
+
+  it('totals all trips and each purpose with its share of the distance', async () => {
+    const wrapper = await mountView()
+    const totals = wrapper.find('.trip-log-totals').text()
+
+    expect(totals).toContain('All trips (2)')
+    expect(totals).toContain('85.0km')
+    expect(totals).toContain('Business (1)')
+    expect(totals).toContain('50% of the distance')
+    expect(wrapper.findAll('.trip-log-totals progress')).toHaveLength(4)
+  })
+
+  it('sums up the driving: time, average and longest trip, average speed', async () => {
+    vi.mocked(tripLogApi.log).mockResolvedValue([
+      logEntry({ id: 1, startedAt: '2026-10-01T07:00:00Z', endedAt: '2026-10-01T07:34:00Z' }),
+      logEntry({ id: 3, startedAt: '2026-10-03T07:00:00Z', endedAt: '2026-10-03T07:34:00Z' }),
+    ])
+    const wrapper = await mountView()
+    const summary = wrapper.find('.trip-log-summary').text()
+
+    // Two trips of 34 minutes and 42.5 km each.
+    expect(summary).toContain('1h 8m')
+    expect(summary).toContain('42.5km')
+    expect(summary).toContain('75km/h')
+  })
+
+  it('says how far the unclassified trips went', async () => {
+    vi.mocked(tripLogApi.log).mockResolvedValue([logEntry({ id: 1 }), logEntry({ id: 2 })])
+    const wrapper = await mountView()
+
+    expect(wrapper.find('.trip-log-bulk').text()).toContain(
+      '2 trips (85.0 km) have no purpose yet. Mark them all as:',
+    )
+  })
+
+  it('shows no detail on a narrow screen until a trip is picked, then in a dialog', async () => {
+    const wrapper = await mountView()
+
+    expect(wrapper.find('.trip-log-detail').exists()).toBe(false)
+    await pickTrip(wrapper, 1)
+
+    expect(wrapper.find('.detail-modal .trip-log-detail').exists()).toBe(true)
+    expect(tripLogApi.editor).toHaveBeenCalledWith(car.vin, 1)
+    expect(wrapper.findAll('.trip-log-item')[1]!.classes()).toContain('trip-log-item--selected')
+  })
+
+  it('shows the newest trip beside the list on a wide screen, until another is picked', async () => {
+    wideWindow()
+    const wrapper = await mountView()
+    const detail = () => wrapper.find('.trip-log-layout__detail .trip-log-detail')
+
+    expect(detail().exists()).toBe(true)
+    expect(wrapper.find('.detail-modal .trip-log-detail').exists()).toBe(false)
+    expect(tripLogApi.editor).toHaveBeenLastCalledWith(car.vin, 3)
+
+    await pickTrip(wrapper, 1)
+
+    expect(tripLogApi.editor).toHaveBeenLastCalledWith(car.vin, 1)
+    expect(wrapper.findAll('.trip-log-item')[1]!.classes()).toContain('trip-log-item--selected')
   })
 })
