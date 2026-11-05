@@ -191,13 +191,13 @@
 }
 
 /* The whole row picks the trip, so it is one button laid out as the row: the purpose icon down
-   the left, when and how far on the first line, from and to on the second, and the chevron down
-   the right. */
+   the left, when on the first line, from and to on the second, and the distance and chevron down
+   the right, centred on both lines. */
 .trip-log-item__select {
   display: grid;
   grid-template-areas:
     'icon when km chevron'
-    'icon route route chevron';
+    'icon route km chevron';
   grid-template-columns: auto minmax(0, 1fr) auto auto;
   gap: 0.2rem 0.75rem;
   align-items: center;
