@@ -28,3 +28,5 @@ appsettings.Development.json
 .claude
 # ASP.NET data protection keys from running the API locally
 keys/
+
+.llm-tmp
