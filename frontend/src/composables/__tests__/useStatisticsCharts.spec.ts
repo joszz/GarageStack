@@ -26,6 +26,9 @@ function day(date: string, values: Partial<DailyStat> = {}): DailyStat {
     tyrePressureRearRight: null,
     batteryVoltage: null,
     counterTotal: null,
+    sinceChargeTotal: null,
+    counterUnbacked: false,
+    distanceKm: null,
     ...values,
   }
 }
@@ -101,6 +104,35 @@ describe('useStatisticsCharts', () => {
 
     it('adds up each point', () => {
       expect(chart('bev', 'dailyKwhChart', TWO_DAYS).data.datasets[0]!.data).toEqual([5, 7])
+    })
+
+    it('draws no efficiency line without a distance to divide by', () => {
+      const c = chart('bev', 'dailyKwhChart', TWO_DAYS)
+
+      expect(c.data.datasets).toHaveLength(1)
+      expect(c.options.scales).not.toHaveProperty('y1')
+    })
+
+    it('draws the efficiency per point on its own axis, skipping a point with little driving', () => {
+      const c = chart('bev', 'dailyKwhChart', [
+        bucket('2026-10-14', [day('2026-10-14', { counterTotal: 5, distanceKm: 40 })]),
+        bucket('2026-10-15', [day('2026-10-15', { counterTotal: 0.4, distanceKm: 2 })]),
+      ])
+      const line = c.data.datasets[1]!
+
+      expect(line.label).toBe('kWh/100 km')
+      expect(line.data).toEqual([12.5, null])
+      expect(line).toMatchObject({ type: 'line', yAxisID: 'y1' })
+      expect(c.options.scales).toHaveProperty('y1')
+    })
+
+    it('draws fuel consumption on a hybrid', () => {
+      const c = chart('hev', 'dailyKwhChart', [
+        bucket('2026-10-14', [day('2026-10-14', { counterTotal: 394, distanceKm: 59 })]),
+      ])
+
+      expect(c.data.datasets[1]!.label).toBe('L/100 km')
+      expect(c.data.datasets[1]!.data).toEqual([6.68])
     })
   })
 

@@ -1,5 +1,11 @@
-import type { DailyStat, TripSummary } from '@/services/vehicleApi'
+import type { DailyStat, TripSummary, VehicleType } from '@/services/vehicleApi'
 import { localDateKey } from '@/utils/dates'
+import {
+  addCounterOverDistance,
+  counterOverDistance,
+  dailyCounterTotal,
+  type CounterOverDistance,
+} from '@/utils/energy'
 import { DAY_MONTH } from '@/utils/format'
 import { parseLocalDate, type StatsGrouping } from '@/utils/statsPeriod'
 
@@ -17,6 +23,24 @@ export interface MapSpot {
 export function totalDistanceKm(trips: readonly TripSummary[]): number | null {
   if (trips.length === 0) return null
   return trips.reduce((sum, trip) => sum + trip.distanceKm, 0)
+}
+
+/**
+ * Kilometres the car counted over these days off its distance-of-the-day counter, or null when it
+ * reported none. A trip is drawn from fixes minutes apart and cuts the corners between them, so
+ * the car's own count is the fuller figure, and the one its energy counter pairs with.
+ */
+export function countedDistanceKm(stats: readonly DailyStat[]): number | null {
+  const counted = stats.map((s) => s.distanceKm).filter((km): km is number => km !== null)
+  return counted.length ? counted.reduce((sum, km) => sum + km, 0) : null
+}
+
+/** The distance over a period: the car's own count where it keeps one, its trips' otherwise. */
+export function periodDistanceKm(
+  stats: readonly DailyStat[],
+  trips: readonly TripSummary[],
+): number | null {
+  return countedDistanceKm(stats) ?? totalDistanceKm(trips)
 }
 
 export function averageTripKm(trips: readonly TripSummary[]): number | null {
@@ -178,6 +202,17 @@ export function batteryVoltageChange(stats: readonly DailyStat[]): number | null
   return roundTo2(voltages[voltages.length - 1]! - voltages[0]!)
 }
 
+/** The energy (or fuel) counter's total over the period, in its own unit, or null without any. */
+export function periodCounterTotal(
+  stats: readonly DailyStat[],
+  vehicleType: VehicleType,
+): number | null {
+  const totals = stats
+    .map((stat) => dailyCounterTotal(stat, vehicleType))
+    .filter((total): total is number => total !== null)
+  return totals.length ? totals.reduce((sum, total) => sum + total, 0) : null
+}
+
 // ── Per month ───────────────────────────────────────────────────────────────
 
 export interface MonthTotal {
@@ -185,21 +220,25 @@ export interface MonthTotal {
   key: string
   start: Date
   trips: number
+  /** What the car counted over the month, or its trips' distance when it counted nothing. */
   distanceKm: number
   /** The energy counter's total over the month, in its own unit; null when it reported none. */
   counterTotal: number | null
+  /** The counter over the month's days that also counted a distance, for its efficiency. */
+  used: CounterOverDistance | null
 }
 
 function monthKey(date: Date): string {
   return localDateKey(date).slice(0, 7)
 }
 
-/** Every month the period touches, oldest first, with its trips and its counter total. */
+/** Every month the period touches, oldest first, with its trips, distance and counter total. */
 export function monthlyTotals(
   trips: readonly TripSummary[],
   stats: readonly DailyStat[],
   first: Date,
   last: Date,
+  vehicleType: VehicleType,
 ): MonthTotal[] {
   const months = new Map<string, MonthTotal>()
   for (
@@ -213,20 +252,30 @@ export function monthlyTotals(
       trips: 0,
       distanceKm: 0,
       counterTotal: null,
+      used: null,
     })
   }
 
+  const tripsOf = new Map<string, TripSummary[]>()
   for (const trip of trips) {
-    const month = months.get(monthKey(new Date(trip.startedAt)))
-    if (!month) continue
-    month.trips++
-    month.distanceKm += trip.distanceKm
+    const key = monthKey(new Date(trip.startedAt))
+    if (months.has(key)) tripsOf.set(key, [...(tripsOf.get(key) ?? []), trip])
   }
 
+  const daysOf = new Map<string, DailyStat[]>()
   for (const stat of stats) {
     const month = months.get(stat.date.slice(0, 7))
-    if (month && stat.counterTotal !== null)
-      month.counterTotal = (month.counterTotal ?? 0) + stat.counterTotal
+    if (!month) continue
+    daysOf.set(month.key, [...(daysOf.get(month.key) ?? []), stat])
+    const total = dailyCounterTotal(stat, vehicleType)
+    if (total !== null) month.counterTotal = (month.counterTotal ?? 0) + total
+    month.used = addCounterOverDistance(month.used, counterOverDistance([stat], vehicleType))
+  }
+
+  for (const month of months.values()) {
+    const monthTrips = tripsOf.get(month.key) ?? []
+    month.trips = monthTrips.length
+    month.distanceKm = periodDistanceKm(daysOf.get(month.key) ?? [], monthTrips) ?? 0
   }
 
   return [...months.values()]

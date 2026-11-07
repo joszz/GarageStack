@@ -35,8 +35,9 @@ public class DailyStatsBuilderTests
     private static readonly TimeZoneInfo Amsterdam = TimeZoneInfo.FindSystemTimeZoneById("Europe/Amsterdam");
     private static readonly DateOnly Today = new(2026, 10, 12);
 
-    private static TelemetryHistoryPoint Reading(DateTime utc, double? soc = null, double? volts = null, double? counter = null) =>
-        new(utc, null, soc, counter, volts, null, null, null, null, null, null, null, null, null, null, null);
+    private static TelemetryHistoryPoint Reading(
+        DateTime utc, double? soc = null, double? volts = null, double? counter = null, double? distance = null) =>
+        new(utc, null, soc, counter, volts, null, null, null, null, null, null, distance, null, null, null, null);
 
     [Fact]
     public void AReadingBelongsToItsLocalDay()
@@ -95,6 +96,40 @@ public class DailyStatsBuilderTests
         Assert.Equal([9.0, 3.0], builder.Build().Select(s => s.CounterTotal));
     }
 
+    // The distance counter pairs with the energy counter, so it is read the same way: a finished
+    // day by its peak, today by what came after the reset. A day the car stood still is 0 km, so
+    // its standby use still counts against the period's distance.
+    [Fact]
+    public void TheDistanceCounterIsReadLikeTheEnergyCounter()
+    {
+        var builder = new DailyStatsBuilder(Amsterdam, Today.AddDays(-2), Today, Today);
+        var parked = new DateTime(2026, 10, 10, 8, 0, 0, DateTimeKind.Utc);
+        var yesterday = new DateTime(2026, 10, 11, 8, 0, 0, DateTimeKind.Utc);
+        var today = new DateTime(2026, 10, 12, 8, 0, 0, DateTimeKind.Utc);
+
+        builder.Add(Reading(parked, distance: 0));
+        builder.Add(Reading(parked.AddHours(8), distance: 0));
+        builder.Add(Reading(yesterday, distance: 12));
+        builder.Add(Reading(yesterday.AddHours(8), distance: 30));
+        builder.Add(Reading(today, distance: 30));
+        builder.Add(Reading(today.AddHours(1), distance: 0));
+        builder.Add(Reading(today.AddHours(2), distance: 5));
+
+        Assert.Equal([0.0, 30.0, 5.0], builder.Build().Select(s => s.DistanceKm));
+    }
+
+    [Theory]
+    [InlineData(new double[] { }, true, null)]
+    [InlineData(new double[] { }, false, null)]
+    // Yesterday's total carried over and no driving yet: nothing driven today, not unknown.
+    [InlineData(new[] { 30.0, 30.0 }, true, 0.0)]
+    [InlineData(new[] { 0.0, 0.0 }, false, 0.0)]
+    [InlineData(new[] { 1.0, 2.0, 4.0 }, false, 4.0)]
+    public void DistanceTotal_IsZeroRatherThanNullForADayWithoutDriving(double[] readings, bool isPartialDay, double? expected)
+    {
+        Assert.Equal(expected, DailyStatsBuilder.DistanceTotal(readings, isPartialDay));
+    }
+
     [Fact]
     public void UtcRange_SpansTheLocalDays()
     {
@@ -103,6 +138,148 @@ public class DailyStatsBuilderTests
         // Summer time ends on the 25th, so that day lasts 25 hours.
         Assert.Equal(new DateTime(2026, 10, 23, 22, 0, 0, DateTimeKind.Utc), start);
         Assert.Equal(new DateTime(2026, 10, 25, 23, 0, 0, DateTimeKind.Utc), end);
+    }
+}
+
+public class DailyEnergyCheckTests
+{
+    private static readonly DateOnly Today = new(2026, 11, 4);
+
+    private static TelemetryHistoryPoint Reading(DateTime utc, double? counter, double? since, bool? charging = null) =>
+        new(utc, null, null, counter, null, null, charging, null, null, null, null, null, null, null, null, since);
+
+    private static IReadOnlyList<DailyStat> Build(DateOnly from, DateOnly to, params TelemetryHistoryPoint[] readings)
+    {
+        var builder = new DailyStatsBuilder(TimeZoneInfo.Utc, from, to, Today);
+        foreach (var reading in readings) builder.Add(reading);
+        return builder.Build();
+    }
+
+    // Issue #551: an MG ZS EV Long Range (2022), RecordedAt, PowerUsageOfDay and
+    // PowerUsageSinceLastCharge as the reporter exported them. The day counter gains 33 to 35 kWh
+    // at some polls while parked; the since-last-charge counter follows the state of charge.
+    private static readonly (DateTime At, double Counter, double Since)[] ZsEv =
+    [
+        (new DateTime(2026, 11, 2, 13, 29, 42, DateTimeKind.Utc), 33.16, 8.86),
+        (new DateTime(2026, 11, 2, 13, 30, 23, DateTimeKind.Utc), 33.16, 8.86),
+        (new DateTime(2026, 11, 2, 13, 32, 35, DateTimeKind.Utc), 66.23, 8.86),
+        (new DateTime(2026, 11, 2, 13, 34, 46, DateTimeKind.Utc), 66.23, 8.86),
+        (new DateTime(2026, 11, 2, 13, 36, 58, DateTimeKind.Utc), 66.23, 8.86),
+        (new DateTime(2026, 11, 2, 13, 39, 6, DateTimeKind.Utc), 66.23, 8.86),
+        (new DateTime(2026, 11, 2, 18, 40, 37, DateTimeKind.Utc), 66.42, 8.95),
+        (new DateTime(2026, 11, 2, 18, 41, 15, DateTimeKind.Utc), 66.42, 8.95),
+        (new DateTime(2026, 11, 2, 18, 41, 53, DateTimeKind.Utc), 66.42, 8.95),
+        (new DateTime(2026, 11, 2, 18, 42, 32, DateTimeKind.Utc), 66.42, 8.86),
+        (new DateTime(2026, 11, 2, 18, 43, 10, DateTimeKind.Utc), 66.42, 8.86),
+        (new DateTime(2026, 11, 2, 18, 43, 49, DateTimeKind.Utc), 66.42, 8.86),
+        (new DateTime(2026, 11, 2, 18, 46, 0, DateTimeKind.Utc), 99.48, 8.86),
+        (new DateTime(2026, 11, 2, 18, 48, 9, DateTimeKind.Utc), 99.48, 8.86),
+        (new DateTime(2026, 11, 2, 18, 50, 21, DateTimeKind.Utc), 99.48, 8.86),
+        (new DateTime(2026, 11, 2, 18, 52, 33, DateTimeKind.Utc), 99.48, 8.86),
+        (new DateTime(2026, 11, 2, 20, 12, 39, DateTimeKind.Utc), 134.24, 9.61),
+        (new DateTime(2026, 11, 3, 20, 12, 51, DateTimeKind.Utc), 34.67, 10.46),
+        (new DateTime(2026, 11, 3, 21, 1, 6, DateTimeKind.Utc), 34.67, 10.46),
+        (new DateTime(2026, 11, 3, 21, 2, 7, DateTimeKind.Utc), 34.67, 10.46),
+        (new DateTime(2026, 11, 3, 21, 4, 19, DateTimeKind.Utc), 34.67, 10.46),
+        (new DateTime(2026, 11, 3, 21, 6, 30, DateTimeKind.Utc), 34.67, 10.46),
+        (new DateTime(2026, 11, 3, 21, 8, 38, DateTimeKind.Utc), 69.43, 10.55),
+        (new DateTime(2026, 11, 3, 21, 9, 16, DateTimeKind.Utc), 69.52, 10.55),
+        (new DateTime(2026, 11, 3, 21, 9, 55, DateTimeKind.Utc), 69.62, 10.55),
+        (new DateTime(2026, 11, 3, 21, 10, 33, DateTimeKind.Utc), 69.71, 10.65),
+        (new DateTime(2026, 11, 3, 21, 11, 11, DateTimeKind.Utc), 69.71, 10.65),
+        (new DateTime(2026, 11, 3, 21, 11, 49, DateTimeKind.Utc), 69.71, 10.65),
+        (new DateTime(2026, 11, 3, 21, 12, 27, DateTimeKind.Utc), 69.71, 10.65),
+        (new DateTime(2026, 11, 3, 21, 13, 5, DateTimeKind.Utc), 69.71, 10.65),
+        (new DateTime(2026, 11, 3, 21, 13, 43, DateTimeKind.Utc), 69.71, 10.65),
+        (new DateTime(2026, 11, 3, 21, 14, 21, DateTimeKind.Utc), 69.71, 10.65),
+        (new DateTime(2026, 11, 3, 21, 14, 59, DateTimeKind.Utc), 69.71, 10.65),
+        (new DateTime(2026, 11, 3, 21, 15, 38, DateTimeKind.Utc), 69.71, 10.65),
+        (new DateTime(2026, 11, 3, 21, 31, 20, DateTimeKind.Utc), 141.12, 11.12),
+        (new DateTime(2026, 11, 3, 21, 33, 32, DateTimeKind.Utc), 141.12, 11.12),
+        (new DateTime(2026, 11, 3, 21, 35, 43, DateTimeKind.Utc), 141.12, 11.12),
+        (new DateTime(2026, 11, 3, 21, 37, 54, DateTimeKind.Utc), 141.12, 11.12),
+        (new DateTime(2026, 11, 3, 21, 40, 6, DateTimeKind.Utc), 141.12, 11.12),
+        (new DateTime(2026, 11, 3, 23, 8, 51, DateTimeKind.Utc), 141.12, 11.12),
+    ];
+
+    [Fact]
+    public void ZsEv_ADayCounterThatOutrunsTheBattery_IsFlagged_AndTheBatteryCounterGivesTheDay()
+    {
+        var stats = Build(new DateOnly(2026, 11, 2), new DateOnly(2026, 11, 3),
+            [.. ZsEv.Select(r => Reading(r.At, r.Counter, r.Since, charging: false))]);
+
+        Assert.Equal((134.24, 0.75, true), (stats[0].CounterTotal, stats[0].SinceChargeTotal, stats[0].CounterUnbacked));
+        // The 3rd also gets the 0.85 kWh the car lost while parked since the evening before.
+        Assert.Equal((141.12, 1.51, true), (stats[1].CounterTotal, stats[1].SinceChargeTotal, stats[1].CounterUnbacked));
+    }
+
+    // A day with one poll has no rises to compare, but 34.67 kWh is more than the 10.46 kWh that
+    // had left the battery since it was last charged.
+    [Fact]
+    public void ZsEv_ASinglePollDay_IsFlaggedAgainstWhatLeftTheBatterySinceTheLastCharge()
+    {
+        var stats = Build(new DateOnly(2026, 11, 3), new DateOnly(2026, 11, 3),
+            Reading(ZsEv[16].At, ZsEv[16].Counter, ZsEv[16].Since),
+            Reading(ZsEv[17].At, ZsEv[17].Counter, ZsEv[17].Since));
+
+        var day = Assert.Single(stats);
+        Assert.Equal((0.85, true), (day.SinceChargeTotal, day.CounterUnbacked));
+    }
+
+    [Fact]
+    public void ADayCounterThatRisesWithTheBattery_IsTrusted()
+    {
+        var day = new DateTime(2026, 11, 2, 7, 0, 0, DateTimeKind.Utc);
+
+        var stat = Assert.Single(Build(new DateOnly(2026, 11, 2), new DateOnly(2026, 11, 2),
+            Reading(day, 0.4, 20.0),
+            Reading(day.AddHours(1), 1.9, 21.5),
+            Reading(day.AddHours(9), 5.4, 25.0)));
+
+        Assert.Equal((5.4, 5.0, false), (stat.CounterTotal, stat.SinceChargeTotal, stat.CounterUnbacked));
+    }
+
+    // Regeneration takes energy back off the since-last-charge counter, which a day counter
+    // may leave out: 7.5 kWh against 5.5 kWh net, a day after a charge, is still a sound day.
+    [Fact]
+    public void Regeneration_DoesNotFlagASoundDayCounter()
+    {
+        var day = new DateTime(2026, 11, 2, 7, 0, 0, DateTimeKind.Utc);
+
+        var stat = Assert.Single(Build(new DateOnly(2026, 11, 2), new DateOnly(2026, 11, 2),
+            Reading(day, 0.6, 0.5),
+            Reading(day.AddHours(1), 7.5, 6.0)));
+
+        Assert.False(stat.CounterUnbacked);
+    }
+
+    // Charged at lunch: the since-last-charge counter starts again from zero, and the day can
+    // hold more than it does now.
+    [Fact]
+    public void AChargeDuringTheDay_StartsTheBatteryCounterAgain_WithoutFlaggingTheDay()
+    {
+        var day = new DateTime(2026, 11, 2, 7, 0, 0, DateTimeKind.Utc);
+
+        var stat = Assert.Single(Build(new DateOnly(2026, 11, 2), new DateOnly(2026, 11, 2),
+            Reading(day, 0, 20.0),
+            Reading(day.AddHours(2), 10.0, 30.0),
+            Reading(day.AddHours(5), 10.0, 30.0, charging: true),
+            Reading(day.AddHours(8), 10.5, 0.5),
+            Reading(day.AddHours(10), 13.5, 3.5)));
+
+        Assert.Equal((13.5, 13.5, false), (stat.CounterTotal, stat.SinceChargeTotal, stat.CounterUnbacked));
+    }
+
+    [Fact]
+    public void ACarWithoutASinceLastChargeCounter_KeepsItsDayCounter()
+    {
+        var day = new DateTime(2026, 11, 2, 7, 0, 0, DateTimeKind.Utc);
+
+        var stat = Assert.Single(Build(new DateOnly(2026, 11, 2), new DateOnly(2026, 11, 2),
+            Reading(day, 1.0, null),
+            Reading(day.AddHours(1), 60.0, null)));
+
+        Assert.Equal((60.0, null, false), (stat.CounterTotal, stat.SinceChargeTotal, stat.CounterUnbacked));
     }
 }
 
@@ -134,6 +311,35 @@ public class TelemetryRepositoryDailyStatsTests
         Assert.Equal(40, march2.EvSocPercent);
         Assert.Equal(4.0, march2.CounterTotal);
         Assert.Null(stats[0].EvSocPercent);
+    }
+
+    // The first day of the span starts its since-last-charge share from the last reading before
+    // it, so a day reads the same alone as inside a longer span.
+    [Fact]
+    public async Task GetDailyStats_StartsTheBatteryCounterFromTheReadingBeforeThePeriod()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var db = new AppDbContext(new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options);
+        var vehicle = new Vehicle { Vin = "FAKEVN00000000001" };
+        db.Vehicles.Add(vehicle);
+        await db.SaveChangesAsync(ct);
+        var evening = new DateTime(2026, 11, 2, 20, 12, 0, DateTimeKind.Utc);
+        db.TelemetrySnapshots.AddRange(
+            new TelemetrySnapshot { VehicleId = vehicle.Id, RecordedAt = evening.AddHours(-1), PowerUsageSinceLastCharge = 9.0 },
+            new TelemetrySnapshot { VehicleId = vehicle.Id, RecordedAt = evening, PowerUsageSinceLastCharge = 9.61 },
+            new TelemetrySnapshot { VehicleId = vehicle.Id, RecordedAt = evening.AddDays(1), PowerUsageOfDay = 34.67, PowerUsageSinceLastCharge = 10.46 });
+        await db.SaveChangesAsync(ct);
+        var repo = new TelemetryRepository(db);
+
+        var alone = await repo.GetDailyStatsAsync(
+            vehicle.Id, new DateOnly(2026, 11, 3), new DateOnly(2026, 11, 3), TimeZoneInfo.Utc, new DateOnly(2026, 11, 4), ct);
+        var inSpan = await repo.GetDailyStatsAsync(
+            vehicle.Id, new DateOnly(2026, 11, 2), new DateOnly(2026, 11, 3), TimeZoneInfo.Utc, new DateOnly(2026, 11, 4), ct);
+
+        Assert.Equal(0.85, Assert.Single(alone).SinceChargeTotal);
+        Assert.Equal(0.85, inSpan[1].SinceChargeTotal);
     }
 }
 

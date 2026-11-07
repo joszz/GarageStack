@@ -154,10 +154,11 @@ const SPEED: Record<DistanceUnit, UnitDefinition> = {
   mi: scaled('units.mph', 1 / KM_PER_MILE, 0),
 }
 
-// Energy per distance grows with the distance unit: a mile takes 1.6 times the energy of a km.
+// Shown per 100 km or 100 miles, as car makers and the MG app quote it. The API's Wh/km is
+// kWh/100 km over ten, and a mile takes 1.6 times the energy of a km.
 const ENERGY_PER_DISTANCE: Record<DistanceUnit, UnitDefinition> = {
-  km: scaled('units.whPerKm', 1, 0),
-  mi: scaled('units.whPerMi', KM_PER_MILE, 0),
+  km: scaled('units.kwhPer100Km', 1 / 10, 1),
+  mi: scaled('units.kwhPer100Mi', KM_PER_MILE / 10, 1),
 }
 
 const DISTANCE_PER_PERCENT: Record<DistanceUnit, UnitDefinition> = {
