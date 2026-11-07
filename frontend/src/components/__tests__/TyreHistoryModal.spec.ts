@@ -41,6 +41,7 @@ function day(date: string, rearRight: number | null): DailyStat {
     counterTotal: null,
     sinceChargeTotal: null,
     counterUnbacked: false,
+    distanceKm: null,
   }
 }
 

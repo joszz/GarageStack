@@ -96,6 +96,14 @@ export const CARD_DEFINITIONS = [
       status.mileageSinceLastCharge !== null && plugsIn(vehicleType),
   },
   {
+    id: 'efficiencySinceCharge',
+    icon: 'charging-station',
+    // Like the distance since charge: on for a car whose type is not known yet, so a layout saved
+    // before this card existed gets it too, and the data check hides it on a hybrid.
+    defaultVisible: mayPlugIn,
+    hasData: ({ status, vehicleType }) => sinceChargeWhPerKm(status, vehicleType) !== null,
+  },
+  {
     id: 'efficiencyRatio',
     icon: 'leaf',
     // Three presentations share this card: measured L/100 km on a hybrid, Wh/km on a plug-in
@@ -176,6 +184,19 @@ export function defaultCards(type: VehicleType = 'unknown'): CardConfig[] {
     visible: card.defaultVisible?.(type) ?? true,
   }))
   return [...all.filter((c) => c.visible), ...all.filter((c) => !c.visible)]
+}
+
+/**
+ * Wh/km since the last charge, off the battery's since-last-charge counters, for a car that
+ * plugs in: the pair that held up on the ZS EV whose day counter did not (issue #551).
+ */
+export function sinceChargeWhPerKm(
+  status: Pick<TelemetrySnapshot, 'powerUsageSinceLastCharge' | 'mileageSinceLastCharge'>,
+  vehicleType: VehicleType,
+): number | null {
+  return plugsIn(vehicleType)
+    ? whPerKm(status.powerUsageSinceLastCharge, status.mileageSinceLastCharge)
+    : null
 }
 
 /** Wh/km over today's driving, the efficiencyRatio card's presentation for a plug-in car. */

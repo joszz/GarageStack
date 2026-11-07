@@ -10,6 +10,7 @@ import {
   hasEnergyEfficiency,
   hasFuelConsumption,
   hasFuelEconomy,
+  sinceChargeWhPerKm,
 } from '@/cards/registry'
 import { useCardData } from '@/cards/useCardData'
 import StatusCard from './StatusCard.vue'
@@ -190,6 +191,11 @@ const simpleCards = computed((): SimpleCardConfig[] => {
       id: 'efficiencyCharge',
       label: t('vehicle.efficiency.sinceCharge'),
       ...measured('distance', s.mileageSinceLastCharge),
+    },
+    {
+      id: 'efficiencySinceCharge',
+      label: t('vehicle.efficiency.efficiencySinceCharge'),
+      ...measured('energyPerDistance', sinceChargeWhPerKm(s, ctx.vehicleType)),
     },
     // efficiencyRatio - measured fuel consumption on a hybrid, which beats the estimate below
     {

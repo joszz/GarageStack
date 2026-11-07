@@ -26,7 +26,13 @@ import StatsChartCard from '@/components/StatsChartCard.vue'
 import type EditableCardGridComponent from '@/components/EditableCardGrid.vue'
 import { DAY_MONTH, formatDate, formatHour, formatNumber } from '@/utils/format'
 import { resolveStatsPeriod, statsQuery } from '@/utils/statsPeriod'
-import { energyUnit } from '@/utils/energy'
+import {
+  counterOverDistance,
+  efficiency,
+  energyUnit,
+  litres,
+  MIN_EFFICIENCY_DISTANCE_KM,
+} from '@/utils/energy'
 import { burnsFuel, plugsIn } from '@/utils/vehicleType'
 import {
   averageMovingSpeedKmh,
@@ -38,7 +44,8 @@ import {
   monthlyTotals,
   parkingSpots,
   peakDriveHour as peakTripHour,
-  totalDistanceKm,
+  periodCounterTotal,
+  periodDistanceKm,
 } from '@/utils/statistics'
 import { useUnits } from '@/composables/useUnits'
 import { useErrorMessage } from '@/composables/useErrorMessage'
@@ -118,6 +125,8 @@ const isPhev = computed(() => vehicleType.value === 'phev')
 const INSIGHT_ICONS: Record<StatsInsightId, string> = {
   periodDistance: 'route',
   avgTripLength: 'car-side',
+  periodEnergy: 'plug-circle-bolt',
+  periodEfficiency: 'leaf',
   climateUsage: 'wind',
   commutePattern: 'circle-info',
   batteryVoltageTrend: 'battery-three-quarters',
@@ -148,16 +157,30 @@ const months = computed(() =>
 const showMonths = computed(
   () => period.value.days > 31 && months.value.length > 1 && hasPeriodData.value,
 )
+// What the energy counter holds on this car, or null for a car whose type is not known yet, whose
+// counter could hold either.
 const monthEnergyUnit = computed(() => {
   const type = vehicleType.value
   return burnsFuel(type) || plugsIn(type) ? energyUnit(type) : null
 })
+const countsFuel = computed(() => monthEnergyUnit.value === 'litres')
 
 // ── Insight computed values ───────────────────────────────────
 
 // Unrounded: the unit formatter rounds once, in the unit it shows.
-const periodDistanceKm = computed(() => totalDistanceKm(store.tripSummaries))
+// The car's own count where it keeps one, so the distance pairs with the energy it used.
+const periodDistance = computed(() => periodDistanceKm(store.dailyStats, store.tripSummaries))
 const averageTripKm = computed(() => averageTripDistanceKm(store.tripSummaries))
+
+// What the car used over the period, off its own counters: kWh out of the battery on a plug-in
+// car, fuel on a hybrid. The efficiency pairs it with the distance the car counted on the same
+// days, so the two describe the same driving.
+const periodCounter = computed(() => periodCounterTotal(store.dailyStats, vehicleType.value))
+const periodEfficiency = computed(() =>
+  monthEnergyUnit.value
+    ? efficiency(counterOverDistance(store.dailyStats, vehicleType.value), monthEnergyUnit.value)
+    : null,
+)
 
 const climateUsagePct = computed(() => aggregateStats.value?.climateUsagePct ?? null)
 
@@ -244,6 +267,13 @@ function measuredInsight(
   return { value: m?.value ?? null, unit: units.value.symbol(quantity) }
 }
 
+// The period's energy in kWh, or a hybrid's fuel in litres (or gallons).
+function periodEnergyInsight(): Pick<InsightDef, 'value' | 'unit'> {
+  const counter = periodCounter.value
+  if (countsFuel.value) return measuredInsight('volume', litres(counter))
+  return { value: counter !== null ? formatNumber(counter, 1, true) : null, unit: t('common.kwh') }
+}
+
 const insightDefs = computed((): InsightDef[] => [
   {
     id: 'periodDistance' as StatsInsightId,
@@ -253,7 +283,7 @@ const insightDefs = computed((): InsightDef[] => [
         ? t('statistics.insights.monthlyMileage')
         : t('statistics.insights.distanceInRange'),
     description: t('statistics.cardDesc.distanceInRange'),
-    ...measuredInsight('distance', periodDistanceKm.value),
+    ...measuredInsight('distance', periodDistance.value),
     vehicleApplicable: true,
     applicable: hasPeriodData.value,
   },
@@ -265,6 +295,34 @@ const insightDefs = computed((): InsightDef[] => [
     ...measuredInsight('distance', averageTripKm.value),
     vehicleApplicable: true,
     applicable: hasPeriodData.value,
+  },
+  {
+    id: 'periodEnergy' as StatsInsightId,
+    icon: countsFuel.value ? 'gas-pump' : INSIGHT_ICONS.periodEnergy,
+    title: countsFuel.value
+      ? t('statistics.insights.periodFuel')
+      : t('statistics.insights.periodEnergy'),
+    description: countsFuel.value
+      ? t('statistics.cardDesc.periodFuel')
+      : t('statistics.cardDesc.periodEnergy'),
+    ...periodEnergyInsight(),
+    vehicleApplicable: monthEnergyUnit.value !== null,
+    applicable: periodCounter.value !== null,
+  },
+  {
+    id: 'periodEfficiency' as StatsInsightId,
+    icon: INSIGHT_ICONS.periodEfficiency,
+    title: countsFuel.value
+      ? t('statistics.insights.periodConsumption')
+      : t('statistics.insights.periodEfficiency'),
+    description: t('statistics.cardDesc.periodEfficiency', {
+      min: units.value.format('distance', MIN_EFFICIENCY_DISTANCE_KM, { decimals: 0 }),
+    }),
+    ...(periodEfficiency.value
+      ? measuredInsight(periodEfficiency.value.quantity, periodEfficiency.value.metric)
+      : { value: null }),
+    vehicleApplicable: monthEnergyUnit.value !== null,
+    applicable: periodEfficiency.value !== null,
   },
   {
     id: 'climateUsage' as StatsInsightId,

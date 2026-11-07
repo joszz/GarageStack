@@ -40,7 +40,7 @@ public sealed class DailyStatsBuilder(TimeZoneInfo zone, DateOnly from, DateOnly
     {
         public readonly Mean EvSoc = new(), Fuel = new(), FrontLeft = new(), FrontRight = new(),
             RearLeft = new(), RearRight = new(), Voltage = new();
-        public readonly List<double> Counter = [];
+        public readonly List<double> Counter = [], Distance = [];
         public readonly EnergyCheck Energy = new();
     }
 
@@ -77,6 +77,7 @@ public sealed class DailyStatsBuilder(TimeZoneInfo zone, DateOnly from, DateOnly
         day.RearRight.Add(reading.TyrePressureRearRight);
         day.Voltage.Add(reading.BatteryVoltage);
         if (reading.PowerUsageOfDay is { } counter && double.IsFinite(counter)) day.Counter.Add(counter);
+        if (reading.MileageOfTheDay is { } distance && double.IsFinite(distance)) day.Distance.Add(distance);
     }
 
     /// <summary>Every day of the period up to today, a day without readings included, oldest first.</summary>
@@ -92,9 +93,12 @@ public sealed class DailyStatsBuilder(TimeZoneInfo zone, DateOnly from, DateOnly
                 continue;
             }
             var counter = CounterTotal(day.Counter, date == today);
+            // The distance counter resets with the energy counter, so it is read the same way. A
+            // parked day reads 0 rather than null: its energy is standby use, part of the total.
+            var distance = DistanceTotal(day.Distance, date == today);
             stats.Add(new DailyStat(date, day.EvSoc.Value, day.Fuel.Value, day.FrontLeft.Value, day.FrontRight.Value,
                 day.RearLeft.Value, day.RearRight.Value, day.Voltage.Value, counter,
-                day.Energy.SinceChargeTotal, day.Energy.IsUnbacked(counter)));
+                day.Energy.SinceChargeTotal, day.Energy.IsUnbacked(counter), distance));
         }
         return stats;
     }
@@ -221,4 +225,11 @@ public sealed class DailyStatsBuilder(TimeZoneInfo zone, DateOnly from, DateOnly
         var delta = readings.Max() - readings.Min();
         return delta > 0 ? delta : null;
     }
+
+    /// <summary>
+    /// One day's distance off the distance-of-the-day counter, read as <see cref="CounterTotal"/>
+    /// reads the energy counter, except that today without driving yet is 0 km rather than nothing.
+    /// </summary>
+    public static double? DistanceTotal(IReadOnlyList<double> readings, bool isPartialDay) =>
+        readings.Count == 0 ? null : CounterTotal(readings, isPartialDay) ?? 0;
 }

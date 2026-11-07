@@ -9,6 +9,8 @@ namespace GarageStack.Core.Models;
 /// <c>CounterUnbacked</c> says the day counter rose more than that counter allows, which is how
 /// a car whose day counter cannot be trusted shows itself (issue #551). The frontend decides
 /// which of the two to show, because only it knows whether the car plugs in.
+/// <c>DistanceKm</c> is the day's total off the car's distance-of-the-day counter, read the same
+/// way as <c>CounterTotal</c>, so the two pair up into an efficiency for the same stretch of driving.
 /// </summary>
 public sealed record DailyStat(
     DateOnly Date,
@@ -21,4 +23,5 @@ public sealed record DailyStat(
     double? BatteryVoltage,
     double? CounterTotal,
     double? SinceChargeTotal = null,
-    bool CounterUnbacked = false);
+    bool CounterUnbacked = false,
+    double? DistanceKm = null);

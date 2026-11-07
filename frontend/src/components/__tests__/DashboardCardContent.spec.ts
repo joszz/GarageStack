@@ -98,6 +98,16 @@ describe('DashboardCardContent', () => {
       expect(card.text).toBe(`${en.vehicle.efficiency.efficiency}|15.0|kWh/100 km`)
     })
 
+    it('is also shown since the last charge, off the since-last-charge counters', () => {
+      const card = render(
+        'efficiencySinceCharge',
+        status({ powerUsageSinceLastCharge: 11.12, mileageSinceLastCharge: 46 }),
+        'bev',
+      )
+
+      expect(card.text).toBe(`${en.vehicle.efficiency.efficiencySinceCharge}|24.2|kWh/100 km`)
+    })
+
     // A plain hybrid's energy counter holds fuel (1/100 L), so the same fields read as L/100 km.
     it('is measured fuel consumption on a hybrid', () => {
       const card = render(

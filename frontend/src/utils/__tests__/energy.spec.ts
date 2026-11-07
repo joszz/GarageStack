@@ -2,7 +2,10 @@ import { describe, it, expect } from 'vitest'
 import {
   chargeEndPercent,
   chargerPowerKw,
+  addCounterOverDistance,
+  counterOverDistance,
   dailyCounterTotal,
+  efficiency,
   energyUnit,
   hvBatteryReading,
   litres,
@@ -89,6 +92,71 @@ describe('dailyCounterTotal', () => {
   // A hybrid's two counters hold fuel and were never checked against each other on one.
   it('leaves a hybrid on its day counter', () => {
     expect(dailyCounterTotal(unbacked, 'hev')).toBe(134.24)
+  })
+})
+
+describe('counterOverDistance', () => {
+  const day = (
+    counterTotal: number | null,
+    distanceKm: number | null,
+    counterUnbacked = false,
+  ) => ({
+    counterTotal,
+    sinceChargeTotal: 0.75,
+    counterUnbacked,
+    distanceKm,
+  })
+
+  it('adds up only the days that counted both, a parked day included', () => {
+    const used = counterOverDistance(
+      [day(3, 20), day(0.4, 0), day(null, 12), day(2, null), day(5, 30)],
+      'bev',
+    )
+    expect(used?.counter).toBeCloseTo(8.4, 6)
+    expect(used?.distanceKm).toBe(50)
+  })
+
+  // The ZS EV's 4 km day from issue #551: its day counter read 134.24 kWh.
+  it('takes the since-last-charge figure for a day whose day counter ran away', () => {
+    expect(counterOverDistance([day(134.24, 4, true)], 'bev')).toEqual({
+      counter: 0.75,
+      distanceKm: 4,
+    })
+  })
+
+  it('is null without a day that counted both', () => {
+    expect(counterOverDistance([day(3, null), day(null, 20)], 'bev')).toBeNull()
+  })
+
+  it('combines two stretches, or keeps the one there is', () => {
+    const a = { counter: 1, distanceKm: 10 }
+    expect(addCounterOverDistance(a, { counter: 2, distanceKm: 5 })).toEqual({
+      counter: 3,
+      distanceKm: 15,
+    })
+    expect(addCounterOverDistance(null, a)).toBe(a)
+    expect(addCounterOverDistance(a, null)).toBe(a)
+    expect(addCounterOverDistance(null, null)).toBeNull()
+  })
+})
+
+describe('efficiency', () => {
+  it('is Wh/km off a plug-in counter', () => {
+    expect(efficiency({ counter: 9, distanceKm: 60 }, 'kwh')).toEqual({
+      quantity: 'energyPerDistance',
+      metric: 150,
+    })
+  })
+
+  it('is L/100 km off a hybrid counter', () => {
+    expect(efficiency({ counter: 394, distanceKm: 59 }, 'litres')?.quantity).toBe('fuelConsumption')
+    expect(efficiency({ counter: 394, distanceKm: 59 }, 'litres')?.metric).toBeCloseTo(6.68, 2)
+  })
+
+  // Some cars count whole kilometres, so a few kilometres say little about efficiency.
+  it('waits for enough driving to mean something', () => {
+    expect(efficiency({ counter: 0.75, distanceKm: 4 }, 'kwh')).toBeNull()
+    expect(efficiency(null, 'kwh')).toBeNull()
   })
 })
 

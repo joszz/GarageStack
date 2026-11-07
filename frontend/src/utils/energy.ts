@@ -1,4 +1,5 @@
 import type { DailyStat, TelemetrySnapshot, VehicleType } from '@/services/vehicleApi'
+import type { Quantity } from '@/utils/units'
 
 // The gateway publishes powerUsageOfDay and powerUsageSinceLastCharge on the same topics for
 // every drivetrain, but they do not measure the same thing on every drivetrain. A car with a
@@ -76,6 +77,69 @@ export function todaysEnergyKwh(
 export function whPerKm(energyKwh: number | null, distanceKm: number | null): number | null {
   if (energyKwh === null || distanceKm === null || distanceKm <= 0) return null
   return (energyKwh * 1000) / distanceKm
+}
+
+/**
+ * Below this distance an efficiency is mostly rounding: some cars count their day's distance in
+ * whole kilometres (the ZS EV in issue #551 does), so a 4 km day could be anything from 4 to 5.
+ */
+export const MIN_EFFICIENCY_DISTANCE_KM = 5
+
+/** What the energy counter counted, in its own unit, over the days that also counted a distance. */
+export interface CounterOverDistance {
+  counter: number
+  distanceKm: number
+}
+
+/**
+ * The energy (or fuel) counter's total and the distance counter's total over the days that report
+ * both, so the two always describe the same driving. A day the car stood still still counts, at
+ * 0 km: what the battery lost while parked is part of what the car used. Null without such a day.
+ */
+export function counterOverDistance(
+  days: readonly Pick<
+    DailyStat,
+    'counterTotal' | 'sinceChargeTotal' | 'counterUnbacked' | 'distanceKm'
+  >[],
+  vehicleType: VehicleType,
+): CounterOverDistance | null {
+  let paired: CounterOverDistance | null = null
+  for (const day of days) {
+    const counter = dailyCounterTotal(day, vehicleType)
+    if (counter === null || day.distanceKm === null) continue
+    paired = addCounterOverDistance(paired, { counter, distanceKm: day.distanceKm })
+  }
+  return paired
+}
+
+/** An efficiency in the API's metric unit, with the quantity that unit belongs to. */
+export interface Efficiency {
+  quantity: Extract<Quantity, 'energyPerDistance' | 'fuelConsumption'>
+  /** Wh/km on a plug-in car, L/100 km on a hybrid. */
+  metric: number
+}
+
+/**
+ * How much the car used per distance: Wh/km off a plug-in car's energy counter, L/100 km off a
+ * hybrid's fuel counter. Null without data, or over too short a distance to mean anything.
+ */
+export function efficiency(used: CounterOverDistance | null, unit: EnergyUnit): Efficiency | null {
+  if (!used || used.distanceKm < MIN_EFFICIENCY_DISTANCE_KM) return null
+  const metric =
+    unit === 'litres'
+      ? litresPer100Km(used.counter, used.distanceKm)
+      : whPerKm(used.counter, used.distanceKm)
+  if (metric === null) return null
+  return { quantity: unit === 'litres' ? 'fuelConsumption' : 'energyPerDistance', metric }
+}
+
+/** Two stretches of driving as one, or whichever of them there is. */
+export function addCounterOverDistance(
+  a: CounterOverDistance | null,
+  b: CounterOverDistance | null,
+): CounterOverDistance | null {
+  if (!a || !b) return a ?? b
+  return { counter: a.counter + b.counter, distanceKm: a.distanceKm + b.distanceKm }
 }
 
 /** Litres burned, from a hybrid's fuel counter. */

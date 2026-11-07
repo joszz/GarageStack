@@ -67,6 +67,16 @@ describe('card registry', () => {
     expect(cardHasData('efficiencyCharge', context(status, 'bev'))).toBe(true)
   })
 
+  it('shows efficiency since the last charge for a car that plugs in and has driven', () => {
+    const status = { powerUsageSinceLastCharge: 11.12, mileageSinceLastCharge: 46 }
+    expect(cardHasData('efficiencySinceCharge', context(status, 'bev'))).toBe(true)
+    expect(cardHasData('efficiencySinceCharge', context(status, 'phev'))).toBe(true)
+    expect(cardHasData('efficiencySinceCharge', context(status, 'unknown'))).toBe(false)
+    expect(cardHasData('efficiencySinceCharge', context(status, 'hev'))).toBe(false)
+    const parked = { powerUsageSinceLastCharge: 0.4, mileageSinceLastCharge: 0 }
+    expect(cardHasData('efficiencySinceCharge', context(parked, 'bev'))).toBe(false)
+  })
+
   it('accepts any presentation of the efficiency ratio card', () => {
     const energy = context({ powerUsageOfDay: 8, mileageOfTheDay: 40 }, 'bev')
     const consumption = context({ powerUsageOfDay: 394, mileageOfTheDay: 59 }, 'hev')
@@ -129,6 +139,7 @@ describe('defaultCards', () => {
   const PLUG_IN_CARDS: CardId[] = [
     'charging',
     'efficiencyCharge',
+    'efficiencySinceCharge',
     'remainingCharge',
     'chargingSession',
     'batteryHeating',

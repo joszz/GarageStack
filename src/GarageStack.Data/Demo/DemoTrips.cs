@@ -69,8 +69,8 @@ internal static class DemoTrips
     };
 
     // Roads wind between the fixes a trip is drawn from, so the odometer covers a little more
-    // ground than the straight lines through them.
-    private const double RoadFactor = 1.08;
+    // ground than the straight lines through them. The demo history drives the same distance.
+    internal const double RoadFactor = 1.08;
 
     // The odometer is counted back from the live reading, so the readings run on from one trip to
     // the next and end where the car is now.
@@ -102,11 +102,14 @@ internal static class DemoTrips
 
     private static List<TripDto> BuildTrips()
     {
+        // Finished trips start at a time of day, counted from midnight, so they fall in daytime
+        // whenever the demo starts. Only the trip in progress runs from now.
         var now = DateTime.UtcNow;
+        var today = now.Date;
         return
         [
             // All waypoints sourced from OSRM road routing, so the coordinates follow real roads.
-            BuildTrip(0, now.AddDays(-2).AddHours(8), "Amsterdam to Schiphol", id: 1,
+            BuildTrip(0, today.AddDays(-2).AddHours(8), "Amsterdam to Schiphol", id: 1,
             [
                 (52.3768, 4.9006, 30),
                 (52.3783, 4.9049, 40),
@@ -122,7 +125,7 @@ internal static class DemoTrips
                 (52.3078, 4.7471, 90),
                 (52.3090, 4.7635, 30),
             ]),
-            BuildTrip(1, now.AddDays(-5).AddHours(9), "Amsterdam to Haarlem", id: 2,
+            BuildTrip(1, today.AddDays(-5).AddHours(9), "Amsterdam to Haarlem", id: 2,
             [
                 (52.3676, 4.9041, 25),
                 (52.3625, 4.9071, 40),
@@ -136,7 +139,7 @@ internal static class DemoTrips
                 (52.3831, 4.7081, 50),
                 (52.3871, 4.6458, 20),
             ]),
-            BuildTrip(2, now.AddDays(-8).AddHours(14), "City drive", id: 3,
+            BuildTrip(2, today.AddDays(-8).AddHours(14), "City drive", id: 3,
             [
                 (52.3676, 4.9041, 25),
                 (52.3618, 4.9075, 30),
@@ -148,7 +151,7 @@ internal static class DemoTrips
                 (52.3702, 4.8958, 30),
                 (52.3676, 4.9041, 20),
             ]),
-            BuildTrip(3, now.AddDays(-12).AddHours(10), "Amsterdam to Utrecht", id: 4,
+            BuildTrip(3, today.AddDays(-12).AddHours(10), "Amsterdam to Utrecht", id: 4,
             [
                 (52.3676, 4.9041, 30),
                 (52.3516, 4.9137, 55),
@@ -166,7 +169,7 @@ internal static class DemoTrips
                 (52.1137, 5.1220, 60),
                 (52.0907, 5.1215, 30),
             ]),
-            BuildTrip(4, now.AddDays(-18).AddHours(16), "Amsterdam to Almere", id: 5,
+            BuildTrip(4, today.AddDays(-18).AddHours(16), "Amsterdam to Almere", id: 5,
             [
                 (52.3676, 4.9041, 30),
                 (52.3516, 4.9137, 60),
@@ -185,7 +188,7 @@ internal static class DemoTrips
                 (52.3686, 5.2045, 60),
                 (52.3702, 5.2159, 30),
             ]),
-            BuildTrip(5, now.AddDays(-3).AddHours(17), "Den Haag to Delft", id: 6,
+            BuildTrip(5, today.AddDays(-3).AddHours(17), "Den Haag to Delft", id: 6,
             [
                 (52.0707, 4.3008, 20),
                 (52.0674, 4.3034, 55),
@@ -196,7 +199,7 @@ internal static class DemoTrips
                 (52.0227, 4.3471, 55),
                 (52.0117, 4.3573, 20),
             ]),
-            BuildTrip(6, now.AddDays(-7).AddHours(8), "Zaandam to Amsterdam", id: 7,
+            BuildTrip(6, today.AddDays(-7).AddHours(8), "Zaandam to Amsterdam", id: 7,
             [
                 (52.4379, 4.8250, 20),
                 (52.4296, 4.8254, 50),
@@ -210,7 +213,7 @@ internal static class DemoTrips
                 (52.3743, 4.9122, 60),
                 (52.3676, 4.9041, 25),
             ]),
-            BuildTrip(7, now.AddDays(-20).AddHours(10), "Amsterdam to Amstelveen", id: 8,
+            BuildTrip(7, today.AddDays(-20).AddHours(10), "Amsterdam to Amstelveen", id: 8,
             [
                 (52.3676, 4.9041, 25),
                 (52.3516, 4.9137, 55),
@@ -224,7 +227,7 @@ internal static class DemoTrips
                 (52.2976, 4.8944, 60),
                 (52.3003, 4.8596, 25),
             ]),
-            BuildTrip(8, now.AddDays(-25).AddHours(14), "Utrecht to Amersfoort", id: 9,
+            BuildTrip(8, today.AddDays(-25).AddHours(14), "Utrecht to Amersfoort", id: 9,
             [
                 (52.0907, 5.1215, 25),
                 (52.0931, 5.1367, 50),
@@ -239,7 +242,7 @@ internal static class DemoTrips
                 (52.1281, 5.3635, 70),
                 (52.1561, 5.3878, 25),
             ]),
-            BuildTrip(9, now.AddDays(-35).AddHours(11), "Tilburg to Breda", id: 10,
+            BuildTrip(9, today.AddDays(-35).AddHours(11), "Tilburg to Breda", id: 10,
             [
                 (51.5556, 5.0915, 25),
                 (51.5380, 5.0634, 80),

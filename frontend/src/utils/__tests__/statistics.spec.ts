@@ -9,11 +9,14 @@ import {
   bucketDays,
   bucketTickFormat,
   bucketTotals,
+  countedDistanceKm,
   hasDailyReadings,
   hasSpeedReadings,
   monthlyTotals,
   parkingSpots,
   peakDriveHour,
+  periodCounterTotal,
+  periodDistanceKm,
   roundedRange,
   totalDistanceKm,
 } from '@/utils/statistics'
@@ -90,6 +93,7 @@ export function day(date: string, overrides: Partial<DailyStat> = {}): DailyStat
     counterTotal: null,
     sinceChargeTotal: null,
     counterUnbacked: false,
+    distanceKm: null,
     ...overrides,
   }
 }
@@ -192,5 +196,53 @@ describe('monthlyTotals', () => {
       ['2026-08', 1, 12, 1.5],
       ['2026-09', 2, 38, 5],
     ])
+  })
+
+  it("pairs each month's counter with the distance the car counted on the same days", () => {
+    const days = [
+      day('2026-09-01', { counterTotal: 4, distanceKm: 30 }),
+      day('2026-09-02', { counterTotal: 0.3, distanceKm: 0 }),
+      day('2026-09-03', { counterTotal: 2 }),
+    ]
+
+    const months = monthlyTotals([], days, new Date(2026, 7, 20), new Date(2026, 8, 3), 'bev')
+
+    expect(months.map((m) => m.used)).toEqual([null, { counter: 4.3, distanceKm: 30 }])
+    expect(months.map((m) => m.distanceKm)).toEqual([0, 30])
+    expect(months[1]!.counterTotal).toBeCloseTo(6.3, 6)
+  })
+})
+
+describe('periodDistanceKm', () => {
+  const trips = [tripSummary({ distanceKm: 12 }), tripSummary({ distanceKm: 30 })]
+
+  // Trips are drawn between fixes minutes apart, so they come out shorter than the road.
+  it("takes the car's own count, a parked day at 0 km included", () => {
+    const days = [
+      day('2026-11-02', { distanceKm: 13 }),
+      day('2026-11-03', { distanceKm: 0 }),
+      day('2026-11-04', { distanceKm: 33 }),
+      day('2026-11-05'),
+    ]
+    expect(countedDistanceKm(days)).toBe(46)
+    expect(periodDistanceKm(days, trips)).toBe(46)
+  })
+
+  it('falls back to the trips for a car that counts no distance', () => {
+    expect(countedDistanceKm([day('2026-11-02')])).toBeNull()
+    expect(periodDistanceKm([day('2026-11-02')], trips)).toBe(42)
+    expect(periodDistanceKm([], [])).toBeNull()
+  })
+})
+
+describe('periodCounterTotal', () => {
+  it('adds up the period, taking the since-last-charge figure for a runaway day', () => {
+    const days = [
+      day('2026-11-02', { counterTotal: 134.24, sinceChargeTotal: 0.75, counterUnbacked: true }),
+      day('2026-11-03', { counterTotal: 1.5 }),
+      day('2026-11-04'),
+    ]
+    expect(periodCounterTotal(days, 'bev')).toBeCloseTo(2.25, 6)
+    expect(periodCounterTotal([day('2026-11-04')], 'bev')).toBeNull()
   })
 })

@@ -35,8 +35,9 @@ public class DailyStatsBuilderTests
     private static readonly TimeZoneInfo Amsterdam = TimeZoneInfo.FindSystemTimeZoneById("Europe/Amsterdam");
     private static readonly DateOnly Today = new(2026, 10, 12);
 
-    private static TelemetryHistoryPoint Reading(DateTime utc, double? soc = null, double? volts = null, double? counter = null) =>
-        new(utc, null, soc, counter, volts, null, null, null, null, null, null, null, null, null, null, null);
+    private static TelemetryHistoryPoint Reading(
+        DateTime utc, double? soc = null, double? volts = null, double? counter = null, double? distance = null) =>
+        new(utc, null, soc, counter, volts, null, null, null, null, null, null, distance, null, null, null, null);
 
     [Fact]
     public void AReadingBelongsToItsLocalDay()
@@ -93,6 +94,40 @@ public class DailyStatsBuilderTests
         builder.Add(Reading(today.AddHours(1), counter: 12));
 
         Assert.Equal([9.0, 3.0], builder.Build().Select(s => s.CounterTotal));
+    }
+
+    // The distance counter pairs with the energy counter, so it is read the same way: a finished
+    // day by its peak, today by what came after the reset. A day the car stood still is 0 km, so
+    // its standby use still counts against the period's distance.
+    [Fact]
+    public void TheDistanceCounterIsReadLikeTheEnergyCounter()
+    {
+        var builder = new DailyStatsBuilder(Amsterdam, Today.AddDays(-2), Today, Today);
+        var parked = new DateTime(2026, 10, 10, 8, 0, 0, DateTimeKind.Utc);
+        var yesterday = new DateTime(2026, 10, 11, 8, 0, 0, DateTimeKind.Utc);
+        var today = new DateTime(2026, 10, 12, 8, 0, 0, DateTimeKind.Utc);
+
+        builder.Add(Reading(parked, distance: 0));
+        builder.Add(Reading(parked.AddHours(8), distance: 0));
+        builder.Add(Reading(yesterday, distance: 12));
+        builder.Add(Reading(yesterday.AddHours(8), distance: 30));
+        builder.Add(Reading(today, distance: 30));
+        builder.Add(Reading(today.AddHours(1), distance: 0));
+        builder.Add(Reading(today.AddHours(2), distance: 5));
+
+        Assert.Equal([0.0, 30.0, 5.0], builder.Build().Select(s => s.DistanceKm));
+    }
+
+    [Theory]
+    [InlineData(new double[] { }, true, null)]
+    [InlineData(new double[] { }, false, null)]
+    // Yesterday's total carried over and no driving yet: nothing driven today, not unknown.
+    [InlineData(new[] { 30.0, 30.0 }, true, 0.0)]
+    [InlineData(new[] { 0.0, 0.0 }, false, 0.0)]
+    [InlineData(new[] { 1.0, 2.0, 4.0 }, false, 4.0)]
+    public void DistanceTotal_IsZeroRatherThanNullForADayWithoutDriving(double[] readings, bool isPartialDay, double? expected)
+    {
+        Assert.Equal(expected, DailyStatsBuilder.DistanceTotal(readings, isPartialDay));
     }
 
     [Fact]
