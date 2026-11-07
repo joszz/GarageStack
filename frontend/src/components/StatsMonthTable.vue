@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { EnergyUnit } from '@/utils/energy'
-import { litres } from '@/utils/energy'
+import type { CounterOverDistance, EnergyUnit } from '@/utils/energy'
+import { addCounterOverDistance, efficiency, litres } from '@/utils/energy'
 import type { MonthTotal } from '@/utils/statistics'
 import { formatDate, formatNumber } from '@/utils/format'
 import { useUnits } from '@/composables/useUnits'
@@ -25,6 +25,23 @@ const energyHeader = computed(() =>
     : t('statistics.months.energy'),
 )
 
+const efficiencyHeader = computed(() =>
+  t('statistics.months.efficiency', {
+    unit: units.value.symbol(
+      props.energyUnit === 'litres' ? 'fuelConsumption' : 'energyPerDistance',
+    ),
+  }),
+)
+
+// What the month used per distance, in the unit the header names, or a dash for a month with too
+// little driving to say.
+function efficiencyText(used: CounterOverDistance | null): string {
+  const perDistance = props.energyUnit ? efficiency(used, props.energyUnit) : null
+  return perDistance
+    ? (units.value.measure(perDistance.quantity, perDistance.metric)?.value ?? '-')
+    : '-'
+}
+
 // The counter in what this page shows it in: kWh as it is, a hybrid's hundredths of a litre as
 // litres (or gallons).
 function energyText(counter: number | null): string {
@@ -45,6 +62,7 @@ const rows = computed(() =>
     trips: m.trips,
     distance: distanceText(m.distanceKm),
     energy: energyText(m.counterTotal),
+    efficiency: efficiencyText(m.used),
   })),
 )
 
@@ -54,6 +72,12 @@ const total = computed(() => {
     trips: props.months.reduce((sum, m) => sum + m.trips, 0),
     distance: distanceText(props.months.reduce((sum, m) => sum + m.distanceKm, 0)),
     energy: energyText(counters.length ? counters.reduce((sum, c) => sum + c, 0) : null),
+    efficiency: efficiencyText(
+      props.months.reduce<CounterOverDistance | null>(
+        (sum, m) => addCounterOverDistance(sum, m.used),
+        null,
+      ),
+    ),
   }
 })
 </script>
@@ -68,6 +92,9 @@ const total = computed(() => {
           <th scope="col" class="stats-months__number">{{ t('statistics.months.trips') }}</th>
           <th scope="col" class="stats-months__number">{{ distanceHeader }}</th>
           <th v-if="energyUnit" scope="col" class="stats-months__number">{{ energyHeader }}</th>
+          <th v-if="energyUnit" scope="col" class="stats-months__number">
+            {{ efficiencyHeader }}
+          </th>
         </tr>
       </thead>
       <tbody>
@@ -76,6 +103,7 @@ const total = computed(() => {
           <td class="stats-months__number">{{ row.trips }}</td>
           <td class="stats-months__number">{{ row.distance }}</td>
           <td v-if="energyUnit" class="stats-months__number">{{ row.energy }}</td>
+          <td v-if="energyUnit" class="stats-months__number">{{ row.efficiency }}</td>
         </tr>
       </tbody>
       <tfoot>
@@ -84,6 +112,7 @@ const total = computed(() => {
           <td class="stats-months__number">{{ total.trips }}</td>
           <td class="stats-months__number">{{ total.distance }}</td>
           <td v-if="energyUnit" class="stats-months__number">{{ total.energy }}</td>
+          <td v-if="energyUnit" class="stats-months__number">{{ total.efficiency }}</td>
         </tr>
       </tfoot>
     </table>

@@ -5,7 +5,14 @@ import type { StatsChartType } from '@/components/StatsChartCard.vue'
 import type { DailyStat } from '@/services/vehicleApi'
 import type { StatsChartId } from '@/stores/settingsShared'
 import type { VehicleType } from '@/stores/vehicle'
-import { dailyCounterTotal, energyUnit, litres } from '@/utils/energy'
+import {
+  counterOverDistance,
+  dailyCounterTotal,
+  efficiency,
+  energyUnit,
+  litres,
+  MIN_EFFICIENCY_DISTANCE_KM,
+} from '@/utils/energy'
 import { formatDate, numberLocale } from '@/utils/format'
 import {
   bucketAverages,
@@ -125,10 +132,25 @@ function useChartFrame(buckets: Ref<StatsBucket[]>, grouping: Ref<StatsGrouping>
 
   // All charts share the same responsive/axis setup; they differ only in aspect ratio, legend
   // and y-axis range. The locale makes axis and tooltip numbers read like the rest of the page,
-  // and the theme's colours make the axes, grid and legend fit it.
-  function chartOptions(aspectRatio: number, legend: boolean, y: { min: number; max?: number }) {
+  // and the theme's colours make the axes, grid and legend fit it. A second series in another
+  // unit gets its own axis on the right, without gridlines of its own.
+  function chartOptions(
+    aspectRatio: number,
+    legend: boolean,
+    y: { min: number; max?: number },
+    y1?: { min: number },
+  ) {
     const { text, grid } = chartTheme.value
     const axis = { grid: { color: grid }, border: { color: grid } }
+    const rightAxis = y1 && {
+      y1: {
+        ...y1,
+        position: 'right' as const,
+        grid: { drawOnChartArea: false },
+        border: { color: grid },
+        ticks: { color: text },
+      },
+    }
     return {
       locale: numberLocale(),
       responsive: true,
@@ -149,6 +171,7 @@ function useChartFrame(buckets: Ref<StatsBucket[]>, grouping: Ref<StatsGrouping>
           },
         },
         y: { ...y, ...axis, ticks: { color: text } },
+        ...rightAxis,
       },
     }
   }
@@ -220,10 +243,28 @@ export function useStatisticsCharts(
   // battery on a plug-in car, litres of fuel on a plain hybrid. See utils/energy.
   const reportsFuelCounter = computed(() => energyUnit(vehicleType.value) === 'litres')
 
+  // How much each point used per distance, from the same days as its bar: kWh/100 km on a
+  // plug-in car, fuel consumption on a hybrid. A point with too little driving has none.
+  const efficiencyQuantity = computed(() =>
+    reportsFuelCounter.value ? ('fuelConsumption' as const) : ('energyPerDistance' as const),
+  )
+  const efficiencyPoints = computed(() =>
+    buckets.value.map((bucket) => {
+      const used = efficiency(
+        counterOverDistance(bucket.days, vehicleType.value),
+        energyUnit(vehicleType.value),
+      )
+      return used ? roundTo2(units.value.convert(used.quantity, used.metric)) : null
+    }),
+  )
+  const hasEfficiency = computed(() => efficiencyPoints.value.some((p) => p !== null))
+
   const dailyEnergyChartData = computed(() => ({
     labels: labels.value,
     datasets: [
       {
+        type: 'bar' as const,
+        order: 1,
         label: reportsFuelCounter.value ? units.value.symbol('volume') : t('common.kwh'),
         data: bucketTotals(buckets.value, (d) => dailyCounterTotal(d, vehicleType.value)).map(
           (total) => {
@@ -235,6 +276,21 @@ export function useStatisticsCharts(
         borderColor: '#f59e0b',
         backgroundColor: 'rgba(245,158,11,0.7)',
       },
+      // Drawn over the bars, on the right-hand axis, and only where there is something to draw.
+      ...(hasEfficiency.value
+        ? [
+            {
+              ...lineDataset(
+                units.value.symbol(efficiencyQuantity.value),
+                efficiencyPoints.value,
+                '#10b981',
+              ),
+              type: 'line' as const,
+              order: 0,
+              yAxisID: 'y1',
+            },
+          ]
+        : []),
     ],
   }))
 
@@ -248,7 +304,11 @@ export function useStatisticsCharts(
     )
   })
   const hybridSocOptions = computed(() => chartOptions(2.6, true, PERCENT_AXIS))
-  const kwhOptions = computed(() => chartOptions(2.6, false, { min: 0 }))
+  const kwhOptions = computed(() =>
+    hasEfficiency.value
+      ? chartOptions(2.6, true, { min: 0 }, { min: 0 })
+      : chartOptions(2.6, false, { min: 0 }),
+  )
 
   return computed((): ChartDef[] => [
     {
@@ -294,9 +354,15 @@ export function useStatisticsCharts(
       title: reportsFuelCounter.value
         ? t(`statistics.fuelChart.${grouping.value}`, { unit: units.value.symbol('volume') })
         : t(`statistics.energyChart.${grouping.value}`),
-      description: reportsFuelCounter.value
-        ? t('statistics.chartDesc.dailyFuelChart')
-        : t('statistics.chartDesc.dailyKwhChart'),
+      description: t(
+        reportsFuelCounter.value
+          ? 'statistics.chartDesc.dailyFuelChart'
+          : 'statistics.chartDesc.dailyKwhChart',
+        {
+          unit: units.value.symbol(efficiencyQuantity.value),
+          min: units.value.format('distance', MIN_EFFICIENCY_DISTANCE_KM, { decimals: 0 }),
+        },
+      ),
       vehicleApplicable: countsDailyEnergy.value,
       applicable: countsDailyEnergy.value && hasData.value,
       type: 'bar',

@@ -18,15 +18,6 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
 
     private TelemetrySnapshot _current = BuildDefaultSnapshot();
 
-    // A little over a year, so the statistics have something to show for last year and per month.
-    private const int HistoryDays = 400;
-
-    private const int SlowLeakDays = 12;
-    private const double SlowLeakBarPerDay = 0.02;
-
-    private static readonly Lazy<IReadOnlyList<TelemetrySnapshot>> _history =
-        new(BuildHistory, LazyThreadSafetyMode.ExecutionAndPublication);
-
     public Task<long> AddAsync(TelemetrySnapshot snapshot, CancellationToken ct = default) =>
         Task.FromResult(Interlocked.Increment(ref _nextId));
 
@@ -42,7 +33,7 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
         int vehicleId, DateOnly from, DateOnly to, TimeZoneInfo zone, DateOnly today, CancellationToken ct = default)
     {
         var builder = new DailyStatsBuilder(zone, from, to, today);
-        foreach (var snapshot in _history.Value.OrderBy(s => s.RecordedAt))
+        foreach (var snapshot in DemoHistory.Snapshots.OrderBy(s => s.RecordedAt))
             builder.Add(TelemetryHistoryPoint.FromSnapshot(snapshot));
         return Task.FromResult(builder.Build());
     }
@@ -82,7 +73,7 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
     public async IAsyncEnumerable<TelemetrySnapshot> StreamAllAsync(
         int vehicleId, [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken ct = default)
     {
-        foreach (var snapshot in _history.Value.OrderBy(s => s.RecordedAt))
+        foreach (var snapshot in DemoHistory.Snapshots.OrderBy(s => s.RecordedAt))
         {
             ct.ThrowIfCancellationRequested();
             yield return snapshot;
@@ -105,7 +96,7 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
     public Task<VehicleAggregateStats> GetAggregateStatsAsync(
         int vehicleId, DateTime from, DateTime to, CancellationToken ct = default)
     {
-        var history = _history.Value.Where(s => s.RecordedAt >= from && s.RecordedAt <= to).ToList();
+        var history = DemoHistory.Snapshots.Where(s => s.RecordedAt >= from && s.RecordedAt <= to).ToList();
         var known = history.Count(s => s.ClimateOn != null);
         var on = history.Count(s => s.ClimateOn == true);
         var pct = known > 0 ? (int?)Math.Round((double)on / known * 100) : null;
@@ -141,7 +132,7 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
             if (dto.EvSocPercent.HasValue)
             {
                 _current.EvSocPercent = dto.EvSocPercent;
-                _current.HvSocKwh = Math.Round(dto.EvSocPercent.Value / 100.0 * 70.0, 1);
+                _current.HvSocKwh = Math.Round(dto.EvSocPercent.Value / 100.0 * DemoHistory.CapacityKwh, 1);
                 _current.ElectricRangeKm = ElectricRangeAt(dto.EvSocPercent.Value);
             }
             if (dto.InteriorTemperature.HasValue) _current.InteriorTemperature = dto.InteriorTemperature;
@@ -232,6 +223,12 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
     {
         var current = DemoTrips.InProgressWaypoints[^1];
 
+        // Carries on from the history: today's drives so far plus the trip in progress.
+        var history = DemoHistory.Last;
+        var drivingKm = DemoTrips.InProgressDistanceKm;
+        var drivingKwh = drivingKm * DemoHistory.InProgressKwhPerKm;
+        var soc = Math.Round(history.SocPercent - drivingKwh / DemoHistory.CapacityKwh * 100);
+
         return new()
         {
             Id = 1,
@@ -239,10 +236,10 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
             RecordedAt = DateTime.UtcNow,
             FuelLevelPercent = 68,
             FuelRangeKm = 420,
-            EvSocPercent = 71,
-            ElectricRangeKm = ElectricRangeAt(71),
-            HvSocKwh = Math.Round(71.0 / 100.0 * 70.0, 1),
-            HvTotalCapacityKwh = 70.0,
+            EvSocPercent = soc,
+            ElectricRangeKm = ElectricRangeAt(soc),
+            HvSocKwh = Math.Round(soc / 100.0 * DemoHistory.CapacityKwh, 1),
+            HvTotalCapacityKwh = DemoHistory.CapacityKwh,
             HvVoltage = 386.0,
             HvCurrent = 42.0,
             HvPower = 16.2,
@@ -300,108 +297,13 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
             IsAvailable = true,
             LastVehicleStateAt = DateTime.UtcNow,
             LastChargeStateAt = DateTime.UtcNow.AddHours(-8),
-            MileageSinceLastCharge = 32.4,
-            MileageOfTheDay = 18.2,
-            PowerUsageOfDay = 2.95,
+            MileageSinceLastCharge = Math.Round(history.SinceChargeKm + drivingKm, 1),
+            MileageOfTheDay = Math.Round(history.DayKm + drivingKm, 1),
+            PowerUsageOfDay = Math.Round(history.DayKwh + drivingKwh, 2),
+            PowerUsageSinceLastCharge = Math.Round(history.SinceChargeKwh + drivingKwh, 2),
             ChargingScheduleMode = "UNTIL_CONFIGURED_TIME",
             ChargingScheduleStartTime = "00:00",
             ChargingScheduleEndTime = "07:00",
         };
-    }
-
-    private static IReadOnlyList<TelemetrySnapshot> BuildHistory()
-    {
-        var rng = new Random(42);
-        var snapshots = new List<TelemetrySnapshot>(HistoryDays * 4);
-        var baseDate = DateTime.UtcNow.Date.AddDays(-HistoryDays);
-        var odometer = 24300.0;
-        var soc = 88.0;
-        var fuel = 80.0;
-        var usedTodayKwh = 0.0;
-        var idCounter = 100L;
-
-        // 4 snapshots per day: depart (7h), midday (12h), return (17h), plug in (22h)
-        var dayHours = new[] { 7, 12, 17, 22 };
-        for (var day = 0; day < HistoryDays; day++)
-        {
-            for (var hi = 0; hi < dayHours.Length; hi++)
-            {
-                var hour = dayHours[hi];
-                var ts = baseDate.AddDays(day).AddHours(hour).AddMinutes(rng.Next(0, 30));
-
-                if (hour == 7)
-                {
-                    // after overnight charge
-                    soc = 87 + rng.Next(-2, 8);
-                    usedTodayKwh = 0;
-                }
-                else if (hour == 12)
-                {
-                    var consumed = 6 + rng.Next(0, 5);
-                    soc -= consumed;
-                    usedTodayKwh += consumed * 0.7;
-                    fuel -= 1.5 + rng.NextDouble();
-                    odometer += consumed * 7.2;
-                }
-                else if (hour == 17)
-                {
-                    var consumed = 5 + rng.Next(0, 5);
-                    soc -= consumed;
-                    usedTodayKwh += consumed * 0.7;
-                    fuel -= 1.0 + rng.NextDouble();
-                    odometer += consumed * 7.2;
-                }
-                else if (hour == 22 && day % 7 == 0)
-                {
-                    // weekly refuel
-                    fuel = 90 + rng.Next(0, 10);
-                }
-
-                soc = Math.Clamp(soc, 10, 97);
-                fuel = Math.Clamp(fuel, 5, 100);
-
-                var isCharging = hour == 22;
-                var extTemp = 13.0 + (rng.NextDouble() - 0.5) * 10.0;
-                var frontPressure = 2.4 + (rng.NextDouble() - 0.5) * 0.06;
-                var rearPressure = 2.5 + (rng.NextDouble() - 0.5) * 0.06;
-                // The rear right has a slow puncture: over the last twelve days it loses air the
-                // other three keep, for the tyre history and the slow-puncture alert to show.
-                var leak = Math.Max(0, day - (HistoryDays - SlowLeakDays)) * SlowLeakBarPerDay;
-
-                snapshots.Add(new TelemetrySnapshot
-                {
-                    Id = idCounter++,
-                    VehicleId = 1,
-                    RecordedAt = ts,
-                    FuelLevelPercent = Math.Round(fuel, 1),
-                    FuelRangeKm = Math.Round(fuel / 100.0 * 650.0, 0),
-                    EvSocPercent = Math.Round(soc, 1),
-                    HvSocKwh = Math.Round(soc / 100.0 * 70.0, 1),
-                    HvTotalCapacityKwh = 70.0,
-                    // The counter restarts at midnight. 22:00 UTC is already the next day in much
-                    // of Europe, so that reading leaves it out rather than carry the day over.
-                    PowerUsageOfDay = hour == 22 ? null : Math.Round(usedTodayKwh, 1),
-                    OdometerKm = Math.Round(odometer, 1),
-                    IsCharging = isCharging,
-                    ChargerConnected = isCharging || hour == 7,
-                    ExteriorTemperature = Math.Round(extTemp, 1),
-                    InteriorTemperature = Math.Round(extTemp + rng.NextDouble() * 4.0, 1),
-                    TyrePressureFrontLeft = Math.Round(frontPressure, 2),
-                    TyrePressureFrontRight = Math.Round(frontPressure + (rng.NextDouble() - 0.5) * 0.04, 2),
-                    TyrePressureRearLeft = Math.Round(rearPressure, 2),
-                    TyrePressureRearRight = Math.Round(rearPressure - leak + (rng.NextDouble() - 0.5) * 0.04, 2),
-                    MileageOfTheDay = hour >= 12 ? Math.Round((odometer - 24300 - day * 90) % 200, 1) : 0,
-                    BatteryVoltage = 12.6 + rng.NextDouble() * 0.3,
-                    Latitude = 52.3676 + (rng.NextDouble() - 0.5) * 0.02,
-                    Longitude = 4.9041 + (rng.NextDouble() - 0.5) * 0.02,
-                    Speed = 0,
-                    IsLocked = true,
-                    EngineRunning = false,
-                    HvBatteryActive = true,
-                });
-            }
-        }
-
-        return snapshots;
     }
 }

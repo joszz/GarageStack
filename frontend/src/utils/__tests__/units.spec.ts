@@ -42,7 +42,8 @@ describe('UnitFormatter', () => {
 
     expect(units.format('distance', 12.34)).toBe('12.3 km')
     expect(units.format('speed', 87.6)).toBe('88 km/h')
-    expect(units.format('energyPerDistance', 164.4)).toBe('164 Wh/km')
+    // Wh/km from the API, shown per 100 km as car makers quote it.
+    expect(units.format('energyPerDistance', 164.4)).toBe('16.4 kWh/100 km')
     expect(units.format('pressure', 2.5)).toBe('2.50 bar')
     expect(units.format('temperature', 21.46)).toBe('21.5 °C')
     expect(units.format('fuelConsumption', 5.26)).toBe('5.3 L/100 km')
@@ -55,7 +56,7 @@ describe('UnitFormatter', () => {
     expect(units.format('distance', 100)).toBe('62.1 mi')
     expect(units.format('speed', 130)).toBe('81 mph')
     // A mile takes 1.6 times the energy a kilometre does.
-    expect(units.format('energyPerDistance', 160)).toBe('257 Wh/mi')
+    expect(units.format('energyPerDistance', 160)).toBe('25.7 kWh/100 mi')
     expect(units.format('distancePerPercent', 8)).toBe('5.0 mi/%')
   })
 
