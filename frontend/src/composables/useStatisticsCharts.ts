@@ -41,7 +41,7 @@ const CHART_ICONS: Record<StatsChartId, string> = {
   dailyKwhChart: 'bolt-lightning',
 }
 
-// Named in the legend by their short translated position (FL in English, LV in Dutch).
+// Named in the legend by their short translated position (FL in English, LV in Dutch, DI in Spanish).
 const TYRE_SERIES: {
   position: 'frontLeft' | 'frontRight' | 'rearLeft' | 'rearRight'
   read: (d: DailyStat) => number | null

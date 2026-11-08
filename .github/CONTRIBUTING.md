@@ -51,12 +51,12 @@ To work against the full stack (real or self-provided credentials):
 
 ## Adding a language
 
-GarageStack ships in English and Dutch. A new language touches these places (use its two-letter code, here `de`):
+GarageStack ships in English, Dutch and Spanish. A new language touches these places (use its two-letter code, here `de`):
 
 - **Interface:** copy `frontend/src/locales/en.json` to `de.json` and translate the values; keys and `{placeholders}` stay as they are. English is the fallback for any key a language lacks.
 - **Language list:** add `'de'` to the `Locale` type in `frontend/src/stores/settingsShared.ts` (and to its browser-language guess just below it), a loader to `loadMessages` in `frontend/src/i18n.ts` (each language is a chunk fetched when first chosen), and its number and date locale in `frontend/src/utils/format.ts`.
-- **Language setting:** Settings > Language is a two-way switch with flags (`frontend/src/components/settings/SettingsModal.vue`). A third language turns it into a choice of several.
-- **Notifications:** copy `src/GarageStack.Worker/Resources/NotificationStrings.resx` to `NotificationStrings.de.resx`. `NOTIFICATION_LANGUAGE=de` then picks it; document the value in `documentation/CONFIGURATION.md`.
+- **Language setting:** add the language to the choice in Settings > Language (`frontend/src/components/settings/SettingsModal.vue`).
+- **Notifications:** copy `src/GarageStack.Worker/Resources/NotificationStrings.resx` to `NotificationStrings.de.resx`. `NOTIFICATION_LANGUAGE=de` then picks it; document the value in `documentation/CONFIGURATION.md`, `.env.example` and `unraid/garagestack.xml`.
 - **Homepage widget and API:** copy `src/GarageStack.Api/Resources/WidgetStrings.resx` to `WidgetStrings.de.resx`, and add the culture to `SupportedCultures` and `SupportedUICultures` in `src/GarageStack.Api/Program.cs`.
 - **Place names:** add the code to `GeocodeDefaults.SupportedLanguages` in `src/GarageStack.Core/Configuration` so addresses come back in that language.
 

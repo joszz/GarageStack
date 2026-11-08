@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { nextTick } from 'vue'
-import { defaultCards } from '@/stores/settingsShared'
+import { browserLocale, defaultCards } from '@/stores/settingsShared'
 import { ALL_CARD_IDS } from '@/cards/registry'
 import { useUiSettingsStore } from '@/stores/settingsUi'
 import { useDashboardSettingsStore } from '@/stores/settingsDashboard'
@@ -28,7 +28,14 @@ describe('useUiSettingsStore', () => {
 
   afterEach(() => {
     vi.useRealTimers()
+    vi.unstubAllGlobals()
     setRegionalFormat({ region: null, hourCycle: 'h23' })
+  })
+
+  it('detects Spanish from the browser language', () => {
+    vi.stubGlobal('navigator', { language: 'es-ES' })
+
+    expect(browserLocale()).toBe('es')
   })
 
   it('defaults to dark theme when matchMedia reports no light preference', () => {
@@ -86,6 +93,12 @@ describe('useUiSettingsStore', () => {
     expect(store.locale).toBe('nl')
     expect(store.vehicleTypeOverride).toBe('bev')
     expect(store.filterDays).toBe(14)
+  })
+
+  it('keeps a stored Spanish locale when loading settings', () => {
+    localStorage.setItem(UI_KEY, JSON.stringify({ locale: 'es' }))
+
+    expect(useUiSettingsStore().locale).toBe('es')
   })
 
   it('defaults placeNamesEnabled to on', () => {

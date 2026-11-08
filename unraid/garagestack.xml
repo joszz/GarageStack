@@ -410,7 +410,7 @@
     Target="NOTIFICATION_LANGUAGE"
     Default="en"
     Mode=""
-    Description="Language of the push notification texts (Engine started, Door left open, ...): en or nl. Notifications are written by the background worker, which has no browser to take a language from, so this is set per deployment."
+    Description="Language of the push notification texts (Engine started, Door left open, ...): en, nl or es. Notifications are written by the background worker, which has no browser to take a language from, so this is set per deployment."
     Type="Variable"
     Display="advanced"
     Required="false"

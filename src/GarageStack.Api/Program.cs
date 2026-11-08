@@ -149,8 +149,8 @@ try
     app.UseRequestLocalization(new RequestLocalizationOptions
     {
         DefaultRequestCulture = new RequestCulture("en"),
-        SupportedCultures = [new CultureInfo("en"), new CultureInfo("nl")],
-        SupportedUICultures = [new CultureInfo("en"), new CultureInfo("nl")],
+        SupportedCultures = [new CultureInfo("en"), new CultureInfo("nl"), new CultureInfo("es")],
+        SupportedUICultures = [new CultureInfo("en"), new CultureInfo("nl"), new CultureInfo("es")],
     });
     app.UseAuthentication();
     app.UseMiddleware<ApiTokenAuthentication.ReadOnlyMiddleware>();

@@ -1,0 +1,291 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>1.3</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="EngineStartTitle" xml:space="preserve">
+    <value>Motor arrancado</value>
+  </data>
+  <data name="EngineStartBody" xml:space="preserve">
+    <value>Se ha arrancado el coche.</value>
+  </data>
+  <data name="LowTyreTitle" xml:space="preserve">
+    <value>Presión baja de los neumáticos</value>
+  </data>
+  <data name="LowTyreBody" xml:space="preserve">
+    <value>Presión de los neumáticos baja: {0}</value>
+  </data>
+  <data name="HighTyreTitle" xml:space="preserve">
+    <value>Presión alta de los neumáticos</value>
+  </data>
+  <data name="HighTyreBody" xml:space="preserve">
+    <value>Presión de los neumáticos alta: {0}</value>
+  </data>
+  <data name="SlowPunctureTitle" xml:space="preserve">
+    <value>Posible pinchazo lento</value>
+  </data>
+  <data name="SlowPunctureBody" xml:space="preserve">
+    <value>El neumático {0} ha perdido {1} bar respecto a los demás durante los últimos {2} días. Comprueba si tiene un pinchazo lento.</value>
+  </data>
+  <data name="MovedParkedTitle" xml:space="preserve">
+    <value>El coche se ha movido estando aparcado</value>
+  </data>
+  <data name="MovedParkedBody" xml:space="preserve">
+    <value>Tu coche está a {0} km del lugar donde estaba aparcado, con el motor apagado.</value>
+  </data>
+  <data name="PlaceArrivedHomeTitle" xml:space="preserve">
+    <value>Llegada a casa</value>
+  </data>
+  <data name="PlaceArrivedWorkTitle" xml:space="preserve">
+    <value>Llegada al trabajo</value>
+  </data>
+  <data name="PlaceArrivedTitle" xml:space="preserve">
+    <value>Llegada a {0}</value>
+  </data>
+  <data name="PlaceArrivedBody" xml:space="preserve">
+    <value>El coche ha aparcado allí.</value>
+  </data>
+  <data name="PlaceLeftHomeTitle" xml:space="preserve">
+    <value>Salida de casa</value>
+  </data>
+  <data name="PlaceLeftWorkTitle" xml:space="preserve">
+    <value>Salida del trabajo</value>
+  </data>
+  <data name="PlaceLeftTitle" xml:space="preserve">
+    <value>Salida de {0}</value>
+  </data>
+  <data name="PlaceLeftBody" xml:space="preserve">
+    <value>El coche se ha marchado.</value>
+  </data>
+  <data name="TyreFrontLeft" xml:space="preserve">
+    <value>delantero izquierdo</value>
+  </data>
+  <data name="TyreFrontRight" xml:space="preserve">
+    <value>delantero derecho</value>
+  </data>
+  <data name="TyreRearLeft" xml:space="preserve">
+    <value>trasero izquierdo</value>
+  </data>
+  <data name="TyreRearRight" xml:space="preserve">
+    <value>trasero derecho</value>
+  </data>
+  <data name="LowEvTitle" xml:space="preserve">
+    <value>Batería eléctrica baja</value>
+  </data>
+  <data name="LowEvBody" xml:space="preserve">
+    <value>Batería eléctrica al {0} %</value>
+  </data>
+  <data name="ChargingCompleteTitle" xml:space="preserve">
+    <value>Carga completada</value>
+  </data>
+  <data name="ChargingCompleteBody" xml:space="preserve">
+    <value>El coche ha terminado de cargarse.</value>
+  </data>
+  <data name="ChargingCompleteBodyWithSoc" xml:space="preserve">
+    <value>El coche ha terminado de cargarse (nivel de batería: {0} %)</value>
+  </data>
+  <data name="UnlockedParkedTitle" xml:space="preserve">
+    <value>Coche dejado sin cerrar</value>
+  </data>
+  <data name="UnlockedParkedBody" xml:space="preserve">
+    <value>Tu coche está aparcado y sin cerrar.</value>
+  </data>
+  <data name="DoorsOpenTitle" xml:space="preserve">
+    <value>Puerta abierta</value>
+  </data>
+  <data name="DoorsOpenBody" xml:space="preserve">
+    <value>Puertas abiertas mientras el coche está aparcado: {0}</value>
+  </data>
+  <data name="WindowsOpenTitle" xml:space="preserve">
+    <value>Ventana abierta</value>
+  </data>
+  <data name="WindowsOpenBody" xml:space="preserve">
+    <value>Ventanas abiertas mientras el coche está aparcado: {0}</value>
+  </data>
+  <data name="PositionDriver" xml:space="preserve">
+    <value>conductor</value>
+  </data>
+  <data name="PositionPassenger" xml:space="preserve">
+    <value>copiloto</value>
+  </data>
+  <data name="PositionRearLeft" xml:space="preserve">
+    <value>trasera izquierda</value>
+  </data>
+  <data name="PositionRearRight" xml:space="preserve">
+    <value>trasera derecha</value>
+  </data>
+  <data name="PositionBoot" xml:space="preserve">
+    <value>maletero</value>
+  </data>
+  <data name="PositionBonnet" xml:space="preserve">
+    <value>capó</value>
+  </data>
+  <data name="MaintenanceOverdueTitle" xml:space="preserve">
+    <value>Mantenimiento vencido</value>
+  </data>
+  <data name="MaintenanceOverdueBody" xml:space="preserve">
+    <value>Ha vencido el plazo de {0}</value>
+  </data>
+  <data name="MaintenanceDueSoonTitle" xml:space="preserve">
+    <value>Próximo mantenimiento</value>
+  </data>
+  <data name="MaintenanceDueSoonBody" xml:space="preserve">
+    <value>Pronto tocará realizar {0}</value>
+  </data>
+  <data name="VehicleMessageTitle" xml:space="preserve">
+    <value>Mensaje de MG</value>
+  </data>
+  <data name="ClimateScheduleRef" xml:space="preserve">
+    <value>tu programación de {0}</value>
+  </data>
+  <data name="ClimateScheduleRefNamed" xml:space="preserve">
+    <value>tu programación «{0}» ({1})</value>
+  </data>
+  <data name="ClimateScheduleStartedTitle" xml:space="preserve">
+    <value>Climatizador activado</value>
+  </data>
+  <data name="ClimateScheduleStartedBody" xml:space="preserve">
+    <value>Activado por {0}.</value>
+  </data>
+  <data name="ClimateScheduleStartedPartlyBody" xml:space="preserve">
+    <value>Activado por {0}, pero no se pudo {1}.</value>
+  </data>
+  <data name="ClimateScheduleFailedTitle" xml:space="preserve">
+    <value>No se ha activado el climatizador</value>
+  </data>
+  <data name="ClimateScheduleFailedBody" xml:space="preserve">
+    <value>El coche ha rechazado {0}.</value>
+  </data>
+  <data name="ClimateScheduleFailedBodyWithDetail" xml:space="preserve">
+    <value>El coche ha rechazado {0}: {1}</value>
+  </data>
+  <data name="ClimateScheduleNoAnswerTitle" xml:space="preserve">
+    <value>Es posible que el climatizador no se haya activado</value>
+  </data>
+  <data name="ClimateScheduleNoAnswerBody" xml:space="preserve">
+    <value>El coche no ha respondido a {0}.</value>
+  </data>
+  <data name="ClimateScheduleCommandTemperature" xml:space="preserve">
+    <value>ajustar la temperatura</value>
+  </data>
+  <data name="ClimateScheduleCommandRearDefroster" xml:space="preserve">
+    <value>activar el desempañador trasero</value>
+  </data>
+  <data name="ClimateScheduleCommandSeatLeft" xml:space="preserve">
+    <value>activar la calefacción del asiento del conductor</value>
+  </data>
+  <data name="ClimateScheduleCommandSeatRight" xml:space="preserve">
+    <value>activar la calefacción del asiento del copiloto</value>
+  </data>
+  <data name="Low12VTitle" xml:space="preserve">
+    <value>Batería de 12 V baja</value>
+  </data>
+  <data name="Low12VBody" xml:space="preserve">
+    <value>Batería de 12 V a {0} V estando el coche aparcado</value>
+  </data>
+  <data name="LowFuelTitle" xml:space="preserve">
+    <value>Nivel de combustible bajo</value>
+  </data>
+  <data name="LowFuelBody" xml:space="preserve">
+    <value>Depósito de combustible al {0} %</value>
+  </data>
+  <data name="GatewayLoginTitle" xml:space="preserve">
+    <value>Error al iniciar sesión en MG</value>
+  </data>
+  <data name="GatewayLoginBody" xml:space="preserve">
+    <value>La pasarela no ha podido iniciar sesión en tu cuenta de MG, así que no llegan datos nuevos. Comprueba la contraseña de la cuenta de MG.</value>
+  </data>
+  <data name="DataStaleTitle" xml:space="preserve">
+    <value>Sin datos del coche</value>
+  </data>
+  <data name="DataStaleBody" xml:space="preserve">
+    <value>El coche no ha enviado datos desde hace {0} horas. Comprueba la pasarela y la cuenta de MG.</value>
+  </data>
+  <data name="ChargingInterruptedTitle" xml:space="preserve">
+    <value>Carga interrumpida</value>
+  </data>
+  <data name="ChargingInterruptedBody" xml:space="preserve">
+    <value>La carga se ha detenido: {0}.</value>
+  </data>
+  <data name="ChargingInterruptedBodyWithSoc" xml:space="preserve">
+    <value>La carga se ha detenido al {1} %: {0}.</value>
+  </data>
+  <data name="ChargingStopReason_CHARGER_STATUS_ABNORMAL" xml:space="preserve">
+    <value>el cargador ha indicado un fallo</value>
+  </data>
+  <data name="ChargingStopReason_CHARGER_PORT_OVER_TEMPERATURE" xml:space="preserve">
+    <value>el puerto de carga se ha sobrecalentado</value>
+  </data>
+  <data name="ChargingStopReason_CHARGING_GUN_NOT_PROPERLY_PLUGGED_IN" xml:space="preserve">
+    <value>el conector no está bien enchufado</value>
+  </data>
+  <data name="ChargingStopReason_CHARGER_VOLTAGE_MISMATCH" xml:space="preserve">
+    <value>el voltaje del cargador no coincide con el del coche</value>
+  </data>
+  <data name="RdwRecallTitle" xml:space="preserve">
+    <value>Llamada a revisión pendiente</value>
+  </data>
+  <data name="RdwRecallBody" xml:space="preserve">
+    <value>La RDW registra una llamada a revisión pendiente ({0}): {1}</value>
+  </data>
+  <data name="RdwRecallBodyNoDetails" xml:space="preserve">
+    <value>La RDW registra una llamada a revisión pendiente ({0}). Un concesionario de la marca puede informarte de los detalles.</value>
+  </data>
+  <data name="RdwApkDueTitle" xml:space="preserve">
+    <value>Próximo vencimiento de la APK</value>
+  </data>
+  <data name="RdwApkDueBody" xml:space="preserve">
+    <value>La APK vence el {0}, dentro de {1} días.</value>
+  </data>
+  <data name="RdwApkDueTomorrowBody" xml:space="preserve">
+    <value>La APK vence mañana, {0}.</value>
+  </data>
+  <data name="RdwApkDueTodayBody" xml:space="preserve">
+    <value>Hoy, {0}, es el último día de vigencia de la APK.</value>
+  </data>
+  <data name="RdwApkExpiredTitle" xml:space="preserve">
+    <value>APK vencida</value>
+  </data>
+  <data name="RdwApkExpiredBody" xml:space="preserve">
+    <value>La APK venció el {0}. Sin una APK vigente, el coche no puede circular por vías públicas.</value>
+  </data>
+  <data name="RdwUninsuredTitle" xml:space="preserve">
+    <value>No consta ningún seguro</value>
+  </data>
+  <data name="RdwUninsuredBody" xml:space="preserve">
+    <value>La RDW no registra un seguro WAM para el coche. Todo coche que circule por vías públicas debe estar asegurado.</value>
+  </data>
+</root>
