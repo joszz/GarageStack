@@ -36,6 +36,7 @@
   "dashboard": {
     "title": "Panel",
     "noData": "No hay datos disponibles",
+    "cardWithoutData": "Oculta hasta que tu coche envíe este dato",
     "editLayout": "Editar diseño",
     "doneEditing": "Hecho",
     "resetLayout": "Restablecer los valores predeterminados",
@@ -48,7 +49,7 @@
       "fuelLevel": "Muestra el nivel actual del tanque de combustible como porcentaje.",
       "fuelRange": "Autonomía restante estimada según el nivel de combustible actual.",
       "evBattery": "Estado de carga como porcentaje. En un PHEV o BEV, este es el indicador de autonomía eléctrica. En un HEV, la batería híbrida es pequeña y el coche la gestiona automáticamente, por lo que el valor exacto es menos significativo en el día a día.",
-      "electricRange": "Autonomía eléctrica estimada por el coche según el nivel de carga actual. Solo es relevante para PHEV y BEV. El frío y la velocidad en autopista reducen la autonomía. El coche no informa de una autonomía de cero, por lo que, con la batería agotada, se siguen mostrando los últimos kilómetros indicados.",
+      "electricRange": "Autonomía eléctrica estimada por el coche según el nivel de carga actual. Solo es relevante para PHEV y BEV. El frío y la velocidad en autopista reducen la autonomía. Algunos coches nunca informan de una autonomía de cero, por lo que, con la batería agotada, pueden seguir mostrándose los últimos kilómetros indicados.",
       "charging": "Indica si el coche se está cargando actualmente.",
       "odometer": "Distancia total que ha recorrido el coche desde su fabricación.",
       "battery12v": "Voltaje de la batería auxiliar de 12V que alimenta la electrónica del coche.",
