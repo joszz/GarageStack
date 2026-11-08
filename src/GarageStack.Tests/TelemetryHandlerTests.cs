@@ -70,6 +70,25 @@ public class TelemetryHandlerTests
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options);
 
+    // A handler over a real (in-memory) database, for tests that feed it MQTT messages end to end.
+    private static ServiceProvider CreateMqttServices()
+    {
+        var databaseName = Guid.NewGuid().ToString();
+        return new ServiceCollection()
+            .AddDbContext<AppDbContext>(o => o.UseInMemoryDatabase(databaseName))
+            .AddScoped<IVehicleRepository, VehicleRepository>()
+            .AddScoped<ITelemetryRepository>(sp => new TelemetryRepository(sp.GetRequiredService<AppDbContext>()))
+            .AddScoped<INotificationRepository, NotificationRepository>()
+            .AddScoped<ICommutePlaceRepository, CommutePlaceRepository>()
+            .BuildServiceProvider();
+    }
+
+    private static TelemetryHandler CreateMqttHandler(ServiceProvider services) =>
+        new(NullLogger.Instance,
+            new VehicleResolver(services.GetRequiredService<IServiceScopeFactory>()),
+            new FakePushSender(),
+            WorkerLocalizer.Notifications());
+
     [Fact]
     public async Task MergeOrAddTelemetryAsync_ConcurrentCallsSameVehicle_SecondCallMergesInsteadOfRacing()
     {
@@ -236,19 +255,8 @@ public class TelemetryHandlerTests
     {
         var ct = TestContext.Current.CancellationToken;
         const string topic = "saic/user@example.com/vehicles/FAKEVN00000000001/drivetrain/running";
-        var databaseName = Guid.NewGuid().ToString();
-        await using var services = new ServiceCollection()
-            .AddDbContext<AppDbContext>(o => o.UseInMemoryDatabase(databaseName))
-            .AddScoped<IVehicleRepository, VehicleRepository>()
-            .AddScoped<ITelemetryRepository>(sp => new TelemetryRepository(sp.GetRequiredService<AppDbContext>()))
-            .AddScoped<INotificationRepository, NotificationRepository>()
-            .AddScoped<ICommutePlaceRepository, CommutePlaceRepository>()
-            .BuildServiceProvider();
-        var handler = new TelemetryHandler(
-            NullLogger.Instance,
-            new VehicleResolver(services.GetRequiredService<IServiceScopeFactory>()),
-            new FakePushSender(),
-            WorkerLocalizer.Notifications());
+        await using var services = CreateMqttServices();
+        var handler = CreateMqttHandler(services);
 
         await handler.TryHandleAsync(new MqttMessage(topic, "true", Retain: false), ct);
         const string vehicleTopic = "saic/user@example.com/vehicles/FAKEVN00000000001";
@@ -272,19 +280,8 @@ public class TelemetryHandlerTests
     {
         var ct = TestContext.Current.CancellationToken;
         const string vehicleTopic = "saic/user@example.com/vehicles/FAKEVN00000000001";
-        var databaseName = Guid.NewGuid().ToString();
-        await using var services = new ServiceCollection()
-            .AddDbContext<AppDbContext>(o => o.UseInMemoryDatabase(databaseName))
-            .AddScoped<IVehicleRepository, VehicleRepository>()
-            .AddScoped<ITelemetryRepository>(sp => new TelemetryRepository(sp.GetRequiredService<AppDbContext>()))
-            .AddScoped<INotificationRepository, NotificationRepository>()
-            .AddScoped<ICommutePlaceRepository, CommutePlaceRepository>()
-            .BuildServiceProvider();
-        var handler = new TelemetryHandler(
-            NullLogger.Instance,
-            new VehicleResolver(services.GetRequiredService<IServiceScopeFactory>()),
-            new FakePushSender(),
-            WorkerLocalizer.Notifications());
+        await using var services = CreateMqttServices();
+        var handler = CreateMqttHandler(services);
 
         // Driving, last seen on the previous poll.
         await handler.TryHandleAsync(new MqttMessage($"{vehicleTopic}/drivetrain/running", "true", Retain: false), ct);
@@ -297,6 +294,28 @@ public class TelemetryHandlerTests
         var vehicle = await scope.ServiceProvider.GetRequiredService<AppDbContext>().Vehicles.SingleAsync(ct);
         Assert.Equal((52.40, 4.95), (vehicle.ParkedLatitude, vehicle.ParkedLongitude));
     }
+
+    // The gateway publishes the BMS's range estimate with the charge status and drivetrain/range
+    // after it, in the same poll. On a car that sends both, drivetrain/range is the one kept; on a
+    // car that never sends drivetrain/range (#570), the estimate is.
+    [Theory]
+    [InlineData(true, 41.5)]
+    [InlineData(false, 38.0)]
+    public async Task ElectricRange_BmsEstimateThenRange_KeepsRangeWhenSent(bool sendsRange, double expected)
+    {
+        var ct = TestContext.Current.CancellationToken;
+        const string vehicleTopic = "saic/user@example.com/vehicles/FAKEVN00000000001";
+        await using var services = CreateMqttServices();
+        var handler = CreateMqttHandler(services);
+
+        await handler.TryHandleAsync(new MqttMessage($"{vehicleTopic}/drivetrain/hybrid_electrical_range", "38", Retain: false), ct);
+        if (sendsRange)
+            await handler.TryHandleAsync(new MqttMessage($"{vehicleTopic}/drivetrain/range", "41.5", Retain: false), ct);
+
+        await using var scope = services.CreateAsyncScope();
+        var latest = await scope.ServiceProvider.GetRequiredService<ITelemetryRepository>().GetMergedLatestAsync(1, ct);
+        Assert.Equal(expected, latest?.ElectricRangeKm);
+    }
 }
 
 // The broker hands the Api's own commands back to the Worker, and the gateway publishes a few
@@ -306,7 +325,6 @@ public class TelemetryHandlerLoggingTests
     [Theory]
     [InlineData("climate/remoteClimateState/set", false)]
     [InlineData("drivetrain/socTarget/set", false)]
-    [InlineData("drivetrain/hybrid_electrical_range", false)]
     [InlineData("drivetrain/batteryHeatingStopReason", false)]
     [InlineData("drivetrain/chargingDataAvailable", false)]
     [InlineData("drivetrain/somethingNew", true)]
