@@ -3,12 +3,12 @@ namespace GarageStack.Core.Configuration;
 /// <summary>
 /// The traction battery's real usable capacity in kWh, when the deployment configures one.
 /// <para>
-/// The MQTT gateway does not read capacity off the pack: it scales the BMS percentage by an
-/// EV-sized default to produce drivetrain/soc_kwh and drivetrain/totalBatteryCapacity. That is
-/// fine for a car that has such a pack and wrong by a factor of forty on a plain hybrid, where
-/// the buffer is under 2 kWh but 72.5 is reported. Configuring the real figure here overrides it
-/// for every client; left unset, a plug-in car keeps the gateway's number and a hybrid shows
-/// state of charge as a percentage only.
+/// MG's API scales the BMS percentage by a nominal 72.5 kWh pack, and the MQTT gateway swaps in
+/// the real size for drivetrain/soc_kwh and drivetrain/totalBatteryCapacity only on the BEV
+/// series it knows. Everywhere else 72.5 comes through: wrong by a factor of forty on a plain
+/// hybrid, where the buffer is under 2 kWh, and by three or more on a plug-in hybrid. Configuring
+/// the real figure here overrides it for every client; left unset, a BEV keeps the gateway's
+/// number and any other car shows state of charge as a percentage only.
 /// </para>
 /// </summary>
 public record HvBatteryCapacity(double? Kwh)

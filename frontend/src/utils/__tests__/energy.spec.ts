@@ -97,6 +97,44 @@ describe('hvBatteryReading', () => {
     expect(reading.storedKwh).toBeCloseTo(58, 2)
   })
 
+  it.each(['phev', 'unknown'] as const)(
+    'shows a %s no kWh until the real capacity is configured',
+    (vehicleType) => {
+      // Issue #571: a plug-in hybrid at 95% reported 68.9 of 72.5 kWh; its pack is about 23 kWh
+      const reading = hvBatteryReading(
+        hv({ evSocPercent: 95, hvSocKwh: 68.88, hvTotalCapacityKwh: 72.5 }),
+        vehicleType,
+        null,
+      )
+
+      expect(reading.socPercent).toBe(95)
+      expect(reading.capacityKwh).toBeNull()
+      expect(reading.storedKwh).toBeNull()
+    },
+  )
+
+  it('rescales a plug-in hybrid to its configured capacity', () => {
+    const reading = hvBatteryReading(
+      hv({ evSocPercent: 95, hvSocKwh: 68.88, hvTotalCapacityKwh: 72.5 }),
+      'phev',
+      23,
+    )
+
+    expect(reading.capacityKwh).toBe(23)
+    expect(reading.storedKwh).toBeCloseTo(21.85, 2)
+  })
+
+  it('still derives the percentage from the reported pair on a plug-in hybrid', () => {
+    const reading = hvBatteryReading(
+      hv({ hvSocKwh: 36.25, hvTotalCapacityKwh: 72.5 }),
+      'phev',
+      null,
+    )
+
+    expect(reading.socPercent).toBeCloseTo(50, 5)
+    expect(reading.storedKwh).toBeNull()
+  })
+
   it('falls back to the reported ratio when no percentage is published', () => {
     const reading = hvBatteryReading(hv({ hvSocKwh: 36.25, hvTotalCapacityKwh: 72.5 }), 'bev', null)
 
