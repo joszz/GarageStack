@@ -411,8 +411,10 @@ public static class TelemetryMapper
                 s.ChargingCableLock = asBool;
                 return true;
 
+            // In seconds: the gateway multiplies the car's minutes by 60 (its Home Assistant
+            // discovery says "s"). Stored in minutes, which is what every reader shows (#570).
             case "drivetrain/remainingChargingTime":
-                s.RemainingChargingTime = double.IsFinite(numeric) ? (int)numeric : (int?)null;
+                s.RemainingChargingTime = double.IsFinite(numeric) ? (int)Math.Round(numeric / 60) : (int?)null;
                 return true;
 
             case "drivetrain/lastChargeEndingPower":
@@ -479,11 +481,12 @@ public static class TelemetryMapper
             case "obc/voltage":
                 s.ObcVoltage = N(numeric);
                 return true;
+            // In watts (the gateway's Home Assistant discovery says "W"), stored in kW (#570).
             case "obc/powerSinglePhase":
-                s.ObcPowerSinglePhase = N(numeric);
+                s.ObcPowerSinglePhase = N(numeric / 1000);
                 return true;
             case "obc/powerThreePhase":
-                s.ObcPowerThreePhase = N(numeric);
+                s.ObcPowerThreePhase = N(numeric / 1000);
                 return true;
 
             // Battery heating

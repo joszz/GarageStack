@@ -84,7 +84,7 @@ public class TelemetryMapperTests
     // Charging session
     [InlineData("drivetrain/chargingType", "AC", nameof(TelemetrySnapshot.ChargingType), "AC")]
     [InlineData("drivetrain/chargingCableLock", "true", nameof(TelemetrySnapshot.ChargingCableLock), true)]
-    [InlineData("drivetrain/remainingChargingTime", "45", nameof(TelemetrySnapshot.RemainingChargingTime), 45)]
+    [InlineData("drivetrain/remainingChargingTime", "2700", nameof(TelemetrySnapshot.RemainingChargingTime), 45)] // seconds in, minutes stored
     [InlineData("drivetrain/lastChargeEndingPower", "7.2", nameof(TelemetrySnapshot.LastChargeEndingPower), 7.2)]
     [InlineData("bms/chargeStatus", "charging", nameof(TelemetrySnapshot.BmsChargeStatus), "charging")]
     [InlineData("ccu/onboardChargerPlugStatus", "1", nameof(TelemetrySnapshot.OnboardChargerPlugStatus), 1)]
@@ -92,8 +92,8 @@ public class TelemetryMapperTests
     // Onboard charger
     [InlineData("obc/current", "16.0", nameof(TelemetrySnapshot.ObcCurrent), 16.0)]
     [InlineData("obc/voltage", "230.0", nameof(TelemetrySnapshot.ObcVoltage), 230.0)]
-    [InlineData("obc/powerSinglePhase", "3680.0", nameof(TelemetrySnapshot.ObcPowerSinglePhase), 3680.0)]
-    [InlineData("obc/powerThreePhase", "11000.0", nameof(TelemetrySnapshot.ObcPowerThreePhase), 11000.0)]
+    [InlineData("obc/powerSinglePhase", "3680.0", nameof(TelemetrySnapshot.ObcPowerSinglePhase), 3.68)] // W in, kW stored
+    [InlineData("obc/powerThreePhase", "11000.0", nameof(TelemetrySnapshot.ObcPowerThreePhase), 11.0)]
     // Battery heating
     [InlineData("drivetrain/batteryHeating", "true", nameof(TelemetrySnapshot.BatteryHeating), true)]
     [InlineData("drivetrain/batteryHeatingSchedule/mode", "timed", nameof(TelemetrySnapshot.BatteryHeatingScheduleMode), "timed")]
