@@ -44,11 +44,13 @@ export function litresPer100Km(counter: number | null, distanceKm: number | null
 /**
  * The high-voltage battery as it should be shown, given what the deployment knows about the car.
  *
- * The gateway does not read capacity off the pack: it scales the BMS percentage by an EV-sized
- * default, which is right for a car that has one and off by a factor of forty on a hybrid whose
- * buffer is under 2 kWh (an MG HS Hybrid+ carries 1.83 kWh and is reported as 72.5). So a
- * configured capacity always wins, and a hybrid without one shows percentages only rather than
- * a confident wrong number of kWh.
+ * MG's API scales the BMS percentage by a nominal 72.5 kWh pack. The gateway replaces that with
+ * the real size only for the BEV series it has a table entry for (MG4, MG5, ZS EV and a few
+ * more) and passes 72.5 through for everything else. On a plain hybrid that is off by a factor
+ * of forty (an MG HS Hybrid+ carries 1.83 kWh), and on a plug-in hybrid by a factor of three or
+ * more (issue #571: a PHEV with a pack of about 23 kWh). So a configured capacity always wins,
+ * only a BEV falls back to the gateway's figure, and any other car shows percentages only rather
+ * than a confident wrong number of kWh.
  */
 export interface HvBatteryReading {
   socPercent: number | null
@@ -62,7 +64,7 @@ export function hvBatteryReading(
   configuredCapacityKwh: number | null,
 ): HvBatteryReading {
   const reported = status.hvTotalCapacityKwh
-  const capacityKwh = configuredCapacityKwh ?? (vehicleType === 'hev' ? null : reported)
+  const capacityKwh = configuredCapacityKwh ?? (vehicleType === 'bev' ? reported : null)
 
   // drivetrain/soc is the BMS reading itself. The ratio behind it is the fallback for a car that
   // publishes only the derived pair, and survives rescaling because both sides carry the same
