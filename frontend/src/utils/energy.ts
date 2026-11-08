@@ -1,5 +1,6 @@
 import type { DailyStat, TelemetrySnapshot, VehicleType } from '@/services/vehicleApi'
 import type { Quantity } from '@/utils/units'
+import { localDateKey } from '@/utils/dates'
 
 // The gateway publishes powerUsageOfDay and powerUsageSinceLastCharge on the same topics for
 // every drivetrain, but they do not measure the same thing on every drivetrain. A car with a
@@ -29,7 +30,8 @@ export function energyUnit(vehicleType: VehicleType): EnergyUnit {
 // to it at some polls while parked, so a 4 km day read 134 kWh. Its since-last-charge counter
 // comes out of the same charge status message and matches the state of charge drop to the
 // hundredth, so that counter is what the day counter is checked against: the API does it per day
-// over every reading (DailyStatsBuilder), and todaysEnergyKwh below does it for the live reading.
+// over every reading (DailyStatsBuilder), and todaysEnergyKwh below takes that day's answer for
+// today, with a check on the live reading alone until it has arrived.
 
 // Today's use is part of what left the battery since its last charge. The factor leaves room for
 // regeneration, which the since-last-charge counter takes back off and a day counter may not, and
@@ -54,18 +56,27 @@ export function dailyCounterTotal(
     : day.counterTotal
 }
 
+/** The statistics row for today that the dashboard reads alongside the live status. */
+export type TodayStat = Pick<DailyStat, 'date' | 'sinceChargeTotal' | 'counterUnbacked'>
+
 /**
- * Today's energy off the day counter in kWh, or null when it holds more than had left the battery
- * since its last charge. Without a since-last-charge reading, or after a charge that may have been
- * today, there is nothing to check it against and the counter stands.
+ * Today's energy in kWh. When the API found today's day counter rising past the since-last-charge
+ * counter, that day's since-last-charge total, which is the figure the statistics page shows for
+ * today too. Otherwise the live day counter, unless it alone holds more than had left the battery
+ * since the last charge (null then): that covers a jump in a reading the API has not read yet.
+ * Without a since-last-charge reading, or after a charge that may have been today, the live
+ * reading has nothing to be checked against and stands.
  */
 export function todaysEnergyKwh(
   status: Pick<
     TelemetrySnapshot,
     'powerUsageOfDay' | 'powerUsageSinceLastCharge' | 'isCharging' | 'chargingLastEndAt'
   >,
+  todayStat: TodayStat | null,
   now: number = Date.now(),
 ): number | null {
+  if (todayStat?.counterUnbacked && todayStat.date === localDateKey(new Date(now)))
+    return todayStat.sinceChargeTotal
   const today = status.powerUsageOfDay
   const sinceCharge = status.powerUsageSinceLastCharge
   if (today === null || sinceCharge === null || status.isCharging) return today

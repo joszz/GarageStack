@@ -12,8 +12,10 @@ import {
   litresPer100Km,
   todaysEnergyKwh,
   whPerKm,
+  type TodayStat,
 } from '@/utils/energy'
 import type { TelemetrySnapshot } from '@/services/vehicleApi'
+import { localDateKey } from '@/utils/dates'
 
 type HvFields = Pick<TelemetrySnapshot, 'evSocPercent' | 'hvSocKwh' | 'hvTotalCapacityKwh'>
 
@@ -51,32 +53,66 @@ describe('todaysEnergyKwh', () => {
   // Issue #551: the MG ZS EV's day counter read 141.12 kWh with 11.12 kWh used since the last charge.
   it('drops a day counter that holds more than left the battery since the last charge', () => {
     const status = today({ powerUsageOfDay: 141.12, powerUsageSinceLastCharge: 11.12 })
-    expect(todaysEnergyKwh(status, NOW)).toBeNull()
+    expect(todaysEnergyKwh(status, null, NOW)).toBeNull()
   })
 
   it('keeps a day counter that fits, with room for regeneration', () => {
     expect(
-      todaysEnergyKwh(today({ powerUsageOfDay: 5.4, powerUsageSinceLastCharge: 25 }), NOW),
+      todaysEnergyKwh(today({ powerUsageOfDay: 5.4, powerUsageSinceLastCharge: 25 }), null, NOW),
     ).toBe(5.4)
     expect(
-      todaysEnergyKwh(today({ powerUsageOfDay: 7.5, powerUsageSinceLastCharge: 6 }), NOW),
+      todaysEnergyKwh(today({ powerUsageOfDay: 7.5, powerUsageSinceLastCharge: 6 }), null, NOW),
     ).toBe(7.5)
   })
 
   it('keeps the counter when a charge today may have started the other one again', () => {
     const charged = { powerUsageOfDay: 22, powerUsageSinceLastCharge: 2 }
     expect(
-      todaysEnergyKwh(today({ ...charged, chargingLastEndAt: '2026-11-03T12:00:00Z' }), NOW),
+      todaysEnergyKwh(today({ ...charged, chargingLastEndAt: '2026-11-03T12:00:00Z' }), null, NOW),
     ).toBe(22)
-    expect(todaysEnergyKwh(today({ ...charged, isCharging: true }), NOW)).toBe(22)
+    expect(todaysEnergyKwh(today({ ...charged, isCharging: true }), null, NOW)).toBe(22)
     expect(
-      todaysEnergyKwh(today({ ...charged, chargingLastEndAt: '2026-10-30T12:00:00Z' }), NOW),
+      todaysEnergyKwh(today({ ...charged, chargingLastEndAt: '2026-10-30T12:00:00Z' }), null, NOW),
     ).toBeNull()
   })
 
   it('keeps the counter without a since-last-charge reading to check it against', () => {
-    expect(todaysEnergyKwh(today({ powerUsageOfDay: 60 }), NOW)).toBe(60)
-    expect(todaysEnergyKwh(today({}), NOW)).toBeNull()
+    expect(todaysEnergyKwh(today({ powerUsageOfDay: 60 }), null, NOW)).toBe(60)
+    expect(todaysEnergyKwh(today({}), null, NOW)).toBeNull()
+  })
+
+  // Issue #551, 8 November: the ZS EV charged during an 82 km day, so the live check stood aside
+  // and the dashboard showed the day counter's 118.1 kWh. The statistics page showed 17.9 kWh.
+  describe('with the API row for today', () => {
+    const chargedToday = today({
+      powerUsageOfDay: 118.1,
+      powerUsageSinceLastCharge: 8.2,
+      chargingLastEndAt: '2026-11-03T13:00:00Z',
+    })
+    const day = (fields: Partial<TodayStat> = {}): TodayStat => ({
+      date: localDateKey(new Date(NOW)),
+      sinceChargeTotal: 17.9,
+      counterUnbacked: true,
+      ...fields,
+    })
+
+    it('shows the day off the since-last-charge counter, as the statistics do', () => {
+      expect(todaysEnergyKwh(chargedToday, day(), NOW)).toBe(17.9)
+    })
+
+    it('keeps the live counter when the API found it sound', () => {
+      const sound = today({ powerUsageOfDay: 5.4, powerUsageSinceLastCharge: 25 })
+      expect(todaysEnergyKwh(sound, day({ counterUnbacked: false }), NOW)).toBe(5.4)
+    })
+
+    it('still checks a live reading the API row does not cover yet', () => {
+      const jumped = today({ powerUsageOfDay: 141.12, powerUsageSinceLastCharge: 11.12 })
+      expect(todaysEnergyKwh(jumped, day({ counterUnbacked: false }), NOW)).toBeNull()
+    })
+
+    it("ignores yesterday's row after midnight", () => {
+      expect(todaysEnergyKwh(chargedToday, day({ date: '2026-11-02' }), NOW)).toBe(118.1)
+    })
   })
 })
 

@@ -19,7 +19,13 @@ function context(
   latestTrip: TripSummary | null = null,
   rdwPlateSet = false,
 ): CardDataContext {
-  return { status: status as TelemetrySnapshot, vehicleType, latestTrip, rdwPlateSet }
+  return {
+    status: status as TelemetrySnapshot,
+    vehicleType,
+    latestTrip,
+    rdwPlateSet,
+    todayStat: null,
+  }
 }
 
 describe('card registry', () => {

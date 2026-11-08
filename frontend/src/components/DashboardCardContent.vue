@@ -113,7 +113,7 @@ const simpleCards = computed((): SimpleCardConfig[] => {
   const s = status.value
   const ctx = cardData.value
   if (!s || !ctx) return []
-  const energyTodayKwh = todaysEnergyKwh(s)
+  const energyTodayKwh = todaysEnergyKwh(s, ctx.todayStat)
   const efficiencyWhPerKm = whPerKm(energyTodayKwh, s.mileageOfTheDay)
   const fuelUsedLitres = litres(s.powerUsageOfDay)
   const consumptionL100Km = litresPer100Km(s.powerUsageOfDay, s.mileageOfTheDay)

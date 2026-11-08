@@ -1,6 +1,12 @@
 import type { TelemetrySnapshot, TripSummary } from '@/services/vehicleApi'
 import type { VehicleType } from '@/stores/vehicle'
-import { energyUnit, litresPer100Km, todaysEnergyKwh, whPerKm } from '@/utils/energy'
+import {
+  energyUnit,
+  litresPer100Km,
+  todaysEnergyKwh,
+  whPerKm,
+  type TodayStat,
+} from '@/utils/energy'
 import { burnsFuel, mayBurnFuel, mayPlugIn, plugsIn } from '@/utils/vehicleType'
 
 /**
@@ -15,6 +21,8 @@ export interface CardDataContext {
   latestTrip: TripSummary | null
   /** The deployment looks plates up at the RDW, and the car has one. */
   rdwPlateSet: boolean
+  /** Today's statistics row, which says whether today's energy counter can be trusted. */
+  todayStat: TodayStat | null
 }
 
 interface CardDefinition {
@@ -83,9 +91,9 @@ export const CARD_DEFINITIONS = [
     id: 'efficiencyEnergy',
     icon: 'plug-circle-bolt',
     // A plug-in car's day counter only counts when it fits what left the battery (utils/energy).
-    hasData: ({ status, vehicleType }) =>
+    hasData: ({ status, vehicleType, todayStat }) =>
       energyUnit(vehicleType) === 'kwh'
-        ? todaysEnergyKwh(status) !== null
+        ? todaysEnergyKwh(status, todayStat) !== null
         : status.powerUsageOfDay !== null,
   },
   {
@@ -200,10 +208,10 @@ export function sinceChargeWhPerKm(
 }
 
 /** Wh/km over today's driving, the efficiencyRatio card's presentation for a plug-in car. */
-export function hasEnergyEfficiency({ status, vehicleType }: CardDataContext): boolean {
+export function hasEnergyEfficiency({ status, vehicleType, todayStat }: CardDataContext): boolean {
   return (
     energyUnit(vehicleType) === 'kwh' &&
-    whPerKm(todaysEnergyKwh(status), status.mileageOfTheDay) !== null
+    whPerKm(todaysEnergyKwh(status, todayStat), status.mileageOfTheDay) !== null
   )
 }
 

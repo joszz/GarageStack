@@ -20,6 +20,7 @@ export function useCardData() {
       vehicleType: store.effectiveVehicleType,
       latestTrip: store.latestTrip,
       rdwPlateSet: rdw.hasPlate,
+      todayStat: store.todayStat,
     }
   })
 }

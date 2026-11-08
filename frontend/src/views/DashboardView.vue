@@ -19,6 +19,7 @@ import SkeletonCarDiagram from '@/components/SkeletonCarDiagram.vue'
 import SkeletonLocationMap from '@/components/SkeletonLocationMap.vue'
 import { useUnits } from '@/composables/useUnits'
 import { mayBurnFuel } from '@/utils/vehicleType'
+import { energyUnit } from '@/utils/energy'
 import ViewHeader from '@/components/ViewHeader.vue'
 
 // Only edit mode drags cards around, and the drag-and-drop library is the size of every card on
@@ -135,6 +136,16 @@ async function refreshLive() {
   if (!vin.value) return
   await Promise.all([store.fetchStatus(vin.value), store.fetchLatestTrip(vin.value)])
 }
+
+// Every new reading can change today's energy, and only the API reads the whole day to see whether
+// the car's day counter holds up (utils/energy). A hybrid's counter is fuel and needs no check.
+watch(
+  [vin, () => status.value?.recordedAt, () => energyUnit(vehicleType.value)],
+  ([currentVin, recordedAt, unit]) => {
+    if (currentVin && recordedAt && unit === 'kwh') store.fetchTodayStat(currentVin)
+  },
+  { immediate: true },
+)
 
 // A trip just ended: the last-trip and top-speed cards describe it now.
 watch(

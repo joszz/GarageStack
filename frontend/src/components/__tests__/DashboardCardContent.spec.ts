@@ -3,7 +3,8 @@ import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { createI18n } from 'vue-i18n'
 import en from '@/locales/en.json'
-import type { TelemetrySnapshot } from '@/services/vehicleApi'
+import type { DailyStat, TelemetrySnapshot } from '@/services/vehicleApi'
+import { localDateKey } from '@/utils/dates'
 import type { CardId } from '@/cards/registry'
 import { useVehicleStore } from '@/stores/vehicle'
 import { useUiSettingsStore } from '@/stores/settingsUi'
@@ -96,6 +97,29 @@ describe('DashboardCardContent', () => {
       )
 
       expect(card.text).toBe(`${en.vehicle.efficiency.efficiency}|15.0|kWh/100 km`)
+    })
+
+    // Issue #551: a ZS EV that charged during an 82 km day showed 118.1 kWh and 144.1 kWh/100 km
+    // on the dashboard, against 17.9 kWh and 21.8 kWh/100 km on the statistics page.
+    it("uses today's statistics when the car's day counter does not hold up", () => {
+      useVehicleStore().todayStat = {
+        date: localDateKey(new Date()),
+        sinceChargeTotal: 17.9,
+        counterUnbacked: true,
+      } as DailyStat
+      const snapshot = status({
+        powerUsageOfDay: 118.1,
+        powerUsageSinceLastCharge: 8.2,
+        mileageOfTheDay: 82,
+        chargingLastEndAt: new Date().toISOString(),
+      })
+
+      expect(render('efficiencyEnergy', snapshot, 'bev').text).toBe(
+        `${en.vehicle.efficiency.todayEnergy}|17.9|${en.common.kwh}`,
+      )
+      expect(render('efficiencyRatio', snapshot, 'bev').text).toBe(
+        `${en.vehicle.efficiency.efficiency}|21.8|kWh/100 km`,
+      )
     })
 
     it('is also shown since the last charge, off the since-last-charge counters', () => {

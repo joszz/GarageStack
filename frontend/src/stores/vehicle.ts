@@ -10,7 +10,7 @@ import {
   type TripSummary,
   type CommandResult,
 } from '@/services/vehicleApi'
-import { browserTimeZone } from '@/utils/dates'
+import { browserTimeZone, localDateKey } from '@/utils/dates'
 import { useUiSettingsStore } from '@/stores/settingsUi'
 import { useLoadingTracker } from '@/composables/useLoadingTracker'
 
@@ -27,6 +27,12 @@ export const useVehicleStore = defineStore('vehicle', () => {
   // shallowRef: these are only ever replaced wholesale on fetch, never mutated
   // field-by-field, so deep reactivity on every GPS point/telemetry snapshot is wasted work.
   const dailyStats = shallowRef<DailyStat[]>([])
+  // Today's row of those statistics for the dashboard, kept apart from the statistics page's
+  // period. The API checks today's energy counter against every reading of the day, which the
+  // live status alone cannot (utils/energy).
+  const todayStat = shallowRef<DailyStat | null>(null)
+  let todayStatRequest = 0
+  let todayStatVin: string | null = null
   const trips = shallowRef<Trip[]>([])
   // Separate from `trips`, which the map fills with a period of trips and all their fixes: the
   // dashboard needs only the newest trip, and the statistics page only the figures of a period.
@@ -90,6 +96,23 @@ export const useVehicleStore = defineStore('vehicle', () => {
     await withLoading(dailyStatsError, async () => {
       dailyStats.value = await vehicleApi.dailyStats(vin, from, to, browserTimeZone())
     })
+  }
+
+  // Fetched again with every new status, so answers can overlap: only the latest request's answer
+  // is kept. A failure keeps the previous row, and the dashboard falls back to the live reading.
+  async function fetchTodayStat(vin: string) {
+    const request = ++todayStatRequest
+    if (vin !== todayStatVin) {
+      todayStat.value = null
+      todayStatVin = vin
+    }
+    const today = localDateKey(new Date())
+    try {
+      const days = await vehicleApi.dailyStats(vin, today, today, browserTimeZone())
+      if (request === todayStatRequest) todayStat.value = days[0] ?? null
+    } catch {
+      // Not worth an error on the dashboard: its cards still have the live status.
+    }
   }
 
   function applyLiveStatus(snapshot: TelemetrySnapshot) {
@@ -174,6 +197,7 @@ export const useVehicleStore = defineStore('vehicle', () => {
     effectiveVehicleType,
     hvBatteryCapacityKwh,
     dailyStats,
+    todayStat,
     trips,
     latestTrip,
     tripSummaries,
@@ -195,6 +219,7 @@ export const useVehicleStore = defineStore('vehicle', () => {
     fetchStatus,
     fetchConfig,
     fetchDailyStats,
+    fetchTodayStat,
     fetchTrips,
     fetchLatestTrip,
     fetchTripSummaries,
