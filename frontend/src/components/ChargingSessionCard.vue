@@ -9,6 +9,7 @@ import ChargingScheduleForm from './ChargingScheduleForm.vue'
 import { useVehicleCommand } from '@/composables/useVehicleCommand'
 import { formatDateTime, formatNumber, formatTimeOfDay } from '@/utils/format'
 import { gatewayLabel } from '@/utils/gatewayLabel'
+import { chargerPowerKw } from '@/utils/energy'
 import StatusBadge from '@/components/StatusBadge.vue'
 
 const i18n = useI18n()
@@ -22,6 +23,8 @@ const props = defineProps<{
   chargingCableLock: boolean | null
   obcPowerSinglePhase: number | null
   obcPowerThreePhase: number | null
+  /** The HV battery's power in kW, negative while charging: tells which phase figure is real. */
+  hvPower: number | null
   remainingChargingTime: number | null
   bmsChargeStatus: string | null
   lastChargeEndingPower: number | null
@@ -34,7 +37,9 @@ const props = defineProps<{
   canChargeUntilTarget: boolean
 }>()
 
-const obcPower = computed(() => props.obcPowerThreePhase ?? props.obcPowerSinglePhase)
+const obcPower = computed(() =>
+  chargerPowerKw(props.obcPowerSinglePhase, props.obcPowerThreePhase, props.hvPower),
+)
 
 const { sending, lastResult, isPending, send } = useVehicleCommand()
 

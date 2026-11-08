@@ -1,5 +1,12 @@
 import { describe, it, expect } from 'vitest'
-import { energyUnit, hvBatteryReading, litres, litresPer100Km, whPerKm } from '@/utils/energy'
+import {
+  chargerPowerKw,
+  energyUnit,
+  hvBatteryReading,
+  litres,
+  litresPer100Km,
+  whPerKm,
+} from '@/utils/energy'
 import type { TelemetrySnapshot } from '@/services/vehicleApi'
 
 type HvFields = Pick<TelemetrySnapshot, 'evSocPercent' | 'hvSocKwh' | 'hvTotalCapacityKwh'>
@@ -148,5 +155,27 @@ describe('hvBatteryReading', () => {
     expect(reading.socPercent).toBeNull()
     expect(reading.storedKwh).toBeNull()
     expect(reading.capacityKwh).toBeNull()
+  })
+})
+
+describe('chargerPowerKw', () => {
+  it('picks the single-phase figure when the battery takes about that much', () => {
+    // Issue #570: a plug-in hybrid on a single-phase charger, the battery taking 4.0 kW
+    expect(chargerPowerKw(4.3427, 2.5071, -4.0)).toBe(4.3427)
+  })
+
+  it('picks the three-phase figure on a three-phase charger', () => {
+    expect(chargerPowerKw(19.05, 11.0, -10.4)).toBe(11.0)
+  })
+
+  it('falls back to the three-phase figure without a battery power to compare with', () => {
+    expect(chargerPowerKw(4.3, 2.5, null)).toBe(2.5)
+    expect(chargerPowerKw(4.3, 2.5, 0)).toBe(2.5)
+  })
+
+  it('shows whichever figure there is', () => {
+    expect(chargerPowerKw(3.68, null, -3.4)).toBe(3.68)
+    expect(chargerPowerKw(null, 11, -10.4)).toBe(11)
+    expect(chargerPowerKw(null, null, -3)).toBeNull()
   })
 })

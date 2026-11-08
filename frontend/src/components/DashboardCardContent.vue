@@ -346,6 +346,7 @@ const activeSimpleCard = computed(() => {
       :charging-cable-lock="status.chargingCableLock"
       :obc-power-single-phase="status.obcPowerSinglePhase"
       :obc-power-three-phase="status.obcPowerThreePhase"
+      :hv-power="status.hvPower"
       :remaining-charging-time="status.remainingChargingTime"
       :bms-charge-status="status.bmsChargeStatus"
       :last-charge-ending-power="status.lastChargeEndingPower"

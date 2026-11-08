@@ -82,3 +82,26 @@ export function hvBatteryReading(
     capacityKwh,
   }
 }
+
+/**
+ * The onboard charger's power, from the two figures the gateway publishes.
+ *
+ * The gateway works out a single-phase and a three-phase figure from the same charger voltage and
+ * current, and the car does not say which kind of connection it is on. Both cannot be right: on a
+ * single-phase charger the three-phase figure reads about 58% of the truth, on a three-phase one the
+ * single-phase figure reads 1.7 times it (issue #570: 2.5 against 4.3 kW while the battery took
+ * 4.0). The battery's own charging power settles it, since what goes in at the plug only differs
+ * from it by the charger's losses. Without it the three-phase figure is shown, as before.
+ */
+export function chargerPowerKw(
+  singlePhaseKw: number | null,
+  threePhaseKw: number | null,
+  hvPowerKw: number | null,
+): number | null {
+  if (singlePhaseKw === null || threePhaseKw === null || hvPowerKw === null || hvPowerKw === 0)
+    return threePhaseKw ?? singlePhaseKw
+  const battery = Math.abs(hvPowerKw)
+  return Math.abs(singlePhaseKw - battery) < Math.abs(threePhaseKw - battery)
+    ? singlePhaseKw
+    : threePhaseKw
+}

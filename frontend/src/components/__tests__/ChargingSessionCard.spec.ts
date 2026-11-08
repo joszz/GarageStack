@@ -39,6 +39,7 @@ function mountCard(props: Record<string, unknown> = {}) {
       chargingCableLock: null,
       obcPowerSinglePhase: null,
       obcPowerThreePhase: null,
+      hvPower: null,
       remainingChargingTime: null,
       bmsChargeStatus: null,
       lastChargeEndingPower: null,
@@ -71,6 +72,18 @@ beforeEach(() => {
 })
 
 describe('ChargingSessionCard', () => {
+  // Issue #570: a single-phase charger showed its three-phase figure, in watts labelled kW.
+  it('sums up the phase figure that matches what the battery takes', () => {
+    const text = mountCard({
+      obcPowerSinglePhase: 4.34,
+      obcPowerThreePhase: 2.51,
+      hvPower: -4.0,
+      remainingChargingTime: 15,
+    }).text()
+
+    expect(text).toContain('4.3 kW · 15 min')
+  })
+
   it("words the car's charging state instead of the gateway's code", () => {
     const text = mountCard({ bmsChargeStatus: 'CONNECTED_NOT_CHARGING' }).text()
 
