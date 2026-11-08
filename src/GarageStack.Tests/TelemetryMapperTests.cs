@@ -170,6 +170,20 @@ public class TelemetryMapperTests
         Assert.Null(snapshot.FuelRangeKm);
     }
 
+    // Some plug-in hybrids leave fuelRangeElec at 0, so the gateway never sends drivetrain/range
+    // and the BMS's own estimate is the only electric range there is (#570).
+    [Theory]
+    [InlineData("52", 52.0)]
+    [InlineData("0", 0.0)]
+    public void ApplyMessage_HybridElectricalRange_SetsElectricRangeKm(string payload, double expected)
+    {
+        var snapshot = new TelemetrySnapshot();
+        var result = TelemetryMapper.ApplyMessage(snapshot, "drivetrain/hybrid_electrical_range", payload);
+        Assert.True(result);
+        Assert.Equal(expected, snapshot.ElectricRangeKm);
+        Assert.Null(snapshot.FuelRangeKm);
+    }
+
     // ── Payload parsing ───────────────────────────────────────────────────────
 
     [Theory]

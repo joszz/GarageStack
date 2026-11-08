@@ -19,10 +19,15 @@ vi.mock('@/services/vehicleApi', () => ({
 }))
 
 // Loaded only in edit mode, as an async component, which a stub does not reach.
-// __esModule, so defineAsyncComponent takes the default export as the component.
+// __esModule, so defineAsyncComponent takes the default export as the component. It hands each
+// card to the slot, as the real grid does, without the dragging.
 vi.mock('@/components/EditableCardGrid.vue', () => ({
   __esModule: true,
-  default: { template: '<div class="card-grid" />' },
+  default: {
+    props: ['modelValue'],
+    template:
+      '<div class="card-grid"><div v-for="item in modelValue" :key="item.id"><slot :item="item" /></div></div>',
+  },
 }))
 
 vi.mock('@/services/rdwApi', async (importOriginal) => ({
@@ -181,5 +186,28 @@ describe('DashboardView', () => {
     expect(wrapper.find('.card-grid').exists()).toBe(true)
     expect(wrapper.text()).toContain(en.dashboard.resetLayout)
     expect(wrapper.text()).toContain(en.dashboard.doneEditing)
+  })
+
+  // Issue #570: a card the car sends nothing for showed as a placeholder while editing and then
+  // vanished on Done, with nothing saying why.
+  it('says while editing which shown cards stay hidden until the car reports them', async () => {
+    vi.mocked(vehicleApi.status).mockResolvedValue({ ...parked, electricRangeKm: null })
+    const wrapper = await mountView()
+
+    await wrapper
+      .findAll('button')
+      .find((b) => b.text() === en.dashboard.editLayout)!
+      .trigger('click')
+    await vi.dynamicImportSettled()
+    await flushPromises()
+
+    const placeholder = (name: string) =>
+      wrapper.findAll('.card-slot__placeholder').find((p) => p.text().startsWith(name))
+    // Shown by default on a BEV, but the car sends no electric range.
+    expect(placeholder(en.settings.cards.electricRange)!.text()).toContain(
+      en.dashboard.cardWithoutData,
+    )
+    // Hidden by default: a placeholder because it is switched off, not for want of data.
+    expect(placeholder(en.settings.cards.speed)!.text()).not.toContain(en.dashboard.cardWithoutData)
   })
 })

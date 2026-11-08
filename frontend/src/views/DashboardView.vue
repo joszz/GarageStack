@@ -244,7 +244,13 @@ onUnmounted(() => {
           />
           <div v-else class="card-slot__placeholder">
             <font-awesome-icon :icon="cardIcon(card.id)" />
-            <span>{{ t(`settings.cards.${card.id}`) }}</span>
+            <span class="card-slot__placeholder-text">
+              <span>{{ t(`settings.cards.${card.id}`) }}</span>
+              <!-- Shown but empty: say why, or the card seems to vanish on Done (#570). -->
+              <small v-if="card.visible && status" class="card-slot__placeholder-hint">
+                {{ t('dashboard.cardWithoutData') }}
+              </small>
+            </span>
           </div>
         </template>
       </EditableCardGrid>

@@ -157,6 +157,16 @@
   margin-bottom: 0.5rem;
 }
 
+.card-slot__placeholder-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.card-slot__placeholder-hint {
+  font-size: 0.75rem;
+}
+
 .card-slot__placeholder--chart {
   min-height: 120px;
   flex-direction: column;
