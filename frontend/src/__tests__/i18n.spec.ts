@@ -12,6 +12,7 @@ describe('i18n', () => {
   afterEach(() => {
     i18n.global.locale.value = 'en'
     vi.doUnmock('@/locales/nl.json')
+    vi.doUnmock('@/locales/es.json')
     vi.restoreAllMocks()
   })
 
@@ -32,6 +33,16 @@ describe('i18n', () => {
 
     expect(fresh.i18n.global.locale.value).toBe('nl')
     expect(fresh.i18n.global.t('notifications.title')).toBe('Meldingen')
+  })
+
+  it('fetches Spanish the first time it is chosen', async () => {
+    const fresh = await freshI18n()
+    expect(fresh.i18n.global.availableLocales).toEqual(['en'])
+
+    await fresh.setLocale('es')
+
+    expect(fresh.i18n.global.locale.value).toBe('es')
+    expect(fresh.i18n.global.t('notifications.title')).toBe('Notificaciones')
   })
 
   it('keeps the language chosen last when an earlier download finishes after it', async () => {

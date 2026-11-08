@@ -39,6 +39,14 @@ describe('format', () => {
     expect(formatNumber(24852.4, 0, true)).toBe('24.852')
   })
 
+  it('writes numbers and dates in Spanish conventions', () => {
+    i18n.global.locale.value = 'es'
+
+    expect(numberLocale()).toBe('es-ES')
+    expect(formatNumber(24852.4, 1, true)).toBe('24.852,4')
+    expect(formatDate(moment, { day: 'numeric', month: 'long' })).toBe('26 de septiembre')
+  })
+
   it('keeps numbers in the interface language wherever the browser is', () => {
     setRegionalFormat({ region: 'NL', hourCycle: 'h23' })
 

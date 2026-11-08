@@ -160,10 +160,10 @@
         "rearRight": "Trasero derecho"
       },
       "tyrePositionShort": {
-        "frontLeft": "FL",
-        "frontRight": "FR",
-        "rearLeft": "RL",
-        "rearRight": "RR"
+        "frontLeft": "DI",
+        "frontRight": "DD",
+        "rearLeft": "TI",
+        "rearRight": "TD"
       }
     },
     "temperature": {

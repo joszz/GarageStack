@@ -70,19 +70,6 @@
   transition: color 0.15s;
 }
 
-.settings-toggle__flag {
-  width: 1.3rem;
-  height: auto;
-  border-radius: 2px;
-  display: block;
-  opacity: 0.45;
-  transition: opacity 0.15s;
-}
-
-.settings-toggle__side-icon--active .settings-toggle__flag {
-  opacity: 1;
-}
-
 .settings-toggle__side-icon--active {
   color: var(--color-primary);
 }
