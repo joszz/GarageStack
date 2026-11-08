@@ -22,7 +22,7 @@ public class TelemetryRepository(
 {
     private DateTime UtcNow => (time ?? TimeProvider.System).GetUtcNow().UtcDateTime;
 
-    // GetMergedLatestAsync scans up to 200 rows (plus up to 2 fallback queries) and runs on
+    // GetMergedLatestAsync scans up to 200 rows (plus a few fallback queries) and runs on
     // every /status, /widget/status and SignalR-broadcast call. A write
     // (AddAsync/MergeIntoAsync) always invalidates the entry immediately via NotifyUpdatedAsync,
     // so this short TTL only bounds staleness for the rare case nothing has written new
@@ -168,6 +168,9 @@ public class TelemetryRepository(
                 merged.PowerUsageOfDay ??= row.PowerUsageOfDay;
             }
         }
+
+        if (merged.MileageOfTheDay is > 0 && merged.OdometerKm is { } odometer)
+            merged.MileageOfTheDay = await CheckDayDistanceAsync(vehicleId, merged.MileageOfTheDay.Value, odometer, todayStart, ct);
 
         // If the MG API still reports a journey distance but the engine is off,
         // the trip has ended and the firmware just hasn't cleared the field yet.
@@ -369,6 +372,32 @@ public class TelemetryRepository(
             .AsNoTracking()
             .Where(s => s.VehicleId == vehicleId && s.RecordedAt <= at && s.OdometerKm != null)
             .OrderByDescending(s => s.RecordedAt)
+            .Select(s => s.OdometerKm)
+            .FirstOrDefaultAsync(ct);
+
+    // See DayDistance. Readings that start inside the window (a fresh install) start from the
+    // first odometer reading there is. One query for a car whose counter is sane.
+    private async Task<double?> CheckDayDistanceAsync(
+        int vehicleId, double counterKm, double odometerKm, DateTime todayStart, CancellationToken ct)
+    {
+        var windowStart = await GetOdometerAtAsync(vehicleId, UtcNow - DayDistance.Window, ct)
+            ?? await GetFirstOdometerAsync(vehicleId, ct);
+        if (windowStart is not { } start || !DayDistance.IsBeyondOdometer(counterKm, odometerKm, start))
+            return counterKm;
+
+        var dayStart = await GetOdometerAtAsync(vehicleId, todayStart, ct) ?? await GetFirstOdometerAsync(vehicleId, ct);
+        var distance = DayDistance.FromOdometer(odometerKm, dayStart);
+        logger?.LogDebug(
+            "Day distance counter {CounterKm} km exceeds the odometer's gain since {WindowStartKm} km; using {DistanceKm} km for vehicleId={VehicleId}",
+            counterKm, start, distance, vehicleId);
+        return distance;
+    }
+
+    private Task<double?> GetFirstOdometerAsync(int vehicleId, CancellationToken ct) =>
+        db.TelemetrySnapshots
+            .AsNoTracking()
+            .Where(s => s.VehicleId == vehicleId && s.OdometerKm != null)
+            .OrderBy(s => s.RecordedAt)
             .Select(s => s.OdometerKm)
             .FirstOrDefaultAsync(ct);
 
