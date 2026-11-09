@@ -5,7 +5,7 @@ import markerIcon2xUrl from 'leaflet/dist/images/marker-icon-2x.png'
 import markerShadowUrl from 'leaflet/dist/images/marker-shadow.png'
 
 // Vite wraps CJS modules in a frozen ESM namespace - `import * as LModule` gives that frozen
-// namespace. Plugins like leaflet.heat and leaflet.markercluster patch the actual mutable CJS
+// namespace. Plugins like leaflet.markercluster patch the actual mutable CJS
 // export (LModule.default), so every consumer must resolve through this same shared instance
 // rather than re-importing 'leaflet' directly, or plugin-added methods won't be visible on it.
 export const L = ((LModule as unknown as { default?: typeof LModule }).default ??

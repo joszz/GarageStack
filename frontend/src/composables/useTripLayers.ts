@@ -83,10 +83,6 @@ export function useTripLayers(o: TripLayersOptions) {
       maxZoom: 17,
       gradient: { 0.4: '#3b82f6', 0.65: '#f59e0b', 1.0: '#ef4444' },
     })
-    if (!layer) {
-      console.warn('[map] leaflet.heat plugin not available')
-      return
-    }
     if (heatLayer) heatLayer.remove()
     heatLayer = layer.addTo(map)
   }
