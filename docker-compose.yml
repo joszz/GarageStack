@@ -85,7 +85,7 @@ services:
       retries: 3
 
   saic-mqtt-gateway:
-    image: saicismartapi/saic-python-mqtt-gateway:0.14.0-rc1
+    image: saicismartapi/saic-python-mqtt-gateway:0.14.0-rc2
     container_name: saic-mqtt
     restart: unless-stopped
     mem_limit: 256m
