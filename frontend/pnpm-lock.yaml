@@ -42,8 +42,8 @@ importers:
         specifier: ^1.9.4
         version: 1.9.4
       leaflet.heat:
-        specifier: ^0.2.0
-        version: 0.2.0
+        specifier: ^1.0.0
+        version: 1.0.0(leaflet@1.9.4)
       leaflet.markercluster:
         specifier: ^1.5.3
         version: 1.5.3(leaflet@1.9.4)
@@ -2474,8 +2474,10 @@ packages:
     resolution: {integrity: sha512-dcS1ul+9tmeD95T+x28/ehLgd9mENa3LsvDTtzm3vyBEO7RPptvAD+t44WVXaUjTBRcrpFeFlC8WCruUR456hw==}
     engines: {node: '>=0.10.0'}
 
-  leaflet.heat@0.2.0:
-    resolution: {integrity: sha512-Cd5PbAA/rX3X3XKxfDoUGi9qp78FyhWYurFg3nsfhntcM/MCNK08pRkf4iEenO1KNqwVPKCmkyktjW3UD+h9bQ==}
+  leaflet.heat@1.0.0:
+    resolution: {integrity: sha512-sjEmSRlT6XdrftqVkS/+bS+bM36Px4QsZhDlgABY3udZobCs+6VRYvWyhMloznr6dBk9sDbR4ZDuWcLoakwSDg==}
+    peerDependencies:
+      leaflet: ^1.9.0 || ^2.0.0-beta.1
 
   leaflet.markercluster@1.5.3:
     resolution: {integrity: sha512-vPTw/Bndq7eQHjLBVlWpnGeLa3t+3zGiuM7fJwCkiMFq+nmRuG3RI3f7f4N4TDX7T4NpbAXpR2+NTRSEGfCSeA==}
@@ -2960,6 +2962,9 @@ packages:
   signal-exit@4.1.0:
     resolution: {integrity: sha512-bzyZ1e88w9O1iNJbKnOlvYTrWPDl46O1bG0D3XInv+9tkPrxrN8jUUTiFlDkkmKWgn1M6CfIA13SuGqOa9Korw==}
     engines: {node: '>=14'}
+
+  simpleheat@1.0.0:
+    resolution: {integrity: sha512-hCGl1lj+IR+CymAouYf5ZQ7NguSQq+w1PWu1WvHgZWkdzmyS/xbN1T2TpwlSC8nEDDK2JRVPcdgV0a6652aP2Q==}
 
   slash@5.1.0:
     resolution: {integrity: sha512-ZA6oR3T/pEyuqwMgAKT0/hAv8oAXckzbkmR0UkUosQ+Mc4RxGoJkRmwHgHufaenlyAgE1Mxgpdcrf75y6XcnDg==}
@@ -5801,7 +5806,10 @@ snapshots:
 
   kind-of@6.0.3: {}
 
-  leaflet.heat@0.2.0: {}
+  leaflet.heat@1.0.0(leaflet@1.9.4):
+    dependencies:
+      leaflet: 1.9.4
+      simpleheat: 1.0.0
 
   leaflet.markercluster@1.5.3(leaflet@1.9.4):
     dependencies:
@@ -6273,6 +6281,8 @@ snapshots:
   shebang-regex@3.0.0: {}
 
   signal-exit@4.1.0: {}
+
+  simpleheat@1.0.0: {}
 
   slash@5.1.0: {}
 
