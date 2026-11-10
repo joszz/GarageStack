@@ -483,6 +483,39 @@
     Mask="true"/>
 
   <Config
+    Name="Dawarich URL"
+    Target="DAWARICH_URL"
+    Default=""
+    Mode=""
+    Description="Optional phone GPS: base HTTP(S) URL of your Dawarich instance, reachable from this container. Set its API key too, then link trackers per car in GarageStack Settings. Use a LAN address or shared Docker network name, not localhost."
+    Type="Variable"
+    Display="advanced"
+    Required="false"
+    Mask="false"/>
+
+  <Config
+    Name="Dawarich API Key"
+    Target="DAWARICH_API_KEY"
+    Default=""
+    Mode=""
+    Description="API key from your Dawarich user settings. Sent only to Dawarich in an authorization header. Phone positions are stored only as part of confirmed car trips. Leave empty to disable the integration."
+    Type="Variable"
+    Display="advanced"
+    Required="false"
+    Mask="true"/>
+
+  <Config
+    Name="Dawarich Fusion Delay"
+    Target="DAWARICH_FUSION_DELAY_MINUTES"
+    Default="15"
+    Mode=""
+    Description="Minutes after a trip ends before fetching phone GPS. Allow time for the phone to upload. From 1 to 1440."
+    Type="Variable"
+    Display="advanced"
+    Required="false"
+    Mask="false">15</Config>
+
+  <Config
     Name="Overpass API Base URL"
     Target="OVERPASS__BASEURL"
     Default="https://overpass-api.de/api/interpreter"

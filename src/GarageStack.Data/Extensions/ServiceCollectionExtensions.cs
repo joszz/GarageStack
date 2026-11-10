@@ -25,6 +25,14 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ITripRepository, TripRepository>();
         services.AddScoped<IHousekeepingRepository, HousekeepingRepository>();
         services.AddGarageStackRdw();
+        services.AddSingleton(sp => DawarichOptions.From(sp.GetRequiredService<IConfiguration>()));
+        services.AddHttpClient<IDawarichClient, DawarichApiClient>(client =>
+        {
+            client.DefaultRequestHeaders.UserAgent.ParseAdd(UpstreamHttp.UserAgent);
+            client.Timeout = TimeSpan.FromSeconds(15);
+        })
+        .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false })
+        .RemoveAllLoggers();
 
         return services;
     }
@@ -46,6 +54,8 @@ public static class ServiceCollectionExtensions
             Enabled = sp.GetRequiredService<IConfiguration>().SwitchOrDefault("Rdw:Enabled", fallback: true),
         });
         services.AddSingleton<IRdwClient, DemoRdwClient>();
+        services.AddSingleton(new DawarichOptions { Url = "https://demo.invalid", ApiKey = "demo" });
+        services.AddSingleton<IDawarichClient, DemoDawarichClient>();
         services.AddRdwLookups();
 
         return services;
@@ -66,6 +76,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<INotificationRepository, NotificationRepository>();
         services.AddScoped<IPushSubscriptionRepository, PushSubscriptionRepository>();
         services.AddScoped<IApiTokenRepository, ApiTokenRepository>();
+        services.AddScoped<IPhoneFusionRepository, PhoneFusionRepository>();
+        services.TryAddSingleton(TimeProvider.System);
         return services.AddGarageStackPoiClients();
     }
 

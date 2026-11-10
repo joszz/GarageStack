@@ -34,6 +34,9 @@ public class Trip
     /// <summary>When the route was last edited, or null while it is as recorded.</summary>
     public DateTime? EditedAt { get; set; }
 
+    public PhoneFusionOutcome? PhoneFusion { get; set; }
+    public DateTime? PhoneFusionAt { get; set; }
+
     // The first and last fix, kept beside the fixes so the trip log can list a year of trips
     // without reading every fix of every one of them.
     public double StartLatitude { get; set; }

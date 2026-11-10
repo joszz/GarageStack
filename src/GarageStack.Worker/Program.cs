@@ -39,6 +39,7 @@ try
     builder.Services.AddHostedService<TyreTrendCheckService>();
     builder.Services.AddHostedService<PoiPreCachingService>();
     builder.Services.AddHostedService<TripRecorderService>();
+    builder.Services.AddHostedService<PhoneFusionService>();
     // The Dutch registration's APK, recalls and insurance; stops at once unless RDW_ENABLED is set.
     builder.Services.AddHostedService<RdwSyncService>();
 

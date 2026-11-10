@@ -8,6 +8,8 @@ import { useBasemap } from '@/composables/useBasemap'
 import { fitToPoints, type FitPadding, type LeafletMap } from '@/utils/leaflet'
 import { latLngsOf, type LatLng } from '@/utils/geo'
 import { speedSegments, speedToColor } from '@/utils/speedColors'
+import { phoneStretches } from '@/utils/tripSources'
+import PhoneSourceKey from './PhoneSourceKey.vue'
 
 const props = defineProps<{
   /** The route's fixes; null while they load or when they could not be. */
@@ -23,6 +25,7 @@ const props = defineProps<{
 }>()
 
 const { t } = useI18n()
+const phoneLines = computed(() => phoneStretches(props.points ?? []))
 
 // A preview that cannot be panned or zoomed, as the dashboard's location card.
 const mapOptions = {
@@ -105,6 +108,15 @@ watch(framed, () => {
         :interactive="false"
       />
       <LPolyline
+        v-for="(run, i) in phoneLines"
+        :key="`phone-${i}`"
+        :lat-lngs="run"
+        class-name="trip-phone-line"
+        :weight="5"
+        dash-array="2 8"
+        :interactive="false"
+      />
+      <LPolyline
         v-if="straightLine"
         :lat-lngs="straightLine"
         class-name="trip-route-map__straight"
@@ -143,4 +155,5 @@ watch(framed, () => {
       <font-awesome-icon icon="map" />
     </RouterLink>
   </div>
+  <PhoneSourceKey v-if="phoneLines.length" />
 </template>

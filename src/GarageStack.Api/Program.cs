@@ -187,6 +187,7 @@ try
     app.MapClimateScheduleEndpoints();
     app.MapCommutePlaceEndpoints();
     app.MapRdwEndpoints();
+    app.MapDawarichEndpoints();
     app.MapWidgetEndpoints();
     app.MapUpdateEndpoints();
     app.MapClientErrorEndpoints();

@@ -15,7 +15,8 @@ export function useTripRoute(vin: Ref<string | null>, entry: Ref<TripLogEntry | 
   const cache = new Map<string, readonly TripPoint[]>()
   const shownKey = ref<string | null>(null)
 
-  const keyOf = (trip: TripLogEntry) => `${trip.id}|${trip.endedAt}|${trip.isEdited}`
+  const keyOf = (trip: TripLogEntry) =>
+    `${vin.value}|${trip.id}|${trip.endedAt}|${trip.isEdited}|${trip.phoneFusionAt ?? ''}`
 
   watch(
     () => (vin.value && entry.value ? [vin.value, entry.value.id, keyOf(entry.value)] : null),

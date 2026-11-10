@@ -54,6 +54,14 @@ By default the web login uses the same `SAIC_USER` and `SAIC_PASSWORD` credentia
 
 ### Optional
 
+For phone GPS, set `DAWARICH_URL` and `DAWARICH_API_KEY` as container variables, recreate the
+container, then identify and link your phone trackers under Settings. Both embedded .NET
+services inherit them.
+Dawarich can run in separate containers on the same host: use its published host/LAN address or
+a shared Docker network name, not `localhost`. The optional `DAWARICH_FUSION_DELAY_MINUTES`
+defaults to 15. The [Phone GPS setup](../../documentation/PHONE_GPS.md) guide explains how to
+identify trackers from their IDs and last-seen times.
+
 Every other variable works here as well, under the same name as in Docker Compose. They are all listed, with their defaults, in [`CONFIGURATION.md`](../../documentation/CONFIGURATION.md): push notifications, single sign-on, the map's data sources, the Dutch registration (RDW) lookups, tyre pressure bands, the traction battery's real size, the rate limit and the Home Assistant broker login. A few behave differently in this image:
 
 | Variable | In this image |

@@ -176,6 +176,12 @@ const notesId = computed(() => `trip-log-notes-${props.entry.id}`)
       <h2 class="trip-log-detail__title">{{ dateLabel }}</h2>
       <span class="text-sm text-muted">{{ timeLabel }}</span>
       <div class="trip-log-detail__status">
+        <span
+          v-if="routePoints?.some((point) => point.source === 'phone')"
+          class="trip-log-detail__mark text-xs text-muted"
+        >
+          <font-awesome-icon icon="route" />{{ t('dawarich.fused') }}
+        </span>
         <span class="trip-log-detail__badge" :class="PURPOSE_BADGE_CLASSES[purposeKey]">
           <font-awesome-icon :icon="PURPOSE_ICONS[purposeKey]" />{{
             t(`tripLog.purpose.${purposeKey}`)

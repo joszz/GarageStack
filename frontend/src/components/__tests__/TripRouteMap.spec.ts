@@ -111,6 +111,19 @@ const lines = (wrapper: ReturnType<typeof mountMap>) =>
   wrapper.findAllComponents({ name: 'LPolyline' })
 
 describe('TripRouteMap', () => {
+  it('distinguishes confirmed phone stretches and names them in a legend', () => {
+    const wrapper = mountMap({
+      points: [fix(52.5, 40), { ...fix(52.4, 40), source: 'phone' }, fix(52.3, 40)],
+    })
+    const phone = lines(wrapper).find((line) => line.props('className') === 'trip-phone-line')
+    expect(phone?.props('dashArray')).toBe('2 8')
+    expect(phone?.props('latLngs')).toEqual([
+      [52.5, 6],
+      [52.4, 6],
+      [52.3, 6],
+    ])
+    expect(wrapper.text()).toContain(en.dawarich.phonePoints)
+  })
   it('colours the route by the speed of each stretch', () => {
     const wrapper = mountMap({ points: [fix(52.5, 20), fix(52.4, 140), fix(52.3, 140)] })
 

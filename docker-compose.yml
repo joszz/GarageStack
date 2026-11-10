@@ -43,6 +43,10 @@ x-dotnet-environment: &dotnet-environment
   RDW_ENABLED: "${RDW_ENABLED:-}"
   RDW_REFRESH_HOURS: "${RDW_REFRESH_HOURS:-}"
   RDW_APP_TOKEN: "${RDW_APP_TOKEN:-}"
+  # API discovers trackers; Worker fills trips. Both use the same Dawarich account.
+  DAWARICH_URL: "${DAWARICH_URL:-}"
+  DAWARICH_API_KEY: "${DAWARICH_API_KEY:-}"
+  DAWARICH_FUSION_DELAY_MINUTES: "${DAWARICH_FUSION_DELAY_MINUTES:-}"
 
 # Docker keeps container output forever unless told otherwise. The .NET services also write their
 # own rotated files (LOG_RETAINED_FILES), so a few megabytes of console history per container is

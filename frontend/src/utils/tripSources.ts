@@ -19,6 +19,27 @@ export interface PlacedLine {
  * one (the snapped line), they follow it between the points' vertices.
  */
 export function addedStretches(points: readonly TripPoint[], line?: PlacedLine | null): LatLng[][] {
+  return sourceStretches(points, line, (a, b) => isAdded(a) || isAdded(b))
+}
+
+function isAdded(point: TripPoint): boolean {
+  return point.source === 'anchored' || point.source === 'manual'
+}
+
+/** Confirmed phone stretches have their own style, not the unobserved, added-route style. */
+export function phoneStretches(points: readonly TripPoint[], line?: PlacedLine | null): LatLng[][] {
+  return sourceStretches(
+    points,
+    line,
+    (a, b) => !isAdded(a) && !isAdded(b) && (a.source === 'phone' || b.source === 'phone'),
+  )
+}
+
+function sourceStretches(
+  points: readonly TripPoint[],
+  line: PlacedLine | null | undefined,
+  includes: (a: TripPoint, b: TripPoint) => boolean,
+): LatLng[][] {
   const fixes = line?.points ?? points
   const vertexOf = (i: number): number => line?.pointIndexes[i] ?? i
   const coordinates: readonly LatLng[] =
@@ -28,7 +49,7 @@ export function addedStretches(points: readonly TripPoint[], line?: PlacedLine |
   let run: LatLng[] | null = null
   let runEnd = -1
   for (let i = 0; i < fixes.length - 1; i++) {
-    if (fixes[i]!.source == null && fixes[i + 1]!.source == null) {
+    if (!includes(fixes[i]!, fixes[i + 1]!)) {
       run = null
       continue
     }

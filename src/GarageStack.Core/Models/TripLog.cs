@@ -30,7 +30,8 @@ public sealed record TripLogEntry(
     bool IsEdited = false,
     // The highest speed a fix reported, and the mean while moving; null when no fix carried one.
     double? MaxSpeedKmh = null,
-    double? AvgMovingSpeedKmh = null);
+    double? AvgMovingSpeedKmh = null,
+    DateTime? PhoneFusionAt = null);
 
 /// <summary>How joining a trip with the next one went (<see cref="Interfaces.ITripRepository.MergeWithNextAsync"/>).</summary>
 public enum TripMergeOutcome
