@@ -39,6 +39,8 @@ export interface TripLogEntry {
   isHidden: boolean
   /** Its route was edited by hand. */
   isEdited: boolean
+  /** Changes when the Worker attempts phone fusion, invalidating a cached route preview. */
+  phoneFusionAt?: string | null
   /** The highest speed a fix reported, and the mean while moving; null when no fix carried one. */
   maxSpeedKmh: number | null
   avgMovingSpeedKmh: number | null

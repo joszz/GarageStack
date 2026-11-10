@@ -293,6 +293,10 @@ public class TripRepository(
         // Joining a trip someone hid with one they did not is asking to see the whole drive.
         first.IsHidden = first.IsHidden && second.IsHidden;
         first.Notes = JoinNotes(first.Notes, second.Notes);
+        // A joined route that already contains phone data must not acquire a second track.
+        first.PhoneFusion = first.PhoneFusion == PhoneFusionOutcome.Fused || second.PhoneFusion == PhoneFusionOutcome.Fused
+            ? PhoneFusionOutcome.Fused : null;
+        first.PhoneFusionAt = Max(first.PhoneFusionAt, second.PhoneFusionAt);
 
         // The joined trip as recorded is the two as recorded, so a reset undoes the edits of both
         // and keeps the join.
@@ -368,7 +372,7 @@ public class TripRepository(
 
     // Everything read off a trip's points follows them. The odometer readings stay: the trip log
     // counts what the car's own odometer counted, whatever line is drawn on the map.
-    private async Task ApplyPointsAsync(Trip trip, IReadOnlyList<TripPoint> points, CancellationToken ct)
+    internal async Task ApplyPointsAsync(Trip trip, IReadOnlyList<TripPoint> points, CancellationToken ct)
     {
         var dto = TripEdit.Summarize(points);
         if (TripEdit.AddressMoved(trip.StartLatitude, trip.StartLongitude, points[0])) trip.StartPlaceJson = null;
@@ -505,14 +509,14 @@ public class TripRepository(
         t.StartLatitude, t.StartLongitude, t.EndLatitude, t.EndLongitude,
         t.OdometerStartKm, t.OdometerEndKm,
         t.StartPlaceJson, t.EndPlaceJson, t.Purpose, t.Notes, t.PurposeIsManual, t.IsHidden, t.EditedAt != null,
-        t.MaxSpeedKmh, t.AvgMovingSpeedKmh);
+        t.MaxSpeedKmh, t.AvgMovingSpeedKmh, t.PhoneFusionAt);
 
     private sealed record LogRow(
         long Id, DateTime StartedAt, DateTime EndedAt, double DistanceKm,
         double StartLatitude, double StartLongitude, double EndLatitude, double EndLongitude,
         double? OdometerStartKm, double? OdometerEndKm,
         string? StartPlaceJson, string? EndPlaceJson, TripPurpose? Purpose, string? Notes, bool PurposeIsManual, bool IsHidden,
-        bool IsEdited, double? MaxSpeedKmh, double? AvgMovingSpeedKmh);
+        bool IsEdited, double? MaxSpeedKmh, double? AvgMovingSpeedKmh, DateTime? PhoneFusionAt);
 
     private TripLogEntry ToEntry(LogRow r) => new(
         r.Id, r.StartedAt, r.EndedAt, r.DistanceKm,
@@ -520,7 +524,8 @@ public class TripRepository(
         r.OdometerStartKm, r.OdometerEndKm,
         ReadPlace(r.Id, r.StartPlaceJson), ReadPlace(r.Id, r.EndPlaceJson),
         r.Purpose, r.Notes, PurposeIsAutomatic: r.Purpose is not null && !r.PurposeIsManual, IsHidden: r.IsHidden,
-        IsEdited: r.IsEdited, MaxSpeedKmh: r.MaxSpeedKmh, AvgMovingSpeedKmh: r.AvgMovingSpeedKmh);
+        IsEdited: r.IsEdited, MaxSpeedKmh: r.MaxSpeedKmh, AvgMovingSpeedKmh: r.AvgMovingSpeedKmh,
+        PhoneFusionAt: r.PhoneFusionAt);
 
     // An unreadable place is as good as none: the trip log looks it up again.
     private PlaceAddress? ReadPlace(long tripId, string? json) =>

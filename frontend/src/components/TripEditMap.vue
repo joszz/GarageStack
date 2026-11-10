@@ -10,7 +10,8 @@ import { useLeafletMap } from '@/composables/useLeafletMap'
 import { useBasemap } from '@/composables/useBasemap'
 import { DEFAULT_MAP_CENTER, fitToPoints, type LeafletMap } from '@/utils/leaflet'
 import { latLngsOf, type LatLng } from '@/utils/geo'
-import { addedStretches } from '@/utils/tripSources'
+import { addedStretches, phoneStretches } from '@/utils/tripSources'
+import PhoneSourceKey from './PhoneSourceKey.vue'
 import { sameRoute } from '@/utils/tripEdit'
 
 const props = defineProps<{
@@ -42,6 +43,7 @@ const recordedLine = computed(() =>
   sameRoute(props.points, props.recorded) ? null : latLngsOf(props.recorded),
 )
 const dashes = computed(() => addedStretches(props.points))
+const phoneLines = computed(() => phoneStretches(props.points))
 const start = computed<LatLng | null>(() => line.value[0] ?? null)
 // Fixed once the map is up: moving the start must not pan the map out from under the finger.
 const initialCenter: LatLng = start.value ?? DEFAULT_MAP_CENTER
@@ -114,6 +116,15 @@ function onDragEnd(which: 'start' | 'end', event: DragEndEvent) {
         dash-array="6 8"
         :interactive="false"
       />
+      <LPolyline
+        v-for="(run, i) in phoneLines"
+        :key="`phone-${i}`"
+        :lat-lngs="run"
+        class-name="trip-phone-line"
+        :weight="5"
+        dash-array="2 8"
+        :interactive="false"
+      />
       <LCircleMarker
         v-for="stop in stops"
         :key="`stop-${stop[0]}-${stop[1]}`"
@@ -168,4 +179,5 @@ function onDragEnd(which: 'start' | 'end', event: DragEndEvent) {
       </LMarker>
     </LMap>
   </div>
+  <PhoneSourceKey v-if="phoneLines.length" />
 </template>

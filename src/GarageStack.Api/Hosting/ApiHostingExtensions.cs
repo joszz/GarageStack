@@ -76,6 +76,7 @@ internal static class ApiHostingExtensions
 
             // A full export reads every row the car ever sent: a few a quarter of an hour is plenty.
             opts.AddPolicy("export", FixedWindowPerIp(TimeSpan.FromMinutes(15), permitLimit: 5));
+            opts.AddPolicy("dawarich", FixedWindowPerIp(TimeSpan.FromMinutes(1), permitLimit: 12));
         });
     }
 

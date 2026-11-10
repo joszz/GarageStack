@@ -1,0 +1,26 @@
+@baseUrl = http://localhost:5000
+@vin = FAKEVN00000000001
+
+### Use an authenticated browser session for writes. Read-only API tokens cannot write.
+GET {{baseUrl}}/api/dawarich/status
+
+###
+GET {{baseUrl}}/api/vehicles/{{vin}}/phone-trackers
+
+###
+PUT {{baseUrl}}/api/vehicles/{{vin}}/phone-trackers
+Content-Type: application/json
+
+{"trackerIds":["fake-phone"]}
+
+###
+POST {{baseUrl}}/api/vehicles/{{vin}}/phone-trackers/backfill
+Content-Type: application/json
+
+{"from":"2026-01-01T00:00:00Z"}
+
+### Invalid from date returns 400.
+POST {{baseUrl}}/api/vehicles/{{vin}}/phone-trackers/backfill
+Content-Type: application/json
+
+{"from":null}

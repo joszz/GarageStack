@@ -1,4 +1,28 @@
 {
+  "dawarich": {
+    "title": "Phone GPS (Dawarich)",
+    "privacy": "Phone positions are only stored where they become part of a car trip. Other positions are discarded.",
+    "status": {
+      "ok": "Dawarich is connected.",
+      "badKey": "Dawarich rejected the API key. Check the server configuration.",
+      "unreachable": "Dawarich could not be reached or returned an unsupported response.",
+      "disabled": "Dawarich is not configured."
+    },
+    "refresh": "Refresh connection and trackers",
+    "trackers": "Linked phone trackers (last seen)",
+    "choose": "Choose phone trackers",
+    "none": "No identifiable trackers found in the last 30 days.",
+    "noResults": "No matching trackers.",
+    "linkHint": "New trips only. Clear all trackers to switch off. The phone must follow the car; only one matching tracker is used per trip.",
+    "save": "Save trackers",
+    "saved": "Tracker links saved.",
+    "from": "Backfill from (UTC)",
+    "backfillHint": "Queues older trips up to now. Edited and already fused trips are skipped. Processing happens gradually in the background.",
+    "backfill": "Queue backfill",
+    "queued": "Backfill queued. Routes will update as trips are processed.",
+    "phonePoints": "Phone GPS (dotted purple)",
+    "fused": "Filled from phone GPS"
+  },
   "nav": {
     "dashboard": "Dashboard",
     "statistics": "Statistics",
@@ -967,6 +991,12 @@
     "offline": "GarageStack cannot be reached. Check your connection and try again.",
     "unknown": "Something went wrong.",
     "codes": {
+      "dawarich": {
+        "disabled": "Dawarich is not configured on this server.",
+        "invalidTrackers": "Choose at most 10 distinct tracker identifiers, each up to 200 characters.",
+        "invalidFrom": "Choose a date between 2000 and today.",
+        "notLinked": "Save at least one linked tracker before backfilling."
+      },
       "csrf": {
         "originNotAllowed": "This address is not allowed. Set CORS_ORIGIN to the address you open GarageStack on."
       },

@@ -23,9 +23,23 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<CommutePlace> CommutePlaces => Set<CommutePlace>();
     public DbSet<ApiToken> ApiTokens => Set<ApiToken>();
     public DbSet<RdwVehicleInfo> RdwVehicleInfos => Set<RdwVehicleInfo>();
+    public DbSet<VehiclePhoneTracker> VehiclePhoneTrackers => Set<VehiclePhoneTracker>();
+    public DbSet<PhoneBackfillRequest> PhoneBackfillRequests => Set<PhoneBackfillRequest>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<VehiclePhoneTracker>(e =>
+        {
+            e.HasKey(t => t.Id);
+            e.HasIndex(t => new { t.VehicleId, t.TrackerId }).IsUnique();
+            e.Property(t => t.TrackerId).HasMaxLength(VehiclePhoneTracker.MaxTrackerLength).IsRequired();
+            e.HasOne(t => t.Vehicle).WithMany().HasForeignKey(t => t.VehicleId).OnDelete(DeleteBehavior.Cascade);
+        });
+        modelBuilder.Entity<PhoneBackfillRequest>(e =>
+        {
+            e.HasKey(r => r.VehicleId);
+            e.HasOne(r => r.Vehicle).WithMany().HasForeignKey(r => r.VehicleId).OnDelete(DeleteBehavior.Cascade);
+        });
         modelBuilder.Entity<Vehicle>(e =>
         {
             e.HasKey(v => v.Id);
@@ -90,6 +104,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.HasIndex(t => new { t.VehicleId, t.StartedAt }).IsUnique();
             e.Property(t => t.PointsJson).IsRequired();
             e.Property(t => t.Notes).HasMaxLength(Trip.NotesMaxLength);
+            e.Property(t => t.PhoneFusion).HasConversion<string>().HasMaxLength(16);
+            e.HasIndex(t => new { t.PhoneFusion, t.EndedAt });
             // Stored by name so the column reads the same in a query or a backup as in the API.
             e.Property(t => t.Purpose).HasConversion<string>().HasMaxLength(16);
             e.HasOne(t => t.Vehicle)

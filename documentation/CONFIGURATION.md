@@ -109,6 +109,20 @@ which only appears once this is on.
 | `RDW_REFRESH_HOURS` | `24` | Hours a lookup is kept before the Worker asks again. One hour at the least. |
 | `RDW_APP_TOKEN` | none | A Socrata app token, sent as `X-App-Token`. Not needed: requests without one work, but share a lower rate limit with everyone else asking anonymously. Free to create with an account on the RDW's open data portal. |
 
+## Phone GPS (Dawarich)
+
+Optional, off until both connection settings are supplied and a tracker is linked to a vehicle.
+See [Phone GPS setup](PHONE_GPS.md). The API and Worker must receive the same configuration.
+The preview compose overlay inherits these variables from the main compose file. The setup
+guide explains how to identify a tracker from its ID and last-seen time, and when to link more
+than one.
+
+| Variable | Default | What it does |
+| --- | --- | --- |
+| `DAWARICH_URL` | none | Dawarich's base HTTP(S) URL, reachable from the containers. No credentials, query string or fragment. Redirects are not followed. |
+| `DAWARICH_API_KEY` | none | API key for the Dawarich user whose trackers should be available. Sent as a Bearer header, never in the request URL or exported data. |
+| `DAWARICH_FUSION_DELAY_MINUTES` | `15` | Minutes after a trip ends before phone positions are fetched. Between 1 and 1440. Allow enough time for the phone to upload. |
+
 ## The car
 
 | Variable | Default | What it does |

@@ -23,7 +23,8 @@ internal sealed class DataExport(
     IClimateScheduleRepository schedules,
     ICommutePlaceRepository places,
     INotificationRepository notifications,
-    IUserSettingsRepository settings)
+    IUserSettingsRepository settings,
+    IPhoneFusionRepository phones)
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web)
     {
@@ -59,6 +60,8 @@ internal sealed class DataExport(
                 ["vehicles/{vin}/maintenance.json"] = "Maintenance items, each with its service history",
                 ["vehicles/{vin}/climate-schedules.json"] = "Climate schedules",
                 ["vehicles/{vin}/commute-places.json"] = "Home and work places",
+                ["vehicles/{vin}/phone-trackers.json"] = "Linked Dawarich trackers, without credentials",
+                ["vehicles/{vin}/routes/{id}.json"] = "Saved route points including phone points and the original route when edited",
                 ["vehicles/{vin}/telemetry.csv"] = "Every telemetry row, oldest first, as recorded",
             },
         }, ct);
@@ -81,7 +84,17 @@ internal sealed class DataExport(
                 car.ParkedLatitude,
                 car.ParkedLongitude,
             }, ct);
-            await WriteJsonAsync(zip, $"{folder}/trips.json", await trips.GetLogAsync(car.Id, Beginning, end, ct), ct);
+            var log = await trips.GetLogAsync(car.Id, Beginning, end, ct);
+            await WriteJsonAsync(zip, $"{folder}/trips.json", log, ct);
+            await WriteJsonAsync(zip, $"{folder}/phone-trackers.json", await phones.ListAsync(car.Id, ct), ct);
+            foreach (var trip in log)
+            {
+                var route = await trips.GetEditorAsync(car.Id, trip.Id, ct);
+                if (route.Editor is not { } editor)
+                    throw new InvalidOperationException("A saved trip could not be read for the data export.");
+                await WriteJsonAsync(zip, $"{folder}/routes/{trip.Id}.json",
+                    new { editor.Id, editor.Points, editor.OriginalPoints, editor.EditedAt }, ct);
+            }
 
             var items = await maintenance.ListAsync(car.Id, ct);
             var withHistory = new List<object>(items.Count);

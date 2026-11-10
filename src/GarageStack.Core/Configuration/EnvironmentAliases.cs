@@ -80,6 +80,9 @@ public static class EnvironmentAliases
         ["RDW_ENABLED"] = "Rdw:Enabled",
         ["RDW_REFRESH_HOURS"] = "Rdw:RefreshHours",
         ["RDW_APP_TOKEN"] = "Rdw:AppToken",
+        ["DAWARICH_URL"] = "Dawarich:Url",
+        ["DAWARICH_API_KEY"] = "Dawarich:ApiKey",
+        ["DAWARICH_FUSION_DELAY_MINUTES"] = "Dawarich:FusionDelayMinutes",
     };
 
     /// <summary>

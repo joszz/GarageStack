@@ -57,6 +57,14 @@ beforeEach(() => {
 })
 
 describe('useTripRoute', () => {
+  it('reloads a route when phone fusion changes it without a manual edit', async () => {
+    vi.mocked(tripLogApi.editor).mockImplementation(async (_, id) => editor(id, [point(id)]))
+    const { entry } = mountRoute(logEntry({ id: 1 }))
+    await flushPromises()
+    entry.value = logEntry({ id: 1, phoneFusionAt: '2026-01-01T12:00:00Z' })
+    await flushPromises()
+    expect(tripLogApi.editor).toHaveBeenCalledTimes(2)
+  })
   it('loads nothing without a trip', () => {
     const { route } = mountRoute(null)
 

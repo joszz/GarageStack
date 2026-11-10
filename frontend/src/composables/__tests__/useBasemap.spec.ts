@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { setActivePinia, createPinia } from 'pinia'
+import { setActivePinia, createPinia, disposePinia, type Pinia } from 'pinia'
 import { defineComponent, h, shallowRef, nextTick } from 'vue'
-import { mount, flushPromises } from '@vue/test-utils'
+import { mount, flushPromises, type VueWrapper } from '@vue/test-utils'
 import type { LeafletMap } from '@/utils/leaflet'
 
 // Leaflet and MapLibre are both stubbed: this suite is about which basemap ends up on the map
@@ -15,6 +15,8 @@ interface FakeLayer {
 }
 
 const layers: FakeLayer[] = []
+const mounted = new Set<VueWrapper>()
+let pinia: Pinia
 
 function fakeLayer(kind: FakeLayer['kind'], options: Record<string, unknown>, url?: string) {
   const layer: FakeLayer & { addTo: (map: unknown) => unknown; remove: () => void } = {
@@ -143,8 +145,14 @@ async function mountBasemap(
       },
     }),
   )
+  mounted.add(wrapper)
   await flushPromises()
   return { mapRef, wrapper }
+}
+
+function unmountBasemap(wrapper: VueWrapper) {
+  mounted.delete(wrapper)
+  wrapper.unmount()
 }
 
 async function uiStore() {
@@ -154,8 +162,11 @@ async function uiStore() {
 
 describe('useBasemap', () => {
   beforeEach(async () => {
+    // Discard debounced settings writes between tests while keeping flushPromises' setImmediate real.
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
     vi.resetModules()
-    setActivePinia(createPinia())
+    pinia = createPinia()
+    setActivePinia(pinia)
     localStorage.clear()
     layers.length = 0
     images = new Map()
@@ -168,6 +179,11 @@ describe('useBasemap', () => {
   })
 
   afterEach(() => {
+    mounted.forEach((wrapper) => wrapper.unmount())
+    mounted.clear()
+    disposePinia(pinia)
+    vi.clearAllTimers()
+    vi.useRealTimers()
     vi.unstubAllGlobals()
     vi.restoreAllMocks()
   })
@@ -219,7 +235,7 @@ describe('useBasemap', () => {
     const { wrapper } = await mountBasemap(map, { vector: false })
     expect(containerOf(map).dataset.rasterBasemap).toBe('dark')
 
-    wrapper.unmount()
+    unmountBasemap(wrapper)
 
     expect(containerOf(map).dataset.rasterBasemap).toBeUndefined()
   })
@@ -369,7 +385,7 @@ describe('useBasemap', () => {
     expect(replacement).not.toBe(first)
     expect(replacement.addedTo).toBe(second)
 
-    wrapper.unmount()
+    unmountBasemap(wrapper)
     expect(replacement.removed).toBe(true)
   })
 })

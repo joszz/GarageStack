@@ -1021,7 +1021,7 @@ public class AuthenticationFlowTests
         var folder = $"vehicles/{DemoVin}";
         Assert.Contains("export.json", names);
         Assert.Contains("notifications.json", names);
-        foreach (var file in new[] { "vehicle.json", "trips.json", "maintenance.json", "climate-schedules.json", "commute-places.json", "telemetry.csv" })
+        foreach (var file in new[] { "vehicle.json", "trips.json", "maintenance.json", "climate-schedules.json", "commute-places.json", "telemetry.csv", "phone-trackers.json" })
             Assert.Contains($"{folder}/{file}", names);
 
         using var csv = new StreamReader(zip.GetEntry($"{folder}/telemetry.csv")!.Open());
@@ -1032,6 +1032,9 @@ public class AuthenticationFlowTests
 
         using var trips = System.Text.Json.JsonDocument.Parse(zip.GetEntry($"{folder}/trips.json")!.Open());
         Assert.True(trips.RootElement.GetArrayLength() > 0);
+        var id = trips.RootElement[0].GetProperty("id").GetInt64();
+        using var route = JsonDocument.Parse(zip.GetEntry($"{folder}/routes/{id}.json")!.Open());
+        Assert.True(route.RootElement.GetProperty("points").GetArrayLength() > 0);
     }
 
     [Fact]
@@ -1424,6 +1427,43 @@ public class AuthenticationFlowTests
     }
 
     // ── RDW ───────────────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task Dawarich_LinksAndBackfillRequireASessionAndAreDocumented()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var factory = CreatePasswordOnlyFactory();
+        using var client = CreateClient(factory);
+        var path = $"/api/vehicles/{DemoVin}/phone-trackers";
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/dawarich/status", ct)).StatusCode);
+        await PasswordLoginAsync(client, ct);
+        var status = await client.GetFromJsonAsync<DawarichStatusResponse>("/api/dawarich/status", ct);
+        Assert.Equal(new(true, "ok"), status);
+        try
+        {
+            Assert.Equal(HttpStatusCode.BadRequest, (await client.PutAsJsonAsync(path, new { trackerIds = new[] { "" } }, ct)).StatusCode);
+            Assert.Equal(HttpStatusCode.OK, (await client.PutAsJsonAsync(path, new { trackerIds = new[] { "demo-phone" } }, ct)).StatusCode);
+            var trackers = (await client.GetFromJsonAsync<PhoneTrackersResponse>(path, ct))!;
+            Assert.Single(trackers.Linked);
+            Assert.Contains(trackers.Available, t => t.TrackerId == "demo-phone");
+            Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync($"{path}/backfill", new { from = DateTimeOffset.UtcNow.AddDays(1) }, ct)).StatusCode);
+            Assert.Equal(HttpStatusCode.Accepted, (await client.PostAsJsonAsync($"{path}/backfill", new { from = DateTimeOffset.UtcNow.AddDays(-30) }, ct)).StatusCode);
+            var created = await client.PostAsJsonAsync("/api/tokens", new { name = "Phone read-only test" }, ct);
+            var token = (await created.Content.ReadFromJsonAsync<JsonElement>(ct)).GetProperty("token").GetString()!;
+            using var bearer = CreateClient(factory, handleCookies: false);
+            bearer.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+            Assert.Equal(HttpStatusCode.OK, (await bearer.GetAsync(path, ct)).StatusCode);
+            Assert.Equal(HttpStatusCode.Forbidden, (await bearer.PutAsJsonAsync(path, new { trackerIds = Array.Empty<string>() }, ct)).StatusCode);
+            Assert.Equal(HttpStatusCode.Forbidden, (await bearer.PostAsJsonAsync($"{path}/backfill", new { from = DateTimeOffset.UtcNow.AddDays(-30) }, ct)).StatusCode);
+            var openApi = await client.GetFromJsonAsync<JsonElement>("/api/openapi/v1.json", ct);
+            Assert.True(openApi.GetProperty("paths").TryGetProperty("/api/dawarich/status", out _));
+            Assert.True(openApi.GetProperty("paths").TryGetProperty("/api/vehicles/{vin}/phone-trackers/backfill", out _));
+        }
+        finally
+        {
+            await client.PutAsJsonAsync(path, new { trackerIds = Array.Empty<string>() }, ct);
+        }
+    }
 
     // The demo answers for the RDW itself: a plate goes in as typed, comes back as the RDW keys it,
     // and is looked up straight away. A read-only token reads it but cannot change it. The demo

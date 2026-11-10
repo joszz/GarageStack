@@ -9,7 +9,7 @@ import { buildCarMarkerIcon, moveCarMarker } from '@/utils/mapCarIcon'
 import { speedLimitSegments } from '@/utils/speedLimits'
 import { speedSegments, speedToColor, tripColor } from '@/utils/speedColors'
 import { latLngsOf } from '@/utils/geo'
-import { addedStretches } from '@/utils/tripSources'
+import { addedStretches, phoneStretches } from '@/utils/tripSources'
 
 type HeatPoints = Parameters<typeof createHeatLayer>[0]
 
@@ -120,6 +120,16 @@ export function useTripLayers(o: TripLayersOptions) {
   function drawAddedStretches(trip: Trip, match: TripMatch | null, weight: number) {
     const map = o.map.value
     if (!map) return
+    for (const run of phoneStretches(trip.points, match)) {
+      const phone = L.polyline(run, {
+        className: 'trip-phone-line',
+        weight,
+        dashArray: '2 8',
+        interactive: false,
+      })
+      phone.addTo(map)
+      routeLines.push(phone)
+    }
     for (const run of addedStretches(trip.points, match)) {
       const dashes = L.polyline(run, {
         className: 'trip-added-line',

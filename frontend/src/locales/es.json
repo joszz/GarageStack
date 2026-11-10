@@ -1,4 +1,28 @@
 {
+  "dawarich": {
+    "title": "GPS del teléfono (Dawarich)",
+    "privacy": "Las posiciones del teléfono solo se guardan cuando forman parte de un viaje del coche. Las demás se descartan.",
+    "status": {
+      "ok": "Dawarich está conectado.",
+      "badKey": "Dawarich rechazó la clave API. Revisa la configuración del servidor.",
+      "unreachable": "No se pudo acceder a Dawarich o la respuesta no es compatible.",
+      "disabled": "Dawarich no está configurado."
+    },
+    "refresh": "Actualizar conexión y rastreadores",
+    "trackers": "Rastreadores vinculados (última actividad)",
+    "choose": "Elige rastreadores",
+    "none": "No se encontraron rastreadores identificables en los últimos 30 días.",
+    "noResults": "No hay rastreadores coincidentes.",
+    "linkHint": "Solo viajes nuevos. Quita todos los rastreadores para desactivar. El teléfono debe seguir al coche; solo se usa un rastreador por viaje.",
+    "save": "Guardar rastreadores",
+    "saved": "Vínculos guardados.",
+    "from": "Completar desde (UTC)",
+    "backfillHint": "Pone en cola viajes anteriores hasta ahora. Omite viajes editados o ya completados. El proceso se realiza gradualmente en segundo plano.",
+    "backfill": "Poner en cola",
+    "queued": "Solicitud en cola. Las rutas se actualizarán al procesar los viajes.",
+    "phonePoints": "GPS del teléfono (puntos morados)",
+    "fused": "Completado con GPS del teléfono"
+  },
   "nav": {
     "dashboard": "Panel de control",
     "statistics": "Estadísticas",
@@ -967,6 +991,12 @@
     "offline": "No se puede acceder a GarageStack. Comprueba tu conexión y vuelve a intentarlo.",
     "unknown": "Algo salió mal.",
     "codes": {
+      "dawarich": {
+        "disabled": "Dawarich no está configurado en este servidor.",
+        "invalidTrackers": "Elige hasta 10 identificadores distintos de hasta 200 caracteres.",
+        "invalidFrom": "Elige una fecha entre el año 2000 y hoy.",
+        "notLinked": "Guarda al menos un rastreador vinculado antes de completar viajes."
+      },
       "csrf": {
         "originNotAllowed": "Esta dirección no está permitida. Establezca CORS_ORIGIN en la dirección en la que abre GarageStack."
       },

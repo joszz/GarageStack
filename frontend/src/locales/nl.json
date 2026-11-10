@@ -1,4 +1,28 @@
 {
+  "dawarich": {
+    "title": "Telefoon-GPS (Dawarich)",
+    "privacy": "Telefoonposities worden alleen opgeslagen als ze deel worden van een autorit. Andere posities worden weggegooid.",
+    "status": {
+      "ok": "Dawarich is verbonden.",
+      "badKey": "Dawarich heeft de API-sleutel geweigerd. Controleer de serverconfiguratie.",
+      "unreachable": "Dawarich is niet bereikbaar of gaf een niet-ondersteund antwoord.",
+      "disabled": "Dawarich is niet ingesteld."
+    },
+    "refresh": "Verbinding en trackers vernieuwen",
+    "trackers": "Gekoppelde telefoontrackers (laatst gezien)",
+    "choose": "Kies telefoontrackers",
+    "none": "Geen herkenbare trackers gevonden in de afgelopen 30 dagen.",
+    "noResults": "Geen overeenkomende trackers.",
+    "linkHint": "Alleen nieuwe ritten. Verwijder alle trackers om uit te schakelen. De telefoon moet de auto volgen; per rit wordt slechts een passende tracker gebruikt.",
+    "save": "Trackers opslaan",
+    "saved": "Trackerkoppelingen opgeslagen.",
+    "from": "Aanvullen vanaf (UTC)",
+    "backfillHint": "Zet oudere ritten tot nu in de wachtrij. Bewerkte en al aangevulde ritten worden overgeslagen. Verwerking gebeurt geleidelijk op de achtergrond.",
+    "backfill": "Aanvullen inplannen",
+    "queued": "Aanvullen ingepland. Routes worden bijgewerkt zodra de ritten zijn verwerkt.",
+    "phonePoints": "Telefoon-GPS (paarse stippen)",
+    "fused": "Aangevuld met telefoon-GPS"
+  },
   "nav": {
     "dashboard": "Dashboard",
     "statistics": "Statistieken",
@@ -967,6 +991,12 @@
     "offline": "GarageStack is niet bereikbaar. Controleer je verbinding en probeer het opnieuw.",
     "unknown": "Er is iets misgegaan.",
     "codes": {
+      "dawarich": {
+        "disabled": "Dawarich is niet ingesteld op deze server.",
+        "invalidTrackers": "Kies maximaal 10 verschillende tracker-ID's van maximaal 200 tekens.",
+        "invalidFrom": "Kies een datum tussen 2000 en vandaag.",
+        "notLinked": "Sla eerst minstens een gekoppelde tracker op."
+      },
       "csrf": {
         "originNotAllowed": "Dit adres is niet toegestaan. Stel CORS_ORIGIN in op het adres waarop je GarageStack opent."
       },

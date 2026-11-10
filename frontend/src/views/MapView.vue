@@ -11,6 +11,8 @@ import MapFilterPanel from '@/components/map/MapFilterPanel.vue'
 import MapLayerPanel from '@/components/map/MapLayerPanel.vue'
 import TripSidebar from '@/components/map/TripSidebar.vue'
 import SpeedLegend from '@/components/map/SpeedLegend.vue'
+import MapLegend from '@/components/MapLegend.vue'
+import PhoneSourceKey from '@/components/PhoneSourceKey.vue'
 import SpeedLimitLegend from '@/components/map/SpeedLimitLegend.vue'
 import { useInfiniteScroll } from '@/composables/useInfiniteScroll'
 import { usePoiLayers } from '@/composables/usePoiLayers'
@@ -473,6 +475,13 @@ onMounted(async () => {
           </RouterLink>
 
           <SpeedLegend v-if="speedOverlayEnabled" v-model:expanded="legendExpanded" />
+          <MapLegend
+            v-if="selectedTrip.points.some((point) => point.source === 'phone')"
+            v-model:expanded="legendExpanded"
+            :label="t('dawarich.phonePoints')"
+          >
+            <PhoneSourceKey />
+          </MapLegend>
 
           <SpeedLimitLegend
             v-if="speedLimitSummaryOfTrip"

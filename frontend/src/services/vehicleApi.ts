@@ -142,7 +142,7 @@ export interface VehicleAggregateStats {
  * Why a trip point is there, when the car did not report it while driving: `anchored` is a parked
  * position added where the trip left or reached it, `manual` was placed by someone editing the trip.
  */
-export type TripPointSource = 'anchored' | 'manual'
+export type TripPointSource = 'anchored' | 'manual' | 'phone'
 
 export interface TripPoint {
   recordedAt: string

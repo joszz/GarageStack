@@ -420,6 +420,25 @@ namespace GarageStack.Data.Migrations
                     b.ToTable("MapMatchCacheEntries");
                 });
 
+            modelBuilder.Entity("GarageStack.Core.Models.PhoneBackfillRequest", b =>
+                {
+                    b.Property<int>("VehicleId")
+                        .HasColumnType("integer");
+
+                    b.Property<long>("AfterTripId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("From")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("Until")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("VehicleId");
+
+                    b.ToTable("PhoneBackfillRequests");
+                });
+
             modelBuilder.Entity("GarageStack.Core.Models.PoiCacheTile", b =>
                 {
                     b.Property<int>("Id")
@@ -961,6 +980,13 @@ namespace GarageStack.Data.Migrations
                     b.Property<string>("OriginalPointsJson")
                         .HasColumnType("text");
 
+                    b.Property<string>("PhoneFusion")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<DateTime?>("PhoneFusionAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<int>("PointCount")
                         .HasColumnType("integer");
 
@@ -991,6 +1017,8 @@ namespace GarageStack.Data.Migrations
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("PhoneFusion", "EndedAt");
 
                     b.HasIndex("VehicleId", "StartedAt")
                         .IsUnique();
@@ -1094,6 +1122,33 @@ namespace GarageStack.Data.Migrations
                     b.ToTable("Vehicles");
                 });
 
+            modelBuilder.Entity("GarageStack.Core.Models.VehiclePhoneTracker", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("TrackerId")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("VehicleId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("VehicleId", "TrackerId")
+                        .IsUnique();
+
+                    b.ToTable("VehiclePhoneTrackers");
+                });
+
             modelBuilder.Entity("GarageStack.Core.Models.ClimateSchedule", b =>
                 {
                     b.HasOne("GarageStack.Core.Models.Vehicle", "Vehicle")
@@ -1138,6 +1193,17 @@ namespace GarageStack.Data.Migrations
                     b.Navigation("MaintenanceItem");
                 });
 
+            modelBuilder.Entity("GarageStack.Core.Models.PhoneBackfillRequest", b =>
+                {
+                    b.HasOne("GarageStack.Core.Models.Vehicle", "Vehicle")
+                        .WithMany()
+                        .HasForeignKey("VehicleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Vehicle");
+                });
+
             modelBuilder.Entity("GarageStack.Core.Models.RdwVehicleInfo", b =>
                 {
                     b.HasOne("GarageStack.Core.Models.Vehicle", "Vehicle")
@@ -1161,6 +1227,17 @@ namespace GarageStack.Data.Migrations
                 });
 
             modelBuilder.Entity("GarageStack.Core.Models.Trip", b =>
+                {
+                    b.HasOne("GarageStack.Core.Models.Vehicle", "Vehicle")
+                        .WithMany()
+                        .HasForeignKey("VehicleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Vehicle");
+                });
+
+            modelBuilder.Entity("GarageStack.Core.Models.VehiclePhoneTracker", b =>
                 {
                     b.HasOne("GarageStack.Core.Models.Vehicle", "Vehicle")
                         .WithMany()

@@ -26,6 +26,10 @@ public enum TripPointSource
     /// <summary>Placed by someone editing the trip.</summary>
     [JsonStringEnumMemberName("manual")]
     Manual,
+
+    /// <summary>Recorded by a linked phone in Dawarich and confirmed against the car.</summary>
+    [JsonStringEnumMemberName("phone")]
+    Phone,
 }
 
 /// <summary>Reads and writes a source by name only, as <see cref="TripPurposeJsonConverter"/> does.</summary>

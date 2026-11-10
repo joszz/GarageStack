@@ -15,6 +15,7 @@ import VehicleTypeSetting from './VehicleTypeSetting.vue'
 import LicensePlateSetting from './LicensePlateSetting.vue'
 import NotificationTypeSettings from './NotificationTypeSettings.vue'
 import ApiTokenSettings from './ApiTokenSettings.vue'
+import PhoneGpsSettings from './PhoneGpsSettings.vue'
 import { apiUrl } from '@/services/apiCore'
 
 const props = defineProps<{ open: boolean }>()
@@ -118,6 +119,12 @@ const languageOptions = [
     <SettingsSection v-if="rdw.available" :title="t('settings.licensePlate.title')">
       <LicensePlateSetting />
     </SettingsSection>
+
+    <PhoneGpsSettings
+      v-if="open && vehicleStore.activeVin"
+      :key="vehicleStore.activeVin"
+      :vin="vehicleStore.activeVin"
+    />
 
     <SettingsSection :title="t('settings.notificationTypes.title')">
       <NotificationTypeSettings />
