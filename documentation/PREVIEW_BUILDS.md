@@ -191,6 +191,6 @@ gh api --paginate "users/joszz/packages/container/garagestack/versions" \
 
 A preview build answers "does the fix work on your car". Often the first question is "what does your car actually send", and that needs no build at all:
 
-- Ask the reporter for the relevant columns of `vehicles/{vin}/telemetry.csv` from **Settings > Your data > Download everything**, for one affected day, **without the VIN and the latitude/longitude columns**.
+- Ask the reporter for the relevant columns of `vehicles/{vin}/telemetry.csv` from **Settings > Data & API > Your data > Download everything**, for one affected day, **without the VIN and the latitude/longitude columns**.
 - Turn those rows into unit test fixtures and fix against the real numbers.
 - Then publish a preview so the reporter can confirm it on the car.

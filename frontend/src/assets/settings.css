@@ -98,17 +98,11 @@
   margin-bottom: 0.5rem;
 }
 
-/* Own internal scroll so a long category list never pushes the rest of the settings modal's
-   sections down. minmax(170px, 1fr) against .detail-modal's actual width budget: the mobile
-   bottom-sheet content is ~300-335px wide -> 1 column; the desktop dialog is capped at
-   max-width: 440px -> 2 columns, where the up to 15 categories take 8 rows and scroll a little.
-   max-height keeps the 1-column mobile case to ~5-6 visible rows before scrolling. */
+/* The tab panel owns vertical scrolling; the checklist adapts to the available width. */
 .notif-type-checklist {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
   gap: 0.4rem 0.75rem;
-  max-height: 15rem;
-  overflow-y: auto;
   margin-top: 0.5rem;
   padding-right: 0.25rem;
 }

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import '@/assets/multiselect.css'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Multiselect from '@vueform/multiselect'
 import { useDawarich } from '@/composables/useDawarich'
@@ -8,12 +8,23 @@ import { formatDateTime } from '@/utils/format'
 import SettingsSection from './SettingsSection.vue'
 
 const props = defineProps<{ vin: string }>()
+const emit = defineEmits<{ visibilityChange: [visible: boolean] }>()
 const { t } = useI18n()
 const { status, trackers, selected, saved, queued, loading, error, dirty, load, save, backfill } =
   useDawarich(props.vin)
 const from = ref('')
 const today = new Date().toISOString().slice(0, 10)
 const state = computed(() => trackers.value?.error ?? status.value?.status)
+const visible = ref(false)
+watch(
+  [status, error, loading],
+  ([state, error, loading]) => {
+    // Keep an already offered tab available while its connection is being retried.
+    if (!loading || !visible.value) visible.value = !!(state?.configured || error)
+  },
+  { immediate: true },
+)
+watch(visible, (value) => emit('visibilityChange', value), { immediate: true })
 const options = computed(() => {
   const available = trackers.value?.available ?? []
   const ids = new Set([
@@ -31,7 +42,7 @@ const options = computed(() => {
 </script>
 
 <template>
-  <SettingsSection v-if="status?.configured || error" :title="t('dawarich.title')">
+  <SettingsSection v-if="visible" :title="t('dawarich.title')">
     <div class="form-stack">
       <p class="settings-toggle__desc">{{ t('dawarich.privacy') }}</p>
       <p v-if="state" class="text-sm" role="status">{{ t(`dawarich.status.${state}`) }}</p>

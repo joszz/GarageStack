@@ -524,7 +524,17 @@
     "apiUnreachable": "No se pudo acceder a la API. Puede que todavía esté empezando."
   },
   "settings": {
-    "title": "Configuración",
+    "tabs": {
+      "label": "Categorías de ajustes",
+      "general": "General",
+      "vehicle": "Vehículo",
+      "map": "Mapa",
+      "phone": "GPS del teléfono",
+      "phoneShort": "GPS",
+      "notifications": "Notificaciones",
+      "data": "Datos y API"
+    },
+    "title": "Ajustes",
     "theme": {
       "title": "Apariencia",
       "light": "Modo de luz",
@@ -784,7 +794,7 @@
     "distanceFromOdometer": "Distancia en el odómetro",
     "distanceFromGps": "Distancia calculada a partir de los puntos GPS; el coche no comunicó la lectura del cuentakilómetros de este trayecto.",
     "resolvingPlaces": "Buscando la dirección",
-    "placesOff": "Los nombres de los lugares están desactivados, por lo que las direcciones se muestran como coordenadas. Actívelos en Configuración > Mapa.",
+    "placesOff": "Los nombres de los lugares están desactivados, por lo que las direcciones se muestran como coordenadas. Actívelos en Ajustes > Mapa.",
     "export": "Exportar CSV",
     "exportWhileResolving": "Algunas direcciones aún se están buscando; esos se exportan como coordenadas",
     "empty": "No hay viajes guardados en este período.",
@@ -824,7 +834,7 @@
       "radius": "Radio",
       "radiusHint": "Un viaje que termina dentro de esta distancia del pin cuenta como que termina aquí.",
       "notify": "Notificar a la llegada y salida",
-      "notifyHint": "Una notificación cuando el coche estaciona aquí y cuando se aleja. Cada dispositivo aún puede desactivar estos tipos en Configuración > Notificaciones.",
+      "notifyHint": "Una notificación cuando el coche estaciona aquí y cuando se aleja. Cada dispositivo aún puede desactivar estos tipos en Ajustes > Notificaciones.",
       "notifies": "Notifica la llegada y salida",
       "within": "Viajes que terminan dentro de {distance}",
       "editPlace": "Editar {place}",
@@ -1175,7 +1185,7 @@
       "NNB": "Aún no calificado"
     },
     "dutchTexts": "Los textos de las llamadas a revisión son los originales de la RDW y están en neerlandés.",
-    "notFound": "El RDW no reconoce ningún vehículo por la placa {plate}. Compruébalo en Configuración > Matrícula.",
+    "notFound": "El RDW no reconoce ningún vehículo por la placa {plate}. Compruébalo en Ajustes > Vehículo > Matrícula.",
     "fetchedAt": "Desde el RDW, {time}",
     "lastAttemptFailed": "El último intento de preguntar al RDW falló; intentarlo de nuevo más tarde.",
     "source": "Fuente: datos abiertos de RDW"
