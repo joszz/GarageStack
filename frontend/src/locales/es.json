@@ -44,7 +44,7 @@
     "cardInfoBtn": "Información de la tarjeta",
     "openFullMap": "Abrir mapa completo",
     "cardDesc": {
-      "location": "Ubicación actual del coche en un mapa pequeño. Haga clic en el mapa o en el botón expandir para abrir la vista completa del mapa.",
+      "location": "La última ubicación conocida del coche en un mapa pequeño. Pulsa el mapa o el botón de ampliar para ver el mapa completo, o el botón de ruta para ver opciones de mapas.",
       "fuelLevel": "Muestra el nivel actual del tanque de combustible como porcentaje.",
       "fuelRange": "Autonomía restante estimada según el nivel de combustible actual.",
       "evBattery": "Estado de carga como porcentaje. En un PHEV o BEV, este es el indicador de autonomía eléctrica. En un HEV, la batería híbrida es pequeña y el coche la gestiona automáticamente, por lo que el valor exacto es menos significativo en el día a día.",
@@ -141,6 +141,23 @@
       "fuel": "Combustible ({unit})",
       "total": "Total"
     }
+  },
+  "directions": {
+    "google": "Ruta al coche (Google Maps)",
+    "open": "Ruta al coche",
+    "apple": "Ruta a pie en Apple Maps",
+    "mapApp": "Abrir en una aplicación de mapas compatible (enlace geo:)",
+    "osm": "Mostrar en OpenStreetMap",
+    "copy": "Copiar coordenadas",
+    "copied": "Coordenadas copiadas.",
+    "copyFailed": "No se pudieron copiar automáticamente. Selecciona y copia las coordenadas de abajo.",
+    "coordinates": "Coordenadas para copiar",
+    "car": "Coche",
+    "lastKnownUpdated": "Última ubicación conocida. Vehículo actualizado el {time}; la ubicación puede ser anterior.",
+    "lastKnownUnknown": "Última ubicación conocida. Se desconoce su antigüedad.",
+    "moving": "El coche podría estar en movimiento. La ruta no está disponible mientras parece estar de viaje.",
+    "unavailable": "Ruta no disponible: se desconoce la ubicación del coche.",
+    "shareNotice": "Al abrir un mapa, estas coordenadas se comparten con ese servicio o aplicación."
   },
   "vehicle": {
     "diagramLabel": "Diagrama de estado del vehículo",
@@ -410,8 +427,6 @@
       "adblue": "AdBlue"
     },
     "findCar": "Buscar coche",
-    "openInMapApp": "Abrir en la aplicación del mapa",
-    "showOnOsm": "Mostrar en OpenStreetMap",
     "points": "pts",
     "resolvingPlaces": "Buscando nombres de lugares",
     "inProgress": "Viaje en curso",

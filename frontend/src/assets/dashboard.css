@@ -112,11 +112,17 @@
 
 /* Top right: the bottom edge belongs to the attribution strip, which on a phone runs the full width
    of the map, so no bottom corner stays clear of it. */
-.location-map-card__expand {
+.location-map-card__actions {
   position: absolute;
   top: 8px;
   right: 8px;
   z-index: var(--z-map-overlay);
+  display: flex;
+  gap: 6px;
+}
+
+.location-map-card__expand,
+.location-map-card__directions {
   width: 32px;
   height: 32px;
   display: flex;
@@ -131,7 +137,8 @@
   transition: background 0.15s;
 }
 
-.location-map-card__expand:hover {
+.location-map-card__expand:hover,
+.location-map-card__directions:hover {
   background: var(--color-surface-2);
 }
 

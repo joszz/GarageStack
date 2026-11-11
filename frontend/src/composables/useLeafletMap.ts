@@ -11,24 +11,37 @@ import type { LeafletMap } from '@/utils/leaflet'
 export function useLeafletMap(wrapperRef?: Ref<HTMLElement | null>) {
   const mapInstance = shallowRef<LeafletMap | null>(null)
   let resizeObserver: ResizeObserver | null = null
+  let generation = 0
+
+  function unbindMap() {
+    generation += 1
+    resizeObserver?.disconnect()
+    resizeObserver = null
+    mapInstance.value = null
+  }
 
   function bindMapReady(map: LeafletMap, afterReady?: (map: LeafletMap) => void) {
+    unbindMap()
     mapInstance.value = map
+    const current = generation
 
     if (wrapperRef?.value) {
-      resizeObserver = new ResizeObserver(() => map.invalidateSize())
+      resizeObserver = new ResizeObserver(() => {
+        if (current === generation) map.invalidateSize()
+      })
       resizeObserver.observe(wrapperRef.value)
     }
 
     nextTick(() => {
       requestAnimationFrame(() => {
+        if (current !== generation) return
         map.invalidateSize()
         afterReady?.(map)
       })
     })
   }
 
-  onUnmounted(() => resizeObserver?.disconnect())
+  onUnmounted(unbindMap)
 
-  return { mapInstance, bindMapReady }
+  return { mapInstance, bindMapReady, unbindMap }
 }

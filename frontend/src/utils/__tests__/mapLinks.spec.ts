@@ -1,5 +1,42 @@
-import { describe, it, expect, afterEach, vi } from 'vitest'
-import { geoUri, osmUrl, prefersMapApp, mapAppLink } from '../mapLinks'
+import { describe, it, expect } from 'vitest'
+import {
+  appleDirectionsUrl,
+  formatCoordinates,
+  geoUri,
+  googleDirectionsUrl,
+  osmUrl,
+} from '../mapLinks'
+
+describe('directions links', () => {
+  it('opens walking directions in Google Maps without specifying an origin', () => {
+    const url = new URL(googleDirectionsUrl(52.3676, 4.9041))
+
+    expect(url.origin + url.pathname).toBe('https://www.google.com/maps/dir/')
+    expect(Object.fromEntries(url.searchParams)).toEqual({
+      api: '1',
+      destination: '52.367600,4.904100',
+      travelmode: 'walking',
+    })
+  })
+
+  it('opens walking directions in Apple Maps without specifying an origin', () => {
+    const url = new URL(appleDirectionsUrl(-33.8688, -70.6693))
+
+    expect(url.origin + url.pathname).toBe('https://maps.apple.com/directions')
+    expect(Object.fromEntries(url.searchParams)).toEqual({
+      destination: '-33.868800,-70.669300',
+      mode: 'walking',
+    })
+  })
+
+  it('keeps zero and boundary coordinates in a standard, locale-independent form', () => {
+    expect(formatCoordinates(0, 0)).toBe('0.000000,0.000000')
+    expect(formatCoordinates(-90, 180)).toBe('-90.000000,180.000000')
+    expect(new URL(googleDirectionsUrl(0, 0)).searchParams.get('destination')).toBe(
+      '0.000000,0.000000',
+    )
+  })
+})
 
 describe('geoUri', () => {
   it('names the point in the query so the pin arrives labelled', () => {
@@ -26,40 +63,5 @@ describe('osmUrl', () => {
     expect(osmUrl(52.3676, 4.9041)).toBe(
       'https://www.openstreetmap.org/?mlat=52.367600&mlon=4.904100#map=17/52.367600/4.904100',
     )
-  })
-})
-
-describe('prefersMapApp', () => {
-  afterEach(() => vi.unstubAllGlobals())
-
-  it('is true on a device with a coarse pointer', () => {
-    vi.stubGlobal('matchMedia', () => ({ matches: true }))
-    expect(prefersMapApp()).toBe(true)
-  })
-
-  it('is false on a desktop, where a geo: link leads nowhere', () => {
-    vi.stubGlobal('matchMedia', () => ({ matches: false }))
-    expect(prefersMapApp()).toBe(false)
-  })
-
-  it('is false where matchMedia is missing rather than throwing', () => {
-    vi.stubGlobal('matchMedia', undefined)
-    expect(prefersMapApp()).toBe(false)
-  })
-})
-
-describe('mapAppLink', () => {
-  it('hands a phone over to its map app, without opening a tab for it', () => {
-    expect(mapAppLink(52.3676, 4.9041, 'MG HS', true)).toEqual({
-      href: 'geo:52.367600,4.904100?q=52.367600,4.904100(MG%20HS)',
-      external: false,
-    })
-  })
-
-  it('sends a desktop to openstreetmap.org in a new tab', () => {
-    expect(mapAppLink(52.3676, 4.9041, 'MG HS', false)).toEqual({
-      href: 'https://www.openstreetmap.org/?mlat=52.367600&mlon=4.904100#map=17/52.367600/4.904100',
-      external: true,
-    })
   })
 })
