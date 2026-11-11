@@ -1,4 +1,6 @@
 allowBuilds:
+  # Sass's optional watcher only builds from source when explicitly requested.
+  '@parcel/watcher': true
   inotify: true
 
 # Keeps pnpm-lock.yaml a single YAML document. Otherwise pnpm 12 writes an extra environment
@@ -12,4 +14,4 @@ overrides:
   # workbox-build 7.4.1 still asks for 3.0.0-pre1, which pulls ejs 3 > jake 10 > filelist 1 >
   # minimatch 5 (GHSA-g3hv-75wg-m249). 4.0.0 only swaps the matchAll polyfill for the native
   # method and moves to ejs 7, which has no dependencies. Drop this once workbox-build moves on.
-  "@trickfilm400/rollup-plugin-off-main-thread": "^4.0.0"
+  '@trickfilm400/rollup-plugin-off-main-thread': '^4.0.0'
