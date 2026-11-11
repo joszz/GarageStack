@@ -68,7 +68,6 @@ for (const viewport of [
     const body = dialog.locator('.detail-modal__body')
     const close = dialog.getByRole('button', { name: 'Close', exact: true })
     await expect(tabs.getByRole('tab')).toHaveCount(6)
-    await expect(tabs).toHaveClass(/nav-tabs/)
     await expect(tabs.locator('[data-tab=phone]')).toHaveAccessibleName('Phone GPS')
     await expect(dialog).toHaveCSS('transform', 'none')
     const titleBox = (await title.boundingBox())!
@@ -107,7 +106,7 @@ for (const viewport of [
       const tab = tabs.locator(`[data-tab="${name}"]`)
       await tab.click()
       await expect(tab).toHaveAttribute('aria-selected', 'true')
-      await expect(tab).toHaveClass(/active/)
+      await expect(tabs.locator('[aria-selected=true]')).toHaveCount(1)
       await expect(dialog.getByRole('tabpanel')).toHaveCount(1)
       expect(await body.evaluate((element) => element.scrollTop)).toBe(0)
       expect((await tabsViewport.boundingBox())!.y).toBeCloseTo(initialTabTop, 0)
@@ -247,7 +246,7 @@ test.describe('on a touch phone', () => {
   })
 })
 
-test('themes Bootstrap tabs for light and dark settings', async ({ page }) => {
+test('themes the settings tabs for light and dark settings', async ({ page }) => {
   await configureSettings(page)
   await open(page, '/')
   await page.getByRole('button', { name: 'Settings', exact: true }).click()

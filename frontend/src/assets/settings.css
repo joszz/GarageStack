@@ -126,6 +126,73 @@
   line-height: 1.25;
 }
 
+/* ── Settings tabs ────────────────────────────────────────── */
+
+/* The row sits beside the dialog title and scrolls sideways where it does not fit. */
+.settings-tabs-viewport {
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.settings-tabs-viewport::-webkit-scrollbar {
+  display: none;
+}
+
+.settings-tabs {
+  display: flex;
+  justify-content: flex-end;
+  width: max-content;
+  min-width: 100%;
+  border-bottom: 1px solid var(--color-border);
+}
+
+/* The selected tab hides the row's bottom line under its own surface-coloured bottom border,
+   so it reads as part of the panel below. */
+.settings-tabs__tab {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 0.3rem;
+  min-height: 44px;
+  margin-bottom: -1px;
+  padding: 0.5rem 0.625rem;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  cursor: pointer;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 0.375rem 0.375rem 0 0;
+  transition:
+    color 0.15s ease-in-out,
+    background-color 0.15s ease-in-out,
+    border-color 0.15s ease-in-out;
+}
+
+.settings-tabs__tab:hover,
+.settings-tabs__tab:focus {
+  isolation: isolate;
+  color: var(--color-text);
+  border-color: var(--color-border);
+}
+
+.settings-tabs__tab[aria-selected='true'] {
+  color: var(--color-text);
+  background-color: var(--color-surface);
+  border-color: var(--color-border) var(--color-border) var(--color-surface);
+}
+
+.settings-tabs__tab:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: -2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .settings-tabs__tab {
+    transition: none;
+  }
+}
+
 /* ── Car colour picker ────────────────────────────────────── */
 
 .car-color-picker {

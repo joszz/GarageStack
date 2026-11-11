@@ -102,9 +102,6 @@ const panel = (wrapper: Wrapper, name: string) => wrapper.get(`[id$="-panel-${na
 describe('SettingsModal tabs', () => {
   it('groups every setting and exposes one labelled panel at a time', async () => {
     const { wrapper } = await render()
-    expect(wrapper.get('[role=tablist]').classes()).toEqual(
-      expect.arrayContaining(['nav', 'nav-tabs']),
-    )
     expect(wrapper.findAll('[role=tab]').map((button) => button.text())).toEqual([
       'General',
       'Vehicle',
@@ -125,8 +122,7 @@ describe('SettingsModal tabs', () => {
       )
       expect(tab(wrapper, name).attributes('aria-selected')).toBe('true')
       expect(tab(wrapper, name).attributes('tabindex')).toBe('0')
-      expect(tab(wrapper, name).classes()).toEqual(expect.arrayContaining(['nav-link', 'active']))
-      expect(wrapper.findAll('[role=tab].active')).toHaveLength(1)
+      expect(wrapper.findAll('[role=tab][aria-selected=true]')).toHaveLength(1)
       expect(wrapper.get('.detail-modal__body').element.scrollTop).toBe(0)
     }
     expect(panel(wrapper, 'general').text()).toContain(en.settings.units.title)
