@@ -1,5 +1,6 @@
 // Every icon the app shows, named once. FontAwesome only bundles the icons listed here, so an icon
 // a template uses has to be added to this list as well; ./fontAwesome.ts registers all of them.
+export { faApple, faGoogle } from '@fortawesome/free-brands-svg-icons'
 export {
   faArrowRight,
   faArrowRightFromBracket,

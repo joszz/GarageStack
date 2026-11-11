@@ -13,23 +13,26 @@ import { addressLabel } from '@/utils/places'
 import CardInfoWrap from './CardInfoWrap.vue'
 import { buildCarMarkerIcon, moveCarMarker } from '@/utils/mapCarIcon'
 import { latLngsOf } from '@/utils/geo'
+import { carLocation } from '@/utils/carLocation'
+import LocationDirections from './LocationDirections.vue'
 
 const { t } = useI18n()
 const router = useRouter()
 const store = useVehicleStore()
+const directionsOpen = ref(false)
 
 const status = computed(() => store.currentStatus)
-const hasLocation = computed(
-  () => status.value?.latitude != null && status.value?.longitude != null,
-)
+const location = computed(() => carLocation(store.activeVehicle, status.value))
+const hasLocation = computed(() => location.value !== null)
 const center = computed<[number, number]>(() => [
-  status.value?.latitude ?? 0,
-  status.value?.longitude ?? 0,
+  location.value?.latitude ?? 0,
+  location.value?.longitude ?? 0,
 ])
 
 // The API serves the still-open segment as the latest trip while the car hasn't parked for 5+
 // minutes, so a positive currentJourneyDistance means that trip is the one being driven.
 const activeTrip = computed(() => {
+  if (status.value?.vehicleId !== store.activeVehicle?.id) return null
   const dist = status.value?.currentJourneyDistance
   if (dist == null || dist <= 0) return null
   return store.latestTrip
@@ -40,7 +43,9 @@ const activeTrip = computed(() => {
 // name a street the car has already left. The card draws the live route instead.
 const { requestPlaces, placeFor, placeNamesEnabled, placesResolving } = useReverseGeocode()
 
-const parkedAt = computed(() => (activeTrip.value || !hasLocation.value ? null : center.value))
+const parkedAt = computed(() =>
+  activeTrip.value || !location.value || location.value.mayBeMoving ? null : center.value,
+)
 
 watch(
   parkedAt,
@@ -70,7 +75,7 @@ const mapOptions = {
 }
 
 const mapWrapperRef = ref<HTMLElement | null>(null)
-const { mapInstance, bindMapReady } = useLeafletMap(mapWrapperRef)
+const { mapInstance, bindMapReady, unbindMap } = useLeafletMap(mapWrapperRef)
 // A preview that cannot be panned or zoomed: raster tiles show the same streets without pulling
 // the vector renderer into the dashboard, the page most visits start on.
 useBasemap(mapInstance, { vector: false })
@@ -134,17 +139,26 @@ function updateMapView() {
 }
 
 function onMapReady(map: LeafletMap) {
+  if (!hasLocation.value) return
   bindMapReady(map, () => {
     buildActiveTripLayers()
     updateMapView()
   })
 }
 
+watch(hasLocation, (available) => {
+  if (!available) {
+    clearActiveTripLayers()
+    unbindMap()
+  }
+})
+
 // Keep the preview following the car (or the whole in-progress trip) as new status updates
 // arrive, and keep the live car marker following position/heading without a full layer rebuild.
 watch(status, (s) => {
-  if (!mapInstance.value || s?.latitude == null || s?.longitude == null) return
-  if (carMarker) moveCarMarker(carMarker, [s.latitude, s.longitude], s.heading)
+  const point = location.value
+  if (!mapInstance.value || !point) return
+  if (carMarker) moveCarMarker(carMarker, [point.latitude, point.longitude], s?.heading ?? null)
   updateMapView()
 })
 
@@ -203,15 +217,33 @@ function openFullMap() {
           <span>{{ t('vehicle.locationUnavailable') }}</span>
         </div>
 
-        <button
-          class="location-map-card__expand"
-          :aria-label="t('dashboard.openFullMap')"
-          :title="t('dashboard.openFullMap')"
-          @click.stop="openFullMap"
-        >
-          <font-awesome-icon icon="map" />
-        </button>
+        <div class="location-map-card__actions">
+          <button
+            type="button"
+            class="location-map-card__directions"
+            :aria-label="t('directions.open')"
+            :title="t('directions.open')"
+            aria-haspopup="dialog"
+            @click.stop="directionsOpen = true"
+          >
+            <font-awesome-icon icon="diamond-turn-right" aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            class="location-map-card__expand"
+            :aria-label="t('dashboard.openFullMap')"
+            :title="t('dashboard.openFullMap')"
+            @click.stop="openFullMap"
+          >
+            <font-awesome-icon icon="map" />
+          </button>
+        </div>
       </div>
+      <LocationDirections
+        :location="location"
+        :open="directionsOpen"
+        @close="directionsOpen = false"
+      />
     </div>
   </CardInfoWrap>
 </template>

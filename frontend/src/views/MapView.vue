@@ -14,6 +14,7 @@ import SpeedLegend from '@/components/map/SpeedLegend.vue'
 import MapLegend from '@/components/MapLegend.vue'
 import PhoneSourceKey from '@/components/PhoneSourceKey.vue'
 import SpeedLimitLegend from '@/components/map/SpeedLimitLegend.vue'
+import LocationDirections from '@/components/LocationDirections.vue'
 import { useInfiniteScroll } from '@/composables/useInfiniteScroll'
 import { usePoiLayers } from '@/composables/usePoiLayers'
 import { useLeafletMap } from '@/composables/useLeafletMap'
@@ -22,7 +23,7 @@ import { useReverseGeocode } from '@/composables/useReverseGeocode'
 import { useTripMatch } from '@/composables/useTripMatch'
 import { useTripLayers } from '@/composables/useTripLayers'
 import { addressLabel, cityName } from '@/utils/places'
-import { mapAppLink } from '@/utils/mapLinks'
+import { carLocation } from '@/utils/carLocation'
 import { buildTripRow } from '@/utils/tripRows'
 import { distanceWeightedSamples } from '@/utils/heatSamples'
 import type { GeoPoint } from '@/services/mapApi'
@@ -48,6 +49,7 @@ const uiSettingsStore = useUiSettingsStore()
 
 const vin = computed(() => store.activeVin)
 const status = computed(() => store.currentStatus)
+const location = computed(() => carLocation(store.activeVehicle, status.value))
 const trips = computed(() => store.trips)
 const vehicleType = computed(() => store.effectiveVehicleType)
 // Which of the two cars' rows either panel offers. Until vehicleType resolves from 'unknown',
@@ -102,6 +104,8 @@ const MAX_HEATMAP_POINTS = 5000
 
 const mapWrapperRef = ref<HTMLElement | null>(null)
 const sidebar = useTemplateRef<InstanceType<typeof TripSidebar>>('sidebar')
+const carPopup = useTemplateRef<InstanceType<typeof LPopup>>('carPopup')
+const directionsOpen = ref(false)
 const { mapInstance, bindMapReady } = useLeafletMap(mapWrapperRef)
 
 // Vector basemap in the tile pane: follows the theme and the UI language, and everything below
@@ -270,9 +274,9 @@ watch(visibleTripEnds, (points) => requestPlaces(points, 'city'), { immediate: t
 // The car's own street and city, for its popup. Only while parked: on the move this would ask
 // for a new address on every position update, and name a street the car has already left.
 const parkedCarLatLng = computed<GeoPoint | null>(() => {
-  const s = status.value
-  if (activeTripIndex.value !== null) return null
-  return s?.latitude != null && s?.longitude != null ? { lat: s.latitude, lng: s.longitude } : null
+  const point = location.value
+  if (!point || point.mayBeMoving || activeTripIndex.value !== null) return null
+  return { lat: point.latitude, lng: point.longitude }
 })
 
 watch(
@@ -286,14 +290,14 @@ watch(
 const carAddress = computed(() =>
   addressLabel(placeFor(parkedCarLatLng.value?.lat, parkedCarLatLng.value?.lng, 'address')),
 )
+const carLabel = computed(() => store.activeVehicle?.model ?? store.activeVin)
 
-// Getting to the car is a job for whatever can navigate: a map app on a phone, openstreetmap.org
-// on a desktop. The popup offers whichever of the two this device can actually open.
-const carMapLink = computed(() => {
-  const s = status.value
-  if (s?.latitude == null || s?.longitude == null) return null
-  return mapAppLink(s.latitude, s.longitude, store.activeVehicle?.model ?? undefined)
-})
+// Leaflet must remeasure the rendered content before it can auto-pan an open popup.
+watch(
+  [carAddress, carLabel, () => t('directions.open')],
+  () => carPopup.value?.leafletObject?.update(),
+  { flush: 'post' },
+)
 
 // One row model per visible trip, paired with the store index selection works on.
 const displayRows = computed(() =>
@@ -316,8 +320,8 @@ const displayRows = computed(() =>
 )
 
 function flyToStatus() {
-  const s = status.value
-  if (s?.latitude != null && s?.longitude != null) tripLayers.showCar([s.latitude, s.longitude])
+  const point = location.value
+  if (point) tripLayers.showCar([point.latitude, point.longitude])
 }
 
 function onMapReady(map: LeafletMap) {
@@ -393,11 +397,7 @@ onMounted(async () => {
           :car-takes-charge="carTakesCharge"
           :speed-cameras-available="speedCamerasAvailable"
         />
-        <button
-          class="btn btn-sm btn-outline-secondary"
-          :disabled="status?.latitude == null || status?.longitude == null"
-          @click="flyToStatus"
-        >
+        <button class="btn btn-sm btn-outline-secondary" :disabled="!location" @click="flyToStatus">
           <font-awesome-icon icon="location-dot" />
           {{ t('trips.findCar') }}
         </button>
@@ -423,26 +423,21 @@ onMounted(async () => {
         <LMap :zoom="13" :center="center" class="map-canvas" @ready="onMapReady">
           <!-- Current position marker: hidden while a trip is selected -->
           <LMarker
-            v-if="
-              status?.latitude != null && status?.longitude != null && selectedTripIndex === null
-            "
-            :lat-lng="[status.latitude!, status.longitude!]"
+            v-if="location && selectedTripIndex === null"
+            :lat-lng="[location.latitude, location.longitude]"
           >
-            <LPopup>
-              <strong class="car-popup__title">{{
-                store.activeVehicle?.model ?? store.activeVin
-              }}</strong>
+            <LPopup ref="carPopup" :options="{ className: 'car-popup' }">
+              <strong class="car-popup__title">{{ carLabel }}</strong>
               <span v-if="carAddress" class="car-popup__address">{{ carAddress }}</span>
-              <a
-                v-if="carMapLink"
-                class="car-popup__link"
-                :href="carMapLink.href"
-                :target="carMapLink.external ? '_blank' : undefined"
-                :rel="carMapLink.external ? 'noreferrer' : undefined"
+              <button
+                type="button"
+                class="btn btn-primary btn-sm car-popup__directions"
+                aria-haspopup="dialog"
+                @click="directionsOpen = true"
               >
-                <font-awesome-icon icon="diamond-turn-right" />
-                {{ carMapLink.external ? t('trips.showOnOsm') : t('trips.openInMapApp') }}
-              </a>
+                <font-awesome-icon icon="diamond-turn-right" aria-hidden="true" />
+                {{ t('directions.open') }}
+              </button>
             </LPopup>
           </LMarker>
         </LMap>
@@ -493,6 +488,7 @@ onMounted(async () => {
       </div>
     </div>
   </div>
+  <LocationDirections :location="location" :open="directionsOpen" @close="directionsOpen = false" />
 </template>
 
 <!-- Global on purpose: Leaflet builds marker and popup HTML itself, outside Vue's renderer,

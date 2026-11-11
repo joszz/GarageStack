@@ -44,7 +44,7 @@
     "cardInfoBtn": "Kaartinformatie",
     "openFullMap": "Volledige kaart openen",
     "cardDesc": {
-      "location": "Huidige locatie van de auto op een kleine kaart. Klik op de kaart of de uitklapknop om de volledige kaartweergave te openen.",
+      "location": "De laatst bekende locatie van de auto op een kleine kaart. Klik op de kaart of de uitklapknop voor de volledige kaart, of op de routeknop voor kaartopties.",
       "fuelLevel": "Huidig brandstofniveau van de tank als percentage.",
       "fuelRange": "Geschatte resterende rijafstand op basis van het huidige brandstofniveau.",
       "evBattery": "Laadstatus als percentage. Op een PHEV of BEV is dit je elektrisch bereiksmeter. Op een HEV is de hybride accu klein en wordt deze automatisch door de auto beheerd, waardoor de exacte waarde dagelijks minder relevant is.",
@@ -141,6 +141,23 @@
       "fuel": "Brandstof ({unit})",
       "total": "Totaal"
     }
+  },
+  "directions": {
+    "google": "Route naar de auto (Google Maps)",
+    "open": "Route naar de auto",
+    "apple": "Looproute in Apple Kaarten",
+    "mapApp": "Open in een geschikte kaart-app (geo:-link)",
+    "osm": "Bekijk op OpenStreetMap",
+    "copy": "Coördinaten kopiëren",
+    "copied": "Coördinaten gekopieerd.",
+    "copyFailed": "Automatisch kopiëren is niet gelukt. Selecteer en kopieer de coördinaten hieronder.",
+    "coordinates": "Te kopiëren coördinaten",
+    "car": "Auto",
+    "lastKnownUpdated": "Laatst bekende locatie. Auto bijgewerkt op {time}; de locatie kan ouder zijn.",
+    "lastKnownUnknown": "Laatst bekende locatie. De leeftijd van de locatie is onbekend.",
+    "moving": "De auto rijdt mogelijk. Een route is niet beschikbaar zolang de auto onderweg lijkt.",
+    "unavailable": "Route niet beschikbaar: de locatie van de auto is onbekend.",
+    "shareNotice": "Als je een kaart opent, worden deze coördinaten met die dienst of app gedeeld."
   },
   "vehicle": {
     "diagramLabel": "Voertuigstatusdiagram",
@@ -410,8 +427,6 @@
       "adblue": "AdBlue"
     },
     "findCar": "Vind auto",
-    "openInMapApp": "Openen in kaart-app",
-    "showOnOsm": "Bekijk op OpenStreetMap",
     "points": "ptn",
     "resolvingPlaces": "Plaatsnamen opzoeken",
     "inProgress": "Rit onderweg",

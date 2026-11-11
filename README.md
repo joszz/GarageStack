@@ -51,13 +51,14 @@ The statistics, trip log, maintenance list and light theme are in the [screensho
 - [Trip log](#trip-log), [Climate schedules](#climate-schedules) and [Maintenance](#maintenance)
 - [Dutch registration (RDW)](#dutch-registration-rdw)
 - [Homepage dashboard widget](#homepage-dashboard-widget) and [Read-only API tokens](#read-only-api-tokens)
-- [Map overlays](#map-overlays)
+- [Directions to the car](#directions-to-the-car) and [Map overlays](#map-overlays)
 - [Security defaults](#security-defaults), [HTTPS](#https) and [What leaves your network](#what-leaves-your-network)
 - [Documentation](#documentation)
 
 ## Features
 
 - **Live dashboard** -- Real-time vehicle telemetry displayed as configurable cards. Cards are automatically shown or hidden based on your vehicle type (HEV, PHEV, BEV) and can be reordered or toggled individually in the dashboard's edit mode. The car drawn on the dashboard takes your car's colour (Settings > Car colour), and the vehicle type can be set by hand under Settings > Vehicle type when detection gets it wrong.
+- **Directions to the car** -- Open walking directions to the car's last known location from the dashboard or the car's map marker, with Google Maps, Apple Maps and other map options. See [Directions to the car](#directions-to-the-car).
 - **Tyre history** -- Tap a tyre's pressure on the dashboard's car to see a month of daily pressures for all four tyres, and how each one moved against the other three over the last two weeks: a tyre falling behind the others while they hold is a slow puncture, which also sends a notification.
 - **Trip history** -- Browse past journeys on an interactive map, each drawn on the roads it took and coloured by speed or by the speed limit, with a heatmap of the roads you drive most. Each trip is saved to the database a few minutes after the car parks. After upgrading from a version that did not save trips, the existing history is saved in the background on the Worker's first start.
 - **Phone GPS (Dawarich)** -- Fill gaps in recorded car trips with phone locations from your own Dawarich instance. Identify trackers by their app/device ID and last-seen time; you can link multiple phones, and GarageStack uses the best match for each trip. See [Phone GPS setup](documentation/PHONE_GPS.md).
@@ -501,6 +502,18 @@ A few things to know before building on a token:
 
 ---
 
+## Directions to the car
+
+Click the directions icon beside the full-map icon in the top-right corner of the dashboard map, or **Directions to car** in the car marker's popup. Both open the same dialog with map options and information about the car's last known location. Choose Google Maps for walking directions to the selected car's last known telemetry coordinates, on a phone or desktop. The map provider uses or asks for your starting location; GarageStack does not ask your browser for it, wake the car or send a command.
+
+The dialog also offers Apple Maps walking directions, a `geo:` link for compatible installed map apps, an OpenStreetMap pin and coordinate copying. Apple Maps availability depends on the device, browser and region. A `geo:` link needs a compatible app and may open a pin rather than walking navigation. If automatic copying is unavailable, for example on a plain HTTP LAN page, select and copy the displayed coordinates by hand.
+
+The coordinates are the car's own telemetry, not a phone fix or a historical trip endpoint. They may be old or inaccurate. A displayed vehicle update time is not the time of the GPS fix, which can be older. Directions are unavailable when the car appears to be moving or on an active trip, and until valid coordinates for the selected vehicle are available.
+
+Opening an external map or map app shares the destination coordinates with it. No external directions request is made just by viewing GarageStack. The chosen provider may also use or ask for your location under its own permissions and privacy policy.
+
+---
+
 ## Map overlays
 
 The map view supports four POI overlay layers: charging stations, fuel stations, motorway service areas and speed cameras. All data is cached in the database and served instantly on subsequent visits. Open the **Filters** panel (sliders icon, top-right of the map) to toggle each layer and adjust filters.
@@ -607,7 +620,7 @@ A reading counts as over the limit only past 5 km/h above it: speedometers read 
 
 ### What leaves your network
 
-GarageStack runs on your own hardware, but a few features ask public services for what they know. Each one is listed here with what it sends, and each one except the MG servers can be switched off.
+GarageStack runs on your own hardware, but a few features ask public services for what they know. Each one is listed here with what it sends, and each one except the MG servers can be switched off or left unopened.
 
 | Service | Asked by | What it receives | Switch it off |
 | ------- | -------- | ---------------- | ------------- |
@@ -619,6 +632,7 @@ GarageStack runs on your own hardware, but a few features ask public services fo
 | [RDW open data](https://opendata.rdw.nl) (APK, recalls, insurance) | the API and the Worker | The licence plate, and the RDW's own codes for the recalls it lists | Off until `RDW_ENABLED=true` |
 | [GitHub](https://github.com/joszz/GarageStack/releases) (update notice) | the API | One request a day for the latest release | `UPDATE_CHECK_ENABLED=false` |
 | [OpenFreeMap](https://openfreemap.org) and [OpenStreetMap](https://www.openstreetmap.org) tiles (the basemap) | your browser | The map tiles your browser shows | Serve your own tiles, see [Basemap](#basemap) |
+| Google Maps, Apple Maps, OpenStreetMap or a compatible map app (directions to the car) | your browser, only when you follow a map link | The car's last known destination coordinates; the chosen provider may also use your starting location | Do not open an external map link |
 | Your browser's push service (Google, Mozilla, Apple) | the Worker | Each notification, encrypted so only your browser can read it, and `VAPID_SUBJECT` | Leave the VAPID keys empty, or switch push off per device |
 
 Requests to the map, lookup and update services identify themselves as `GarageStack/1.0 (+https://github.com/joszz/GarageStack)`, as Nominatim's usage policy asks. Apart from what the table lists, the car's telemetry, its trips, your notifications and your settings stay on your server, unless you connect something to it yourself, such as Home Assistant.

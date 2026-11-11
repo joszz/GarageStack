@@ -4,8 +4,10 @@ import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia, type Pinia } from 'pinia'
 import { createI18n } from 'vue-i18n'
 import en from '@/locales/en.json'
+import nl from '@/locales/nl.json'
 import MapView from '../MapView.vue'
 import { vehicleApi, type TelemetrySnapshot, type Trip, type Vehicle } from '@/services/vehicleApi'
+import type { Place } from '@/services/mapApi'
 import type { TripMatch } from '@/composables/useTripMatch'
 import type { TripLayersOptions } from '@/composables/useTripLayers'
 import { useVehicleStore } from '@/stores/vehicle'
@@ -60,15 +62,18 @@ vi.mock('@/composables/useTripMatch', () => ({
 }))
 
 const requestPlaces = vi.fn<(points: unknown[], detail: string) => void>()
+const carPlace = ref<Place | null>(null)
 vi.mock('@/composables/useReverseGeocode', () => ({
   useReverseGeocode: () => ({
     requestPlaces,
-    placeFor: () => null,
+    placeFor: (_lat: number | undefined, _lng: number | undefined, precision: string) =>
+      precision === 'address' ? carPlace.value : null,
     placeNamesEnabled: ref(false),
     placesResolving: ref(false),
   }),
 }))
 
+const popupUpdate = vi.fn<() => void>()
 vi.mock('@vue-leaflet/vue-leaflet', () => {
   const container = defineComponent({
     setup:
@@ -84,16 +89,29 @@ vi.mock('@vue-leaflet/vue-leaflet', () => {
         () =>
           h('div', { class: 'car-marker' }, slots.default?.()),
     }),
-    LPopup: container,
+    LPopup: defineComponent({
+      setup: (_, { slots, expose }) => {
+        expose({ leafletObject: { update: popupUpdate } })
+        return () => h('div', slots.default?.())
+      },
+    }),
   }
 })
 
-const i18n = createI18n({ legacy: false, locale: 'en', messages: { en } })
+const i18n = createI18n({ legacy: false, locale: 'en', messages: { en, nl } })
 
 enableAutoUnmount(afterEach)
 
 const car = { id: 1, vin: 'FAKEVN00000000001', vehicleType: 'hev', model: 'Kia Niro' } as Vehicle
-const parked = { latitude: 52.09, longitude: 5.12, currentJourneyDistance: 0 } as TelemetrySnapshot
+const parked = {
+  vehicleId: 1,
+  latitude: 52.09,
+  longitude: 5.12,
+  currentJourneyDistance: 0,
+  speed: 0,
+  engineRunning: false,
+  lastVehicleStateAt: '2026-10-19T10:00:00Z',
+} as TelemetrySnapshot
 
 function trip(index: number): Trip {
   const at = (minute: number) => `2026-10-${10 + index}T07:${minute}:00Z`
@@ -122,6 +140,7 @@ async function mountView() {
       plugins: [i18n, pinia],
       stubs: {
         FontAwesomeIcon: true,
+        Teleport: true,
         MapFilterPanel: true,
         MapLayerPanel: true,
         SpeedLegend: true,
@@ -161,6 +180,8 @@ describe('MapView', () => {
     vi.clearAllMocks()
     route.query = {}
     match.value = null
+    carPlace.value = null
+    i18n.global.locale.value = 'en'
     vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(new Date('2026-10-19T12:00:00Z'))
     vi.mocked(vehicleApi.list).mockResolvedValue([car])
@@ -254,6 +275,130 @@ describe('MapView', () => {
     } as TelemetrySnapshot)
     const unplaced = await mountView()
     expect(findCar(unplaced).attributes('disabled')).toBeDefined()
+  })
+
+  it("offers the same directions in the current car's popup", async () => {
+    const wrapper = await mountView()
+    expect(wrapper.find('.location-directions').exists()).toBe(false)
+    expect(wrapper.get('.car-marker').findAll('button')).toHaveLength(1)
+    await wrapper.get('.car-popup__directions').trigger('click')
+    const popup = wrapper.get('.location-directions')
+    const google = popup.get('.location-directions__primary')
+
+    expect(google.text()).toBe(en.directions.google)
+    expect(new URL(google.attributes('href')!).searchParams.get('destination')).toBe(
+      '52.090000,5.120000',
+    )
+    expect(popup.text()).toContain(en.directions.apple)
+    expect(popup.text()).toContain(en.directions.mapApp)
+    expect(popup.text()).toContain(en.directions.osm)
+  })
+
+  it('updates the car popup after its address arrives', async () => {
+    const wrapper = await mountView()
+    popupUpdate.mockClear()
+    let addressAtUpdate: string | undefined
+    popupUpdate.mockImplementationOnce(() => {
+      addressAtUpdate = wrapper.get('.car-popup__address').text()
+    })
+    carPlace.value = {
+      road: 'A long test street',
+      houseNumber: '55A',
+      city: 'Amsterdam',
+      postcode: null,
+      countryCode: 'nl',
+      displayName: null,
+    }
+    await flushPromises()
+
+    expect(wrapper.get('.car-popup__address').text()).toBe('A long test street 55A, Amsterdam')
+    expect(popupUpdate).toHaveBeenCalledOnce()
+    expect(addressAtUpdate).toBe('A long test street 55A, Amsterdam')
+
+    popupUpdate.mockClear()
+    carPlace.value = null
+    await flushPromises()
+    expect(wrapper.find('.car-popup__address').exists()).toBe(false)
+    expect(popupUpdate).toHaveBeenCalledOnce()
+  })
+
+  it('updates the car popup after its vehicle label or language changes', async () => {
+    const wrapper = await mountView()
+    popupUpdate.mockClear()
+    const store = useVehicleStore(pinia)
+    store.vehicles = [{ ...store.vehicles[0]!, model: 'A longer vehicle name' }]
+    await flushPromises()
+    expect(wrapper.get('.car-popup__title').text()).toBe('A longer vehicle name')
+    expect(popupUpdate).toHaveBeenCalledOnce()
+
+    popupUpdate.mockClear()
+    i18n.global.locale.value = 'nl'
+    await flushPromises()
+    expect(wrapper.get('.car-popup__directions').text()).toBe(nl.directions.open)
+    expect(popupUpdate).toHaveBeenCalledOnce()
+  })
+
+  it('closes the directions dialog without removing the car popup', async () => {
+    const wrapper = await mountView()
+    await wrapper.get('.car-popup__directions').trigger('click')
+    await wrapper.get('.dialog-close').trigger('click')
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(false)
+    expect(wrapper.find('.car-popup__directions').exists()).toBe(true)
+  })
+
+  it('does not offer directions when the car may be moving, even without an active trip', async () => {
+    vi.mocked(vehicleApi.status).mockResolvedValue({
+      ...parked,
+      speed: 15,
+      engineRunning: true,
+    })
+    vi.mocked(vehicleApi.trips).mockResolvedValue([])
+    const wrapper = await mountView()
+    await wrapper.get('.car-popup__directions').trigger('click')
+    const popup = wrapper.get('.location-directions')
+
+    expect(popup.text()).toContain(en.directions.moving)
+    expect(popup.get('button').attributes('disabled')).toBeDefined()
+    expect(popup.find('a').exists()).toBe(false)
+    expect(requestPlaces).not.toHaveBeenCalledWith(expect.anything(), 'address')
+  })
+
+  it('removes the old car marker until the selected car has its own valid coordinates', async () => {
+    const wrapper = await mountView()
+    const store = useVehicleStore(pinia)
+    const otherCar = { ...car, id: 2, vin: 'FAKEVN00000000002' }
+
+    store.vehicles = [otherCar]
+    await flushPromises()
+    expect(wrapper.find('.car-marker').exists()).toBe(false)
+    expect(findCar(wrapper).attributes('disabled')).toBeDefined()
+
+    store.currentStatus = { ...parked, vehicleId: 2, latitude: 51, longitude: 4 }
+    await flushPromises()
+    await wrapper.get('.car-popup__directions').trigger('click')
+    const link = wrapper.get('.location-directions__primary')
+    expect(new URL(link.attributes('href')!).searchParams.get('destination')).toBe(
+      '51.000000,4.000000',
+    )
+
+    store.currentStatus = { ...store.currentStatus, latitude: 91 }
+    await flushPromises()
+    expect(wrapper.find('.car-marker').exists()).toBe(false)
+    expect(findCar(wrapper).attributes('disabled')).toBeDefined()
+  })
+
+  it('never turns an active trip endpoint into a directions destination', async () => {
+    vi.mocked(vehicleApi.status).mockResolvedValue({
+      ...parked,
+      latitude: null,
+      longitude: null,
+      currentJourneyDistance: 4,
+    })
+    const wrapper = await mountView()
+
+    expect(tripLayerOptions.activeCarLatLng.value).toEqual([52.1, 5.1])
+    expect(wrapper.find('.location-directions').exists()).toBe(false)
+    expect(findCar(wrapper).attributes('disabled')).toBeDefined()
   })
 
   it('offers the route editor on the map for a selected trip once it is saved', async () => {

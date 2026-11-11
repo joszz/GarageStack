@@ -414,6 +414,23 @@
 }
 
 /* Car marker popup: model name plus the street the car is parked in. */
+.car-popup .leaflet-popup-content {
+  max-width: min(250px, calc(100vw - 90px));
+  max-height: min(14rem, 45vh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+@media (width <= 1023px) {
+  .car-popup .leaflet-popup-content {
+    max-height: min(11rem, 18vh);
+  }
+}
+
+.car-popup__directions {
+  margin-top: 0.75rem;
+}
+
 .car-popup__title {
   display: block;
   font-weight: 600;
@@ -424,18 +441,6 @@
   margin-top: 2px;
   font-size: 0.75rem;
   color: var(--color-text-muted, #888);
-}
-
-.car-popup__link {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  margin-top: 6px;
-  font-size: 0.75rem;
-
-  /* Leaflet gives popup links its own blue; the popup sits on the app's surface colour, so the
-     link follows the app's accent like every other link does. */
-  color: var(--color-primary-light);
 }
 
 .trip-list__info {

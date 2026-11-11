@@ -44,7 +44,7 @@
     "cardInfoBtn": "Card information",
     "openFullMap": "Open full map",
     "cardDesc": {
-      "location": "Current location of the car on a small map. Click the map or the expand button to open the full map view.",
+      "location": "The car's last known location on a small map. Click the map or the expand button to open the full map, or the directions button for map options.",
       "fuelLevel": "Shows the current fuel tank level as a percentage.",
       "fuelRange": "Estimated remaining driving range based on the current fuel level.",
       "evBattery": "State of charge as a percentage. On a PHEV or BEV this is your electric range gauge. On an HEV the hybrid battery is small and managed automatically by the car, so the exact value is less meaningful day-to-day.",
@@ -141,6 +141,23 @@
       "fuel": "Fuel ({unit})",
       "total": "Total"
     }
+  },
+  "directions": {
+    "google": "Directions to car (Google Maps)",
+    "open": "Directions to car",
+    "apple": "Walking directions in Apple Maps",
+    "mapApp": "Open in a compatible map app (geo: link)",
+    "osm": "Show on OpenStreetMap",
+    "copy": "Copy coordinates",
+    "copied": "Coordinates copied.",
+    "copyFailed": "Could not copy automatically. Select and copy the coordinates below.",
+    "coordinates": "Coordinates to copy",
+    "car": "Car",
+    "lastKnownUpdated": "Last known location. Vehicle updated {time}; the location may be older.",
+    "lastKnownUnknown": "Last known location. Its age is unknown.",
+    "moving": "The car may be moving. Directions are unavailable while it appears to be on a trip.",
+    "unavailable": "Directions unavailable: the car's location is unknown.",
+    "shareNotice": "Opening a map shares these coordinates with that service or app."
   },
   "vehicle": {
     "diagramLabel": "Vehicle status diagram",
@@ -410,8 +427,6 @@
       "adblue": "AdBlue"
     },
     "findCar": "Find car",
-    "openInMapApp": "Open in map app",
-    "showOnOsm": "Show on OpenStreetMap",
     "points": "pts",
     "resolvingPlaces": "Looking up place names",
     "inProgress": "Trip in progress",
