@@ -4,6 +4,7 @@ import { createI18n } from 'vue-i18n'
 import { createPinia, setActivePinia } from 'pinia'
 import en from '@/locales/en.json'
 import { dawarichApi } from '@/services/dawarichApi'
+import { localDateKey } from '@/utils/dates'
 import PhoneGpsSettings from '../PhoneGpsSettings.vue'
 
 vi.mock('@/services/dawarichApi', () => ({
@@ -73,8 +74,28 @@ describe('PhoneGpsSettings', () => {
     await wrapper.find('input[type=date]').setValue('2026-01-01')
     await wrapper.findAll('form')[1]!.trigger('submit')
     await flushPromises()
-    expect(dawarichApi.backfill).toHaveBeenCalledWith(vin, '2026-01-01T00:00:00Z')
+    // The picked day starts at local midnight, whatever the browser's time zone.
+    expect(dawarichApi.backfill).toHaveBeenCalledWith(vin, new Date(2026, 0, 1).toISOString())
     expect(wrapper.text()).toContain(en.dawarich.queued)
+  })
+
+  it('offers no later day than the local today', async () => {
+    const wrapper = await render()
+    expect(wrapper.find('input[type=date]').attributes('max')).toBe(localDateKey(new Date()))
+  })
+
+  it('lets a tracker missing from discovery be typed in, without surrounding spaces', async () => {
+    const wrapper = await render()
+    const select = wrapper.findComponent({ name: 'Multiselect' })
+    expect(select.props('createOption')).toBe(true)
+    const onCreate = select.props('onCreate') as (option: {
+      value: string
+      label: string
+    }) => unknown
+    expect(onCreate({ value: '  other-phone ', label: '  other-phone ' })).toEqual({
+      value: 'other-phone',
+      label: 'other-phone',
+    })
   })
 
   it('preserves links and explains upstream failure', async () => {

@@ -42,6 +42,17 @@ public sealed record TripEditor(
     DateTime? NotAfter,
     int MaxPoints);
 
+/// <summary>A saved trip's route as the data export writes it.</summary>
+/// <param name="Id">The trip.</param>
+/// <param name="Points">Its points as they are now, phone points included.</param>
+/// <param name="OriginalPoints">The points as recorded, while the route is edited; otherwise null.</param>
+/// <param name="EditedAt">When the route was last edited, or null while it is as recorded.</param>
+public sealed record TripRoute(
+    long Id,
+    IReadOnlyList<TripPoint> Points,
+    IReadOnlyList<TripPoint>? OriginalPoints,
+    DateTime? EditedAt);
+
 /// <summary>Why a set of points was refused, as a problem code and a message.</summary>
 public sealed record TripEditProblem(string Code, string Message);
 

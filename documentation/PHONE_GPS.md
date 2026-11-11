@@ -30,7 +30,8 @@ There is no public phone ingest endpoint and no new trip is created from phone d
    `topic` when no tracker ID is supplied; compare it with the device or tracker identity
    configured in your phone app. To distinguish two entries, send a fresh location from the
    phone, wait up to five minutes for the discovery cache to expire, then refresh and check
-   which last-seen time advanced. Available trackers come from the last 30 days.
+   which last-seen time advanced. The list comes from the newest 5,000 points of the last 30
+   days, so a phone that has been quiet a while may be missing: type its ID and press Enter.
 7. Select and save the tracker or trackers for phones you actually use in that car. You can
    select both if both phones travel in it; GarageStack evaluates them separately and uses
    only the best-matching tracker for each trip. Do not select an unrelated household phone.
@@ -46,10 +47,14 @@ The key belongs to one Dawarich user. Multiple trackers from that account can be
 The Worker checks every three minutes, at most ten trips per pass. It waits 15 minutes after
 a trip ends for the phone's upload. Set `DAWARICH_FUSION_DELAY_MINUTES` to change this.
 
-A tracker must match at least two car fixes within 60 seconds and 300 metres (or twice the
-reported accuracy), with at least 70% of paired car fixes agreeing. Fixes with accuracy worse
+A tracker must match at least two car fixes within 300 metres (or twice the reported
+accuracy), with at least 70% of paired car fixes agreeing. Where the phone has fixes on both
+sides of a car fix, at most two minutes apart, its position at the car's moment is taken on the
+straight line between them, so a fast car is not failed only because the phone sampled at other
+moments. Otherwise the nearest phone fix within 60 seconds counts. Fixes with accuracy worse
 than 50 metres are discarded. When several linked trackers qualify, only the best is used.
-The car wins within 20 seconds of each car fix.
+The car wins within 20 seconds of each car fix. Dawarich keeps speeds in metres per second;
+they are stored in km/h like the car's own.
 
 A late start can be recovered only from a known parked spot, with the first phone fix near it.
 It never crosses the previous trip's end. Existing anchored points and the end stay in place.
@@ -62,20 +67,23 @@ as recorded, not the sparse route from before fusion.
 
 ## Older trips and retries
 
-Linking a tracker only enables trips starting after the link. To fill older trips, select a UTC
-**Backfill from** date and choose **Queue backfill**. The Worker processes that range up to the
+Linking a tracker only enables trips starting after the link. To fill older trips, select a
+**Backfill from** date (from midnight in your browser's time zone) and choose **Queue backfill**. The Worker processes that range up to the
 time of the request, in bounded batches. Edited, hidden and already fused trips are skipped.
 Save changed tracker links before requesting a backfill.
 
-An unreachable server, HTTP 429 or server error backs off for at least five minutes. A rejected
-key pauses attempts for 30 minutes and logs one warning until authentication recovers. Invalid
-responses or excessive data mark that trip failed; request backfill after correcting the cause.
+An unreachable server, HTTP 429 or server error backs off for at least five minutes, unless
+Dawarich still answers its health check: then the trouble lies in that trip's window, the Worker
+moves on to the next trip and retries this one on later passes, marking it failed after five.
+A rejected key pauses attempts for 30 minutes and logs one warning until authentication
+recovers. Invalid responses or excessive data mark that trip failed at once, without holding up
+the next one; request backfill after correcting the cause.
 A trip with no matching phone data is not retried automatically: backfill it after late uploads.
 Reload the trip list/map after the Worker has processed the trips.
 
-Responses are capped at 4 MiB per page and 100 pages of 1,000 points. A window that exceeds
-those limits is rejected, not silently truncated. Discovery errors leave existing links
-editable. The client expects Unix timestamps in seconds, UTC query bounds and pagination
+Responses are capped at 4 MiB per page and 100 pages of 1,000 points. A trip window that
+exceeds those limits is rejected, not silently truncated. When discovery fails, existing links
+stay and a tracker ID can still be typed in. The client expects Unix timestamps in seconds, UTC query bounds and pagination
 headers. These contracts are covered by synthetic tests; verify compatibility with your own
 Dawarich version before requesting a large historical backfill.
 

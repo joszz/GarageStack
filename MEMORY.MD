@@ -8,6 +8,15 @@
   link dates; unlinking cancels queued work. Recheck edits and links after the upstream fetch.
 - Bound late-start recovery by the car-derived departure window, not a whole parked interval.
   The phone may refine a known drive, but must not create one.
+- Dawarich's `velocity` is metres per second for every source (it converts OwnTracks' km/h
+  itself), so the client multiplies by 3.6. Checked against Dawarich's source, 2026-11-11.
+- Tracker discovery reads only the newest pages (`DiscoveryPages`), never a whole month, and the
+  settings picker accepts a typed tracker ID for a phone missing from it.
+- Matching interpolates the phone between fixes at most two minutes apart; a fixed 300 m against
+  the nearest fix fails motorway trips whose phone samples between the car's fixes.
+- A Dawarich error never stalls the queue: invalid data fails that trip and the pass goes on; a
+  server error while the health check passes counts against the trip (failed after five passes);
+  only an outage or a rejected key pauses the Worker.
 
 Implementation: [fusion helper](src/GarageStack.Core/Helpers/TripPhoneFusion.cs),
 [persistence](src/GarageStack.Data/Repositories/PhoneFusionRepository.cs),

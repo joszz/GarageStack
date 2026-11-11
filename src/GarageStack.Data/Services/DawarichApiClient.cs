@@ -13,7 +13,19 @@ public sealed class DawarichApiClient(HttpClient client, DawarichOptions options
 {
     public const int MaxPages = 100;
     public const int PageSize = 1000;
+    /// <summary>
+    /// Tracker discovery reads only the newest points. A phone that reports every few seconds fills
+    /// a month with far more points than it takes to see which trackers are in use, and a tracker
+    /// missing from them can still be typed in by its ID.
+    /// </summary>
+    public const int DiscoveryPages = 5;
     public const int MaxResponseBytes = 4 * 1024 * 1024;
+    /// <summary>Speeds above this are a GPS glitch, not a car.</summary>
+    public const double MaxSpeedKmh = 400;
+    // Dawarich stores velocity in metres per second whatever the app sent: it converts OwnTracks'
+    // km/h itself, and Overland and its own apps already report m/s.
+    private const double KmhPerMetrePerSecond = 3.6;
+    private static readonly TimeSpan PagePause = TimeSpan.FromMilliseconds(250);
     private static readonly JsonSerializerOptions Json = new()
     {
         NumberHandling = JsonNumberHandling.AllowReadingFromString,
@@ -24,55 +36,73 @@ public sealed class DawarichApiClient(HttpClient client, DawarichOptions options
         var fixes = new List<PhoneFix>();
         for (var page = 1; page <= MaxPages; page++)
         {
-            var query = $"points?start_at={Utc(from)}&end_at={Utc(to)}&order=asc&per_page={PageSize}&page={page}";
-            using var response = await SendAsync(query, ct);
-            var bytes = await ReadAsync(response, ct);
-            List<PointRow> rows;
-            try
-            {
-                rows = JsonSerializer.Deserialize<List<PointRow>>(bytes, Json)
-                    ?? throw new JsonException();
-            }
-            catch (JsonException)
-            {
-                throw new DawarichException("Dawarich returned invalid point data.", retryable: false);
-            }
-
-            if (rows.Count > PageSize)
-                throw new DawarichException("Dawarich exceeded the requested page size.", retryable: false);
-            foreach (var row in rows)
-            {
-                if (row is null || row.Timestamp is not { } timestamp || timestamp < 0 || timestamp > 253402300799 ||
-                    row.Latitude is not { } latitude || row.Longitude is not { } longitude ||
-                    !double.IsFinite(latitude) || latitude is < -90 or > 90 ||
-                    !double.IsFinite(longitude) || longitude is < -180 or > 180)
-                    throw new DawarichException("Dawarich returned invalid coordinates or a non-second timestamp.", retryable: false);
-                var at = DateTimeOffset.FromUnixTimeSeconds(timestamp).UtcDateTime;
-                if (at < from || at > to) continue;
-                var tracker = string.IsNullOrWhiteSpace(row.TrackerId) ? row.Topic : row.TrackerId;
-                if (tracker?.Length > VehiclePhoneTracker.MaxTrackerLength) tracker = null;
-                fixes.Add(new(at, latitude, longitude, row.Accuracy,
-                    row.Velocity is >= 0 and <= 400 ? row.Velocity : null, tracker));
-            }
-
-            if (!response.Headers.TryGetValues("X-Total-Pages", out var headers) ||
-                headers.ToArray() is not [var total] ||
-                !int.TryParse(total, CultureInfo.InvariantCulture, out var pages) || pages < 0)
-                throw new DawarichException("Dawarich omitted valid pagination headers.", retryable: false);
+            var pages = await ReadPageAsync(from, to, "asc", page, fixes, ct);
             if (pages > MaxPages)
                 throw new DawarichException("Dawarich point window exceeds the page limit.", retryable: false);
             if (page >= pages) return fixes;
-            await Task.Delay(TimeSpan.FromMilliseconds(250), ct);
+            await Task.Delay(PagePause, ct);
         }
         throw new DawarichException("Dawarich pagination did not finish.", retryable: false);
     }
 
-    public async Task<IReadOnlyList<PhoneTracker>> GetTrackersAsync(DateTime since, CancellationToken ct) =>
-        (await GetPointsAsync(since, time.GetUtcNow().UtcDateTime, ct))
-        .Where(f => !string.IsNullOrWhiteSpace(f.TrackerId))
-        .GroupBy(f => f.TrackerId!, StringComparer.Ordinal)
-        .Select(g => new PhoneTracker(g.Key, new DateTimeOffset(g.Max(f => f.RecordedAt))))
-        .OrderBy(t => t.TrackerId, StringComparer.Ordinal).ToArray();
+    public async Task<IReadOnlyList<PhoneTracker>> GetTrackersAsync(DateTime since, CancellationToken ct)
+    {
+        var fixes = new List<PhoneFix>();
+        var until = time.GetUtcNow().UtcDateTime;
+        for (var page = 1; page <= DiscoveryPages; page++)
+        {
+            if (page >= await ReadPageAsync(since, until, "desc", page, fixes, ct)) break;
+            if (page < DiscoveryPages) await Task.Delay(PagePause, ct);
+        }
+        return fixes
+            .Where(f => !string.IsNullOrWhiteSpace(f.TrackerId))
+            .GroupBy(f => f.TrackerId!, StringComparer.Ordinal)
+            .Select(g => new PhoneTracker(g.Key, new DateTimeOffset(g.Max(f => f.RecordedAt))))
+            .OrderBy(t => t.TrackerId, StringComparer.Ordinal).ToArray();
+    }
+
+    /// <summary>Adds one page of points to <paramref name="fixes"/> and returns the total page count.</summary>
+    private async Task<int> ReadPageAsync(
+        DateTime from, DateTime to, string order, int page, List<PhoneFix> fixes, CancellationToken ct)
+    {
+        var query = $"points?start_at={Utc(from)}&end_at={Utc(to)}&order={order}&per_page={PageSize}&page={page}";
+        using var response = await SendAsync(query, ct);
+        var bytes = await ReadAsync(response, ct);
+        List<PointRow> rows;
+        try
+        {
+            rows = JsonSerializer.Deserialize<List<PointRow>>(bytes, Json)
+                ?? throw new JsonException();
+        }
+        catch (JsonException)
+        {
+            throw new DawarichException("Dawarich returned invalid point data.", retryable: false);
+        }
+
+        if (rows.Count > PageSize)
+            throw new DawarichException("Dawarich exceeded the requested page size.", retryable: false);
+        foreach (var row in rows)
+        {
+            if (row is null || row.Timestamp is not { } timestamp || timestamp < 0 || timestamp > 253402300799 ||
+                row.Latitude is not { } latitude || row.Longitude is not { } longitude ||
+                !double.IsFinite(latitude) || latitude is < -90 or > 90 ||
+                !double.IsFinite(longitude) || longitude is < -180 or > 180)
+                throw new DawarichException("Dawarich returned invalid coordinates or a non-second timestamp.", retryable: false);
+            var at = DateTimeOffset.FromUnixTimeSeconds(timestamp).UtcDateTime;
+            if (at < from || at > to) continue;
+            var tracker = string.IsNullOrWhiteSpace(row.TrackerId) ? row.Topic : row.TrackerId;
+            if (tracker?.Length > VehiclePhoneTracker.MaxTrackerLength) tracker = null;
+            var speed = row.Velocity * KmhPerMetrePerSecond;
+            fixes.Add(new(at, latitude, longitude, row.Accuracy,
+                speed is >= 0 and <= MaxSpeedKmh ? speed : null, tracker));
+        }
+
+        if (!response.Headers.TryGetValues("X-Total-Pages", out var headers) ||
+            headers.ToArray() is not [var total] ||
+            !int.TryParse(total, CultureInfo.InvariantCulture, out var pages) || pages < 0)
+            throw new DawarichException("Dawarich omitted valid pagination headers.", retryable: false);
+        return pages;
+    }
 
     public async Task<DawarichHealth> CheckAsync(CancellationToken ct)
     {

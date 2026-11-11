@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n'
 import Multiselect from '@vueform/multiselect'
 import { useDawarich } from '@/composables/useDawarich'
 import { formatDateTime } from '@/utils/format'
+import { localDateKey } from '@/utils/dates'
 import SettingsSection from './SettingsSection.vue'
 
 const props = defineProps<{ vin: string }>()
@@ -13,7 +14,13 @@ const { t } = useI18n()
 const { status, trackers, selected, saved, queued, loading, error, dirty, load, save, backfill } =
   useDawarich(props.vin)
 const from = ref('')
-const today = new Date().toISOString().slice(0, 10)
+const today = localDateKey(new Date())
+
+// Discovery only reads the newest points, so a phone that has been quiet a while can be missing
+// from the list: its ID can be typed in instead. The API refuses surrounding spaces.
+function trimCreated(option: { value: string; label: string }) {
+  return { ...option, value: option.value.trim(), label: option.label.trim() }
+}
 const state = computed(() => trackers.value?.error ?? status.value?.status)
 const visible = ref(false)
 watch(
@@ -65,6 +72,8 @@ const options = computed(() => {
           mode="tags"
           :max="10"
           :searchable="true"
+          :create-option="true"
+          :on-create="trimCreated"
           :close-on-select="false"
           :disabled="loading"
           :aria="{ 'aria-labelledby': 'phone-trackers-label' }"

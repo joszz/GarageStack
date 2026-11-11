@@ -27,7 +27,7 @@ public class DawarichApiClientTests
     }
 
     private static readonly DateTime From = DateTimeOffset.FromUnixTimeSeconds(1767261600).UtcDateTime;
-    private const string Point = """[{"latitude":"52","longitude":5,"timestamp":1767261600,"accuracy":7,"velocity":45,"tracker_id":"fake-phone"}]""";
+    private const string Point = """[{"latitude":"52","longitude":5,"timestamp":1767261600,"accuracy":7,"velocity":12.5,"tracker_id":"fake-phone"}]""";
     private static DawarichApiClient Client(HttpClient http) =>
         new(http, new() { Url = "https://dawarich.invalid/base", ApiKey = "fake-key" }, TimeProvider.System);
 
@@ -48,7 +48,8 @@ public class DawarichApiClientTests
         var fixes = await Client(http).GetPointsAsync(From, From.AddHours(1), TestContext.Current.CancellationToken);
         Assert.Equal(2, requests);
         Assert.Equal(From, fixes[0].RecordedAt);
-        Assert.Equal(45, fixes[0].SpeedKmh);
+        // Dawarich stores metres per second: 12.5 m/s is 45 km/h.
+        Assert.Equal(45, fixes[0].SpeedKmh!.Value, 6);
         Assert.Equal(7, fixes[0].AccuracyM);
         Assert.Equal("fake-phone", fixes[0].TrackerId);
     }
@@ -98,6 +99,31 @@ public class DawarichApiClientTests
             """[{"latitude":52,"longitude":5,"timestamp":1767261600,"tracker_id":"","topic":"fake/phone"},{"latitude":52,"longitude":5,"timestamp":1767261600}]""")));
         var trackers = await Client(http).GetTrackersAsync(From, TestContext.Current.CancellationToken);
         Assert.Equal("fake/phone", Assert.Single(trackers).TrackerId);
+    }
+
+    [Theory]
+    [InlineData("\"-1\"")]
+    [InlineData("112")]
+    public async Task ImpossibleSpeedsAreDropped(string velocity)
+    {
+        using var http = new HttpClient(new Handler(_ => Response(Point.Replace("12.5", velocity))));
+        var fixes = await Client(http).GetPointsAsync(From, From.AddHours(1), TestContext.Current.CancellationToken);
+        Assert.Null(Assert.Single(fixes).SpeedKmh);
+    }
+
+    [Fact]
+    public async Task DiscoveryReadsOnlyTheNewestPagesOfABusyMonth()
+    {
+        var requests = new List<string>();
+        using var http = new HttpClient(new Handler(req =>
+        {
+            requests.Add(req.RequestUri!.Query);
+            return Response(Point, 500);
+        }));
+        var trackers = await Client(http).GetTrackersAsync(From.AddDays(-30), TestContext.Current.CancellationToken);
+        Assert.Equal("fake-phone", Assert.Single(trackers).TrackerId);
+        Assert.Equal(DawarichApiClient.DiscoveryPages, requests.Count);
+        Assert.All(requests, query => Assert.Contains("order=desc", query));
     }
 
     [Fact]

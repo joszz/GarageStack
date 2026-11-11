@@ -88,6 +88,13 @@ public interface ITripRepository
     Task<TripMergeResult> MergeWithNextAsync(int vehicleId, long id, CancellationToken ct = default);
 
     /// <summary>
+    /// The routes of a car's trips starting between <paramref name="from"/> and <paramref name="to"/>,
+    /// oldest first, read in one pass for the data export. A trip whose points cannot be read is
+    /// left out, as everywhere else; an unreadable recorded route only drops its original points.
+    /// </summary>
+    IAsyncEnumerable<TripRoute> GetRoutesAsync(int vehicleId, DateTime from, DateTime to, CancellationToken ct = default);
+
+    /// <summary>
     /// What the trip editor needs for a saved trip: its points, the points as recorded when it was
     /// edited, where the car stood before and after it, and the times its points must stay within.
     /// </summary>

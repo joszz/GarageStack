@@ -87,14 +87,10 @@ internal sealed class DataExport(
             var log = await trips.GetLogAsync(car.Id, Beginning, end, ct);
             await WriteJsonAsync(zip, $"{folder}/trips.json", log, ct);
             await WriteJsonAsync(zip, $"{folder}/phone-trackers.json", await phones.ListAsync(car.Id, ct), ct);
-            foreach (var trip in log)
-            {
-                var route = await trips.GetEditorAsync(car.Id, trip.Id, ct);
-                if (route.Editor is not { } editor)
-                    throw new InvalidOperationException("A saved trip could not be read for the data export.");
-                await WriteJsonAsync(zip, $"{folder}/routes/{trip.Id}.json",
-                    new { editor.Id, editor.Points, editor.OriginalPoints, editor.EditedAt }, ct);
-            }
+            // One read for every route: the trip editor's lookups per trip would cost a handful of
+            // queries each, and a trip that cannot be read must not break the zip half way.
+            await foreach (var route in trips.GetRoutesAsync(car.Id, Beginning, end, ct))
+                await WriteJsonAsync(zip, $"{folder}/routes/{route.Id}.json", route, ct);
 
             var items = await maintenance.ListAsync(car.Id, ct);
             var withHistory = new List<object>(items.Count);
