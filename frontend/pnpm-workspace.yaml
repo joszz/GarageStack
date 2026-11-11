@@ -1,6 +1,4 @@
 allowBuilds:
-  # Sass's optional watcher only builds from source when explicitly requested.
-  '@parcel/watcher': true
   inotify: true
 
 # Keeps pnpm-lock.yaml a single YAML document. Otherwise pnpm 12 writes an extra environment

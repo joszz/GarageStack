@@ -118,7 +118,7 @@ const languageOptions = [
       <div class="settings-tabs-viewport">
         <div
           ref="tablist"
-          class="nav nav-tabs settings-tabs"
+          class="settings-tabs"
           role="tablist"
           :aria-label="t('settings.tabs.label')"
           @keydown="onTabKeydown"
@@ -129,8 +129,7 @@ const languageOptions = [
             :key="tab.id"
             type="button"
             role="tab"
-            class="nav-link settings-tabs__tab"
-            :class="{ active: activeTab === tab.id }"
+            class="settings-tabs__tab"
             :data-tab="tab.id"
             :aria-selected="activeTab === tab.id"
             :aria-controls="`${id}-panel-${tab.id}`"
@@ -291,58 +290,3 @@ const languageOptions = [
     </div>
   </DetailModal>
 </template>
-
-<style lang="scss" scoped>
-@import 'bootstrap/scss/functions';
-@import 'bootstrap/scss/variables';
-@import 'bootstrap/scss/variables-dark';
-@import 'bootstrap/scss/maps';
-@import 'bootstrap/scss/mixins';
-@import 'bootstrap/scss/nav';
-
-.settings-tabs-viewport {
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-
-.settings-tabs-viewport::-webkit-scrollbar {
-  display: none;
-}
-
-.settings-tabs {
-  --bs-nav-link-padding-x: 0.625rem;
-  --bs-nav-link-padding-y: 0.5rem;
-  --bs-nav-link-font-size: 0.8125rem;
-  --bs-nav-link-color: var(--color-text-muted);
-  --bs-nav-link-hover-color: var(--color-text);
-  --bs-nav-tabs-border-width: 1px;
-  --bs-nav-tabs-border-color: var(--color-border);
-  --bs-nav-tabs-border-radius: 0.375rem;
-  --bs-nav-tabs-link-hover-border-color: var(--color-border) var(--color-border) var(--color-border);
-  --bs-nav-tabs-link-active-color: var(--color-text);
-  --bs-nav-tabs-link-active-bg: var(--color-surface);
-  --bs-nav-tabs-link-active-border-color: var(--color-border) var(--color-border)
-    var(--color-surface);
-
-  flex-wrap: nowrap;
-  justify-content: flex-end;
-  width: max-content;
-  min-width: 100%;
-}
-
-.settings-tabs__tab {
-  display: flex;
-  align-items: center;
-  flex-shrink: 0;
-  gap: 0.3rem;
-  min-height: 44px;
-  white-space: nowrap;
-  cursor: pointer;
-}
-
-.settings-tabs__tab:focus-visible {
-  outline: var(--focus-ring);
-  outline-offset: -2px;
-  box-shadow: none;
-}
-</style>
