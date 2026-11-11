@@ -44,14 +44,14 @@ describe('LocationDirections', () => {
 
     expect(buttons).toHaveLength(5)
     expect(buttons.map((button) => button.get('svg').attributes('data-icon'))).toEqual([
+      'map',
       'google',
       'apple',
       'mobile-screen',
-      'map',
       'copy',
     ])
     expect(
-      buttons.slice(0, 2).map((button) => button.get('svg').attributes('data-prefix')),
+      buttons.slice(1, 3).map((button) => button.get('svg').attributes('data-prefix')),
     ).toEqual(['fab', 'fab'])
     for (const button of buttons) {
       expect(button.classes()).not.toContain('btn-sm')
@@ -59,28 +59,33 @@ describe('LocationDirections', () => {
     }
   })
 
-  it('offers walking directions and explicit alternatives without requesting browser location', () => {
+  it('offers OpenStreetMap walking directions first, alternatives after, without browser location', () => {
     const getCurrentPosition = vi.fn<() => void>()
     vi.stubGlobal('navigator', { geolocation: { getCurrentPosition } })
     const wrapper = mountDirections()
     const links = wrapper.findAll('a')
+    const osm = links.find((link) => link.text() === en.directions.osm)!
     const google = links.find((link) => link.text() === en.directions.google)!
     const apple = links.find((link) => link.text() === en.directions.apple)!
     const app = links.find((link) => link.text() === en.directions.mapApp)!
-    const osm = links.find((link) => link.text() === en.directions.osm)!
 
+    expect(wrapper.get('.location-directions__primary').element).toBe(osm.element)
+    expect(new URL(osm.attributes('href')!).searchParams.get('to')).toBe('52.090000,5.120000')
+    expect(osm.attributes('target')).toBe('_blank')
+    expect(osm.attributes('rel')).toBe('noopener noreferrer')
+    expect(osm.attributes('aria-describedby')).toBe(
+      wrapper.find('.location-directions__note').attributes('id'),
+    )
     expect(new URL(google.attributes('href')!).searchParams.get('destination')).toBe(
       '52.090000,5.120000',
     )
     expect(google.attributes('target')).toBe('_blank')
     expect(google.attributes('rel')).toBe('noopener noreferrer')
-    expect(google.attributes('aria-describedby')).toBe(
-      wrapper.find('.location-directions__note').attributes('id'),
-    )
     expect(apple.attributes('href')).toContain('mode=walking')
+    expect(apple.attributes('target')).toBe('_blank')
     expect(app.attributes('href')).toBe('geo:52.090000,5.120000?q=52.090000,5.120000(Car)')
     expect(app.attributes('target')).toBeUndefined()
-    expect(osm.attributes('href')).toContain('mlat=52.090000&mlon=5.120000')
+    expect(app.attributes('rel')).toBeUndefined()
     expect(wrapper.text()).toContain('the location may be older')
     expect(wrapper.text()).toContain(en.directions.shareNotice)
     expect(getCurrentPosition).not.toHaveBeenCalled()
@@ -90,6 +95,7 @@ describe('LocationDirections', () => {
     const wrapper = mountDirections(location, locale)
     const messages = { en, nl, es }[locale]
 
+    expect(wrapper.text()).toContain(messages.directions.osm)
     expect(wrapper.text()).toContain(messages.directions.google)
     expect(wrapper.get('[role="dialog"]').attributes('aria-label')).toBe(messages.directions.open)
     expect(wrapper.text()).toContain(messages.directions.mapApp)
@@ -105,7 +111,7 @@ describe('LocationDirections', () => {
     i18n.global.locale.value = 'nl'
     await flushPromises()
 
-    expect(wrapper.text()).toContain(nl.directions.google)
+    expect(wrapper.text()).toContain(nl.directions.osm)
     expect(wrapper.get('[role="dialog"]').attributes('aria-label')).toBe(nl.directions.open)
   })
 

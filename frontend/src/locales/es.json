@@ -143,11 +143,11 @@
     }
   },
   "directions": {
-    "google": "Ruta al coche (Google Maps)",
+    "google": "Ruta a pie en Google Maps",
     "open": "Ruta al coche",
     "apple": "Ruta a pie en Apple Maps",
     "mapApp": "Abrir en una aplicación de mapas compatible (enlace geo:)",
-    "osm": "Mostrar en OpenStreetMap",
+    "osm": "Ruta a pie en OpenStreetMap",
     "copy": "Copiar coordenadas",
     "copied": "Coordenadas copiadas.",
     "copyFailed": "No se pudieron copiar automáticamente. Selecciona y copia las coordenadas de abajo.",

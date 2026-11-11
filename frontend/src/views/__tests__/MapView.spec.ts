@@ -283,15 +283,13 @@ describe('MapView', () => {
     expect(wrapper.get('.car-marker').findAll('button')).toHaveLength(1)
     await wrapper.get('.car-popup__directions').trigger('click')
     const popup = wrapper.get('.location-directions')
-    const google = popup.get('.location-directions__primary')
+    const osm = popup.get('.location-directions__primary')
 
-    expect(google.text()).toBe(en.directions.google)
-    expect(new URL(google.attributes('href')!).searchParams.get('destination')).toBe(
-      '52.090000,5.120000',
-    )
+    expect(osm.text()).toBe(en.directions.osm)
+    expect(new URL(osm.attributes('href')!).searchParams.get('to')).toBe('52.090000,5.120000')
+    expect(popup.text()).toContain(en.directions.google)
     expect(popup.text()).toContain(en.directions.apple)
     expect(popup.text()).toContain(en.directions.mapApp)
-    expect(popup.text()).toContain(en.directions.osm)
   })
 
   it('updates the car popup after its address arrives', async () => {
@@ -377,9 +375,7 @@ describe('MapView', () => {
     await flushPromises()
     await wrapper.get('.car-popup__directions').trigger('click')
     const link = wrapper.get('.location-directions__primary')
-    expect(new URL(link.attributes('href')!).searchParams.get('destination')).toBe(
-      '51.000000,4.000000',
-    )
+    expect(new URL(link.attributes('href')!).searchParams.get('to')).toBe('51.000000,4.000000')
 
     store.currentStatus = { ...store.currentStatus, latitude: 91 }
     await flushPromises()

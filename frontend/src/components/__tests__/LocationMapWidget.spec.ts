@@ -75,10 +75,8 @@ describe('LocationMapWidget', () => {
     expect(wrapper.find('.location-directions').exists()).toBe(false)
     await wrapper.get('.location-map-card__directions').trigger('click')
     expect(wrapper.get('[role="dialog"]').attributes('aria-label')).toBe(en.directions.open)
-    const google = wrapper.get('.location-directions__primary')
-    expect(new URL(google.attributes('href')!).searchParams.get('destination')).toBe(
-      '52.090000,5.120000',
-    )
+    const osm = wrapper.get('.location-directions__primary')
+    expect(new URL(osm.attributes('href')!).searchParams.get('to')).toBe('52.090000,5.120000')
 
     expect(push).not.toHaveBeenCalled()
     await wrapper.get('.dialog-close').trigger('click')
@@ -107,7 +105,7 @@ describe('LocationMapWidget', () => {
     await flushPromises()
     expect(
       new URL(wrapper.get('.location-directions__primary').attributes('href')!).searchParams.get(
-        'destination',
+        'to',
       ),
     ).toBe('51.000000,4.000000')
   })
@@ -138,7 +136,7 @@ describe('LocationMapWidget', () => {
     await flushPromises()
     expect(
       new URL(wrapper.get('.location-directions__primary').attributes('href')!).searchParams.get(
-        'destination',
+        'to',
       ),
     ).toBe('0.000000,0.000000')
   })

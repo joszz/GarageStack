@@ -1,13 +1,27 @@
+/**
+ * Links that hand the car's position to something that can navigate to it. Every directions
+ * link names only the destination: the map provider uses or asks for the starting point itself,
+ * so GarageStack never needs the browser's location.
+ */
+
 /** Coordinates are given to about 10 cm; more digits are noise from a consumer GPS. */
-function round(value: number): string {
-  return value.toFixed(6)
-}
-
 export function formatCoordinates(lat: number, lng: number): string {
-  return `${round(lat)},${round(lng)}`
+  return `${lat.toFixed(6)},${lng.toFixed(6)}`
 }
 
-/** Universal directions links leave the origin to the map provider. */
+/**
+ * Walking directions on openstreetmap.org, the default. Its directions page reads the
+ * destination from `to` and the routing engine from `engine`; FOSSGIS runs the OSRM foot router
+ * behind it. The start stays empty, or the page's own location button fills it in.
+ */
+export function osmDirectionsUrl(lat: number, lng: number): string {
+  const query = new URLSearchParams({
+    engine: 'fossgis_osrm_foot',
+    to: formatCoordinates(lat, lng),
+  })
+  return `https://www.openstreetmap.org/directions?${query}`
+}
+
 export function googleDirectionsUrl(lat: number, lng: number): string {
   const query = new URLSearchParams({
     api: '1',
@@ -34,10 +48,4 @@ export function geoUri(lat: number, lng: number, label?: string): string {
   const point = formatCoordinates(lat, lng)
   const query = label ? `${point}(${encodeURIComponent(label)})` : point
   return `geo:${point}?q=${query}`
-}
-
-/** openstreetmap.org with a marker on the point, which any browser can open. */
-export function osmUrl(lat: number, lng: number, zoom = 17): string {
-  const point = `mlat=${round(lat)}&mlon=${round(lng)}`
-  return `https://www.openstreetmap.org/?${point}#map=${zoom}/${round(lat)}/${round(lng)}`
 }
