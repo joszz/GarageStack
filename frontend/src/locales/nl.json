@@ -524,6 +524,15 @@
     "apiUnreachable": "Geen verbinding met de API. Mogelijk start deze nog op."
   },
   "settings": {
+    "tabs": {
+      "label": "Instellingencategorieën",
+      "general": "Algemeen",
+      "vehicle": "Voertuig",
+      "map": "Kaart",
+      "phone": "Telefoon-GPS",
+      "notifications": "Meldingen",
+      "data": "Data en API"
+    },
     "title": "Instellingen",
     "theme": {
       "title": "Weergave",

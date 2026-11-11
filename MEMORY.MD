@@ -20,3 +20,15 @@ Implementation: [fusion helper](src/GarageStack.Core/Helpers/TripPhoneFusion.cs)
 - Use only the selected vehicle's validated telemetry coordinates, not phone fixes or trip ends.
   The vehicle-state update time is not necessarily the GPS-fix time; merged telemetry can retain
   an old speed after the engine reports off. External maps receive coordinates only on user action.
+
+## Settings tabs
+
+- Use Bootstrap's scoped navigation styles, with tabs beside the title at every screen size.
+  Give each tab generous horizontal padding, cap the modal at 771px, fit every locale on desktop,
+  and keep the row swipeable on narrower screens.
+- Keep tab panels mounted while switching so unsaved inputs and newly issued API tokens survive.
+  Hide inactive panels with `hidden`, not inline styles, and exclude them from dialog focus loops.
+- Phone GPS reports its visibility from the same state that renders its content. Disabled
+  deployments hide the tab; errors and in-flight retries remain accessible. Reset on vehicle changes.
+- Block service workers in API-mocked browser tests, since worker-owned requests can bypass
+  Playwright's route mocks.

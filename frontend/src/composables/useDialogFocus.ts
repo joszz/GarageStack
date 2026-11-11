@@ -8,7 +8,9 @@ const FOCUSABLE =
 const openDialogs: Ref<HTMLElement | null>[] = []
 
 function focusablesIn(container: HTMLElement): HTMLElement[] {
-  return Array.from(container.querySelectorAll<HTMLElement>(FOCUSABLE))
+  return Array.from(container.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(
+    (element) => element.tabIndex >= 0 && !element.closest('[hidden], [inert]'),
+  )
 }
 
 /**

@@ -22,7 +22,9 @@ There is no public phone ingest endpoint and no new trip is created from phone d
      `localhost` refers to GarageStack itself, not Dawarich. Use a shared Docker network name or
      the host's LAN address and Dawarich's published port.
    - Prefer HTTPS outside a trusted private network. Redirects are refused; supply the final URL.
-5. Open GarageStack's **Settings > Phone GPS (Dawarich)** for the selected vehicle.
+5. Open GarageStack's **Settings > Phone GPS** tab for the selected vehicle. On a small screen,
+swipe the tab row sideways to reach it. The tab is hidden when Dawarich is not configured;
+connection-check errors keep it visible so you can retry.
    The section is hidden until both environment variables are set.
 6. Check the connection status and identify your phone in the tracker list. GarageStack shows
    each tracker's ID and last-seen time. The ID is Dawarich's `tracker_id`, falling back to

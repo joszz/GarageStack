@@ -24,7 +24,10 @@ useDialogFocus(dialog, () => props.open)
         <div
           ref="dialog"
           class="detail-modal"
-          :class="{ 'detail-modal--wide': wide }"
+          :class="{
+            'detail-modal--wide': wide,
+            'detail-modal--with-navigation': !!$slots.navigation,
+          }"
           tabindex="-1"
           role="dialog"
           :aria-modal="true"
@@ -32,6 +35,9 @@ useDialogFocus(dialog, () => props.open)
         >
           <div class="detail-modal__header">
             <h3 class="detail-modal__title">{{ title }}</h3>
+            <div v-if="$slots.navigation" class="detail-modal__navigation">
+              <slot name="navigation" />
+            </div>
             <button class="dialog-close" :aria-label="t('common.close')" @click="emit('close')">
               <font-awesome-icon icon="xmark" />
             </button>

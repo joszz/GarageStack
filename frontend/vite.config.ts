@@ -172,6 +172,15 @@ export default defineConfig({
     }),
     deferNonCriticalCss(),
   ],
+  css: {
+    preprocessorOptions: {
+      scss: {
+        // Bootstrap 5 still requires Sass imports and uses deprecated functions internally.
+        quietDeps: true,
+        silenceDeprecations: ['import'],
+      },
+    },
+  },
   server: {
     proxy: {
       '/api': 'http://127.0.0.1:5000',

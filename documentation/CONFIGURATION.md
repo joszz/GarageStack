@@ -100,7 +100,7 @@ recalls and whether it is insured, from the [RDW's open data](https://opendata.r
 until you switch it on. **The plate is the only thing that leaves your network**: it is sent to
 `opendata.rdw.nl`, together with the RDW's own reference codes for the recalls it lists. Nothing
 about your account, the car's position or its telemetry goes with it. The RDW's data is public,
-needs no key and is free to reuse. The plate itself is entered under Settings > Licence plate,
+needs no key and is free to reuse. The plate itself is entered under Settings > Vehicle > Licence plate,
 which only appears once this is on.
 
 | Variable | Default | What it does |

@@ -524,6 +524,15 @@
     "apiUnreachable": "Could not reach the API. It may still be starting."
   },
   "settings": {
+    "tabs": {
+      "label": "Settings categories",
+      "general": "General",
+      "vehicle": "Vehicle",
+      "map": "Map",
+      "phone": "Phone GPS",
+      "notifications": "Notifications",
+      "data": "Data & API"
+    },
     "title": "Settings",
     "theme": {
       "title": "Appearance",

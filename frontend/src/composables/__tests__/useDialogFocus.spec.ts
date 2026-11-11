@@ -106,4 +106,25 @@ describe('useDialogFocus', () => {
 
     expect(pressTab().defaultPrevented).toBe(false)
   })
+
+  it('excludes hidden panels, inert content and non-tabbable tab buttons from the focus loop', () => {
+    const { wrapper } = mountDialog(ref(true))
+    const dialog = wrapper.element
+    const hiddenPanel = document.createElement('div')
+    hiddenPanel.hidden = true
+    hiddenPanel.innerHTML = '<button>Hidden setting</button>'
+    dialog.append(hiddenPanel)
+    const inertPanel = document.createElement('div')
+    inertPanel.setAttribute('inert', '')
+    inertPanel.innerHTML = '<button>Inert setting</button>'
+    dialog.append(inertPanel)
+    const inactiveTab = document.createElement('button')
+    inactiveTab.tabIndex = -1
+    dialog.append(inactiveTab)
+
+    pressTab(true)
+    expect(focused()).toBe('last')
+    pressTab()
+    expect(focused()).toBe('first')
+  })
 })

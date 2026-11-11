@@ -149,7 +149,7 @@ Each reads its value from one retained JSON message, `garagestack/<VIN>/state`, 
 
 ## Reading GarageStack with an API token
 
-The broker gives Home Assistant the car's entities and the sensors above. Anything else GarageStack works out (the full maintenance list, the merged status it shows on the dashboard) can be read with a [read-only API token](../README.md#read-only-api-tokens) and a [REST sensor](https://www.home-assistant.io/integrations/sensor.rest/). Make the token under **Settings > API tokens**, keep it in `secrets.yaml`, and use the car's VIN in the URL:
+The broker gives Home Assistant the car's entities and the sensors above. Anything else GarageStack works out (the full maintenance list, the merged status it shows on the dashboard) can be read with a [read-only API token](../README.md#read-only-api-tokens) and a [REST sensor](https://www.home-assistant.io/integrations/sensor.rest/). Make the token under **Settings > Data & API > API tokens**, keep it in `secrets.yaml`, and use the car's VIN in the URL:
 
 ```yaml
 # configuration.yaml
