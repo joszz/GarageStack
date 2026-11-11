@@ -104,6 +104,7 @@ const MAX_HEATMAP_POINTS = 5000
 
 const mapWrapperRef = ref<HTMLElement | null>(null)
 const sidebar = useTemplateRef<InstanceType<typeof TripSidebar>>('sidebar')
+const carPopup = useTemplateRef<InstanceType<typeof LPopup>>('carPopup')
 const directionsOpen = ref(false)
 const { mapInstance, bindMapReady } = useLeafletMap(mapWrapperRef)
 
@@ -289,6 +290,14 @@ watch(
 const carAddress = computed(() =>
   addressLabel(placeFor(parkedCarLatLng.value?.lat, parkedCarLatLng.value?.lng, 'address')),
 )
+const carLabel = computed(() => store.activeVehicle?.model ?? store.activeVin)
+
+// Leaflet must remeasure the rendered content before it can auto-pan an open popup.
+watch(
+  [carAddress, carLabel, () => t('directions.open')],
+  () => carPopup.value?.leafletObject?.update(),
+  { flush: 'post' },
+)
 
 // One row model per visible trip, paired with the store index selection works on.
 const displayRows = computed(() =>
@@ -417,10 +426,8 @@ onMounted(async () => {
             v-if="location && selectedTripIndex === null"
             :lat-lng="[location.latitude, location.longitude]"
           >
-            <LPopup :options="{ className: 'car-popup' }">
-              <strong class="car-popup__title">{{
-                store.activeVehicle?.model ?? store.activeVin
-              }}</strong>
+            <LPopup ref="carPopup" :options="{ className: 'car-popup' }">
+              <strong class="car-popup__title">{{ carLabel }}</strong>
               <span v-if="carAddress" class="car-popup__address">{{ carAddress }}</span>
               <button
                 type="button"

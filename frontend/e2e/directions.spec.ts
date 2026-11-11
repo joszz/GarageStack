@@ -107,13 +107,47 @@ test('keeps the map popup and manual copy usable on a small phone', async ({ pag
     Object.defineProperty(navigator, 'clipboard', { configurable: true, value: undefined })
   })
   await useParkedStatus(page)
-  await open(page, '/map')
-
-  await page.locator('.map-canvas').focus()
-  await page.locator('.leaflet-marker-icon').first().click()
+  let releaseAddress!: () => void
+  const addressGate = new Promise<void>((resolve) => {
+    releaseAddress = resolve
+  })
+  await page.route('**/api/map/reverse', async (route) => {
+    const body: { precision: string; points: unknown[] } = route.request().postDataJSON()
+    if (body.precision === 'address') await addressGate
+    await route.fulfill({
+      json: {
+        available: true,
+        hasMore: false,
+        results: body.points.map(() => ({
+          road:
+            body.precision === 'address' ? 'A long test street near the old railway station' : null,
+          houseNumber: body.precision === 'address' ? '55A' : null,
+          city: 'Amsterdam',
+          postcode: null,
+          countryCode: 'nl',
+          displayName: null,
+        })),
+      },
+    })
+  })
+  const addressRequest = page.waitForRequest((request) => {
+    if (!request.url().endsWith('/api/map/reverse')) return false
+    const body: { precision: string } = request.postDataJSON()
+    return body.precision === 'address'
+  })
   const popup = page.locator('.car-popup.leaflet-popup')
-  await expect(popup.getByRole('button', { name: 'Directions to car' })).toBeVisible()
-  await expect(popup.getByRole('link')).toHaveCount(0)
+  try {
+    await page.goto('/map', { waitUntil: 'domcontentloaded' })
+    await addressRequest
+    await page.locator('.map-canvas').focus()
+    await page.locator('.leaflet-marker-icon').first().click()
+    await expect(popup.getByRole('button', { name: 'Directions to car' })).toBeVisible()
+    await expect(popup.getByRole('link')).toHaveCount(0)
+    await expect(popup.locator('.car-popup__address')).toHaveCount(0)
+  } finally {
+    releaseAddress()
+  }
+  await expect(popup.locator('.car-popup__address')).toContainText('A long test street')
 
   await expect
     .poll(async () => {

@@ -4,8 +4,10 @@ import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia, type Pinia } from 'pinia'
 import { createI18n } from 'vue-i18n'
 import en from '@/locales/en.json'
+import nl from '@/locales/nl.json'
 import MapView from '../MapView.vue'
 import { vehicleApi, type TelemetrySnapshot, type Trip, type Vehicle } from '@/services/vehicleApi'
+import type { Place } from '@/services/mapApi'
 import type { TripMatch } from '@/composables/useTripMatch'
 import type { TripLayersOptions } from '@/composables/useTripLayers'
 import { useVehicleStore } from '@/stores/vehicle'
@@ -60,15 +62,18 @@ vi.mock('@/composables/useTripMatch', () => ({
 }))
 
 const requestPlaces = vi.fn<(points: unknown[], detail: string) => void>()
+const carPlace = ref<Place | null>(null)
 vi.mock('@/composables/useReverseGeocode', () => ({
   useReverseGeocode: () => ({
     requestPlaces,
-    placeFor: () => null,
+    placeFor: (_lat: number | undefined, _lng: number | undefined, precision: string) =>
+      precision === 'address' ? carPlace.value : null,
     placeNamesEnabled: ref(false),
     placesResolving: ref(false),
   }),
 }))
 
+const popupUpdate = vi.fn<() => void>()
 vi.mock('@vue-leaflet/vue-leaflet', () => {
   const container = defineComponent({
     setup:
@@ -85,14 +90,15 @@ vi.mock('@vue-leaflet/vue-leaflet', () => {
           h('div', { class: 'car-marker' }, slots.default?.()),
     }),
     LPopup: defineComponent({
-      setup: (_, { slots }) => {
+      setup: (_, { slots, expose }) => {
+        expose({ leafletObject: { update: popupUpdate } })
         return () => h('div', slots.default?.())
       },
     }),
   }
 })
 
-const i18n = createI18n({ legacy: false, locale: 'en', messages: { en } })
+const i18n = createI18n({ legacy: false, locale: 'en', messages: { en, nl } })
 
 enableAutoUnmount(afterEach)
 
@@ -174,6 +180,8 @@ describe('MapView', () => {
     vi.clearAllMocks()
     route.query = {}
     match.value = null
+    carPlace.value = null
+    i18n.global.locale.value = 'en'
     vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(new Date('2026-10-19T12:00:00Z'))
     vi.mocked(vehicleApi.list).mockResolvedValue([car])
@@ -284,6 +292,50 @@ describe('MapView', () => {
     expect(popup.text()).toContain(en.directions.apple)
     expect(popup.text()).toContain(en.directions.mapApp)
     expect(popup.text()).toContain(en.directions.osm)
+  })
+
+  it('updates the car popup after its address arrives', async () => {
+    const wrapper = await mountView()
+    popupUpdate.mockClear()
+    let addressAtUpdate: string | undefined
+    popupUpdate.mockImplementationOnce(() => {
+      addressAtUpdate = wrapper.get('.car-popup__address').text()
+    })
+    carPlace.value = {
+      road: 'A long test street',
+      houseNumber: '55A',
+      city: 'Amsterdam',
+      postcode: null,
+      countryCode: 'nl',
+      displayName: null,
+    }
+    await flushPromises()
+
+    expect(wrapper.get('.car-popup__address').text()).toBe('A long test street 55A, Amsterdam')
+    expect(popupUpdate).toHaveBeenCalledOnce()
+    expect(addressAtUpdate).toBe('A long test street 55A, Amsterdam')
+
+    popupUpdate.mockClear()
+    carPlace.value = null
+    await flushPromises()
+    expect(wrapper.find('.car-popup__address').exists()).toBe(false)
+    expect(popupUpdate).toHaveBeenCalledOnce()
+  })
+
+  it('updates the car popup after its vehicle label or language changes', async () => {
+    const wrapper = await mountView()
+    popupUpdate.mockClear()
+    const store = useVehicleStore(pinia)
+    store.vehicles = [{ ...store.vehicles[0]!, model: 'A longer vehicle name' }]
+    await flushPromises()
+    expect(wrapper.get('.car-popup__title').text()).toBe('A longer vehicle name')
+    expect(popupUpdate).toHaveBeenCalledOnce()
+
+    popupUpdate.mockClear()
+    i18n.global.locale.value = 'nl'
+    await flushPromises()
+    expect(wrapper.get('.car-popup__directions').text()).toBe(nl.directions.open)
+    expect(popupUpdate).toHaveBeenCalledOnce()
   })
 
   it('closes the directions dialog without removing the car popup', async () => {
