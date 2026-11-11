@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { computed, ref, useId, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import type { IconProp } from '@fortawesome/fontawesome-svg-core'
 import type { CarLocation } from '@/utils/carLocation'
 import {
   appleDirectionsUrl,
   formatCoordinates,
   geoUri,
   googleDirectionsUrl,
-  osmUrl,
+  osmDirectionsUrl,
 } from '@/utils/mapLinks'
 import { formatDateTime } from '@/utils/format'
 import DetailModal from './DetailModal.vue'
@@ -27,6 +28,30 @@ const coordinates = computed(() =>
     ? formatCoordinates(destination.value.latitude, destination.value.longitude)
     : null,
 )
+interface MapOption {
+  key: 'google' | 'apple' | 'mapApp'
+  href: string
+  icon: IconProp
+  /** A web map opens in its own tab; the geo: hand-over to an app must not leave a blank one. */
+  web: boolean
+}
+
+// OpenStreetMap is the default; these are the other ways to get there.
+const otherOptions = computed<MapOption[]>(() => {
+  const point = destination.value
+  if (!point) return []
+  const { latitude: lat, longitude: lng } = point
+  return [
+    { key: 'google', href: googleDirectionsUrl(lat, lng), icon: ['fab', 'google'], web: true },
+    { key: 'apple', href: appleDirectionsUrl(lat, lng), icon: ['fab', 'apple'], web: true },
+    {
+      key: 'mapApp',
+      href: geoUri(lat, lng, t('directions.car')),
+      icon: 'mobile-screen',
+      web: false,
+    },
+  ]
+})
 const destinationKey = computed(() =>
   destination.value ? `${destination.value.vehicleId}:${coordinates.value}` : null,
 )
@@ -80,44 +105,30 @@ async function copyCoordinates() {
       <a
         v-if="destination"
         class="btn btn-primary location-directions__primary"
-        :href="googleDirectionsUrl(destination.latitude, destination.longitude)"
+        :href="osmDirectionsUrl(destination.latitude, destination.longitude)"
         target="_blank"
         rel="noopener noreferrer"
         :aria-describedby="descriptionId"
       >
-        <font-awesome-icon :icon="['fab', 'google']" aria-hidden="true" />
-        {{ t('directions.google') }}
+        <font-awesome-icon icon="map" aria-hidden="true" />
+        {{ t('directions.osm') }}
       </a>
       <button v-else type="button" class="btn btn-primary location-directions__primary" disabled>
-        <font-awesome-icon :icon="['fab', 'google']" aria-hidden="true" />
-        {{ t('directions.google') }}
+        <font-awesome-icon icon="map" aria-hidden="true" />
+        {{ t('directions.osm') }}
       </button>
 
       <template v-if="destination">
         <a
+          v-for="option in otherOptions"
+          :key="option.key"
           class="btn btn-outline-secondary location-directions__option"
-          :href="appleDirectionsUrl(destination.latitude, destination.longitude)"
-          target="_blank"
-          rel="noopener noreferrer"
+          :href="option.href"
+          :target="option.web ? '_blank' : undefined"
+          :rel="option.web ? 'noopener noreferrer' : undefined"
         >
-          <font-awesome-icon :icon="['fab', 'apple']" aria-hidden="true" />
-          {{ t('directions.apple') }}
-        </a>
-        <a
-          class="btn btn-outline-secondary location-directions__option"
-          :href="geoUri(destination.latitude, destination.longitude, t('directions.car'))"
-        >
-          <font-awesome-icon icon="mobile-screen" aria-hidden="true" />
-          {{ t('directions.mapApp') }}
-        </a>
-        <a
-          class="btn btn-outline-secondary location-directions__option"
-          :href="osmUrl(destination.latitude, destination.longitude)"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <font-awesome-icon icon="map" aria-hidden="true" />
-          {{ t('directions.osm') }}
+          <font-awesome-icon :icon="option.icon" aria-hidden="true" />
+          {{ t(`directions.${option.key}`) }}
         </a>
         <button
           type="button"

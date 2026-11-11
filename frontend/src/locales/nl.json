@@ -143,11 +143,11 @@
     }
   },
   "directions": {
-    "google": "Route naar de auto (Google Maps)",
+    "google": "Looproute in Google Maps",
     "open": "Route naar de auto",
     "apple": "Looproute in Apple Kaarten",
     "mapApp": "Open in een geschikte kaart-app (geo:-link)",
-    "osm": "Bekijk op OpenStreetMap",
+    "osm": "Looproute in OpenStreetMap",
     "copy": "Coördinaten kopiëren",
     "copied": "Coördinaten gekopieerd.",
     "copyFailed": "Automatisch kopiëren is niet gelukt. Selecteer en kopieer de coördinaten hieronder.",

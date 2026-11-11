@@ -4,10 +4,20 @@ import {
   formatCoordinates,
   geoUri,
   googleDirectionsUrl,
-  osmUrl,
+  osmDirectionsUrl,
 } from '../mapLinks'
 
 describe('directions links', () => {
+  it('opens walking directions on OpenStreetMap without specifying an origin', () => {
+    const url = new URL(osmDirectionsUrl(52.3676, 4.9041))
+
+    expect(url.origin + url.pathname).toBe('https://www.openstreetmap.org/directions')
+    expect(Object.fromEntries(url.searchParams)).toEqual({
+      engine: 'fossgis_osrm_foot',
+      to: '52.367600,4.904100',
+    })
+  })
+
   it('opens walking directions in Google Maps without specifying an origin', () => {
     const url = new URL(googleDirectionsUrl(52.3676, 4.9041))
 
@@ -32,9 +42,7 @@ describe('directions links', () => {
   it('keeps zero and boundary coordinates in a standard, locale-independent form', () => {
     expect(formatCoordinates(0, 0)).toBe('0.000000,0.000000')
     expect(formatCoordinates(-90, 180)).toBe('-90.000000,180.000000')
-    expect(new URL(googleDirectionsUrl(0, 0)).searchParams.get('destination')).toBe(
-      '0.000000,0.000000',
-    )
+    expect(new URL(osmDirectionsUrl(0, 0)).searchParams.get('to')).toBe('0.000000,0.000000')
   })
 })
 
@@ -55,13 +63,5 @@ describe('geoUri', () => {
 
   it('keeps southern and western coordinates negative', () => {
     expect(geoUri(-33.8688, -70.6693)).toBe('geo:-33.868800,-70.669300?q=-33.868800,-70.669300')
-  })
-})
-
-describe('osmUrl', () => {
-  it('puts a marker on the point and centres the view on it', () => {
-    expect(osmUrl(52.3676, 4.9041)).toBe(
-      'https://www.openstreetmap.org/?mlat=52.367600&mlon=4.904100#map=17/52.367600/4.904100',
-    )
   })
 })

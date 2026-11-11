@@ -50,14 +50,17 @@ for (const viewport of [
     await opener.click()
     await expect(page).toHaveURL(/\/$/)
     const dialog = page.getByRole('dialog', { name: 'Directions to car' })
-    const link = dialog.getByRole('link', { name: 'Directions to car (Google Maps)' })
+    const link = dialog.getByRole('link', { name: 'Walking directions in OpenStreetMap' })
     await expect(link).toBeVisible()
     const url = new URL((await link.getAttribute('href'))!)
+    expect(url.origin + url.pathname).toBe('https://www.openstreetmap.org/directions')
     expect(Object.fromEntries(url.searchParams)).toEqual({
-      api: '1',
-      destination: '52.340100,4.945500',
-      travelmode: 'walking',
+      engine: 'fossgis_osrm_foot',
+      to: '52.340100,4.945500',
     })
+    await expect(
+      dialog.getByRole('link', { name: 'Walking directions in Google Maps' }),
+    ).toBeVisible()
 
     const appleLink = dialog.getByRole('link', { name: 'Walking directions in Apple Maps' })
     await expect(appleLink).toBeVisible()
@@ -166,7 +169,9 @@ test('keeps the map popup and manual copy usable on a small phone', async ({ pag
 
   await popup.getByRole('button', { name: 'Directions to car' }).click()
   const dialog = page.getByRole('dialog', { name: 'Directions to car' })
-  await expect(dialog.getByRole('link', { name: 'Directions to car (Google Maps)' })).toBeVisible()
+  await expect(
+    dialog.getByRole('link', { name: 'Walking directions in OpenStreetMap' }),
+  ).toBeVisible()
   await dialog.getByRole('button', { name: 'Copy coordinates' }).click()
   await expect(dialog.getByRole('alert')).toContainText('Could not copy automatically')
   const coordinates = dialog.getByRole('textbox', { name: 'Coordinates to copy' })
@@ -197,7 +202,9 @@ test('recovers the dashboard map when telemetry coordinates disappear and return
   const card = page.locator('.location-map-card')
   await card.getByRole('button', { name: 'Directions to car', exact: true }).click()
   const dialog = page.getByRole('dialog', { name: 'Directions to car' })
-  await expect(dialog.getByRole('link', { name: 'Directions to car (Google Maps)' })).toBeVisible()
+  await expect(
+    dialog.getByRole('link', { name: 'Walking directions in OpenStreetMap' }),
+  ).toBeVisible()
 
   status.setAvailable(false)
   await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')))
@@ -206,7 +213,9 @@ test('recovers the dashboard map when telemetry coordinates disappear and return
 
   status.setAvailable(true)
   await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')))
-  await expect(dialog.getByRole('link', { name: 'Directions to car (Google Maps)' })).toBeVisible()
+  await expect(
+    dialog.getByRole('link', { name: 'Walking directions in OpenStreetMap' }),
+  ).toBeVisible()
   await expect(card.locator('.leaflet-marker-icon')).toBeVisible()
   expect(errors).toEqual([])
 })

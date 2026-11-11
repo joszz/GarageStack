@@ -143,11 +143,11 @@
     }
   },
   "directions": {
-    "google": "Directions to car (Google Maps)",
+    "google": "Walking directions in Google Maps",
     "open": "Directions to car",
     "apple": "Walking directions in Apple Maps",
     "mapApp": "Open in a compatible map app (geo: link)",
-    "osm": "Show on OpenStreetMap",
+    "osm": "Walking directions in OpenStreetMap",
     "copy": "Copy coordinates",
     "copied": "Coordinates copied.",
     "copyFailed": "Could not copy automatically. Select and copy the coordinates below.",

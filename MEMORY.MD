@@ -17,6 +17,9 @@ Implementation: [fusion helper](src/GarageStack.Core/Helpers/TripPhoneFusion.cs)
 
 - Keep directions options in the shared dialog, opened by the dashboard map's top-right
   directions icon or the single directions button in the current-car marker popup.
+- OpenStreetMap walking directions (`/directions?engine=fossgis_osrm_foot&to=lat,lng`) are the
+  primary option, in keeping with the FOSS map stack; Google Maps, Apple Maps and the `geo:` link
+  are the alternatives below it.
 - Use only the selected vehicle's validated telemetry coordinates, not phone fixes or trip ends.
   The vehicle-state update time is not necessarily the GPS-fix time; merged telemetry can retain
   an old speed after the engine reports off. External maps receive coordinates only on user action.
