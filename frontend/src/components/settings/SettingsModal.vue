@@ -134,11 +134,13 @@ const languageOptions = [
             :data-tab="tab.id"
             :aria-selected="activeTab === tab.id"
             :aria-controls="`${id}-panel-${tab.id}`"
+            :aria-label="tab.id === 'phone' ? t('settings.tabs.phone') : undefined"
+            :title="tab.id === 'phone' ? t('settings.tabs.phone') : undefined"
             :tabindex="activeTab === tab.id ? 0 : -1"
             @click="selectTab(tab.id)"
           >
             <font-awesome-icon :icon="tab.icon" aria-hidden="true" />
-            {{ t(`settings.tabs.${tab.id}`) }}
+            {{ t(`settings.tabs.${tab.id === 'phone' ? 'phoneShort' : tab.id}`) }}
           </button>
         </div>
       </div>

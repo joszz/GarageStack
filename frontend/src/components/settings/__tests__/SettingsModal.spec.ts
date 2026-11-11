@@ -164,7 +164,9 @@ describe('SettingsModal tabs', () => {
   it('discovers the phone tab without visiting it and preserves drafts across tabs', async () => {
     vi.mocked(dawarichApi.status).mockResolvedValue({ configured: true, status: 'ok' })
     const { wrapper } = await render()
-    expect(tab(wrapper, 'phone').text()).toBe(en.settings.tabs.phone)
+    expect(tab(wrapper, 'phone').text()).toBe(en.settings.tabs.phoneShort)
+    expect(tab(wrapper, 'phone').attributes('aria-label')).toBe(en.settings.tabs.phone)
+    expect(tab(wrapper, 'phone').attributes('title')).toBe(en.settings.tabs.phone)
     await tab(wrapper, 'phone').trigger('click')
     await panel(wrapper, 'phone').get('input[type=date]').setValue('2026-01-02')
     const phone = wrapper.getComponent(PhoneGpsSettings)
@@ -292,12 +294,18 @@ describe('SettingsModal tabs', () => {
   })
 
   it('localizes tab names and resets to General when reopened', async () => {
+    vi.mocked(dawarichApi.status).mockResolvedValue({ configured: true, status: 'ok' })
     const { wrapper, i18n } = await render()
     await tab(wrapper, 'data').trigger('click')
     for (const locale of ['nl', 'es'] as const) {
       i18n.global.locale.value = locale
       await flushPromises()
       expect(tab(wrapper, 'vehicle').text()).toBe({ nl, es }[locale].settings.tabs.vehicle)
+      expect(tab(wrapper, 'phone').text()).toBe({ nl, es }[locale].settings.tabs.phoneShort)
+      expect(tab(wrapper, 'phone').attributes('aria-label')).toBe(
+        { nl, es }[locale].settings.tabs.phone,
+      )
+      expect(tab(wrapper, 'phone').attributes('title')).toBe({ nl, es }[locale].settings.tabs.phone)
       expect(wrapper.get('[role=dialog]').attributes('aria-label')).toBe(
         { nl, es }[locale].settings.title,
       )
@@ -308,10 +316,10 @@ describe('SettingsModal tabs', () => {
     expect(tab(wrapper, 'general').attributes('aria-selected')).toBe('true')
   })
 
-  it('keeps Spanish navigation hints consistent with the settings labels', () => {
-    const { title, tabs, licensePlate } = es.settings
-    expect(es.tripLog.placesOff).toContain(`${title} > ${tabs.map}`)
-    expect(es.tripLog.places.notifyHint).toContain(`${title} > ${tabs.notifications}`)
-    expect(es.rdw.notFound).toContain(`${title} > ${tabs.vehicle} > ${licensePlate.title}`)
+  it.each([en, nl, es])('keeps navigation hints consistent with the settings labels', (locale) => {
+    const { title, tabs, licensePlate } = locale.settings
+    expect(locale.tripLog.placesOff).toContain(`${title} > ${tabs.map}`)
+    expect(locale.tripLog.places.notifyHint).toContain(`${title} > ${tabs.notifications}`)
+    expect(locale.rdw.notFound).toContain(`${title} > ${tabs.vehicle} > ${licensePlate.title}`)
   })
 })

@@ -26,6 +26,8 @@ Implementation: [fusion helper](src/GarageStack.Core/Helpers/TripPhoneFusion.cs)
 - Use Bootstrap's scoped navigation styles, with tabs beside the title at every screen size.
   Give each tab generous horizontal padding, cap the modal at 771px, fit every locale on desktop,
   and keep the row swipeable on narrower screens.
+- Dutch and Spanish use a short GPS tab label with a full accessible name and tooltip. Check
+  desktop fit with wider system fonts such as Linux DejaVu Sans as well as mobile browsers.
 - Keep tab panels mounted while switching so unsaved inputs and newly issued API tokens survive.
   Hide inactive panels with `hidden`, not inline styles, and exclude them from dialog focus loops.
 - Phone GPS reports its visibility from the same state that renders its content. Disabled

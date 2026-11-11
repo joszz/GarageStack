@@ -69,6 +69,7 @@ for (const viewport of [
     const close = dialog.getByRole('button', { name: 'Close', exact: true })
     await expect(tabs.getByRole('tab')).toHaveCount(6)
     await expect(tabs).toHaveClass(/nav-tabs/)
+    await expect(tabs.locator('[data-tab=phone]')).toHaveAccessibleName('Phone GPS')
     await expect(dialog).toHaveCSS('transform', 'none')
     const titleBox = (await title.boundingBox())!
     const viewportBox = (await tabsViewport.boundingBox())!
@@ -156,13 +157,17 @@ for (const viewport of [
         'aria-label',
         locale === 'nl' ? 'Instellingen' : 'Ajustes',
       )
+      const phone = tabs.locator('[data-tab=phone]')
+      const phoneLabel = locale === 'nl' ? 'Telefoon-GPS' : 'GPS del teléfono'
+      await expect(phone).toHaveText('GPS')
+      await expect(phone).toHaveAccessibleName(phoneLabel)
+      await expect(phone).toHaveAttribute('title', phoneLabel)
       for (const tab of await tabs.getByRole('tab').all()) await expectTabPadding(tab)
       if (viewport.width >= 840) {
         expect(
           await tabsViewport.evaluate((element) => element.scrollWidth - element.clientWidth),
         ).toBeLessThanOrEqual(1)
       } else {
-        const phone = tabs.locator('[data-tab=phone]')
         await phone.click()
         const phoneBox = (await phone.boundingBox())!
         const scrollerBox = (await tabsViewport.boundingBox())!

@@ -530,6 +530,7 @@
       "vehicle": "Vehicle",
       "map": "Map",
       "phone": "Phone GPS",
+      "phoneShort": "Phone GPS",
       "notifications": "Notifications",
       "data": "Data & API"
     },
@@ -1184,7 +1185,7 @@
       "NNB": "Not rated yet"
     },
     "dutchTexts": "The recall texts are the RDW's own, in Dutch.",
-    "notFound": "The RDW knows no vehicle by the plate {plate}. Check it under Settings > Licence plate.",
+    "notFound": "The RDW knows no vehicle by the plate {plate}. Check it under Settings > Vehicle > Licence plate.",
     "fetchedAt": "From the RDW, {time}",
     "lastAttemptFailed": "The last attempt to ask the RDW failed; trying again later.",
     "source": "Source: RDW open data"

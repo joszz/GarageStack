@@ -530,8 +530,9 @@
       "vehicle": "Voertuig",
       "map": "Kaart",
       "phone": "Telefoon-GPS",
+      "phoneShort": "GPS",
       "notifications": "Meldingen",
-      "data": "Data en API"
+      "data": "Data & API"
     },
     "title": "Instellingen",
     "theme": {
@@ -1184,7 +1185,7 @@
       "NNB": "Nog niet beoordeeld"
     },
     "dutchTexts": "De teksten van de terugroepacties zijn die van de RDW.",
-    "notFound": "De RDW kent geen voertuig met kenteken {plate}. Controleer het onder Instellingen > Kenteken.",
+    "notFound": "De RDW kent geen voertuig met kenteken {plate}. Controleer het onder Instellingen > Voertuig > Kenteken.",
     "fetchedAt": "Van de RDW, {time}",
     "lastAttemptFailed": "De laatste poging de RDW te vragen is mislukt; later wordt het opnieuw geprobeerd.",
     "source": "Bron: open data van de RDW"

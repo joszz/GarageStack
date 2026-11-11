@@ -530,6 +530,7 @@
       "vehicle": "Vehículo",
       "map": "Mapa",
       "phone": "GPS del teléfono",
+      "phoneShort": "GPS",
       "notifications": "Notificaciones",
       "data": "Datos y API"
     },
