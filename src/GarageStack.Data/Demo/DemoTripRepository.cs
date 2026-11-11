@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using GarageStack.Core.Helpers;
 using GarageStack.Core.Interfaces;
 using GarageStack.Core.Models;
@@ -160,6 +161,27 @@ public sealed class DemoTripRepository : ITripRepository
             _gone.Add(second.Id);
             return Task.FromResult(new TripMergeResult(TripMergeOutcome.Merged, merged));
         }
+    }
+
+    public async IAsyncEnumerable<TripRoute> GetRoutesAsync(int vehicleId, DateTime from, DateTime to, [EnumeratorCancellation] CancellationToken ct = default)
+    {
+        List<TripRoute> routes;
+        lock (_lock)
+        {
+            routes = [.. _log.Values
+                .Where(e => e.StartedAt >= from && e.StartedAt < to)
+                .OrderBy(e => e.StartedAt)
+                .Select(e => Recorded(e.Id))
+                .OfType<TripDto>()
+                .Select(recorded => Editor(recorded))
+                .Select(editor => new TripRoute(editor.Id, editor.Points, editor.OriginalPoints, editor.EditedAt))];
+        }
+        foreach (var route in routes)
+        {
+            ct.ThrowIfCancellationRequested();
+            yield return route;
+        }
+        await Task.CompletedTask;
     }
 
     public Task<TripEditResult> GetEditorAsync(int vehicleId, long id, CancellationToken ct = default)

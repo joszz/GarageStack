@@ -50,7 +50,8 @@ export function useDawarich(vin: string) {
     if (loading.value || dirty.value) return
     queued.value = false
     await run(
-      () => dawarichApi.backfill(vin, `${from}T00:00:00Z`),
+      // The picked day starts at local midnight, not UTC midnight.
+      () => dawarichApi.backfill(vin, new Date(`${from}T00:00:00`).toISOString()),
       () => {
         queued.value = true
       },

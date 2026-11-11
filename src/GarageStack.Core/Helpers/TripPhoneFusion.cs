@@ -39,17 +39,12 @@ public static class TripPhoneFusion
             foreach (var point in car)
             {
                 while (index + 1 < ordered.Length && ordered[index + 1].RecordedAt <= point.RecordedAt) index++;
-                var nearest = ordered[index];
-                if (index + 1 < ordered.Length &&
-                    Math.Abs((ordered[index + 1].RecordedAt - point.RecordedAt).TotalSeconds) <
-                    Math.Abs((nearest.RecordedAt - point.RecordedAt).TotalSeconds))
-                    nearest = ordered[index + 1];
-                if (Math.Abs((nearest.RecordedAt - point.RecordedAt).TotalSeconds) > PairSeconds) continue;
+                if (PhoneAt(ordered, index, point.RecordedAt) is not { } phone) continue;
                 paired++;
-                if (Distance(point, nearest) <= Math.Max(MatchMetres, 2 * (nearest.AccuracyM ?? 0)))
+                if (GeoHelper.Haversine(point.Latitude, point.Longitude, phone.Latitude, phone.Longitude) * 1000 <= phone.Tolerance)
                 {
                     matches++;
-                    matchedTimes.Add(nearest.RecordedAt);
+                    matchedTimes.Add(phone.Fix);
                 }
             }
             var ratio = paired == 0 ? 0 : (double)matches / paired;
@@ -84,6 +79,38 @@ public static class TripPhoneFusion
         return additions.Count == 0
             ? new(points, PhoneFusionOutcome.NoMatch)
             : new(points.Concat(additions).OrderBy(p => p.RecordedAt).ToArray(), PhoneFusionOutcome.Fused);
+    }
+
+    /// <summary>
+    /// Where the phone was when the car reported at <paramref name="at"/>, how far from it the car
+    /// may be, and the phone fix that answers for it; null when no fix is close enough in time.
+    /// Between two fixes at most twice <see cref="PairSeconds"/> apart the position is interpolated,
+    /// so a fast car is not failed only because the phone sampled at other moments: at 120 km/h,
+    /// ten seconds apart is already 330 metres. Elsewhere it is the nearest fix within
+    /// <see cref="PairSeconds"/>. <paramref name="index"/> is the last fix not after <paramref name="at"/>,
+    /// or the first fix when all of them are later.
+    /// </summary>
+    private static (double Latitude, double Longitude, double Tolerance, DateTime Fix)? PhoneAt(
+        PhoneFix[] ordered, int index, DateTime at)
+    {
+        var before = ordered[index];
+        var after = index + 1 < ordered.Length ? ordered[index + 1] : null;
+        if (before.RecordedAt <= at && after is not null &&
+            (after.RecordedAt - before.RecordedAt).TotalSeconds <= 2 * PairSeconds)
+        {
+            var share = (at - before.RecordedAt) / (after.RecordedAt - before.RecordedAt);
+            var nearer = share <= 0.5 ? before : after;
+            return (before.Latitude + share * (after.Latitude - before.Latitude),
+                before.Longitude + share * (after.Longitude - before.Longitude),
+                Math.Max(MatchMetres, 2 * Math.Max(before.AccuracyM ?? 0, after.AccuracyM ?? 0)),
+                nearer.RecordedAt);
+        }
+
+        var nearest = after is not null &&
+            Math.Abs((after.RecordedAt - at).TotalSeconds) < Math.Abs((before.RecordedAt - at).TotalSeconds)
+            ? after : before;
+        if (Math.Abs((nearest.RecordedAt - at).TotalSeconds) > PairSeconds) return null;
+        return (nearest.Latitude, nearest.Longitude, Math.Max(MatchMetres, 2 * (nearest.AccuracyM ?? 0)), nearest.RecordedAt);
     }
 
     private static bool Valid(PhoneFix f) =>

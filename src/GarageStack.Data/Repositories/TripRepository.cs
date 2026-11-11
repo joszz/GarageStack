@@ -1,4 +1,5 @@
 using System.Linq.Expressions;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 using GarageStack.Core.Helpers;
 using GarageStack.Core.Interfaces;
@@ -323,6 +324,32 @@ public class TripRepository(
         db.Trips.Remove(second);
         await db.SaveChangesAsync(ct);
         return new(TripMergeOutcome.Merged, (await GetLogEntriesAsync(vehicleId, [id], ct)).SingleOrDefault());
+    }
+
+    public async IAsyncEnumerable<TripRoute> GetRoutesAsync(
+        int vehicleId, DateTime from, DateTime to, [EnumeratorCancellation] CancellationToken ct = default)
+    {
+        var rows = db.Trips
+            .AsNoTracking()
+            .Where(t => t.VehicleId == vehicleId && t.StartedAt >= from && t.StartedAt < to)
+            .OrderBy(t => t.StartedAt)
+            .Select(t => new { t.Id, t.PointsJson, t.OriginalPointsJson, t.EditedAt })
+            .AsAsyncEnumerable();
+
+        await foreach (var row in rows.WithCancellation(ct))
+        {
+            var points = SafeJson.TryDeserialize<List<TripPoint>>(
+                row.PointsJson,
+                ex => logger?.LogWarning(ex, "Trip {Id} has unreadable fixes, leaving its route out", row.Id));
+            if (points is not { Count: > 0 }) continue;
+
+            var original = row.OriginalPointsJson is null
+                ? null
+                : SafeJson.TryDeserialize<List<TripPoint>>(
+                    row.OriginalPointsJson,
+                    ex => logger?.LogWarning(ex, "Trip {Id} has unreadable recorded points", row.Id));
+            yield return new(row.Id, points, original, row.EditedAt);
+        }
     }
 
     public async Task<TripEditResult> GetEditorAsync(int vehicleId, long id, CancellationToken ct = default)

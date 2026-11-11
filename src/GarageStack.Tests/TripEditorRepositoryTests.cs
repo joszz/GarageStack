@@ -150,6 +150,40 @@ public class TripEditorRepositoryTests
         Assert.Equal(TripEditOutcome.Unreadable, (await s.Repo.SetPointsAsync(s.Vehicle.Id, s.ToWork, [], ct)).Outcome);
     }
 
+    // ── Routes for the data export ───────────────────────────────────────────
+
+    [Fact]
+    public async Task Routes_ListEveryRouteOldestFirst_WithThePointsAsRecordedOfAnEditedOne()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var s = await new Setup().SaveTwoAsync(ct);
+        await StartEarlierAsync(s, ct);
+
+        var routes = await s.Repo.GetRoutesAsync(s.Vehicle.Id, DateTime.MinValue, DateTime.MaxValue, ct).ToListAsync(ct);
+
+        Assert.Equal([s.ToFuel, s.ToWork], routes.Select(r => r.Id));
+        Assert.Equal(3, routes[0].Points.Count);
+        Assert.Null(routes[0].OriginalPoints);
+        Assert.Null(routes[0].EditedAt);
+        Assert.Equal((4, 3), (routes[1].Points.Count, routes[1].OriginalPoints!.Count));
+        Assert.NotNull(routes[1].EditedAt);
+        Assert.Empty(await s.Repo.GetRoutesAsync(s.Vehicle.Id + 1, DateTime.MinValue, DateTime.MaxValue, ct).ToListAsync(ct));
+    }
+
+    [Fact]
+    public async Task Routes_LeaveOutAnUnreadableTrip_InsteadOfFailing()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var s = await new Setup().SaveTwoAsync(ct);
+        var row = await s.Db.Trips.SingleAsync(t => t.Id == s.ToFuel, ct);
+        row.PointsJson = "not json";
+        await s.Db.SaveChangesAsync(ct);
+
+        var routes = await s.Repo.GetRoutesAsync(s.Vehicle.Id, DateTime.MinValue, DateTime.MaxValue, ct).ToListAsync(ct);
+
+        Assert.Equal(s.ToWork, Assert.Single(routes).Id);
+    }
+
     // ── Saving ───────────────────────────────────────────────────────────────
 
     [Fact]

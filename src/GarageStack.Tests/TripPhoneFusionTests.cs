@@ -97,6 +97,35 @@ public class TripPhoneFusionTests
             [Phone(60)]).Outcome);
     }
 
+    // North at 120 km/h: 33.3 m/s over the 111.2 km of a degree of latitude.
+    private const double MotorwayDegreesPerSecond = 120 / 3.6 / 111_195;
+    private static double MotorwayLat(int seconds) => 52 + seconds * MotorwayDegreesPerSecond;
+
+    [Fact]
+    public void FastCarMatchesAPhoneThatSampledBetweenItsFixes()
+    {
+        // Every phone fix lies 30 seconds, about a kilometre, from the nearest car fix.
+        var car = Enumerable.Range(0, 5).Select(i => Car(i * 60, MotorwayLat(i * 60))).ToArray();
+        var phone = Enumerable.Range(0, 6).Select(i => Phone(i * 60 - 30, MotorwayLat(i * 60 - 30))).ToArray();
+
+        var result = TripPhoneFusion.Apply(car, null, null, phone);
+
+        Assert.Equal(PhoneFusionOutcome.Fused, result.Outcome);
+        Assert.Equal([30, 90, 150, 210],
+            result.Points.Where(p => p.Source == TripPointSource.Phone).Select(p => (int)(p.RecordedAt - Start).TotalSeconds));
+    }
+
+    [Fact]
+    public void FastPhoneOnAParallelRoadStillDoesNotMatch()
+    {
+        // The same drive a kilometre to the east (0.0146 degrees of longitude at 52 N).
+        var car = Enumerable.Range(0, 5).Select(i => Car(i * 60, MotorwayLat(i * 60))).ToArray();
+        var phone = Enumerable.Range(0, 6)
+            .Select(i => Phone(i * 60 - 30, MotorwayLat(i * 60 - 30)) with { Longitude = 5.0146 }).ToArray();
+
+        Assert.Equal(PhoneFusionOutcome.NoMatch, TripPhoneFusion.Apply(car, null, null, phone).Outcome);
+    }
+
     [Fact]
     public void StationaryPhoneDoesNotFollowMovingCar()
     {
