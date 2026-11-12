@@ -29,7 +29,7 @@ all-in-one container and the Unraid template take them as container variables.
 
 | Variable | Default | What it does |
 | --- | --- | --- |
-| `SAIC_REGION` | `eu` | Region the car is registered in: `eu`, `au` or `tr`, mapped to the right MG API endpoint. |
+| `SAIC_REGION` | `eu` | Region the car is registered in: `eu`, `au`, `tr` or `br`, mapped to the right MG API endpoint. |
 | `SAIC_REST_URI` | from `SAIC_REGION` | The MG API endpoint itself, for a region not in the list above. |
 
 ## Database (Docker Compose)

@@ -8,5 +8,6 @@ if [ -z "${SAIC_REST_URI:-}" ]; then
         eu) export SAIC_REST_URI="https://gateway-mg-eu.soimt.com/api.app/v1/" ;;
         au) export SAIC_REST_URI="https://gateway-mg-au.soimt.com/api.app/v1/" ;;
         tr) export SAIC_REST_URI="https://gateway-mg-tr.soimt.com/api.app/v1/" ;;
+        br) export SAIC_REST_URI="https://gateway-mg-br.soimt.com/api.app/v1/" ;;
     esac
 fi

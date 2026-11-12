@@ -226,7 +226,7 @@ Then open `.env` and fill in at minimum:
 | ---------- | ----------- |
 | `SAIC_USER` | MG iSmart account email |
 | `SAIC_PASSWORD` | MG iSmart account password |
-| `SAIC_REGION` | Region the car is registered in: `eu` (default), `au`, or `tr` -- automatically mapped to the right API endpoint |
+| `SAIC_REGION` | Region the car is registered in: `eu` (default), `au`, `tr` or `br` -- automatically mapped to the right API endpoint |
 | `SAIC_REST_URI` | Optional, only needed for a region not listed above -- set directly to your gateway's endpoint |
 | `CORS_ORIGIN` | The URL you open in your browser, e.g. `http://192.168.1.100:8080` |
 | `POSTGRES_PASSWORD` | Generate with `openssl rand -hex 32`. Using an external Postgres server instead of the bundled one? Set this to match its existing password. |

@@ -47,7 +47,7 @@ Mount a single volume at `/data`. The container creates the following layout ins
 |----------|-------------|
 | `SAIC_USER` | MG iSmart account email (must be the vehicle owner account) |
 | `SAIC_PASSWORD` | MG iSmart account password |
-| `SAIC_REGION` | Region the car is registered in: `eu` (default), `au`, or `tr` -- automatically mapped to the right API endpoint |
+| `SAIC_REGION` | Region the car is registered in: `eu` (default), `au`, `tr` or `br` -- automatically mapped to the right API endpoint |
 | `CORS_ORIGIN` | Exact URL you use to open the app, e.g. `http://192.168.1.100:8080` |
 
 By default the web login uses the same `SAIC_USER` and `SAIC_PASSWORD` credentials, and there is no separate signup flow. Set `AUTH_USERNAME` / `AUTH_PASSWORD` for dedicated credentials, or hand sign-in over to your own identity provider with the `OIDC_*` variables below -- see [`AUTHENTICATION.md`](../../documentation/AUTHENTICATION.md).
