@@ -32,6 +32,12 @@ describe('useUiSettingsStore', () => {
     setRegionalFormat({ region: null, hourCycle: 'h23' })
   })
 
+  it('detects Portuguese from the browser language', () => {
+    vi.stubGlobal('navigator', { language: 'pt-BR' })
+
+    expect(browserLocale()).toBe('pt')
+  })
+
   it('detects Spanish from the browser language', () => {
     vi.stubGlobal('navigator', { language: 'es-ES' })
 
@@ -121,6 +127,12 @@ describe('useUiSettingsStore', () => {
     expect(store.locale).toBe('nl')
     expect(store.vehicleTypeOverride).toBe('bev')
     expect(store.filterDays).toBe(14)
+  })
+
+  it('keeps a stored Portuguese locale when loading settings', () => {
+    localStorage.setItem(UI_KEY, JSON.stringify({ locale: 'pt' }))
+
+    expect(useUiSettingsStore().locale).toBe('pt')
   })
 
   it('keeps a stored Spanish locale when loading settings', () => {

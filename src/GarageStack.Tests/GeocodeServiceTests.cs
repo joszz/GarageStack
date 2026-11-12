@@ -289,6 +289,8 @@ public class GeocodeServiceTests
     [InlineData("en", "en")]
     [InlineData("es", "es")]
     [InlineData("ES", "es")]
+    [InlineData("pt", "pt")]
+    [InlineData("PT", "pt")]
     [InlineData("de", "en")]
     [InlineData("", "en")]
     [InlineData(null, "en")]
