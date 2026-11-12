@@ -77,6 +77,53 @@ function odometerLabel(km: number | null): string {
   return distance ? `${distance.value} ${distance.unit}` : t('chargeHistory.notReported')
 }
 
+function distanceSincePreviousCharge(index: number): number | null {
+  const session = sessions.value[index]
+  const previousSession = sessions.value[index + 1]
+  if (
+    !session ||
+    !previousSession ||
+    session.odometerKm === null ||
+    previousSession.odometerKm === null
+  )
+    return null
+
+  const distance = session.odometerKm - previousSession.odometerKm
+  return Number.isFinite(distance) && distance >= 0 ? distance : null
+}
+
+function energyUsedSincePreviousCharge(index: number): number | null {
+  const session = sessions.value[index]
+  const previousSession = sessions.value[index + 1]
+  if (
+    !session ||
+    !previousSession ||
+    session.startBatteryKwh === null ||
+    previousSession.endBatteryKwh === null
+  )
+    return null
+
+  const energy = previousSession.endBatteryKwh - session.startBatteryKwh
+  return Number.isFinite(energy) && energy >= 0 ? energy : null
+}
+
+function energyUsedLabel(index: number): string {
+  const energy = energyUsedSincePreviousCharge(index)
+  return energy === null
+    ? t('chargeHistory.notReported')
+    : `${formatNumber(energy, 1)} kWh`
+}
+
+function consumptionSincePreviousCharge(index: number): string {
+  const distance = distanceSincePreviousCharge(index)
+  const energy = energyUsedSincePreviousCharge(index)
+  if (distance === null || distance <= 0 || energy === null)
+    return t('chargeHistory.notReported')
+
+  const consumption = units.value.measure('energyPerDistance', (energy * 1000) / distance)
+  return consumption ? `${consumption.value} ${consumption.unit}` : t('chargeHistory.notReported')
+}
+
 function hasLocation(session: ChargeSession): boolean {
   return (
     session.latitude !== null &&
@@ -236,15 +283,26 @@ function powerGraph(session: ChargeSession): {
           :id="`charge-power-${index}`"
           class="charge-history-graph"
         >
-          <p v-if="session.powerPoints.length === 0" class="text-muted text-sm">
-            {{ t('chargeHistory.noPowerData') }}
-          </p>
-          <template v-else>
-            <div class="charge-history-graph__heading">
-              <span>{{ t('chargeHistory.power') }}</span>
-              <span>{{ formatNumber(session.maxPowerKw ?? 0, 1) }} kW</span>
-            </div>
-            <div class="charge-history-graph__body">
+          <div v-if="session.powerPoints.length > 0" class="charge-history-graph__heading">
+            <span>{{ t('chargeHistory.power') }}</span>
+            <span>{{ formatNumber(session.maxPowerKw ?? 0, 1) }} kW</span>
+          </div>
+          <div class="charge-history-graph__body">
+            <dl class="charge-history-graph__metrics">
+              <div>
+                <dt>{{ t('chargeHistory.distanceSincePreviousCharge') }}</dt>
+                <dd>{{ odometerLabel(distanceSincePreviousCharge(index)) }}</dd>
+              </div>
+              <div>
+                <dt>{{ t('chargeHistory.energyUsedSincePreviousCharge') }}</dt>
+                <dd>{{ energyUsedLabel(index) }}</dd>
+              </div>
+              <div>
+                <dt>{{ t('chargeHistory.consumptionSincePreviousCharge') }}</dt>
+                <dd>{{ consumptionSincePreviousCharge(index) }}</dd>
+              </div>
+            </dl>
+            <template v-if="session.powerPoints.length > 0">
               <svg
                 class="charge-history-graph__chart"
                 viewBox="0 0 400 165"
@@ -317,8 +375,11 @@ function powerGraph(session: ChargeSession): {
               <div v-else class="charge-history-map charge-history-map--empty">
                 {{ t('chargeHistory.locationUnavailable') }}
               </div>
-            </div>
-          </template>
+            </template>
+            <p v-else class="text-muted text-sm">
+              {{ t('chargeHistory.noPowerData') }}
+            </p>
+          </div>
         </div>
       </li>
     </ol>

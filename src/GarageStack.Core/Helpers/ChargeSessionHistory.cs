@@ -127,7 +127,8 @@ public static class ChargeSessionHistory
             : null;
         return new ChargeSession(
             startedAt, endedAt, startSoc, endSoc, chargingType,
-            odometerKm, latitude, longitude, batteryEnergyGainedKwh, maxPowerKw, powerPoints.ToArray());
+            odometerKm, latitude, longitude, startBatteryKwh, endBatteryKwh,
+            batteryEnergyGainedKwh, maxPowerKw, powerPoints.ToArray());
     }
 
     private static void AddPowerPoint(List<ChargeSessionPowerPoint> powerPoints, ChargeSessionReading reading)

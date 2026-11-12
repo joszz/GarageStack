@@ -166,12 +166,16 @@ public class TelemetryRepositoryTests
                 EvSocPercent = 60,
                 ChargingType = "DC",
                 ChargingLastStartAt = start.AddMinutes(4),
+                OdometerKm = 10002,
+                HvSocKwh = 20,
             },
             new TelemetrySnapshot
             {
                 VehicleId = vehicle.Id,
                 RecordedAt = start.AddMinutes(5),
                 EvSocPercent = 65,
+                OdometerKm = 10022,
+                HvSocKwh = 23,
             },
             new TelemetrySnapshot
             {
@@ -192,6 +196,9 @@ public class TelemetryRepositoryTests
                 Assert.Equal(60, ongoing.StartSocPercent);
                 Assert.Equal(65, ongoing.EndSocPercent);
                 Assert.Equal("DC", ongoing.ChargingType);
+                Assert.Equal(10022, ongoing.OdometerKm);
+                Assert.Equal(20, ongoing.StartBatteryKwh);
+                Assert.Equal(23, ongoing.EndBatteryKwh);
             },
             completed =>
             {
@@ -203,6 +210,8 @@ public class TelemetryRepositoryTests
                 Assert.Equal(10002, completed.OdometerKm);
                 Assert.Equal(52.3676, completed.Latitude);
                 Assert.Equal(4.9041, completed.Longitude);
+                Assert.Equal(20, completed.StartBatteryKwh);
+                Assert.Equal(27, completed.EndBatteryKwh);
                 Assert.Equal(7, completed.BatteryEnergyGainedKwh);
                 Assert.Equal(11, completed.MaxPowerKw);
                 Assert.Equal(2, completed.PowerPoints.Count);

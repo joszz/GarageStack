@@ -121,9 +121,27 @@
 
 .charge-history-graph__body {
   display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(12rem, 1fr);
+  grid-template-columns: minmax(9rem, 0.8fr) minmax(0, 2fr) minmax(12rem, 1fr);
   align-items: center;
   gap: 0.75rem;
+}
+
+.charge-history-graph__metrics {
+  display: grid;
+  gap: 1rem;
+  margin: 0;
+}
+
+.charge-history-graph__metrics dt {
+  margin-bottom: 0.2rem;
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+}
+
+.charge-history-graph__metrics dd {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
 }
 
 .charge-history-graph__chart {
@@ -193,8 +211,12 @@
   stroke-width: 1.5;
 }
 
-@media (width <= 42rem) {
+@media (width <= 56rem) {
   .charge-history-graph__body {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .charge-history-graph__metrics {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr));
   }
 }

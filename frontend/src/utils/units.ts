@@ -11,24 +11,41 @@ export type DistanceUnit = 'km' | 'mi'
 export type TemperatureUnit = 'celsius' | 'fahrenheit'
 export type PressureUnit = 'bar' | 'psi' | 'kpa'
 export type FuelConsumptionUnit = 'l100km' | 'mpgUk' | 'mpgUs'
+export type EnergyConsumptionUnit =
+  | 'whPerKm'
+  | 'whPerMi'
+  | 'kwhPer100Km'
+  | 'kwhPer100Mi'
+  | 'kmPerKwh'
+  | 'miPerKwh'
 
 export interface UnitPreferences {
   distance: DistanceUnit
   temperature: TemperatureUnit
   pressure: PressureUnit
   fuelConsumption: FuelConsumptionUnit
+  energyConsumption: EnergyConsumptionUnit
 }
 
 export const DISTANCE_UNITS: readonly DistanceUnit[] = ['km', 'mi']
 export const TEMPERATURE_UNITS: readonly TemperatureUnit[] = ['celsius', 'fahrenheit']
 export const PRESSURE_UNITS: readonly PressureUnit[] = ['bar', 'psi', 'kpa']
 export const FUEL_CONSUMPTION_UNITS: readonly FuelConsumptionUnit[] = ['l100km', 'mpgUk', 'mpgUs']
+export const ENERGY_CONSUMPTION_UNITS: readonly EnergyConsumptionUnit[] = [
+  'whPerKm',
+  'whPerMi',
+  'kwhPer100Km',
+  'kwhPer100Mi',
+  'kmPerKwh',
+  'miPerKwh',
+]
 
 export const METRIC_UNITS: Readonly<UnitPreferences> = {
   distance: 'km',
   temperature: 'celsius',
   pressure: 'bar',
   fuelConsumption: 'l100km',
+  energyConsumption: 'kwhPer100Km',
 }
 
 /** The units as chosen in the settings: each one a unit, or "auto" for the one the region uses. */
@@ -39,6 +56,7 @@ export const AUTO_UNITS: Readonly<UnitSettings> = {
   temperature: 'auto',
   pressure: 'auto',
   fuelConsumption: 'auto',
+  energyConsumption: 'auto',
 }
 
 // The United States and the territories that sign their roads the same way.
@@ -65,6 +83,11 @@ export function regionUnits(region: Region): UnitPreferences {
       : UK_ROADS.includes(region)
         ? 'mpgUk'
         : 'l100km',
+    energyConsumption: US_ROADS.includes(region)
+      ? 'miPerKwh'
+      : UK_ROADS.includes(region)
+        ? 'kwhPer100Mi'
+        : 'kwhPer100Km',
   }
 }
 
@@ -80,12 +103,14 @@ export function resolveUnits(settings: Readonly<UnitSettings>, region: Region): 
     temperature: chosen('temperature'),
     pressure: chosen('pressure'),
     fuelConsumption: chosen('fuelConsumption'),
+    energyConsumption: chosen('energyConsumption'),
   }
 }
 
 /**
  * Something the API measures, each always in one metric unit: kilometres, km/h, Wh/km, km per
- * percent of the tank, bar, degrees Celsius, L/100 km and litres respectively.
+ * percent of the tank, bar, degrees Celsius, L/100 km and litres respectively. The energy
+ * consumption preference only changes how the canonical Wh/km value is presented.
  */
 export type Quantity =
   | 'distance'
@@ -154,10 +179,14 @@ const SPEED: Record<DistanceUnit, UnitDefinition> = {
   mi: scaled('units.mph', 1 / KM_PER_MILE, 0),
 }
 
-// Energy per distance grows with the distance unit: a mile takes 1.6 times the energy of a km.
-const ENERGY_PER_DISTANCE: Record<DistanceUnit, UnitDefinition> = {
-  km: scaled('units.whPerKm', 1, 0),
-  mi: scaled('units.whPerMi', KM_PER_MILE, 0),
+// The API's canonical Wh/km converts to any chosen consumption unit independently of distance.
+const ENERGY_PER_DISTANCE: Record<EnergyConsumptionUnit, UnitDefinition> = {
+  whPerKm: scaled('units.whPerKm', 1, 0),
+  whPerMi: scaled('units.whPerMi', KM_PER_MILE, 0),
+  kwhPer100Km: scaled('units.kwhPer100Km', 0.1, 1),
+  kwhPer100Mi: scaled('units.kwhPer100Mi', KM_PER_MILE / 10, 1),
+  kmPerKwh: reciprocalOf('units.kmPerKwh', 1000, 1),
+  miPerKwh: reciprocalOf('units.miPerKwh', 1000 / KM_PER_MILE, 1),
 }
 
 const DISTANCE_PER_PERCENT: Record<DistanceUnit, UnitDefinition> = {
@@ -199,7 +228,7 @@ const VOLUME: Record<FuelConsumptionUnit, UnitDefinition> = {
 const UNIT_OF: { [Q in Quantity]: (preferences: UnitPreferences) => UnitDefinition } = {
   distance: (p) => DISTANCE[p.distance],
   speed: (p) => SPEED[p.distance],
-  energyPerDistance: (p) => ENERGY_PER_DISTANCE[p.distance],
+  energyPerDistance: (p) => ENERGY_PER_DISTANCE[p.energyConsumption],
   distancePerPercent: (p) => DISTANCE_PER_PERCENT[p.distance],
   pressure: (p) => PRESSURE[p.pressure],
   temperature: (p) => TEMPERATURE[p.temperature],

@@ -11,6 +11,8 @@ public sealed record ChargeSession(
     double? OdometerKm,
     double? Latitude,
     double? Longitude,
+    double? StartBatteryKwh,
+    double? EndBatteryKwh,
     double? BatteryEnergyGainedKwh,
     double? MaxPowerKw,
     IReadOnlyList<ChargeSessionPowerPoint> PowerPoints);

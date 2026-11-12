@@ -42,6 +42,24 @@ beforeEach(() => {
   vi.mocked(vehicleApi.list).mockResolvedValue([vehicle])
   vi.mocked(vehicleApi.chargeSessions).mockResolvedValue([
     {
+      startedAt: '2026-10-20T08:00:00Z',
+      endedAt: null,
+      startSocPercent: 45,
+      endSocPercent: 52,
+      chargingType: 'DC',
+      odometerKm: 10022,
+      latitude: 52.4,
+      longitude: 4.95,
+      startBatteryKwh: 20,
+      endBatteryKwh: 23,
+      batteryEnergyGainedKwh: 3,
+      maxPowerKw: 7.2,
+      powerPoints: [
+        { recordedAt: '2026-10-20T08:00:00Z', powerKw: 7.2 },
+        { recordedAt: '2026-10-20T08:30:00Z', powerKw: 6.4 },
+      ],
+    },
+    {
       startedAt: '2026-10-19T10:00:00Z',
       endedAt: '2026-10-19T11:00:00Z',
       startSocPercent: 35,
@@ -50,25 +68,11 @@ beforeEach(() => {
       odometerKm: 10002,
       latitude: 52.3676,
       longitude: 4.9041,
-      batteryEnergyGainedKwh: 9.5,
-      maxPowerKw: 7.2,
-      powerPoints: [
-        { recordedAt: '2026-10-19T10:00:00Z', powerKw: 7.2 },
-        { recordedAt: '2026-10-19T10:30:00Z', powerKw: 6.4 },
-      ],
-    },
-    {
-      startedAt: '2026-10-20T08:00:00Z',
-      endedAt: null,
-      startSocPercent: 45,
-      endSocPercent: 52,
-      chargingType: 'DC',
-      odometerKm: null,
-      latitude: 52.4,
-      longitude: 4.95,
-      batteryEnergyGainedKwh: null,
-      maxPowerKw: null,
-      powerPoints: [],
+      startBatteryKwh: 20,
+      endBatteryKwh: 27,
+      batteryEnergyGainedKwh: 7,
+      maxPowerKw: 11,
+      powerPoints: [{ recordedAt: '2026-10-19T10:00:00Z', powerKw: 7.2 }],
     },
   ])
 })
@@ -97,10 +101,9 @@ describe('ChargeHistoryView', () => {
     expect(wrapper.text()).toContain('35% → 80%')
     expect(wrapper.text()).toContain('45% → 52%')
     expect(wrapper.text()).toContain('7.2 kW')
-    expect(wrapper.text()).toContain('9.5 kWh')
-    expect(wrapper.text()).toContain('10,002 km')
-    expect(wrapper.text()).not.toContain('10,000 km')
-    expect(wrapper.find('.charge-history-item__type').text()).toBe('AC')
+    expect(wrapper.text()).toContain('3.0 kWh')
+    expect(wrapper.text()).toContain('10,022 km')
+    expect(wrapper.findAll('.charge-history-item__type')[1]?.text()).toBe('AC')
     expect(wrapper.find('.charge-history-item__type--dc').text()).toContain('DC')
     expect(wrapper.find('.charge-history-graph').exists()).toBe(false)
 
@@ -112,6 +115,9 @@ describe('ChargeHistoryView', () => {
       .join(' ')
     expect(axisTitles).toContain('Power (kW)')
     expect(axisTitles).toContain('Time')
+    expect(wrapper.find('.charge-history-graph__metrics').text()).toContain('20 km')
+    expect(wrapper.find('.charge-history-graph__metrics').text()).toContain('7.0 kWh')
+    expect(wrapper.find('.charge-history-graph__metrics').text()).toContain('35.0 kWh/100 km')
     const graphPoints = wrapper.findAll('.charge-history-graph__point')
     expect(graphPoints[graphPoints.length - 1]?.attributes('cx')).toBe('372')
     expect(wrapper.find('.charge-history-location-map').exists()).toBe(true)

@@ -36,6 +36,9 @@ describe('RegionalSettings', () => {
     expect(automaticLabel(wrapper, 'settings-unit-distance')).toBe(
       'Automatic: Kilometres (km, km/h)',
     )
+    expect(automaticLabel(wrapper, 'settings-unit-energyConsumption')).toBe(
+      'Automatic: kWh/100 km',
+    )
     expect(automaticLabel(wrapper, 'settings-unit-pressure')).toBe('Automatic: bar')
   })
 
@@ -48,6 +51,9 @@ describe('RegionalSettings', () => {
     expect(automaticLabel(wrapper, 'settings-unit-distance')).toBe('Automatic: Miles (mi, mph)')
     expect(automaticLabel(wrapper, 'settings-unit-fuelConsumption')).toBe(
       'Automatic: mpg (US gallon)',
+    )
+    expect(automaticLabel(wrapper, 'settings-unit-energyConsumption')).toBe(
+      'Automatic: mi/kWh',
     )
   })
 
@@ -62,5 +68,10 @@ describe('RegionalSettings', () => {
 
     await wrapper.find('#settings-unit-temperature').setValue('auto')
     expect(store.units.temperature).toBe('auto')
+
+    await wrapper.find('#settings-unit-energyConsumption').setValue('kmPerKwh')
+    expect(store.units.energyConsumption).toBe('kmPerKwh')
+    await wrapper.find('#settings-unit-energyConsumption').setValue('auto')
+    expect(store.units.energyConsumption).toBe('auto')
   })
 })

@@ -9,6 +9,7 @@ import { mayBurnFuel } from '@/utils/vehicleType'
 import SettingsSelect, { type SettingsSelectOption } from './SettingsSelect.vue'
 import {
   DISTANCE_UNITS,
+  ENERGY_CONSUMPTION_UNITS,
   FUEL_CONSUMPTION_UNITS,
   PRESSURE_UNITS,
   regionUnits,
@@ -73,6 +74,7 @@ const offersFuelConsumption = computed(() => mayBurnFuel(vehicleStore.effectiveV
 
 const unitChoices = computed((): UnitChoice[] => [
   unitChoice('distance', DISTANCE_UNITS, t('settings.units.distanceDesc')),
+  unitChoice('energyConsumption', ENERGY_CONSUMPTION_UNITS),
   unitChoice('temperature', TEMPERATURE_UNITS),
   unitChoice('pressure', PRESSURE_UNITS),
   ...(offersFuelConsumption.value
