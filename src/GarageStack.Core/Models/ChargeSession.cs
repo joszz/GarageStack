@@ -7,7 +7,15 @@ public sealed record ChargeSession(
     DateTime? EndedAt,
     double? StartSocPercent,
     double? EndSocPercent,
-    string? ChargingType);
+    string? ChargingType,
+    double? OdometerKm,
+    double? Latitude,
+    double? Longitude,
+    double? BatteryEnergyGainedKwh,
+    double? MaxPowerKw,
+    IReadOnlyList<ChargeSessionPowerPoint> PowerPoints);
+
+public sealed record ChargeSessionPowerPoint(DateTime RecordedAt, double PowerKw);
 
 public sealed record ChargeSessionReading(
     long Id,
@@ -16,7 +24,14 @@ public sealed record ChargeSessionReading(
     double? EvSocPercent,
     string? ChargingType,
     DateTime? ChargingLastStartAt,
-    DateTime? ChargingLastEndAt)
+    DateTime? ChargingLastEndAt,
+    double? OdometerKm,
+    double? Latitude,
+    double? Longitude,
+    double? HvSocKwh,
+    double? HvPower,
+    double? ObcPowerSinglePhase,
+    double? ObcPowerThreePhase)
 {
     public static readonly Expression<Func<TelemetrySnapshot, ChargeSessionReading>> Projection =
         s => new ChargeSessionReading(
@@ -26,7 +41,14 @@ public sealed record ChargeSessionReading(
             s.EvSocPercent,
             s.ChargingType,
             s.ChargingLastStartAt,
-            s.ChargingLastEndAt);
+            s.ChargingLastEndAt,
+            s.OdometerKm,
+            s.Latitude,
+            s.Longitude,
+            s.HvSocKwh,
+            s.HvPower,
+            s.ObcPowerSinglePhase,
+            s.ObcPowerThreePhase);
 
     private static readonly Func<TelemetrySnapshot, ChargeSessionReading> Compiled = Projection.Compile();
 

@@ -411,7 +411,14 @@ public class TelemetryRepository(
                  s.EvSocPercent != null ||
                  s.ChargingType != null ||
                  s.ChargingLastStartAt != null ||
-                 s.ChargingLastEndAt != null))
+                 s.ChargingLastEndAt != null ||
+                 s.OdometerKm != null ||
+                 s.Latitude != null ||
+                 s.Longitude != null ||
+                 s.HvSocKwh != null ||
+                 s.HvPower != null ||
+                 s.ObcPowerSinglePhase != null ||
+                 s.ObcPowerThreePhase != null))
             .OrderBy(s => s.RecordedAt).ThenBy(s => s.Id)
             .Select(ChargeSessionReading.Projection)
             .AsAsyncEnumerable()

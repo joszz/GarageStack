@@ -13,6 +13,13 @@ vi.mock('@/services/vehicleApi', () => ({
   },
 }))
 
+vi.mock('@/components/ChargeSessionLocationMap.vue', () => ({
+  default: {
+    template: '<div class="charge-history-location-map" />',
+    props: ['latitude', 'longitude', 'label'],
+  },
+}))
+
 const i18n = createI18n({ legacy: false, locale: 'en', messages: { en } })
 
 enableAutoUnmount(afterEach)
@@ -40,13 +47,28 @@ beforeEach(() => {
       startSocPercent: 35,
       endSocPercent: 80,
       chargingType: 'AC',
+      odometerKm: 10002,
+      latitude: 52.3676,
+      longitude: 4.9041,
+      batteryEnergyGainedKwh: 9.5,
+      maxPowerKw: 7.2,
+      powerPoints: [
+        { recordedAt: '2026-10-19T10:00:00Z', powerKw: 7.2 },
+        { recordedAt: '2026-10-19T10:30:00Z', powerKw: 6.4 },
+      ],
     },
     {
       startedAt: '2026-10-20T08:00:00Z',
       endedAt: null,
       startSocPercent: 45,
       endSocPercent: 52,
-      chargingType: 'AC',
+      chargingType: 'DC',
+      odometerKm: null,
+      latitude: 52.4,
+      longitude: 4.95,
+      batteryEnergyGainedKwh: null,
+      maxPowerKw: null,
+      powerPoints: [],
     },
   ])
 })
@@ -74,6 +96,30 @@ describe('ChargeHistoryView', () => {
     expect(wrapper.text()).toContain('In progress')
     expect(wrapper.text()).toContain('35% → 80%')
     expect(wrapper.text()).toContain('45% → 52%')
+    expect(wrapper.text()).toContain('7.2 kW')
+    expect(wrapper.text()).toContain('9.5 kWh')
+    expect(wrapper.text()).toContain('10,002 km')
+    expect(wrapper.text()).not.toContain('10,000 km')
+    expect(wrapper.find('.charge-history-item__type').text()).toBe('AC')
+    expect(wrapper.find('.charge-history-item__type--dc').text()).toContain('DC')
+    expect(wrapper.find('.charge-history-graph').exists()).toBe(false)
+
+    await wrapper.find('.charge-history-item__graph-toggle').trigger('click')
+    expect(wrapper.find('.charge-history-graph__chart').exists()).toBe(true)
+    const axisTitles = wrapper
+      .findAll('.charge-history-graph__axis-title')
+      .map((element) => element.text())
+      .join(' ')
+    expect(axisTitles).toContain('Power (kW)')
+    expect(axisTitles).toContain('Time')
+    const graphPoints = wrapper.findAll('.charge-history-graph__point')
+    expect(graphPoints[graphPoints.length - 1]?.attributes('cx')).toBe('372')
+    expect(wrapper.find('.charge-history-location-map').exists()).toBe(true)
+    expect(wrapper.find('.charge-history-item__graph-toggle').attributes('aria-expanded')).toBe(
+      'true',
+    )
+    await wrapper.find('.charge-history-item__graph-toggle').trigger('click')
+    expect(wrapper.find('.charge-history-graph').exists()).toBe(false)
   })
 
   it('shows the empty state when no sessions have been recorded', async () => {

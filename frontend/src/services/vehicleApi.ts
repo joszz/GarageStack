@@ -149,6 +149,18 @@ export interface ChargeSession {
   startSocPercent: number | null
   endSocPercent: number | null
   chargingType: string | null
+  odometerKm: number | null
+  latitude: number | null
+  longitude: number | null
+  /** Change in the reported battery energy reading, not energy drawn from the charger. */
+  batteryEnergyGainedKwh: number | null
+  maxPowerKw: number | null
+  powerPoints: ChargeSessionPowerPoint[]
+}
+
+export interface ChargeSessionPowerPoint {
+  recordedAt: string
+  powerKw: number
 }
 
 /**

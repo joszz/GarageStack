@@ -102,7 +102,7 @@ The `AddTripLog` migration clears the trips saved before it and resets the recor
 
 ### Charge history
 
-The charge history page (`/charge-history`, `VehicleEndpoints`) reconstructs sessions from telemetry rather than storing a second history table. `TelemetryRepository` reads the vehicle's charging-state, state-of-charge and charging-type readings; `ChargeSessionHistory` groups charging-state transitions and uses the gateway's reported start/end times when they fit those transitions. Sessions remain dependent on the telemetry available for that vehicle, and the page labels missing state-of-charge readings as not reported.
+The charge history page (`/charge-history`, `VehicleEndpoints`) reconstructs sessions from telemetry rather than storing a second history table. `TelemetryRepository` reads the vehicle's charging-state, state-of-charge, odometer, battery-energy, power and GPS readings; `ChargeSessionHistory` groups charging-state transitions and uses the gateway's reported start/end times when they fit those transitions. Battery energy gained is the difference between the reported battery kWh readings across the session, not charger energy drawn. The response includes recorded power points for the expandable graph, the maximum power seen and the session's reported location. Sessions remain dependent on the telemetry available for that vehicle, and missing values are shown as not reported.
 
 ### Phone GPS (Dawarich)
 

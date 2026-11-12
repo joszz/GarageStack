@@ -132,6 +132,12 @@ public class TelemetryRepositoryTests
                 RecordedAt = start.AddMinutes(1),
                 IsCharging = true,
                 ChargingLastStartAt = start.AddMinutes(1),
+                OdometerKm = 10000,
+                Latitude = 52.3676,
+                Longitude = 4.9041,
+                HvSocKwh = 20,
+                ObcPowerSinglePhase = 7200,
+                ObcPowerThreePhase = 0,
             },
             new TelemetrySnapshot
             {
@@ -139,6 +145,9 @@ public class TelemetryRepositoryTests
                 RecordedAt = start.AddMinutes(2),
                 EvSocPercent = 70,
                 ChargingType = "AC",
+                OdometerKm = 10001,
+                HvSocKwh = 26,
+                ObcPowerThreePhase = 11000,
             },
             new TelemetrySnapshot
             {
@@ -146,6 +155,8 @@ public class TelemetryRepositoryTests
                 RecordedAt = start.AddMinutes(3),
                 IsCharging = false,
                 ChargingLastEndAt = start.AddMinutes(3),
+                OdometerKm = 10002,
+                HvSocKwh = 27,
             },
             new TelemetrySnapshot
             {
@@ -189,6 +200,12 @@ public class TelemetryRepositoryTests
                 Assert.Equal(30, completed.StartSocPercent);
                 Assert.Equal(70, completed.EndSocPercent);
                 Assert.Equal("AC", completed.ChargingType);
+                Assert.Equal(10002, completed.OdometerKm);
+                Assert.Equal(52.3676, completed.Latitude);
+                Assert.Equal(4.9041, completed.Longitude);
+                Assert.Equal(7, completed.BatteryEnergyGainedKwh);
+                Assert.Equal(11, completed.MaxPowerKw);
+                Assert.Equal(2, completed.PowerPoints.Count);
             });
     }
 

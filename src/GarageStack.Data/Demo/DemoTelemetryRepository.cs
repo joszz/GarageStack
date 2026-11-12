@@ -324,7 +324,7 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
     private static IReadOnlyList<TelemetrySnapshot> BuildHistory()
     {
         var rng = new Random(42);
-        var snapshots = new List<TelemetrySnapshot>(HistoryDays * 4);
+        var snapshots = new List<TelemetrySnapshot>(HistoryDays * 10);
         var baseDate = DateTime.UtcNow.Date.AddDays(-HistoryDays);
         var odometer = 24300.0;
         var soc = 88.0;
@@ -332,14 +332,20 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
         var usedTodayKwh = 0.0;
         var idCounter = 100L;
 
-        // 4 snapshots per day: depart (7h), midday (12h), return (17h), plug in (22h)
-        var dayHours = new[] { 7, 12, 17, 22 };
+        // Driving, then seven charge-power samples ten minutes apart through the overnight charge.
+        var dayHours = new[]
+        {
+            7.0, 12.0, 17.0, 22.0,
+            22.0 + 1.0 / 6, 22.0 + 2.0 / 6, 22.0 + 3.0 / 6,
+            22.0 + 4.0 / 6, 22.0 + 5.0 / 6, 23.0,
+        };
         for (var day = 0; day < HistoryDays; day++)
         {
             for (var hi = 0; hi < dayHours.Length; hi++)
             {
                 var hour = dayHours[hi];
-                var ts = baseDate.AddDays(day).AddHours(hour).AddMinutes(rng.Next(0, 30));
+                var minuteJitter = hour >= 22 && hour < 23 ? rng.Next(0, 5) : rng.Next(0, 30);
+                var ts = baseDate.AddDays(day).AddHours(hour).AddMinutes(minuteJitter);
 
                 if (hour == 7)
                 {
@@ -363,6 +369,10 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
                     fuel -= 1.0 + rng.NextDouble();
                     odometer += consumed * 7.2;
                 }
+                else if (hour == 23)
+                {
+                    soc = Math.Min(97, soc + 9);
+                }
                 else if (hour == 22 && day % 7 == 0)
                 {
                     // weekly refuel
@@ -372,7 +382,14 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
                 soc = Math.Clamp(soc, 10, 97);
                 fuel = Math.Clamp(fuel, 5, 100);
 
-                var isCharging = hour == 22;
+                var isCharging = hour >= 22 && hour < 23;
+                var chargingType = day % 8 == 0 ? "DC" : "AC";
+                var chargeProgress = hour - 22;
+                var chargePower = chargingType == "DC"
+                    ? Math.Max(0, 60 - chargeProgress * 24)
+                    : Math.Max(0, 7.2 - chargeProgress * 3.8);
+                var chargeLatitude = 52.3676 + day % 10 * 0.004;
+                var chargeLongitude = 4.9041 + day % 10 * 0.006;
                 var extTemp = 13.0 + (rng.NextDouble() - 0.5) * 10.0;
                 var frontPressure = 2.4 + (rng.NextDouble() - 0.5) * 0.06;
                 var rearPressure = 2.5 + (rng.NextDouble() - 0.5) * 0.06;
@@ -395,7 +412,9 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
                     PowerUsageOfDay = hour == 22 ? null : Math.Round(usedTodayKwh, 1),
                     OdometerKm = Math.Round(odometer, 1),
                     IsCharging = isCharging,
-                    ChargingType = isCharging ? "AC" : null,
+                    ChargingType = isCharging ? chargingType : null,
+                    HvPower = isCharging && chargingType == "DC" ? -chargePower * 1000 : null,
+                    ObcPowerSinglePhase = isCharging && chargingType == "AC" ? chargePower * 1000 : null,
                     ChargerConnected = isCharging || hour == 7,
                     ExteriorTemperature = Math.Round(extTemp, 1),
                     InteriorTemperature = Math.Round(extTemp + rng.NextDouble() * 4.0, 1),
@@ -405,8 +424,8 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
                     TyrePressureRearRight = Math.Round(rearPressure - leak + (rng.NextDouble() - 0.5) * 0.04, 2),
                     MileageOfTheDay = hour >= 12 ? Math.Round((odometer - 24300 - day * 90) % 200, 1) : 0,
                     BatteryVoltage = 12.6 + rng.NextDouble() * 0.3,
-                    Latitude = 52.3676 + (rng.NextDouble() - 0.5) * 0.02,
-                    Longitude = 4.9041 + (rng.NextDouble() - 0.5) * 0.02,
+                    Latitude = isCharging ? chargeLatitude : 52.3676 + (rng.NextDouble() - 0.5) * 0.02,
+                    Longitude = isCharging ? chargeLongitude : 4.9041 + (rng.NextDouble() - 0.5) * 0.02,
                     Speed = 0,
                     IsLocked = true,
                     EngineRunning = false,
