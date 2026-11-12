@@ -77,7 +77,7 @@ FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS dotnet-runtime
 # ── Stage 5: Final all-in-one runtime image ───────────────────────────────────
 # python:3.14-slim is Debian trixie (13) -- the same base the saic gateway uses,
 # so the copied venv's Python symlinks resolve correctly.
-FROM python:3.14-slim
+FROM python:3.15-slim
 
 ARG DEBIAN_FRONTEND=noninteractive
 
