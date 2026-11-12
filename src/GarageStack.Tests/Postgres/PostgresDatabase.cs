@@ -70,8 +70,11 @@ internal sealed class PostgresDatabase : IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
-        // A pooled connection still open on the database would keep it from being dropped.
-        NpgsqlConnection.ClearAllPools();
+        // A pooled connection still open on the database would keep it from being dropped. Only this
+        // database's pool: clearing them all makes the tests still running open new connections
+        // mid-test, which slowed the concurrent settings saves enough to lose every retry.
+        await using (var connection = new NpgsqlConnection(ConnectionString))
+            NpgsqlConnection.ClearPool(connection);
         await ExecuteAsync(_adminConnection, $"""DROP DATABASE IF EXISTS "{_name}" WITH (FORCE)""", CancellationToken.None);
     }
 

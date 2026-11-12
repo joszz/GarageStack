@@ -1,3 +1,4 @@
+using System.Data;
 using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
@@ -258,7 +259,10 @@ public class TripRepository(
         return (await GetLogEntriesAsync(vehicleId, [id], ct)).SingleOrDefault();
     }
 
-    public async Task<TripMergeResult> MergeWithNextAsync(int vehicleId, long id, CancellationToken ct = default)
+    public Task<TripMergeResult> MergeWithNextAsync(int vehicleId, long id, CancellationToken ct = default) =>
+        InEditTransactionAsync(() => MergeWithNextCoreAsync(vehicleId, id, ct), new TripMergeResult(TripMergeOutcome.Conflict), ct);
+
+    private async Task<TripMergeResult> MergeWithNextCoreAsync(int vehicleId, long id, CancellationToken ct)
     {
         var first = await db.Trips.FirstOrDefaultAsync(t => t.Id == id && t.VehicleId == vehicleId, ct);
         if (first is null) return new(TripMergeOutcome.NotFound);
@@ -361,7 +365,10 @@ public class TripRepository(
         return new(TripEditOutcome.Ok, await EditorAsync(trip, current.Points, original, ct));
     }
 
-    public async Task<TripEditResult> SetPointsAsync(int vehicleId, long id, IReadOnlyList<TripPointInput>? points, CancellationToken ct = default)
+    public Task<TripEditResult> SetPointsAsync(int vehicleId, long id, IReadOnlyList<TripPointInput>? points, CancellationToken ct = default) =>
+        InEditTransactionAsync(() => SetPointsCoreAsync(vehicleId, id, points, ct), new TripEditResult(TripEditOutcome.Conflict), ct);
+
+    private async Task<TripEditResult> SetPointsCoreAsync(int vehicleId, long id, IReadOnlyList<TripPointInput>? points, CancellationToken ct)
     {
         var trip = await db.Trips.FirstOrDefaultAsync(t => t.Id == id && t.VehicleId == vehicleId, ct);
         if (trip is null) return new(TripEditOutcome.NotFound);
@@ -380,7 +387,10 @@ public class TripRepository(
         return new(TripEditOutcome.Ok, await EditorAsync(trip, built, recorded, ct));
     }
 
-    public async Task<TripEditResult> ResetPointsAsync(int vehicleId, long id, CancellationToken ct = default)
+    public Task<TripEditResult> ResetPointsAsync(int vehicleId, long id, CancellationToken ct = default) =>
+        InEditTransactionAsync(() => ResetPointsCoreAsync(vehicleId, id, ct), new TripEditResult(TripEditOutcome.Conflict), ct);
+
+    private async Task<TripEditResult> ResetPointsCoreAsync(int vehicleId, long id, CancellationToken ct)
     {
         var trip = await db.Trips.FirstOrDefaultAsync(t => t.Id == id && t.VehicleId == vehicleId, ct);
         if (trip is null) return new(TripEditOutcome.NotFound);
@@ -395,6 +405,30 @@ public class TripRepository(
         await db.SaveChangesAsync(ct);
 
         return new(TripEditOutcome.Ok, await EditorAsync(trip, original, null, ct));
+    }
+
+    // An edit reads the trip, works out the new route from it and writes it back. Read and write in
+    // one repeatable-read transaction, PostgreSQL refuses the write (40001) when the Worker's phone
+    // fusion rewrote the same trip in between, so neither silently undoes the other. Writes to other
+    // columns (a purpose, an address) still go through as before, which a row version would refuse.
+    private async Task<T> InEditTransactionAsync<T>(Func<Task<T>> edit, T conflict, CancellationToken ct)
+    {
+        // The in-memory provider has no transactions; the tests on PostgreSQL cover this one.
+        if (!db.Database.IsRelational()) return await edit();
+
+        await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.RepeatableRead, ct);
+        try
+        {
+            var result = await edit();
+            await transaction.CommitAsync(ct);
+            return result;
+        }
+        catch (Exception ex) when (PostgresErrors.IsSerializationFailure(ex))
+        {
+            db.ChangeTracker.Clear();
+            logger?.LogInformation("A trip edit was refused: the trip changed while it was being edited");
+            return conflict;
+        }
     }
 
     // Everything read off a trip's points follows them. The odometer readings stay: the trip log

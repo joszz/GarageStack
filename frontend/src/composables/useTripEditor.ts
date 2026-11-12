@@ -71,16 +71,22 @@ export function useTripEditor(vin: Ref<string | null>, tripId: Ref<number>) {
     selected.value = null
   }
 
+  // Counts loads, so an answer that arrives after a newer request (the car or the trip changed
+  // meanwhile) is dropped instead of replacing the newer one.
+  let loads = 0
+
   async function load() {
     if (!vin.value) return
+    const current = ++loads
     loading.value = true
     error.value = null
     try {
-      show(await tripLogApi.editor(vin.value, tripId.value))
+      const next = await tripLogApi.editor(vin.value, tripId.value)
+      if (current === loads) show(next)
     } catch (e) {
-      error.value = e
+      if (current === loads) error.value = e
     } finally {
-      loading.value = false
+      if (current === loads) loading.value = false
     }
   }
 

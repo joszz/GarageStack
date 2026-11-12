@@ -46,6 +46,7 @@ export {
   faDiamondTurnRight,
   faDoorOpen,
   faDownload,
+  faEraser,
   faEye,
   faEyeSlash,
   faFan,

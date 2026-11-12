@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { fitToPoints, type LeafletMap } from '@/utils/leaflet'
+import { fitToPoints, withNearby, type LeafletMap } from '@/utils/leaflet'
 
 function fakeMap() {
   return {
@@ -72,5 +72,23 @@ describe('fitToPoints', () => {
       paddingBottomRight: [28, 32],
       animate: false,
     })
+  })
+})
+
+describe('withNearby', () => {
+  const route: [number, number][] = [
+    [52.3, 4.86],
+    [52.37, 4.94],
+  ]
+
+  it('adds a point near the route, and leaves out one far away', () => {
+    const near: [number, number] = [52.29, 4.85]
+    const far: [number, number] = [52.16, 5.39]
+
+    expect(withNearby(route, [near, far])).toEqual([...route, near])
+  })
+
+  it('keeps the extras when there is no route to measure against', () => {
+    expect(withNearby([], [[52.16, 5.39]])).toEqual([[52.16, 5.39]])
   })
 })

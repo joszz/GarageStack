@@ -67,6 +67,9 @@ public enum TripEditOutcome
     /// <summary>The trip's points cannot be read, so there is nothing to edit.</summary>
     Unreadable,
 
+    /// <summary>The trip changed while this edit ran (the Worker added the phone's points); nothing was saved.</summary>
+    Conflict,
+
     /// <summary>The points sent were refused; <see cref="TripEditResult.Problem"/> says why.</summary>
     Invalid,
 }

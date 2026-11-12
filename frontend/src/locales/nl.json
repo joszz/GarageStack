@@ -886,6 +886,11 @@
       "points": "Tik op de kaart om een punt toe te voegen, of tik op een punt om het te selecteren."
     },
     "pointLimit": "Deze route heeft het maximale aantal punten. Verwijder er een om een nieuw punt toe te voegen.",
+    "leaveConfirm": "Weggaan zonder op te slaan? De wijzigingen aan deze route gaan verloren.",
+    "noPreviousStop": "Er is geen parkeerplek bekend van voor deze rit.",
+    "atPreviousStop": "De rit begint al op de vorige parkeerplek.",
+    "noNextStop": "Er is geen parkeerplek bekend van na deze rit.",
+    "atNextStop": "De rit eindigt al op de volgende parkeerplek.",
     "removePoint": "Punt verwijderen",
     "undo": "Ongedaan maken",
     "reset": "Terug naar opname",
@@ -1066,6 +1071,7 @@
         "overlapsPrevious": "De rit kan niet beginnen voordat de rit ervoor was afgelopen.",
         "overlapsNext": "De rit kan niet eindigen nadat de volgende rit begon.",
         "pointTooFast": "Een stuk van deze route zou betekenen dat er harder dan 250 km/u is gereden.",
+        "changed": "Deze rit is veranderd terwijl je hem bewerkte, bijvoorbeeld doordat de gps van je telefoon is toegevoegd. Er is niets opgeslagen. Laad de pagina opnieuw en breng de wijziging nog eens aan.",
         "routeUnreadable": "De route van deze rit kan niet worden gelezen, dus hij kan niet worden bewerkt."
       },
       "push": {

@@ -60,7 +60,7 @@ const options = computed(() => {
         :disabled="loading"
         @click="load"
       >
-        <font-awesome-icon icon="rotate-left" /> {{ t('dawarich.refresh') }}
+        <font-awesome-icon icon="rotate" /> {{ t('dawarich.refresh') }}
       </button>
       <form v-if="trackers" class="form-stack" @submit.prevent="save">
         <label id="phone-trackers-label" class="settings-toggle__label">{{

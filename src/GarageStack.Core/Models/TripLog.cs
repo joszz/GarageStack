@@ -46,6 +46,9 @@ public enum TripMergeOutcome
 
     /// <summary>The fixes of one of the two cannot be read, so there is nothing to join.</summary>
     Unreadable,
+
+    /// <summary>One of the two changed while joining them (the Worker added the phone's points); nothing was saved.</summary>
+    Conflict,
 }
 
 /// <summary>The joined trip as the trip log shows it, when <see cref="Outcome"/> is <see cref="TripMergeOutcome.Merged"/>.</summary>

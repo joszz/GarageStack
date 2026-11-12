@@ -26,6 +26,8 @@ function mountPanel(props: Partial<Props> = {}) {
       suggestion: false,
       canUsePreviousStop: true,
       canUseNextStop: false,
+      hasPreviousStop: true,
+      hasNextStop: true,
       canRemove: false,
       canAdd: true,
       canUndo: false,
@@ -46,12 +48,36 @@ function button(wrapper: ReturnType<typeof mountPanel>, text: string) {
 }
 
 describe('TripEditPanel', () => {
-  it('shows the distance before and after, and the ends', () => {
-    const text = mountPanel().text()
+  it('shows the distance before and after once the route changed, and the ends', () => {
+    const text = mountPanel({ dirty: true }).text()
 
     expect(text).toContain('11.1 km to 12.3 km')
     expect(text).toContain('Brink 2, Deventer')
     expect(text).toContain('Grote Markt 1, Zwolle')
+  })
+
+  it('shows one distance while nothing changed', () => {
+    const text = mountPanel({ distanceBeforeKm: 12.3 }).text()
+
+    expect(text).toContain('12.3 km')
+    expect(text).not.toContain('12.3 km to')
+  })
+
+  it('says why a parking spot cannot be used', async () => {
+    const wrapper = mountPanel({ canUsePreviousStop: false })
+    expect(wrapper.text()).toContain(en.tripEdit.atPreviousStop)
+
+    await wrapper.setProps({ hasPreviousStop: false })
+    expect(wrapper.text()).toContain(en.tripEdit.noPreviousStop)
+
+    await wrapper.setProps({ mode: 'end' })
+    expect(wrapper.text()).toContain(en.tripEdit.atNextStop)
+
+    await wrapper.setProps({ hasNextStop: false })
+    expect(wrapper.text()).toContain(en.tripEdit.noNextStop)
+
+    await wrapper.setProps({ canUseNextStop: true })
+    expect(wrapper.text()).not.toContain(en.tripEdit.noNextStop)
   })
 
   it('offers the parking spot fix as a banner while the trip still needs it', async () => {

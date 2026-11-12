@@ -141,6 +141,7 @@ public static class TripEndpoints
                     "No saved trip follows this one yet"),
                 TripMergeOutcome.Unreadable => ApiProblems.Problem(StatusCodes.Status409Conflict, "trip.unreadable",
                     "The fixes of one of the two trips cannot be read"),
+                TripMergeOutcome.Conflict => Changed(),
                 _ => Results.NotFound(),
             };
         })
@@ -219,8 +220,15 @@ public static class TripEndpoints
         TripEditOutcome.Invalid => ApiProblems.BadRequest(result.Problem!.Code, result.Problem.Message),
         TripEditOutcome.Unreadable => ApiProblems.Problem(StatusCodes.Status409Conflict, "trip.routeUnreadable",
             "The trip's points cannot be read"),
+        TripEditOutcome.Conflict => Changed(),
         _ => Results.NotFound(),
     };
+
+    private static IResult Changed() =>
+        ApiProblems.Problem(StatusCodes.Status409Conflict, ChangedCode,
+            "The trip changed while it was being edited; nothing was saved. Load it again and repeat the change.");
+
+    public const string ChangedCode = "trip.changed";
 
     // Blank notes are no notes, so clearing the field in the browser clears it in the log.
     internal static string? NormalizeNotes(string? notes) =>
