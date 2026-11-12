@@ -12,7 +12,10 @@ export { ALL_CARD_IDS, defaultCards }
 export type { CardConfig, CardId }
 
 export type VehicleTypeOverride = 'auto' | VehicleType
+/** The theme a page is drawn in. */
 export type Theme = 'dark' | 'light'
+/** The theme setting: one of the two, or whichever the device prefers at the moment. */
+export type ThemeChoice = Theme | 'system'
 export type Locale = 'en' | 'nl' | 'es'
 
 export interface CarColorScheme {

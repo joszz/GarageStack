@@ -537,9 +537,10 @@
     "title": "Settings",
     "theme": {
       "title": "Appearance",
-      "light": "Light mode",
-      "dark": "Dark mode",
-      "lightDesc": "Switch between dark and light theme"
+      "light": "Light",
+      "dark": "Dark",
+      "system": "System",
+      "desc": "System follows the light or dark setting of this device."
     },
     "language": {
       "title": "Language"

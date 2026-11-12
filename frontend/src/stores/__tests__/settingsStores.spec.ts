@@ -38,9 +38,37 @@ describe('useUiSettingsStore', () => {
     expect(browserLocale()).toBe('es')
   })
 
-  it('defaults to dark theme when matchMedia reports no light preference', () => {
+  it('follows the device by default, dark when it reports no light preference', () => {
     const store = useUiSettingsStore()
-    expect(store.theme).toBe('dark')
+    expect(store.theme).toBe('system')
+    expect(store.effectiveTheme).toBe('dark')
+    expect(document.documentElement.dataset.theme).toBe('dark')
+  })
+
+  it('switches with the device while the theme is set to system', async () => {
+    let light = false
+    let onChange: () => void = () => {}
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      matches: light && query === '(prefers-color-scheme: light)',
+      media: query,
+      addEventListener: (_type: string, listener: () => void) => (onChange = listener),
+      removeEventListener: () => {},
+    }))
+    const store = useUiSettingsStore()
+
+    light = true
+    onChange()
+    await nextTick()
+    expect(document.documentElement.dataset.theme).toBe('light')
+
+    store.theme = 'dark'
+    await nextTick()
+    expect(document.documentElement.dataset.theme).toBe('dark')
+
+    // A chosen theme stays put when the device changes its mind.
+    onChange()
+    await nextTick()
+    expect(store.effectiveTheme).toBe('dark')
   })
 
   it('persists theme change to its own localStorage key', async () => {

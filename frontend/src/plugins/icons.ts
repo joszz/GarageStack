@@ -34,6 +34,7 @@ export {
   faChevronRight,
   faCircle,
   faCircleExclamation,
+  faCircleHalfStroke,
   faCircleInfo,
   faCircleQuestion,
   faCircleUp,
