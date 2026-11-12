@@ -4,13 +4,15 @@ import { test, expect, open } from './fixtures'
 // Service-worker-owned requests bypass Playwright's API mocks.
 test.use({ serviceWorkers: 'block' })
 
-async function expectTabPadding(tab: Locator) {
+// The narrowest phones trim the tabs to 0.5rem a side so all six fit; 0.625rem everywhere else.
+async function expectTabPadding(tab: Locator, viewportWidth: number) {
+  const minimum = viewportWidth < 360 ? 8 : 10
   const padding = await tab.evaluate((element) => {
     const style = getComputedStyle(element)
     return { left: parseFloat(style.paddingLeft), right: parseFloat(style.paddingRight) }
   })
-  expect(padding.left).toBeGreaterThanOrEqual(10)
-  expect(padding.right).toBeGreaterThanOrEqual(10)
+  expect(padding.left).toBeGreaterThanOrEqual(minimum)
+  expect(padding.right).toBeGreaterThanOrEqual(minimum)
 }
 
 async function configureSettings(page: Page, dawarich = true, rdw = true) {
@@ -73,11 +75,22 @@ for (const viewport of [
     const titleBox = (await title.boundingBox())!
     const viewportBox = (await tabsViewport.boundingBox())!
     const closeBox = (await close.boundingBox())!
-    expect(
-      Math.abs(titleBox.y + titleBox.height / 2 - (viewportBox.y + viewportBox.height / 2)),
-    ).toBeLessThanOrEqual(1)
-    expect(titleBox.x + titleBox.width).toBeLessThanOrEqual(viewportBox.x)
-    expect(viewportBox.x + viewportBox.width).toBeLessThanOrEqual(closeBox.x)
+    const middle = (box: { y: number; height: number }) => box.y + box.height / 2
+    if (viewport.width < 768) {
+      // On a phone the tabs get a row of their own under the title and the close button, and
+      // all six fit in it, so none hides past the edge.
+      expect(Math.abs(middle(titleBox) - middle(closeBox))).toBeLessThanOrEqual(1)
+      expect(viewportBox.y).toBeGreaterThanOrEqual(closeBox.y + closeBox.height - 1)
+      expect(viewportBox.x).toBeCloseTo(titleBox.x, 0)
+      expect(viewportBox.x + viewportBox.width).toBeCloseTo(closeBox.x + closeBox.width, 0)
+      expect(
+        await tabsViewport.evaluate((element) => element.scrollWidth - element.clientWidth),
+      ).toBeLessThanOrEqual(1)
+    } else {
+      expect(Math.abs(middle(titleBox) - middle(viewportBox))).toBeLessThanOrEqual(1)
+      expect(titleBox.x + titleBox.width).toBeLessThanOrEqual(viewportBox.x)
+      expect(viewportBox.x + viewportBox.width).toBeLessThanOrEqual(closeBox.x)
+    }
     const header = dialog.locator('.detail-modal__header')
     await expect(header).toHaveCSS('border-bottom-style', 'solid')
     expect((await header.boundingBox())!.x).toBeCloseTo(titleBox.x, 0)
@@ -113,7 +126,7 @@ for (const viewport of [
       const buttonBox = (await tab.boundingBox())!
       const tabsBox = (await tabsViewport.boundingBox())!
       expect(buttonBox.height).toBeGreaterThanOrEqual(44)
-      await expectTabPadding(tab)
+      await expectTabPadding(tab, viewport.width)
       expect(buttonBox.x).toBeGreaterThanOrEqual(tabsBox.x - 1)
       expect(buttonBox.x + buttonBox.width).toBeLessThanOrEqual(tabsBox.x + tabsBox.width + 1)
       const box = (await dialog.boundingBox())!
@@ -161,7 +174,8 @@ for (const viewport of [
       await expect(phone).toHaveText('GPS')
       await expect(phone).toHaveAccessibleName(phoneLabel)
       await expect(phone).toHaveAttribute('title', phoneLabel)
-      for (const tab of await tabs.getByRole('tab').all()) await expectTabPadding(tab)
+      for (const tab of await tabs.getByRole('tab').all())
+        await expectTabPadding(tab, viewport.width)
       if (viewport.width >= 840) {
         expect(
           await tabsViewport.evaluate((element) => element.scrollWidth - element.clientWidth),
@@ -253,12 +267,14 @@ test('themes the settings tabs for light and dark settings', async ({ page }) =>
   const dialog = page.getByRole('dialog', { name: 'Settings' })
   const general = dialog.getByRole('tab', { name: 'General', exact: true })
   const tabs = dialog.getByRole('tablist')
-  const themeSwitch = dialog.locator('#footer-toggle-theme')
-  for (const [light, theme] of [
-    [false, 'dark'],
-    [true, 'light'],
+  const themeChoices = dialog.getByRole('group', { name: 'Appearance', exact: true })
+  for (const [label, theme] of [
+    ['Dark', 'dark'],
+    ['Light', 'light'],
   ] as const) {
-    await themeSwitch.setChecked(light)
+    const choice = themeChoices.getByRole('button', { name: label, exact: true })
+    await choice.click()
+    await expect(choice).toHaveAttribute('aria-pressed', 'true')
     await expect(page.locator('html')).toHaveAttribute('data-theme', theme)
     const background = await dialog.evaluate((element) => getComputedStyle(element).backgroundColor)
     const border = await tabs.evaluate((element) => getComputedStyle(element).borderBottomColor)
