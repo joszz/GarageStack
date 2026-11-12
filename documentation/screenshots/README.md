@@ -40,6 +40,10 @@ The main pages of GarageStack, on a desktop and on a phone. They were taken in [
 
 ![The settings dialog on its General tab, with tabs for Vehicle, Map, Phone GPS, Notifications and Data & API, and the appearance (Light, Dark or System), dashboard, language and region settings](desktop-settings.webp)
 
+### Logs
+
+![The log viewer showing the Worker's entries: trips saved, phone GPS added to a trip, a commute arrival, an RDW notification, and a climate command the car refused while busy, then accepted](desktop-logs.webp)
+
 ### Light theme
 
 ![The dashboard in the light theme](desktop-dashboard-light.webp)
@@ -53,14 +57,14 @@ The main pages of GarageStack, on a desktop and on a phone. They were taken in [
 | <img src="mobile-dashboard.webp" alt="The dashboard on a phone" width="180"> | <img src="mobile-map.webp" alt="The map on a phone" width="180"> | <img src="mobile-map-trip.webp" alt="One trip against the speed limits on a phone" width="180"> | <img src="mobile-dashboard-light.webp" alt="The dashboard on a phone in the light theme" width="180"> |
 | **Statistics** | **Trip log** | **Maintenance** | **Climate schedules** |
 | <img src="mobile-statistics.webp" alt="The statistics on a phone" width="180"> | <img src="mobile-trip-log.webp" alt="The trip log on a phone" width="180"> | <img src="mobile-maintenance.webp" alt="The maintenance list on a phone" width="180"> | <img src="mobile-climate-schedules.webp" alt="The climate schedules on a phone" width="180"> |
-| **Editing a route** | **Settings** | | |
-| <img src="mobile-trip-edit.webp" alt="The route editor on a phone, the map above the controls" width="180"> | <img src="mobile-settings.webp" alt="The settings on a phone, the tabs as icons under the title" width="180"> | | |
+| **Editing a route** | **Settings** | **Logs** | |
+| <img src="mobile-trip-edit.webp" alt="The route editor on a phone, the map above the controls" width="180"> | <img src="mobile-settings.webp" alt="The settings on a phone, the tabs as icons under the title" width="180"> | <img src="mobile-logs.webp" alt="The Worker's log entries on a phone" width="180"> | |
 
 <!-- markdownlint-enable MD033 -->
 
 ## Taking new ones
 
-`pnpm screenshots` in `frontend/` takes all of them again from a running demo stack (the route editor is opened from the newest trip, the settings on their first tab), and copies the dashboard, map and statistics ones to the install screenshots in the app's manifest (`frontend/public/screenshot-*.webp`):
+`pnpm screenshots` in `frontend/` takes all of them again from a running demo stack (the route editor is opened from the newest trip, the settings on their first tab, the log viewer on the Worker's entries), and copies the dashboard, map and statistics ones to the install screenshots in the app's manifest (`frontend/public/screenshot-*.webp`):
 
 ```bash
 cp .env.demo.example .env.demo

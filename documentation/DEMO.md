@@ -98,6 +98,8 @@ Click the flask icon in the bottom-right corner to open the panel. Changes take 
 | `IRdwClient` | Answers for the RDW with any plate: an APK due in three weeks, one open recall and one repaired, so the RDW card shows without a car and without a request leaving the machine. The demo seeds the two notifications the Worker would have sent about it. `RDW_ENABLED=false` leaves the card, the plate field and those notifications out |
 | `IMqttPublisher` | Carries commands out on the demo car: after two seconds the car's state changes and the answer arrives, as from the gateway. Starting to charge without the cable plugged in (Demo Controls) is refused, to show a refusal |
 
+| `LogFiles:WorkerDirectory` | When `WORKER_LOG_DIRECTORY` is not set, a folder under the temp directory holding a day of sample Worker log entries (`DemoWorkerLog`), so the log viewer shows both services instead of asking for the Worker's folder |
+
 No PostgreSQL, Mosquitto, Worker, or SAIC gateway containers are started.
 
 ## Environment variables
