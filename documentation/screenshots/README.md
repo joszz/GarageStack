@@ -22,7 +22,11 @@ The main pages of GarageStack, on a desktop and on a phone. They were taken in [
 
 ### Trip log
 
-![The trip log: totals per purpose for the month, and each trip with its addresses, odometer readings, a business, commute or private choice, a notes field, and buttons to hide it or join it with the next trip](desktop-trip-log.webp)
+![The trip log: totals per purpose and driving figures for the month, a compact list of trips with their purpose, times, addresses and distance, and beside it the selected trip's details with its route on a map](desktop-trip-log.webp)
+
+### Editing a trip's route
+
+![The route editor: a trip from Amsterdam to Schiphol on a map with green start and red end markers, and beside it the distance, the addresses, the choice of moving the start, the end or points in between, and Undo, Reset to recorded, Cancel and Save](desktop-trip-edit.webp)
 
 ### Maintenance
 
@@ -31,6 +35,10 @@ The main pages of GarageStack, on a desktop and on a phone. They were taken in [
 ### Climate schedules
 
 ![The climate schedules: a weekday schedule at 07:30 with seat heating, and a one-off front defrost at 08:15, each with when it runs next](desktop-climate-schedules.webp)
+
+### Settings
+
+![The settings dialog on its General tab, with tabs for Vehicle, Map, Phone GPS, Notifications and Data & API, and the appearance (Light, Dark or System), dashboard, language and region settings](desktop-settings.webp)
 
 ### Light theme
 
@@ -45,12 +53,14 @@ The main pages of GarageStack, on a desktop and on a phone. They were taken in [
 | <img src="mobile-dashboard.webp" alt="The dashboard on a phone" width="180"> | <img src="mobile-map.webp" alt="The map on a phone" width="180"> | <img src="mobile-map-trip.webp" alt="One trip against the speed limits on a phone" width="180"> | <img src="mobile-dashboard-light.webp" alt="The dashboard on a phone in the light theme" width="180"> |
 | **Statistics** | **Trip log** | **Maintenance** | **Climate schedules** |
 | <img src="mobile-statistics.webp" alt="The statistics on a phone" width="180"> | <img src="mobile-trip-log.webp" alt="The trip log on a phone" width="180"> | <img src="mobile-maintenance.webp" alt="The maintenance list on a phone" width="180"> | <img src="mobile-climate-schedules.webp" alt="The climate schedules on a phone" width="180"> |
+| **Editing a route** | **Settings** | | |
+| <img src="mobile-trip-edit.webp" alt="The route editor on a phone, the map above the controls" width="180"> | <img src="mobile-settings.webp" alt="The settings on a phone, the tabs as icons under the title" width="180"> | | |
 
 <!-- markdownlint-enable MD033 -->
 
 ## Taking new ones
 
-`pnpm screenshots` in `frontend/` takes all of them again from a running demo stack, and copies the dashboard, map and statistics ones to the install screenshots in the app's manifest (`frontend/public/screenshot-*.webp`):
+`pnpm screenshots` in `frontend/` takes all of them again from a running demo stack (the route editor is opened from the newest trip, the settings on their first tab), and copies the dashboard, map and statistics ones to the install screenshots in the app's manifest (`frontend/public/screenshot-*.webp`):
 
 ```bash
 cp .env.demo.example .env.demo
