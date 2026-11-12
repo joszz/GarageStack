@@ -27,6 +27,7 @@ function mountPanel(props: Partial<Props> = {}) {
       canUsePreviousStop: true,
       canUseNextStop: false,
       canRemove: false,
+      canAdd: true,
       canUndo: false,
       canReset: false,
       dirty: false,
@@ -107,5 +108,17 @@ describe('TripEditPanel', () => {
 
     expect(button(saving, en.tripEdit.save).attributes('disabled')).toBeDefined()
     expect(button(saving, en.tripEdit.undo).attributes('disabled')).toBeDefined()
+  })
+
+  it('says so in points mode once the route can hold no more points', async () => {
+    const wrapper = mountPanel({ mode: 'points', canAdd: false })
+
+    expect(wrapper.text()).toContain(en.tripEdit.pointLimit)
+
+    await wrapper.setProps({ mode: 'start' })
+    expect(wrapper.text()).not.toContain(en.tripEdit.pointLimit)
+
+    await wrapper.setProps({ mode: 'points', canAdd: true })
+    expect(wrapper.text()).not.toContain(en.tripEdit.pointLimit)
   })
 })

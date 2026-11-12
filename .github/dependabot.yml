@@ -108,6 +108,19 @@ updates:
       # major bump; keep getting 2.x patch/minor updates.
       - dependency-name: "Microsoft.OpenApi"
         update-types: ["version-update:semver-major"]
+      # The project stays on the latest LTS, .NET 10. These packages take the .NET major as
+      # their own, so an 11.x of any of them is a move to .NET 11. Lift this when .NET 12
+      # (the next LTS) arrives in November 2027, together with the base image rules below.
+      - dependency-name: "Microsoft.AspNetCore.*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "Microsoft.Extensions.*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "Microsoft.EntityFrameworkCore*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "Npgsql.EntityFrameworkCore.*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "dotnet-ef"
+        update-types: ["version-update:semver-major"]
     groups:
       # The whole Microsoft .NET / ASP.NET / Extensions family ships on the same
       # cadence (patch Tuesday), so one PR covers all of them.
@@ -175,6 +188,10 @@ updates:
     open-pull-requests-limit: 2
     cooldown:
       default-days: 3
+    ignore:
+      # Stay on the .NET 10 LTS images; see the NuGet block. Lift with .NET 12 (November 2027).
+      - dependency-name: "dotnet/*"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: docker
     directory: /src/GarageStack.Worker
@@ -186,6 +203,10 @@ updates:
     open-pull-requests-limit: 2
     cooldown:
       default-days: 3
+    ignore:
+      # Stay on the .NET 10 LTS images; see the NuGet block. Lift with .NET 12 (November 2027).
+      - dependency-name: "dotnet/*"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: docker
     directory: /frontend
@@ -215,6 +236,9 @@ updates:
     cooldown:
       default-days: 3
     ignore:
+      # Stay on the .NET 10 LTS images; see the NuGet block. Lift with .NET 12 (November 2027).
+      - dependency-name: "dotnet/*"
+        update-types: ["version-update:semver-major"]
       # Track the LTS line. From Node 27 on every major becomes LTS: released in April,
       # promoted to LTS in October. Raise this floor by one each October, to ">=28" once
       # Node 27 goes LTS (October 2027).

@@ -40,6 +40,7 @@ const {
   isRecorded,
   canUndo,
   canRemove,
+  canAdd,
   canUsePreviousStop,
   canUseNextStop,
   suggestion,
@@ -132,6 +133,7 @@ async function save() {
         :can-use-previous-stop="canUsePreviousStop"
         :can-use-next-stop="canUseNextStop"
         :can-remove="canRemove"
+        :can-add="canAdd"
         :can-undo="canUndo"
         :can-reset="!isRecorded"
         :dirty="dirty"

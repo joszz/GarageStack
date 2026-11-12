@@ -885,6 +885,7 @@
       "end": "Tap the map where the trip ended, or drag the red marker.",
       "points": "Tap the map to add a point, or tap a point to select it."
     },
+    "pointLimit": "This route has as many points as it can hold. Remove one to add another.",
     "removePoint": "Remove point",
     "undo": "Undo",
     "reset": "Reset to recorded",

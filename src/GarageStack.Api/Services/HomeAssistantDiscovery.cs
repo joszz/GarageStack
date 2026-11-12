@@ -47,6 +47,7 @@ public static class HomeAssistantDiscovery
         new("last_trip_distance", "Last trip distance", f => f.HasTrip, DeviceClass: "distance", Unit: "km"),
         new("last_trip_started", "Last trip started", f => f.HasTrip, DeviceClass: "timestamp"),
         new("last_trip_ended", "Last trip ended", f => f.HasTrip, DeviceClass: "timestamp"),
+        new("last_trip_in_progress", "Trip in progress", f => f.HasTrip, Component: "binary_sensor", DeviceClass: "moving"),
     ];
 
     /// <summary>Every sensor's discovery topic, with its config, or an empty payload that removes it.</summary>

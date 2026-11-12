@@ -65,6 +65,7 @@ public static class RdwEndpoints
             var info = plate is null ? null : await refresher.RefreshAsync(vehicle, ct);
             return Results.Ok(ToDto(plate, info, time.GetUtcNow().UtcDateTime));
         })
+        .RequireRateLimiting("rdw-lookup")
         .WithSummary("Set or clear the vehicle's Dutch plate, and look it up at the RDW right away");
 
         return app;
