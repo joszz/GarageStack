@@ -49,6 +49,9 @@ try
     {
         Log.Information("DEMO MODE enabled -- using in-memory fake data, no database or MQTT required");
         builder.Services.AddDemoServices();
+        // Demo mode runs no Worker, so the log viewer reads a day of sample Worker entries instead.
+        if (string.IsNullOrEmpty(builder.Configuration["LogFiles:WorkerDirectory"]))
+            builder.Configuration["LogFiles:WorkerDirectory"] = DemoWorkerLog.Directory;
         // Demo mode's gateway carries commands out on the demo car and answers them.
         builder.Services.AddSingleton<IMqttPublisher>(sp => ActivatorUtilities.CreateInstance<DemoCommandPublisher>(
             sp, (DemoTelemetryRepository)sp.GetRequiredService<ITelemetryRepository>()));

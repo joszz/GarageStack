@@ -34,6 +34,7 @@ const PAGES = [
   { file: 'maintenance', path: '/maintenance' },
   { file: 'climate-schedules', path: '/climate-schedules' },
   { file: 'settings', path: '/', prepare: openSettings },
+  { file: 'logs', path: '/logs', prepare: showWorkerLog },
 ]
 
 // The install screenshots in the manifest (vite.config.ts), copied from the gallery's.
@@ -155,6 +156,12 @@ async function openSettings(page) {
   await page.getByRole('button', { name: 'Settings', exact: true }).first().click()
   await page.getByRole('tablist').waitFor()
   await page.waitForTimeout(500)
+}
+
+// The Worker's entries: the newest of all are the requests this script itself just made.
+async function showWorkerLog(page) {
+  await page.getByRole('button', { name: 'Worker', exact: true }).click()
+  await settled(page)
 }
 
 // The browser encodes WebP itself, so the script needs no image library.

@@ -904,6 +904,21 @@ public class AuthenticationFlowTests
     // ── Log viewer ────────────────────────────────────────────────────────────
 
     [Fact]
+    public async Task Logs_InDemoMode_ShowTheDemoWorkersEntries_WhenNoWorkerDirectoryIsSet()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var factory = CreatePasswordOnlyFactory();
+        using var client = CreateClient(factory);
+        await PasswordLoginAsync(client, ct);
+
+        var page = await client.GetFromJsonAsync<JsonElement>("/api/logs?source=worker&limit=5", ct);
+
+        Assert.Equal(5, page.GetProperty("entries").GetArrayLength());
+        Assert.Contains(page.GetProperty("sources").EnumerateArray(),
+            s => s.GetProperty("name").GetString() == "worker" && s.GetProperty("available").GetBoolean());
+    }
+
+    [Fact]
     public async Task Logs_ShowTheWorkersEntries_FromItsDirectory_FilteredByLevel()
     {
         var ct = TestContext.Current.CancellationToken;
