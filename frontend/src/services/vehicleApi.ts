@@ -143,6 +143,14 @@ export interface VehicleAggregateStats {
   totalClimateSnapshots: number
 }
 
+export interface ChargeSession {
+  startedAt: string
+  endedAt: string | null
+  startSocPercent: number | null
+  endSocPercent: number | null
+  chargingType: string | null
+}
+
 /**
  * Why a trip point is there, when the car did not report it while driving: `anchored` is a parked
  * position added where the trip left or reached it, `manual` was placed by someone editing the trip.
@@ -258,6 +266,8 @@ export interface TyreHistory {
 export const vehicleApi = {
   list: () => request<Vehicle[]>('/api/vehicles'),
   status: (vin: string) => request<TelemetrySnapshot>(`/api/vehicles/${vin}/status`),
+  chargeSessions: (vin: string) =>
+    request<ChargeSession[]>(`/api/vehicles/${vin}/charge-sessions`),
   tyrePressureThresholds: () =>
     request<TyrePressureThresholds>('/api/vehicles/tyre-pressure-thresholds'),
   config: (vin: string) => request<Record<string, string>>(`/api/vehicles/${vin}/config`),

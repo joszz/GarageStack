@@ -1,6 +1,6 @@
 # GarageStack
 
-**A self-hosted dashboard, trip log and map for your MG.**
+**A self-hosted dashboard, trip log, charge history and map for your MG.**
 
 [![Latest release](https://img.shields.io/github/v/release/joszz/GarageStack)](https://github.com/joszz/GarageStack/releases/latest)
 [![Docker image build](https://github.com/joszz/GarageStack/actions/workflows/docker-publish.yml/badge.svg?branch=main)](https://github.com/joszz/GarageStack/actions/workflows/docker-publish.yml)
@@ -13,6 +13,7 @@ GarageStack is a free, open-source web app for **modern MG cars**, the ones buil
 - **See the car at a glance.** Fuel, battery, tyre pressures, doors, windows and climate on one live dashboard, with cards that adapt to your hybrid, plug-in hybrid or full electric car.
 - **Relive every drive.** Trips are saved automatically, named by where they went and drawn on the map along the roads you took, with heatmaps and the speed limits along the way.
 - **Keep a trip log for the taxman.** Mark trips as business, commute or private, add notes, and export a month or a year as a spreadsheet.
+- **Review charge history.** See completed and ongoing sessions, duration, charging type and state-of-charge readings when the car reports them.
 - **Control it from anywhere.** Pre-condition the cabin, lock the car or flash its lights to find it, and see whether the car actually carried the command out.
 - **Have it warm when you leave.** Schedule climate for weekday mornings or a one-off trip, with seat heating, the defrosters, and a skip for mild days.
 - **Hear about it when something is off.** Push notifications for low tyre pressure, a car left unlocked, a window left open, charging complete and more.
@@ -48,7 +49,7 @@ The statistics, trip log, route editor, settings, maintenance list and light the
 - [Prerequisites](#prerequisites) and [Installation](#installation)
 - [Updating](#updating), [Monitoring](#monitoring) and [Backup and restore](#backup-and-restore)
 - [Push notifications](#push-notifications)
-- [Trip log](#trip-log), [Climate schedules](#climate-schedules) and [Maintenance](#maintenance)
+- [Trip log](#trip-log), [Charge history](#charge-history), [Climate schedules](#climate-schedules) and [Maintenance](#maintenance)
 - [Dutch registration (RDW)](#dutch-registration-rdw)
 - [Homepage dashboard widget](#homepage-dashboard-widget) and [Read-only API tokens](#read-only-api-tokens)
 - [Directions to the car](#directions-to-the-car) and [Map overlays](#map-overlays)
@@ -63,6 +64,7 @@ The statistics, trip log, route editor, settings, maintenance list and light the
 - **Trip history** -- Browse past journeys on an interactive map, each drawn on the roads it took and coloured by speed or by the speed limit, with a heatmap of the roads you drive most. Each trip is saved to the database a few minutes after the car parks. After upgrading from a version that did not save trips, the existing history is saved in the background on the Worker's first start.
 - **Phone GPS (Dawarich)** -- Fill gaps in recorded car trips with phone locations from your own Dawarich instance. Identify trackers by their app/device ID and last-seen time; you can link multiple phones, and GarageStack uses the best match for each trip. See [Phone GPS setup](documentation/PHONE_GPS.md).
 - **Trip log** -- Mark each trip as business, commute or private (commutes between your home and work are marked automatically), add notes, hide a GPS glitch, join two trips a fuel stop split, fix a route the car recorded badly on the map, and export a month or a year as a spreadsheet with the addresses and odometer readings a tax trip log (such as the Dutch *rittenregistratie*) asks for. See [Trip log](#trip-log).
+- **Charge history** -- Review completed and ongoing charging sessions with their duration and reported state of charge. Sessions are reconstructed from recorded charging-state telemetry, so their history depends on what the vehicle has reported and retained.
 - **Maintenance** -- Keep the car's service items (oil, tyres, the yearly inspection, ...) with a distance interval, a time interval or both. GarageStack works out from the odometer and your service log when each one is due, shows the most urgent on the dashboard, and sends a notification when an item reaches 90 % of its interval. Log each service with its date, odometer reading and notes.
 - **Dutch registration (RDW)** -- For a car with a Dutch licence plate, a dashboard card with the date the APK runs out and the days left, open recalls with what can go wrong and what the dealer does about it, and whether the car is insured, from the [RDW's open data](https://opendata.rdw.nl). Notifications come for a new recall, the APK a month and a week ahead, and a car with no insurance on record. Off until `RDW_ENABLED=true`; the plate, entered under Settings, is the only thing sent. See [Dutch registration (RDW)](#dutch-registration-rdw).
 - **Energy statistics** -- Track daily energy consumption, efficiency (Wh/km on a plug-in car, L/100 km on a hybrid), fuel use, electric share, average driving speed, and more, for any period from a week to several years.
@@ -433,6 +435,12 @@ Note: "keys left in the car" is not currently supported because the SAIC MQTT ga
 - **Export CSV** saves the period, hidden trips left out, as a spreadsheet: date, departure and arrival time, from and to address, odometer start and end, distance, purpose and notes. The file follows the interface language: comma-separated in English, and semicolon-separated with decimal commas in Dutch, Spanish and Portuguese, so it opens in columns in Excel either way.
 
 Only trips the Worker has saved can be logged, so the trip being driven, and one finished in the last few minutes, appear once the car has been parked for a while.
+
+---
+
+## Charge history
+
+**Charge history** in the sidebar lists completed and ongoing sessions, with their duration and the state-of-charge readings reported by the car. Sessions are reconstructed from recorded charging-state telemetry; older history and individual readings depend on the telemetry retained for your vehicle.
 
 ---
 

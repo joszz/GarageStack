@@ -28,10 +28,24 @@
     "statistics": "Statistics",
     "map": "Map",
     "tripLog": "Trip log",
+    "chargeHistory": "Charge history",
     "climateSchedules": "Climate schedules",
     "maintenance": "Maintenance",
     "logs": "Logs",
     "menuLabel": "Menu"
+  },
+  "chargeHistory": {
+    "title": "Charge history",
+    "subtitle": "Sessions reconstructed from recorded charging-state telemetry. State-of-charge values appear when the car reported them.",
+    "sessions": "Sessions",
+    "completed": "Completed",
+    "ongoing": "In progress",
+    "duration": "Duration",
+    "stateOfCharge": "State of charge",
+    "type": "Charging type",
+    "ended": "Ended",
+    "notReported": "Not reported",
+    "empty": "No charge sessions are available yet."
   },
   "dashboard": {
     "title": "Dashboard",

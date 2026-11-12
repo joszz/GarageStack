@@ -86,6 +86,8 @@ public interface ITelemetryRepository
     /// </summary>
     Task<string?> GetChargingStopReasonAsync(int vehicleId, CancellationToken ct = default);
 
+    /// <summary>Charge sessions reconstructed from the vehicle's recorded charging-state transitions.</summary>
+    Task<IReadOnlyList<ChargeSession>> GetChargeSessionsAsync(int vehicleId, CancellationToken ct = default);
 
     /// <summary>
     /// Every row recorded for <paramref name="vehicleId"/>, oldest first, one at a time: for the data

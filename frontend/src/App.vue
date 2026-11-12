@@ -275,6 +275,12 @@ watch(
             </RouterLink>
           </li>
           <li>
+            <RouterLink to="/charge-history" active-class="active">
+              <font-awesome-icon icon="plug-circle-bolt" />
+              <span>{{ t('nav.chargeHistory') }}</span>
+            </RouterLink>
+          </li>
+          <li>
             <RouterLink to="/climate-schedules" active-class="active">
               <font-awesome-icon icon="calendar-days" />
               <span>{{ t('nav.climateSchedules') }}</span>

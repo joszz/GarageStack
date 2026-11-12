@@ -78,6 +78,14 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
     public Task<string?> GetChargingStopReasonAsync(int vehicleId, CancellationToken ct = default) =>
         Task.FromResult<string?>(null);
 
+    public async Task<IReadOnlyList<ChargeSession>> GetChargeSessionsAsync(int vehicleId, CancellationToken ct = default)
+    {
+        var readings = _history.Value.Select(ChargeSessionReading.FromSnapshot).ToList();
+        if (await GetMergedLatestAsync(vehicleId, ct) is { } current)
+            readings.Add(ChargeSessionReading.FromSnapshot(current));
+        return ChargeSessionHistory.Build(readings);
+    }
+
     // The generated history, oldest first, then the live snapshot the demo controls change.
     public async IAsyncEnumerable<TelemetrySnapshot> StreamAllAsync(
         int vehicleId, [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken ct = default)
@@ -387,6 +395,7 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
                     PowerUsageOfDay = hour == 22 ? null : Math.Round(usedTodayKwh, 1),
                     OdometerKm = Math.Round(odometer, 1),
                     IsCharging = isCharging,
+                    ChargingType = isCharging ? "AC" : null,
                     ChargerConnected = isCharging || hour == 7,
                     ExteriorTemperature = Math.Round(extTemp, 1),
                     InteriorTemperature = Math.Round(extTemp + rng.NextDouble() * 4.0, 1),

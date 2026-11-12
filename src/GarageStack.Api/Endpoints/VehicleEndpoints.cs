@@ -68,6 +68,16 @@ public static class VehicleEndpoints
         })
         .WithSummary("Get latest telemetry for a vehicle");
 
+        vehicleGroup.MapGet("/charge-sessions", async (
+            HttpContext httpContext,
+            ITelemetryRepository telemetry,
+            CancellationToken ct) =>
+        {
+            var vehicle = httpContext.ResolvedVehicle();
+            return Results.Ok(await telemetry.GetChargeSessionsAsync(vehicle.Id, ct));
+        })
+        .WithSummary("Get charge sessions reconstructed from recorded charging-state transitions");
+
         vehicleGroup.MapGet("/stats/daily", async (
             HttpContext httpContext,
             ITelemetryRepository telemetry,
@@ -217,4 +227,3 @@ public record PowerTailgateSetting(bool Enabled);
 /// with the positions losing air (frontLeft, rearRight, ...) by the slow-puncture alert's rule.
 /// </summary>
 public sealed record TyreHistoryDto(IReadOnlyList<DailyStat> Days, TyreChanges? Trend, int TrendDays, IReadOnlyList<string> Losing);
-

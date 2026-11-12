@@ -1,0 +1,67 @@
+.charge-history-summary {
+  max-width: 20rem;
+  margin-bottom: 1rem;
+}
+
+.charge-history-list {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.charge-history-item {
+  padding: 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+.charge-history-item__heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.charge-history-item__heading h2 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.charge-history-item__status {
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  background: var(--color-surface-2);
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.charge-history-item__status--active {
+  background: color-mix(in srgb, var(--color-success) 16%, var(--color-surface));
+  color: var(--color-success-text);
+}
+
+.charge-history-item__details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr));
+  gap: 0.75rem 1rem;
+  margin: 0;
+}
+
+.charge-history-item__details dt {
+  margin-bottom: 0.15rem;
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+}
+
+.charge-history-item__details dd {
+  margin: 0;
+  font-weight: 500;
+}

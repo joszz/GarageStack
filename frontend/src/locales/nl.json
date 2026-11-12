@@ -28,10 +28,24 @@
     "statistics": "Statistieken",
     "map": "Kaart",
     "tripLog": "Rittenregistratie",
+    "chargeHistory": "Laadgeschiedenis",
     "climateSchedules": "Klimaatschema's",
     "maintenance": "Onderhoud",
     "logs": "Logboek",
     "menuLabel": "Menu"
+  },
+  "chargeHistory": {
+    "title": "Laadgeschiedenis",
+    "subtitle": "Laadsessies samengesteld uit opgeslagen laadstatussen. Het laadniveau wordt getoond als de auto dit heeft gemeld.",
+    "sessions": "Sessies",
+    "completed": "Voltooid",
+    "ongoing": "Bezig",
+    "duration": "Duur",
+    "stateOfCharge": "Laadniveau",
+    "type": "Laadtype",
+    "ended": "Geëindigd",
+    "notReported": "Niet gemeld",
+    "empty": "Er zijn nog geen laadsessies beschikbaar."
   },
   "dashboard": {
     "title": "Dashboard",

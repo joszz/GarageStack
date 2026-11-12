@@ -28,10 +28,24 @@
     "statistics": "Estatísticas",
     "map": "Mapa",
     "tripLog": "Registro de viagens",
+    "chargeHistory": "Histórico de carregamento",
     "climateSchedules": "Agendamentos de climatização",
     "maintenance": "Manutenção",
     "logs": "Logs",
     "menuLabel": "Menu"
+  },
+  "chargeHistory": {
+    "title": "Histórico de carregamento",
+    "subtitle": "Sessões reconstruídas a partir dos estados de carregamento registrados. O nível da bateria aparece quando o carro o informa.",
+    "sessions": "Sessões",
+    "completed": "Concluída",
+    "ongoing": "Em andamento",
+    "duration": "Duração",
+    "stateOfCharge": "Nível da bateria",
+    "type": "Tipo de carregamento",
+    "ended": "Encerrada",
+    "notReported": "Não informado",
+    "empty": "Ainda não há sessões de carregamento disponíveis."
   },
   "dashboard": {
     "title": "Painel",
