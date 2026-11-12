@@ -27,7 +27,7 @@ Contents:
 
    > A build with a possible fix is ready to try. If you're not on the latest release yet, update to it first. Then switch your GarageStack image to `pr-123` as described in [this comment](link to the preview comment), use the car as usual for a day, and let me know what the dashboard shows. Afterwards switch back to the latest release. Step by step: [Testing a preview build](https://github.com/joszz/GarageStack/blob/main/documentation/PREVIEW_BUILDS.md#testing-a-preview-build).
 
-5. **Iterate.** Push more commits to the same branch. The `pr-123` tag follows the pull request, so the tester only has to pull again (Unraid: *Force update*; Compose: run the same command again). The footer version ends in `.pr.123`, and the comment shows which commit it is.
+5. **Iterate.** Push more commits to the same branch. The `pr-123` tag follows the pull request, so the tester only has to pull again (Unraid: *Force update*; Compose: run the same command again). The version in the footer (on a phone, at the bottom of the menu) ends in `.pr.123`, and the comment shows which commit it is.
 6. **Finish.**
    - **It works:** merge. The images are deleted and the fix reaches everyone through `latest`. Ask the tester to switch back to `latest`.
    - **It does not work:** close the pull request (or just remove the label while you rethink). The images are deleted and nothing else changed.
