@@ -62,6 +62,19 @@ public class HomeAssistantDiscoveryTests
     }
 
     [Fact]
+    public void ATripInProgress_IsABinarySensor_ThatReadsTheValueTheStateCarries()
+    {
+        var (topic, payload) = HomeAssistantDiscovery.Configs(Vin, Everything).Single(c => c.Topic.Contains("/last_trip_in_progress/", StringComparison.Ordinal));
+        var config = Parse(payload);
+        var state = Parse(HomeAssistantDiscovery.State(Everything with { LastTripInProgress = true }));
+
+        Assert.StartsWith("homeassistant/binary_sensor/", topic);
+        Assert.Equal("moving", config.GetProperty("device_class").GetString());
+        Assert.Equal("{{ 'ON' if value_json.last_trip_in_progress else 'OFF' }}", config.GetProperty("value_template").GetString());
+        Assert.True(state.GetProperty("last_trip_in_progress").GetBoolean());
+    }
+
+    [Fact]
     public void TheState_CarriesEveryValue_InTheFormsHomeAssistantReads()
     {
         var state = Parse(HomeAssistantDiscovery.State(Everything));

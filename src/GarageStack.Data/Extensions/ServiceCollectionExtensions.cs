@@ -110,6 +110,7 @@ public static class ServiceCollectionExtensions
         services.AddHttpClient(OcmApiClient.HttpClientName, client =>
         {
             client.DefaultRequestHeaders.UserAgent.ParseAdd(UpstreamHttp.UserAgent);
+            client.Timeout = TimeSpan.FromSeconds(20);
         });
         services.AddHttpClient(OverpassApiClient.HttpClientName, client =>
         {

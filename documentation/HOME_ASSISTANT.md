@@ -144,6 +144,7 @@ The Api publishes these every five minutes, and as soon as one changes, on the c
 | Next maintenance days left / distance left | How far off it is, in days and in kilometres |
 | Last trip distance | The newest trip's distance (km), the one being driven included |
 | Last trip started / ended | When it started and ended |
+| Trip in progress | On while the newest trip is the one being driven |
 
 Each reads its value from one retained JSON message, `garagestack/<VIN>/state`, so an automation can also use the whole object. The Homepage widget serves the same values (see [`WIDGET.md`](WIDGET.md)).
 

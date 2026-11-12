@@ -885,6 +885,7 @@
       "end": "Toca el mapa donde terminó el viaje o arrastra el marcador rojo.",
       "points": "Pulsa en el mapa para añadir un punto o en un punto para seleccionarlo."
     },
+    "pointLimit": "Esta ruta ya tiene el máximo de puntos. Elimina uno para añadir otro.",
     "removePoint": "Eliminar punto",
     "undo": "Deshacer",
     "reset": "Restablecer a",

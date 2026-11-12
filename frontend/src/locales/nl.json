@@ -885,6 +885,7 @@
       "end": "Tik op de kaart waar de rit eindigde, of sleep de rode markering.",
       "points": "Tik op de kaart om een punt toe te voegen, of tik op een punt om het te selecteren."
     },
+    "pointLimit": "Deze route heeft het maximale aantal punten. Verwijder er een om een nieuw punt toe te voegen.",
     "removePoint": "Punt verwijderen",
     "undo": "Ongedaan maken",
     "reset": "Terug naar opname",

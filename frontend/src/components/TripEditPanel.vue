@@ -16,6 +16,8 @@ const props = defineProps<{
   canUsePreviousStop: boolean
   canUseNextStop: boolean
   canRemove: boolean
+  /** False once the route holds as many points as the server takes. */
+  canAdd: boolean
   canUndo: boolean
   /** The route differs from the one recorded, so it can go back to that. */
   canReset: boolean
@@ -90,6 +92,9 @@ const distanceText = computed(() =>
 
     <ChipGroup v-model="mode" :options="modeOptions" :group-label="t('tripEdit.modeLabel')" />
     <p class="text-xs text-muted">{{ t(`tripEdit.hint.${mode}`) }}</p>
+    <p v-if="mode === 'points' && !canAdd" class="text-xs trip-edit-panel__limit" role="status">
+      {{ t('tripEdit.pointLimit') }}
+    </p>
 
     <!-- While the banner offers the parking spot, start mode needs no second button for it. -->
     <div v-if="!(mode === 'start' && suggestion)" class="trip-edit-panel__tools">

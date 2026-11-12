@@ -45,6 +45,10 @@
   align-items: baseline;
 }
 
+.trip-edit-panel__limit {
+  color: var(--color-warning-text);
+}
+
 .trip-edit-panel__facts {
   display: grid;
   gap: 0.5rem;
