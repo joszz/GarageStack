@@ -100,6 +100,30 @@ The trip log (`/trip-log`, `TripEndpoints`) shows only saved trips, because only
 
 The `AddTripLog` migration clears the trips saved before it and resets the recording line, and the Worker saves them again with their new columns. Nothing is lost: until that migration, nothing a driver could enter was kept on a trip.
 
+
+### Phone GPS (Dawarich)
+
+A car that reports a position every few minutes leaves gaps a phone can fill. When `DAWARICH_URL` and `DAWARICH_API_KEY` are set, the Worker's `PhoneFusionService` adds positions from the driver's own [Dawarich](https://dawarich.app) instance to saved trips. [`PHONE_GPS.md`](PHONE_GPS.md) covers the setup; this is how it works.
+
+- **Linking.** `VehiclePhoneTrackers` holds the trackers (Dawarich's device ids, at most 10) linked to a car, each with the time it was linked. `GET`/`PUT /api/vehicles/{vin}/phone-trackers` lists and replaces them; the list also offers trackers Dawarich saw in the last 30 days, cached for five minutes. `/api/dawarich/status` checks the URL and key. Both go through the `dawarich` rate limit (12 a minute).
+- **Which trips.** Every three minutes the service takes up to 10 trips that ended at least `DAWARICH_FUSION_DELAY_MINUTES` ago (15 by default, so the phone app has uploaded), are neither edited nor hidden, and either were never looked at (`Trip.PhoneFusion` null) while a tracker linked before the trip started, or are `Pending`. A trip from before the link is only fused on request: `POST .../phone-trackers/backfill` stores a `PhoneBackfillRequests` row for the car, and each pass marks the matching trips `Pending`, 500 at a time.
+- **Matching.** `TripPhoneFusion` in Core decides, with no I/O. A tracker counts as being in the car when at least two of the car's own fixes, and at least 70% of those it can pair with a phone fix (within 60 seconds, interpolated between fixes up to two minutes apart), lie within 300 m, or twice the phone's stated accuracy if that is larger. Fixes less accurate than 50 m are ignored. The tracker that agrees best wins. Its fixes are added as points with source `phone`, except within 20 seconds of a car fix, which always takes precedence. When the car stood at a known parking spot (an anchored first point, or the last parked fix or the end of the trip before, within its departure window) and the phone left from within 200 m of it, the trip may start earlier, from the phone; it never starts before the trip before ended.
+- **Saving.** The result is applied with the same `ApplyPointsAsync` as an edit, so distance, ends and speeds follow. `CompleteAsync` runs serializable and checks again that the trip is unedited, still has the route that was matched, and that the trackers are still linked; otherwise it saves nothing and the trip comes back on a later pass. A route edit, reset or join racing it is refused the same way from the other side (see *Editing a route* above).
+- **States** (`Trip.PhoneFusion`, with `PhoneFusionAt` set by every outcome):
+
+  | State | Set by | Means |
+  | --- | --- | --- |
+  | none | recording | not looked at yet |
+  | `Pending` | the backfill pass | asked for again, regardless of when the tracker was linked |
+  | `Fused` | a pass | phone points were added |
+  | `NoMatch` | a pass | no linked phone travelled with the car, or it added nothing |
+  | `NotLinked` | a pass, or unlinking every tracker | the trackers changed while it ran, or none are left |
+  | `Failed` | a pass | the trip's points cannot be read, Dawarich refused the request in a way it will repeat, or five passes failed while Dawarich itself answered |
+
+  Joining two trips keeps `Fused` when either was fused, and otherwise starts the joined trip over as never looked at. An edited trip is never fused again.
+- **When Dawarich is down.** A rejected key pauses fusion for 30 minutes and logs once; Dawarich not answering its health check pauses it for five. Answers are capped at 4 MB.
+- **Display.** Phone points are drawn dashed like other points with a source (*Dashed stretches* above), with a key saying so (`PhoneSourceKey`). `phoneFusionAt` is part of a trip log entry, so a trip's cached route is fetched again once it is fused.
+
 ## The Dutch registration (RDW)
 
 With `RDW_ENABLED`, a car's Dutch plate (`Vehicle.LicensePlate`, entered by the user: neither the
@@ -152,7 +176,7 @@ PostgreSQL reuses the space of removed rows for new ones rather than handing it 
 | --- | --- | --- |
 | `GarageStack.Core` | Domain models (`Models/`), repository/service interfaces (`Interfaces/`), and pure helpers with no I/O (`Helpers/`) - the shared vocabulary every other project builds on. | nothing (leaf project) |
 | `GarageStack.Data` | EF Core: `AppDbContext`, migrations, concrete repository implementations, and `Demo/` (in-memory fakes used when `DEMO_MODE=true`). | `Core` |
-| `GarageStack.Worker` | The MQTT-ingestion process: `Mqtt/MqttConsumerService` and the message handlers beside it, plus the periodic jobs (maintenance reminders, POI pre-caching, push-notification checks, the slow-puncture check over two weeks of tyre pressures, saving finished trips, housekeeping and telemetry compaction, climate schedules, RDW lookups, and the heartbeat the API's readiness check listens for), each a `PeriodicBackgroundService`. | `Core`, `Data` |
+| `GarageStack.Worker` | The MQTT-ingestion process: `Mqtt/MqttConsumerService` and the message handlers beside it, plus the periodic jobs (maintenance reminders, POI pre-caching, push-notification checks, the slow-puncture check over two weeks of tyre pressures, saving finished trips, housekeeping and telemetry compaction, climate schedules, RDW lookups, phone GPS fusion from Dawarich, and the heartbeat the API's readiness check listens for), each a `PeriodicBackgroundService`. | `Core`, `Data` |
 | `GarageStack.Api` | ASP.NET Core minimal APIs (`Endpoints/`), the SignalR hub (`Hubs/`), and Api-only services (outbound MQTT publishing, POI/charging-station lookups, the Postgres-LISTEN-to-SignalR bridge). | `Core`, `Data` |
 | `GarageStack.Tests` | xUnit tests across all of the above. | all four |
 

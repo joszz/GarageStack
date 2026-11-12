@@ -30,8 +30,10 @@ const PAGES = [
   { file: 'map-trip', path: '/map', prepare: selectTrip },
   { file: 'statistics', path: '/statistics' },
   { file: 'trip-log', path: '/trip-log' },
+  { file: 'trip-edit', path: '/trip-log', prepare: openTripEditor },
   { file: 'maintenance', path: '/maintenance' },
   { file: 'climate-schedules', path: '/climate-schedules' },
+  { file: 'settings', path: '/', prepare: openSettings },
 ]
 
 // The install screenshots in the manifest (vite.config.ts), copied from the gallery's.
@@ -39,6 +41,8 @@ const MANIFEST = { dashboard: 'home', map: 'map', statistics: 'statistics' }
 
 const browser = await chromium.launch({
   executablePath: process.env.CHROMIUM_PATH || undefined,
+  // A software GPU, so the vector basemap draws in a headless browser instead of staying blank.
+  args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'],
   // Playwright sends even localhost through a proxy unless told otherwise.
   proxy: process.env.HTTPS_PROXY
     ? { server: process.env.HTTPS_PROXY, bypass: 'localhost,127.0.0.1' }
@@ -134,6 +138,23 @@ async function selectTrip(page) {
   const toUtrecht = trips.filter({ hasText: 'Utrecht' }).first()
   await ((await toUtrecht.count()) > 0 ? toUtrecht : trips.first()).click()
   await settled(page)
+}
+
+// The route editor for the newest trip, opened the way a driver opens it: from the trip's details.
+async function openTripEditor(page) {
+  await page.locator('.trip-log-item__select').first().click()
+  await page.getByRole('link', { name: 'Edit route' }).first().click()
+  await page.waitForURL(/\/trips\/\d+\/edit$/)
+  await settled(page)
+  // The map is new here, so its vector basemap starts from nothing: give its tiles time to draw.
+  await page.waitForTimeout(5000)
+}
+
+// The settings dialog on its first tab.
+async function openSettings(page) {
+  await page.getByRole('button', { name: 'Settings', exact: true }).first().click()
+  await page.getByRole('tablist').waitFor()
+  await page.waitForTimeout(500)
 }
 
 // The browser encodes WebP itself, so the script needs no image library.
