@@ -149,6 +149,25 @@ describe('TripLogView', () => {
     expect(listedIds(wrapper)).toEqual(['Sat, 3 Oct', 'Thu, 1 Oct'])
   })
 
+  it('folds the purposes and driving figures behind one button, which says what it does', async () => {
+    const wrapper = await mountView()
+    const toggle = wrapper.get('.trip-log-figures__toggle')
+
+    expect(toggle.attributes('aria-expanded')).toBe('false')
+    expect(toggle.text()).toBe(en.tripLog.moreFigures)
+    expect(wrapper.find('.trip-log-figures--open').exists()).toBe(false)
+
+    await toggle.trigger('click')
+
+    expect(toggle.attributes('aria-expanded')).toBe('true')
+    expect(toggle.text()).toBe(en.tripLog.fewerFigures)
+    expect(wrapper.find('.trip-log-figures--open').exists()).toBe(true)
+    // Both folded sections are named as what the button controls.
+    for (const id of toggle.attributes('aria-controls')!.split(' ')) {
+      expect(wrapper.find(`[id="${id}"]`).exists()).toBe(true)
+    }
+  })
+
   it('lists the hidden trips once asked to, and counts them on the switch', async () => {
     const wrapper = await mountView()
     const toggle = wrapper.find('.trip-log-hidden-toggle')

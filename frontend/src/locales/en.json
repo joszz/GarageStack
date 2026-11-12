@@ -757,6 +757,8 @@
     "year": "Year",
     "month": "Month",
     "wholeYear": "Whole year",
+    "moreFigures": "Show purposes and driving figures",
+    "fewerFigures": "Hide purposes and driving figures",
     "totalsLabel": "Distance per purpose",
     "totalLabel": "{purpose} ({n})",
     "classifyAll": "{n} trip ({distance}) has no purpose yet. Mark it as: | {n} trips ({distance}) have no purpose yet. Mark them all as:",

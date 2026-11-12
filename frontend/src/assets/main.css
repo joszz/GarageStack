@@ -1532,6 +1532,21 @@ textarea.form-control {
   z-index: 2;
 }
 
+/* Touch screens: buttons and chips at least 40px tall (WCAG 2.2 asks 24, the platforms 44 to 48).
+   The card info button keeps its small look and gets a larger invisible hit area instead. */
+@media (pointer: coarse) {
+  .btn,
+  .toggle-chip {
+    min-height: 40px;
+  }
+
+  .card-info-btn::before {
+    content: '';
+    position: absolute;
+    inset: -9px;
+  }
+}
+
 .card-info-btn:hover,
 .card-info-btn:focus-visible {
   opacity: 1;
@@ -1754,6 +1769,45 @@ textarea.form-control {
     display: flex;
   }
 
+  /* The footer's row goes back to the page: AppFooter moves Refresh and Settings into the top
+     bar and the copyright and update notice into the menu. */
+  .app-footer {
+    display: none;
+  }
+
+  .mobile-topbar__actions,
+  .mobile-topbar .app-footer__actions {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  /* Drawn like the bell beside them: an icon, no box. */
+  .mobile-topbar .app-footer__btn {
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    justify-content: center;
+    background: none;
+    border: none;
+    border-radius: 6px;
+    font-size: 1.05rem;
+  }
+
+  .mobile-topbar .app-footer__btn:hover {
+    background: var(--color-surface-2);
+  }
+
+  .mobile-topbar .app-footer__btn-label {
+    display: none;
+  }
+
+  .sidebar-meta .app-footer__meta {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding-top: 0.25rem;
+  }
+
   /* Push body below fixed topbar on mobile */
   .app-body {
     margin-top: var(--topbar-height);
@@ -1808,15 +1862,6 @@ textarea.form-control {
     overflow-x: hidden;
   }
 
-  .app-footer {
-    padding: 0 0.75rem;
-  }
-
-  /* The buttons keep their labels on a phone, so the update link shrinks to its icon. */
-  .app-footer__update-text {
-    display: none;
-  }
-
   /* Icon sits flush at button left so it aligns with card left edge */
   .hamburger {
     justify-content: flex-start;
@@ -1848,23 +1893,6 @@ textarea.form-control {
 
   .status-card__value {
     font-size: 0.95rem;
-  }
-}
-
-/* ── Narrow phone (up to 479px) ───────────────────────────── */
-
-@media (width <= 479px) {
-  /* The copyright, the update icon and both labelled buttons need about 450px in Dutch; narrower,
-     the copyright wrapped over three lines and the update icon ran into Refresh. The buttons keep
-     their aria-labels, so they turn into square icon buttons. */
-  .app-footer__btn {
-    width: 32px;
-    padding: 0;
-    justify-content: center;
-  }
-
-  .app-footer__btn-label {
-    display: none;
   }
 }
 

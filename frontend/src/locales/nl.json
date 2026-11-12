@@ -757,6 +757,8 @@
     "year": "Jaar",
     "month": "Maand",
     "wholeYear": "Heel het jaar",
+    "moreFigures": "Doelen en rijcijfers tonen",
+    "fewerFigures": "Doelen en rijcijfers verbergen",
     "totalsLabel": "Afstand per doel",
     "totalLabel": "{purpose} ({n})",
     "classifyAll": "{n} rit ({distance}) heeft nog geen doel. Markeer als: | {n} ritten ({distance}) hebben nog geen doel. Markeer ze allemaal als:",

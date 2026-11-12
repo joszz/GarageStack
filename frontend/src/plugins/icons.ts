@@ -31,6 +31,7 @@ export {
   faChargingStation,
   faChartLine,
   faCheck,
+  faChevronDown,
   faChevronRight,
   faCircle,
   faCircleExclamation,
