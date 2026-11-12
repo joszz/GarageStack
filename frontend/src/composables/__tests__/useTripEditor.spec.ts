@@ -68,6 +68,24 @@ describe('useTripEditor', () => {
     expect(editing.canUseNextStop.value).toBe(false)
   })
 
+  it('keeps the newest trip when an older answer arrives after it', async () => {
+    let answerFirst: (value: TripEditor) => void = () => {}
+    api.editor
+      .mockImplementationOnce(() => new Promise<TripEditor>((resolve) => (answerFirst = resolve)))
+      .mockResolvedValueOnce(editorOf({ points: route.slice(0, 2) }))
+    const tripId = ref(7)
+    const editing = useTripEditor(ref('VIN1'), tripId)
+
+    const first = editing.load()
+    tripId.value = 8
+    await editing.load()
+    answerFirst(editorOf())
+    await first
+
+    expect(editing.points.value).toEqual(route.slice(0, 2))
+    expect(editing.loading.value).toBe(false)
+  })
+
   it('keeps the failure when the trip cannot be loaded', async () => {
     api.editor.mockRejectedValue(new ApiError(404, '/editor'))
     const editing = useTripEditor(ref('VIN1'), ref(7))

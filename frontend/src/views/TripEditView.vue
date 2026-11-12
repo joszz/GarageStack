@@ -8,6 +8,7 @@ import { useVehicleStore } from '@/stores/vehicle'
 import { useTripEditor } from '@/composables/useTripEditor'
 import { useReverseGeocode } from '@/composables/useReverseGeocode'
 import { useErrorMessage } from '@/composables/useErrorMessage'
+import { useLeaveGuard } from '@/composables/useLeaveGuard'
 import ViewHeader from '@/components/ViewHeader.vue'
 import TripEditMap from '@/components/TripEditMap.vue'
 import TripEditPanel from '@/components/TripEditPanel.vue'
@@ -47,6 +48,10 @@ const {
   distanceBeforeKm,
   distanceAfterKm,
 } = editing
+
+// Cancel, the menu, the back button and a reload all ask first while there is something unsaved.
+// A save that went through leaves nothing unsaved, so leaving after it asks nothing.
+useLeaveGuard(dirty, () => t('tripEdit.leaveConfirm'))
 
 // The trip loads once the car is known: at once when it already is, or once the vehicles are in.
 onMounted(() => void vehicleStore.fetchVehicles())
@@ -132,6 +137,8 @@ async function save() {
         :suggestion="suggestion"
         :can-use-previous-stop="canUsePreviousStop"
         :can-use-next-stop="canUseNextStop"
+        :has-previous-stop="editor.previousStop !== null"
+        :has-next-stop="editor.nextStop !== null"
         :can-remove="canRemove"
         :can-add="canAdd"
         :can-undo="canUndo"

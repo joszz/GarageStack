@@ -15,6 +15,9 @@ const props = defineProps<{
   suggestion: boolean
   canUsePreviousStop: boolean
   canUseNextStop: boolean
+  /** Where the car stood before and after the trip is known, to say why its button is off. */
+  hasPreviousStop: boolean
+  hasNextStop: boolean
   canRemove: boolean
   /** False once the route holds as many points as the server takes. */
   canAdd: boolean
@@ -57,12 +60,26 @@ const modeOptions = computed((): ChipOption<TripEditMode>[] =>
   })),
 )
 
+// One figure until the route changes; "12 km to 12 km" says nothing.
 const distanceText = computed(() =>
-  t('tripEdit.distanceChange', {
-    before: units.value.format('distance', props.distanceBeforeKm),
-    after: units.value.format('distance', props.distanceAfterKm),
-  }),
+  props.dirty
+    ? t('tripEdit.distanceChange', {
+        before: units.value.format('distance', props.distanceBeforeKm),
+        after: units.value.format('distance', props.distanceAfterKm),
+      })
+    : units.value.format('distance', props.distanceAfterKm),
 )
+
+// Why the parking spot button for this mode is off, if it is.
+const stopNote = computed((): string | null => {
+  if (mode.value === 'start' && !props.canUsePreviousStop) {
+    return t(props.hasPreviousStop ? 'tripEdit.atPreviousStop' : 'tripEdit.noPreviousStop')
+  }
+  if (mode.value === 'end' && !props.canUseNextStop) {
+    return t(props.hasNextStop ? 'tripEdit.atNextStop' : 'tripEdit.noNextStop')
+  }
+  return null
+})
 </script>
 
 <template>
@@ -125,6 +142,7 @@ const distanceText = computed(() =>
       >
         <font-awesome-icon icon="trash" />{{ t('tripEdit.removePoint') }}
       </button>
+      <p v-if="stopNote" class="text-xs text-muted">{{ stopNote }}</p>
     </div>
 
     <p v-if="errorText" class="text-danger text-sm" role="alert">{{ errorText }}</p>
@@ -151,7 +169,7 @@ const distanceText = computed(() =>
           :aria-label="t('tripEdit.reset')"
           @click="emit('reset')"
         >
-          <font-awesome-icon icon="clock-rotate-left" /><span class="trip-edit-panel__label">{{
+          <font-awesome-icon icon="eraser" /><span class="trip-edit-panel__label">{{
             t('tripEdit.reset')
           }}</span>
         </button>

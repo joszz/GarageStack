@@ -886,6 +886,11 @@
       "points": "Tap the map to add a point, or tap a point to select it."
     },
     "pointLimit": "This route has as many points as it can hold. Remove one to add another.",
+    "leaveConfirm": "Leave without saving? The changes to this route will be lost.",
+    "noPreviousStop": "No parking spot is known before this trip.",
+    "atPreviousStop": "The trip already starts at the previous parking spot.",
+    "noNextStop": "No parking spot is known after this trip.",
+    "atNextStop": "The trip already ends at the next parking spot.",
     "removePoint": "Remove point",
     "undo": "Undo",
     "reset": "Reset to recorded",

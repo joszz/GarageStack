@@ -8,7 +8,7 @@ import type { TripStop } from '@/services/tripLogApi'
 import type { TripEditMode } from '@/composables/useTripEditor'
 import { useLeafletMap } from '@/composables/useLeafletMap'
 import { useBasemap } from '@/composables/useBasemap'
-import { DEFAULT_MAP_CENTER, fitToPoints, type LeafletMap } from '@/utils/leaflet'
+import { DEFAULT_MAP_CENTER, fitToPoints, withNearby, type LeafletMap } from '@/utils/leaflet'
 import { latLngsOf, type LatLng } from '@/utils/geo'
 import { addedStretches, phoneStretches } from '@/utils/tripSources'
 import PhoneSourceKey from './PhoneSourceKey.vue'
@@ -72,9 +72,12 @@ function markerClass(which: 'start' | 'end'): string {
 const MARKER_SIZE: [number, number] = [44, 44]
 const MARKER_ANCHOR: [number, number] = [22, 22]
 
+// Framed on the route; a parking spot either side joins it only when it is close by, since one
+// 40 km away would leave the route a few pixels long. The map does not follow later edits, so a
+// marker never moves out from under the finger.
 function onMapReady(map: LeafletMap) {
   bindMapReady(map, (ready) =>
-    fitToPoints(ready, [...latLngsOf(props.recorded), ...line.value, ...stops.value], 48),
+    fitToPoints(ready, withNearby([...latLngsOf(props.recorded), ...line.value], stops.value), 48),
   )
 }
 

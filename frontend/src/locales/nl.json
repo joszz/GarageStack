@@ -886,6 +886,11 @@
       "points": "Tik op de kaart om een punt toe te voegen, of tik op een punt om het te selecteren."
     },
     "pointLimit": "Deze route heeft het maximale aantal punten. Verwijder er een om een nieuw punt toe te voegen.",
+    "leaveConfirm": "Weggaan zonder op te slaan? De wijzigingen aan deze route gaan verloren.",
+    "noPreviousStop": "Er is geen parkeerplek bekend van voor deze rit.",
+    "atPreviousStop": "De rit begint al op de vorige parkeerplek.",
+    "noNextStop": "Er is geen parkeerplek bekend van na deze rit.",
+    "atNextStop": "De rit eindigt al op de volgende parkeerplek.",
     "removePoint": "Punt verwijderen",
     "undo": "Ongedaan maken",
     "reset": "Terug naar opname",

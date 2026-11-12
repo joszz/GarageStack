@@ -55,6 +55,19 @@ export function fitToBounds(map: LeafletMap, bounds: LatLngBounds, padding: FitP
   }
 }
 
+/**
+ * `route` plus those of `extras` that lie near it: within half the route's own size of its bounds.
+ * Framing a short trip together with a parking spot far away would shrink the trip to a few pixels.
+ */
+export function withNearby(
+  route: readonly [number, number][],
+  extras: readonly [number, number][],
+): [number, number][] {
+  if (route.length === 0) return [...extras]
+  const near = L.latLngBounds([...route]).pad(0.5)
+  return [...route, ...extras.filter((p) => near.contains(p))]
+}
+
 /** {@link fitToBounds} for a list of [lat, lng] points; no points leaves the map where it is. */
 export function fitToPoints(
   map: LeafletMap,
