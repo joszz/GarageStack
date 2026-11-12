@@ -33,7 +33,7 @@
     "leaflet": "^1.9.4",
     "leaflet.heat": "^1.0.0",
     "leaflet.markercluster": "^1.5.3",
-    "maplibre-gl": "^6.16.0",
+    "maplibre-gl": "^6.17.0",
     "pinia": "^4.1.0",
     "vue": "^3.5.45",
     "vue-chartjs": "^5.3.4",
