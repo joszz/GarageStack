@@ -5,7 +5,6 @@ using GarageStack.Core.Interfaces;
 using GarageStack.Core.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Npgsql;
 
 namespace GarageStack.Data.Repositories;
 
@@ -68,9 +67,17 @@ public sealed class PhoneFusionRepository(
             if (trips.Count < 500) db.PhoneBackfillRequests.Remove(request);
             else request.AfterTripId = trips[^1].Id;
         }
-        await db.SaveChangesAsync(ct);
-        if (transaction is not null) await transaction.CommitAsync(ct);
-        db.ChangeTracker.Clear();
+        try
+        {
+            await db.SaveChangesAsync(ct);
+            if (transaction is not null) await transaction.CommitAsync(ct);
+        }
+        catch (Exception ex) when (PostgresErrors.IsSerializationFailure(ex))
+        {
+            // A trip edited meanwhile; the next pass queues the requests again.
+            logger.LogInformation("Phone backfill deferred after a concurrent change");
+        }
+        finally { db.ChangeTracker.Clear(); }
     }
 
     public async Task<IReadOnlyList<long>> PendingAsync(DateTime before, int limit, CancellationToken ct) =>
@@ -163,11 +170,7 @@ public sealed class PhoneFusionRepository(
             if (transaction is not null) await transaction.CommitAsync(ct);
             return trip.PhoneFusion;
         }
-        catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.SerializationFailure })
-        {
-            logger.LogInformation("Phone fusion deferred trip {TripId} after a concurrent change", work.TripId);
-        }
-        catch (PostgresException ex) when (ex.SqlState == PostgresErrorCodes.SerializationFailure)
+        catch (Exception ex) when (PostgresErrors.IsSerializationFailure(ex))
         {
             logger.LogInformation("Phone fusion deferred trip {TripId} after a concurrent change", work.TripId);
         }

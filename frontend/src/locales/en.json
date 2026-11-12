@@ -1071,6 +1071,7 @@
         "overlapsPrevious": "The trip cannot start before the trip before it ended.",
         "overlapsNext": "The trip cannot end after the next trip started.",
         "pointTooFast": "A stretch of this route would mean driving faster than 250 km/h.",
+        "changed": "This trip changed while you were editing it, for example by adding your phone's GPS. Nothing was saved. Reload the page and make the change again.",
         "routeUnreadable": "This trip's route cannot be read, so it cannot be edited."
       },
       "push": {

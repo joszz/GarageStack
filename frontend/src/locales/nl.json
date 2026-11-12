@@ -1071,6 +1071,7 @@
         "overlapsPrevious": "De rit kan niet beginnen voordat de rit ervoor was afgelopen.",
         "overlapsNext": "De rit kan niet eindigen nadat de volgende rit begon.",
         "pointTooFast": "Een stuk van deze route zou betekenen dat er harder dan 250 km/u is gereden.",
+        "changed": "Deze rit is veranderd terwijl je hem bewerkte, bijvoorbeeld doordat de gps van je telefoon is toegevoegd. Er is niets opgeslagen. Laad de pagina opnieuw en breng de wijziging nog eens aan.",
         "routeUnreadable": "De route van deze rit kan niet worden gelezen, dus hij kan niet worden bewerkt."
       },
       "push": {

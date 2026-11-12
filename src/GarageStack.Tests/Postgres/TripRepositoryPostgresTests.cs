@@ -162,4 +162,45 @@ public class TripRepositoryPostgresTests
         Assert.Null(trip.OriginalPointsJson);
         Assert.Null(trip.EditedAt);
     }
+
+    [Fact]
+    public async Task AnEdit_IsRefused_WhenTheTripChangesUnderIt_AndAPurposeIsNot()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var database = await PostgresDatabase.CreateAsync(ct);
+        await using var db = database.CreateContext();
+        var vehicleId = await AddVehicleAsync(db, ct);
+        await Repository(db).SaveRecordedAsync(vehicleId, [Leg(T0, 52.0, 52.1)], T0.AddHours(1), ct);
+        var id = await db.Trips.Select(t => t.Id).SingleAsync(ct);
+
+        // The Worker's phone fusion, holding the trip's row until it commits.
+        await using var fusion = database.CreateContext();
+        await using var fusing = await fusion.Database.BeginTransactionAsync(ct);
+        await fusion.Trips.Where(t => t.Id == id)
+            .ExecuteUpdateAsync(s => s.SetProperty(t => t.PhoneFusion, PhoneFusionOutcome.Fused), ct);
+
+        await using var editing = database.CreateContext();
+        var edit = Repository(editing).SetPointsAsync(vehicleId, id,
+            [new(new DateTimeOffset(T0), 52.0, 5.0), new(new DateTimeOffset(T0.AddMinutes(10)), 52.1, 5.0)], ct);
+        // The edit has read the trip and now waits on the row; only then does the fusion commit.
+        // Watched from a connection of its own: inside a transaction pg_stat_activity stands still.
+        await using var watch = database.CreateContext();
+        while (!edit.IsCompleted && await watch.Database
+                   .SqlQueryRaw<int>("SELECT count(*)::int AS \"Value\" FROM pg_stat_activity WHERE wait_event_type = 'Lock' AND datname = current_database()")
+                   .SingleAsync(ct) == 0)
+            await Task.Delay(20, ct);
+        await fusing.CommitAsync(ct);
+        var refused = await edit;
+
+        await using var purposes = database.CreateContext();
+        var labelled = await Repository(purposes).SetPurposeAndNotesAsync(vehicleId, id, TripPurpose.Business, null, ct);
+
+        await using var check = database.CreateContext();
+        var trip = await check.Trips.SingleAsync(ct);
+        Assert.Equal(TripEditOutcome.Conflict, refused.Outcome);
+        Assert.Equal(PhoneFusionOutcome.Fused, trip.PhoneFusion);
+        Assert.Null(trip.EditedAt);
+        Assert.NotNull(labelled);
+        Assert.Equal(TripPurpose.Business, trip.Purpose);
+    }
 }

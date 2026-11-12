@@ -1071,6 +1071,7 @@
         "overlapsPrevious": "El viaje no puede comenzar antes que el viaje anterior a su finalización.",
         "overlapsNext": "El viaje no puede finalizar después de que haya comenzado el siguiente viaje.",
         "pointTooFast": "Un tramo de esta ruta supondría circular a más de 250 km/h.",
+        "changed": "Este viaje cambió mientras lo editabas, por ejemplo al añadir el GPS de tu teléfono. No se ha guardado nada. Vuelve a cargar la página y repite el cambio.",
         "routeUnreadable": "La ruta de este viaje no se puede leer, por lo que no se puede editar."
       },
       "push": {
