@@ -73,6 +73,17 @@ public class LocalizedStringsTests
     }
 
     [Fact]
+    public void NotificationStrings_ResolvePortuguese_WhenUiCultureIsPortuguese()
+    {
+        var strings = WorkerLocalizer.Notifications();
+
+        var title = WithUiCulture("pt", () => strings["EngineStartTitle"]);
+
+        Assert.False(title.ResourceNotFound);
+        Assert.Equal("Motor ligado", title.Value);
+    }
+
+    [Fact]
     public void WidgetStrings_ResolveDutch_WhenUiCultureIsDutch()
     {
         var strings = Resolve<WidgetStrings>();
@@ -92,5 +103,16 @@ public class LocalizedStringsTests
 
         Assert.False(locked.ResourceNotFound);
         Assert.Equal("Bloqueado", locked.Value);
+    }
+
+    [Fact]
+    public void WidgetStrings_ResolvePortuguese_WhenUiCultureIsPortuguese()
+    {
+        var strings = Resolve<WidgetStrings>();
+
+        var locked = WithUiCulture("pt", () => strings["Locked"]);
+
+        Assert.False(locked.ResourceNotFound);
+        Assert.Equal("Trancado", locked.Value);
     }
 }
