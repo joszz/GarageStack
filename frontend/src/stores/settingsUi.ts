@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
-import { computed, reactive, toRefs, watch } from 'vue'
-import type { Theme, Locale, VehicleTypeOverride } from './settingsShared'
+import { computed, reactive, ref, toRefs, watch } from 'vue'
+import type { Theme, ThemeChoice, Locale, VehicleTypeOverride } from './settingsShared'
 import {
   osPreferredTheme,
   browserLocale,
@@ -46,7 +46,7 @@ const STORAGE_KEY = 'garagestack-settings-ui'
 export const DEFAULT_FILTER_DAYS = 7
 
 interface UiSettings {
-  theme: Theme
+  theme: ThemeChoice
   locale: Locale
   showCardInfoIcons: boolean
   placeNamesEnabled: boolean
@@ -64,7 +64,7 @@ interface UiSettings {
 
 function defaultsFor(): UiSettings {
   return {
-    theme: osPreferredTheme(),
+    theme: 'system',
     locale: browserLocale(),
     showCardInfoIcons: true,
     placeNamesEnabled: true,
@@ -82,7 +82,7 @@ function defaultsFor(): UiSettings {
   }
 }
 
-const THEMES: readonly Theme[] = ['dark', 'light']
+const THEMES: readonly ThemeChoice[] = ['dark', 'light', 'system']
 const LOCALES: readonly Locale[] = ['en', 'nl', 'es', 'pt']
 const VEHICLE_TYPE_OVERRIDES: readonly VehicleTypeOverride[] = ['auto', 'hev', 'phev', 'bev']
 const CAR_COLOR_SCHEME_IDS = CAR_COLOR_SCHEMES.map((s) => s.id)
@@ -198,12 +198,18 @@ export const useUiSettingsStore = defineStore('settingsUi', () => {
     localKeys: ['notificationTypeExclusions'],
   })
 
-  // The theme and the car's colours live on the document, so they follow the setting at once.
-  watch(
-    () => settings.theme,
-    (theme) => applyTheme(theme),
-    { immediate: true },
+  // What this device prefers, kept current: "system" follows it when the OS switches at sunset.
+  const osTheme = ref<Theme>(osPreferredTheme())
+  const osQuery = window.matchMedia('(prefers-color-scheme: light)')
+  osQuery.addEventListener?.('change', () => (osTheme.value = osPreferredTheme()))
+
+  /** The theme the page is drawn in: the setting, with "system" resolved on this device. */
+  const effectiveTheme = computed<Theme>(() =>
+    settings.theme === 'system' ? osTheme.value : settings.theme,
   )
+
+  // The theme and the car's colours live on the document, so they follow the setting at once.
+  watch(effectiveTheme, (theme) => applyTheme(theme), { immediate: true })
   watch(() => settings.carColorScheme, applyCarColors, { immediate: true })
 
   // Detected once per page load: what this device says, so "auto" can differ between devices
@@ -224,6 +230,7 @@ export const useUiSettingsStore = defineStore('settingsUi', () => {
 
   return {
     ...toRefs(settings),
+    effectiveTheme,
     detectedRegion,
     effectiveRegion,
     effectiveHourCycle,

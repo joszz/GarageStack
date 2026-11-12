@@ -62,18 +62,6 @@
   width: 100%;
 }
 
-.settings-toggle__side-icon {
-  display: flex;
-  align-items: center;
-  font-size: 1rem;
-  color: var(--color-text-muted);
-  transition: color 0.15s;
-}
-
-.settings-toggle__side-icon--active {
-  color: var(--color-primary);
-}
-
 .notif-type-filter {
   padding: 0.25rem 0 0.5rem;
 }
@@ -185,6 +173,42 @@
 .settings-tabs__tab:focus-visible {
   outline: var(--focus-ring);
   outline-offset: -2px;
+}
+
+/* On a phone the tabs get a row of their own under the title, and only the chosen tab spells out
+   its name: the rest are icons (named by aria-label and title), so every tab is in view instead
+   of the last ones hiding past the edge. */
+@media (width <= 767px) {
+  .detail-modal--with-navigation .detail-modal__header {
+    grid-template-areas:
+      'title close'
+      'navigation navigation';
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .settings-tabs {
+    justify-content: flex-start;
+  }
+
+  .settings-tabs__tab:not([aria-selected='true']) .settings-tabs__label {
+    display: none;
+  }
+
+  .settings-tabs__tab:not([aria-selected='true']) {
+    justify-content: center;
+    min-width: 44px;
+  }
+}
+
+/* The narrowest phones: six tabs fit at 40px, still above the 24px minimum. */
+@media (width <= 359px) {
+  .settings-tabs__tab {
+    padding-inline: 0.5rem;
+  }
+
+  .settings-tabs__tab:not([aria-selected='true']) {
+    min-width: 40px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

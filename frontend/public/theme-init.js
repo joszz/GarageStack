@@ -7,6 +7,7 @@
   let theme = 'dark'
   try {
     const saved = JSON.parse(localStorage.getItem('garagestack-settings-ui') ?? '{}').theme
+    // "system", or nothing saved yet, follows the OS preference below.
     if (saved === 'dark' || saved === 'light') theme = saved
     else if (matchMedia('(prefers-color-scheme: light)').matches) theme = 'light'
   } catch {

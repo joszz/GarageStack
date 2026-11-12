@@ -19,6 +19,14 @@
     background 0.15s;
 }
 
+/* A touch screen gets the 40px the other top bar buttons have (main.css). */
+@media (pointer: coarse) {
+  .notif-bell {
+    width: 40px;
+    height: 40px;
+  }
+}
+
 .notif-bell:hover {
   background: var(--color-surface-2);
   color: var(--color-text);

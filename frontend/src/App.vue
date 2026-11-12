@@ -16,6 +16,7 @@ import { useNotifications, prependNotification } from '@/composables/useNotifica
 import { useBrowserNotifications } from '@/composables/useBrowserNotifications'
 import { useSignalR } from '@/composables/useSignalR'
 import { useFavicon } from '@/composables/useFavicon'
+import { usePageTitle } from '@/composables/usePageTitle'
 import { useRelativeTime } from '@/composables/useRelativeTime'
 import { useEscapeKey } from '@/composables/useEscapeKey'
 import { formatDateTime, formatTime } from '@/utils/format'
@@ -97,6 +98,7 @@ onBeforeUnmount(() => {
 })
 
 useFavicon()
+usePageTitle()
 const browserNotifications = useBrowserNotifications()
 
 const {
@@ -221,6 +223,8 @@ watch(
         <font-awesome-icon icon="car" />
         GarageStack
       </RouterLink>
+      <!-- Refresh and Settings, which AppFooter moves here on a phone. -->
+      <div id="mobile-topbar-actions" class="mobile-topbar__actions" />
       <button class="notif-bell" :aria-label="notificationsLabel" @click="togglePanel">
         <font-awesome-icon icon="bell" />
         <span v-if="unreadCount > 0" class="notif-bell__badge" aria-hidden="true">{{
@@ -381,6 +385,8 @@ watch(
             <font-awesome-icon icon="arrow-right-from-bracket" />
             <span>{{ t('auth.logout') }}</span>
           </button>
+          <!-- The copyright and the update notice, which AppFooter moves here on a phone. -->
+          <div id="sidebar-meta" class="sidebar-meta" />
         </div>
       </nav>
 

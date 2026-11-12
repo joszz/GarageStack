@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { flushPromises, mount, shallowMount } from '@vue/test-utils'
 import { createI18n } from 'vue-i18n'
 import AppFooter from '../AppFooter.vue'
+import { PHONE_MEDIA_QUERY } from '@/utils/viewport'
 
 const appVersion = vi.hoisted(() => ({ value: null as string | null }))
 
@@ -61,7 +62,7 @@ const i18n = createI18n({ legacy: false, locale: 'en', missingWarn: false, fallb
 
 function mountFooter() {
   return shallowMount(AppFooter, {
-    global: { plugins: [i18n], stubs: { FontAwesomeIcon: true } },
+    global: { plugins: [i18n], stubs: { FontAwesomeIcon: true, teleport: false } },
   })
 }
 
@@ -75,7 +76,7 @@ describe('AppFooter', () => {
 
   it('loads the settings modal on first use and opens it after mounting it closed', async () => {
     const wrapper = mount(AppFooter, {
-      global: { plugins: [i18n], stubs: { FontAwesomeIcon: true } },
+      global: { plugins: [i18n], stubs: { FontAwesomeIcon: true, teleport: false } },
     })
     expect(wrapper.findComponent({ name: 'SettingsModal' }).exists()).toBe(false)
 
@@ -85,6 +86,34 @@ describe('AppFooter', () => {
     // Closed first, then open: arriving already open would skip the entrance transition.
     expect(modalOpenHistory).toEqual([false, true])
     expect(wrapper.findComponent({ name: 'SettingsModal' }).props('open')).toBe(true)
+  })
+
+  it('moves the buttons to the top bar and the copyright to the menu on a phone', async () => {
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      matches: query === PHONE_MEDIA_QUERY,
+      media: query,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    }))
+    const topbar = document.body.appendChild(document.createElement('div'))
+    topbar.id = 'mobile-topbar-actions'
+    const menu = document.body.appendChild(document.createElement('div'))
+    menu.id = 'sidebar-meta'
+
+    const wrapper = mount(AppFooter, {
+      attachTo: document.body,
+      global: { plugins: [i18n], stubs: { FontAwesomeIcon: true } },
+    })
+    await flushPromises()
+
+    expect(topbar.querySelector('button[aria-label="settings.title"]')).not.toBeNull()
+    expect(menu.querySelector('.app-footer__copyright')).not.toBeNull()
+    expect(wrapper.find('.app-footer__copyright').exists()).toBe(false)
+
+    wrapper.unmount()
+    topbar.remove()
+    menu.remove()
+    vi.unstubAllGlobals()
   })
 
   it('separates the project name and version with a space', () => {

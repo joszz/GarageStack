@@ -537,9 +537,10 @@
     "title": "Configurações",
     "theme": {
       "title": "Aparência",
-      "light": "Modo claro",
-      "dark": "Modo escuro",
-      "lightDesc": "Alternar entre tema escuro e claro"
+      "light": "Claro",
+      "dark": "Escuro",
+      "system": "Sistema",
+      "desc": "Sistema segue a configuração clara ou escura deste dispositivo."
     },
     "language": {
       "title": "Idioma"
@@ -756,6 +757,8 @@
     "year": "Ano",
     "month": "Mês",
     "wholeYear": "Ano inteiro",
+    "moreFigures": "Mostrar finalidades e dados de condução",
+    "fewerFigures": "Ocultar finalidades e dados de condução",
     "totalsLabel": "Distância por finalidade",
     "totalLabel": "{purpose} ({n})",
     "classifyAll": "{n} viagem ({distance}) ainda não tem finalidade. Marcar como: | {n} viagens ({distance}) ainda não têm finalidade. Marcar todas como:",

@@ -10,6 +10,8 @@ declare module 'vue-router' {
     public?: boolean
     /** Other origins the view fetches from as it first renders (see preconnectRouteOrigins). */
     preconnect?: readonly string[]
+    /** The locale key of the view's name, which the browser tab shows (see usePageTitle). */
+    titleKey?: string
   }
 }
 
@@ -20,49 +22,56 @@ const router = createRouter({
       path: '/login',
       name: 'login',
       component: () => import('@/views/LoginView.vue'),
-      meta: { public: true },
+      meta: { public: true, titleKey: 'auth.login' },
     },
     {
       path: '/',
       name: 'dashboard',
       component: () => import('@/views/DashboardView.vue'),
       // The map card's first raster tile is the dashboard's largest paint.
-      meta: { preconnect: [RASTER_TILE_ORIGIN] },
+      meta: { preconnect: [RASTER_TILE_ORIGIN], titleKey: 'nav.dashboard' },
     },
     {
       path: '/statistics',
       name: 'statistics',
+      meta: { titleKey: 'nav.statistics' },
       component: () => import('@/views/StatisticsView.vue'),
     },
     {
       path: '/map',
       name: 'map',
+      meta: { titleKey: 'nav.map' },
       component: () => import('@/views/MapView.vue'),
     },
     {
       path: '/trip-log',
       name: 'tripLog',
+      meta: { titleKey: 'nav.tripLog' },
       component: () => import('@/views/TripLogView.vue'),
     },
     {
       // A saved trip's route, opened from the trip log or the map.
       path: '/trips/:id(\\d+)/edit',
       name: 'tripEdit',
+      meta: { titleKey: 'tripEdit.title' },
       component: () => import('@/views/TripEditView.vue'),
     },
     {
       path: '/climate-schedules',
       name: 'climateSchedules',
+      meta: { titleKey: 'nav.climateSchedules' },
       component: () => import('@/views/ClimateSchedulesView.vue'),
     },
     {
       path: '/maintenance',
       name: 'maintenance',
+      meta: { titleKey: 'nav.maintenance' },
       component: () => import('@/views/MaintenanceView.vue'),
     },
     {
       path: '/logs',
       name: 'logs',
+      meta: { titleKey: 'nav.logs' },
       component: () => import('@/views/LogsView.vue'),
     },
     {

@@ -78,7 +78,7 @@ export interface BasemapOptions {
  * Every map in the app goes through here, so this is the one place that decides how a map looks.
  */
 export function useBasemap(mapInstance: Ref<LeafletMap | null>, options: BasemapOptions = {}) {
-  const { theme, locale, colorfulMaps } = storeToRefs(useUiSettingsStore())
+  const { effectiveTheme: theme, locale, colorfulMaps } = storeToRefs(useUiSettingsStore())
   // A theme switch while colourful maps are on changes nothing on the map, and so fetches nothing.
   const variant = computed(() => basemapVariant(theme.value, colorfulMaps.value))
 

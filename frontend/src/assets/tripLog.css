@@ -53,6 +53,11 @@
   }
 }
 
+/* Only a phone draws the button that folds the figures away (see the Phones section). */
+.trip-log-figures > .trip-log-figures__toggle {
+  display: none;
+}
+
 /* ── Classify every unclassified trip at once ─────────────── */
 
 .trip-log-bulk {
@@ -611,5 +616,20 @@
   .trip-log-totals,
   .trip-log-summary {
     gap: 0.5rem;
+  }
+
+  /* Folded: "All trips" stays, the purposes and the driving figures wait behind the button. */
+  .trip-log-figures:not(.trip-log-figures--open) .trip-log-totals > :not(.trip-log-totals__all),
+  .trip-log-figures:not(.trip-log-figures--open) .trip-log-summary {
+    display: none;
+  }
+
+  .trip-log-figures > .trip-log-figures__toggle {
+    display: inline-flex;
+    margin-bottom: 1rem;
+  }
+
+  .trip-log-figures--open .trip-log-figures__chevron {
+    transform: rotate(180deg);
   }
 }

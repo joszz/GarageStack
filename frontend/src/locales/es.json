@@ -537,9 +537,10 @@
     "title": "Ajustes",
     "theme": {
       "title": "Apariencia",
-      "light": "Modo de luz",
-      "dark": "Modo oscuro",
-      "lightDesc": "Cambiar entre tema oscuro y claro"
+      "light": "Claro",
+      "dark": "Oscuro",
+      "system": "Sistema",
+      "desc": "Sistema sigue el ajuste claro u oscuro de este dispositivo."
     },
     "language": {
       "title": "Idioma"
@@ -756,6 +757,8 @@
     "year": "Año",
     "month": "Mes",
     "wholeYear": "Año completo",
+    "moreFigures": "Mostrar motivos y cifras de conducción",
+    "fewerFigures": "Ocultar motivos y cifras de conducción",
     "totalsLabel": "Distancia por propósito",
     "totalLabel": "{purpose} ({n})",
     "classifyAll": "Hay {n} trayecto ({distance}) sin clasificar. Asígnale un propósito: | Hay {n} trayectos ({distance}) sin clasificar. Asígnales un propósito:",

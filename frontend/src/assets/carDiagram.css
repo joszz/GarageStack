@@ -217,6 +217,15 @@
   cursor: pointer;
 }
 
+/* On a touch screen the label's hit area reaches past its 21px height, without changing its look. */
+@media (pointer: coarse) {
+  .tyre-label::before {
+    content: '';
+    position: absolute;
+    inset: -12px -4px;
+  }
+}
+
 /* Each tyre label opens the tyre history, and each level badge (below) its own history. */
 .tyre-label:hover,
 .tyre-label:focus-visible,

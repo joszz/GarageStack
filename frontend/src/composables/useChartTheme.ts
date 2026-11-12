@@ -19,7 +19,7 @@ export function useChartTheme() {
   const settings = useUiSettingsStore()
   return computed<ChartTheme>(() => {
     // Read for the dependency: the values come from the stylesheet, not from the setting.
-    void settings.theme
+    void settings.effectiveTheme
     const style = getComputedStyle(document.documentElement)
     const token = (name: string, fallback: string) =>
       style.getPropertyValue(name).trim() || fallback

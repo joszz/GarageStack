@@ -9,7 +9,7 @@ import SettingsToggle from '../SettingsToggle.vue'
 import RegionalSettings from '../RegionalSettings.vue'
 import SettingsSelect from '../SettingsSelect.vue'
 import SettingsSection from './SettingsSection.vue'
-import SideIconSwitch from './SideIconSwitch.vue'
+import ChipGroup from '../ChipGroup.vue'
 import CarColorPicker from './CarColorPicker.vue'
 import VehicleTypeSetting from './VehicleTypeSetting.vue'
 import LicensePlateSetting from './LicensePlateSetting.vue'
@@ -17,6 +17,8 @@ import NotificationTypeSettings from './NotificationTypeSettings.vue'
 import ApiTokenSettings from './ApiTokenSettings.vue'
 import PhoneGpsSettings from './PhoneGpsSettings.vue'
 import { apiUrl } from '@/services/apiCore'
+import type { ChipOption } from '@/utils/chips'
+import type { ThemeChoice } from '@/stores/settingsShared'
 
 const props = defineProps<{ open: boolean }>()
 defineEmits<{ close: [] }>()
@@ -98,12 +100,12 @@ watch(
   { immediate: true },
 )
 
-const isLightTheme = computed({
-  get: () => settings.theme === 'light',
-  set: (val: boolean) => {
-    settings.theme = val ? 'light' : 'dark'
-  },
-})
+// Says what each choice does, rather than a switch whose label names the current theme.
+const themeOptions = computed((): ChipOption<ThemeChoice>[] => [
+  { value: 'light', label: t('settings.theme.light'), icon: 'sun' },
+  { value: 'dark', label: t('settings.theme.dark'), icon: 'moon' },
+  { value: 'system', label: t('settings.theme.system'), icon: 'circle-half-stroke' },
+])
 
 const languageOptions = [
   { value: 'en', label: 'English' },
@@ -134,13 +136,15 @@ const languageOptions = [
             :data-tab="tab.id"
             :aria-selected="activeTab === tab.id"
             :aria-controls="`${id}-panel-${tab.id}`"
-            :aria-label="tab.id === 'phone' ? t('settings.tabs.phone') : undefined"
-            :title="tab.id === 'phone' ? t('settings.tabs.phone') : undefined"
+            :aria-label="t(`settings.tabs.${tab.id}`)"
+            :title="t(`settings.tabs.${tab.id}`)"
             :tabindex="activeTab === tab.id ? 0 : -1"
             @click="selectTab(tab.id)"
           >
             <font-awesome-icon :icon="tab.icon" aria-hidden="true" />
-            {{ t(`settings.tabs.${tab.id === 'phone' ? 'phoneShort' : tab.id}`) }}
+            <span class="settings-tabs__label">{{
+              t(`settings.tabs.${tab.id === 'phone' ? 'phoneShort' : tab.id}`)
+            }}</span>
           </button>
         </div>
       </div>
@@ -155,15 +159,12 @@ const languageOptions = [
       >
         <SettingsSection :title="t('settings.theme.title')">
           <div class="settings-toggles">
-            <SideIconSwitch
-              v-model="isLightTheme"
-              :label="isLightTheme ? t('settings.theme.light') : t('settings.theme.dark')"
-              :desc="t('settings.theme.lightDesc')"
-              input-id="footer-toggle-theme"
-            >
-              <template #off><font-awesome-icon icon="moon" /></template>
-              <template #on><font-awesome-icon icon="sun" /></template>
-            </SideIconSwitch>
+            <ChipGroup
+              v-model="settings.theme"
+              :options="themeOptions"
+              :group-label="t('settings.theme.title')"
+            />
+            <p class="text-xs text-muted">{{ t('settings.theme.desc') }}</p>
           </div>
         </SettingsSection>
 

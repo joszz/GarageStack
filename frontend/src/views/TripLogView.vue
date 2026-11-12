@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import '@/assets/tripLog.css'
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, useId, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useVehicleStore } from '@/stores/vehicle'
 import { useTripLogStore } from '@/stores/tripLog'
@@ -37,6 +37,11 @@ const store = useTripLogStore()
 const commutePlaces = useCommutePlacesStore()
 const uiSettings = useUiSettingsStore()
 const units = useUnits()
+
+// On a phone the purposes and driving figures fold away behind one button, so the first trip is
+// on the first screen; wider screens always show them, and the button is not drawn there.
+const figuresId = useId()
+const figuresOpen = ref(false)
 const errorMessage = useErrorMessage()
 
 const vin = computed(() => vehicleStore.activeVin)
@@ -319,39 +324,61 @@ function exportCsv() {
       </label>
     </div>
 
-    <section class="trip-log-totals" :aria-label="t('tripLog.totalsLabel')">
-      <StatusCard
-        class="trip-log-totals__all"
-        icon="car"
-        :label="t('tripLog.allTrips', { n: store.summary.trips })"
-        :value="allTrips?.value ?? null"
-        :unit="allTrips?.unit"
-      />
-      <StatusCard
-        v-for="card in purposeCards"
-        :key="card.key"
-        :icon="PURPOSE_ICONS[card.key]"
-        :label="card.label"
-        :value="card.value"
-        :unit="units.symbol('distance')"
-        :variant="card.variant"
-        :note="card.note"
-        :share="card.share"
-        :share-label="card.note"
-      />
-    </section>
+    <div class="trip-log-figures" :class="{ 'trip-log-figures--open': figuresOpen }">
+      <section
+        :id="`${figuresId}-totals`"
+        class="trip-log-totals"
+        :aria-label="t('tripLog.totalsLabel')"
+      >
+        <StatusCard
+          class="trip-log-totals__all"
+          icon="car"
+          :label="t('tripLog.allTrips', { n: store.summary.trips })"
+          :value="allTrips?.value ?? null"
+          :unit="allTrips?.unit"
+        />
+        <StatusCard
+          v-for="card in purposeCards"
+          :key="card.key"
+          :icon="PURPOSE_ICONS[card.key]"
+          :label="card.label"
+          :value="card.value"
+          :unit="units.symbol('distance')"
+          :variant="card.variant"
+          :note="card.note"
+          :share="card.share"
+          :share-label="card.note"
+        />
+      </section>
 
-    <section class="trip-log-summary" :aria-label="t('tripLog.summary.label')">
-      <StatusCard
-        v-for="card in summaryCards"
-        :key="card.key"
-        :icon="card.icon"
-        :label="card.label"
-        :value="card.value"
-        :unit="card.unit"
-        :subtitle="card.subtitle"
-      />
-    </section>
+      <button
+        type="button"
+        class="btn btn-outline-secondary btn-sm trip-log-figures__toggle"
+        :aria-expanded="figuresOpen"
+        :aria-controls="`${figuresId}-totals ${figuresId}-summary`"
+        @click="figuresOpen = !figuresOpen"
+      >
+        <font-awesome-icon icon="chevron-down" class="trip-log-figures__chevron" />{{
+          figuresOpen ? t('tripLog.fewerFigures') : t('tripLog.moreFigures')
+        }}
+      </button>
+
+      <section
+        :id="`${figuresId}-summary`"
+        class="trip-log-summary"
+        :aria-label="t('tripLog.summary.label')"
+      >
+        <StatusCard
+          v-for="card in summaryCards"
+          :key="card.key"
+          :icon="card.icon"
+          :label="card.label"
+          :value="card.value"
+          :unit="card.unit"
+          :subtitle="card.subtitle"
+        />
+      </section>
+    </div>
 
     <div v-if="unclassified > 0 && !store.loading" class="trip-log-bulk">
       <span class="text-sm">

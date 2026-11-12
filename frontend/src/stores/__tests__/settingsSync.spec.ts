@@ -220,6 +220,6 @@ describe('settings kept on the account', () => {
     answer({ ui: { theme: 'light' } })
     await ready
 
-    expect(ui.theme).toBe('dark')
+    expect(ui.theme).toBe('system')
   })
 })
