@@ -885,6 +885,12 @@
       "end": "Toque no mapa onde a viagem terminou ou arraste o marcador vermelho.",
       "points": "Toque no mapa para adicionar um ponto ou toque em um ponto para selecioná-lo."
     },
+    "pointLimit": "Esta rota já tem o máximo de pontos que comporta. Remova um para adicionar outro.",
+    "leaveConfirm": "Sair sem salvar? As alterações nesta rota serão perdidas.",
+    "noPreviousStop": "Não há estacionamento conhecido antes desta viagem.",
+    "atPreviousStop": "A viagem já começa no estacionamento anterior.",
+    "noNextStop": "Não há estacionamento conhecido depois desta viagem.",
+    "atNextStop": "A viagem já termina no próximo estacionamento.",
     "removePoint": "Remover ponto",
     "undo": "Desfazer",
     "reset": "Restaurar original",
@@ -1065,6 +1071,7 @@
         "overlapsPrevious": "A viagem não pode começar antes do fim da viagem anterior.",
         "overlapsNext": "A viagem não pode terminar depois do início da próxima.",
         "pointTooFast": "Um trecho deste trajeto exigiria dirigir a mais de 250 km/h.",
+        "changed": "Esta viagem mudou enquanto você a editava, por exemplo ao adicionar o GPS do celular. Nada foi salvo. Recarregue a página e faça a alteração novamente.",
         "routeUnreadable": "Não foi possível ler o trajeto desta viagem, então ela não pode ser editada."
       },
       "push": {
