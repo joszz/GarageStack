@@ -18,7 +18,7 @@ public static class GeocodeDefaults
     public static readonly TimeSpan NegativeTtl = TimeSpan.FromDays(1);
 
     /// <summary>The languages place names can be requested in, matching the frontend's locales.</summary>
-    public static readonly IReadOnlyList<string> SupportedLanguages = ["en", "nl", "es"];
+    public static readonly IReadOnlyList<string> SupportedLanguages = ["en", "nl", "es", "pt"];
 
     public const string DefaultLanguage = "en";
 

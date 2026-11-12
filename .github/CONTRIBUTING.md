@@ -51,7 +51,7 @@ To work against the full stack (real or self-provided credentials):
 
 ## Adding a language
 
-GarageStack ships in English, Dutch and Spanish. A new language touches these places (use its two-letter code, here `de`):
+GarageStack ships in English, Dutch, Spanish and Brazilian Portuguese. A new language touches these places (use its two-letter code, here `de`):
 
 - **Interface:** copy `frontend/src/locales/en.json` to `de.json` and translate the values; keys and `{placeholders}` stay as they are. English is the fallback for any key a language lacks.
 - **Language list:** add `'de'` to the `Locale` type in `frontend/src/stores/settingsShared.ts` (and to its browser-language guess just below it), a loader to `loadMessages` in `frontend/src/i18n.ts` (each language is a chunk fetched when first chosen), and its number and date locale in `frontend/src/utils/format.ts`.

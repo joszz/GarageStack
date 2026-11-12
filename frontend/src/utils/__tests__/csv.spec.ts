@@ -8,6 +8,7 @@ describe('csvFormatFor', () => {
   it('separates fields with semicolons where the comma is the decimal separator', () => {
     expect(csvFormatFor('nl-NL')).toEqual(semicolon)
     expect(csvFormatFor('es-ES')).toEqual(semicolon)
+    expect(csvFormatFor('pt-BR')).toEqual(semicolon)
   })
 
   it('uses commas where the point is the decimal separator', () => {

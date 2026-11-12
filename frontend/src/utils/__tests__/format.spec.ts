@@ -47,6 +47,14 @@ describe('format', () => {
     expect(formatDate(moment, { day: 'numeric', month: 'long' })).toBe('26 de septiembre')
   })
 
+  it('writes numbers and dates in Brazilian Portuguese conventions', () => {
+    i18n.global.locale.value = 'pt'
+
+    expect(numberLocale()).toBe('pt-BR')
+    expect(formatNumber(24852.4, 1, true)).toBe('24.852,4')
+    expect(formatDate(moment, { day: 'numeric', month: 'long' })).toBe('26 de setembro')
+  })
+
   it('keeps numbers in the interface language wherever the browser is', () => {
     setRegionalFormat({ region: 'NL', hourCycle: 'h23' })
 

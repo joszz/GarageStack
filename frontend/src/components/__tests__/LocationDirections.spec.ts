@@ -4,6 +4,7 @@ import { createI18n } from 'vue-i18n'
 import en from '@/locales/en.json'
 import nl from '@/locales/nl.json'
 import es from '@/locales/es.json'
+import pt from '@/locales/pt.json'
 import type { CarLocation } from '@/utils/carLocation'
 import LocationDirections from '../LocationDirections.vue'
 import { installFontAwesome } from '@/plugins/fontAwesome'
@@ -18,8 +19,11 @@ const location: CarLocation = {
   vehicleUpdatedAt: '2026-10-19T10:00:00Z',
 }
 
-function mountDirections(point: CarLocation | null = location, locale: 'en' | 'nl' | 'es' = 'en') {
-  const i18n = createI18n({ legacy: false, locale, messages: { en, nl, es } })
+function mountDirections(
+  point: CarLocation | null = location,
+  locale: 'en' | 'nl' | 'es' | 'pt' = 'en',
+) {
+  const i18n = createI18n({ legacy: false, locale, messages: { en, nl, es, pt } })
   return mount(LocationDirections, {
     props: { location: point, open: true },
     global: { plugins: [i18n], stubs: { FontAwesomeIcon: true, Teleport: true } },
@@ -91,9 +95,9 @@ describe('LocationDirections', () => {
     expect(getCurrentPosition).not.toHaveBeenCalled()
   })
 
-  it.each(['en', 'nl', 'es'] as const)('shows the controls in %s', (locale) => {
+  it.each(['en', 'nl', 'es', 'pt'] as const)('shows the controls in %s', (locale) => {
     const wrapper = mountDirections(location, locale)
-    const messages = { en, nl, es }[locale]
+    const messages = { en, nl, es, pt }[locale]
 
     expect(wrapper.text()).toContain(messages.directions.osm)
     expect(wrapper.text()).toContain(messages.directions.google)
@@ -102,7 +106,7 @@ describe('LocationDirections', () => {
   })
 
   it('updates the dialog when its language changes', async () => {
-    const i18n = createI18n({ legacy: false, locale: 'en', messages: { en, nl, es } })
+    const i18n = createI18n({ legacy: false, locale: 'en', messages: { en, nl, es, pt } })
     const wrapper = mount(LocationDirections, {
       props: { location, open: true },
       global: { plugins: [i18n], stubs: { FontAwesomeIcon: true, Teleport: true } },
