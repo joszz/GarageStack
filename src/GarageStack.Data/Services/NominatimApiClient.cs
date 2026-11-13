@@ -35,6 +35,9 @@ public sealed class NominatimApiClient(
     private static readonly TimeSpan GateTimeout = TimeSpan.FromSeconds(4);
     private static readonly TimeSpan RetryAfter429 = TimeSpan.FromSeconds(60);
 
+    // One place's address: a few KB.
+    private const long MaxResponseBytes = 1024 * 1024;
+
     /// <summary>Whether this deployment lets coordinates go to a geocoder at all (<see cref="GeocodingOptions.Enabled"/>).</summary>
     public bool IsEnabled => options.Enabled;
 
@@ -75,8 +78,7 @@ public sealed class NominatimApiClient(
 
             response.EnsureSuccessStatusCode();
 
-            await using var stream = await response.Content.ReadAsStreamAsync(ct);
-            var result = await JsonSerializer.DeserializeAsync<NominatimReverseResponse>(stream, cancellationToken: ct);
+            var result = await UpstreamJson.ReadAsync<NominatimReverseResponse>(response, MaxResponseBytes, ct);
             return result is null ? PlaceAddress.Empty : MapResponse(result);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)

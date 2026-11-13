@@ -1,5 +1,4 @@
 using System.Net.Http.Json;
-using System.Text.Json;
 using System.Text.Json.Serialization;
 using GarageStack.Core.Configuration;
 using GarageStack.Core.Helpers;
@@ -25,6 +24,9 @@ public sealed class ValhallaApiClient(
     ILogger<ValhallaApiClient> logger)
 {
     public const string HttpClientName = "valhalla";
+
+    // The edges of a matched trace: a long trip runs to a few MB.
+    private const long MaxResponseBytes = 16 * 1024 * 1024;
 
     /// <summary>Names the matcher whose answers the cache holds, so a switch invalidates them.</summary>
     public const string Provider = "valhalla";
@@ -91,8 +93,7 @@ public sealed class ValhallaApiClient(
 
             response.EnsureSuccessStatusCode();
 
-            await using var stream = await response.Content.ReadAsStreamAsync(ct);
-            var result = await JsonSerializer.DeserializeAsync<TraceAttributesResponse>(stream, cancellationToken: ct);
+            var result = await UpstreamJson.ReadAsync<TraceAttributesResponse>(response, MaxResponseBytes, ct);
             return result is null ? TraceMatch.NotMatched : MapResponse(result, points.Count);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
