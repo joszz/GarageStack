@@ -177,6 +177,12 @@
     padding: 1rem;
   }
 
+  /* Two figures to a row on a 390 px phone, where 10rem columns miss by a hair. */
+  .charge-history-item__details,
+  .charge-history-detail__metrics {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 8rem), 1fr));
+  }
+
   .charge-history-list,
   .charge-history-detail {
     gap: 0.5rem;
