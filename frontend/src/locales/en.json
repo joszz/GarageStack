@@ -64,6 +64,7 @@
   "dashboard": {
     "title": "Dashboard",
     "noData": "No data available",
+    "cardWithoutData": "Hidden until your car reports this",
     "editLayout": "Edit layout",
     "doneEditing": "Done",
     "resetLayout": "Reset to defaults",
@@ -76,7 +77,7 @@
       "fuelLevel": "Shows the current fuel tank level as a percentage.",
       "fuelRange": "Estimated remaining driving range based on the current fuel level.",
       "evBattery": "State of charge as a percentage. On a PHEV or BEV this is your electric range gauge. On an HEV the hybrid battery is small and managed automatically by the car, so the exact value is less meaningful day-to-day.",
-      "electricRange": "Distance the car estimates it can still drive on electricity alone, from the current state of charge. Only relevant for PHEV and BEV. Cold weather and motorway speeds shorten it. A range of zero is never reported, so an empty battery keeps showing the last few kilometres the car sent.",
+      "electricRange": "Distance the car estimates it can still drive on electricity alone, from the current state of charge. Only relevant for PHEV and BEV. Cold weather and motorway speeds shorten it. Some cars never report a range of zero, so an empty battery can keep showing the last few kilometres the car sent.",
       "charging": "Indicates whether the car is currently charging.",
       "odometer": "Total distance the car has traveled since manufacture.",
       "battery12v": "Voltage of the 12V auxiliary battery that powers the car's electronics.",

@@ -3,7 +3,8 @@ import { useI18n } from 'vue-i18n'
 import type { TelemetrySnapshot } from '@/services/vehicleApi'
 import { useVehicleStore } from '@/stores/vehicle'
 import type { LevelKind } from '@/composables/useStatisticsCharts'
-import { formatDateTime, formatNumber } from '@/utils/format'
+import { chargeEndPercent } from '@/utils/energy'
+import { formatDateTime } from '@/utils/format'
 import type { BadgeVariant } from '@/utils/levels'
 import { plugsIn } from '@/utils/vehicleType'
 import { useUnits } from './useUnits'
@@ -96,8 +97,7 @@ export function useLevelDetails(level: Ref<LevelKind>): Ref<LevelDetail[]> {
         key: 'lastEndSoc',
         icon: 'percent',
         label: t('vehicle.chargingSession.lastEndSoc'),
-        value:
-          s.lastChargeEndingPower === null ? null : `${formatNumber(s.lastChargeEndingPower, 0)}%`,
+        value: percent(chargeEndPercent(s)),
       },
     ]
   }

@@ -44,16 +44,26 @@ export function litresPer100Km(counter: number | null, distanceKm: number | null
 /**
  * The high-voltage battery as it should be shown, given what the deployment knows about the car.
  *
- * The gateway does not read capacity off the pack: it scales the BMS percentage by an EV-sized
- * default, which is right for a car that has one and off by a factor of forty on a hybrid whose
- * buffer is under 2 kWh (an MG HS Hybrid+ carries 1.83 kWh and is reported as 72.5). So a
- * configured capacity always wins, and a hybrid without one shows percentages only rather than
- * a confident wrong number of kWh.
+ * MG's API scales the BMS percentage by a nominal 72.5 kWh pack. The gateway replaces that with
+ * the real size only for the BEV series it has a table entry for (MG4, MG5, ZS EV and a few
+ * more) and passes 72.5 through for everything else. On a plain hybrid that is off by a factor
+ * of forty (an MG HS Hybrid+ carries 1.83 kWh), and on a plug-in hybrid by a factor of three or
+ * more (issue #571: a PHEV with a pack of about 23 kWh). So a configured capacity always wins,
+ * only a BEV falls back to the gateway's figure, and any other car shows percentages only rather
+ * than a confident wrong number of kWh.
  */
 export interface HvBatteryReading {
   socPercent: number | null
   storedKwh: number | null
   capacityKwh: number | null
+}
+
+/**
+ * Whether the gateway's kWh figures can be shown without a configured capacity: only on a BEV, the
+ * one drivetrain whose pack the gateway may know (see `hvBatteryReading`).
+ */
+export function trustsReportedKwh(vehicleType: VehicleType): boolean {
+  return vehicleType === 'bev'
 }
 
 export function hvBatteryReading(
@@ -62,7 +72,7 @@ export function hvBatteryReading(
   configuredCapacityKwh: number | null,
 ): HvBatteryReading {
   const reported = status.hvTotalCapacityKwh
-  const capacityKwh = configuredCapacityKwh ?? (vehicleType === 'hev' ? null : reported)
+  const capacityKwh = configuredCapacityKwh ?? (trustsReportedKwh(vehicleType) ? reported : null)
 
   // drivetrain/soc is the BMS reading itself. The ratio behind it is the fallback for a car that
   // publishes only the derived pair, and survives rescaling because both sides carry the same
@@ -82,12 +92,8 @@ export function hvBatteryReading(
 }
 
 /**
- * The energy in the battery at a reading, in kWh, or null when the deployment cannot know it.
- *
- * The gateway's drivetrain/soc_kwh is MG's nominal 72.5 kWh pack scaled by the state of charge,
- * except on the BEV series it has a table entry for. On a plug-in hybrid that reads about three
- * times the truth (issue #571: a pack of about 23 kWh). So a configured capacity always wins, only
- * a BEV falls back to the reported figure, and anything else gets no kWh at all.
+ * The energy in the battery at a reading, in kWh, or null when the deployment cannot know it: the
+ * same rule as `hvBatteryReading`, for a reading that carries drivetrain/soc_kwh.
  */
 export function trustedBatteryKwh(
   socPercent: number | null,
@@ -97,5 +103,45 @@ export function trustedBatteryKwh(
 ): number | null {
   if (configuredCapacityKwh !== null)
     return socPercent === null ? null : (configuredCapacityKwh * socPercent) / 100
-  return vehicleType === 'bev' ? reportedKwh : null
+  return trustsReportedKwh(vehicleType) ? reportedKwh : null
+}
+
+/**
+ * The battery level the last charge ended at, as a percentage.
+ *
+ * The gateway publishes lastChargeEndingPower in kWh on the same assumed capacity as
+ * totalBatteryCapacity (MG's nominal 72.5 kWh unless it knows the series), so their ratio is the
+ * BMS percentage on every car, whatever its real pack size (issue #573: 72.4 of 72.5 kWh is a
+ * full battery, not 72.4%). Without the capacity there is no percentage to give.
+ */
+export function chargeEndPercent(
+  status: Pick<TelemetrySnapshot, 'lastChargeEndingPower' | 'hvTotalCapacityKwh'>,
+): number | null {
+  const ended = status.lastChargeEndingPower
+  const capacity = status.hvTotalCapacityKwh
+  if (ended === null || capacity === null || capacity <= 0) return null
+  return Math.min(100, Math.max(0, (ended / capacity) * 100))
+}
+
+/**
+ * The onboard charger's power, from the two figures the gateway publishes.
+ *
+ * The gateway works out a single-phase and a three-phase figure from the same charger voltage and
+ * current, and the car does not say which kind of connection it is on. Both cannot be right: on a
+ * single-phase charger the three-phase figure reads about 58% of the truth, on a three-phase one the
+ * single-phase figure reads 1.7 times it (issue #570: 2.5 against 4.3 kW while the battery took
+ * 4.0). The battery's own charging power settles it, since what goes in at the plug only differs
+ * from it by the charger's losses. Without it the three-phase figure is shown, as before.
+ */
+export function chargerPowerKw(
+  singlePhaseKw: number | null,
+  threePhaseKw: number | null,
+  hvPowerKw: number | null,
+): number | null {
+  if (singlePhaseKw === null || threePhaseKw === null || hvPowerKw === null || hvPowerKw === 0)
+    return threePhaseKw ?? singlePhaseKw
+  const battery = Math.abs(hvPowerKw)
+  return Math.abs(singlePhaseKw - battery) < Math.abs(threePhaseKw - battery)
+    ? singlePhaseKw
+    : threePhaseKw
 }

@@ -39,9 +39,10 @@ function mountCard(props: Record<string, unknown> = {}) {
       chargingCableLock: null,
       obcPowerSinglePhase: null,
       obcPowerThreePhase: null,
+      hvPower: null,
       remainingChargingTime: null,
       bmsChargeStatus: null,
-      lastChargeEndingPower: null,
+      lastChargeEndPercent: null,
       chargingLastStartAt: null,
       chargingLastEndAt: null,
       chargingScheduleMode: null,
@@ -71,6 +72,18 @@ beforeEach(() => {
 })
 
 describe('ChargingSessionCard', () => {
+  // Issue #570: a single-phase charger showed its three-phase figure, in watts labelled kW.
+  it('sums up the phase figure that matches what the battery takes', () => {
+    const text = mountCard({
+      obcPowerSinglePhase: 4.34,
+      obcPowerThreePhase: 2.51,
+      hvPower: -4.0,
+      remainingChargingTime: 15,
+    }).text()
+
+    expect(text).toContain('4.3 kW · 15 min')
+  })
+
   it("words the car's charging state instead of the gateway's code", () => {
     const text = mountCard({ bmsChargeStatus: 'CONNECTED_NOT_CHARGING' }).text()
 
@@ -97,6 +110,13 @@ describe('ChargingSessionCard', () => {
 
     expect(text).toContain('Last charge started')
     expect(text).toContain('Last charge ended')
+  })
+
+  it('shows the level the last charge ended at as a whole percentage', () => {
+    const text = mountCard({ bmsChargeStatus: 'CHARGE_DONE', lastChargeEndPercent: 99.86 }).text()
+
+    expect(text).toContain('100%')
+    expect(text).toContain('Charge level at the end')
   })
 
   it('starts charging a car that is plugged in, until it reports charging', async () => {
