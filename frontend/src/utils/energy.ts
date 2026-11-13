@@ -103,6 +103,23 @@ export function trustedBatteryKwh(
 }
 
 /**
+ * The battery level the last charge ended at, as a percentage.
+ *
+ * The gateway publishes lastChargeEndingPower in kWh on the same assumed capacity as
+ * totalBatteryCapacity (MG's nominal 72.5 kWh unless it knows the series), so their ratio is the
+ * BMS percentage on every car, whatever its real pack size (issue #573: 72.4 of 72.5 kWh is a
+ * full battery, not 72.4%). Without the capacity there is no percentage to give.
+ */
+export function chargeEndPercent(
+  status: Pick<TelemetrySnapshot, 'lastChargeEndingPower' | 'hvTotalCapacityKwh'>,
+): number | null {
+  const ended = status.lastChargeEndingPower
+  const capacity = status.hvTotalCapacityKwh
+  if (ended === null || capacity === null || capacity <= 0) return null
+  return Math.min(100, Math.max(0, (ended / capacity) * 100))
+}
+
+/**
  * The onboard charger's power, from the two figures the gateway publishes.
  *
  * The gateway works out a single-phase and a three-phase figure from the same charger voltage and

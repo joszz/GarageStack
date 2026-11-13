@@ -42,7 +42,7 @@ function mountCard(props: Record<string, unknown> = {}) {
       hvPower: null,
       remainingChargingTime: null,
       bmsChargeStatus: null,
-      lastChargeEndingPower: null,
+      lastChargeEndPercent: null,
       chargingLastStartAt: null,
       chargingLastEndAt: null,
       chargingScheduleMode: null,
@@ -110,6 +110,13 @@ describe('ChargingSessionCard', () => {
 
     expect(text).toContain('Last charge started')
     expect(text).toContain('Last charge ended')
+  })
+
+  it('shows the level the last charge ended at as a whole percentage', () => {
+    const text = mountCard({ bmsChargeStatus: 'CHARGE_DONE', lastChargeEndPercent: 99.86 }).text()
+
+    expect(text).toContain('100%')
+    expect(text).toContain('Charge level at the end')
   })
 
   it('starts charging a car that is plugged in, until it reports charging', async () => {

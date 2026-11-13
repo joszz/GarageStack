@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
+  chargeEndPercent,
   chargerPowerKw,
   energyUnit,
   hvBatteryReading,
@@ -177,5 +178,28 @@ describe('chargerPowerKw', () => {
     expect(chargerPowerKw(3.68, null, -3.4)).toBe(3.68)
     expect(chargerPowerKw(null, 11, -10.4)).toBe(11)
     expect(chargerPowerKw(null, null, -3)).toBeNull()
+  })
+})
+
+describe('chargeEndPercent', () => {
+  it('reads the kWh the last charge ended at against the capacity they share', () => {
+    // Issue #573: a full plug-in hybrid, both figures on MG's nominal 72.5 kWh pack
+    expect(chargeEndPercent({ lastChargeEndingPower: 72.4, hvTotalCapacityKwh: 72.5 })).toBeCloseTo(
+      99.86,
+      2,
+    )
+    expect(chargeEndPercent({ lastChargeEndingPower: 40.8, hvTotalCapacityKwh: 51 })).toBeCloseTo(
+      80,
+    )
+  })
+
+  it('stays within 0 to 100 when the two figures drift apart', () => {
+    expect(chargeEndPercent({ lastChargeEndingPower: 73, hvTotalCapacityKwh: 72.5 })).toBe(100)
+  })
+
+  it('has no percentage without both figures', () => {
+    expect(chargeEndPercent({ lastChargeEndingPower: null, hvTotalCapacityKwh: 72.5 })).toBeNull()
+    expect(chargeEndPercent({ lastChargeEndingPower: 72.4, hvTotalCapacityKwh: null })).toBeNull()
+    expect(chargeEndPercent({ lastChargeEndingPower: 72.4, hvTotalCapacityKwh: 0 })).toBeNull()
   })
 })

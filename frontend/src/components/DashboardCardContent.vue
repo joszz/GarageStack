@@ -25,7 +25,14 @@ import MaintenanceSummaryCard from './MaintenanceSummaryCard.vue'
 import RdwCard from './RdwCard.vue'
 import ClimateScheduleSummaryCard from './ClimateScheduleSummaryCard.vue'
 import { formatNumber } from '@/utils/format'
-import { energyUnit, hvBatteryReading, litres, litresPer100Km, whPerKm } from '@/utils/energy'
+import {
+  chargeEndPercent,
+  energyUnit,
+  hvBatteryReading,
+  litres,
+  litresPer100Km,
+  whPerKm,
+} from '@/utils/energy'
 import { evLevelVariant, fuelLevelVariant } from '@/utils/levels'
 import { plugsIn } from '@/utils/vehicleType'
 import { ODOMETER_FORMAT, type Measure, type MeasureOptions, type Quantity } from '@/utils/units'
@@ -349,7 +356,7 @@ const activeSimpleCard = computed(() => {
       :hv-power="status.hvPower"
       :remaining-charging-time="status.remainingChargingTime"
       :bms-charge-status="status.bmsChargeStatus"
-      :last-charge-ending-power="status.lastChargeEndingPower"
+      :last-charge-end-percent="chargeEndPercent(status)"
       :charging-last-start-at="status.chargingLastStartAt"
       :charging-last-end-at="status.chargingLastEndAt"
       :charging-schedule-mode="status.chargingScheduleMode"

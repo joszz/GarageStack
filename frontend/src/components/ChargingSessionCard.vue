@@ -27,7 +27,8 @@ const props = defineProps<{
   hvPower: number | null
   remainingChargingTime: number | null
   bmsChargeStatus: string | null
-  lastChargeEndingPower: number | null
+  /** The battery level the last charge ended at, in percent. */
+  lastChargeEndPercent: number | null
   chargingLastStartAt: string | null
   chargingLastEndAt: string | null
   chargingScheduleMode: string | null
@@ -218,9 +219,9 @@ const scheduleModeLabel = computed(() =>
         </template>
       </DetailListItem>
       <DetailListItem
-        v-if="lastChargeEndingPower !== null"
+        v-if="lastChargeEndPercent !== null"
         icon="percent"
-        :value="`${formatNumber(lastChargeEndingPower)}%`"
+        :value="`${formatNumber(lastChargeEndPercent, 0)}%`"
         :label="t('vehicle.chargingSession.lastEndSoc')"
       />
       <DetailListItem
