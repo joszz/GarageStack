@@ -162,6 +162,7 @@ The same applies to Home Assistant: rather than adding an MG integration there, 
 
 Before installing, make sure the following are available on your host:
 
+- A **64-bit host**: the images are published for `linux/amd64` (Intel and AMD) and `linux/arm64` (Raspberry Pi 4 or 5 with a 64-bit OS, Apple Silicon, ARM servers). Docker pulls the right one by itself. 32-bit ARM (`armv7`) is not supported
 - **Docker** 23.0 or later (or Podman with Docker Compose compatibility); the quick start's relative `./garagestack-data` mount needs 23.0
 - **Docker Compose** 2.20 or later (bundled with Docker Desktop; on Linux install the `docker-compose-plugin` package) -- required for Option B only
 - An **MG iSmart account** with your vehicle already linked in the official app

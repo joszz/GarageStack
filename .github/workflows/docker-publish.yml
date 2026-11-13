@@ -335,6 +335,10 @@ jobs:
       - name: Extract image metadata
         id: meta
         uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
+        env:
+          # The annotations go on the index: GHCR shows a multi-architecture image's
+          # description from the index, not from the labels inside each image.
+          DOCKER_METADATA_ANNOTATIONS_LEVELS: index
         with:
           images: ${{ env.IMAGE }}
           tags: |
@@ -353,6 +357,7 @@ jobs:
         working-directory: ${{ runner.temp }}/digests
         env:
           TAGS: ${{ steps.meta.outputs.tags }}
+          ANNOTATIONS: ${{ steps.meta.outputs.annotations }}
         run: |
           set -euo pipefail
           # One file per architecture, named by its digest. Fewer would publish an index that
@@ -372,8 +377,14 @@ jobs:
             echo "No tags to publish" >&2
             exit 1
           fi
+          # One per line, each already prefixed with index: by the metadata step.
+          ANNOTATION_ARGS=()
+          while IFS= read -r ANNOTATION; do
+            if [ -n "$ANNOTATION" ]; then ANNOTATION_ARGS+=(--annotation "$ANNOTATION"); fi
+          done <<< "$ANNOTATIONS"
           METADATA="$RUNNER_TEMP/index-metadata.json"
-          docker buildx imagetools create --metadata-file "$METADATA" "${TAG_ARGS[@]}" "${SOURCES[@]}"
+          docker buildx imagetools create --metadata-file "$METADATA" \
+            "${TAG_ARGS[@]}" "${ANNOTATION_ARGS[@]}" "${SOURCES[@]}"
 
           # The digest of the index this run just created, from the create itself. Reading it
           # back through a tag could return another run's index: a push to main and a tag on the
@@ -396,9 +407,11 @@ jobs:
           docker buildx imagetools inspect "$IMAGE@$INDEX_DIGEST" --raw \
             | jq -e '[.manifests[] | .platform // empty | select(.os == "linux") | .architecture] | contains(["amd64", "arm64"])' > /dev/null
 
-      # The signature is on the digest of the index, so it covers every tag and architecture.
+      # The index is signed, which covers every tag, and with --recursive each manifest in it as
+      # well, so a check against one architecture's own digest (what a host pulls) also finds a
+      # signature.
       - name: Sign image with Cosign
         shell: bash
         env:
           INDEX_DIGEST: ${{ steps.index.outputs.digest }}
-        run: cosign sign --yes "$IMAGE@$INDEX_DIGEST"
+        run: cosign sign --yes --recursive "$IMAGE@$INDEX_DIGEST"

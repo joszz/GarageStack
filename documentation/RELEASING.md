@@ -44,7 +44,7 @@ All images live on GitHub Container Registry (`ghcr.io`). Replace `joszz` with t
 
 ```
 PR opened
-  CI (project rules, lint, typecheck, test, build, e2e, container-build, infra-lint)
+  CI (project rules, lint, typecheck, test, build, e2e, container-build for amd64 and arm64, infra-lint)
   CodeQL (actions, C#, JS/TS analysis)
   Security (Trivy filesystem scan)
   docker-publish (only when the PR changes docker-publish.yml itself; pushes nothing)
@@ -65,12 +65,12 @@ Merge to main
   docker-publish (build amd64 on ubuntu-latest and arm64 on ubuntu-24.04-arm, push each by digest,
     then one merge job per image tags the multi-architecture index with short SHA + latest)
     Attach SBOM + provenance (one per architecture, kept in the index)
-    Sign the index with Cosign
+    Sign the index and each manifest in it with Cosign
 
 Release tag pushed (vX.Y.Z)
   docker-publish (same, tagging the index X.Y.Z, X.Y, X and latest)
     Attach SBOM + provenance
-    Sign the index with Cosign
+    Sign the index and each manifest in it with Cosign
 
 Weekly (Mondays)
   CodeQL
@@ -152,7 +152,7 @@ The `ci` workflow runs on every PR and push to `main`. All jobs must pass before
 | `e2e` | The production bundle behind the production nginx config (the only place the Content-Security-Policy applies), driven by the Playwright smoke tests against the demo stack |
 | `backend-build` | `dotnet build --configuration Release` with warnings as errors, `dotnet format --verify-no-changes`, and a check that the EF model has no change without a migration |
 | `backend-test` | `dotnet test` (all xUnit tests) |
-| `container-build` | Docker build (no push) for all four images. Pull requests only: on `main`, `docker-publish` builds and pushes them |
+| `container-build` | Docker build (no push) for all four images, each for amd64 and for arm64 on its own runner. The amd64 jobs keep the names the ruleset requires; the arm64 jobs are named `Container build (<image>, arm64)`. Pull requests only: on `main`, `docker-publish` builds and pushes them |
 | `infra-lint` | shellcheck on every `*.sh`, hadolint on every Dockerfile (deliberate exceptions in `.hadolint.yaml` and inline `# hadolint ignore` comments), actionlint on the workflows |
 
 ### Code Analysis (CodeQL)
@@ -197,7 +197,7 @@ Scans source code and dependency manifests for known CVEs:
 
 ### Image Scan
 
-After images are pushed to GHCR, each `:latest` image is scanned separately. Results appear in the Security tab under per-image categories.
+After images are pushed to GHCR, each `:latest` image is scanned separately, once per architecture (`linux/amd64` and `linux/arm64`, picked out of the index with `TRIVY_PLATFORM`). Results appear in the Security tab under per-image categories: `trivy-image-<image>` for amd64 and `trivy-image-<image>-arm64` for arm64.
 
 ---
 
@@ -227,7 +227,7 @@ docker buildx imagetools inspect ghcr.io/joszz/garagestack:latest \
 
 ### Cosign Image Signing
 
-Every released image is signed with [Cosign](https://docs.sigstore.dev/cosign/overview/) using keyless signing via GitHub Actions OIDC. No long-lived signing keys are stored anywhere. The signature is on the digest of the multi-architecture index, so one signature covers every tag and both architectures.
+Every released image is signed with [Cosign](https://docs.sigstore.dev/cosign/overview/) using keyless signing via GitHub Actions OIDC. No long-lived signing keys are stored anywhere. The multi-architecture index is signed, which covers every tag, and so is each manifest inside it (`cosign sign --recursive`), so verifying one architecture's own digest works too.
 
 Verify a signature (the workflow signs with Cosign 3, so use Cosign 3 or newer to verify):
 
@@ -297,6 +297,10 @@ After the very first successful workflow run, each package is created as private
 1. GitHub profile -> **Packages**
 2. Select the package
 3. **Package settings** -> **Change visibility** -> **Public**
+
+### Never delete untagged versions
+
+Each image is a multi-architecture index: only the index carries tags, and the per-architecture images and attestations it points to show up as untagged versions on the package page. A cleanup that deletes untagged versions (such as `actions/delete-package-versions` with `delete-only-untagged-versions`) deletes those too, and every tag that points at them then fails to pull. Public packages cost nothing to store, so untagged versions are left alone. Previews are the exception: `preview-cleanup.yml` deletes them by their `pr-<number>` tag, which works because previews are single-architecture.
 
 ---
 

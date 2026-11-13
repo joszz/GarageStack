@@ -2,6 +2,8 @@
 
 Single container that bundles every GarageStack service. Designed for Unraid and similar NAS/homelab environments where running multiple containers is inconvenient.
 
+The image is published for `linux/amd64` and `linux/arm64`, so it also runs natively on a Raspberry Pi 4 or 5 with a 64-bit OS and on Apple Silicon; Docker pulls the matching one. Preview builds of a pull request are amd64 only, see [PREVIEW_BUILDS.md](../../documentation/PREVIEW_BUILDS.md).
+
 ## What runs inside
 
 | Process | Role |

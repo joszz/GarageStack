@@ -255,16 +255,22 @@ jobs:
 
   # Pull requests only: on main, docker-publish.yml builds and publishes these same images. The
   # "Protect main" ruleset requires these checks, so they stay here rather than there.
+  # Every image is built for both architectures it is released for, each on its own hardware:
+  # docker-publish.yml tags no image that misses an architecture, so an arm64-only break found
+  # after merging would also hold back the amd64 image. The amd64 jobs keep the names the
+  # ruleset requires; the arm64 jobs carry the architecture in theirs.
   container-build:
-    name: Container build (${{ matrix.label }})
+    name: Container build (${{ matrix.label }}${{ matrix.arch != 'amd64' && format(', {0}', matrix.arch) || '' }})
     if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.arch == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
     timeout-minutes: 30
     permissions:
       contents: read
     strategy:
       fail-fast: false
       matrix:
+        label: [all-in-one, frontend, api, worker]
+        arch: [amd64, arm64]
         include:
           - label: all-in-one
             context: .
@@ -295,10 +301,13 @@ jobs:
         with:
           context: ${{ matrix.context }}
           file: ${{ matrix.dockerfile }}
+          platforms: linux/${{ matrix.arch }}
           push: false
           build-args: APP_VERSION=0.0.0-ci
-          cache-from: type=gha,scope=ci-${{ matrix.label }}
-          cache-to: type=gha,scope=ci-${{ matrix.label }},mode=min
+          # amd64 keeps the scope it always had, arm64 gets its own so the two do not evict
+          # each other.
+          cache-from: type=gha,scope=ci-${{ matrix.label }}${{ matrix.arch != 'amd64' && format('-{0}', matrix.arch) || '' }}
+          cache-to: type=gha,scope=ci-${{ matrix.label }}${{ matrix.arch != 'amd64' && format('-{0}', matrix.arch) || '' }},mode=min
 
   infra-lint:
     name: Shell, Dockerfile and workflow lint
