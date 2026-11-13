@@ -7,8 +7,11 @@ using Microsoft.Extensions.Logging;
 namespace GarageStack.Data.Repositories;
 
 // logger is optional (DI always supplies one) so tests can construct this with just a DbContext.
-public class GeocodeRepository(AppDbContext db, ILogger<GeocodeRepository>? logger = null) : IGeocodeRepository
+public class GeocodeRepository(
+    AppDbContext db, ILogger<GeocodeRepository>? logger = null, TimeProvider? clock = null) : IGeocodeRepository
 {
+    private DateTime UtcNow => (clock ?? TimeProvider.System).GetUtcNow().UtcDateTime;
+
     public async Task<IReadOnlyList<GeocodeCacheEntry>> GetValidAsync(
         string precision, string language,
         IReadOnlyList<(int CellLat, int CellLng)> cells,
@@ -16,7 +19,7 @@ public class GeocodeRepository(AppDbContext db, ILogger<GeocodeRepository>? logg
     {
         if (cells.Count == 0) return [];
 
-        var now = DateTime.UtcNow;
+        var now = UtcNow;
         var cellLats = cells.Select(c => c.CellLat).Distinct().ToList();
         var cellLngs = cells.Select(c => c.CellLng).Distinct().ToList();
 
@@ -71,7 +74,7 @@ public class GeocodeRepository(AppDbContext db, ILogger<GeocodeRepository>? logg
             db.GeocodeCacheEntries.Add(entry);
         }
 
-        var now = DateTime.UtcNow;
+        var now = UtcNow;
         entry.DisplayName = place.DisplayName;
         entry.Road = place.Road;
         entry.HouseNumber = place.HouseNumber;

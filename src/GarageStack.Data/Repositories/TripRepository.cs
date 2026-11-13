@@ -14,8 +14,11 @@ namespace GarageStack.Data.Repositories;
 public class TripRepository(
     AppDbContext db,
     ITelemetryRepository telemetry,
-    ILogger<TripRepository>? logger = null) : ITripRepository
+    ILogger<TripRepository>? logger = null,
+    TimeProvider? clock = null) : ITripRepository
 {
+    private DateTime UtcNow => (clock ?? TimeProvider.System).GetUtcNow().UtcDateTime;
+
     public async Task<IReadOnlyList<TripDto>> GetTripsAsync(int vehicleId, DateTime from, DateTime to, CancellationToken ct = default)
     {
         // The line is read first, and saved trips are only served from before it. The Worker
@@ -380,7 +383,7 @@ public class TripRepository(
             return new(TripEditOutcome.Invalid, Problem: problem);
 
         trip.OriginalPointsJson ??= trip.PointsJson;
-        trip.EditedAt = DateTime.UtcNow;
+        trip.EditedAt = UtcNow;
         await TripRouteUpdate.ApplyAsync(db, trip, built, ct);
         await db.SaveChangesAsync(ct);
 

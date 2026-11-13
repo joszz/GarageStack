@@ -21,14 +21,15 @@ internal static class TokenRevocation
     // Revokes the given session and opportunistically prunes rows past their own session's
     // expiry -- once a session has expired the cookie handler rejects it regardless of this
     // table, so there's no need for a dedicated background sweep.
-    internal static async Task RevokeAsync(AppDbContext db, IMemoryCache cache, string jti, DateTime expiresAtUtc, CancellationToken ct)
+    internal static async Task RevokeAsync(
+        AppDbContext db, IMemoryCache cache, string jti, DateTime expiresAtUtc, DateTime now, CancellationToken ct)
     {
         db.RevokedTokens.Add(new RevokedToken { Jti = jti, ExpiresAtUtc = expiresAtUtc });
-        await PruneExpiredAsync(db, ct);
+        await PruneExpiredAsync(db, now, ct);
         await db.SaveChangesAsync(ct);
 
         // Remember the revocation for as long as the cookie itself could still be presented.
-        var remaining = expiresAtUtc - DateTime.UtcNow;
+        var remaining = expiresAtUtc - now;
         if (remaining > TimeSpan.Zero)
             cache.Set(CacheKey(jti), true, remaining);
         else
@@ -46,9 +47,8 @@ internal static class TokenRevocation
         return revoked;
     }
 
-    private static async Task PruneExpiredAsync(AppDbContext db, CancellationToken ct)
+    private static async Task PruneExpiredAsync(AppDbContext db, DateTime now, CancellationToken ct)
     {
-        var now = DateTime.UtcNow;
         var expired = db.RevokedTokens.Where(r => r.ExpiresAtUtc < now);
 
         // A single DELETE on PostgreSQL; the in-memory provider used by the tests cannot run

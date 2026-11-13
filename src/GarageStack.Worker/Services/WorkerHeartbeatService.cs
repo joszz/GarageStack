@@ -14,8 +14,11 @@ namespace GarageStack.Worker.Services;
 public sealed class WorkerHeartbeatService(
     ILogger<WorkerHeartbeatService> logger,
     IServiceScopeFactory scopeFactory,
-    MqttConnectionState mqtt) : PeriodicBackgroundService(logger)
+    MqttConnectionState mqtt,
+    TimeProvider? clock = null) : PeriodicBackgroundService(logger)
 {
+    private DateTime UtcNow => (clock ?? TimeProvider.System).GetUtcNow().UtcDateTime;
+
     /// <summary>The file the Worker's and the all-in-one image's HEALTHCHECK read (/tmp in the images).</summary>
     public static readonly string HeartbeatFile = Path.Combine(Path.GetTempPath(), "garagestack-worker.heartbeat");
 
@@ -40,7 +43,7 @@ public sealed class WorkerHeartbeatService(
 
         var healthy = mqttConnected && databaseReachable;
         if (healthy)
-            await File.WriteAllTextAsync(FilePath, DateTime.UtcNow.ToString("O"), ct);
+            await File.WriteAllTextAsync(FilePath, UtcNow.ToString("O"), ct);
 
         // State changes only: a beat every 15 seconds is not news. Not healthy yet at start-up is
         // not news either, since the broker connection is still being made.

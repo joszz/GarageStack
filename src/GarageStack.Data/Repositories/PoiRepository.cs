@@ -9,8 +9,11 @@ namespace GarageStack.Data.Repositories;
 
 // logger is optional (DI always supplies one) so existing tests can keep constructing this
 // directly with just a DbContext and cache.
-public class PoiRepository(AppDbContext db, IMemoryCache cache, ILogger<PoiRepository>? logger = null) : IPoiRepository
+public class PoiRepository(
+    AppDbContext db, IMemoryCache cache, ILogger<PoiRepository>? logger = null, TimeProvider? clock = null) : IPoiRepository
 {
+    private DateTime UtcNow => (clock ?? TimeProvider.System).GetUtcNow().UtcDateTime;
+
     // Brand lists (charging network operators, fuel brands) change rarely, so a short cache
     // avoids re-running the DISTINCT query on every map filter-panel open.
     private static readonly TimeSpan BrandsCacheTtl = TimeSpan.FromMinutes(15);
@@ -32,7 +35,7 @@ public class PoiRepository(AppDbContext db, IMemoryCache cache, ILogger<PoiRepos
         IReadOnlyList<(int CellLat, int CellLng)> tiles,
         CancellationToken ct = default)
     {
-        var now = DateTime.UtcNow;
+        var now = UtcNow;
         var cellLats = tiles.Select(t => t.CellLat).Distinct().ToList();
         var cellLngs = tiles.Select(t => t.CellLng).Distinct().ToList();
 
@@ -74,7 +77,7 @@ public class PoiRepository(AppDbContext db, IMemoryCache cache, ILogger<PoiRepos
         TimeSpan ttl,
         CancellationToken ct)
     {
-        var now = DateTime.UtcNow;
+        var now = UtcNow;
 
         await UpsertItemsAsync(source, poiType, items, now, ct);
         await PruneStaleItemsAsync(source, poiType, cellLat, cellLng, items, ct);

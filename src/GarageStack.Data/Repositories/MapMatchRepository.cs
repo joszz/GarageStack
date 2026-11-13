@@ -9,11 +9,14 @@ using Microsoft.Extensions.Logging;
 namespace GarageStack.Data.Repositories;
 
 // logger is optional (DI always supplies one) so tests can construct this with just a DbContext.
-public class MapMatchRepository(AppDbContext db, ILogger<MapMatchRepository>? logger = null) : IMapMatchRepository
+public class MapMatchRepository(
+    AppDbContext db, ILogger<MapMatchRepository>? logger = null, TimeProvider? clock = null) : IMapMatchRepository
 {
+    private DateTime UtcNow => (clock ?? TimeProvider.System).GetUtcNow().UtcDateTime;
+
     public async Task<CachedTraceMatch?> GetValidAsync(string provider, string traceHash, CancellationToken ct = default)
     {
-        var now = DateTime.UtcNow;
+        var now = UtcNow;
         var entry = await db.MapMatchCacheEntries
             .AsNoTracking()
             .FirstOrDefaultAsync(e => e.Provider == provider && e.TraceHash == traceHash && e.ExpiresAt > now, ct);
@@ -65,7 +68,7 @@ public class MapMatchRepository(AppDbContext db, ILogger<MapMatchRepository>? lo
             db.MapMatchCacheEntries.Add(entry);
         }
 
-        var now = DateTime.UtcNow;
+        var now = UtcNow;
         entry.Shape = match.Shape;
         entry.PointIndexesJson = match.Shape is null ? null : JsonSerializer.Serialize(match.PointIndexes);
         entry.SpeedLimitRunsJson = match.Shape is null || match.SpeedLimitRuns.Count == 0

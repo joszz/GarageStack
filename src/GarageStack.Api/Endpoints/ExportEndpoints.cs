@@ -10,6 +10,9 @@ public static class ExportEndpoints
 
     public static IEndpointRouteBuilder MapExportEndpoints(this IEndpointRouteBuilder app)
     {
+        // The clock, not request input.
+        var clock = app.ServiceProvider.GetRequiredService<TimeProvider>();
+
         app.MapGet(Path, async (HttpContext httpContext, DataExport export, CancellationToken ct) =>
         {
             // Built in a temporary file rather than in memory or straight into the response: the
@@ -22,7 +25,7 @@ public static class ExportEndpoints
             {
                 await export.WriteAsync(file, SessionPrincipal.ResolveAccountKey(httpContext.User), ct);
                 file.Position = 0;
-                return Results.File(file, "application/zip", $"garagestack-export-{DateTime.UtcNow:yyyy-MM-dd}.zip");
+                return Results.File(file, "application/zip", $"garagestack-export-{clock.GetUtcNow():yyyy-MM-dd}.zip");
             }
             catch
             {

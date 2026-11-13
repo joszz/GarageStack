@@ -11,14 +11,14 @@ internal static class DateRange
 
     /// <summary>
     /// Resolves the [start, end) UTC range for a from/to query: defaults the missing bound (end to
-    /// now, start to end - defaultSpan) and clamps the span to maxSpan. Returns a 400 IResult if
+    /// <paramref name="now"/>, start to end - defaultSpan) and clamps the span to maxSpan. Returns a 400 IResult if
     /// the resulting range is inverted.
     /// </summary>
     internal static IResult? TryResolve(
-        DateTimeOffset? from, DateTimeOffset? to, TimeSpan defaultSpan, TimeSpan maxSpan,
+        DateTimeOffset? from, DateTimeOffset? to, TimeSpan defaultSpan, TimeSpan maxSpan, DateTime now,
         out DateTime start, out DateTime end)
     {
-        end = to?.UtcDateTime ?? DateTime.UtcNow;
+        end = to?.UtcDateTime ?? now;
         start = from?.UtcDateTime ?? end - defaultSpan;
 
         if (start >= end)

@@ -17,8 +17,11 @@ public sealed class TelemetryHandler(
     ILogger logger,
     VehicleResolver vehicles,
     IPushSender pushSender,
-    IStringLocalizer<NotificationStrings> strings) : IMqttMessageHandler
+    IStringLocalizer<NotificationStrings> strings,
+    TimeProvider? clock = null) : IMqttMessageHandler
 {
+    private DateTime UtcNow => (clock ?? TimeProvider.System).GetUtcNow().UtcDateTime;
+
     // MQTT polling cycles emit several messages within ~2 seconds (one per topic). Messages
     // arriving within this window are merged into the same DB row so that each row represents a
     // complete poll rather than a single field, reducing row count by ~9x and ensuring all chart
@@ -114,7 +117,7 @@ public sealed class TelemetryHandler(
             var places = resolved.Services.GetRequiredService<ICommutePlaceRepository>();
 
             patch.VehicleId = vehicleId;
-            patch.RecordedAt = DateTime.UtcNow;
+            patch.RecordedAt = UtcNow;
 
             await MergeOrAddTelemetryAsync(vehicleId, patch, telemetryRepo, ct);
             await ParkAtThisPollsFixAsync(vehicleId, patch, telemetryRepo, resolved.Vehicles, places, ct);

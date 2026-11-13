@@ -23,8 +23,9 @@ public enum GateRefusal
 /// interval and reads the upstream's answer for a "slow down", and disposes the entry; the backoff can be read outside the gate so a
 /// foreground caller fails fast without waiting.
 /// </summary>
-public sealed class UpstreamRateGate
+public sealed class UpstreamRateGate(TimeProvider? clock = null)
 {
+    private readonly TimeProvider _clock = clock ?? TimeProvider.System;
     private readonly SemaphoreSlim _gate = new(1, 1);
     private DateTimeOffset _lastRequestAt = DateTimeOffset.MinValue;
 
@@ -34,7 +35,7 @@ public sealed class UpstreamRateGate
 
     public DateTimeOffset BackoffUntil => new(Interlocked.Read(ref _backoffUntilTicks), TimeSpan.Zero);
 
-    public bool IsBackingOff => BackoffUntil > DateTimeOffset.UtcNow;
+    public bool IsBackingOff => BackoffUntil > _clock.GetUtcNow();
 
     /// <summary>
     /// Takes the gate for one request. With <paramref name="failWhenBackingOff"/>, an open backoff
@@ -85,7 +86,7 @@ public sealed class UpstreamRateGate
         CancellationToken ct)
     {
         await ThrottleAsync(minInterval, honourBackoff, ct);
-        _lastRequestAt = DateTimeOffset.UtcNow;
+        _lastRequestAt = _clock.GetUtcNow();
         var response = await send(ct);
         var backoff = IsThrottlingStatus((int)response.StatusCode)
             ? SetBackoff(response, fallbackBackoff)
@@ -101,7 +102,7 @@ public sealed class UpstreamRateGate
         if (honourBackoff && BackoffUntil > nextAllowed)
             nextAllowed = BackoffUntil;
 
-        var wait = nextAllowed - DateTimeOffset.UtcNow;
+        var wait = nextAllowed - _clock.GetUtcNow();
         if (wait > TimeSpan.Zero)
             await Task.Delay(wait, ct);
     }
@@ -113,7 +114,7 @@ public sealed class UpstreamRateGate
     internal static readonly TimeSpan MaxRetryAfter = TimeSpan.FromHours(1);
 
     public void SetBackoff(TimeSpan duration) =>
-        Interlocked.Exchange(ref _backoffUntilTicks, (DateTimeOffset.UtcNow + duration).UtcTicks);
+        Interlocked.Exchange(ref _backoffUntilTicks, (_clock.GetUtcNow() + duration).UtcTicks);
 
     /// <summary>
     /// Opens the backoff window an upstream's "slow down" answer asks for: as long as its
@@ -122,7 +123,7 @@ public sealed class UpstreamRateGate
     /// <returns>How long the window is, for the log line.</returns>
     internal TimeSpan SetBackoff(HttpResponseMessage response, TimeSpan fallback)
     {
-        var duration = BackoffFor(response.Headers.RetryAfter, fallback, DateTimeOffset.UtcNow);
+        var duration = BackoffFor(response.Headers.RetryAfter, fallback, _clock.GetUtcNow());
         SetBackoff(duration);
         return duration;
     }

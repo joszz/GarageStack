@@ -14,8 +14,11 @@ public class PushNotificationCheckService(
     IPushSender pushSender,
     TyrePressureThresholds tyrePressureThresholds,
     AlertThresholds alertThresholds,
-    IStringLocalizer<NotificationStrings> strings) : PeriodicBackgroundService(logger)
+    IStringLocalizer<NotificationStrings> strings,
+    TimeProvider? clock = null) : PeriodicBackgroundService(logger)
 {
+    private DateTime UtcNow => (clock ?? TimeProvider.System).GetUtcNow().UtcDateTime;
+
     private readonly NotificationCooldownGate _cooldownGate = new(NotificationCooldownGate.AlertCooldown);
     internal readonly VinStateTracker<bool?> _isChargingTracker = new();
     private readonly TimeSpan _parkingGrace = TimeSpan.FromMinutes(10);
@@ -73,7 +76,7 @@ public class PushNotificationCheckService(
             var snapshot = await telemetry.GetMergedLatestAsync(vehicle.Id, ct);
             if (snapshot is null) continue;
 
-            var now = DateTime.UtcNow;
+            var now = UtcNow;
             await CheckLevelsAsync(vehicle, snapshot, telemetry, notifications, now, ct);
             await CheckParkedAsync(vehicle, snapshot, telemetry, notifications, now, ct);
         }

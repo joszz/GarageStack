@@ -20,6 +20,7 @@ public static class VehicleEndpoints
         // Resolved once here rather than taken as a handler parameter: it is deployment
         // configuration, not request input.
         var hvBatteryCapacity = app.ServiceProvider.GetRequiredService<HvBatteryCapacity>();
+        var clock = app.ServiceProvider.GetRequiredService<TimeProvider>();
         var tyreThresholds = app.ServiceProvider.GetRequiredService<TyrePressureThresholds>();
 
         group.MapGet("/", async (IVehicleRepository vehicles, CancellationToken ct) =>
@@ -81,7 +82,7 @@ public static class VehicleEndpoints
             if (!TryFindZone(timeZone, out var zone))
                 return ApiProblems.BadRequest("stats.timeZoneUnknown", "timeZone must be an IANA time zone, such as Europe/Amsterdam");
 
-            var today = ZoneTime.DateOf(DateTime.UtcNow, zone);
+            var today = ZoneTime.DateOf(clock.GetUtcNow().UtcDateTime, zone);
             var last = to is { } end && end < today ? end : today;
             var first = from ?? last.AddDays(-29);
             if (first > last)
@@ -106,7 +107,7 @@ public static class VehicleEndpoints
             if (!TryFindZone(timeZone, out var zone))
                 return ApiProblems.BadRequest("stats.timeZoneUnknown", "timeZone must be an IANA time zone, such as Europe/Amsterdam");
 
-            var today = ZoneTime.DateOf(DateTime.UtcNow, zone);
+            var today = ZoneTime.DateOf(clock.GetUtcNow().UtcDateTime, zone);
             var days = await telemetry.GetDailyStatsAsync(vehicle.Id, today.AddDays(-(TyreHistoryDays - 1)), today, zone, today, ct);
             var trendFrom = today.AddDays(-(TyreTrend.WindowDays - 1));
             var trend = TyreTrend.Measure(days.Where(d => d.Date >= trendFrom));
@@ -163,7 +164,7 @@ public static class VehicleEndpoints
         {
             var vehicle = httpContext.ResolvedVehicle();
 
-            var rangeError = DateRange.TryResolve(from, to, TimeSpan.FromDays(30), DateRange.LongestStatisticsSpan, out var start, out var end);
+            var rangeError = DateRange.TryResolve(from, to, TimeSpan.FromDays(30), DateRange.LongestStatisticsSpan, clock.GetUtcNow().UtcDateTime, out var start, out var end);
             if (rangeError is not null) return rangeError;
 
             var stats = await telemetry.GetAggregateStatsAsync(vehicle.Id, start, end, ct);
