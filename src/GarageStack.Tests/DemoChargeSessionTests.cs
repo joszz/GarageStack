@@ -13,6 +13,7 @@ public class DemoChargeSessionTests
         var ct = TestContext.Current.CancellationToken;
         var repo = new DemoTelemetryRepository();
         var sessions = await repo.GetChargeSessionsAsync(1, From, To, ct);
+        var odometerNow = (await repo.GetMergedLatestAsync(1, ct))!.OdometerKm;
 
         Assert.InRange(sessions.Count, 50, 199);
         Assert.Contains(sessions, session => session.ChargingType == "AC");
@@ -32,7 +33,7 @@ public class DemoChargeSessionTests
                 session.EndSocPercent is { } endSoc &&
                 endSoc > startSoc);
             Assert.InRange(session.BatteryEnergyGainedKwh.GetValueOrDefault(), 1, 50);
-            Assert.True(session.OdometerKm is > 24300);
+            Assert.InRange(session.OdometerKm.GetValueOrDefault(), 1, odometerNow.GetValueOrDefault());
             Assert.True(session.Latitude is >= 51 and <= 53);
             Assert.True(session.Longitude is >= 4 and <= 6);
         });

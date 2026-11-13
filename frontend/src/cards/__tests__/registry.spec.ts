@@ -19,7 +19,13 @@ function context(
   latestTrip: TripSummary | null = null,
   rdwPlateSet = false,
 ): CardDataContext {
-  return { status: status as TelemetrySnapshot, vehicleType, latestTrip, rdwPlateSet }
+  return {
+    status: status as TelemetrySnapshot,
+    vehicleType,
+    latestTrip,
+    rdwPlateSet,
+    todayStat: null,
+  }
 }
 
 describe('card registry', () => {
@@ -67,6 +73,16 @@ describe('card registry', () => {
     expect(cardHasData('efficiencyCharge', context(status, 'bev'))).toBe(true)
   })
 
+  it('shows efficiency since the last charge for a car that plugs in and has driven', () => {
+    const status = { powerUsageSinceLastCharge: 11.12, mileageSinceLastCharge: 46 }
+    expect(cardHasData('efficiencySinceCharge', context(status, 'bev'))).toBe(true)
+    expect(cardHasData('efficiencySinceCharge', context(status, 'phev'))).toBe(true)
+    expect(cardHasData('efficiencySinceCharge', context(status, 'unknown'))).toBe(false)
+    expect(cardHasData('efficiencySinceCharge', context(status, 'hev'))).toBe(false)
+    const parked = { powerUsageSinceLastCharge: 0.4, mileageSinceLastCharge: 0 }
+    expect(cardHasData('efficiencySinceCharge', context(parked, 'bev'))).toBe(false)
+  })
+
   it('accepts any presentation of the efficiency ratio card', () => {
     const energy = context({ powerUsageOfDay: 8, mileageOfTheDay: 40 }, 'bev')
     const consumption = context({ powerUsageOfDay: 394, mileageOfTheDay: 59 }, 'hev')
@@ -89,6 +105,21 @@ describe('card registry', () => {
     // A plug-in car cycles a real pack, so the counter is kWh and stays Wh/km
     expect(hasEnergyEfficiency(context(driven, 'phev'))).toBe(true)
     expect(hasFuelConsumption(context(driven, 'phev'))).toBe(false)
+  })
+
+  // Issue #551: 141 kWh on a 3 km day, with 11 kWh used since the last charge.
+  it('hides a plug-in day counter that does not fit what left the battery', () => {
+    const status = {
+      powerUsageOfDay: 141.12,
+      powerUsageSinceLastCharge: 11.12,
+      mileageOfTheDay: 3,
+      isCharging: false,
+      chargingLastEndAt: null,
+    }
+    expect(cardHasData('efficiencyEnergy', context(status, 'bev'))).toBe(false)
+    expect(hasEnergyEfficiency(context(status, 'bev'))).toBe(false)
+    // A hybrid's counter holds fuel and is not checked this way.
+    expect(cardHasData('efficiencyEnergy', context(status, 'hev'))).toBe(true)
   })
 
   it('needs a trip with recorded speeds for the top speed card', () => {
@@ -114,6 +145,7 @@ describe('defaultCards', () => {
   const PLUG_IN_CARDS: CardId[] = [
     'charging',
     'efficiencyCharge',
+    'efficiencySinceCharge',
     'remainingCharge',
     'chargingSession',
     'batteryHeating',

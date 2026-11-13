@@ -175,7 +175,11 @@ describe('useBasemap', () => {
     fetchMock.mockClear()
     webGl = true
     vi.stubGlobal('fetch', fetchMock)
-    ;(await uiStore()).theme = 'dark'
+    // Set rather than left to the defaults: a test that turned colourful maps on saves the store
+    // to localStorage 300 ms later, which can land after the clear above and seed this store.
+    const ui = await uiStore()
+    ui.theme = 'dark'
+    ui.colorfulMaps = false
   })
 
   afterEach(() => {

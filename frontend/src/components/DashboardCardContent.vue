@@ -10,6 +10,7 @@ import {
   hasEnergyEfficiency,
   hasFuelConsumption,
   hasFuelEconomy,
+  sinceChargeWhPerKm,
 } from '@/cards/registry'
 import { useCardData } from '@/cards/useCardData'
 import StatusCard from './StatusCard.vue'
@@ -31,6 +32,7 @@ import {
   hvBatteryReading,
   litres,
   litresPer100Km,
+  todaysEnergyKwh,
   whPerKm,
 } from '@/utils/energy'
 import { evLevelVariant, fuelLevelVariant } from '@/utils/levels'
@@ -111,7 +113,8 @@ const simpleCards = computed((): SimpleCardConfig[] => {
   const s = status.value
   const ctx = cardData.value
   if (!s || !ctx) return []
-  const efficiencyWhPerKm = whPerKm(s.powerUsageOfDay, s.mileageOfTheDay)
+  const energyTodayKwh = todaysEnergyKwh(s, ctx.todayStat)
+  const efficiencyWhPerKm = whPerKm(energyTodayKwh, s.mileageOfTheDay)
   const fuelUsedLitres = litres(s.powerUsageOfDay)
   const consumptionL100Km = litresPer100Km(s.powerUsageOfDay, s.mileageOfTheDay)
   return [
@@ -171,9 +174,9 @@ const simpleCards = computed((): SimpleCardConfig[] => {
     // efficiencyEnergy - kWh through the traction battery on a plug-in car
     {
       id: 'efficiencyEnergy',
-      match: !reportsFuelCounter.value && s.powerUsageOfDay !== null,
+      match: !reportsFuelCounter.value && energyTodayKwh !== null,
       label: t('vehicle.efficiency.todayEnergy'),
-      value: s.powerUsageOfDay !== null ? formatNumber(s.powerUsageOfDay) : null,
+      value: energyTodayKwh !== null ? formatNumber(energyTodayKwh) : null,
       unit: t('common.kwh'),
     },
     // efficiencyEnergy - litres burned on a hybrid, whose counter reports fuel
@@ -188,6 +191,11 @@ const simpleCards = computed((): SimpleCardConfig[] => {
       id: 'efficiencyCharge',
       label: t('vehicle.efficiency.sinceCharge'),
       ...measured('distance', s.mileageSinceLastCharge),
+    },
+    {
+      id: 'efficiencySinceCharge',
+      label: t('vehicle.efficiency.efficiencySinceCharge'),
+      ...measured('energyPerDistance', sinceChargeWhPerKm(s, ctx.vehicleType)),
     },
     // efficiencyRatio - measured fuel consumption on a hybrid, which beats the estimate below
     {

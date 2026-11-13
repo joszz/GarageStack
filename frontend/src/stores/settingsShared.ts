@@ -38,6 +38,8 @@ export const CAR_COLOR_SCHEMES: CarColorScheme[] = [
 export type StatsInsightId =
   | 'periodDistance'
   | 'avgTripLength'
+  | 'periodEnergy'
+  | 'periodEfficiency'
   | 'climateUsage'
   | 'commutePattern'
   | 'batteryVoltageTrend'
@@ -55,6 +57,8 @@ export interface StatsItemConfig<T extends string> {
 export const ALL_STATS_INSIGHT_IDS: StatsInsightId[] = [
   'periodDistance',
   'avgTripLength',
+  'periodEnergy',
+  'periodEfficiency',
   'climateUsage',
   'commutePattern',
   'batteryVoltageTrend',

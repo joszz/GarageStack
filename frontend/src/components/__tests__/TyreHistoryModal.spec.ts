@@ -39,6 +39,9 @@ function day(date: string, rearRight: number | null): DailyStat {
     tyrePressureRearRight: rearRight,
     batteryVoltage: null,
     counterTotal: null,
+    sinceChargeTotal: null,
+    counterUnbacked: false,
+    distanceKm: null,
   }
 }
 

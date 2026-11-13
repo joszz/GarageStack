@@ -18,15 +18,6 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
 
     private TelemetrySnapshot _current = BuildDefaultSnapshot();
 
-    // A little over a year, so the statistics have something to show for last year and per month.
-    private const int HistoryDays = 400;
-
-    private const int SlowLeakDays = 12;
-    private const double SlowLeakBarPerDay = 0.02;
-
-    private static readonly Lazy<IReadOnlyList<TelemetrySnapshot>> _history =
-        new(BuildHistory, LazyThreadSafetyMode.ExecutionAndPublication);
-
     public Task<long> AddAsync(TelemetrySnapshot snapshot, CancellationToken ct = default) =>
         Task.FromResult(Interlocked.Increment(ref _nextId));
 
@@ -42,7 +33,7 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
         int vehicleId, DateOnly from, DateOnly to, TimeZoneInfo zone, DateOnly today, CancellationToken ct = default)
     {
         var builder = new DailyStatsBuilder(zone, from, to, today);
-        foreach (var snapshot in _history.Value.OrderBy(s => s.RecordedAt))
+        foreach (var snapshot in DemoHistory.Snapshots.OrderBy(s => s.RecordedAt))
             builder.Add(TelemetryHistoryPoint.FromSnapshot(snapshot));
         return Task.FromResult(builder.Build());
     }
@@ -94,7 +85,7 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
     private async Task<List<ChargeSessionReading>> ChargeReadingsAsync(
         int vehicleId, DateTime from, DateTime to, CancellationToken ct)
     {
-        var readings = _history.Value
+        var readings = DemoHistory.Snapshots
             .Where(s => s.RecordedAt >= from && s.RecordedAt <= to)
             .Select(ChargeSessionReading.FromSnapshot)
             .ToList();
@@ -107,7 +98,7 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
     public async IAsyncEnumerable<TelemetrySnapshot> StreamAllAsync(
         int vehicleId, [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken ct = default)
     {
-        foreach (var snapshot in _history.Value.OrderBy(s => s.RecordedAt))
+        foreach (var snapshot in DemoHistory.Snapshots.OrderBy(s => s.RecordedAt))
         {
             ct.ThrowIfCancellationRequested();
             yield return snapshot;
@@ -130,7 +121,7 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
     public Task<VehicleAggregateStats> GetAggregateStatsAsync(
         int vehicleId, DateTime from, DateTime to, CancellationToken ct = default)
     {
-        var history = _history.Value.Where(s => s.RecordedAt >= from && s.RecordedAt <= to).ToList();
+        var history = DemoHistory.Snapshots.Where(s => s.RecordedAt >= from && s.RecordedAt <= to).ToList();
         var known = history.Count(s => s.ClimateOn != null);
         var on = history.Count(s => s.ClimateOn == true);
         var pct = known > 0 ? (int?)Math.Round((double)on / known * 100) : null;
@@ -166,7 +157,7 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
             if (dto.EvSocPercent.HasValue)
             {
                 _current.EvSocPercent = dto.EvSocPercent;
-                _current.HvSocKwh = Math.Round(dto.EvSocPercent.Value / 100.0 * 70.0, 1);
+                _current.HvSocKwh = Math.Round(dto.EvSocPercent.Value / 100.0 * DemoHistory.CapacityKwh, 1);
                 _current.ElectricRangeKm = ElectricRangeAt(dto.EvSocPercent.Value);
             }
             if (dto.InteriorTemperature.HasValue) _current.InteriorTemperature = dto.InteriorTemperature;
@@ -261,6 +252,12 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
     {
         var current = DemoTrips.InProgressWaypoints[^1];
 
+        // Carries on from the history: today's drives so far plus the trip in progress.
+        var history = DemoHistory.Last;
+        var drivingKm = DemoTrips.InProgressDistanceKm;
+        var drivingKwh = drivingKm * DemoHistory.InProgressKwhPerKm;
+        var soc = Math.Round(history.SocPercent - drivingKwh / DemoHistory.CapacityKwh * 100);
+
         return new()
         {
             Id = 1,
@@ -268,10 +265,10 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
             RecordedAt = DateTime.UtcNow,
             FuelLevelPercent = 68,
             FuelRangeKm = 420,
-            EvSocPercent = 71,
-            ElectricRangeKm = ElectricRangeAt(71),
-            HvSocKwh = Math.Round(71.0 / 100.0 * 70.0, 1),
-            HvTotalCapacityKwh = 70.0,
+            EvSocPercent = soc,
+            ElectricRangeKm = ElectricRangeAt(soc),
+            HvSocKwh = Math.Round(soc / 100.0 * DemoHistory.CapacityKwh, 1),
+            HvTotalCapacityKwh = DemoHistory.CapacityKwh,
             HvVoltage = 386.0,
             HvCurrent = 42.0,
             HvPower = 16.2,
@@ -329,207 +326,13 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
             IsAvailable = true,
             LastVehicleStateAt = DateTime.UtcNow,
             LastChargeStateAt = DateTime.UtcNow.AddHours(-8),
-            MileageSinceLastCharge = 32.4,
-            MileageOfTheDay = 18.2,
-            PowerUsageOfDay = 2.95,
+            MileageSinceLastCharge = Math.Round(history.SinceChargeKm + drivingKm, 1),
+            MileageOfTheDay = Math.Round(history.DayKm + drivingKm, 1),
+            PowerUsageOfDay = Math.Round(history.DayKwh + drivingKwh, 2),
+            PowerUsageSinceLastCharge = Math.Round(history.SinceChargeKwh + drivingKwh, 2),
             ChargingScheduleMode = "UNTIL_CONFIGURED_TIME",
             ChargingScheduleStartTime = "00:00",
             ChargingScheduleEndTime = "07:00",
         };
-    }
-
-    private static IReadOnlyList<TelemetrySnapshot> BuildHistory()
-    {
-        var rng = new Random(42);
-        var snapshots = new List<TelemetrySnapshot>(HistoryDays * 10);
-        var baseDate = DateTime.UtcNow.Date.AddDays(-HistoryDays);
-        var odometer = 24300.0;
-        var soc = 78.0;
-        var fuel = 80.0;
-        var usedTodayKwh = 0.0;
-        var idCounter = 100L;
-        var dayStartOdometer = odometer;
-        var fastChargerLocations = new (double Latitude, double Longitude)[]
-        {
-            (52.3676, 4.9041),
-            (52.0907, 5.1214),
-            (51.9244, 4.4777),
-            (52.0705, 4.3007),
-        };
-
-        void AddSnapshot(
-            DateTime recordedAt,
-            bool isCharging,
-            string? chargingType = null,
-            double? chargePowerKw = null,
-            DateTime? chargeStartedAt = null,
-            DateTime? chargeEndedAt = null,
-            bool chargerConnected = false,
-            double? latitude = null,
-            double? longitude = null)
-        {
-            var extTemp = 13.0 + (rng.NextDouble() - 0.5) * 10.0;
-            var frontPressure = 2.4 + (rng.NextDouble() - 0.5) * 0.06;
-            var rearPressure = 2.5 + (rng.NextDouble() - 0.5) * 0.06;
-            var day = (recordedAt.Date - baseDate).Days;
-            // The rear right has a slow puncture: over the last twelve days it loses air the
-            // other three keep, for the tyre history and the slow-puncture alert to show.
-            var leak = Math.Max(0, day - (HistoryDays - SlowLeakDays)) * SlowLeakBarPerDay;
-            var countsToday = recordedAt.Hour is >= 7 and < 20;
-
-            snapshots.Add(new TelemetrySnapshot
-            {
-                Id = idCounter++,
-                VehicleId = 1,
-                RecordedAt = recordedAt,
-                FuelLevelPercent = Math.Round(fuel, 1),
-                FuelRangeKm = Math.Round(fuel / 100.0 * 650.0, 0),
-                EvSocPercent = Math.Round(soc, 1),
-                HvSocKwh = Math.Round(soc / 100.0 * 70.0, 1),
-                HvTotalCapacityKwh = 70.0,
-                // The day counters restart at midnight. From 20:00 UTC it is already the next day in
-                // much of Europe, and an evening charge runs on past midnight, so those readings
-                // leave the counters out rather than carry the day over.
-                PowerUsageOfDay = countsToday ? Math.Round(usedTodayKwh, 1) : null,
-                OdometerKm = Math.Round(odometer, 1),
-                MileageOfTheDay = countsToday ? Math.Round(odometer - dayStartOdometer, 1) : null,
-                IsCharging = isCharging,
-                ChargingType = chargingType,
-                ChargingLastStartAt = chargeStartedAt,
-                ChargingLastEndAt = chargeEndedAt,
-                // In kW, as the gateway publishes them. The battery takes what the charger gives
-                // less its losses; a DC charge bypasses the onboard charger.
-                HvPower = isCharging ? -chargePowerKw * (chargingType == "DC" ? 1 : 0.9) : null,
-                ObcPowerSinglePhase = isCharging && chargingType == "AC" ? chargePowerKw : null,
-                ChargerConnected = chargerConnected,
-                ExteriorTemperature = Math.Round(extTemp, 1),
-                InteriorTemperature = Math.Round(extTemp + rng.NextDouble() * 4.0, 1),
-                TyrePressureFrontLeft = Math.Round(frontPressure, 2),
-                TyrePressureFrontRight = Math.Round(frontPressure + (rng.NextDouble() - 0.5) * 0.04, 2),
-                TyrePressureRearLeft = Math.Round(rearPressure, 2),
-                TyrePressureRearRight = Math.Round(rearPressure - leak + (rng.NextDouble() - 0.5) * 0.04, 2),
-                BatteryVoltage = 12.6 + rng.NextDouble() * 0.3,
-                Latitude = latitude ?? 52.3676 + (rng.NextDouble() - 0.5) * 0.02,
-                Longitude = longitude ?? 4.9041 + (rng.NextDouble() - 0.5) * 0.02,
-                Speed = 0,
-                IsLocked = true,
-                EngineRunning = false,
-                HvBatteryActive = true,
-            });
-        }
-
-        for (var day = 0; day < HistoryDays; day++)
-        {
-            var date = baseDate.AddDays(day);
-            dayStartOdometer = odometer;
-            usedTodayKwh = 0;
-            AddSnapshot(date.AddHours(7), isCharging: false);
-
-            foreach (var hour in new[] { 12, 17 })
-            {
-                // Typical urban trips consume about 18-20 kWh/100 km rather than changing the
-                // battery by an arbitrary percentage each day.
-                var tripEnergyKwh = 3.0 + rng.NextDouble() * 2.5;
-                var efficiencyKwhPerKm = 0.18 + rng.NextDouble() * 0.02;
-                soc = Math.Clamp(soc - tripEnergyKwh / 70.0 * 100.0, 10, 95);
-                usedTodayKwh += tripEnergyKwh;
-                odometer += tripEnergyKwh / efficiencyKwhPerKm;
-                fuel = Math.Clamp(fuel - 1.0 - rng.NextDouble(), 5, 100);
-
-                AddSnapshot(
-                    date.AddHours(hour).AddMinutes(rng.Next(0, 30)),
-                    isCharging: false);
-            }
-
-            if (day % 7 == 0)
-            {
-                // The demo plug-in hybrid also gets an occasional fuel stop.
-                fuel = Math.Min(100, 90 + rng.Next(0, 10));
-            }
-
-            var shouldCharge = soc <= 45 || (soc <= 55 && rng.NextDouble() < 0.18);
-            if (!shouldCharge)
-            {
-                AddSnapshot(date.AddHours(22).AddMinutes(rng.Next(0, 30)), isCharging: false);
-                continue;
-            }
-
-            // Home AC is the usual case. A public DC stop is occasional and happens at a
-            // different, fixed location rather than moving slightly on every sample.
-            var isFastCharge = day % 28 == 0 || day % 28 == 1;
-            var chargingType = isFastCharge ? "DC" : "AC";
-            var chargeLocation = isFastCharge
-                ? fastChargerLocations[(day / 28) % fastChargerLocations.Length]
-                : (Latitude: 52.3812, Longitude: 4.9156);
-            var targetSoc = isFastCharge ? 80.0 : rng.Next(0, 3) == 0 ? 85.0 : 80.0;
-            var startSoc = soc;
-            var chargeStartedAt = isFastCharge
-                ? date.AddHours(18).AddMinutes(rng.Next(0, 5) * 15)
-                : date.AddHours(19).AddMinutes(rng.Next(0, 7) * 30);
-            var chargeAt = chargeStartedAt;
-            var peakPowerKw = isFastCharge ? 75 + rng.NextDouble() * 12 : 6.8 + rng.NextDouble() * 0.7;
-            var efficiency = isFastCharge ? 0.94 : 0.9;
-
-            double ChargingPowerAt(double currentSoc, double acSupplyVariation = 1)
-            {
-                if (isFastCharge)
-                {
-                    var taper = Math.Clamp((targetSoc - currentSoc) / (targetSoc - 55), 0.2, 1);
-                    return peakPowerKw * taper;
-                }
-
-                var progress = (currentSoc - startSoc) / (targetSoc - startSoc);
-                var startupRamp = progress < 0.08 ? 0.82 + progress * 2.25 : 1;
-                var highSocTaper = currentSoc > 80
-                    ? Math.Clamp(1 - (currentSoc - 80) / 35, 0.82, 1)
-                    : 1;
-                return peakPowerKw * startupRamp * highSocTaper * acSupplyVariation;
-            }
-
-            AddSnapshot(
-                chargeAt,
-                isCharging: true,
-                chargingType: chargingType,
-                chargePowerKw: isFastCharge ? peakPowerKw : peakPowerKw * 0.45,
-                chargeStartedAt: chargeStartedAt,
-                chargerConnected: true,
-                latitude: chargeLocation.Latitude,
-                longitude: chargeLocation.Longitude);
-
-            while (soc < targetSoc)
-            {
-                var supplyVariation = isFastCharge ? 1 : 0.98 + rng.NextDouble() * 0.04;
-                var powerKw = ChargingPowerAt(soc, supplyVariation);
-                var intervalMinutes = isFastCharge ? 5.0 : 10.0;
-                var energyToTargetKwh = (targetSoc - soc) / 100.0 * 70.0;
-                var minutesToTarget = energyToTargetKwh / (powerKw * efficiency) * 60.0;
-                var elapsedMinutes = Math.Min(intervalMinutes, minutesToTarget);
-                soc = Math.Min(targetSoc, soc + powerKw * efficiency * elapsedMinutes / 60.0 / 70.0 * 100.0);
-                chargeAt = chargeAt.AddMinutes(elapsedMinutes);
-
-                AddSnapshot(
-                    chargeAt,
-                    isCharging: true,
-                    chargingType: chargingType,
-                    chargePowerKw: ChargingPowerAt(soc, supplyVariation),
-                    chargeStartedAt: chargeStartedAt,
-                    chargerConnected: true,
-                    latitude: chargeLocation.Latitude,
-                    longitude: chargeLocation.Longitude);
-            }
-
-            // The charger stays connected briefly after the car reaches its target.
-            var chargeEndedAt = chargeAt.AddMinutes(2);
-            AddSnapshot(
-                chargeEndedAt,
-                isCharging: false,
-                chargingType: chargingType,
-                chargeEndedAt: chargeEndedAt,
-                chargerConnected: true,
-                latitude: chargeLocation.Latitude,
-                longitude: chargeLocation.Longitude);
-        }
-
-        return snapshots;
     }
 }

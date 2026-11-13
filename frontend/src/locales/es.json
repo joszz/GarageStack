@@ -91,6 +91,7 @@
       "efficiencyDistance": "Distancia total recorrida hasta el momento hoy.",
       "efficiencyEnergy": "Lo que ha usado el coche desde medianoche. En un BEV o PHEV que es energía eléctrica a través de la batería de alto voltaje, en kilovatios-hora. En un HEV, el mismo contador lleva el total de combustible de la computadora de viaje, por lo que se muestra en litros.",
       "efficiencyCharge": "Distancia recorrida desde la última sesión de carga.",
+      "efficiencySinceCharge": "Energía consumida por distancia desde la última carga, en {energyPerDistance}; un valor {energyBetter}. Procede de los contadores propios de la batería desde la última carga, que empiezan de nuevo en cada carga. Solo aplica a PHEV y BEV.",
       "efficiencyRatio": "Consumo de energía o combustible para la distancia recorrida hoy. En BEV y PHEV se muestra como {energyPerDistance}; un valor {energyBetter} y permite calcular el coste eléctrico por {distance}. En HEV se muestra el consumo de combustible como {fuelConsumption}; {fuelBetter}: conducir por autopista suele dar un consumo mejor que los trayectos cortos con paradas y arranques, especialmente con el motor frío. Si aún no hay datos de conducción, los HEV y PHEV muestran una estimación del consumo ({distancePerPercent}) calculada a partir de la autonomía que indica el coche.",
       "speed": "Velocidad actual del vehículo según lo informado por la puerta de enlace.",
       "topSpeed": "Velocidad más alta registrada en todos los puntos GPS en el viaje completado más reciente.",
@@ -109,6 +110,10 @@
       "distanceInRange": "Distancia en el período",
       "monthlyMileage": "Kilometraje mensual",
       "avgTripLength": "Duración media del trayecto",
+      "periodEnergy": "Energía consumida",
+      "periodFuel": "Combustible consumido",
+      "periodEfficiency": "Eficiencia",
+      "periodConsumption": "Consumo",
       "climateUsage": "Preacondicionamiento remoto",
       "commutePattern": "Tiempo de conducción pico",
       "batteryVoltageTrend": "Tendencia de 12 V",
@@ -117,8 +122,11 @@
       "avgSpeed": "Velocidad media"
     },
     "cardDesc": {
-      "distanceInRange": "Distancia total en todos los viajes en la ventana de tiempo seleccionada.",
+      "distanceInRange": "Distancia que el coche ha contado en el período seleccionado, según su propio contador diario, para que coincida con la energía consumida. Si el coche no tiene ese contador, se usa el total de sus viajes.",
       "avgTripLength": "Distancia media por viaje en el periodo seleccionado.",
+      "periodEnergy": "Energía que el coche ha tomado de su batería de alta tensión en el período seleccionado, según su propio contador. También cuenta lo que pierde la batería mientras el coche está aparcado.",
+      "periodFuel": "Combustible quemado en el período seleccionado, según el contador del ordenador de a bordo.",
+      "periodEfficiency": "Lo que el coche ha consumido por distancia en el período seleccionado: la energía (o el combustible) que ha contado, dividida por la distancia que ha contado en los mismos días. Un valor más bajo es mejor. Las pérdidas mientras está aparcado también cuentan, así que un coche que pasa mucho tiempo parado muestra un valor más alto. Se muestra cuando el período tiene al menos {min} de conducción.",
       "climateUsage": "Porcentaje de lecturas registradas en las que estaba activo el preacondicionamiento remoto del climatizador. No incluye el uso del aire acondicionado durante la conducción.",
       "commutePattern": "La hora del día con más inicios de viaje en el período seleccionado: su hora más común para conducir.",
       "batteryVoltageTrend": "Cambio en el voltaje medio de la batería de 12 V entre el inicio y el final del período seleccionado. Si hay menos de dos días de datos, muestra el voltaje actual.",
@@ -130,15 +138,15 @@
       "evChart": "Nivel de carga medio diario de la batería eléctrica durante el período seleccionado.",
       "tyreChart": "Presión media diaria de cada neumático durante el período seleccionado. El intervalo habitual para un turismo es de {low} a {high} {unit}.",
       "hybridSocChart": "Nivel medio diario de la batería eléctrica y del combustible durante el período seleccionado. Permite comparar cómo cambian ambas fuentes de energía.",
-      "dailyKwhChart": "Consumo estimado de la batería en kWh por día, semana o mes, según el período. Para un día completo se usa el valor máximo del contador; para hoy, solo el aumento desde medianoche o desde el último reinicio del contador.",
-      "dailyFuelChart": "Combustible consumido por día, semana o mes, según el período, de acuerdo con el contador del ordenador de a bordo. Para un día completo se usa el valor máximo del contador; para hoy, solo el aumento desde medianoche o desde el último reinicio."
+      "dailyKwhChart": "Las barras son los kWh tomados de la batería por día, semana o mes, según el propio contador del coche, incluidas las pérdidas mientras está aparcado. Para un día completo se usa el valor máximo del contador; para hoy, solo el aumento desde medianoche o desde el último reinicio del contador. La línea es la eficiencia en los mismos días, en {unit}, en el eje derecho; un punto con menos de {min} de conducción no tiene valor.",
+      "dailyFuelChart": "Las barras son el combustible consumido por día, semana o mes, según el contador del ordenador de a bordo. Para un día completo se usa el valor máximo del contador; para hoy, solo el aumento desde medianoche o desde el último reinicio. La línea es el consumo en los mismos días, en {unit}, en el eje derecho; un punto con menos de {min} de conducción no tiene valor."
     },
     "hybridSocChart": "EV y niveles de combustible",
     "weekOf": "Semana de {date}",
     "energyChart": {
-      "day": "Uso de electricidad por día (kWh)",
-      "week": "Uso de electricidad por semana (kWh)",
-      "month": "Uso de electricidad por mes (kWh)"
+      "day": "Energía consumida por día (kWh)",
+      "week": "Energía consumida por semana (kWh)",
+      "month": "Energía consumida por mes (kWh)"
     },
     "fuelChart": {
       "day": "Uso de combustible por día ({unit})",
@@ -166,8 +174,9 @@
       "month": "Mes",
       "trips": "Viajes",
       "distance": "Distancia ({unit})",
-      "energy": "Consumo eléctrico (kWh)",
+      "energy": "Energía consumida (kWh)",
       "fuel": "Combustible ({unit})",
+      "efficiency": "Eficiencia ({unit})",
       "total": "Total"
     }
   },
@@ -252,9 +261,10 @@
       "todayDistance": "Dist. hoy",
       "todayEnergy": "Energía hoy",
       "todayFuel": "Combustible hoy",
-      "sinceCharge": "Desde carga",
-      "efficiency": "Eficiencia",
-      "consumption": "Consumo",
+      "sinceCharge": "Dist. desde carga",
+      "efficiencySinceCharge": "Eficiencia desde carga",
+      "efficiency": "Eficiencia hoy",
+      "consumption": "Consumo hoy",
       "fuelEconomy": "Ahorro de combustible (est.)"
     },
     "hvBattery": {
@@ -595,8 +605,9 @@
       "lights": "Luces",
       "efficiencyDistance": "Distancia diaria",
       "efficiencyEnergy": "Energía diaria",
-      "efficiencyCharge": "Desde la carga",
-      "efficiencyRatio": "Eficiencia",
+      "efficiencyCharge": "Distancia desde la carga",
+      "efficiencySinceCharge": "Eficiencia desde la carga",
+      "efficiencyRatio": "Eficiencia hoy",
       "speed": "Velocidad",
       "topSpeed": "Velocidad máxima",
       "activeTrip": "Viaje activo",

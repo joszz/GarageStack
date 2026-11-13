@@ -91,6 +91,7 @@
       "efficiencyDistance": "Total distance driven so far today.",
       "efficiencyEnergy": "What the car has used since midnight. On a BEV or PHEV that is electrical energy through the high-voltage battery, in kilowatt-hours. On an HEV the same counter carries the trip computer's fuel total instead, so it is shown in litres.",
       "efficiencyCharge": "Distance driven since the last charge session.",
+      "efficiencySinceCharge": "Energy used per distance since the last charge, in {energyPerDistance}, where {energyBetter}. It comes from the battery's own since-last-charge counters, which start again at every charge. Only relevant for PHEV and BEV.",
       "efficiencyRatio": "How much the car used for the distance driven today. On a BEV or PHEV that is {energyPerDistance}, where {energyBetter}, and it translates directly to electricity cost per {distance}. On an HEV it is fuel consumption in {fuelConsumption}, where {fuelBetter}: motorway driving gives a better figure than short stop-start trips from cold. When no driving data is available yet, HEV and PHEV fall back to estimated fuel economy ({distancePerPercent}) derived from the car's own range computer, where higher is more efficient.",
       "speed": "Current vehicle speed as reported by the gateway.",
       "topSpeed": "Highest speed recorded across all GPS points in the most recent completed trip.",
@@ -109,6 +110,10 @@
       "distanceInRange": "Distance in period",
       "monthlyMileage": "Monthly mileage",
       "avgTripLength": "Avg trip length",
+      "periodEnergy": "Energy used",
+      "periodFuel": "Fuel used",
+      "periodEfficiency": "Efficiency",
+      "periodConsumption": "Consumption",
       "climateUsage": "Remote preconditioning",
       "commutePattern": "Peak drive time",
       "batteryVoltageTrend": "12V trend",
@@ -117,8 +122,11 @@
       "avgSpeed": "Avg speed"
     },
     "cardDesc": {
-      "distanceInRange": "Total distance across all trips in the selected time window.",
+      "distanceInRange": "Distance the car counted over the selected period, from its own day counter, so it matches the energy used. A car that reports no such counter gets the total of its trips instead.",
       "avgTripLength": "Average distance per trip in the selected period.",
+      "periodEnergy": "Energy the car took from its high-voltage battery over the selected period, as its own counter reports it. What the battery loses while the car is parked counts too.",
+      "periodFuel": "Fuel burned over the selected period, from the trip computer's own counter.",
+      "periodEfficiency": "What the car used per distance over the selected period: the energy (or fuel) it counted, divided by the distance it counted on the same days. Lower is better. Standby losses while parked count too, so a car that mostly stands still reads higher. Shown once the period holds at least {min} of driving.",
       "climateUsage": "Percentage of recorded snapshots during which remote climate preconditioning was active. Does not reflect in-car A/C usage while driving.",
       "commutePattern": "The hour of day with the most trip starts in the selected period - your most common time to drive.",
       "batteryVoltageTrend": "Change in average 12V battery voltage from the start to the end of the selected period. Shows current voltage when less than two days of data are available.",
@@ -130,15 +138,15 @@
       "evChart": "Daily average EV battery state-of-charge over the selected period.",
       "tyreChart": "Daily average tyre pressure per wheel over the selected period. Typical passenger-car range is {low} – {high} {unit}.",
       "hybridSocChart": "Daily average EV battery and fuel level over the selected period. Lets you compare how both energy sources change together.",
-      "dailyKwhChart": "Estimated kWh consumed from the EV battery per day, week or month, depending on the period. A finished day counts the peak of its counter; today counts only the increase since midnight, or since the last counter reset.",
-      "dailyFuelChart": "Fuel burned per day, week or month, depending on the period, from the trip computer's own counter. A finished day counts the peak of its counter; today counts only the increase since midnight, or since the last counter reset."
+      "dailyKwhChart": "The bars are the kWh taken from the battery per day, week or month, as the car's own counter reports it, standby losses while parked included. A finished day counts the peak of its counter; today counts only the increase since midnight, or since the last counter reset. The line is the efficiency over the same days, in {unit}, against the right-hand axis; a point with less than {min} of driving has none.",
+      "dailyFuelChart": "The bars are the fuel burned per day, week or month, from the trip computer's own counter. A finished day counts the peak of its counter; today counts only the increase since midnight, or since the last counter reset. The line is the consumption over the same days, in {unit}, against the right-hand axis; a point with less than {min} of driving has none."
     },
     "hybridSocChart": "EV & Fuel Levels",
     "weekOf": "Week of {date}",
     "energyChart": {
-      "day": "Electric Usage per Day (kWh)",
-      "week": "Electric Usage per Week (kWh)",
-      "month": "Electric Usage per Month (kWh)"
+      "day": "Energy Used per Day (kWh)",
+      "week": "Energy Used per Week (kWh)",
+      "month": "Energy Used per Month (kWh)"
     },
     "fuelChart": {
       "day": "Fuel Use per Day ({unit})",
@@ -166,8 +174,9 @@
       "month": "Month",
       "trips": "Trips",
       "distance": "Distance ({unit})",
-      "energy": "Electric usage (kWh)",
+      "energy": "Energy used (kWh)",
       "fuel": "Fuel ({unit})",
+      "efficiency": "Efficiency ({unit})",
       "total": "Total"
     }
   },
@@ -252,9 +261,10 @@
       "todayDistance": "Dist. today",
       "todayEnergy": "Energy today",
       "todayFuel": "Fuel today",
-      "sinceCharge": "Since charge",
-      "efficiency": "Efficiency",
-      "consumption": "Consumption",
+      "sinceCharge": "Dist. since charge",
+      "efficiencySinceCharge": "Efficiency since charge",
+      "efficiency": "Efficiency today",
+      "consumption": "Consumption today",
       "fuelEconomy": "Fuel economy (est.)"
     },
     "hvBattery": {
@@ -595,8 +605,9 @@
       "lights": "Lights",
       "efficiencyDistance": "Daily Distance",
       "efficiencyEnergy": "Daily Energy",
-      "efficiencyCharge": "Since Charge",
-      "efficiencyRatio": "Efficiency",
+      "efficiencyCharge": "Distance Since Charge",
+      "efficiencySinceCharge": "Efficiency Since Charge",
+      "efficiencyRatio": "Efficiency Today",
       "speed": "Speed",
       "topSpeed": "Top Speed",
       "activeTrip": "Active Trip",

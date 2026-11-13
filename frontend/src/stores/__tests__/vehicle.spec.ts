@@ -235,3 +235,54 @@ describe('useVehicleStore - trips for the dashboard and statistics', () => {
     expect(store.trips).toEqual([])
   })
 })
+
+describe('useVehicleStore - fetchTodayStat', () => {
+  const VIN = 'FAKEVN00000000001'
+  const day = (sinceChargeTotal: number) =>
+    ({ date: '2026-11-08', sinceChargeTotal, counterUnbacked: true }) as DailyStat
+
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    vi.mocked(vehicleApi.dailyStats).mockReset()
+  })
+
+  it("asks for today only and keeps today's row", async () => {
+    const store = useVehicleStore()
+    vi.mocked(vehicleApi.dailyStats).mockResolvedValueOnce([day(17.9)])
+
+    await store.fetchTodayStat(VIN)
+
+    const [, from, to] = vi.mocked(vehicleApi.dailyStats).mock.calls[0]!
+    expect(from).toBe(to)
+    expect(store.todayStat?.sinceChargeTotal).toBe(17.9)
+  })
+
+  it('keeps the answer to the latest request when answers overlap', async () => {
+    const store = useVehicleStore()
+    let answerFirst: (days: DailyStat[]) => void = () => {}
+    vi.mocked(vehicleApi.dailyStats)
+      .mockReturnValueOnce(new Promise((resolve) => (answerFirst = resolve)))
+      .mockResolvedValueOnce([day(17.9)])
+
+    const first = store.fetchTodayStat(VIN)
+    await store.fetchTodayStat(VIN)
+    answerFirst([day(12)])
+    await first
+
+    expect(store.todayStat?.sinceChargeTotal).toBe(17.9)
+  })
+
+  it("drops the previous car's row and keeps the last one on a failure", async () => {
+    const store = useVehicleStore()
+    vi.mocked(vehicleApi.dailyStats).mockResolvedValueOnce([day(17.9)])
+    await store.fetchTodayStat(VIN)
+
+    vi.mocked(vehicleApi.dailyStats).mockRejectedValueOnce(new Error('offline'))
+    await store.fetchTodayStat(VIN)
+    expect(store.todayStat?.sinceChargeTotal).toBe(17.9)
+
+    vi.mocked(vehicleApi.dailyStats).mockRejectedValueOnce(new Error('offline'))
+    await store.fetchTodayStat('FAKEVN00000000002')
+    expect(store.todayStat).toBeNull()
+  })
+})

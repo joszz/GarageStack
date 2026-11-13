@@ -1,4 +1,6 @@
-import type { TelemetrySnapshot, VehicleType } from '@/services/vehicleApi'
+import type { DailyStat, TelemetrySnapshot, VehicleType } from '@/services/vehicleApi'
+import type { Quantity } from '@/utils/units'
+import { localDateKey } from '@/utils/dates'
 
 // The gateway publishes powerUsageOfDay and powerUsageSinceLastCharge on the same topics for
 // every drivetrain, but they do not measure the same thing on every drivetrain. A car with a
@@ -24,9 +26,131 @@ export function energyUnit(vehicleType: VehicleType): EnergyUnit {
   return vehicleType === 'hev' ? 'litres' : 'kwh'
 }
 
+// Not every plug-in car keeps its day counter straight. An MG ZS EV (issue #551) adds 33 to 35 kWh
+// to it at some polls while parked, so a 4 km day read 134 kWh. Its since-last-charge counter
+// comes out of the same charge status message and matches the state of charge drop to the
+// hundredth, so that counter is what the day counter is checked against: the API does it per day
+// over every reading (DailyStatsBuilder), and todaysEnergyKwh below takes that day's answer for
+// today, with a check on the live reading alone until it has arrived.
+
+// Today's use is part of what left the battery since its last charge. The factor leaves room for
+// regeneration, which the since-last-charge counter takes back off and a day counter may not, and
+// the margin for rounding. The API's per-day check uses the same two numbers.
+const SINCE_CHARGE_FACTOR = 1.5
+const SINCE_CHARGE_MARGIN_KWH = 1
+
+// A charge this recent may have happened today, after which today's use can exceed what the
+// since-last-charge counter has counted.
+const RECENT_CHARGE_MS = 24 * 60 * 60 * 1000
+
+/**
+ * A day's total from the statistics, in the counter's own unit. On a car that plugs in, the day
+ * counter gives way to the since-last-charge counter on a day the API found it rising past it.
+ */
+export function dailyCounterTotal(
+  day: Pick<DailyStat, 'counterTotal' | 'sinceChargeTotal' | 'counterUnbacked'>,
+  vehicleType: VehicleType,
+): number | null {
+  return energyUnit(vehicleType) === 'kwh' && day.counterUnbacked
+    ? day.sinceChargeTotal
+    : day.counterTotal
+}
+
+/** The statistics row for today that the dashboard reads alongside the live status. */
+export type TodayStat = Pick<DailyStat, 'date' | 'sinceChargeTotal' | 'counterUnbacked'>
+
+/**
+ * Today's energy in kWh. When the API found today's day counter rising past the since-last-charge
+ * counter, that day's since-last-charge total, which is the figure the statistics page shows for
+ * today too. Otherwise the live day counter, unless it alone holds more than had left the battery
+ * since the last charge (null then): that covers a jump in a reading the API has not read yet.
+ * Without a since-last-charge reading, or after a charge that may have been today, the live
+ * reading has nothing to be checked against and stands.
+ */
+export function todaysEnergyKwh(
+  status: Pick<
+    TelemetrySnapshot,
+    'powerUsageOfDay' | 'powerUsageSinceLastCharge' | 'isCharging' | 'chargingLastEndAt'
+  >,
+  todayStat: TodayStat | null,
+  now: number = Date.now(),
+): number | null {
+  if (todayStat?.counterUnbacked && todayStat.date === localDateKey(new Date(now)))
+    return todayStat.sinceChargeTotal
+  const today = status.powerUsageOfDay
+  const sinceCharge = status.powerUsageSinceLastCharge
+  if (today === null || sinceCharge === null || status.isCharging) return today
+  const lastEnd = status.chargingLastEndAt ? Date.parse(status.chargingLastEndAt) : NaN
+  if (now - lastEnd < RECENT_CHARGE_MS) return today
+  return today > sinceCharge * SINCE_CHARGE_FACTOR + SINCE_CHARGE_MARGIN_KWH ? null : today
+}
+
 export function whPerKm(energyKwh: number | null, distanceKm: number | null): number | null {
   if (energyKwh === null || distanceKm === null || distanceKm <= 0) return null
   return (energyKwh * 1000) / distanceKm
+}
+
+/**
+ * Below this distance an efficiency is mostly rounding: some cars count their day's distance in
+ * whole kilometres (the ZS EV in issue #551 does), so a 4 km day could be anything from 4 to 5.
+ */
+export const MIN_EFFICIENCY_DISTANCE_KM = 5
+
+/** What the energy counter counted, in its own unit, over the days that also counted a distance. */
+export interface CounterOverDistance {
+  counter: number
+  distanceKm: number
+}
+
+/**
+ * The energy (or fuel) counter's total and the distance counter's total over the days that report
+ * both, so the two always describe the same driving. A day the car stood still still counts, at
+ * 0 km: what the battery lost while parked is part of what the car used. Null without such a day.
+ */
+export function counterOverDistance(
+  days: readonly Pick<
+    DailyStat,
+    'counterTotal' | 'sinceChargeTotal' | 'counterUnbacked' | 'distanceKm'
+  >[],
+  vehicleType: VehicleType,
+): CounterOverDistance | null {
+  let paired: CounterOverDistance | null = null
+  for (const day of days) {
+    const counter = dailyCounterTotal(day, vehicleType)
+    if (counter === null || day.distanceKm === null) continue
+    paired = addCounterOverDistance(paired, { counter, distanceKm: day.distanceKm })
+  }
+  return paired
+}
+
+/** An efficiency in the API's metric unit, with the quantity that unit belongs to. */
+export interface Efficiency {
+  quantity: Extract<Quantity, 'energyPerDistance' | 'fuelConsumption'>
+  /** Wh/km on a plug-in car, L/100 km on a hybrid. */
+  metric: number
+}
+
+/**
+ * How much the car used per distance: Wh/km off a plug-in car's energy counter, L/100 km off a
+ * hybrid's fuel counter. Null without data, or over too short a distance to mean anything.
+ */
+export function efficiency(used: CounterOverDistance | null, unit: EnergyUnit): Efficiency | null {
+  if (!used || used.distanceKm < MIN_EFFICIENCY_DISTANCE_KM) return null
+  const metric =
+    unit === 'litres'
+      ? litresPer100Km(used.counter, used.distanceKm)
+      : whPerKm(used.counter, used.distanceKm)
+  if (metric === null) return null
+  return { quantity: unit === 'litres' ? 'fuelConsumption' : 'energyPerDistance', metric }
+}
+
+/** Two stretches of driving as one, or whichever of them there is. */
+export function addCounterOverDistance(
+  a: CounterOverDistance | null,
+  b: CounterOverDistance | null,
+): CounterOverDistance | null {
+  if (!a || !b) return a ?? b
+  return { counter: a.counter + b.counter, distanceKm: a.distanceKm + b.distanceKm }
 }
 
 /** Litres burned, from a hybrid's fuel counter. */

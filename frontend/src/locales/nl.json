@@ -91,6 +91,7 @@
       "efficiencyDistance": "Totale afstand gereden vandaag.",
       "efficiencyEnergy": "Wat de auto sinds middernacht heeft verbruikt. Op een BEV of PHEV is dat elektrische energie door de hoogspanningsaccu, in kilowattuur. Op een HEV bevat diezelfde teller het brandstoftotaal van de boordcomputer en wordt die dus in liters getoond.",
       "efficiencyCharge": "Afstand gereden sinds de laatste laadsessie.",
+      "efficiencySinceCharge": "Het verbruik per afstand sinds de laatste lading, in {energyPerDistance}, waarbij {energyBetter}. Het komt uit de eigen tellers van de accu sinds de laatste lading, die bij elke lading opnieuw beginnen. Alleen relevant voor PHEV en BEV.",
       "efficiencyRatio": "Hoeveel de auto verbruikte voor de afstand van vandaag. Op een BEV of PHEV is dat {energyPerDistance}, waarbij {energyBetter}, en dat vertaalt zich direct naar elektriciteitskosten per {distance}. Op een HEV is het brandstofverbruik in {fuelConsumption}, waarbij {fuelBetter}: snelwegrijden geeft een betere waarde dan korte ritjes vanuit koude start. Als er nog geen rijgegevens beschikbaar zijn, vallen HEV en PHEV terug op een geschat brandstofverbruik ({distancePerPercent}) afgeleid van de rangecalculator van de auto, waarbij hoger zuiniger is.",
       "speed": "Actuele rijsnelheid zoals gerapporteerd door de gateway.",
       "topSpeed": "Hoogste gemeten snelheid over alle GPS-punten van de meest recente rit.",
@@ -109,6 +110,10 @@
       "distanceInRange": "Afstand in periode",
       "monthlyMileage": "Maandkilometrage",
       "avgTripLength": "Gem. ritlengte",
+      "periodEnergy": "Energie verbruikt",
+      "periodFuel": "Brandstof verbruikt",
+      "periodEfficiency": "Gem. verbruik",
+      "periodConsumption": "Gem. verbruik",
       "climateUsage": "Voorconditionering",
       "commutePattern": "Piek rijtijd",
       "batteryVoltageTrend": "12V-trend",
@@ -117,8 +122,11 @@
       "avgSpeed": "Gem. snelheid"
     },
     "cardDesc": {
-      "distanceInRange": "Totale afstand over alle ritten in de geselecteerde periode.",
+      "distanceInRange": "De afstand die de auto in de geselecteerde periode telde, volgens zijn eigen dagteller, zodat die past bij de verbruikte energie. Een auto zonder zo'n teller krijgt in plaats daarvan het totaal van zijn ritten.",
       "avgTripLength": "Gemiddelde afstand per rit in de geselecteerde periode.",
+      "periodEnergy": "De energie die de auto in de geselecteerde periode uit de hoogvoltaccu haalde, zoals zijn eigen teller die meldt. Wat de accu verliest terwijl de auto geparkeerd staat telt ook mee.",
+      "periodFuel": "De brandstof die in de geselecteerde periode verbruikt is, volgens de eigen teller van de boordcomputer.",
+      "periodEfficiency": "Wat de auto per afstand verbruikte in de geselecteerde periode: de energie (of brandstof) die hij telde, gedeeld door de afstand die hij op dezelfde dagen telde. Lager is beter. Wat de accu verliest terwijl de auto geparkeerd staat telt mee, dus een auto die vooral stilstaat komt hoger uit. Verschijnt zodra de periode minstens {min} rijden bevat.",
       "climateUsage": "Percentage van geregistreerde momenten waarop de klimaatvoorconditionering actief was. Geeft geen weergave van airco-gebruik tijdens het rijden.",
       "commutePattern": "Het uur van de dag met de meeste ritstarts in de geselecteerde periode - jouw meest voorkomende rijtijd.",
       "batteryVoltageTrend": "Verandering in gemiddelde 12V-accuspanning van het begin tot het einde van de geselecteerde periode. Toont de huidige spanning als er minder dan twee dagen aan data beschikbaar is.",
@@ -130,15 +138,15 @@
       "evChart": "Dagelijks gemiddeld EV-accuniveau in de geselecteerde periode.",
       "tyreChart": "Dagelijkse gemiddelde bandenspanning per wiel in de geselecteerde periode. Normaal bereik voor personenwagens is circa {low} – {high} {unit}.",
       "hybridSocChart": "Dagelijks gemiddeld EV-accuniveau en brandstofniveau in de geselecteerde periode. Geeft inzicht in hoe beide energiebronnen zich samen ontwikkelen.",
-      "dailyKwhChart": "Geschat kWh-verbruik uit de EV-accu per dag, week of maand, afhankelijk van de periode. Een voltooide dag telt de piek van zijn teller; vandaag telt alleen de toename sinds middernacht, of sinds de laatste tellerreset.",
-      "dailyFuelChart": "Verbruikte brandstof per dag, week of maand, afhankelijk van de periode, volgens de teller van de boordcomputer. Een voltooide dag telt de piek van zijn teller; vandaag telt alleen de toename sinds middernacht, of sinds de laatste tellerreset."
+      "dailyKwhChart": "De staven zijn de kWh die per dag, week of maand uit de accu kwamen, zoals de eigen teller van de auto die meldt, inclusief wat de accu verliest terwijl de auto geparkeerd staat. Een afgelopen dag telt de hoogste stand van de teller; vandaag telt alleen de toename sinds middernacht, of sinds de laatste reset van de teller. De lijn is het verbruik over dezelfde dagen, in {unit}, op de rechteras; een punt met minder dan {min} rijden heeft er geen.",
+      "dailyFuelChart": "De staven zijn de brandstof die per dag, week of maand verbruikt is, volgens de eigen teller van de boordcomputer. Een afgelopen dag telt de hoogste stand van de teller; vandaag telt alleen de toename sinds middernacht, of sinds de laatste reset van de teller. De lijn is het verbruik over dezelfde dagen, in {unit}, op de rechteras; een punt met minder dan {min} rijden heeft er geen."
     },
     "hybridSocChart": "EV & Brandstofniveaus",
     "weekOf": "Week van {date}",
     "energyChart": {
-      "day": "Elektrisch verbruik per dag (kWh)",
-      "week": "Elektrisch verbruik per week (kWh)",
-      "month": "Elektrisch verbruik per maand (kWh)"
+      "day": "Energieverbruik per dag (kWh)",
+      "week": "Energieverbruik per week (kWh)",
+      "month": "Energieverbruik per maand (kWh)"
     },
     "fuelChart": {
       "day": "Brandstofverbruik per dag ({unit})",
@@ -166,8 +174,9 @@
       "month": "Maand",
       "trips": "Ritten",
       "distance": "Afstand ({unit})",
-      "energy": "Elektrisch verbruik (kWh)",
+      "energy": "Energie verbruikt (kWh)",
       "fuel": "Brandstof ({unit})",
+      "efficiency": "Verbruik ({unit})",
       "total": "Totaal"
     }
   },
@@ -252,9 +261,10 @@
       "todayDistance": "Afst. vandaag",
       "todayEnergy": "Energie vandaag",
       "todayFuel": "Brandstof vandaag",
-      "sinceCharge": "Sinds lading",
-      "efficiency": "Verbruik",
-      "consumption": "Verbruik",
+      "sinceCharge": "Afst. sinds lading",
+      "efficiencySinceCharge": "Verbruik sinds lading",
+      "efficiency": "Verbruik vandaag",
+      "consumption": "Verbruik vandaag",
       "fuelEconomy": "Brandstofverbruik (schatting)"
     },
     "hvBattery": {
@@ -595,8 +605,9 @@
       "lights": "Verlichting",
       "efficiencyDistance": "Dagafstand",
       "efficiencyEnergy": "Dagenergie",
-      "efficiencyCharge": "Sinds lading",
-      "efficiencyRatio": "Verbruik",
+      "efficiencyCharge": "Afstand sinds lading",
+      "efficiencySinceCharge": "Verbruik sinds lading",
+      "efficiencyRatio": "Verbruik vandaag",
       "speed": "Snelheid",
       "topSpeed": "Topsnelheid",
       "activeTrip": "Actieve rit",
