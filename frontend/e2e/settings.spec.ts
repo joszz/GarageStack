@@ -76,16 +76,16 @@ for (const viewport of [
     const viewportBox = (await tabsViewport.boundingBox())!
     const closeBox = (await close.boundingBox())!
     const middle = (box: { y: number; height: number }) => box.y + box.height / 2
-    if (viewport.width < 768) {
-      // On a phone the tabs get a row of their own under the title and the close button, and
-      // all six fit in it, so none hides past the edge.
+    const tabRowOverflow = () =>
+      tabsViewport.evaluate((element) => element.scrollWidth - element.clientWidth)
+    // On a phone the tabs get a row of their own under the title and the close button, and all
+    // six fit in it whichever is chosen, so none hides past the edge.
+    const phoneLayout = viewport.width < 768
+    if (phoneLayout) {
       expect(Math.abs(middle(titleBox) - middle(closeBox))).toBeLessThanOrEqual(1)
       expect(viewportBox.y).toBeGreaterThanOrEqual(closeBox.y + closeBox.height - 1)
       expect(viewportBox.x).toBeCloseTo(titleBox.x, 0)
       expect(viewportBox.x + viewportBox.width).toBeCloseTo(closeBox.x + closeBox.width, 0)
-      expect(
-        await tabsViewport.evaluate((element) => element.scrollWidth - element.clientWidth),
-      ).toBeLessThanOrEqual(1)
     } else {
       expect(Math.abs(middle(titleBox) - middle(viewportBox))).toBeLessThanOrEqual(1)
       expect(titleBox.x + titleBox.width).toBeLessThanOrEqual(viewportBox.x)
@@ -102,9 +102,7 @@ for (const viewport of [
     await expect(body).toHaveCSS('scrollbar-gutter', 'stable')
     if (viewport.width >= 840) {
       expect((await dialog.boundingBox())!.width).toBeCloseTo(771, 0)
-      expect(
-        await tabsViewport.evaluate((element) => element.scrollWidth - element.clientWidth),
-      ).toBeLessThanOrEqual(1)
+      expect(await tabRowOverflow()).toBeLessThanOrEqual(1)
       const lastTabBox = (await tabs.locator('[data-tab=data]').boundingBox())!
       expect(lastTabBox.x + lastTabBox.width).toBeCloseTo(viewportBox.x + viewportBox.width, 0)
     }
@@ -123,6 +121,7 @@ for (const viewport of [
       await expect(dialog.getByRole('tabpanel')).toHaveCount(1)
       expect(await body.evaluate((element) => element.scrollTop)).toBe(0)
       expect((await tabsViewport.boundingBox())!.y).toBeCloseTo(initialTabTop, 0)
+      if (phoneLayout) expect(await tabRowOverflow()).toBeLessThanOrEqual(1)
       const buttonBox = (await tab.boundingBox())!
       const tabsBox = (await tabsViewport.boundingBox())!
       expect(buttonBox.height).toBeGreaterThanOrEqual(44)
@@ -177,9 +176,7 @@ for (const viewport of [
       for (const tab of await tabs.getByRole('tab').all())
         await expectTabPadding(tab, viewport.width)
       if (viewport.width >= 840) {
-        expect(
-          await tabsViewport.evaluate((element) => element.scrollWidth - element.clientWidth),
-        ).toBeLessThanOrEqual(1)
+        expect(await tabRowOverflow()).toBeLessThanOrEqual(1)
       } else {
         await phone.click()
         const phoneBox = (await phone.boundingBox())!
