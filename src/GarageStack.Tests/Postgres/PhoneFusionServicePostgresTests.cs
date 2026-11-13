@@ -9,7 +9,9 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace GarageStack.Tests;
 
-public class PhoneFusionServiceTests
+// The service over the real repository on PostgreSQL, where the Worker runs it: fusing a trip is a
+// serializable transaction, which the in-memory provider cannot run.
+public class PhoneFusionServicePostgresTests
 {
     private static readonly DateTime Start = new(2026, 1, 1, 10, 0, 0, DateTimeKind.Utc);
     private static readonly DateTime Later = Start.AddHours(3);
@@ -48,13 +50,13 @@ public class PhoneFusionServiceTests
     }
 
     // One linked phone and a two-minute trip starting at each of the given times.
-    private static async Task<(ServiceProvider Provider, PhoneFusionService Worker, Clock Clock)> SetupAsync(
+    private static async Task<(ServiceProvider Provider, PhoneFusionService Worker, Clock Clock, PostgresDatabase Database)> SetupAsync(
         Client client, CancellationToken ct, params DateTime[] trips)
     {
-        var name = Guid.NewGuid().ToString();
+        var database = await PostgresDatabase.CreateAsync(ct);
         var clock = new Clock();
         var services = new ServiceCollection().AddLogging();
-        services.AddDbContext<AppDbContext>(o => o.UseInMemoryDatabase(name));
+        services.AddDbContext<AppDbContext>(o => o.UseNpgsql(database.ConnectionString));
         services.AddScoped<ITelemetryRepository, TelemetryRepository>();
         services.AddScoped<IPhoneFusionRepository, PhoneFusionRepository>();
         services.AddSingleton<IDawarichClient>(client);
@@ -72,7 +74,7 @@ public class PhoneFusionServiceTests
         var worker = new PhoneFusionService(NullLogger<PhoneFusionService>.Instance,
             provider.GetRequiredService<IServiceScopeFactory>(),
             new() { Url = "https://fake.invalid", ApiKey = "fake" }, clock);
-        return (provider, worker, clock);
+        return (provider, worker, clock, database);
     }
 
     private static async Task<Dictionary<DateTime, Trip>> TripsAsync(ServiceProvider provider, CancellationToken ct)
@@ -89,8 +91,9 @@ public class PhoneFusionServiceTests
     {
         var ct = TestContext.Current.CancellationToken;
         var client = new Client { Failure = new("Synthetic failure", badKey) };
-        var (provider, worker, clock) = await SetupAsync(client, ct, Start);
-        await using var _ = provider;
+        var (provider, worker, clock, database) = await SetupAsync(client, ct, Start);
+        await using var _ = database;
+        await using var __ = provider;
         clock.Now = new(Start.AddMinutes(16));
         await worker.RunPassAsync(ct);
         Assert.Equal(0, client.Calls);
@@ -114,8 +117,9 @@ public class PhoneFusionServiceTests
         var ct = TestContext.Current.CancellationToken;
         var client = new Client();
         client.FailuresByTrip[Start] = new("Synthetic invalid data", retryable: false);
-        var (provider, worker, clock) = await SetupAsync(client, ct, Start, Later);
-        await using var _ = provider;
+        var (provider, worker, clock, database) = await SetupAsync(client, ct, Start, Later);
+        await using var _ = database;
+        await using var __ = provider;
         clock.Now = new(Later.AddHours(1));
 
         await worker.RunPassAsync(ct);
@@ -131,8 +135,9 @@ public class PhoneFusionServiceTests
         var ct = TestContext.Current.CancellationToken;
         var client = new Client { Health = DawarichHealth.Ok };
         client.FailuresByTrip[Start] = new("Synthetic timeout");
-        var (provider, worker, clock) = await SetupAsync(client, ct, Start, Later);
-        await using var _ = provider;
+        var (provider, worker, clock, database) = await SetupAsync(client, ct, Start, Later);
+        await using var _ = database;
+        await using var __ = provider;
         clock.Now = new(Later.AddHours(1));
 
         await worker.RunPassAsync(ct);
@@ -151,8 +156,9 @@ public class PhoneFusionServiceTests
     {
         var ct = TestContext.Current.CancellationToken;
         var client = new Client { Failure = new("Synthetic outage") };
-        var (provider, worker, clock) = await SetupAsync(client, ct, Start);
-        await using var _ = provider;
+        var (provider, worker, clock, database) = await SetupAsync(client, ct, Start);
+        await using var _ = database;
+        await using var __ = provider;
         clock.Now = new(Start.AddHours(1));
 
         for (var pass = 0; pass < PhoneFusionService.MaxTripAttempts + 2; pass++)

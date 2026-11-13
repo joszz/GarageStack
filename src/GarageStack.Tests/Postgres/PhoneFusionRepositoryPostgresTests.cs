@@ -8,12 +8,12 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace GarageStack.Tests;
 
-public class PhoneFusionRepositoryTests
+// On PostgreSQL: queueing and fusing run in serializable transactions, which the in-memory
+// provider cannot run, and that is how the Worker runs them.
+public class PhoneFusionRepositoryPostgresTests
 {
     private static readonly DateTime Start = new(2026, 1, 1, 10, 0, 0, DateTimeKind.Utc);
     private static readonly TripPoint[] Points = [new(Start, 52, 5, 40), new(Start.AddMinutes(2), 52.01, 5, 40)];
-    private static AppDbContext Database() => new(new DbContextOptionsBuilder<AppDbContext>()
-        .UseInMemoryDatabase(Guid.NewGuid().ToString()).Options);
     private static PhoneFusionRepository Phones(AppDbContext db) =>
         new(db, new TelemetryRepository(db), NullLogger<PhoneFusionRepository>.Instance);
 
@@ -30,7 +30,8 @@ public class PhoneFusionRepositoryTests
     public async Task RespectsLinkDateDelayAndExplicitBackfill()
     {
         var ct = TestContext.Current.CancellationToken;
-        await using var db = Database();
+        await using var database = await PostgresDatabase.CreateAsync(ct);
+        await using var db = database.CreateContext();
         var id = await SeedAsync(db, ct);
         var repo = Phones(db);
         await repo.SetAsync(1, ["fake-phone"], Start.AddDays(1), ct);
@@ -46,7 +47,8 @@ public class PhoneFusionRepositoryTests
     public async Task FusionIsAsRecordedAndEditorResetRestoresPhonePoints()
     {
         var ct = TestContext.Current.CancellationToken;
-        await using var db = Database();
+        await using var database = await PostgresDatabase.CreateAsync(ct);
+        await using var db = database.CreateContext();
         var id = await SeedAsync(db, ct);
         var repo = Phones(db);
         await repo.SetAsync(1, ["fake-phone"], Start.AddDays(-1), ct);
@@ -69,7 +71,8 @@ public class PhoneFusionRepositoryTests
     public async Task CompletedWorkCannotBeReprocessedByAConcurrentPass()
     {
         var ct = TestContext.Current.CancellationToken;
-        await using var db = Database();
+        await using var database = await PostgresDatabase.CreateAsync(ct);
+        await using var db = database.CreateContext();
         var id = await SeedAsync(db, ct);
         var repo = Phones(db);
         await repo.SetAsync(1, ["fake-phone"], Start.AddDays(-1), ct);
@@ -84,7 +87,8 @@ public class PhoneFusionRepositoryTests
     public async Task RecoveryWindowUsesCarDepartureNotAnEntireParkedDay()
     {
         var ct = TestContext.Current.CancellationToken;
-        await using var db = Database();
+        await using var database = await PostgresDatabase.CreateAsync(ct);
+        await using var db = database.CreateContext();
         var id = await SeedAsync(db, ct);
         db.TelemetrySnapshots.Add(new()
         {
@@ -107,7 +111,8 @@ public class PhoneFusionRepositoryTests
     public async Task RemovingAndRelinkingDuringFetchDoesNotRestoreConsentForOldTrips()
     {
         var ct = TestContext.Current.CancellationToken;
-        await using var db = Database();
+        await using var database = await PostgresDatabase.CreateAsync(ct);
+        await using var db = database.CreateContext();
         var id = await SeedAsync(db, ct);
         var repo = Phones(db);
         await repo.SetAsync(1, ["fake-phone"], Start.AddDays(-1), ct);
@@ -122,7 +127,8 @@ public class PhoneFusionRepositoryTests
     public async Task JoiningAFusedTripDoesNotScheduleAnotherFusion()
     {
         var ct = TestContext.Current.CancellationToken;
-        await using var db = Database();
+        await using var database = await PostgresDatabase.CreateAsync(ct);
+        await using var db = database.CreateContext();
         var id = await SeedAsync(db, ct);
         var trips = new TripRepository(db, new TelemetryRepository(db));
         var later = Points.Select(p => p with { RecordedAt = p.RecordedAt.AddHours(2) }).ToArray();
@@ -140,7 +146,8 @@ public class PhoneFusionRepositoryTests
     public async Task DoesNotOverwriteEditsOrUnlinkedTrips()
     {
         var ct = TestContext.Current.CancellationToken;
-        await using var db = Database();
+        await using var database = await PostgresDatabase.CreateAsync(ct);
+        await using var db = database.CreateContext();
         var id = await SeedAsync(db, ct);
         var repo = Phones(db);
         await repo.SetAsync(1, ["fake-phone"], Start.AddDays(-1), ct);
