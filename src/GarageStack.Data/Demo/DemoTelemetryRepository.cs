@@ -78,12 +78,29 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
     public Task<string?> GetChargingStopReasonAsync(int vehicleId, CancellationToken ct = default) =>
         Task.FromResult<string?>(null);
 
-    public async Task<IReadOnlyList<ChargeSession>> GetChargeSessionsAsync(int vehicleId, CancellationToken ct = default)
+    public async Task<IReadOnlyList<ChargeSession>> GetChargeSessionsAsync(
+        int vehicleId, DateTime from, DateTime to, CancellationToken ct = default)
     {
-        var readings = _history.Value.Select(ChargeSessionReading.FromSnapshot).ToList();
-        if (await GetMergedLatestAsync(vehicleId, ct) is { } current)
+        var readings = await ChargeReadingsAsync(
+            vehicleId, from - ChargeSessionHistory.SessionLookaround, to + ChargeSessionHistory.SessionLookaround, ct);
+        return ChargeSessionHistory.Build(readings, from, to);
+    }
+
+    public async Task<IReadOnlyList<ChargeSessionPowerPoint>> GetChargePowerAsync(
+        int vehicleId, DateTime from, DateTime to, CancellationToken ct = default) =>
+        ChargeSessionHistory.PowerCurve(await ChargeReadingsAsync(vehicleId, from, to, ct));
+
+    // The generated history, then the live snapshot the demo controls change.
+    private async Task<List<ChargeSessionReading>> ChargeReadingsAsync(
+        int vehicleId, DateTime from, DateTime to, CancellationToken ct)
+    {
+        var readings = _history.Value
+            .Where(s => s.RecordedAt >= from && s.RecordedAt <= to)
+            .Select(ChargeSessionReading.FromSnapshot)
+            .ToList();
+        if (await GetMergedLatestAsync(vehicleId, ct) is { } current && current.RecordedAt >= from && current.RecordedAt <= to)
             readings.Add(ChargeSessionReading.FromSnapshot(current));
-        return ChargeSessionHistory.Build(readings);
+        return readings;
     }
 
     // The generated history, oldest first, then the live snapshot the demo controls change.
@@ -358,6 +375,7 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
             // The rear right has a slow puncture: over the last twelve days it loses air the
             // other three keep, for the tyre history and the slow-puncture alert to show.
             var leak = Math.Max(0, day - (HistoryDays - SlowLeakDays)) * SlowLeakBarPerDay;
+            var countsToday = recordedAt.Hour is >= 7 and < 20;
 
             snapshots.Add(new TelemetrySnapshot
             {
@@ -369,15 +387,20 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
                 EvSocPercent = Math.Round(soc, 1),
                 HvSocKwh = Math.Round(soc / 100.0 * 70.0, 1),
                 HvTotalCapacityKwh = 70.0,
-                PowerUsageOfDay = Math.Round(usedTodayKwh, 1),
+                // The day counters restart at midnight. From 20:00 UTC it is already the next day in
+                // much of Europe, and an evening charge runs on past midnight, so those readings
+                // leave the counters out rather than carry the day over.
+                PowerUsageOfDay = countsToday ? Math.Round(usedTodayKwh, 1) : null,
                 OdometerKm = Math.Round(odometer, 1),
-                MileageOfTheDay = Math.Round(odometer - dayStartOdometer, 1),
+                MileageOfTheDay = countsToday ? Math.Round(odometer - dayStartOdometer, 1) : null,
                 IsCharging = isCharging,
                 ChargingType = chargingType,
                 ChargingLastStartAt = chargeStartedAt,
                 ChargingLastEndAt = chargeEndedAt,
-                HvPower = isCharging && chargingType == "DC" ? -chargePowerKw * 1000 : null,
-                ObcPowerSinglePhase = isCharging && chargingType == "AC" ? chargePowerKw * 1000 : null,
+                // In kW, as the gateway publishes them. The battery takes what the charger gives
+                // less its losses; a DC charge bypasses the onboard charger.
+                HvPower = isCharging ? -chargePowerKw * (chargingType == "DC" ? 1 : 0.9) : null,
+                ObcPowerSinglePhase = isCharging && chargingType == "AC" ? chargePowerKw : null,
                 ChargerConnected = chargerConnected,
                 ExteriorTemperature = Math.Round(extTemp, 1),
                 InteriorTemperature = Math.Round(extTemp + rng.NextDouble() * 4.0, 1),

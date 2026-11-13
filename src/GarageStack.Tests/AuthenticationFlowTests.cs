@@ -746,6 +746,29 @@ public class AuthenticationFlowTests
 
     private const string DemoVin = "DEMOVIN0000012345";
 
+    // The list leaves the curves out; one session's curve is asked for by its start, and is in kW.
+    [Fact]
+    public async Task ChargeSessions_ListThePeriod_AndGiveOneSessionsPowerCurve()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var factory = CreatePasswordOnlyFactory();
+        using var client = CreateClient(factory);
+        await PasswordLoginAsync(client, ct);
+        var url = $"/api/vehicles/{DemoVin}/charge-sessions";
+
+        var sessions = await client.GetFromJsonAsync<JsonElement>(url, ct);
+        var first = sessions.EnumerateArray().First(s => s.GetProperty("endedAt").ValueKind != JsonValueKind.Null);
+        Assert.False(first.TryGetProperty("powerPoints", out _));
+
+        string At(string property) => Uri.EscapeDataString(first.GetProperty(property).GetString()!);
+        var curve = await client.GetFromJsonAsync<JsonElement>($"{url}/power?from={At("startedAt")}&to={At("endedAt")}", ct);
+        Assert.NotEmpty(curve.EnumerateArray());
+        Assert.All(curve.EnumerateArray(), point => Assert.InRange(point.GetProperty("powerKw").GetDouble(), 0.5, 100));
+
+        var noStart = await client.GetAsync($"{url}/power", ct);
+        Assert.Equal("range.fromRequired", await ProblemCodeAsync(noStart, ct));
+    }
+
     // An item's whole life: added, listed, a service logged against it, removed with its log.
     // The demo database is shared by every host in this class, so the item has a name of its own.
     [Fact]

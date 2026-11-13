@@ -136,7 +136,7 @@ public class TelemetryRepositoryTests
                 Latitude = 52.3676,
                 Longitude = 4.9041,
                 HvSocKwh = 20,
-                ObcPowerSinglePhase = 7200,
+                ObcPowerSinglePhase = 7.2,
                 ObcPowerThreePhase = 0,
             },
             new TelemetrySnapshot
@@ -147,7 +147,7 @@ public class TelemetryRepositoryTests
                 ChargingType = "AC",
                 OdometerKm = 10001,
                 HvSocKwh = 26,
-                ObcPowerThreePhase = 11000,
+                ObcPowerThreePhase = 11.0,
             },
             new TelemetrySnapshot
             {
@@ -185,7 +185,7 @@ public class TelemetryRepositoryTests
             });
         await db.SaveChangesAsync(ct);
 
-        var sessions = await new TelemetryRepository(db).GetChargeSessionsAsync(vehicle.Id, ct);
+        var sessions = await new TelemetryRepository(db).GetChargeSessionsAsync(vehicle.Id, start.AddDays(-1), start.AddDays(1), ct);
 
         Assert.Collection(
             sessions,
@@ -214,8 +214,13 @@ public class TelemetryRepositoryTests
                 Assert.Equal(27, completed.EndBatteryKwh);
                 Assert.Equal(7, completed.BatteryEnergyGainedKwh);
                 Assert.Equal(11, completed.MaxPowerKw);
-                Assert.Equal(2, completed.PowerPoints.Count);
             });
+
+        var curve = await new TelemetryRepository(db).GetChargePowerAsync(vehicle.Id, start.AddMinutes(1), start.AddMinutes(3), ct);
+        Assert.Equal([7.2, 11.0], curve.Select(point => point.PowerKw));
+
+        // A period that ends before the first session holds none of them.
+        Assert.Empty(await new TelemetryRepository(db).GetChargeSessionsAsync(vehicle.Id, start.AddDays(-10), start.AddDays(-5), ct));
     }
 
     // ── RemoteTemperature regression tests ──────────────────────────────────
