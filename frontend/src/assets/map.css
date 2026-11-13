@@ -117,27 +117,27 @@
 }
 
 .trip-list__dot--0 {
-  background: #3b82f6;
+  background: var(--series-1);
 }
 
 .trip-list__dot--1 {
-  background: #10b981;
+  background: var(--series-2);
 }
 
 .trip-list__dot--2 {
-  background: #f59e0b;
+  background: var(--series-3);
 }
 
 .trip-list__dot--3 {
-  background: #ef4444;
+  background: var(--series-4);
 }
 
 .trip-list__dot--4 {
-  background: #8b5cf6;
+  background: var(--series-5);
 }
 
 .trip-list__dot--5 {
-  background: #ec4899;
+  background: var(--series-6);
 }
 
 .map-canvas {
@@ -235,25 +235,25 @@
 }
 
 .poi-marker--fuel {
-  background: #d97706;
+  background: var(--poi-fuel);
 }
 
 .poi-marker--service-area {
-  background: #7c3aed;
+  background: var(--poi-service-area);
 }
 
 .poi-marker--speed-camera {
-  background: #dc2626;
+  background: var(--poi-speed-camera);
 }
 
 .poi-marker--charging {
-  background: #22c55e;
+  background: var(--poi-charging);
   font-size: 14px;
 }
 
 /* A station that may be out of order, after --charging so its grey wins. */
 .poi-marker--unknown {
-  background: #6b7280;
+  background: var(--poi-unknown);
 }
 
 .poi-cluster {
@@ -271,23 +271,23 @@
 }
 
 .poi-cluster--fuel {
-  background: #d97706;
-  border-color: rgb(217 119 6 / 35%);
+  background: var(--poi-fuel);
+  border-color: color-mix(in srgb, var(--poi-fuel) 35%, transparent);
 }
 
 .poi-cluster--service-area {
-  background: #7c3aed;
-  border-color: rgb(124 58 237 / 35%);
+  background: var(--poi-service-area);
+  border-color: color-mix(in srgb, var(--poi-service-area) 35%, transparent);
 }
 
 .poi-cluster--speed-camera {
-  background: #dc2626;
-  border-color: rgb(220 38 38 / 35%);
+  background: var(--poi-speed-camera);
+  border-color: color-mix(in srgb, var(--poi-speed-camera) 35%, transparent);
 }
 
 .poi-cluster--charging {
-  background: #16a34a;
-  border-color: rgb(22 163 74 / 35%);
+  background: var(--poi-charging-cluster);
+  border-color: color-mix(in srgb, var(--poi-charging-cluster) 35%, transparent);
 }
 
 .poi-popup {
@@ -304,7 +304,7 @@
 }
 
 .poi-popup__meta {
-  color: var(--color-text-muted, #888);
+  color: var(--color-text-muted);
   font-size: 0.75rem;
 }
 
@@ -386,7 +386,7 @@
 }
 
 .charging-popup__operator {
-  color: var(--color-text-muted, #888);
+  color: var(--color-text-muted);
   font-size: 0.75rem;
 }
 
@@ -440,7 +440,7 @@
   display: block;
   margin-top: 2px;
   font-size: 0.75rem;
-  color: var(--color-text-muted, #888);
+  color: var(--color-text-muted);
 }
 
 .trip-list__info {

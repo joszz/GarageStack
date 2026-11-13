@@ -21,6 +21,9 @@ public sealed class PhoneFusionRepository(
         return rows.Select(t => new LinkedPhoneTracker(t.TrackerId, new DateTimeOffset(t.CreatedAt))).ToArray();
     }
 
+    // Demo mode links trackers too, over the in-memory provider, which has no transactions and no
+    // ExecuteUpdate: hence the two branches here. Queueing and fusing trips is the Worker's alone,
+    // always on PostgreSQL, so those methods need neither.
     public async Task SetAsync(int vehicleId, IReadOnlyList<string> trackers, DateTime now, CancellationToken ct)
     {
         await using var transaction = db.Database.IsRelational() ? await db.Database.BeginTransactionAsync(ct) : null;
@@ -58,8 +61,7 @@ public sealed class PhoneFusionRepository(
 
     public async Task QueueBackfillAsync(CancellationToken ct)
     {
-        await using var transaction = db.Database.IsRelational()
-            ? await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct) : null;
+        await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
         foreach (var request in await db.PhoneBackfillRequests.OrderBy(r => r.VehicleId).Take(10).ToListAsync(ct))
         {
             var trips = await db.Trips.Where(t => t.VehicleId == request.VehicleId && t.Id > request.AfterTripId &&
@@ -73,7 +75,7 @@ public sealed class PhoneFusionRepository(
         try
         {
             await db.SaveChangesAsync(ct);
-            if (transaction is not null) await transaction.CommitAsync(ct);
+            await transaction.CommitAsync(ct);
         }
         catch (Exception ex) when (PostgresErrors.IsSerializationFailure(ex))
         {
@@ -150,8 +152,7 @@ public sealed class PhoneFusionRepository(
         db.ChangeTracker.Clear();
         // The upstream fetch happens before this transaction. A concurrent edit, merge or unlink
         // must never be overwritten by a result calculated from an older route.
-        await using var transaction = db.Database.IsRelational()
-            ? await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct) : null;
+        await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
         try
         {
             var trip = await db.Trips.SingleOrDefaultAsync(t => t.Id == work.TripId, ct);
@@ -165,12 +166,12 @@ public sealed class PhoneFusionRepository(
             else
             {
                 if (result.Outcome == PhoneFusionOutcome.Fused)
-                    await new TripRepository(db, telemetry).ApplyPointsAsync(trip, result.Points, ct);
+                    await TripRouteUpdate.ApplyAsync(db, trip, result.Points, ct);
                 trip.PhoneFusion = result.Outcome;
             }
             trip.PhoneFusionAt = now;
             await db.SaveChangesAsync(ct);
-            if (transaction is not null) await transaction.CommitAsync(ct);
+            await transaction.CommitAsync(ct);
             return trip.PhoneFusion;
         }
         catch (Exception ex) when (PostgresErrors.IsSerializationFailure(ex))

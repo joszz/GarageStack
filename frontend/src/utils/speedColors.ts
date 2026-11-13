@@ -2,8 +2,9 @@ import type { TripMatch } from '@/composables/useTripMatch'
 import type { Trip } from '@/services/vehicleApi'
 import { downsample } from '@/utils/downsample'
 
-// The colours trips take on the map and in the trip list, in turn. The list's dots use the
-// matching trip-list__dot--<n> classes, so the two stay in step.
+// The colours trips take on the map and in the trip list, in turn: the --series-1 to -6 tokens in
+// main.css, repeated here because Leaflet draws SVG attributes, which cannot read a custom
+// property. Change both together.
 const TRIP_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899']
 
 export function tripColor(index: number): string {

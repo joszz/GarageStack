@@ -384,7 +384,7 @@ public class TripRepository(
 
         trip.OriginalPointsJson ??= trip.PointsJson;
         trip.EditedAt = UtcNow;
-        await ApplyPointsAsync(trip, built, ct);
+        await TripRouteUpdate.ApplyAsync(db, trip, built, ct);
         await db.SaveChangesAsync(ct);
 
         return new(TripEditOutcome.Ok, await EditorAsync(trip, built, recorded, ct));
@@ -402,7 +402,7 @@ public class TripRepository(
         // Nothing was edited, so it is as recorded already.
         if (original is null) return new(TripEditOutcome.Ok, await EditorAsync(trip, current.Points, null, ct));
 
-        await ApplyPointsAsync(trip, original, ct);
+        await TripRouteUpdate.ApplyAsync(db, trip, original, ct);
         trip.OriginalPointsJson = null;
         trip.EditedAt = null;
         await db.SaveChangesAsync(ct);
@@ -431,35 +431,6 @@ public class TripRepository(
             db.ChangeTracker.Clear();
             logger?.LogInformation("A trip edit was refused: the trip changed while it was being edited");
             return conflict;
-        }
-    }
-
-    // Everything read off a trip's points follows them. The odometer readings stay: the trip log
-    // counts what the car's own odometer counted, whatever line is drawn on the map.
-    internal async Task ApplyPointsAsync(Trip trip, IReadOnlyList<TripPoint> points, CancellationToken ct)
-    {
-        var dto = TripEdit.Summarize(points);
-        if (TripEdit.AddressMoved(trip.StartLatitude, trip.StartLongitude, points[0])) trip.StartPlaceJson = null;
-        if (TripEdit.AddressMoved(trip.EndLatitude, trip.EndLongitude, points[^1])) trip.EndPlaceJson = null;
-
-        trip.StartedAt = dto.StartedAt;
-        trip.EndedAt = dto.EndedAt;
-        trip.DistanceKm = dto.DistanceKm;
-        trip.PointCount = dto.PointCount;
-        trip.PointsJson = JsonSerializer.Serialize(points);
-        trip.StartLatitude = points[0].Latitude;
-        trip.StartLongitude = points[0].Longitude;
-        trip.EndLatitude = points[^1].Latitude;
-        trip.EndLongitude = points[^1].Longitude;
-        trip.MaxSpeedKmh = dto.MaxSpeedKmh;
-        trip.AvgMovingSpeedKmh = dto.AvgMovingSpeedKmh;
-        trip.MovingSpeedSamples = dto.MovingSpeedSamples;
-
-        if (!trip.PurposeIsManual)
-        {
-            var places = await db.CommutePlaces.AsNoTracking().Where(p => p.VehicleId == trip.VehicleId).ToListAsync(ct);
-            trip.Purpose = CommuteRule.AutomaticPurpose(
-                trip.StartLatitude, trip.StartLongitude, trip.EndLatitude, trip.EndLongitude, places);
         }
     }
 

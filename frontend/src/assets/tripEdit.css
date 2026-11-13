@@ -1,5 +1,5 @@
 /* ── Route editor (TripEditView) ─────────────────────────────
-   The map beside its panel from 992 px; on smaller screens the map fills what the panel leaves
+   The map beside its panel from 1024 px; on smaller screens the map fills what the panel leaves
    and the panel runs along the bottom, clear of the phone's home-gesture area. The map's box is
    map.css's .map-wrapper. */
 
@@ -90,7 +90,7 @@
   white-space: nowrap;
 }
 
-@media (width <= 991px) {
+@media (width <= 1023px) {
   .trip-edit-layout {
     flex-direction: column;
     gap: 0.5rem;
@@ -159,11 +159,11 @@
 }
 
 .trip-edit-marker--start .trip-edit-marker__dot {
-  background: #10b981;
+  background: var(--route-start);
 }
 
 .trip-edit-marker--end .trip-edit-marker__dot {
-  background: #ef4444;
+  background: var(--route-end);
 }
 
 /* The end a tap on the map moves. */

@@ -22,6 +22,9 @@ public sealed class RdwApiClient(
 {
     public const string HttpClientName = "rdw";
 
+    // One plate's rows from one dataset: a few KB.
+    private const long MaxResponseBytes = 2 * 1024 * 1024;
+
     internal const string RegistrationDataset = "m9d7-ebf2";
     internal const string RecallStatusDataset = "t49b-isb7";
     internal const string RecallDetailsDataset = "j9yg-7rg9";
@@ -111,8 +114,11 @@ public sealed class RdwApiClient(
             if (response.StatusCode != HttpStatusCode.OK)
                 throw new RdwUnavailableException($"The RDW answered {(int)response.StatusCode}");
 
-            await using var stream = await response.Content.ReadAsStreamAsync(ct);
-            return await JsonSerializer.DeserializeAsync<List<T>>(stream, cancellationToken: ct) ?? [];
+            return await UpstreamJson.ReadAsync<List<T>>(response, MaxResponseBytes, ct) ?? [];
+        }
+        catch (UpstreamResponseTooLargeException ex)
+        {
+            throw new RdwUnavailableException("The RDW answered with more than one vehicle's data", ex);
         }
         catch (HttpRequestException ex)
         {
