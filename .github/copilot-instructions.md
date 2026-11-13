@@ -20,5 +20,6 @@ GarageStack is a self-hosted dashboard for MG cars: a .NET backend (Api and Work
 ## Before finishing
 
 - Add or update unit tests for what changed, backend and frontend.
+- A change to trips (anything on `ITripRepository`) is made in both `TripRepository` and `DemoTripRepository`, with shared logic in a Core helper, and gets a step in `TripRepositoryContractTests`, which fails until every repository method is covered there or exempt with a reason.
 - Backend: `dotnet test --project src/GarageStack.Tests` and `dotnet format GarageStack.slnx --verify-no-changes`.
 - Frontend, inside `frontend/`: `pnpm test:unit --run`, `pnpm type-check`, `pnpm lint`, and `pnpm exec prettier --write` on every file touched.
