@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Text.Json;
 using GarageStack.Core.Helpers;
+using GarageStack.Data.Services;
 
 namespace GarageStack.Api.Services;
 
@@ -35,8 +36,8 @@ public sealed class GitHubReleaseClient(IHttpClientFactory httpClientFactory, IL
                 return null;
             }
 
-            await using var body = await response.Content.ReadAsStreamAsync(ct);
-            using var json = await JsonDocument.ParseAsync(body, cancellationToken: ct);
+            // A release's JSON, notes included: tens of KB.
+            using var json = await UpstreamJson.ReadDocumentAsync(response, 1024 * 1024, ct);
             var tag = json.RootElement.TryGetProperty("tag_name", out var tagName) && tagName.ValueKind == JsonValueKind.String
                 ? tagName.GetString()
                 : null;

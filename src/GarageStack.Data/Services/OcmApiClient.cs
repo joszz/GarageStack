@@ -79,10 +79,12 @@ public sealed class OcmApiClient(
 
         response.EnsureSuccessStatusCode();
 
-        await using var stream = await response.Content.ReadAsStreamAsync(ct);
-        var pois = await JsonSerializer.DeserializeAsync<OcmPoi[]>(stream, cancellationToken: ct) ?? [];
+        var pois = await UpstreamJson.ReadAsync<OcmPoi[]>(response, MaxResponseBytes, ct) ?? [];
         return pois.Select(MapToPoiItem).ToList();
     }
+
+    // The charging stations of one tile, compact: a few hundred KB at most in a dense city.
+    private const long MaxResponseBytes = 8 * 1024 * 1024;
 
     // OCM connection type IDs for common DC connectors (from OCM reference data).
     // Used as fallback when compact=true responses omit the Title string.

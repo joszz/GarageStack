@@ -140,24 +140,14 @@ public sealed class DawarichApiClient(HttpClient client, DawarichOptions options
 
     private static async Task<byte[]> ReadAsync(HttpResponseMessage response, CancellationToken ct)
     {
-        if (response.Content.Headers.ContentLength > MaxResponseBytes)
-            throw new DawarichException("Dawarich response exceeds the size limit.", retryable: false);
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
         timeout.CancelAfter(TimeSpan.FromSeconds(15));
         try
         {
-            await using var stream = await response.Content.ReadAsStreamAsync(timeout.Token);
-            using var result = new MemoryStream();
-            var buffer = new byte[8192];
-            int count;
-            while ((count = await stream.ReadAsync(buffer, timeout.Token)) > 0)
-            {
-                if (result.Length + count > MaxResponseBytes)
-                    throw new DawarichException("Dawarich response exceeds the size limit.", retryable: false);
-                result.Write(buffer, 0, count);
-            }
-            return result.ToArray();
+            return await UpstreamJson.ReadBytesAsync(response, MaxResponseBytes, timeout.Token);
         }
+        catch (UpstreamResponseTooLargeException)
+        { throw new DawarichException("Dawarich response exceeds the size limit.", retryable: false); }
         catch (IOException) { throw new DawarichException("Dawarich response could not be read."); }
         catch (HttpRequestException) { throw new DawarichException("Dawarich response could not be read."); }
         catch (OperationCanceledException) when (!ct.IsCancellationRequested)
