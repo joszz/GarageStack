@@ -33,6 +33,7 @@ const vehicle: Vehicle = {
   vehicleType: 'bev',
   hvBatteryCapacityKwh: null,
   supportsTargetSoc: true,
+  hasPowerTailgate: false,
 }
 
 beforeEach(() => {

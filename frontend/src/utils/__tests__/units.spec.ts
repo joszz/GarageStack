@@ -65,12 +65,12 @@ describe('UnitFormatter', () => {
     expect(formatter({ energyConsumption: 'whPerMi' }).format('energyPerDistance', 160)).toBe(
       '257 Wh/mi',
     )
-    expect(
-      formatter({ energyConsumption: 'kwhPer100Km' }).format('energyPerDistance', 160),
-    ).toBe('16.0 kWh/100 km')
-    expect(
-      formatter({ energyConsumption: 'kwhPer100Mi' }).format('energyPerDistance', 160),
-    ).toBe('25.7 kWh/100 mi')
+    expect(formatter({ energyConsumption: 'kwhPer100Km' }).format('energyPerDistance', 160)).toBe(
+      '16.0 kWh/100 km',
+    )
+    expect(formatter({ energyConsumption: 'kwhPer100Mi' }).format('energyPerDistance', 160)).toBe(
+      '25.7 kWh/100 mi',
+    )
     expect(formatter({ energyConsumption: 'kmPerKwh' }).format('energyPerDistance', 160)).toBe(
       '6.3 km/kWh',
     )

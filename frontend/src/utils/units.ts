@@ -12,12 +12,7 @@ export type TemperatureUnit = 'celsius' | 'fahrenheit'
 export type PressureUnit = 'bar' | 'psi' | 'kpa'
 export type FuelConsumptionUnit = 'l100km' | 'mpgUk' | 'mpgUs'
 export type EnergyConsumptionUnit =
-  | 'whPerKm'
-  | 'whPerMi'
-  | 'kwhPer100Km'
-  | 'kwhPer100Mi'
-  | 'kmPerKwh'
-  | 'miPerKwh'
+  'whPerKm' | 'whPerMi' | 'kwhPer100Km' | 'kwhPer100Mi' | 'kmPerKwh' | 'miPerKwh'
 
 export interface UnitPreferences {
   distance: DistanceUnit

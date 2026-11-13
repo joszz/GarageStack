@@ -280,8 +280,7 @@ export interface TyreHistory {
 export const vehicleApi = {
   list: () => request<Vehicle[]>('/api/vehicles'),
   status: (vin: string) => request<TelemetrySnapshot>(`/api/vehicles/${vin}/status`),
-  chargeSessions: (vin: string) =>
-    request<ChargeSession[]>(`/api/vehicles/${vin}/charge-sessions`),
+  chargeSessions: (vin: string) => request<ChargeSession[]>(`/api/vehicles/${vin}/charge-sessions`),
   tyrePressureThresholds: () =>
     request<TyrePressureThresholds>('/api/vehicles/tyre-pressure-thresholds'),
   config: (vin: string) => request<Record<string, string>>(`/api/vehicles/${vin}/config`),

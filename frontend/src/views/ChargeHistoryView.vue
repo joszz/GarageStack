@@ -4,7 +4,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useVehicleStore } from '@/stores/vehicle'
 import { vehicleApi, type ChargeSession } from '@/services/vehicleApi'
-import { formatDateTime, formatNumber } from '@/utils/format'
+import { formatDateTime, formatNumber, formatTime } from '@/utils/format'
 import { formatDurationMs } from '@/utils/tripRows'
 import { useUnits } from '@/composables/useUnits'
 import { useErrorMessage } from '@/composables/useErrorMessage'
@@ -109,16 +109,13 @@ function energyUsedSincePreviousCharge(index: number): number | null {
 
 function energyUsedLabel(index: number): string {
   const energy = energyUsedSincePreviousCharge(index)
-  return energy === null
-    ? t('chargeHistory.notReported')
-    : `${formatNumber(energy, 1)} kWh`
+  return energy === null ? t('chargeHistory.notReported') : `${formatNumber(energy, 1)} kWh`
 }
 
 function consumptionSincePreviousCharge(index: number): string {
   const distance = distanceSincePreviousCharge(index)
   const energy = energyUsedSincePreviousCharge(index)
-  if (distance === null || distance <= 0 || energy === null)
-    return t('chargeHistory.notReported')
+  if (distance === null || distance <= 0 || energy === null) return t('chargeHistory.notReported')
 
   const consumption = units.value.measure('energyPerDistance', (energy * 1000) / distance)
   return consumption ? `${consumption.value} ${consumption.unit}` : t('chargeHistory.notReported')
@@ -136,9 +133,7 @@ function hasLocation(session: ChargeSession): boolean {
 }
 
 function graphTime(value: string): string {
-  return new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' }).format(
-    new Date(value),
-  )
+  return formatTime(value, { hour: 'numeric', minute: '2-digit' })
 }
 
 function powerGraph(session: ChargeSession): {
@@ -278,11 +273,7 @@ function powerGraph(session: ChargeSession): {
               : t('chargeHistory.showPowerGraph')
           }}
         </button>
-        <div
-          v-if="isExpanded(session)"
-          :id="`charge-power-${index}`"
-          class="charge-history-graph"
-        >
+        <div v-if="isExpanded(session)" :id="`charge-power-${index}`" class="charge-history-graph">
           <div v-if="session.powerPoints.length > 0" class="charge-history-graph__heading">
             <span>{{ t('chargeHistory.power') }}</span>
             <span>{{ formatNumber(session.maxPowerKw ?? 0, 1) }} kW</span>
@@ -357,12 +348,7 @@ function powerGraph(session: ChargeSession): {
                 <text x="372" y="141" text-anchor="end" class="charge-history-graph__label">
                   {{ powerGraph(session).endTime }}
                 </text>
-                <text
-                  x="215"
-                  y="161"
-                  text-anchor="middle"
-                  class="charge-history-graph__axis-title"
-                >
+                <text x="215" y="161" text-anchor="middle" class="charge-history-graph__axis-title">
                   {{ t('chargeHistory.timeAxis') }}
                 </text>
               </svg>
