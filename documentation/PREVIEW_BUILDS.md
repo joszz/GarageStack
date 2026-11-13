@@ -183,7 +183,7 @@ gh api --paginate "users/joszz/packages/container/garagestack/versions" \
 
 **The tester's update fails after the pull request closed.** The images are gone by design. They switch back to the latest release, or to `latest` once the fix is merged.
 
-**A tester runs the all-in-one image on ARM.** Previews are built for the same platforms as releases (amd64), so the same limits apply.
+**A tester runs the all-in-one image on ARM.** Releases are built for amd64 and arm64, but a preview is amd64 only: the cleanup deletes package versions by tag, and the per-architecture images of a multi-architecture image carry none. An ARM tester runs the preview under emulation, with `platform: linux/amd64` on the service, which is slower. Docker Desktop on a Mac has the emulation built in; on an ARM Linux host (a Raspberry Pi, say) it has to be installed first, for example with `docker run --privileged --rm tonistiigi/binfmt --install amd64`, or the container fails with `exec format error`.
 
 ---
 
