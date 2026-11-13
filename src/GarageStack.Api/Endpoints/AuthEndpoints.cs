@@ -22,6 +22,7 @@ public static class AuthEndpoints
         // input, which would turn each check on these settings into a false alarm.
         var oidc = app.ServiceProvider.GetRequiredService<OidcOptions>();
         var passwordLogin = app.ServiceProvider.GetRequiredService<PasswordLoginOptions>();
+        var clock = app.ServiceProvider.GetRequiredService<TimeProvider>();
         var logger = app.ServiceProvider.GetRequiredService<ILoggerFactory>()
             .CreateLogger(AuthenticationSetup.LogCategory);
 
@@ -78,8 +79,8 @@ public static class AuthEndpoints
             if (!string.IsNullOrEmpty(sessionId))
             {
                 var expiresAtUtc = result.Properties?.ExpiresUtc?.UtcDateTime
-                    ?? DateTime.UtcNow.Add(PasswordRememberMeLifetime);
-                await TokenRevocation.RevokeAsync(db, cache, sessionId, expiresAtUtc, ct);
+                    ?? clock.GetUtcNow().UtcDateTime.Add(PasswordRememberMeLifetime);
+                await TokenRevocation.RevokeAsync(db, cache, sessionId, expiresAtUtc, clock.GetUtcNow().UtcDateTime, ct);
             }
 
             await httpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
@@ -125,7 +126,7 @@ public static class AuthEndpoints
                 return Results.Unauthorized();
             }
 
-            var expires = DateTimeOffset.UtcNow.Add(
+            var expires = clock.GetUtcNow().Add(
                 req.RememberMe ? PasswordRememberMeLifetime : PasswordSessionLifetime);
 
             var principal = SessionPrincipal.Create(

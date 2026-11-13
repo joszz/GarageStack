@@ -10,8 +10,11 @@ namespace GarageStack.Worker.Services;
 /// </summary>
 public class TripRecorderService(
     ILogger<TripRecorderService> logger,
-    IServiceScopeFactory scopeFactory) : PeriodicBackgroundService(logger)
+    IServiceScopeFactory scopeFactory,
+    TimeProvider? clock = null) : PeriodicBackgroundService(logger)
 {
+    private DateTime UtcNow => (clock ?? TimeProvider.System).GetUtcNow().UtcDateTime;
+
     protected override string Name => "Trip recorder";
 
     // No initial delay, so a fresh install saves its history right away.
@@ -28,7 +31,7 @@ public class TripRecorderService(
 
         foreach (var vehicle in vehicles)
         {
-            var saved = await recorder.RecordAsync(vehicle.Id, DateTime.UtcNow, ct);
+            var saved = await recorder.RecordAsync(vehicle.Id, UtcNow, ct);
             if (saved > 0)
                 logger.LogInformation("Saved {Count} finished trip(s) for VIN={Vin}", saved, LogRedaction.Vin(vehicle.Vin));
         }

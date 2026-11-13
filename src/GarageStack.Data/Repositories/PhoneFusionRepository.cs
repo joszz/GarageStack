@@ -9,8 +9,11 @@ using Microsoft.Extensions.Logging;
 namespace GarageStack.Data.Repositories;
 
 public sealed class PhoneFusionRepository(
-    AppDbContext db, ITelemetryRepository telemetry, ILogger<PhoneFusionRepository> logger) : IPhoneFusionRepository
+    AppDbContext db, ITelemetryRepository telemetry, ILogger<PhoneFusionRepository> logger, TimeProvider? clock = null)
+    : IPhoneFusionRepository
 {
+    private DateTime UtcNow => (clock ?? TimeProvider.System).GetUtcNow().UtcDateTime;
+
     public async Task<IReadOnlyList<LinkedPhoneTracker>> ListAsync(int vehicleId, CancellationToken ct)
     {
         var rows = await db.VehiclePhoneTrackers.AsNoTracking().Where(t => t.VehicleId == vehicleId)
@@ -137,7 +140,7 @@ public sealed class PhoneFusionRepository(
     {
         db.Attach(trip);
         trip.PhoneFusion = PhoneFusionOutcome.Failed;
-        trip.PhoneFusionAt = DateTime.UtcNow;
+        trip.PhoneFusionAt = UtcNow;
         await db.SaveChangesAsync(ct);
         db.ChangeTracker.Clear();
     }

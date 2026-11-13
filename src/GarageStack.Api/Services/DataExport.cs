@@ -24,7 +24,8 @@ internal sealed class DataExport(
     ICommutePlaceRepository places,
     INotificationRepository notifications,
     IUserSettingsRepository settings,
-    IPhoneFusionRepository phones)
+    IPhoneFusionRepository phones,
+    TimeProvider clock)
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web)
     {
@@ -44,11 +45,12 @@ internal sealed class DataExport(
     {
         using var zip = new ZipArchive(target, ZipArchiveMode.Create, leaveOpen: true);
         var cars = await vehicles.GetAllAsync(ct);
-        var end = DateTime.UtcNow.AddDays(1);
+        var now = clock.GetUtcNow().UtcDateTime;
+        var end = now.AddDays(1);
 
         await WriteJsonAsync(zip, "export.json", new
         {
-            exportedAt = DateTime.UtcNow,
+            exportedAt = now,
             version = typeof(DataExport).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion,
             vehicles = cars.Select(c => c.Vin),
             contents = new Dictionary<string, string>

@@ -8,8 +8,10 @@ namespace GarageStack.Core.Helpers;
 /// caller-supplied DB check so a service restart, or another service's overlapping alert,
 /// still suppresses a duplicate.
 /// </summary>
-public sealed class NotificationCooldownGate(TimeSpan cooldown)
+public sealed class NotificationCooldownGate(TimeSpan cooldown, TimeProvider? clock = null)
 {
+    private readonly TimeProvider _clock = clock ?? TimeProvider.System;
+
     /// <summary>How long an alert stays quiet for a vehicle after it went out (the README's "1-hour cooldown").</summary>
     public static readonly TimeSpan AlertCooldown = TimeSpan.FromHours(1);
 
@@ -34,7 +36,7 @@ public sealed class NotificationCooldownGate(TimeSpan cooldown)
         lock (_lock)
         {
             EvictExpired();
-            if (_lastNotified.TryGetValue(key, out var last) && DateTime.UtcNow - last < Cooldown)
+            if (_lastNotified.TryGetValue(key, out var last) && _clock.GetUtcNow().UtcDateTime - last < Cooldown)
                 return false;
         }
 
@@ -42,11 +44,11 @@ public sealed class NotificationCooldownGate(TimeSpan cooldown)
         // service's alert for the same category doesn't cause a duplicate notification.
         if (await wasRecentlySentAsync())
         {
-            lock (_lock) { _lastNotified[key] = DateTime.UtcNow; }
+            lock (_lock) { _lastNotified[key] = _clock.GetUtcNow().UtcDateTime; }
             return false;
         }
 
-        lock (_lock) { _lastNotified[key] = DateTime.UtcNow; }
+        lock (_lock) { _lastNotified[key] = _clock.GetUtcNow().UtcDateTime; }
         return true;
     }
 
@@ -57,7 +59,7 @@ public sealed class NotificationCooldownGate(TimeSpan cooldown)
     /// managing the cutoff calculation at every call site.
     /// </summary>
     public Task<bool> ShouldNotifyAsync(string vin, string category, Func<DateTime, Task<bool>> wasRecentlySentSinceAsync) =>
-        ShouldNotifyAsync(vin, category, () => wasRecentlySentSinceAsync(DateTime.UtcNow - Cooldown));
+        ShouldNotifyAsync(vin, category, () => wasRecentlySentSinceAsync(_clock.GetUtcNow().UtcDateTime - Cooldown));
 
     /// <summary>
     /// The question every Worker alert asks: the gate, backed by the notification history of this
@@ -75,7 +77,7 @@ public sealed class NotificationCooldownGate(TimeSpan cooldown)
     {
         if (_lastNotified.Count == 0) return;
 
-        var now = DateTime.UtcNow;
+        var now = _clock.GetUtcNow().UtcDateTime;
         List<string>? expired = null;
         foreach (var (key, last) in _lastNotified)
         {

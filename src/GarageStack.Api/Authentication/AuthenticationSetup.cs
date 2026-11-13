@@ -217,7 +217,8 @@ internal static class AuthenticationSetup
                     SessionPrincipal.NewSessionId());
 
                 ctx.Properties!.IsPersistent = true;
-                ctx.Properties.ExpiresUtc = DateTimeOffset.UtcNow.Add(sessionLifetime);
+                ctx.Properties.ExpiresUtc = ctx.HttpContext.RequestServices.GetRequiredService<TimeProvider>()
+                    .GetUtcNow().Add(sessionLifetime);
 
                 logger.LogInformation("OIDC sign-in for {User} ({Reason})", LogRedaction.Account(displayName), decision.Reason);
                 return Task.CompletedTask;

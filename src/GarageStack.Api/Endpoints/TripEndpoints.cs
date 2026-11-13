@@ -12,6 +12,8 @@ public static class TripEndpoints
 
     public static IEndpointRouteBuilder MapTripEndpoints(this IEndpointRouteBuilder app)
     {
+        // The clock, not request input.
+        var clock = app.ServiceProvider.GetRequiredService<TimeProvider>();
         var group = app.MapGroup("/api/vehicles/{vin}/trips")
             .WithTags("Trips")
             .RequireAuthorization()
@@ -36,7 +38,7 @@ public static class TripEndpoints
             // with them (the map) a period stays at most 90 days.
             var summariesOnly = points == false;
             var rangeError = DateRange.TryResolve(from, to, TimeSpan.FromDays(30),
-                summariesOnly ? DateRange.LongestStatisticsSpan : TimeSpan.FromDays(90), out var start, out var end);
+                summariesOnly ? DateRange.LongestStatisticsSpan : TimeSpan.FromDays(90), clock.GetUtcNow().UtcDateTime, out var start, out var end);
             if (rangeError is not null) return rangeError;
 
             if (summariesOnly) return Results.Ok(await trips.GetSummariesAsync(vehicle.Id, start, end, ct));
@@ -50,7 +52,7 @@ public static class TripEndpoints
         group.MapGet("/latest", async (HttpContext httpContext, ITripRepository trips, CancellationToken ct) =>
         {
             var vehicle = httpContext.ResolvedVehicle();
-            var latest = await trips.GetLatestAsync(vehicle.Id, DateTime.UtcNow, ct);
+            var latest = await trips.GetLatestAsync(vehicle.Id, clock.GetUtcNow().UtcDateTime, ct);
             return latest is null ? Results.NoContent() : Results.Ok(latest);
         })
         .WithSummary("Get the newest trip: the one being driven, or else the last one driven");
@@ -65,7 +67,7 @@ public static class TripEndpoints
         {
             var vehicle = httpContext.ResolvedVehicle();
 
-            var rangeError = DateRange.TryResolve(from, to, TimeSpan.FromDays(31), TimeSpan.FromDays(366), out var start, out var end);
+            var rangeError = DateRange.TryResolve(from, to, TimeSpan.FromDays(31), TimeSpan.FromDays(366), clock.GetUtcNow().UtcDateTime, out var start, out var end);
             if (rangeError is not null) return rangeError;
 
             return Results.Ok(await trips.GetLogAsync(vehicle.Id, start, end, ct));

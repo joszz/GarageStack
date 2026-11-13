@@ -69,7 +69,7 @@ internal static class ApiTokenAuthentication
             var token = await tokens.FindByHashAsync(Hash(presented), Context.RequestAborted);
             if (token is null) return AuthenticateResult.Fail("Unknown or revoked API token");
 
-            var now = DateTime.UtcNow;
+            var now = TimeProvider.GetUtcNow().UtcDateTime;
             if (token.LastUsedAt is not { } lastUsed || now - lastUsed >= UsageResolution)
                 await MarkUsedAsync(token.Id, now);
 

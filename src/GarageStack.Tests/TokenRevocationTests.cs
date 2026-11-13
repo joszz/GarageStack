@@ -31,7 +31,7 @@ public class TokenRevocationTests
         await using var db = CreateDb();
         using var cache = CreateCache();
 
-        await TokenRevocation.RevokeAsync(db, cache, "abc123", DateTime.UtcNow.AddHours(1), ct);
+        await TokenRevocation.RevokeAsync(db, cache, "abc123", DateTime.UtcNow.AddHours(1), DateTime.UtcNow, ct);
 
         Assert.True(await TokenRevocation.IsRevokedAsync(db, cache, "abc123", ct));
     }
@@ -43,7 +43,7 @@ public class TokenRevocationTests
         await using var db = CreateDb();
         using var cache = CreateCache();
 
-        await TokenRevocation.RevokeAsync(db, cache, "revoked-token", DateTime.UtcNow.AddHours(1), ct);
+        await TokenRevocation.RevokeAsync(db, cache, "revoked-token", DateTime.UtcNow.AddHours(1), DateTime.UtcNow, ct);
 
         Assert.False(await TokenRevocation.IsRevokedAsync(db, cache, "still-valid-token", ct));
     }
@@ -56,11 +56,11 @@ public class TokenRevocationTests
         using var cache = CreateCache();
 
         // Simulate a stale revocation from a token that has since naturally expired.
-        await TokenRevocation.RevokeAsync(db, cache, "long-expired", DateTime.UtcNow.AddDays(-1), ct);
+        await TokenRevocation.RevokeAsync(db, cache, "long-expired", DateTime.UtcNow.AddDays(-1), DateTime.UtcNow, ct);
         Assert.Equal(1, await db.RevokedTokens.CountAsync(ct));
 
         // Revoking a new, still-valid token should sweep the stale row above.
-        await TokenRevocation.RevokeAsync(db, cache, "freshly-revoked", DateTime.UtcNow.AddHours(1), ct);
+        await TokenRevocation.RevokeAsync(db, cache, "freshly-revoked", DateTime.UtcNow.AddHours(1), DateTime.UtcNow, ct);
 
         Assert.False(await TokenRevocation.IsRevokedAsync(db, cache, "long-expired", ct));
         Assert.True(await TokenRevocation.IsRevokedAsync(db, cache, "freshly-revoked", ct));
@@ -93,7 +93,7 @@ public class TokenRevocationTests
 
         Assert.False(await TokenRevocation.IsRevokedAsync(db, cache, "live-session", ct));
 
-        await TokenRevocation.RevokeAsync(db, cache, "live-session", DateTime.UtcNow.AddHours(1), ct);
+        await TokenRevocation.RevokeAsync(db, cache, "live-session", DateTime.UtcNow.AddHours(1), DateTime.UtcNow, ct);
 
         Assert.True(await TokenRevocation.IsRevokedAsync(db, cache, "live-session", ct));
     }

@@ -21,14 +21,17 @@ public sealed class PushSenderService : IPushSender, IDisposable
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly HttpClient _httpClient;
     private readonly PushServiceClient? _pushClient;
+    private readonly TimeProvider _clock;
 
     public PushSenderService(
         ILogger<PushSenderService> logger,
         IServiceScopeFactory scopeFactory,
         VapidOptions vapid,
-        IHttpClientFactory httpClientFactory)
+        IHttpClientFactory httpClientFactory,
+        TimeProvider? clock = null)
     {
         _logger = logger;
+        _clock = clock ?? TimeProvider.System;
         _scopeFactory = scopeFactory;
         _httpClient = httpClientFactory.CreateClient(nameof(PushSenderService));
 
@@ -60,7 +63,7 @@ public sealed class PushSenderService : IPushSender, IDisposable
             {
                 Title = title,
                 Body = body,
-                CreatedAt = DateTime.UtcNow,
+                CreatedAt = _clock.GetUtcNow().UtcDateTime,
                 Category = category,
                 VehicleId = vehicleId,
             };

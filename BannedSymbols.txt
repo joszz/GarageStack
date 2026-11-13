@@ -1,0 +1,5 @@
+P:System.DateTime.Now;Take the time from an injected TimeProvider, so tests can set it
+P:System.DateTime.UtcNow;Take the time from an injected TimeProvider, so tests can set it
+P:System.DateTime.Today;Take the time from an injected TimeProvider, so tests can set it
+P:System.DateTimeOffset.Now;Take the time from an injected TimeProvider, so tests can set it
+P:System.DateTimeOffset.UtcNow;Take the time from an injected TimeProvider, so tests can set it
