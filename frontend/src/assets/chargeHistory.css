@@ -1,18 +1,35 @@
-.charge-history-summary {
-  max-width: 20rem;
+/* ── Toolbar: the period, and how many sessions it holds ───── */
+
+.charge-history-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem 1rem;
   margin-bottom: 1rem;
 }
 
+.charge-history-toolbar__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.charge-history-toolbar__summary {
+  flex: 0 1 13rem;
+}
+
+/* ── Sessions ─────────────────────────────────────────────── */
+
 .charge-history-list {
   display: grid;
-  gap: 0.75rem;
+  gap: 1rem;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
 .charge-history-item {
-  padding: 1rem;
+  padding: 1.25rem;
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   background: var(--color-surface);
@@ -43,25 +60,30 @@
   margin-left: auto;
 }
 
-.charge-history-item__status {
-  padding: 0.15rem 0.55rem;
-  border-radius: 999px;
-  background: var(--color-surface-2);
-  color: var(--color-text-muted);
-  font-size: 0.8rem;
-  font-weight: 600;
-}
-
+.charge-history-item__status,
 .charge-history-item__type {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
   padding: 0.15rem 0.55rem;
-  border: 1px solid var(--color-border);
   border-radius: 999px;
-  color: var(--color-text);
   font-size: 0.8rem;
   font-weight: 600;
+}
+
+.charge-history-item__status {
+  background: var(--color-surface-2);
+  color: var(--color-text-muted);
+}
+
+.charge-history-item__status--active {
+  background: color-mix(in srgb, var(--color-success) 16%, var(--color-surface));
+  color: var(--color-success-text);
+}
+
+.charge-history-item__type {
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
 }
 
 .charge-history-item__type--dc {
@@ -70,87 +92,55 @@
   color: var(--color-info-text);
 }
 
-.charge-history-item__status--active {
-  background: color-mix(in srgb, var(--color-success) 16%, var(--color-surface));
-  color: var(--color-success-text);
-}
-
-.charge-history-item__details {
+.charge-history-item__details,
+.charge-history-detail__metrics {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr));
   gap: 0.75rem 1rem;
   margin: 0;
 }
 
-.charge-history-item__details dt {
+.charge-history-item__details dt,
+.charge-history-detail__metrics dt {
   margin-bottom: 0.15rem;
   color: var(--color-text-muted);
   font-size: 0.8rem;
 }
 
-.charge-history-item__details dd {
+.charge-history-item__details dd,
+.charge-history-detail__metrics dd {
   margin: 0;
   font-weight: 500;
+  font-variant-numeric: tabular-nums;
 }
 
-.charge-history-item__graph-toggle {
+.charge-history-item__toggle {
   margin-top: 1rem;
 }
 
-.charge-history-graph {
-  margin-top: 0.75rem;
-  padding: 0.75rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  background: var(--color-bg);
+/* ── Opened session: power curve beside the figures and the map ── */
+
+.charge-history-detail {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(16rem, 1fr);
+  gap: 1rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-border);
 }
 
-.charge-history-graph__heading {
+/* The session is the card, so its chart sits in it without a second frame. */
+.charge-history-detail__chart-card.chart-container {
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+}
+
+.charge-history-detail__aside {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
   gap: 1rem;
-  color: var(--color-text-muted);
-  font-size: 0.8rem;
-}
-
-.charge-history-graph__heading span:last-child {
-  color: var(--color-text);
-  font-weight: 600;
-}
-
-.charge-history-graph__body {
-  display: grid;
-  grid-template-columns: minmax(9rem, 0.8fr) minmax(0, 2fr) minmax(12rem, 1fr);
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.charge-history-graph__metrics {
-  display: grid;
-  gap: 1rem;
-  margin: 0;
-}
-
-.charge-history-graph__metrics dt {
-  margin-bottom: 0.2rem;
-  color: var(--color-text-muted);
-  font-size: 0.8rem;
-}
-
-.charge-history-graph__metrics dd {
-  margin: 0;
-  font-size: 1.05rem;
-  font-weight: 600;
-}
-
-.charge-history-graph__chart {
-  display: block;
-  width: 100%;
-  height: auto;
-  max-height: 12rem;
-  margin: 0.25rem 0;
-  overflow: visible;
 }
 
 .charge-history-map {
@@ -176,47 +166,19 @@
   text-align: center;
 }
 
-.charge-history-graph__axis {
-  stroke: var(--color-border);
-  stroke-width: 1;
-}
-
-.charge-history-graph__grid {
-  stroke: var(--color-border);
-  stroke-dasharray: 3 4;
-  stroke-width: 0.75;
-}
-
-.charge-history-graph__label,
-.charge-history-graph__axis-title {
-  fill: var(--color-text-muted);
-  font-size: 10px;
-}
-
-.charge-history-graph__axis-title {
-  font-size: 11px;
-}
-
-.charge-history-graph__line {
-  fill: none;
-  stroke: var(--color-primary);
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-width: 3;
-}
-
-.charge-history-graph__point {
-  fill: var(--color-primary-light);
-  stroke: var(--color-surface);
-  stroke-width: 1.5;
-}
-
-@media (width <= 56rem) {
-  .charge-history-graph__body {
+@media (width <= 1023px) {
+  .charge-history-detail {
     grid-template-columns: minmax(0, 1fr);
   }
+}
 
-  .charge-history-graph__metrics {
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr));
+@media (width <= 767px) {
+  .charge-history-item {
+    padding: 1rem;
+  }
+
+  .charge-history-list,
+  .charge-history-detail {
+    gap: 0.5rem;
   }
 }

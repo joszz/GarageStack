@@ -5,7 +5,7 @@ import { CLOCK_SETTINGS, useUiSettingsStore, type RegionSetting } from '@/stores
 import { useVehicleStore } from '@/stores/vehicle'
 import { clockExample } from '@/utils/format'
 import { REGIONS, regionHourCycle, regionName, type HourCycle } from '@/utils/region'
-import { mayBurnFuel } from '@/utils/vehicleType'
+import { mayBurnFuel, mayPlugIn } from '@/utils/vehicleType'
 import SettingsSelect, { type SettingsSelectOption } from './SettingsSelect.vue'
 import {
   DISTANCE_UNITS,
@@ -71,10 +71,14 @@ function unitChoice(key: keyof UnitSettings, units: readonly string[], desc?: st
 // Fuel consumption means nothing to a car that burns none. While the drivetrain is still unknown
 // it is offered, as the dashboard offers its fuel cards then too.
 const offersFuelConsumption = computed(() => mayBurnFuel(vehicleStore.effectiveVehicleType))
+// The same for electric consumption on a plain hybrid, whose battery is never charged from a plug.
+const offersEnergyConsumption = computed(() => mayPlugIn(vehicleStore.effectiveVehicleType))
 
 const unitChoices = computed((): UnitChoice[] => [
   unitChoice('distance', DISTANCE_UNITS, t('settings.units.distanceDesc')),
-  unitChoice('energyConsumption', ENERGY_CONSUMPTION_UNITS),
+  ...(offersEnergyConsumption.value
+    ? [unitChoice('energyConsumption', ENERGY_CONSUMPTION_UNITS)]
+    : []),
   unitChoice('temperature', TEMPERATURE_UNITS),
   unitChoice('pressure', PRESSURE_UNITS),
   ...(offersFuelConsumption.value

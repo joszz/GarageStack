@@ -70,4 +70,15 @@ describe('RegionalSettings', () => {
     await wrapper.find('#settings-unit-energyConsumption').setValue('auto')
     expect(store.units.energyConsumption).toBe('auto')
   })
+
+  // A plain hybrid never charges from a plug, so it has no electric consumption to show.
+  it('offers no energy consumption unit on a plain hybrid', async () => {
+    const wrapper = mountSettings()
+    expect(wrapper.find('#settings-unit-energyConsumption').exists()).toBe(true)
+
+    useUiSettingsStore().vehicleTypeOverride = 'hev'
+    await wrapper.vm.$nextTick()
+    expect(wrapper.find('#settings-unit-energyConsumption').exists()).toBe(false)
+    expect(wrapper.find('#settings-unit-fuelConsumption').exists()).toBe(true)
+  })
 })

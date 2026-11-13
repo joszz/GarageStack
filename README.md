@@ -440,7 +440,7 @@ Only trips the Worker has saved can be logged, so the trip being driven, and one
 
 ## Charge history
 
-**Charge history** in the sidebar lists completed and ongoing sessions, with their duration, odometer readings and the energy gained by the battery. That kWh figure is the difference between the car's reported battery-energy readings, not energy drawn from the charger. Expand an entry to see its recorded charging-power graph and peak power. Missing figures depend on what the car reported and what telemetry is retained.
+**Charge history** in the sidebar lists completed and ongoing sessions for the last 30, 90 or 365 days, with their duration, state of charge, odometer reading and peak power. Open a session to see its charging-power curve, where it charged, and the distance and battery energy since the charge before. The kWh figures are the change in the car's own battery reading, not energy drawn from the charger. MG reports them on a nominal 72.5 kWh pack, which is only right for a BEV, so on a plug-in hybrid they show once `HV_BATTERY_CAPACITY_KWH` is set; consumption since the last charge shows on a BEV only. Sessions are rebuilt from recorded telemetry, so they depend on what the car reported and what is kept. A plain hybrid never charges from a plug and has no charge history.
 
 ---
 

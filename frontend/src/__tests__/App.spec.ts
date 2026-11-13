@@ -9,10 +9,13 @@ vi.mock('@/stores/auth', () => ({
   useAuthStore: () => ({ isAuthenticated: false, username: 'demo', logout: vi.fn<() => void>() }),
 }))
 
+const vehicle = vi.hoisted(() => ({ type: 'bev' }))
+
 vi.mock('@/stores/vehicle', () => ({
   useVehicleStore: () => ({
     currentStatus: null,
     activeVehicle: null,
+    effectiveVehicleType: vehicle.type,
     loading: false,
     lastUpdated: null,
   }),
@@ -111,5 +114,23 @@ describe('App mobile menu', () => {
     await flushPromises()
 
     expect(wrapper.find('.sidebar--open').exists()).toBe(true)
+  })
+})
+
+describe('App menu', () => {
+  it('lists the charge history for a car that plugs in', async () => {
+    vehicle.type = 'bev'
+    const wrapper = await mountAt('/')
+
+    expect(wrapper.find('.sidebar-nav a[href="/charge-history"]').exists()).toBe(true)
+  })
+
+  // A plain hybrid never charges from a plug.
+  it('leaves the charge history out for a plain hybrid', async () => {
+    vehicle.type = 'hev'
+    const wrapper = await mountAt('/')
+
+    expect(wrapper.find('.sidebar-nav a[href="/charge-history"]').exists()).toBe(false)
+    vehicle.type = 'bev'
   })
 })
