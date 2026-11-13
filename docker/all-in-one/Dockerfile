@@ -122,6 +122,10 @@ ADD --chmod=644 https://www.postgresql.org/media/keys/ACCC4CF8.asc /usr/share/ke
 # install. Nothing here serves TLS (initdb leaves ssl off), so the private key goes rather than
 # sit in every image for scanners to flag.
 #
+# The socket and lock directory, /var/run/postgresql, is made here too. postgresql-common created
+# it in its postinst up to 293; 294 leaves it to systemd-tmpfiles, which a container does not run,
+# so PostgreSQL then stops at start with "could not create lock file".
+#
 # postgresql-common's scripts need Perl, and postgresql-18 requires locales: ~63 MB together that
 # nothing here uses. Every PostgreSQL program runs from its own bin directory (see PATH above),
 # and initdb uses the C locale, which glibc has built in. Only purging them in this same RUN
@@ -137,7 +141,8 @@ RUN echo "deb [signed-by=/usr/share/keyrings/postgresql.asc] http://apt.postgres
     && apt-get install -y --no-install-recommends postgresql-18 \
     && dpkg --purge --force-depends perl libperl5.40 perl-modules-5.40 libjson-perl locales libc-l10n \
     && rm -rf /var/lib/apt/lists/* \
-    && rm -f /etc/ssl/private/ssl-cert-snakeoil.key /etc/ssl/certs/ssl-cert-snakeoil.pem
+    && rm -f /etc/ssl/private/ssl-cert-snakeoil.key /etc/ssl/certs/ssl-cert-snakeoil.pem \
+    && install -d -m 2775 -o postgres -g postgres /var/run/postgresql
 
 # SAIC MQTT Gateway: copy the pre-built venv and source from the official image.
 # Layout in the saic image: WORKDIR=/usr/src/app, venv at /usr/src/app/.venv,
