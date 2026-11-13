@@ -4,7 +4,7 @@ Demo mode runs GarageStack with realistic fake data and requires no MG iSmart cr
 
 ## What you get
 
-- MG ZS EV with 400 days of realistic history (enough for every statistics period up to a year), ten finished trips from the last five weeks (most around Amsterdam, a few further afield) and one in progress
+- MG ZS EV with 400 days of history (including occasional home AC and public DC charging sessions with battery and power curves), ten finished trips from the last five weeks (most around Amsterdam, a few further afield) and one in progress
 - Dashboard, Statistics, and Map views fully populated
 - A **Demo Controls** panel (bottom-right button) to toggle vehicle states live: doors, windows, lights, lock, engine, charging, SOC, temperature
 - A demo banner across the top reminding you that data is not real

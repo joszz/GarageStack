@@ -36,6 +36,7 @@ describe('RegionalSettings', () => {
     expect(automaticLabel(wrapper, 'settings-unit-distance')).toBe(
       'Automatic: Kilometres (km, km/h)',
     )
+    expect(automaticLabel(wrapper, 'settings-unit-energyConsumption')).toBe('Automatic: kWh/100 km')
     expect(automaticLabel(wrapper, 'settings-unit-pressure')).toBe('Automatic: bar')
   })
 
@@ -49,6 +50,7 @@ describe('RegionalSettings', () => {
     expect(automaticLabel(wrapper, 'settings-unit-fuelConsumption')).toBe(
       'Automatic: mpg (US gallon)',
     )
+    expect(automaticLabel(wrapper, 'settings-unit-energyConsumption')).toBe('Automatic: mi/kWh')
   })
 
   it('stores a chosen clock and unit, and offers going back to automatic', async () => {
@@ -62,5 +64,21 @@ describe('RegionalSettings', () => {
 
     await wrapper.find('#settings-unit-temperature').setValue('auto')
     expect(store.units.temperature).toBe('auto')
+
+    await wrapper.find('#settings-unit-energyConsumption').setValue('kmPerKwh')
+    expect(store.units.energyConsumption).toBe('kmPerKwh')
+    await wrapper.find('#settings-unit-energyConsumption').setValue('auto')
+    expect(store.units.energyConsumption).toBe('auto')
+  })
+
+  // A plain hybrid never charges from a plug, so it has no electric consumption to show.
+  it('offers no energy consumption unit on a plain hybrid', async () => {
+    const wrapper = mountSettings()
+    expect(wrapper.find('#settings-unit-energyConsumption').exists()).toBe(true)
+
+    useUiSettingsStore().vehicleTypeOverride = 'hev'
+    await wrapper.vm.$nextTick()
+    expect(wrapper.find('#settings-unit-energyConsumption').exists()).toBe(false)
+    expect(wrapper.find('#settings-unit-fuelConsumption').exists()).toBe(true)
   })
 })

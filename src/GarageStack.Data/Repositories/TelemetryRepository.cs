@@ -402,6 +402,50 @@ public class TelemetryRepository(
             .Select(s => s.ChargingStopReason)
             .FirstOrDefaultAsync(ct);
 
+    public async Task<IReadOnlyList<ChargeSession>> GetChargeSessionsAsync(
+        int vehicleId, DateTime from, DateTime to, CancellationToken ct = default)
+    {
+        // A margin either side, so a session that crosses an edge of the period is seen whole.
+        var readFrom = from - ChargeSessionHistory.SessionLookaround;
+        var readTo = to + ChargeSessionHistory.SessionLookaround;
+        var readings = await ReadChargeReadingsAsync(vehicleId, readFrom, readTo, ct);
+        return ChargeSessionHistory.Build(readings, from, to);
+    }
+
+    public async Task<IReadOnlyList<ChargeSessionPowerPoint>> GetChargePowerAsync(
+        int vehicleId, DateTime from, DateTime to, CancellationToken ct = default) =>
+        ChargeSessionHistory.PowerCurve(await ReadChargeReadingsAsync(vehicleId, from, to, ct));
+
+    private async Task<List<ChargeSessionReading>> ReadChargeReadingsAsync(
+        int vehicleId, DateTime from, DateTime to, CancellationToken ct)
+    {
+        var query = db.TelemetrySnapshots
+            .AsNoTracking()
+            .Where(s => s.VehicleId == vehicleId &&
+                s.RecordedAt >= from && s.RecordedAt <= to &&
+                (s.IsCharging != null ||
+                 s.EvSocPercent != null ||
+                 s.ChargingType != null ||
+                 s.ChargingLastStartAt != null ||
+                 s.ChargingLastEndAt != null ||
+                 s.OdometerKm != null ||
+                 s.Latitude != null ||
+                 s.Longitude != null ||
+                 s.HvSocKwh != null ||
+                 s.HvPower != null ||
+                 s.ObcPowerSinglePhase != null ||
+                 s.ObcPowerThreePhase != null))
+            .OrderBy(s => s.RecordedAt).ThenBy(s => s.Id)
+            .Select(ChargeSessionReading.Projection)
+            .AsAsyncEnumerable()
+            .WithCancellation(ct);
+
+        var readings = new List<ChargeSessionReading>();
+        await foreach (var reading in query)
+            readings.Add(reading);
+        return readings;
+    }
+
     // Ordered on the group before projecting: EF cannot translate an OrderBy on a property of a
     // record built through its constructor, so sorting after the Select fails at runtime.
     // An iterator rather than the query itself, so the token reaches the query: returned as is, a

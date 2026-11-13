@@ -273,6 +273,7 @@ describe('useUiSettingsStore', () => {
       temperature: 'fahrenheit',
       pressure: 'psi',
       fuelConsumption: 'mpgUs',
+      energyConsumption: 'miPerKwh',
     })
 
     store.clock = 'h23'
@@ -304,12 +305,18 @@ describe('useUiSettingsStore', () => {
   it('persists a unit change, and loads it back', async () => {
     const store = useUiSettingsStore()
     store.units.distance = 'mi'
+    store.units.energyConsumption = 'kwhPer100Mi'
     await nextTick()
     vi.advanceTimersByTime(SAVE_DEBOUNCE_MS)
     expect(JSON.parse(localStorage.getItem(UI_KEY)!).units.distance).toBe('mi')
+    expect(JSON.parse(localStorage.getItem(UI_KEY)!).units.energyConsumption).toBe('kwhPer100Mi')
 
     setActivePinia(createPinia())
-    expect(useUiSettingsStore().units).toEqual({ ...AUTO_UNITS, distance: 'mi' })
+    expect(useUiSettingsStore().units).toEqual({
+      ...AUTO_UNITS,
+      distance: 'mi',
+      energyConsumption: 'kwhPer100Mi',
+    })
   })
 
   it('falls back per unit, keeping the stored units it recognises', () => {
@@ -322,6 +329,7 @@ describe('useUiSettingsStore', () => {
       temperature: 'auto',
       pressure: 'psi',
       fuelConsumption: 'auto',
+      energyConsumption: 'auto',
     })
   })
 })

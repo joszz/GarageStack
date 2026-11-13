@@ -20,6 +20,7 @@ import { usePageTitle } from '@/composables/usePageTitle'
 import { useRelativeTime } from '@/composables/useRelativeTime'
 import { useEscapeKey } from '@/composables/useEscapeKey'
 import { formatDateTime, formatTime } from '@/utils/format'
+import { mayPlugIn } from '@/utils/vehicleType'
 
 const isDemoMode = import.meta.env.VITE_DEMO_MODE === 'true'
 const demoControlsOpen = ref(false)
@@ -30,6 +31,8 @@ const router = useRouter()
 const auth = useAuthStore()
 const vehicleStore = useVehicleStore()
 const vehicleStatus = computed(() => vehicleStore.currentStatus)
+// A plain hybrid never charges from a plug, so its menu has no charge history.
+const showsChargeHistory = computed(() => mayPlugIn(vehicleStore.effectiveVehicleType))
 
 const onlineStatusText = computed(() => {
   const s = vehicleStatus.value
@@ -272,6 +275,12 @@ watch(
             <RouterLink to="/trip-log" active-class="active">
               <font-awesome-icon icon="book" />
               <span>{{ t('nav.tripLog') }}</span>
+            </RouterLink>
+          </li>
+          <li v-if="showsChargeHistory">
+            <RouterLink to="/charge-history" active-class="active">
+              <font-awesome-icon icon="plug-circle-bolt" />
+              <span>{{ t('nav.chargeHistory') }}</span>
             </RouterLink>
           </li>
           <li>

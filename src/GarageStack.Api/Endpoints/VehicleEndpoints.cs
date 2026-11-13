@@ -68,6 +68,51 @@ public static class VehicleEndpoints
         })
         .WithSummary("Get latest telemetry for a vehicle");
 
+        // A plain hybrid gets none: see ChargeSessionHistory.Applies.
+        vehicleGroup.MapGet("/charge-sessions", async (
+            HttpContext httpContext,
+            ITelemetryRepository telemetry,
+            DateTimeOffset? from,
+            DateTimeOffset? to,
+            CancellationToken ct) =>
+        {
+            var vehicle = httpContext.ResolvedVehicle();
+            var rangeError = DateRange.TryResolve(from, to, TimeSpan.FromDays(90), TimeSpan.FromDays(366),
+                clock.GetUtcNow().UtcDateTime, out var start, out var end);
+            if (rangeError is not null) return rangeError;
+            if (!ChargeSessionHistory.Applies(VehicleTypeHelper.GetVehicleType(vehicle)))
+                return Results.Ok(Array.Empty<ChargeSession>());
+
+            return Results.Ok(await telemetry.GetChargeSessionsAsync(vehicle.Id, start, end, ct));
+        })
+        .WithSummary("Get the charge sessions in a period (default the last 90 days, at most 366), rebuilt from recorded charging-state transitions, without their power curves");
+
+        // One session's power curve, read when someone opens it rather than for every session.
+        vehicleGroup.MapGet("/charge-sessions/power", async (
+            HttpContext httpContext,
+            ITelemetryRepository telemetry,
+            DateTimeOffset? from,
+            DateTimeOffset? to,
+            CancellationToken ct) =>
+        {
+            var vehicle = httpContext.ResolvedVehicle();
+            if (from is not { } fromValue)
+                return ApiProblems.BadRequest("range.fromRequired", "from is required: the session's start");
+
+            // Anchored on the start, so an old session's curve is cut at its far end, not its beginning.
+            var start = fromValue.UtcDateTime;
+            var end = to?.UtcDateTime ?? clock.GetUtcNow().UtcDateTime;
+            if (start >= end)
+                return ApiProblems.BadRequest("range.inverted", "from must be before to");
+            if (end - start > ChargeSessionHistory.LongestPowerSpan)
+                end = start + ChargeSessionHistory.LongestPowerSpan;
+            if (!ChargeSessionHistory.Applies(VehicleTypeHelper.GetVehicleType(vehicle)))
+                return Results.Ok(Array.Empty<ChargeSessionPowerPoint>());
+
+            return Results.Ok(await telemetry.GetChargePowerAsync(vehicle.Id, start, end, ct));
+        })
+        .WithSummary("Get the charging power recorded in one session, from its start to its end (or now), in kW");
+
         vehicleGroup.MapGet("/stats/daily", async (
             HttpContext httpContext,
             ITelemetryRepository telemetry,
@@ -217,4 +262,3 @@ public record PowerTailgateSetting(bool Enabled);
 /// with the positions losing air (frontLeft, rearRight, ...) by the slow-puncture alert's rule.
 /// </summary>
 public sealed record TyreHistoryDto(IReadOnlyList<DailyStat> Days, TyreChanges? Trend, int TrendDays, IReadOnlyList<string> Losing);
-

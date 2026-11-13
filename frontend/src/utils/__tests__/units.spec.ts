@@ -6,6 +6,7 @@ import { i18n as appI18n } from '@/i18n'
 import {
   AUTO_UNITS,
   DISTANCE_UNITS,
+  ENERGY_CONSUMPTION_UNITS,
   FUEL_CONSUMPTION_UNITS,
   METRIC_UNITS,
   ODOMETER_FORMAT,
@@ -42,21 +43,40 @@ describe('UnitFormatter', () => {
 
     expect(units.format('distance', 12.34)).toBe('12.3 km')
     expect(units.format('speed', 87.6)).toBe('88 km/h')
-    expect(units.format('energyPerDistance', 164.4)).toBe('164 Wh/km')
+    expect(units.format('energyPerDistance', 164.4)).toBe('16.4 kWh/100 km')
     expect(units.format('pressure', 2.5)).toBe('2.50 bar')
     expect(units.format('temperature', 21.46)).toBe('21.5 °C')
     expect(units.format('fuelConsumption', 5.26)).toBe('5.3 L/100 km')
     expect(units.format('volume', 2.44)).toBe('2.4 L')
   })
 
-  it('converts distance, speed and everything per distance to miles', () => {
+  it('converts distance and speed to miles without changing the chosen consumption unit', () => {
     const units = formatter({ distance: 'mi' })
 
     expect(units.format('distance', 100)).toBe('62.1 mi')
     expect(units.format('speed', 130)).toBe('81 mph')
-    // A mile takes 1.6 times the energy a kilometre does.
-    expect(units.format('energyPerDistance', 160)).toBe('257 Wh/mi')
     expect(units.format('distancePerPercent', 8)).toBe('5.0 mi/%')
+  })
+
+  it('converts electric consumption to every selectable unit', () => {
+    expect(formatter({ energyConsumption: 'whPerKm' }).format('energyPerDistance', 160)).toBe(
+      '160 Wh/km',
+    )
+    expect(formatter({ energyConsumption: 'whPerMi' }).format('energyPerDistance', 160)).toBe(
+      '257 Wh/mi',
+    )
+    expect(formatter({ energyConsumption: 'kwhPer100Km' }).format('energyPerDistance', 160)).toBe(
+      '16.0 kWh/100 km',
+    )
+    expect(formatter({ energyConsumption: 'kwhPer100Mi' }).format('energyPerDistance', 160)).toBe(
+      '25.7 kWh/100 mi',
+    )
+    expect(formatter({ energyConsumption: 'kmPerKwh' }).format('energyPerDistance', 160)).toBe(
+      '6.3 km/kWh',
+    )
+    expect(formatter({ energyConsumption: 'miPerKwh' }).format('energyPerDistance', 160)).toBe(
+      '3.9 mi/kWh',
+    )
   })
 
   it('reads tyre pressure in whole psi and whole kPa', () => {
@@ -89,6 +109,15 @@ describe('UnitFormatter', () => {
   it('knows mpg counts the other way round from L/100 km', () => {
     expect(formatter().isReciprocal('fuelConsumption')).toBe(false)
     expect(formatter({ fuelConsumption: 'mpgUk' }).isReciprocal('fuelConsumption')).toBe(true)
+  })
+
+  it('converts reciprocal energy efficiency back to canonical Wh/km', () => {
+    const units = formatter({ energyConsumption: 'kmPerKwh' })
+    expect(units.isReciprocal('energyPerDistance')).toBe(true)
+    expect(units.toMetric('energyPerDistance', 6.25)).toBeCloseTo(160)
+    expect(formatter({ energyConsumption: 'kwhPer100Km' }).isReciprocal('energyPerDistance')).toBe(
+      false,
+    )
   })
 
   it('takes a typed value back to the metric unit the API stores', () => {
@@ -134,14 +163,15 @@ describe('UnitFormatter', () => {
       for (const distance of DISTANCE_UNITS)
         for (const temperature of TEMPERATURE_UNITS)
           for (const pressure of PRESSURE_UNITS)
-            for (const fuelConsumption of FUEL_CONSUMPTION_UNITS) {
-              const units = new UnitFormatter(
-                { distance, temperature, pressure, fuelConsumption },
-                t,
-              )
-              for (const quantity of QUANTITIES)
-                expect(units.symbol(quantity)).not.toMatch(/^units\./)
-            }
+            for (const fuelConsumption of FUEL_CONSUMPTION_UNITS)
+              for (const energyConsumption of ENERGY_CONSUMPTION_UNITS) {
+                const units = new UnitFormatter(
+                  { distance, temperature, pressure, fuelConsumption, energyConsumption },
+                  t,
+                )
+                for (const quantity of QUANTITIES)
+                  expect(units.symbol(quantity)).not.toMatch(/^units\./)
+              }
     }
     i18n.global.locale.value = 'en'
   })
@@ -152,6 +182,7 @@ describe('UnitFormatter', () => {
       ...TEMPERATURE_UNITS,
       ...PRESSURE_UNITS,
       ...FUEL_CONSUMPTION_UNITS,
+      ...ENERGY_CONSUMPTION_UNITS,
     ]
     for (const messages of [en, nl])
       expect(Object.keys(messages.settings.units.options).sort()).toEqual([...units].sort())
@@ -170,6 +201,7 @@ describe('regionUnits', () => {
       temperature: 'fahrenheit',
       pressure: 'psi',
       fuelConsumption: 'mpgUs',
+      energyConsumption: 'miPerKwh',
     })
   })
 
@@ -179,6 +211,7 @@ describe('regionUnits', () => {
       temperature: 'celsius',
       pressure: 'psi',
       fuelConsumption: 'mpgUk',
+      energyConsumption: 'kwhPer100Mi',
     })
   })
 
@@ -196,6 +229,7 @@ describe('resolveUnits', () => {
       temperature: 'fahrenheit',
       pressure: 'bar',
       fuelConsumption: 'mpgUs',
+      energyConsumption: 'miPerKwh',
     })
   })
 })

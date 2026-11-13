@@ -95,7 +95,7 @@ describe('DashboardCardContent', () => {
         'bev',
       )
 
-      expect(card.text).toBe(`${en.vehicle.efficiency.efficiency}|150|Wh/km`)
+      expect(card.text).toBe(`${en.vehicle.efficiency.efficiency}|15.0|kWh/100 km`)
     })
 
     // A plain hybrid's energy counter holds fuel (1/100 L), so the same fields read as L/100 km.

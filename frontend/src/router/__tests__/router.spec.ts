@@ -79,6 +79,13 @@ describe('preloadRouteComponents', () => {
 })
 
 describe('router guard', () => {
+  it('registers the authenticated charge-history page', () => {
+    const route = router.getRoutes().find((record) => record.name === 'chargeHistory')
+
+    expect(route?.path).toBe('/charge-history')
+    expect(route?.meta.titleKey).toBe('nav.chargeHistory')
+  })
+
   it('downloads the view while the session check is still in flight', async () => {
     storeSession()
     const answerSession = holdSessionCheck()

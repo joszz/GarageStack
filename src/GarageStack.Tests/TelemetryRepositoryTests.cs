@@ -114,6 +114,115 @@ public class TelemetryRepositoryTests
         Assert.Equal([t0.AddMinutes(2)], await repo.GetReportTimesAsync(vehicle.Id, t0, t0.AddMinutes(3), 1, ct));
     }
 
+    [Fact]
+    public async Task GetChargeSessions_ReconstructsCompletedAndOngoingSessionsFromTransitions()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var db = CreateDb();
+        var vehicle = new Vehicle { Vin = "FAKEVN00000000009" };
+        db.Vehicles.Add(vehicle);
+        await db.SaveChangesAsync(ct);
+
+        var start = new DateTime(2026, 1, 1, 10, 0, 0, DateTimeKind.Utc);
+        db.TelemetrySnapshots.AddRange(
+            new TelemetrySnapshot { VehicleId = vehicle.Id, RecordedAt = start, IsCharging = false, EvSocPercent = 30 },
+            new TelemetrySnapshot
+            {
+                VehicleId = vehicle.Id,
+                RecordedAt = start.AddMinutes(1),
+                IsCharging = true,
+                ChargingLastStartAt = start.AddMinutes(1),
+                OdometerKm = 10000,
+                Latitude = 52.3676,
+                Longitude = 4.9041,
+                HvSocKwh = 20,
+                ObcPowerSinglePhase = 7.2,
+                ObcPowerThreePhase = 0,
+            },
+            new TelemetrySnapshot
+            {
+                VehicleId = vehicle.Id,
+                RecordedAt = start.AddMinutes(2),
+                EvSocPercent = 70,
+                ChargingType = "AC",
+                OdometerKm = 10001,
+                HvSocKwh = 26,
+                ObcPowerThreePhase = 11.0,
+            },
+            new TelemetrySnapshot
+            {
+                VehicleId = vehicle.Id,
+                RecordedAt = start.AddMinutes(3),
+                IsCharging = false,
+                ChargingLastEndAt = start.AddMinutes(3),
+                OdometerKm = 10002,
+                HvSocKwh = 27,
+            },
+            new TelemetrySnapshot
+            {
+                VehicleId = vehicle.Id,
+                RecordedAt = start.AddMinutes(4),
+                IsCharging = true,
+                EvSocPercent = 60,
+                ChargingType = "DC",
+                ChargingLastStartAt = start.AddMinutes(4),
+                OdometerKm = 10002,
+                HvSocKwh = 20,
+            },
+            new TelemetrySnapshot
+            {
+                VehicleId = vehicle.Id,
+                RecordedAt = start.AddMinutes(5),
+                EvSocPercent = 65,
+                OdometerKm = 10022,
+                HvSocKwh = 23,
+            },
+            new TelemetrySnapshot
+            {
+                VehicleId = vehicle.Id + 1,
+                RecordedAt = start.AddMinutes(2),
+                IsCharging = true,
+            });
+        await db.SaveChangesAsync(ct);
+
+        var sessions = await new TelemetryRepository(db).GetChargeSessionsAsync(vehicle.Id, start.AddDays(-1), start.AddDays(1), ct);
+
+        Assert.Collection(
+            sessions,
+            ongoing =>
+            {
+                Assert.Equal(start.AddMinutes(4), ongoing.StartedAt);
+                Assert.Null(ongoing.EndedAt);
+                Assert.Equal(60, ongoing.StartSocPercent);
+                Assert.Equal(65, ongoing.EndSocPercent);
+                Assert.Equal("DC", ongoing.ChargingType);
+                Assert.Equal(10022, ongoing.OdometerKm);
+                Assert.Equal(20, ongoing.StartBatteryKwh);
+                Assert.Equal(23, ongoing.EndBatteryKwh);
+            },
+            completed =>
+            {
+                Assert.Equal(start.AddMinutes(1), completed.StartedAt);
+                Assert.Equal(start.AddMinutes(3), completed.EndedAt);
+                Assert.Equal(30, completed.StartSocPercent);
+                Assert.Equal(70, completed.EndSocPercent);
+                Assert.Equal("AC", completed.ChargingType);
+                Assert.Equal(10002, completed.OdometerKm);
+                Assert.Equal(52.3676, completed.Latitude);
+                Assert.Equal(4.9041, completed.Longitude);
+                Assert.Equal(20, completed.StartBatteryKwh);
+                Assert.Equal(27, completed.EndBatteryKwh);
+                Assert.Equal(7, completed.BatteryEnergyGainedKwh);
+                Assert.Equal(11, completed.MaxPowerKw);
+            });
+
+        var curve = await new TelemetryRepository(db).GetChargePowerAsync(vehicle.Id, start.AddMinutes(1), start.AddMinutes(3), ct);
+        Assert.Equal([7.2, 11.0], curve.Select(point => point.PowerKw));
+
+        // A period that ends before the first session holds none of them.
+        Assert.Empty(await new TelemetryRepository(db).GetChargeSessionsAsync(vehicle.Id, start.AddDays(-10), start.AddDays(-5), ct));
+    }
+
     // ── RemoteTemperature regression tests ──────────────────────────────────
     // These cover the two-part bug: (1) HasData must not filter out rows whose
     // only non-null field is RemoteTemperature, and (2) the merge loop must

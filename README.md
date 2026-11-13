@@ -1,6 +1,6 @@
 # GarageStack
 
-**A self-hosted dashboard, trip log and map for your MG.**
+**A self-hosted dashboard, trip log, charge history and map for your MG.**
 
 [![Latest release](https://img.shields.io/github/v/release/joszz/GarageStack)](https://github.com/joszz/GarageStack/releases/latest)
 [![Docker image build](https://github.com/joszz/GarageStack/actions/workflows/docker-publish.yml/badge.svg?branch=main)](https://github.com/joszz/GarageStack/actions/workflows/docker-publish.yml)
@@ -13,6 +13,7 @@ GarageStack is a free, open-source web app for **modern MG cars**, the ones buil
 - **See the car at a glance.** Fuel, battery, tyre pressures, doors, windows and climate on one live dashboard, with cards that adapt to your hybrid, plug-in hybrid or full electric car.
 - **Relive every drive.** Trips are saved automatically, named by where they went and drawn on the map along the roads you took, with heatmaps and the speed limits along the way.
 - **Keep a trip log for the taxman.** Mark trips as business, commute or private, add notes, and export a month or a year as a spreadsheet.
+- **Review charge history.** See completed and ongoing sessions, duration, charging type and state-of-charge readings when the car reports them.
 - **Control it from anywhere.** Pre-condition the cabin, lock the car or flash its lights to find it, and see whether the car actually carried the command out.
 - **Have it warm when you leave.** Schedule climate for weekday mornings or a one-off trip, with seat heating, the defrosters, and a skip for mild days.
 - **Hear about it when something is off.** Push notifications for low tyre pressure, a car left unlocked, a window left open, charging complete and more.
@@ -48,7 +49,7 @@ The statistics, trip log, route editor, settings, maintenance list and light the
 - [Prerequisites](#prerequisites) and [Installation](#installation)
 - [Updating](#updating), [Monitoring](#monitoring) and [Backup and restore](#backup-and-restore)
 - [Push notifications](#push-notifications)
-- [Trip log](#trip-log), [Climate schedules](#climate-schedules) and [Maintenance](#maintenance)
+- [Trip log](#trip-log), [Charge history](#charge-history), [Climate schedules](#climate-schedules) and [Maintenance](#maintenance)
 - [Dutch registration (RDW)](#dutch-registration-rdw)
 - [Homepage dashboard widget](#homepage-dashboard-widget) and [Read-only API tokens](#read-only-api-tokens)
 - [Directions to the car](#directions-to-the-car) and [Map overlays](#map-overlays)
@@ -63,9 +64,10 @@ The statistics, trip log, route editor, settings, maintenance list and light the
 - **Trip history** -- Browse past journeys on an interactive map, each drawn on the roads it took and coloured by speed or by the speed limit, with a heatmap of the roads you drive most. Each trip is saved to the database a few minutes after the car parks. After upgrading from a version that did not save trips, the existing history is saved in the background on the Worker's first start.
 - **Phone GPS (Dawarich)** -- Fill gaps in recorded car trips with phone locations from your own Dawarich instance. Identify trackers by their app/device ID and last-seen time; you can link multiple phones, and GarageStack uses the best match for each trip. See [Phone GPS setup](documentation/PHONE_GPS.md).
 - **Trip log** -- Mark each trip as business, commute or private (commutes between your home and work are marked automatically), add notes, hide a GPS glitch, join two trips a fuel stop split, fix a route the car recorded badly on the map, and export a month or a year as a spreadsheet with the addresses and odometer readings a tax trip log (such as the Dutch *rittenregistratie*) asks for. See [Trip log](#trip-log).
+- **Charge history** -- Review completed and ongoing charging sessions with their duration, state of charge, odometer, battery-energy gain and peak power. Expand a session to see charging power plotted over time, plus distance, battery energy used and consumption since the previous charge when readings are available. Sessions are reconstructed from recorded charging-state telemetry, so their history depends on what the vehicle has reported and retained.
 - **Maintenance** -- Keep the car's service items (oil, tyres, the yearly inspection, ...) with a distance interval, a time interval or both. GarageStack works out from the odometer and your service log when each one is due, shows the most urgent on the dashboard, and sends a notification when an item reaches 90 % of its interval. Log each service with its date, odometer reading and notes.
 - **Dutch registration (RDW)** -- For a car with a Dutch licence plate, a dashboard card with the date the APK runs out and the days left, open recalls with what can go wrong and what the dealer does about it, and whether the car is insured, from the [RDW's open data](https://opendata.rdw.nl). Notifications come for a new recall, the APK a month and a week ahead, and a car with no insurance on record. Off until `RDW_ENABLED=true`; the plate, entered under Settings, is the only thing sent. See [Dutch registration (RDW)](#dutch-registration-rdw).
-- **Energy statistics** -- Track daily energy consumption, efficiency (Wh/km on a plug-in car, L/100 km on a hybrid), fuel use, electric share, average driving speed, and more, for any period from a week to several years.
+- **Energy statistics** -- Track daily energy consumption, efficiency (in your chosen unit on a plug-in car, L/100 km on a hybrid), fuel use, electric share, average driving speed, and more, for any period from a week to several years.
 - **Remote commands** -- Trigger climate pre-conditioning (normal climate, fan only or front defrost), lock or unlock the car, open the boot, and activate the horn and lights remotely from the dashboard. On a plug-in car also start or stop charging, lock or unlock the charging cable, switch battery heating on or off, set the charging and battery heating schedules, and set the charge current limit and, where the car takes one, the charge target. Opening the boot and unlocking the cable ask for a second tap. Each command reports whether the car carried it out, and if it refused, the reason the MG servers gave.
 - **Climate schedules** -- Switch climate on at a set time on chosen weekdays, or once. A schedule sets the temperature or mode, seat heating and the rear defroster, and can skip mild days by the car's outside temperature. Schedules run on the server, so no browser needs to be open, and each run sends a push notification saying whether the car started climate.
 - **Push notifications** -- Browser and in-app alerts for key events: engine started, low or high tyre pressure, a slow puncture, low EV battery, low fuel, a weak 12V battery, car left unlocked, doors or windows left open, the car moving while parked, arriving at or leaving home or work, a charge that finished or stopped early, maintenance coming due, the APK running out or a recall on a Dutch plate, a climate schedule that ran, the messages the official MG app receives, and data that stopped arriving because the MG sign-in failed or the car went quiet. Each device chooses which ones it gets.
@@ -113,7 +115,7 @@ Cards are shown or hidden automatically based on vehicle type (HEV / PHEV / BEV)
 | Daily Distance | Distance driven today | All |
 | Daily Energy | Energy used today (kWh), or fuel burned today (L) on an HEV | All |
 | Since Charge | Distance since last charge session | PHEV, BEV |
-| Efficiency | Energy per km (Wh/km), or fuel consumption (L/100 km) on an HEV | All |
+| Efficiency | Energy consumption in the chosen unit, or fuel consumption (L/100 km) on an HEV | All |
 | Speed | Current vehicle speed | All (off by default) |
 | Top Speed | Highest speed recorded in the most recent completed trip | All |
 | Active Trip | Distance covered in the current trip | All |
@@ -433,6 +435,12 @@ Note: "keys left in the car" is not currently supported because the SAIC MQTT ga
 - **Export CSV** saves the period, hidden trips left out, as a spreadsheet: date, departure and arrival time, from and to address, odometer start and end, distance, purpose and notes. The file follows the interface language: comma-separated in English, and semicolon-separated with decimal commas in Dutch, Spanish and Portuguese, so it opens in columns in Excel either way.
 
 Only trips the Worker has saved can be logged, so the trip being driven, and one finished in the last few minutes, appear once the car has been parked for a while.
+
+---
+
+## Charge history
+
+**Charge history** in the sidebar lists completed and ongoing sessions for the last 30, 90 or 365 days, with their duration, state of charge, odometer reading and peak power. Open a session to see its charging-power curve, where it charged, and the distance and battery energy since the charge before. The kWh figures are the change in the car's own battery reading, not energy drawn from the charger. MG reports them on a nominal 72.5 kWh pack, which is only right for a BEV, so on a plug-in hybrid they show once `HV_BATTERY_CAPACITY_KWH` is set; consumption since the last charge shows on a BEV only. Sessions are rebuilt from recorded telemetry, so they depend on what the car reported and what is kept. A plain hybrid never charges from a plug and has no charge history.
 
 ---
 

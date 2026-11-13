@@ -143,6 +143,30 @@ export interface VehicleAggregateStats {
   totalClimateSnapshots: number
 }
 
+export interface ChargeSession {
+  startedAt: string
+  endedAt: string | null
+  startSocPercent: number | null
+  endSocPercent: number | null
+  chargingType: string | null
+  odometerKm: number | null
+  latitude: number | null
+  longitude: number | null
+  startBatteryKwh: number | null
+  endBatteryKwh: number | null
+  /**
+   * Change in the reported battery energy reading, not energy drawn from the charger. On anything
+   * but a BEV the gateway scales it by MG's nominal pack: see `utils/chargeSessions.ts`.
+   */
+  batteryEnergyGainedKwh: number | null
+  maxPowerKw: number | null
+}
+
+export interface ChargeSessionPowerPoint {
+  recordedAt: string
+  powerKw: number
+}
+
 /**
  * Why a trip point is there, when the car did not report it while driving: `anchored` is a parked
  * position added where the trip left or reached it, `manual` was placed by someone editing the trip.
@@ -258,6 +282,13 @@ export interface TyreHistory {
 export const vehicleApi = {
   list: () => request<Vehicle[]>('/api/vehicles'),
   status: (vin: string) => request<TelemetrySnapshot>(`/api/vehicles/${vin}/status`),
+  chargeSessions: (vin: string, from?: string, to?: string) =>
+    request<ChargeSession[]>(`/api/vehicles/${vin}/charge-sessions${buildQuery({ from, to })}`),
+  /** One session's power curve, from its start to its end, or to now while it charges. */
+  chargePower: (vin: string, from: string, to?: string) =>
+    request<ChargeSessionPowerPoint[]>(
+      `/api/vehicles/${vin}/charge-sessions/power${buildQuery({ from, to })}`,
+    ),
   tyrePressureThresholds: () =>
     request<TyrePressureThresholds>('/api/vehicles/tyre-pressure-thresholds'),
   config: (vin: string) => request<Record<string, string>>(`/api/vehicles/${vin}/config`),

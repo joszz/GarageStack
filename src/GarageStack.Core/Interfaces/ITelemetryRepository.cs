@@ -86,6 +86,16 @@ public interface ITelemetryRepository
     /// </summary>
     Task<string?> GetChargingStopReasonAsync(int vehicleId, CancellationToken ct = default);
 
+    /// <summary>
+    /// Charge sessions rebuilt from the vehicle's charging-state transitions that overlap
+    /// [<paramref name="from"/>, <paramref name="to"/>), newest first, without their power curves.
+    /// </summary>
+    Task<IReadOnlyList<ChargeSession>> GetChargeSessionsAsync(
+        int vehicleId, DateTime from, DateTime to, CancellationToken ct = default);
+
+    /// <summary>The charging power recorded between <paramref name="from"/> and <paramref name="to"/>: one session's curve.</summary>
+    Task<IReadOnlyList<ChargeSessionPowerPoint>> GetChargePowerAsync(
+        int vehicleId, DateTime from, DateTime to, CancellationToken ct = default);
 
     /// <summary>
     /// Every row recorded for <paramref name="vehicleId"/>, oldest first, one at a time: for the data

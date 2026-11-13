@@ -93,6 +93,9 @@ const cardDescriptionParams = computed(() => {
     energyPerDistance: u.symbol('energyPerDistance'),
     distancePerPercent: u.symbol('distancePerPercent'),
     fuelConsumption: u.symbol('fuelConsumption'),
+    energyBetter: u.isReciprocal('energyPerDistance')
+      ? t('units.higherIsBetter')
+      : t('units.lowerIsBetter'),
     fuelBetter: u.isReciprocal('fuelConsumption')
       ? t('units.higherIsBetter')
       : t('units.lowerIsBetter'),
