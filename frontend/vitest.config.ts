@@ -27,6 +27,15 @@ export default mergeConfig(
           'src/utils/timeZoneRegions.ts',
         ],
         reporter: ['text-summary', 'json-summary', 'html'],
+        // A floor a point or two under where coverage stood on 2026-11-13 (84.7% statements, 75.1%
+        // branches, 78.9% functions, 86.3% lines), so it cannot slide without CI saying so. Raise
+        // it as coverage grows; lowering it is a decision, not a fix.
+        thresholds: {
+          statements: 83,
+          branches: 73,
+          functions: 77,
+          lines: 85,
+        },
       },
     },
   }),
