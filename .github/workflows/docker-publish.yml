@@ -26,7 +26,7 @@ on:
     outputs:
       version:
         description: The version the preview images carry
-        value: ${{ jobs.build.outputs.version }}
+        value: ${{ jobs.version.outputs.version }}
 
 # A newer push to a PR makes its running build pointless; on main and tags a build is never cut
 # off halfway through publishing, the next one waits instead. A preview has a group of its own,
@@ -35,7 +35,7 @@ concurrency:
   group: docker-publish-${{ github.ref }}${{ inputs.pr_number > 0 && '-preview' || '' }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
-# Nothing by default; the build job asks for exactly what publishing and signing need.
+# Nothing by default; each job asks for exactly what it needs.
 permissions:
   contents: read
 
@@ -43,29 +43,100 @@ env:
   REGISTRY: ghcr.io
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
+# How an image gets published, by kind of run:
+#   release (push to main, tag, schedule, manual run): every architecture is built on its own
+#     hardware and pushed by digest only, with no tag. The merge job then ties the digests into
+#     one tagged multi-architecture index and signs that index. Provenance and SBOM are made per
+#     architecture by the build.
+#   preview (pull request labelled test-build): amd64 only, pushed with its pr-<number> tags
+#     straight from the build. The cleanup in preview-cleanup.yml deletes package versions by
+#     tag, and the per-architecture manifests of a multi-architecture image carry none, so
+#     previews stay single-architecture for now.
+#   pull request that changes this file: both architectures build, nothing is pushed.
 jobs:
-  build:
-    name: ${{ matrix.label }}
+  # One version for every architecture of every image, however long each build takes.
+  version:
+    name: Resolve version
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    outputs:
+      version: ${{ steps.minver.outputs.version }}
+      patch_date: ${{ steps.patchdate.outputs.date }}
+    env:
+      PR_NUMBER: ${{ inputs.pr_number }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Set up .NET SDK
+        uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Compute MinVer version
+        id: minver
+        shell: bash
+        run: |
+          # Same MinVer the build uses to stamp the assemblies, read from the central pin so
+          # the image tag and the version inside it can never come from different majors.
+          MINVER_VERSION=$(sed -n 's/.*Include="MinVer" Version="\([^"]*\)".*/\1/p' Directory.Packages.props)
+          if [ -z "$MINVER_VERSION" ]; then
+            echo "Could not read the MinVer version from Directory.Packages.props" >&2
+            exit 1
+          fi
+          dotnet tool install --global minver-cli --version "$MINVER_VERSION"
+          VERSION=$(minver . -t v -p preview.0 | tail -n 1 | tr -d '\r')
+          if [ -z "$VERSION" ]; then
+            echo "MinVer produced an empty version" >&2
+            exit 1
+          fi
+          # A preview names its pull request in the version, so the footer shows which build runs.
+          if [ "${PR_NUMBER:-0}" -gt 0 ]; then
+            case "$VERSION" in
+              *-*) VERSION="$VERSION.pr.$PR_NUMBER" ;;
+              *) VERSION="$VERSION-pr.$PR_NUMBER" ;;
+            esac
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Resolved MinVer version: $VERSION"
+
+      # Taken once here, so both architectures of an image carry the same date even when a
+      # build crosses midnight UTC.
+      - name: Compute OS patch date
+        id: patchdate
+        shell: bash
+        run: echo "date=$(date -u +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
+
+  build:
+    name: ${{ matrix.label }} (${{ matrix.arch }})
+    needs: version
+    # Each architecture builds on its own hardware: emulating arm64 would run the .NET build and
+    # the apt installs under QEMU. The arm64 runner is free for a public repository.
+    runs-on: ${{ matrix.arch == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
     timeout-minutes: 45
+    # No id-token: signing happens in the merge job.
     permissions:
       contents: read
       packages: write
-      id-token: write
-    outputs:
-      version: ${{ steps.minver.outputs.version }}
     env:
       # Whether images are pushed: always, except on a pull request that is not a preview.
       PUBLISH: ${{ github.event_name != 'pull_request' || inputs.pr_number > 0 }}
       # A preview is a throwaway test build: no SBOM, provenance or signature, which would each
-      # leave untagged versions in the registry that the cleanup cannot tell apart.
+      # leave untagged versions in the registry that the cleanup cannot tell apart. It is also
+      # the only kind of run that pushes tags from the build itself; see the notes above.
       RELEASE_GRADE: ${{ github.event_name != 'pull_request' }}
-      PR_NUMBER: ${{ inputs.pr_number }}
 
     strategy:
       fail-fast: false
-      max-parallel: 2
+      max-parallel: 8
       matrix:
+        label: [all-in-one, frontend, api, worker]
+        # A preview is amd64 only.
+        arch: ${{ fromJSON(inputs.pr_number > 0 && '["amd64"]' || '["amd64","arm64"]') }}
         include:
           # All-in-one image (frontend + API + worker + postgres + mosquitto + saic gateway)
           - label: all-in-one
@@ -121,43 +192,6 @@ jobs:
             exit 1
           fi
 
-      - name: Set up .NET SDK
-        uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
-        with:
-          dotnet-version: 10.0.x
-
-      - name: Compute MinVer version
-        id: minver
-        shell: bash
-        run: |
-          # Same MinVer the build uses to stamp the assemblies, read from the central pin so
-          # the image tag and the version inside it can never come from different majors.
-          MINVER_VERSION=$(sed -n 's/.*Include="MinVer" Version="\([^"]*\)".*/\1/p' Directory.Packages.props)
-          if [ -z "$MINVER_VERSION" ]; then
-            echo "Could not read the MinVer version from Directory.Packages.props" >&2
-            exit 1
-          fi
-          dotnet tool install --global minver-cli --version "$MINVER_VERSION"
-          VERSION=$(minver . -t v -p preview.0 | tail -n 1 | tr -d '\r')
-          if [ -z "$VERSION" ]; then
-            echo "MinVer produced an empty version" >&2
-            exit 1
-          fi
-          # A preview names its pull request in the version, so the footer shows which build runs.
-          if [ "${PR_NUMBER:-0}" -gt 0 ]; then
-            case "$VERSION" in
-              *-*) VERSION="$VERSION.pr.$PR_NUMBER" ;;
-              *) VERSION="$VERSION-pr.$PR_NUMBER" ;;
-            esac
-          fi
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "Resolved MinVer version: $VERSION"
-
-      - name: Compute OS patch date
-        id: patchdate
-        shell: bash
-        run: echo "date=$(date -u +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
-
       - name: Log in to Docker Hub (avoids pull rate limits for moby/buildkit)
         if: env.PUBLISH == 'true'
         continue-on-error: true
@@ -169,10 +203,8 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
-      - name: Install Cosign
-        if: env.RELEASE_GRADE == 'true'
-        uses: sigstore/cosign-installer@756fe2d284c7292c4e9b62c8a28f1e5629c59532 # v4.1.3
-
+      # The labels come from here for every kind of run, so both architectures of an image carry
+      # the same ones. The tags are used only when the build pushes them itself (a preview).
       - name: Extract image metadata
         id: meta
         uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
@@ -200,20 +232,173 @@ jobs:
         with:
           context: ${{ matrix.context }}
           file: ${{ matrix.dockerfile }}
-          push: ${{ env.PUBLISH == 'true' }}
+          platforms: linux/${{ matrix.arch }}
+          # A preview pushes its tags from here; a release pushes by digest below.
+          push: ${{ env.PUBLISH == 'true' && env.RELEASE_GRADE != 'true' }}
+          tags: ${{ env.RELEASE_GRADE != 'true' && steps.meta.outputs.tags || '' }}
+          # By digest only, no tag: the merge job tags the index that ties the architectures.
+          outputs: ${{ env.RELEASE_GRADE == 'true' && format('type=image,name={0}/{1}/{2},push-by-digest=true,name-canonical=true,push=true', env.REGISTRY, github.repository_owner, matrix.image) || '' }}
           provenance: ${{ env.RELEASE_GRADE == 'true' && 'mode=max' || 'false' }}
           sbom: ${{ env.RELEASE_GRADE == 'true' }}
-          tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            APP_VERSION=${{ steps.minver.outputs.version }}
-            OS_PATCH_DATE=${{ steps.patchdate.outputs.date }}
-          # Each image gets its own GHA cache scope
-          cache-from: type=gha,scope=${{ matrix.label }}
-          cache-to: type=gha,scope=${{ matrix.label }},mode=min,ignore-error=true
+            APP_VERSION=${{ needs.version.outputs.version }}
+            OS_PATCH_DATE=${{ needs.version.outputs.patch_date }}
+          # Each image gets its own GHA cache scope, and each architecture its own, so the two
+          # do not evict each other. amd64 keeps the scope it always had.
+          cache-from: type=gha,scope=${{ matrix.label }}${{ matrix.arch != 'amd64' && format('-{0}', matrix.arch) || '' }}
+          cache-to: type=gha,scope=${{ matrix.label }}${{ matrix.arch != 'amd64' && format('-{0}', matrix.arch) || '' }},mode=min,ignore-error=true
 
-      - name: Sign image with Cosign
+      - name: Export digest
         if: env.RELEASE_GRADE == 'true'
+        shell: bash
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
         run: |
-          cosign sign --yes \
-            "${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.image }}@${{ steps.build.outputs.digest }}"
+          set -euo pipefail
+          if [ -z "$DIGEST" ]; then
+            echo "The build produced no digest" >&2
+            exit 1
+          fi
+          mkdir -p "$RUNNER_TEMP/digests"
+          touch "$RUNNER_TEMP/digests/${DIGEST#sha256:}"
+
+      - name: Upload digest
+        if: env.RELEASE_GRADE == 'true'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: digests-${{ matrix.label }}-${{ matrix.arch }}
+          path: ${{ runner.temp }}/digests/*
+          if-no-files-found: error
+          # A digest is a few bytes. A week lets "Re-run failed jobs" still find the digests of
+          # the builds that succeeded.
+          retention-days: 7
+
+  # Ties the per-architecture images of each image into one tagged index and signs it. It runs
+  # for releases only, and only for an image whose builds all succeeded, so a release never
+  # publishes an image for some architectures and not others.
+  merge:
+    name: Publish ${{ matrix.label }}
+    # !cancelled() lets an image whose own builds succeeded publish even when another image's
+    # build failed, as each image did before. Without a status function, one failed build of
+    # any image or architecture would skip every merge, amd64 included. An image with an
+    # architecture missing still fails here, on the digest count.
+    if: ${{ !cancelled() && github.event_name != 'pull_request' && needs.build.result != 'skipped' }}
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: all-in-one
+            image: garagestack
+          - label: frontend
+            image: garagestack-frontend
+          - label: api
+            image: garagestack-api
+          - label: worker
+            image: garagestack-worker
+    env:
+      # The workflow-level env is not available here, so the registry is spelled out.
+      IMAGE: ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}
+      # linux/amd64 and linux/arm64, the architectures of the build matrix.
+      EXPECTED_DIGESTS: 2
+    steps:
+      - name: Download digests
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          path: ${{ runner.temp }}/digests
+          pattern: digests-${{ matrix.label }}-*
+          merge-multiple: true
+
+      # The token and the user go in through the environment, not into the script text.
+      - name: Log in to GitHub Container Registry
+        shell: bash
+        env:
+          TOKEN: ${{ secrets.GHCR_PAT != '' && secrets.GHCR_PAT || github.token }}
+          ACTOR: ${{ github.actor }}
+        run: |
+          set -euo pipefail
+          echo "$TOKEN" | docker login ghcr.io -u "$ACTOR" --password-stdin
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@756fe2d284c7292c4e9b62c8a28f1e5629c59532 # v4.1.3
+
+      - name: Extract image metadata
+        id: meta
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
+        with:
+          images: ${{ env.IMAGE }}
+          tags: |
+            # latest on every push to main
+            type=raw,value=latest,enable={{is_default_branch}}
+            # semver tags from v* git tags: v1.2.3 -> 1.2.3, 1.2, 1
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            # short SHA for traceability on every main push
+            type=sha,format=short
+
+      - name: Create the multi-architecture index
+        id: index
+        shell: bash
+        working-directory: ${{ runner.temp }}/digests
+        env:
+          TAGS: ${{ steps.meta.outputs.tags }}
+        run: |
+          set -euo pipefail
+          # One file per architecture, named by its digest. Fewer would publish an index that
+          # silently misses an architecture.
+          DIGESTS=(*)
+          if [ "${#DIGESTS[@]}" -ne "$EXPECTED_DIGESTS" ]; then
+            echo "Expected $EXPECTED_DIGESTS digests, found ${#DIGESTS[@]}" >&2
+            exit 1
+          fi
+          SOURCES=()
+          for D in "${DIGESTS[@]}"; do SOURCES+=("$IMAGE@sha256:$D"); done
+          TAG_ARGS=()
+          while IFS= read -r TAG; do
+            if [ -n "$TAG" ]; then TAG_ARGS+=(-t "$TAG"); fi
+          done <<< "$TAGS"
+          if [ "${#TAG_ARGS[@]}" -eq 0 ]; then
+            echo "No tags to publish" >&2
+            exit 1
+          fi
+          METADATA="$RUNNER_TEMP/index-metadata.json"
+          docker buildx imagetools create --metadata-file "$METADATA" "${TAG_ARGS[@]}" "${SOURCES[@]}"
+
+          # The digest of the index this run just created, from the create itself. Reading it
+          # back through a tag could return another run's index: a push to main and a tag on the
+          # same commit both write latest.
+          INDEX_DIGEST=$(jq -r '."containerimage.descriptor".digest // ."containerimage.digest" // empty' "$METADATA")
+          case "$INDEX_DIGEST" in
+            sha256:*) ;;
+            *) echo "No index digest in the create metadata" >&2; exit 1 ;;
+          esac
+          echo "digest=$INDEX_DIGEST" >> "$GITHUB_OUTPUT"
+
+      - name: Check the index
+        shell: bash
+        env:
+          INDEX_DIGEST: ${{ steps.index.outputs.digest }}
+        run: |
+          set -euo pipefail
+          docker buildx imagetools inspect "$IMAGE@$INDEX_DIGEST"
+          # Both architectures must be in the index the tags now point to.
+          docker buildx imagetools inspect "$IMAGE@$INDEX_DIGEST" --raw \
+            | jq -e '[.manifests[] | .platform // empty | select(.os == "linux") | .architecture] | contains(["amd64", "arm64"])' > /dev/null
+
+      # The signature is on the digest of the index, so it covers every tag and architecture.
+      - name: Sign image with Cosign
+        shell: bash
+        env:
+          INDEX_DIGEST: ${{ steps.index.outputs.digest }}
+        run: cosign sign --yes "$IMAGE@$INDEX_DIGEST"
