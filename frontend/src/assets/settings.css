@@ -188,26 +188,26 @@
 
   .settings-tabs {
     justify-content: flex-start;
+    width: 100%;
   }
 
   .settings-tabs__tab:not([aria-selected='true']) .settings-tabs__label {
     display: none;
   }
 
+  /* The chosen tab's name is as wide as the device's font makes it, so the icons give way:
+     44px where there is room, down to 32px, still above the 24px minimum. */
   .settings-tabs__tab:not([aria-selected='true']) {
+    flex: 0 1 44px;
     justify-content: center;
-    min-width: 44px;
+    min-width: 32px;
   }
 }
 
-/* The narrowest phones: six tabs fit at 40px, still above the 24px minimum. */
+/* The narrowest phones: slimmer padding leaves the icons room to give way. */
 @media (width <= 359px) {
   .settings-tabs__tab {
     padding-inline: 0.5rem;
-  }
-
-  .settings-tabs__tab:not([aria-selected='true']) {
-    min-width: 40px;
   }
 }
 
