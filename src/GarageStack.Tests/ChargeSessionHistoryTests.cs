@@ -36,6 +36,16 @@ public class ChargeSessionHistoryTests
     public void ChargerPower_PicksTheFigureClosestToTheBattery(double? single, double? three, double? hv, double expected) =>
         Assert.Equal(expected, ChargerPower.Kw(single, three, hv));
 
+    // Rows written before #574 hold the onboard charger's figures in watts, as the gateway sends them.
+    [Theory]
+    [InlineData(4342.7, 2507.1, -4.0, 4.3427)]
+    [InlineData(null, 11000.0, -10.4, 11.0)]
+    [InlineData(7200.0, null, null, 7.2)]
+    // The wrong phase figure on a 22 kW charger is still kW, not watts.
+    [InlineData(37.4, 22.0, -21.0, 22.0)]
+    public void ChargerPower_ReadsOldRowsInWatts(double? single, double? three, double? hv, double expected) =>
+        Assert.Equal(expected, ChargerPower.Kw(single, three, hv)!.Value, 6);
+
     [Fact]
     public void ChargerPower_IsNullWithoutAnyFigure()
     {

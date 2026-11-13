@@ -2,7 +2,13 @@ namespace GarageStack.Core.Helpers;
 
 /// <summary>
 /// The power going into the car while it charges, in kW, from the three figures the gateway
-/// publishes: obc/powerSinglePhase, obc/powerThreePhase and drivetrain/power, all already in kW.
+/// publishes: obc/powerSinglePhase, obc/powerThreePhase and drivetrain/power.
+///
+/// The gateway publishes the onboard charger's figures in watts. The Worker stores them in kW since
+/// #574; rows written before that hold watts, and the charge history reads those rows too. An
+/// onboard charger gives at most 22 kW, and even the wrong phase figure stays under 40, so a figure
+/// above <see cref="LegacyWattsAbove"/> is watts. Below it a figure in watts is under 50 W, a charge
+/// that has as good as stopped. drivetrain/power has always been kW.
 ///
 /// The gateway works out the single-phase and the three-phase figure from the same onboard charger
 /// voltage and current, and the car does not say which kind of connection it is on. Both cannot be
@@ -16,8 +22,8 @@ public static class ChargerPower
 {
     public static double? Kw(double? singlePhaseKw, double? threePhaseKw, double? hvPowerKw)
     {
-        var single = Positive(singlePhaseKw);
-        var three = Positive(threePhaseKw);
+        var single = OnboardKw(singlePhaseKw);
+        var three = OnboardKw(threePhaseKw);
         var battery = hvPowerKw is { } hv && double.IsFinite(hv) && hv != 0 ? Math.Abs(hv) : (double?)null;
 
         if (single is { } s && three is { } t && battery is { } b)
@@ -26,6 +32,11 @@ public static class ChargerPower
         return three ?? single ?? battery;
     }
 
-    private static double? Positive(double? value) =>
-        value is { } v && double.IsFinite(v) && v > 0 ? v : null;
+    /// <summary>An onboard charger figure above this is in watts, from a row written before #574.</summary>
+    public const double LegacyWattsAbove = 50;
+
+    private static double? OnboardKw(double? value) =>
+        value is { } v && double.IsFinite(v) && v > 0
+            ? v > LegacyWattsAbove ? v / 1000 : v
+            : null;
 }
