@@ -61,7 +61,10 @@ jobs:
     name: Trivy image scan (${{ matrix.label }}${{ matrix.arch != 'amd64' && format(', {0}', matrix.arch) || '' }})
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    if: github.event_name != 'pull_request' && (github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success')
+    # After a publish, and weekly. Not on the push to main itself: every push to main publishes,
+    # and a scan started by the push runs while that publish is still building, so it scans the
+    # previous :latest (which failed the arm64 leg while :latest was still amd64 only).
+    if: github.event_name == 'schedule' || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
     permissions:
       contents: read
       security-events: write
