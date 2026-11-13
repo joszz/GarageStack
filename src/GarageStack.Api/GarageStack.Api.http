@@ -45,6 +45,22 @@ Content-Type: application/json
 
 ###
 
+### Say the vehicle has a power tailgate, which the power-tailgate command needs
+PUT {{GarageStack.Api_HostAddress}}/api/vehicles/{{VIN}}/power-tailgate
+Content-Type: application/json
+
+{ "enabled": true }
+
+###
+
+### Send a command -- close the power tailgate ("open" or "close")
+POST {{GarageStack.Api_HostAddress}}/api/vehicles/{{VIN}}/commands/power-tailgate
+Content-Type: application/json
+
+{ "value": "close" }
+
+###
+
 ### Send a command -- start climate control
 POST {{GarageStack.Api_HostAddress}}/api/vehicles/{{VIN}}/commands/climate
 Content-Type: application/json

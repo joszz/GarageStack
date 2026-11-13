@@ -103,7 +103,7 @@ Cards are shown or hidden automatically based on vehicle type (HEV / PHEV / BEV)
 | Charging | Charging indicator | PHEV, BEV |
 | Odometer | Total distance driven | All |
 | 12V Battery | Auxiliary battery voltage | All |
-| Doors | Lock status and door states; lock, unlock and open the boot | All |
+| Doors | Lock status and door states; lock, unlock and open the boot, or open and close it on a car with a power tailgate (switched on under Settings > Vehicle) | All |
 | Windows | Window and sunroof states | All |
 | Sunroof | Sunroof open/closed | All (off by default) |
 | Climate | Temperature, seat heating, defroster | All |

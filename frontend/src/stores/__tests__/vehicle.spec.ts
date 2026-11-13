@@ -21,6 +21,9 @@ vi.mock('@/services/vehicleApi', () => ({
     tripSummaries: vi.fn<() => Promise<TripSummary[]>>().mockResolvedValue([]),
     latestTrip: vi.fn<() => Promise<Trip | undefined>>().mockResolvedValue(undefined),
     sendCommand: vi.fn<() => Promise<void>>().mockResolvedValue(undefined),
+    setPowerTailgate: vi
+      .fn<(vin: string, enabled: boolean) => Promise<{ enabled: boolean }>>()
+      .mockImplementation((_vin, enabled) => Promise.resolve({ enabled })),
   },
 }))
 
@@ -34,6 +37,7 @@ function vehicle(vehicleType: Vehicle['vehicleType']): Vehicle {
     vehicleType,
     hvBatteryCapacityKwh: null,
     supportsTargetSoc: false,
+    hasPowerTailgate: false,
   }
 }
 
@@ -57,6 +61,23 @@ describe('useVehicleStore - detectedVehicleType', () => {
     const store = useVehicleStore()
     store.vehicles = [vehicle('unknown')]
     expect(store.detectedVehicleType).toBe('unknown')
+  })
+})
+
+describe('useVehicleStore - setPowerTailgate', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  it('saves it and updates the vehicle in the list without fetching it again', async () => {
+    const store = useVehicleStore()
+    store.vehicles = [vehicle('bev')]
+
+    await store.setPowerTailgate('FAKEVN00000000001', true)
+
+    expect(vehicleApi.setPowerTailgate).toHaveBeenCalledWith('FAKEVN00000000001', true)
+    expect(store.activeVehicle?.hasPowerTailgate).toBe(true)
+    expect(vehicleApi.list).not.toHaveBeenCalled()
   })
 })
 
@@ -138,6 +159,7 @@ describe('useVehicleStore - fetchVehicles', () => {
         vehicleType: 'bev',
         hvBatteryCapacityKwh: null,
         supportsTargetSoc: false,
+        hasPowerTailgate: false,
       },
     ])
     const store = useVehicleStore()

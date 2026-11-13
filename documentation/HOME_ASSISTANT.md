@@ -173,6 +173,7 @@ A token only reads, never sees the full export or the server logs, and counts ag
 
 - **Commands from Home Assistant skip GarageStack's command queue.** The MG cloud handles one command per car at a time, and each can take around 30 seconds. GarageStack queues its own commands for that reason, but Home Assistant's go straight to the gateway. Avoid automations that fire a command at the same moment as one from GarageStack, and in Home Assistant scripts wait for each command's state change before sending the next.
 - **Anyone who can use your Home Assistant can now control the car.** Review who has access to it, and which dashboards show the lock and climate controls.
+- **The Power Tailgate cover is disabled by default.** The gateway adds it to every car, because nothing in the car's data tells whether it has a power tailgate. Enable it in Home Assistant only if yours has one; a car without one refuses the command. GarageStack has its own switch for this under **Settings > Vehicle**.
 - **Keep the discovery prefix at `homeassistant`.** GarageStack reads the same discovery messages to detect whether your car is a HEV, PHEV or BEV, so don't disable discovery on the gateway or move it to another prefix.
 - **Entities turn Unavailable when the gateway can't poll the car**, for example when the MG cloud is down or the session was taken over. That's the gateway's default behaviour and clears on the next successful poll.
 

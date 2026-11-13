@@ -49,6 +49,13 @@ public class Vehicle
     /// </summary>
     public string? LicensePlate { get; set; }
 
+    /// <summary>
+    /// Whether the car has a power tailgate, so the boot can be opened and closed remotely rather
+    /// than only unlatched. Nothing in the vehicle data tells, and the gateway sends the command to
+    /// any car (one without a power tailgate refuses it), so the user switches it on.
+    /// </summary>
+    public bool HasPowerTailgate { get; set; }
+
     public ICollection<TelemetrySnapshot> TelemetrySnapshots { get; set; } = [];
 }
 

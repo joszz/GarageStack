@@ -340,6 +340,10 @@
     "confirmUnlockCable": "Toque novamente para destrancar",
     "openBoot": "Abrir",
     "confirmOpenBoot": "Toque novamente para abrir",
+    "openTailgate": "Abrir",
+    "closeTailgate": "Fechar",
+    "confirmOpenTailgate": "Toque novamente para abrir",
+    "confirmCloseTailgate": "Toque novamente para fechar",
     "startHeating": "Aquecer",
     "stopHeating": "Parar",
     "changeSchedule": "Alterar o agendamento",
@@ -616,6 +620,11 @@
       "clear": "Remover",
       "saved": "Salva e consultada no RDW.",
       "cleared": "Removida."
+    },
+    "powerTailgate": {
+      "title": "Tampa traseira",
+      "label": "Tampa traseira elétrica",
+      "desc": "Ative se o porta-malas do carro abre e fecha sozinho. O cartão Portas poderá então abri-lo e fechá-lo, em vez de apenas destravá-lo. Um carro sem tampa traseira elétrica recusa o comando."
     },
     "notificationTypes": {
       "title": "Notificações"

@@ -51,6 +51,7 @@ const car: Vehicle = {
   vehicleType: 'hev',
   hvBatteryCapacityKwh: null,
   supportsTargetSoc: false,
+  hasPowerTailgate: false,
 }
 let pinia: Pinia
 const scrollIntoView = vi.fn<(options?: boolean | ScrollIntoViewOptions) => void>()

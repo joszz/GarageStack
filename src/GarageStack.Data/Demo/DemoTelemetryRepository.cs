@@ -169,8 +169,9 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
         }
     }
 
-    // The car's side of each command. Horn and lights, opening the boot lock and a refresh change
-    // nothing the dashboard shows beyond the reading's time, except the boot, which pops open.
+    // The car's side of each command. Horn and lights and a refresh change nothing the dashboard
+    // shows beyond the reading's time. Unlatching the boot pops it open; a power tailgate moves
+    // either way.
     private static string? Apply(TelemetrySnapshot car, string command, string value)
     {
         switch (command)
@@ -196,6 +197,9 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
                 break;
             case "boot":
                 car.TrunkOpen = true;
+                break;
+            case "power-tailgate":
+                car.TrunkOpen = value == "open";
                 break;
             case "charge-limit":
                 car.ChargeCurrentLimit = value;
