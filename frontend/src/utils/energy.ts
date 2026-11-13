@@ -58,13 +58,21 @@ export interface HvBatteryReading {
   capacityKwh: number | null
 }
 
+/**
+ * Whether the gateway's kWh figures can be shown without a configured capacity: only on a BEV, the
+ * one drivetrain whose pack the gateway may know (see `hvBatteryReading`).
+ */
+export function trustsReportedKwh(vehicleType: VehicleType): boolean {
+  return vehicleType === 'bev'
+}
+
 export function hvBatteryReading(
   status: Pick<TelemetrySnapshot, 'evSocPercent' | 'hvSocKwh' | 'hvTotalCapacityKwh'>,
   vehicleType: VehicleType,
   configuredCapacityKwh: number | null,
 ): HvBatteryReading {
   const reported = status.hvTotalCapacityKwh
-  const capacityKwh = configuredCapacityKwh ?? (vehicleType === 'bev' ? reported : null)
+  const capacityKwh = configuredCapacityKwh ?? (trustsReportedKwh(vehicleType) ? reported : null)
 
   // drivetrain/soc is the BMS reading itself. The ratio behind it is the fallback for a car that
   // publishes only the derived pair, and survives rescaling because both sides carry the same
@@ -84,12 +92,8 @@ export function hvBatteryReading(
 }
 
 /**
- * The energy in the battery at a reading, in kWh, or null when the deployment cannot know it.
- *
- * The gateway's drivetrain/soc_kwh is MG's nominal 72.5 kWh pack scaled by the state of charge,
- * except on the BEV series it has a table entry for. On a plug-in hybrid that reads about three
- * times the truth (issue #571: a pack of about 23 kWh). So a configured capacity always wins, only
- * a BEV falls back to the reported figure, and anything else gets no kWh at all.
+ * The energy in the battery at a reading, in kWh, or null when the deployment cannot know it: the
+ * same rule as `hvBatteryReading`, for a reading that carries drivetrain/soc_kwh.
  */
 export function trustedBatteryKwh(
   socPercent: number | null,
@@ -99,7 +103,7 @@ export function trustedBatteryKwh(
 ): number | null {
   if (configuredCapacityKwh !== null)
     return socPercent === null ? null : (configuredCapacityKwh * socPercent) / 100
-  return vehicleType === 'bev' ? reportedKwh : null
+  return trustsReportedKwh(vehicleType) ? reportedKwh : null
 }
 
 /**
