@@ -20,6 +20,8 @@ const props = defineProps<{
   rearRightDoorOpen: boolean | null
   bonnetOpen: boolean | null
   trunkOpen: boolean | null
+  /** The user said the car has a power tailgate: offer open and close instead of unlatching. */
+  hasPowerTailgate?: boolean
 }>()
 
 const { sending, lastResult, isPending, send } = useVehicleCommand()
@@ -102,12 +104,34 @@ async function handleLockToggle() {
   if (lastResult.value?.ok) localLocked.value = newLocked
 }
 
-// Only offered while the car reports the boot shut: the gateway can open it, never close it.
-const canOpenBoot = computed(() => props.trunkOpen === false)
-const hasControls = computed(() => props.isLocked !== null || canOpenBoot.value)
+// Without a power tailgate the gateway can only unlatch the boot, never close it, so that is
+// offered only while the car reports the boot shut.
+const canOpenBoot = computed(() => !props.hasPowerTailgate && props.trunkOpen === false)
+
+// With one, the boot moves either way: the button offers the opposite of what the car reports.
+// The row stays while a move is pending, whatever the car reports meanwhile.
+const tailgateAction = computed((): 'open' | 'close' | null => {
+  if (!props.hasPowerTailgate || props.trunkOpen === null) return null
+  return props.trunkOpen ? 'close' : 'open'
+})
+const showTailgate = computed(
+  () => !!props.hasPowerTailgate && (tailgateAction.value !== null || isPending('power-tailgate')),
+)
+
+const hasControls = computed(
+  () => props.isLocked !== null || canOpenBoot.value || showTailgate.value,
+)
 
 function openBoot() {
   send(props.vin, 'boot', 'false', { isConfirmed: (s) => s.trunkOpen === true })
+}
+
+function moveTailgate() {
+  const action = tailgateAction.value
+  if (!action) return
+  send(props.vin, 'power-tailgate', action, {
+    isConfirmed: (s) => s.trunkOpen === (action === 'open'),
+  })
 }
 </script>
 
@@ -164,6 +188,33 @@ function openBoot() {
           />
         </div>
         <CommandFeedback command="boot" :pending="isPending('boot')" :last-result="lastResult" />
+      </template>
+      <template v-if="showTailgate">
+        <div class="detail-list__item detail-list__item--control">
+          <font-awesome-icon icon="car-rear" class="detail-list__item-icon" />
+          <span class="detail-list__item-label">{{ t('vehicle.doors_detail.boot') }}</span>
+          <CommandButton
+            class="btn-sm btn-outline-secondary"
+            :pending="isPending('power-tailgate')"
+            :sending="sending === 'power-tailgate'"
+            :disabled="!vin"
+            icon="car-rear"
+            :label="
+              tailgateAction === 'open' ? t('control.openTailgate') : t('control.closeTailgate')
+            "
+            :confirm-label="
+              tailgateAction === 'open'
+                ? t('control.confirmOpenTailgate')
+                : t('control.confirmCloseTailgate')
+            "
+            @click="moveTailgate"
+          />
+        </div>
+        <CommandFeedback
+          command="power-tailgate"
+          :pending="isPending('power-tailgate')"
+          :last-result="lastResult"
+        />
       </template>
     </div>
 

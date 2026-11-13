@@ -340,6 +340,10 @@
     "confirmUnlockCable": "Tap again to unlock",
     "openBoot": "Open",
     "confirmOpenBoot": "Tap again to open",
+    "openTailgate": "Open",
+    "closeTailgate": "Close",
+    "confirmOpenTailgate": "Tap again to open",
+    "confirmCloseTailgate": "Tap again to close",
     "startHeating": "Heat",
     "stopHeating": "Stop",
     "changeSchedule": "Change the schedule",
@@ -616,6 +620,11 @@
       "clear": "Remove",
       "saved": "Saved and looked up at the RDW.",
       "cleared": "Removed."
+    },
+    "powerTailgate": {
+      "title": "Tailgate",
+      "label": "Power tailgate",
+      "desc": "Switch this on if the car's boot opens and closes by itself. The Doors card can then open and close it, instead of only unlocking it. A car without a power tailgate refuses the command."
     },
     "notificationTypes": {
       "title": "Notifications"

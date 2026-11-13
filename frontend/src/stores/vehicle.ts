@@ -63,6 +63,14 @@ export const useVehicleStore = defineStore('vehicle', () => {
     })
   }
 
+  // Kept on the vehicle by the API, so the list copy is updated in place rather than re-fetched.
+  async function setPowerTailgate(vin: string, enabled: boolean) {
+    const saved = await vehicleApi.setPowerTailgate(vin, enabled)
+    vehicles.value = vehicles.value.map((v) =>
+      v.vin === vin ? { ...v, hasPowerTailgate: saved.enabled } : v,
+    )
+  }
+
   async function fetchStatus(vin: string) {
     await withLoading(statusError, async () => {
       currentStatus.value = await vehicleApi.status(vin)
@@ -183,6 +191,7 @@ export const useVehicleStore = defineStore('vehicle', () => {
     chargingJustCompleted,
     lastCommandResult,
     fetchVehicles,
+    setPowerTailgate,
     fetchStatus,
     fetchConfig,
     fetchDailyStats,

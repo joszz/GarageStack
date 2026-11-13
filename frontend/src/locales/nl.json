@@ -340,6 +340,10 @@
     "confirmUnlockCable": "Tik nogmaals om te ontgrendelen",
     "openBoot": "Openen",
     "confirmOpenBoot": "Tik nogmaals om te openen",
+    "openTailgate": "Openen",
+    "closeTailgate": "Sluiten",
+    "confirmOpenTailgate": "Tik nogmaals om te openen",
+    "confirmCloseTailgate": "Tik nogmaals om te sluiten",
     "startHeating": "Verwarmen",
     "stopHeating": "Stop",
     "changeSchedule": "Schema wijzigen",
@@ -616,6 +620,11 @@
       "clear": "Verwijderen",
       "saved": "Opgeslagen en bij de RDW opgezocht.",
       "cleared": "Verwijderd."
+    },
+    "powerTailgate": {
+      "title": "Achterklep",
+      "label": "Elektrische achterklep",
+      "desc": "Zet dit aan als de achterklep van de auto vanzelf opent en sluit. De Deuren-kaart kan hem dan openen en sluiten, in plaats van alleen ontgrendelen. Een auto zonder elektrische achterklep weigert de opdracht."
     },
     "notificationTypes": {
       "title": "Meldingen"
