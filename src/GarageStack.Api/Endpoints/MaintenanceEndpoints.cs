@@ -8,6 +8,8 @@ public static class MaintenanceEndpoints
 {
     public static IEndpointRouteBuilder MapMaintenanceEndpoints(this IEndpointRouteBuilder app)
     {
+        // The clock, not request input.
+        var clock = app.ServiceProvider.GetRequiredService<TimeProvider>();
         var group = app.MapGroup("/api/vehicles/{vin}/maintenance")
             .WithTags("Maintenance")
             .RequireAuthorization()
@@ -19,9 +21,10 @@ public static class MaintenanceEndpoints
             var vehicle = httpContext.ResolvedVehicle();
 
             var items = await maintenance.ListAsync(vehicle.Id, ct);
-            var odometerKm = await telemetry.GetOdometerAtAsync(vehicle.Id, DateTime.UtcNow, ct);
+            var now = clock.GetUtcNow().UtcDateTime;
+            var odometerKm = await telemetry.GetOdometerAtAsync(vehicle.Id, now, ct);
 
-            return Results.Ok(items.Select(m => ToDto(m, odometerKm)));
+            return Results.Ok(items.Select(m => ToDto(m, odometerKm, now)));
         })
         .WithSummary("List maintenance items with computed due status");
 
@@ -32,7 +35,7 @@ public static class MaintenanceEndpoints
             var vehicle = httpContext.ResolvedVehicle();
 
             if ((ValidateItem(req.Name, req.Notes, req.IntervalKm, req.IntervalMonths)
-                    ?? ValidateService(req.LastServiceDate, req.LastServiceOdometerKm)) is { } error)
+                    ?? ValidateService(req.LastServiceDate, req.LastServiceOdometerKm, clock.GetUtcNow().UtcDateTime)) is { } error)
                 return ApiProblems.BadRequest(error);
 
             var item = await maintenance.AddAsync(new MaintenanceItem
@@ -46,7 +49,7 @@ public static class MaintenanceEndpoints
                 LastServiceOdometerKm = req.LastServiceOdometerKm,
             }, ct);
 
-            return Results.Ok(await ToDtoAsync(item, telemetry, ct));
+            return Results.Ok(await ToDtoAsync(item, telemetry, clock.GetUtcNow().UtcDateTime, ct));
         })
         .WithSummary("Create a maintenance item");
 
@@ -68,7 +71,7 @@ public static class MaintenanceEndpoints
             }, ct);
             if (item is null) return Results.NotFound();
 
-            return Results.Ok(await ToDtoAsync(item, telemetry, ct));
+            return Results.Ok(await ToDtoAsync(item, telemetry, clock.GetUtcNow().UtcDateTime, ct));
         })
         .WithSummary("Update a maintenance item's name, notes and intervals");
 
@@ -95,7 +98,7 @@ public static class MaintenanceEndpoints
         {
             var vehicle = httpContext.ResolvedVehicle();
 
-            if (ValidateLogEntry(req.PerformedAt, req.OdometerKm, req.Notes) is { } error)
+            if (ValidateLogEntry(req.PerformedAt, req.OdometerKm, req.Notes, clock.GetUtcNow().UtcDateTime) is { } error)
                 return ApiProblems.BadRequest(error);
 
             var logged = await maintenance.LogServiceAsync(vehicle.Id, id, new MaintenanceLogEntry
@@ -106,7 +109,7 @@ public static class MaintenanceEndpoints
             }, ct);
             if (logged is null) return Results.NotFound();
 
-            return Results.Ok(new LogMaintenanceServiceResponse(await ToDtoAsync(logged.Item, telemetry, ct), ToDto(logged.Entry)));
+            return Results.Ok(new LogMaintenanceServiceResponse(await ToDtoAsync(logged.Item, telemetry, clock.GetUtcNow().UtcDateTime, ct), ToDto(logged.Entry)));
         })
         .WithSummary("Log a completed service, updating the item's baseline");
 
@@ -119,7 +122,7 @@ public static class MaintenanceEndpoints
             var item = await maintenance.DeleteLogEntryAsync(vehicle.Id, id, logId, ct);
             if (item is null) return Results.NotFound();
 
-            return Results.Ok(await ToDtoAsync(item, telemetry, ct));
+            return Results.Ok(await ToDtoAsync(item, telemetry, clock.GetUtcNow().UtcDateTime, ct));
         })
         .WithSummary("Remove a service log entry, recomputing the item's baseline");
 
@@ -143,16 +146,16 @@ public static class MaintenanceEndpoints
         return null;
     }
 
-    internal static ValidationError? ValidateLogEntry(DateTime performedAt, double? odometerKm, string? notes) =>
-        ValidateService(performedAt, odometerKm) ?? NotesError(notes);
+    internal static ValidationError? ValidateLogEntry(DateTime performedAt, double? odometerKm, string? notes, DateTime now) =>
+        ValidateService(performedAt, odometerKm, now) ?? NotesError(notes);
 
     /// <summary>
     /// A service as a log entry records it, or as the last service a new item starts from: not in
     /// the future, and not at a negative odometer reading.
     /// </summary>
-    internal static ValidationError? ValidateService(DateTime? performedAt, double? odometerKm)
+    internal static ValidationError? ValidateService(DateTime? performedAt, double? odometerKm, DateTime now)
     {
-        if (performedAt > DateTime.UtcNow.AddDays(1))
+        if (performedAt > now.AddDays(1))
             return new("maintenance.serviceDateInFuture", "Service date cannot be in the future");
         if (odometerKm is < 0)
             return new("maintenance.odometerNegative", "Odometer reading cannot be negative");
@@ -169,15 +172,16 @@ public static class MaintenanceEndpoints
         new(entry.Id, entry.MaintenanceItemId, entry.PerformedAt, entry.OdometerKm, entry.Notes, entry.CreatedAt);
 
     // An item as it stands now: due against the car's current odometer reading.
-    private static async Task<MaintenanceItemDto> ToDtoAsync(MaintenanceItem item, ITelemetryRepository telemetry, CancellationToken ct) =>
-        ToDto(item, await telemetry.GetOdometerAtAsync(item.VehicleId, DateTime.UtcNow, ct));
+    private static async Task<MaintenanceItemDto> ToDtoAsync(
+        MaintenanceItem item, ITelemetryRepository telemetry, DateTime now, CancellationToken ct) =>
+        ToDto(item, await telemetry.GetOdometerAtAsync(item.VehicleId, now, ct), now);
 
-    private static MaintenanceItemDto ToDto(MaintenanceItem item, double? currentOdometerKm)
+    private static MaintenanceItemDto ToDto(MaintenanceItem item, double? currentOdometerKm, DateTime now)
     {
         var result = MaintenanceDueCalculator.Calculate(
             item.IntervalKm, item.IntervalMonths,
             item.LastServiceDate, item.LastServiceOdometerKm,
-            currentOdometerKm, DateTime.UtcNow);
+            currentOdometerKm, now);
 
         var status = result.Status.ApiName();
 

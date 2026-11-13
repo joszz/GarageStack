@@ -9,8 +9,11 @@ using Microsoft.Extensions.Logging;
 namespace GarageStack.Data.Repositories;
 
 // logger is optional (DI always supplies one) so tests can construct this with just a DbContext.
-public class UserSettingsRepository(AppDbContext db, ILogger<UserSettingsRepository>? logger = null) : IUserSettingsRepository
+public class UserSettingsRepository(
+    AppDbContext db, ILogger<UserSettingsRepository>? logger = null, TimeProvider? clock = null) : IUserSettingsRepository
 {
+    private DateTime UtcNow => (clock ?? TimeProvider.System).GetUtcNow().UtcDateTime;
+
     // Devices saving the same section at the same moment are the only way a save can be beaten to
     // its row. Each round of a collision has one winner, so this covers as many devices at once.
     private const int MaxAttempts = 5;
@@ -79,7 +82,7 @@ public class UserSettingsRepository(AppDbContext db, ILogger<UserSettingsReposit
 
         row.Json = merged;
         row.Version++;
-        row.UpdatedAt = DateTime.UtcNow;
+        row.UpdatedAt = UtcNow;
         await db.SaveChangesAsync(ct);
 
         return SettingsSaveResult.Saved;

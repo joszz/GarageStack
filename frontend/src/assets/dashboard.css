@@ -199,7 +199,7 @@
   color: var(--color-text-muted);
 }
 
-@media (width <= 480px) {
+@media (width <= 479px) {
   .rdw-recall__details {
     grid-template-columns: 1fr;
   }

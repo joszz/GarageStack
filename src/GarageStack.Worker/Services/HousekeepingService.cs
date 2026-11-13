@@ -14,8 +14,11 @@ namespace GarageStack.Worker.Services;
 public class HousekeepingService(
     ILogger<HousekeepingService> logger,
     IServiceScopeFactory scopeFactory,
-    TelemetryRetentionOptions retention) : PeriodicBackgroundService(logger)
+    TelemetryRetentionOptions retention,
+    TimeProvider? clock = null) : PeriodicBackgroundService(logger)
 {
+    private DateTime UtcNow => (clock ?? TimeProvider.System).GetUtcNow().UtcDateTime;
+
     // Nothing reads an expired answer, but a lookup may be refreshing it at this very moment.
     // A day's grace keeps out of its way.
     internal static readonly TimeSpan ExpiredCacheGrace = TimeSpan.FromDays(1);
@@ -39,7 +42,7 @@ public class HousekeepingService(
         var housekeeping = scope.ServiceProvider.GetRequiredService<IHousekeepingRepository>();
         var vehicles = await scope.ServiceProvider.GetRequiredService<IVehicleRepository>().GetAllAsync(ct);
         var compactor = new TelemetryCompactor(housekeeping, retention);
-        var now = DateTime.UtcNow;
+        var now = UtcNow;
 
         foreach (var vehicle in vehicles)
         {

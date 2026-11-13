@@ -10,6 +10,7 @@ GarageStack is a self-hosted dashboard for MG cars: a .NET backend (Api and Work
 - **pnpm**, never npm or yarn.
 - **.NET stays on the latest LTS** (10 today). Do not move packages, the SDK or the base images to a non-LTS major.
 - **Translations**: every text a user sees goes through vue-i18n. A new key goes into `en.json`, `nl.json` and `es.json` alike, or the type check fails.
+- **The current time** comes from an injected `TimeProvider`, never `DateTime.UtcNow` or `DateTimeOffset.UtcNow`: `BannedSymbols.txt` fails the build on those outside the tests, entity defaults and demo data.
 - **Dates, times and units** are formatted through `utils/format.ts` and `useUnits()`, never by hand.
 - **Icons** are Font Awesome, **charts** are Chart.js.
 - **Responsive**: every screen has to work from 320 px wide.
@@ -19,5 +20,6 @@ GarageStack is a self-hosted dashboard for MG cars: a .NET backend (Api and Work
 ## Before finishing
 
 - Add or update unit tests for what changed, backend and frontend.
+- A change to trips (anything on `ITripRepository`) is made in both `TripRepository` and `DemoTripRepository`, with shared logic in a Core helper, and gets a step in `TripRepositoryContractTests`, which fails until every repository method is covered there or exempt with a reason.
 - Backend: `dotnet test --project src/GarageStack.Tests` and `dotnet format GarageStack.slnx --verify-no-changes`.
 - Frontend, inside `frontend/`: `pnpm test:unit --run`, `pnpm type-check`, `pnpm lint`, and `pnpm exec prettier --write` on every file touched.

@@ -24,6 +24,13 @@ public sealed class DemoTripRepository : ITripRepository
     // The routes a visitor edited, and when, by trip id.
     private readonly Dictionary<long, (IReadOnlyList<TripPoint> Points, DateTime At)> _routes = [];
 
+    // Joined trips' routes as recorded: the two trips' recorded routes one after the other.
+    private readonly Dictionary<long, IReadOnlyList<TripPoint>> _joined = [];
+
+    // Home and work as the API last passed them (RelabelCommutesAsync), for a join to label by, as
+    // the real repository reads them from the database.
+    private IReadOnlyList<CommutePlace> _places = [];
+
     public Task<IReadOnlyList<TripDto>> GetTripsAsync(int vehicleId, DateTime from, DateTime to, CancellationToken ct = default)
     {
         lock (_lock)
@@ -106,6 +113,7 @@ public sealed class DemoTripRepository : ITripRepository
     {
         lock (_lock)
         {
+            _places = places;
             int marked = 0, cleared = 0;
             foreach (var entry in _log.Values.Where(e => !_manual.Contains(e.Id)).ToList())
             {
@@ -133,8 +141,7 @@ public sealed class DemoTripRepository : ITripRepository
         }
     }
 
-    // The demo's trips are drawn from a fixed timeline, so a join shows in the trip log; the map
-    // keeps drawing the first trip's own line.
+    // The joined trip is what TripJoin makes of the two, as for a real join.
     public Task<TripMergeResult> MergeWithNextAsync(int vehicleId, long id, CancellationToken ct = default)
     {
         lock (_lock)
@@ -143,24 +150,51 @@ public sealed class DemoTripRepository : ITripRepository
             var second = _log.Values.Where(e => e.StartedAt > first.StartedAt).MinBy(e => e.StartedAt);
             if (second is null) return Task.FromResult(new TripMergeResult(TripMergeOutcome.NoNextTrip));
 
-            var joined = TripEdit.Summarize([.. CurrentPoints(first.Id), .. CurrentPoints(second.Id)], id);
+            var joined = TripJoin.Join(Part(first), Part(second), _places);
             var merged = first with
             {
                 EndedAt = second.EndedAt,
-                DistanceKm = first.DistanceKm + second.DistanceKm,
+                DistanceKm = joined.DistanceKm,
                 EndLatitude = second.EndLatitude,
                 EndLongitude = second.EndLongitude,
                 OdometerEndKm = second.OdometerEndKm,
                 EndPlace = second.EndPlace,
-                IsHidden = first.IsHidden && second.IsHidden,
+                IsHidden = joined.IsHidden,
+                Notes = joined.Notes,
+                Purpose = joined.Purpose,
+                PurposeIsAutomatic = joined.Purpose is not null && !joined.PurposeIsManual,
+                IsEdited = joined.EditedAt is not null,
                 MaxSpeedKmh = joined.MaxSpeedKmh,
                 AvgMovingSpeedKmh = joined.AvgMovingSpeedKmh,
+                PhoneFusionAt = joined.PhoneFusionAt,
             };
             _log[id] = merged;
             _log.Remove(second.Id);
             _gone.Add(second.Id);
+            _routes.Remove(second.Id);
+            _joined.Remove(second.Id);
+            _joined[id] = joined.OriginalPoints ?? joined.Points;
+            if (joined.OriginalPoints is not null) _routes[id] = (joined.Points, joined.EditedAt!.Value);
+            else _routes.Remove(id);
+            if (joined.IsHidden) _gone.Add(id);
+            else _gone.Remove(id);
+            if (joined.PurposeIsManual) _manual.Add(id);
+            else _manual.Remove(id);
             return Task.FromResult(new TripMergeResult(TripMergeOutcome.Merged, merged));
         }
+    }
+
+    // A trip log entry as TripJoin takes it: with its route as the visitor left it, and as the
+    // timeline recorded it when they edited it.
+    private TripJoinPart Part(TripLogEntry entry)
+    {
+        var edited = _routes.TryGetValue(entry.Id, out var route);
+        return new(
+            entry.DistanceKm, entry.StartLatitude, entry.StartLongitude, entry.EndLatitude, entry.EndLongitude,
+            CurrentPoints(entry.Id),
+            edited ? RecordedPoints(entry.Id) : null,
+            entry.IsHidden, entry.Notes, entry.Purpose, _manual.Contains(entry.Id),
+            PhoneFusion: null, entry.PhoneFusionAt, edited ? route.At : null);
     }
 
     public async IAsyncEnumerable<TripRoute> GetRoutesAsync(int vehicleId, DateTime from, DateTime to, [EnumeratorCancellation] CancellationToken ct = default)
@@ -224,15 +258,26 @@ public sealed class DemoTripRepository : ITripRepository
     private IReadOnlyList<TripPoint> CurrentPoints(long id) =>
         DemoTrips.All.FirstOrDefault(t => t.Id == id) is { } recorded ? Current(recorded).Points : [];
 
-    // A finished demo trip still in the log, as the demo timeline recorded it.
-    private TripDto? Recorded(long id) =>
-        _log.ContainsKey(id) ? DemoTrips.All.FirstOrDefault(t => t.Id == id) : null;
+    // A trip's route as recorded: the timeline's, or the two joined trips' one after the other.
+    private IReadOnlyList<TripPoint> RecordedPoints(long id) =>
+        _joined.TryGetValue(id, out var joined) ? joined : DemoTrips.All.First(t => t.Id == id).Points;
 
-    // The trip as a visitor left it: their route when they edited one.
-    private TripDto Current(TripDto recorded) =>
-        recorded.Id is { } id && _routes.TryGetValue(id, out var route)
-            ? TripEdit.Summarize(route.Points, id) with { Index = recorded.Index }
-            : recorded;
+    // A finished demo trip still in the log, as recorded.
+    private TripDto? Recorded(long id) =>
+        _log.ContainsKey(id) && DemoTrips.All.FirstOrDefault(t => t.Id == id) is { } timeline
+            ? _joined.TryGetValue(id, out var joined) ? TripEdit.Summarize(joined, id) with { Index = timeline.Index } : timeline
+            : null;
+
+    // The trip as a visitor left it: their route when they edited one, or the joined route. Its
+    // distance is the trip log's, as the real repository serves one distance for both.
+    private TripDto Current(TripDto recorded)
+    {
+        if (recorded.Id is not { } id) return recorded;
+        var points = _routes.TryGetValue(id, out var route) ? route.Points : _joined.GetValueOrDefault(id);
+        if (points is null) return recorded;
+        var current = TripEdit.Summarize(points, id) with { Index = recorded.Index };
+        return _log.TryGetValue(id, out var entry) ? current with { DistanceKm = entry.DistanceKm } : current;
+    }
 
     // The finished trips either side, by where they start now. The trip being driven stands in for
     // the recording line: no edit may run into it.
@@ -290,6 +335,14 @@ public sealed class DemoTripRepository : ITripRepository
             MaxSpeedKmh = trip.MaxSpeedKmh,
             AvgMovingSpeedKmh = trip.AvgMovingSpeedKmh,
         };
+
+        // As a real save does: a purpose nobody chose follows where the trip now starts and ends.
+        if (!_manual.Contains(id))
+        {
+            var purpose = CommuteRule.AutomaticPurpose(
+                points[0].Latitude, points[0].Longitude, points[^1].Latitude, points[^1].Longitude, _places);
+            _log[id] = _log[id] with { Purpose = purpose, PurposeIsAutomatic = purpose is not null };
+        }
     }
 
     public Task SavePlacesAsync(int vehicleId, IReadOnlyList<TripPlaces> places, CancellationToken ct = default)

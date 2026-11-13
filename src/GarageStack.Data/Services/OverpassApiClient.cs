@@ -14,6 +14,9 @@ public sealed class OverpassApiClient(
 {
     public const string HttpClientName = "overpass";
 
+    // The places of one tile: well under a MB in a city, and a self-hosted instance could send anything.
+    private const long MaxResponseBytes = 16 * 1024 * 1024;
+
     // Singleton-level gate: serializes all Overpass requests so we never fire two in parallel.
     private readonly UpstreamRateGate _gate = new();
 
@@ -116,8 +119,7 @@ public sealed class OverpassApiClient(
 
         response.EnsureSuccessStatusCode();
 
-        await using var stream = await response.Content.ReadAsStreamAsync(ct);
-        var result = await JsonSerializer.DeserializeAsync<OverpassResponse>(stream, cancellationToken: ct);
+        var result = await UpstreamJson.ReadAsync<OverpassResponse>(response, MaxResponseBytes, ct);
         return result?.Elements
             .Select(e => MapElement(e, poiType))
             .ToList() ?? [];

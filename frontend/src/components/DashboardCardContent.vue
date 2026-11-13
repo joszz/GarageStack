@@ -83,6 +83,7 @@ const activeTripCard = computed(() => {
 })
 const supportsExternalCharge = computed(() => plugsIn(vehicleType.value))
 const supportsTargetSoc = computed(() => store.activeVehicle?.supportsTargetSoc ?? false)
+const hasPowerTailgate = computed(() => store.activeVehicle?.hasPowerTailgate ?? false)
 
 // A hybrid's energy counters hold fuel, not kWh, so the same telemetry field is labelled and
 // scaled differently per drivetrain. See utils/energy.
@@ -265,6 +266,7 @@ const activeSimpleCard = computed(() => {
       :rear-right-door-open="status.rearRightDoorOpen"
       :bonnet-open="status.bonnetOpen"
       :trunk-open="status.trunkOpen"
+      :has-power-tailgate="hasPowerTailgate"
     />
 
     <!-- windows -->

@@ -40,4 +40,7 @@ public interface IVehicleRepository
 
     /// <summary>Stores the registration (normalized, or null to clear it). See <see cref="Vehicle.LicensePlate"/>.</summary>
     Task SetLicensePlateAsync(int vehicleId, string? licensePlate, CancellationToken ct = default);
+
+    /// <summary>Says whether the car has a power tailgate. See <see cref="Vehicle.HasPowerTailgate"/>.</summary>
+    Task SetHasPowerTailgateAsync(int vehicleId, bool hasPowerTailgate, CancellationToken ct = default);
 }

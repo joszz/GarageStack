@@ -13,6 +13,8 @@ public static class ClimateScheduleEndpoints
 
     public static IEndpointRouteBuilder MapClimateScheduleEndpoints(this IEndpointRouteBuilder app)
     {
+        // The clock, not request input.
+        var clock = app.ServiceProvider.GetRequiredService<TimeProvider>();
         var group = app.MapGroup("/api/vehicles/{vin}/climate-schedules")
             .WithTags("Climate schedules")
             .RequireAuthorization()
@@ -39,7 +41,7 @@ public static class ClimateScheduleEndpoints
                     $"A vehicle can have at most {ClimateScheduleLimits.MaxPerVehicle} climate schedules");
 
             var schedule = new ClimateSchedule { VehicleId = vehicle.Id };
-            Apply(schedule, req, valid!, DateTime.UtcNow);
+            Apply(schedule, req, valid!, clock.GetUtcNow().UtcDateTime);
             await schedules.AddAsync(schedule, ct);
 
             return Results.Ok(ToDto(schedule));
@@ -54,7 +56,7 @@ public static class ClimateScheduleEndpoints
             var (valid, error) = Validate(req);
             if (error is not null) return ApiProblems.BadRequest(error);
 
-            var schedule = await schedules.UpdateAsync(vehicle.Id, id, s => Apply(s, req, valid!, DateTime.UtcNow), ct);
+            var schedule = await schedules.UpdateAsync(vehicle.Id, id, s => Apply(s, req, valid!, clock.GetUtcNow().UtcDateTime), ct);
             return schedule is null ? Results.NotFound() : Results.Ok(ToDto(schedule));
         })
         .WithSummary("Replace a climate schedule's settings, including whether it is switched on");

@@ -9,10 +9,10 @@ public class MaintenanceValidationTests
         MaintenanceEndpoints.ValidateItem(name, notes, intervalKm, intervalMonths)?.Code;
 
     private static string? LogEntryRule(DateTime performedAt, double? odometerKm, string? notes = null) =>
-        MaintenanceEndpoints.ValidateLogEntry(performedAt, odometerKm, notes)?.Code;
+        MaintenanceEndpoints.ValidateLogEntry(performedAt, odometerKm, notes, DateTime.UtcNow)?.Code;
 
     private static string? LastServiceRule(DateTime? performedAt, double? odometerKm) =>
-        MaintenanceEndpoints.ValidateService(performedAt, odometerKm)?.Code;
+        MaintenanceEndpoints.ValidateService(performedAt, odometerKm, DateTime.UtcNow)?.Code;
 
     // ── ValidateItem: name ───────────────────────────────────────────────────
     [Fact]

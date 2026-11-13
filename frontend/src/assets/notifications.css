@@ -19,7 +19,7 @@
     background 0.15s;
 }
 
-/* A touch screen gets the 40px the other top bar buttons have (main.css). */
+/* A touch screen gets the 40px the other top bar buttons have (shell.css). */
 @media (pointer: coarse) {
   .notif-bell {
     width: 40px;
@@ -72,8 +72,7 @@
   }
 }
 
-/* The notification panel (NotificationPanel.vue). The bell that opens it is part of the app
-   shell and stays in main.css. */
+/* The notification panel (NotificationPanel.vue). The bell that opens it is styled above. */
 
 /* ── Notification panel ───────────────────────────────────── */
 

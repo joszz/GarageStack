@@ -1,4 +1,4 @@
-import { request, send, buildQuery } from '@/services/apiCore'
+import { request, requestJson, send, buildQuery } from '@/services/apiCore'
 import { decodePolyline } from '@/utils/polyline'
 
 /** Drivetrains the API can report, detected from the vehicle's hardware version. */
@@ -20,6 +20,11 @@ export interface Vehicle {
   hvBatteryCapacityKwh: number | null
   /** Whether the car takes a charge target, by the gateway's own test; it drops one on any other. */
   supportsTargetSoc: boolean
+  /**
+   * Whether the user said the car has a power tailgate, so the boot can be opened and closed
+   * rather than only unlatched. Nothing the car reports tells.
+   */
+  hasPowerTailgate: boolean
 }
 
 /**
@@ -256,6 +261,9 @@ export const vehicleApi = {
   tyrePressureThresholds: () =>
     request<TyrePressureThresholds>('/api/vehicles/tyre-pressure-thresholds'),
   config: (vin: string) => request<Record<string, string>>(`/api/vehicles/${vin}/config`),
+  /** Says whether the car has a power tailgate; answers with what was saved. */
+  setPowerTailgate: (vin: string, enabled: boolean) =>
+    requestJson<{ enabled: boolean }>(`/api/vehicles/${vin}/power-tailgate`, 'PUT', { enabled }),
   /** One row per local day from `from` to `to` ("YYYY-MM-DD"), in the browser's time zone. */
   dailyStats: (vin: string, from: string, to: string, timeZone: string) =>
     request<DailyStat[]>(`/api/vehicles/${vin}/stats/daily${buildQuery({ from, to, timeZone })}`),

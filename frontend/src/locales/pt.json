@@ -340,6 +340,10 @@
     "confirmUnlockCable": "Toque novamente para destrancar",
     "openBoot": "Abrir",
     "confirmOpenBoot": "Toque novamente para abrir",
+    "openTailgate": "Abrir",
+    "closeTailgate": "Fechar",
+    "confirmOpenTailgate": "Toque novamente para abrir",
+    "confirmCloseTailgate": "Toque novamente para fechar",
     "startHeating": "Aquecer",
     "stopHeating": "Parar",
     "changeSchedule": "Alterar o agendamento",
@@ -617,6 +621,11 @@
       "saved": "Salva e consultada no RDW.",
       "cleared": "Removida."
     },
+    "powerTailgate": {
+      "title": "Tampa traseira",
+      "label": "Tampa traseira elétrica",
+      "desc": "Ative se o porta-malas do carro abre e fecha sozinho. O cartão Portas poderá então abri-lo e fechá-lo, em vez de apenas destravá-lo. Um carro sem tampa traseira elétrica recusa o comando."
+    },
     "notificationTypes": {
       "title": "Notificações"
     },
@@ -786,8 +795,8 @@
     },
     "purposeLabel": "Finalidade",
     "purpose": {
-      "business": "Trabalho",
-      "commute": "Casa–trabalho",
+      "business": "A trabalho",
+      "commute": "Casa-trabalho",
       "private": "Particular",
       "unclassified": "Sem classificação"
     },
@@ -818,7 +827,7 @@
       "title": "Casa e trabalho",
       "addTitle": "Adicionar um local",
       "editTitle": "Editar local",
-      "intro": "As viagens entre casa e um local de trabalho são marcadas como trajeto casa–trabalho, inclusive as que já estão no registro. As viagens que você mesmo classificou não mudam.",
+      "intro": "As viagens entre casa e um local de trabalho são marcadas como trajeto casa-trabalho, inclusive as que já estão no registro. As viagens que você mesmo classificou não mudam.",
       "empty": "Nenhum local de casa ou trabalho definido ainda.",
       "addHome": "Adicionar casa",
       "addWork": "Adicionar trabalho",
@@ -843,12 +852,12 @@
       "editPlace": "Editar {place}",
       "save": "Salvar",
       "remove": "Remover",
-      "removeConfirm": "Remover este local? As viagens que ele marcou como trajeto casa–trabalho voltam a ficar sem classificação.",
-      "marked": "{n} viagem marcada como trajeto casa–trabalho. | {n} viagens marcadas como trajeto casa–trabalho.",
-      "cleared": "{n} viagem deixou de ser marcada como trajeto casa–trabalho. | {n} viagens deixaram de ser marcadas como trajeto casa–trabalho.",
+      "removeConfirm": "Remover este local? As viagens que ele marcou como trajeto casa-trabalho voltam a ficar sem classificação.",
+      "marked": "{n} viagem marcada como trajeto casa-trabalho. | {n} viagens marcadas como trajeto casa-trabalho.",
+      "cleared": "{n} viagem deixou de ser marcada como trajeto casa-trabalho. | {n} viagens deixaram de ser marcadas como trajeto casa-trabalho.",
       "noChange": "Nenhuma viagem alterada.",
       "automatic": "Automático",
-      "automaticHint": "Marcada como trajeto casa–trabalho porque a viagem é entre casa e trabalho. Escolha outra finalidade para substituir.",
+      "automaticHint": "Marcada como trajeto casa-trabalho porque a viagem é entre casa e trabalho. Escolha outra finalidade para substituir.",
       "useEnd": "Definir {place} como casa ou trabalho"
     },
     "showOnMap": "Mostrar no mapa",
@@ -888,7 +897,7 @@
       "end": "Toque no mapa onde a viagem terminou ou arraste o marcador vermelho.",
       "points": "Toque no mapa para adicionar um ponto ou toque em um ponto para selecioná-lo."
     },
-    "pointLimit": "Esta rota já tem o máximo de pontos que comporta. Remova um para adicionar outro.",
+    "pointLimit": "Esta rota já está com o máximo de pontos. Remova um para adicionar outro.",
     "leaveConfirm": "Sair sem salvar? As alterações nesta rota serão perdidas.",
     "noPreviousStop": "Não há estacionamento conhecido antes desta viagem.",
     "atPreviousStop": "A viagem já começa no estacionamento anterior.",
@@ -1074,7 +1083,7 @@
         "overlapsPrevious": "A viagem não pode começar antes do fim da viagem anterior.",
         "overlapsNext": "A viagem não pode terminar depois do início da próxima.",
         "pointTooFast": "Um trecho deste trajeto exigiria dirigir a mais de 250 km/h.",
-        "changed": "Esta viagem mudou enquanto você a editava, por exemplo ao adicionar o GPS do celular. Nada foi salvo. Recarregue a página e faça a alteração novamente.",
+        "changed": "Esta viagem mudou enquanto você a editava, por exemplo quando o GPS do celular foi adicionado a ela. Nada foi salvo. Recarregue a página e refaça a alteração.",
         "routeUnreadable": "Não foi possível ler o trajeto desta viagem, então ela não pode ser editada."
       },
       "push": {

@@ -14,8 +14,11 @@ namespace GarageStack.Data.Repositories;
 public class TripRepository(
     AppDbContext db,
     ITelemetryRepository telemetry,
-    ILogger<TripRepository>? logger = null) : ITripRepository
+    ILogger<TripRepository>? logger = null,
+    TimeProvider? clock = null) : ITripRepository
 {
+    private DateTime UtcNow => (clock ?? TimeProvider.System).GetUtcNow().UtcDateTime;
+
     public async Task<IReadOnlyList<TripDto>> GetTripsAsync(int vehicleId, DateTime from, DateTime to, CancellationToken ct = default)
     {
         // The line is read first, and saved trips are only served from before it. The Worker
@@ -278,16 +281,16 @@ public class TripRepository(
             !TryReadOriginal(first, out var firstOriginal) || !TryReadOriginal(second, out var secondOriginal))
             return new(TripMergeOutcome.Unreadable);
 
-        List<TripPoint> points = [.. before.Points, .. after.Points];
-        var joined = new TripDto(0, first.StartedAt, second.EndedAt, 0, points.Count, points);
-        var stop = GeoHelper.Haversine(
-            before.Points[^1].Latitude, before.Points[^1].Longitude, after.Points[0].Latitude, after.Points[0].Longitude);
+        // Home and work only count when neither purpose was chosen by hand.
+        IReadOnlyList<CommutePlace> places = first.PurposeIsManual || second.PurposeIsManual
+            ? []
+            : await db.CommutePlaces.AsNoTracking().Where(p => p.VehicleId == vehicleId).ToListAsync(ct);
+        var joined = TripJoin.Join(Part(first, before.Points, firstOriginal), Part(second, after.Points, secondOriginal), places);
 
-        // The distance along the fixes, as each trip counted its own, with the hop across the stop.
-        first.DistanceKm += second.DistanceKm + stop;
+        first.DistanceKm = joined.DistanceKm;
         first.EndedAt = second.EndedAt;
-        first.PointCount = points.Count;
-        first.PointsJson = JsonSerializer.Serialize(points);
+        first.PointCount = joined.Points.Count;
+        first.PointsJson = JsonSerializer.Serialize(joined.Points);
         first.EndLatitude = second.EndLatitude;
         first.EndLongitude = second.EndLongitude;
         first.OdometerEndKm = second.OdometerEndKm;
@@ -295,34 +298,16 @@ public class TripRepository(
         first.MaxSpeedKmh = joined.MaxSpeedKmh;
         first.AvgMovingSpeedKmh = joined.AvgMovingSpeedKmh;
         first.MovingSpeedSamples = joined.MovingSpeedSamples;
-        // Joining a trip someone hid with one they did not is asking to see the whole drive.
-        first.IsHidden = first.IsHidden && second.IsHidden;
-        first.Notes = JoinNotes(first.Notes, second.Notes);
-        // A joined route that already contains phone data must not acquire a second track.
-        first.PhoneFusion = first.PhoneFusion == PhoneFusionOutcome.Fused || second.PhoneFusion == PhoneFusionOutcome.Fused
-            ? PhoneFusionOutcome.Fused : null;
-        first.PhoneFusionAt = Max(first.PhoneFusionAt, second.PhoneFusionAt);
-
-        // The joined trip as recorded is the two as recorded, so a reset undoes the edits of both
-        // and keeps the join.
-        if (firstOriginal is not null || secondOriginal is not null)
-        {
-            first.OriginalPointsJson = JsonSerializer.Serialize<List<TripPoint>>(
-                [.. firstOriginal ?? before.Points, .. secondOriginal ?? after.Points]);
-            first.EditedAt = Max(first.EditedAt, second.EditedAt);
-        }
-
-        if (!first.PurposeIsManual && second.PurposeIsManual)
-        {
-            first.Purpose = second.Purpose;
-            first.PurposeIsManual = true;
-        }
-        else if (!first.PurposeIsManual)
-        {
-            var places = await db.CommutePlaces.AsNoTracking().Where(p => p.VehicleId == vehicleId).ToListAsync(ct);
-            first.Purpose = CommuteRule.AutomaticPurpose(
-                first.StartLatitude, first.StartLongitude, first.EndLatitude, first.EndLongitude, places);
-        }
+        first.IsHidden = joined.IsHidden;
+        first.Notes = joined.Notes;
+        first.PhoneFusion = joined.PhoneFusion;
+        first.PhoneFusionAt = joined.PhoneFusionAt;
+        first.OriginalPointsJson = joined.OriginalPoints is { } original
+            ? JsonSerializer.Serialize(original)
+            : first.OriginalPointsJson;
+        first.EditedAt = joined.EditedAt;
+        first.Purpose = joined.Purpose;
+        first.PurposeIsManual = joined.PurposeIsManual;
 
         // One SaveChanges: the second trip goes in the same transaction that extends the first.
         db.Trips.Remove(second);
@@ -380,8 +365,8 @@ public class TripRepository(
             return new(TripEditOutcome.Invalid, Problem: problem);
 
         trip.OriginalPointsJson ??= trip.PointsJson;
-        trip.EditedAt = DateTime.UtcNow;
-        await ApplyPointsAsync(trip, built, ct);
+        trip.EditedAt = UtcNow;
+        await TripRouteUpdate.ApplyAsync(db, trip, built, ct);
         await db.SaveChangesAsync(ct);
 
         return new(TripEditOutcome.Ok, await EditorAsync(trip, built, recorded, ct));
@@ -399,7 +384,7 @@ public class TripRepository(
         // Nothing was edited, so it is as recorded already.
         if (original is null) return new(TripEditOutcome.Ok, await EditorAsync(trip, current.Points, null, ct));
 
-        await ApplyPointsAsync(trip, original, ct);
+        await TripRouteUpdate.ApplyAsync(db, trip, original, ct);
         trip.OriginalPointsJson = null;
         trip.EditedAt = null;
         await db.SaveChangesAsync(ct);
@@ -428,35 +413,6 @@ public class TripRepository(
             db.ChangeTracker.Clear();
             logger?.LogInformation("A trip edit was refused: the trip changed while it was being edited");
             return conflict;
-        }
-    }
-
-    // Everything read off a trip's points follows them. The odometer readings stay: the trip log
-    // counts what the car's own odometer counted, whatever line is drawn on the map.
-    internal async Task ApplyPointsAsync(Trip trip, IReadOnlyList<TripPoint> points, CancellationToken ct)
-    {
-        var dto = TripEdit.Summarize(points);
-        if (TripEdit.AddressMoved(trip.StartLatitude, trip.StartLongitude, points[0])) trip.StartPlaceJson = null;
-        if (TripEdit.AddressMoved(trip.EndLatitude, trip.EndLongitude, points[^1])) trip.EndPlaceJson = null;
-
-        trip.StartedAt = dto.StartedAt;
-        trip.EndedAt = dto.EndedAt;
-        trip.DistanceKm = dto.DistanceKm;
-        trip.PointCount = dto.PointCount;
-        trip.PointsJson = JsonSerializer.Serialize(points);
-        trip.StartLatitude = points[0].Latitude;
-        trip.StartLongitude = points[0].Longitude;
-        trip.EndLatitude = points[^1].Latitude;
-        trip.EndLongitude = points[^1].Longitude;
-        trip.MaxSpeedKmh = dto.MaxSpeedKmh;
-        trip.AvgMovingSpeedKmh = dto.AvgMovingSpeedKmh;
-        trip.MovingSpeedSamples = dto.MovingSpeedSamples;
-
-        if (!trip.PurposeIsManual)
-        {
-            var places = await db.CommutePlaces.AsNoTracking().Where(p => p.VehicleId == trip.VehicleId).ToListAsync(ct);
-            trip.Purpose = CommuteRule.AutomaticPurpose(
-                trip.StartLatitude, trip.StartLongitude, trip.EndLatitude, trip.EndLongitude, places);
         }
     }
 
@@ -535,16 +491,10 @@ public class TripRepository(
         return original is { Count: > 0 };
     }
 
-    private static DateTime? Max(DateTime? a, DateTime? b) => a is null ? b : b is null ? a : a > b ? a : b;
-
-
-    private static string? JoinNotes(string? first, string? second) =>
-        (first, second) switch
-        {
-            (null, _) => second,
-            (_, null) => first,
-            _ => $"{first} / {second}".Truncate(Trip.NotesMaxLength),
-        };
+    private static TripJoinPart Part(Trip trip, IReadOnlyList<TripPoint> points, IReadOnlyList<TripPoint>? original) => new(
+        trip.DistanceKm, trip.StartLatitude, trip.StartLongitude, trip.EndLatitude, trip.EndLongitude,
+        points, original, trip.IsHidden, trip.Notes, trip.Purpose, trip.PurposeIsManual,
+        trip.PhoneFusion, trip.PhoneFusionAt, trip.EditedAt);
 
     public async Task SavePlacesAsync(int vehicleId, IReadOnlyList<TripPlaces> places, CancellationToken ct = default)
     {

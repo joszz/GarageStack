@@ -217,7 +217,7 @@
       "rearLeft": "Trasero izquierdo",
       "rearRight": "Trasero derecho",
       "bonnet": "Capó",
-      "boot": "Arranque"
+      "boot": "Maletero"
     },
     "efficiency": {
       "todayDistance": "Dist. hoy",
@@ -340,6 +340,10 @@
     "confirmUnlockCable": "Toque nuevamente para desbloquear",
     "openBoot": "Abrir el maletero",
     "confirmOpenBoot": "Toque nuevamente para abrir",
+    "openTailgate": "Abrir",
+    "closeTailgate": "Cerrar",
+    "confirmOpenTailgate": "Toque nuevamente para abrir",
+    "confirmCloseTailgate": "Toque nuevamente para cerrar",
     "startHeating": "Calor",
     "stopHeating": "Detener",
     "changeSchedule": "Cambiar programación",
@@ -616,6 +620,11 @@
       "clear": "Quitar",
       "saved": "Guardado y buscado en el RDW.",
       "cleared": "Eliminado."
+    },
+    "powerTailgate": {
+      "title": "Portón trasero",
+      "label": "Portón trasero eléctrico",
+      "desc": "Actívelo si el maletero del coche se abre y se cierra solo. La tarjeta Puertas podrá entonces abrirlo y cerrarlo, en lugar de solo desbloquearlo. Un coche sin portón trasero eléctrico rechaza la orden."
     },
     "notificationTypes": {
       "title": "Notificaciones"

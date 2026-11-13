@@ -830,6 +830,55 @@ public class AuthenticationFlowTests
         Assert.EndsWith($"/vehicles/{DemoVin}/doors/locked/set", sent.GetProperty("topic").GetString());
     }
 
+    // Off until the user says the car has one: the command is refused, and goes out on the
+    // gateway's tailgate topic once switched on. A read-only token cannot switch it. The demo car
+    // is switched back off at the end, since every host in this run shares it.
+    [Fact]
+    public async Task PowerTailgate_IsSentOnlyOnceSwitchedOn_AndTokensCannotSwitchIt()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var factory = CreatePasswordOnlyFactory();
+        using var client = CreateClient(factory);
+        await PasswordLoginAsync(client, ct);
+        var settingUrl = $"/api/vehicles/{DemoVin}/power-tailgate";
+        var commandUrl = $"/api/vehicles/{DemoVin}/commands/power-tailgate";
+
+        try
+        {
+            var before = await client.GetFromJsonAsync<JsonElement>("/api/vehicles", ct);
+            var refused = await client.PostAsJsonAsync(commandUrl, new { value = "open" }, ct);
+
+            Assert.False(before[0].GetProperty("hasPowerTailgate").GetBoolean());
+            Assert.Equal(HttpStatusCode.BadRequest, refused.StatusCode);
+            Assert.Equal("command.unsupported", await ProblemCodeAsync(refused, ct));
+
+            var switched = await client.PutAsJsonAsync(settingUrl, new { enabled = true }, ct);
+            var after = await client.GetFromJsonAsync<JsonElement>("/api/vehicles", ct);
+            var sent = await client.PostAsJsonAsync(commandUrl, new { value = "open" }, ct);
+
+            Assert.Equal(HttpStatusCode.OK, switched.StatusCode);
+            Assert.True((await switched.Content.ReadFromJsonAsync<JsonElement>(ct)).GetProperty("enabled").GetBoolean());
+            Assert.True(after[0].GetProperty("hasPowerTailgate").GetBoolean());
+            Assert.Equal(HttpStatusCode.OK, sent.StatusCode);
+            Assert.EndsWith($"/vehicles/{DemoVin}/doors/boot/powerTailgate/set",
+                (await sent.Content.ReadFromJsonAsync<JsonElement>(ct)).GetProperty("topic").GetString());
+
+            var created = await client.PostAsJsonAsync("/api/tokens", new { name = "Tailgate" }, ct);
+            var token = (await created.Content.ReadFromJsonAsync<JsonElement>(ct)).GetProperty("token").GetString()!;
+            using var bearer = CreateClient(factory, handleCookies: false);
+            bearer.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+            var write = await bearer.PutAsJsonAsync(settingUrl, new { enabled = false }, ct);
+
+            Assert.Equal(HttpStatusCode.Forbidden, write.StatusCode);
+            Assert.Equal("token.readOnly", await ProblemCodeAsync(write, ct));
+        }
+        finally
+        {
+            await client.PutAsJsonAsync(settingUrl, new { enabled = false }, ct);
+        }
+    }
+
     [Fact]
     public async Task Notifications_ListAndRefuseAnUnknownOne()
     {

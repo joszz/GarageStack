@@ -13,6 +13,7 @@ import ChipGroup from '../ChipGroup.vue'
 import CarColorPicker from './CarColorPicker.vue'
 import VehicleTypeSetting from './VehicleTypeSetting.vue'
 import LicensePlateSetting from './LicensePlateSetting.vue'
+import PowerTailgateSetting from './PowerTailgateSetting.vue'
 import NotificationTypeSettings from './NotificationTypeSettings.vue'
 import ApiTokenSettings from './ApiTokenSettings.vue'
 import PhoneGpsSettings from './PhoneGpsSettings.vue'
@@ -208,6 +209,10 @@ const languageOptions = [
 
         <SettingsSection :title="t('settings.vehicleType.title')">
           <VehicleTypeSetting />
+        </SettingsSection>
+
+        <SettingsSection :title="t('settings.powerTailgate.title')">
+          <PowerTailgateSetting />
         </SettingsSection>
 
         <SettingsSection v-if="rdw.available" :title="t('settings.licensePlate.title')">

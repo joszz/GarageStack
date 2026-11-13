@@ -31,6 +31,7 @@ To work against the full stack (real or self-provided credentials):
   ```
 
   Each test gets a database of its own, copied from one the migrations build at the start of the run, and drops it afterwards.
+- Trips exist twice: in the database (`TripRepository`) and in demo mode (`DemoTripRepository`). `TripRepositoryContractTests` takes the same steps on both and requires the same trip log, map, statistics and export from each. A change to what a trip can do needs a step there, and a new method on `ITripRepository` fails that suite until it has one or is listed as exempt with the reason the demo may differ. Logic both sides need, such as what a joined trip holds, goes in a Core helper (`TripJoin`, `TripEdit`) rather than into either repository.
 - Coverage, which CI reports on every run:
   - Backend: add `--coverage --coverage-output-format cobertura --coverage-settings src/GarageStack.Tests/coverage.settings.xml` to the test command; the report lands in `TestResults/`.
   - Frontend: `pnpm test:coverage`, with an HTML report in `frontend/coverage/`.

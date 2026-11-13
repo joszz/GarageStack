@@ -1,0 +1,275 @@
+/* Form controls: fields, selects, switches, toggle chips and the range slider. main.ts loads
+   this before main.css, whose phone and tablet rules come after the rules they adjust. */
+
+/* ── Form controls ────────────────────────────────────────── */
+
+/* A native select drawn like the multiselect: the same box, caret and focus ring, with room on
+   the right for the caret between two of its paddings. */
+.form-select {
+  appearance: none;
+  background: var(--field-bg) var(--field-caret) no-repeat right var(--field-px) center / 0.625rem
+    1.125rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--field-radius);
+  color: var(--color-text);
+  padding: var(--field-py) calc(var(--field-px) * 2 + 0.625rem) var(--field-py) var(--field-px);
+  font-size: var(--field-font-size);
+  line-height: var(--field-line-height);
+  cursor: pointer;
+}
+
+.form-select:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--field-ring);
+}
+
+/* form-switch toggle */
+.form-check.form-switch .form-check-input {
+  appearance: none;
+  width: 42px;
+  height: 22px;
+  border-radius: 11px;
+  background: var(--color-border);
+  border: none;
+  cursor: pointer;
+  position: relative;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+
+.form-check.form-switch .form-check-input::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--switch-knob);
+  box-shadow: var(--switch-knob-shadow);
+  transition: left 0.2s;
+}
+
+.form-check.form-switch .form-check-input:checked {
+  background: var(--color-primary);
+}
+
+.form-check.form-switch .form-check-input:checked::after {
+  left: 23px;
+}
+
+/* Labelled fields stacked in a modal form: a group is a label above its field, a row puts
+   two groups side by side (one above the other on phones, see the mobile breakpoint). */
+.form-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+/* A button in the stack keeps its own width instead of stretching into a bar across the form. */
+.form-stack > .btn {
+  align-self: flex-start;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.9rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.form-group label,
+.form-group__label {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+}
+
+.form-control {
+  width: 100%;
+  padding: var(--field-py) var(--field-px);
+  font-size: var(--field-font-size);
+  line-height: var(--field-line-height);
+  border-radius: var(--field-radius);
+  border: 1px solid var(--color-border);
+  background-color: var(--field-bg);
+  color: var(--color-text);
+}
+
+textarea.form-control {
+  resize: vertical;
+}
+
+/* A time of day as selects (TimeOfDaySelect): hour and minute, plus AM or PM on a 12-hour clock. */
+.time-select {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.time-select .form-select {
+  flex: 1;
+  min-width: 0;
+}
+
+.time-select__separator {
+  color: var(--color-text-muted);
+}
+
+/* ── Toggle chips (one-of-N or several-of-N choices) ──────── */
+
+.toggle-chip-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.toggle-chip {
+  --chip-color: var(--color-primary);
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.6rem;
+  font-size: 0.78rem;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-surface-2);
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.toggle-chip--active {
+  border-color: var(--chip-color);
+  background: color-mix(in srgb, var(--chip-color) 18%, var(--color-surface-2));
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.toggle-chip:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Seven day chips share the row evenly, so they fit a phone without wrapping. */
+.weekday-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.weekday-picker .toggle-chip-group {
+  flex-wrap: nowrap;
+}
+
+.weekday-picker .toggle-chip {
+  flex: 1;
+  min-width: 0;
+  padding-inline: 0.2rem;
+}
+
+.weekday-picker__presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+/* ── Range slider ─────────────────────────────────────────── */
+
+.range-control {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.range-control__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.82rem;
+}
+
+.range-control__label {
+  color: var(--color-text-muted);
+}
+
+.range-control__value {
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+.range-control__row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+}
+
+.range-control input[type='range'] {
+  flex: 1;
+  appearance: none;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--color-border);
+  outline: none;
+  cursor: pointer;
+}
+
+/* The track itself draws no outline, so keyboard focus rings the whole control. */
+.range-control input[type='range']:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 6px;
+}
+
+.range-control input[type='range']::-webkit-slider-thumb {
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  cursor: pointer;
+  border: 2px solid var(--color-surface);
+  box-shadow: 0 0 0 2px var(--color-primary);
+}
+
+.range-control input[type='range']::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  cursor: pointer;
+  border: 2px solid var(--color-surface);
+}
+
+.range-control input[type='range']:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.range-control__labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.7rem;
+  color: var(--color-text-muted);
+  padding: 0 2px;
+}
+
+.detail-list__item--range {
+  align-items: flex-start;
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+}
+
+.detail-list__item--range .range-control {
+  gap: 0.7rem;
+}
+
+.range-control--grow {
+  flex: 1;
+}

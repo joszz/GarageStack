@@ -26,4 +26,11 @@
     <PackageReference Include="MinVer" PrivateAssets="all" />
   </ItemGroup>
 
+  <!-- BannedSymbols.txt: what production code must not call (the wall clock, so far). The tests
+       may: they are where a fixed time is set up. -->
+  <ItemGroup Condition="'$(MSBuildProjectName)' != 'GarageStack.Tests'">
+    <PackageReference Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" PrivateAssets="all" />
+    <AdditionalFiles Include="$(MSBuildThisFileDirectory)BannedSymbols.txt" />
+  </ItemGroup>
+
 </Project>

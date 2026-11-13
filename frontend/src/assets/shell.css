@@ -1,0 +1,361 @@
+/* The app shell: the frame every page sits in, with its sidebar, the top bar on a phone, the
+   main column and the footer. main.ts loads this before main.css, whose phone and tablet rules
+   come after the rules they adjust. */
+
+/* ── App shell ────────────────────────────────────────────── */
+
+.app-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* Fills the space between the topbar (mobile) and footer */
+.app-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+/* ── Mobile topbar ────────────────────────────────────────── */
+
+.mobile-topbar {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--topbar-height);
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0 0.75rem;
+  z-index: var(--z-topbar);
+}
+
+.hamburger {
+  background: none;
+  border: none;
+  color: var(--color-text);
+  font-size: 1.25rem;
+  cursor: pointer;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+.hamburger:hover {
+  background: var(--color-surface-2);
+}
+
+.mobile-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-primary);
+  text-decoration: none;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+/* ── Backdrop ─────────────────────────────────────────────── */
+
+.sidebar-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgb(0 0 0 / 60%);
+  z-index: var(--z-drawer-backdrop);
+}
+
+/* ── Sidebar ──────────────────────────────────────────────── */
+
+.sidebar {
+  width: var(--sidebar-width);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-width: 1px 1px 0 0;
+  display: flex;
+  flex-direction: column;
+
+  /* Less its top border, so the brand inside starts exactly where the main column's title does. */
+  padding: calc(var(--title-top) - 1px) 0.5rem 0.5rem;
+  flex-shrink: 0;
+  overflow-y: auto;
+}
+
+/* As tall as the page title's line and as far down, so the two share a middle; the gap below it
+   matches the one under the page header, so the first nav link starts level with the first card. */
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: var(--page-title-height);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--color-primary);
+  text-decoration: none;
+  margin-bottom: 1.5rem;
+
+  /* The nav links' own inline padding, so the logo sits in the same column as their icons. */
+  padding-left: 0.75rem;
+}
+
+.sidebar-nav {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.sidebar-nav a {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: var(--radius);
+  color: var(--color-text-muted);
+  text-decoration: none;
+  font-size: 0.9rem;
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+
+.sidebar-nav a:hover,
+.sidebar-nav a.active {
+  background: var(--color-surface-2);
+  color: var(--color-text);
+}
+
+.sidebar-nav a.active {
+  background: var(--nav-active-bg);
+  color: var(--color-primary-light);
+}
+
+/* ── Main content ─────────────────────────────────────────── */
+
+.main-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--title-top) var(--content-padding) var(--content-padding);
+  min-width: 0;
+}
+
+.view-container {
+  width: 100%;
+}
+
+.view-header {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.view-header h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: var(--page-title-height);
+}
+
+/* A short line under the heading inside the title row (ViewHeader's caption), such as the period
+   Statistics shows. */
+.view-header__caption {
+  margin: 0.15rem 0 0;
+}
+
+/* A line about the page, tucked under its title rather than spaced like a section of its own. */
+.view-subtitle {
+  margin-top: -1rem;
+  margin-bottom: 1.5rem;
+}
+
+/* ── App footer ───────────────────────────────────────────── */
+
+.app-footer {
+  height: var(--footer-height);
+  flex-shrink: 0;
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1.5rem;
+  z-index: var(--z-footer);
+}
+
+.app-footer__meta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.app-footer__copyright {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  text-decoration: none;
+}
+
+/* A newer release: the one footer link worth noticing, so it takes the accent colour. */
+.app-footer__update {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  color: var(--color-primary);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.app-footer__update:hover {
+  text-decoration: underline;
+}
+
+.app-footer__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.app-footer__btn {
+  background: var(--field-bg);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+  cursor: pointer;
+  height: 32px;
+  padding: 0 0.65rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.app-footer__btn:hover {
+  background: var(--color-surface);
+  border-color: var(--color-primary);
+  color: var(--color-text);
+}
+
+.app-footer__btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Sidebar footer (user + logout) ──────────────────────── */
+
+.sidebar-footer {
+  margin-top: auto;
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.sidebar-car-model {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  color: var(--color-text);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.sidebar-online-status,
+.sidebar-user {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+  overflow: hidden;
+}
+
+.sidebar-online-status--online {
+  color: var(--color-success-text);
+}
+
+.sidebar-online-status--offline {
+  color: var(--color-danger-text);
+}
+
+.sidebar-online-status__time {
+  margin-left: auto;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.sidebar-footer__text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.sidebar-timestamp {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.25rem 0.75rem;
+  color: var(--color-text-muted);
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.sidebar-user__email {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* The sidebar footer's buttons: demo controls, notifications and log out. */
+.sidebar-action {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--color-border);
+  background: var(--field-bg);
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  transition:
+    background 0.15s,
+    color 0.15s,
+    border-color 0.15s;
+}
+
+.sidebar-demo-btn:hover,
+.sidebar-demo-btn.is-active {
+  background: color-mix(in srgb, var(--color-warning) 12%, var(--field-bg));
+  border-color: var(--color-warning);
+  color: var(--color-text);
+}
+
+.sidebar-logout-btn:hover {
+  background: color-mix(in srgb, var(--color-danger) 12%, var(--field-bg));
+  border-color: var(--color-danger);
+  color: var(--color-danger-text);
+}

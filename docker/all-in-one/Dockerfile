@@ -42,7 +42,7 @@ WORKDIR /src
 ARG APP_VERSION=0.0.0-local
 # Shared build settings (target framework, analyzers) and central package versions. MSBuild
 # finds them by walking up from each project folder, so they sit one level above the projects.
-COPY Directory.Build.props Directory.Packages.props .editorconfig ./
+COPY Directory.Build.props Directory.Packages.props BannedSymbols.txt .editorconfig ./
 COPY src/GarageStack.Core/GarageStack.Core.csproj GarageStack.Core/
 COPY src/GarageStack.Data/GarageStack.Data.csproj GarageStack.Data/
 COPY src/GarageStack.Api/GarageStack.Api.csproj GarageStack.Api/
@@ -60,7 +60,7 @@ RUN dotnet publish GarageStack.Api/GarageStack.Api.csproj -c Release -o /publish
 # ── Stage 3: Pull SAIC MQTT Gateway (source of truth for the gateway app) ────
 # The gateway is not on PyPI. We copy its pre-built venv + source directly from
 # the official image so we always match the tested Python/dependency versions.
-FROM saicismartapi/saic-python-mqtt-gateway:0.14.0-rc2 AS saic-source
+FROM saicismartapi/saic-python-mqtt-gateway:0.14.0-rc4 AS saic-source
 # The gateway reports its version from RELEASE_VERSION, an ENV of this image that copying its
 # files leaves behind, so keep it in a file for supervisord to pass on (see supervisord.conf).
 # The image runs as an unprivileged user, hence /tmp. Without the variable the gateway says
@@ -122,6 +122,16 @@ ADD --chmod=644 https://www.postgresql.org/media/keys/ACCC4CF8.asc /usr/share/ke
 # install. Nothing here serves TLS (initdb leaves ssl off), so the private key goes rather than
 # sit in every image for scanners to flag.
 #
+# From 294, postgresql-common creates its user and directories through systemd-sysusers and
+# systemd-tmpfiles, and depends on systemd for them. The standalone builds of those two tools
+# satisfy that dependency without systemd itself, which with libsystemd-shared adds ~17 MB that
+# nothing here runs.
+#
+# The socket and lock directory, /var/run/postgresql, is made here too. postgresql-common created
+# it with install -d in its postinst up to 293. From 294 the postinst runs systemd-tmpfiles for it,
+# but before systemd-sysusers adds the postgres user, so it fails silently in a build and PostgreSQL
+# then stops at start with "could not create lock file".
+#
 # postgresql-common's scripts need Perl, and postgresql-18 requires locales: ~63 MB together that
 # nothing here uses. Every PostgreSQL program runs from its own bin directory (see PATH above),
 # and initdb uses the C locale, which glibc has built in. Only purging them in this same RUN
@@ -134,10 +144,12 @@ RUN echo "deb [signed-by=/usr/share/keyrings/postgresql.asc] http://apt.postgres
     && mkdir -p /etc/postgresql-common \
     && printf "create_main_cluster = false\n" > /etc/postgresql-common/createcluster.conf \
     && apt-get update \
-    && apt-get install -y --no-install-recommends postgresql-18 \
+    && apt-get install -y --no-install-recommends \
+        systemd-standalone-sysusers systemd-standalone-tmpfiles postgresql-18 \
     && dpkg --purge --force-depends perl libperl5.40 perl-modules-5.40 libjson-perl locales libc-l10n \
     && rm -rf /var/lib/apt/lists/* \
-    && rm -f /etc/ssl/private/ssl-cert-snakeoil.key /etc/ssl/certs/ssl-cert-snakeoil.pem
+    && rm -f /etc/ssl/private/ssl-cert-snakeoil.key /etc/ssl/certs/ssl-cert-snakeoil.pem \
+    && install -d -m 2775 -o postgres -g postgres /var/run/postgresql
 
 # SAIC MQTT Gateway: copy the pre-built venv and source from the official image.
 # Layout in the saic image: WORKDIR=/usr/src/app, venv at /usr/src/app/.venv,

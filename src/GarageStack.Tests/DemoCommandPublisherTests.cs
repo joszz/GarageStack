@@ -62,6 +62,7 @@ public class DemoCommandPublisherTests
     [InlineData("charge-target", "90", nameof(TelemetrySnapshot.SocTargetPercent), 90)]
     [InlineData("battery-heating", "true", nameof(TelemetrySnapshot.BatteryHeating), true)]
     [InlineData("boot", "false", nameof(TelemetrySnapshot.TrunkOpen), true)]
+    [InlineData("power-tailgate", "open", nameof(TelemetrySnapshot.TrunkOpen), true)]
     public async Task EachCommand_LeavesTheCarAsTheDashboardExpectsIt(string command, string value, string field, object expected)
     {
         var ct = TestContext.Current.CancellationToken;
@@ -73,6 +74,18 @@ public class DemoCommandPublisherTests
         var actual = typeof(TelemetrySnapshot).GetProperty(field)!.GetValue(snapshot);
         Assert.Equal(Convert.ToString(expected, System.Globalization.CultureInfo.InvariantCulture),
             Convert.ToString(actual, System.Globalization.CultureInfo.InvariantCulture));
+    }
+
+    [Fact]
+    public async Task APowerTailgate_ClosesAgainAfterOpening()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var car = new DemoTelemetryRepository();
+
+        car.ApplyCommand("power-tailgate", "open");
+        car.ApplyCommand("power-tailgate", "close");
+
+        Assert.False((await car.GetMergedLatestAsync(1, ct))!.TrunkOpen);
     }
 
     [Fact]

@@ -15,8 +15,9 @@ public static class VehicleCommands
     /// <param name="Topic">The topic as saic-python-mqtt-gateway's handlers register it (src/mqtt_topics.py).</param>
     /// <param name="Check">Why a value is refused, or null when the gateway takes it.</param>
     /// <param name="Supports">
-    /// Whether the gateway carries the command, with this value, out on this car, for a command it
-    /// otherwise drops while still answering "Success"; null when the car itself says no.
+    /// Whether the command, with this value, is sent to this car at all: for a command the gateway
+    /// drops while still answering "Success", or one for equipment only the user knows the car has.
+    /// Null when the car itself says no.
     /// </param>
     private sealed record Command(string Topic, Func<string, string?> Check, Func<Vehicle, string, bool>? Supports = null);
 
@@ -71,10 +72,16 @@ public static class VehicleCommands
         ["battery-heating-schedule"] = new("drivetrain/batteryHeatingSchedule", BatteryHeatingSchedule),
         ["lock"] = new("doors/locked", value =>
             value is "True" or "False" ? null : "'lock' value must be 'True' or 'False'"),
-        // "false" unlocks the tailgate. The gateway takes "true" too, but only logs that a boot
-        // cannot be closed remotely and answers "Success", so it is not offered.
+        // "false" unlatches the tailgate. The gateway takes "true" too, but only logs that the latch
+        // cannot be closed remotely and answers "Success", so it is not offered. Closing the boot
+        // takes a power tailgate, the next command.
         ["boot"] = new("doors/boot", value =>
-            value == "false" ? null : "'boot' value must be 'false': the boot can only be opened"),
+            value == "false" ? null : "'boot' value must be 'false': the latch can only be opened"),
+        // Moves a power tailgate open or shut; its state still arrives on doors/boot. The gateway
+        // sends it to any car, so it is only sent to a car the user says has one.
+        ["power-tailgate"] = new("doors/boot/powerTailgate", value =>
+            value is "open" or "close" ? null : "'power-tailgate' value must be 'open' or 'close'",
+            (vehicle, _) => vehicle.HasPowerTailgate),
         ["refresh"] = new("refresh/mode", value =>
             value == "force" ? null : "'refresh' value must be 'force'"),
     };

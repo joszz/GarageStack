@@ -20,6 +20,7 @@ Closes #
 ## Checklist
 
 - [ ] Tests added or updated
+- [ ] If trips changed (`ITripRepository`): done in the demo too, with a step in `TripRepositoryContractTests`
 - [ ] Linting passes (`pnpm lint` / `dotnet build`)
 - [ ] No secrets or personal data committed
 - [ ] Responsive on mobile

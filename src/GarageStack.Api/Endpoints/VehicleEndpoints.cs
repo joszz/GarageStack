@@ -20,6 +20,7 @@ public static class VehicleEndpoints
         // Resolved once here rather than taken as a handler parameter: it is deployment
         // configuration, not request input.
         var hvBatteryCapacity = app.ServiceProvider.GetRequiredService<HvBatteryCapacity>();
+        var clock = app.ServiceProvider.GetRequiredService<TimeProvider>();
         var tyreThresholds = app.ServiceProvider.GetRequiredService<TyrePressureThresholds>();
 
         group.MapGet("/", async (IVehicleRepository vehicles, CancellationToken ct) =>
@@ -27,7 +28,7 @@ public static class VehicleEndpoints
             var all = await vehicles.GetAllAsync(ct);
             return Results.Ok(all.Select(v => new VehicleListItemDto(
                 v.Id, v.Vin, v.Model, v.Series, v.CreatedAt, VehicleTypeHelper.GetVehicleType(v),
-                hvBatteryCapacity.Kwh, VehicleTypeHelper.SupportsTargetSoc(v))));
+                hvBatteryCapacity.Kwh, VehicleTypeHelper.SupportsTargetSoc(v), v.HasPowerTailgate)));
         })
         .WithSummary("List all vehicles");
 
@@ -45,6 +46,19 @@ public static class VehicleEndpoints
             return Results.Ok(config);
         })
         .WithSummary("Get vehicle capability config");
+
+        // The user's say, not the car's: nothing the car reports tells whether it has one.
+        vehicleGroup.MapPut("/power-tailgate", async (
+            HttpContext httpContext,
+            PowerTailgateSetting req,
+            IVehicleRepository vehicles,
+            CancellationToken ct) =>
+        {
+            var vehicle = httpContext.ResolvedVehicle();
+            await vehicles.SetHasPowerTailgateAsync(vehicle.Id, req.Enabled, ct);
+            return Results.Ok(new PowerTailgateSetting(req.Enabled));
+        })
+        .WithSummary("Say whether the vehicle has a power tailgate, which the tailgate open and close commands need");
 
         vehicleGroup.MapGet("/status", async (HttpContext httpContext, ITelemetryRepository telemetry, CancellationToken ct) =>
         {
@@ -68,7 +82,7 @@ public static class VehicleEndpoints
             if (!TryFindZone(timeZone, out var zone))
                 return ApiProblems.BadRequest("stats.timeZoneUnknown", "timeZone must be an IANA time zone, such as Europe/Amsterdam");
 
-            var today = ZoneTime.DateOf(DateTime.UtcNow, zone);
+            var today = ZoneTime.DateOf(clock.GetUtcNow().UtcDateTime, zone);
             var last = to is { } end && end < today ? end : today;
             var first = from ?? last.AddDays(-29);
             if (first > last)
@@ -93,7 +107,7 @@ public static class VehicleEndpoints
             if (!TryFindZone(timeZone, out var zone))
                 return ApiProblems.BadRequest("stats.timeZoneUnknown", "timeZone must be an IANA time zone, such as Europe/Amsterdam");
 
-            var today = ZoneTime.DateOf(DateTime.UtcNow, zone);
+            var today = ZoneTime.DateOf(clock.GetUtcNow().UtcDateTime, zone);
             var days = await telemetry.GetDailyStatsAsync(vehicle.Id, today.AddDays(-(TyreHistoryDays - 1)), today, zone, today, ct);
             var trendFrom = today.AddDays(-(TyreTrend.WindowDays - 1));
             var trend = TyreTrend.Measure(days.Where(d => d.Date >= trendFrom));
@@ -150,7 +164,7 @@ public static class VehicleEndpoints
         {
             var vehicle = httpContext.ResolvedVehicle();
 
-            var rangeError = DateRange.TryResolve(from, to, TimeSpan.FromDays(30), DateRange.LongestStatisticsSpan, out var start, out var end);
+            var rangeError = DateRange.TryResolve(from, to, TimeSpan.FromDays(30), DateRange.LongestStatisticsSpan, clock.GetUtcNow().UtcDateTime, out var start, out var end);
             if (rangeError is not null) return rangeError;
 
             var stats = await telemetry.GetAggregateStatsAsync(vehicle.Id, start, end, ct);
@@ -181,6 +195,7 @@ public static class VehicleEndpoints
 /// <c>HvBatteryCapacityKwh</c> rides along for the same reason: it decides how a client turns a
 /// state of charge into kWh, and is null when the deployment has not configured one.
 /// <c>SupportsTargetSoc</c> says whether the car takes a charge target, by the gateway's own test.
+/// <c>HasPowerTailgate</c> is what the user set: whether the boot can be opened and closed.
 /// </summary>
 public record VehicleListItemDto(
     int Id,
@@ -190,7 +205,11 @@ public record VehicleListItemDto(
     DateTime CreatedAt,
     string VehicleType,
     double? HvBatteryCapacityKwh,
-    bool SupportsTargetSoc);
+    bool SupportsTargetSoc,
+    bool HasPowerTailgate);
+
+/// <summary>Whether the vehicle has a power tailgate. See <see cref="Vehicle.HasPowerTailgate"/>.</summary>
+public record PowerTailgateSetting(bool Enabled);
 
 /// <summary>
 /// A month of daily statistics (the same rows as /stats/daily, for the same chart) and, when there

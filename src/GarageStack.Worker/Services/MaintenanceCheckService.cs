@@ -9,8 +9,11 @@ public class MaintenanceCheckService(
     ILogger<MaintenanceCheckService> logger,
     IServiceScopeFactory scopeFactory,
     IPushSender pushSender,
-    IStringLocalizer<NotificationStrings> strings) : PeriodicBackgroundService(logger)
+    IStringLocalizer<NotificationStrings> strings,
+    TimeProvider? clock = null) : PeriodicBackgroundService(logger)
 {
+    private DateTime UtcNow => (clock ?? TimeProvider.System).GetUtcNow().UtcDateTime;
+
     private readonly NotificationCooldownGate _cooldownGate = new(TimeSpan.FromDays(7));
 
     protected override string Name => "Maintenance check";
@@ -39,14 +42,14 @@ public class MaintenanceCheckService(
         {
             if (!itemsByVehicle.TryGetValue(vehicle.Id, out var items) || items.Count == 0) continue;
 
-            var odometerKm = await telemetry.GetOdometerAtAsync(vehicle.Id, DateTime.UtcNow, ct);
+            var odometerKm = await telemetry.GetOdometerAtAsync(vehicle.Id, UtcNow, ct);
 
             foreach (var item in items)
             {
                 var result = MaintenanceDueCalculator.Calculate(
                     item.IntervalKm, item.IntervalMonths,
                     item.LastServiceDate, item.LastServiceOdometerKm,
-                    odometerKm, DateTime.UtcNow);
+                    odometerKm, UtcNow);
 
                 var alert = BuildAlert(item, result, strings);
                 if (alert is null) continue;
