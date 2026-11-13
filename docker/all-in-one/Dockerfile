@@ -122,9 +122,15 @@ ADD --chmod=644 https://www.postgresql.org/media/keys/ACCC4CF8.asc /usr/share/ke
 # install. Nothing here serves TLS (initdb leaves ssl off), so the private key goes rather than
 # sit in every image for scanners to flag.
 #
+# From 294, postgresql-common creates its user and directories through systemd-sysusers and
+# systemd-tmpfiles, and depends on systemd for them. The standalone builds of those two tools
+# satisfy that dependency without systemd itself, which with libsystemd-shared adds ~17 MB that
+# nothing here runs.
+#
 # The socket and lock directory, /var/run/postgresql, is made here too. postgresql-common created
-# it in its postinst up to 293; 294 leaves it to systemd-tmpfiles, which a container does not run,
-# so PostgreSQL then stops at start with "could not create lock file".
+# it with install -d in its postinst up to 293. From 294 the postinst runs systemd-tmpfiles for it,
+# but before systemd-sysusers adds the postgres user, so it fails silently in a build and PostgreSQL
+# then stops at start with "could not create lock file".
 #
 # postgresql-common's scripts need Perl, and postgresql-18 requires locales: ~63 MB together that
 # nothing here uses. Every PostgreSQL program runs from its own bin directory (see PATH above),
@@ -138,7 +144,8 @@ RUN echo "deb [signed-by=/usr/share/keyrings/postgresql.asc] http://apt.postgres
     && mkdir -p /etc/postgresql-common \
     && printf "create_main_cluster = false\n" > /etc/postgresql-common/createcluster.conf \
     && apt-get update \
-    && apt-get install -y --no-install-recommends postgresql-18 \
+    && apt-get install -y --no-install-recommends \
+        systemd-standalone-sysusers systemd-standalone-tmpfiles postgresql-18 \
     && dpkg --purge --force-depends perl libperl5.40 perl-modules-5.40 libjson-perl locales libc-l10n \
     && rm -rf /var/lib/apt/lists/* \
     && rm -f /etc/ssl/private/ssl-cert-snakeoil.key /etc/ssl/certs/ssl-cert-snakeoil.pem \
