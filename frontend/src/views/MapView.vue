@@ -497,7 +497,7 @@ onMounted(async () => {
 .trip-marker--start {
   width: 16px;
   height: 16px;
-  background: #10b981;
+  background: var(--route-start);
   border: 3px solid #fff;
   border-radius: 50%;
   box-shadow: 0 1px 4px rgb(0 0 0 / 35%);

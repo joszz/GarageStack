@@ -1,6 +1,12 @@
 // Leaflet first: its map chrome (zoom buttons, popups, attribution) is styled light-only, and
 // main.css re-themes those same selectors. Same specificity, so the later import has to be ours.
+// The shell, dialogs, buttons and forms come before main.css, in the order they once stood in it:
+// main.css ends with the phone and tablet rules that adjust them.
 import 'leaflet/dist/leaflet.css'
+import './assets/shell.css'
+import './assets/modals.css'
+import './assets/buttons.css'
+import './assets/forms.css'
 import './assets/main.css'
 import './assets/settings.css'
 
