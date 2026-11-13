@@ -41,10 +41,17 @@ public sealed class DemoVehicleRepository : IVehicleRepository
     public Task SetLastMessageIdAsync(int vehicleId, string messageId, CancellationToken ct = default) =>
         Task.CompletedTask;
 
-    // The one setting the demo keeps: entering a plate is how the RDW card is tried out.
+    // Kept, unlike the gateway's own updates: entering a plate is how the RDW card is tried out.
     public Task SetLicensePlateAsync(int vehicleId, string? licensePlate, CancellationToken ct = default)
     {
         if (vehicleId == DemoVehicle.Id) DemoVehicle.LicensePlate = licensePlate;
+        return Task.CompletedTask;
+    }
+
+    // Kept too: switching it on is how the tailgate controls are tried out.
+    public Task SetHasPowerTailgateAsync(int vehicleId, bool hasPowerTailgate, CancellationToken ct = default)
+    {
+        if (vehicleId == DemoVehicle.Id) DemoVehicle.HasPowerTailgate = hasPowerTailgate;
         return Task.CompletedTask;
     }
 }

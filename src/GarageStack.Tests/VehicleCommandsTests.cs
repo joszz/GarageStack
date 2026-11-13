@@ -11,7 +11,8 @@ public class VehicleCommandsTests
     [
         "climate", "climate-temperature", "rear-defroster", "seat-left", "seat-right",
         "find-my-car", "charge-limit", "charge-target", "charging", "charging-cable-lock",
-        "battery-heating", "scheduled-charging", "battery-heating-schedule", "lock", "boot", "refresh",
+        "battery-heating", "scheduled-charging", "battery-heating-schedule", "lock", "boot",
+        "power-tailgate", "refresh",
     ];
 
     // An answer is matched back to its command by topic, so two commands sharing a topic would
@@ -34,13 +35,14 @@ public class VehicleCommandsTests
         Assert.Equal("drivetrain/chargingSchedule", VehicleCommands.TopicFor("scheduled-charging"));
     }
 
-    // The topics saic-python-mqtt-gateway 0.14.0-rc2 registers its handlers on (src/mqtt_topics.py).
+    // The topics saic-python-mqtt-gateway 0.14.0-rc4 registers its handlers on (src/mqtt_topics.py).
     [Theory]
     [InlineData("charge-target", "drivetrain/socTarget")]
     [InlineData("charging", "drivetrain/charging")]
     [InlineData("charging-cable-lock", "drivetrain/chargingCableLock")]
     [InlineData("battery-heating", "drivetrain/batteryHeating")]
     [InlineData("boot", "doors/boot")]
+    [InlineData("power-tailgate", "doors/boot/powerTailgate")]
     [InlineData("battery-heating-schedule", "drivetrain/batteryHeatingSchedule")]
     public void TopicFor_PlugInAndBootCommands_AreTheTopicsTheGatewayHandles(string command, string topic)
     {
@@ -86,6 +88,18 @@ public class VehicleCommandsTests
     public void Supports_CommandsTheCarAnswersItself_OnEveryCar(string command)
     {
         Assert.True(VehicleCommands.Supports(command, Car("0"), "true"));
+    }
+
+    // Nothing the car reports tells whether it has a power tailgate, so only the user's say counts.
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, true)]
+    public void Supports_PowerTailgate_OnlyOnACarTheUserSaysHasOne(bool hasPowerTailgate, bool expected)
+    {
+        var car = Car("1");
+        car.HasPowerTailgate = hasPowerTailgate;
+
+        Assert.Equal(expected, VehicleCommands.Supports("power-tailgate", car, "open"));
     }
 
     // Charging until the target is dropped, like the target itself, on a car that takes none;

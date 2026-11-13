@@ -104,6 +104,34 @@ public class VehicleCommandSenderTests
         Assert.Empty(publisher.Published);
     }
 
+    // The gateway sends it to any car; one the user has not marked would only answer with a refusal.
+    [Fact]
+    public async Task SendAsync_PowerTailgateOnACarNotMarkedAsHavingOne_RefusesWithoutPublishing()
+    {
+        var (sender, publisher) = Create();
+
+        var outcome = await sender.SendAsync(Car(), "power-tailgate", "open", TestContext.Current.CancellationToken);
+
+        Assert.Equal("command.unsupported", outcome.Refusal?.Code);
+        Assert.Empty(publisher.Published);
+    }
+
+    [Theory]
+    [InlineData("open")]
+    [InlineData("close")]
+    public async Task SendAsync_PowerTailgate_PublishesOnTheTailgateTopic(string value)
+    {
+        var (sender, publisher) = Create();
+        var car = Car();
+        car.HasPowerTailgate = true;
+
+        var outcome = await sender.SendAsync(car, "power-tailgate", value, TestContext.Current.CancellationToken);
+
+        const string expected = "saic/driver@example.com/vehicles/FAKEVN00000000001/doors/boot/powerTailgate/set";
+        Assert.Null(outcome.Refusal);
+        Assert.Equal([(expected, value)], publisher.Published);
+    }
+
     [Fact]
     public async Task SendAsync_ChargeTarget_PublishesThePercentage()
     {

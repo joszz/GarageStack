@@ -27,7 +27,7 @@ public static class VehicleEndpoints
             var all = await vehicles.GetAllAsync(ct);
             return Results.Ok(all.Select(v => new VehicleListItemDto(
                 v.Id, v.Vin, v.Model, v.Series, v.CreatedAt, VehicleTypeHelper.GetVehicleType(v),
-                hvBatteryCapacity.Kwh, VehicleTypeHelper.SupportsTargetSoc(v))));
+                hvBatteryCapacity.Kwh, VehicleTypeHelper.SupportsTargetSoc(v), v.HasPowerTailgate)));
         })
         .WithSummary("List all vehicles");
 
@@ -45,6 +45,19 @@ public static class VehicleEndpoints
             return Results.Ok(config);
         })
         .WithSummary("Get vehicle capability config");
+
+        // The user's say, not the car's: nothing the car reports tells whether it has one.
+        vehicleGroup.MapPut("/power-tailgate", async (
+            HttpContext httpContext,
+            PowerTailgateSetting req,
+            IVehicleRepository vehicles,
+            CancellationToken ct) =>
+        {
+            var vehicle = httpContext.ResolvedVehicle();
+            await vehicles.SetHasPowerTailgateAsync(vehicle.Id, req.Enabled, ct);
+            return Results.Ok(new PowerTailgateSetting(req.Enabled));
+        })
+        .WithSummary("Say whether the vehicle has a power tailgate, which the tailgate open and close commands need");
 
         vehicleGroup.MapGet("/status", async (HttpContext httpContext, ITelemetryRepository telemetry, CancellationToken ct) =>
         {
@@ -181,6 +194,7 @@ public static class VehicleEndpoints
 /// <c>HvBatteryCapacityKwh</c> rides along for the same reason: it decides how a client turns a
 /// state of charge into kWh, and is null when the deployment has not configured one.
 /// <c>SupportsTargetSoc</c> says whether the car takes a charge target, by the gateway's own test.
+/// <c>HasPowerTailgate</c> is what the user set: whether the boot can be opened and closed.
 /// </summary>
 public record VehicleListItemDto(
     int Id,
@@ -190,7 +204,11 @@ public record VehicleListItemDto(
     DateTime CreatedAt,
     string VehicleType,
     double? HvBatteryCapacityKwh,
-    bool SupportsTargetSoc);
+    bool SupportsTargetSoc,
+    bool HasPowerTailgate);
+
+/// <summary>Whether the vehicle has a power tailgate. See <see cref="Vehicle.HasPowerTailgate"/>.</summary>
+public record PowerTailgateSetting(bool Enabled);
 
 /// <summary>
 /// A month of daily statistics (the same rows as /stats/daily, for the same chart) and, when there

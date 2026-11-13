@@ -94,6 +94,14 @@ public class VehicleRepository(AppDbContext db, ILogger<VehicleRepository>? logg
         await db.SaveChangesAsync(ct);
     }
 
+    public async Task SetHasPowerTailgateAsync(int vehicleId, bool hasPowerTailgate, CancellationToken ct = default)
+    {
+        var vehicle = await db.Vehicles.FindAsync([vehicleId], ct);
+        if (vehicle is null || vehicle.HasPowerTailgate == hasPowerTailgate) return;
+        vehicle.HasPowerTailgate = hasPowerTailgate;
+        await db.SaveChangesAsync(ct);
+    }
+
     public async Task SetConfigValueAsync(int vehicleId, string key, string value, CancellationToken ct = default)
     {
         var vehicle = await db.Vehicles.FindAsync([vehicleId], ct);

@@ -206,13 +206,33 @@ public class VehicleCommandValidationTests
         Assert.Null(VehicleCommands.Validate("boot", "false"));
     }
 
-    // The gateway answers "true" with "Success" without doing anything: a boot cannot be closed.
+    // The gateway answers "true" with "Success" without doing anything: the latch cannot be closed.
     [Theory]
     [InlineData("true")]
     [InlineData("open")]
     public void Boot_AnythingButOpen_ReturnsError(string value)
     {
         Assert.NotNull(VehicleCommands.Validate("boot", value));
+    }
+
+    // ── power-tailgate ────────────────────────────────────────────────────────
+    [Theory]
+    [InlineData("open")]
+    [InlineData("close")]
+    public void PowerTailgate_OpenOrClose_ReturnsNull(string value)
+    {
+        Assert.Null(VehicleCommands.Validate("power-tailgate", value));
+    }
+
+    // The gateway takes the two words only, as written.
+    [Theory]
+    [InlineData("Open")]
+    [InlineData("closed")]
+    [InlineData("stop")]
+    [InlineData("true")]
+    public void PowerTailgate_AnythingElse_ReturnsError(string value)
+    {
+        Assert.NotNull(VehicleCommands.Validate("power-tailgate", value));
     }
 
     // ── scheduled-charging ────────────────────────────────────────────────────
