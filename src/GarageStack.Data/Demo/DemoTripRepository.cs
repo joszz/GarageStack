@@ -268,12 +268,16 @@ public sealed class DemoTripRepository : ITripRepository
             ? _joined.TryGetValue(id, out var joined) ? TripEdit.Summarize(joined, id) with { Index = timeline.Index } : timeline
             : null;
 
-    // The trip as a visitor left it: their route when they edited one, or the joined route.
-    private TripDto Current(TripDto recorded) =>
-        recorded.Id is not { } id ? recorded
-        : _routes.TryGetValue(id, out var route) ? TripEdit.Summarize(route.Points, id) with { Index = recorded.Index }
-        : _joined.TryGetValue(id, out var joined) ? TripEdit.Summarize(joined, id) with { Index = recorded.Index }
-        : recorded;
+    // The trip as a visitor left it: their route when they edited one, or the joined route. Its
+    // distance is the trip log's, as the real repository serves one distance for both.
+    private TripDto Current(TripDto recorded)
+    {
+        if (recorded.Id is not { } id) return recorded;
+        var points = _routes.TryGetValue(id, out var route) ? route.Points : _joined.GetValueOrDefault(id);
+        if (points is null) return recorded;
+        var current = TripEdit.Summarize(points, id) with { Index = recorded.Index };
+        return _log.TryGetValue(id, out var entry) ? current with { DistanceKm = entry.DistanceKm } : current;
+    }
 
     // The finished trips either side, by where they start now. The trip being driven stands in for
     // the recording line: no edit may run into it.
