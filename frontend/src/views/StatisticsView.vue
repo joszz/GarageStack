@@ -581,13 +581,13 @@ const skeletonChartCount = computed(
   max-width: 100% !important;
 }
 
-@media (width >= 992px) {
+@media (width >= 1024px) {
   .stats-chart-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
-@media (width >= 1500px) {
+@media (width >= 1440px) {
   .stats-chart-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }

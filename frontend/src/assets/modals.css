@@ -1,0 +1,278 @@
+/* Dialogs: the detail modal (a bottom sheet on a phone), the lists, rows and feedback inside it,
+   and how it opens. main.ts loads this before main.css, whose phone and tablet rules come after
+   the rules they adjust. */
+
+/* ── Detail modal (bottom-sheet on mobile, dialog on desktop) ── */
+
+.detail-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  background: rgb(0 0 0 / 60%);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.detail-modal {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 1rem 1rem 0 0;
+  width: 100%;
+  max-height: 80vh;
+  overflow-y: auto;
+  padding: 1.25rem;
+}
+
+/* The dialog takes focus when it opens (useDialogFocus); its controls show focus, not the box. */
+.detail-modal:focus {
+  outline: none;
+}
+
+.detail-modal--with-navigation {
+  display: flex;
+  flex-direction: column;
+  height: min(80dvh, 42rem);
+  overflow: hidden;
+  padding: 1rem;
+}
+
+.detail-modal--with-navigation .detail-modal__header {
+  flex-shrink: 0;
+  display: grid;
+  grid-template-areas: 'title navigation close';
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 0.25rem;
+  padding-bottom: 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.detail-modal--with-navigation .detail-modal__title {
+  grid-area: title;
+}
+
+.detail-modal--with-navigation .dialog-close {
+  grid-area: close;
+}
+
+.detail-modal--with-navigation .detail-modal__body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-inline-end: 1rem;
+  scrollbar-gutter: stable;
+}
+
+.detail-modal__navigation {
+  grid-area: navigation;
+  min-width: 0;
+  margin-bottom: -1px;
+}
+
+.detail-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.detail-modal__title {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+/* The X in a dialog's header: the detail dialog and the notification panel. */
+.dialog-close {
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  font-size: 1rem;
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+
+.dialog-close:hover {
+  background: var(--color-surface-2);
+  color: var(--color-text);
+}
+
+.detail-modal__footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.detail-modal__section + .detail-modal__section {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.detail-modal__section-title {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
+}
+
+/* ── Detail list (used inside modals) ────────────────────────── */
+
+.detail-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.detail-list__item {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  background: var(--color-surface-2);
+  font-size: 0.85rem;
+  border: 1px solid transparent;
+}
+
+.detail-list__item--alert {
+  border-color: var(--color-warning);
+}
+
+/* A row that leads somewhere else: the whole row is the button. */
+.detail-list__item--link {
+  width: 100%;
+  color: var(--color-text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.detail-list__item--link:hover,
+.detail-list__item--link:focus-visible {
+  border-color: var(--color-primary);
+  outline: none;
+}
+
+.detail-list__item-icon {
+  width: 1rem;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.detail-list__item--alert .detail-list__item-icon {
+  color: var(--color-warning-text);
+}
+
+/* value comes first - bold, no wrapping */
+.detail-list__item-value {
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.detail-list__item--alert .detail-list__item-value {
+  color: var(--color-warning-text);
+}
+
+/* dash separator */
+.detail-list__item-sep {
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  flex-shrink: 0;
+}
+
+/* label follows value - muted, takes remaining space */
+.detail-list__item-label {
+  flex: 1;
+  color: var(--color-text-muted);
+  min-width: 0;
+}
+
+/* ── Modal transitions ────────────────────────────────────────── */
+
+.modal-enter-active,
+.modal-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.modal-enter-active .detail-modal,
+.modal-leave-active .detail-modal {
+  transition: transform 0.25s ease;
+}
+
+.modal-enter-from,
+.modal-leave-to {
+  opacity: 0;
+}
+
+.modal-enter-from .detail-modal,
+.modal-leave-to .detail-modal {
+  transform: translateY(100%);
+}
+
+@media (width >= 768px) {
+  .detail-modal-backdrop {
+    align-items: center;
+  }
+
+  .detail-modal {
+    border-radius: var(--radius);
+    max-width: 440px;
+    width: 90%;
+  }
+
+  .modal-enter-from .detail-modal,
+  .modal-leave-to .detail-modal {
+    transform: translateY(-12px) scale(0.97);
+  }
+
+  .detail-modal--wide {
+    max-width: 680px;
+    width: 92vw;
+  }
+
+  .detail-modal--wide.detail-modal--with-navigation {
+    max-width: 771px;
+  }
+}
+
+/* ── Modal control row (toggle switch inline with label) ──── */
+
+.detail-list__item--control {
+  justify-content: space-between;
+}
+
+.detail-list__item--control .detail-list__item-label {
+  flex: 1;
+}
+
+/* ── Modal button group ───────────────────────────────────── */
+
+.modal-btn-group {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+/* ── Modal inline feedback text ──────────────────────────── */
+
+.detail-list__feedback {
+  font-size: 0.8rem;
+  margin-top: 0.4rem;
+}
