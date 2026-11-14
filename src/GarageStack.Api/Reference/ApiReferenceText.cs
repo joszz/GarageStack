@@ -6,9 +6,7 @@ namespace GarageStack.Api.Reference;
 /// </summary>
 internal static class ApiReferenceText
 {
-    // The same text whatever line endings the source was checked out with, so the committed
-    // document (documentation/openapi.json) matches on every platform.
-    public static readonly string Introduction = """
+    public const string Introduction = """
         GarageStack's own API: everything the web app shows and does, for scripts, Home Assistant and
         anything else you connect.
 
@@ -32,7 +30,7 @@ internal static class ApiReferenceText
         - A command's outcome arrives later, over the SignalR hub at `/hubs/telemetry`, as the car
           answers it. The command endpoint only says it was sent.
         - `GET /api/health` reports the database, the MQTT broker and the Worker, without signing in.
-        """.ReplaceLineEndings("\n");
+        """;
 
     /// <summary>Every tag an endpoint uses, with what its endpoints are for. A test holds the two to each other.</summary>
     public static readonly IReadOnlyDictionary<string, string> Tags = new Dictionary<string, string>(StringComparer.Ordinal)

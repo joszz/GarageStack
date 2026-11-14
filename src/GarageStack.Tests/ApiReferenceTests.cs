@@ -180,17 +180,45 @@ public partial class AuthenticationFlowTests
         }
     }
 
-    // The parts that differ by where and from what the API was built are left out.
+    // The parts that differ by where and from what the API was built are left out, and line breaks
+    // inside texts are made LF: a description that comes from a multi-line XML doc comment keeps
+    // the line endings of the checkout it was built from, CRLF on Windows and LF on Linux.
     private static string CommittedForm(string document)
     {
         var json = JsonNode.Parse(document)!.AsObject();
         json["info"]!["version"] = "(the release)";
         json.Remove("servers");
+        NormalizeLineEndings(json);
         return json.ToJsonString(new JsonSerializerOptions
         {
             WriteIndented = true,
             NewLine = "\n",
             Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
         }) + "\n";
+    }
+
+    private static void NormalizeLineEndings(JsonNode? node)
+    {
+        switch (node)
+        {
+            case JsonObject obj:
+                foreach (var (key, child) in obj.ToList())
+                {
+                    if (child is JsonValue value && value.TryGetValue<string>(out var text))
+                        obj[key] = text.ReplaceLineEndings("\n");
+                    else
+                        NormalizeLineEndings(child);
+                }
+                break;
+            case JsonArray array:
+                for (var i = 0; i < array.Count; i++)
+                {
+                    if (array[i] is JsonValue value && value.TryGetValue<string>(out var text))
+                        array[i] = text.ReplaceLineEndings("\n");
+                    else
+                        NormalizeLineEndings(array[i]);
+                }
+                break;
+        }
     }
 }

@@ -1787,7 +1787,7 @@
                                   ]
                                 }
                               },
-                              "description": "A position on a trip's path. Source is null for a fix the car reported as it\r\ndrove, and otherwise says why the point is there: left out of the JSON when null, so the trips\r\nsaved before it existed read the same."
+                              "description": "A position on a trip's path. Source is null for a fix the car reported as it\ndrove, and otherwise says why the point is there: left out of the JSON when null, so the trips\nsaved before it existed read the same."
                             }
                           },
                           "id": {
@@ -1830,11 +1830,11 @@
                           },
                           "movingSpeedSamples": {
                             "type": "integer",
-                            "description": "How many fixes reported a speed while moving: the weight to give\r\ndouble? TripDto.AvgMovingSpeedKmh when averaging over several trips.",
+                            "description": "How many fixes reported a speed while moving: the weight to give\ndouble? TripDto.AvgMovingSpeedKmh when averaging over several trips.",
                             "format": "int32"
                           }
                         },
-                        "description": "A trip as the Api serves it. Id is the saved trip's id, or null for a trip\r\nthe Worker has not saved yet, such as the one being driven. The summary figures are read off\r\nPoints, so a client that needs only those can ask for\r\nTripSummaryDto instead and skip the fixes."
+                        "description": "A trip as the Api serves it. Id is the saved trip's id, or null for a trip\nthe Worker has not saved yet, such as the one being driven. The summary figures are read off\nPoints, so a client that needs only those can ask for\nTripSummaryDto instead and skip the fixes."
                       }
                     },
                     {
@@ -1915,7 +1915,7 @@
                             "format": "int32"
                           }
                         },
-                        "description": "A trip without its fixes: what the statistics page needs from a whole period of trips, at a\r\nfraction of the size."
+                        "description": "A trip without its fixes: what the statistics page needs from a whole period of trips, at a\nfraction of the size."
                       }
                     },
                     {
@@ -2026,7 +2026,7 @@
                             }
                           }
                         },
-                        "description": "            A trip as TripDto serves it, with its fixes as three arrays instead of an object\r\n            each: about half the size gzipped, for a map that shows up to 90 days of them. Opt-in\r\n            (`?format=compact`), so a script reading the plain format is not affected.\r\n            Fix i is at string CompactTripDto.Line's vertex i (an encoded polyline at\r\nint PolylineCodec.DefaultPrecision decimals, about 10 cm) and reported\r\nIReadOnlyList&lt;double?&gt; CompactTripDto.Speeds[i]. IReadOnlyList&lt;long&gt; CompactTripDto.IntervalsMs[i] is the milliseconds since the fix before\r\nit, or since DateTime CompactTripDto.StartedAt for the first, so a fix's time is their running total.\r\nIReadOnlyList&lt;TripPointSource?&gt;? CompactTripDto.Sources[i] is its TripPointSource? TripPoint.Source; the array is left out when every\r\npoint is a fix the car reported while driving, as almost every trip's are."
+                        "description": "            A trip as TripDto serves it, with its fixes as three arrays instead of an object\n            each: about half the size gzipped, for a map that shows up to 90 days of them. Opt-in\n            (`?format=compact`), so a script reading the plain format is not affected.\n            Fix i is at string CompactTripDto.Line's vertex i (an encoded polyline at\nint PolylineCodec.DefaultPrecision decimals, about 10 cm) and reported\nIReadOnlyList&lt;double?&gt; CompactTripDto.Speeds[i]. IReadOnlyList&lt;long&gt; CompactTripDto.IntervalsMs[i] is the milliseconds since the fix before\nit, or since DateTime CompactTripDto.StartedAt for the first, so a fix's time is their running total.\nIReadOnlyList&lt;TripPointSource?&gt;? CompactTripDto.Sources[i] is its TripPointSource? TripPoint.Source; the array is left out when every\npoint is a fix the car reported while driving, as almost every trip's are."
                       }
                     }
                   ]
@@ -5997,7 +5997,7 @@
             "format": "double"
           }
         },
-        "description": "One charge, rebuilt from the telemetry rows around it. The battery kWh figures are the gateway's\r\ndrivetrain/soc_kwh as reported: MG's nominal 72.5 kWh pack scaled by the state of charge on\r\nanything but a BEV series the gateway knows, so the browser decides whether to show them.\r\nThe power curve is fetched separately (ChargeSessionPowerPoint), only for the\r\nsession someone opens."
+        "description": "One charge, rebuilt from the telemetry rows around it. The battery kWh figures are the gateway's\ndrivetrain/soc_kwh as reported: MG's nominal 72.5 kWh pack scaled by the state of charge on\nanything but a BEV series the gateway knows, so the browser decides whether to show them.\nThe power curve is fetched separately (ChargeSessionPowerPoint), only for the\nsession someone opens."
       },
       "ChargeSessionPowerPoint": {
         "required": [
@@ -6338,7 +6338,7 @@
             "format": "double"
           }
         },
-        "description": "A schedule's settings. StartTime is the time of day as HH:mm in TimeZoneId (an IANA time zone,\r\nsuch as Europe/Amsterdam); Days are ISO weekday numbers (Monday 1 to Sunday 7), and none runs\r\nthe schedule once."
+        "description": "A schedule's settings. StartTime is the time of day as HH:mm in TimeZoneId (an IANA time zone,\nsuch as Europe/Amsterdam); Days are ISO weekday numbers (Monday 1 to Sunday 7), and none runs\nthe schedule once."
       },
       "CommutePlaceChange": {
         "required": [
@@ -6664,7 +6664,7 @@
           },
           "distanceKm": {}
         },
-        "description": "One local day for the statistics page: the averages of what the car reported that day, and the\r\nday's total off its energy counter. A value is null when the car reported none of it that day.\r\n`CounterTotal` is in the counter's own unit: kWh out of the traction battery on a plug-in\r\ncar, hundredths of a litre of fuel on a plain hybrid (see the frontend's utils/energy).\r\n`SinceChargeTotal` is the same day read off the since-last-charge counter instead, and\r\n`CounterUnbacked` says the day counter rose more than that counter allows, which is how\r\na car whose day counter cannot be trusted shows itself (issue #551). The frontend decides\r\nwhich of the two to show, because only it knows whether the car plugs in.\r\n`DistanceKm` is the day's total off the car's distance-of-the-day counter, read the same\r\nway as `CounterTotal`, so the two pair up into an efficiency for the same stretch of driving."
+        "description": "One local day for the statistics page: the averages of what the car reported that day, and the\nday's total off its energy counter. A value is null when the car reported none of it that day.\n`CounterTotal` is in the counter's own unit: kWh out of the traction battery on a plug-in\ncar, hundredths of a litre of fuel on a plain hybrid (see the frontend's utils/energy).\n`SinceChargeTotal` is the same day read off the since-last-charge counter instead, and\n`CounterUnbacked` says the day counter rose more than that counter allows, which is how\na car whose day counter cannot be trusted shows itself (issue #551). The frontend decides\nwhich of the two to show, because only it knows whether the car plugs in.\n`DistanceKm` is the day's total off the car's distance-of-the-day counter, read the same\nway as `CounterTotal`, so the two pair up into an efficiency for the same stretch of driving."
       },
       "DawarichStatusResponse": {
         "required": [
@@ -7060,7 +7060,7 @@
             "type": "boolean"
           }
         },
-        "description": "A page of entries, newest first. Older goes back as `before` for the page after it, null\r\nonce nothing older is left; Newer goes back as `after` for what is written since. Reset\r\nsays the entries replace the list rather than extend it: a first page, or a live read that\r\nfound more than a page."
+        "description": "A page of entries, newest first. Older goes back as `before` for the page after it, null\nonce nothing older is left; Newer goes back as `after` for what is written since. Reset\nsays the entries replace the list rather than extend it: a first page, or a live read that\nfound more than a page."
       },
       "LogSourceDto": {
         "required": [
@@ -7235,7 +7235,7 @@
             "items": {
               "$ref": "#/components/schemas/GeoPoint"
             },
-            "description": "The trip's fixes in the order they were recorded, at most\r\nint MapMatchDefaults.MaxPointsPerRequest of them. A client with a denser trip thins\r\nit first: the snapped line gains nothing from fixes closer together than the screen can show."
+            "description": "The trip's fixes in the order they were recorded, at most\nint MapMatchDefaults.MaxPointsPerRequest of them. A client with a denser trip thins\nit first: the snapped line gains nothing from fixes closer together than the screen can show."
           }
         }
       },
@@ -7295,7 +7295,7 @@
               "type": "integer",
               "format": "int32"
             },
-            "description": "The limits along Shape as run-length pairs (segment count, km/h), where a\r\nlimit of 0 covers a stretch OSM has no `maxspeed` for. Empty when none of the roads the\r\ntrip ran over carry one."
+            "description": "The limits along Shape as run-length pairs (segment count, km/h), where a\nlimit of 0 covers a stretch OSM has no `maxspeed` for. Empty when none of the roads the\ntrip ran over carry one."
           }
         },
         "description": "A trip's snapped line, or the reason there is none."
@@ -7465,7 +7465,7 @@
             ]
           }
         },
-        "description": "A place as reverse geocoding knows it: the parts a caller may want to compose into a label,\r\nnever a pre-formatted string, so the frontend decides how an address reads per locale.\r\n`City` is the most specific settlement name (city, town, village or hamlet) and\r\n`DisplayName` the upstream's own full label, a fallback for when the parts are thin."
+        "description": "A place as reverse geocoding knows it: the parts a caller may want to compose into a label,\nnever a pre-formatted string, so the frontend decides how an address reads per locale.\n`City` is the most specific settlement name (city, town, village or hamlet) and\n`DisplayName` the upstream's own full label, a fallback for when the parts are thin."
       },
       "PlaceDto": {
         "required": [
@@ -7515,7 +7515,7 @@
             ]
           }
         },
-        "description": "A resolved place. All-null fields mean upstream knows no place at that coordinate, which is\r\ndifferent from the null entry a ReverseGeocodeResult carries for one it has not\r\nmanaged to look up yet."
+        "description": "A resolved place. All-null fields mean upstream knows no place at that coordinate, which is\ndifferent from the null entry a ReverseGeocodeResult carries for one it has not\nmanaged to look up yet."
       },
       "PoiItemDto": {
         "required": [
@@ -7579,7 +7579,7 @@
           },
           "available": {
             "type": "boolean",
-            "description": "False only when the deployment does not serve this layer at all, which tells the client to\r\nstop offering it rather than to ask again.",
+            "description": "False only when the deployment does not serve this layer at all, which tells the client to\nstop offering it rather than to ask again.",
             "default": true
           }
         }
@@ -7751,7 +7751,7 @@
             ]
           }
         },
-        "description": "What the RDW said. bool RdwInfoDto.Found false means it knows no vehicle by the plate.\r\nDateTime? RdwInfoDto.FetchedAt is the last answer, string? RdwInfoDto.LastError why the attempt after it failed."
+        "description": "What the RDW said. bool RdwInfoDto.Found false means it knows no vehicle by the plate.\nDateTime? RdwInfoDto.FetchedAt is the last answer, string? RdwInfoDto.LastError why the attempt after it failed."
       },
       "RdwRecallDto": {
         "required": [
@@ -8511,11 +8511,11 @@
           },
           "movingSpeedSamples": {
             "type": "integer",
-            "description": "How many fixes reported a speed while moving: the weight to give\r\ndouble? TripDto.AvgMovingSpeedKmh when averaging over several trips.",
+            "description": "How many fixes reported a speed while moving: the weight to give\ndouble? TripDto.AvgMovingSpeedKmh when averaging over several trips.",
             "format": "int32"
           }
         },
-        "description": "A trip as the Api serves it. Id is the saved trip's id, or null for a trip\r\nthe Worker has not saved yet, such as the one being driven. The summary figures are read off\r\nPoints, so a client that needs only those can ask for\r\nTripSummaryDto instead and skip the fixes."
+        "description": "A trip as the Api serves it. Id is the saved trip's id, or null for a trip\nthe Worker has not saved yet, such as the one being driven. The summary figures are read off\nPoints, so a client that needs only those can ask for\nTripSummaryDto instead and skip the fixes."
       },
       "TripEditor": {
         "required": [
@@ -8586,7 +8586,7 @@
           },
           "suggestion": {
             "type": "boolean",
-            "description": "Whether PreviousStop is far enough from the start, and near enough, that the\r\ntrip probably left from there: a trip saved before trips were anchored, which one tap can fix."
+            "description": "Whether PreviousStop is far enough from the start, and near enough, that the\ntrip probably left from there: a trip saved before trips were anchored, which one tap can fix."
           },
           "notBefore": {
             "type": [
@@ -8749,7 +8749,7 @@
             "format": "date-time"
           }
         },
-        "description": "One line of the trip log: a saved trip without its fixes, plus what the driver recorded about\r\nit. A place is null until it has been looked up."
+        "description": "One line of the trip log: a saved trip without its fixes, plus what the driver recorded about\nit. A place is null until it has been looked up."
       },
       "TripLogUpdateRequest": {
         "required": [
@@ -8900,7 +8900,7 @@
             ]
           }
         },
-        "description": "A position on a trip's path. Source is null for a fix the car reported as it\r\ndrove, and otherwise says why the point is there: left out of the JSON when null, so the trips\r\nsaved before it existed read the same."
+        "description": "A position on a trip's path. Source is null for a fix the car reported as it\ndrove, and otherwise says why the point is there: left out of the JSON when null, so the trips\nsaved before it existed read the same."
       },
       "TripPointInput": {
         "required": [
@@ -8932,7 +8932,7 @@
             "format": "double"
           }
         },
-        "description": "A point as the trip editor sends it: where, and when. The server decides its speed and\r\nTripPointSource? TripPoint.Source, so a client cannot pass a point it placed off as one the car\r\nreported. Every field is nullable so a missing one is a validation error, not a binding failure."
+        "description": "A point as the trip editor sends it: where, and when. The server decides its speed and\nTripPointSource? TripPoint.Source, so a client cannot pass a point it placed off as one the car\nreported. Every field is nullable so a missing one is a validation error, not a binding failure."
       },
       "TripPointSource": {
         "enum": [
@@ -9034,7 +9034,7 @@
             "format": "date-time"
           }
         },
-        "description": "Where the car stood before or after a trip: a parked fix, or the neighbouring trip's end.\r\nSuggestedAt is the time to give a point placed there: when the car left it,\r\nor when it got there."
+        "description": "Where the car stood before or after a trip: a parked fix, or the neighbouring trip's end.\nSuggestedAt is the time to give a point placed there: when the car left it,\nor when it got there."
       },
       "TyreChanges": {
         "required": [
@@ -9067,7 +9067,7 @@
             "format": "int32"
           }
         },
-        "description": "Each tyre's change against the other three, in bar: negative when it lost air the others kept.\r\nDays is how many days with all four readings it rests on."
+        "description": "Each tyre's change against the other three, in bar: negative when it lost air the others kept.\nDays is how many days with all four readings it rests on."
       },
       "TyreHistoryDto": {
         "required": [
@@ -9105,7 +9105,7 @@
             }
           }
         },
-        "description": "A month of daily statistics (the same rows as /stats/daily, for the same chart) and, when there\r\nare readings enough, each tyre's change against the others over TrendDays,\r\nwith the positions losing air (frontLeft, rearRight, ...) by the slow-puncture alert's rule."
+        "description": "A month of daily statistics (the same rows as /stats/daily, for the same chart) and, when there\nare readings enough, each tyre's change against the others over TrendDays,\nwith the positions losing air (frontLeft, rearRight, ...) by the slow-puncture alert's rule."
       },
       "TyrePressureThresholds": {
         "required": [
@@ -9132,7 +9132,7 @@
           },
           "dropBar": {
             "type": "number",
-            "description": "How far one tyre may fall behind the other three over int TyreTrend.WindowDays\r\ndays before that is a slow puncture. Zero switches the alert off.",
+            "description": "How far one tyre may fall behind the other three over int TyreTrend.WindowDays\ndays before that is a slow puncture. Zero switches the alert off.",
             "format": "double",
             "default": 0.15
           }
@@ -9261,7 +9261,7 @@
               "null",
               "number"
             ],
-            "description": "Where the car was when it last parked: the position it is expected to stay at while the\r\nengine is off. Null when the car reported no position then.",
+            "description": "Where the car was when it last parked: the position it is expected to stay at while the\nengine is off. Null when the car reported no position then.",
             "format": "double"
           },
           "parkedLongitude": {
@@ -9276,14 +9276,14 @@
               "null",
               "string"
             ],
-            "description": "SAIC's id for the newest MG app message the Worker has dealt with, pushed or deliberately\r\nnot. The gateway publishes its latest message again every time it starts, and this is how\r\nthat repeat is told apart from a new message."
+            "description": "SAIC's id for the newest MG app message the Worker has dealt with, pushed or deliberately\nnot. The gateway publishes its latest message again every time it starts, and this is how\nthat repeat is told apart from a new message."
           },
           "tripsRecordedUntil": {
             "type": [
               "null",
               "string"
             ],
-            "description": "How far the Worker has saved this vehicle's trips: every trip starting before this moment\r\nis in the Trips table, and the fixes from here on have not been cut into saved trips yet.\r\nNull until the Worker has run once.",
+            "description": "How far the Worker has saved this vehicle's trips: every trip starting before this moment\nis in the Trips table, and the fixes from here on have not been cut into saved trips yet.\nNull until the Worker has run once.",
             "format": "date-time"
           },
           "telemetryCompactedUntil": {
@@ -9291,7 +9291,7 @@
               "null",
               "string"
             ],
-            "description": "How far the Worker has compacted this vehicle's telemetry into quarter-hour rows: every row\r\nbefore this moment is compacted. Null until the first compaction.",
+            "description": "How far the Worker has compacted this vehicle's telemetry into quarter-hour rows: every row\nbefore this moment is compacted. Null until the first compaction.",
             "format": "date-time"
           },
           "licensePlate": {
@@ -9299,11 +9299,11 @@
               "null",
               "string"
             ],
-            "description": "The Dutch registration, as string? LicensePlate.Normalize(string? plate) writes it, for the\r\nRDW lookup. Neither the gateway nor SAIC reports it, so the user enters it. Kept on the\r\nvehicle rather than in the browser's settings because the Worker looks it up."
+            "description": "The Dutch registration, as string? LicensePlate.Normalize(string? plate) writes it, for the\nRDW lookup. Neither the gateway nor SAIC reports it, so the user enters it. Kept on the\nvehicle rather than in the browser's settings because the Worker looks it up."
           },
           "hasPowerTailgate": {
             "type": "boolean",
-            "description": "Whether the car has a power tailgate, so the boot can be opened and closed remotely rather\r\nthan only unlatched. Nothing in the vehicle data tells, and the gateway sends the command to\r\nany car (one without a power tailgate refuses it), so the user switches it on."
+            "description": "Whether the car has a power tailgate, so the boot can be opened and closed remotely rather\nthan only unlatched. Nothing in the vehicle data tells, and the gateway sends the command to\nany car (one without a power tailgate refuses it), so the user switches it on."
           },
           "telemetrySnapshots": {
             "type": "array",
@@ -9408,7 +9408,7 @@
             "type": "boolean"
           }
         },
-        "description": "A vehicle as the list endpoint returns it. `VehicleType` is the drivetrain detected from\r\nthe vehicle's reported hardware version (hev, phev, bev, or unknown while nothing has reported\r\none), served here so every client reads the same answer instead of parsing it themselves.\r\n`HvBatteryCapacityKwh` rides along for the same reason: it decides how a client turns a\r\nstate of charge into kWh, and is null when the deployment has not configured one.\r\n`SupportsTargetSoc` says whether the car takes a charge target, by the gateway's own test.\r\n`HasPowerTailgate` is what the user set: whether the boot can be opened and closed."
+        "description": "A vehicle as the list endpoint returns it. `VehicleType` is the drivetrain detected from\nthe vehicle's reported hardware version (hev, phev, bev, or unknown while nothing has reported\none), served here so every client reads the same answer instead of parsing it themselves.\n`HvBatteryCapacityKwh` rides along for the same reason: it decides how a client turns a\nstate of charge into kWh, and is null when the deployment has not configured one.\n`SupportsTargetSoc` says whether the car takes a charge target, by the gateway's own test.\n`HasPowerTailgate` is what the user set: whether the boot can be opened and closed."
       },
       "WidgetStatusDto": {
         "required": [
