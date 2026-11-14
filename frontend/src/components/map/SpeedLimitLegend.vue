@@ -3,9 +3,10 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useUnits } from '@/composables/useUnits'
 import { OVER_LIMIT_TOLERANCE_KPH, type SpeedLimitSummary } from '@/utils/speedLimits'
-import MapLegend from '../MapLegend.vue'
+import MapLegendSection from '../MapLegendSection.vue'
 
-// The key to the speed limit colours, with what they add up to for the selected trip.
+// The key to the speed limit colours, with what they add up to for the selected trip, as a
+// section of the map's legend.
 const props = defineProps<{
   summary: SpeedLimitSummary
   /**
@@ -14,7 +15,6 @@ const props = defineProps<{
    */
   coloured: boolean
 }>()
-const expanded = defineModel<boolean>('expanded', { required: true })
 
 const { t } = useI18n()
 const units = useUnits()
@@ -29,7 +29,7 @@ const overPct = computed(() =>
 </script>
 
 <template>
-  <MapLegend v-model:expanded="expanded" :label="t('trips.speedLimitOverlay')">
+  <MapLegendSection :label="t('trips.speedLimitOverlay')">
     <template v-if="coloured">
       <div class="speed-legend__keys">
         <span class="speed-legend__key">
@@ -69,5 +69,5 @@ const overPct = computed(() =>
       </div>
     </template>
     <div v-else class="speed-legend__summary">{{ t('trips.speedLimitUnmapped') }}</div>
-  </MapLegend>
+  </MapLegendSection>
 </template>

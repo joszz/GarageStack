@@ -3,16 +3,15 @@ import { useId } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 /**
- * A key laid over the map, in the map's tool column under the zoom control (map.css's
+ * The legend laid over the map, in the map's tool column under the zoom control (map.css's
  * .map-tools). It folds away to a single button the size of a zoom button, so on a phone's short
- * map it covers nothing until it is asked for.
+ * map it covers nothing until it is asked for. Every key the map shows goes in as a
+ * MapLegendSection, so there is only ever one button however many keys apply.
  *
- * @param label What the key explains, which names it for assistive tech.
- * @model expanded Whether the key is open. Owned by the parent so it outlives the key itself: the
- *   key unmounts and comes back each time another trip is selected, and should come back as the
- *   user left it.
+ * @model expanded Whether the legend is open. Owned by the parent so it outlives the legend itself:
+ *   the legend unmounts and comes back each time another trip is selected, and should come back
+ *   as the user left it.
  */
-defineProps<{ label: string }>()
 const expanded = defineModel<boolean>('expanded', { required: true })
 
 const { t } = useI18n()
@@ -32,7 +31,13 @@ const panelId = useId()
     >
       <font-awesome-icon :icon="expanded ? 'xmark' : 'circle-info'" />
     </button>
-    <div v-show="expanded" :id="panelId" class="map-legend__panel" role="group" :aria-label="label">
+    <div
+      v-show="expanded"
+      :id="panelId"
+      class="map-legend__panel"
+      role="group"
+      :aria-label="t('trips.legend')"
+    >
       <slot />
     </div>
   </div>
@@ -53,6 +58,9 @@ const panelId = useId()
 }
 
 .map-legend__panel {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius);

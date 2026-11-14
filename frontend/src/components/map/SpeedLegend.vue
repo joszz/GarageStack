@@ -2,10 +2,9 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useUnits } from '@/composables/useUnits'
-import MapLegend from '../MapLegend.vue'
+import MapLegendSection from '../MapLegendSection.vue'
 
-// The key to the speed overlay's colours.
-const expanded = defineModel<boolean>('expanded', { required: true })
+// The key to the speed overlay's colours, as a section of the map's legend.
 
 const { t } = useI18n()
 const units = useUnits()
@@ -16,12 +15,12 @@ const ticks = computed(() => TICKS_KMH.map((kmh) => units.value.measure('speed',
 </script>
 
 <template>
-  <MapLegend v-model:expanded="expanded" :label="t('trips.speedOverlay')">
+  <MapLegendSection :label="t('trips.speedOverlay')">
     <div class="speed-legend__bar"></div>
     <div class="speed-legend__labels">
       <span v-for="(tick, i) in ticks" :key="i">{{
         i === ticks.length - 1 ? `${tick}+ ${units.symbol('speed')}` : tick
       }}</span>
     </div>
-  </MapLegend>
+  </MapLegendSection>
 </template>
