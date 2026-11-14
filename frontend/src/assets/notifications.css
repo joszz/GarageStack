@@ -80,7 +80,8 @@
   position: fixed;
   inset: 0;
   z-index: var(--z-modal);
-  background: rgb(0 0 0 / 50%);
+  background: var(--overlay-bg);
+  backdrop-filter: var(--overlay-blur);
   display: flex;
   align-items: flex-end;
   justify-content: center;

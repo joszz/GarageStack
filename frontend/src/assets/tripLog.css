@@ -462,17 +462,17 @@
 .trip-route-map__loading {
   position: absolute;
   inset: 0;
-  z-index: 450;
+  z-index: var(--z-map-overlay);
   opacity: 0.6;
   pointer-events: none;
 }
 
-/* Over Leaflet's panes (400) and under its controls (800). */
+/* Over the map and, coming later in the markup, over the loading shimmer too. */
 .trip-route-map__open {
   position: absolute;
   top: 0.5rem;
   right: 0.5rem;
-  z-index: 500;
+  z-index: var(--z-map-overlay);
   display: inline-flex;
   align-items: center;
   justify-content: center;

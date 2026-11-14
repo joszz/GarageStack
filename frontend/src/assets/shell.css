@@ -75,7 +75,8 @@
   display: none;
   position: fixed;
   inset: 0;
-  background: rgb(0 0 0 / 60%);
+  background: var(--overlay-bg);
+  backdrop-filter: var(--overlay-blur);
   z-index: var(--z-drawer-backdrop);
 }
 

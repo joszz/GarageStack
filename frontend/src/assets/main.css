@@ -88,14 +88,15 @@
   --radius: 10px;
   --demo-banner-height: 2.2rem;
 
-  /* Stacking layers, lowest first. Leaflet draws its own controls at 1000, so whatever sits on a
-     map uses --z-map-overlay, and the open drawer and the dialogs rise above it. */
+  /* Stacking layers, lowest first. Every map is its own layer (see .leaflet-container), so
+     Leaflet's panes and controls (up to 1000) stay inside it, and whatever sits on a map only needs
+     --z-map-overlay to clear them. */
+  --z-map-overlay: 1;
   --z-footer: 100;
   --z-demo-banner: 199;
   --z-topbar: 200;
   --z-drawer: 300;
   --z-demo-panel: 999;
-  --z-map-overlay: 1000;
   --z-drawer-backdrop: 1000;
   --z-drawer-open: 1001;
   --z-modal: 1100;
@@ -121,6 +122,17 @@
   /* The multiselect's own caret, filled with --color-text-muted: a data URI cannot read a custom
      property, so each theme spells out its colour. */
   --field-caret: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 320 512'%3E%3Cpath fill='%238892a4' d='M31.3 192h257.3c17.8 0 26.7 21.5 14.1 34.1L174.1 354.8c-7.8 7.8-20.5 7.8-28.3 0L17.2 226.1C4.6 213.5 13.5 192 31.3 192z'/%3E%3C/svg%3E");
+
+  /* The layer behind the open menu, a dialog or the notification panel: the page dimmed and
+     blurred. A small radius keeps the blur cheap, and the layer only exists while it is open. */
+  --overlay-bg: rgb(0 0 0 / 50%);
+  --overlay-blur: blur(4px);
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  :root {
+    --overlay-blur: none;
+  }
 }
 
 [data-theme='light'] {
@@ -552,6 +564,10 @@ body,
      sits on rather than flashing Leaflet's near-white default. */
   background: var(--color-surface-2);
   font-family: inherit;
+
+  /* A layer of its own: Leaflet's z-indexes (up to 1000 for the controls) then only order things
+     inside the map, instead of rising over the open menu's blurred backdrop or the demo panel. */
+  isolation: isolate;
 }
 
 .leaflet-container a {
@@ -970,9 +986,9 @@ body,
     transition: transform 0.25s ease;
   }
 
-  /* Elevate above Leaflet controls (--z-map-overlay) only while the drawer is
-     open; GPU layer promotion is limited to the 250 ms slide-in animation. The shadow comes with
-     it: on the closed drawer it reached past the screen's edge, a grey band on a light page. */
+  /* Above its own backdrop only while the drawer is open; GPU layer promotion is limited to the
+     250 ms slide-in animation. The shadow comes with it: on the closed drawer it reached past the
+     screen's edge, a grey band on a light page. */
   .sidebar--open {
     transform: translateX(0);
     z-index: var(--z-drawer-open);
