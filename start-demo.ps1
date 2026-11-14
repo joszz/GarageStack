@@ -4,8 +4,10 @@ GarageStack demo launcher.
 Always starts API + Frontend. Also opens an interactive menu pane on the left.
 Without -Menu : sets up env and opens Windows Terminal with all three panes.
 With    -Menu : runs the menu pane (called internally by Windows Terminal).
+With -Frontend: waits for the API port, then runs Vite (so the first page
+                load does not hit ECONNREFUSED while dotnet is still building).
 #>
-param([switch]$Menu)
+param([switch]$Menu, [switch]$Frontend)
 
 $ErrorActionPreference = 'Stop'
 $root         = $PSScriptRoot
@@ -99,6 +101,22 @@ if ($Menu) {
     }
 
 # ---------------------------------------------------------------------------
+# Frontend mode - waits for the API, then starts Vite
+# ---------------------------------------------------------------------------
+} elseif ($Frontend) {
+    Set-Location $frontendPath
+    Write-Host 'Waiting for the API on localhost:5000 ...' -ForegroundColor DarkGray
+    $deadline = (Get-Date).AddMinutes(3)
+    while (-not (Test-PortOpen 5000)) {
+        if ((Get-Date) -gt $deadline) {
+            Write-Warning 'API did not come up within 3 minutes, starting Vite anyway.'
+            break
+        }
+        Start-Sleep -Milliseconds 500
+    }
+    pnpm dev
+
+# ---------------------------------------------------------------------------
 # Launcher mode - env setup, then open WT with all three panes
 # ---------------------------------------------------------------------------
 } else {
@@ -124,13 +142,14 @@ if ($Menu) {
     if (-not (Get-Command wt -ErrorAction SilentlyContinue)) {
         Write-Warning 'Windows Terminal (wt) not found -- opening separate windows instead.'
         Start-Process pwsh -ArgumentList '-NoExit', '-Command', "cd '$apiPath'; dotnet run --launch-profile Demo"
-        Start-Process pwsh -ArgumentList '-NoExit', '-Command', "cd '$frontendPath'; pnpm dev"
+        Start-Process pwsh -ArgumentList '-NoExit', '-Command', "& '$PSCommandPath' -Frontend"
         & $PSCommandPath -Menu
         exit 0
     }
 
     $scriptPath = $PSCommandPath
     $cmd = "& `"$scriptPath`" -Menu"
+    $frontendCmd = "& `"$scriptPath`" -Frontend"
 
     # Layout: [Menu (left) | API (top-right) / Frontend (bottom-right)]
     # 1. new-tab  -> menu pane (full width)
@@ -146,7 +165,7 @@ if ($Menu) {
         ';',
         'split-pane', '-H',
         '--title', 'GarageStack Frontend (Demo)', '--tabColor', '#3b82f6',
-        '-d', $frontendPath, 'pwsh', '-NoExit', '-Command', 'pnpm dev',
+        '-d', $frontendPath, 'pwsh', '-NoExit', '-Command', $frontendCmd,
         ';',
         'focus-pane', '--target', '0'
     )
