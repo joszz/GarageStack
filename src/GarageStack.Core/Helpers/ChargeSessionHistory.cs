@@ -92,7 +92,7 @@ public static class ChargeSessionHistory
                     sessionLatitude = latitude;
                     sessionLongitude = longitude;
                 }
-                sessionType ??= chargingType;
+                sessionType ??= ChargingKind.FromGateway(chargingType);
                 maxPowerKw = Max(maxPowerKw, reading.PowerKw);
             }
 
@@ -115,7 +115,7 @@ public static class ChargeSessionHistory
                 sessionOdometerKm = odometerKm;
                 sessionLatitude = latitude;
                 sessionLongitude = longitude;
-                sessionType = chargingType;
+                sessionType = ChargingKind.FromGateway(chargingType);
                 maxPowerKw = reading.PowerKw;
             }
             else if (!isCharging && charging == true && startedAt is { } sessionStart)

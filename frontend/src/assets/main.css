@@ -515,6 +515,10 @@ body,
   overflow: visible;
 }
 
+.chart-container__plot {
+  position: relative;
+}
+
 /* Inside a dialog the dialog is the card, so the chart sits in it without a second frame. */
 .detail-modal .chart-container {
   background: none;

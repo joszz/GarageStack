@@ -14,8 +14,9 @@ public class ChargeSessionHistoryTests
         DateTime? chargeStateAt = null,
         double? single = null,
         double? three = null,
-        double? hv = null) =>
-        new(minute, T0.AddMinutes(minute), chargeStateAt, charging, soc, null, null, null,
+        double? hv = null,
+        string? type = null) =>
+        new(minute, T0.AddMinutes(minute), chargeStateAt, charging, soc, type, null, null,
             null, null, null, null, hv, single, three);
 
     // ── ChargerPower: the gateway's figures are kW, and only one phase figure is right ──
@@ -136,5 +137,36 @@ public class ChargeSessionHistoryTests
 
         Assert.Equal([T0, T0.AddMinutes(10)], curve.Select(point => point.RecordedAt));
         Assert.Equal([3.0, 7.0], curve.Select(point => point.PowerKw));
+    }
+
+    // ── ChargingKind: the gateway's raw drivetrain/chargingType ──
+
+    [Theory]
+    [InlineData("6", "AC")]
+    [InlineData("7", "DC")]
+    [InlineData("AC", "AC")]
+    [InlineData("dc", "DC")]
+    [InlineData("10", null)]
+    [InlineData("3", null)]
+    [InlineData("", null)]
+    [InlineData(null, null)]
+    public void ChargingKind_MapsTheGatewaysNumbers(string? value, string? expected) =>
+        Assert.Equal(expected, ChargingKind.FromGateway(value));
+
+    [Fact]
+    public void Build_TakesTheKindFromTheSessionsOwnReadings()
+    {
+        var sessions = ChargeSessionHistory.Build(
+        [
+            // A DC charge, then "charging ended" (10) before the car is plugged in again.
+            Reading(0, charging: true, soc: 30, type: "7"),
+            Reading(30, charging: false, soc: 70, type: "10"),
+            // The next charge starts before its first reading carries a kind.
+            Reading(24 * 60, charging: true, soc: 40),
+            Reading(24 * 60 + 5, soc: 41, type: "6"),
+            Reading(25 * 60, charging: false, soc: 60, type: "10"),
+        ]);
+
+        Assert.Equal(["AC", "DC"], sessions.Select(s => s.ChargingType));
     }
 }

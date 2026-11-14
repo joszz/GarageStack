@@ -118,12 +118,12 @@
   margin-top: 1rem;
 }
 
-/* ── Opened session: power curve beside the figures and the map ── */
+/* ── Opened session: the figures since the last charge, the power curve and the map ── */
 
 .charge-history-detail {
   display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(16rem, 1fr);
-  gap: 1rem;
+  grid-template-columns: minmax(11rem, 14rem) minmax(0, 1fr) minmax(16rem, 24rem);
+  gap: 1rem 1.5rem;
   margin-top: 1rem;
   padding-top: 1rem;
   border-top: 1px solid var(--color-border);
@@ -137,10 +137,15 @@
   box-shadow: none;
 }
 
-.charge-history-detail__aside {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
+/* A fixed height: the curve is one line, and by aspect ratio a wide screen made it 500 px tall. */
+.charge-history-detail__chart-card .chart-container__plot {
+  height: 13rem;
+}
+
+/* Beside the chart the figures stack, the way they read next to it. */
+.charge-history-detail .charge-history-detail__metrics {
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
 }
 
 .charge-history-map {
@@ -170,6 +175,11 @@
   .charge-history-detail {
     grid-template-columns: minmax(0, 1fr);
   }
+
+  /* Above the chart the figures share a row again. */
+  .charge-history-detail .charge-history-detail__metrics {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr));
+  }
 }
 
 @media (width <= 767px) {
@@ -179,7 +189,7 @@
 
   /* Two figures to a row on a 390 px phone, where 10rem columns miss by a hair. */
   .charge-history-item__details,
-  .charge-history-detail__metrics {
+  .charge-history-detail .charge-history-detail__metrics {
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 8rem), 1fr));
   }
 
