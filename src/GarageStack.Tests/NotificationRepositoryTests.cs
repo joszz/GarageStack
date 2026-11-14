@@ -111,4 +111,29 @@ public class NotificationRepositoryTests
         Assert.Equal(0, await repo.CountUnreadAsync(ct));
         Assert.Equal("One", Assert.Single(await repo.ListAsync(10, ct)).Title);
     }
+
+    // Demo mode keeps notifications in the in-memory provider, which runs no bulk UPDATE: the bell's
+    // "archive all" and "delete all" answered 500 there. NotificationRepositoryPostgresTests covers
+    // the same two on PostgreSQL.
+    [Fact]
+    public async Task ArchiveAll_AndDeleteAll_WorkOnTheInMemoryProvider()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var db = CreateDb();
+        db.AppNotifications.AddRange(
+            new AppNotification { Title = "Unread" },
+            new AppNotification { Title = "Read", IsArchived = true },
+            new AppNotification { Title = "Gone", IsDeleted = true });
+        await db.SaveChangesAsync(ct);
+        var repo = new NotificationRepository(db);
+
+        await repo.ArchiveAllAsync(ct);
+        var unreadAfterArchive = await repo.CountUnreadAsync(ct);
+        var listedAfterArchive = await repo.ListAsync(10, ct);
+        await repo.DeleteAllAsync(ct);
+
+        Assert.Equal(0, unreadAfterArchive);
+        Assert.Equal(2, listedAfterArchive.Count);
+        Assert.Empty(await repo.ListAsync(10, ct));
+    }
 }
