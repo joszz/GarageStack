@@ -42,7 +42,9 @@
   display: grid;
   grid-template-areas: 'title navigation close';
   grid-template-columns: auto minmax(0, 1fr) auto;
-  gap: 0.25rem;
+
+  /* Room between the title, the tabs and the close button, so the tabs read as their own group. */
+  gap: 0.75rem;
   padding-bottom: 0;
   border-bottom: 1px solid var(--color-border);
 }

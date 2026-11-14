@@ -140,8 +140,11 @@
 
 /* ── Settings tabs ────────────────────────────────────────── */
 
-/* The row sits beside the dialog title and scrolls sideways where it does not fit. */
+/* The row sits beside the dialog title and scrolls sideways where it does not fit. Its width,
+   between the title and the close button, decides how the tabs are drawn (see below), so the
+   same rules hold in every language and at every phone width. */
 .settings-tabs-viewport {
+  container-type: inline-size;
   overflow-x: auto;
   scrollbar-width: none;
 }
@@ -152,7 +155,9 @@
 
 .settings-tabs {
   display: flex;
-  justify-content: flex-end;
+
+  /* Safe: tabs that do not fit run off the end, where the row scrolls, not under the title. */
+  justify-content: safe flex-end;
   width: max-content;
   min-width: 100%;
   border-bottom: 1px solid var(--color-border);
@@ -199,10 +204,29 @@
   outline-offset: -2px;
 }
 
-/* On a phone the tabs get a row of their own under the title, and only the chosen tab spells out
-   its name: the rest are icons (named by aria-label and title), so every tab is in view instead
-   of the last ones hiding past the edge. */
+/* On a phone the tabs share the title's line, and only the chosen tab spells out its name: the
+   rest are icons (named by aria-label and title). The row is as wide as the title and the close
+   button leave it, so the icons give way: 44px where there is room, down to 24px, the minimum. */
 @media (width <= 767px) {
+  .settings-tabs {
+    width: 100%;
+  }
+
+  .settings-tabs__tab:not([aria-selected='true']) .settings-tabs__label {
+    display: none;
+  }
+
+  .settings-tabs__tab:not([aria-selected='true']) {
+    flex: 0 1 44px;
+    justify-content: center;
+    min-width: 24px;
+    padding-inline: 0.25rem;
+  }
+}
+
+/* Below 360px the title, six icons and the close button do not fit on one line in every language
+   (Portuguese "Configurações" leaves 126px): the tabs take a row of their own under the title. */
+@media (width <= 359px) {
   .detail-modal--with-navigation .detail-modal__header {
     grid-template-areas:
       'title close'
@@ -212,26 +236,22 @@
 
   .settings-tabs {
     justify-content: flex-start;
-    width: 100%;
-  }
-
-  .settings-tabs__tab:not([aria-selected='true']) .settings-tabs__label {
-    display: none;
-  }
-
-  /* The chosen tab's name is as wide as the device's font makes it, so the icons give way:
-     44px where there is room, down to 32px, still above the 24px minimum. */
-  .settings-tabs__tab:not([aria-selected='true']) {
-    flex: 0 1 44px;
-    justify-content: center;
-    min-width: 32px;
   }
 }
 
-/* The narrowest phones: slimmer padding leaves the icons room to give way. */
-@media (width <= 359px) {
-  .settings-tabs__tab {
-    padding-inline: 0.5rem;
+/* The name of the chosen tab needs about 18rem of row with all six tabs in the longest language
+   ("Notificaciones"). On most phones the row is narrower, so there the chosen tab is an icon too,
+   told apart by its frame. */
+@container (width < 18.5rem) {
+  .settings-tabs__tab[aria-selected='true'] .settings-tabs__label {
+    display: none;
+  }
+
+  .settings-tabs__tab[aria-selected='true'] {
+    flex: 0 1 44px;
+    justify-content: center;
+    min-width: 24px;
+    padding-inline: 0.25rem;
   }
 }
 
