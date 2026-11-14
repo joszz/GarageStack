@@ -73,8 +73,8 @@ if ($Menu) {
         Write-Host 'localhost:5173' -ForegroundColor DarkGray
         Write-Host ''
         Write-Host '  Open in browser' -ForegroundColor DarkGray
-        Write-Host '  [s]  Scalar API docs' -ForegroundColor Green
         Write-Host '  [a]  App  (demo / demo)' -ForegroundColor Green
+        Write-Host '  [s]  API reference (Scalar)' -ForegroundColor Green
         Write-Host '  [o]  OpenAPI JSON' -ForegroundColor Green
         Write-Host ''
         Write-Host '  [v]  Open in VS Code' -ForegroundColor DarkGray
@@ -86,9 +86,11 @@ if ($Menu) {
         $key = $host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
 
         switch ($key.Character) {
-            's' { Start-Process 'http://localhost:5000/scalar/v1' }
+            # Through Vite, on the app's own address: the session cookie and Origin are the app's,
+            # so Test Request works once signed in (the reference sends you to sign in first).
+            's' { Start-Process 'http://localhost:5173/api/reference/' }
             'a' { Start-Process 'http://localhost:5173' }
-            'o' { Start-Process 'http://localhost:5000/openapi/v1.json' }
+            'o' { Start-Process 'http://localhost:5173/api/openapi/v1.json' }
             'v' { code $root }
             'r' {}
             'q' {

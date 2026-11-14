@@ -36,6 +36,7 @@ public static class ExportEndpoints
         .WithTags("Export")
         .RequireAuthorization()
         .RequireRateLimiting("export")
+        .Produces(StatusCodes.Status200OK, typeof(Stream), "application/zip")
         .WithSummary("Download everything GarageStack keeps, as a zip of JSON files and a telemetry CSV per car");
 
         return app;

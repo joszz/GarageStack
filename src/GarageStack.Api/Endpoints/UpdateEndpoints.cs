@@ -12,6 +12,7 @@ public static class UpdateEndpoints
         // Signed in only: an anonymous visitor has no use for the version this install runs.
         app.MapGet("/api/updates", () => Results.Ok(updates.Latest))
             .WithTags("Updates")
+            .Produces<UpdateInfo>()
             .WithSummary("Whether a newer GarageStack release is available")
             .RequireAuthorization();
 

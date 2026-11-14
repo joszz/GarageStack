@@ -13,7 +13,7 @@ public static class MaintenanceEndpoints
         var group = app.MapGroup("/api/vehicles/{vin}/maintenance")
             .WithTags("Maintenance")
             .RequireAuthorization()
-            .AddEndpointFilter<ResolveVehicleFilter>();
+            .ResolvesVehicle();
 
         group.MapGet("/", async (
             HttpContext httpContext, IMaintenanceRepository maintenance, ITelemetryRepository telemetry, CancellationToken ct) =>
@@ -26,6 +26,7 @@ public static class MaintenanceEndpoints
 
             return Results.Ok(items.Select(m => ToDto(m, odometerKm, now)));
         })
+        .Produces<MaintenanceItemDto[]>()
         .WithSummary("List maintenance items with computed due status");
 
         group.MapPost("/", async (
@@ -51,6 +52,8 @@ public static class MaintenanceEndpoints
 
             return Results.Ok(await ToDtoAsync(item, telemetry, clock.GetUtcNow().UtcDateTime, ct));
         })
+        .Produces<MaintenanceItemDto>()
+        .ProducesProblem(StatusCodes.Status400BadRequest)
         .WithSummary("Create a maintenance item");
 
         group.MapPut("/{id:int}", async (
@@ -73,6 +76,9 @@ public static class MaintenanceEndpoints
 
             return Results.Ok(await ToDtoAsync(item, telemetry, clock.GetUtcNow().UtcDateTime, ct));
         })
+        .Produces<MaintenanceItemDto>()
+        .ProducesProblem(StatusCodes.Status400BadRequest)
+        .Produces(StatusCodes.Status404NotFound)
         .WithSummary("Update a maintenance item's name, notes and intervals");
 
         group.MapDelete("/{id:int}", async (
@@ -80,6 +86,8 @@ public static class MaintenanceEndpoints
             await maintenance.DeleteAsync(httpContext.ResolvedVehicle().Id, id, ct)
                 ? Results.Ok()
                 : Results.NotFound())
+        .Produces(StatusCodes.Status200OK)
+        .Produces(StatusCodes.Status404NotFound)
         .WithSummary("Delete a maintenance item and its service history");
 
         group.MapGet("/{id:int}/log", async (
@@ -90,6 +98,8 @@ public static class MaintenanceEndpoints
                 ? Results.NotFound()
                 : Results.Ok(entries.Select(ToDto));
         })
+        .Produces<MaintenanceLogEntryDto[]>()
+        .Produces(StatusCodes.Status404NotFound)
         .WithSummary("List service history for a maintenance item, newest first");
 
         group.MapPost("/{id:int}/log", async (
@@ -111,6 +121,9 @@ public static class MaintenanceEndpoints
 
             return Results.Ok(new LogMaintenanceServiceResponse(await ToDtoAsync(logged.Item, telemetry, clock.GetUtcNow().UtcDateTime, ct), ToDto(logged.Entry)));
         })
+        .Produces<LogMaintenanceServiceResponse>()
+        .ProducesProblem(StatusCodes.Status400BadRequest)
+        .Produces(StatusCodes.Status404NotFound)
         .WithSummary("Log a completed service, updating the item's baseline");
 
         group.MapDelete("/{id:int}/log/{logId:int}", async (
@@ -124,6 +137,8 @@ public static class MaintenanceEndpoints
 
             return Results.Ok(await ToDtoAsync(item, telemetry, clock.GetUtcNow().UtcDateTime, ct));
         })
+        .Produces<MaintenanceItemDto>()
+        .Produces(StatusCodes.Status404NotFound)
         .WithSummary("Remove a service log entry, recomputing the item's baseline");
 
         return app;

@@ -18,7 +18,9 @@ public static class PushEndpoints
         push.MapGet("/vapid-public-key", () =>
             string.IsNullOrWhiteSpace(vapid.PublicKey)
                 ? ApiProblems.Problem(StatusCodes.Status503ServiceUnavailable, "push.notConfigured", "VAPID keys not configured")
-                : Results.Ok(new { publicKey = vapid.PublicKey }))
+                : Results.Ok(new VapidPublicKeyResponse(vapid.PublicKey)))
+        .Produces<VapidPublicKeyResponse>()
+        .ProducesProblem(StatusCodes.Status503ServiceUnavailable)
         .WithSummary("Get VAPID public key for push subscription");
 
         push.MapPost("/subscribe", async (PushSubscribeRequest req, IPushSubscriptionRepository subscriptions, CancellationToken ct) =>
@@ -30,6 +32,8 @@ public static class PushEndpoints
 
             return Results.Ok();
         })
+        .Produces(StatusCodes.Status200OK)
+        .ProducesProblem(StatusCodes.Status400BadRequest)
         .WithSummary("Register a browser push subscription");
 
         push.MapPost("/unsubscribe", async (PushUnsubscribeRequest req, IPushSubscriptionRepository subscriptions, CancellationToken ct) =>
@@ -37,6 +41,7 @@ public static class PushEndpoints
             await subscriptions.RemoveAsync([req.Endpoint], ct);
             return Results.Ok();
         })
+        .Produces(StatusCodes.Status200OK)
         .WithSummary("Remove a push subscription");
 
         return app;
@@ -106,3 +111,6 @@ public static class PushEndpoints
 // ExcludedCategories: the notification types this device switched off. Null leaves the stored list as it is.
 public record PushSubscribeRequest(string Endpoint, string P256DhKey, string AuthKey, IReadOnlyList<string>? ExcludedCategories = null);
 public record PushUnsubscribeRequest(string Endpoint);
+
+/// <summary>The server's VAPID public key, which a browser subscribes to push with.</summary>
+public record VapidPublicKeyResponse(string PublicKey);

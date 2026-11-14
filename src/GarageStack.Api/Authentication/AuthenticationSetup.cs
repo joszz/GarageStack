@@ -248,6 +248,10 @@ internal static class AuthenticationSetup
     /// <summary>Sends the browser back to the SPA login page with a code it can explain.</summary>
     internal static string LoginPageUrl(string error) => $"{LoginPagePath}?error={Uri.EscapeDataString(error)}";
 
+    /// <summary>The SPA login page, which comes back to <paramref name="returnPath"/> once signed in.</summary>
+    internal static string LoginPageReturningTo(string returnPath) =>
+        $"{LoginPagePath}?redirect={Uri.EscapeDataString(LocalRedirect.Sanitize(returnPath))}";
+
     private static Microsoft.Extensions.Logging.ILogger CreateLogger(HttpContext context) =>
         context.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger(LogCategory);
 

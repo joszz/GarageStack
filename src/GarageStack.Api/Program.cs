@@ -5,6 +5,7 @@ using GarageStack.Api.Authentication;
 using GarageStack.Api.Endpoints;
 using GarageStack.Api.Hosting;
 using GarageStack.Api.Hubs;
+using GarageStack.Api.Reference;
 using GarageStack.Api.Services;
 using GarageStack.Core.Configuration;
 using GarageStack.Core.Helpers;
@@ -15,7 +16,6 @@ using GarageStack.Data.Extensions;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.EntityFrameworkCore;
-using Scalar.AspNetCore;
 using Serilog;
 
 Log.Logger = HostingExtensions.CreateBootstrapLogger();
@@ -68,19 +68,8 @@ try
         builder.Services.AddHostedService<TelemetryNotificationService>();
         builder.Services.AddHostedService<HomeAssistantPublisher>();
     }
-    builder.Services.AddOpenApi(opts =>
-    {
-        opts.AddDocumentTransformer((doc, _, _) =>
-        {
-            doc.Info = new()
-            {
-                Title = "GarageStack API",
-                Version = "v1",
-                Description = "REST API for GarageStack -- vehicle telemetry, statistics, and notifications.",
-            };
-            return Task.CompletedTask;
-        });
-    });
+    var releaseVersion = ReleaseVersion.Of(typeof(ApiEntryPoint).Assembly);
+    builder.Services.AddGarageStackOpenApi(releaseVersion);
     // Every error answer is a ProblemDetails body; refusals add a `code` the browser translates.
     builder.Services.AddProblemDetails();
     builder.Services.ConfigureHttpJsonOptions(opts =>
@@ -114,7 +103,7 @@ try
     });
     builder.Services.AddSingleton(new UpdateCheckOptions(
         builder.Configuration.SwitchOrDefault("UpdateCheck:Enabled", true),
-        ReleaseVersion.Of(typeof(ApiEntryPoint).Assembly)));
+        releaseVersion));
     builder.Services.AddSingleton<GitHubReleaseClient>();
     builder.Services.AddSingleton<UpdateCheckService>();
     builder.Services.AddHostedService(sp => sp.GetRequiredService<UpdateCheckService>());
@@ -156,24 +145,13 @@ try
         SupportedUICultures = [new CultureInfo("en"), new CultureInfo("nl"), new CultureInfo("es"), new CultureInfo("pt")],
     });
     app.UseAuthentication();
+    app.UseApiReferencePage();
     app.UseMiddleware<ApiTokenAuthentication.ReadOnlyMiddleware>();
     app.UseAuthorization();
 
-    // The API reference, for scripts with a read-only token: under /api/, which the frontend's nginx
-    // passes on, and for signed-in callers only, like every endpoint it describes.
-    app.MapOpenApi("/api/openapi/{documentName}.json").RequireAuthorization();
-
-    if (app.Environment.IsDevelopment() || app.Environment.IsEnvironment("Demo"))
-    {
-        app.MapOpenApi();
-        app.MapScalarApiReference(opts => opts
-            .WithTitle("GarageStack API")
-            .WithTheme(ScalarTheme.DeepSpace)
-            .EnableDarkMode()
-            .WithDynamicBaseServerUrl(true)
-            .SortTagsAlphabetically()
-            .SortOperationsByMethod());
-    }
+    // The OpenAPI document and the reference page that shows it, for whoever is signed in: a
+    // token reads the document, a browser opens the page on the app's own address.
+    app.MapApiReferencePage();
 
     app.MapHealthEndpoints();
     app.MapHub<TelemetryHub>("/hubs/telemetry").RequireAuthorization();

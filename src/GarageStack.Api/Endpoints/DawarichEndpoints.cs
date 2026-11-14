@@ -19,7 +19,8 @@ public static class DawarichEndpoints
 
         var group = app.MapGroup("/api/vehicles/{vin}/phone-trackers")
             .WithTags("Dawarich").RequireAuthorization().RequireRateLimiting("dawarich")
-            .AddEndpointFilter<ResolveVehicleFilter>();
+            .ResolvesVehicle()
+            .ProducesProblem(StatusCodes.Status404NotFound);
 
         group.MapGet("", async (HttpContext http, IPhoneFusionRepository repo, IDawarichClient client,
             IMemoryCache cache, ILoggerFactory logs, CancellationToken ct) =>
@@ -41,7 +42,7 @@ public static class DawarichEndpoints
                 // Linked identifiers remain editable even when upstream discovery is unavailable.
                 return Results.Ok(new PhoneTrackersResponse(linked, [], ex.BadKey ? "badKey" : "unreachable"));
             }
-        }).WithSummary("List linked phone trackers and trackers seen in Dawarich during the last 30 days");
+        }).Produces<PhoneTrackersResponse>().WithSummary("List linked phone trackers and trackers seen in Dawarich during the last 30 days");
 
         group.MapPut("", async (HttpContext http, SavePhoneTrackersRequest request,
             IPhoneFusionRepository repo, CancellationToken ct) =>
@@ -51,7 +52,8 @@ public static class DawarichEndpoints
             var id = http.ResolvedVehicle().Id;
             await repo.SetAsync(id, request.TrackerIds!, time.GetUtcNow().UtcDateTime, ct);
             return Results.Ok(await repo.ListAsync(id, ct));
-        }).WithSummary("Replace the vehicle's linked phone trackers; an empty set turns phone fusion off");
+        }).Produces<LinkedPhoneTracker[]>().ProducesProblem(StatusCodes.Status400BadRequest)
+        .WithSummary("Replace the vehicle's linked phone trackers; an empty set turns phone fusion off");
 
         group.MapPost("/backfill", async (HttpContext http, PhoneBackfillRequestDto request,
             IPhoneFusionRepository repo, CancellationToken ct) =>
@@ -65,7 +67,8 @@ public static class DawarichEndpoints
                 return ApiProblems.BadRequest("dawarich.notLinked", "Link a phone tracker before requesting backfill.");
             await repo.RequestBackfillAsync(id, from.UtcDateTime, now.UtcDateTime, ct);
             return Results.Accepted();
-        }).WithSummary("Queue older unedited trips for phone fusion, from the supplied date until now");
+        }).Produces(StatusCodes.Status202Accepted).ProducesProblem(StatusCodes.Status400BadRequest)
+        .WithSummary("Queue older unedited trips for phone fusion, from the supplied date until now");
         return app;
     }
 

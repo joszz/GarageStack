@@ -169,6 +169,37 @@ describe('LoginView', () => {
     )
   })
 
+  it('returns to an app page through the router after a password sign-in', async () => {
+    mockRoute.query = { redirect: '/map' }
+    vi.mocked(authApi.login).mockResolvedValue({
+      username: 'demo',
+      expiresAtUtc: '2030-01-01T00:00:00Z',
+    })
+
+    const wrapper = await mountLogin(passwordConfig)
+    await wrapper.find('form').trigger('submit')
+    await flushPromises()
+
+    expect(routerReplace).toHaveBeenCalledWith('/map')
+    expect(vi.mocked(redirectTo)).not.toHaveBeenCalled()
+  })
+
+  // The API reference is the API's own page, outside the app's routes.
+  it('returns to a page the API serves with a full page load after a password sign-in', async () => {
+    mockRoute.query = { redirect: '/api/reference/' }
+    vi.mocked(authApi.login).mockResolvedValue({
+      username: 'demo',
+      expiresAtUtc: '2030-01-01T00:00:00Z',
+    })
+
+    const wrapper = await mountLogin(passwordConfig)
+    await wrapper.find('form').trigger('submit')
+    await flushPromises()
+
+    expect(vi.mocked(redirectTo)).toHaveBeenCalledWith('/api/reference/')
+    expect(routerReplace).not.toHaveBeenCalled()
+  })
+
   it('ignores an off-site redirect query and falls back to the start page', async () => {
     mockRoute.query = { redirect: '//evil.example.com' }
 

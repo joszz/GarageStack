@@ -16,7 +16,8 @@ public static class ApiTokenEndpoints
     {
         var group = app.MapGroup(Path)
             .WithTags("API tokens")
-            .RequireAuthorization();
+            .RequireAuthorization()
+            .ProducesProblem(StatusCodes.Status403Forbidden);
 
         group.MapGet("/", async (HttpContext httpContext, IApiTokenRepository tokens, CancellationToken ct) =>
         {
@@ -24,6 +25,7 @@ public static class ApiTokenEndpoints
             var list = await tokens.ListAsync(account, ct);
             return Results.Ok(list.Select(ToDto));
         })
+        .Produces<ApiTokenDto[]>()
         .WithSummary("List the signed-in account's API tokens, newest first, without the tokens themselves");
 
         group.MapPost("/", async (
@@ -43,6 +45,8 @@ public static class ApiTokenEndpoints
             var saved = await tokens.AddAsync(new ApiToken { AccountKey = account, Name = name, TokenHash = hash, Prefix = prefix }, ct);
             return Results.Ok(new CreatedApiTokenDto(ToDto(saved), token));
         })
+        .Produces<CreatedApiTokenDto>()
+        .ProducesProblem(StatusCodes.Status400BadRequest)
         .WithSummary("Make a read-only API token; the response is the only time the token is shown");
 
         group.MapDelete("/{id:int}", async (HttpContext httpContext, int id, IApiTokenRepository tokens, CancellationToken ct) =>
@@ -50,6 +54,8 @@ public static class ApiTokenEndpoints
             if (SessionPrincipal.ResolveAccountKey(httpContext.User) is not { } account) return NoAccount();
             return await tokens.DeleteAsync(account, id, ct) ? Results.NoContent() : Results.NotFound();
         })
+        .Produces(StatusCodes.Status204NoContent)
+        .Produces(StatusCodes.Status404NotFound)
         .WithSummary("Revoke an API token: it stops working at once");
 
         return app;

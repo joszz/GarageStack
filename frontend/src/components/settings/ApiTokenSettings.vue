@@ -2,6 +2,7 @@
 import { onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { API_TOKEN_NAME_MAX_LENGTH, apiTokensApi, type ApiToken } from '@/services/apiTokensApi'
+import { apiUrl } from '@/services/apiCore'
 import { useErrorMessage } from '@/composables/useErrorMessage'
 import { useTwoTapConfirm } from '@/composables/useTwoTapConfirm'
 import { formatDateTime } from '@/utils/format'
@@ -147,6 +148,17 @@ function usage(token: ApiToken): string {
         </div>
       </div>
       <p v-else class="settings-toggle__desc">{{ t('settings.apiTokens.none') }}</p>
+
+      <!-- The API's own page: every endpoint, and a way to try each one with this session. -->
+      <a
+        class="btn btn-outline-secondary btn-sm api-token-reference"
+        :href="apiUrl('/api/reference/')"
+        target="_blank"
+        rel="noopener"
+      >
+        <font-awesome-icon icon="book" />
+        {{ t('settings.apiTokens.reference') }}
+      </a>
     </template>
   </SettingsToggle>
 </template>

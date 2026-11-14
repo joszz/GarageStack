@@ -722,7 +722,8 @@
       "revoke": "Revocar",
       "confirmRevoke": "¿Revocar?",
       "revokeNamed": "¿Revocar {name}",
-      "confirmRevokeNamed": "¿Revocar {name}? Toca nuevamente para confirmar"
+      "confirmRevokeNamed": "¿Revocar {name}? Toca nuevamente para confirmar",
+      "reference": "Referencia de la API"
     },
     "export": {
       "title": "Tus datos",

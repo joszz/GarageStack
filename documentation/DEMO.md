@@ -18,7 +18,7 @@ docker compose --env-file .env.demo -f docker-compose.demo.yml up --build
 
 Open [http://localhost:8080](http://localhost:8080) and log in with **demo / demo**.
 
-The API is available at `http://localhost:5001`. Its OpenAPI document is at `/api/openapi/v1.json` for anyone signed in, as in every deployment; the Scalar viewer for it is served only when the API runs locally (see below).
+The API reference is at [http://localhost:8080/api/reference/](http://localhost:8080/api/reference/): it sends you to sign in first, and then *Test Request* tries any endpoint on the demo car. The API itself also listens on `http://localhost:5001`. See [API.md](API.md).
 
 This stack is also what the Playwright smoke tests run against, in CI and locally, because it is the production frontend image with the real nginx config. See [CONTRIBUTING.md](../.github/CONTRIBUTING.md).
 
@@ -45,7 +45,7 @@ dotnet run --launch-profile Demo
 
 This starts the API at `http://localhost:5000` with `DEMO_MODE=true`, `Auth:Username=demo`, and `Auth:Password=demo` pre-configured. No database or MQTT connection is made.
 
-The API reference (Scalar) is at [http://localhost:5000/scalar/v1](http://localhost:5000/scalar/v1), and the OpenAPI document at `/openapi/v1.json`. Both are served only in the `Development` and `Demo` environments (`ASPNETCORE_ENVIRONMENT`). Every deployment, the Docker images included, also serves the document at `/api/openapi/v1.json` to whoever is signed in or holds an API token.
+Open the API reference through the frontend, at [http://localhost:5173/api/reference/](http://localhost:5173/api/reference/) once the frontend below runs: Vite passes `/api` on to the API, so the page shares the app's session and *Test Request* works after signing in. Straight from the API, at `http://localhost:5000/api/reference/`, it cannot sign you in (the login page is the app's), and a change sent from there is refused: that address is not an allowed origin.
 
 **Frontend:**
 
@@ -97,10 +97,35 @@ Click the flask icon in the bottom-right corner to open the panel. Changes take 
 | `ITripRepository` | Serves the pre-built trips |
 | `IRdwClient` | Answers for the RDW with any plate: an APK due in three weeks, one open recall and one repaired, so the RDW card shows without a car and without a request leaving the machine. The demo seeds the two notifications the Worker would have sent about it. `RDW_ENABLED=false` leaves the card, the plate field and those notifications out |
 | `IMqttPublisher` | Carries commands out on the demo car: after two seconds the car's state changes and the answer arrives, as from the gateway. Starting to charge without the cable plugged in (Demo Controls) is refused, to show a refusal |
-
 | `LogFiles:WorkerDirectory` | When `WORKER_LOG_DIRECTORY` is not set, a folder under the temp directory holding a day of sample Worker log entries (`DemoWorkerLog`), so the log viewer shows both services instead of asking for the Worker's folder |
 
 No PostgreSQL, Mosquitto, Worker, or SAIC gateway containers are started.
+
+## From a script or an AI agent
+
+Demo mode is the quickest way to see a change working, for a coding agent as much as for a person. What either needs to know:
+
+- **Start it without the menu.** `start-demo.ps1` opens Windows Terminal panes, which an agent cannot drive. Start the two halves as background processes instead, from the repository root (copy `frontend/.env.development.local.example` to `frontend/.env.development.local` first, for the demo banner and Demo Controls):
+
+  ```bash
+  dotnet run --project src/GarageStack.Api --launch-profile Demo   # the API, on :5000
+  pnpm --dir frontend dev                                          # the app, on :5173; passes /api and /hubs to :5000
+  ```
+
+  Or the Docker stack, with the production nginx config: `docker compose --env-file .env.demo -f docker-compose.demo.yml up -d --build` (the app on :8080).
+- **Look before starting another.** Something answering on :5000 is a demo API already running, perhaps the developer's own. A running API also locks `src/GarageStack.Api/bin/`, so `dotnet build` there fails with MSB3027, "the file is locked by GarageStack.Api". Use the one that runs, or build and run your copy from a git worktree on a port of its own: `dotnet run --launch-profile Demo --urls http://localhost:5099`, with `Cors__Origins__1=http://localhost:5099` set when its own pages (the API reference) should be able to change data.
+- **Sign in from a script.** Nearly every endpoint needs a session. The login is the password one, demo / demo; a request without an `Origin` header, as curl sends it, passes the origin check:
+
+  ```bash
+  curl -c jar -H 'Content-Type: application/json' -d '{"username":"demo","password":"demo"}' http://localhost:5000/api/auth/login
+  curl -b jar http://localhost:5000/api/vehicles
+  ```
+
+- **Learn the API from [`openapi.json`](openapi.json)**, the committed OpenAPI document: every path, what it takes and answers, and the refusals with their codes. A running API serves the same at `/api/openapi/v1.json`, and as a page at `/api/reference/`.
+- **The demo car is `DEMOVIN0000012345`.** Change its state as the Demo Controls panel does, with `POST /api/demo/status/DEMOVIN0000012345` and any of the fields of `DemoStatusOverrideDto`, such as `{"isLocked": false, "evSocPercent": 35}`. A command (`POST /api/vehicles/{vin}/commands/{command}`) is carried out two seconds later, as the gateway would.
+- **Nothing is kept.** What you add lives in memory and is gone when the API stops; the seeded data is the same on every start.
+- **A new field or feature needs demo data as well**, in `src/GarageStack.Data/Demo/`, or it never shows here. A change to trips also needs its step in `TripRepositoryContractTests`, which holds `DemoTripRepository` to the same results as the database.
+- **To see a page**, run the API and the app and point a throwaway Playwright script at `http://localhost:5173` (the frontend's own `@playwright/test`, with the Chromium it installed): sign in at `/login` with demo / demo, then capture what you need. The tests in `frontend/e2e` run against the Docker stack instead.
 
 ## Environment variables
 

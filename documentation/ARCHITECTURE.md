@@ -180,7 +180,7 @@ PostgreSQL reuses the space of removed rows for new ones rather than handing it 
 | `GarageStack.Core` | Domain models (`Models/`), repository/service interfaces (`Interfaces/`), and pure helpers with no I/O (`Helpers/`) - the shared vocabulary every other project builds on. | nothing (leaf project) |
 | `GarageStack.Data` | EF Core: `AppDbContext`, migrations, concrete repository implementations, and `Demo/` (in-memory fakes used when `DEMO_MODE=true`). | `Core` |
 | `GarageStack.Worker` | The MQTT-ingestion process: `Mqtt/MqttConsumerService` and the message handlers beside it, plus the periodic jobs (maintenance reminders, POI pre-caching, push-notification checks, the slow-puncture check over two weeks of tyre pressures, saving finished trips, housekeeping and telemetry compaction, climate schedules, RDW lookups, phone GPS fusion from Dawarich, and the heartbeat the API's readiness check listens for), each a `PeriodicBackgroundService`. | `Core`, `Data` |
-| `GarageStack.Api` | ASP.NET Core minimal APIs (`Endpoints/`), the SignalR hub (`Hubs/`), and Api-only services (outbound MQTT publishing, POI/charging-station lookups, the Postgres-LISTEN-to-SignalR bridge). | `Core`, `Data` |
+| `GarageStack.Api` | ASP.NET Core minimal APIs (`Endpoints/`), the OpenAPI document and its reference page (`Reference/`, see [API.md](API.md)), the SignalR hub (`Hubs/`), and Api-only services (outbound MQTT publishing, POI/charging-station lookups, the Postgres-LISTEN-to-SignalR bridge). | `Core`, `Data` |
 | `GarageStack.Tests` | xUnit tests across all of the above. | all four |
 
 ## Configuration

@@ -64,6 +64,8 @@ public static class LogEndpoints
         })
         .WithTags("Logs")
         .RequireAuthorization()
+        .Produces<LogPageDto>()
+        .ProducesProblem(StatusCodes.Status400BadRequest)
         .WithSummary("A page of the API's and the Worker's log entries, newest first, from a level up and matching a search: the newest, the one before an older cursor, or what came after a newer one");
 
         return app;

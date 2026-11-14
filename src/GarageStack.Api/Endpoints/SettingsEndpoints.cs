@@ -20,7 +20,8 @@ public static class SettingsEndpoints
     {
         var group = app.MapGroup("/api/settings")
             .WithTags("Settings")
-            .RequireAuthorization();
+            .RequireAuthorization()
+            .ProducesProblem(StatusCodes.Status403Forbidden);
 
         group.MapGet("/", async (HttpContext httpContext, IUserSettingsRepository settings, CancellationToken ct) =>
         {
@@ -29,6 +30,7 @@ public static class SettingsEndpoints
 
             return Results.Ok(await settings.GetAsync(account, ct));
         })
+        .Produces<IReadOnlyDictionary<string, JsonElement>>()
         .WithSummary("Get the signed-in account's settings, by section; a section never saved is left out");
 
         group.MapPatch("/{section}", async (
@@ -57,6 +59,11 @@ public static class SettingsEndpoints
             };
         })
         .WithMetadata(new RequestSizeLimitAttribute(MaxRequestBytes))
+        .Produces(StatusCodes.Status204NoContent)
+        .ProducesProblem(StatusCodes.Status400BadRequest)
+        .ProducesProblem(StatusCodes.Status404NotFound)
+        .ProducesProblem(StatusCodes.Status409Conflict)
+        .ProducesProblem(StatusCodes.Status413PayloadTooLarge)
         .WithSummary("Save some of a section's settings; the keys left out keep their saved values");
 
         return app;

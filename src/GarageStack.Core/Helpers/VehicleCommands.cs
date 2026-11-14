@@ -124,6 +124,9 @@ public static class VehicleCommands
             ? null
             : $"'{command}' value must be an integer between {min} and {max}";
 
+    /// <summary>Every command there is, as the command endpoint takes it.</summary>
+    public static IReadOnlyCollection<string> Names => ByName.Keys;
+
     /// <summary>The gateway topic for <paramref name="command"/>, or null for a command GarageStack does not know.</summary>
     public static string? TopicFor(string command) => ByName.GetValueOrDefault(command)?.Topic;
 

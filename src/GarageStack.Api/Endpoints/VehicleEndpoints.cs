@@ -1,8 +1,10 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using GarageStack.Core.Configuration;
 using GarageStack.Core.Helpers;
 using GarageStack.Core.Interfaces;
 using GarageStack.Core.Models;
+using Microsoft.OpenApi;
 
 namespace GarageStack.Api.Endpoints;
 
@@ -30,12 +32,14 @@ public static class VehicleEndpoints
                 v.Id, v.Vin, v.Model, v.Series, v.CreatedAt, VehicleTypeHelper.GetVehicleType(v),
                 hvBatteryCapacity.Kwh, VehicleTypeHelper.SupportsTargetSoc(v), v.HasPowerTailgate)));
         })
+        .Produces<VehicleListItemDto[]>()
         .WithSummary("List all vehicles");
 
         group.MapGet("/tyre-pressure-thresholds", (TyrePressureThresholds thresholds) => Results.Ok(thresholds))
+        .Produces<TyrePressureThresholds>()
         .WithSummary("Get configured tyre pressure colour-coding thresholds");
 
-        var vehicleGroup = group.MapGroup("/{vin}").AddEndpointFilter<ResolveVehicleFilter>();
+        var vehicleGroup = group.MapGroup("/{vin}").ResolvesVehicle();
 
         vehicleGroup.MapGet("/config", (HttpContext httpContext) =>
         {
@@ -45,6 +49,7 @@ public static class VehicleEndpoints
                 ?? new Dictionary<string, string>();
             return Results.Ok(config);
         })
+        .Produces<Dictionary<string, string>>()
         .WithSummary("Get vehicle capability config");
 
         // The user's say, not the car's: nothing the car reports tells whether it has one.
@@ -58,6 +63,7 @@ public static class VehicleEndpoints
             await vehicles.SetHasPowerTailgateAsync(vehicle.Id, req.Enabled, ct);
             return Results.Ok(new PowerTailgateSetting(req.Enabled));
         })
+        .Produces<PowerTailgateSetting>()
         .WithSummary("Say whether the vehicle has a power tailgate, which the tailgate open and close commands need");
 
         vehicleGroup.MapGet("/status", async (HttpContext httpContext, ITelemetryRepository telemetry, CancellationToken ct) =>
@@ -66,7 +72,9 @@ public static class VehicleEndpoints
             var snapshot = await telemetry.GetMergedLatestAsync(vehicle.Id, ct);
             return snapshot is null ? Results.NoContent() : Results.Ok(snapshot);
         })
-        .WithSummary("Get latest telemetry for a vehicle");
+        .Produces<TelemetrySnapshot>()
+        .Produces(StatusCodes.Status204NoContent)
+        .WithSummary("Get latest telemetry for a vehicle (204 before the car has reported anything)");
 
         // A plain hybrid gets none: see ChargeSessionHistory.Applies.
         vehicleGroup.MapGet("/charge-sessions", async (
@@ -85,6 +93,8 @@ public static class VehicleEndpoints
 
             return Results.Ok(await telemetry.GetChargeSessionsAsync(vehicle.Id, start, end, ct));
         })
+        .Produces<ChargeSession[]>()
+        .ProducesProblem(StatusCodes.Status400BadRequest)
         .WithSummary("Get the charge sessions in a period (default the last 90 days, at most 366), rebuilt from recorded charging-state transitions, without their power curves");
 
         // One session's power curve, read when someone opens it rather than for every session.
@@ -111,6 +121,8 @@ public static class VehicleEndpoints
 
             return Results.Ok(await telemetry.GetChargePowerAsync(vehicle.Id, start, end, ct));
         })
+        .Produces<ChargeSessionPowerPoint[]>()
+        .ProducesProblem(StatusCodes.Status400BadRequest)
         .WithSummary("Get the charging power recorded in one session, from its start to its end (or now), in kW");
 
         vehicleGroup.MapGet("/stats/daily", async (
@@ -138,6 +150,8 @@ public static class VehicleEndpoints
 
             return Results.Ok(await telemetry.GetDailyStatsAsync(vehicle.Id, first, last, zone, today, ct));
         })
+        .Produces<DailyStat[]>()
+        .ProducesProblem(StatusCodes.Status400BadRequest)
         .WithSummary("Daily statistics for a vehicle: one row per local day, from every reading of it");
 
         // A month of each tyre's daily average, and how each moved against the other three over
@@ -164,6 +178,8 @@ public static class VehicleEndpoints
                 .ToList() ?? [];
             return Results.Ok(new TyreHistoryDto(days, trend, TyreTrend.WindowDays, losing));
         })
+        .Produces<TyreHistoryDto>()
+        .ProducesProblem(StatusCodes.Status400BadRequest)
         .WithSummary("A month of daily tyre pressures, and each tyre's change against the others over the last two weeks");
 
         vehicleGroup.MapPost("/commands/{command}", async (
@@ -196,9 +212,27 @@ public static class VehicleEndpoints
             if (outcome.Refusal is { } refusal)
                 return ApiProblems.BadRequest(refusal);
 
-            return Results.Ok(new { topic = outcome.Topic, value });
+            return Results.Ok(new VehicleCommandSent(outcome.Topic!, value));
         })
-        .WithSummary("Send a command to the vehicle via MQTT");
+        .Produces<VehicleCommandSent>()
+        .ProducesProblem(StatusCodes.Status400BadRequest)
+        .ProducesProblem(StatusCodes.Status409Conflict)
+        .AddOpenApiOperationTransformer(async (operation, context, ct) =>
+        {
+            // The commands there are, from the one table that sends them.
+            if (operation.Parameters?.FirstOrDefault(p => p.Name == "command") is OpenApiParameter parameter)
+                parameter.Schema = new OpenApiSchema
+                {
+                    Type = JsonSchemaType.String,
+                    Enum = [.. VehicleCommands.Names.Order(StringComparer.Ordinal).Select(name => (JsonNode)JsonValue.Create(name))],
+                };
+
+            // The body is read by hand, so a missing or wrong value gets a code of its own; this
+            // says what it holds instead of "any JSON".
+            if (operation.RequestBody?.Content?.TryGetValue("application/json", out var body) == true)
+                body.Schema = await context.GetOrCreateSchemaAsync(typeof(VehicleCommandRequest), cancellationToken: ct);
+        })
+        .WithSummary("Send a command to the vehicle via MQTT; the car's answer arrives later over SignalR");
 
         vehicleGroup.MapGet("/stats", async (
             HttpContext httpContext,
@@ -215,6 +249,8 @@ public static class VehicleEndpoints
             var stats = await telemetry.GetAggregateStatsAsync(vehicle.Id, start, end, ct);
             return Results.Ok(stats);
         })
+        .Produces<VehicleAggregateStats>()
+        .ProducesProblem(StatusCodes.Status400BadRequest)
         .WithSummary("Get aggregate statistics for a vehicle over a date range");
 
         return app;
@@ -255,6 +291,12 @@ public record VehicleListItemDto(
 
 /// <summary>Whether the vehicle has a power tailgate. See <see cref="Vehicle.HasPowerTailgate"/>.</summary>
 public record PowerTailgateSetting(bool Enabled);
+
+/// <summary>A command's value, always as text: "on", "True", "80", or a small JSON object for a schedule.</summary>
+public record VehicleCommandRequest(string Value);
+
+/// <summary>A command as it was published: the gateway topic it went out on, and its value.</summary>
+public record VehicleCommandSent(string Topic, string Value);
 
 /// <summary>
 /// A month of daily statistics (the same rows as /stats/daily, for the same chart) and, when there

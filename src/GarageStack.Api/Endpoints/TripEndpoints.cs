@@ -17,7 +17,7 @@ public static class TripEndpoints
         var group = app.MapGroup("/api/vehicles/{vin}/trips")
             .WithTags("Trips")
             .RequireAuthorization()
-            .AddEndpointFilter<ResolveVehicleFilter>();
+            .ResolvesVehicle();
 
         group.MapGet("/", async (
             HttpContext httpContext,
@@ -46,6 +46,8 @@ public static class TripEndpoints
             var found = await trips.GetTripsAsync(vehicle.Id, start, end, ct);
             return compact ? Results.Ok(found.Select(t => t.ToCompact()).ToList()) : Results.Ok(found);
         })
+        .ProducesOneOf(typeof(TripDto[]), typeof(TripSummaryDto[]), typeof(CompactTripDto[]))
+        .ProducesProblem(StatusCodes.Status400BadRequest)
         .WithSummary("Get trip history (saved trips, then the ones not saved yet, including the trip being driven); points=false leaves out the fixes, format=compact packs them into a polyline and two arrays");
 
         // The dashboard shows one trip, so it asks for that one rather than a period of them.
@@ -55,6 +57,8 @@ public static class TripEndpoints
             var latest = await trips.GetLatestAsync(vehicle.Id, clock.GetUtcNow().UtcDateTime, ct);
             return latest is null ? Results.NoContent() : Results.Ok(latest);
         })
+        .Produces<TripDto>()
+        .Produces(StatusCodes.Status204NoContent)
         .WithSummary("Get the newest trip: the one being driven, or else the last one driven");
 
         // Without the fixes, so a whole tax year fits in one answer.
@@ -72,6 +76,8 @@ public static class TripEndpoints
 
             return Results.Ok(await trips.GetLogAsync(vehicle.Id, start, end, ct));
         })
+        .Produces<TripLogEntry[]>()
+        .ProducesProblem(StatusCodes.Status400BadRequest)
         .WithSummary("Get the trip log: saved trips with their purpose, notes, odometer readings and addresses");
 
         group.MapPut("/{id:long}", async (
@@ -90,6 +96,9 @@ public static class TripEndpoints
             var entry = await trips.SetPurposeAndNotesAsync(vehicle.Id, id, req.Purpose, notes, ct);
             return entry is null ? Results.NotFound() : Results.Ok(entry);
         })
+        .Produces<TripLogEntry>()
+        .ProducesProblem(StatusCodes.Status400BadRequest)
+        .Produces(StatusCodes.Status404NotFound)
         .WithSummary("Record what a trip was for, and any notes");
 
         group.MapPost("/purpose", async (
@@ -108,6 +117,8 @@ public static class TripEndpoints
             var changed = await trips.SetPurposeAsync(vehicle.Id, req.Ids, req.Purpose, ct);
             return Results.Ok(new TripPurposeResult(changed));
         })
+        .Produces<TripPurposeResult>()
+        .ProducesProblem(StatusCodes.Status400BadRequest)
         .WithSummary("Set the purpose of several trips at once, leaving their notes alone");
 
         group.MapPut("/{id:long}/hidden", async (
@@ -125,6 +136,9 @@ public static class TripEndpoints
             var entry = await trips.SetHiddenAsync(vehicle.Id, id, hidden, ct);
             return entry is null ? Results.NotFound() : Results.Ok(entry);
         })
+        .Produces<TripLogEntry>()
+        .ProducesProblem(StatusCodes.Status400BadRequest)
+        .Produces(StatusCodes.Status404NotFound)
         .WithSummary("Hide a trip from the map, the statistics, the dashboard and the trip log's totals, or show it again");
 
         group.MapPost("/{id:long}/merge-next", async (
@@ -147,6 +161,9 @@ public static class TripEndpoints
                 _ => Results.NotFound(),
             };
         })
+        .Produces<TripLogEntry>()
+        .ProducesProblem(StatusCodes.Status409Conflict)
+        .Produces(StatusCodes.Status404NotFound)
         .WithSummary("Join a trip with the saved trip after it, such as two trips a fuel stop split");
 
         group.MapGet("/{id:long}/editor", async (
@@ -158,6 +175,7 @@ public static class TripEndpoints
             var vehicle = httpContext.ResolvedVehicle();
             return EditResult(await trips.GetEditorAsync(vehicle.Id, id, ct));
         })
+        .ProducesTripEdit()
         .WithSummary("Get what the route editor needs for a saved trip: its points, the points as recorded, and where the car stood before and after it");
 
         // The whole route at once, so a save is one step to undo, and the server decides which
@@ -172,6 +190,7 @@ public static class TripEndpoints
             var vehicle = httpContext.ResolvedVehicle();
             return EditResult(await trips.SetPointsAsync(vehicle.Id, id, req.Points, ct));
         })
+        .ProducesTripEdit()
         .WithSummary("Replace a saved trip's route; its distance, ends and speed figures follow, the odometer readings stay");
 
         group.MapPost("/{id:long}/points/reset", async (
@@ -183,6 +202,7 @@ public static class TripEndpoints
             var vehicle = httpContext.ResolvedVehicle();
             return EditResult(await trips.ResetPointsAsync(vehicle.Id, id, ct));
         })
+        .ProducesTripEdit()
         .WithSummary("Put a saved trip's route back as it was recorded");
 
         // POST for the same reason as the map's reverse geocoding: a batch of ids, and a lookup
@@ -211,10 +231,20 @@ public static class TripEndpoints
                 return Results.Ok(new TripPlacesResult([], Available: true, HasMore: true));
             }
         })
+        .Produces<TripPlacesResult>()
+        .ProducesProblem(StatusCodes.Status400BadRequest)
         .WithSummary("Look up the addresses at either end of trips, keeping them on the trips for good");
 
         return app;
     }
+
+    // What EditResult answers, for the API reference.
+    private static RouteHandlerBuilder ProducesTripEdit(this RouteHandlerBuilder builder) =>
+        builder
+            .Produces<TripEditor>()
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .Produces(StatusCodes.Status404NotFound);
 
     private static IResult EditResult(TripEditResult result) => result.Outcome switch
     {

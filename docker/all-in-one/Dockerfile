@@ -186,7 +186,8 @@ COPY --from=dotnet-build /publish/worker /app/worker
 
 # Configuration
 COPY docker/all-in-one/nginx.conf       /etc/nginx/conf.d/default.conf
-# Same security-header snippet the frontend image uses, so the two never drift apart.
+# Same security-header snippets the frontend image uses, so the two never drift apart.
+COPY frontend/nginx-base-headers.conf /etc/nginx/snippets/garagestack-base-headers.conf
 COPY frontend/nginx-security-headers.conf /etc/nginx/snippets/garagestack-security-headers.conf
 # And the same locations, behind this image's own upstream (docker/all-in-one/nginx.conf).
 COPY frontend/nginx-app.conf /etc/nginx/snippets/garagestack-app.conf

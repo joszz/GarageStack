@@ -172,7 +172,7 @@ The Docker images set these themselves.
 | Variable | Default | What it does |
 | --- | --- | --- |
 | `ConnectionStrings__DefaultConnection` | none | PostgreSQL connection string for the API and the Worker, for example `Host=localhost;Database=garagestack;Username=garagestack;Password=...`. |
-| `ASPNETCORE_ENVIRONMENT` | `Production` | `Development` relaxes CORS and CSRF for local work and serves the API reference (Scalar) at `/scalar/v1`; `Demo` serves the reference too. |
+| `ASPNETCORE_ENVIRONMENT` | `Production` | `Development` relaxes CORS and CSRF for local work. The API reference at `/api/reference/` is there in every environment; see [`API.md`](API.md). |
 | `DEMO_MODE` | `false` | `true` runs the API on built-in fake data, without a database, broker or gateway. See [`DEMO.md`](DEMO.md). |
 
 ## Settings without a variable

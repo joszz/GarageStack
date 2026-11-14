@@ -41,6 +41,8 @@ public static class MapEndpoints
             var stations = await svc.GetStationsAsync(lat, lng, distanceKm, minPowerKw, maxPowerKw, ct);
             return Results.Ok(stations);
         })
+        .Produces<ChargingStationDto[]>()
+        .ProducesProblem(StatusCodes.Status400BadRequest)
         .WithSummary("Get nearby EV charging stations from Open Charge Map");
 
         group.MapGet("/poi/brands", async (
@@ -58,6 +60,8 @@ public static class MapEndpoints
             var brands = await svc.GetBrandsAsync(poiType, ct);
             return Results.Ok(brands);
         })
+        .Produces<string[]>()
+        .ProducesProblem(StatusCodes.Status400BadRequest)
         .WithSummary("Get distinct brand names from the cached POI dataset");
 
         group.MapGet("/poi", async (
@@ -88,6 +92,8 @@ public static class MapEndpoints
                 return Results.Ok(new PoiResult([], false));
             }
         })
+        .Produces<PoiResult>()
+        .ProducesProblem(StatusCodes.Status400BadRequest)
         .WithSummary("Get nearby POIs (fuel stations, service areas, speed cameras) from OSM Overpass cache");
 
         // POST rather than GET because a trip list asks about dozens of coordinates at once, and
@@ -122,6 +128,8 @@ public static class MapEndpoints
                 return Results.Ok(new ReverseGeocodeResult(points.Select(_ => (PlaceDto?)null).ToList(), true, true));
             }
         })
+        .Produces<ReverseGeocodeResult>()
+        .ProducesProblem(StatusCodes.Status400BadRequest)
         .WithSummary("Reverse geocode coordinates to street and city names via the OSM Nominatim cache");
 
         // POST for the same reason as /reverse, and more so: a trip is hundreds of coordinates,
@@ -153,6 +161,8 @@ public static class MapEndpoints
                 return Results.Ok(MapMatchResult.Retry);
             }
         })
+        .Produces<MapMatchResult>()
+        .ProducesProblem(StatusCodes.Status400BadRequest)
         .WithSummary("Snap a trip's GPS fixes onto OSM roads via the map matching cache");
 
         return app;

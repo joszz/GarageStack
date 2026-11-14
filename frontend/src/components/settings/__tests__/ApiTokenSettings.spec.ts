@@ -50,6 +50,17 @@ describe('ApiTokenSettings', () => {
     expect(wrapper.text()).toContain(en.settings.apiTokens.neverUsed)
   })
 
+  // The API serves the reference page itself, so the link leaves the app in a tab of its own.
+  it('links to the API reference in a new tab', async () => {
+    const wrapper = await render()
+
+    const link = wrapper.find('a.api-token-reference')
+    expect(link.attributes('href')).toBe('/api/reference/')
+    expect(link.attributes('target')).toBe('_blank')
+    expect(link.attributes('rel')).toBe('noopener')
+    expect(link.text()).toBe(en.settings.apiTokens.reference)
+  })
+
   it('shows a new token once, to copy, and adds it to the list', async () => {
     api.create.mockResolvedValue({
       details: { ...watch, id: 2, name: 'Home Assistant', prefix: 'gs_xyz789' },

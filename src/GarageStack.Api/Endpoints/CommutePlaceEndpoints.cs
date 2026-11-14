@@ -14,13 +14,14 @@ public static class CommutePlaceEndpoints
         var group = app.MapGroup("/api/vehicles/{vin}/commute-places")
             .WithTags("Commute places")
             .RequireAuthorization()
-            .AddEndpointFilter<ResolveVehicleFilter>();
+            .ResolvesVehicle();
 
         group.MapGet("/", async (HttpContext httpContext, ICommutePlaceRepository places, CancellationToken ct) =>
         {
             var vehicle = httpContext.ResolvedVehicle();
             return Results.Ok((await places.ListAsync(vehicle.Id, ct)).Select(ToDto));
         })
+        .Produces<CommutePlaceDto[]>()
         .WithSummary("List the vehicle's home and work places, home first");
 
         group.MapPost("/", async (
@@ -38,6 +39,8 @@ public static class CommutePlaceEndpoints
 
             return Results.Ok(await ChangedAsync(vehicle.Id, place, places, trips, ct));
         })
+        .Produces<CommutePlaceChange>()
+        .ProducesProblem(StatusCodes.Status400BadRequest)
         .WithSummary("Add a home or work place, and label the trips between them as commutes");
 
         group.MapPut("/{id:int}", async (
@@ -53,6 +56,9 @@ public static class CommutePlaceEndpoints
             var place = await places.UpdateAsync(vehicle.Id, id, p => Apply(p, req), ct);
             return place is null ? Results.NotFound() : Results.Ok(await ChangedAsync(vehicle.Id, place, places, trips, ct));
         })
+        .Produces<CommutePlaceChange>()
+        .ProducesProblem(StatusCodes.Status400BadRequest)
+        .Produces(StatusCodes.Status404NotFound)
         .WithSummary("Move, rename or resize a home or work place, and re-label the trips");
 
         group.MapDelete("/{id:int}", async (
@@ -63,6 +69,8 @@ public static class CommutePlaceEndpoints
                 ? Results.Ok(await ChangedAsync(vehicle.Id, null, places, trips, ct))
                 : Results.NotFound();
         })
+        .Produces<CommutePlaceChange>()
+        .Produces(StatusCodes.Status404NotFound)
         .WithSummary("Remove a home or work place, and re-label the trips");
 
         return app;

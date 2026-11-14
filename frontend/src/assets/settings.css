@@ -324,3 +324,8 @@
   flex-direction: column;
   min-width: 0;
 }
+
+/* A link, not the panel's main action: as wide as its text, under the token list. */
+.api-token-reference {
+  align-self: flex-start;
+}

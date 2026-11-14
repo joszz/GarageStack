@@ -18,7 +18,7 @@ public static class ClimateScheduleEndpoints
         var group = app.MapGroup("/api/vehicles/{vin}/climate-schedules")
             .WithTags("Climate schedules")
             .RequireAuthorization()
-            .AddEndpointFilter<ResolveVehicleFilter>();
+            .ResolvesVehicle();
 
         group.MapGet("/", async (HttpContext httpContext, IClimateScheduleRepository schedules, CancellationToken ct) =>
         {
@@ -26,6 +26,7 @@ public static class ClimateScheduleEndpoints
             var all = await schedules.ListAsync(vehicle.Id, ct);
             return Results.Ok(all.Select(ToDto));
         })
+        .Produces<ClimateScheduleDto[]>()
         .WithSummary("List climate schedules, earliest time of day first");
 
         group.MapPost("/", async (
@@ -46,6 +47,8 @@ public static class ClimateScheduleEndpoints
 
             return Results.Ok(ToDto(schedule));
         })
+        .Produces<ClimateScheduleDto>()
+        .ProducesProblem(StatusCodes.Status400BadRequest)
         .WithSummary("Create a climate schedule");
 
         group.MapPut("/{id:int}", async (
@@ -59,6 +62,9 @@ public static class ClimateScheduleEndpoints
             var schedule = await schedules.UpdateAsync(vehicle.Id, id, s => Apply(s, req, valid!, clock.GetUtcNow().UtcDateTime), ct);
             return schedule is null ? Results.NotFound() : Results.Ok(ToDto(schedule));
         })
+        .Produces<ClimateScheduleDto>()
+        .ProducesProblem(StatusCodes.Status400BadRequest)
+        .Produces(StatusCodes.Status404NotFound)
         .WithSummary("Replace a climate schedule's settings, including whether it is switched on");
 
         group.MapDelete("/{id:int}", async (
@@ -67,6 +73,8 @@ public static class ClimateScheduleEndpoints
             var vehicle = httpContext.ResolvedVehicle();
             return await schedules.DeleteAsync(vehicle.Id, id, ct) ? Results.Ok() : Results.NotFound();
         })
+        .Produces(StatusCodes.Status200OK)
+        .Produces(StatusCodes.Status404NotFound)
         .WithSummary("Delete a climate schedule");
 
         return app;
