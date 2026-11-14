@@ -26,10 +26,11 @@ internal static class ApiReferencePage
     /// <summary>
     /// Sends a browser that is not signed in to the login page, which brings it back here, and
     /// gives the page its Content-Security-Policy. Between authentication and authorization, so
-    /// the user is known and the redirect comes before authorization's bare 401.
+    /// the user is known and the redirect comes before authorization's bare 401. Nothing, while
+    /// the page is switched off: a sign-in would only lead to its 404.
     /// </summary>
-    public static IApplicationBuilder UseApiReferencePage(this IApplicationBuilder app) =>
-        app.UseWhen(
+    public static IApplicationBuilder UseApiReferencePage(this IApplicationBuilder app, ApiReferenceOptions options) =>
+        !options.Enabled ? app : app.UseWhen(
             context => context.Request.Path.StartsWithSegments(Path),
             branch => branch.Use(async (context, next) =>
             {
@@ -52,12 +53,17 @@ internal static class ApiReferencePage
                 await next(context);
             }));
 
-    /// <summary>The OpenAPI document and the page that shows it, both for signed-in callers only.</summary>
-    public static IEndpointRouteBuilder MapApiReferencePage(this IEndpointRouteBuilder app)
+    /// <summary>
+    /// The OpenAPI document, always, and the page that shows it when <paramref name="options"/>
+    /// switch it on; both for signed-in callers only. Switched off, /api/reference answers 404.
+    /// </summary>
+    public static IEndpointRouteBuilder MapApiReferencePage(this IEndpointRouteBuilder app, ApiReferenceOptions options)
     {
         app.MapOpenApi(OpenApiSetup.DocumentRoute).RequireAuthorization();
+        if (!options.Enabled)
+            return app;
 
-        app.MapScalarApiReference(Path, options => options
+        app.MapScalarApiReference(Path, scalar => scalar
                 .WithTitle("GarageStack API reference")
                 .WithOpenApiRoutePattern(OpenApiSetup.DocumentRoute)
                 .WithTheme(ScalarTheme.DeepSpace)

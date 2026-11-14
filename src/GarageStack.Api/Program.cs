@@ -41,6 +41,7 @@ try
         .PersistKeysToFileSystem(new DirectoryInfo("keys"));
 
     var isDemoMode = builder.Configuration.GetValue<bool>("DEMO_MODE");
+    var apiReference = ApiReferenceOptions.From(builder.Configuration, builder.Environment.EnvironmentName, isDemoMode);
 
     builder.Services.AddLocalization(opts => opts.ResourcesPath = "Resources");
     builder.Services.Configure<MqttOptions>(builder.Configuration.GetSection(MqttOptions.SectionName));
@@ -70,6 +71,7 @@ try
     }
     var releaseVersion = ReleaseVersion.Of(typeof(ApiEntryPoint).Assembly);
     builder.Services.AddGarageStackOpenApi(releaseVersion);
+    builder.Services.AddSingleton(apiReference);
     // Every error answer is a ProblemDetails body; refusals add a `code` the browser translates.
     builder.Services.AddProblemDetails();
     builder.Services.ConfigureHttpJsonOptions(opts =>
@@ -145,13 +147,14 @@ try
         SupportedUICultures = [new CultureInfo("en"), new CultureInfo("nl"), new CultureInfo("es"), new CultureInfo("pt")],
     });
     app.UseAuthentication();
-    app.UseApiReferencePage();
+    app.UseApiReferencePage(apiReference);
     app.UseMiddleware<ApiTokenAuthentication.ReadOnlyMiddleware>();
     app.UseAuthorization();
 
     // The OpenAPI document and the reference page that shows it, for whoever is signed in: a
-    // token reads the document, a browser opens the page on the app's own address.
-    app.MapApiReferencePage();
+    // token reads the document, a browser opens the page on the app's own address. The page only
+    // where API_REFERENCE_ENABLED (or demo mode, or development) switches it on.
+    app.MapApiReferencePage(apiReference);
 
     app.MapHealthEndpoints();
     app.MapHub<TelemetryHub>("/hubs/telemetry").RequireAuthorization();

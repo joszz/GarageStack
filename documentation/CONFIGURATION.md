@@ -146,6 +146,7 @@ than one.
 | Variable | Default | What it does |
 | --- | --- | --- |
 | `RATE_LIMIT_GLOBAL_PER_MINUTE` | `120` | Requests per minute the API accepts from one address. Raise it when several people share one public address. Login and the widget keep their own, tighter limits. |
+| `API_REFERENCE_ENABLED` | `false` | `true` serves the API reference page at `/api/reference/` and links it under Settings, API tokens: every endpoint, tried out with your own session. It runs the Scalar library on GarageStack's own address, so it is off until you want it. Demo mode and `ASPNETCORE_ENVIRONMENT=Development` serve it unless this says `false`. The OpenAPI document at `/api/openapi/v1.json` is served either way. See [`API.md`](API.md). |
 | `UPDATE_CHECK_ENABLED` | `true` | Once a day the API asks GitHub for the latest release, and the footer links to it when it is newer than the running version. `false` keeps the API from contacting GitHub. A build without a version (from source without `APP_VERSION`) never asks. |
 | `WIDGET_API_KEY` | none | Key for the Homepage dashboard widget endpoint. Empty switches the endpoint off. See [`WIDGET.md`](WIDGET.md). |
 | `DEBUG_LOGS` | `false` | `true` turns on debug logging in the API and the Worker, including a line for every API request. Without it, only refused (4xx), failed (5xx) and slow (over a second) requests are logged. |

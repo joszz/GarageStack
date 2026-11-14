@@ -229,6 +229,8 @@ services:
       # Asks GitHub once a day whether a newer release is out, for a notice in the footer. Set to
       # false to keep the API from contacting GitHub. See .env.example.
       UPDATE_CHECK_ENABLED: "${UPDATE_CHECK_ENABLED:-}"
+      # The API reference page at /api/reference/, off until true. See .env.example.
+      API_REFERENCE_ENABLED: "${API_REFERENCE_ENABLED:-}"
       # The traction battery's real capacity, which the MQTT gateway assumes rather than reads.
       # Left unset, a plug-in car keeps the gateway's figure and a hybrid shows charge as a
       # percentage only. See .env.example.

@@ -6,6 +6,8 @@ The web app does everything through GarageStack's own REST API, and anything els
 
 Open `/api/reference/` on the address you use for GarageStack, or follow **API reference** under **Settings > Data & API > API tokens**. It lists every endpoint with what it takes and what it answers, and asks you to sign in first if you have not.
 
+A deployment serves the page once `API_REFERENCE_ENABLED=true` is set; [demo mode](DEMO.md) and development serve it unless that says `false`. It is off by default because it runs a third-party library, Scalar, on GarageStack's own address with your session, and most installs never need it. Off, `/api/reference/` answers 404 and the settings show no link. The OpenAPI document below is served either way.
+
 *Test Request* on any endpoint sends the request with your own session: nothing to fill in, and it is the real thing. A command goes to the car, a delete deletes. In [demo mode](DEMO.md) it goes to the demo car.
 
 The page is [Scalar](https://scalar.com), served by the API itself. It loads nothing from elsewhere: no fonts or scripts from a CDN, no telemetry, and Scalar's AI and hosted-client features are switched off.

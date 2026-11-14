@@ -1,3 +1,4 @@
+using GarageStack.Api.Reference;
 using GarageStack.Core.Configuration;
 using Microsoft.Extensions.Configuration;
 
@@ -165,5 +166,22 @@ public class DeploymentOptionsTests
         Assert.True(rdw.Enabled);
         Assert.Equal(12, rdw.RefreshHours);
         Assert.Equal("app-token", rdw.AppToken);
+    }
+
+    // The reference page runs a third-party bundle on the app's address: off in production until
+    // asked for, on where people try things out, and a blank setting means the default.
+    [Theory]
+    [InlineData("Production", false, "", false)]
+    [InlineData("Production", false, "true", true)]
+    [InlineData("Production", true, "", true)]
+    [InlineData("Production", true, "false", false)]
+    [InlineData("Development", false, " ", true)]
+    [InlineData("Demo", false, "", true)]
+    [InlineData("Development", false, "FALSE", false)]
+    public void ApiReference_IsOffInProduction_UntilSwitchedOn(string environment, bool demoMode, string setting, bool expected)
+    {
+        var options = ApiReferenceOptions.From(Config((ApiReferenceOptions.SettingKey, setting)), environment, demoMode);
+
+        Assert.Equal(expected, options.Enabled);
     }
 }

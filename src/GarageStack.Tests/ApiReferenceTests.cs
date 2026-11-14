@@ -40,6 +40,43 @@ public partial class AuthenticationFlowTests
         Assert.True(document.GetProperty("paths").TryGetProperty("/api/vehicles/{vin}/trips/{id}/merge-next", out _));
     }
 
+    // Switched off, there is no page and no redirect to sign in for it, and the settings are told
+    // so; the document stays, for scripts with a token.
+    [Fact]
+    public async Task ApiReferencePage_SwitchedOff_IsNotServed_ButTheDocumentIs()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var factory = CreatePasswordOnlyFactory(settings => settings["API_REFERENCE_ENABLED"] = "false");
+        using var client = CreateClient(factory);
+
+        using var signedOut = new HttpRequestMessage(HttpMethod.Get, ReferencePagePath);
+        signedOut.Headers.Accept.ParseAdd("text/html");
+        var beforeSignIn = await client.SendAsync(signedOut, ct);
+        await PasswordLoginAsync(client, ct);
+        var page = await client.GetAsync(ReferencePagePath, ct);
+        var document = await client.GetAsync(DocumentPath, ct);
+        var status = await client.GetFromJsonAsync<ApiReferenceStatus>("/api/tokens/reference", ct);
+
+        Assert.NotEqual(HttpStatusCode.Redirect, beforeSignIn.StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, page.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, document.StatusCode);
+        Assert.False(status!.Enabled);
+    }
+
+    // Demo mode, which these hosts run in, serves the page unless told not to.
+    [Fact]
+    public async Task ApiReferencePage_IsServedInDemoMode_AndTheSettingsAreToldSo()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var factory = CreatePasswordOnlyFactory();
+        using var client = CreateClient(factory);
+        await PasswordLoginAsync(client, ct);
+
+        var status = await client.GetFromJsonAsync<ApiReferenceStatus>("/api/tokens/reference", ct);
+
+        Assert.True(status!.Enabled);
+    }
+
     // A browser that is not signed in goes to the login page, which brings it back; a script gets
     // the 401 every other endpoint answers.
     [Fact]

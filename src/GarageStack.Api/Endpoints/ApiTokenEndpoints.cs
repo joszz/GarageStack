@@ -1,4 +1,5 @@
 using GarageStack.Api.Authentication;
+using GarageStack.Api.Reference;
 using GarageStack.Core.Interfaces;
 using GarageStack.Core.Models;
 
@@ -14,6 +15,9 @@ public static class ApiTokenEndpoints
 
     public static IEndpointRouteBuilder MapApiTokenEndpoints(this IEndpointRouteBuilder app)
     {
+        // Deployment configuration, not request input.
+        var apiReference = app.ServiceProvider.GetRequiredService<ApiReferenceOptions>();
+
         var group = app.MapGroup(Path)
             .WithTags("API tokens")
             .RequireAuthorization()
@@ -57,6 +61,11 @@ public static class ApiTokenEndpoints
         .Produces(StatusCodes.Status204NoContent)
         .Produces(StatusCodes.Status404NotFound)
         .WithSummary("Revoke an API token: it stops working at once");
+
+        // The settings link to the reference page only where it is served.
+        group.MapGet("/reference", () => Results.Ok(new ApiReferenceStatus(apiReference.Enabled)))
+            .Produces<ApiReferenceStatus>()
+            .WithSummary("Whether this deployment serves the API reference page (API_REFERENCE_ENABLED)");
 
         return app;
     }

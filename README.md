@@ -499,7 +499,7 @@ curl -H "Authorization: Bearer gs_..." https://garagestack.example.com/api/vehic
 
 A token reads as the account that made it, through the same endpoints the app uses, and it can only read: any request that would change something, send a command or make another token is refused with `403`. The full data export and the server logs are refused too: they hold the car's whole history and the services' diagnostics, so they need a signed-in session. The list under Settings shows when each token was last used; revoking one stops it at once. GarageStack keeps only a hash of each token, so a lost one cannot be shown again: revoke it and make a new one.
 
-**The API reference** is at `/api/reference/` on the address you use for GarageStack, also linked under the token list: every endpoint, what it takes and what it answers, and a *Test Request* button that sends a request with your signed-in session. The same description is at `/api/openapi/v1.json` as an OpenAPI document, readable with the token like any other endpoint, for code generators and other tools:
+**The API reference** is at `/api/reference/` on the address you use for GarageStack once `API_REFERENCE_ENABLED=true` is set, and is then also linked under the token list: every endpoint, what it takes and what it answers, and a *Test Request* button that sends a request with your signed-in session. The same description is always at `/api/openapi/v1.json` as an OpenAPI document, readable with the token like any other endpoint, for code generators and other tools:
 
 ```bash
 curl -H "Authorization: Bearer gs_..." https://garagestack.example.com/api/openapi/v1.json -o garagestack-openapi.json

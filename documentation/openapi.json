@@ -903,6 +903,47 @@
         ]
       }
     },
+    "/api/tokens/reference": {
+      "get": {
+        "tags": [
+          "API tokens"
+        ],
+        "summary": "Whether this deployment serves the API reference page (API_REFERENCE_ENABLED)",
+        "responses": {
+          "403": {
+            "description": "`token.cannotManageTokens`: API tokens are managed from a signed-in session only.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiReferenceStatus"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the API token is unknown or revoked."
+          },
+          "429": {
+            "description": "Too many requests from this address; wait a minute and try again."
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ]
+      }
+    },
     "/api/vehicles": {
       "get": {
         "tags": [
@@ -5787,6 +5828,18 @@
   },
   "components": {
     "schemas": {
+      "ApiReferenceStatus": {
+        "required": [
+          "enabled"
+        ],
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          }
+        },
+        "description": "Whether this deployment serves the API reference page, for the link under the token settings."
+      },
       "ApiTokenDto": {
         "required": [
           "id",
