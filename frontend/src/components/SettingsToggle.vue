@@ -21,6 +21,8 @@ const model = defineModel<boolean>()
         </span>
       </slot>
       <span v-if="desc" class="settings-toggle__desc text-muted">{{ desc }}</span>
+      <!-- What the setting has to say after a change: saved, or why it was not. -->
+      <slot name="note" />
     </div>
     <div class="settings-toggle__control">
       <slot name="control">

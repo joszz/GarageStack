@@ -575,13 +575,15 @@
     "title": "Configurações",
     "theme": {
       "title": "Aparência",
+      "label": "Tema",
       "light": "Claro",
       "dark": "Escuro",
       "system": "Sistema",
       "desc": "Sistema segue a configuração clara ou escura deste dispositivo."
     },
     "language": {
-      "title": "Idioma"
+      "title": "Idioma",
+      "desc": "O idioma em que o GarageStack é exibido. As notificações push usam o idioma configurado no servidor."
     },
     "cards": {
       "fuelLevel": "Nível de combustível",
@@ -615,6 +617,7 @@
     },
     "carColor": {
       "title": "Cor do carro",
+      "desc": "Como o carro é desenhado no painel e no mapa.",
       "orange": "Laranja",
       "red": "Vermelho",
       "blue": "Azul",
@@ -625,12 +628,10 @@
       "purple": "Roxo"
     },
     "dashboard": {
-      "title": "Painel",
       "cardInfoIcons": "Mostrar ícones de informação",
-      "cardInfoIconsDesc": "Mostra o botão de informação em cada cartão"
+      "cardInfoIconsDesc": "Adiciona a cada cartão do painel e das estatísticas um botão que explica o que o cartão mostra."
     },
     "map": {
-      "title": "Mapa",
       "placeNames": "Mostrar nomes de lugares",
       "placeNamesDesc": "Nomeia as viagens pelas cidades de origem e destino e mostra a rua onde o carro está estacionado. Desativado, as viagens são listadas por data e nenhuma coordenada é enviada ao geocodificador.",
       "colorful": "Mapas coloridos",
@@ -638,9 +639,8 @@
     },
     "vehicleType": {
       "title": "Tipo de veículo",
-      "detected": "Detectado",
-      "notDetected": "Ainda não detectado -- inicie o gateway para detectar automaticamente",
-      "override": "Definir manualmente",
+      "desc": "O gateway informa {type}. Escolha outro tipo apenas se estiver errado: os cartões do painel, as notificações e as unidades oferecidas seguem essa escolha.",
+      "notDetected": "Ainda não detectado: o gateway informa assim que estiver em execução. Até lá, escolha o tipo aqui.",
       "auto": "Automático (usar o detectado)",
       "hev": "HEV (híbrido, sem plugue)",
       "phev": "PHEV (híbrido plug-in)",
@@ -657,30 +657,30 @@
       "cleared": "Removida."
     },
     "powerTailgate": {
-      "title": "Tampa traseira",
       "label": "Tampa traseira elétrica",
       "desc": "Ative se o porta-malas do carro abre e fecha sozinho. O cartão Portas poderá então abri-lo e fechá-lo, em vez de apenas destravá-lo. Um carro sem tampa traseira elétrica recusa o comando."
     },
-    "notificationTypes": {
-      "title": "Notificações"
-    },
     "units": {
-      "title": "Região e unidades",
+      "title": "Idioma, região e unidades",
       "auto": "Automático: {value}",
       "region": "Região",
-      "regionDesc": "Define a ordem da data, além do relógio e das unidades deixados no automático",
+      "regionDesc": "Define a ordem da data, além do relógio e das unidades deixados no automático.",
       "clock": "Relógio",
+      "clockDesc": "Como os horários são escritos.",
       "clockOptions": {
         "h23": "24 horas ({example})",
         "h12": "12 horas ({example})"
       },
       "distance": "Distância e velocidade",
-      "distanceDesc": "Usado para o hodômetro e a velocidade",
+      "distanceDesc": "Usado para as distâncias, o hodômetro e a velocidade.",
       "energyConsumption": "Consumo de energia",
+      "energyConsumptionDesc": "Usado para os números de eficiência.",
       "temperature": "Temperatura",
+      "temperatureDesc": "Usado para a climatização e seus agendamentos.",
       "pressure": "Pressão dos pneus",
+      "pressureDesc": "Usado para as leituras dos pneus e seus limites de alerta.",
       "fuelConsumption": "Consumo de combustível",
-      "fuelConsumptionDesc": "O combustível usado é contado no mesmo galão",
+      "fuelConsumptionDesc": "Usado para o consumo de combustível. O combustível usado é contado no mesmo galão.",
       "options": {
         "km": "Quilômetros (km, km/h)",
         "mi": "Milhas (mi, mph)",

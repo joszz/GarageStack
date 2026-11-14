@@ -4,9 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useUiSettingsStore, type VehicleTypeOverride } from '@/stores/settingsUi'
 import { useDashboardSettingsStore } from '@/stores/settingsDashboard'
 import { useVehicleStore } from '@/stores/vehicle'
-import SettingsToggle from '../SettingsToggle.vue'
 import SettingsSelect, { type SettingsSelectOption } from '../SettingsSelect.vue'
-import StatusBadge from '@/components/StatusBadge.vue'
 
 // What the gateway says the car is, and the override for when it gets that wrong.
 const { t } = useI18n()
@@ -22,13 +20,14 @@ function chooseType(type: VehicleTypeOverride) {
   dashboardSettings.applyTypeDefaults(vehicleStore.effectiveVehicleType)
 }
 
-const detectedLabel = computed(() => {
+// What the gateway reported, with the raw series it came from, so a wrong guess is plain to see.
+const desc = computed(() => {
   const type = vehicleStore.detectedVehicleType
-  if (type === 'unknown') return null
-  return type.toUpperCase()
+  if (type === 'unknown') return t('settings.vehicleType.notDetected')
+  const series = vehicleStore.vehicleConfig['hw_version']
+  const detected = series ? `${type.toUpperCase()} (${series})` : type.toUpperCase()
+  return t('settings.vehicleType.desc', { type: detected })
 })
-
-const hwVersion = computed(() => vehicleStore.vehicleConfig['hw_version'] ?? null)
 
 // Computed so the labels follow a language switch made in this same dialog.
 const typeOptions = computed((): SettingsSelectOption<VehicleTypeOverride>[] => [
@@ -40,22 +39,12 @@ const typeOptions = computed((): SettingsSelectOption<VehicleTypeOverride>[] => 
 </script>
 
 <template>
-  <div class="settings-toggles">
-    <SettingsToggle
-      :label="t('settings.vehicleType.detected')"
-      :desc="detectedLabel ? undefined : t('settings.vehicleType.notDetected')"
-    >
-      <template #control>
-        <span v-if="hwVersion" class="text-muted text-xs">{{ hwVersion }}</span>
-        <StatusBadge v-if="detectedLabel" variant="info">{{ detectedLabel }}</StatusBadge>
-      </template>
-    </SettingsToggle>
-    <SettingsSelect
-      id="settings-vehicle-type"
-      :model-value="settings.vehicleTypeOverride"
-      :label="t('settings.vehicleType.override')"
-      :options="typeOptions"
-      @update:model-value="chooseType"
-    />
-  </div>
+  <SettingsSelect
+    id="settings-vehicle-type"
+    :model-value="settings.vehicleTypeOverride"
+    :label="t('settings.vehicleType.title')"
+    :desc="desc"
+    :options="typeOptions"
+    @update:model-value="chooseType"
+  />
 </template>

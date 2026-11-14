@@ -52,43 +52,61 @@
 
 /* A choice from a list goes under its label, at full width: its options are too long to sit
    beside the label, in a modal as narrow as a phone. */
-.settings-toggle--select {
+.settings-toggle--select,
+.settings-toggle--stacked {
   flex-direction: column;
   align-items: stretch;
   gap: 0.5rem;
 }
 
-.settings-toggle__select {
+/* A stacked row's content (a form, a list) runs down the row under its label. */
+.settings-toggle--stacked > .settings-toggle__control {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.75rem;
+}
+
+.settings-toggle__select,
+.settings-toggle__control > .toggle-chip-group--segmented {
   width: 100%;
 }
 
-/* Three short words: as wide as the phone's dialog, no wider than they need beside it. */
-.settings-theme {
-  max-width: 24rem;
+/* Where the settings have the room (the dialog beside the sidebar, not a phone), a row reads as
+   a table: the label and what it does on the left, the value on the right, every control in one
+   column of the same width, so the rows line up down the dialog. */
+.settings-panels {
+  --settings-control-width: 20rem;
+
+  container-type: inline-size;
 }
 
-.notif-type-filter {
-  padding: 0.25rem 0 0.5rem;
-}
+@container (width >= 36rem) {
+  .settings-toggle--select {
+    flex-direction: row;
+    align-items: center;
+    gap: 1.5rem;
+  }
 
-.notif-type-filter__header {
-  margin-bottom: 0.5rem;
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 0.75rem;
+  .settings-toggle--select > .settings-toggle__info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .settings-toggle--select > .settings-toggle__control {
+    flex: 0 0 var(--settings-control-width);
+    justify-content: flex-end;
+  }
+
+  /* A button needs no column: the description keeps the room. */
+  .settings-toggle--select.settings-toggle--action > .settings-toggle__control {
+    flex-basis: auto;
+  }
 }
 
 .notif-type-filter__actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.4rem;
-  flex-shrink: 0;
-}
-
-.notif-type-filter__denied {
-  display: block;
-  margin-bottom: 0.5rem;
 }
 
 /* The tab panel owns vertical scrolling; the checklist adapts to the available width. */
@@ -96,8 +114,9 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
   gap: 0.4rem 0.75rem;
-  margin-top: 0.5rem;
-  padding-right: 0.25rem;
+
+  /* Out by the items' own padding, so the switches line up with the label above. */
+  margin-inline: -0.4rem;
 }
 
 .notif-type-checklist__item {
@@ -224,16 +243,11 @@
 
 /* ── Car colour picker ────────────────────────────────────── */
 
-.car-color-picker {
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-}
-
+/* All eight in one row of the settings' control column (20rem). */
 .car-color-swatches {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: 0.4rem;
 }
 
 .car-color-swatch {
@@ -267,11 +281,8 @@
 .license-plate-form {
   display: flex;
   gap: 0.5rem;
-  align-items: center;
-}
 
-/* The buttons take the plate's height, so the row reads as one control. */
-.license-plate-form {
+  /* The buttons take the height of the field or plate beside them, so the row reads as one. */
   align-items: stretch;
 }
 

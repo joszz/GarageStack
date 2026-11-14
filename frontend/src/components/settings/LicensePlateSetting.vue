@@ -5,6 +5,7 @@ import { useRdwStore } from '@/stores/rdw'
 import { useVehicleStore } from '@/stores/vehicle'
 import { useErrorMessage } from '@/composables/useErrorMessage'
 import { formatPlate, normalizePlate } from '@/utils/licensePlate'
+import SettingsToggle from '../SettingsToggle.vue'
 import LicensePlateInput from './LicensePlateInput.vue'
 
 // The car's Dutch plate, kept on the vehicle (the Worker looks it up) rather than in the
@@ -47,30 +48,36 @@ async function save(value: string) {
 </script>
 
 <template>
-  <div class="form-stack">
-    <p class="settings-toggle__desc">{{ t('settings.licensePlate.desc') }}</p>
-
-    <form class="license-plate-form" @submit.prevent="save(plate)">
-      <LicensePlateInput
-        v-model="plate"
-        :label="t('settings.licensePlate.label')"
-        :placeholder="t('settings.licensePlate.placeholder')"
-      />
-      <button type="submit" class="btn btn-primary" :disabled="busy || !changed">
-        {{ t('settings.licensePlate.save') }}
-      </button>
-      <button
-        v-if="saved"
-        type="button"
-        class="btn btn-outline-secondary"
-        :disabled="busy"
-        @click="save('')"
-      >
-        {{ t('settings.licensePlate.clear') }}
-      </button>
-    </form>
-
-    <p v-if="error" class="text-danger text-sm" role="alert">{{ error }}</p>
-    <p v-else-if="done" class="text-muted text-sm" role="status">{{ done }}</p>
-  </div>
+  <!-- Stacked: the plate and its buttons are wider than the column the other controls share. -->
+  <SettingsToggle
+    class="settings-toggle--stacked"
+    :label="t('settings.licensePlate.title')"
+    :desc="t('settings.licensePlate.desc')"
+  >
+    <template #control>
+      <form class="license-plate-form" @submit.prevent="save(plate)">
+        <LicensePlateInput
+          v-model="plate"
+          :label="t('settings.licensePlate.label')"
+          :placeholder="t('settings.licensePlate.placeholder')"
+        />
+        <button type="submit" class="btn btn-primary" :disabled="busy || !changed">
+          {{ t('settings.licensePlate.save') }}
+        </button>
+        <button
+          v-if="saved"
+          type="button"
+          class="btn btn-outline-secondary"
+          :disabled="busy"
+          @click="save('')"
+        >
+          {{ t('settings.licensePlate.clear') }}
+        </button>
+      </form>
+    </template>
+    <template #note>
+      <p v-if="error" class="text-danger text-sm" role="alert">{{ error }}</p>
+      <p v-else-if="done" class="text-muted text-sm" role="status">{{ done }}</p>
+    </template>
+  </SettingsToggle>
 </template>

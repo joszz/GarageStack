@@ -35,7 +35,10 @@ vi.mock('@/composables/useNotificationPushSync', () => ({
 const i18n = createI18n({ legacy: false, locale: 'en', missingWarn: false, fallbackWarn: false })
 
 function mountSettings() {
-  return shallowMount(NotificationTypeSettings, { global: { plugins: [i18n] } })
+  // The rows render for real: the switch and the checklist are their slot content.
+  return shallowMount(NotificationTypeSettings, {
+    global: { plugins: [i18n], stubs: { SettingsToggle: false } },
+  })
 }
 
 function labels() {
@@ -84,13 +87,13 @@ describe('NotificationTypeSettings', () => {
   })
 
   it('offers the push switch where the browser supports push', () => {
-    expect(mountSettings().findComponent({ name: 'SettingsToggle' }).exists()).toBe(true)
+    expect(mountSettings().find('#settings-toggle-push').exists()).toBe(true)
   })
 
   it('leaves the push switch out where the browser has no push', () => {
     pushSupported.value = false
 
-    expect(mountSettings().findComponent({ name: 'SettingsToggle' }).exists()).toBe(false)
+    expect(mountSettings().find('#settings-toggle-push').exists()).toBe(false)
   })
 
   it('explains that push needs https on a plain-HTTP address', () => {
