@@ -11,6 +11,8 @@ namespace GarageStack.Api.Security;
 /// </summary>
 internal sealed class CsrfOriginMiddleware(RequestDelegate next, IReadOnlyList<string> allowedOrigins)
 {
+    internal const string RefusedCode = "csrf.originNotAllowed";
+
     private readonly string _allowedForLog = string.Join(", ", allowedOrigins);
 
     public async Task InvokeAsync(HttpContext context)
@@ -25,7 +27,7 @@ internal sealed class CsrfOriginMiddleware(RequestDelegate next, IReadOnlyList<s
                     "If you are accessing from a LAN device, set CORS_ORIGIN to match the address in your browser.",
                     origin.Replace("\r", "", StringComparison.Ordinal).Replace("\n", "", StringComparison.Ordinal),
                     _allowedForLog);
-                await ApiProblems.Problem(StatusCodes.Status403Forbidden, "csrf.originNotAllowed",
+                await ApiProblems.Problem(StatusCodes.Status403Forbidden, RefusedCode,
                         "Origin not allowed. Set CORS_ORIGIN to the address you use to reach the app.")
                     .ExecuteAsync(context);
                 return;
@@ -35,6 +37,6 @@ internal sealed class CsrfOriginMiddleware(RequestDelegate next, IReadOnlyList<s
         await next(context);
     }
 
-    private static bool IsStateChanging(string method) =>
+    internal static bool IsStateChanging(string method) =>
         HttpMethods.IsPost(method) || HttpMethods.IsPut(method) || HttpMethods.IsPatch(method) || HttpMethods.IsDelete(method);
 }

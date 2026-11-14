@@ -417,6 +417,17 @@
     Mask="false">en</Config>
 
   <Config
+    Name="API Reference"
+    Target="API_REFERENCE_ENABLED"
+    Default="false"
+    Mode=""
+    Description="Serves a page at /api/reference/ listing every API endpoint, with a button that tries one with your signed-in session (also linked under Settings, API tokens). It runs the Scalar library on GarageStack's own address, so it is off until you set it to true. The OpenAPI document at /api/openapi/v1.json is served either way."
+    Type="Variable"
+    Display="advanced"
+    Required="false"
+    Mask="false">false</Config>
+
+  <Config
     Name="Update Check"
     Target="UPDATE_CHECK_ENABLED"
     Default="true"

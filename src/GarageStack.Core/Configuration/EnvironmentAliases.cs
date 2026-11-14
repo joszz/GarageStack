@@ -72,6 +72,9 @@ public static class EnvironmentAliases
         // Asking GitHub once a day whether a newer release is out.
         ["UPDATE_CHECK_ENABLED"] = "UpdateCheck:Enabled",
 
+        // The API reference page (Scalar) at /api/reference, off in production until switched on.
+        ["API_REFERENCE_ENABLED"] = "ApiReference:Enabled",
+
         // Optional extras, each off until given a key.
         ["WIDGET_API_KEY"] = "Widget:ApiKey",
         ["OPENCHARGEMAP_API_KEY"] = "OpenChargeMap:ApiKey",

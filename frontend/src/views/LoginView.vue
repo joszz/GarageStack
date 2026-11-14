@@ -104,7 +104,10 @@ async function submitLogin() {
 
   try {
     await auth.login(username.value, password.value, rememberMe.value)
-    await router.replace(redirectTarget.value)
+    // A page the API serves itself, such as the API reference, is not one of this app's routes:
+    // only a full page load reaches it.
+    if (redirectTarget.value.startsWith('/api/')) redirectTo(redirectTarget.value)
+    else await router.replace(redirectTarget.value)
   } catch (err) {
     if (err instanceof ApiError && err.status === 401) {
       errorText.value = t('auth.invalidCredentials')

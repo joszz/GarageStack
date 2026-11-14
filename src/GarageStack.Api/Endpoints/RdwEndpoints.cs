@@ -20,7 +20,8 @@ public static class RdwEndpoints
         var group = app.MapGroup("/api/vehicles/{vin}")
             .WithTags("RDW")
             .RequireAuthorization()
-            .AddEndpointFilter<ResolveVehicleFilter>();
+            .ResolvesVehicle()
+            .ProducesProblem(StatusCodes.Status404NotFound);
 
         // Deployment configuration, not request input.
         var options = app.ServiceProvider.GetRequiredService<RdwOptions>();
@@ -35,6 +36,7 @@ public static class RdwEndpoints
             var info = await rdw.GetAsync(vehicle.Id, ct);
             return Results.Ok(ToDto(vehicle.LicensePlate, info, time.GetUtcNow().UtcDateTime));
         })
+        .Produces<RdwStatusDto>()
         .WithSummary("The vehicle's plate and what the RDW last said about it");
 
         group.MapPut("/license-plate", async (
@@ -66,6 +68,8 @@ public static class RdwEndpoints
             return Results.Ok(ToDto(plate, info, time.GetUtcNow().UtcDateTime));
         })
         .RequireRateLimiting("rdw-lookup")
+        .Produces<RdwStatusDto>()
+        .ProducesProblem(StatusCodes.Status400BadRequest)
         .WithSummary("Set or clear the vehicle's Dutch plate, and look it up at the RDW right away");
 
         return app;

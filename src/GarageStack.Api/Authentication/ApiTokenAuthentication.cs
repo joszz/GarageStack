@@ -51,6 +51,20 @@ internal static class ApiTokenAuthentication
     public static string Hash(string token) =>
         Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(token)));
 
+    /// <summary>
+    /// Why a request signed in with a token is refused, or null when a token may make it: only a
+    /// GET (or HEAD), and never one to the token endpoints, the export or the logs. The middleware
+    /// enforces it, and the API reference reads it to say which endpoints a token can call.
+    /// </summary>
+    public static ValidationError? Refusal(string method, PathString path) =>
+        !HttpMethods.IsGet(method) && !HttpMethods.IsHead(method)
+            ? new("token.readOnly", "An API token can only read; sign in to change anything")
+            : path.StartsWithSegments(ApiTokenEndpoints.Path)
+                ? new("token.cannotManageTokens", "API tokens are managed from a signed-in session only")
+                : SessionOnlyReads.Any(p => path.StartsWithSegments(p))
+                    ? new("token.sessionOnly", "The export and the logs need a signed-in session; an API token cannot read them")
+                    : null;
+
     internal sealed class Handler(
         IOptionsMonitor<AuthenticationSchemeOptions> options,
         ILoggerFactory logger,
@@ -106,25 +120,12 @@ internal static class ApiTokenAuthentication
     {
         public async Task InvokeAsync(HttpContext context)
         {
-            if (context.User.Identity is { IsAuthenticated: true, AuthenticationType: Scheme })
+            if (context.User.Identity is { IsAuthenticated: true, AuthenticationType: Scheme }
+                && Refusal(context.Request.Method, context.Request.Path) is { } refusal)
             {
-                var path = context.Request.Path;
-                var refusal =
-                    !HttpMethods.IsGet(context.Request.Method) && !HttpMethods.IsHead(context.Request.Method)
-                        ? ApiProblems.Problem(StatusCodes.Status403Forbidden, "token.readOnly",
-                            "An API token can only read; sign in to change anything")
-                        : path.StartsWithSegments(ApiTokenEndpoints.Path)
-                            ? ApiProblems.Problem(StatusCodes.Status403Forbidden, "token.cannotManageTokens",
-                                "API tokens are managed from a signed-in session only")
-                            : SessionOnlyReads.Any(p => path.StartsWithSegments(p))
-                                ? ApiProblems.Problem(StatusCodes.Status403Forbidden, "token.sessionOnly",
-                                    "The export and the logs need a signed-in session; an API token cannot read them")
-                                : null;
-                if (refusal is not null)
-                {
-                    await refusal.ExecuteAsync(context);
-                    return;
-                }
+                await ApiProblems.Problem(StatusCodes.Status403Forbidden, refusal.Code, refusal.Message)
+                    .ExecuteAsync(context);
+                return;
             }
 
             await next(context);

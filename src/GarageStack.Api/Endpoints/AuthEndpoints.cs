@@ -37,6 +37,7 @@ public static class AuthEndpoints
                 OidcEnabled: oidc.Enabled,
                 OidcProviderName: oidc.Enabled ? oidc.ProviderName : null,
                 OidcAutoLogin: oidc.Enabled && oidc.AutoLogin)))
+        .Produces<AuthConfigResponse>()
         .WithSummary("Get the enabled sign-in methods");
 
         // A browser navigation, not a fetch: the response is a redirect to the identity
@@ -66,7 +67,9 @@ public static class AuthEndpoints
             }
         })
         .RequireRateLimiting("oidc-login")
-        .WithSummary("Start the OpenID Connect sign-in flow");
+        .Produces(StatusCodes.Status302Found)
+        .Produces(StatusCodes.Status404NotFound)
+        .WithSummary("Start the OpenID Connect sign-in flow: a browser navigation, redirected to the provider (404 without one)");
 
         group.MapPost("/logout", async (HttpContext httpContext, AppDbContext db, IMemoryCache cache, CancellationToken ct) =>
         {
@@ -87,6 +90,7 @@ public static class AuthEndpoints
 
             return Results.NoContent();
         })
+        .Produces(StatusCodes.Status204NoContent)
         .WithSummary("Clear the session cookie and revoke the session server-side");
 
         group.MapGet("/me", async (HttpContext httpContext) =>
@@ -99,6 +103,7 @@ public static class AuthEndpoints
             return Results.Ok(new MeResponse(username, result.Properties?.ExpiresUtc?.UtcDateTime));
         })
         .RequireAuthorization()
+        .Produces<MeResponse>()
         .WithSummary("Get current authenticated user");
 
         group.MapPost("/login", async (LoginRequest req, HttpContext httpContext) =>
@@ -143,7 +148,10 @@ public static class AuthEndpoints
             return Results.Ok(new LoginResponse(providedUsername, expires.UtcDateTime));
         })
         .RequireRateLimiting("login")
-        .WithSummary("Authenticate with the built-in password login");
+        .Produces<LoginResponse>()
+        .Produces(StatusCodes.Status401Unauthorized)
+        .Produces(StatusCodes.Status404NotFound)
+        .WithSummary("Authenticate with the built-in password login, which sets the session cookie (404 while it is switched off)");
 
         return app;
     }

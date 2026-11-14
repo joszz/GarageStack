@@ -499,11 +499,13 @@ curl -H "Authorization: Bearer gs_..." https://garagestack.example.com/api/vehic
 
 A token reads as the account that made it, through the same endpoints the app uses, and it can only read: any request that would change something, send a command or make another token is refused with `403`. The full data export and the server logs are refused too: they hold the car's whole history and the services' diagnostics, so they need a signed-in session. The list under Settings shows when each token was last used; revoking one stops it at once. GarageStack keeps only a hash of each token, so a lost one cannot be shown again: revoke it and make a new one.
 
-**The API reference** is at `/api/openapi/v1.json`, readable with the token like any other endpoint: every endpoint, what it takes and what it answers, as an OpenAPI document. Load it into any OpenAPI viewer, for example:
+**The API reference** is at `/api/reference/` on the address you use for GarageStack once `API_REFERENCE_ENABLED=true` is set, and is then also linked under the token list: every endpoint, what it takes and what it answers, and a *Test Request* button that sends a request with your signed-in session. The same description is always at `/api/openapi/v1.json` as an OpenAPI document, readable with the token like any other endpoint, for code generators and other tools:
 
 ```bash
 curl -H "Authorization: Bearer gs_..." https://garagestack.example.com/api/openapi/v1.json -o garagestack-openapi.json
 ```
+
+The repository keeps a copy of it, [`documentation/openapi.json`](documentation/openapi.json), and [`API.md`](documentation/API.md) has the rest.
 
 A few things to know before building on a token:
 
@@ -700,6 +702,7 @@ For running GarageStack:
 
 - [`CONFIGURATION.md`](documentation/CONFIGURATION.md): every setting, with its default
 - [`AUTHENTICATION.md`](documentation/AUTHENTICATION.md): single sign-on, the built-in login, and provider examples
+- [`API.md`](documentation/API.md): the REST API and its reference page, for scripts and integrations
 - [`HOME_ASSISTANT.md`](documentation/HOME_ASSISTANT.md): the car in Home Assistant, through MQTT or an API token
 - [`PHONE_GPS.md`](documentation/PHONE_GPS.md): fill recorded car trips with phone GPS from Dawarich
 - [`WIDGET.md`](documentation/WIDGET.md): the gethomepage.dev widget
@@ -710,7 +713,8 @@ For working on it:
 
 - [`CONTRIBUTING.md`](.github/CONTRIBUTING.md): setting up, tests, and adding a language
 - [`ARCHITECTURE.md`](documentation/ARCHITECTURE.md): how the services fit together
-- [`DEMO.md`](documentation/DEMO.md): the app on sample data, without a car, and the API reference
+- [`DEMO.md`](documentation/DEMO.md): the app on sample data, without a car, also from a script or an AI agent
+- [`AGENTS.md`](AGENTS.md): the settled rules, for coding agents and people alike
 - [`RELEASING.md`](documentation/RELEASING.md): versions, tags and release notes
 - [`PREVIEW_BUILDS.md`](documentation/PREVIEW_BUILDS.md): throwaway `pr-<number>` images for testing a fix on someone else's car, and how to run one
 - [`ACCESSIBILITY.md`](.github/ACCESSIBILITY.md) and [`SECURITY.md`](.github/SECURITY.md), which also says how to report a vulnerability

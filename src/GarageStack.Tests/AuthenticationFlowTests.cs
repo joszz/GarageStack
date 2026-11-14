@@ -28,7 +28,7 @@ namespace GarageStack.Tests;
 /// database across hosts, and xUnit runs classes in parallel but the tests inside a class
 /// sequentially, so keeping them together avoids two hosts seeding that database at once.
 /// </summary>
-public class AuthenticationFlowTests
+public partial class AuthenticationFlowTests
 {
     private const string DemoUsername = "demo";
     private const string DemoPassword = "demo-password";
@@ -450,26 +450,7 @@ public class AuthenticationFlowTests
         Assert.DoesNotContain(logAfter, e => e.Id == second.Id);
     }
 
-    // The API reference is there for whoever is signed in (a token reads it too), and nobody else.
-    [Fact]
-    public async Task ApiReference_IsServedUnderApi_ToSignedInCallersOnly()
-    {
-        var ct = TestContext.Current.CancellationToken;
-        await using var factory = CreatePasswordOnlyFactory();
-        using var client = CreateClient(factory);
 
-        var anonymous = await client.GetAsync("/api/openapi/v1.json", ct);
-        var login = await client.PostAsJsonAsync(
-            "/api/auth/login",
-            new { username = DemoUsername, password = DemoPassword, rememberMe = false },
-            ct);
-        var reference = await client.GetFromJsonAsync<JsonElement>("/api/openapi/v1.json", ct);
-
-        Assert.Equal(HttpStatusCode.Unauthorized, anonymous.StatusCode);
-        Assert.Equal(HttpStatusCode.OK, login.StatusCode);
-        Assert.Equal("GarageStack API", reference.GetProperty("info").GetProperty("title").GetString());
-        Assert.True(reference.GetProperty("paths").TryGetProperty("/api/vehicles/{vin}/trips/{id}/merge-next", out _));
-    }
 
     // The statistics page asks for its period by local day, however long it is.
     [Fact]

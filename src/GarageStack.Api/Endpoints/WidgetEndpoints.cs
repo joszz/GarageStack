@@ -1,13 +1,18 @@
+using GarageStack.Api.Reference;
 using GarageStack.Api.Security;
 using GarageStack.Api.Services;
 using GarageStack.Core.Interfaces;
 using GarageStack.Core.Models;
 using Microsoft.Extensions.Localization;
+using Microsoft.OpenApi;
 
 namespace GarageStack.Api.Endpoints;
 
 public static class WidgetEndpoints
 {
+    /// <summary>The header that carries WIDGET_API_KEY.</summary>
+    public const string KeyHeader = "X-Widget-Key";
+
     public static IEndpointRouteBuilder MapWidgetEndpoints(this IEndpointRouteBuilder app)
     {
         // WIDGET_API_KEY, fixed for the process lifetime.
@@ -22,15 +27,25 @@ public static class WidgetEndpoints
                     return ApiProblems.Problem(StatusCodes.Status503ServiceUnavailable, "widget.notConfigured",
                         "Widget API key is not configured. Set the WIDGET_API_KEY environment variable.");
 
-                var providedKey = ctx.HttpContext.Request.Headers["X-Widget-Key"].ToString();
+                var providedKey = ctx.HttpContext.Request.Headers[KeyHeader].ToString();
                 if (!SecretComparer.FixedTimeEquals(providedKey, configuredKey))
                     return Results.Unauthorized();
 
                 return await next(ctx);
+            })
+            .ProducesStatus(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status503ServiceUnavailable)
+            .AddOpenApiOperationTransformer((operation, context, _) =>
+            {
+                operation.Security =
+                [
+                    new() { [new OpenApiSecuritySchemeReference(OpenApiSetup.WidgetKeyScheme, context.Document)] = [] },
+                ];
+                return Task.CompletedTask;
             });
 
         group.MapGroup("/{vin}")
-            .AddEndpointFilter<ResolveVehicleFilter>()
+            .ResolvesVehicle()
             .MapGet("/status", async (
                 HttpContext httpContext,
                 ITelemetryRepository telemetry,
@@ -44,6 +59,8 @@ public static class WidgetEndpoints
                     ? Results.NoContent()
                     : Results.Ok(WidgetStatusDto.FromSnapshot(snapshot, await facts.GetAsync(vehicle, ct), localizer));
             })
+            .Produces<WidgetStatusDto>()
+            .Produces(StatusCodes.Status204NoContent)
             .WithSummary("Get latest vehicle status for Homepage widget (requires X-Widget-Key header)");
 
         return app;

@@ -32,6 +32,8 @@ public static class ClientErrorEndpoints
             return Results.NoContent();
         })
         .WithTags("Diagnostics")
+        .Produces(StatusCodes.Status204NoContent)
+        .ProducesProblem(StatusCodes.Status400BadRequest)
         .WithSummary("Record an error the web app ran into in the browser")
         .WithMetadata(new RequestSizeLimitAttribute(MaxRequestBytes))
         .RequireRateLimiting("client-errors")

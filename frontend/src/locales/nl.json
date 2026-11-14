@@ -722,7 +722,8 @@
       "revoke": "Intrekken",
       "confirmRevoke": "Intrekken?",
       "revokeNamed": "{name} intrekken",
-      "confirmRevokeNamed": "{name} intrekken? Tik nogmaals om te bevestigen"
+      "confirmRevokeNamed": "{name} intrekken? Tik nogmaals om te bevestigen",
+      "reference": "API-referentie"
     },
     "export": {
       "title": "Je gegevens",

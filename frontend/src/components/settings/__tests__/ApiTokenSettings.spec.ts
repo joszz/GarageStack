@@ -3,13 +3,14 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { createI18n } from 'vue-i18n'
 import en from '@/locales/en.json'
-import type { ApiToken, CreatedApiToken } from '@/services/apiTokensApi'
+import type { ApiReferenceStatus, ApiToken, CreatedApiToken } from '@/services/apiTokensApi'
 import ApiTokenSettings from '../ApiTokenSettings.vue'
 
 const api = vi.hoisted(() => ({
   list: vi.fn<() => Promise<ApiToken[]>>(),
   create: vi.fn<(name: string) => Promise<CreatedApiToken>>(),
   revoke: vi.fn<(id: number) => Promise<void>>(),
+  reference: vi.fn<() => Promise<ApiReferenceStatus>>(),
 }))
 vi.mock('@/services/apiTokensApi', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/services/apiTokensApi')>()),
@@ -40,6 +41,7 @@ describe('ApiTokenSettings', () => {
     api.list.mockReset().mockResolvedValue([watch])
     api.create.mockReset()
     api.revoke.mockReset().mockResolvedValue()
+    api.reference.mockReset().mockResolvedValue({ enabled: true })
   })
 
   it('lists tokens by name and how they start, never the token itself', async () => {
@@ -48,6 +50,32 @@ describe('ApiTokenSettings', () => {
     expect(wrapper.text()).toContain('Watch')
     expect(wrapper.text()).toContain('gs_abc123…')
     expect(wrapper.text()).toContain(en.settings.apiTokens.neverUsed)
+  })
+
+  // The API serves the reference page itself, so the link leaves the app in a tab of its own.
+  it('links to the API reference in a new tab where the deployment serves it', async () => {
+    const wrapper = await render()
+
+    const link = wrapper.find('a.api-token-reference')
+    expect(link.attributes('href')).toBe('/api/reference/')
+    expect(link.attributes('target')).toBe('_blank')
+    expect(link.attributes('rel')).toBe('noopener')
+    expect(link.text()).toBe(en.settings.apiTokens.reference)
+  })
+
+  it('shows no link to the API reference where the deployment does not serve it', async () => {
+    api.reference.mockResolvedValue({ enabled: false })
+    const wrapper = await render()
+
+    expect(wrapper.find('a.api-token-reference').exists()).toBe(false)
+  })
+
+  it('shows no link to the API reference when the API cannot say', async () => {
+    api.reference.mockRejectedValue(new Error('offline'))
+    const wrapper = await render()
+
+    expect(wrapper.find('a.api-token-reference').exists()).toBe(false)
+    expect(wrapper.find('[role="alert"]').exists()).toBe(false)
   })
 
   it('shows a new token once, to copy, and adds it to the list', async () => {

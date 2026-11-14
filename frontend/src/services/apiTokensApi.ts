@@ -19,8 +19,14 @@ export interface CreatedApiToken {
   token: string
 }
 
+/** Whether the deployment serves the API reference page (API_REFERENCE_ENABLED). */
+export interface ApiReferenceStatus {
+  enabled: boolean
+}
+
 export const apiTokensApi = {
   list: () => request<ApiToken[]>('/api/tokens'),
   create: (name: string) => requestJson<CreatedApiToken>('/api/tokens', 'POST', { name }),
   revoke: (id: number) => send(`/api/tokens/${id}`, 'DELETE'),
+  reference: () => request<ApiReferenceStatus>('/api/tokens/reference'),
 }

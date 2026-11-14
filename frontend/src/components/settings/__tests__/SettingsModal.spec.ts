@@ -22,6 +22,7 @@ vi.mock('@/services/apiTokensApi', async (original) => ({
     list: vi.fn<typeof apiTokensApi.list>(),
     create: vi.fn<typeof apiTokensApi.create>(),
     revoke: vi.fn<typeof apiTokensApi.revoke>(),
+    reference: vi.fn<typeof apiTokensApi.reference>(),
   },
 }))
 vi.mock('@/services/dawarichApi', () => ({
@@ -79,6 +80,7 @@ beforeEach(() => {
   rdw.available = false
   vi.spyOn(rdw, 'ensureLoaded').mockResolvedValue()
   vi.mocked(apiTokensApi.list).mockResolvedValue([])
+  vi.mocked(apiTokensApi.reference).mockResolvedValue({ enabled: false })
   vi.mocked(dawarichApi.status).mockResolvedValue({ configured: false, status: 'disabled' })
   vi.mocked(dawarichApi.trackers).mockResolvedValue({
     available: [{ trackerId: 'test-phone', lastSeenAt: '2026-01-01T00:00:00Z' }],

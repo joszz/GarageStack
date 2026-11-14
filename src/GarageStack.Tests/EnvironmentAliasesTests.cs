@@ -162,7 +162,7 @@ public class EnvironmentAliasesTests
     /// </summary>
     private static IEnumerable<string> DocumentedVariables(string file)
     {
-        var text = File.ReadAllText(RepositoryFile(file));
+        var text = File.ReadAllText(RepositoryFiles.PathOf(file));
         var pattern = Path.GetExtension(file) switch
         {
             ".xml" => @"Target=""([A-Z][A-Z0-9_]*)""",
@@ -184,7 +184,7 @@ public class EnvironmentAliasesTests
         string? service = null;
         var inEnvironment = false;
 
-        foreach (var line in File.ReadLines(RepositoryFile(file)))
+        foreach (var line in File.ReadLines(RepositoryFiles.PathOf(file)))
         {
             var trimmed = line.TrimStart();
             if (trimmed.Length == 0 || trimmed.StartsWith('#'))
@@ -211,15 +211,5 @@ public class EnvironmentAliasesTests
             else if (inEnvironment && indent == 6 && service is "api" or "worker" && key.Length > 0)
                 yield return key;
         }
-    }
-
-    private static string RepositoryFile(string relativePath)
-    {
-        var directory = new DirectoryInfo(AppContext.BaseDirectory);
-        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "GarageStack.slnx")))
-            directory = directory.Parent;
-
-        Assert.NotNull(directory);
-        return Path.Combine(directory.FullName, relativePath);
     }
 }

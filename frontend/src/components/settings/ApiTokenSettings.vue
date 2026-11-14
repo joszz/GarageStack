@@ -2,6 +2,7 @@
 import { onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { API_TOKEN_NAME_MAX_LENGTH, apiTokensApi, type ApiToken } from '@/services/apiTokensApi'
+import { apiUrl } from '@/services/apiCore'
 import { useErrorMessage } from '@/composables/useErrorMessage'
 import { useTwoTapConfirm } from '@/composables/useTwoTapConfirm'
 import { formatDateTime } from '@/utils/format'
@@ -13,6 +14,8 @@ const { t } = useI18n()
 const errorMessage = useErrorMessage()
 
 const tokens = ref<ApiToken[]>([])
+// Off until the API says the page is served: a deployment switches it on (API_REFERENCE_ENABLED).
+const referenceEnabled = ref(false)
 const name = ref('')
 const created = ref<string | null>(null)
 const copied = ref(false)
@@ -21,6 +24,10 @@ const busy = ref(false)
 const { armed: confirmingId, tap: tapRevoke } = useTwoTapConfirm<number>()
 
 onMounted(async () => {
+  void apiTokensApi
+    .reference()
+    .then((status) => (referenceEnabled.value = status.enabled))
+    .catch(() => {})
   try {
     tokens.value = await apiTokensApi.list()
   } catch (e) {
@@ -147,6 +154,18 @@ function usage(token: ApiToken): string {
         </div>
       </div>
       <p v-else class="settings-toggle__desc">{{ t('settings.apiTokens.none') }}</p>
+
+      <!-- The API's own page: every endpoint, and a way to try each one with this session. -->
+      <a
+        v-if="referenceEnabled"
+        class="btn btn-outline-secondary btn-sm api-token-reference"
+        :href="apiUrl('/api/reference/')"
+        target="_blank"
+        rel="noopener"
+      >
+        <font-awesome-icon icon="book" />
+        {{ t('settings.apiTokens.reference') }}
+      </a>
     </template>
   </SettingsToggle>
 </template>

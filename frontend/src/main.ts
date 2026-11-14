@@ -14,6 +14,7 @@ import { createApp, watch } from 'vue'
 import { createPinia } from 'pinia'
 import { installFontAwesome } from './plugins/fontAwesome'
 import { watchServiceWorkerUpdates } from './plugins/serviceWorker'
+import { createUnauthorizedRedirect } from './plugins/unauthorizedRedirect'
 import App from './App.vue'
 import router from './router'
 import { useUiSettingsStore } from './stores/settingsUi'
@@ -45,15 +46,9 @@ app.use(router)
 app.use(i18n)
 installFontAwesome(app)
 
-setUnauthorizedHandler(() => {
-  const auth = useAuthStore()
-  auth
-    .logout()
-    .catch(() => {})
-    .finally(() => {
-      router.replace({ name: 'login' }).finally(clearUnauthorizedState)
-    })
-})
+setUnauthorizedHandler(
+  createUnauthorizedRedirect(router, () => useAuthStore().logout(), clearUnauthorizedState),
+)
 
 // The first view mounts in its final language: the one the account settled on, if it differs.
 router

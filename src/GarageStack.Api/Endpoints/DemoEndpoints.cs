@@ -19,13 +19,14 @@ public static class DemoEndpoints
             .RequireAuthorization();
 
         group.MapGroup("/status/{vin}")
-            .AddEndpointFilter<ResolveVehicleFilter>()
+            .ResolvesVehicle()
             .MapPost("/", (DemoStatusOverrideDto dto) =>
             {
                 demoRepo.ApplyOverride(dto);
                 return Results.NoContent();
             })
-            .WithSummary("Override demo vehicle status fields");
+            .Produces(StatusCodes.Status204NoContent)
+            .WithSummary("Override demo vehicle status fields, as the Demo Controls panel does");
 
         return app;
     }
