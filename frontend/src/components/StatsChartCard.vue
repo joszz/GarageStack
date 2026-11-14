@@ -65,6 +65,10 @@ const { t } = useI18n()
       <font-awesome-icon :icon="icon" />
       {{ title }}
     </h2>
-    <Chart :type="type" :data="data" :options="options" />
+    <!-- Chart.js sizes the canvas from this box, so a chart with maintainAspectRatio: false
+         takes its height from CSS here instead of from the title above it. -->
+    <div class="chart-container__plot">
+      <Chart :type="type" :data="data" :options="options" />
+    </div>
   </div>
 </template>

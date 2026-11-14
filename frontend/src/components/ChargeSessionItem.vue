@@ -179,6 +179,21 @@ function toggle(): void {
     </button>
 
     <div v-if="expanded" :id="panelId" class="charge-history-detail">
+      <dl class="charge-history-detail__metrics">
+        <div>
+          <dt>{{ t('chargeHistory.distanceSincePreviousCharge') }}</dt>
+          <dd>{{ distance(since.distanceKm) }}</dd>
+        </div>
+        <div>
+          <dt>{{ t('chargeHistory.energyUsedSincePreviousCharge') }}</dt>
+          <dd>{{ kwh(since.energyKwh) }}</dd>
+        </div>
+        <div v-if="energyContext.vehicleType === 'bev'">
+          <dt>{{ t('chargeHistory.consumptionSincePreviousCharge') }}</dt>
+          <dd>{{ consumption }}</dd>
+        </div>
+      </dl>
+
       <div class="charge-history-detail__chart">
         <StatsChartCard
           v-if="powerChart"
@@ -202,30 +217,14 @@ function toggle(): void {
         <p v-else class="text-muted text-sm">{{ t('chargeHistory.noPowerData') }}</p>
       </div>
 
-      <div class="charge-history-detail__aside">
-        <dl class="charge-history-detail__metrics">
-          <div>
-            <dt>{{ t('chargeHistory.distanceSincePreviousCharge') }}</dt>
-            <dd>{{ distance(since.distanceKm) }}</dd>
-          </div>
-          <div>
-            <dt>{{ t('chargeHistory.energyUsedSincePreviousCharge') }}</dt>
-            <dd>{{ kwh(since.energyKwh) }}</dd>
-          </div>
-          <div v-if="energyContext.vehicleType === 'bev'">
-            <dt>{{ t('chargeHistory.consumptionSincePreviousCharge') }}</dt>
-            <dd>{{ consumption }}</dd>
-          </div>
-        </dl>
-        <ChargeSessionLocationMap
-          v-if="hasLocation"
-          :latitude="session.latitude ?? 0"
-          :longitude="session.longitude ?? 0"
-          :label="t('chargeHistory.locationMap')"
-        />
-        <div v-else class="charge-history-map charge-history-map--empty">
-          {{ t('chargeHistory.locationUnavailable') }}
-        </div>
+      <ChargeSessionLocationMap
+        v-if="hasLocation"
+        :latitude="session.latitude ?? 0"
+        :longitude="session.longitude ?? 0"
+        :label="t('chargeHistory.locationMap')"
+      />
+      <div v-else class="charge-history-map charge-history-map--empty">
+        {{ t('chargeHistory.locationUnavailable') }}
       </div>
     </div>
   </li>

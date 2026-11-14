@@ -47,8 +47,8 @@ export function useChargePowerChart(points: Ref<readonly ChargeSessionPowerPoint
     const options: ChartOptions<'line'> = {
       locale: numberLocale(),
       responsive: true,
-      maintainAspectRatio: true,
-      aspectRatio: 2.4,
+      // Its height comes from the stylesheet: by aspect ratio a wide screen made it 500 px tall.
+      maintainAspectRatio: false,
       animation: false,
       interaction: { mode: 'index', intersect: false },
       plugins: { legend: { display: false } },
