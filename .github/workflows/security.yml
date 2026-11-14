@@ -5,10 +5,10 @@ on:
     branches: [main]
   push:
     branches: [main]
+  # After every publish, a release tag included: a tag or the weekly rebuild moves :latest.
   workflow_run:
     workflows: ["Build and publish Docker images"]
     types: [completed]
-    branches: [main]
   schedule:
     - cron: '0 7 * * 1'
 
@@ -61,10 +61,10 @@ jobs:
     name: Trivy image scan (${{ matrix.label }}${{ matrix.arch != 'amd64' && format(', {0}', matrix.arch) || '' }})
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    # After a publish, and weekly. Not on the push to main itself: every push to main publishes,
-    # and a scan started by the push runs while that publish is still building, so it scans the
-    # previous :latest (which failed the arm64 leg while :latest was still amd64 only).
-    if: github.event_name == 'schedule' || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
+    # Scans :latest, the newest release and what users run, after a publish and weekly. Not on
+    # the push to main itself: a scan started by the push would run while that publish is still
+    # building. A publish run on a pull request only tries the workflow and pushes nothing.
+    if: github.event_name == 'schedule' || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event != 'pull_request')
     permissions:
       contents: read
       security-events: write

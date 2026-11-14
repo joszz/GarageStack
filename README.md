@@ -199,6 +199,7 @@ docker run -d \
 > `POSTGRES_PASSWORD` is omitted -- a strong random password is auto-generated on first start and saved to `/data/.postgres_password`. Pass `-e POSTGRES_PASSWORD=yourpassword` explicitly if you need a known value (e.g. to connect with an external DB tool).
 > **HTTPS proxy:** nothing to set. `AUTH_COOKIE_SECURE` defaults to `auto`, which marks the session cookie Secure whenever GarageStack is opened over HTTPS (also behind a TLS-terminating proxy) and keeps a plain-HTTP LAN address working.
 > **Logging in:** without further configuration the web login uses your `SAIC_USER` / `SAIC_PASSWORD`. Set `AUTH_USERNAME` / `AUTH_PASSWORD` for separate credentials, or point GarageStack at your identity provider -- see [`AUTHENTICATION.md`](documentation/AUTHENTICATION.md).
+> **Image tags:** `latest` is the newest release: it only gets new code when a release is published, plus a weekly rebuild for security fixes. Pin a version (`0.18.1`) to choose when you update. `edge` follows `main` and gets every merged change before it is released, database migrations included; going back from `edge` to a release is not supported once such a migration has run.
 
 **Unraid:** import `unraid/garagestack.xml` from Community Apps and fill in the variables in the template UI.
 

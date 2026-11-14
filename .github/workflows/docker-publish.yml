@@ -2,6 +2,14 @@ name: Build and publish Docker images
 
 on:
   workflow_dispatch:
+    inputs:
+      target:
+        description: What to rebuild. release rebuilds the newest release and moves latest; main rebuilds edge.
+        type: choice
+        options: [release, main]
+        default: release
+  # The weekly rebuild of the newest release, so latest picks up the base images' and the OS
+  # packages' security fixes between releases.
   schedule:
     - cron: '0 5 * * 1'
   push:
@@ -30,9 +38,11 @@ on:
 
 # A newer push to a PR makes its running build pointless; on main and tags a build is never cut
 # off halfway through publishing, the next one waits instead. A preview has a group of its own,
-# so it never cancels the run that tries a change to this file on the same pull request.
+# so it never cancels the run that tries a change to this file on the same pull request. Every
+# run that can move latest (a tag, the weekly rebuild, a manual release rebuild) shares one
+# group, so two of them never write latest at the same time.
 concurrency:
-  group: docker-publish-${{ github.ref }}${{ inputs.pr_number > 0 && '-preview' || '' }}
+  group: docker-publish-${{ !(inputs.pr_number > 0) && (startsWith(github.ref, 'refs/tags/') || github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.target != 'main')) && 'release' || github.ref }}${{ inputs.pr_number > 0 && '-preview' || '' }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 # Nothing by default; each job asks for exactly what it needs.
@@ -43,6 +53,16 @@ env:
   REGISTRY: ghcr.io
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
+# What a run publishes, and under which tags:
+#   push to main, or a manual run for main: main, as edge and sha-<commit>. Users who want every
+#     merge run edge; latest never follows main.
+#   push of a vX.Y.Z tag: that release, as X.Y.Z, X.Y, X and sha-<commit>, and as latest when
+#     it is the newest release (an older patch release leaves latest alone). A pre-release tag
+#     (v1.2.3-rc.1) gets its own version tag only.
+#   weekly rebuild, or a manual run for the release: the newest release again, from its tag,
+#     with today's OS packages, under the same tags as when it was released, latest included.
+#   preview: the pull request, as pr-<number>; see preview-build.yml.
+#
 # How an image gets published, by kind of run:
 #   release (push to main, tag, schedule, manual run): every architecture is built on its own
 #     hardware and pushed by digest only, with no tag. The merge job then ties the digests into
@@ -64,6 +84,12 @@ jobs:
     outputs:
       version: ${{ steps.minver.outputs.version }}
       patch_date: ${{ steps.patchdate.outputs.date }}
+      ref: ${{ steps.target.outputs.ref }}
+      revision: ${{ steps.target.outputs.revision }}
+      short_sha: ${{ steps.target.outputs.short_sha }}
+      release: ${{ steps.target.outputs.release }}
+      latest: ${{ steps.target.outputs.latest }}
+      edge: ${{ steps.target.outputs.edge }}
     env:
       PR_NUMBER: ${{ inputs.pr_number }}
     steps:
@@ -71,6 +97,61 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+
+      # Decides what this run builds and which tags it moves; see the overview above the jobs.
+      # A rebuild of the newest release checks its tag out here, so MinVer below reads the
+      # release's own version, and passes the tag on as ref for the builds to check out.
+      - name: Pick what to build
+        id: target
+        shell: bash
+        env:
+          EVENT: ${{ github.event_name }}
+          REF: ${{ github.ref }}
+          REF_NAME: ${{ github.ref_name }}
+          TARGET: ${{ inputs.target }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch || 'main' }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          # The newest release: the highest vX.Y.Z tag, pre-releases left out.
+          NEWEST=$(git tag --list 'v*' --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -n 1 || true)
+          CHECKOUT_REF=""
+          RELEASE=""
+          LATEST=false
+          EDGE=false
+          if [ "${PR_NUMBER:-0}" -gt 0 ] || [ "$EVENT" = pull_request ]; then
+            # A preview, or a pull request that only tries this file: no release tags.
+            :
+          elif [ "$EVENT" = push ] && [[ "$REF" == refs/tags/v* ]]; then
+            RELEASE="$REF_NAME"
+            if [ "$RELEASE" = "$NEWEST" ]; then LATEST=true; fi
+          elif [ "$EVENT" = schedule ] || { [ "$EVENT" = workflow_dispatch ] && [ "$TARGET" != main ]; }; then
+            if [ -z "$NEWEST" ]; then
+              echo "There is no release to rebuild" >&2
+              exit 1
+            fi
+            RELEASE="$NEWEST"
+            LATEST=true
+            CHECKOUT_REF="refs/tags/$NEWEST"
+            git checkout --quiet --detach "$CHECKOUT_REF"
+          elif [ "$REF" = "refs/heads/$DEFAULT_BRANCH" ]; then
+            EDGE=true
+          else
+            echo "Only $DEFAULT_BRANCH publishes edge, not $REF" >&2
+            exit 1
+          fi
+          # The commit the images are built from. A preview names the pull request's own commit,
+          # as its pr-<number>-<sha> tag does, not GitHub's merge commit.
+          REVISION="${PR_HEAD_SHA:-$(git rev-parse HEAD)}"
+          {
+            echo "ref=$CHECKOUT_REF"
+            echo "revision=$REVISION"
+            echo "short_sha=${REVISION:0:7}"
+            echo "release=$RELEASE"
+            echo "latest=$LATEST"
+            echo "edge=$EDGE"
+          } >> "$GITHUB_OUTPUT"
+          echo "Building $REVISION: release '${RELEASE:-none}', latest $LATEST, edge $EDGE"
 
       - name: Set up .NET SDK
         uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
@@ -161,10 +242,12 @@ jobs:
             dockerfile: src/GarageStack.Worker/Dockerfile
 
     steps:
+      # A rebuild of the newest release builds its tag; every other run builds its own ref.
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          ref: ${{ needs.version.outputs.ref }}
 
       - name: Log in to GitHub Container Registry
         if: env.PUBLISH == 'true'
@@ -213,15 +296,20 @@ jobs:
           DOCKER_METADATA_PR_HEAD_SHA: ${{ inputs.pr_number > 0 }}
         with:
           images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.image }}
+          # Keep this tag list the same as the one in the merge job.
+          flavor: latest=false
+          labels: org.opencontainers.image.revision=${{ needs.version.outputs.revision }}
           tags: |
-            # latest on every push to main
-            type=raw,value=latest,enable={{is_default_branch}}
-            # semver tags from v* git tags: v1.2.3 -> 1.2.3, 1.2, 1
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=semver,pattern={{major}}
-            # short SHA for traceability on every main push
-            type=sha,format=short,enable=${{ !(inputs.pr_number > 0) }}
+            # edge on every push to main: the build to run to try main before it is released
+            type=raw,value=edge,enable=${{ needs.version.outputs.edge == 'true' }}
+            # latest only for the newest release, never for main
+            type=raw,value=latest,enable=${{ needs.version.outputs.latest == 'true' }}
+            # semver tags from the release being built: v1.2.3 -> 1.2.3, 1.2, 1
+            type=semver,pattern={{version}},value=${{ needs.version.outputs.release }},enable=${{ needs.version.outputs.release != '' }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ needs.version.outputs.release }},enable=${{ needs.version.outputs.release != '' }}
+            type=semver,pattern={{major}},value=${{ needs.version.outputs.release }},enable=${{ needs.version.outputs.release != '' }}
+            # short SHA of the commit built, for traceability
+            type=raw,value=sha-${{ needs.version.outputs.short_sha }},enable=${{ !(inputs.pr_number > 0) }}
             # a preview: pr-123 follows the pull request, pr-123-abc1234 is one exact commit
             type=raw,value=pr-${{ inputs.pr_number }},enable=${{ inputs.pr_number > 0 }}
             type=sha,format=short,prefix=pr-${{ inputs.pr_number }}-,enable=${{ inputs.pr_number > 0 }}
@@ -284,7 +372,7 @@ jobs:
     # any image or architecture would skip every merge, amd64 included. An image with an
     # architecture missing still fails here, on the digest count.
     if: ${{ !cancelled() && github.event_name != 'pull_request' && needs.build.result != 'skipped' }}
-    needs: build
+    needs: [version, build]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -341,15 +429,20 @@ jobs:
           DOCKER_METADATA_ANNOTATIONS_LEVELS: index
         with:
           images: ${{ env.IMAGE }}
+          # Keep this tag list the same as the one in the build job.
+          flavor: latest=false
+          labels: org.opencontainers.image.revision=${{ needs.version.outputs.revision }}
           tags: |
-            # latest on every push to main
-            type=raw,value=latest,enable={{is_default_branch}}
-            # semver tags from v* git tags: v1.2.3 -> 1.2.3, 1.2, 1
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=semver,pattern={{major}}
-            # short SHA for traceability on every main push
-            type=sha,format=short
+            # edge on every push to main: the build to run to try main before it is released
+            type=raw,value=edge,enable=${{ needs.version.outputs.edge == 'true' }}
+            # latest only for the newest release, never for main
+            type=raw,value=latest,enable=${{ needs.version.outputs.latest == 'true' }}
+            # semver tags from the release being built: v1.2.3 -> 1.2.3, 1.2, 1
+            type=semver,pattern={{version}},value=${{ needs.version.outputs.release }},enable=${{ needs.version.outputs.release != '' }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ needs.version.outputs.release }},enable=${{ needs.version.outputs.release != '' }}
+            type=semver,pattern={{major}},value=${{ needs.version.outputs.release }},enable=${{ needs.version.outputs.release != '' }}
+            # short SHA of the commit built, for traceability
+            type=raw,value=sha-${{ needs.version.outputs.short_sha }}
 
       - name: Create the multi-architecture index
         id: index
@@ -388,7 +481,7 @@ jobs:
 
           # The digest of the index this run just created, from the create itself. Reading it
           # back through a tag could return another run's index: a push to main and a tag on the
-          # same commit both write latest.
+          # same commit both write sha-<commit>.
           INDEX_DIGEST=$(jq -r '."containerimage.descriptor".digest // ."containerimage.digest" // empty' "$METADATA")
           case "$INDEX_DIGEST" in
             sha256:*) ;;

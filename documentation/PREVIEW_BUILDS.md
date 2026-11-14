@@ -5,7 +5,7 @@ A preview build is a set of throwaway images for one pull request, so someone wi
 - Add the **`test-build`** label to a pull request and every image is published as **`pr-<number>`**.
 - Every push to the pull request replaces those images.
 - Removing the label, closing the pull request or merging it **deletes the images again**.
-- `latest`, the version tags and the `sha-` tags are never touched, so nobody else notices.
+- `latest`, `edge`, the version tags and the `sha-` tags are never touched, so nobody else notices.
 
 Contents:
 
@@ -29,7 +29,7 @@ Contents:
 
 5. **Iterate.** Push more commits to the same branch. The `pr-123` tag follows the pull request, so the tester only has to pull again (Unraid: *Force update*; Compose: run the same command again). The version in the footer (on a phone, at the bottom of the menu) ends in `.pr.123`, and the comment shows which commit it is.
 6. **Finish.**
-   - **It works:** merge. The images are deleted and the fix reaches everyone through `latest`. Ask the tester to switch back to `latest`.
+   - **It works:** merge. The images are deleted, the fix is on `edge` right away and reaches everyone on `latest` with the next release. Ask the tester to switch to `edge` until that release is out (or cut a patch release), then back to `latest`. Straight back to `latest` before the release is only safe when the preview had no database warning.
    - **It does not work:** close the pull request (or just remove the label while you rethink). The images are deleted and nothing else changed.
 
 Need a fresh build without a new commit, for example to pick up a newer `main`? Remove the label and add it again.
@@ -97,7 +97,7 @@ The version in the footer ends in `.pr.123` (for example `v0.13.2-preview.0.4.pr
 
 ### Going back
 
-- **All-in-one, Unraid or Compose with the published images:** change the tag back to the latest release, for example `0.14.0`. `latest` works too, but it is rebuilt on every change to `main`, so it can hold changes that are not released yet, database changes included. Use the version tag to get exactly what you had.
+- **All-in-one, Unraid or Compose with the published images:** change the tag back to `latest` or to the release you had, for example `0.14.0`. `latest` only gets new code when a release is published, so both give you a released version without the preview's changes.
 - **Compose from a clone:** `docker compose up -d --build` in the same folder, which builds your clone again without the preview file.
 
 Your data stays. Readings collected while the preview ran stay too.
@@ -160,7 +160,7 @@ Details worth knowing:
 - **Concurrency.** The build and the cleanup share the group `preview-<number>`: closing a pull request stops a build that is still pushing before the images are deleted. A newer push cancels the build of the previous one.
 - **Who can trigger it.** Only people who can label pull requests (triage access and up), and only for branches in this repository. A fork's pull request never gets the packages permission.
 - **Update check.** A preview's version is a pre-release of the next patch, so the footer does not offer the current release as an update.
-- **Trivy and the security workflow** do not scan previews; they scan `latest` after merge as before.
+- **Trivy and the security workflow** do not scan previews; they scan `latest` after each publish as before.
 
 ---
 
@@ -181,7 +181,7 @@ gh api --paginate "users/joszz/packages/container/garagestack/versions" \
   --jq '.[] | select(any(.metadata.container.tags[]; startswith("pr-"))) | {id, tags: .metadata.container.tags}'
 ```
 
-**The tester's update fails after the pull request closed.** The images are gone by design. They switch back to the latest release, or to `latest` once the fix is merged.
+**The tester's update fails after the pull request closed.** The images are gone by design. They switch back to the latest release, to `edge` once the fix is merged, or to `latest` once it is released.
 
 **A tester runs the all-in-one image on ARM.** Releases are built for amd64 and arm64, but a preview is amd64 only: the cleanup deletes package versions by tag, and the per-architecture images of a multi-architecture image carry none. An ARM tester runs the preview under emulation, with `platform: linux/amd64` on the service, which is slower. Docker Desktop on a Mac has the emulation built in; on an ARM Linux host (a Raspberry Pi, say) it has to be installed first, for example with `docker run --privileged --rm tonistiigi/binfmt --install amd64`, or the container fails with `exec format error`.
 

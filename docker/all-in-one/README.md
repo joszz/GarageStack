@@ -131,6 +131,8 @@ docker run -d `
 
 > `POSTGRES_PASSWORD` is omitted -- a random password is auto-generated on first start and saved to `/data/.postgres_password`. Pass `-e POSTGRES_PASSWORD=yourpassword` if you need a known value (e.g. to connect with an external DB tool).
 
+> **Image tags:** `latest` is the newest release: it only gets new code when a release is published, plus a weekly rebuild for security fixes. Pin a version (`0.18.1`) to choose when you update. `edge` follows `main` and gets every merged change before it is released, database migrations included; going back from `edge` to a release is not supported once such a migration has run.
+
 Once running, open `http://localhost:8080` in your browser. The first start initialises PostgreSQL before the .NET services come up, which can take up to a minute (the health check allows two).
 
 ## Managing the container

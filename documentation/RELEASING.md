@@ -28,11 +28,12 @@ All images live on GitHub Container Registry (`ghcr.io`). Replace `joszz` with t
 
 | Tag | Example | When created |
 |-----|---------|--------------|
-| `latest` | `garagestack:latest` | Every push to `main`, every `vX.Y.Z` tag, weekly rebuild (Mondays 05:00 UTC), manual dispatch |
-| `1.2.3` | `garagestack:1.2.3` | On `v1.2.3` git tag |
+| `latest` | `garagestack:latest` | The newest release: its `vX.Y.Z` tag, then the weekly rebuild of that release (Mondays 05:00 UTC) and a manual release rebuild. Never a push to `main`, and never an older patch release or a pre-release |
+| `edge` | `garagestack:edge` | Every push to `main` and a manual rebuild of `main`. Unreleased changes, migrations included, as soon as they are merged |
+| `1.2.3` | `garagestack:1.2.3` | On `v1.2.3` git tag, and again with each weekly rebuild while it is the newest release |
 | `1.2` | `garagestack:1.2` | On any `v1.2.x` tag |
 | `1` | `garagestack:1` | On any `v1.x.x` tag |
-| `sha-abc1234` | `garagestack:sha-abc1234` | Every published build: pushes to `main`, tags, weekly rebuild, manual dispatch |
+| `sha-abc1234` | `garagestack:sha-abc1234` | Every published build, named after the commit it was built from: pushes to `main`, tags, weekly rebuild, manual dispatch |
 | `pr-123` | `garagestack:pr-123` | Preview of pull request 123 while it has the `test-build` label; follows every push, deleted when the label comes off or the PR closes. See [`PREVIEW_BUILDS.md`](PREVIEW_BUILDS.md) |
 | `pr-123-abc1234` | `garagestack:pr-123-abc1234` | One exact commit of that preview; deleted with it |
 
@@ -63,19 +64,21 @@ Merge to main
   Security (Trivy filesystem + image scan after publish)
   Dependency submission (graph snapshot to GitHub)
   docker-publish (build amd64 on ubuntu-latest and arm64 on ubuntu-24.04-arm, push each by digest,
-    then one merge job per image tags the multi-architecture index with short SHA + latest)
+    then one merge job per image tags the multi-architecture index with short SHA + edge)
     Attach SBOM + provenance (one per architecture, kept in the index)
     Sign the index and each manifest in it with Cosign
 
 Release tag pushed (vX.Y.Z)
-  docker-publish (same, tagging the index X.Y.Z, X.Y, X and latest)
+  docker-publish (same, tagging the index X.Y.Z, X.Y, X, short SHA and, for the newest release,
+    latest)
     Attach SBOM + provenance
     Sign the index and each manifest in it with Cosign
 
 Weekly (Mondays)
   CodeQL
   Security (Trivy filesystem + image scan)
-  docker-publish (rebuild and re-push latest tags)
+  docker-publish (rebuild the newest release from its tag with today's OS packages and re-push
+    X.Y.Z, X.Y, X and latest)
 ```
 
 ---
@@ -102,7 +105,9 @@ gh release create v1.2.3 --verify-tag --latest --notes-file release-notes.md
 
 Watch the image builds at `https://github.com/joszz/garagestack/actions`.
 
-The tag build publishes `X.Y.Z`, `X.Y`, `X` **and** `latest`. If the publish for the same commit on `main` failed earlier, do not re-run it after the tag build: it would overwrite `latest` with a build that reports a `-preview` version. Re-run the tag run's failed job instead.
+The tag build publishes `X.Y.Z`, `X.Y`, `X` **and** `latest`. This is the only moment users on `latest` (the Unraid template among them) get the changes merged since the last release, so a fix users notice is worth a patch release of its own. A push to `main` publishes `edge` only and never touches `latest`, whatever order the runs finish in.
+
+To rebuild the newest release by hand (for an OS package fix before Monday), run **Build and publish Docker images** from `main` with target `release`. It checks the newest `vX.Y.Z` tag out and re-pushes `X.Y.Z`, `X.Y`, `X` and `latest` from it.
 
 ### Release notes
 
@@ -263,7 +268,7 @@ The `stale` workflow runs every Monday at 08:00 UTC:
 GarageStack uses MinVer for .NET assembly version metadata and for the version shown in the UI footer.
 
 - Source of truth is git history + tags with `v` prefix (e.g. `v1.2.3`)
-- On non-tag commits, MinVer produces prerelease versions using `preview.0` as the identifier (e.g. `0.5.1-preview.0.12`, so `latest` images built from `main` show that instead of the last release)
+- On non-tag commits, MinVer produces prerelease versions using `preview.0` as the identifier (e.g. `0.5.1-preview.0.12`, so `edge` images built from `main` show that instead of the last release)
 - If no `v*` tags exist yet, MinVer starts from `0.0.0-preview.0.<height>`
 - In CI, the workflow computes MinVer once and passes it to all Docker builds as `APP_VERSION`
 - The frontend Dockerfiles forward `APP_VERSION` to Vite as `VITE_APP_VERSION`; `pnpm dev` hides the version
@@ -316,13 +321,13 @@ api:
 
 Repeat for `frontend` and `worker`. Leave `mosquitto` and `postgres` services unchanged, and keep the `name: garagestack` line at the top: it keeps the volumes the same whichever folder the file runs from.
 
-A version tag (`1.2.3`) gives exactly that release. `latest` is rebuilt on every push to `main`, so it carries unreleased changes, migrations included, as soon as they are merged.
+A version tag (`1.2.3`) gives exactly that release. `latest` is the newest release, rebuilt weekly with the base images' security fixes but never with unreleased code. `edge` follows `main`, so it carries unreleased changes, migrations included, as soon as they are merged. Going back from `edge` to `latest` is not supported once a newer migration has run: stay on `edge` until the next release catches up.
 
 ---
 
 ## Unraid Community Apps
 
-The Unraid template lives at [unraid/garagestack.xml](../unraid/garagestack.xml). It tracks the `:latest` tag so Unraid users receive updates automatically -- no template change is needed when cutting a new release.
+The Unraid template lives at [unraid/garagestack.xml](../unraid/garagestack.xml). It tracks the `:latest` tag, which only gets new code when a release is tagged, so Unraid users receive releases automatically and never unreleased work from `main`. No template change is needed when cutting a new release.
 
 ### One-time submission to Community Apps
 
