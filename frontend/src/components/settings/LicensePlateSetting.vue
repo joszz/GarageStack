@@ -56,13 +56,13 @@ async function save(value: string) {
         :label="t('settings.licensePlate.label')"
         :placeholder="t('settings.licensePlate.placeholder')"
       />
-      <button type="submit" class="btn btn-primary btn-sm" :disabled="busy || !changed">
+      <button type="submit" class="btn btn-primary" :disabled="busy || !changed">
         {{ t('settings.licensePlate.save') }}
       </button>
       <button
         v-if="saved"
         type="button"
-        class="btn btn-outline-secondary btn-sm"
+        class="btn btn-outline-secondary"
         :disabled="busy"
         @click="save('')"
       >

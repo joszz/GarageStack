@@ -87,13 +87,24 @@ describe('ChargeSessionItem', () => {
   it('shows the session at a glance', () => {
     const wrapper = mountItem(bev)
 
-    expect(detail(wrapper, en.chargeHistory.duration)).toBe('1h 30m')
-    expect(detail(wrapper, en.chargeHistory.stateOfCharge)).toBe('40% → 80%')
-    expect(detail(wrapper, en.chargeHistory.odometer)).toBe('10,200 km')
-    expect(detail(wrapper, en.chargeHistory.batteryEnergyGained)).toBe('29.0 kWh')
-    expect(detail(wrapper, en.chargeHistory.maxPower)).toBe('74.5 kW')
+    expect(wrapper.find('.charge-history-item__pill').text()).toBe('1h 30m')
+    expect(wrapper.find('.charge-history-item__soc').text()).toBe('40% → 80%')
+    expect(wrapper.find('.charge-history-item__odometer').text()).toBe('10,200 km')
+    expect(wrapper.find('.charge-history-item__energy').text()).toBe('29.0 kWh')
+    expect(wrapper.find('.charge-history-item__power').text()).toBe('74.5 kW')
     expect(wrapper.find('.charge-history-item__type--dc').text()).toBe('DC')
+    expect(wrapper.find('.charge-history-item__icon').classes()).toContain('badge-info')
     expect(wrapper.find('.charge-history-detail').exists()).toBe(false)
+  })
+
+  it('marks a session that is still going', () => {
+    const wrapper = mountItem(bev, { ...current, endedAt: null })
+
+    expect(wrapper.find('.charge-history-item__status--active').text()).toBe(
+      en.chargeHistory.ongoing,
+    )
+    expect(wrapper.find('.charge-history-item__end-time').exists()).toBe(false)
+    expect(wrapper.find('.charge-history-item__icon').classes()).toContain('badge-success')
   })
 
   it('loads the power curve once, when first opened', async () => {
@@ -156,7 +167,8 @@ describe('ChargeSessionItem', () => {
     await wrapper.find('.charge-history-item__toggle').trigger('click')
     await flushPromises()
 
-    expect(detail(wrapper, en.chargeHistory.batteryEnergyGained)).toBe(en.chargeHistory.notReported)
+    // The percentage points gained stand in for the kWh.
+    expect(wrapper.find('.charge-history-item__energy').text()).toBe('+40%')
     expect(detail(wrapper, en.chargeHistory.energyUsedSincePreviousCharge)).toBe(
       en.chargeHistory.notReported,
     )
@@ -166,10 +178,10 @@ describe('ChargeSessionItem', () => {
   it('takes a configured capacity on a plug-in hybrid', () => {
     const wrapper = mountItem({ vehicleType: 'phev', configuredCapacityKwh: 20 })
 
-    expect(detail(wrapper, en.chargeHistory.batteryEnergyGained)).toBe('8.0 kWh')
+    expect(wrapper.find('.charge-history-item__energy').text()).toBe('8.0 kWh')
   })
 
-  it('shows a placeholder where the car reported nothing', () => {
+  it('leaves out what the car did not report', () => {
     const wrapper = mountItem(
       bev,
       {
@@ -183,11 +195,11 @@ describe('ChargeSessionItem', () => {
       null,
     )
 
-    expect(detail(wrapper, en.chargeHistory.stateOfCharge)).toBe(
-      `${en.chargeHistory.notReported} → 80%`,
-    )
-    expect(detail(wrapper, en.chargeHistory.odometer)).toBe(en.chargeHistory.notReported)
-    expect(detail(wrapper, en.chargeHistory.maxPower)).toBe(en.chargeHistory.notReported)
+    // Only the end of the charge is known, so that is all the row says about it.
+    expect(wrapper.find('.charge-history-item__soc').text()).toBe('80%')
+    expect(wrapper.find('.charge-history-item__odometer').exists()).toBe(false)
+    expect(wrapper.find('.charge-history-item__power').exists()).toBe(false)
     expect(wrapper.find('.charge-history-item__type').exists()).toBe(false)
+    expect(wrapper.find('.charge-history-item__icon').classes()).toContain('badge-secondary')
   })
 })

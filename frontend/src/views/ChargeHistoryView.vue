@@ -6,7 +6,9 @@ import { useRouter } from 'vue-router'
 import { useVehicleStore } from '@/stores/vehicle'
 import { vehicleApi, type ChargeSession } from '@/services/vehicleApi'
 import { mayPlugIn } from '@/utils/vehicleType'
-import type { ChargeEnergyContext } from '@/utils/chargeSessions'
+import { energyGainedKwh, type ChargeEnergyContext } from '@/utils/chargeSessions'
+import { formatNumber } from '@/utils/format'
+import { formatDurationMs } from '@/utils/tripRows'
 import { useErrorMessage } from '@/composables/useErrorMessage'
 import ViewHeader from '@/components/ViewHeader.vue'
 import StatusCard from '@/components/StatusCard.vue'
@@ -30,6 +32,24 @@ const energyContext = computed((): ChargeEnergyContext => ({
   vehicleType: vehicleStore.effectiveVehicleType,
   configuredCapacityKwh: vehicleStore.hvBatteryCapacityKwh,
 }))
+
+// The period's totals, as the trip log totals its trips. The energy only where the car reports kWh
+// worth adding up, the time only over sessions that have ended.
+const totalEnergy = computed(() => {
+  const known = sessions.value
+    .map((session) => energyGainedKwh(session, energyContext.value))
+    .filter((kwh): kwh is number => kwh !== null)
+  return known.length > 0 ? known.reduce((sum, kwh) => sum + kwh, 0) : null
+})
+
+const totalTime = computed(() => {
+  const ms = sessions.value.reduce(
+    (sum, { startedAt, endedAt }) =>
+      endedAt ? sum + new Date(endedAt).getTime() - new Date(startedAt).getTime() : sum,
+    0,
+  )
+  return ms > 0 ? formatDurationMs(ms, t) : null
+})
 
 // A plain hybrid never charges from a plug. The menu leaves the page out for one; someone who
 // opens its address anyway lands on the dashboard.
@@ -72,8 +92,8 @@ watch(charges, (now) => {
   <div class="view-container">
     <ViewHeader :title="t('chargeHistory.title')" :subtitle="t('chargeHistory.subtitle')" />
 
-    <div class="charge-history-toolbar">
-      <label class="charge-history-toolbar__field">
+    <div class="charge-history-filters">
+      <label class="charge-history-filters__field">
         <span class="text-xs text-muted">{{ t('chargeHistory.period') }}</span>
         <select v-model.number="periodDays" class="form-select">
           <option v-for="days in PERIOD_DAYS" :key="days" :value="days">
@@ -81,14 +101,27 @@ watch(charges, (now) => {
           </option>
         </select>
       </label>
-      <div v-if="sessions.length > 0" class="charge-history-toolbar__summary">
-        <StatusCard
-          icon="plug-circle-bolt"
-          :label="t('chargeHistory.sessions')"
-          :value="sessions.length"
-          variant="info"
-        />
-      </div>
+    </div>
+
+    <div v-if="sessions.length > 0" class="status-grid charge-history-totals">
+      <StatusCard
+        icon="plug-circle-bolt"
+        :label="t('chargeHistory.sessions')"
+        :value="sessions.length"
+      />
+      <StatusCard
+        v-if="totalEnergy !== null"
+        icon="bolt"
+        :label="t('chargeHistory.batteryEnergyGained')"
+        :value="formatNumber(totalEnergy, 1)"
+        unit="kWh"
+      />
+      <StatusCard
+        v-if="totalTime"
+        icon="clock"
+        :label="t('chargeHistory.timeCharging')"
+        :value="totalTime"
+      />
     </div>
 
     <div v-if="loadError" class="empty-state text-danger" role="alert">

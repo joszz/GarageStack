@@ -107,6 +107,17 @@ describe('ChargeHistoryView', () => {
     expect(wrapper.find('.summary').text()).toBe('Sessions 2')
   })
 
+  it('totals the energy of every session and the time of the ended ones', async () => {
+    const wrapper = mountView()
+    await flushPromises()
+
+    expect(wrapper.findAll('.summary').map((card) => card.text())).toEqual([
+      'Sessions 2',
+      `${en.chargeHistory.batteryEnergyGained} 56.0`,
+      `${en.chargeHistory.timeCharging} 1h 0m`,
+    ])
+  })
+
   it('asks again for another period', async () => {
     const wrapper = mountView()
     await flushPromises()

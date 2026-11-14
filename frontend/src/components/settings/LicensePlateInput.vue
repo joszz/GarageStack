@@ -91,7 +91,7 @@ function onInput(event: Event) {
   align-items: stretch;
   min-width: 0;
   max-width: 15rem;
-  height: 2.75rem;
+  height: var(--touch-target);
   overflow: hidden;
   background: #f5c400;
   border: 2px solid #111;

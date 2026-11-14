@@ -62,6 +62,11 @@
   width: 100%;
 }
 
+/* Three short words: as wide as the phone's dialog, no wider than they need beside it. */
+.settings-theme {
+  max-width: 24rem;
+}
+
 .notif-type-filter {
   padding: 0.25rem 0 0.5rem;
 }
@@ -263,6 +268,11 @@
   display: flex;
   gap: 0.5rem;
   align-items: center;
+}
+
+/* The buttons take the plate's height, so the row reads as one control. */
+.license-plate-form {
+  align-items: stretch;
 }
 
 .api-token-form .form-control {

@@ -156,6 +156,48 @@ textarea.form-control {
   opacity: 0.6;
 }
 
+/* A one-of-N choice that stands in for a field (the theme, the log's source): the chips joined into
+   one box, as tall as a select or text box beside it, with equal segments. */
+.toggle-chip-group--segmented {
+  display: inline-grid;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--field-radius);
+  background: var(--field-bg);
+}
+
+.toggle-chip-group--segmented .toggle-chip {
+  min-height: 0;
+  padding: var(--field-py) 0.75rem;
+  font-size: var(--field-font-size);
+  line-height: var(--field-line-height);
+  white-space: nowrap;
+  border: 0;
+  border-radius: 0;
+  background: none;
+}
+
+.toggle-chip-group--segmented .toggle-chip + .toggle-chip {
+  border-left: 1px solid var(--color-border);
+}
+
+.toggle-chip-group--segmented .toggle-chip:not(.toggle-chip--active):hover {
+  color: var(--color-text);
+}
+
+.toggle-chip-group--segmented .toggle-chip--active {
+  background: color-mix(in srgb, var(--chip-color) 18%, var(--field-bg));
+  box-shadow: inset 0 0 0 1px var(--chip-color);
+}
+
+.toggle-chip-group--segmented .toggle-chip:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: -2px;
+}
+
 /* Seven day chips share the row evenly, so they fit a phone without wrapping. */
 .weekday-picker {
   display: flex;

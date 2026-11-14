@@ -160,12 +160,15 @@ const languageOptions = [
       >
         <SettingsSection :title="t('settings.theme.title')">
           <div class="settings-toggles">
-            <ChipGroup
-              v-model="settings.theme"
-              :options="themeOptions"
-              :group-label="t('settings.theme.title')"
-            />
-            <p class="text-xs text-muted">{{ t('settings.theme.desc') }}</p>
+            <div class="settings-toggle settings-toggle--select">
+              <ChipGroup
+                v-model="settings.theme"
+                class="toggle-chip-group--segmented settings-theme"
+                :options="themeOptions"
+                :group-label="t('settings.theme.title')"
+              />
+              <p class="settings-toggle__desc">{{ t('settings.theme.desc') }}</p>
+            </div>
           </div>
         </SettingsSection>
 
