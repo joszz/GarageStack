@@ -25,12 +25,14 @@ const PHONE = {
 
 // The pages of the gallery, each with what has to have happened before it is worth a picture.
 const PAGES = [
+  { file: 'login', path: '/login', signedOut: true },
   { file: 'dashboard', path: '/' },
   { file: 'map', path: '/map' },
   { file: 'map-trip', path: '/map', prepare: selectTrip },
   { file: 'statistics', path: '/statistics' },
   { file: 'trip-log', path: '/trip-log' },
   { file: 'trip-edit', path: '/trip-log', prepare: openTripEditor },
+  { file: 'charge-history', path: '/charge-history', prepare: openChargeSession },
   { file: 'maintenance', path: '/maintenance' },
   { file: 'climate-schedules', path: '/climate-schedules' },
   { file: 'settings', path: '/', prepare: openSettings },
@@ -82,23 +84,27 @@ async function shoot(device, theme, pages) {
     localStorage.setItem('garagestack-pwa-install-dismissed', 'never')
   })
   const page = await context.newPage()
+  // The sign-in page first, while there is no one signed in; it follows the browser's theme.
+  for (const shot of pages.filter((shot) => shot.signedOut)) await capture(page, name, shot)
   await signIn(page)
   // Saved to the demo account, which every page then takes: the theme, English, the gallery's
   // 30 days, and a selected trip coloured against the speed limits.
   await saveSettings(page, 'ui', { theme, locale: 'en', filterDays: 30 })
   await saveSettings(page, 'map', { speedLimitOverlayEnabled: true })
 
-  for (const shot of pages) {
-    await page.goto(base + shot.path)
-    await settled(page)
-    if (shot.prepare) await shot.prepare(page)
-    // A focused control scrolls the page a little on its way in; the gallery shows it from the top.
-    await page.evaluate(() => document.querySelector('.main-content')?.scrollTo({ top: 0 }))
-    const file = `${name}-${shot.file}.webp`
-    await writeFile(new URL(file, docs), await webp(page, await page.screenshot()))
-    console.log(`screenshots: ${file}`)
-  }
+  for (const shot of pages.filter((shot) => !shot.signedOut)) await capture(page, name, shot)
   await context.close()
+}
+
+async function capture(page, device, shot) {
+  await page.goto(base + shot.path)
+  await settled(page)
+  if (shot.prepare) await shot.prepare(page)
+  // A focused control scrolls the page a little on its way in; the gallery shows it from the top.
+  await page.evaluate(() => document.querySelector('.main-content')?.scrollTo({ top: 0 }))
+  const file = `${device}-${shot.file}.webp`
+  await writeFile(new URL(file, docs), await webp(page, await page.screenshot()))
+  console.log(`screenshots: ${file}`)
 }
 
 async function signIn(page) {
@@ -148,6 +154,16 @@ async function openTripEditor(page) {
   await page.waitForURL(/\/trips\/\d+\/edit$/)
   await settled(page)
   // The map is new here, so its vector basemap starts from nothing: give its tiles time to draw.
+  await page.waitForTimeout(5000)
+}
+
+// On a desktop the newest charge session opened on its power curve and where it charged; a phone
+// has no room for both that and the list, so it shows the list.
+async function openChargeSession(page) {
+  if (page.viewportSize().width < 768) return
+  await page.locator('.charge-history-item__toggle').first().click()
+  await settled(page)
+  // The session's map is new, so give its tiles time to draw.
   await page.waitForTimeout(5000)
 }
 

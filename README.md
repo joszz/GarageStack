@@ -38,7 +38,7 @@ And on a phone, with a single trip snapped to the roads and coloured against the
 
 <!-- markdownlint-enable MD033 -->
 
-The statistics, trip log, route editor, settings, maintenance list and light theme are in the [screenshot gallery](documentation/screenshots/README.md).
+The statistics, trip log, route editor, charge history, maintenance list, climate schedules, settings, logs, sign-in page and light theme are in the [screenshot gallery](documentation/screenshots/README.md).
 
 **Want to try it?** Read [MG iSmart account and session limits](#mg-ismart-account-and-session-limits) first, because GarageStack and the MG app cannot be signed in to the same account at once, then pick an [installation option](#installation). A single `docker run` is enough to get going.
 
