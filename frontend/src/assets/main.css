@@ -328,10 +328,11 @@ body,
   gap: 1rem;
 }
 
-/* A grid row stretches its items to the tallest, but on the dashboard and statistics the item is
-   a wrapper (the info button's, and in edit mode the slot's) rather than the card. The height is
-   passed down through them, so every tile in a row is as tall as the one with the longest label. */
-.status-grid > .card-info-wrap,
+/* A grid row stretches its items to the tallest, but on the dashboard, statistics, trip log and
+   charge history the item is a wrapper (the info button's, and in edit mode the slot's) rather
+   than the card. The height is passed down through them, so every tile in a row is as tall as the
+   one with the longest label. */
+.card-info-wrap:has(> .status-card),
 .status-grid > .card-slot,
 .status-grid > .card-slot > .card-slot__content {
   display: flex;
@@ -339,7 +340,7 @@ body,
 }
 
 .status-grid > .card-slot > .card-slot__content,
-.status-grid > .card-info-wrap > .status-card,
+.card-info-wrap > .status-card,
 .status-grid > .card-slot > .card-slot__content > .status-card,
 .status-grid > .card-slot > .card-slot__content > .card-slot__placeholder {
   flex: 1;

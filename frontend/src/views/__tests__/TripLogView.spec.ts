@@ -281,6 +281,18 @@ describe('TripLogView', () => {
     expect(summary).toContain('75km/h')
   })
 
+  it('explains every total and driving figure behind its info button', async () => {
+    const wrapper = await mountView()
+
+    // All trips, four purposes and four driving figures.
+    expect(wrapper.findAll('.trip-log-figures .card-info-btn')).toHaveLength(9)
+
+    await wrapper.find('.trip-log-totals__all .card-info-btn').trigger('click')
+    const dialog = wrapper.find('[role="dialog"]')
+    expect(dialog.find('.detail-modal__title').text()).toBe(en.tripLog.allTripsTitle)
+    expect(dialog.text()).toContain(en.tripLog.cardDesc.allTrips)
+  })
+
   it('says how far the unclassified trips went', async () => {
     vi.mocked(tripLogApi.log).mockResolvedValue([logEntry({ id: 1 }), logEntry({ id: 2 })])
     const wrapper = await mountView()

@@ -6,6 +6,7 @@ import { useVehicleStore } from '@/stores/vehicle'
 import { useTripLogStore } from '@/stores/tripLog'
 import { useUiSettingsStore } from '@/stores/settingsUi'
 import StatusCard from '@/components/StatusCard.vue'
+import CardInfoWrap from '@/components/CardInfoWrap.vue'
 import TripLogItem from '@/components/TripLogItem.vue'
 import TripLogDetail from '@/components/TripLogDetail.vue'
 import CommutePlacesModal from '@/components/CommutePlacesModal.vue'
@@ -92,6 +93,8 @@ const purposeCards = computed(() =>
     const share = distanceShare(total, store.summary.km)
     return {
       key,
+      title: t(`tripLog.purpose.${key}`),
+      description: t(`tripLog.cardDesc.${key}`),
       label: t('tripLog.totalLabel', { purpose: t(`tripLog.purpose.${key}`), n: total.trips }),
       value: units.value.measure('distance', total.km)?.value ?? null,
       // Nothing left to classify is nothing to warn about.
@@ -108,7 +111,7 @@ function measured(m: Measure | null) {
 
 const summaryCards = computed(() => {
   const s = store.summary
-  return [
+  const cards = [
     {
       key: 'drivingTime',
       icon: 'clock',
@@ -139,6 +142,7 @@ const summaryCards = computed(() => {
       subtitle: t('tripLog.summary.averageSpeedHint'),
     },
   ]
+  return cards.map((card) => ({ ...card, description: t(`tripLog.cardDesc.${card.key}`) }))
 })
 
 // ── The trip shown in detail ──────────────────────────────
@@ -330,25 +334,35 @@ function exportCsv() {
         class="trip-log-totals"
         :aria-label="t('tripLog.totalsLabel')"
       >
-        <StatusCard
+        <CardInfoWrap
           class="trip-log-totals__all"
-          icon="car"
-          :label="t('tripLog.allTrips', { n: store.summary.trips })"
-          :value="allTrips?.value ?? null"
-          :unit="allTrips?.unit"
-        />
-        <StatusCard
+          :title="t('tripLog.allTripsTitle')"
+          :description="t('tripLog.cardDesc.allTrips')"
+        >
+          <StatusCard
+            icon="car"
+            :label="t('tripLog.allTrips', { n: store.summary.trips })"
+            :value="allTrips?.value ?? null"
+            :unit="allTrips?.unit"
+          />
+        </CardInfoWrap>
+        <CardInfoWrap
           v-for="card in purposeCards"
           :key="card.key"
-          :icon="PURPOSE_ICONS[card.key]"
-          :label="card.label"
-          :value="card.value"
-          :unit="units.symbol('distance')"
-          :variant="card.variant"
-          :note="card.note"
-          :share="card.share"
-          :share-label="card.note"
-        />
+          :title="card.title"
+          :description="card.description"
+        >
+          <StatusCard
+            :icon="PURPOSE_ICONS[card.key]"
+            :label="card.label"
+            :value="card.value"
+            :unit="units.symbol('distance')"
+            :variant="card.variant"
+            :note="card.note"
+            :share="card.share"
+            :share-label="card.note"
+          />
+        </CardInfoWrap>
       </section>
 
       <button
@@ -368,15 +382,20 @@ function exportCsv() {
         class="trip-log-summary"
         :aria-label="t('tripLog.summary.label')"
       >
-        <StatusCard
+        <CardInfoWrap
           v-for="card in summaryCards"
           :key="card.key"
-          :icon="card.icon"
-          :label="card.label"
-          :value="card.value"
-          :unit="card.unit"
-          :subtitle="card.subtitle"
-        />
+          :title="card.label"
+          :description="card.description"
+        >
+          <StatusCard
+            :icon="card.icon"
+            :label="card.label"
+            :value="card.value"
+            :unit="card.unit"
+            :subtitle="card.subtitle"
+          />
+        </CardInfoWrap>
       </section>
     </div>
 
