@@ -270,6 +270,9 @@
   gap: 0.4rem;
 }
 
+/* The rings are drawn inside the swatch, not around it: the settings body scrolls, so anything
+   outside the first swatch (an outline, a hover zoom) is cut off at the dialog's edge. The chosen
+   swatch gets a text-coloured ring with a gap of card colour between it and the paint. */
 .car-color-swatch {
   width: 34px;
   height: 34px;
@@ -279,19 +282,23 @@
   cursor: pointer;
   background: linear-gradient(135deg, var(--swatch-s) 50%, var(--swatch-p) 50%);
   box-shadow: inset 0 0 0 1px rgb(0 0 0 / 15%);
-  outline: 2.5px solid transparent;
-  outline-offset: 3px;
-  transition:
-    transform 0.15s,
-    outline-color 0.15s;
+  transition: box-shadow 0.15s;
 }
 
 .car-color-swatch:hover {
-  transform: scale(1.12);
+  box-shadow: inset 0 0 0 2px var(--color-text-muted);
 }
 
-.car-color-swatch--active {
-  outline-color: var(--color-text);
+.car-color-swatch--active,
+.car-color-swatch--active:hover {
+  box-shadow:
+    inset 0 0 0 2.5px var(--color-text),
+    inset 0 0 0 5px var(--color-surface);
+}
+
+.car-color-swatch:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: -2px;
 }
 
 /* ── API tokens ───────────────────────────────────────────── */
