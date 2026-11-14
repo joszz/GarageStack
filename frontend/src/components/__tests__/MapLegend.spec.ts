@@ -2,6 +2,7 @@ import { describe, it, expect, afterEach } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import { createI18n } from 'vue-i18n'
 import MapLegend from '../MapLegend.vue'
+import MapLegendSection from '../MapLegendSection.vue'
 
 // Stub FontAwesomeIcon so the test environment doesn't need the FA setup
 const FaStub = { template: '<span />', props: ['icon'] }
@@ -17,7 +18,6 @@ const i18n = createI18n({
 function mountLegend(expanded: boolean) {
   const wrapper = mount(MapLegend, {
     props: {
-      label: 'Speed limits',
       expanded,
       'onUpdate:expanded': (value: boolean) => wrapper.setProps({ expanded: value }),
     },
@@ -70,8 +70,31 @@ describe('MapLegend', () => {
     expect(button.attributes('aria-expanded')).toBe('true')
   })
 
-  it('names the key after what it explains', () => {
+  it('names its panel as the legend', () => {
     const wrapper = mountLegend(true)
-    expect(wrapper.find('[role="group"]').attributes('aria-label')).toBe('Speed limits')
+    expect(wrapper.find('[role="group"]').attributes('aria-label')).toBe('Legend')
+  })
+
+  it('holds every key behind its one button', () => {
+    const wrapper = mount(MapLegend, {
+      props: { expanded: true },
+      slots: {
+        default:
+          '<MapLegendSection label="Speed">a</MapLegendSection>' +
+          '<MapLegendSection label="Phone GPS">b</MapLegendSection>',
+      },
+      global: {
+        plugins: [i18n],
+        components: { MapLegendSection },
+        stubs: { FontAwesomeIcon: FaStub },
+      },
+    })
+    expect(wrapper.findAll('button')).toHaveLength(1)
+    const sections = wrapper.findAll('.map-legend-section')
+    expect(sections.map((section) => section.attributes('aria-label'))).toEqual([
+      'Speed',
+      'Phone GPS',
+    ])
+    expect(sections.every((section) => section.attributes('role') === 'group')).toBe(true)
   })
 })

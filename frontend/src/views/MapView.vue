@@ -12,6 +12,7 @@ import MapLayerPanel from '@/components/map/MapLayerPanel.vue'
 import TripSidebar from '@/components/map/TripSidebar.vue'
 import SpeedLegend from '@/components/map/SpeedLegend.vue'
 import MapLegend from '@/components/MapLegend.vue'
+import MapLegendSection from '@/components/MapLegendSection.vue'
 import PhoneSourceKey from '@/components/PhoneSourceKey.vue'
 import SpeedLimitLegend from '@/components/map/SpeedLimitLegend.vue'
 import LocationDirections from '@/components/LocationDirections.vue'
@@ -215,9 +216,14 @@ const limitColoursShown = computed(
   () => (speedLimitSummaryOfTrip.value?.knownKm ?? 0) > 0 && selectedMatch.value !== null,
 )
 
-// Whichever speed key is showing opens and folds as one. A phone's map is too short to give the
-// key its room by default, so there it starts folded to its button. Once opened or folded, the
-// key stays that way on this device.
+// Points a phone logged (Dawarich) are drawn dotted, which the legend explains.
+const tripHasPhonePoints = computed(
+  () => selectedTrip.value?.points.some((point) => point.source === 'phone') ?? false,
+)
+
+// Every key the map shows sits in one legend behind one button. A phone's map is too short to
+// give it its room by default, so there it starts folded to its button. Once opened or folded,
+// the legend stays that way on this device.
 const legendExpanded = computed({
   get: () => settingsStore.legendExpanded ?? !isPhoneViewport(),
   set: (expanded: boolean) => {
@@ -469,21 +475,20 @@ onMounted(async () => {
             <font-awesome-icon icon="pen-to-square" />
           </RouterLink>
 
-          <SpeedLegend v-if="speedOverlayEnabled" v-model:expanded="legendExpanded" />
           <MapLegend
-            v-if="selectedTrip.points.some((point) => point.source === 'phone')"
+            v-if="speedOverlayEnabled || tripHasPhonePoints || speedLimitSummaryOfTrip"
             v-model:expanded="legendExpanded"
-            :label="t('dawarich.phonePoints')"
           >
-            <PhoneSourceKey />
+            <SpeedLegend v-if="speedOverlayEnabled" />
+            <MapLegendSection v-if="tripHasPhonePoints" :label="t('dawarich.phonePoints')">
+              <PhoneSourceKey />
+            </MapLegendSection>
+            <SpeedLimitLegend
+              v-if="speedLimitSummaryOfTrip"
+              :summary="speedLimitSummaryOfTrip"
+              :coloured="limitColoursShown"
+            />
           </MapLegend>
-
-          <SpeedLimitLegend
-            v-if="speedLimitSummaryOfTrip"
-            v-model:expanded="legendExpanded"
-            :summary="speedLimitSummaryOfTrip"
-            :coloured="limitColoursShown"
-          />
         </div>
       </div>
     </div>
