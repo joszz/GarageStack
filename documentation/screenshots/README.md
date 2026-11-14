@@ -4,6 +4,10 @@ The main pages of GarageStack, on a desktop and on a phone. They were taken in [
 
 ## Desktop
 
+### Signing in
+
+![The sign-in page: a card with the GarageStack logo, a username and a password field, a Remember me switch to stay logged in for 30 days, and the Log in button](desktop-login.webp)
+
 ### Dashboard
 
 ![The dashboard: the car on the road with its speed, tyre pressures and charge, a map of where it is, and cards for the battery, range, doors, windows, climate and today's driving](desktop-dashboard.webp)
@@ -27,6 +31,10 @@ The main pages of GarageStack, on a desktop and on a phone. They were taken in [
 ### Editing a trip's route
 
 ![The route editor: a trip from Amsterdam to Schiphol on a map with green start and red end markers, and beside it the distance, the addresses, the choice of moving the start, the end or points in between, and Undo, Reset to recorded, Cancel and Save](desktop-trip-edit.webp)
+
+### Charge history
+
+![The charge history: totals for the sessions, the battery energy gained and the time spent charging over the last 90 days, above a list of AC and DC sessions with their charge levels, peak power and energy, the newest one opened on its charging power curve, the distance and energy used since the charge before, and where it charged](desktop-charge-history.webp)
 
 ### Maintenance
 
@@ -55,16 +63,18 @@ The main pages of GarageStack, on a desktop and on a phone. They were taken in [
 | Dashboard | Map | A single trip | Light theme |
 | --------- | --- | ------------- | ----------- |
 | <img src="mobile-dashboard.webp" alt="The dashboard on a phone" width="180"> | <img src="mobile-map.webp" alt="The map on a phone" width="180"> | <img src="mobile-map-trip.webp" alt="One trip against the speed limits on a phone" width="180"> | <img src="mobile-dashboard-light.webp" alt="The dashboard on a phone in the light theme" width="180"> |
-| **Statistics** | **Trip log** | **Maintenance** | **Climate schedules** |
-| <img src="mobile-statistics.webp" alt="The statistics on a phone" width="180"> | <img src="mobile-trip-log.webp" alt="The trip log on a phone" width="180"> | <img src="mobile-maintenance.webp" alt="The maintenance list on a phone" width="180"> | <img src="mobile-climate-schedules.webp" alt="The climate schedules on a phone" width="180"> |
-| **Editing a route** | **Settings** | **Logs** | |
-| <img src="mobile-trip-edit.webp" alt="The route editor on a phone, the map above the controls" width="180"> | <img src="mobile-settings.webp" alt="The settings on a phone, the tabs as icons under the title" width="180"> | <img src="mobile-logs.webp" alt="The Worker's log entries on a phone" width="180"> | |
+| **Statistics** | **Trip log** | **Editing a route** | **Charge history** |
+| <img src="mobile-statistics.webp" alt="The statistics on a phone" width="180"> | <img src="mobile-trip-log.webp" alt="The trip log on a phone" width="180"> | <img src="mobile-trip-edit.webp" alt="The route editor on a phone, the map above the controls" width="180"> | <img src="mobile-charge-history.webp" alt="The charge history on a phone: the period's totals above the list of charge sessions" width="180"> |
+| **Maintenance** | **Climate schedules** | **Settings** | **Logs** |
+| <img src="mobile-maintenance.webp" alt="The maintenance list on a phone" width="180"> | <img src="mobile-climate-schedules.webp" alt="The climate schedules on a phone" width="180"> | <img src="mobile-settings.webp" alt="The settings on a phone, the tabs as icons under the title" width="180"> | <img src="mobile-logs.webp" alt="The Worker's log entries on a phone" width="180"> |
+| **Signing in** | | | |
+| <img src="mobile-login.webp" alt="The sign-in page on a phone" width="180"> | | | |
 
 <!-- markdownlint-enable MD033 -->
 
 ## Taking new ones
 
-`pnpm screenshots` in `frontend/` takes all of them again from a running demo stack (the route editor is opened from the newest trip, the settings on their first tab, the log viewer on the Worker's entries), and copies the dashboard, map and statistics ones to the install screenshots in the app's manifest (`frontend/public/screenshot-*.webp`):
+`pnpm screenshots` in `frontend/` takes all of them again from a running demo stack (the sign-in page before it signs in, the route editor opened from the newest trip, the newest charge session opened on a desktop, the settings on their first tab, the log viewer on the Worker's entries), and copies the dashboard, map and statistics ones to the install screenshots in the app's manifest (`frontend/public/screenshot-*.webp`):
 
 ```bash
 cp .env.demo.example .env.demo
