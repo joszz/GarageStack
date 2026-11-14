@@ -75,6 +75,7 @@ function mountView() {
           props: ['label', 'value'],
         },
         ChargeSessionItem: ItemStub,
+        teleport: true,
       },
     },
   })
@@ -116,6 +117,19 @@ describe('ChargeHistoryView', () => {
       `${en.chargeHistory.batteryEnergyGained} 56.0`,
       `${en.chargeHistory.timeCharging} 1h 0m`,
     ])
+  })
+
+  it('explains each total behind its info button', async () => {
+    const wrapper = mountView()
+    await flushPromises()
+
+    const buttons = wrapper.findAll('.charge-history-totals .card-info-btn')
+    expect(buttons).toHaveLength(3)
+
+    await buttons[1]!.trigger('click')
+    const dialog = wrapper.find('[role="dialog"]')
+    expect(dialog.find('.detail-modal__title').text()).toBe(en.chargeHistory.batteryEnergyGained)
+    expect(dialog.text()).toContain(en.chargeHistory.cardDesc.batteryEnergyGained)
   })
 
   it('asks again for another period', async () => {

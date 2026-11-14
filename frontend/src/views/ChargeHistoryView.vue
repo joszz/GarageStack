@@ -12,6 +12,7 @@ import { formatDurationMs } from '@/utils/tripRows'
 import { useErrorMessage } from '@/composables/useErrorMessage'
 import ViewHeader from '@/components/ViewHeader.vue'
 import StatusCard from '@/components/StatusCard.vue'
+import CardInfoWrap from '@/components/CardInfoWrap.vue'
 import ChargeSessionItem from '@/components/ChargeSessionItem.vue'
 
 /** The periods offered, in days. The API reads at most a year at a time. */
@@ -104,24 +105,35 @@ watch(charges, (now) => {
     </div>
 
     <div v-if="sessions.length > 0" class="status-grid charge-history-totals">
-      <StatusCard
-        icon="plug-circle-bolt"
-        :label="t('chargeHistory.sessions')"
-        :value="sessions.length"
-      />
-      <StatusCard
+      <CardInfoWrap
+        :title="t('chargeHistory.sessions')"
+        :description="t('chargeHistory.cardDesc.sessions')"
+      >
+        <StatusCard
+          icon="plug-circle-bolt"
+          :label="t('chargeHistory.sessions')"
+          :value="sessions.length"
+        />
+      </CardInfoWrap>
+      <CardInfoWrap
         v-if="totalEnergy !== null"
-        icon="bolt"
-        :label="t('chargeHistory.batteryEnergyGained')"
-        :value="formatNumber(totalEnergy, 1)"
-        unit="kWh"
-      />
-      <StatusCard
+        :title="t('chargeHistory.batteryEnergyGained')"
+        :description="t('chargeHistory.cardDesc.batteryEnergyGained')"
+      >
+        <StatusCard
+          icon="bolt"
+          :label="t('chargeHistory.batteryEnergyGained')"
+          :value="formatNumber(totalEnergy, 1)"
+          unit="kWh"
+        />
+      </CardInfoWrap>
+      <CardInfoWrap
         v-if="totalTime"
-        icon="clock"
-        :label="t('chargeHistory.timeCharging')"
-        :value="totalTime"
-      />
+        :title="t('chargeHistory.timeCharging')"
+        :description="t('chargeHistory.cardDesc.timeCharging')"
+      >
+        <StatusCard icon="clock" :label="t('chargeHistory.timeCharging')" :value="totalTime" />
+      </CardInfoWrap>
     </div>
 
     <div v-if="loadError" class="empty-state text-danger" role="alert">

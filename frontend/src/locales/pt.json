@@ -54,7 +54,12 @@
     "consumptionSincePreviousCharge": "Consumo desde a última carga",
     "noPowerData": "Não há leituras de potência de carregamento registradas para esta sessão.",
     "notReported": "Não informado",
-    "empty": "Ainda não há sessões de carregamento disponíveis."
+    "empty": "Ainda não há sessões de carregamento disponíveis.",
+    "cardDesc": {
+      "sessions": "O número de sessões de carregamento no período escolhido, reconstruídas a partir do estado de carga que o carro enviou. Uma sessão em andamento também conta.",
+      "batteryEnergyGained": "O aumento de energia na bateria, somado nas sessões: a energia que chegou à bateria, menor do que a entregue pelo carregador. Exibido apenas quando a capacidade da bateria é conhecida: num BEV pelo próprio carro, num híbrido plug-in quando a capacidade real do pacote estiver configurada.",
+      "timeCharging": "O tempo do início ao fim do carregamento, somado nas sessões concluídas. Uma sessão em andamento conta quando termina."
+    }
   },
   "dashboard": {
     "title": "Painel",
@@ -818,6 +823,7 @@
     "totalLabel": "{purpose} ({n})",
     "classifyAll": "{n} viagem ({distance}) ainda não tem finalidade. Marcar como: | {n} viagens ({distance}) ainda não têm finalidade. Marcar todas como:",
     "allTrips": "Todas as viagens ({n})",
+    "allTripsTitle": "Todas as viagens",
     "shareOfDistance": "{percent}% da distância",
     "summary": {
       "label": "Condução neste período",
@@ -826,6 +832,17 @@
       "longestTrip": "Maior viagem",
       "averageSpeed": "Velocidade média",
       "averageSpeedHint": "A distância dividida pelo tempo dirigindo, incluindo paradas no trânsito"
+    },
+    "cardDesc": {
+      "allTrips": "A distância percorrida em todas as viagens deste período, com o número de viagens entre parênteses. Viagens ocultas ficam de fora. A distância de uma viagem vem do hodômetro, ou dos pontos de GPS quando o carro não enviou leituras do hodômetro.",
+      "business": "A distância das viagens marcadas como trabalho, com o número de viagens entre parênteses e a parcela delas na distância do período abaixo.",
+      "commute": "A distância das viagens marcadas como casa-trabalho, com o número de viagens entre parênteses e a parcela delas na distância do período abaixo. Depois de definir casa e trabalho em Casa e trabalho, as viagens entre eles são marcadas automaticamente como casa-trabalho.",
+      "private": "A distância das viagens marcadas como particulares, com o número de viagens entre parênteses e a parcela delas na distância do período abaixo.",
+      "unclassified": "A distância das viagens que ainda não têm finalidade. Escolha uma finalidade para cada viagem na lista, ou marque todas de uma vez com os botões abaixo destes números.",
+      "drivingTime": "O tempo da partida até a chegada, somado em todas as viagens deste período. Paradas no trânsito contam; o tempo estacionado entre viagens não.",
+      "averageTrip": "A distância do período dividida pelo número de viagens.",
+      "longestTrip": "A distância da viagem mais longa deste período.",
+      "averageSpeed": "A distância do período dividida pelo tempo de condução, então paradas no trânsito e em semáforos a reduzem. A velocidade média nos detalhes de uma viagem usa em vez disso as velocidades que o carro enviou em movimento."
     },
     "detail": {
       "title": "Detalhes da viagem",

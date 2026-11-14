@@ -54,7 +54,12 @@
     "consumptionSincePreviousCharge": "Verbruik sinds laatste laadsessie",
     "noPowerData": "Voor deze sessie zijn geen laadvermogensmetingen opgeslagen.",
     "notReported": "Niet gemeld",
-    "empty": "Er zijn nog geen laadsessies beschikbaar."
+    "empty": "Er zijn nog geen laadsessies beschikbaar.",
+    "cardDesc": {
+      "sessions": "Het aantal laadsessies in de gekozen periode, samengesteld uit de laadstatus die de auto doorgaf. Een sessie die nog bezig is telt ook mee.",
+      "batteryEnergyGained": "De toename van de energie in de batterij, opgeteld over de sessies: de energie die de batterij bereikte, minder dan wat de lader leverde. Alleen zichtbaar als de capaciteit van de batterij bekend is: bij een BEV van de auto zelf, bij een plug-in hybride zodra de echte capaciteit van het accupakket is ingesteld.",
+      "timeCharging": "De tijd van begin tot eind van het laden, opgeteld over de afgeronde sessies. Een sessie die nog bezig is telt mee zodra hij klaar is."
+    }
   },
   "dashboard": {
     "title": "Dashboard",
@@ -818,6 +823,7 @@
     "totalLabel": "{purpose} ({n})",
     "classifyAll": "{n} rit ({distance}) heeft nog geen doel. Markeer als: | {n} ritten ({distance}) hebben nog geen doel. Markeer ze allemaal als:",
     "allTrips": "Alle ritten ({n})",
+    "allTripsTitle": "Alle ritten",
     "shareOfDistance": "{percent}% van de afstand",
     "summary": {
       "label": "Rijden in deze periode",
@@ -826,6 +832,17 @@
       "longestTrip": "Langste rit",
       "averageSpeed": "Gemiddelde snelheid",
       "averageSpeedHint": "De afstand gedeeld door de tijd die het rijden kostte, stilstand in het verkeer meegerekend"
+    },
+    "cardDesc": {
+      "allTrips": "De afstand van alle ritten in deze periode, met het aantal ritten tussen haakjes. Verborgen ritten tellen niet mee. De afstand van een rit komt van de kilometerstand, of van de GPS-punten als de auto geen kilometerstand doorgaf.",
+      "business": "De afstand van de ritten die als zakelijk zijn ingedeeld, met het aantal ritten tussen haakjes en hun aandeel in de afstand van de periode eronder.",
+      "commute": "De afstand van de ritten die als woon-werk zijn ingedeeld, met het aantal ritten tussen haakjes en hun aandeel in de afstand van de periode eronder. Zodra thuis en werk zijn ingesteld onder Thuis en werk, worden ritten daartussen vanzelf als woon-werk ingedeeld.",
+      "private": "De afstand van de ritten die als privé zijn ingedeeld, met het aantal ritten tussen haakjes en hun aandeel in de afstand van de periode eronder.",
+      "unclassified": "De afstand van de ritten die nog geen doel hebben. Kies per rit een doel in de lijst, of deel ze allemaal tegelijk in met de knoppen onder deze cijfers.",
+      "drivingTime": "De tijd van vertrek tot aankomst, opgeteld over alle ritten in deze periode. Stilstand in het verkeer telt mee, de tijd geparkeerd tussen ritten niet.",
+      "averageTrip": "De afstand van de periode gedeeld door het aantal ritten.",
+      "longestTrip": "De afstand van de langste rit in deze periode.",
+      "averageSpeed": "De afstand van de periode gedeeld door de rijtijd, dus stilstand in het verkeer en voor verkeerslichten haalt hem omlaag. De gemiddelde snelheid in de details van een rit gebruikt in plaats daarvan de snelheden die de auto tijdens het rijden doorgaf."
     },
     "detail": {
       "title": "Ritdetails",

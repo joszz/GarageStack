@@ -54,7 +54,12 @@
     "consumptionSincePreviousCharge": "Consumo desde la última carga",
     "noPowerData": "No se registraron lecturas de potencia de carga para esta sesión.",
     "notReported": "No comunicado",
-    "empty": "Todavía no hay sesiones de carga disponibles."
+    "empty": "Todavía no hay sesiones de carga disponibles.",
+    "cardDesc": {
+      "sessions": "El número de sesiones de carga en el periodo elegido, reconstruidas a partir del estado de carga que envió el coche. Una sesión en curso también cuenta.",
+      "batteryEnergyGained": "El aumento de energía en la batería, sumado en todas las sesiones: la energía que llegó a la batería, menor que la que entregó el cargador. Solo se muestra cuando se conoce la capacidad de la batería: en un BEV por el propio coche, en un híbrido enchufable cuando se configura la capacidad real del paquete.",
+      "timeCharging": "El tiempo desde el inicio hasta el final de la carga, sumado en las sesiones terminadas. Una sesión en curso cuenta cuando termina."
+    }
   },
   "dashboard": {
     "title": "Panel",
@@ -818,6 +823,7 @@
     "totalLabel": "{purpose} ({n})",
     "classifyAll": "Hay {n} trayecto ({distance}) sin clasificar. Asígnale un propósito: | Hay {n} trayectos ({distance}) sin clasificar. Asígnales un propósito:",
     "allTrips": "Todos los viajes ({n})",
+    "allTripsTitle": "Todos los viajes",
     "shareOfDistance": "{percent}% de la distancia",
     "summary": {
       "label": "Conduciendo en este período",
@@ -826,6 +832,17 @@
       "longestTrip": "Viaje más largo",
       "averageSpeed": "Velocidad media",
       "averageSpeedHint": "La distancia sobre el tiempo dedicado a conducir it, paradas en el tráfico incluidas"
+    },
+    "cardDesc": {
+      "allTrips": "La distancia recorrida en todos los viajes de este periodo, con el número de viajes entre paréntesis. Los viajes ocultos no se cuentan. La distancia de un viaje viene del cuentakilómetros, o de sus puntos GPS cuando el coche no envió lecturas del cuentakilómetros.",
+      "business": "La distancia de los viajes marcados como negocios, con el número de viajes entre paréntesis y su parte de la distancia del periodo debajo.",
+      "commute": "La distancia de los viajes marcados como conmutación, con el número de viajes entre paréntesis y su parte de la distancia del periodo debajo. Una vez que defines casa y trabajo en Hogar y trabajo, los viajes entre ambos se marcan solos como conmutación.",
+      "private": "La distancia de los viajes marcados como privados, con el número de viajes entre paréntesis y su parte de la distancia del periodo debajo.",
+      "unclassified": "La distancia de los viajes que aún no tienen propósito. Elige un propósito para cada viaje en la lista, o márcalos todos a la vez con los botones bajo estas cifras.",
+      "drivingTime": "El tiempo desde la salida hasta la llegada, sumado en todos los viajes de este periodo. Las paradas en el tráfico cuentan; el tiempo aparcado entre viajes no.",
+      "averageTrip": "La distancia del periodo dividida por el número de viajes.",
+      "longestTrip": "La distancia del viaje más largo de este periodo.",
+      "averageSpeed": "La distancia del periodo dividida por el tiempo de conducción, así que las paradas en el tráfico y en los semáforos la reducen. La velocidad media en los detalles de un viaje usa en cambio las velocidades que el coche envió mientras se movía."
     },
     "detail": {
       "title": "Detalles del viaje",
