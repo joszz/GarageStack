@@ -92,67 +92,72 @@ function toggleNotificationType(id: NotificationCategoryId, checked: boolean) {
 </script>
 
 <template>
-  <div v-if="pushSupported" class="settings-toggles">
+  <div class="settings-toggles">
     <SettingsToggle
+      v-if="pushSupported"
       v-model="pushEnabled"
       :label="t('push.enable')"
       :desc="t('push.enableDesc')"
       :disabled="pushSwitchDisabled"
       input-id="settings-toggle-push"
-    />
-  </div>
+    >
+      <template #note>
+        <p v-if="showPermissionDeniedNotice" class="text-danger text-sm" role="alert">
+          {{ t('push.permissionDenied') }}
+        </p>
+        <p v-else-if="showSubscribeFailedNotice" class="text-danger text-sm" role="alert">
+          {{ t('push.subscribeFailed') }}
+        </p>
+      </template>
+    </SettingsToggle>
 
-  <p v-else-if="needsHttps" class="notif-type-filter__denied text-muted text-sm">
-    {{ t('push.needsHttps') }}
-  </p>
+    <!-- No switch to offer on a plain-HTTP address: the row says why instead. -->
+    <SettingsToggle v-else-if="needsHttps" :label="t('push.enable')" :desc="t('push.needsHttps')">
+      <template #control><span /></template>
+    </SettingsToggle>
 
-  <div v-if="showPermissionDeniedNotice" class="notif-type-filter__denied text-danger text-sm">
-    {{ t('push.permissionDenied') }}
-  </div>
+    <SettingsToggle
+      class="settings-toggle--stacked"
+      :label="t('notifications.typeFilter')"
+      :desc="t('notifications.typeFilterDesc')"
+    >
+      <template #control>
+        <div class="notif-type-filter__actions">
+          <button
+            type="button"
+            class="btn btn-sm btn-outline-secondary"
+            @click="selectAllNotificationTypes"
+          >
+            {{ t('notifications.selectAll') }}
+          </button>
+          <button
+            type="button"
+            class="btn btn-sm btn-outline-secondary"
+            @click="deselectAllNotificationTypes"
+          >
+            {{ t('notifications.deselectAll') }}
+          </button>
+        </div>
 
-  <div v-else-if="showSubscribeFailedNotice" class="notif-type-filter__denied text-danger text-sm">
-    {{ t('push.subscribeFailed') }}
-  </div>
-
-  <div class="notif-type-filter">
-    <div class="notif-type-filter__header">
-      <div class="settings-toggle__info">
-        <span class="settings-toggle__label">{{ t('notifications.typeFilter') }}</span>
-        <span class="settings-toggle__desc">{{ t('notifications.typeFilterDesc') }}</span>
-      </div>
-      <div class="notif-type-filter__actions">
-        <button
-          type="button"
-          class="btn btn-sm btn-outline-secondary"
-          @click="selectAllNotificationTypes"
-        >
-          {{ t('notifications.selectAll') }}
-        </button>
-        <button
-          type="button"
-          class="btn btn-sm btn-outline-secondary"
-          @click="deselectAllNotificationTypes"
-        >
-          {{ t('notifications.deselectAll') }}
-        </button>
-      </div>
-    </div>
-
-    <div class="notif-type-checklist">
-      <label
-        v-for="opt in notificationTypeOptions"
-        :key="opt.value"
-        class="form-check form-switch notif-type-checklist__item"
-      >
-        <input
-          class="form-check-input"
-          type="checkbox"
-          role="switch"
-          :checked="!settings.notificationTypeExclusions.includes(opt.value)"
-          @change="toggleNotificationType(opt.value, ($event.target as HTMLInputElement).checked)"
-        />
-        <span class="notif-type-checklist__label">{{ opt.label }}</span>
-      </label>
-    </div>
+        <div class="notif-type-checklist">
+          <label
+            v-for="opt in notificationTypeOptions"
+            :key="opt.value"
+            class="form-check form-switch notif-type-checklist__item"
+          >
+            <input
+              class="form-check-input"
+              type="checkbox"
+              role="switch"
+              :checked="!settings.notificationTypeExclusions.includes(opt.value)"
+              @change="
+                toggleNotificationType(opt.value, ($event.target as HTMLInputElement).checked)
+              "
+            />
+            <span class="notif-type-checklist__label">{{ opt.label }}</span>
+          </label>
+        </div>
+      </template>
+    </SettingsToggle>
   </div>
 </template>

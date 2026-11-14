@@ -5,6 +5,7 @@ import { API_TOKEN_NAME_MAX_LENGTH, apiTokensApi, type ApiToken } from '@/servic
 import { useErrorMessage } from '@/composables/useErrorMessage'
 import { useTwoTapConfirm } from '@/composables/useTwoTapConfirm'
 import { formatDateTime } from '@/utils/format'
+import SettingsToggle from '../SettingsToggle.vue'
 
 // Read-only tokens for scripts, dashboards and gadgets. A new token is shown once, to be copied;
 // the list only ever shows how each one starts.
@@ -77,70 +78,75 @@ function usage(token: ApiToken): string {
 </script>
 
 <template>
-  <div class="form-stack">
-    <p class="settings-toggle__desc">{{ t('settings.apiTokens.desc') }}</p>
-
-    <form class="api-token-form" @submit.prevent="create">
-      <input
-        v-model="name"
-        class="form-control"
-        :maxlength="API_TOKEN_NAME_MAX_LENGTH"
-        :placeholder="t('settings.apiTokens.namePlaceholder')"
-        :aria-label="t('settings.apiTokens.nameLabel')"
-      />
-      <button type="submit" class="btn btn-primary btn-sm" :disabled="busy || !name.trim()">
-        {{ t('settings.apiTokens.create') }}
-      </button>
-    </form>
-
-    <div v-if="created" class="form-stack" role="status">
-      <p class="text-sm">{{ t('settings.apiTokens.copyNow') }}</p>
-      <div class="api-token-form">
+  <!-- Stacked: the form and the token list need the row's whole width. -->
+  <SettingsToggle
+    class="settings-toggle--stacked"
+    :label="t('settings.apiTokens.title')"
+    :desc="t('settings.apiTokens.desc')"
+  >
+    <template #control>
+      <form class="api-token-form" @submit.prevent="create">
         <input
+          v-model="name"
           class="form-control"
-          readonly
-          :value="created"
-          :aria-label="t('settings.apiTokens.newToken')"
-          @focus="($event.target as HTMLInputElement).select()"
+          :maxlength="API_TOKEN_NAME_MAX_LENGTH"
+          :placeholder="t('settings.apiTokens.namePlaceholder')"
+          :aria-label="t('settings.apiTokens.nameLabel')"
         />
-        <button type="button" class="btn btn-outline-secondary btn-sm" @click="copy">
-          <font-awesome-icon :icon="copied ? 'check' : 'copy'" />
-          {{ copied ? t('settings.apiTokens.copied') : t('settings.apiTokens.copy') }}
+        <button type="submit" class="btn btn-primary" :disabled="busy || !name.trim()">
+          {{ t('settings.apiTokens.create') }}
         </button>
-      </div>
-    </div>
+      </form>
 
-    <p v-if="error" class="text-danger text-sm" role="alert">{{ error }}</p>
-
-    <div v-if="tokens.length" class="detail-list">
-      <div v-for="token in tokens" :key="token.id" class="detail-list__item">
-        <font-awesome-icon icon="key" class="detail-list__item-icon" />
-        <div class="api-token-row">
-          <span class="detail-list__item-label">{{ token.name }}</span>
-          <span class="settings-toggle__desc">{{ token.prefix }}… · {{ usage(token) }}</span>
+      <div v-if="created" class="form-stack" role="status">
+        <p class="text-sm">{{ t('settings.apiTokens.copyNow') }}</p>
+        <div class="api-token-form">
+          <input
+            class="form-control"
+            readonly
+            :value="created"
+            :aria-label="t('settings.apiTokens.newToken')"
+            @focus="($event.target as HTMLInputElement).select()"
+          />
+          <button type="button" class="btn btn-outline-secondary" @click="copy">
+            <font-awesome-icon :icon="copied ? 'check' : 'copy'" />
+            {{ copied ? t('settings.apiTokens.copied') : t('settings.apiTokens.copy') }}
+          </button>
         </div>
-        <button
-          type="button"
-          class="btn btn-sm"
-          :class="confirmingId === token.id ? 'btn-danger' : 'btn-outline-secondary'"
-          :aria-label="
-            t(
-              confirmingId === token.id
-                ? 'settings.apiTokens.confirmRevokeNamed'
-                : 'settings.apiTokens.revokeNamed',
-              { name: token.name },
-            )
-          "
-          @click="revoke(token.id)"
-        >
-          {{
-            confirmingId === token.id
-              ? t('settings.apiTokens.confirmRevoke')
-              : t('settings.apiTokens.revoke')
-          }}
-        </button>
       </div>
-    </div>
-    <p v-else class="settings-toggle__desc">{{ t('settings.apiTokens.none') }}</p>
-  </div>
+
+      <p v-if="error" class="text-danger text-sm" role="alert">{{ error }}</p>
+
+      <div v-if="tokens.length" class="detail-list">
+        <div v-for="token in tokens" :key="token.id" class="detail-list__item">
+          <font-awesome-icon icon="key" class="detail-list__item-icon" />
+          <div class="api-token-row">
+            <span class="detail-list__item-label">{{ token.name }}</span>
+            <span class="settings-toggle__desc">{{ token.prefix }}… · {{ usage(token) }}</span>
+          </div>
+          <button
+            type="button"
+            class="btn btn-sm"
+            :class="confirmingId === token.id ? 'btn-danger' : 'btn-outline-secondary'"
+            :aria-label="
+              t(
+                confirmingId === token.id
+                  ? 'settings.apiTokens.confirmRevokeNamed'
+                  : 'settings.apiTokens.revokeNamed',
+                { name: token.name },
+              )
+            "
+            @click="revoke(token.id)"
+          >
+            {{
+              confirmingId === token.id
+                ? t('settings.apiTokens.confirmRevoke')
+                : t('settings.apiTokens.revoke')
+            }}
+          </button>
+        </div>
+      </div>
+      <p v-else class="settings-toggle__desc">{{ t('settings.apiTokens.none') }}</p>
+    </template>
+  </SettingsToggle>
 </template>

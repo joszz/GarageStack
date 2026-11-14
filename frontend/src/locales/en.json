@@ -40,16 +40,12 @@
     "period": "Period",
     "lastDays": "Last {days} days",
     "sessions": "Sessions",
-    "completed": "Completed",
+    "timeCharging": "Time charging",
     "ongoing": "In progress",
-    "duration": "Duration",
     "stateOfCharge": "State of charge",
-    "type": "Charging type",
     "odometer": "Odometer",
     "batteryEnergyGained": "Battery energy gained",
     "maxPower": "Peak charging power",
-    "showDetails": "Show details",
-    "hideDetails": "Hide details",
     "power": "Charging power",
     "locationMap": "Charge location map",
     "locationUnavailable": "Location was not reported for this session.",
@@ -57,7 +53,6 @@
     "energyUsedSincePreviousCharge": "Energy used since last charge",
     "consumptionSincePreviousCharge": "Consumption since last charge",
     "noPowerData": "No charging-power readings were recorded for this session.",
-    "ended": "Ended",
     "notReported": "Not reported",
     "empty": "No charge sessions are available yet."
   },
@@ -580,13 +575,15 @@
     "title": "Settings",
     "theme": {
       "title": "Appearance",
+      "label": "Theme",
       "light": "Light",
       "dark": "Dark",
       "system": "System",
       "desc": "System follows the light or dark setting of this device."
     },
     "language": {
-      "title": "Language"
+      "title": "Language",
+      "desc": "The language GarageStack is shown in. Push notifications use the language set on the server."
     },
     "cards": {
       "fuelLevel": "Fuel Level",
@@ -620,6 +617,7 @@
     },
     "carColor": {
       "title": "Car colour",
+      "desc": "How the car is drawn on the dashboard and the map.",
       "orange": "Orange",
       "red": "Red",
       "blue": "Blue",
@@ -630,12 +628,10 @@
       "purple": "Purple"
     },
     "dashboard": {
-      "title": "Dashboard",
       "cardInfoIcons": "Show info icons",
-      "cardInfoIconsDesc": "Show the info button on each card"
+      "cardInfoIconsDesc": "Adds a button to each dashboard and statistics card that explains what the card shows."
     },
     "map": {
-      "title": "Map",
       "placeNames": "Show place names",
       "placeNamesDesc": "Name trips after the cities they ran between and show the street the car is parked in. Off lists trips by date and sends no coordinates to the geocoder.",
       "colorful": "Colourful maps",
@@ -643,9 +639,8 @@
     },
     "vehicleType": {
       "title": "Vehicle type",
-      "detected": "Detected",
-      "notDetected": "Not detected yet -- start the gateway to auto-detect",
-      "override": "Override",
+      "desc": "The gateway reports {type}. Choose another type only if that is wrong: the dashboard cards, notifications and units on offer follow it.",
+      "notDetected": "Not detected yet: the gateway reports it once it runs. Until then, choose the type here.",
       "auto": "Auto (use detected)",
       "hev": "HEV (Hybrid, no plug)",
       "phev": "PHEV (Plug-in Hybrid)",
@@ -662,30 +657,30 @@
       "cleared": "Removed."
     },
     "powerTailgate": {
-      "title": "Tailgate",
       "label": "Power tailgate",
       "desc": "Switch this on if the car's boot opens and closes by itself. The Doors card can then open and close it, instead of only unlocking it. A car without a power tailgate refuses the command."
     },
-    "notificationTypes": {
-      "title": "Notifications"
-    },
     "units": {
-      "title": "Region and units",
+      "title": "Language, region and units",
       "auto": "Automatic: {value}",
       "region": "Region",
-      "regionDesc": "Sets the date order, and the clock and units left on automatic",
+      "regionDesc": "Sets the date order, and the clock and units left on automatic.",
       "clock": "Clock",
+      "clockDesc": "How times of day are written.",
       "clockOptions": {
         "h23": "24-hour ({example})",
         "h12": "12-hour ({example})"
       },
       "distance": "Distance and speed",
-      "distanceDesc": "Used for odometer readings and speed",
+      "distanceDesc": "Used for distances, the odometer and speed.",
       "energyConsumption": "Energy consumption",
+      "energyConsumptionDesc": "Used for efficiency figures.",
       "temperature": "Temperature",
+      "temperatureDesc": "Used for the climate control and its schedules.",
       "pressure": "Tyre pressure",
+      "pressureDesc": "Used for the tyre readings and their warning limits.",
       "fuelConsumption": "Fuel consumption",
-      "fuelConsumptionDesc": "Fuel used is counted in the same gallon",
+      "fuelConsumptionDesc": "Used for fuel economy. Fuel used is counted in the same gallon.",
       "options": {
         "km": "Kilometres (km, km/h)",
         "mi": "Miles (mi, mph)",

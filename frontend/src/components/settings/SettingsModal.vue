@@ -158,19 +158,24 @@ const languageOptions = [
         :hidden="activeTab !== 'general'"
         tabindex="0"
       >
+        <!-- General is the one tab with enough settings to group; the others are a single list,
+             since a heading over one setting only repeats its label. -->
         <SettingsSection :title="t('settings.theme.title')">
           <div class="settings-toggles">
-            <ChipGroup
-              v-model="settings.theme"
-              :options="themeOptions"
-              :group-label="t('settings.theme.title')"
-            />
-            <p class="text-xs text-muted">{{ t('settings.theme.desc') }}</p>
-          </div>
-        </SettingsSection>
-
-        <SettingsSection :title="t('settings.dashboard.title')">
-          <div class="settings-toggles">
+            <SettingsToggle
+              class="settings-toggle--select"
+              :label="t('settings.theme.label')"
+              :desc="t('settings.theme.desc')"
+            >
+              <template #control>
+                <ChipGroup
+                  v-model="settings.theme"
+                  class="toggle-chip-group--segmented"
+                  :options="themeOptions"
+                  :group-label="t('settings.theme.label')"
+                />
+              </template>
+            </SettingsToggle>
             <SettingsToggle
               v-model="settings.showCardInfoIcons"
               :label="t('settings.dashboard.cardInfoIcons')"
@@ -180,19 +185,17 @@ const languageOptions = [
           </div>
         </SettingsSection>
 
-        <SettingsSection :title="t('settings.language.title')">
+        <SettingsSection :title="t('settings.units.title')">
           <div class="settings-toggles">
             <SettingsSelect
               id="footer-toggle-lang"
               v-model="settings.locale"
               :label="t('settings.language.title')"
+              :desc="t('settings.language.desc')"
               :options="languageOptions"
             />
+            <RegionalSettings />
           </div>
-        </SettingsSection>
-
-        <SettingsSection :title="t('settings.units.title')">
-          <RegionalSettings />
         </SettingsSection>
       </div>
 
@@ -203,21 +206,12 @@ const languageOptions = [
         :hidden="activeTab !== 'vehicle'"
         tabindex="0"
       >
-        <SettingsSection :title="t('settings.carColor.title')">
+        <div class="settings-toggles">
           <CarColorPicker />
-        </SettingsSection>
-
-        <SettingsSection :title="t('settings.vehicleType.title')">
           <VehicleTypeSetting />
-        </SettingsSection>
-
-        <SettingsSection :title="t('settings.powerTailgate.title')">
           <PowerTailgateSetting />
-        </SettingsSection>
-
-        <SettingsSection v-if="rdw.available" :title="t('settings.licensePlate.title')">
-          <LicensePlateSetting />
-        </SettingsSection>
+          <LicensePlateSetting v-if="rdw.available" />
+        </div>
       </div>
 
       <div
@@ -227,22 +221,20 @@ const languageOptions = [
         :hidden="activeTab !== 'map'"
         tabindex="0"
       >
-        <SettingsSection :title="t('settings.map.title')">
-          <div class="settings-toggles">
-            <SettingsToggle
-              v-model="settings.placeNamesEnabled"
-              :label="t('settings.map.placeNames')"
-              :desc="t('settings.map.placeNamesDesc')"
-              input-id="footer-toggle-place-names"
-            />
-            <SettingsToggle
-              v-model="settings.colorfulMaps"
-              :label="t('settings.map.colorful')"
-              :desc="t('settings.map.colorfulDesc')"
-              input-id="footer-toggle-colorful-maps"
-            />
-          </div>
-        </SettingsSection>
+        <div class="settings-toggles">
+          <SettingsToggle
+            v-model="settings.placeNamesEnabled"
+            :label="t('settings.map.placeNames')"
+            :desc="t('settings.map.placeNamesDesc')"
+            input-id="footer-toggle-place-names"
+          />
+          <SettingsToggle
+            v-model="settings.colorfulMaps"
+            :label="t('settings.map.colorful')"
+            :desc="t('settings.map.colorfulDesc')"
+            input-id="footer-toggle-colorful-maps"
+          />
+        </div>
       </div>
       <!-- Keep panels mounted between tabs so edits and one-time API tokens are not lost.
            Phone GPS must also load while hidden to discover deployment availability. -->
@@ -268,9 +260,7 @@ const languageOptions = [
         :hidden="activeTab !== 'notifications'"
         tabindex="0"
       >
-        <SettingsSection :title="t('settings.notificationTypes.title')">
-          <NotificationTypeSettings />
-        </SettingsSection>
+        <NotificationTypeSettings />
       </div>
 
       <div
@@ -280,19 +270,21 @@ const languageOptions = [
         :hidden="activeTab !== 'data'"
         tabindex="0"
       >
-        <SettingsSection :title="t('settings.apiTokens.title')">
+        <div class="settings-toggles">
           <ApiTokenSettings />
-        </SettingsSection>
-
-        <SettingsSection :title="t('settings.export.title')">
-          <div class="form-stack">
-            <p class="settings-toggle__desc">{{ t('settings.export.desc') }}</p>
-            <a class="btn btn-outline-secondary btn-sm" :href="apiUrl('/api/export')" download>
-              <font-awesome-icon icon="download" />
-              {{ t('settings.export.download') }}
-            </a>
-          </div>
-        </SettingsSection>
+          <SettingsToggle
+            class="settings-toggle--select settings-toggle--action"
+            :label="t('settings.export.title')"
+            :desc="t('settings.export.desc')"
+          >
+            <template #control>
+              <a class="btn btn-outline-secondary" :href="apiUrl('/api/export')" download>
+                <font-awesome-icon icon="download" />
+                {{ t('settings.export.download') }}
+              </a>
+            </template>
+          </SettingsToggle>
+        </div>
       </div>
     </div>
   </DetailModal>

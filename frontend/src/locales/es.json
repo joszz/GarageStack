@@ -40,16 +40,12 @@
     "period": "Periodo",
     "lastDays": "Últimos {days} días",
     "sessions": "Sesiones",
-    "completed": "Completada",
+    "timeCharging": "Tiempo de carga",
     "ongoing": "En curso",
-    "duration": "Duración",
     "stateOfCharge": "Nivel de batería",
-    "type": "Tipo de carga",
     "odometer": "Odómetro",
     "batteryEnergyGained": "Energía ganada en la batería",
     "maxPower": "Potencia máxima de carga",
-    "showDetails": "Mostrar detalles",
-    "hideDetails": "Ocultar detalles",
     "power": "Potencia de carga",
     "locationMap": "Mapa del lugar de carga",
     "locationUnavailable": "No se comunicó la ubicación de esta sesión.",
@@ -57,7 +53,6 @@
     "energyUsedSincePreviousCharge": "Energía consumida desde la última carga",
     "consumptionSincePreviousCharge": "Consumo desde la última carga",
     "noPowerData": "No se registraron lecturas de potencia de carga para esta sesión.",
-    "ended": "Finalizada",
     "notReported": "No comunicado",
     "empty": "Todavía no hay sesiones de carga disponibles."
   },
@@ -580,13 +575,15 @@
     "title": "Ajustes",
     "theme": {
       "title": "Apariencia",
+      "label": "Tema",
       "light": "Claro",
       "dark": "Oscuro",
       "system": "Sistema",
       "desc": "Sistema sigue el ajuste claro u oscuro de este dispositivo."
     },
     "language": {
-      "title": "Idioma"
+      "title": "Idioma",
+      "desc": "El idioma en que se muestra GarageStack. Las notificaciones push usan el idioma configurado en el servidor."
     },
     "cards": {
       "fuelLevel": "Nivel de combustible",
@@ -620,6 +617,7 @@
     },
     "carColor": {
       "title": "Color del coche",
+      "desc": "Cómo se dibuja el coche en el panel y en el mapa.",
       "orange": "Naranja",
       "red": "Rojo",
       "blue": "Azul",
@@ -630,12 +628,10 @@
       "purple": "Púrpura"
     },
     "dashboard": {
-      "title": "Panel de control",
       "cardInfoIcons": "Mostrar iconos de información",
-      "cardInfoIconsDesc": "Mostrar el botón de información en cada tarjeta"
+      "cardInfoIconsDesc": "Añade a cada tarjeta del panel y de las estadísticas un botón que explica lo que muestra."
     },
     "map": {
-      "title": "Mapa",
       "placeNames": "Mostrar nombres de lugares",
       "placeNamesDesc": "Asigna a los trayectos el nombre de las ciudades entre las que discurren y muestra la calle donde está aparcado el coche. Si se desactiva, los trayectos se muestran por fecha y no se envían coordenadas al servicio de geocodificación.",
       "colorful": "Mapas coloridos",
@@ -643,9 +639,8 @@
     },
     "vehicleType": {
       "title": "Tipo de vehículo",
-      "detected": "Detectado",
-      "notDetected": "Aún no detectado: inicie la puerta de enlace para la detección automática",
-      "override": "Anulación de",
+      "desc": "La puerta de enlace indica {type}. Elija otro tipo solo si es incorrecto: las tarjetas del panel, las notificaciones y las unidades disponibles lo siguen.",
+      "notDetected": "Aún no detectado: la puerta de enlace lo indica en cuanto se ejecuta. Hasta entonces, elija el tipo aquí.",
       "auto": "Automático (uso detectado)",
       "hev": "HEV (híbrido, sin enchufe)",
       "phev": "PHEV (híbrido enchufable)",
@@ -662,30 +657,30 @@
       "cleared": "Eliminado."
     },
     "powerTailgate": {
-      "title": "Portón trasero",
       "label": "Portón trasero eléctrico",
       "desc": "Actívelo si el maletero del coche se abre y se cierra solo. La tarjeta Puertas podrá entonces abrirlo y cerrarlo, en lugar de solo desbloquearlo. Un coche sin portón trasero eléctrico rechaza la orden."
     },
-    "notificationTypes": {
-      "title": "Notificaciones"
-    },
     "units": {
-      "title": "Región y unidades",
+      "title": "Idioma, región y unidades",
       "auto": "Automático: {value}",
       "region": "Región",
-      "regionDesc": "Establece el orden de las fechas, y el reloj y las unidades que quedan en automático",
+      "regionDesc": "Establece el orden de las fechas, y el reloj y las unidades que quedan en automático.",
       "clock": "Reloj",
+      "clockDesc": "Cómo se escriben las horas del día.",
       "clockOptions": {
         "h23": "24 horas ({example})",
         "h12": "12 horas ({example})"
       },
       "distance": "Distancia y velocidad",
-      "distanceDesc": "Se usa para el odómetro y la velocidad",
+      "distanceDesc": "Se usa para las distancias, el odómetro y la velocidad.",
       "energyConsumption": "Consumo de energía",
+      "energyConsumptionDesc": "Se usa para las cifras de eficiencia.",
       "temperature": "Temperatura",
+      "temperatureDesc": "Se usa para la climatización y sus programaciones.",
       "pressure": "Presión de neumáticos",
+      "pressureDesc": "Se usa para las lecturas de los neumáticos y sus límites de aviso.",
       "fuelConsumption": "Consumo de combustible",
-      "fuelConsumptionDesc": "El combustible utilizado se cuenta en el mismo galón",
+      "fuelConsumptionDesc": "Se usa para el consumo de combustible. El combustible utilizado se cuenta en el mismo galón.",
       "options": {
         "km": "Kilómetros (km, km/h)",
         "mi": "Millas (mi, mph)",

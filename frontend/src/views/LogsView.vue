@@ -104,7 +104,12 @@ onUnmounted(() => {
     </ViewHeader>
 
     <div class="logs-filters">
-      <ChipGroup v-model="source" :options="sourceOptions" :group-label="t('logs.source')" />
+      <ChipGroup
+        v-model="source"
+        class="toggle-chip-group--segmented"
+        :options="sourceOptions"
+        :group-label="t('logs.source')"
+      />
       <select v-model="level" class="form-select" :aria-label="t('logs.level')">
         <option v-for="choice in LEVEL_CHOICES" :key="choice" :value="choice">
           {{ t('logs.fromLevel', { level: t(`logs.levels.${choice}`) }) }}

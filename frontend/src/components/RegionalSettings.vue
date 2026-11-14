@@ -77,10 +77,16 @@ const offersEnergyConsumption = computed(() => mayPlugIn(vehicleStore.effectiveV
 const unitChoices = computed((): UnitChoice[] => [
   unitChoice('distance', DISTANCE_UNITS, t('settings.units.distanceDesc')),
   ...(offersEnergyConsumption.value
-    ? [unitChoice('energyConsumption', ENERGY_CONSUMPTION_UNITS)]
+    ? [
+        unitChoice(
+          'energyConsumption',
+          ENERGY_CONSUMPTION_UNITS,
+          t('settings.units.energyConsumptionDesc'),
+        ),
+      ]
     : []),
-  unitChoice('temperature', TEMPERATURE_UNITS),
-  unitChoice('pressure', PRESSURE_UNITS),
+  unitChoice('temperature', TEMPERATURE_UNITS, t('settings.units.temperatureDesc')),
+  unitChoice('pressure', PRESSURE_UNITS, t('settings.units.pressureDesc')),
   ...(offersFuelConsumption.value
     ? [
         unitChoice(
@@ -99,29 +105,29 @@ function chooseUnit(key: keyof UnitSettings, value: string) {
 </script>
 
 <template>
-  <div class="settings-toggles">
-    <SettingsSelect
-      id="settings-region"
-      v-model="settings.region"
-      :label="t('settings.units.region')"
-      :desc="t('settings.units.regionDesc')"
-      :options="regionOptions"
-    />
-    <SettingsSelect
-      id="settings-clock"
-      v-model="settings.clock"
-      :label="t('settings.units.clock')"
-      :options="clockOptions"
-    />
-    <SettingsSelect
-      v-for="choice in unitChoices"
-      :id="`settings-unit-${choice.key}`"
-      :key="choice.key"
-      :model-value="settings.units[choice.key]"
-      :label="t(`settings.units.${choice.key}`)"
-      :desc="choice.desc"
-      :options="choice.options"
-      @update:model-value="(value: string) => chooseUnit(choice.key, value)"
-    />
-  </div>
+  <!-- Rows only: the settings dialog lists them under the language, in one list. -->
+  <SettingsSelect
+    id="settings-region"
+    v-model="settings.region"
+    :label="t('settings.units.region')"
+    :desc="t('settings.units.regionDesc')"
+    :options="regionOptions"
+  />
+  <SettingsSelect
+    id="settings-clock"
+    v-model="settings.clock"
+    :label="t('settings.units.clock')"
+    :desc="t('settings.units.clockDesc')"
+    :options="clockOptions"
+  />
+  <SettingsSelect
+    v-for="choice in unitChoices"
+    :id="`settings-unit-${choice.key}`"
+    :key="choice.key"
+    :model-value="settings.units[choice.key]"
+    :label="t(`settings.units.${choice.key}`)"
+    :desc="choice.desc"
+    :options="choice.options"
+    @update:model-value="(value: string) => chooseUnit(choice.key, value)"
+  />
 </template>

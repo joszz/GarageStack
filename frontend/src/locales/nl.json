@@ -40,16 +40,12 @@
     "period": "Periode",
     "lastDays": "Laatste {days} dagen",
     "sessions": "Sessies",
-    "completed": "Voltooid",
+    "timeCharging": "Laadtijd",
     "ongoing": "Bezig",
-    "duration": "Duur",
     "stateOfCharge": "Laadniveau",
-    "type": "Laadtype",
     "odometer": "Kilometerstand",
     "batteryEnergyGained": "Energie opgeslagen in batterij",
     "maxPower": "Pieklaadvermogen",
-    "showDetails": "Details tonen",
-    "hideDetails": "Details verbergen",
     "power": "Laadvermogen",
     "locationMap": "Kaart van laadlocatie",
     "locationUnavailable": "De locatie van deze sessie is niet gemeld.",
@@ -57,7 +53,6 @@
     "energyUsedSincePreviousCharge": "Verbruik sinds laatste laadsessie",
     "consumptionSincePreviousCharge": "Verbruik sinds laatste laadsessie",
     "noPowerData": "Voor deze sessie zijn geen laadvermogensmetingen opgeslagen.",
-    "ended": "Geëindigd",
     "notReported": "Niet gemeld",
     "empty": "Er zijn nog geen laadsessies beschikbaar."
   },
@@ -580,13 +575,15 @@
     "title": "Instellingen",
     "theme": {
       "title": "Weergave",
+      "label": "Thema",
       "light": "Licht",
       "dark": "Donker",
       "system": "Systeem",
       "desc": "Systeem volgt de lichte of donkere instelling van dit apparaat."
     },
     "language": {
-      "title": "Taal"
+      "title": "Taal",
+      "desc": "De taal waarin GarageStack wordt getoond. Pushmeldingen gebruiken de taal die op de server is ingesteld."
     },
     "cards": {
       "fuelLevel": "Brandstofniveau",
@@ -620,6 +617,7 @@
     },
     "carColor": {
       "title": "Autokleur",
+      "desc": "Hoe de auto op het dashboard en de kaart wordt getekend.",
       "orange": "Oranje",
       "red": "Rood",
       "blue": "Blauw",
@@ -630,12 +628,10 @@
       "purple": "Paars"
     },
     "dashboard": {
-      "title": "Dashboard",
       "cardInfoIcons": "Info-iconen tonen",
-      "cardInfoIconsDesc": "Toon de info-knop op elke kaart"
+      "cardInfoIconsDesc": "Voegt aan elke kaart op het dashboard en bij de statistieken een knop toe die uitlegt wat de kaart toont."
     },
     "map": {
-      "title": "Kaart",
       "placeNames": "Plaatsnamen tonen",
       "placeNamesDesc": "Noem ritten naar de plaatsen waartussen ze liepen en toon de straat waar de auto geparkeerd staat. Uit toont ritten op datum en stuurt geen coördinaten naar de geocoder.",
       "colorful": "Kleurrijke kaarten",
@@ -643,9 +639,8 @@
     },
     "vehicleType": {
       "title": "Voertuigtype",
-      "detected": "Gedetecteerd",
-      "notDetected": "Nog niet gedetecteerd -- start de gateway voor automatische detectie",
-      "override": "Handmatig instellen",
+      "desc": "De gateway meldt {type}. Kies alleen een ander type als dat niet klopt: de dashboardkaarten, meldingen en aangeboden eenheden volgen het.",
+      "notDetected": "Nog niet gedetecteerd: de gateway meldt het zodra hij draait. Kies het type tot die tijd hier.",
       "auto": "Automatisch (gebruik gedetecteerd type)",
       "hev": "HEV (Hybride, geen stekker)",
       "phev": "PHEV (Plug-in hybride)",
@@ -662,30 +657,30 @@
       "cleared": "Verwijderd."
     },
     "powerTailgate": {
-      "title": "Achterklep",
       "label": "Elektrische achterklep",
       "desc": "Zet dit aan als de achterklep van de auto vanzelf opent en sluit. De Deuren-kaart kan hem dan openen en sluiten, in plaats van alleen ontgrendelen. Een auto zonder elektrische achterklep weigert de opdracht."
     },
-    "notificationTypes": {
-      "title": "Meldingen"
-    },
     "units": {
-      "title": "Regio en eenheden",
+      "title": "Taal, regio en eenheden",
       "auto": "Automatisch: {value}",
       "region": "Regio",
-      "regionDesc": "Bepaalt de datumnotatie, en de klok en eenheden die op automatisch staan",
+      "regionDesc": "Bepaalt de datumnotatie, en de klok en eenheden die op automatisch staan.",
       "clock": "Klok",
+      "clockDesc": "Hoe tijdstippen worden geschreven.",
       "clockOptions": {
         "h23": "24-uurs ({example})",
         "h12": "12-uurs ({example})"
       },
       "distance": "Afstand en snelheid",
-      "distanceDesc": "Gebruikt voor kilometerteller en snelheid",
+      "distanceDesc": "Gebruikt voor afstanden, de kilometerteller en snelheid.",
       "energyConsumption": "Energieverbruik",
+      "energyConsumptionDesc": "Gebruikt voor verbruikscijfers.",
       "temperature": "Temperatuur",
+      "temperatureDesc": "Gebruikt voor de klimaatregeling en de schema's ervan.",
       "pressure": "Bandenspanning",
+      "pressureDesc": "Gebruikt voor de bandenspanning en de waarschuwingsgrenzen.",
       "fuelConsumption": "Brandstofverbruik",
-      "fuelConsumptionDesc": "Verbruikte brandstof telt in dezelfde gallon",
+      "fuelConsumptionDesc": "Gebruikt voor het brandstofverbruik. Verbruikte brandstof telt in dezelfde gallon.",
       "options": {
         "km": "Kilometers (km, km/h)",
         "mi": "Mijlen (mi, mph)",

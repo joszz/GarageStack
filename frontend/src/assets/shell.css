@@ -40,8 +40,10 @@
   color: var(--color-text);
   font-size: 1.25rem;
   cursor: pointer;
-  width: 36px;
-  height: 36px;
+
+  /* As large as the top bar's other buttons, so the row shares one middle. */
+  width: var(--touch-target);
+  height: var(--touch-target);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -155,10 +157,12 @@
   width: 100%;
 }
 
+/* The actions share the title's line and middle, whatever their height and whether a caption
+   hangs under the title (see .view-header__actions). */
 .view-header {
   display: flex;
-  align-items: baseline;
-  gap: 1rem;
+  align-items: flex-start;
+  gap: 0.5rem 1rem;
   margin-bottom: 1.5rem;
   flex-wrap: wrap;
 }
@@ -191,7 +195,10 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 1.5rem;
+
+  /* The copyright starts in the sidebar's icon column (its padding and a nav link's), and the
+     buttons end on the content column's right edge. */
+  padding: 0 var(--content-padding) 0 1.25rem;
   z-index: var(--z-footer);
 }
 

@@ -113,6 +113,9 @@
   --field-font-size: 0.875rem;
   --field-line-height: 1.375;
   --field-radius: 6px;
+
+  /* The least height of anything tapped on a touch screen: buttons, chips and fields alike. */
+  --touch-target: 40px;
   --field-ring: color-mix(in srgb, var(--color-primary) 30%, transparent);
 
   /* The multiselect's own caret, filled with --color-text-muted: a data URI cannot read a custom
@@ -279,12 +282,21 @@ body,
   font-size: 0.75rem;
 }
 
+/* As tall as the title's line, so the buttons centre on the title rather than sitting on its
+   baseline. Touch buttons are taller than the line: they reach above and below it evenly. */
 .view-header__actions {
   margin-left: auto;
   display: flex;
   align-items: center;
   gap: 0.5rem;
   flex-wrap: wrap;
+  min-height: var(--page-title-height);
+}
+
+@media (pointer: coarse) {
+  .view-header__actions {
+    margin-block: calc((var(--page-title-height) - var(--touch-target)) / 2);
+  }
 }
 
 /* ── State indicators ─────────────────────────────────────── */
@@ -707,6 +719,14 @@ body,
   min-width: 0;
 }
 
+/* The info button covers the tile's top right corner, about 1.2rem in from its edge. A label that
+   runs that far would pass under it; a tile with a chevron already stops short of it. */
+.card-info-wrap:has(> .card-info-btn)
+  > .status-card:not(:has(.status-card__chevron))
+  .status-card__label {
+  padding-right: 0.75rem;
+}
+
 .card-info-btn {
   position: absolute;
   top: -7px;
@@ -731,12 +751,20 @@ body,
   z-index: 2;
 }
 
-/* Touch screens: buttons and chips at least 40px tall (WCAG 2.2 asks 24, the platforms 44 to 48).
-   The card info button keeps its small look and gets a larger invisible hit area instead. */
+/* Touch screens: buttons and chips at least 40px tall (WCAG 2.2 asks 24, the platforms 44 to 48),
+   and fields as tall, so a select or text box beside a button lines up with it. The card info
+   button keeps its small look and gets a larger invisible hit area instead. */
 @media (pointer: coarse) {
+  :root {
+    /* 40px: the line, two paddings and the 1px borders. */
+    --field-py: calc(
+      (var(--touch-target) - 2px - var(--field-font-size) * var(--field-line-height)) / 2
+    );
+  }
+
   .btn,
   .toggle-chip {
-    min-height: 40px;
+    min-height: var(--touch-target);
   }
 
   .card-info-btn::before {

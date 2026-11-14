@@ -37,15 +37,15 @@ async function save(value: boolean) {
 </script>
 
 <template>
-  <div class="settings-toggles">
-    <SettingsToggle
-      v-model="enabled"
-      input-id="settings-power-tailgate"
-      icon="car-rear"
-      :label="t('settings.powerTailgate.label')"
-      :desc="t('settings.powerTailgate.desc')"
-      :disabled="saving !== null || !vehicleStore.activeVin"
-    />
-    <p v-if="error" class="text-danger text-sm" role="alert">{{ error }}</p>
-  </div>
+  <SettingsToggle
+    v-model="enabled"
+    input-id="settings-power-tailgate"
+    :label="t('settings.powerTailgate.label')"
+    :desc="t('settings.powerTailgate.desc')"
+    :disabled="saving !== null || !vehicleStore.activeVin"
+  >
+    <template #note>
+      <p v-if="error" class="text-danger text-sm" role="alert">{{ error }}</p>
+    </template>
+  </SettingsToggle>
 </template>
