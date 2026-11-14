@@ -4,9 +4,9 @@ import { test, expect, open } from './fixtures'
 // Service-worker-owned requests bypass Playwright's API mocks.
 test.use({ serviceWorkers: 'block' })
 
-// The narrowest phones trim the tabs to 0.5rem a side so all six fit; 0.625rem everywhere else.
+// On a phone the icon tabs give way to 0.25rem a side so all six fit; 0.625rem everywhere else.
 async function expectTabPadding(tab: Locator, viewportWidth: number) {
-  const minimum = viewportWidth < 360 ? 8 : 10
+  const minimum = viewportWidth < 768 ? 4 : 10
   const padding = await tab.evaluate((element) => {
     const style = getComputedStyle(element)
     return { left: parseFloat(style.paddingLeft), right: parseFloat(style.paddingRight) }
@@ -78,10 +78,11 @@ for (const viewport of [
     const middle = (box: { y: number; height: number }) => box.y + box.height / 2
     const tabRowOverflow = () =>
       tabsViewport.evaluate((element) => element.scrollWidth - element.clientWidth)
-    // On a phone the tabs get a row of their own under the title and the close button, and all
-    // six fit in it whichever is chosen, so none hides past the edge.
+    // On a phone all six tabs fit whichever is chosen, so none hides past the edge. Below 360px
+    // they get a row of their own under the title and the close button; from there on they share
+    // the title's line.
     const phoneLayout = viewport.width < 768
-    if (phoneLayout) {
+    if (viewport.width < 360) {
       expect(Math.abs(middle(titleBox) - middle(closeBox))).toBeLessThanOrEqual(1)
       expect(viewportBox.y).toBeGreaterThanOrEqual(closeBox.y + closeBox.height - 1)
       expect(viewportBox.x).toBeCloseTo(titleBox.x, 0)
@@ -264,7 +265,7 @@ test('themes the settings tabs for light and dark settings', async ({ page }) =>
   const dialog = page.getByRole('dialog', { name: 'Settings' })
   const general = dialog.getByRole('tab', { name: 'General', exact: true })
   const tabs = dialog.getByRole('tablist')
-  const themeChoices = dialog.getByRole('group', { name: 'Appearance', exact: true })
+  const themeChoices = dialog.getByRole('group', { name: 'Theme', exact: true })
   for (const [label, theme] of [
     ['Dark', 'dark'],
     ['Light', 'light'],
