@@ -307,4 +307,172 @@ public class TripSegmenterTests
 
         Assert.Equal([null, Fix(14, 51.5502, 0)], result.ParkedBefore);
     }
+
+    [Fact]
+    public void ParkedBefore_GivenForTheFixes_IsWhereTheirFirstTripLeftFrom()
+    {
+        var before = new TripPoint(T0.AddHours(-10), 51.49, 0.0, 0);
+
+        var result = TripSegmenter.Segment([Fix(0, 51.50, 50), Fix(5, 51.55, 50)], LongAfter, before);
+
+        Assert.Equal([before], result.ParkedBefore);
+    }
+
+    // ── Drives no poll caught (issue #640) ───────────────────────────────────
+
+    private static TripPoint Anchored(TripPoint p) => p with { Source = TripPointSource.Anchored };
+
+    [Fact]
+    public void Unseen_StandingFarFromWhereItLastStoodAfterAQuietSpell_IsADrive()
+    {
+        TripPoint[] fixes =
+        [
+            Fix(0, 51.50, 50), Fix(5, 51.55, 50), Fix(10, 51.60, 50),
+            Fix(11, 51.60, 0), Fix(14, 51.60, 0),
+            // The gateway slept through the drive back: next seen parked 22 km north.
+            Fix(20 * 60, 51.80, 0), Fix(20 * 60 + 2, 51.80, 0),
+        ];
+
+        var result = TripSegmenter.Segment(fixes, LongAfter);
+
+        Assert.Single(result.Trips);
+        var drive = Assert.Single(result.Unseen);
+        Assert.Equal([Anchored(Fix(14, 51.60, 0)), Anchored(Fix(20 * 60, 51.80, 0))], drive.Points);
+        Assert.Null(result.OpenSince);
+    }
+
+    [Fact]
+    public void Unseen_FromTheParkedFixGivenForTheFixes()
+    {
+        var before = new TripPoint(T0.AddHours(-10), 51.60, 0.0, 0);
+
+        var result = TripSegmenter.Segment([Fix(0, 51.80, 0)], LongAfter, before);
+
+        Assert.Equal([Anchored(before), Anchored(Fix(0, 51.80, 0))], Assert.Single(result.Unseen).Points);
+    }
+
+    // A fix that wanders while parked is the same spot, even one from under a roof: 1.1 km.
+    [Fact]
+    public void Unseen_StandingWithinTheDriftMargin_IsNone()
+    {
+        TripPoint[] fixes = [Fix(0, 51.6000, 0), Fix(20 * 60, 51.6100, 0)];
+
+        Assert.Empty(TripSegmenter.Segment(fixes, LongAfter).Unseen);
+    }
+
+    // A car that reports zero speed while driving is still polled every minute or so.
+    [Fact]
+    public void Unseen_FarApartButWithoutAQuietSpell_IsNone()
+    {
+        TripPoint[] fixes = [Fix(0, 51.60, 0), Fix(1, 51.62, 0), Fix(2, 51.64, 0)];
+
+        Assert.Empty(TripSegmenter.Segment(fixes, LongAfter).Unseen);
+    }
+
+    // Longer than a sleeping car goes unpolled: the gateway was down, and anything can hide in that.
+    [Fact]
+    public void Unseen_AfterAQuietLongerThanASleepingCars_IsNone()
+    {
+        TripPoint[] fixes = [Fix(0, 51.60, 0), Fix(3 * 24 * 60, 51.80, 0)];
+
+        Assert.Empty(TripSegmenter.Segment(fixes, LongAfter.AddDays(3)).Unseen);
+    }
+
+    // First seen waiting at a red light, then driving on: one trip, which may start where it stood.
+    [Fact]
+    public void Unseen_StandingTooBrieflyBeforeDrivingOn_IsPartOfTheTrip()
+    {
+        TripPoint[] fixes =
+        [
+            Fix(0, 51.60, 0),
+            Fix(20 * 60, 51.63, 0),
+            Fix(20 * 60 + 1, 51.64, 50), Fix(20 * 60 + 5, 51.70, 50), Fix(20 * 60 + 10, 51.75, 50),
+            Fix(20 * 60 + 11, 51.75, 0),
+        ];
+
+        var result = TripSegmenter.Segment(fixes, LongAfter);
+
+        Assert.Empty(result.Unseen);
+        Assert.Single(result.Trips);
+        Assert.Equal([Fix(0, 51.60, 0)], result.ParkedBefore);
+    }
+
+    // It may yet drive on, so the drive is cut again next time from where it was seen.
+    [Fact]
+    public void Unseen_NotStoodLongEnoughYet_HoldsTheOpenLine()
+    {
+        TripPoint[] fixes = [Fix(0, 51.60, 0), Fix(20 * 60, 51.80, 0)];
+
+        var result = TripSegmenter.Segment(fixes, T0.AddMinutes(20 * 60 + 2));
+
+        Assert.Empty(result.Unseen);
+        Assert.Equal(T0.AddMinutes(20 * 60), result.OpenSince);
+    }
+
+    // One moving fix makes no trip, but is the poll that caught the drive on its way.
+    [Fact]
+    public void Unseen_WithOneMovingFixOnTheWay_KeepsIt()
+    {
+        TripPoint[] fixes =
+        [
+            Fix(0, 51.60, 0),
+            Fix(20 * 60, 51.75, 60),
+            Fix(20 * 60 + 15, 51.80, 0), Fix(20 * 60 + 17, 51.80, 0),
+        ];
+
+        var result = TripSegmenter.Segment(fixes, LongAfter);
+
+        Assert.Empty(result.Trips);
+        Assert.Equal(
+            [Anchored(Fix(0, 51.60, 0)), Fix(20 * 60, 51.75, 60), Anchored(Fix(20 * 60 + 15, 51.80, 0))],
+            Assert.Single(result.Unseen).Points);
+    }
+
+    // Caught once at speed, quiet again, then seen standing: the drive ends where it stands.
+    [Fact]
+    public void Unseen_CaughtOnTheWayThenQuiet_GoesOnToWhereTheCarIsSeenStanding()
+    {
+        TripPoint[] fixes = [Fix(0, 51.60, 0), Fix(10 * 60, 51.70, 80), Fix(12 * 60, 51.80, 0)];
+
+        var result = TripSegmenter.Segment(fixes, LongAfter);
+
+        Assert.Equal(
+            [Anchored(Fix(0, 51.60, 0)), Fix(10 * 60, 51.70, 80), Anchored(Fix(12 * 60, 51.80, 0))],
+            Assert.Single(result.Unseen).Points);
+    }
+
+    // A fix without a speed, and the next poll finding the car on that spot: it parked there.
+    [Fact]
+    public void Unseen_SeenAgainWhereThePollCaughtIt_EndsThere()
+    {
+        TripPoint[] fixes = [Fix(0, 51.60, 0), Fix(10 * 60, 51.70, null), Fix(34 * 60, 51.7001, null)];
+
+        var result = TripSegmenter.Segment(fixes, LongAfter.AddDays(1));
+
+        Assert.Equal([Anchored(Fix(0, 51.60, 0)), Anchored(Fix(10 * 60, 51.70, null))], Assert.Single(result.Unseen).Points);
+    }
+
+    // Still quiet at the horizon after the caught fix: the next fix decides, so it holds the line.
+    [Fact]
+    public void Unseen_CaughtOnTheWayAndQuietSince_HoldsTheOpenLine()
+    {
+        TripPoint[] fixes = [Fix(0, 51.60, 0), Fix(20 * 60, 51.75, 60)];
+
+        var result = TripSegmenter.Segment(fixes, T0.AddMinutes(22 * 60));
+
+        Assert.Empty(result.Unseen);
+        Assert.Equal(T0.AddMinutes(20 * 60), result.OpenSince);
+    }
+
+    // A daily poll without a speed on the parking spot is the car still standing there, however
+    // long the gap before it, so the next drive leaves from it.
+    [Fact]
+    public void Unseen_AfterAPollWithoutASpeedOnTheSameSpot_LeavesFromThatPoll()
+    {
+        TripPoint[] fixes = [Fix(0, 51.60, 0), Fix(24 * 60, 51.6001, null), Fix(47 * 60, 51.80, 0)];
+
+        var result = TripSegmenter.Segment(fixes, LongAfter.AddDays(2));
+
+        Assert.Equal([Anchored(Fix(24 * 60, 51.6001, null)), Anchored(Fix(47 * 60, 51.80, 0))], Assert.Single(result.Unseen).Points);
+    }
 }

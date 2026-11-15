@@ -1,5 +1,7 @@
 using GarageStack.Core.Helpers;
 using GarageStack.Core.Interfaces;
+using GarageStack.Data;
+using GarageStack.Data.Extensions;
 
 namespace GarageStack.Worker.Services;
 
@@ -32,8 +34,13 @@ public class TripRecorderService(
         foreach (var vehicle in vehicles)
         {
             var saved = await recorder.RecordAsync(vehicle.Id, UtcNow, ct);
-            if (saved > 0)
-                logger.LogInformation("Saved {Count} finished trip(s) for VIN={Vin}", saved, LogRedaction.Vin(vehicle.Vin));
+            if (saved == 0) continue;
+
+            logger.LogInformation("Saved {Count} finished trip(s) for VIN={Vin}", saved, LogRedaction.Vin(vehicle.Vin));
+            // A saved trip can differ from the live one the page shows (a start moved to the parking
+            // spot), or be new to it: a drive no poll caught is only found here.
+            await scope.ServiceProvider.GetRequiredService<AppDbContext>().Database
+                .NotifyAsync(PgChannels.TripCompleted, vehicle.Id.ToString(), ct);
         }
     }
 }

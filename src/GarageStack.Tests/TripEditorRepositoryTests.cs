@@ -392,7 +392,9 @@ public class TripEditorRepositoryTests
 
         var merged = (await demo.MergeWithNextAsync(1, first.Id, ct)).Merged!;
 
-        Assert.All(log, e => Assert.NotNull(e.MaxSpeedKmh));
+        // Not every demo trip has them: the drive no poll caught has no speed to tell.
+        Assert.All([first, second], e => Assert.NotNull(e.MaxSpeedKmh));
+        Assert.Contains(log, e => e.MaxSpeedKmh is null);
         Assert.Equal(Math.Max(first.MaxSpeedKmh!.Value, second.MaxSpeedKmh!.Value), merged.MaxSpeedKmh);
         Assert.NotNull(merged.AvgMovingSpeedKmh);
     }

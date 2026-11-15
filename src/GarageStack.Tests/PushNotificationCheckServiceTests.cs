@@ -172,7 +172,7 @@ public class PushNotificationCheckServiceTests
         var (vehicle, _) = await LeftUnlockedAsync(db, now.AddHours(-1), ct);
         var push = new FakePushSender();
 
-        await CreateService(push: push).CheckParkedAsync(vehicle, Parked(), new TelemetryRepository(db), new NotificationRepository(db), now, ct);
+        await CreateService(push: push).CheckParkedAsync(vehicle, Parked(), new TelemetryRepository(db), new VehicleRepository(db), new NotificationRepository(db), now, ct);
 
         Assert.Equal("unlocked-parked", Assert.Single(push.Sent).Category);
     }
@@ -196,7 +196,7 @@ public class PushNotificationCheckServiceTests
         await db.SaveChangesAsync(ct);
         var push = new FakePushSender();
 
-        await CreateService(push: push).CheckParkedAsync(vehicle, Parked(), new TelemetryRepository(db), new NotificationRepository(db), now, ct);
+        await CreateService(push: push).CheckParkedAsync(vehicle, Parked(), new TelemetryRepository(db), new VehicleRepository(db), new NotificationRepository(db), now, ct);
 
         Assert.Empty(push.Sent);
     }
@@ -210,7 +210,7 @@ public class PushNotificationCheckServiceTests
         var (vehicle, _) = await LeftUnlockedAsync(db, now.AddMinutes(-8), ct, polls: 4);
         var push = new FakePushSender();
 
-        await CreateService(push: push).CheckParkedAsync(vehicle, Parked(), new TelemetryRepository(db), new NotificationRepository(db), now, ct);
+        await CreateService(push: push).CheckParkedAsync(vehicle, Parked(), new TelemetryRepository(db), new VehicleRepository(db), new NotificationRepository(db), now, ct);
 
         Assert.Empty(push.Sent);
     }
@@ -225,7 +225,7 @@ public class PushNotificationCheckServiceTests
         var push = new FakePushSender();
 
         await CreateService(push: push).CheckParkedAsync(
-            vehicle, new TelemetrySnapshot { EngineRunning = true }, new TelemetryRepository(db), new NotificationRepository(db), now, ct);
+            vehicle, new TelemetrySnapshot { EngineRunning = true }, new TelemetryRepository(db), new VehicleRepository(db), new NotificationRepository(db), now, ct);
 
         Assert.Empty(push.Sent);
     }
@@ -739,7 +739,7 @@ public class PushNotificationCheckServiceTests
         var moved = Parked(s => { s.Latitude = 52.3880; s.Longitude = 4.8900; });
         var push = new FakePushSender();
 
-        await CreateService(push: push).CheckParkedAsync(vehicle, moved, new TelemetryRepository(db), new NotificationRepository(db), now, ct);
+        await CreateService(push: push).CheckParkedAsync(vehicle, moved, new TelemetryRepository(db), new VehicleRepository(db), new NotificationRepository(db), now, ct);
 
         Assert.Empty(push.Sent);
     }
@@ -756,8 +756,144 @@ public class PushNotificationCheckServiceTests
         var moved = Parked(s => { s.Latitude = 52.3880; s.Longitude = 4.8900; });
         var push = new FakePushSender();
 
-        await CreateService(push: push).CheckParkedAsync(vehicle, moved, new TelemetryRepository(db), new NotificationRepository(db), now, ct);
+        await CreateService(push: push).CheckParkedAsync(vehicle, moved, new TelemetryRepository(db), new VehicleRepository(db), new NotificationRepository(db), now, ct);
 
         Assert.Equal(NotificationCategories.MovedParked, Assert.Single(push.Sent).Category);
+    }
+
+    // ---------------------------------------------------------------------------
+    // Unseen drive: moved, but the odometer counted it (issue #640)
+    // ---------------------------------------------------------------------------
+
+    private static async Task<Vehicle> ParkedInAmsterdamAtAsync(AppDbContext db, DateTime parkedAt, double? odometerKm, CancellationToken ct)
+    {
+        var vehicle = ParkedInAmsterdam(parkedAt);
+        db.Vehicles.Add(vehicle);
+        await db.SaveChangesAsync(ct);
+        if (odometerKm is not null)
+        {
+            db.TelemetrySnapshots.Add(new TelemetrySnapshot { VehicleId = vehicle.Id, RecordedAt = parkedAt.AddMinutes(1), OdometerKm = odometerKm });
+            await db.SaveChangesAsync(ct);
+        }
+
+        return vehicle;
+    }
+
+    // A poll that reported the car's position, its speed and its odometer together.
+    private static async Task<TelemetrySnapshot> SeenAsync(
+        AppDbContext db, Vehicle vehicle, DateTime at, double lat, double lon, double odometerKm, CancellationToken ct, double speed = 0)
+    {
+        var poll = new TelemetrySnapshot
+        {
+            VehicleId = vehicle.Id,
+            RecordedAt = at,
+            Latitude = lat,
+            Longitude = lon,
+            Speed = speed,
+            OdometerKm = odometerKm,
+            EngineRunning = false,
+        };
+        db.TelemetrySnapshots.Add(poll);
+        await db.SaveChangesAsync(ct);
+        return poll;
+    }
+
+    // Amsterdam to Utrecht is 35 km in a straight line.
+    private const double UtrechtLat = 52.0907, UtrechtLon = 5.1214;
+
+    // The gateway slept through the drive: the first report after it is 35 km away, engine off, and
+    // the odometer counted 45 km.
+    [Fact]
+    public async Task CheckParkedAsync_MovedAndTheOdometerCountedIt_ParksTheCarThereWithoutAWarning()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var now = DateTime.UtcNow;
+        await using var db = CreateDb();
+        var vehicle = await ParkedInAmsterdamAtAsync(db, now.AddHours(-5), 24000, ct);
+        var seenAt = now.AddMinutes(-3);
+        var utrecht = await SeenAsync(db, vehicle, seenAt, UtrechtLat, UtrechtLon, 24045, ct);
+        var push = new FakePushSender();
+
+        await CreateService(push: push).CheckParkedAsync(vehicle, utrecht, new TelemetryRepository(db), new VehicleRepository(db), new NotificationRepository(db), now, ct);
+
+        Assert.Empty(push.Sent);
+        var parked = await db.Vehicles.AsNoTracking().SingleAsync(ct);
+        Assert.Equal((seenAt, UtrechtLat, UtrechtLon), (parked.LastParkedAt, parked.ParkedLatitude, parked.ParkedLongitude));
+    }
+
+    // A tow truck or a ferry moves the car without adding to its odometer.
+    [Fact]
+    public async Task CheckParkedAsync_MovedWithTheOdometerStill_WarnsAndKeepsTheSpot()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var now = DateTime.UtcNow;
+        await using var db = CreateDb();
+        var parkedAt = now.AddHours(-3);
+        var vehicle = await ParkedInAmsterdamAtAsync(db, parkedAt, 24000, ct);
+        var moved = await SeenAsync(db, vehicle, now.AddMinutes(-1), 52.3880, 4.8900, 24000.4, ct);
+        var push = new FakePushSender();
+
+        await CreateService(push: push).CheckParkedAsync(vehicle, moved, new TelemetryRepository(db), new VehicleRepository(db), new NotificationRepository(db), now, ct);
+
+        Assert.Equal(NotificationCategories.MovedParked, Assert.Single(push.Sent).Category);
+        var parked = await db.Vehicles.AsNoTracking().SingleAsync(ct);
+        Assert.Equal((parkedAt, 52.3700), (parked.LastParkedAt, parked.ParkedLatitude));
+    }
+
+    // Towed to Utrecht, then driven a kilometre off the truck: far too little for 35 km.
+    [Fact]
+    public async Task CheckParkedAsync_TowedFarAndDrivenALittle_StillWarns()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var now = DateTime.UtcNow;
+        await using var db = CreateDb();
+        var vehicle = await ParkedInAmsterdamAtAsync(db, now.AddHours(-5), 24000, ct);
+        var utrecht = await SeenAsync(db, vehicle, now.AddMinutes(-3), UtrechtLat, UtrechtLon, 24001, ct);
+        var push = new FakePushSender();
+
+        await CreateService(push: push).CheckParkedAsync(vehicle, utrecht, new TelemetryRepository(db), new VehicleRepository(db), new NotificationRepository(db), now, ct);
+
+        Assert.Equal(NotificationCategories.MovedParked, Assert.Single(push.Sent).Category);
+    }
+
+    // The engine reading can be stale; a fix that reports the car moving is no parking.
+    [Fact]
+    public async Task ParkAfterUnseenDriveAsync_NewestFixMoving_LeavesTheSpot()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var now = DateTime.UtcNow;
+        await using var db = CreateDb();
+        var vehicle = await ParkedInAmsterdamAtAsync(db, now.AddHours(-5), 24000, ct);
+        await SeenAsync(db, vehicle, now.AddMinutes(-1), UtrechtLat, UtrechtLon, 24045, ct, speed: 70);
+
+        Assert.False(await CreateService().ParkAfterUnseenDriveAsync(vehicle, new TelemetryRepository(db), new VehicleRepository(db), now, ct));
+        Assert.Equal(52.3700, vehicle.ParkedLatitude);
+    }
+
+    // Under the margin a fix from a garage can stray, with the final kilometre landing late.
+    [Fact]
+    public async Task ParkAfterUnseenDriveAsync_UnderTheDriftMargin_LeavesTheSpot()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var now = DateTime.UtcNow;
+        await using var db = CreateDb();
+        var vehicle = await ParkedInAmsterdamAtAsync(db, now.AddHours(-3), 24000, ct);
+        await SeenAsync(db, vehicle, now.AddMinutes(-1), 52.3790, 4.8900, 24001, ct);
+
+        Assert.False(await CreateService().ParkAfterUnseenDriveAsync(vehicle, new TelemetryRepository(db), new VehicleRepository(db), now, ct));
+        Assert.Equal(52.3700, vehicle.ParkedLatitude);
+    }
+
+    [Fact]
+    public async Task ParkAfterUnseenDriveAsync_NoOdometerReadingAtParking_LeavesTheSpot()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var now = DateTime.UtcNow;
+        await using var db = CreateDb();
+        var vehicle = await ParkedInAmsterdamAtAsync(db, now.AddHours(-3), odometerKm: null, ct);
+        await SeenAsync(db, vehicle, now.AddMinutes(-1), UtrechtLat, UtrechtLon, 24045, ct);
+
+        Assert.False(await CreateService().ParkAfterUnseenDriveAsync(vehicle, new TelemetryRepository(db), new VehicleRepository(db), now, ct));
+        Assert.Equal(52.3700, vehicle.ParkedLatitude);
     }
 }

@@ -169,6 +169,8 @@ internal static class DemoTrips
                 (52.1137, 5.1220, 60),
                 (52.0907, 5.1215, 30),
             ]),
+            // The way back, which no poll caught: the car stood in Utrecht and was next seen at home.
+            BuildUnseenTrip(today.AddDays(-12).AddHours(17), id: 11, (52.0907, 5.1215), (52.3676, 4.9041), TimeSpan.FromMinutes(45)),
             BuildTrip(4, today.AddDays(-18).AddHours(16), "Amsterdam to Almere", id: 5,
             [
                 (52.3676, 4.9041, 30),
@@ -290,5 +292,22 @@ internal static class DemoTrips
 
         var endedAt = points[^1].RecordedAt;
         return new TripDto(index, start, endedAt, Math.Round(totalKm, 1), points.Count, points, id);
+    }
+
+    // As the Worker saves a drive no poll caught (see UnseenTrip): a straight line from the spot the
+    // car had stood at since the morning to the one it was next seen at, both anchored, leaving when
+    // the car woke up, with the odometer counting the road distance.
+    private static TripDto BuildUnseenTrip(
+        DateTime start, long id, (double Lat, double Lon) from, (double Lat, double Lon) to, TimeSpan duration)
+    {
+        var drive = new UnseenDrive(
+        [
+            new TripPoint(start.AddHours(-6), from.Lat, from.Lon, 0, TripPointSource.Anchored),
+            new TripPoint(start + duration, to.Lat, to.Lon, 0, TripPointSource.Anchored),
+        ]);
+        var straightKm = TripAnchor.GapKm(drive.Points[0], drive.Points[1]);
+        var trip = UnseenTrip.Build(0, drive, wokeAt: start, 0, straightKm * RoadFactor)
+                   ?? throw new InvalidOperationException("The demo's unseen drive does not pass its own rule.");
+        return trip with { Id = id };
     }
 }
