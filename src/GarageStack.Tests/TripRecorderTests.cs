@@ -286,4 +286,80 @@ public class TripRecorderTests
         Assert.Equal((51.60, 4), (trip.StartLatitude, trip.PointCount));
         Assert.True(trip.StartedAt < later);
     }
+
+    // ── Drives no poll caught (issue #640) ───────────────────────────────────
+
+    [Fact]
+    public async Task UnseenDrive_IsSavedAsAStraightLineWithTheOdometersDistance()
+    {
+        // Drive parks at 51.60; the gateway slept through the drive back and next saw the car
+        // parked 22 km north, 25 km further on the clock.
+        var ct = TestContext.Current.CancellationToken;
+        await using var s = new Setup();
+        var seen = T0.AddHours(20);
+        await s.AddFixesAsync([.. Drive(T0), (seen, 51.80, 0), (seen.AddMinutes(2), 51.80, 0)], ct);
+        await s.AddOdometerAsync(T0.AddMinutes(12), 24021.0, ct);
+        await s.AddOdometerAsync(seen, 24046.0, ct);
+
+        Assert.Equal(2, await s.Recorder.RecordAsync(s.Vehicle.Id, seen.AddHours(1), ct));
+
+        var trip = (await s.SavedAsync(ct))[1];
+        var points = JsonSerializer.Deserialize<List<TripPoint>>(trip.PointsJson)!;
+        Assert.All(points, p => Assert.Equal(TripPointSource.Anchored, p.Source));
+        Assert.Equal((51.60, 51.80, 2, 25.0), (trip.StartLatitude, trip.EndLatitude, trip.PointCount, trip.DistanceKm));
+        Assert.Equal(seen, trip.EndedAt);
+        // Nothing says when it left, so it drove the 25 km at 50 km/h before it was seen.
+        Assert.Equal(seen.AddMinutes(-30), trip.StartedAt);
+        Assert.Equal((24021.0, 24046.0), (trip.OdometerStartKm, trip.OdometerEndKm));
+        Assert.Null(trip.MaxSpeedKmh);
+    }
+
+    [Fact]
+    public async Task UnseenDrive_IsNotSavedWhenTheOdometerStoodStill()
+    {
+        // 22 km without a kilometre on the clock: a ferry, a tow truck or a GPS jump.
+        var ct = TestContext.Current.CancellationToken;
+        await using var s = new Setup();
+        var seen = T0.AddHours(20);
+        await s.AddFixesAsync([.. Drive(T0), (seen, 51.80, 0)], ct);
+        await s.AddOdometerAsync(T0.AddMinutes(12), 24021.0, ct);
+        await s.AddOdometerAsync(seen, 24021.0, ct);
+
+        Assert.Equal(1, await s.Recorder.RecordAsync(s.Vehicle.Id, seen.AddHours(1), ct));
+    }
+
+    [Fact]
+    public async Task UnseenDrive_FromWhereTheCarStoodTheWeekBefore()
+    {
+        // The daily poll on the spot falls in the first week, the car is next seen in the second.
+        var ct = TestContext.Current.CancellationToken;
+        await using var s = new Setup();
+        var seen = T0 + TripRecorder.Chunk + TimeSpan.FromHours(6);
+        await s.AddFixesAsync([.. Drive(T0), (T0 + TripRecorder.Chunk - TimeSpan.FromHours(12), 51.60, 0), (seen, 51.80, 0)], ct);
+        await s.AddOdometerAsync(T0.AddMinutes(12), 24021.0, ct);
+        await s.AddOdometerAsync(seen, 24046.0, ct);
+
+        Assert.Equal(2, await s.Recorder.RecordAsync(s.Vehicle.Id, seen.AddHours(1), ct));
+
+        var trip = (await s.SavedAsync(ct))[1];
+        Assert.Equal((51.60, 51.80), (trip.StartLatitude, trip.EndLatitude));
+        // Saved once: the next run does not cut it again.
+        Assert.Equal(0, await s.Recorder.RecordAsync(s.Vehicle.Id, seen.AddHours(2), ct));
+    }
+
+    // A fix without a speed counts as standing still only near the fix before it, at the end of a
+    // week too: the trips saved do not depend on where the week happens to end.
+    [Fact]
+    public async Task UnseenDrive_NotFromAFixThatMovedJustBeforeTheWeekEnded()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var s = new Setup();
+        var lastWeek = T0 + TripRecorder.Chunk - TimeSpan.FromHours(12);
+        var seen = T0 + TripRecorder.Chunk + TimeSpan.FromHours(6);
+        await s.AddFixesAsync([(T0, 51.50, 50), (T0.AddMinutes(5), 51.55, 50), (lastWeek, 51.60, null), (seen, 51.80, 0)], ct);
+        await s.AddOdometerAsync(lastWeek, 24021.0, ct);
+        await s.AddOdometerAsync(seen, 24046.0, ct);
+
+        Assert.Equal(1, await s.Recorder.RecordAsync(s.Vehicle.Id, seen.AddHours(1), ct));
+    }
 }

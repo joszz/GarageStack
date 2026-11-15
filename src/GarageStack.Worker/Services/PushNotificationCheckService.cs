@@ -78,7 +78,7 @@ public class PushNotificationCheckService(
 
             var now = UtcNow;
             await CheckLevelsAsync(vehicle, snapshot, telemetry, notifications, now, ct);
-            await CheckParkedAsync(vehicle, snapshot, telemetry, notifications, now, ct);
+            await CheckParkedAsync(vehicle, snapshot, telemetry, vehicleRepo, notifications, now, ct);
         }
     }
 
@@ -123,10 +123,12 @@ public class PushNotificationCheckService(
     /// Warns about a car parked unlocked, with a door or window open, or with a low 12V battery,
     /// once its polls have shown it for a while. Every warning rests on the newest poll and goes
     /// out once for it: a car asleep overnight would otherwise be reported every hour on the one
-    /// poll it last sent. A car that left the spot it parked on is warned about once per parking.
+    /// poll it last sent. A car that left the spot it parked on is warned about once per parking,
+    /// unless its odometer says it was driven there.
     /// </summary>
     internal async Task CheckParkedAsync(
-        Vehicle vehicle, TelemetrySnapshot snapshot, ITelemetryRepository telemetry, INotificationRepository notifications, DateTime now, CancellationToken ct)
+        Vehicle vehicle, TelemetrySnapshot snapshot, ITelemetryRepository telemetry, IVehicleRepository vehicles,
+        INotificationRepository notifications, DateTime now, CancellationToken ct)
     {
         // The MQTT consumer records when the engine last stopped (it also sends the
         // engine-start push, the moment the car reports it). A car parked a moment ago is
@@ -142,16 +144,58 @@ public class PushNotificationCheckService(
         if (alerts.Count > 0)
             await SendAsync(vehicle, alerts, notifications, ct, onceSince: readings[0].ArrivedAt);
 
+        if (await ParkAfterUnseenDriveAsync(vehicle, telemetry, vehicles, now, ct)) return;
+
         var moved = new List<(string key, string title, string body)>();
         CheckMovedWhileParked(vehicle, snapshot, moved);
         if (moved.Count > 0)
             await SendAsync(vehicle, moved, notifications, ct, onceSince: vehicle.LastParkedAt);
     }
 
-    // Further than a parked car's fix strays, nearer than a tow truck or a ferry takes it. A fix
-    // from a garage, a multi-storey or between tall buildings has put a car standing still 700 m
-    // off its spot, so the margin is wide.
-    internal const double MovedWhileParkedMeters = 1500;
+    // Further than a parked car's fix strays, nearer than a tow truck or a ferry takes it: the
+    // margin an unseen drive is told from drift by, too.
+    internal const double MovedWhileParkedMeters = UnseenTrip.MinGapMetres;
+
+    /// <summary>
+    /// A car seen standing well away from its parking spot, with its odometer up by about the
+    /// distance, was driven there while no poll caught the engine running (see
+    /// <see cref="UnseenTrip"/>). It is parked where its newest fix shows it, from that fix's time,
+    /// and no warning goes out for the drive; the recorder saves the trip. A car towed or carried
+    /// first and driven a little after does not count as driven, so it is still warned about.
+    /// <para>
+    /// No arrival push goes out for such a parking: the fix can be hours after the car arrived, and
+    /// "arrived home" by then is news to nobody. And a drive with the engine unseen is no longer
+    /// reported as a move, which also means a car driven off by someone else while the gateway slept
+    /// is not, unless the gateway catches the engine start.
+    /// </para>
+    /// </summary>
+    /// <returns>Whether the car was parked anew.</returns>
+    internal async Task<bool> ParkAfterUnseenDriveAsync(
+        Vehicle vehicle, ITelemetryRepository telemetry, IVehicleRepository vehicles, DateTime now, CancellationToken ct)
+    {
+        if (vehicle is not { LastParkedAt: { } parkedAt, ParkedLatitude: { } parkedLat, ParkedLongitude: { } parkedLon }) return false;
+
+        // The newest fix with the speed of its own poll: the merged snapshot's position, speed and
+        // engine state can each come from a different one. A car moving in it is not parked yet.
+        if (await telemetry.GetLastGpsFixBeforeAsync(vehicle.Id, now, ct) is not { Speed: not > 0 } seen
+            || seen.RecordedAt <= parkedAt)
+            return false;
+
+        var gapKm = GeoHelper.Haversine(parkedLat, parkedLon, seen.Latitude, seen.Longitude);
+        if (gapKm * 1000 < UnseenTrip.MinGapMetres) return false;
+
+        // Read once the car had stood for as long as it takes to end a trip, as it reports its
+        // final mileage a poll or two after it stops, and with the fix's own poll.
+        var atParking = await telemetry.GetOdometerAtAsync(vehicle.Id, parkedAt + TripSegmenter.ParkThreshold, ct);
+        var atSeen = await telemetry.GetOdometerAtAsync(vehicle.Id, seen.RecordedAt + TripRecorder.SettleTime, ct);
+        if (!UnseenTrip.OdometerConfirms(gapKm, atParking, atSeen)) return false;
+
+        await vehicles.SetParkedAsync(vehicle.Id, seen.RecordedAt, seen.Latitude, seen.Longitude, ct);
+        logger.LogInformation(
+            "Vehicle {VehicleId} was driven {Gap:F1} km unseen ({Before} to {After} km since it parked); parked where it was seen",
+            vehicle.Id, gapKm, atParking, atSeen);
+        return true;
+    }
 
     /// <summary>
     /// Warns when the car reports a position well away from where it parked while the engine stayed
