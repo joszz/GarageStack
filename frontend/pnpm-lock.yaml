@@ -88,8 +88,8 @@ importers:
         specifier: ^2.6.2
         version: 2.6.2
       '@tsconfig/node26':
-        specifier: ^26.0.1
-        version: 26.0.1
+        specifier: ^26.0.2
+        version: 26.0.2
       '@types/jsdom':
         specifier: ^30.0.0
         version: 30.0.0
@@ -1449,8 +1449,8 @@ packages:
     resolution: {integrity: sha512-rQSqTcqD5c1H1qAR2XO1wHYGtd3NbMdU7oMD0gDW7xkxEIQ/fDe0MCMJtdDqVSrmmznxL2xfcxnGnusXX9JKBQ==}
     engines: {node: '>=12'}
 
-  '@tsconfig/node26@26.0.1':
-    resolution: {integrity: sha512-NQT8JUFDKeAIWpR1dakeF534msQAsoSLr1WpKdRDt3sCvk2fsFK3EVKUBG5xKYVamiRO6yTfniiyvCaqOGgn/g==}
+  '@tsconfig/node26@26.0.2':
+    resolution: {integrity: sha512-RIBSoNGQxUQ8r4hSrEzS6TrUneoKaCuX6BjL4zF3wqttGq2w06zCea4d8P1gRvM/HZyDT1FQJ8trZSyy/63oMg==}
 
   '@types/chai@5.2.3':
     resolution: {integrity: sha512-Mw558oeA9fFbv65/y4mHtXDs9bPnFMZAL/jxdPFUpOHHIXX91mcgEHbS5Lahr+pwZFR8A7GQleRWeI6cGFC2UA==}
@@ -4757,7 +4757,7 @@ snapshots:
       json5: 2.2.3
       magic-string: 0.30.21
 
-  '@tsconfig/node26@26.0.1': {}
+  '@tsconfig/node26@26.0.2': {}
 
   '@types/chai@5.2.3':
     dependencies:
