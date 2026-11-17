@@ -95,6 +95,7 @@ export {
   faSnowflake,
   faSquareParking,
   faSpinner,
+  faStethoscope,
   faSun,
   faTag,
   faTemperatureArrowUp,

@@ -284,6 +284,18 @@ const languageOptions = [
               </a>
             </template>
           </SettingsToggle>
+          <SettingsToggle
+            class="settings-toggle--select settings-toggle--action"
+            :label="t('settings.diagnostics.title')"
+            :desc="t('settings.diagnostics.desc')"
+          >
+            <template #control>
+              <a class="btn btn-outline-secondary" :href="apiUrl('/api/diagnostics')" download>
+                <font-awesome-icon icon="stethoscope" />
+                {{ t('settings.diagnostics.download') }}
+              </a>
+            </template>
+          </SettingsToggle>
         </div>
       </div>
     </div>

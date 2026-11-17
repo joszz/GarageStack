@@ -29,9 +29,9 @@ internal static class ApiTokenAuthentication
     private static readonly TimeSpan UsageResolution = TimeSpan.FromMinutes(1);
 
     // Reads a token must not do either: the export is every trip and every position the car ever
-    // reported, and the logs are the services' own diagnostics. A leaked token meant for a dashboard
-    // sensor would otherwise hand over the whole history.
-    private static readonly string[] SessionOnlyReads = [ExportEndpoints.Path, LogEndpoints.Path];
+    // reported, and the logs and the diagnostics are the services' own. A leaked token meant for a
+    // dashboard sensor would otherwise hand over the whole history.
+    private static readonly string[] SessionOnlyReads = [ExportEndpoints.Path, LogEndpoints.Path, DiagnosticsEndpoints.Path];
 
     /// <summary>
     /// Whether the request carries a GarageStack token. Only "Bearer gs_..." counts: a proxy in front
@@ -53,8 +53,9 @@ internal static class ApiTokenAuthentication
 
     /// <summary>
     /// Why a request signed in with a token is refused, or null when a token may make it: only a
-    /// GET (or HEAD), and never one to the token endpoints, the export or the logs. The middleware
-    /// enforces it, and the API reference reads it to say which endpoints a token can call.
+    /// GET (or HEAD), and never one to the token endpoints, the export, the logs or the
+    /// diagnostics. The middleware enforces it, and the API reference reads it to say which
+    /// endpoints a token can call.
     /// </summary>
     public static ValidationError? Refusal(string method, PathString path) =>
         !HttpMethods.IsGet(method) && !HttpMethods.IsHead(method)
@@ -62,7 +63,7 @@ internal static class ApiTokenAuthentication
             : path.StartsWithSegments(ApiTokenEndpoints.Path)
                 ? new("token.cannotManageTokens", "API tokens are managed from a signed-in session only")
                 : SessionOnlyReads.Any(p => path.StartsWithSegments(p))
-                    ? new("token.sessionOnly", "The export and the logs need a signed-in session; an API token cannot read them")
+                    ? new("token.sessionOnly", "The export, the logs and the diagnostics need a signed-in session; an API token cannot read them")
                     : null;
 
     internal sealed class Handler(
@@ -113,8 +114,8 @@ internal static class ApiTokenAuthentication
 
     /// <summary>
     /// Holds a token to reading: a request signed in with one may only GET, and never reach the
-    /// token endpoints, the export or the logs, so a leaked token cannot send commands, change
-    /// settings, make more tokens or carry off the car's whole history.
+    /// token endpoints, the export, the logs or the diagnostics, so a leaked token cannot send
+    /// commands, change settings, make more tokens or carry off the car's whole history.
     /// </summary>
     internal sealed class ReadOnlyMiddleware(RequestDelegate next)
     {

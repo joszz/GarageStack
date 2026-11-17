@@ -729,6 +729,11 @@
       "title": "Your data",
       "desc": "Everything GarageStack keeps, in one zip: per car its trips, maintenance, schedules, places and every telemetry reading, and your notifications and settings. Telemetry comes as a CSV file a spreadsheet opens, the rest as JSON. A big history takes a moment to gather.",
       "download": "Download everything"
+    },
+    "diagnostics": {
+      "title": "Diagnostics",
+      "desc": "For a bug report: the version, which parts are switched on and healthy, per car its model and type, the last 7 days of readings, and the warnings and errors of the last 7 days from the logs. VINs, licence plates, positions, email and IP addresses and web addresses are taken out, and trips, places and settings are left out. Look it over before you share it.",
+      "download": "Download diagnostics"
     }
   },
   "units": {
@@ -1168,7 +1173,7 @@
         "tooMany": "This account has the most tokens it can have. Revoke one first.",
         "readOnly": "An API token can only read. Sign in to change anything.",
         "cannotManageTokens": "API tokens are managed from a signed-in session only.",
-        "sessionOnly": "The export and the logs need a signed-in session. An API token cannot read them.",
+        "sessionOnly": "The export, the logs and the diagnostics need a signed-in session. An API token cannot read them.",
         "noAccount": "This session names no account to make tokens for."
       },
       "logs": {

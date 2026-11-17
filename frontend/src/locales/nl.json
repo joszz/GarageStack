@@ -729,6 +729,11 @@
       "title": "Je gegevens",
       "desc": "Alles wat GarageStack bewaart, in één zip: per auto de ritten, het onderhoud, de schema’s, de plaatsen en elke meting, en je meldingen en instellingen. De metingen komen als CSV-bestand dat een spreadsheet opent, de rest als JSON. Een grote geschiedenis verzamelen duurt even.",
       "download": "Alles downloaden"
+    },
+    "diagnostics": {
+      "title": "Diagnose",
+      "desc": "Voor een foutmelding: de versie, welke onderdelen aan staan en gezond zijn, per auto het model en type, de metingen van de afgelopen 7 dagen, en de waarschuwingen en fouten van de afgelopen 7 dagen uit de logs. Chassisnummers, kentekens, posities, e-mail- en IP-adressen en webadressen worden eruit gehaald, en ritten, plaatsen en instellingen blijven weg. Kijk het na voordat je het deelt.",
+      "download": "Diagnose downloaden"
     }
   },
   "units": {
@@ -1168,7 +1173,7 @@
         "tooMany": "Dit account heeft het maximale aantal tokens. Trek er eerst een in.",
         "readOnly": "Een API-token kan alleen lezen. Log in om iets te wijzigen.",
         "cannotManageTokens": "API-tokens beheer je alleen vanuit een ingelogde sessie.",
-        "sessionOnly": "De export en de logs vragen een ingelogde sessie. Een API-token kan ze niet lezen.",
+        "sessionOnly": "De export, de logs en de diagnose vragen een ingelogde sessie. Een API-token kan ze niet lezen.",
         "noAccount": "Deze sessie hoort bij geen account om tokens voor te maken."
       },
       "logs": {

@@ -729,6 +729,11 @@
       "title": "Seus dados",
       "desc": "Tudo o que o GarageStack guarda, em um único zip: por carro, as viagens, a manutenção, os agendamentos, os lugares e todas as leituras de telemetria, além das suas notificações e configurações. A telemetria vem em um arquivo CSV que uma planilha abre, e o resto em JSON. Um histórico grande leva um instante para ser reunido.",
       "download": "Baixar tudo"
+    },
+    "diagnostics": {
+      "title": "Diagnóstico",
+      "desc": "Para relatar um erro: a versão, quais partes estão ativadas e funcionando, o modelo e o tipo de cada carro, as leituras dos últimos 7 dias e os avisos e erros dos logs dos últimos 7 dias. VINs, placas, posições e endereços de e-mail, IP e web são removidos, e viagens, lugares e configurações ficam de fora. Confira antes de compartilhar.",
+      "download": "Baixar diagnóstico"
     }
   },
   "units": {
@@ -1168,7 +1173,7 @@
         "tooMany": "Esta conta já atingiu o limite de tokens. Revogue um antes de criar outro.",
         "readOnly": "Um token de API só pode ler dados. Entre na sua conta para fazer alterações.",
         "cannotManageTokens": "Tokens de API só podem ser gerenciados em uma sessão com login.",
-        "sessionOnly": "A exportação e os logs exigem uma sessão com login. Um token de API não pode acessá-los.",
+        "sessionOnly": "A exportação, os logs e o diagnóstico exigem uma sessão com login. Um token de API não pode acessá-los.",
         "noAccount": "Esta sessão não indica nenhuma conta para criar tokens."
       },
       "logs": {

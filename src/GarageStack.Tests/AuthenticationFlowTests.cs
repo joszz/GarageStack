@@ -1117,6 +1117,68 @@ public partial class AuthenticationFlowTests
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
+    // ── Diagnostics ───────────────────────────────────────────────────────────
+
+    // Made to be attached to a public issue: the demo car's VIN and plate appear nowhere in it,
+    // and its readings come without the columns that say where it was.
+    [Fact]
+    public async Task Diagnostics_IsAnAnonymizedZip()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var factory = CreatePasswordOnlyFactory();
+        using var client = CreateClient(factory);
+        await PasswordLoginAsync(client, ct);
+
+        var response = await client.GetAsync("/api/diagnostics", ct);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("application/zip", response.Content.Headers.ContentType?.MediaType);
+        Assert.StartsWith("garagestack-diagnostics-", response.Content.Headers.ContentDisposition?.FileName?.Trim('"'));
+        await using var body = await response.Content.ReadAsStreamAsync(ct);
+        using var zip = new System.IO.Compression.ZipArchive(body);
+        Assert.Equal(
+            ["cars/car-1/car.json", "cars/car-1/telemetry.csv", "diagnostics.json", "logs.txt"],
+            zip.Entries.Select(e => e.FullName).Order(StringComparer.Ordinal));
+
+        foreach (var entry in zip.Entries)
+        {
+            using var reader = new StreamReader(entry.Open());
+            var text = await reader.ReadToEndAsync(ct);
+            Assert.DoesNotContain(DemoVin, text, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("***" + DemoVin[^4..], text, StringComparison.Ordinal);
+            Assert.DoesNotContain("ZZ123Z", text, StringComparison.OrdinalIgnoreCase);
+        }
+
+        using var csv = new StreamReader(zip.GetEntry("cars/car-1/telemetry.csv")!.Open());
+        var header = (await csv.ReadLineAsync(ct))!.Split(',');
+        Assert.Contains("RecordedAt", header);
+        Assert.Contains("MileageOfTheDay", header);
+        Assert.DoesNotContain("Latitude", header);
+        Assert.DoesNotContain("Longitude", header);
+        Assert.NotNull(await csv.ReadLineAsync(ct));
+
+        using var car = JsonDocument.Parse(zip.GetEntry("cars/car-1/car.json")!.Open());
+        Assert.Equal("bev", car.RootElement.GetProperty("vehicleType").GetString());
+        Assert.False(car.RootElement.TryGetProperty("vin", out _));
+        Assert.False(car.RootElement.TryGetProperty("licensePlate", out _));
+
+        using var diagnostics = JsonDocument.Parse(zip.GetEntry("diagnostics.json")!.Open());
+        Assert.True(diagnostics.RootElement.GetProperty("demoMode").GetBoolean());
+        Assert.Equal("Healthy", diagnostics.RootElement.GetProperty("health").GetProperty("status").GetString());
+    }
+
+    [Fact]
+    public async Task Diagnostics_NeedsASignedInSession()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var factory = CreatePasswordOnlyFactory();
+        using var client = CreateClient(factory);
+
+        var response = await client.GetAsync("/api/diagnostics", ct);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
     // ── Read-only API tokens ──────────────────────────────────────────────────
 
     // A token made in a session reads as that account, and only reads: no commands, no changes,
@@ -1175,12 +1237,13 @@ public partial class AuthenticationFlowTests
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
-    // The export is every trip and every position, the logs the services' own diagnostics: a token
-    // meant for a dashboard sensor must not carry those off. The same session reads both.
+    // The export is every trip and every position, the logs and the diagnostics the services' own:
+    // a token meant for a dashboard sensor must not carry those off. The same session reads them.
     [Theory]
     [InlineData("/api/export")]
     [InlineData("/api/logs")]
-    public async Task ApiToken_CannotReadTheExportOrTheLogs(string path)
+    [InlineData("/api/diagnostics")]
+    public async Task ApiToken_CannotReadTheExportTheLogsOrTheDiagnostics(string path)
     {
         var ct = TestContext.Current.CancellationToken;
         await using var factory = CreatePasswordOnlyFactory();

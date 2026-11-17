@@ -51,7 +51,7 @@ internal static class ApiReferenceText
         ["Export"] = "Everything GarageStack keeps, as one zip.",
         ["Logs"] = "The API's and the Worker's log entries, as the log viewer pages through them.",
         ["Updates"] = "Whether a newer GarageStack release is out.",
-        ["Diagnostics"] = "Errors the web app ran into in the browser, for the API's log.",
+        ["Diagnostics"] = "Errors the web app ran into in the browser, for the API's log, and an anonymized zip to attach to a bug report.",
         ["Widget"] = "The car's status in one call, for a Homepage dashboard widget.",
         ["Demo"] = "Demo mode only: change the demo car's state, as the Demo Controls panel does.",
     };

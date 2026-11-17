@@ -132,7 +132,12 @@ describe('SettingsModal tabs', () => {
     expect(panel(wrapper, 'general').text()).toContain(en.settings.units.title)
     expect(panel(wrapper, 'vehicle').text()).toContain(en.settings.vehicleType.title)
     expect(panel(wrapper, 'map').text()).toContain(en.settings.map.placeNames)
-    expect(panel(wrapper, 'data').find('a[download]').exists()).toBe(true)
+    const downloads = panel(wrapper, 'data')
+      .findAll('a[download]')
+      .map((link) => link.attributes('href'))
+    expect(downloads.some((href) => href?.endsWith('/api/export'))).toBe(true)
+    expect(downloads.some((href) => href?.endsWith('/api/diagnostics'))).toBe(true)
+    expect(panel(wrapper, 'data').text()).toContain(en.settings.diagnostics.download)
   })
 
   it('wraps keyboard navigation and skips unavailable tabs', async () => {

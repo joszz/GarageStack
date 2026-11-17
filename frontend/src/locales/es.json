@@ -729,6 +729,11 @@
       "title": "Tus datos",
       "desc": "Descarga en un archivo ZIP todo lo que guarda GarageStack: trayectos, mantenimiento, programaciones, lugares, lecturas de telemetría, notificaciones y ajustes. Las lecturas se incluyen como CSV, que puedes abrir en una hoja de cálculo; el resto se guarda en archivos JSON.",
       "download": "Descargar todo"
+    },
+    "diagnostics": {
+      "title": "Diagnóstico",
+      "desc": "Para informar de un error: la versión, qué partes están activadas y funcionan, el modelo y el tipo de cada coche, las lecturas de los últimos 7 días y los avisos y errores de los registros de los últimos 7 días. Se quitan los VIN, las matrículas, las posiciones, las direcciones de correo, IP y web, y no se incluyen trayectos, lugares ni ajustes. Revísalo antes de compartirlo.",
+      "download": "Descargar diagnóstico"
     }
   },
   "units": {
@@ -1168,7 +1173,7 @@
         "tooMany": "Esta cuenta tiene la mayor cantidad de tokens que puede tener. Revocar uno primero.",
         "readOnly": "Un token API solo puede leer. Inicia sesión para cambiar cualquier cosa. Los tokens de API",
         "cannotManageTokens": "se administran únicamente desde una sesión iniciada.",
-        "sessionOnly": "La exportación y los registros necesitan una sesión iniciada. Un token API no puede leerlos.",
+        "sessionOnly": "La exportación, los registros y el diagnóstico necesitan una sesión iniciada. Un token API no puede leerlos.",
         "noAccount": "Esta sesión no nombra ninguna cuenta para la cual crear tokens. La fuente"
       },
       "logs": {

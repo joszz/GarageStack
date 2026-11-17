@@ -32,10 +32,26 @@ public class TelemetryStreamTests
         var vehicleId = await SeedAsync(db, ct);
 
         var socs = new List<double?>();
-        await foreach (var row in new TelemetryRepository(db).StreamAllAsync(vehicleId, ct))
+        await foreach (var row in new TelemetryRepository(db).StreamAllAsync(vehicleId, ct: ct))
             socs.Add(row.EvSocPercent);
 
         Assert.Equal(new double?[] { 50, 49 }, socs);
+    }
+
+    // The diagnostics only take the last week.
+    [Fact]
+    public async Task StreamAll_WithSince_SkipsOlderRows()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var db = NewDb();
+        var vehicleId = await SeedAsync(db, ct);
+
+        var socs = new List<double?>();
+        var since = new DateTime(2026, 3, 2, 9, 5, 0, DateTimeKind.Utc);
+        await foreach (var row in new TelemetryRepository(db).StreamAllAsync(vehicleId, since, ct))
+            socs.Add(row.EvSocPercent);
+
+        Assert.Equal(new double?[] { 49 }, socs);
     }
 
     [Fact]
@@ -49,7 +65,7 @@ public class TelemetryStreamTests
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
         {
-            await foreach (var row in new TelemetryRepository(db).StreamAllAsync(vehicleId, gone.Token))
+            await foreach (var row in new TelemetryRepository(db).StreamAllAsync(vehicleId, ct: gone.Token))
                 Assert.Fail($"read a row at {row.RecordedAt} after the caller had gone");
         });
     }

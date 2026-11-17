@@ -60,7 +60,7 @@ body:
         - Push Notifications
         - Authentication / API tokens
         - Home Assistant
-        - Logs page / data export
+        - Logs page / data export / diagnostics
         - Docker / Deployment
         - Other
     validations:
@@ -70,7 +70,7 @@ body:
     id: logs
     attributes:
       label: Logs
-      description: The Logs page in GarageStack shows the API's and the Worker's newest entries; filter on Warning and up and paste what is near the problem. VINs are shortened in the logs already; remove anything else you would rather not share.
+      description: The Logs page in GarageStack shows the API's and the Worker's newest entries; filter on Warning and up and paste what is near the problem. VINs are shortened in the logs already; remove anything else you would rather not share. Or attach the zip from Settings > Data & API > Diagnostics, which holds the last week's warnings, readings and car details with VINs, plates and positions taken out.
       render: text
 
   - type: input

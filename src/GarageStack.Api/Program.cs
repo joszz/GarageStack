@@ -90,6 +90,9 @@ try
     builder.Services.AddScoped<TripPlaceService>();
     builder.Services.AddScoped<MapMatchService>();
     builder.Services.AddScoped<DataExport>();
+    builder.Services.AddScoped<DiagnosticsExport>();
+    builder.Services.AddSingleton(sp => LogDirectories.From(sp.GetRequiredService<IConfiguration>()));
+    builder.Services.AddSingleton(sp => DiagnosticsFeatures.From(sp, isDemoMode));
     builder.Services.AddScoped<VehicleFactsService>();
     builder.Services.AddSingleton<VehicleCommandGate>();
     builder.Services.AddSingleton<VehicleCommandSender>();
@@ -162,6 +165,7 @@ try
     app.MapSettingsEndpoints();
     app.MapApiTokenEndpoints();
     app.MapExportEndpoints();
+    app.MapDiagnosticsEndpoints();
     app.MapLogEndpoints();
     app.MapVehicleEndpoints();
     app.MapTripEndpoints();

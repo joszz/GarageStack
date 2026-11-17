@@ -491,10 +491,12 @@ public class TelemetryRepository(
     // An iterator rather than the query itself, so the token reaches the query: returned as is, a
     // caller's token never did, and an export kept reading every row after the browser had gone.
     public async IAsyncEnumerable<TelemetrySnapshot> StreamAllAsync(
-        int vehicleId, [EnumeratorCancellation] CancellationToken ct = default)
+        int vehicleId, DateTime? since = null, [EnumeratorCancellation] CancellationToken ct = default)
     {
-        var rows = db.TelemetrySnapshots.AsNoTracking()
-            .Where(s => s.VehicleId == vehicleId)
+        var query = db.TelemetrySnapshots.AsNoTracking().Where(s => s.VehicleId == vehicleId);
+        if (since is { } from)
+            query = query.Where(s => s.RecordedAt >= from);
+        var rows = query
             .OrderBy(s => s.RecordedAt).ThenBy(s => s.Id)
             .AsAsyncEnumerable()
             .WithCancellation(ct);
