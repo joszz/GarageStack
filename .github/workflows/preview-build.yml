@@ -109,28 +109,19 @@ jobs:
             echo "ghcr.io/$OWNER/garagestack:pr-$PR"
             echo '```'
             echo
-            echo "**Docker Compose with the published images** (your own compose file with \`garagestack-api\`, \`garagestack-worker\` and \`garagestack-frontend\`): change the tag of those three images to \`pr-$PR\`, then"
+            echo "**Docker Compose:** with this repository's \`docker-compose.yml\`, add \`GARAGESTACK_TAG=pr-$PR\` to your \`.env\`. With your own compose file, change the tag of \`garagestack-api\`, \`garagestack-worker\` and \`garagestack-frontend\` to \`pr-$PR\`. Then"
             echo
             echo '```sh'
             echo "docker compose pull"
             echo "docker compose up -d"
             echo '```'
             echo
-            echo "**Docker Compose from a clone of this repository**, in the clone's folder on \`main\`:"
-            echo
-            echo '```sh'
-            echo "git pull"
-            echo "PREVIEW_TAG=pr-$PR docker compose -f docker-compose.yml -f docker-compose.preview.yml up -d"
-            echo '```'
-            echo
-            echo "With the bundled database, put \`--profile bundled-postgres\` after \`docker compose\`, as you do for a normal start."
-            echo
             echo "To pin this exact build rather than follow the pull request, use \`pr-$PR-$SHORT\` as the tag."
             echo
             if [ -n "$LATEST" ]; then
-              echo "**Going back:** change the image back to the latest release, \`${LATEST#v}\`. \`latest\` works too: it is always the newest release. From a clone, run \`docker compose up -d --build\` in the same folder."
+              echo "**Going back:** change the tag back to the latest release, \`${LATEST#v}\`. \`latest\` works too: it is always the newest release (with this repository's compose file, remove the \`GARAGESTACK_TAG\` line)."
             else
-              echo "**Going back:** change the image back to the version you ran before. From a clone, run \`docker compose up -d --build\` in the same folder."
+              echo "**Going back:** change the tag back to the version you ran before."
             fi
             echo
             echo "Step by step: [Testing a preview build]($DOCS#testing-a-preview-build)."
