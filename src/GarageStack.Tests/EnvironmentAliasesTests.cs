@@ -107,8 +107,11 @@ public class EnvironmentAliasesTests
     private static readonly HashSet<string> DeploymentOnly =
     [
         "APP_VERSION", "API_PORT", "FRONTEND_PORT",
-        // Read by Docker Compose itself: the prefix of every volume and network.
-        "COMPOSE_PROJECT_NAME",
+        // Read by Docker Compose itself: the prefix of every volume and network, and the files
+        // it combines (docker-compose.build.yml for a source build).
+        "COMPOSE_PROJECT_NAME", "COMPOSE_FILE", "COMPOSE_PATH_SEPARATOR",
+        // The tag of the published images docker-compose.yml runs.
+        "GARAGESTACK_TAG",
         "SAIC_REGION", "SAIC_REST_URI",
         "POSTGRES_HOST", "POSTGRES_PORT", "POSTGRES_DB", "POSTGRES_USER", "POSTGRES_PASSWORD",
         "MQTT_EXTERNAL_PORT", "MQTT_BIND_ADDRESS", "HA_MQTT_USERNAME", "HA_MQTT_PASSWORD",

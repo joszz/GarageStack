@@ -4,6 +4,11 @@
 # another name keeps its volumes by setting COMPOSE_PROJECT_NAME in .env, see "Updating" in README.md.
 name: garagestack
 
+# The worker, api and frontend run the published images. GARAGESTACK_TAG picks the tag: latest
+# (the newest release, the default), a version such as 0.19.2, edge (follows main, unreleased
+# migrations included) or a preview such as pr-123. To build this clone instead, add
+# docker-compose.build.yml, see documentation/CONFIGURATION.md.
+
 # Settings both .NET services need. Compose reads .env for ${...} interpolation on its own, so
 # every value a container gets is listed explicitly here: no env_file, and no secret reaching a
 # container that has no use for it (the Worker never sees the OIDC or widget credentials, the API
@@ -137,11 +142,7 @@ services:
       retries: 5
 
   worker:
-    build:
-      context: .
-      dockerfile: src/GarageStack.Worker/Dockerfile
-      args:
-        APP_VERSION: "${APP_VERSION:-0.0.0-local}"
+    image: "ghcr.io/joszz/garagestack-worker:${GARAGESTACK_TAG:-latest}"
     container_name: garagestack-worker
     restart: unless-stopped
     mem_limit: 256m
@@ -172,11 +173,7 @@ services:
       - worker_logs:/app/logs
 
   api:
-    build:
-      context: .
-      dockerfile: src/GarageStack.Api/Dockerfile
-      args:
-        APP_VERSION: "${APP_VERSION:-0.0.0-local}"
+    image: "ghcr.io/joszz/garagestack-api:${GARAGESTACK_TAG:-latest}"
     container_name: garagestack-api
     restart: unless-stopped
     mem_limit: 512m
@@ -245,15 +242,7 @@ services:
       - worker_logs:/app/worker-logs:ro
 
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-      args:
-        APP_VERSION: "${APP_VERSION:-0.0.0-local}"
-        # Your own basemap styles, baked in at build time. See documentation/CONFIGURATION.md.
-        MAP_STYLE_DARK: "${MAP_STYLE_DARK:-}"
-        MAP_STYLE_LIGHT: "${MAP_STYLE_LIGHT:-}"
-        MAP_STYLE_COLORFUL: "${MAP_STYLE_COLORFUL:-}"
+    image: "ghcr.io/joszz/garagestack-frontend:${GARAGESTACK_TAG:-latest}"
     container_name: garagestack-frontend
     restart: unless-stopped
     mem_limit: 128m

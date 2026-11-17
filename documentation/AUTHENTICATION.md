@@ -328,7 +328,7 @@ Neither OIDC nor `AUTH_USERNAME`/`AUTH_PASSWORD` (nor `SAIC_USER`/`SAIC_PASSWORD
 
 ### The login page keeps showing the old username/password form after configuring OIDC
 
-The frontend is a separate image from the API, and its bundle is cached by the service worker. Rebuild both (`docker compose build --no-cache api frontend`), then load the page in a private window. `curl -s <your URL>/api/auth/config` tells you which side is stale: `{"oidcEnabled":true,...}` means the API is fine and the browser or the frontend image is not.
+The frontend is a separate image from the API, and its bundle is cached by the service worker. Make sure both run the same version (`docker compose pull api frontend` and `docker compose up -d`, or `docker compose build --no-cache api frontend` when you build from source), then load the page in a private window. `curl -s <your URL>/api/auth/config` tells you which side is stale: `{"oidcEnabled":true,...}` means the API is fine and the browser or the frontend image is not.
 
 ---
 

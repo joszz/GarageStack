@@ -152,16 +152,27 @@ than one.
 | `DEBUG_LOGS` | `false` | `true` turns on debug logging in the API and the Worker, including a line for every API request. Without it, only refused (4xx), failed (5xx) and slow (over a second) requests are logged. |
 | `LOG_RETAINED_FILES` | `30` | Log files each service keeps in its `logs` folder: one per day, and another whenever a day's file passes 100 MB. The oldest go first. |
 | `WORKER_LOG_DIRECTORY` | none | Where the API finds the Worker's log files, so the log viewer (the Logs page) shows them as well as its own. The Compose file mounts the Worker's log volume at `/app/worker-logs` and sets this; the all-in-one image sets it itself. Unset, the Logs page shows the API's entries only. |
+| `GARAGESTACK_TAG` | `latest` | Tag of the GarageStack images Docker Compose runs: `latest` (the newest release), a version such as `0.19.2`, `edge` (follows `main`, unreleased migrations included) or a preview such as `pr-123`. Run `docker compose pull` and `docker compose up -d` after changing it. The all-in-one container and Unraid choose the tag in the image name instead. |
 | `FRONTEND_PORT` | `8080` | Host port of the web interface (Docker Compose). |
 | `API_PORT` | `5000` | Host port of the API, bound to localhost (Docker Compose). The web interface does not need it. |
-| `APP_VERSION` | `0.0.0-local` | Version shown in the footer of an image built from source: `APP_VERSION=$(git describe --tags) docker compose up -d --build`. Published images carry their own. |
 
 ## Building from source
 
-Baked into the frontend bundle when it is built, so they need `docker compose up -d --build` (or `docker build --build-arg ...`) to take effect.
+`docker-compose.yml` runs the published images. To build the API, the Worker and the frontend from your clone instead (your own basemap, your own changes), add `docker-compose.build.yml` on top of it. The database, broker and gateway stay as they are:
+
+```sh
+git pull
+docker compose -f docker-compose.yml -f docker-compose.build.yml pull --ignore-buildable
+APP_VERSION=$(git describe --tags) docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build
+```
+
+With the bundled database, add `--profile bundled-postgres` after `docker compose`, as you do for a normal start. To keep using plain `docker compose` commands, list both files once in `.env` with `COMPOSE_FILE=docker-compose.yml:docker-compose.build.yml` (on Windows, separate them with `;`, or set `COMPOSE_PATH_SEPARATOR`). Back to the published images: remove that line, then `docker compose pull` and `docker compose up -d`.
+
+The variables below are baked in when the images are built, so they need `--build` (or `docker build --build-arg ...`) to take effect.
 
 | Variable | Default | What it does |
 | --- | --- | --- |
+| `APP_VERSION` | `0.0.0-local` | Version shown in the footer and used by the update notice. A build has no git history to read it from, so pass it as above; a leading `v` is fine. Published images carry their own. |
 | `MAP_STYLE_DARK` / `MAP_STYLE_LIGHT` / `MAP_STYLE_COLORFUL` | OpenFreeMap's styles | MapLibre style URLs for your own basemap. Add the style's host to `connect-src` and `img-src` in `frontend/nginx-security-headers.conf` as well, or the browser refuses to load it. |
 | `VITE_API_URL` | same address as the page | Development only: where `pnpm dev` sends API requests when the API is not behind the Vite proxy. Set it in `frontend/.env.development.local`. |
 | `VITE_DEMO_MODE` | `false` | Shows the demo banner and the Demo Controls panel. The demo stack sets it. |

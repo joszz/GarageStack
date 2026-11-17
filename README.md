@@ -210,7 +210,7 @@ See [`docker/all-in-one/README.md`](docker/all-in-one/README.md) for the volume 
 
 ### Option B: Docker Compose
 
-Separate containers for each service. More flexible -- you can use your own PostgreSQL server instead of the bundled one, and containers update independently.
+Separate containers for each service. More flexible -- you can use your own PostgreSQL server instead of the bundled one, and containers update independently. GarageStack itself runs from the published images (`ghcr.io/joszz/garagestack-api`, `garagestack-worker` and `garagestack-frontend`), so nothing is built on your machine; the clone supplies the compose file and the broker's configuration.
 
 #### 1. Clone the repository
 
@@ -257,19 +257,24 @@ docker compose up -d
 
 The frontend is served on port `8080` by default (configurable via `FRONTEND_PORT` in `.env`).
 
+**Image tags:** the compose file runs `latest`, the newest release. Set `GARAGESTACK_TAG` in `.env` to pin a version (`0.19.2`) or to follow `main` with `edge`, as described under the all-in-one quick start. To build GarageStack from the clone instead (your own basemap, your own changes), see [Building from source](documentation/CONFIGURATION.md#building-from-source).
+
 ---
 
 ## Updating
 
 Read the release notes first: anything an upgrade needs from you is listed under **Upgrade Notes** at the top. Database migrations run automatically on startup and only forwards, so to go back to an older version, restore the backup you took before upgrading (see [Backup and restore](#backup-and-restore)). A new PostgreSQL major version is never installed by an update: moving from 18 to the next one means a `pg_dump` from the old version and a restore into a fresh volume on the new one, step by step in [Moving to a new PostgreSQL major version](docker/all-in-one/README.md#moving-to-a-new-postgresql-major-version).
 
-**Docker Compose** builds GarageStack from the cloned source, so update the source and rebuild. `docker compose pull` fetches the gateway, Postgres and Mosquitto images:
+**Docker Compose** runs the published images, so pull the new ones. `git pull` first brings the compose file up to date with them:
 
 ```bash
 git pull
 docker compose pull
-docker compose up -d --build
+docker compose up -d
 ```
+
+> [!IMPORTANT]
+> **Up to v0.19.2 the compose file built GarageStack from the clone; since v0.20.0 it pulls the release images.** Drop `--build` from your update routine. The volumes, the project name and `.env` stay the same, so your data does too. If you build on purpose (your own basemap or code changes), add `docker-compose.build.yml` as described in [Building from source](documentation/CONFIGURATION.md#building-from-source).
 
 **The Compose project name is fixed to `garagestack`.** Compose puts it in front of every volume (`garagestack_postgres_data`), and `docker-compose.yml` sets it, so the folder you run from no longer decides which database you get. An install that started in a folder with another name has its data under that name instead: before you update, run `docker compose ls`, and if the name there is not `garagestack`, add it to `.env`:
 
@@ -287,7 +292,7 @@ docker stop garagestack && docker rm garagestack
 # Re-run your original docker run command
 ```
 
-When a newer release is out, the footer (on a phone, the bottom of the menu) says so and links to its release notes. GarageStack asks GitHub once a day; set `UPDATE_CHECK_ENABLED=false` to stop it. A Compose build only knows its own version when you pass one, so build with `APP_VERSION=$(git describe --tags) docker compose up -d --build` to get the notice.
+When a newer release is out, the footer (on a phone, the bottom of the menu) says so and links to its release notes. GarageStack asks GitHub once a day; set `UPDATE_CHECK_ENABLED=false` to stop it. An image built from source only knows its own version when you pass one (`APP_VERSION`, see [Building from source](documentation/CONFIGURATION.md#building-from-source)).
 
 ### Monitoring
 

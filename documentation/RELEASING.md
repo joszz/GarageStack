@@ -272,7 +272,7 @@ GarageStack uses MinVer for .NET assembly version metadata and for the version s
 - If no `v*` tags exist yet, MinVer starts from `0.0.0-preview.0.<height>`
 - In CI, the workflow computes MinVer once and passes it to all Docker builds as `APP_VERSION`
 - The frontend Dockerfiles forward `APP_VERSION` to Vite as `VITE_APP_VERSION`; `pnpm dev` hides the version
-- `docker-compose.yml` passes `APP_VERSION` through from the shell or `.env` and defaults to `0.0.0-local`. Source builds cannot read git history inside Docker, so build with `APP_VERSION=$(git describe --tags) docker compose up -d --build` to show the real version. A leading `v` is stripped, since MinVer rejects it
+- `docker-compose.build.yml` (the source build on top of `docker-compose.yml`) passes `APP_VERSION` through from the shell or `.env` and defaults to `0.0.0-local`. Source builds cannot read git history inside Docker, so build with `APP_VERSION=$(git describe --tags)` in front of the command to show the real version. A leading `v` is stripped, since MinVer rejects it
 
 **Do not manually set `<Version>` in `*.csproj` or `package.json` for releases.** MinVer reads it from git.
 
@@ -309,17 +309,9 @@ Each image is a multi-architecture index: only the index carries tags, and the p
 
 ---
 
-## Using Published Images with Docker Compose
+## Published Images with Docker Compose
 
-The default `docker-compose.yml` builds from local source. To use published images, replace the `build:` block with an `image:` reference:
-
-```yaml
-api:
-  image: ghcr.io/joszz/garagestack-api:1.2.3
-  # build: ...  <-- remove
-```
-
-Repeat for `frontend` and `worker`. Leave `mosquitto` and `postgres` services unchanged, and keep the `name: garagestack` line at the top: it keeps the volumes the same whichever folder the file runs from.
+`docker-compose.yml` runs the published `garagestack-api`, `garagestack-worker` and `garagestack-frontend` images at `${GARAGESTACK_TAG:-latest}`, so a Compose install picks up a release with `docker compose pull` and nothing in the file changes when a release is cut. `docker-compose.build.yml` builds the same three services from the clone instead (see [Building from source](CONFIGURATION.md#building-from-source)); a preview is just `GARAGESTACK_TAG=pr-<number>`.
 
 A version tag (`1.2.3`) gives exactly that release. `latest` is the newest release, rebuilt weekly with the base images' security fixes but never with unreleased code. `edge` follows `main`, so it carries unreleased changes, migrations included, as soon as they are merged. Going back from `edge` to `latest` is not supported once a newer migration has run: stay on `edge` until the next release catches up.
 

@@ -27,7 +27,7 @@ Contents:
 
    > A build with a possible fix is ready to try. If you're not on the latest release yet, update to it first. Then switch your GarageStack image to `pr-123` as described in [this comment](link to the preview comment), use the car as usual for a day, and let me know what the dashboard shows. Afterwards switch back to the latest release. Step by step: [Testing a preview build](https://github.com/joszz/GarageStack/blob/main/documentation/PREVIEW_BUILDS.md#testing-a-preview-build).
 
-5. **Iterate.** Push more commits to the same branch. The `pr-123` tag follows the pull request, so the tester only has to pull again (Unraid: *Force update*; Compose: run the same command again). The version in the footer (on a phone, at the bottom of the menu) ends in `.pr.123`, and the comment shows which commit it is.
+5. **Iterate.** Push more commits to the same branch. The `pr-123` tag follows the pull request, so the tester only has to pull again (Unraid: *Force update*; Compose: `docker compose pull` and `docker compose up -d` again). The version in the footer (on a phone, at the bottom of the menu) ends in `.pr.123`, and the comment shows which commit it is.
 6. **Finish.**
    - **It works:** merge. The images are deleted, the fix is on `edge` right away and reaches everyone on `latest` with the next release. Ask the tester to switch to `edge` until that release is out (or cut a patch release), then back to `latest`. Straight back to `latest` before the release is only safe when the preview had no database warning.
    - **It does not work:** close the pull request (or just remove the label while you rethink). The images are deleted and nothing else changed.
@@ -44,7 +44,7 @@ A preview build is GarageStack with one change in it that has not been released 
 
 **Before you start:**
 
-- **Run the latest release first.** On an older version, update to the latest release as usual (its release notes say whether anything needs doing), check that it runs, and only then switch to the preview. The preview is built on top of that release, the database warning in the preview comment compares with it, and going back means going back to it. Skipping it means the preview also applies the database changes of every release in between, and going back to your old version is then not supported. A clone on `main` is already past the latest release.
+- **Run the latest release first.** On an older version, update to the latest release as usual (its release notes say whether anything needs doing), check that it runs, and only then switch to the preview. The preview is built on top of that release, the database warning in the preview comment compares with it, and going back means going back to it. Skipping it means the preview also applies the database changes of every release in between, and going back to your old version is then not supported.
 - **Switch where you always run GarageStack:** the same folder, Portainer stack or Unraid container, changing only the image. Docker Compose names the database volume after the folder or stack (`mg_postgres_data` for a folder called `mg`), so the same stack started from another folder, a fresh clone for example, runs on a new, empty database. Your old data is then still there, just not in use (see [My data is gone after switching](#my-data-is-gone-after-switching)).
 - **Never run** `docker compose down -v`, `docker volume prune` or `docker system prune --volumes` while testing. Those do delete data.
 - **Back up the database** when the preview comment warns that the build changes the database (see [Backup and restore](../README.md#backup-and-restore)). Without the warning a backup is not required, but it takes one command and never hurts.
@@ -65,31 +65,24 @@ ghcr.io/joszz/garagestack:pr-123
 
 When the maintainer says a new version is ready, pull the same tag again (Unraid: *Force update*).
 
-### Docker Compose with the published images
+### Docker Compose
 
-Your own compose file runs `ghcr.io/joszz/garagestack-api`, `garagestack-worker` and `garagestack-frontend`. Change the tag of those three images to `pr-123`, leave everything else (database, broker, gateway, volumes) as it is, and in the folder you always run it from:
+**With this repository's `docker-compose.yml`:** add the preview tag to your `.env` file:
+
+```sh
+GARAGESTACK_TAG=pr-123
+```
+
+**With your own compose file** that runs `ghcr.io/joszz/garagestack-api`, `garagestack-worker` and `garagestack-frontend`: change the tag of those three images to `pr-123`.
+
+Leave everything else (database, broker, gateway, volumes) as it is, and in the folder you always run it from:
 
 ```sh
 docker compose pull
 docker compose up -d
 ```
 
-For a newer version of the same preview, run both commands again.
-
-### Docker Compose from a clone of this repository
-
-The repository's `docker-compose.yml` builds GarageStack from source. `docker-compose.preview.yml` swaps the three GarageStack services for the preview images and leaves the database, broker and gateway as they are. In the clone's folder:
-
-```sh
-git pull
-PREVIEW_TAG=pr-123 docker compose -f docker-compose.yml -f docker-compose.preview.yml up -d
-```
-
-With the bundled database, add `--profile bundled-postgres` after `docker compose`, as you do for a normal start.
-
-For a newer version of the same preview, run that command again: it always pulls.
-
-On a system where you cannot put a variable in front of the command (PowerShell, the OpenMediaVault compose plugin, Portainer), add `PREVIEW_TAG=pr-123` to your `.env` file instead and add `docker-compose.preview.yml` as an extra compose file. Remove it from `.env` again when you go back.
+For a newer version of the same preview, run both commands again. If you build from source with `docker-compose.build.yml`, take it out of `COMPOSE_FILE` while testing: a build ignores the tag.
 
 ### Checking that it runs
 
@@ -97,8 +90,7 @@ The version in the footer ends in `.pr.123` (for example `v0.13.2-preview.0.4.pr
 
 ### Going back
 
-- **All-in-one, Unraid or Compose with the published images:** change the tag back to `latest` or to the release you had, for example `0.14.0`. `latest` only gets new code when a release is published, so both give you a released version without the preview's changes.
-- **Compose from a clone:** `docker compose up -d --build` in the same folder, which builds your clone again without the preview file.
+Change the tag back to `latest` or to the release you had, for example `0.14.0` (with this repository's compose file: remove the `GARAGESTACK_TAG` line from `.env`), then pull and start again as above. `latest` only gets new code when a release is published, so both give you a released version without the preview's changes.
 
 Your data stays. Readings collected while the preview ran stay too.
 
@@ -151,7 +143,7 @@ A tester runs the preview against their real database. If the build carries an E
 | [`preview-build.yml`](../.github/workflows/preview-build.yml) | Runs on `labeled`, `synchronize` and `reopened` for pull requests to `main`. When the pull request has the `test-build` label and comes from this repository, it calls `docker-publish.yml` with the pull request number, then posts or updates the preview comment (found by the hidden marker `<!-- garagestack-preview-build -->`). |
 | [`docker-publish.yml`](../.github/workflows/docker-publish.yml) | The normal image pipeline, callable through `workflow_call` with `pr_number`. For a preview it pushes `pr-<number>` and `pr-<number>-<commit>`, and stamps the version with `.pr.<number>`. It skips the SBOM, provenance and Cosign signature, so each image is a single registry version that the cleanup can find by tag. |
 | [`preview-cleanup.yml`](../.github/workflows/preview-cleanup.yml) | Runs when a labelled pull request closes or loses the label, or by hand (*Run workflow* with a pull request number). Deletes every version of the four packages tagged `pr-<number>` or `pr-<number>-<commit>`, and rewrites the preview comment to say so. |
-| [`docker-compose.preview.yml`](../docker-compose.preview.yml) | Compose override for testers who run from a clone: drops the `build:` of `api`, `worker` and `frontend` and pulls `ghcr.io/joszz/garagestack-*:${PREVIEW_TAG}` instead. |
+| [`docker-compose.yml`](../docker-compose.yml) | Runs `ghcr.io/joszz/garagestack-*:${GARAGESTACK_TAG}`, `latest` by default, so a tester who runs from a clone only sets `GARAGESTACK_TAG=pr-<number>` in `.env`. |
 
 Details worth knowing:
 

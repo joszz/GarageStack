@@ -1,0 +1,41 @@
+# Builds the worker, api and frontend from this clone instead of running the published images.
+# Layer it on top of docker-compose.yml:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build
+#
+# or set COMPOSE_FILE in .env once (see .env.example) and keep using plain docker compose commands.
+# Add --profile bundled-postgres after "docker compose" when you use the bundled database, as you
+# do for a normal start. The database, broker and gateway stay as they are.
+#
+# Needed for your own basemap (MAP_STYLE_*) or your own changes to the code. See
+# documentation/CONFIGURATION.md.
+
+services:
+  worker:
+    image: garagestack-worker:local
+    build:
+      context: .
+      dockerfile: src/GarageStack.Worker/Dockerfile
+      args:
+        # A build has no git history to read its version from, so it shows this one.
+        APP_VERSION: "${APP_VERSION:-0.0.0-local}"
+
+  api:
+    image: garagestack-api:local
+    build:
+      context: .
+      dockerfile: src/GarageStack.Api/Dockerfile
+      args:
+        APP_VERSION: "${APP_VERSION:-0.0.0-local}"
+
+  frontend:
+    image: garagestack-frontend:local
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        APP_VERSION: "${APP_VERSION:-0.0.0-local}"
+        # Your own basemap styles, baked in at build time. See documentation/CONFIGURATION.md.
+        MAP_STYLE_DARK: "${MAP_STYLE_DARK:-}"
+        MAP_STYLE_LIGHT: "${MAP_STYLE_LIGHT:-}"
+        MAP_STYLE_COLORFUL: "${MAP_STYLE_COLORFUL:-}"
