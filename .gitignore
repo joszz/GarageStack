@@ -30,3 +30,6 @@ appsettings.Development.json
 keys/
 
 .llm-tmp
+
+# A user's own compose additions (resource limits, extra settings), kept out of git pull
+docker-compose.override.yml
