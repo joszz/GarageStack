@@ -62,13 +62,14 @@ x-logging: &logging
     max-size: "10m"
     max-file: "3"
 
+# No memory or CPU limits on purpose: a number that suits one host kills or starves the services on
+# another, and some kernels refuse a CPU limit outright. To set your own, see "Limiting resources"
+# in documentation/CONFIGURATION.md.
 services:
   mosquitto:
     image: eclipse-mosquitto:2
     container_name: mosquitto
     restart: unless-stopped
-    mem_limit: 128m
-    cpus: 0.5
     logging: *logging
     environment:
       MQTT_BROKER_USERNAME: "${MQTT_BROKER_USERNAME:-garagestack}"
@@ -97,8 +98,6 @@ services:
     image: saicismartapi/saic-python-mqtt-gateway:0.14.0-rc4
     container_name: saic-mqtt
     restart: unless-stopped
-    mem_limit: 256m
-    cpus: 0.5
     logging: *logging
     # The gateway has no endpoint to probe; it waits for a broker that takes its login instead
     # of logging connection errors through the broker's start.
@@ -126,8 +125,6 @@ services:
     image: postgres:18-alpine
     container_name: garagestack-postgres
     restart: unless-stopped
-    mem_limit: 512m
-    cpus: 1.0
     logging: *logging
     environment:
       POSTGRES_DB: "${POSTGRES_DB:-garagestack}"
@@ -145,8 +142,6 @@ services:
     image: "ghcr.io/joszz/garagestack-worker:${GARAGESTACK_TAG:-latest}"
     container_name: garagestack-worker
     restart: unless-stopped
-    mem_limit: 256m
-    cpus: 0.5
     logging: *logging
     labels:
       net.unraid.docker.icon: "https://raw.githubusercontent.com/joszz/garagestack/main/frontend/public/pwa-192x192.png"
@@ -176,8 +171,6 @@ services:
     image: "ghcr.io/joszz/garagestack-api:${GARAGESTACK_TAG:-latest}"
     container_name: garagestack-api
     restart: unless-stopped
-    mem_limit: 512m
-    cpus: 1.0
     logging: *logging
     labels:
       net.unraid.docker.icon: "https://raw.githubusercontent.com/joszz/garagestack/main/frontend/public/pwa-192x192.png"
@@ -245,8 +238,6 @@ services:
     image: "ghcr.io/joszz/garagestack-frontend:${GARAGESTACK_TAG:-latest}"
     container_name: garagestack-frontend
     restart: unless-stopped
-    mem_limit: 128m
-    cpus: 0.5
     logging: *logging
     labels:
       net.unraid.docker.icon: "https://raw.githubusercontent.com/joszz/garagestack/main/frontend/public/pwa-192x192.png"

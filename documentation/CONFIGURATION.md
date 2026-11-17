@@ -200,9 +200,39 @@ services:
 
 In the all-in-one container, including Unraid, add them as extra variables on the container.
 
+Compose reads `docker-compose.override.yml` by itself, and git ignores it, so `git pull` never touches it. With `COMPOSE_FILE` set in `.env` (see [Building from source](#building-from-source)), Compose reads only the files listed there: add the override to that list.
+
 | Key | Default | What it does |
 | --- | --- | --- |
 | `Serilog__MinimumLevel__Override__<category>` | see `appsettings.json` | The log level for one source, for example `Serilog__MinimumLevel__Override__GarageStack.Worker.Mqtt=Debug` to see every MQTT message without `DEBUG_LOGS` opening every tap. |
 | `Mqtt__ClientId` | `garagestack-worker` | The Worker's MQTT client id. The broker keeps its session and queued messages under it; change it only when two Workers share one broker. |
 | `Cors__Origins__1`, `Cors__Origins__2`, ... | none | More addresses allowed next to `CORS_ORIGIN`. |
 | `ForwardedHeaders__TrustedProxies__0`, ... | the private address ranges | The proxy addresses whose `X-Forwarded-For` and `X-Forwarded-Proto` headers are believed, each an address (`192.168.1.10`) or a range (`172.18.0.0/16`). Set it to stop anything else in those ranges from claiming another address, and list every proxy in front of the API: the frontend nginx container and, if you run one, your own reverse proxy in front of it. Containers get a new address when they are recreated, so give a Docker network as a range (`docker network inspect <network>` shows its subnet). A proxy left out is taken for the visitor: every visitor then shares its login rate limit, and requests through it count as plain HTTP, so a sign-in through an identity provider sends an `http://` redirect URI that does not match the registered one. The API logs a warning once when that happens. Left unset, sign-ins are also capped at 30 per 5 minutes per device in front of nginx, because any LAN device could otherwise claim a new address on every attempt; setting it turns that cap off. |
+
+## Limiting resources
+
+`docker-compose.yml` sets no memory or CPU limits, because no single number suits every host. To cap the containers, put limits in `docker-compose.override.yml` (see [Settings without a variable](#settings-without-a-variable)), then run `docker compose up -d`. These are starting points for a single car, not measured minimums:
+
+```yaml
+services:
+  postgres:
+    mem_limit: 1g
+  api:
+    mem_limit: 512m
+  worker:
+    mem_limit: 512m
+  frontend:
+    mem_limit: 128m
+  mosquitto:
+    mem_limit: 128m
+  saic-mqtt-gateway:
+    mem_limit: 256m
+```
+
+Before you settle on numbers:
+
+- **A memory limit kills, it does not slow down.** A container that reaches its limit is stopped and restarted. Postgres then recovers from a crash, and the Worker can end up restarting over and over during a heavy job such as telemetry compaction or a data export. Run `docker stats` for a few days, through a long trip and a statistics page over a year, and leave plenty of room above the highest figure.
+- **A CPU limit (`cpus: 0.5`) caps, it reserves nothing.** On a Raspberry Pi or a small NAS, half a slow core makes the API's start (migrations) and the heavier pages much slower, and a slow start can fail its health check. Some kernels, older Synology ones and some rootless Docker or Podman setups among them, cannot apply a CPU limit at all, and Docker then refuses to create the container.
+- **Some hosts ignore memory limits.** Docker warns "Your kernel does not support memory limit capabilities" when the kernel's memory controller is off (on Raspberry Pi OS, adding `cgroup_enable=memory` to the kernel command line turns it on).
+
+The all-in-one container runs every service in one container: give it one limit on the container instead (Unraid: *Extra Parameters*, for example `--memory=2g`).
