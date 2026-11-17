@@ -273,7 +273,8 @@ docker compose pull
 docker compose up -d
 ```
 
-Up to v0.19.2 the compose file built GarageStack from the clone. It now pulls the release images, with the same volumes and settings. If you build on purpose (your own basemap or code changes), add `docker-compose.build.yml` as described in [Building from source](documentation/CONFIGURATION.md#building-from-source).
+> [!IMPORTANT]
+> **Up to v0.19.2 the compose file built GarageStack from the clone; since v0.20.0 it pulls the release images.** Drop `--build` from your update routine. The volumes, the project name and `.env` stay the same, so your data does too. If you build on purpose (your own basemap or code changes), add `docker-compose.build.yml` as described in [Building from source](documentation/CONFIGURATION.md#building-from-source).
 
 **The Compose project name is fixed to `garagestack`.** Compose puts it in front of every volume (`garagestack_postgres_data`), and `docker-compose.yml` sets it, so the folder you run from no longer decides which database you get. An install that started in a folder with another name has its data under that name instead: before you update, run `docker compose ls`, and if the name there is not `garagestack`, add it to `.env`:
 
