@@ -1,3 +1,4 @@
+using GarageStack.Api.Services;
 using GarageStack.Core.Helpers;
 
 namespace GarageStack.Api.Endpoints;
@@ -5,34 +6,24 @@ namespace GarageStack.Api.Endpoints;
 /// <summary>
 /// The log entries of the API and the Worker, a page at a time, for the log viewer: the newest
 /// page, the one before an earlier page's <c>older</c> cursor as the list scrolls, and what was
-/// written since its <c>newer</c> cursor in live mode. The API reads its own files, and the
-/// Worker's from LogFiles:WorkerDirectory (WORKER_LOG_DIRECTORY): the Compose file mounts the
-/// Worker's log volume there read-only, and the all-in-one image points it at /data/worker.
+/// written since its <c>newer</c> cursor in live mode, from the <see cref="LogDirectories"/>.
 /// </summary>
 public static class LogEndpoints
 {
     internal const string Path = "/api/logs";
 
-    private const string ApiSource = "api";
-    private const string WorkerSource = "worker";
     private const int DefaultLimit = 200;
     private const int MaxLimit = 1000;
 
     // How much of each service's files a request reads at most: thousands of entries. A page cut
     // short by it carries on from where it stopped.
-    private const long MaxBytesPerSource = 8L * 1024 * 1024;
+    internal const long MaxBytesPerSource = 8L * 1024 * 1024;
 
     public static IEndpointRouteBuilder MapLogEndpoints(this IEndpointRouteBuilder app)
     {
         // Captured once: the log directories do not change while the API runs.
-        var directories = new Dictionary<string, string?>(StringComparer.Ordinal)
-        {
-            // Where Serilog writes them: "logs" under the working directory (see AddGarageStackSerilog).
-            [ApiSource] = System.IO.Path.GetFullPath("logs"),
-            [WorkerSource] = app.ServiceProvider.GetRequiredService<IConfiguration>()["LogFiles:WorkerDirectory"] is { Length: > 0 } worker
-                ? worker
-                : null,
-        };
+        var logs = app.ServiceProvider.GetRequiredService<LogDirectories>();
+        var directories = logs.BySource;
 
         app.MapGet(Path, (string? source, LogLevelName? level, string? search, int? limit, string? before, string? after) =>
         {

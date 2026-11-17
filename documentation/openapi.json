@@ -31,7 +31,85 @@
             "description": "Not signed in, or the API token is unknown or revoked."
           },
           "403": {
-            "description": "`token.sessionOnly`: The export and the logs need a signed-in session; an API token cannot read them.",
+            "description": "`token.sessionOnly`: The export, the logs and the diagnostics need a signed-in session; an API token cannot read them.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "title": {
+                      "type": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "status": {
+                      "type": [
+                        "null",
+                        "integer"
+                      ],
+                      "format": "int32"
+                    },
+                    "detail": {
+                      "type": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "instance": {
+                      "type": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "code": {
+                      "type": "string",
+                      "description": "Why, as a code that stays the same between releases, such as trip.changed. detail says it in English."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests from this address; wait a minute and try again."
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ]
+      }
+    },
+    "/api/diagnostics": {
+      "get": {
+        "tags": [
+          "Diagnostics"
+        ],
+        "summary": "Download anonymized diagnostics for a bug report: version, health, car details, a week of readings without positions, and a week of warnings from the logs",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/zip": {
+                "schema": {
+                  "$ref": "#/components/schemas/Stream"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the API token is unknown or revoked."
+          },
+          "403": {
+            "description": "`token.sessionOnly`: The export, the logs and the diagnostics need a signed-in session; an API token cannot read them.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -164,7 +242,7 @@
             "description": "Not signed in, or the API token is unknown or revoked."
           },
           "403": {
-            "description": "`token.sessionOnly`: The export and the logs need a signed-in session; an API token cannot read them.",
+            "description": "`token.sessionOnly`: The export, the logs and the diagnostics need a signed-in session; an API token cannot read them.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -10024,6 +10102,10 @@
       "description": "Everything GarageStack keeps, as one zip."
     },
     {
+      "name": "Diagnostics",
+      "description": "Errors the web app ran into in the browser, for the API's log, and an anonymized zip to attach to a bug report."
+    },
+    {
       "name": "Logs",
       "description": "The API's and the Worker's log entries, as the log viewer pages through them."
     },
@@ -10034,10 +10116,6 @@
     {
       "name": "Updates",
       "description": "Whether a newer GarageStack release is out."
-    },
-    {
-      "name": "Diagnostics",
-      "description": "Errors the web app ran into in the browser, for the API's log."
     },
     {
       "name": "Authentication",

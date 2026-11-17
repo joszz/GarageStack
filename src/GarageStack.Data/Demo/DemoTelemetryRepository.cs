@@ -96,14 +96,16 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
 
     // The generated history, oldest first, then the live snapshot the demo controls change.
     public async IAsyncEnumerable<TelemetrySnapshot> StreamAllAsync(
-        int vehicleId, [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken ct = default)
+        int vehicleId, DateTime? since = null, [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken ct = default)
     {
-        foreach (var snapshot in DemoHistory.Snapshots.OrderBy(s => s.RecordedAt))
+        foreach (var snapshot in DemoHistory.Snapshots.Where(s => since is null || s.RecordedAt >= since).OrderBy(s => s.RecordedAt))
         {
             ct.ThrowIfCancellationRequested();
             yield return snapshot;
         }
-        yield return (await GetMergedLatestAsync(vehicleId, ct))!;
+        var latest = (await GetMergedLatestAsync(vehicleId, ct))!;
+        if (since is null || latest.RecordedAt >= since)
+            yield return latest;
     }
 
     public Task<PositionFix?> GetLatestPositionAsync(int vehicleId, CancellationToken ct = default)
