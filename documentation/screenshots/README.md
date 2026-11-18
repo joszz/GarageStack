@@ -26,7 +26,7 @@ The main pages of GarageStack, on a desktop and on a phone. They were taken in [
 
 ### Trip log
 
-![The trip log: totals per purpose and driving figures for the month, a compact list of trips with their purpose, times, addresses and distance, and beside it the selected trip's details with its route on a map](desktop-trip-log.webp)
+![The trip log: the month under the title with a filters button beside it, totals per purpose, a compact list of trips with their purpose, times, addresses and distance, and beside it the selected trip's details with its route on a map](desktop-trip-log.webp)
 
 ### Editing a trip's route
 
