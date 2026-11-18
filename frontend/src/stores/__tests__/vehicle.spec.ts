@@ -3,6 +3,7 @@ import { setActivePinia, createPinia } from 'pinia'
 import { useVehicleStore } from '@/stores/vehicle'
 import { useUiSettingsStore } from '@/stores/settingsUi'
 import { vehicleApi } from '@/services/vehicleApi'
+import { readLastVin } from '@/utils/lastVin'
 import type {
   Vehicle,
   TelemetrySnapshot,
@@ -184,6 +185,15 @@ describe('useVehicleStore - fetchVehicles', () => {
     const store = useVehicleStore()
     await store.fetchVehicles()
     expect(store.loading).toBe(false)
+  })
+
+  it("remembers the car's VIN, for the next page load to ask for its status sooner", async () => {
+    localStorage.clear()
+    vi.mocked(vehicleApi.list).mockResolvedValue([vehicle('bev')])
+
+    await useVehicleStore().fetchVehicles()
+
+    expect(readLastVin()).toBe('FAKEVN00000000001')
   })
 })
 

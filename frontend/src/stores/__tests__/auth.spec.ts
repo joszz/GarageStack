@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { authApi } from '@/services/authApi'
+import { readLastVin, rememberVin } from '@/utils/lastVin'
 import type { MeResponse, LoginResponse, AuthConfigResponse } from '@/services/authApi'
 import { useAuthStore } from '@/stores/auth'
 
@@ -127,6 +128,15 @@ describe('useAuthStore', () => {
 
     expect(localStorage.getItem(AUTH_USERNAME_KEY)).toBeNull()
     expect(localStorage.getItem(AUTH_EXPIRES_KEY)).toBeNull()
+  })
+
+  it("logout() forgets the car's VIN, so the next account does not start by asking for it", async () => {
+    rememberVin('FAKEVN00000000001')
+    vi.mocked(authApi.logout).mockResolvedValue(undefined)
+
+    await useAuthStore().logout()
+
+    expect(readLastVin()).toBeNull()
   })
 
   it('logout() calls the API', async () => {

@@ -10,11 +10,12 @@ import { ApiError } from '@/services/apiCore'
 import { useVehicleStore } from '@/stores/vehicle'
 import { useDashboardSettingsStore } from '@/stores/settingsDashboard'
 import { LONG_PRESS_MS } from '@/composables/useLongPress'
+import { rememberVin } from '@/utils/lastVin'
 
 vi.mock('@/services/vehicleApi', () => ({
   vehicleApi: {
     list: vi.fn<() => Promise<Vehicle[]>>(),
-    status: vi.fn<() => Promise<TelemetrySnapshot | null>>(),
+    status: vi.fn<(vin: string) => Promise<TelemetrySnapshot | null>>(),
     config: vi.fn<() => Promise<Record<string, string>>>(),
     latestTrip: vi.fn<() => Promise<Trip | undefined>>(),
   },
@@ -110,6 +111,32 @@ describe('DashboardView', () => {
 
     for (const call of [vehicleApi.status, vehicleApi.config, vehicleApi.latestTrip, rdwApi.get])
       expect(call).toHaveBeenCalledWith('FAKEVN00000000001')
+  })
+
+  it('asks for the car this browser saw last alongside the vehicle list, not after it', async () => {
+    rememberVin('FAKEVN00000000001')
+    let answerList: (vehicles: Vehicle[]) => void = () => {}
+    vi.mocked(vehicleApi.list).mockReturnValue(new Promise((resolve) => (answerList = resolve)))
+
+    const mounted = mountView()
+    await Promise.resolve()
+    expect(vehicleApi.status).toHaveBeenCalledExactlyOnceWith('FAKEVN00000000001')
+
+    answerList([car('bev')])
+    await mounted
+    expect(vehicleApi.latestTrip).toHaveBeenCalledOnce()
+  })
+
+  it('asks for the listed car after all when the list names another one', async () => {
+    rememberVin('FAKEVN00000000002')
+    vi.mocked(vehicleApi.status).mockImplementation(async (vin) =>
+      vin === 'FAKEVN00000000001' ? parked : { ...parked, evSocPercent: 12 },
+    )
+
+    await mountView()
+
+    expect(vehicleApi.status).toHaveBeenLastCalledWith('FAKEVN00000000001')
+    expect(useVehicleStore(pinia).currentStatus?.evSocPercent).toBe(71)
   })
 
   it("shows the cards the car's drivetrain has, and leaves out the ones it has no use for", async () => {

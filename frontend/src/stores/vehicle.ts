@@ -13,6 +13,7 @@ import {
 import { browserTimeZone, localDateKey } from '@/utils/dates'
 import { useUiSettingsStore } from '@/stores/settingsUi'
 import { useLoadingTracker } from '@/composables/useLoadingTracker'
+import { rememberVin } from '@/utils/lastVin'
 
 // Defined with the API contract it comes from; re-exported here because every view reads the
 // vehicle's type through this store.
@@ -75,6 +76,7 @@ export const useVehicleStore = defineStore('vehicle', () => {
     if (!force && vehicles.value.length > 0) return
     await withLoading(vehiclesError, async () => {
       vehicles.value = await vehicleApi.list()
+      if (activeVin.value) rememberVin(activeVin.value)
     })
   }
 
