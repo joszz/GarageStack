@@ -54,14 +54,15 @@ function buildBadgeSvg(size) {
 }
 
 // Scales the icon path to fill ~72% of the canvas, then centres it.
-// vbW/vbH are the coordinate space dimensions of the FA path.
-function buildShortcutSvg(size, iconPath, vbW, vbH) {
+// vbW/vbH are the dimensions of the box the FA path is drawn in, and vbX/vbY its top left corner,
+// for the few icons whose path reaches outside their nominal viewBox.
+function buildShortcutSvg(size, iconPath, vbW, vbH, vbX = 0, vbY = 0) {
   const available = size * 0.72
   const scale = Math.min(available / vbW, available / vbH)
   const scaledW = vbW * scale
   const scaledH = vbH * scale
-  const tx = ((size - scaledW) / 2).toFixed(2)
-  const ty = ((size - scaledH) / 2).toFixed(2)
+  const tx = ((size - scaledW) / 2 - vbX * scale).toFixed(2)
+  const ty = ((size - scaledH) / 2 - vbY * scale).toFixed(2)
 
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}">
   <rect width="${size}" height="${size}" fill="${BG}"/>
@@ -94,6 +95,10 @@ const maintenanceIconPath =
 const logsIconPath =
   'M0 64C0 28.7 28.7 0 64 0L213.5 0c17 0 33.3 6.7 45.3 18.7L365.3 125.3c12 12 18.7 28.3 18.7 45.3L384 448c0 35.3-28.7 64-64 64L64 512c-35.3 0-64-28.7-64-64L0 64zm208-5.5l0 93.5c0 13.3 10.7 24 24 24L325.5 176 208 58.5zM120 256c-13.3 0-24 10.7-24 24s10.7 24 24 24l144 0c13.3 0 24-10.7 24-24s-10.7-24-24-24l-144 0zm0 96c-13.3 0-24 10.7-24 24s10.7 24 24 24l144 0c13.3 0 24-10.7 24-24s-10.7-24-24-24l-144 0z'
 
+// FA plug-circle-bolt: viewBox 0 0 640 512, but the path spans x 64-640 and y -32-544
+const chargeHistoryIconPath =
+  'M192-32c17.7 0 32 14.3 32 32l0 96 128 0 0-96c0-17.7 14.3-32 32-32s32 14.3 32 32l0 96 64 0c17.7 0 32 14.3 32 32s-14.3 32-32 32l0 48.7c-98.6 8.1-176 90.7-176 191.3 0 27.3 5.7 53.3 16 76.9l0 3.1c0 17.7-14.3 32-32 32s-32-14.3-32-32l0-66.7C165.2 398.1 96 319.1 96 224l0-64c-17.7 0-32-14.3-32-32S78.3 96 96 96l64 0 0-96c0-17.7 14.3-32 32-32zM352 400a144 144 0 1 1 288 0 144 144 0 1 1 -288 0zm177.4-77c-5.8-4.2-13.8-4-19.4 .5l-80 64c-5.3 4.2-7.4 11.4-5.1 17.8S433.2 416 440 416l32.9 0-15.9 42.4c-2.5 6.7-.2 14.3 5.6 18.6s13.8 4 19.4-.5l80-64c5.3-4.2 7.4-11.4 5.1-17.8S558.8 384 552 384l-32.9 0 15.9-42.4c2.5-6.7 .2-14.3-5.6-18.6z'
+
 function write(filePath, svg, size, background = BG) {
   const resvg = new Resvg(svg, {
     fitTo: { mode: 'width', value: size },
@@ -116,6 +121,11 @@ write(join(pub, 'apple-touch-icon-180x180.png'), buildIconSvg(180), 180)
 write(join(pub, 'shortcut-map-96x96.png'), buildShortcutSvg(96, mapIconPath, 384, 512), 96)
 write(join(pub, 'shortcut-stats-96x96.png'), buildShortcutSvg(96, statsIconPath, 448, 512), 96)
 write(join(pub, 'shortcut-trip-log-96x96.png'), buildShortcutSvg(96, tripLogIconPath, 448, 512), 96)
+write(
+  join(pub, 'shortcut-charge-history-96x96.png'),
+  buildShortcutSvg(96, chargeHistoryIconPath, 576, 576, 64, -32),
+  96,
+)
 write(join(pub, 'shortcut-climate-96x96.png'), buildShortcutSvg(96, climateIconPath, 448, 512), 96)
 write(
   join(pub, 'shortcut-maintenance-96x96.png'),
