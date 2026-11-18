@@ -1,6 +1,7 @@
 import { computed, onScopeDispose, ref } from 'vue'
 import { defineStore } from 'pinia'
 import { authApi, type AuthConfigResponse } from '@/services/authApi'
+import { forgetLastVin } from '@/utils/lastVin'
 
 const AUTH_USERNAME_KEY = 'garagestack-auth-username'
 const AUTH_EXPIRES_KEY = 'garagestack-auth-expires'
@@ -48,6 +49,7 @@ export const useAuthStore = defineStore('auth', () => {
     expiresAtUtc.value = ''
     localStorage.removeItem(AUTH_USERNAME_KEY)
     localStorage.removeItem(AUTH_EXPIRES_KEY)
+    forgetLastVin()
   }
 
   async function verifySession(): Promise<void> {

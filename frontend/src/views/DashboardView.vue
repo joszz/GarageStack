@@ -22,6 +22,7 @@ import { useUnits } from '@/composables/useUnits'
 import { useEditMode } from '@/composables/useEditMode'
 import { mayBurnFuel } from '@/utils/vehicleType'
 import { energyUnit } from '@/utils/energy'
+import { readLastVin } from '@/utils/lastVin'
 import ViewHeader from '@/components/ViewHeader.vue'
 
 // Only edit mode drags cards around, and the drag-and-drop library is the size of every card on
@@ -121,19 +122,28 @@ function resetLayout() {
   settings.resetLayout(vehicleType.value, hasData)
 }
 
-// Everything the dashboard shows: vehicle list (cached after the first call), live status,
-// capability config, the newest trip behind the active-trip and top-speed cards, and the RDW
-// lookup (which also says whether the deployment does RDW lookups at all).
+// What the dashboard shows of one car: live status, capability config, the newest trip behind the
+// active-trip and top-speed cards, and the RDW lookup (which also says whether the deployment does
+// RDW lookups at all).
+function fetchCarData(carVin: string) {
+  return Promise.all([
+    store.fetchStatus(carVin),
+    store.fetchConfig(carVin),
+    store.fetchLatestTrip(carVin),
+    rdw.fetchStatus(carVin),
+  ])
+}
+
+// The vehicle list (cached after the first call) and the car's data. On a fresh page load the
+// list is not known yet, so the car this browser saw last is asked for alongside it rather than
+// after it: the map's first tiles wait on the car's position. When the list names another car
+// after all, the guess is let finish first, so none of its answers can land after the right ones.
 async function refresh() {
+  const guess = store.vehicles.length === 0 ? readLastVin() : null
+  const early = guess ? fetchCarData(guess) : null
   await store.fetchVehicles()
-  if (vin.value) {
-    await Promise.all([
-      store.fetchStatus(vin.value),
-      store.fetchConfig(vin.value),
-      store.fetchLatestTrip(vin.value),
-      rdw.fetchStatus(vin.value),
-    ])
-  }
+  if (early) await early
+  if (vin.value && vin.value !== guess) await fetchCarData(vin.value)
 }
 
 // Only what can have changed while the tab was hidden: the live status and, since a trip may
@@ -203,9 +213,9 @@ onUnmounted(() => {
   <div class="view-container">
     <ViewHeader :title="t('dashboard.title')">
       <template #actions>
-        <span v-if="store.loading && status" class="text-muted">
+        <span v-if="store.loading && status" class="refresh-indicator text-muted" role="status">
           <font-awesome-icon icon="spinner" spin />
-          {{ t('common.refreshing') }}
+          <span class="refresh-indicator__label">{{ t('common.refreshing') }}</span>
         </span>
         <EditLayoutButton v-model="editMode" />
       </template>

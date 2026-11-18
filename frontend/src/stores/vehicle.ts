@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, shallowRef, computed, nextTick } from 'vue'
+import { ref, shallowRef, computed, nextTick, type ShallowRef } from 'vue'
 import {
   vehicleApi,
   type Vehicle,
@@ -13,19 +13,29 @@ import {
 import { browserTimeZone, localDateKey } from '@/utils/dates'
 import { useUiSettingsStore } from '@/stores/settingsUi'
 import { useLoadingTracker } from '@/composables/useLoadingTracker'
+import { rememberVin } from '@/utils/lastVin'
 
 // Defined with the API contract it comes from; re-exported here because every view reads the
 // vehicle's type through this store.
 export type { VehicleType }
 
+/**
+ * Stores an answer unless it equals the one already held. A refetch that finds nothing new (back
+ * on the tab after a moment, a push about a reading already shown) then keeps the old object, so
+ * nothing that reads it computes or renders again: on the dashboard that is every card.
+ */
+function keepIfUnchanged<T>(target: ShallowRef<T>, answer: T): void {
+  if (JSON.stringify(target.value) !== JSON.stringify(answer)) target.value = answer
+}
+
 export const useVehicleStore = defineStore('vehicle', () => {
   const uiSettings = useUiSettingsStore()
 
   const vehicles = ref<Vehicle[]>([])
-  const currentStatus = ref<TelemetrySnapshot | null>(null)
   const vehicleConfig = ref<Record<string, string>>({})
   // shallowRef: these are only ever replaced wholesale on fetch, never mutated
   // field-by-field, so deep reactivity on every GPS point/telemetry snapshot is wasted work.
+  const currentStatus = shallowRef<TelemetrySnapshot | null>(null)
   const dailyStats = shallowRef<DailyStat[]>([])
   // Today's row of those statistics for the dashboard, kept apart from the statistics page's
   // period. The API checks today's energy counter against every reading of the day, which the
@@ -66,6 +76,7 @@ export const useVehicleStore = defineStore('vehicle', () => {
     if (!force && vehicles.value.length > 0) return
     await withLoading(vehiclesError, async () => {
       vehicles.value = await vehicleApi.list()
+      if (activeVin.value) rememberVin(activeVin.value)
     })
   }
 
@@ -79,7 +90,7 @@ export const useVehicleStore = defineStore('vehicle', () => {
 
   async function fetchStatus(vin: string) {
     await withLoading(statusError, async () => {
-      currentStatus.value = await vehicleApi.status(vin)
+      keepIfUnchanged(currentStatus, await vehicleApi.status(vin))
       lastUpdated.value = new Date()
     })
   }
@@ -130,7 +141,7 @@ export const useVehicleStore = defineStore('vehicle', () => {
       })
     }
 
-    currentStatus.value = snapshot
+    keepIfUnchanged(currentStatus, snapshot)
     lastUpdated.value = new Date()
   }
 
@@ -153,7 +164,7 @@ export const useVehicleStore = defineStore('vehicle', () => {
 
   async function fetchLatestTrip(vin: string) {
     await withLoading(latestTripError, async () => {
-      latestTrip.value = (await vehicleApi.latestTrip(vin)) ?? null
+      keepIfUnchanged(latestTrip, (await vehicleApi.latestTrip(vin)) ?? null)
     })
   }
 
