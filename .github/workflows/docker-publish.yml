@@ -495,10 +495,25 @@ jobs:
           INDEX_DIGEST: ${{ steps.index.outputs.digest }}
         run: |
           set -euo pipefail
+          # GHCR can answer "not found" for a few seconds after the create pushed the index
+          # (seen on the 2026-11-18 main publish, which also skipped the signing below). Only
+          # reading it is retried: an index without both architectures fails at once.
+          ATTEMPTS=6
+          for ATTEMPT in $(seq 1 "$ATTEMPTS"); do
+            if RAW=$(docker buildx imagetools inspect "$IMAGE@$INDEX_DIGEST" --raw); then
+              break
+            fi
+            if [ "$ATTEMPT" -eq "$ATTEMPTS" ]; then
+              echo "The registry still does not serve $IMAGE@$INDEX_DIGEST after $ATTEMPTS tries" >&2
+              exit 1
+            fi
+            echo "The registry does not serve the index yet; trying again in $((ATTEMPT * 5)) s" >&2
+            sleep $((ATTEMPT * 5))
+          done
           docker buildx imagetools inspect "$IMAGE@$INDEX_DIGEST"
           # Both architectures must be in the index the tags now point to.
-          docker buildx imagetools inspect "$IMAGE@$INDEX_DIGEST" --raw \
-            | jq -e '[.manifests[] | .platform // empty | select(.os == "linux") | .architecture] | contains(["amd64", "arm64"])' > /dev/null
+          jq -e '[.manifests[] | .platform // empty | select(.os == "linux") | .architecture] | contains(["amd64", "arm64"])' \
+            <<< "$RAW" > /dev/null
 
       # The index is signed, which covers every tag, and with --recursive each manifest in it as
       # well, so a check against one architecture's own digest (what a host pulls) also finds a
