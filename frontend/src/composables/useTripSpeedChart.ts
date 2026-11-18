@@ -51,8 +51,8 @@ export function useTripSpeedChart(points: Ref<readonly TripPoint[] | null>) {
     const options: ChartOptions<'line'> = {
       locale: numberLocale(),
       responsive: true,
-      // Its height comes from the stylesheet (tripLog.css), so beside the list it can give up
-      // height to keep the whole detail in the window.
+      // Its height comes from the stylesheet (tripLog.css), the same beside the list and in a
+      // dialog, rather than from its width.
       maintainAspectRatio: false,
       animation: false,
       interaction: { mode: 'index', intersect: false },
