@@ -6,9 +6,9 @@ namespace GarageStack.Data.Repositories;
 
 public class ApiTokenRepository(AppDbContext db) : IApiTokenRepository
 {
-    public async Task<IReadOnlyList<ApiToken>> ListAsync(string accountKey, CancellationToken ct = default) =>
+    public async Task<IReadOnlyList<ApiToken>> ListAsync(string accountKey, ApiTokenScope scope, CancellationToken ct = default) =>
         await db.ApiTokens.AsNoTracking()
-            .Where(t => t.AccountKey == accountKey)
+            .Where(t => t.AccountKey == accountKey && t.Scope == scope)
             .OrderByDescending(t => t.CreatedAt)
             .ToListAsync(ct);
 
@@ -20,6 +20,26 @@ public class ApiTokenRepository(AppDbContext db) : IApiTokenRepository
         db.ApiTokens.Add(token);
         await db.SaveChangesAsync(ct);
         return token;
+    }
+
+    public async Task<ApiToken> ReplaceAsync(ApiToken token, CancellationToken ct = default)
+    {
+        db.ApiTokens.RemoveRange(await db.ApiTokens
+            .Where(t => t.AccountKey == token.AccountKey && t.Scope == token.Scope)
+            .ToListAsync(ct));
+        db.ApiTokens.Add(token);
+        await db.SaveChangesAsync(ct);
+        return token;
+    }
+
+    public async Task<bool> DeleteScopeAsync(string accountKey, ApiTokenScope scope, CancellationToken ct = default)
+    {
+        var tokens = await db.ApiTokens.Where(t => t.AccountKey == accountKey && t.Scope == scope).ToListAsync(ct);
+        if (tokens.Count == 0) return false;
+
+        db.ApiTokens.RemoveRange(tokens);
+        await db.SaveChangesAsync(ct);
+        return true;
     }
 
     public async Task<bool> DeleteAsync(string accountKey, int id, CancellationToken ct = default)

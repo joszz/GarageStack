@@ -28,6 +28,7 @@ The reference page comes with a Content-Security-Policy of its own, built around
 | The browser, and the reference page | The session cookie that signing in sets | Everything |
 | A script | `Authorization: Bearer gs_...`, a read-only token from Settings | GET only, and not the export, the logs or the tokens. See [read-only API tokens](../README.md#read-only-api-tokens) |
 | The Homepage widget | `X-Widget-Key: <WIDGET_API_KEY>` | `/api/widget` only. See [`WIDGET.md`](WIDGET.md) |
+| A calendar app | `?token=gs_...` in the address of the calendar link from Settings | `/api/calendar/feed.ics` only. See [calendar feed](../README.md#calendar-feed) |
 
 The reference marks each endpoint with the ways in it accepts, so an endpoint a token cannot call says so. Every endpoint a token can call also carries a **Read-only token** badge beside its name, the command endpoint **Sends to the car**, and the demo endpoint **Demo only**.
 

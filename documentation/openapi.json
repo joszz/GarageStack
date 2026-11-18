@@ -10,6 +10,44 @@
     "version": "(the release)"
   },
   "paths": {
+    "/api/calendar/feed.ics": {
+      "get": {
+        "tags": [
+          "Calendar"
+        ],
+        "summary": "The calendar feed: APK expiry, maintenance due dates and the next two weeks of climate schedules, as iCalendar",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/calendar": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests from this address; wait a minute and try again."
+          }
+        },
+        "security": [
+          {
+            "calendarToken": []
+          }
+        ]
+      }
+    },
     "/api/export": {
       "get": {
         "tags": [
@@ -1027,6 +1065,121 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "Not signed in, or the API token is unknown or revoked."
+          },
+          "429": {
+            "description": "Too many requests from this address; wait a minute and try again."
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ]
+      }
+    },
+    "/api/calendar/link": {
+      "get": {
+        "tags": [
+          "Calendar"
+        ],
+        "summary": "Whether the signed-in account has a calendar link, without the link itself",
+        "responses": {
+          "403": {
+            "description": "`token.cannotManageTokens`: API tokens are managed from a signed-in session only.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CalendarLinkDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the API token is unknown or revoked."
+          },
+          "429": {
+            "description": "Too many requests from this address; wait a minute and try again."
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Calendar"
+        ],
+        "summary": "Make the account's calendar link, replacing the one it had; the response is the only time its token is shown",
+        "responses": {
+          "403": {
+            "description": "`token.readOnly`: An API token can only read; sign in to change anything.\n\n`csrf.originNotAllowed`: sent from a page on an address that is not CORS_ORIGIN.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatedCalendarLinkDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the API token is unknown or revoked."
+          },
+          "429": {
+            "description": "Too many requests from this address; wait a minute and try again."
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Calendar"
+        ],
+        "summary": "Stop the account's calendar link: calendar apps get nothing more from it",
+        "responses": {
+          "403": {
+            "description": "`token.readOnly`: An API token can only read; sign in to change anything.\n\n`csrf.originNotAllowed`: sent from a page on an address that is not CORS_ORIGIN.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found"
           },
           "401": {
             "description": "Not signed in, or the API token is unknown or revoked."
@@ -6133,6 +6286,37 @@
           }
         }
       },
+      "CalendarLinkDto": {
+        "required": [
+          "exists",
+          "createdAt",
+          "lastUsedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "exists": {
+            "type": "boolean",
+            "description": "Whether the account has one."
+          },
+          "createdAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "When it was made.",
+            "format": "date-time"
+          },
+          "lastUsedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "When a calendar app last fetched it, to the minute.",
+            "format": "date-time"
+          }
+        },
+        "description": "The account's calendar link, as Settings shows it."
+      },
       "ChargeSession": {
         "required": [
           "startedAt",
@@ -6766,6 +6950,24 @@
           }
         },
         "description": "A token just made: Token is shown this once and never again."
+      },
+      "CreatedCalendarLinkDto": {
+        "required": [
+          "details",
+          "token"
+        ],
+        "type": "object",
+        "properties": {
+          "details": {
+            "description": "What Settings shows of it from now on.",
+            "$ref": "#/components/schemas/CalendarLinkDto"
+          },
+          "token": {
+            "type": "string",
+            "description": "The token for the feed's address, shown this once and never again."
+          }
+        },
+        "description": "A calendar link just made."
       },
       "CreateMaintenanceItemRequest": {
         "required": [
@@ -10249,10 +10451,20 @@
         "description": "WIDGET_API_KEY, for the Homepage widget only.",
         "name": "X-Widget-Key",
         "in": "header"
+      },
+      "calendarToken": {
+        "type": "apiKey",
+        "description": "The token of the calendar link made in Settings, Calendar feed. It opens the feed and nothing else.",
+        "name": "token",
+        "in": "query"
       }
     }
   },
   "tags": [
+    {
+      "name": "Calendar",
+      "description": "A calendar feed (iCalendar) of the APK, maintenance due dates and climate schedules, opened by the token in its address. The link is made and stopped from a signed-in session."
+    },
     {
       "name": "Export",
       "description": "Everything GarageStack keeps, as one zip."

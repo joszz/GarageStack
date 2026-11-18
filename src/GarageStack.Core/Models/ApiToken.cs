@@ -24,6 +24,23 @@ public class ApiToken
 
     /// <summary>When it was last used, to the minute: a token nobody uses any more can go.</summary>
     public DateTime? LastUsedAt { get; set; }
+
+    /// <summary>What the token opens. Every token made before scopes existed reads.</summary>
+    public ApiTokenScope Scope { get; set; } = ApiTokenScope.Read;
+}
+
+/// <summary>What a token opens.</summary>
+public enum ApiTokenScope
+{
+    /// <summary>Reads the API with "Authorization: Bearer", as the account that made it.</summary>
+    Read = 0,
+
+    /// <summary>
+    /// Opens the calendar feed and nothing else. Calendar apps cannot send a header, so this token
+    /// travels in the feed's address, which they keep and sync to their own servers: a leaked
+    /// address must not read the rest of the car's data.
+    /// </summary>
+    Calendar = 1,
 }
 
 public static class ApiTokenLimits

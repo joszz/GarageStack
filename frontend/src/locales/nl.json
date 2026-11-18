@@ -735,6 +735,24 @@
       "confirmRevokeNamed": "{name} intrekken? Tik nogmaals om te bevestigen",
       "reference": "API-referentie"
     },
+    "calendarFeed": {
+      "title": "Agenda-feed",
+      "desc": "Abonneer je in elke agenda-app op de vervaldatum van de APK, de onderhoudsdata en de klimaatschema's van de komende twee weken. De link opent alleen deze agenda, maar iedereen die hem heeft kan die data lezen.",
+      "create": "Agendalink maken",
+      "copyNow": "Kopieer deze link nu: hij wordt niet opnieuw getoond. Je agenda-app haalt hem zelf elke paar uur op.",
+      "link": "Agendalink",
+      "copy": "Kopiëren",
+      "copied": "Gekopieerd",
+      "subscribe": "Toevoegen aan agenda",
+      "active": "Er is een agendalink actief",
+      "createdAt": "gemaakt {date}",
+      "lastUsed": "laatst opgehaald {date}",
+      "neverUsed": "nog niet opgehaald",
+      "replace": "Nieuwe link",
+      "confirmReplace": "Vervangen? De oude link werkt dan niet meer",
+      "stop": "Stoppen",
+      "confirmStop": "Stoppen? Tik nogmaals om te bevestigen"
+    },
     "export": {
       "title": "Je gegevens",
       "desc": "Alles wat GarageStack bewaart, in één zip: per auto de ritten, het onderhoud, de schema’s, de plaatsen en elke meting, en je meldingen en instellingen. De metingen komen als CSV-bestand dat een spreadsheet opent, de rest als JSON. Een grote geschiedenis verzamelen duurt even.",

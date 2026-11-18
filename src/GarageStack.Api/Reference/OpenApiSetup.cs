@@ -28,6 +28,7 @@ internal static class OpenApiSetup
     public const string SessionScheme = "session";
     public const string TokenScheme = "apiToken";
     public const string WidgetKeyScheme = "widgetKey";
+    public const string CalendarTokenScheme = "calendarToken";
 
     private const string ProblemContentType = "application/problem+json";
 
@@ -86,6 +87,13 @@ internal static class OpenApiSetup
                 In = ParameterLocation.Header,
                 Name = WidgetEndpoints.KeyHeader,
                 Description = "WIDGET_API_KEY, for the Homepage widget only.",
+            },
+            [CalendarTokenScheme] = new OpenApiSecurityScheme
+            {
+                Type = SecuritySchemeType.ApiKey,
+                In = ParameterLocation.Query,
+                Name = CalendarEndpoints.TokenParameter,
+                Description = "The token of the calendar link made in Settings, Calendar feed. It opens the feed and nothing else.",
             },
         };
 

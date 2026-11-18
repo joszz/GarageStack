@@ -48,6 +48,10 @@ internal static class ApiTokenAuthentication
         return (token, Hash(token), token[..ApiTokenLimits.PrefixLength]);
     }
 
+    /// <summary>Whether a use at <paramref name="now"/> is worth a write: last use is kept to the minute.</summary>
+    public static bool IsUseWorthNoting(ApiToken token, DateTime now) =>
+        token.LastUsedAt is not { } lastUsed || now - lastUsed >= UsageResolution;
+
     public static string Hash(string token) =>
         Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(token)));
 
@@ -60,7 +64,7 @@ internal static class ApiTokenAuthentication
     public static ValidationError? Refusal(string method, PathString path) =>
         !HttpMethods.IsGet(method) && !HttpMethods.IsHead(method)
             ? new("token.readOnly", "An API token can only read; sign in to change anything")
-            : path.StartsWithSegments(ApiTokenEndpoints.Path)
+            : path.StartsWithSegments(ApiTokenEndpoints.Path) || path.StartsWithSegments(CalendarEndpoints.LinkPath)
                 ? new("token.cannotManageTokens", "API tokens are managed from a signed-in session only")
                 : SessionOnlyReads.Any(p => path.StartsWithSegments(p))
                     ? new("token.sessionOnly", "The export, the logs and the diagnostics need a signed-in session; an API token cannot read them")
@@ -83,9 +87,11 @@ internal static class ApiTokenAuthentication
 
             var token = await tokens.FindByHashAsync(Hash(presented), Context.RequestAborted);
             if (token is null) return AuthenticateResult.Fail("Unknown or revoked API token");
+            // A calendar feed's token opens the feed, through its address, and nothing else.
+            if (token.Scope != ApiTokenScope.Read) return AuthenticateResult.Fail("This token only opens the calendar feed");
 
             var now = TimeProvider.GetUtcNow().UtcDateTime;
-            if (token.LastUsedAt is not { } lastUsed || now - lastUsed >= UsageResolution)
+            if (IsUseWorthNoting(token, now))
                 await MarkUsedAsync(token.Id, now);
 
             var identity = new ClaimsIdentity(

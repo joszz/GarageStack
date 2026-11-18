@@ -735,6 +735,24 @@
       "confirmRevokeNamed": "Revogar {name}? Toque de novo para confirmar",
       "reference": "Referência da API"
     },
+    "calendarFeed": {
+      "title": "Calendário",
+      "desc": "Assine em qualquer app de calendário a data de vencimento da APK, as datas de manutenção e os agendamentos de climatização das próximas duas semanas. O link abre só este calendário, mas quem o tiver pode ler essas datas.",
+      "create": "Criar link do calendário",
+      "copyNow": "Copie este link agora: ele não é mostrado de novo. Seu app de calendário o consulta sozinho a cada poucas horas.",
+      "link": "Link do calendário",
+      "copy": "Copiar",
+      "copied": "Copiado",
+      "subscribe": "Adicionar ao calendário",
+      "active": "Há um link de calendário ativo",
+      "createdAt": "criado {date}",
+      "lastUsed": "consultado {date}",
+      "neverUsed": "ainda não consultado",
+      "replace": "Novo link",
+      "confirmReplace": "Substituir? O link antigo deixa de funcionar",
+      "stop": "Parar",
+      "confirmStop": "Parar? Toque de novo para confirmar"
+    },
     "export": {
       "title": "Seus dados",
       "desc": "Tudo o que o GarageStack guarda, em um único zip: por carro, as viagens, a manutenção, os agendamentos, os lugares e todas as leituras de telemetria, além das suas notificações e configurações. A telemetria vem em um arquivo CSV que uma planilha abre, e o resto em JSON. Um histórico grande leva um instante para ser reunido.",

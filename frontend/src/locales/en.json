@@ -735,6 +735,24 @@
       "confirmRevokeNamed": "Revoke {name}? Tap again to confirm",
       "reference": "API reference"
     },
+    "calendarFeed": {
+      "title": "Calendar feed",
+      "desc": "Subscribe to the APK expiry date, maintenance due dates and the next two weeks of climate schedules in any calendar app. The link opens this calendar and nothing else, but anyone who has it can read those dates.",
+      "create": "Make a calendar link",
+      "copyNow": "Copy this link now: it is not shown again. Your calendar app fetches it by itself every few hours.",
+      "link": "Calendar link",
+      "copy": "Copy",
+      "copied": "Copied",
+      "subscribe": "Add to calendar",
+      "active": "A calendar link is active",
+      "createdAt": "made {date}",
+      "lastUsed": "last fetched {date}",
+      "neverUsed": "not fetched yet",
+      "replace": "New link",
+      "confirmReplace": "Replace? The old link stops working",
+      "stop": "Stop",
+      "confirmStop": "Stop? Tap again to confirm"
+    },
     "export": {
       "title": "Your data",
       "desc": "Everything GarageStack keeps, in one zip: per car its trips, maintenance, schedules, places and every telemetry reading, and your notifications and settings. Telemetry comes as a CSV file a spreadsheet opens, the rest as JSON. A big history takes a moment to gather.",
