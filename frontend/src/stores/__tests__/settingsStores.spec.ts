@@ -430,6 +430,17 @@ describe('useDashboardSettingsStore', () => {
     expect(store.showLocationMap).toBe(true)
   })
 
+  it('shows the per-month statistics table until it is hidden, and remembers that', async () => {
+    const store = useDashboardSettingsStore()
+    expect(store.showStatsMonths).toBe(true)
+
+    store.showStatsMonths = false
+    await nextTick()
+    vi.advanceTimersByTime(SAVE_DEBOUNCE_MS)
+
+    expect(JSON.parse(localStorage.getItem(DASHBOARD_KEY)!).showStatsMonths).toBe(false)
+  })
+
   it('persists card visibility changes to its own localStorage key', async () => {
     const store = useDashboardSettingsStore()
     const firstCard = store.cards[0]

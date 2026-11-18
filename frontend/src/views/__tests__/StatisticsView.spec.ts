@@ -16,6 +16,8 @@ import {
 import { ApiError } from '@/services/apiCore'
 import { useVehicleStore } from '@/stores/vehicle'
 import { useUiSettingsStore } from '@/stores/settingsUi'
+import { useDashboardSettingsStore } from '@/stores/settingsDashboard'
+import { LONG_PRESS_MS } from '@/composables/useLongPress'
 
 vi.mock('@/services/vehicleApi', () => ({
   vehicleApi: {
@@ -113,6 +115,22 @@ function shownInsights(wrapper: Awaited<ReturnType<typeof mountView>>) {
   )
 }
 
+type View = Awaited<ReturnType<typeof mountView>>
+
+const buttonNamed = (wrapper: View, name: string) =>
+  wrapper.findAll('button').find((b) => b.text() === name)!
+
+async function editLayout(wrapper: View) {
+  await buttonNamed(wrapper, en.dashboard.editLayout).trigger('click')
+  await vi.dynamicImportSettled()
+  await flushPromises()
+}
+
+async function doneEditing(wrapper: View) {
+  await buttonNamed(wrapper, en.dashboard.doneEditing).trigger('click')
+  await flushPromises()
+}
+
 // Handed to the mount and to every store the test reads, rather than left to the active pinia,
 // which a busy test run has been seen to switch between a mount and its assertions.
 let pinia: Pinia
@@ -206,6 +224,64 @@ describe('StatisticsView', () => {
     expect(from).toBe('2026-07-21')
     expect(to).toBe('2026-10-19')
     expect(wrapper.find('.month-table').exists()).toBe(true)
+  })
+
+  it('keeps the month table while the layout is edited, where it can be hidden', async () => {
+    useUiSettingsStore(pinia).statsPeriod = { preset: 'last90', from: null, to: null }
+    const wrapper = await mountView()
+
+    await editLayout(wrapper)
+    expect(wrapper.find('.stats-months-slot .month-table').exists()).toBe(true)
+
+    await wrapper.find('.stats-months-slot .card-slot__badge').trigger('click')
+    expect(wrapper.find('.stats-months-slot .month-table').exists()).toBe(false)
+    expect(wrapper.find('.stats-months-slot').text()).toContain(en.statistics.months.title)
+    expect(useDashboardSettingsStore(pinia).showStatsMonths).toBe(false)
+
+    await doneEditing(wrapper)
+    expect(wrapper.find('.month-table').exists()).toBe(false)
+  })
+
+  it('says while editing that the month table needs a period of more than a month', async () => {
+    const wrapper = await mountView()
+
+    await editLayout(wrapper)
+
+    expect(wrapper.find('.stats-months-slot').text()).toContain(
+      en.statistics.months.needsLongerPeriod,
+    )
+  })
+
+  it('shows the month table again when the layout is reset', async () => {
+    useUiSettingsStore(pinia).statsPeriod = { preset: 'last90', from: null, to: null }
+    useDashboardSettingsStore(pinia).showStatsMonths = false
+    const wrapper = await mountView()
+    expect(wrapper.find('.month-table').exists()).toBe(false)
+
+    await editLayout(wrapper)
+    await buttonNamed(wrapper, en.dashboard.resetLayout).trigger('click')
+    await doneEditing(wrapper)
+
+    expect(wrapper.find('.month-table').exists()).toBe(true)
+  })
+
+  it('starts editing the layout when a finger rests on an insight, as on a phone', async () => {
+    const wrapper = await mountView()
+
+    vi.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout'] })
+    wrapper
+      .find('.status-card')
+      .element.dispatchEvent(
+        new PointerEvent('pointerdown', { bubbles: true, isPrimary: true, pointerType: 'touch' }),
+      )
+    vi.advanceTimersByTime(LONG_PRESS_MS)
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-10-19T12:00:00Z'))
+    await vi.dynamicImportSettled()
+    await flushPromises()
+
+    expect(wrapper.text()).toContain(en.dashboard.doneEditing)
+    expect(wrapper.find('.stats-months-slot').exists()).toBe(true)
   })
 
   it('loads again once a trip ends', async () => {
