@@ -181,6 +181,14 @@ export const useVehicleStore = defineStore('vehicle', () => {
     return override === 'auto' ? detectedVehicleType.value : override
   })
 
+  /** Where the car was last seen, for a map with nothing else to start at; null before a fix. */
+  const currentPosition = computed((): [number, number] | null => {
+    const status = currentStatus.value
+    return status?.latitude != null && status.longitude != null
+      ? [status.latitude, status.longitude]
+      : null
+  })
+
   // The deployment's answer for how big the traction battery really is, or null when it has not
   // been told. Read alongside the snapshot's own kWh figures in utils/energy.
   const hvBatteryCapacityKwh = computed(
@@ -192,6 +200,7 @@ export const useVehicleStore = defineStore('vehicle', () => {
     activeVehicle,
     activeVin,
     currentStatus,
+    currentPosition,
     vehicleConfig,
     detectedVehicleType,
     effectiveVehicleType,

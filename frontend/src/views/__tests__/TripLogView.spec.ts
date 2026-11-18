@@ -7,8 +7,8 @@ import TripLogView from '../TripLogView.vue'
 import { tripLogApi, type TripLogEntry } from '@/services/tripLogApi'
 import { commutePlacesApi } from '@/services/commutePlacesApi'
 import { vehicleApi, type Vehicle } from '@/services/vehicleApi'
-import { downloadCsv } from '@/utils/download'
 import { useUiSettingsStore } from '@/stores/settingsUi'
+import { useCommutePlacesStore } from '@/stores/commutePlaces'
 import { logEntry } from '@/services/__tests__/tripLogFixtures'
 import { WIDE_MEDIA_QUERY } from '@/utils/viewport'
 
@@ -42,8 +42,6 @@ vi.mock('@/services/commutePlacesApi', async (importOriginal) => {
 vi.mock('@/services/vehicleApi', () => ({
   vehicleApi: { list: vi.fn<() => Promise<Vehicle[]>>() },
 }))
-
-vi.mock('@/utils/download', () => ({ downloadCsv: vi.fn<typeof downloadCsv>() }))
 
 // The page looks up addresses in rounds with pauses between them, and stops when it closes; left
 // open, a test's page would carry on asking in the tests after it.
@@ -179,15 +177,29 @@ describe('TripLogView', () => {
     expect(wrapper.find('.trip-log-item--hidden').exists()).toBe(true)
   })
 
-  it('leaves the hidden trip out of the totals and the export', async () => {
+  it('leaves the hidden trip out of the totals', async () => {
     const wrapper = await mountView()
 
-    await button(wrapper, 'Export CSV')[0]!.trigger('click')
-
-    const csv = vi.mocked(downloadCsv).mock.calls[0]![1]
-    expect(csv).not.toContain('GPS glitch')
-    expect(csv.trim().split('\n')).toHaveLength(3)
+    expect(wrapper.find('.trip-log-totals').text()).toContain('All trips (2)')
     expect(wrapper.find('.trip-log-totals').text()).toContain('Unclassified (0)')
+  })
+
+  // The export and the list of places live in the settings; a trip's end still opens the places.
+  it('has no export or home and work button of its own', async () => {
+    const wrapper = await mountView()
+
+    expect(wrapper.find('.view-header__actions').exists()).toBe(false)
+    expect(button(wrapper, 'Home and work')).toHaveLength(0)
+  })
+
+  it('reloads the trips when a place changes, also from the settings', async () => {
+    await mountView()
+    const loads = vi.mocked(tripLogApi.log).mock.calls.length
+
+    useCommutePlacesStore(pinia).revision++
+    await flushPromises()
+
+    expect(tripLogApi.log).toHaveBeenCalledTimes(loads + 1)
   })
 
   it('joins a trip with the next one once confirmed, and offers none for the newest', async () => {

@@ -13,6 +13,11 @@ export const useCommutePlacesStore = defineStore('commutePlaces', () => {
   const { loading, withLoading } = useLoadingTracker()
   const loadError = ref<Error | null>(null)
   const actionError = ref<Error | null>(null)
+  /**
+   * Counts the changes saved, each of which may have re-labelled trips: the trip log page reloads
+   * on it, whether the change came from its own dialog or from the settings.
+   */
+  const revision = ref(0)
 
   async function fetchPlaces(vin: string) {
     await withLoading(loadError, async () => {
@@ -35,6 +40,7 @@ export const useCommutePlacesStore = defineStore('commutePlaces', () => {
         id === undefined
           ? await commutePlacesApi.create(vin, input)
           : await commutePlacesApi.update(vin, id, input)
+      revision.value++
       // The list comes back in the API's order (home first), which a local splice would not keep.
       places.value = await commutePlacesApi.list(vin)
     })
@@ -45,10 +51,20 @@ export const useCommutePlacesStore = defineStore('commutePlaces', () => {
     let change: CommutePlaceChange | null = null
     await withLoading(actionError, async () => {
       change = await commutePlacesApi.remove(vin, id)
+      revision.value++
       places.value = places.value.filter((p) => p.id !== id)
     })
     return change
   }
 
-  return { places, loading, loadError, actionError, fetchPlaces, savePlace, removePlace }
+  return {
+    places,
+    loading,
+    loadError,
+    actionError,
+    revision,
+    fetchPlaces,
+    savePlace,
+    removePlace,
+  }
 })

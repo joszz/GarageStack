@@ -75,6 +75,21 @@ describe('useCommutePlacesStore', () => {
     expect(change?.cleared).toBe(2)
     expect(store.places).toEqual([home])
   })
+
+  it('counts every saved change, so a page showing trips knows to reload', async () => {
+    const { commutePlacesApi } = await import('@/services/commutePlacesApi')
+    vi.mocked(commutePlacesApi.create).mockResolvedValue({ place: home, marked: 0, cleared: 0 })
+    vi.mocked(commutePlacesApi.remove).mockResolvedValue({ place: null, marked: 0, cleared: 0 })
+    const store = useCommutePlacesStore()
+
+    await store.savePlace('VIN1', { ...home })
+    await store.removePlace('VIN1', 1)
+    expect(store.revision).toBe(2)
+
+    vi.mocked(commutePlacesApi.remove).mockRejectedValue(new Error('refused'))
+    await store.removePlace('VIN1', 1)
+    expect(store.revision).toBe(2)
+  })
 })
 
 describe('commutePlaceAt', () => {

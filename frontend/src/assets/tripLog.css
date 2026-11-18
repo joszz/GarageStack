@@ -7,12 +7,6 @@
   margin-bottom: 1rem;
 }
 
-.trip-log-filters__field {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
 /* ── Totals ───────────────────────────────────────────────── */
 
 /* Spaced like the status grid it borrows its cards from. On a phone and on a tablet beside the
@@ -83,41 +77,6 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0.4rem;
-}
-
-/* ── Home and work ────────────────────────────────────────── */
-
-.commute-places__intro {
-  margin-bottom: 0.75rem;
-}
-
-.commute-places__change {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  margin-bottom: 0.75rem;
-  color: var(--color-success-text);
-}
-
-/* As tall as the statistics page's parking map. */
-.commute-places__map {
-  height: 280px;
-  width: 100%;
-  margin-top: 0.35rem;
-  border-radius: var(--radius);
-  overflow: hidden;
-}
-
-@media (width >= 768px) {
-  .commute-places__map {
-    height: 360px;
-  }
-}
-
-/* After the radius, at the row's far end: this place sends arrival and departure notifications. */
-.commute-places__notify {
-  margin-left: auto;
-  color: var(--color-text-muted);
 }
 
 /* ── Trip list and detail ─────────────────────────────────── */

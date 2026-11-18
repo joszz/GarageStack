@@ -666,6 +666,11 @@
       "label": "Power tailgate",
       "desc": "Switch this on if the car's boot opens and closes by itself. The Doors card can then open and close it, instead of only unlocking it. A car without a power tailgate refuses the command."
     },
+    "commutePlaces": {
+      "title": "Home and work",
+      "desc": "Trips between home and a work place are marked as commutes, and a place can notify you when the car arrives or leaves. In the trip log, a trip's start or end can be set as one too.",
+      "edit": "Edit places"
+    },
     "units": {
       "title": "Language, region and units",
       "auto": "Automatic: {value}",
@@ -730,6 +735,13 @@
       "title": "Your data",
       "desc": "Everything GarageStack keeps, in one zip: per car its trips, maintenance, schedules, places and every telemetry reading, and your notifications and settings. Telemetry comes as a CSV file a spreadsheet opens, the rest as JSON. A big history takes a moment to gather.",
       "download": "Download everything"
+    },
+    "tripLogExport": {
+      "title": "Trip log",
+      "desc": "A month or a year of trips as a spreadsheet, with the addresses and odometer readings a tax trip log (such as the Dutch rittenregistratie) asks for. Hidden trips are left out. Addresses not looked up yet are looked up first, which can take a while for a whole year.",
+      "download": "Download CSV",
+      "lookingUp": "Looking up addresses: {n} trip to go | Looking up addresses: {n} trips to go",
+      "empty": "No trips in this period."
     },
     "diagnostics": {
       "title": "Diagnostics",
@@ -820,7 +832,7 @@
   },
   "tripLog": {
     "title": "Trip log",
-    "subtitle": "Record what each trip was for and export the log as a spreadsheet, with the addresses and odometer readings a tax trip log asks for. Trips appear here a few minutes after the car parks.",
+    "subtitle": "Record what each trip was for, with the addresses and odometer readings a tax trip log asks for, and export it as a spreadsheet under Settings > Data & API. Trips appear here a few minutes after the car parks.",
     "year": "Year",
     "month": "Month",
     "wholeYear": "Whole year",
@@ -843,7 +855,7 @@
     "cardDesc": {
       "allTrips": "The distance driven over every trip in this period, with the number of trips in brackets. Hidden trips are left out. A trip's distance comes from the odometer, or from its GPS fixes when the car reported no odometer readings.",
       "business": "The distance of the trips marked as business, with the number of trips in brackets and their share of the period's distance below.",
-      "commute": "The distance of the trips marked as commute, with the number of trips in brackets and their share of the period's distance below. Once home and work are set under Home and work, trips between them are marked as commutes automatically.",
+      "commute": "The distance of the trips marked as commute, with the number of trips in brackets and their share of the period's distance below. Once home and work are set under Settings > Vehicle > Home and work, trips between them are marked as commutes automatically.",
       "private": "The distance of the trips marked as private, with the number of trips in brackets and their share of the period's distance below.",
       "unclassified": "The distance of the trips that have no purpose yet. Choose a purpose for each trip in the list, or mark them all at once with the buttons below these figures.",
       "drivingTime": "The time from departure to arrival, added up over every trip in this period. Stops in traffic count; the time parked between trips does not.",
@@ -877,8 +889,6 @@
     "distanceFromGps": "Distance along the GPS fixes; the car reported no odometer readings for this trip",
     "resolvingPlaces": "Looking up the address",
     "placesOff": "Place names are switched off, so addresses show as coordinates. Switch them on under Settings > Map.",
-    "export": "Export CSV",
-    "exportWhileResolving": "Some addresses are still being looked up; those export as coordinates",
     "empty": "No saved trips in this period.",
     "csv": {
       "date": "Date",
@@ -893,7 +903,6 @@
       "notes": "Notes"
     },
     "places": {
-      "button": "Home and work",
       "title": "Home and work",
       "addTitle": "Add a place",
       "editTitle": "Edit place",
