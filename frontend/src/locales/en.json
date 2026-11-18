@@ -836,8 +836,8 @@
     "year": "Year",
     "month": "Month",
     "wholeYear": "Whole year",
-    "moreFigures": "Show purposes and driving figures",
-    "fewerFigures": "Hide purposes and driving figures",
+    "moreFigures": "Show the purposes",
+    "fewerFigures": "Hide the purposes",
     "totalsLabel": "Distance per purpose",
     "totalLabel": "{purpose} ({n})",
     "classifyAll": "{n} trip ({distance}) has no purpose yet. Mark it as: | {n} trips ({distance}) have no purpose yet. Mark them all as:",
@@ -850,7 +850,7 @@
       "averageTrip": "Average trip",
       "longestTrip": "Longest trip",
       "averageSpeed": "Average speed",
-      "averageSpeedHint": "The distance over the time spent driving it, stops in traffic included"
+      "open": "Show driving time, average and longest trip, and average speed"
     },
     "cardDesc": {
       "allTrips": "The distance driven over every trip in this period, with the number of trips in brackets. Hidden trips are left out. A trip's distance comes from the odometer, or from its GPS fixes when the car reported no odometer readings.",

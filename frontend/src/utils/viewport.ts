@@ -4,8 +4,8 @@
  */
 export const PHONE_MEDIA_QUERY = '(width <= 767px)'
 
-/** Wide enough for a list with a detail panel beside it (`@media (width >= 1280px)`). */
-export const WIDE_MEDIA_QUERY = '(width >= 1280px)'
+/** A desktop, wide enough for a list with a detail panel beside it (`@media (width >= 1024px)`). */
+export const WIDE_MEDIA_QUERY = '(width >= 1024px)'
 
 /** True on a phone-width viewport. False where matchMedia is missing, which reads as a desktop. */
 export function isPhoneViewport(): boolean {

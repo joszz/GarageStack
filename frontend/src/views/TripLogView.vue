@@ -12,6 +12,7 @@ import TripLogDetail from '@/components/TripLogDetail.vue'
 import CommutePlacesModal from '@/components/CommutePlacesModal.vue'
 import DetailModal from '@/components/DetailModal.vue'
 import TripLogPeriodFields from '@/components/TripLogPeriodFields.vue'
+import TripLogSummaryModal from '@/components/TripLogSummaryModal.vue'
 import { useCommutePlacesStore } from '@/stores/commutePlaces'
 import { TRIP_PURPOSES, type TripPurpose } from '@/services/tripLogApi'
 import { formatNumber } from '@/utils/format'
@@ -23,9 +24,7 @@ import {
   PURPOSE_KEYS,
   type TripLogPeriod,
 } from '@/utils/tripLog'
-import { formatDurationMs } from '@/utils/tripRows'
 import { WIDE_MEDIA_QUERY } from '@/utils/viewport'
-import type { Measure } from '@/utils/units'
 import { useUnits } from '@/composables/useUnits'
 import { useErrorMessage } from '@/composables/useErrorMessage'
 import { useMediaQuery } from '@/composables/useMediaQuery'
@@ -39,8 +38,8 @@ const commutePlaces = useCommutePlacesStore()
 const uiSettings = useUiSettingsStore()
 const units = useUnits()
 
-// On a phone the purposes and driving figures fold away behind one button, so the first trip is
-// on the first screen; wider screens always show them, and the button is not drawn there.
+// On a phone the purposes fold away behind one button, so the first trip is on the first screen;
+// wider screens always show them, and the button is not drawn there.
 const figuresId = useId()
 const figuresOpen = ref(false)
 const errorMessage = useErrorMessage()
@@ -88,49 +87,13 @@ const purposeCards = computed(() =>
   }),
 )
 
-function measured(m: Measure | null) {
-  return { value: m?.value ?? null, unit: m?.unit }
-}
-
-const summaryCards = computed(() => {
-  const s = store.summary
-  const cards = [
-    {
-      key: 'drivingTime',
-      icon: 'clock',
-      label: t('tripLog.summary.drivingTime'),
-      value: s.trips > 0 ? formatDurationMs(s.drivingMs, t) : null,
-      unit: undefined,
-      subtitle: undefined,
-    },
-    {
-      key: 'averageTrip',
-      icon: 'route',
-      label: t('tripLog.summary.averageTrip'),
-      ...measured(units.value.measure('distance', s.averageTripKm)),
-      subtitle: undefined,
-    },
-    {
-      key: 'longestTrip',
-      icon: 'flag-checkered',
-      label: t('tripLog.summary.longestTrip'),
-      ...measured(units.value.measure('distance', s.longestTripKm)),
-      subtitle: undefined,
-    },
-    {
-      key: 'averageSpeed',
-      icon: 'gauge',
-      label: t('tripLog.summary.averageSpeed'),
-      ...measured(units.value.measure('speed', s.averageSpeedKmh, { decimals: 0 })),
-      subtitle: t('tripLog.summary.averageSpeedHint'),
-    },
-  ]
-  return cards.map((card) => ({ ...card, description: t(`tripLog.cardDesc.${card.key}`) }))
-})
+// The driving figures (time, average and longest trip, average speed) wait in a dialog behind the
+// "All trips" card, which leaves the trips themselves higher up the page.
+const summaryOpen = ref(false)
 
 // ── The trip shown in detail ──────────────────────────────
 
-// Beside the list on a wide screen, where a trip is always shown: the newest until another is
+// Beside the list on a desktop, where a trip is always shown: the newest until another is
 // picked. In a dialog on a narrower one, once a trip is picked.
 const wide = useMediaQuery(WIDE_MEDIA_QUERY)
 const pickedId = ref<number | null>(null)
@@ -288,6 +251,9 @@ function classifyAll(purpose: TripPurpose) {
             :label="t('tripLog.allTrips', { n: store.summary.trips })"
             :value="allTrips?.value ?? null"
             :unit="allTrips?.unit"
+            :subtitle="t('tripLog.summary.open')"
+            clickable
+            @click="summaryOpen = true"
           />
         </CardInfoWrap>
         <CardInfoWrap
@@ -313,34 +279,13 @@ function classifyAll(purpose: TripPurpose) {
         type="button"
         class="btn btn-outline-secondary btn-sm trip-log-figures__toggle"
         :aria-expanded="figuresOpen"
-        :aria-controls="`${figuresId}-totals ${figuresId}-summary`"
+        :aria-controls="`${figuresId}-totals`"
         @click="figuresOpen = !figuresOpen"
       >
         <font-awesome-icon icon="chevron-down" class="trip-log-figures__chevron" />{{
           figuresOpen ? t('tripLog.fewerFigures') : t('tripLog.moreFigures')
         }}
       </button>
-
-      <section
-        :id="`${figuresId}-summary`"
-        class="trip-log-summary"
-        :aria-label="t('tripLog.summary.label')"
-      >
-        <CardInfoWrap
-          v-for="card in summaryCards"
-          :key="card.key"
-          :title="card.label"
-          :description="card.description"
-        >
-          <StatusCard
-            :icon="card.icon"
-            :label="card.label"
-            :value="card.value"
-            :unit="card.unit"
-            :subtitle="card.subtitle"
-          />
-        </CardInfoWrap>
-      </section>
     </div>
 
     <div v-if="unclassified > 0 && !store.loading" class="trip-log-bulk">
@@ -405,6 +350,12 @@ function classifyAll(purpose: TripPurpose) {
     <DetailModal :open="detailInModal" :title="t('tripLog.detail.title')" wide @close="closeDetail">
       <TripLogDetail v-if="detailInModal && detail" v-bind="detail.props" v-on="detail.on" />
     </DetailModal>
+
+    <TripLogSummaryModal
+      :open="summaryOpen"
+      :summary="store.summary"
+      @close="summaryOpen = false"
+    />
 
     <DetailModal :open="joiningId !== null" :title="t('tripLog.joinNext')" @close="cancelJoin">
       <p class="text-sm">{{ t('tripLog.joinNextHint') }}</p>

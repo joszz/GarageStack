@@ -174,8 +174,8 @@ const notesId = computed(() => `trip-log-notes-${props.entry.id}`)
   >
     <header class="trip-log-detail__header">
       <h2 class="trip-log-detail__title">{{ dateLabel }}</h2>
-      <span class="text-sm text-muted">{{ timeLabel }}</span>
       <div class="trip-log-detail__status">
+        <span class="trip-log-detail__time text-sm text-muted">{{ timeLabel }}</span>
         <span
           v-if="routePoints?.some((point) => point.source === 'phone')"
           class="trip-log-detail__mark text-xs text-muted"
