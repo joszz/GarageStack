@@ -164,6 +164,7 @@ try
     app.MapAuthEndpoints();
     app.MapSettingsEndpoints();
     app.MapApiTokenEndpoints();
+    app.MapCalendarEndpoints();
     app.MapExportEndpoints();
     app.MapDiagnosticsEndpoints();
     app.MapLogEndpoints();

@@ -18,6 +18,7 @@ import CommutePlacesSetting from './CommutePlacesSetting.vue'
 import TripLogExportSetting from './TripLogExportSetting.vue'
 import NotificationTypeSettings from './NotificationTypeSettings.vue'
 import ApiTokenSettings from './ApiTokenSettings.vue'
+import CalendarFeedSetting from './CalendarFeedSetting.vue'
 import PhoneGpsSettings from './PhoneGpsSettings.vue'
 import { apiUrl } from '@/services/apiCore'
 import type { ChipOption } from '@/utils/chips'
@@ -275,6 +276,7 @@ const languageOptions = [
       >
         <div class="settings-toggles">
           <ApiTokenSettings />
+          <CalendarFeedSetting />
           <SettingsToggle
             class="settings-toggle--select settings-toggle--action"
             :label="t('settings.export.title')"

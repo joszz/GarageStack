@@ -1237,6 +1237,78 @@ public partial class AuthenticationFlowTests
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
+    // The calendar link opens the feed and nothing else: a calendar app keeps its address, and
+    // syncs it to its own servers.
+    [Fact]
+    public async Task CalendarLink_OpensTheFeedOnly_AndStopsWhenReplacedOrStopped()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var factory = CreatePasswordOnlyFactory();
+        using var session = CreateClient(factory);
+        await PasswordLoginAsync(session, ct);
+        using var anonymous = CreateClient(factory, handleCookies: false);
+
+        var before = await session.GetFromJsonAsync<JsonElement>("/api/calendar/link", ct);
+        Assert.False(before.GetProperty("exists").GetBoolean());
+
+        var created = await session.PostAsync("/api/calendar/link", null, ct);
+        Assert.Equal(HttpStatusCode.OK, created.StatusCode);
+        var token = (await created.Content.ReadFromJsonAsync<JsonElement>(ct)).GetProperty("token").GetString()!;
+
+        var feed = await anonymous.GetAsync($"/api/calendar/feed.ics?token={token}&culture=nl", ct);
+        Assert.Equal(HttpStatusCode.OK, feed.StatusCode);
+        Assert.Equal("text/calendar", feed.Content.Headers.ContentType?.MediaType);
+        Assert.True(feed.Headers.CacheControl?.NoStore);
+        var ics = await feed.Content.ReadAsStringAsync(ct);
+        Assert.StartsWith("BEGIN:VCALENDAR", ics);
+        // The demo has climate schedules, so the coming runs are there, in Dutch.
+        Assert.Contains("SUMMARY:Klimaat aan", ics);
+
+        var status = await session.GetFromJsonAsync<JsonElement>("/api/calendar/link", ct);
+        Assert.True(status.GetProperty("exists").GetBoolean());
+        Assert.NotEqual(JsonValueKind.Null, status.GetProperty("lastUsedAt").ValueKind);
+
+        // Not a key to the API, and not listed with the API tokens.
+        using var bearer = CreateClient(factory, handleCookies: false);
+        bearer.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await bearer.GetAsync("/api/vehicles", ct)).StatusCode);
+        Assert.DoesNotContain("Calendar feed", await session.GetStringAsync("/api/tokens", ct));
+
+        // A new link replaces the old one.
+        var replaced = await session.PostAsync("/api/calendar/link", null, ct);
+        var newToken = (await replaced.Content.ReadFromJsonAsync<JsonElement>(ct)).GetProperty("token").GetString()!;
+        var old = await anonymous.GetAsync($"/api/calendar/feed.ics?token={token}", ct);
+        Assert.Equal(HttpStatusCode.Unauthorized, old.StatusCode);
+        Assert.Equal("calendar.unknownLink", await ProblemCodeAsync(old, ct));
+
+        var stopped = await session.DeleteAsync("/api/calendar/link", ct);
+        Assert.Equal(HttpStatusCode.NoContent, stopped.StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await anonymous.GetAsync($"/api/calendar/feed.ics?token={newToken}", ct)).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await session.DeleteAsync("/api/calendar/link", ct)).StatusCode);
+    }
+
+    [Fact]
+    public async Task CalendarFeed_RefusesAReadTokenOrNone_AndAReadTokenCannotManageTheLink()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var factory = CreatePasswordOnlyFactory();
+        using var session = CreateClient(factory);
+        await PasswordLoginAsync(session, ct);
+        using var anonymous = CreateClient(factory, handleCookies: false);
+
+        var created = await session.PostAsJsonAsync("/api/tokens", new { name = "Script" }, ct);
+        var readToken = (await created.Content.ReadFromJsonAsync<JsonElement>(ct)).GetProperty("token").GetString()!;
+
+        Assert.Equal(HttpStatusCode.Unauthorized, (await anonymous.GetAsync("/api/calendar/feed.ics", ct)).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await anonymous.GetAsync($"/api/calendar/feed.ics?token={readToken}", ct)).StatusCode);
+
+        using var bearer = CreateClient(factory, handleCookies: false);
+        bearer.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", readToken);
+        var link = await bearer.GetAsync("/api/calendar/link", ct);
+        Assert.Equal(HttpStatusCode.Forbidden, link.StatusCode);
+        Assert.Equal("token.cannotManageTokens", await ProblemCodeAsync(link, ct));
+    }
+
     // The export is every trip and every position, the logs and the diagnostics the services' own:
     // a token meant for a dashboard sensor must not carry those off. The same session reads them.
     [Theory]

@@ -338,3 +338,16 @@
 .api-token-reference {
   align-self: flex-start;
 }
+
+/* ── Calendar feed ────────────────────────────────────────── */
+
+.calendar-feed__subscribe {
+  align-self: flex-start;
+}
+
+/* Make or replace the link, and stop it: side by side, wrapping on a narrow phone. */
+.calendar-feed__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}

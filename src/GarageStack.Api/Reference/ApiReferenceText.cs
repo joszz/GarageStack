@@ -94,6 +94,7 @@ internal static class ApiReferenceText
         ["Updates"] = "Whether a newer GarageStack release is out.",
         ["Diagnostics"] = "Errors the web app ran into in the browser, for the API's log, and an anonymized zip to attach to a bug report.",
         ["Widget"] = "The car's status in one call, for a Homepage dashboard widget.",
+        ["Calendar"] = "A calendar feed (iCalendar) of the APK, maintenance due dates and climate schedules, opened by the token in its address. The link is made and stopped from a signed-in session.",
         ["Demo"] = "Demo mode only: change the demo car's state, as the Demo Controls panel does.",
     };
 }

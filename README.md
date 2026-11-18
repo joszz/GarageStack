@@ -51,7 +51,7 @@ The statistics, trip log, route editor, charge history, maintenance list, climat
 - [Push notifications](#push-notifications)
 - [Trip log](#trip-log), [Charge history](#charge-history), [Climate schedules](#climate-schedules) and [Maintenance](#maintenance)
 - [Dutch registration (RDW)](#dutch-registration-rdw)
-- [Homepage dashboard widget](#homepage-dashboard-widget) and [Read-only API tokens](#read-only-api-tokens)
+- [Homepage dashboard widget](#homepage-dashboard-widget), [Read-only API tokens](#read-only-api-tokens) and [Calendar feed](#calendar-feed)
 - [Directions to the car](#directions-to-the-car) and [Map overlays](#map-overlays)
 - [Security defaults](#security-defaults), [HTTPS](#https) and [What leaves your network](#what-leaves-your-network)
 - [Documentation](#documentation)
@@ -75,6 +75,7 @@ The statistics, trip log, route editor, charge history, maintenance list, climat
 - **Log viewer** -- The Logs page shows the entries of the API's and the Worker's log files, newest first and older ones loading as you scroll, filtered by service, level and text, with exceptions folded open on request and a live mode that adds what was written every ten seconds. The files themselves stay on the server, one per day (`LOG_RETAINED_FILES`).
 - **Full data export** -- Settings > Data & API > Your data downloads everything GarageStack keeps as one zip: per car its trips, maintenance, schedules, places and every telemetry reading (as CSV), and your notifications and settings.
 - **Diagnostics for a bug report** -- Settings > Data & API > Diagnostics downloads a small anonymized zip to attach to an issue: the version, which parts are on and healthy, the car's type and configuration codes, the last week of readings without positions, and the last week of warnings from the logs. VINs become car-1, car-2, and plates, email and IP addresses, URLs and coordinates are taken out.
+- **Calendar feed** -- Subscribe to the APK expiry date, maintenance due dates and the coming climate schedules in Google Calendar, Apple Calendar, Outlook or any other calendar app. See [Calendar feed](#calendar-feed).
 - **Read-only API tokens** -- Make a token under Settings > Data & API > API tokens and let a script, a dashboard or a watch read what the app shows, without signing in. A token can only read: it cannot send commands or change anything, and the full data export, the logs and the diagnostics stay with a signed-in session.
 - **Home Assistant** -- Your car appears in Home Assistant automatically through MQTT discovery, sharing GarageStack's broker and MG session instead of needing a second integration. GarageStack adds sensors of its own to the car: the APK and its days left, open recalls, the maintenance due next and the last trip. See [`HOME_ASSISTANT.md`](documentation/HOME_ASSISTANT.md).
 - **Progressive Web App (PWA)** -- Installable on mobile or desktop for a native app-like experience, complete with a home screen icon and push notification support. Where the browser allows it, GarageStack offers to install itself, and the offer can be turned down for good. It also opens without a connection, in an underground car park for instance: the dashboard and the map then show the car as that device last loaded it, and the dashboard says so and when the car was last seen, and the directions dialog still offers the coordinates and a `geo:` link for a map app with offline maps. The saved copy is forgotten on signing out. Installing and push need HTTPS, see [HTTPS](#https).
@@ -502,6 +503,18 @@ The settings, including an optional Socrata app token for a higher rate limit, a
 GarageStack has a read-only endpoint for the [gethomepage.dev](https://gethomepage.dev) Custom API widget, switched on by setting `WIDGET_API_KEY`. The setup and every field it returns are in [`WIDGET.md`](documentation/WIDGET.md).
 
 ---
+
+## Calendar feed
+
+Under **Settings > Data & API > Calendar feed**, **Make a calendar link** gives an address a calendar app can subscribe to. **Add to calendar** opens it in the calendar app of the device you are on; elsewhere, paste the link where the app adds a calendar from a URL (Google Calendar: *Other calendars > From URL*). The calendar holds:
+
+- the APK expiry date, as a whole-day event, when [RDW lookups](#the-dutch-registration-rdw) are on and the car has a plate;
+- each maintenance item's due date, for items with an interval in months (an item due by distance alone has no date to show);
+- every climate schedule run of the next two weeks.
+
+The calendar app fetches the feed itself, every few hours or as often as it chooses (Google Calendar can take up to a day), so a change shows up there with that delay. The events are in the language the app was in when the link was made.
+
+The link carries a token that opens this calendar and nothing else: it is no API token and reads nothing more, but anyone who has the link can read these dates, and calendar apps keep it on their own servers. It is shown once. **New link** replaces it (the old one stops working, so re-subscribe with the new one) and **Stop** ends it. If GarageStack sits behind a sign-in proxy (Authelia, oauth2-proxy and the like), let `/api/calendar/feed.ics` through without it: a calendar app cannot sign in.
 
 ## Read-only API tokens
 

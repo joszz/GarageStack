@@ -735,6 +735,24 @@
       "confirmRevokeNamed": "¿Revocar {name}? Toca nuevamente para confirmar",
       "reference": "Referencia de la API"
     },
+    "calendarFeed": {
+      "title": "Calendario",
+      "desc": "Suscríbete en cualquier app de calendario a la fecha de vencimiento de la APK, las fechas de mantenimiento y los horarios de climatización de las próximas dos semanas. El enlace solo abre este calendario, pero quien lo tenga puede leer esas fechas.",
+      "create": "Crear enlace de calendario",
+      "copyNow": "Copia este enlace ahora: no se vuelve a mostrar. Tu app de calendario lo consulta sola cada pocas horas.",
+      "link": "Enlace de calendario",
+      "copy": "Copiar",
+      "copied": "Copiado",
+      "subscribe": "Añadir al calendario",
+      "active": "Hay un enlace de calendario activo",
+      "createdAt": "creado {date}",
+      "lastUsed": "consultado {date}",
+      "neverUsed": "aún no consultado",
+      "replace": "Nuevo enlace",
+      "confirmReplace": "¿Reemplazar? El enlace anterior deja de funcionar",
+      "stop": "Detener",
+      "confirmStop": "¿Detener? Toca de nuevo para confirmar"
+    },
     "export": {
       "title": "Tus datos",
       "desc": "Descarga en un archivo ZIP todo lo que guarda GarageStack: trayectos, mantenimiento, programaciones, lugares, lecturas de telemetría, notificaciones y ajustes. Las lecturas se incluyen como CSV, que puedes abrir en una hoja de cálculo; el resto se guarda en archivos JSON.",

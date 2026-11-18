@@ -26,7 +26,8 @@ public static class ApiTokenEndpoints
         group.MapGet("/", async (HttpContext httpContext, IApiTokenRepository tokens, CancellationToken ct) =>
         {
             if (SessionPrincipal.ResolveAccountKey(httpContext.User) is not { } account) return NoAccount();
-            var list = await tokens.ListAsync(account, ct);
+            // The calendar feed's token is managed with the feed, not listed here.
+            var list = await tokens.ListAsync(account, ApiTokenScope.Read, ct);
             return Results.Ok(list.Select(ToDto));
         })
         .Produces<ApiTokenDto[]>()
