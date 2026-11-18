@@ -946,6 +946,11 @@
     "joinNext": "Unirse al próximo viaje",
     "joinNextConfirm": "Unirse a viajes",
     "joinNextHint": "Une este viaje con el siguiente, para conducir una breve parada, como una estación de combustible dividida en dos. No se puede deshacer.",
+    "filter": {
+      "period": "Período",
+      "periodDesc": "El mes, o el año completo, cuyos trayectos se muestran y suman.",
+      "hiddenDesc": "Los trayectos ocultos no cuentan en ningún sitio. Muéstralos para volver a mostrar uno."
+    },
     "showHidden": "Mostrar trayecto oculto | Mostrar {n} trayectos ocultos",
     "editRoute": "Editar ruta",
     "edited": "Editado",

@@ -946,6 +946,11 @@
     "joinNext": "Samenvoegen met volgende rit",
     "joinNextConfirm": "Ritten samenvoegen",
     "joinNextHint": "Voegt deze rit samen met de rit erna, voor een rit die door een korte stop, zoals bij een tankstation, in tweeën is gesplitst. Kan niet ongedaan worden gemaakt.",
+    "filter": {
+      "period": "Periode",
+      "periodDesc": "De maand, of het hele jaar, waarvan de ritten worden getoond en opgeteld.",
+      "hiddenDesc": "Verborgen ritten tellen nergens mee. Toon ze om er een weer zichtbaar te maken."
+    },
     "showHidden": "Verborgen rit tonen | {n} verborgen ritten tonen",
     "editRoute": "Route bewerken",
     "edited": "Bewerkt",

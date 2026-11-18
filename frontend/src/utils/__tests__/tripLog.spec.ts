@@ -8,6 +8,7 @@ import {
   missingPlaces,
   odometerDistanceKm,
   periodKey,
+  periodLabel,
   periodRange,
   periodSummary,
   purposeTotals,
@@ -43,6 +44,13 @@ describe('periodKey', () => {
     expect(periodKey({ year: 2026, month: 0 })).toBe('2026-01')
     expect(periodKey({ year: 2026, month: 11 })).toBe('2026-12')
     expect(periodKey({ year: 2026, month: null })).toBe('2026')
+  })
+})
+
+describe('periodLabel', () => {
+  it('names a month with its year, and a whole year by its number', () => {
+    expect(periodLabel({ year: 2026, month: 10 })).toBe('November 2026')
+    expect(periodLabel({ year: 2026, month: null })).toBe('2026')
   })
 })
 

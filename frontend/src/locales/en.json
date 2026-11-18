@@ -946,6 +946,11 @@
     "joinNext": "Join with next trip",
     "joinNextConfirm": "Join trips",
     "joinNextHint": "Joins this trip with the one after it, for a drive a short stop such as a fuel station split in two. Cannot be undone.",
+    "filter": {
+      "period": "Period",
+      "periodDesc": "The month, or the whole year, whose trips are listed and totalled.",
+      "hiddenDesc": "Hidden trips count nowhere. List them to show one again."
+    },
     "showHidden": "Show hidden trip | Show {n} hidden trips",
     "editRoute": "Edit route",
     "edited": "Edited",

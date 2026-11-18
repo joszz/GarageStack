@@ -946,6 +946,11 @@
     "joinNext": "Unir à próxima viagem",
     "joinNextConfirm": "Unir viagens",
     "joinNextHint": "Une esta viagem à seguinte, para um trajeto que uma parada curta, como num posto de combustível, dividiu em dois. Não pode ser desfeito.",
+    "filter": {
+      "period": "Período",
+      "periodDesc": "O mês, ou o ano inteiro, cujas viagens são listadas e somadas.",
+      "hiddenDesc": "As viagens ocultas não contam em lado nenhum. Mostre-as para voltar a exibir uma."
+    },
     "showHidden": "Mostrar viagem oculta | Mostrar {n} viagens ocultas",
     "editRoute": "Editar rota",
     "edited": "Editada",

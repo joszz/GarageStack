@@ -11,7 +11,7 @@ import TripLogItem from '@/components/TripLogItem.vue'
 import TripLogDetail from '@/components/TripLogDetail.vue'
 import CommutePlacesModal from '@/components/CommutePlacesModal.vue'
 import DetailModal from '@/components/DetailModal.vue'
-import TripLogPeriodFields from '@/components/TripLogPeriodFields.vue'
+import TripLogFilterPanel from '@/components/TripLogFilterPanel.vue'
 import TripLogSummaryModal from '@/components/TripLogSummaryModal.vue'
 import { useCommutePlacesStore } from '@/stores/commutePlaces'
 import { TRIP_PURPOSES, type TripPurpose } from '@/services/tripLogApi'
@@ -19,6 +19,7 @@ import { formatNumber } from '@/utils/format'
 import {
   currentMonthPeriod,
   distanceShare,
+  periodLabel,
   PURPOSE_CARD_VARIANTS,
   PURPOSE_ICONS,
   PURPOSE_KEYS,
@@ -48,6 +49,7 @@ const errorMessage = useErrorMessage()
 const vin = computed(() => vehicleStore.activeVin)
 
 const period = ref<TripLogPeriod>(currentMonthPeriod())
+const caption = computed(() => periodLabel(period.value))
 
 // Hidden trips stay out of the list unless asked for, as they stay out of the totals and export.
 const showHidden = ref(false)
@@ -230,15 +232,15 @@ function classifyAll(purpose: TripPurpose) {
 
 <template>
   <div class="view-container">
-    <ViewHeader :title="t('tripLog.title')" :subtitle="t('tripLog.subtitle')" />
-
-    <div class="trip-log-filters">
-      <TripLogPeriodFields v-model="period" />
-      <label v-if="store.hiddenCount > 0" class="trip-log-hidden-toggle text-sm">
-        <input v-model="showHidden" type="checkbox" class="form-check-input" />
-        {{ t('tripLog.showHidden', store.hiddenCount) }}
-      </label>
-    </div>
+    <ViewHeader :title="t('tripLog.title')" :caption="caption" :subtitle="t('tripLog.subtitle')">
+      <template #actions>
+        <TripLogFilterPanel
+          v-model:period="period"
+          v-model:show-hidden="showHidden"
+          :hidden-count="store.hiddenCount"
+        />
+      </template>
+    </ViewHeader>
 
     <div class="trip-log-figures" :class="{ 'trip-log-figures--open': figuresOpen }">
       <section
