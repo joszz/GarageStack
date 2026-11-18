@@ -33,6 +33,9 @@ function mountDirections(
 const copyButton = (wrapper: ReturnType<typeof mountDirections>) =>
   wrapper.findAll('button').find((button) => button.text() === en.directions.copy)!
 
+const shareButton = (wrapper: ReturnType<typeof mountDirections>) =>
+  wrapper.findAll('button').find((button) => button.text() === en.directions.share)
+
 describe('LocationDirections', () => {
   afterEach(() => {
     vi.unstubAllGlobals()
@@ -227,4 +230,63 @@ describe('LocationDirections', () => {
       expect(wrapper.find('[role="alert"]').exists()).toBe(false)
     },
   )
+
+  describe('sharing', () => {
+    it('is not offered where the browser has no share sheet', () => {
+      vi.stubGlobal('navigator', {
+        clipboard: { writeText: vi.fn<(_: string) => Promise<void>>() },
+      })
+      expect(shareButton(mountDirections())).toBeUndefined()
+    })
+
+    it('shares the parked spot as an OpenStreetMap link', async () => {
+      const share = vi.fn<(_: ShareData) => Promise<void>>().mockResolvedValue()
+      vi.stubGlobal('navigator', { share })
+      const wrapper = mountDirections()
+
+      await shareButton(wrapper)!.trigger('click')
+      await flushPromises()
+
+      expect(share).toHaveBeenCalledExactlyOnceWith({
+        title: en.directions.shareTitle,
+        text: en.directions.shareText,
+        url: 'https://www.openstreetmap.org/?mlat=52.090000&mlon=5.120000#map=18/52.090000/5.120000',
+      })
+      expect(wrapper.find('[role="alert"]').exists()).toBe(false)
+    })
+
+    it('is not offered while the car may be moving', () => {
+      vi.stubGlobal('navigator', { share: vi.fn<(_: ShareData) => Promise<void>>() })
+      expect(shareButton(mountDirections({ ...location, mayBeMoving: true }))).toBeUndefined()
+    })
+
+    it('says nothing when the share sheet is closed without sharing', async () => {
+      const share = vi
+        .fn<(_: ShareData) => Promise<void>>()
+        .mockRejectedValue(new DOMException('cancelled', 'AbortError'))
+      vi.stubGlobal('navigator', { share })
+      const wrapper = mountDirections()
+
+      await shareButton(wrapper)!.trigger('click')
+      await flushPromises()
+
+      expect(wrapper.find('[role="alert"]').exists()).toBe(false)
+    })
+
+    it('reports a share that failed, until the dialog is opened again', async () => {
+      const share = vi
+        .fn<(_: ShareData) => Promise<void>>()
+        .mockRejectedValue(new DOMException('denied', 'NotAllowedError'))
+      vi.stubGlobal('navigator', { share })
+      const wrapper = mountDirections()
+
+      await shareButton(wrapper)!.trigger('click')
+      await flushPromises()
+      expect(wrapper.get('[role="alert"]').text()).toBe(en.directions.shareFailed)
+
+      await wrapper.setProps({ open: false })
+      await wrapper.setProps({ open: true })
+      expect(wrapper.find('[role="alert"]').exists()).toBe(false)
+    })
+  })
 })

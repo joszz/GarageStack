@@ -196,7 +196,11 @@
     "lastKnownUnknown": "Laatst bekende locatie. De leeftijd van de locatie is onbekend.",
     "moving": "De auto rijdt mogelijk. Een route is niet beschikbaar zolang de auto onderweg lijkt.",
     "unavailable": "Route niet beschikbaar: de locatie van de auto is onbekend.",
-    "shareNotice": "Als je een kaart opent, worden deze coördinaten met die dienst of app gedeeld."
+    "shareNotice": "Als je een kaart opent, worden deze coördinaten met die dienst of app gedeeld.",
+    "share": "Locatie delen",
+    "shareTitle": "Waar mijn auto geparkeerd staat",
+    "shareText": "Mijn auto staat hier geparkeerd.",
+    "shareFailed": "De locatie kon niet worden gedeeld."
   },
   "vehicle": {
     "diagramLabel": "Voertuigstatusdiagram",

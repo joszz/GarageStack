@@ -22,6 +22,18 @@ export function osmDirectionsUrl(lat: number, lng: number): string {
   return `https://www.openstreetmap.org/directions?${query}`
 }
 
+/**
+ * The spot itself on openstreetmap.org, with a marker on it: what is shared when the car's
+ * position is sent to someone. It works in any browser, and the person who opens it picks their
+ * own way to get there.
+ */
+export function osmPlaceUrl(lat: number, lng: number): string {
+  const latText = lat.toFixed(6)
+  const lngText = lng.toFixed(6)
+  const query = new URLSearchParams({ mlat: latText, mlon: lngText })
+  return `https://www.openstreetmap.org/?${query}#map=18/${latText}/${lngText}`
+}
+
 export function googleDirectionsUrl(lat: number, lng: number): string {
   const query = new URLSearchParams({
     api: '1',

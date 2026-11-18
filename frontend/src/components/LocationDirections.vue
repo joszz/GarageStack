@@ -9,6 +9,7 @@ import {
   geoUri,
   googleDirectionsUrl,
   osmDirectionsUrl,
+  osmPlaceUrl,
 } from '@/utils/mapLinks'
 import { formatDateTime } from '@/utils/format'
 import DetailModal from './DetailModal.vue'
@@ -19,6 +20,9 @@ const { t } = useI18n()
 const descriptionId = useId()
 const copyResult = ref<'idle' | 'copied' | 'failed'>('idle')
 let copyGeneration = 0
+// The share sheet is a phone's (and some desktops'); where the browser has none, copying stays.
+const canShare = typeof navigator.share === 'function'
+const shareFailed = ref(false)
 
 const destination = computed(() =>
   props.location && !props.location.mayBeMoving ? props.location : null,
@@ -65,6 +69,7 @@ const locationDescription = computed(() => {
 watch([destinationKey, () => props.open], () => {
   copyGeneration += 1
   copyResult.value = 'idle'
+  shareFailed.value = false
 })
 
 async function copyCoordinates() {
@@ -85,6 +90,22 @@ async function copyCoordinates() {
     if (isCurrent()) copyResult.value = 'copied'
   } catch {
     if (isCurrent()) copyResult.value = 'failed'
+  }
+}
+
+async function shareLocation() {
+  const point = destination.value
+  if (!props.open || !point) return
+  shareFailed.value = false
+  try {
+    await navigator.share({
+      title: t('directions.shareTitle'),
+      text: t('directions.shareText'),
+      url: osmPlaceUrl(point.latitude, point.longitude),
+    })
+  } catch (error) {
+    // Closing the share sheet without picking anyone rejects too; that is no failure.
+    if (!(error instanceof DOMException && error.name === 'AbortError')) shareFailed.value = true
   }
 }
 </script>
@@ -154,6 +175,18 @@ async function copyCoordinates() {
             @focus="($event.target as HTMLInputElement).select()"
           />
         </template>
+        <button
+          v-if="canShare"
+          type="button"
+          class="btn btn-outline-secondary location-directions__option"
+          @click="shareLocation"
+        >
+          <font-awesome-icon icon="share-nodes" aria-hidden="true" />
+          {{ t('directions.share') }}
+        </button>
+        <p v-if="shareFailed" class="location-directions__note" role="alert">
+          {{ t('directions.shareFailed') }}
+        </p>
         <p class="location-directions__note">{{ t('directions.shareNotice') }}</p>
       </template>
     </div>

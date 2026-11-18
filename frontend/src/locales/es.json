@@ -196,7 +196,11 @@
     "lastKnownUnknown": "Última ubicación conocida. Se desconoce su antigüedad.",
     "moving": "El coche podría estar en movimiento. La ruta no está disponible mientras parece estar de viaje.",
     "unavailable": "Ruta no disponible: se desconoce la ubicación del coche.",
-    "shareNotice": "Al abrir un mapa, estas coordenadas se comparten con ese servicio o aplicación."
+    "shareNotice": "Al abrir un mapa, estas coordenadas se comparten con ese servicio o aplicación.",
+    "share": "Compartir ubicación",
+    "shareTitle": "Dónde está aparcado mi coche",
+    "shareText": "Mi coche está aparcado aquí.",
+    "shareFailed": "No se pudo compartir la ubicación."
   },
   "vehicle": {
     "diagramLabel": "Diagrama de estado del vehículo",
