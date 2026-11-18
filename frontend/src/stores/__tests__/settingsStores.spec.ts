@@ -441,6 +441,54 @@ describe('useDashboardSettingsStore', () => {
     expect(JSON.parse(localStorage.getItem(DASHBOARD_KEY)!).showStatsMonths).toBe(false)
   })
 
+  describe('car diagram and location map', () => {
+    const ids = (store: ReturnType<typeof useDashboardSettingsStore>) =>
+      store.overview.map((part) => part.id)
+
+    it('shows the car diagram before the location map until they are swapped', () => {
+      const store = useDashboardSettingsStore()
+      expect(store.overview).toEqual([
+        { id: 'car', visible: true },
+        { id: 'map', visible: true },
+      ])
+    })
+
+    it('keeps the swapped order across a reload', async () => {
+      const store = useDashboardSettingsStore()
+      store.overview = [...store.overview].reverse()
+      expect(ids(store)).toEqual(['map', 'car'])
+
+      await nextTick()
+      vi.advanceTimersByTime(SAVE_DEBOUNCE_MS)
+      setActivePinia(createPinia())
+
+      expect(ids(useDashboardSettingsStore())).toEqual(['map', 'car'])
+    })
+
+    it('hides and shows each of the two on its own, wherever it stands', () => {
+      const store = useDashboardSettingsStore()
+      store.mapFirst = true
+      store.toggleOverview('map')
+      expect(store.showLocationMap).toBe(false)
+      expect(store.overview).toEqual([
+        { id: 'map', visible: false },
+        { id: 'car', visible: true },
+      ])
+
+      store.toggleOverview('car')
+      expect(store.showTyreDiagram).toBe(false)
+      store.toggleOverview('map')
+      expect(store.showLocationMap).toBe(true)
+    })
+
+    it('puts the car diagram first again on a layout reset', () => {
+      const store = useDashboardSettingsStore()
+      store.mapFirst = true
+      store.resetLayout('bev', () => true)
+      expect(ids(store)).toEqual(['car', 'map'])
+    })
+  })
+
   it('persists card visibility changes to its own localStorage key', async () => {
     const store = useDashboardSettingsStore()
     const firstCard = store.cards[0]

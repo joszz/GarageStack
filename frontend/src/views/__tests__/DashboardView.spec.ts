@@ -8,6 +8,7 @@ import { vehicleApi, type TelemetrySnapshot, type Trip, type Vehicle } from '@/s
 import { rdwApi } from '@/services/rdwApi'
 import { ApiError } from '@/services/apiCore'
 import { useVehicleStore } from '@/stores/vehicle'
+import { useDashboardSettingsStore } from '@/stores/settingsDashboard'
 import { LONG_PRESS_MS } from '@/composables/useLongPress'
 
 vi.mock('@/services/vehicleApi', () => ({
@@ -205,6 +206,33 @@ describe('DashboardView', () => {
 
     expect(wrapper.find('.card-grid').exists()).toBe(true)
     expect(wrapper.text()).toContain(en.dashboard.doneEditing)
+  })
+
+  it('shows the location map before the car diagram once the two are swapped', async () => {
+    useDashboardSettingsStore(pinia).mapFirst = true
+    const wrapper = await mountView()
+
+    const row = wrapper.find('.overview-row')
+    const order = row.findAll(':scope > *').map((el) => el.element.tagName.toLowerCase())
+    expect(order).toEqual(['location-map-widget-stub', 'car-diagram-stub'])
+  })
+
+  it('lets the car diagram and the location map be dragged in a list of their own', async () => {
+    const wrapper = await mountView()
+
+    await wrapper
+      .findAll('button')
+      .find((b) => b.text() === en.dashboard.editLayout)!
+      .trigger('click')
+    await vi.dynamicImportSettled()
+    await flushPromises()
+
+    const overview = wrapper.find('.overview-row')
+    expect(overview.classes()).toContain('card-grid')
+    expect(overview.find('car-diagram-stub').exists()).toBe(true)
+    expect(overview.find('location-map-widget-stub').exists()).toBe(true)
+    // The other cards are in a list of their own, so neither can trade places with them.
+    expect(overview.find('.card').exists()).toBe(false)
   })
 
   // Issue #570: a card the car sends nothing for showed as a placeholder while editing and then

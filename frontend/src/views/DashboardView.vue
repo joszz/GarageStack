@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n'
 import { useVehicleStore } from '@/stores/vehicle'
 import { useRdwStore } from '@/stores/rdw'
 import { cardsHiddenByType, useDashboardSettingsStore } from '@/stores/settingsDashboard'
+import type { OverviewId } from '@/stores/settingsDashboard'
 import type { CardId } from '@/cards/registry'
 import { cardHasData, cardIcon } from '@/cards/registry'
 import { useCardData } from '@/cards/useCardData'
@@ -12,7 +13,6 @@ import DashboardCardContent from '@/components/DashboardCardContent.vue'
 import CardInfoWrap from '@/components/CardInfoWrap.vue'
 import CarDiagram from '@/components/CarDiagram.vue'
 import LocationMapWidget from '@/components/LocationMapWidget.vue'
-import EditableCardSlot from '@/components/EditableCardSlot.vue'
 import EditLayoutButton from '@/components/EditLayoutButton.vue'
 import type EditableCardGridComponent from '@/components/EditableCardGrid.vue'
 import SkeletonCard from '@/components/SkeletonCard.vue'
@@ -42,6 +42,14 @@ const { editMode, cardLongPress } = useEditMode()
 
 const vehicleType = computed(() => store.effectiveVehicleType)
 const cardData = useCardData()
+
+// The car diagram and the location map: their slot class, and what edit mode shows while one is off.
+const OVERVIEW_PARTS: Record<OverviewId, { className: string; icon: string; label: string }> = {
+  car: { className: 'overview-row__car', icon: 'car-side', label: 'vehicle.overview' },
+  map: { className: 'overview-row__map', icon: 'location-dot', label: 'vehicle.location' },
+}
+
+const shownOverview = computed(() => settings.overview.filter((part) => part.visible))
 
 // Shared prop set for the two <CarDiagram> invocations (edit mode + normal mode), which
 // are otherwise identical aside from their v-if guard and wrapper class.
@@ -205,34 +213,22 @@ onUnmounted(() => {
 
     <!-- Edit mode: same grid with draggable card-slot wrappers -->
     <template v-if="editMode">
-      <!-- Tyre diagram + location map toggles -->
-      <div class="overview-row mt-4 mb-4">
-        <EditableCardSlot
-          class="card-slot--large overview-row__car"
-          :visible="settings.showTyreDiagram"
-          :draggable="false"
-          @toggle-visible="settings.showTyreDiagram = !settings.showTyreDiagram"
-        >
-          <CarDiagram v-if="settings.showTyreDiagram && status" v-bind="carDiagramProps" />
+      <!-- Tyre diagram + location map: shown or hidden, and swapped with each other only -->
+      <EditableCardGrid
+        v-model="settings.overview"
+        class="overview-row mt-4 mb-4"
+        :slot-class="(part) => `card-slot--large ${OVERVIEW_PARTS[part.id].className}`"
+        @toggle-visible="(part) => settings.toggleOverview(part.id)"
+      >
+        <template #default="{ item: part }">
+          <CarDiagram v-if="part.id === 'car' && part.visible && status" v-bind="carDiagramProps" />
+          <LocationMapWidget v-else-if="part.id === 'map' && part.visible" />
           <div v-else class="card-slot__placeholder card-slot__placeholder--chart">
-            <font-awesome-icon icon="car-side" />
-            <span>{{ t('vehicle.overview') }}</span>
+            <font-awesome-icon :icon="OVERVIEW_PARTS[part.id].icon" />
+            <span>{{ t(OVERVIEW_PARTS[part.id].label) }}</span>
           </div>
-        </EditableCardSlot>
-
-        <EditableCardSlot
-          class="card-slot--large overview-row__map"
-          :visible="settings.showLocationMap"
-          :draggable="false"
-          @toggle-visible="settings.showLocationMap = !settings.showLocationMap"
-        >
-          <LocationMapWidget v-if="settings.showLocationMap" />
-          <div v-else class="card-slot__placeholder card-slot__placeholder--chart">
-            <font-awesome-icon icon="location-dot" />
-            <span>{{ t('vehicle.location') }}</span>
-          </div>
-        </EditableCardSlot>
-      </div>
+        </template>
+      </EditableCardGrid>
 
       <EditableCardGrid
         v-model="editableCards"
@@ -266,9 +262,11 @@ onUnmounted(() => {
     <!-- Normal mode -->
     <template v-else>
       <template v-if="store.loading && !status">
-        <div v-if="settings.showTyreDiagram || settings.showLocationMap" class="overview-row mb-4">
-          <SkeletonCarDiagram v-if="settings.showTyreDiagram" class="overview-row__car" />
-          <SkeletonLocationMap v-if="settings.showLocationMap" class="overview-row__map" />
+        <div v-if="shownOverview.length" class="overview-row mb-4">
+          <template v-for="part in shownOverview" :key="part.id">
+            <SkeletonCarDiagram v-if="part.id === 'car'" :class="OVERVIEW_PARTS.car.className" />
+            <SkeletonLocationMap v-else :class="OVERVIEW_PARTS.map.className" />
+          </template>
         </div>
         <div class="status-grid">
           <SkeletonCard v-for="card in skeletonCards" :key="card.id" :icon="cardIcon(card.id)" />
@@ -286,16 +284,18 @@ onUnmounted(() => {
 
       <template v-else>
         <div
-          v-if="settings.showTyreDiagram || settings.showLocationMap"
+          v-if="shownOverview.length"
           class="overview-row long-press-cards mb-4"
           v-bind="cardLongPress"
         >
-          <CarDiagram
-            v-if="settings.showTyreDiagram"
-            v-bind="carDiagramProps"
-            class="overview-row__car"
-          />
-          <LocationMapWidget v-if="settings.showLocationMap" class="overview-row__map" />
+          <template v-for="part in shownOverview" :key="part.id">
+            <CarDiagram
+              v-if="part.id === 'car'"
+              v-bind="carDiagramProps"
+              :class="OVERVIEW_PARTS.car.className"
+            />
+            <LocationMapWidget v-else :class="OVERVIEW_PARTS.map.className" />
+          </template>
         </div>
 
         <div class="status-grid long-press-cards" v-bind="cardLongPress">

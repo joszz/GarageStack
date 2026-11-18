@@ -7,7 +7,7 @@ const { t } = useI18n()
 withDefaults(
   defineProps<{
     visible: boolean
-    /** False for the fixed-position slots that aren't part of a draggable list: the dashboard's tyre diagram and location map, the statistics page's per-month table. */
+    /** False for a fixed-position slot that is not part of a draggable list, such as the statistics page's per-month table. */
     draggable?: boolean
   }>(),
   { draggable: true },
