@@ -104,6 +104,14 @@ export default defineConfig({
             icons: [{ src: 'shortcut-trip-log-96x96.png', sizes: '96x96', type: 'image/png' }],
           },
           {
+            name: 'Charge history',
+            short_name: 'Charging',
+            url: '/charge-history',
+            icons: [
+              { src: 'shortcut-charge-history-96x96.png', sizes: '96x96', type: 'image/png' },
+            ],
+          },
+          {
             name: 'Climate schedules',
             short_name: 'Climate',
             url: '/climate-schedules',
