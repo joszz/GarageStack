@@ -90,6 +90,7 @@ export {
   faRotateLeft,
   faRoute,
   faScrewdriverWrench,
+  faShareNodes,
   faShieldHalved,
   faSliders,
   faSnowflake,

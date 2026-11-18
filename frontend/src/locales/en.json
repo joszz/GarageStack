@@ -196,7 +196,11 @@
     "lastKnownUnknown": "Last known location. Its age is unknown.",
     "moving": "The car may be moving. Directions are unavailable while it appears to be on a trip.",
     "unavailable": "Directions unavailable: the car's location is unknown.",
-    "shareNotice": "Opening a map shares these coordinates with that service or app."
+    "shareNotice": "Opening a map shares these coordinates with that service or app.",
+    "share": "Share location",
+    "shareTitle": "Where my car is parked",
+    "shareText": "My car is parked here.",
+    "shareFailed": "Could not share the location."
   },
   "vehicle": {
     "diagramLabel": "Vehicle status diagram",

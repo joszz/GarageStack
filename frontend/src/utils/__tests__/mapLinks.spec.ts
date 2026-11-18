@@ -5,6 +5,7 @@ import {
   geoUri,
   googleDirectionsUrl,
   osmDirectionsUrl,
+  osmPlaceUrl,
 } from '../mapLinks'
 
 describe('directions links', () => {
@@ -63,5 +64,21 @@ describe('geoUri', () => {
 
   it('keeps southern and western coordinates negative', () => {
     expect(geoUri(-33.8688, -70.6693)).toBe('geo:-33.868800,-70.669300?q=-33.868800,-70.669300')
+  })
+})
+
+describe('osmPlaceUrl', () => {
+  it('marks the spot and centres the map on it, close enough to see the street', () => {
+    const url = new URL(osmPlaceUrl(52.3676, 4.9041))
+
+    expect(url.origin + url.pathname).toBe('https://www.openstreetmap.org/')
+    expect(Object.fromEntries(url.searchParams)).toEqual({ mlat: '52.367600', mlon: '4.904100' })
+    expect(url.hash).toBe('#map=18/52.367600/4.904100')
+  })
+
+  it('keeps southern and western coordinates negative', () => {
+    expect(osmPlaceUrl(-33.8688, -70.6693)).toBe(
+      'https://www.openstreetmap.org/?mlat=-33.868800&mlon=-70.669300#map=18/-33.868800/-70.669300',
+    )
   })
 })

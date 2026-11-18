@@ -196,7 +196,11 @@
     "lastKnownUnknown": "Última localização conhecida. Não se sabe há quanto tempo.",
     "moving": "O carro pode estar em movimento. As rotas ficam indisponíveis enquanto ele parece estar em viagem.",
     "unavailable": "Rotas indisponíveis: a localização do carro é desconhecida.",
-    "shareNotice": "Ao abrir um mapa, essas coordenadas são compartilhadas com o serviço ou app correspondente."
+    "shareNotice": "Ao abrir um mapa, essas coordenadas são compartilhadas com o serviço ou app correspondente.",
+    "share": "Compartilhar localização",
+    "shareTitle": "Onde meu carro está estacionado",
+    "shareText": "Meu carro está estacionado aqui.",
+    "shareFailed": "Não foi possível compartilhar a localização."
   },
   "vehicle": {
     "diagramLabel": "Diagrama de status do veículo",
