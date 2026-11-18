@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { reactive, ref, toRefs } from 'vue'
+import { computed, reactive, ref, toRefs } from 'vue'
 import type { VehicleType } from './vehicle'
 import type {
   CardConfig,
@@ -32,12 +32,17 @@ export { defaultCards, defaultStatsInsights, defaultStatsCharts }
 
 const STORAGE_KEY = 'garagestack-settings-dashboard'
 
+/** The two large cards above the dashboard's grid: the car diagram and the location map. */
+export type OverviewId = 'car' | 'map'
+
 interface DashboardSettings {
   cards: CardConfig[]
   statsInsights: StatsItemConfig<StatsInsightId>[]
   statsCharts: StatsItemConfig<StatsChartId>[]
   showTyreDiagram: boolean
   showLocationMap: boolean
+  /** Whether the location map comes before the car diagram, rather than after it. */
+  mapFirst: boolean
   /** The statistics page's per-month table. */
   showStatsMonths: boolean
 }
@@ -49,6 +54,7 @@ function defaultsFor(): DashboardSettings {
     statsCharts: defaultStatsCharts(),
     showTyreDiagram: true,
     showLocationMap: true,
+    mapFirst: false,
     showStatsMonths: true,
   }
 }
@@ -64,6 +70,7 @@ function parseDashboardFields(parsed: Record<string, unknown>): DashboardSetting
     statsCharts: loadStatsItems(parsed.statsCharts, ALL_STATS_CHART_IDS),
     showTyreDiagram: parsed.showTyreDiagram !== false,
     showLocationMap: parsed.showLocationMap !== false,
+    mapFirst: parsed.mapFirst === true,
     showStatsMonths: parsed.showStatsMonths !== false,
   }
 }
@@ -201,15 +208,39 @@ export const useDashboardSettingsStore = defineStore('settingsDashboard', () => 
     settings.cards = byData(settings.cards, hasData)
   }
 
-  /** Back to the drivetrain's default layout, with the tyre diagram showing again. */
+  /**
+   * The car diagram and the location map in the order the dashboard shows them, each with whether
+   * it is shown. Setting it keeps the new order; the two only swap places with each other.
+   */
+  const overview = computed<StatsItemConfig<OverviewId>[]>({
+    get: () => {
+      const car = { id: 'car' as const, visible: settings.showTyreDiagram }
+      const map = { id: 'map' as const, visible: settings.showLocationMap }
+      return settings.mapFirst ? [map, car] : [car, map]
+    },
+    set: (parts) => {
+      settings.mapFirst = parts[0]?.id === 'map'
+    },
+  })
+
+  /** Shows or hides the car diagram or the location map. */
+  function toggleOverview(id: OverviewId) {
+    if (id === 'car') settings.showTyreDiagram = !settings.showTyreDiagram
+    else settings.showLocationMap = !settings.showLocationMap
+  }
+
+  /** Back to the drivetrain's default layout, with the tyre diagram showing again first. */
   function resetLayout(type: VehicleType, hasData: (id: CardId) => boolean) {
     settings.cards = byData(defaultCards(type), hasData)
     settings.showTyreDiagram = true
+    settings.mapFirst = false
   }
 
   return {
     ...toRefs(settings),
     hasSavedLayout,
+    overview,
+    toggleOverview,
     resetCards,
     hideCardsNotApplicable,
     applyTypeDefaults,

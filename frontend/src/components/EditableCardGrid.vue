@@ -7,8 +7,8 @@ import EditableCardSlot from './EditableCardSlot.vue'
 const items = defineModel<T[]>({ required: true })
 
 defineProps<{
-  /** Class for each card's slot, e.g. to size chart slots. */
-  slotClass?: string
+  /** Class for each card's slot, e.g. to size chart slots, or a function giving each its own. */
+  slotClass?: string | ((item: T) => string)
   /** Cards that do not apply to this car stay in the list but out of sight. */
   isShown?: (item: T) => boolean
 }>()
@@ -30,7 +30,7 @@ defineSlots<{ default(props: { item: T }): unknown }>()
       v-for="item in items"
       v-show="isShown?.(item) ?? true"
       :key="item.id"
-      :class="slotClass"
+      :class="typeof slotClass === 'function' ? slotClass(item) : slotClass"
       :visible="item.visible"
       @toggle-visible="$emit('toggle-visible', item)"
     >
