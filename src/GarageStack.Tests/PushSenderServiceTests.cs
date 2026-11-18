@@ -20,7 +20,8 @@ public class PushSenderServiceTests
             NullLogger<PushSenderService>.Instance,
             new FakeServiceScopeFactory(),
             new VapidOptions { PublicKey = publicKey, PrivateKey = privateKey },
-            new FakeHttpClientFactory(new HttpClient()));
+            new FakeHttpClientFactory(new HttpClient()),
+            WorkerLocalizer.Notifications());
 
     // VapidAuthentication validates key shape eagerly (65-byte uncompressed P-256 public
     // key, 32-byte private scalar), so "both keys set" needs a real - if freshly generated

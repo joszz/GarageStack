@@ -167,4 +167,164 @@ describe('service worker', () => {
 
     expect(scope.clients.openWindow).toHaveBeenCalledWith('/')
   })
+
+  describe('buttons on a notification', () => {
+    const VIN = 'FAKEVN00000000001'
+    const lock = { name: 'lock', title: 'Lock', sent: 'Lock sent to the car.' }
+    const done = { name: 'maintenance-done', title: 'Mark as done', sent: 'Logged as done today.' }
+
+    function shown(scope: ReturnType<typeof fakeWorkerScope>, call = 0) {
+      return scope.registration.showNotification.mock.calls[call] as unknown as [
+        string,
+        NotificationOptions & { actions?: unknown; data: Record<string, unknown> },
+      ]
+    }
+
+    function clickEvent(action: string, data: Record<string, unknown>) {
+      return {
+        action,
+        notification: {
+          close: vi.fn<() => void>(),
+          title: 'Car left unlocked',
+          tag: 'unlocked-parked',
+          data: { url: '/', vin: VIN, ...data },
+        },
+      }
+    }
+
+    function stubFetch(...responses: Response[]) {
+      const fetch = vi.fn<(input: string, init?: RequestInit) => Promise<Response>>()
+      for (const response of responses) fetch.mockResolvedValueOnce(response)
+      vi.stubGlobal('fetch', fetch)
+      return fetch
+    }
+
+    it('shows the buttons the push names, and keeps what they act on', async () => {
+      const scope = await loadWorker()
+
+      await dispatch(
+        scope,
+        'push',
+        pushEvent({
+          title: 'Car left unlocked',
+          body: 'Parked and unlocked',
+          category: 'unlocked-parked',
+          vin: VIN,
+          actions: [lock],
+        }),
+      )
+
+      const [, options] = shown(scope)
+      expect(options.actions).toEqual([{ action: 'lock', title: 'Lock' }])
+      expect(options.data).toEqual({
+        url: '/',
+        vin: VIN,
+        maintenanceItemId: undefined,
+        actions: [lock],
+      })
+    })
+
+    it('shows no buttons, and keeps no car, for a push without actions', async () => {
+      const scope = await loadWorker()
+
+      await dispatch(scope, 'push', pushEvent({ title: 'Charged', vin: VIN }))
+
+      const [, options] = shown(scope)
+      expect(options.actions).toBeUndefined()
+      expect(options.data).toEqual({ url: '/' })
+    })
+
+    it('locks the car without opening the app, and says so', async () => {
+      const fetch = stubFetch(new Response(null, { status: 202 }))
+      const scope = await loadWorker()
+
+      await dispatch(scope, 'notificationclick', clickEvent('lock', { actions: [lock] }))
+
+      expect(fetch).toHaveBeenCalledExactlyOnceWith(`/api/vehicles/${VIN}/commands/lock`, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ value: 'True' }),
+      })
+      const [title, options] = shown(scope)
+      expect(title).toBe('Car left unlocked')
+      expect(options).toMatchObject({
+        body: 'Lock sent to the car.',
+        tag: 'unlocked-parked',
+        silent: true,
+      })
+      expect(scope.clients.openWindow).not.toHaveBeenCalled()
+    })
+
+    it.each([
+      ['the server refuses', () => stubFetch(new Response(null, { status: 409 }))],
+      [
+        'there is no connection',
+        () =>
+          vi.stubGlobal(
+            'fetch',
+            vi.fn<() => Promise<Response>>().mockRejectedValue(new TypeError('Failed to fetch')),
+          ),
+      ],
+    ])('opens the app when %s', async (_, stub) => {
+      stub()
+      const scope = await loadWorker()
+
+      await dispatch(scope, 'notificationclick', clickEvent('lock', { actions: [lock] }))
+
+      expect(scope.registration.showNotification).not.toHaveBeenCalled()
+      expect(scope.clients.openWindow).toHaveBeenCalledWith(`${ORIGIN}/`)
+    })
+
+    it('logs the maintenance item as done today, at the odometer the car reports now', async () => {
+      vi.useFakeTimers({ now: new Date(2026, 10, 18, 23, 30), toFake: ['Date'] })
+      const fetch = stubFetch(
+        Response.json({ odometerKm: 48123.4 }),
+        Response.json({ item: {}, entry: {} }),
+      )
+      const scope = await loadWorker()
+
+      await dispatch(
+        scope,
+        'notificationclick',
+        clickEvent('maintenance-done', { maintenanceItemId: 12, actions: [done] }),
+      )
+      vi.useRealTimers()
+
+      expect(fetch.mock.calls[0]![0]).toBe(`/api/vehicles/${VIN}/status`)
+      const [path, init] = fetch.mock.calls[1]!
+      expect(path).toBe(`/api/vehicles/${VIN}/maintenance/12/log`)
+      expect(JSON.parse(init!.body as string)).toEqual({
+        performedAt: '2026-11-18',
+        odometerKm: 48123.4,
+        notes: null,
+      })
+      expect(shown(scope)[1].body).toBe('Logged as done today.')
+    })
+
+    it('logs nothing when the odometer cannot be read, and opens the app', async () => {
+      const fetch = stubFetch(new Response(null, { status: 401 }))
+      const scope = await loadWorker()
+
+      await dispatch(
+        scope,
+        'notificationclick',
+        clickEvent('maintenance-done', { maintenanceItemId: 12, actions: [done] }),
+      )
+
+      expect(fetch).toHaveBeenCalledOnce()
+      expect(scope.clients.openWindow).toHaveBeenCalled()
+    })
+
+    it('treats a button the push did not name as a plain click', async () => {
+      const fetch = stubFetch()
+      const scope = await loadWorker()
+
+      await dispatch(scope, 'notificationclick', clickEvent('unlock', { actions: [lock] }))
+
+      expect(fetch).not.toHaveBeenCalled()
+      expect(scope.navigator.clearAppBadge).toHaveBeenCalled()
+      expect(scope.clients.openWindow).toHaveBeenCalledWith(`${ORIGIN}/`)
+    })
+  })
 })

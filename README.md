@@ -399,6 +399,13 @@ GarageStack checks your vehicle's state every 5 minutes and sends both a browser
 
 Push notifications require VAPID keys to be configured (`VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY`). Without them, alerts still appear in the in-app notification panel. While GarageStack is open in a browser that allowed notifications but is not subscribed to push, the same alerts show up as system notifications too; a subscribed browser gets them through push instead, so nothing arrives twice.
 
+Two alerts carry a button, on Android and in desktop Chrome and Edge (Safari on iOS shows no notification buttons, and tapping the notification opens the app as before):
+
+- **Car left unlocked** has **Lock**, which locks the car without opening the app.
+- **Maintenance due soon** and **overdue** have **Mark as done**, which logs the service today at the odometer the car reports at that moment, as **Log a service** on the Maintenance page would. A service logged by mistake can be removed from the item's history there.
+
+The notification then says the command was sent or the service logged. When it could not be done (no connection, signed out, the car busy with another command), the app opens instead. The button sends its request from your browser like the app's own buttons, so `CORS_ORIGIN` must match the address you use, as for every command.
+
 Settings > Notifications has a push switch for the device you are on and a per-type checklist for these alerts, which offers only the types the car's drivetrain can produce: the plug-in alerts (low EV battery, charging complete, charging interrupted) are left out for a plain hybrid, low fuel for a full electric car, and the RDW type (APK, recalls and insurance) wherever `RDW_ENABLED` is off. Both are kept per device: a type switched off on your phone still reaches your laptop, and still shows up in the notification panel. Only the switch turns push on or off; the checklist never asks the browser for permission.
 
 Notification texts are written by the background worker, which has no browser to take a language from, so their language is a deployment setting: `NOTIFICATION_LANGUAGE=en` (default), `nl`, `es` or `pt`. The web UI's language selection does not affect them.

@@ -288,4 +288,16 @@
   <data name="RdwUninsuredBody" xml:space="preserve">
     <value>The RDW has no WAM insurance on record for the car. A car on the public road must be insured.</value>
   </data>
+  <data name="ActionLockTitle" xml:space="preserve">
+    <value>Lock</value>
+  </data>
+  <data name="ActionLockSent" xml:space="preserve">
+    <value>Lock sent to the car.</value>
+  </data>
+  <data name="ActionMaintenanceDoneTitle" xml:space="preserve">
+    <value>Mark as done</value>
+  </data>
+  <data name="ActionMaintenanceDoneSent" xml:space="preserve">
+    <value>Logged as done today.</value>
+  </data>
 </root>

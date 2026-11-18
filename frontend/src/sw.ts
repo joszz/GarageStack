@@ -26,6 +26,23 @@ type BadgingNavigator = WorkerNavigator & {
   clearAppBadge?: () => Promise<void>
 }
 
+/** A button on a notification, as the Worker's PushPayload describes it. */
+interface PushAction {
+  /** What it does: one of the names carryOut knows. */
+  name: string
+  title: string
+  /** What the notification says once it was done. */
+  sent: string
+}
+
+/** What a notification keeps for its click: where it leads, and what its buttons act on. */
+interface NotificationData {
+  url: string
+  vin?: string
+  maintenanceItemId?: number
+  actions?: PushAction[]
+}
+
 self.addEventListener('push', (event) => {
   if (!event.data) return
 
@@ -35,6 +52,9 @@ self.addEventListener('push', (event) => {
     url?: string
     category?: string
     unreadCount?: number
+    vin?: string
+    maintenanceItemId?: number
+    actions?: PushAction[]
   } = {}
   try {
     payload = event.data.json() as typeof payload
@@ -44,16 +64,28 @@ self.addEventListener('push', (event) => {
 
   const title = payload.title ?? 'GarageStack'
   const tag = payload.category ?? 'garagestack-notification'
-  // renotify (alert again for a tag that is already showing) is in the Notifications spec and
-  // Chromium, but no longer in TypeScript's lib.
-  const options: NotificationOptions & { renotify?: boolean } = {
+  const actions = Array.isArray(payload.actions) ? payload.actions : []
+  const data: NotificationData = { url: payload.url ?? '/' }
+  if (actions.length > 0) {
+    data.vin = payload.vin
+    data.maintenanceItemId = payload.maintenanceItemId
+    data.actions = actions
+  }
+  // renotify (alert again for a tag that is already showing) and actions (buttons, which Safari on
+  // iOS does not show) are in the Notifications spec and Chromium, but not in TypeScript's lib.
+  const options: NotificationOptions & {
+    renotify?: boolean
+    actions?: { action: string; title: string }[]
+  } = {
     body: payload.body ?? '',
     icon: '/pwa-192x192.png',
     badge: '/badge-96x96.png',
     tag,
     renotify: true,
-    data: { url: payload.url ?? '/' },
+    data,
   }
+  if (actions.length > 0)
+    options.actions = actions.map((action) => ({ action: action.name, title: action.title }))
 
   const badgeNav = self.navigator as BadgingNavigator
   const badgePromise =
@@ -72,34 +104,107 @@ self.addEventListener('push', (event) => {
   )
 })
 
+/** A page of GarageStack itself: a push payload may never send a click to another site. */
+function sameOriginUrl(rawUrl: string): string {
+  try {
+    const parsed = new URL(rawUrl, self.location.origin)
+    return parsed.origin === self.location.origin ? parsed.href : '/'
+  } catch {
+    return rawUrl.startsWith('/') ? rawUrl : '/'
+  }
+}
+
+function openApp(rawUrl: string): Promise<unknown> {
+  const targetUrl = sameOriginUrl(rawUrl)
+  return self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+    const existing = clientList.find((c) => c.url.includes(self.location.origin))
+    if (existing) {
+      existing.focus()
+      return existing.navigate(targetUrl)
+    }
+    return self.clients.openWindow(targetUrl)
+  })
+}
+
+// The worker's requests carry the session cookie like the page's: it is the same origin.
+async function postJson(path: string, body: unknown): Promise<boolean> {
+  const response = await fetch(path, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  return response.ok
+}
+
+/** Today in the device's own time zone, as the maintenance page logs a service: YYYY-MM-DD. */
+function localDate(now: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`
+}
+
+/**
+ * Carries out a notification's button through the API, as the app's own buttons do. False when it
+ * could not be done (no connection, signed out, the car busy with another command): the app then
+ * opens, where it can be done by hand and the reason shows.
+ */
+async function carryOut(action: PushAction, data: NotificationData): Promise<boolean> {
+  if (!data.vin) return false
+  const car = `/api/vehicles/${encodeURIComponent(data.vin)}`
+  try {
+    switch (action.name) {
+      case 'lock':
+        return await postJson(`${car}/commands/lock`, { value: 'True' })
+      case 'maintenance-done': {
+        if (data.maintenanceItemId == null) return false
+        // The odometer as the car reports it now, as the maintenance page fills it in.
+        const status = await fetch(`${car}/status`, { credentials: 'same-origin' })
+        if (!status.ok) return false
+        const { odometerKm } = (await status.json()) as { odometerKm?: number | null }
+        return await postJson(`${car}/maintenance/${data.maintenanceItemId}/log`, {
+          performedAt: localDate(new Date()),
+          odometerKm: odometerKm ?? null,
+          notes: null,
+        })
+      }
+      default:
+        return false
+    }
+  } catch {
+    return false
+  }
+}
+
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()
 
-  const rawUrl = (event.notification.data as { url?: string })?.url ?? '/'
-  const targetUrl = (() => {
-    try {
-      const parsed = new URL(rawUrl, self.location.origin)
-      return parsed.origin === self.location.origin ? parsed.href : '/'
-    } catch {
-      return rawUrl.startsWith('/') ? rawUrl : '/'
-    }
-  })()
+  const data = (event.notification.data ?? {}) as Partial<NotificationData>
+  const rawUrl = data.url ?? '/'
+  const action = event.action ? data.actions?.find((a) => a.name === event.action) : undefined
+
+  // A button: done in the background, and the notification comes back saying so, quietly.
+  if (action) {
+    const { title, tag } = event.notification
+    event.waitUntil(
+      carryOut(action, { ...data, url: rawUrl }).then((done) =>
+        done
+          ? self.registration.showNotification(title, {
+              body: action.sent,
+              icon: '/pwa-192x192.png',
+              badge: '/badge-96x96.png',
+              tag,
+              silent: true,
+              data: { url: rawUrl },
+            })
+          : openApp(rawUrl),
+      ),
+    )
+    return
+  }
 
   // Clear the badge; the app will re-sync the correct count after it loads
   const badgeNav = self.navigator as BadgingNavigator
   const clearPromise = badgeNav.clearAppBadge?.() ?? Promise.resolve()
 
-  event.waitUntil(
-    Promise.all([
-      clearPromise,
-      self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-        const existing = clientList.find((c) => c.url.includes(self.location.origin))
-        if (existing) {
-          existing.focus()
-          return existing.navigate(targetUrl)
-        }
-        return self.clients.openWindow(targetUrl)
-      }),
-    ]),
-  )
+  event.waitUntil(Promise.all([clearPromise, openApp(rawUrl)]))
 })
