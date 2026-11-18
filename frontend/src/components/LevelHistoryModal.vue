@@ -56,17 +56,18 @@ const details = useLevelDetails(level)
 const grouping = ref<StatsGrouping>('day')
 const buckets = computed(() => bucketDays(days.value ?? [], grouping.value))
 const vehicleType = computed(() => vehicleStore.effectiveVehicleType)
+const energyCounterScale = computed(() => vehicleStore.energyCounterScale)
 const levelChart = useLevelChart(buckets, grouping, level)
 
 // The daily counter holds fuel on a plain hybrid and the traction battery's energy on a car that
 // plugs in (utils/energy), so it belongs with whichever of the two levels it counts.
-const charts = useStatisticsCharts(buckets, grouping, vehicleType)
+const charts = useStatisticsCharts(buckets, grouping, vehicleType, energyCounterScale)
 const usageChart = computed(() => {
   const chart = charts.value.find((c) => c.id === 'dailyKwhChart')!
   const countsFuel = energyUnit(vehicleType.value) === 'litres'
   const countsThisLevel = countsFuel === (level.value === 'fuel')
   const hasUsage =
-    days.value?.some((d) => dailyCounterTotal(d, vehicleType.value) !== null) ?? false
+    days.value?.some((d) => dailyCounterTotal(d, energyCounterScale.value) !== null) ?? false
   return chart.vehicleApplicable && countsThisLevel && hasUsage ? chart : null
 })
 </script>

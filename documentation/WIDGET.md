@@ -64,7 +64,7 @@ The endpoint returns a flat JSON object. Numeric fields are `null` when the vehi
 | `hvPower` | number | HV system power (W) |
 | `odometerKm` | number | Total odometer reading (km) |
 | `mileageOfTheDayKm` | number | Distance driven today (km) |
-| `powerUsageOfDayKwh` | number | Energy used today (kWh). On a plain hybrid this counter holds the trip computer's fuel total in hundredths of a litre instead, so divide by 100 for litres |
+| `powerUsageOfDayKwh` | number | Energy used today (kWh). On a plain hybrid this counter holds the trip computer's fuel total in hundredths of a litre instead, so divide by 100 for litres. It is the gateway's figure as it comes: on a plug-in hybrid that is on MG's nominal 72.5 kWh pack, so multiply by your real capacity divided by 72.5 |
 | `electricSharePercent` | number | % of today's distance driven on electric power (PHEV) |
 | `isLocked` | string | Lock state: `"Locked"` or `"Unlocked"` |
 | `engineRunning` | string | Engine state: `"Engine on"` or `"Engine off"` |

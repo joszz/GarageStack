@@ -142,6 +142,30 @@ describe('useVehicleStore - hvBatteryCapacityKwh', () => {
   })
 })
 
+describe('useVehicleStore - energyCounterScale', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    setActivePinia(createPinia())
+  })
+
+  // Issue #570: the counters come on the pack the car reports, MG's nominal 72.5 kWh on a PHEV.
+  it('rescales from the reported pack to the configured one', () => {
+    const store = useVehicleStore()
+    store.vehicles = [{ ...vehicle('phev'), hvBatteryCapacityKwh: 29 }]
+    store.applyLiveStatus({
+      recordedAt: '2026-11-18T12:00:00Z',
+      hvTotalCapacityKwh: 72.5,
+    } as TelemetrySnapshot)
+    expect(store.energyCounterScale).toEqual({ unit: 'kwh', factor: 0.4 })
+  })
+
+  it('has no kWh for a plug-in hybrid before the reported pack is known', () => {
+    const store = useVehicleStore()
+    store.vehicles = [{ ...vehicle('phev'), hvBatteryCapacityKwh: 29 }]
+    expect(store.energyCounterScale.factor).toBeNull()
+  })
+})
+
 describe('useVehicleStore - fetchVehicles', () => {
   beforeEach(() => {
     setActivePinia(createPinia())

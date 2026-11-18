@@ -3,8 +3,10 @@ import type { VehicleType } from '@/stores/vehicle'
 import {
   energyUnit,
   litresPer100Km,
+  scaledCounter,
   todaysEnergyKwh,
   whPerKm,
+  type CounterScale,
   type TodayStat,
 } from '@/utils/energy'
 import { burnsFuel, mayBurnFuel, mayPlugIn, plugsIn } from '@/utils/vehicleType'
@@ -23,6 +25,8 @@ export interface CardDataContext {
   rdwPlateSet: boolean
   /** Today's statistics row, which says whether today's energy counter can be trusted. */
   todayStat: TodayStat | null
+  /** How the energy counters read on this car (utils/energy). */
+  counterScale: CounterScale
 }
 
 interface CardDefinition {
@@ -90,10 +94,11 @@ export const CARD_DEFINITIONS = [
   {
     id: 'efficiencyEnergy',
     icon: 'plug-circle-bolt',
-    // A plug-in car's day counter only counts when it fits what left the battery (utils/energy).
-    hasData: ({ status, vehicleType, todayStat }) =>
-      energyUnit(vehicleType) === 'kwh'
-        ? todaysEnergyKwh(status, todayStat) !== null
+    // A plug-in car's day counter only counts when it fits what left the battery and the pack it
+    // is counted on is known (utils/energy).
+    hasData: ({ status, todayStat, counterScale }) =>
+      counterScale.unit === 'kwh'
+        ? todaysEnergyKwh(status, todayStat, counterScale) !== null
         : status.powerUsageOfDay !== null,
   },
   {
@@ -109,7 +114,8 @@ export const CARD_DEFINITIONS = [
     // Like the distance since charge: on for a car whose type is not known yet, so a layout saved
     // before this card existed gets it too, and the data check hides it on a hybrid.
     defaultVisible: mayPlugIn,
-    hasData: ({ status, vehicleType }) => sinceChargeWhPerKm(status, vehicleType) !== null,
+    hasData: ({ status, vehicleType, counterScale }) =>
+      sinceChargeWhPerKm(status, vehicleType, counterScale) !== null,
   },
   {
     id: 'efficiencyRatio',
@@ -201,17 +207,18 @@ export function defaultCards(type: VehicleType = 'unknown'): CardConfig[] {
 export function sinceChargeWhPerKm(
   status: Pick<TelemetrySnapshot, 'powerUsageSinceLastCharge' | 'mileageSinceLastCharge'>,
   vehicleType: VehicleType,
+  scale: CounterScale,
 ): number | null {
   return plugsIn(vehicleType)
-    ? whPerKm(status.powerUsageSinceLastCharge, status.mileageSinceLastCharge)
+    ? whPerKm(scaledCounter(status.powerUsageSinceLastCharge, scale), status.mileageSinceLastCharge)
     : null
 }
 
 /** Wh/km over today's driving, the efficiencyRatio card's presentation for a plug-in car. */
-export function hasEnergyEfficiency({ status, vehicleType, todayStat }: CardDataContext): boolean {
+export function hasEnergyEfficiency({ status, todayStat, counterScale }: CardDataContext): boolean {
   return (
-    energyUnit(vehicleType) === 'kwh' &&
-    whPerKm(todaysEnergyKwh(status, todayStat), status.mileageOfTheDay) !== null
+    counterScale.unit === 'kwh' &&
+    whPerKm(todaysEnergyKwh(status, todayStat, counterScale), status.mileageOfTheDay) !== null
   )
 }
 

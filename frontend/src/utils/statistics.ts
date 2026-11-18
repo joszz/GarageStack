@@ -1,10 +1,11 @@
-import type { DailyStat, TripSummary, VehicleType } from '@/services/vehicleApi'
+import type { DailyStat, TripSummary } from '@/services/vehicleApi'
 import { localDateKey } from '@/utils/dates'
 import {
   addCounterOverDistance,
   counterOverDistance,
   dailyCounterTotal,
   type CounterOverDistance,
+  type CounterScale,
 } from '@/utils/energy'
 import { DAY_MONTH } from '@/utils/format'
 import { parseLocalDate, type StatsGrouping } from '@/utils/statsPeriod'
@@ -205,10 +206,10 @@ export function batteryVoltageChange(stats: readonly DailyStat[]): number | null
 /** The energy (or fuel) counter's total over the period, in its own unit, or null without any. */
 export function periodCounterTotal(
   stats: readonly DailyStat[],
-  vehicleType: VehicleType,
+  scale: CounterScale,
 ): number | null {
   const totals = stats
-    .map((stat) => dailyCounterTotal(stat, vehicleType))
+    .map((stat) => dailyCounterTotal(stat, scale))
     .filter((total): total is number => total !== null)
   return totals.length ? totals.reduce((sum, total) => sum + total, 0) : null
 }
@@ -238,7 +239,7 @@ export function monthlyTotals(
   stats: readonly DailyStat[],
   first: Date,
   last: Date,
-  vehicleType: VehicleType,
+  scale: CounterScale,
 ): MonthTotal[] {
   const months = new Map<string, MonthTotal>()
   for (
@@ -267,9 +268,9 @@ export function monthlyTotals(
     const month = months.get(stat.date.slice(0, 7))
     if (!month) continue
     daysOf.set(month.key, [...(daysOf.get(month.key) ?? []), stat])
-    const total = dailyCounterTotal(stat, vehicleType)
+    const total = dailyCounterTotal(stat, scale)
     if (total !== null) month.counterTotal = (month.counterTotal ?? 0) + total
-    month.used = addCounterOverDistance(month.used, counterOverDistance([stat], vehicleType))
+    month.used = addCounterOverDistance(month.used, counterOverDistance([stat], scale))
   }
 
   for (const month of months.values()) {

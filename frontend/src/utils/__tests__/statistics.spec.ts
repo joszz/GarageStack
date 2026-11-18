@@ -20,6 +20,9 @@ import {
   roundedRange,
   totalDistanceKm,
 } from '@/utils/statistics'
+import { counterScale } from '@/utils/energy'
+
+const BEV = counterScale('bev', null, 72.5)
 
 describe('trip statistics', () => {
   it('has nothing to say without trips', () => {
@@ -189,7 +192,7 @@ describe('monthlyTotals', () => {
       day('2026-09-03', { counterTotal: 1 }),
     ]
 
-    const months = monthlyTotals(trips, days, new Date(2026, 6, 20), new Date(2026, 8, 3), 'bev')
+    const months = monthlyTotals(trips, days, new Date(2026, 6, 20), new Date(2026, 8, 3), BEV)
 
     expect(months.map((m) => [m.key, m.trips, m.distanceKm, m.counterTotal])).toEqual([
       ['2026-07', 0, 0, null],
@@ -205,7 +208,7 @@ describe('monthlyTotals', () => {
       day('2026-09-03', { counterTotal: 2 }),
     ]
 
-    const months = monthlyTotals([], days, new Date(2026, 7, 20), new Date(2026, 8, 3), 'bev')
+    const months = monthlyTotals([], days, new Date(2026, 7, 20), new Date(2026, 8, 3), BEV)
 
     expect(months.map((m) => m.used)).toEqual([null, { counter: 4.3, distanceKm: 30 }])
     expect(months.map((m) => m.distanceKm)).toEqual([0, 30])
@@ -242,7 +245,7 @@ describe('periodCounterTotal', () => {
       day('2026-11-03', { counterTotal: 1.5 }),
       day('2026-11-04'),
     ]
-    expect(periodCounterTotal(days, 'bev')).toBeCloseTo(2.25, 6)
-    expect(periodCounterTotal([day('2026-11-04')], 'bev')).toBeNull()
+    expect(periodCounterTotal(days, BEV)).toBeCloseTo(2.25, 6)
+    expect(periodCounterTotal([day('2026-11-04')], BEV)).toBeNull()
   })
 })

@@ -21,6 +21,7 @@ export function useCardData() {
       latestTrip: store.latestTrip,
       rdwPlateSet: rdw.hasPlate,
       todayStat: store.todayStat,
+      counterScale: store.energyCounterScale,
     }
   })
 }

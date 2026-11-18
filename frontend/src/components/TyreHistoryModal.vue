@@ -48,6 +48,7 @@ const charts = useStatisticsCharts(
   buckets,
   grouping,
   computed(() => vehicleStore.effectiveVehicleType),
+  computed(() => vehicleStore.energyCounterScale),
 )
 const tyreChart = computed(() => charts.value.find((c) => c.id === 'tyreChart')!)
 const hasReadings = computed(

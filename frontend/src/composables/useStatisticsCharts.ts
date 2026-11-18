@@ -12,6 +12,7 @@ import {
   energyUnit,
   litres,
   MIN_EFFICIENCY_DISTANCE_KM,
+  type CounterScale,
 } from '@/utils/energy'
 import { formatDate, numberLocale } from '@/utils/format'
 import {
@@ -199,6 +200,7 @@ export function useStatisticsCharts(
   buckets: Ref<StatsBucket[]>,
   grouping: Ref<StatsGrouping>,
   vehicleType: Ref<VehicleType>,
+  counterScale: Ref<CounterScale>,
 ): Ref<ChartDef[]> {
   const { t } = useI18n()
   const units = useUnits()
@@ -251,7 +253,7 @@ export function useStatisticsCharts(
   const efficiencyPoints = computed(() =>
     buckets.value.map((bucket) => {
       const used = efficiency(
-        counterOverDistance(bucket.days, vehicleType.value),
+        counterOverDistance(bucket.days, counterScale.value),
         energyUnit(vehicleType.value),
       )
       return used ? roundTo2(units.value.convert(used.quantity, used.metric)) : null
@@ -266,7 +268,7 @@ export function useStatisticsCharts(
         type: 'bar' as const,
         order: 1,
         label: reportsFuelCounter.value ? units.value.symbol('volume') : t('common.kwh'),
-        data: bucketTotals(buckets.value, (d) => dailyCounterTotal(d, vehicleType.value)).map(
+        data: bucketTotals(buckets.value, (d) => dailyCounterTotal(d, counterScale.value)).map(
           (total) => {
             const fuel = reportsFuelCounter.value ? litres(total) : null
             const used = fuel !== null ? units.value.convert('volume', fuel) : total
@@ -364,7 +366,7 @@ export function useStatisticsCharts(
         },
       ),
       vehicleApplicable: countsDailyEnergy.value,
-      applicable: countsDailyEnergy.value && hasData.value,
+      applicable: countsDailyEnergy.value && counterScale.value.factor !== null && hasData.value,
       type: 'bar',
       data: dailyEnergyChartData.value,
       options: kwhOptions.value,
