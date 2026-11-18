@@ -32,6 +32,7 @@ import {
   hvBatteryReading,
   litres,
   litresPer100Km,
+  scaledCounter,
   todaysEnergyKwh,
   whPerKm,
 } from '@/utils/energy'
@@ -113,7 +114,7 @@ const simpleCards = computed((): SimpleCardConfig[] => {
   const s = status.value
   const ctx = cardData.value
   if (!s || !ctx) return []
-  const energyTodayKwh = todaysEnergyKwh(s, ctx.todayStat)
+  const energyTodayKwh = todaysEnergyKwh(s, ctx.todayStat, ctx.counterScale)
   const efficiencyWhPerKm = whPerKm(energyTodayKwh, s.mileageOfTheDay)
   const fuelUsedLitres = litres(s.powerUsageOfDay)
   const consumptionL100Km = litresPer100Km(s.powerUsageOfDay, s.mileageOfTheDay)
@@ -195,7 +196,7 @@ const simpleCards = computed((): SimpleCardConfig[] => {
     {
       id: 'efficiencySinceCharge',
       label: t('vehicle.efficiency.efficiencySinceCharge'),
-      ...measured('energyPerDistance', sinceChargeWhPerKm(s, ctx.vehicleType)),
+      ...measured('energyPerDistance', sinceChargeWhPerKm(s, ctx.vehicleType, ctx.counterScale)),
     },
     // efficiencyRatio - measured fuel consumption on a hybrid, which beats the estimate below
     {
@@ -320,7 +321,9 @@ const activeSimpleCard = computed(() => {
       :hv-battery-active="status.hvBatteryActive"
       :charger-connected="supportsExternalCharge ? status.chargerConnected : null"
       :power-usage-since-last-charge="
-        supportsExternalCharge ? status.powerUsageSinceLastCharge : null
+        supportsExternalCharge
+          ? scaledCounter(status.powerUsageSinceLastCharge, store.energyCounterScale)
+          : null
       "
       :soc-target-percent="supportsExternalCharge ? status.socTargetPercent : null"
       :charge-current-limit="supportsExternalCharge ? status.chargeCurrentLimit : null"

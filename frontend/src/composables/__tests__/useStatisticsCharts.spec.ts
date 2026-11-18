@@ -9,6 +9,7 @@ import type { DailyStat } from '@/services/vehicleApi'
 import type { VehicleType } from '@/stores/vehicle'
 import { useUiSettingsStore } from '@/stores/settingsUi'
 import type { StatsBucket } from '@/utils/statistics'
+import { counterScale, energyUnit, type CounterScale } from '@/utils/energy'
 import {
   useLevelChart,
   useStatisticsCharts,
@@ -37,13 +38,19 @@ function bucket(key: string, days: DailyStat[]): StatsBucket {
   return { key, start: new Date(`${key}T00:00:00`), days }
 }
 
-function chartsFor(type: VehicleType, buckets: StatsBucket[] = [], locale: 'en' | 'nl' = 'en') {
+function chartsFor(
+  type: VehicleType,
+  buckets: StatsBucket[] = [],
+  locale: 'en' | 'nl' = 'en',
+  // Counters already on the car's real pack, unless a test says otherwise.
+  scale: CounterScale = { unit: energyUnit(type), factor: 1 },
+) {
   const i18n = createI18n({ legacy: false, locale, messages: { en, nl } })
   const result: { charts: ReturnType<typeof useStatisticsCharts> | null } = { charts: null }
   mount(
     defineComponent({
       setup() {
-        result.charts = useStatisticsCharts(ref(buckets), ref('day'), ref(type))
+        result.charts = useStatisticsCharts(ref(buckets), ref('day'), ref(type), ref(scale))
         return () => h('div')
       },
     }),
@@ -104,6 +111,23 @@ describe('useStatisticsCharts', () => {
 
     it('adds up each point', () => {
       expect(chart('bev', 'dailyKwhChart', TWO_DAYS).data.datasets[0]!.data).toEqual([5, 7])
+    })
+
+    // Issue #570: a plug-in hybrid's counters come on MG's nominal 72.5 kWh pack.
+    it("rescales a plug-in hybrid's points to its configured pack", () => {
+      const scale = counterScale('phev', 29, 72.5)
+      const c = chartsFor('phev', TWO_DAYS, 'en', scale).find((d) => d.id === 'dailyKwhChart')!
+
+      expect(c.applicable).toBe(true)
+      expect(c.data.datasets[0]!.data).toEqual([2, 2.8])
+    })
+
+    it("leaves out a plug-in hybrid's chart until its pack size is configured", () => {
+      const scale = counterScale('phev', null, 72.5)
+      const c = chartsFor('phev', TWO_DAYS, 'en', scale).find((d) => d.id === 'dailyKwhChart')!
+
+      expect(c.vehicleApplicable).toBe(true)
+      expect(c.applicable).toBe(false)
     })
 
     it('draws no efficiency line without a distance to divide by', () => {

@@ -26,6 +26,47 @@ export function energyUnit(vehicleType: VehicleType): EnergyUnit {
   return vehicleType === 'hev' ? 'litres' : 'kwh'
 }
 
+// The kWh counters come on the same assumed pack as drivetrain/totalBatteryCapacity: the gateway
+// multiplies powerUsageOfDay, powerUsageSinceLastCharge and lastChargeEndingPower by the same
+// real-over-reported factor as the capacity, and that factor is 1 on any car whose pack it does not
+// know. On a plug-in hybrid MG reports a nominal 72.5 kWh, so a 23 kWh pack's counters read about
+// three times too high (issue #570: 68.8 "kWh" on a day that emptied the battery once). The same
+// rule as `hvBatteryReading` applies: a configured capacity rescales them, only a BEV is taken at
+// the gateway's word, and any other car's counters show no kWh at all rather than wrong ones.
+
+/** How to read the energy counters on this car. */
+export interface CounterScale {
+  unit: EnergyUnit
+  /**
+   * What a counter is multiplied by to give the unit's figure, or null when the deployment cannot
+   * know it. Always 1 for fuel, which `litres` turns from hundredths into litres.
+   */
+  factor: number | null
+}
+
+export function counterScale(
+  vehicleType: VehicleType,
+  configuredCapacityKwh: number | null,
+  reportedCapacityKwh: number | null,
+): CounterScale {
+  const unit = energyUnit(vehicleType)
+  if (unit === 'litres') return { unit, factor: 1 }
+  if (configuredCapacityKwh !== null)
+    return {
+      unit,
+      factor:
+        reportedCapacityKwh !== null && reportedCapacityKwh > 0
+          ? configuredCapacityKwh / reportedCapacityKwh
+          : null,
+    }
+  return { unit, factor: trustsReportedKwh(vehicleType) ? 1 : null }
+}
+
+/** A counter reading in the unit its scale gives, or null when it cannot be read. */
+export function scaledCounter(counter: number | null, scale: CounterScale): number | null {
+  return counter === null || scale.factor === null ? null : counter * scale.factor
+}
+
 // Not every plug-in car keeps its day counter straight. An MG ZS EV (issue #551) adds 33 to 35 kWh
 // to it at some polls while parked, so a 4 km day read 134 kWh. Its since-last-charge counter
 // comes out of the same charge status message and matches the state of charge drop to the
@@ -44,16 +85,18 @@ const SINCE_CHARGE_MARGIN_KWH = 1
 const RECENT_CHARGE_MS = 24 * 60 * 60 * 1000
 
 /**
- * A day's total from the statistics, in the counter's own unit. On a car that plugs in, the day
- * counter gives way to the since-last-charge counter on a day the API found it rising past it.
+ * A day's total from the statistics, in the counter's own unit, scaled to the car's real pack. On
+ * a car that plugs in, the day counter gives way to the since-last-charge counter on a day the API
+ * found it rising past it.
  */
 export function dailyCounterTotal(
   day: Pick<DailyStat, 'counterTotal' | 'sinceChargeTotal' | 'counterUnbacked'>,
-  vehicleType: VehicleType,
+  scale: CounterScale,
 ): number | null {
-  return energyUnit(vehicleType) === 'kwh' && day.counterUnbacked
-    ? day.sinceChargeTotal
-    : day.counterTotal
+  return scaledCounter(
+    scale.unit === 'kwh' && day.counterUnbacked ? day.sinceChargeTotal : day.counterTotal,
+    scale,
+  )
 }
 
 /** The statistics row for today that the dashboard reads alongside the live status. */
@@ -65,7 +108,7 @@ export type TodayStat = Pick<DailyStat, 'date' | 'sinceChargeTotal' | 'counterUn
  * today too. Otherwise the live day counter, unless it alone holds more than had left the battery
  * since the last charge (null then): that covers a jump in a reading the API has not read yet.
  * Without a since-last-charge reading, or after a charge that may have been today, the live
- * reading has nothing to be checked against and stands.
+ * reading has nothing to be checked against and stands. Scaled to the car's real pack.
  */
 export function todaysEnergyKwh(
   status: Pick<
@@ -73,7 +116,20 @@ export function todaysEnergyKwh(
     'powerUsageOfDay' | 'powerUsageSinceLastCharge' | 'isCharging' | 'chargingLastEndAt'
   >,
   todayStat: TodayStat | null,
+  scale: CounterScale,
   now: number = Date.now(),
+): number | null {
+  return scaledCounter(checkedDayCounter(status, todayStat, now), scale)
+}
+
+// Both counters come on the same assumed pack, so they are compared before scaling.
+function checkedDayCounter(
+  status: Pick<
+    TelemetrySnapshot,
+    'powerUsageOfDay' | 'powerUsageSinceLastCharge' | 'isCharging' | 'chargingLastEndAt'
+  >,
+  todayStat: TodayStat | null,
+  now: number,
 ): number | null {
   if (todayStat?.counterUnbacked && todayStat.date === localDateKey(new Date(now)))
     return todayStat.sinceChargeTotal
@@ -112,11 +168,11 @@ export function counterOverDistance(
     DailyStat,
     'counterTotal' | 'sinceChargeTotal' | 'counterUnbacked' | 'distanceKm'
   >[],
-  vehicleType: VehicleType,
+  scale: CounterScale,
 ): CounterOverDistance | null {
   let paired: CounterOverDistance | null = null
   for (const day of days) {
-    const counter = dailyCounterTotal(day, vehicleType)
+    const counter = dailyCounterTotal(day, scale)
     if (counter === null || day.distanceKm === null) continue
     paired = addCounterOverDistance(paired, { counter, distanceKm: day.distanceKm })
   }

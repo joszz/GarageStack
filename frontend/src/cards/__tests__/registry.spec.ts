@@ -12,12 +12,15 @@ import {
 import type { TelemetrySnapshot, TripSummary } from '@/services/vehicleApi'
 import { tripSummary } from '@/services/__tests__/tripFixtures'
 import type { VehicleType } from '@/stores/vehicle'
+import { counterScale, energyUnit, type CounterScale } from '@/utils/energy'
 
 function context(
   status: Partial<TelemetrySnapshot>,
   vehicleType: VehicleType = 'phev',
   latestTrip: TripSummary | null = null,
   rdwPlateSet = false,
+  // Counters already on the car's real pack, unless a test says otherwise.
+  scale: CounterScale = { unit: energyUnit(vehicleType), factor: 1 },
 ): CardDataContext {
   return {
     status: status as TelemetrySnapshot,
@@ -25,6 +28,7 @@ function context(
     latestTrip,
     rdwPlateSet,
     todayStat: null,
+    counterScale: scale,
   }
 }
 
@@ -120,6 +124,24 @@ describe('card registry', () => {
     expect(hasEnergyEfficiency(context(status, 'bev'))).toBe(false)
     // A hybrid's counter holds fuel and is not checked this way.
     expect(cardHasData('efficiencyEnergy', context(status, 'hev'))).toBe(true)
+  })
+
+  // Issue #570: a plug-in hybrid's counters come on MG's nominal 72.5 kWh pack.
+  it('hides the kWh cards of a plug-in hybrid until its pack size is configured', () => {
+    const status = {
+      powerUsageOfDay: 68.8,
+      powerUsageSinceLastCharge: 68.8,
+      mileageOfTheDay: 120,
+      mileageSinceLastCharge: 120,
+    }
+    const unknownPack = counterScale('phev', null, 72.5)
+    const configured = counterScale('phev', 23, 72.5)
+
+    for (const id of ['efficiencyEnergy', 'efficiencySinceCharge'] as const) {
+      expect(cardHasData(id, context(status, 'phev', null, false, unknownPack))).toBe(false)
+      expect(cardHasData(id, context(status, 'phev', null, false, configured))).toBe(true)
+    }
+    expect(hasEnergyEfficiency(context(status, 'phev', null, false, unknownPack))).toBe(false)
   })
 
   it('needs a trip with recorded speeds for the top speed card', () => {

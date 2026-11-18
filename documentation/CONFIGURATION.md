@@ -133,7 +133,7 @@ than one.
 | `LOW_FUEL_PERCENT` | `15` | Fuel level, in percent, a hybrid or plug-in hybrid is warned below. `0` switches the alert off. |
 | `LOW_EV_PERCENT` | `20` | Charge level, in percent, a plug-in car is warned below. `0` switches the alert off. |
 | `STALE_DATA_HOURS` | `48` | Hours without a report from the car before GarageStack warns that data has stopped arriving. Keep it above the gateway's poll of a sleeping car, once a day by default. `0` switches the alert off. |
-| `HV_BATTERY_CAPACITY_KWH` | none | Usable size of the traction battery in kWh. MG reports a nominal 72.5 kWh pack and the gateway only corrects that for the BEVs it knows, so the kWh figures are far too large on a hybrid (an MG HS Hybrid+ carries 1.83) and on a plug-in hybrid. Empty keeps the gateway's figure on a BEV and shows any other car's charge as a percentage only. |
+| `HV_BATTERY_CAPACITY_KWH` | none | Usable size of the traction battery in kWh. MG reports a nominal 72.5 kWh pack and the gateway only corrects that for the BEVs it knows, so the kWh figures are far too large on a hybrid (an MG HS Hybrid+ carries 1.83) and on a plug-in hybrid. The energy used (today, per day, since the last charge, and the efficiency from it) comes on the same nominal pack, so it is rescaled to this size too. Empty keeps the gateway's figures on a BEV; any other car then shows its charge as a percentage only and its energy used not at all. |
 
 ## Stored data
 

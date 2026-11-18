@@ -11,6 +11,7 @@ import {
   type CommandResult,
 } from '@/services/vehicleApi'
 import { browserTimeZone, localDateKey } from '@/utils/dates'
+import { counterScale, type CounterScale } from '@/utils/energy'
 import { useUiSettingsStore } from '@/stores/settingsUi'
 import { useLoadingTracker } from '@/composables/useLoadingTracker'
 import { rememberVin } from '@/utils/lastVin'
@@ -206,6 +207,15 @@ export const useVehicleStore = defineStore('vehicle', () => {
     (): number | null => activeVehicle.value?.hvBatteryCapacityKwh ?? null,
   )
 
+  // How the energy counters read on this car, against the pack size the gateway reports.
+  const energyCounterScale = computed((): CounterScale =>
+    counterScale(
+      effectiveVehicleType.value,
+      hvBatteryCapacityKwh.value,
+      currentStatus.value?.hvTotalCapacityKwh ?? null,
+    ),
+  )
+
   return {
     vehicles,
     activeVehicle,
@@ -216,6 +226,7 @@ export const useVehicleStore = defineStore('vehicle', () => {
     detectedVehicleType,
     effectiveVehicleType,
     hvBatteryCapacityKwh,
+    energyCounterScale,
     dailyStats,
     todayStat,
     trips,

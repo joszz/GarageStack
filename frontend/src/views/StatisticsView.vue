@@ -121,6 +121,7 @@ watch(
 )
 
 const vehicleType = computed(() => store.effectiveVehicleType)
+const energyCounterScale = computed(() => store.energyCounterScale)
 const isPhev = computed(() => vehicleType.value === 'phev')
 
 // ── Icons ────────────────────────────────────────────────────
@@ -154,7 +155,7 @@ const months = computed(() =>
     store.dailyStats,
     period.value.first,
     period.value.last,
-    vehicleType.value,
+    energyCounterScale.value,
   ),
 )
 const showMonths = computed(
@@ -178,10 +179,13 @@ const averageTripKm = computed(() => averageTripDistanceKm(store.tripSummaries))
 // What the car used over the period, off its own counters: kWh out of the battery on a plug-in
 // car, fuel on a hybrid. The efficiency pairs it with the distance the car counted on the same
 // days, so the two describe the same driving.
-const periodCounter = computed(() => periodCounterTotal(store.dailyStats, vehicleType.value))
+const periodCounter = computed(() => periodCounterTotal(store.dailyStats, energyCounterScale.value))
 const periodEfficiency = computed(() =>
   monthEnergyUnit.value
-    ? efficiency(counterOverDistance(store.dailyStats, vehicleType.value), monthEnergyUnit.value)
+    ? efficiency(
+        counterOverDistance(store.dailyStats, energyCounterScale.value),
+        monthEnergyUnit.value,
+      )
     : null,
 )
 
@@ -394,7 +398,7 @@ const insightRows = computed(() =>
 
 // ── Charts ────────────────────────────────────────────────
 
-const chartDefs = useStatisticsCharts(buckets, grouping, vehicleType)
+const chartDefs = useStatisticsCharts(buckets, grouping, vehicleType, energyCounterScale)
 const chartDefMap = computed(() => new Map(chartDefs.value.map((d) => [d.id, d])))
 
 // Each chart in the user's order, with what it shows.

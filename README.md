@@ -114,7 +114,7 @@ Cards are shown or hidden automatically based on vehicle type (HEV / PHEV / BEV)
 | Find My Car | Horn + lights to locate the car | All |
 | Lights | Main beam, low beam, sidelights | All |
 | Daily Distance | Distance driven today | All |
-| Daily Energy | Energy used today (kWh), or fuel burned today (L) on an HEV | All |
+| Daily Energy | Energy used today (kWh), or fuel burned today (L) on an HEV. On a PHEV the kWh show once `HV_BATTERY_CAPACITY_KWH` is set | All |
 | Since Charge | Distance since last charge session | PHEV, BEV |
 | Efficiency | Energy consumption in the chosen unit, or fuel consumption (L/100 km) on an HEV | All |
 | Speed | Current vehicle speed | All (off by default) |
