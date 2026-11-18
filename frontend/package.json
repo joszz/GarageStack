@@ -31,21 +31,21 @@
     "@vueform/slider": "^2.1.10",
     "chart.js": "^4.6.1",
     "leaflet": "^1.9.4",
-    "leaflet.heat": "^1.0.0",
+    "leaflet.heat": "^1.0.1",
     "leaflet.markercluster": "^1.5.3",
     "maplibre-gl": "^6.18.0",
     "pinia": "^4.1.0",
     "vue": "^3.5.45",
     "vue-chartjs": "^5.3.4",
     "vue-draggable-plus": "^0.6.1",
-    "vue-i18n": "^11.4.19",
-    "vue-router": "^5.5.0",
+    "vue-i18n": "^11.4.20",
+    "vue-router": "^5.5.1",
     "workbox-precaching": "^7.4.1",
     "workbox-routing": "^7.4.1",
     "workbox-strategies": "^7.4.1"
   },
   "devDependencies": {
-    "@playwright/test": "^1.65.0",
+    "@playwright/test": "^1.65.1",
     "@resvg/resvg-js": "^2.6.2",
     "@tsconfig/node26": "^26.0.2",
     "@types/jsdom": "^30.0.0",
@@ -58,12 +58,12 @@
     "@vue/eslint-config-typescript": "^14.9.0",
     "@vue/test-utils": "^2.5.1",
     "@vue/tsconfig": "^0.9.1",
-    "eslint": "^10.14.0",
+    "eslint": "^10.15.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-oxlint": "~1.93.0",
     "eslint-plugin-vue": "~10.12.1",
     "jiti": "^2.7.0",
-    "jsdom": "^31.0.0",
+    "jsdom": "^31.0.1",
     "oxlint": "~1.93.0",
     "postcss-html": "^2.0.0",
     "prettier": "3.10.1",
@@ -79,5 +79,5 @@
   "engines": {
     "node": "^22.13.0 || ^24.0.0 || >=26.0.0"
   },
-  "packageManager": "pnpm@12.11.2"
+  "packageManager": "pnpm@12.21.0"
 }
