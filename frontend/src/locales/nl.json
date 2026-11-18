@@ -666,6 +666,11 @@
       "label": "Elektrische achterklep",
       "desc": "Zet dit aan als de achterklep van de auto vanzelf opent en sluit. De Deuren-kaart kan hem dan openen en sluiten, in plaats van alleen ontgrendelen. Een auto zonder elektrische achterklep weigert de opdracht."
     },
+    "commutePlaces": {
+      "title": "Thuis en werk",
+      "desc": "Ritten tussen thuis en een werkplek worden als woon-werk ingedeeld, en een plaats kan een melding geven als de auto aankomt of vertrekt. In de rittenregistratie kun je ook het begin of eind van een rit als plaats instellen.",
+      "edit": "Plaatsen bewerken"
+    },
     "units": {
       "title": "Taal, regio en eenheden",
       "auto": "Automatisch: {value}",
@@ -730,6 +735,13 @@
       "title": "Je gegevens",
       "desc": "Alles wat GarageStack bewaart, in één zip: per auto de ritten, het onderhoud, de schema’s, de plaatsen en elke meting, en je meldingen en instellingen. De metingen komen als CSV-bestand dat een spreadsheet opent, de rest als JSON. Een grote geschiedenis verzamelen duurt even.",
       "download": "Alles downloaden"
+    },
+    "tripLogExport": {
+      "title": "Rittenregistratie",
+      "desc": "Een maand of een jaar aan ritten als spreadsheet, met de adressen en kilometerstanden die een rittenregistratie vraagt. Verborgen ritten blijven buiten de export. Adressen die nog niet zijn opgezocht, worden eerst opgezocht; voor een heel jaar kan dat even duren.",
+      "download": "CSV downloaden",
+      "lookingUp": "Adressen opzoeken: nog {n} rit | Adressen opzoeken: nog {n} ritten",
+      "empty": "Geen ritten in deze periode."
     },
     "diagnostics": {
       "title": "Diagnose",
@@ -820,7 +832,7 @@
   },
   "tripLog": {
     "title": "Rittenregistratie",
-    "subtitle": "Leg per rit vast waarvoor die was en exporteer de registratie als spreadsheet, met de adressen en kilometerstanden die een rittenregistratie vraagt. Ritten verschijnen hier een paar minuten nadat de auto geparkeerd is.",
+    "subtitle": "Leg per rit vast waarvoor die was, met de adressen en kilometerstanden die een rittenregistratie vraagt, en exporteer de registratie als spreadsheet onder Instellingen > Data & API. Ritten verschijnen hier een paar minuten nadat de auto geparkeerd is.",
     "year": "Jaar",
     "month": "Maand",
     "wholeYear": "Heel het jaar",
@@ -843,7 +855,7 @@
     "cardDesc": {
       "allTrips": "De afstand van alle ritten in deze periode, met het aantal ritten tussen haakjes. Verborgen ritten tellen niet mee. De afstand van een rit komt van de kilometerstand, of van de GPS-punten als de auto geen kilometerstand doorgaf.",
       "business": "De afstand van de ritten die als zakelijk zijn ingedeeld, met het aantal ritten tussen haakjes en hun aandeel in de afstand van de periode eronder.",
-      "commute": "De afstand van de ritten die als woon-werk zijn ingedeeld, met het aantal ritten tussen haakjes en hun aandeel in de afstand van de periode eronder. Zodra thuis en werk zijn ingesteld onder Thuis en werk, worden ritten daartussen vanzelf als woon-werk ingedeeld.",
+      "commute": "De afstand van de ritten die als woon-werk zijn ingedeeld, met het aantal ritten tussen haakjes en hun aandeel in de afstand van de periode eronder. Zodra thuis en werk zijn ingesteld onder Instellingen > Voertuig > Thuis en werk, worden ritten daartussen vanzelf als woon-werk ingedeeld.",
       "private": "De afstand van de ritten die als privé zijn ingedeeld, met het aantal ritten tussen haakjes en hun aandeel in de afstand van de periode eronder.",
       "unclassified": "De afstand van de ritten die nog geen doel hebben. Kies per rit een doel in de lijst, of deel ze allemaal tegelijk in met de knoppen onder deze cijfers.",
       "drivingTime": "De tijd van vertrek tot aankomst, opgeteld over alle ritten in deze periode. Stilstand in het verkeer telt mee, de tijd geparkeerd tussen ritten niet.",
@@ -877,8 +889,6 @@
     "distanceFromGps": "Afstand langs de GPS-punten; de auto gaf voor deze rit geen kilometerstand door",
     "resolvingPlaces": "Adres wordt opgezocht",
     "placesOff": "Plaatsnamen staan uit, dus adressen worden als coördinaten getoond. Zet ze aan onder Instellingen > Kaart.",
-    "export": "CSV exporteren",
-    "exportWhileResolving": "Sommige adressen worden nog opgezocht; die worden als coördinaten geëxporteerd",
     "empty": "Geen opgeslagen ritten in deze periode.",
     "csv": {
       "date": "Datum",
@@ -893,7 +903,6 @@
       "notes": "Notities"
     },
     "places": {
-      "button": "Thuis en werk",
       "title": "Thuis en werk",
       "addTitle": "Plaats toevoegen",
       "editTitle": "Plaats bewerken",

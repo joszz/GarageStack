@@ -1,0 +1,14 @@
+/* The year and month a trip log period is picked by (TripLogPeriodFields): on the trip log page
+   and beside the trip log export in the settings. */
+
+.trip-log-period {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.trip-log-period__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}

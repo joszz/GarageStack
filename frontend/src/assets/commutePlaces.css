@@ -1,0 +1,35 @@
+/* The home and work dialog (CommutePlacesModal), opened from the trip log and from the settings,
+   so it brings its own styles rather than relying on the trip log page's. */
+
+.commute-places__intro {
+  margin-bottom: 0.75rem;
+}
+
+.commute-places__change {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.75rem;
+  color: var(--color-success-text);
+}
+
+/* As tall as the statistics page's parking map. */
+.commute-places__map {
+  height: 280px;
+  width: 100%;
+  margin-top: 0.35rem;
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+@media (width >= 768px) {
+  .commute-places__map {
+    height: 360px;
+  }
+}
+
+/* After the radius, at the row's far end: this place sends arrival and departure notifications. */
+.commute-places__notify {
+  margin-left: auto;
+  color: var(--color-text-muted);
+}

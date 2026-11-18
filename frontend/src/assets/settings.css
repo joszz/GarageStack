@@ -103,6 +103,15 @@
   }
 }
 
+/* The trip log export: its period and the download button, which wraps under the period on a
+   phone rather than squeezing the month names. */
+.trip-log-export {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem;
+}
+
 .notif-type-filter__actions {
   display: flex;
   flex-wrap: wrap;

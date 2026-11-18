@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { deventer, logEntry, place } from '@/services/__tests__/tripLogFixtures'
 import {
+  currentMonthPeriod,
   distanceShare,
   endLabel,
   loggedDistanceKm,
@@ -12,6 +13,12 @@ import {
   purposeTotals,
   tripDurationMs,
 } from '../tripLog'
+
+describe('currentMonthPeriod', () => {
+  it("starts at the local month, which is not yet UTC's at midnight on the first", () => {
+    expect(currentMonthPeriod(new Date(2026, 10, 1, 0, 30))).toEqual({ year: 2026, month: 10 })
+  })
+})
 
 describe('periodRange', () => {
   it('covers a month from its first local midnight up to the next month', () => {

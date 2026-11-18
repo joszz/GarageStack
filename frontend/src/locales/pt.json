@@ -666,6 +666,11 @@
       "label": "Tampa traseira elétrica",
       "desc": "Ative se o porta-malas do carro abre e fecha sozinho. O cartão Portas poderá então abri-lo e fechá-lo, em vez de apenas destravá-lo. Um carro sem tampa traseira elétrica recusa o comando."
     },
+    "commutePlaces": {
+      "title": "Casa e trabalho",
+      "desc": "As viagens entre casa e um local de trabalho são marcadas como casa-trabalho, e um local pode avisar quando o carro chega ou sai. No registro de viagens, o início ou o fim de uma viagem também pode ser definido como local.",
+      "edit": "Editar locais"
+    },
     "units": {
       "title": "Idioma, região e unidades",
       "auto": "Automático: {value}",
@@ -730,6 +735,13 @@
       "title": "Seus dados",
       "desc": "Tudo o que o GarageStack guarda, em um único zip: por carro, as viagens, a manutenção, os agendamentos, os lugares e todas as leituras de telemetria, além das suas notificações e configurações. A telemetria vem em um arquivo CSV que uma planilha abre, e o resto em JSON. Um histórico grande leva um instante para ser reunido.",
       "download": "Baixar tudo"
+    },
+    "tripLogExport": {
+      "title": "Registro de viagens",
+      "desc": "Um mês ou um ano de viagens como planilha, com os endereços e as leituras do odômetro que um registro de viagens para fins fiscais exige. As viagens ocultas ficam de fora. Os endereços ainda não pesquisados são pesquisados antes, o que pode levar um tempo para um ano inteiro.",
+      "download": "Baixar CSV",
+      "lookingUp": "Pesquisando endereços: falta {n} viagem | Pesquisando endereços: faltam {n} viagens",
+      "empty": "Nenhuma viagem neste período."
     },
     "diagnostics": {
       "title": "Diagnóstico",
@@ -820,7 +832,7 @@
   },
   "tripLog": {
     "title": "Registro de viagens",
-    "subtitle": "Registre a finalidade de cada viagem e exporte o registro como planilha, com os endereços e as leituras do odômetro que um registro de viagens para fins fiscais exige. As viagens aparecem aqui alguns minutos depois que o carro estaciona.",
+    "subtitle": "Registre a finalidade de cada viagem, com os endereços e as leituras do odômetro que um registro de viagens para fins fiscais exige, e exporte o registro como planilha em Configurações > Dados e API. As viagens aparecem aqui alguns minutos depois que o carro estaciona.",
     "year": "Ano",
     "month": "Mês",
     "wholeYear": "Ano inteiro",
@@ -843,7 +855,7 @@
     "cardDesc": {
       "allTrips": "A distância percorrida em todas as viagens deste período, com o número de viagens entre parênteses. Viagens ocultas ficam de fora. A distância de uma viagem vem do hodômetro, ou dos pontos de GPS quando o carro não enviou leituras do hodômetro.",
       "business": "A distância das viagens marcadas como trabalho, com o número de viagens entre parênteses e a parcela delas na distância do período abaixo.",
-      "commute": "A distância das viagens marcadas como casa-trabalho, com o número de viagens entre parênteses e a parcela delas na distância do período abaixo. Depois de definir casa e trabalho em Casa e trabalho, as viagens entre eles são marcadas automaticamente como casa-trabalho.",
+      "commute": "A distância das viagens marcadas como casa-trabalho, com o número de viagens entre parênteses e a parcela delas na distância do período abaixo. Depois de definir casa e trabalho em Configurações > Veículo > Casa e trabalho, as viagens entre eles são marcadas automaticamente como casa-trabalho.",
       "private": "A distância das viagens marcadas como particulares, com o número de viagens entre parênteses e a parcela delas na distância do período abaixo.",
       "unclassified": "A distância das viagens que ainda não têm finalidade. Escolha uma finalidade para cada viagem na lista, ou marque todas de uma vez com os botões abaixo destes números.",
       "drivingTime": "O tempo da partida até a chegada, somado em todas as viagens deste período. Paradas no trânsito contam; o tempo estacionado entre viagens não.",
@@ -877,8 +889,6 @@
     "distanceFromGps": "Distância pelos pontos de GPS; o carro não informou leituras do odômetro nesta viagem",
     "resolvingPlaces": "Buscando o endereço",
     "placesOff": "Os nomes de lugares estão desativados, então os endereços aparecem como coordenadas. Ative em Configurações > Mapa.",
-    "export": "Exportar CSV",
-    "exportWhileResolving": "Alguns endereços ainda estão sendo buscados; eles serão exportados como coordenadas",
     "empty": "Nenhuma viagem salva neste período.",
     "csv": {
       "date": "Data",
@@ -893,7 +903,6 @@
       "notes": "Observações"
     },
     "places": {
-      "button": "Casa e trabalho",
       "title": "Casa e trabalho",
       "addTitle": "Adicionar um local",
       "editTitle": "Editar local",

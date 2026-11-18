@@ -14,6 +14,8 @@ import CarColorPicker from './CarColorPicker.vue'
 import VehicleTypeSetting from './VehicleTypeSetting.vue'
 import LicensePlateSetting from './LicensePlateSetting.vue'
 import PowerTailgateSetting from './PowerTailgateSetting.vue'
+import CommutePlacesSetting from './CommutePlacesSetting.vue'
+import TripLogExportSetting from './TripLogExportSetting.vue'
 import NotificationTypeSettings from './NotificationTypeSettings.vue'
 import ApiTokenSettings from './ApiTokenSettings.vue'
 import PhoneGpsSettings from './PhoneGpsSettings.vue'
@@ -210,6 +212,7 @@ const languageOptions = [
           <CarColorPicker />
           <VehicleTypeSetting />
           <PowerTailgateSetting />
+          <CommutePlacesSetting />
           <LicensePlateSetting v-if="rdw.available" />
         </div>
       </div>
@@ -284,6 +287,7 @@ const languageOptions = [
               </a>
             </template>
           </SettingsToggle>
+          <TripLogExportSetting v-if="vehicleStore.activeVin" />
           <SettingsToggle
             class="settings-toggle--select settings-toggle--action"
             :label="t('settings.diagnostics.title')"

@@ -11,18 +11,18 @@ import TripLogItem from '@/components/TripLogItem.vue'
 import TripLogDetail from '@/components/TripLogDetail.vue'
 import CommutePlacesModal from '@/components/CommutePlacesModal.vue'
 import DetailModal from '@/components/DetailModal.vue'
+import TripLogPeriodFields from '@/components/TripLogPeriodFields.vue'
 import { useCommutePlacesStore } from '@/stores/commutePlaces'
 import { TRIP_PURPOSES, type TripPurpose } from '@/services/tripLogApi'
-import { downloadCsv } from '@/utils/download'
-import { formatDate, formatNumber } from '@/utils/format'
+import { formatNumber } from '@/utils/format'
 import {
+  currentMonthPeriod,
   distanceShare,
   PURPOSE_CARD_VARIANTS,
   PURPOSE_ICONS,
   PURPOSE_KEYS,
   type TripLogPeriod,
 } from '@/utils/tripLog'
-import { tripLogCsv, tripLogFileName } from '@/utils/tripLogCsv'
 import { formatDurationMs } from '@/utils/tripRows'
 import { WIDE_MEDIA_QUERY } from '@/utils/viewport'
 import type { Measure } from '@/utils/units'
@@ -47,30 +47,13 @@ const errorMessage = useErrorMessage()
 
 const vin = computed(() => vehicleStore.activeVin)
 
-// The current month to start with: the one a driver is most likely filling in.
-const today = new Date()
-const year = ref(today.getFullYear())
-const month = ref<number | null>(today.getMonth())
-const period = computed<TripLogPeriod>(() => ({ year: year.value, month: month.value }))
-
-// Trips are saved from the Worker's first run onwards, which also saves the history before it,
-// so a few years back covers any install; there is nothing to page to before that.
-const YEARS_OFFERED = 5
-const years = computed(() =>
-  Array.from({ length: YEARS_OFFERED }, (_, i) => today.getFullYear() - i),
-)
-const months = computed(() =>
-  Array.from({ length: 12 }, (_, m) => ({
-    value: m,
-    label: formatDate(new Date(2000, m, 1), { month: 'long' }),
-  })),
-)
+const period = ref<TripLogPeriod>(currentMonthPeriod())
 
 // Hidden trips stay out of the list unless asked for, as they stay out of the totals and export.
 const showHidden = ref(false)
 const listed = computed(() => (showHidden.value ? store.entries : store.visibleEntries))
 
-// Newest first on screen, where the trips still to classify are; the export stays in date order.
+// Newest first on screen, where the trips still to classify are; the store keeps date order.
 const newestFirst = computed(() => [...listed.value].reverse())
 
 // Every trip but the newest has a saved trip after it to join with. The newest of a past month
@@ -216,22 +199,18 @@ function reload() {
 
 // ── Home and work ─────────────────────────────────────────
 
+// The places themselves are set under Settings > Vehicle; a trip's end opens the same dialog
+// with a new place started there.
 const placesOpen = ref(false)
 const pick = ref<{ latitude: number; longitude: number } | null>(null)
 
-const carPosition = computed<[number, number] | null>(() => {
-  const status = vehicleStore.currentStatus
-  return status?.latitude != null && status.longitude != null
-    ? [status.latitude, status.longitude]
-    : null
-})
-
-function openPlaces(latitude?: number, longitude?: number) {
-  pick.value = latitude === undefined || longitude === undefined ? null : { latitude, longitude }
+function openPlaces(latitude: number, longitude: number) {
+  pick.value = { latitude, longitude }
   placesOpen.value = true
 }
 
-// A place changed, so trips may have been labelled or unlabelled: show the log as it is now.
+// A place changed, here or in the settings, so trips may have been labelled or unlabelled: show
+// the log as it is now.
 async function reloadLog() {
   if (!vin.value) return
   await store.fetchLog(vin.value, period.value)
@@ -241,6 +220,7 @@ async function reloadLog() {
 onMounted(load)
 watch(period, reload)
 watch(vin, reload)
+watch(() => commutePlaces.revision, reloadLog)
 
 // Switching place names off stops the lookups and shows coordinates; switching them back on asks
 // for whatever this page is still missing.
@@ -278,50 +258,14 @@ async function confirmJoin() {
 function classifyAll(purpose: TripPurpose) {
   if (vin.value) void store.classifyUnclassified(vin.value, purpose)
 }
-
-function exportCsv() {
-  const csv = tripLogCsv(store.visibleEntries, {
-    t,
-    units: units.value,
-    placesShown: placesShown.value,
-  })
-  downloadCsv(tripLogFileName(period.value), csv)
-}
 </script>
 
 <template>
   <div class="view-container">
-    <ViewHeader :title="t('tripLog.title')" :subtitle="t('tripLog.subtitle')">
-      <template #actions>
-        <button type="button" class="btn btn-outline-secondary btn-sm" @click="openPlaces()">
-          <font-awesome-icon icon="house" />{{ t('tripLog.places.button') }}
-        </button>
-        <button
-          type="button"
-          class="btn btn-primary btn-sm"
-          :disabled="store.visibleEntries.length === 0"
-          :title="store.placesResolving ? t('tripLog.exportWhileResolving') : undefined"
-          @click="exportCsv"
-        >
-          <font-awesome-icon icon="file-csv" />{{ t('tripLog.export') }}
-        </button>
-      </template>
-    </ViewHeader>
+    <ViewHeader :title="t('tripLog.title')" :subtitle="t('tripLog.subtitle')" />
 
     <div class="trip-log-filters">
-      <label class="trip-log-filters__field">
-        <span class="text-xs text-muted">{{ t('tripLog.year') }}</span>
-        <select v-model="year" class="form-select">
-          <option v-for="y in years" :key="y" :value="y">{{ y }}</option>
-        </select>
-      </label>
-      <label class="trip-log-filters__field">
-        <span class="text-xs text-muted">{{ t('tripLog.month') }}</span>
-        <select v-model="month" class="form-select">
-          <option :value="null">{{ t('tripLog.wholeYear') }}</option>
-          <option v-for="m in months" :key="m.value" :value="m.value">{{ m.label }}</option>
-        </select>
-      </label>
+      <TripLogPeriodFields v-model="period" />
       <label v-if="store.hiddenCount > 0" class="trip-log-hidden-toggle text-sm">
         <input v-model="showHidden" type="checkbox" class="form-check-input" />
         {{ t('tripLog.showHidden', store.hiddenCount) }}
@@ -483,9 +427,8 @@ function exportCsv() {
       :open="placesOpen"
       :vin="vin"
       :pick="pick"
-      :fallback-center="carPosition"
+      :fallback-center="vehicleStore.currentPosition"
       @close="placesOpen = false"
-      @changed="reloadLog"
     />
   </div>
 </template>

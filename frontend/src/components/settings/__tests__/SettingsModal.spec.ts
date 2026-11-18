@@ -131,7 +131,9 @@ describe('SettingsModal tabs', () => {
     }
     expect(panel(wrapper, 'general').text()).toContain(en.settings.units.title)
     expect(panel(wrapper, 'vehicle').text()).toContain(en.settings.vehicleType.title)
+    expect(panel(wrapper, 'vehicle').text()).toContain(en.settings.commutePlaces.title)
     expect(panel(wrapper, 'map').text()).toContain(en.settings.map.placeNames)
+    expect(panel(wrapper, 'data').text()).toContain(en.settings.tripLogExport.download)
     const downloads = panel(wrapper, 'data')
       .findAll('a[download]')
       .map((link) => link.attributes('href'))
@@ -326,8 +328,12 @@ describe('SettingsModal tabs', () => {
   it.each([en, nl, es, pt])(
     'keeps navigation hints consistent with the settings labels',
     (locale) => {
-      const { title, tabs, licensePlate } = locale.settings
+      const { title, tabs, licensePlate, commutePlaces } = locale.settings
       expect(locale.tripLog.placesOff).toContain(`${title} > ${tabs.map}`)
+      expect(locale.tripLog.subtitle).toContain(`${title} > ${tabs.data}`)
+      expect(locale.tripLog.cardDesc.commute).toContain(
+        `${title} > ${tabs.vehicle} > ${commutePlaces.title}`,
+      )
       expect(locale.tripLog.places.notifyHint).toContain(`${title} > ${tabs.notifications}`)
       expect(locale.rdw.notFound).toContain(`${title} > ${tabs.vehicle} > ${licensePlate.title}`)
     },

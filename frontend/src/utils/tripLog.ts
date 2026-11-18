@@ -15,6 +15,11 @@ export interface TripLogPeriod {
   month: number | null
 }
 
+/** The month a period starts at: the current one, which a driver is most likely filling in. */
+export function currentMonthPeriod(today = new Date()): TripLogPeriod {
+  return { year: today.getFullYear(), month: today.getMonth() }
+}
+
 /**
  * The period's bounds, start included and end excluded, in the browser's own time zone: a
  * driver's September runs from their midnight to their midnight, not UTC's.

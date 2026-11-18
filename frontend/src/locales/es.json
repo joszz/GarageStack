@@ -666,6 +666,11 @@
       "label": "Portón trasero eléctrico",
       "desc": "Actívelo si el maletero del coche se abre y se cierra solo. La tarjeta Puertas podrá entonces abrirlo y cerrarlo, en lugar de solo desbloquearlo. Un coche sin portón trasero eléctrico rechaza la orden."
     },
+    "commutePlaces": {
+      "title": "Hogar y trabajo",
+      "desc": "Los viajes entre el hogar y un lugar de trabajo se marcan como conmutación, y un lugar puede avisarte cuando el coche llega o se va. En el registro de viaje también puedes usar el inicio o el final de un viaje como lugar.",
+      "edit": "Editar lugares"
+    },
     "units": {
       "title": "Idioma, región y unidades",
       "auto": "Automático: {value}",
@@ -730,6 +735,13 @@
       "title": "Tus datos",
       "desc": "Descarga en un archivo ZIP todo lo que guarda GarageStack: trayectos, mantenimiento, programaciones, lugares, lecturas de telemetría, notificaciones y ajustes. Las lecturas se incluyen como CSV, que puedes abrir en una hoja de cálculo; el resto se guarda en archivos JSON.",
       "download": "Descargar todo"
+    },
+    "tripLogExport": {
+      "title": "Registro de viaje",
+      "desc": "Un mes o un año de viajes como hoja de cálculo, con las direcciones y lecturas del cuentakilómetros que requiere un registro fiscal de desplazamientos. Los viajes ocultos se excluyen. Las direcciones que aún no se han buscado se buscan primero, lo que puede tardar un rato para un año entero.",
+      "download": "Descargar CSV",
+      "lookingUp": "Buscando direcciones: falta {n} viaje | Buscando direcciones: faltan {n} viajes",
+      "empty": "No hay viajes en este período."
     },
     "diagnostics": {
       "title": "Diagnóstico",
@@ -820,7 +832,7 @@
   },
   "tripLog": {
     "title": "Registro de viaje",
-    "subtitle": "Clasifica tus trayectos y exporta el registro a una hoja de cálculo, con las direcciones y lecturas del cuentakilómetros que requiere un registro fiscal de desplazamientos. Los trayectos aparecen aquí unos minutos después de aparcar.",
+    "subtitle": "Clasifica tus trayectos, con las direcciones y lecturas del cuentakilómetros que requiere un registro fiscal de desplazamientos, y exporta el registro a una hoja de cálculo en Ajustes > Datos y API. Los trayectos aparecen aquí unos minutos después de aparcar.",
     "year": "Año",
     "month": "Mes",
     "wholeYear": "Año completo",
@@ -843,7 +855,7 @@
     "cardDesc": {
       "allTrips": "La distancia recorrida en todos los viajes de este periodo, con el número de viajes entre paréntesis. Los viajes ocultos no se cuentan. La distancia de un viaje viene del cuentakilómetros, o de sus puntos GPS cuando el coche no envió lecturas del cuentakilómetros.",
       "business": "La distancia de los viajes marcados como negocios, con el número de viajes entre paréntesis y su parte de la distancia del periodo debajo.",
-      "commute": "La distancia de los viajes marcados como conmutación, con el número de viajes entre paréntesis y su parte de la distancia del periodo debajo. Una vez que defines casa y trabajo en Hogar y trabajo, los viajes entre ambos se marcan solos como conmutación.",
+      "commute": "La distancia de los viajes marcados como conmutación, con el número de viajes entre paréntesis y su parte de la distancia del periodo debajo. Una vez que defines casa y trabajo en Ajustes > Vehículo > Hogar y trabajo, los viajes entre ambos se marcan solos como conmutación.",
       "private": "La distancia de los viajes marcados como privados, con el número de viajes entre paréntesis y su parte de la distancia del periodo debajo.",
       "unclassified": "La distancia de los viajes que aún no tienen propósito. Elige un propósito para cada viaje en la lista, o márcalos todos a la vez con los botones bajo estas cifras.",
       "drivingTime": "El tiempo desde la salida hasta la llegada, sumado en todos los viajes de este periodo. Las paradas en el tráfico cuentan; el tiempo aparcado entre viajes no.",
@@ -877,8 +889,6 @@
     "distanceFromGps": "Distancia calculada a partir de los puntos GPS; el coche no comunicó la lectura del cuentakilómetros de este trayecto.",
     "resolvingPlaces": "Buscando la dirección",
     "placesOff": "Los nombres de los lugares están desactivados, por lo que las direcciones se muestran como coordenadas. Actívelos en Ajustes > Mapa.",
-    "export": "Exportar CSV",
-    "exportWhileResolving": "Algunas direcciones aún se están buscando; esos se exportan como coordenadas",
     "empty": "No hay viajes guardados en este período.",
     "csv": {
       "date": "Fecha",
@@ -893,7 +903,6 @@
       "notes": "Notas"
     },
     "places": {
-      "button": "Hogar y trabajo",
       "title": "Hogar y trabajo",
       "addTitle": "Añadir lugar",
       "editTitle": "Editar lugar",

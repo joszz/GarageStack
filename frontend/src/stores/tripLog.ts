@@ -2,23 +2,14 @@ import { defineStore } from 'pinia'
 import { computed, ref, shallowRef } from 'vue'
 import { useLoadingTracker } from '@/composables/useLoadingTracker'
 import { asError } from '@/utils/errors'
-import { resolveInRounds } from '@/utils/resolveInRounds'
-import { GEOCODE_MAX_ATTEMPTS, GEOCODE_RETRY_DELAY_MS } from '@/services/mapApi'
 import {
   tripLogApi,
-  MAX_TRIPS_PER_PLACES_REQUEST,
   MAX_TRIPS_PER_PURPOSE_CHANGE,
   type TripLogEntry,
-  type TripPlaces,
   type TripPurpose,
 } from '@/services/tripLogApi'
-import {
-  missingPlaces,
-  periodRange,
-  periodSummary,
-  purposeTotals,
-  type TripLogPeriod,
-} from '@/utils/tripLog'
+import { periodRange, periodSummary, purposeTotals, type TripLogPeriod } from '@/utils/tripLog'
+import { lookUpTripPlaces, withPlaces } from '@/utils/tripLogPlaces'
 
 export const useTripLogStore = defineStore('tripLog', () => {
   // shallowRef: entries are only ever replaced, never mutated in place.
@@ -161,25 +152,10 @@ export const useTripLogStore = defineStore('tripLog', () => {
     }
   }
 
-  function applyPlaces(found: readonly TripPlaces[]) {
-    const byId = new Map(found.map((places) => [places.id, places]))
-    patchEntries((entry) => {
-      const places = byId.get(entry.id)
-      return places
-        ? {
-            ...entry,
-            startPlace: places.startPlace ?? entry.startPlace,
-            endPlace: places.endPlace ?? entry.endPlace,
-          }
-        : entry
-    })
-  }
-
   /**
-   * Looks up the addresses the listed trips are still missing, a batch per round with a pause
-   * between rounds, until every one is known or given up on. The server keeps what it finds, so
-   * a trip is looked up only once. It works on whatever the list holds at each round, so paging
-   * to another month mid-way carries on with that month's trips.
+   * Looks up the addresses the listed trips are still missing (see lookUpTripPlaces). It works on
+   * whatever the list holds at each round, so paging to another month mid-way carries on with
+   * that month's trips.
    */
   async function resolvePlaces(vin: string, language: string) {
     if (!placesAvailable.value) return
@@ -188,40 +164,19 @@ export const useTripLogStore = defineStore('tripLog', () => {
     placesStopped = false
     if (placesResolving.value) return
     placesResolving.value = true
-    const attempts = new Map<number, number>()
-    const wanted = (entry: TripLogEntry) =>
-      missingPlaces(entry) && (attempts.get(entry.id) ?? 0) < GEOCODE_MAX_ATTEMPTS
 
     try {
-      await resolveInRounds<TripLogEntry>(
-        {
-          active: () => !placesStopped,
-          nextBatch: () => entries.value.filter(wanted).slice(0, MAX_TRIPS_PER_PLACES_REQUEST),
-          ask: async (batch) => {
-            const result = await tripLogApi.resolvePlaces(
-              vin,
-              batch.map((entry) => entry.id),
-              language,
-            )
-            if (!result.available) {
-              placesAvailable.value = false
-              return null
-            }
-            applyPlaces(result.trips)
-            const current = new Map(entries.value.map((entry) => [entry.id, entry]))
-            return batch.filter((entry) => {
-              const now = current.get(entry.id)
-              return now !== undefined && missingPlaces(now)
-            })
-          },
-          countAttempt: (entry) => attempts.set(entry.id, (attempts.get(entry.id) ?? 0) + 1),
-          hasMore: () => entries.value.some(wanted),
-          onEnd: () => {
-            placesResolving.value = false
-          },
+      const available = await lookUpTripPlaces(vin, language, {
+        entries: () => entries.value,
+        apply: (found) => {
+          entries.value = withPlaces(entries.value, found)
         },
-        GEOCODE_RETRY_DELAY_MS,
-      )
+        active: () => !placesStopped,
+        onEnd: () => {
+          placesResolving.value = false
+        },
+      })
+      if (!available) placesAvailable.value = false
     } catch {
       // Offline or signed out: the addresses fill in on the next visit instead.
     }
