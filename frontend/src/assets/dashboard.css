@@ -221,3 +221,34 @@
     max-width: 680px;
   }
 }
+
+/* ── Refresh indicator ────────────────────────────────────── */
+
+/* Comes and goes with every refresh, so it sits beside the header's buttons without taking room
+   in their row: showing it moves nothing on the page. Phones show the spinner only, which leaves
+   the title its room; the words stay for screen readers. */
+.view-header__actions:has(> .refresh-indicator) {
+  position: relative;
+}
+
+.refresh-indicator {
+  position: absolute;
+  inset-block: 0;
+  right: calc(100% + 0.5rem);
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+@media (width <= 767px) {
+  .refresh-indicator__label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}

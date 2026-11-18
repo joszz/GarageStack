@@ -203,9 +203,9 @@ onUnmounted(() => {
   <div class="view-container">
     <ViewHeader :title="t('dashboard.title')">
       <template #actions>
-        <span v-if="store.loading && status" class="text-muted">
+        <span v-if="store.loading && status" class="refresh-indicator text-muted" role="status">
           <font-awesome-icon icon="spinner" spin />
-          {{ t('common.refreshing') }}
+          <span class="refresh-indicator__label">{{ t('common.refreshing') }}</span>
         </span>
         <EditLayoutButton v-model="editMode" />
       </template>
