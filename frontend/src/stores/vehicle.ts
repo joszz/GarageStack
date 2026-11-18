@@ -13,8 +13,10 @@ import {
 import { browserTimeZone, localDateKey } from '@/utils/dates'
 import { counterScale, type CounterScale } from '@/utils/energy'
 import { useUiSettingsStore } from '@/stores/settingsUi'
+import { useAuthStore } from '@/stores/auth'
 import { useLoadingTracker } from '@/composables/useLoadingTracker'
 import { rememberVin } from '@/utils/lastVin'
+import { readLastKnownState, saveLastKnownState } from '@/utils/lastKnownState'
 
 // Defined with the API contract it comes from; re-exported here because every view reads the
 // vehicle's type through this store.
@@ -32,11 +34,20 @@ function keepIfUnchanged<T>(target: ShallowRef<T>, answer: T): void {
 export const useVehicleStore = defineStore('vehicle', () => {
   const uiSettings = useUiSettingsStore()
 
-  const vehicles = ref<Vehicle[]>([])
-  const vehicleConfig = ref<Record<string, string>>({})
+  // The car as this browser last loaded it, shown until the server answers, and instead of
+  // nothing when it cannot be reached. Only for a session still held: the copy is forgotten on
+  // sign-out, and a stale one must not show before the login page.
+  const saved = useAuthStore().isAuthenticated ? readLastKnownState() : null
+  // True while the car on screen is that saved copy rather than what the server said this visit.
+  const showingSavedState = ref(saved !== null)
+  // The saved list is only a stand-in: the first fetchVehicles still asks the server.
+  let vehiclesFromSave = saved !== null
+
+  const vehicles = ref<Vehicle[]>(saved?.vehicles ?? [])
+  const vehicleConfig = ref<Record<string, string>>(saved?.config ?? {})
   // shallowRef: these are only ever replaced wholesale on fetch, never mutated
   // field-by-field, so deep reactivity on every GPS point/telemetry snapshot is wasted work.
-  const currentStatus = shallowRef<TelemetrySnapshot | null>(null)
+  const currentStatus = shallowRef<TelemetrySnapshot | null>(saved?.status ?? null)
   const dailyStats = shallowRef<DailyStat[]>([])
   // Today's row of those statistics for the dashboard, kept apart from the statistics page's
   // period. The API checks today's energy counter against every reading of the day, which the
@@ -47,7 +58,7 @@ export const useVehicleStore = defineStore('vehicle', () => {
   const trips = shallowRef<Trip[]>([])
   // Separate from `trips`, which the map fills with a period of trips and all their fixes: the
   // dashboard needs only the newest trip, and the statistics page only the figures of a period.
-  const latestTrip = shallowRef<Trip | null>(null)
+  const latestTrip = shallowRef<Trip | null>(saved?.latestTrip ?? null)
   const tripSummaries = shallowRef<TripSummary[]>([])
   const { loading, withLoading } = useLoadingTracker()
   const sendingCount = ref(0)
@@ -74,11 +85,32 @@ export const useVehicleStore = defineStore('vehicle', () => {
   // calling fetchVehicles() on mount would otherwise re-fetch it on every navigation. Skip the
   // request once it's already populated unless the caller explicitly asks for a fresh copy.
   async function fetchVehicles(force = false) {
-    if (!force && vehicles.value.length > 0) return
+    if (!force && !vehiclesFromSave && vehicles.value.length > 0) return
     await withLoading(vehiclesError, async () => {
       vehicles.value = await vehicleApi.list()
+      vehiclesFromSave = false
       if (activeVin.value) rememberVin(activeVin.value)
+      saveState()
     })
+  }
+
+  // Every answer the dashboard shows is written through to the saved copy, so it is as fresh as
+  // the last thing the server said. Nothing is saved before the car is known.
+  function saveState() {
+    if (!activeVin.value) return
+    saveLastKnownState({
+      vehicles: vehicles.value,
+      status: currentStatus.value,
+      config: vehicleConfig.value,
+      latestTrip: latestTrip.value,
+    })
+  }
+
+  function takeStatus(snapshot: TelemetrySnapshot) {
+    keepIfUnchanged(currentStatus, snapshot)
+    showingSavedState.value = false
+    lastUpdated.value = new Date()
+    saveState()
   }
 
   // Kept on the vehicle by the API, so the list copy is updated in place rather than re-fetched.
@@ -91,14 +123,14 @@ export const useVehicleStore = defineStore('vehicle', () => {
 
   async function fetchStatus(vin: string) {
     await withLoading(statusError, async () => {
-      keepIfUnchanged(currentStatus, await vehicleApi.status(vin))
-      lastUpdated.value = new Date()
+      takeStatus(await vehicleApi.status(vin))
     })
   }
 
   async function fetchConfig(vin: string) {
     try {
       vehicleConfig.value = await vehicleApi.config(vin)
+      saveState()
     } catch {
       // config may not exist yet
     }
@@ -142,8 +174,7 @@ export const useVehicleStore = defineStore('vehicle', () => {
       })
     }
 
-    keepIfUnchanged(currentStatus, snapshot)
-    lastUpdated.value = new Date()
+    takeStatus(snapshot)
   }
 
   function notifyTripCompleted() {
@@ -166,6 +197,7 @@ export const useVehicleStore = defineStore('vehicle', () => {
   async function fetchLatestTrip(vin: string) {
     await withLoading(latestTripError, async () => {
       keepIfUnchanged(latestTrip, (await vehicleApi.latestTrip(vin)) ?? null)
+      saveState()
     })
   }
 
@@ -242,6 +274,7 @@ export const useVehicleStore = defineStore('vehicle', () => {
     latestTripError,
     tripSummariesError,
     lastUpdated,
+    showingSavedState,
     tripJustCompleted,
     chargingJustCompleted,
     lastCommandResult,

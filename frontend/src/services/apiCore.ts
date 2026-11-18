@@ -11,6 +11,13 @@ export function clearUnauthorizedState() {
   handlingUnauthorized = false
 }
 
+/**
+ * How long a request a page waits on before it can show anything (the session check, the account's
+ * settings) may take before the page carries on as if offline. Long enough for a slow server, short
+ * enough that a phone with a signal that comes and goes still opens on the car as last loaded.
+ */
+export const STARTUP_REQUEST_TIMEOUT_MS = 8000
+
 // Absolute URL for an API path. Needed for links and WebSocket connections, which the browser
 // resolves itself instead of going through request()/send().
 export function apiUrl(path: string): string {

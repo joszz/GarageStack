@@ -1,4 +1,4 @@
-import { request, send } from '@/services/apiCore'
+import { request, send, STARTUP_REQUEST_TIMEOUT_MS } from '@/services/apiCore'
 
 /** The sections an account's settings are kept in, one per settings store. Mirrors UserSettingsLimits.Sections. */
 export const SETTINGS_SECTIONS = ['ui', 'dashboard', 'map'] as const
@@ -8,7 +8,11 @@ export type SettingsSection = (typeof SETTINGS_SECTIONS)[number]
 export type AccountSettings = Partial<Record<SettingsSection, Record<string, unknown>>>
 
 export const settingsApi = {
-  load: () => request<AccountSettings>('/api/settings'),
+  // Every page waits on this before it opens, so a connection that never answers counts as none.
+  load: () =>
+    request<AccountSettings>('/api/settings', {
+      signal: AbortSignal.timeout(STARTUP_REQUEST_TIMEOUT_MS),
+    }),
   // Only the keys given change; the rest of the section keeps what the account holds. keepalive,
   // because the last change before a tab closes is sent while the page is going away.
   save: (section: SettingsSection, changes: Record<string, unknown>) =>
