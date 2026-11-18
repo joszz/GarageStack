@@ -177,7 +177,8 @@
       "energy": "Energía consumida (kWh)",
       "fuel": "Combustible ({unit})",
       "efficiency": "Eficiencia ({unit})",
-      "total": "Total"
+      "total": "Total",
+      "needsLongerPeriod": "Se muestra con un periodo de más de un mes"
     }
   },
   "directions": {

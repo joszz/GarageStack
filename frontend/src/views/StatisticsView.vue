@@ -23,6 +23,7 @@ import SkeletonCard from '@/components/SkeletonCard.vue'
 import SkeletonChart from '@/components/SkeletonChart.vue'
 import StatusCard from '@/components/StatusCard.vue'
 import StatsChartCard from '@/components/StatsChartCard.vue'
+import EditableCardSlot from '@/components/EditableCardSlot.vue'
 import type EditableCardGridComponent from '@/components/EditableCardGrid.vue'
 import { DAY_MONTH, formatDate, formatHour, formatNumber } from '@/utils/format'
 import { resolveStatsPeriod, statsQuery } from '@/utils/statsPeriod'
@@ -49,6 +50,7 @@ import {
 } from '@/utils/statistics'
 import { useUnits } from '@/composables/useUnits'
 import { useErrorMessage } from '@/composables/useErrorMessage'
+import { useLongPress } from '@/composables/useLongPress'
 import { useStatisticsCharts } from '@/composables/useStatisticsCharts'
 import ViewHeader from '@/components/ViewHeader.vue'
 
@@ -66,6 +68,8 @@ const units = useUnits()
 const errorMessage = useErrorMessage()
 
 const editMode = ref(false)
+// On a touchscreen, holding a finger on any insight or chart opens the layout editor, as on a phone.
+const cardLongPress = useLongPress(() => (editMode.value = true))
 const loading = ref(false)
 const aggregateStats = ref<VehicleAggregateStats | null>(null)
 
@@ -404,6 +408,7 @@ const chartRows = computed(() =>
 function resetStatsLayout() {
   settings.statsInsights = defaultStatsInsights()
   settings.statsCharts = defaultStatsCharts()
+  settings.showStatsMonths = true
 }
 
 const skeletonInsights = computed(() =>
@@ -494,7 +499,7 @@ const skeletonChartCount = computed(
           </EditableCardGrid>
 
           <!-- Normal mode: visible + applicable insights -->
-          <div v-else class="status-grid">
+          <div v-else class="status-grid long-press-cards" v-bind="cardLongPress">
             <template v-for="{ item, def } in insightRows" :key="item.id">
               <CardInfoWrap
                 v-if="item.visible && def.applicable"
@@ -548,7 +553,7 @@ const skeletonChartCount = computed(
           </EditableCardGrid>
 
           <!-- Normal mode: visible + applicable charts -->
-          <div v-else class="stats-chart-grid">
+          <div v-else class="stats-chart-grid long-press-cards" v-bind="cardLongPress">
             <template v-for="{ item, def } in chartRows" :key="item.id">
               <StatsChartCard
                 v-if="item.visible && def.applicable"
@@ -564,11 +569,40 @@ const skeletonChartCount = computed(
           </div>
         </template>
 
-        <StatsMonthTable
-          v-if="!editMode && showMonths"
-          :months="months"
-          :energy-unit="monthEnergyUnit"
-        />
+        <!-- ── Per month ───────────────────────────────── -->
+        <!-- Edit mode: stays below the charts, so only shown or hidden -->
+        <EditableCardSlot
+          v-if="editMode"
+          class="card-slot--large stats-months-slot"
+          :visible="settings.showStatsMonths"
+          :draggable="false"
+          @toggle-visible="settings.showStatsMonths = !settings.showStatsMonths"
+        >
+          <StatsMonthTable
+            v-if="settings.showStatsMonths && showMonths"
+            :months="months"
+            :energy-unit="monthEnergyUnit"
+          />
+          <div v-else class="card-slot__placeholder">
+            <font-awesome-icon icon="calendar-days" />
+            <span class="card-slot__placeholder-text">
+              <span>{{ t('statistics.months.title') }}</span>
+              <!-- Shown but not for this period: say why, or it seems to vanish on Done. -->
+              <small v-if="settings.showStatsMonths" class="card-slot__placeholder-hint">
+                {{ t('statistics.months.needsLongerPeriod') }}
+              </small>
+            </span>
+          </div>
+        </EditableCardSlot>
+
+        <!-- Normal mode -->
+        <div
+          v-else-if="showMonths && settings.showStatsMonths"
+          class="long-press-cards"
+          v-bind="cardLongPress"
+        >
+          <StatsMonthTable :months="months" :energy-unit="monthEnergyUnit" />
+        </div>
 
         <!-- Reset + done editing -->
         <template v-if="editMode">

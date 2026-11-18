@@ -27,6 +27,16 @@
   overflow-x: auto;
 }
 
+/* In edit mode the slot keeps the table's distance to the charts, so its badge sits on the
+   table's corner rather than 1.5rem above it. */
+.stats-months-slot {
+  margin-top: 1.5rem;
+}
+
+.stats-months-slot .stats-months {
+  margin-top: 0;
+}
+
 .stats-months__title {
   margin: 0 0 0.6rem;
   font-size: 1rem;

@@ -8,6 +8,7 @@ import { vehicleApi, type TelemetrySnapshot, type Trip, type Vehicle } from '@/s
 import { rdwApi } from '@/services/rdwApi'
 import { ApiError } from '@/services/apiCore'
 import { useVehicleStore } from '@/stores/vehicle'
+import { LONG_PRESS_MS } from '@/composables/useLongPress'
 
 vi.mock('@/services/vehicleApi', () => ({
   vehicleApi: {
@@ -185,6 +186,24 @@ describe('DashboardView', () => {
 
     expect(wrapper.find('.card-grid').exists()).toBe(true)
     expect(wrapper.text()).toContain(en.dashboard.resetLayout)
+    expect(wrapper.text()).toContain(en.dashboard.doneEditing)
+  })
+
+  it('starts editing the layout when a finger rests on a card, as on a phone', async () => {
+    const wrapper = await mountView()
+
+    vi.useFakeTimers()
+    wrapper
+      .find('.card')
+      .element.dispatchEvent(
+        new PointerEvent('pointerdown', { bubbles: true, isPrimary: true, pointerType: 'touch' }),
+      )
+    vi.advanceTimersByTime(LONG_PRESS_MS)
+    vi.useRealTimers()
+    await vi.dynamicImportSettled()
+    await flushPromises()
+
+    expect(wrapper.find('.card-grid').exists()).toBe(true)
     expect(wrapper.text()).toContain(en.dashboard.doneEditing)
   })
 

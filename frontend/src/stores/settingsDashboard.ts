@@ -38,6 +38,8 @@ interface DashboardSettings {
   statsCharts: StatsItemConfig<StatsChartId>[]
   showTyreDiagram: boolean
   showLocationMap: boolean
+  /** The statistics page's per-month table. */
+  showStatsMonths: boolean
 }
 
 function defaultsFor(): DashboardSettings {
@@ -47,6 +49,7 @@ function defaultsFor(): DashboardSettings {
     statsCharts: defaultStatsCharts(),
     showTyreDiagram: true,
     showLocationMap: true,
+    showStatsMonths: true,
   }
 }
 
@@ -61,6 +64,7 @@ function parseDashboardFields(parsed: Record<string, unknown>): DashboardSetting
     statsCharts: loadStatsItems(parsed.statsCharts, ALL_STATS_CHART_IDS),
     showTyreDiagram: parsed.showTyreDiagram !== false,
     showLocationMap: parsed.showLocationMap !== false,
+    showStatsMonths: parsed.showStatsMonths !== false,
   }
 }
 

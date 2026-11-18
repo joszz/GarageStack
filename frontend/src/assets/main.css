@@ -340,6 +340,15 @@ body,
   gap: 1rem;
 }
 
+/* Cards a long press puts in edit mode (useLongPress): on a touchscreen the same press would
+   otherwise start selecting text or, on iOS, open the callout for a link or image. */
+@media (pointer: coarse) {
+  .long-press-cards {
+    -webkit-touch-callout: none;
+    user-select: none;
+  }
+}
+
 /* A grid row stretches its items to the tallest, but on the dashboard, statistics, trip log and
    charge history the item is a wrapper (the info button's, and in edit mode the slot's) rather
    than the card. The height is passed down through them, so every tile in a row is as tall as the
