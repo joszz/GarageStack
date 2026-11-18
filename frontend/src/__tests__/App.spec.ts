@@ -1,20 +1,26 @@
-import { describe, it, expect, vi } from 'vitest'
+import { afterEach, describe, it, expect, vi } from 'vitest'
 import { defineComponent, ref } from 'vue'
 import { flushPromises, mount } from '@vue/test-utils'
 import { createI18n } from 'vue-i18n'
 import { createMemoryHistory, createRouter } from 'vue-router'
 import App from '../App.vue'
 
+const session = vi.hoisted(() => ({ authenticated: false }))
+
 vi.mock('@/stores/auth', () => ({
-  useAuthStore: () => ({ isAuthenticated: false, username: 'demo', logout: vi.fn<() => void>() }),
+  useAuthStore: () => ({
+    isAuthenticated: session.authenticated,
+    username: 'demo',
+    logout: vi.fn<() => void>(),
+  }),
 }))
 
-const vehicle = vi.hoisted(() => ({ type: 'bev' }))
+const vehicle = vi.hoisted(() => ({ type: 'bev', active: null as { id: number } | null }))
 
 vi.mock('@/stores/vehicle', () => ({
   useVehicleStore: () => ({
     currentStatus: null,
-    activeVehicle: null,
+    activeVehicle: vehicle.active,
     effectiveVehicleType: vehicle.type,
     loading: false,
     lastUpdated: null,
@@ -40,10 +46,12 @@ vi.mock('@/composables/useNotifications', () => ({
   }),
 }))
 
+const signalR = vi.hoisted(() => ({ start: vi.fn<(vehicleId: number) => void>() }))
+
 vi.mock('@/composables/useSignalR', () => ({
   useSignalR: () => ({
     connected: ref(false),
-    start: vi.fn<() => void>(),
+    start: signalR.start,
     stop: vi.fn<() => void>(),
   }),
 }))
@@ -132,5 +140,32 @@ describe('App menu', () => {
 
     expect(wrapper.find('.sidebar-nav a[href="/charge-history"]').exists()).toBe(false)
     vehicle.type = 'bev'
+  })
+})
+
+describe('App live updates', () => {
+  afterEach(() => {
+    session.authenticated = false
+    vehicle.active = null
+    signalR.start.mockClear()
+  })
+
+  // The vehicle store starts from the car this browser saved, so the car and the session are
+  // there before anything changes; live updates must start all the same.
+  it('starts for a car and a session that are there from the start', async () => {
+    session.authenticated = true
+    vehicle.active = { id: 7 }
+
+    await mountAt('/')
+
+    expect(signalR.start).toHaveBeenCalledWith(7)
+  })
+
+  it('does not start without a session', async () => {
+    vehicle.active = { id: 7 }
+
+    await mountAt('/')
+
+    expect(signalR.start).not.toHaveBeenCalled()
   })
 })

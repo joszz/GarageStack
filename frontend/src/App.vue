@@ -129,15 +129,21 @@ const signalRAttempted = ref(false)
 // The connection follows both the vehicle and the session: the vehicle store keeps its data
 // across a logout, so watching the vehicle id alone would never restart live updates after
 // signing back in within the same tab. start() closes any existing connection first.
-watch([vehicleId, () => auth.isAuthenticated], ([id, authenticated]) => {
-  if (id && authenticated) {
-    signalRAttempted.value = true
-    startSignalR(id)
-  } else if (!authenticated) {
-    signalRAttempted.value = false
-    stopSignalR()
-  }
-})
+// Immediate: a page that opens on the car this browser saved has the vehicle and the session from
+// the start, and the vehicle list then names the same car again, so neither would ever change.
+watch(
+  [vehicleId, () => auth.isAuthenticated],
+  ([id, authenticated]) => {
+    if (id && authenticated) {
+      signalRAttempted.value = true
+      startSignalR(id)
+    } else if (!authenticated) {
+      signalRAttempted.value = false
+      stopSignalR()
+    }
+  },
+  { immediate: true },
+)
 
 const isInitialLoading = computed(() => vehicleStore.loading && !vehicleStore.currentStatus)
 
