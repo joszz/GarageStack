@@ -13,7 +13,7 @@ import type { CommutePlace } from '@/services/commutePlacesApi'
 vi.mock('../TripRouteMap.vue', () => ({
   default: {
     name: 'TripRouteMap',
-    props: ['points', 'loading'],
+    props: ['points', 'loading', 'tripId', 'linkToMap'],
     template: '<div class="route-map" />',
   },
 }))
@@ -235,18 +235,15 @@ describe('TripLogDetail', () => {
     expect(hidden.emitted('setHidden')).toEqual([[false]])
   })
 
-  it('links to the trip on the map, but not for a hidden one the map leaves out', () => {
-    const entry = logEntry()
-    const mapLinks = (e: TripLogEntry) =>
-      mountDetail(e)
-        .findAll('.router-link')
-        .filter((l) => JSON.parse(l.attributes('data-to')!).name === 'map')
+  it('leaves the link to the map to the route preview, which offers none for a hidden trip', () => {
+    const routeMap = (e: TripLogEntry) => mountDetail(e).findComponent({ name: 'TripRouteMap' })
+    const mapLinks = mountDetail(logEntry())
+      .findAll('.router-link')
+      .filter((l) => JSON.parse(l.attributes('data-to')!).name === 'map')
 
-    expect(JSON.parse(mapLinks(entry)[0]!.attributes('data-to')!)).toEqual({
-      name: 'map',
-      query: { trip: entry.id, at: entry.startedAt },
-    })
-    expect(mapLinks(logEntry({ isHidden: true }))).toHaveLength(0)
+    expect(mapLinks).toHaveLength(0)
+    expect(routeMap(logEntry()).props('linkToMap')).toBe(true)
+    expect(routeMap(logEntry({ isHidden: true })).props('linkToMap')).toBe(false)
   })
 
   it('opens the route editor, for a hidden trip too', () => {

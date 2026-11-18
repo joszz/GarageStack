@@ -30,6 +30,7 @@ import { distanceWeightedSamples } from '@/utils/heatSamples'
 import type { GeoPoint } from '@/services/mapApi'
 import { DEFAULT_MAP_CENTER, type LeafletMap } from '@/utils/leaflet'
 import '@/assets/map.css'
+import '@/assets/tripMarkers.css'
 import type { Trip } from '@/services/vehicleApi'
 import { speedLimitSummary } from '@/utils/speedLimits'
 import { daysAgoIso, MS_PER_DAY, startOfLocalDay } from '@/utils/dates'
@@ -495,81 +496,3 @@ onMounted(async () => {
   </div>
   <LocationDirections :location="location" :open="directionsOpen" @close="directionsOpen = false" />
 </template>
-
-<!-- Global on purpose: Leaflet builds marker and popup HTML itself, outside Vue's renderer,
-     so those elements never carry a scope attribute. -->
-<style>
-.trip-marker--start {
-  width: 16px;
-  height: 16px;
-  background: var(--route-start);
-  border: 3px solid #fff;
-  border-radius: 50%;
-  box-shadow: 0 1px 4px rgb(0 0 0 / 35%);
-  animation: trip-start-pulse 2s ease-in-out infinite;
-}
-
-@keyframes trip-start-pulse {
-  0% {
-    box-shadow:
-      0 0 0 0 rgb(16 185 129 / 55%),
-      0 1px 4px rgb(0 0 0 / 35%);
-  }
-
-  70% {
-    box-shadow:
-      0 0 0 10px rgb(16 185 129 / 0%),
-      0 1px 4px rgb(0 0 0 / 35%);
-  }
-
-  100% {
-    box-shadow:
-      0 0 0 0 rgb(16 185 129 / 0%),
-      0 1px 4px rgb(0 0 0 / 35%);
-  }
-}
-
-.trip-marker--end {
-  position: relative;
-  width: 20px;
-  height: 32px;
-  pointer-events: none;
-}
-
-.trip-flag-pole {
-  position: absolute;
-  left: 1px;
-  top: 0;
-  width: 2px;
-  height: 32px;
-  background: #333;
-  border-radius: 1px;
-}
-
-.trip-flag-flag {
-  position: absolute;
-  left: 3px;
-  top: 1px;
-  width: 16px;
-  height: 11px;
-  background: repeating-conic-gradient(#111 0% 25%, #fff 0% 50%) 0 0 / 5.33px 5.5px;
-  border: 1px solid rgb(0 0 0 / 40%);
-  transform-origin: left center;
-  animation: trip-flag-wave 1.6s ease-in-out infinite;
-}
-
-@keyframes trip-flag-wave {
-  0%,
-  100% {
-    transform: skewY(0deg) scaleX(1);
-  }
-
-  30% {
-    transform: skewY(-3deg) scaleX(0.97);
-  }
-
-  70% {
-    transform: skewY(3deg) scaleX(0.97);
-  }
-}
-</style>
