@@ -18,6 +18,7 @@ import SkeletonCard from '@/components/SkeletonCard.vue'
 import SkeletonCarDiagram from '@/components/SkeletonCarDiagram.vue'
 import SkeletonLocationMap from '@/components/SkeletonLocationMap.vue'
 import { useUnits } from '@/composables/useUnits'
+import { useLongPress } from '@/composables/useLongPress'
 import { mayBurnFuel } from '@/utils/vehicleType'
 import { energyUnit } from '@/utils/energy'
 import ViewHeader from '@/components/ViewHeader.vue'
@@ -106,6 +107,9 @@ const cardDescriptionParams = computed(() => {
 function toggleEditMode() {
   editMode.value = !editMode.value
 }
+
+// On a touchscreen, holding a finger on any card opens the layout editor, as on a phone.
+const cardLongPress = useLongPress(() => (editMode.value = true))
 
 function hasData(id: CardId): boolean {
   return cardData.value !== null && cardHasData(id, cardData.value)
@@ -217,7 +221,7 @@ onUnmounted(() => {
       <!-- Tyre diagram + location map toggles -->
       <div class="overview-row mt-4 mb-4">
         <EditableCardSlot
-          class="card-slot--static overview-row__car"
+          class="card-slot--large overview-row__car"
           :visible="settings.showTyreDiagram"
           :draggable="false"
           @toggle-visible="settings.showTyreDiagram = !settings.showTyreDiagram"
@@ -230,7 +234,7 @@ onUnmounted(() => {
         </EditableCardSlot>
 
         <EditableCardSlot
-          class="card-slot--static overview-row__map"
+          class="card-slot--large overview-row__map"
           :visible="settings.showLocationMap"
           :draggable="false"
           @toggle-visible="settings.showLocationMap = !settings.showLocationMap"
@@ -294,7 +298,11 @@ onUnmounted(() => {
       </div>
 
       <template v-else>
-        <div v-if="settings.showTyreDiagram || settings.showLocationMap" class="overview-row mb-4">
+        <div
+          v-if="settings.showTyreDiagram || settings.showLocationMap"
+          class="overview-row long-press-cards mb-4"
+          v-bind="cardLongPress"
+        >
           <CarDiagram
             v-if="settings.showTyreDiagram"
             v-bind="carDiagramProps"
@@ -303,7 +311,7 @@ onUnmounted(() => {
           <LocationMapWidget v-if="settings.showLocationMap" class="overview-row__map" />
         </div>
 
-        <div class="status-grid">
+        <div class="status-grid long-press-cards" v-bind="cardLongPress">
           <template v-for="card in settings.cards" :key="card.id">
             <template v-if="card.visible && hasData(card.id)">
               <CardInfoWrap

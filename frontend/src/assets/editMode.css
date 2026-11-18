@@ -5,11 +5,11 @@
 
 @keyframes card-wiggle {
   from {
-    transform: rotate(-0.4deg);
+    transform: rotate(calc(-1 * var(--card-wiggle-angle)));
   }
 
   to {
-    transform: rotate(0.4deg);
+    transform: rotate(var(--card-wiggle-angle));
   }
 }
 
@@ -18,6 +18,8 @@
 }
 
 .card-slot {
+  --card-wiggle-angle: 0.4deg;
+
   position: relative;
   min-width: 0;
   animation: card-wiggle 0.22s ease-in-out infinite alternate;
@@ -42,8 +44,16 @@
   animation-delay: 0.09s;
 }
 
-.card-slot--static {
-  animation: none;
+/* The same angle swings a wide card's corners several times as far as a tile's: the car diagram
+   and the location map turn less, so they wiggle as much as the tiles beside them seem to. */
+.card-slot--large {
+  --card-wiggle-angle: 0.15deg;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card-slot {
+    animation: none;
+  }
 }
 
 .card-slot__handle {
