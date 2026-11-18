@@ -22,7 +22,7 @@ export const authApi = {
   login: (username: string, password: string, rememberMe = false) =>
     requestJson<LoginResponse>('/api/auth/login', 'POST', { username, password, rememberMe }),
   logout: () => send('/api/auth/logout', 'POST'),
-  me: () => request<MeResponse>('/api/auth/me'),
+  me: (signal?: AbortSignal) => request<MeResponse>('/api/auth/me', { signal }),
 }
 
 /**

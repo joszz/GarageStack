@@ -1,6 +1,8 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { authApi } from '@/services/authApi'
+import { ApiError } from '@/services/apiCore'
+import { readLastKnownState, saveLastKnownState } from '@/utils/lastKnownState'
 import { readLastVin, rememberVin } from '@/utils/lastVin'
 import type { MeResponse, LoginResponse, AuthConfigResponse } from '@/services/authApi'
 import { useAuthStore } from '@/stores/auth'
@@ -161,10 +163,10 @@ describe('useAuthStore', () => {
     expect(localStorage.getItem(AUTH_USERNAME_KEY)).toBe('charlie')
   })
 
-  it('verifySession() on API failure clears the session from the store and localStorage', async () => {
+  it('verifySession() on a refused session clears it from the store and localStorage', async () => {
     localStorage.setItem(AUTH_USERNAME_KEY, 'testuser')
     localStorage.setItem(AUTH_EXPIRES_KEY, futureExpiry())
-    vi.mocked(authApi.me).mockRejectedValue(new Error('Unauthorized'))
+    vi.mocked(authApi.me).mockRejectedValue(new ApiError(401, '/api/auth/me'))
 
     const store = useAuthStore()
     await store.verifySession()
@@ -173,6 +175,68 @@ describe('useAuthStore', () => {
     expect(store.isAuthenticated).toBe(false)
     expect(localStorage.getItem(AUTH_USERNAME_KEY)).toBeNull()
     expect(localStorage.getItem(AUTH_EXPIRES_KEY)).toBeNull()
+  })
+
+  it('verifySession() forgets the car saved for offline use when the session is refused', async () => {
+    localStorage.setItem(AUTH_USERNAME_KEY, 'testuser')
+    localStorage.setItem(AUTH_EXPIRES_KEY, futureExpiry())
+    saveLastKnownState({ vehicles: [], status: null, config: {}, latestTrip: null })
+    vi.mocked(authApi.me).mockRejectedValue(new ApiError(401, '/api/auth/me'))
+
+    await useAuthStore().verifySession()
+
+    expect(readLastKnownState()).toBeNull()
+  })
+
+  it.each([
+    ['without a connection', new TypeError('Failed to fetch')],
+    ['when the check times out', new DOMException('signal timed out', 'TimeoutError')],
+    ['when the server is down', new ApiError(502, '/api/auth/me')],
+  ])('verifySession() keeps the stored session %s', async (_, failure) => {
+    const expiry = futureExpiry()
+    localStorage.setItem(AUTH_USERNAME_KEY, 'testuser')
+    localStorage.setItem(AUTH_EXPIRES_KEY, expiry)
+    saveLastKnownState({ vehicles: [], status: null, config: {}, latestTrip: null })
+    vi.mocked(authApi.me).mockRejectedValue(failure)
+
+    const store = useAuthStore()
+    await store.verifySession()
+
+    expect(store.isAuthenticated).toBe(true)
+    expect(localStorage.getItem(AUTH_EXPIRES_KEY)).toBe(expiry)
+    expect(readLastKnownState()).not.toBeNull()
+  })
+
+  it('ensureVerified() asks again on the next navigation after the server could not be reached', async () => {
+    localStorage.setItem(AUTH_USERNAME_KEY, 'testuser')
+    localStorage.setItem(AUTH_EXPIRES_KEY, futureExpiry())
+    vi.mocked(authApi.me)
+      .mockRejectedValueOnce(new TypeError('Failed to fetch'))
+      .mockResolvedValueOnce({ username: 'testuser', expiresAtUtc: futureExpiry() })
+
+    const store = useAuthStore()
+    await store.ensureVerified()
+    await store.ensureVerified()
+
+    expect(authApi.me).toHaveBeenCalledTimes(2)
+  })
+
+  it('verifySession() gives up on a stored session check that never answers', async () => {
+    localStorage.setItem(AUTH_USERNAME_KEY, 'testuser')
+    localStorage.setItem(AUTH_EXPIRES_KEY, futureExpiry())
+    vi.mocked(authApi.me).mockResolvedValue({ username: 'testuser', expiresAtUtc: futureExpiry() })
+
+    await useAuthStore().verifySession()
+
+    expect(vi.mocked(authApi.me).mock.calls[0]![0]).toBeInstanceOf(AbortSignal)
+  })
+
+  it('verifySession() waits as long as it takes for a visitor without a session', async () => {
+    vi.mocked(authApi.me).mockRejectedValue(new ApiError(401, '/api/auth/me'))
+
+    await useAuthStore().verifySession()
+
+    expect(vi.mocked(authApi.me).mock.calls[0]![0]).toBeUndefined()
   })
 
   it('verifySession() does not authenticate when API returns null expiresAtUtc', async () => {

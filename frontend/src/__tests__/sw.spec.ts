@@ -1,8 +1,25 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
+import { createHandlerBoundToURL } from 'workbox-precaching'
+import { registerRoute, type NavigationRoute } from 'workbox-routing'
+
 vi.mock('workbox-precaching', () => ({
   cleanupOutdatedCaches: vi.fn<() => void>(),
   precacheAndRoute: vi.fn<() => void>(),
+  createHandlerBoundToURL: vi.fn<(url: string) => () => Promise<Response>>(
+    () => () => Promise.resolve(new Response('app shell')),
+  ),
+}))
+
+// The real NavigationRoute keeps its lists private; this one shows what the worker passed.
+vi.mock('workbox-routing', () => ({
+  registerRoute: vi.fn<(route: unknown) => void>(),
+  NavigationRoute: class {
+    constructor(
+      readonly handler: unknown,
+      readonly options: { allowlist?: RegExp[]; denylist?: RegExp[] },
+    ) {}
+  },
 }))
 
 type Listener = (event: unknown) => void
@@ -75,6 +92,8 @@ async function loadWorker(clients: FakeClient[] = []) {
 describe('service worker', () => {
   beforeEach(() => {
     vi.resetModules()
+    vi.mocked(registerRoute).mockClear()
+    vi.mocked(createHandlerBoundToURL).mockClear()
   })
 
   afterEach(() => {
@@ -326,5 +345,39 @@ describe('service worker', () => {
       expect(scope.navigator.clearAppBadge).toHaveBeenCalled()
       expect(scope.clients.openWindow).toHaveBeenCalledWith(`${ORIGIN}/`)
     })
+  })
+
+  describe('opening a page', () => {
+    async function navigationRoute() {
+      await loadWorker()
+      expect(registerRoute).toHaveBeenCalledOnce()
+      return vi.mocked(registerRoute).mock.calls[0]![0] as unknown as NavigationRoute & {
+        handler: unknown
+        options: { denylist: RegExp[] }
+      }
+    }
+
+    it("serves every page from the worker's copy of the app, so it opens without a signal", async () => {
+      const route = await navigationRoute()
+
+      expect(createHandlerBoundToURL).toHaveBeenCalledWith('/index.html')
+      expect(route.handler).toBe(vi.mocked(createHandlerBoundToURL).mock.results[0]!.value)
+    })
+
+    it.each(['/api/auth/oidc/login', '/api/reference', '/hubs/telemetry'])(
+      'leaves %s to the server',
+      async (path) => {
+        const route = await navigationRoute()
+        expect(route.options.denylist.some((pattern) => pattern.test(path))).toBe(true)
+      },
+    )
+
+    it.each(['/', '/map', '/trip-log', '/login', '/apiary'])(
+      'takes %s, a page of the app',
+      async (path) => {
+        const route = await navigationRoute()
+        expect(route.options.denylist.some((pattern) => pattern.test(path))).toBe(false)
+      },
+    )
   })
 })

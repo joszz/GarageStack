@@ -1,10 +1,25 @@
 /// <reference lib="webworker" />
-import { cleanupOutdatedCaches, precacheAndRoute } from 'workbox-precaching'
+import {
+  cleanupOutdatedCaches,
+  createHandlerBoundToURL,
+  precacheAndRoute,
+} from 'workbox-precaching'
+import { NavigationRoute, registerRoute } from 'workbox-routing'
 
 declare const self: ServiceWorkerGlobalScope
 
 cleanupOutdatedCaches()
 precacheAndRoute(self.__WB_MANIFEST)
+
+// Every page is the same app, so opening any of them (a shortcut to /map, a reload on the trip
+// log) gets the copy of index.html this worker holds, as / already does through the precache.
+// Without a signal the app still opens, and shows the car as this browser last loaded it. The API
+// and the live-update hub are the server's and always go to the network.
+registerRoute(
+  new NavigationRoute(createHandlerBoundToURL('/index.html'), {
+    denylist: [/^\/api\//, /^\/hubs\//],
+  }),
+)
 
 // Activate the new SW immediately instead of waiting for all tabs to close
 self.addEventListener('install', () => self.skipWaiting())

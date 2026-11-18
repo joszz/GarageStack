@@ -1296,5 +1296,9 @@
     "fetchedAt": "Van de RDW, {time}",
     "lastAttemptFailed": "De laatste poging de RDW te vragen is mislukt; later wordt het opnieuw geprobeerd.",
     "source": "Bron: open data van de RDW"
+  },
+  "offline": {
+    "savedState": "Geen verbinding met GarageStack. Dit is de auto zoals laatst gezien, {time}.",
+    "savedStateUnknown": "Geen verbinding met GarageStack. Dit is de auto zoals dit apparaat hem laatst heeft geladen."
   }
 }

@@ -4,6 +4,7 @@ import { useVehicleStore } from '@/stores/vehicle'
 import { useUiSettingsStore } from '@/stores/settingsUi'
 import { vehicleApi } from '@/services/vehicleApi'
 import { readLastVin } from '@/utils/lastVin'
+import { readLastKnownState, saveLastKnownState } from '@/utils/lastKnownState'
 import type {
   Vehicle,
   TelemetrySnapshot,
@@ -364,5 +365,114 @@ describe('useVehicleStore - fetchTodayStat', () => {
     vi.mocked(vehicleApi.dailyStats).mockRejectedValueOnce(new Error('offline'))
     await store.fetchTodayStat('FAKEVN00000000002')
     expect(store.todayStat).toBeNull()
+  })
+})
+
+describe('useVehicleStore - the car as last loaded, for when the server cannot be reached', () => {
+  const saved = {
+    vehicles: [vehicle('phev')],
+    status: { vehicleId: 1, recordedAt: '2026-11-18T09:00:00Z', latitude: 52 } as TelemetrySnapshot,
+    config: { BType: '1' },
+    latestTrip: { id: 3, distanceKm: 8, points: [] } as unknown as Trip,
+  }
+
+  function signIn() {
+    localStorage.setItem('garagestack-auth-username', 'demo')
+    localStorage.setItem('garagestack-auth-expires', new Date(Date.now() + 3_600_000).toISOString())
+  }
+
+  beforeEach(() => {
+    localStorage.clear()
+    setActivePinia(createPinia())
+    vi.clearAllMocks()
+  })
+
+  it('starts from the saved copy, and says so', () => {
+    signIn()
+    saveLastKnownState(saved)
+
+    const store = useVehicleStore()
+
+    expect(store.activeVin).toBe('FAKEVN00000000001')
+    expect(store.currentStatus).toEqual(saved.status)
+    expect(store.vehicleConfig).toEqual({ BType: '1' })
+    expect(store.latestTrip).toEqual(saved.latestTrip)
+    expect(store.showingSavedState).toBe(true)
+  })
+
+  it('starts empty without a session, whatever was left in storage', () => {
+    saveLastKnownState(saved)
+
+    const store = useVehicleStore()
+
+    expect(store.vehicles).toEqual([])
+    expect(store.currentStatus).toBeNull()
+    expect(store.showingSavedState).toBe(false)
+  })
+
+  it('still asks the server for the vehicle list it started from', async () => {
+    signIn()
+    saveLastKnownState(saved)
+    vi.mocked(vehicleApi.list).mockResolvedValue([{ ...vehicle('phev'), model: 'MG HS' }])
+    const store = useVehicleStore()
+
+    await store.fetchVehicles()
+    await store.fetchVehicles()
+
+    expect(vehicleApi.list).toHaveBeenCalledOnce()
+    expect(store.activeVehicle?.model).toBe('MG HS')
+  })
+
+  it('keeps showing the saved car when the server cannot be reached', async () => {
+    signIn()
+    saveLastKnownState(saved)
+    vi.mocked(vehicleApi.list).mockRejectedValue(new TypeError('Failed to fetch'))
+    vi.mocked(vehicleApi.status).mockRejectedValue(new TypeError('Failed to fetch'))
+    const store = useVehicleStore()
+
+    await store.fetchVehicles()
+    await store.fetchStatus('FAKEVN00000000001')
+
+    expect(store.activeVin).toBe('FAKEVN00000000001')
+    expect(store.currentStatus).toEqual(saved.status)
+    expect(store.statusError).not.toBeNull()
+    expect(store.showingSavedState).toBe(true)
+  })
+
+  it('stops calling it saved once the server answers, and saves the answer', async () => {
+    signIn()
+    saveLastKnownState(saved)
+    const fresh = { ...saved.status, recordedAt: '2026-11-18T10:00:00Z' }
+    vi.mocked(vehicleApi.status).mockResolvedValue(fresh)
+    const store = useVehicleStore()
+
+    await store.fetchStatus('FAKEVN00000000001')
+
+    expect(store.showingSavedState).toBe(false)
+    expect(readLastKnownState()?.status).toEqual(fresh)
+  })
+
+  it('saves a live reading and the newest trip as they come in', async () => {
+    vi.mocked(vehicleApi.list).mockResolvedValue([vehicle('bev')])
+    vi.mocked(vehicleApi.latestTrip).mockResolvedValue({
+      id: 9,
+      distanceKm: 4,
+      points: [{ recordedAt: '2026-11-18T09:00:00Z', latitude: 52, longitude: 5, speed: 20 }],
+    } as unknown as Trip)
+    const store = useVehicleStore()
+    await store.fetchVehicles()
+
+    store.applyLiveStatus({ ...saved.status, evSocPercent: 64 })
+    await store.fetchLatestTrip('FAKEVN00000000001')
+
+    const kept = readLastKnownState()
+    expect(kept?.status?.evSocPercent).toBe(64)
+    expect(kept?.latestTrip).toMatchObject({ id: 9, points: [] })
+  })
+
+  it('saves nothing before the car is known', () => {
+    useVehicleStore().applyLiveStatus(saved.status)
+
+    expect(readLastKnownState()).toBeNull()
   })
 })
