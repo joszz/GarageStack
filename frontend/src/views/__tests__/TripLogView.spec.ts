@@ -89,6 +89,20 @@ async function pickTrip(wrapper: Awaited<ReturnType<typeof mountView>>, index: n
   await flushPromises()
 }
 
+// Opens the header's filters dialog, where the period and the hidden trips switch are.
+async function openFilters(wrapper: Awaited<ReturnType<typeof mountView>>) {
+  await wrapper.get('.toolbar-panel__btn').trigger('click')
+  return wrapper.get('[role="dialog"]')
+}
+
+// The hidden trips switch's label, in the filters dialog.
+function hiddenLabel(wrapper: Awaited<ReturnType<typeof mountView>>) {
+  return wrapper
+    .findAll('[role="dialog"] .settings-toggle__label')
+    .map((label) => label.text())
+    .find((text) => text.startsWith('Show'))
+}
+
 // A window wide enough for the detail beside the list.
 function wideWindow() {
   vi.stubGlobal('matchMedia', (query: string) => ({
@@ -167,10 +181,10 @@ describe('TripLogView', () => {
 
   it('lists the hidden trips once asked to, and counts them on the switch', async () => {
     const wrapper = await mountView()
-    const toggle = wrapper.find('.trip-log-hidden-toggle')
+    const dialog = await openFilters(wrapper)
 
-    expect(toggle.text()).toBe('Show hidden trip')
-    await toggle.find('input').setValue(true)
+    expect(hiddenLabel(wrapper)).toBe('Show hidden trip')
+    await dialog.get('input[role="switch"]').setValue(true)
 
     expect(listedIds(wrapper)).toEqual(['Sat, 3 Oct', 'Fri, 2 Oct', 'Thu, 1 Oct'])
     expect(wrapper.find('.trip-log-item--hidden').exists()).toBe(true)
@@ -187,7 +201,11 @@ describe('TripLogView', () => {
   it('has no export or home and work button of its own', async () => {
     const wrapper = await mountView()
 
-    expect(wrapper.find('.view-header__actions').exists()).toBe(false)
+    // The header holds only the filters button; both live under Settings now.
+    const actions = wrapper.findAll('.view-header__actions button')
+    expect(actions.map((b) => b.classes())).toEqual([
+      expect.arrayContaining(['toolbar-panel__btn']),
+    ])
     expect(button(wrapper, 'Home and work')).toHaveLength(0)
   })
 
@@ -239,14 +257,26 @@ describe('TripLogView', () => {
 
     expect(tripLogApi.setHidden).toHaveBeenCalledWith(car.vin, 3, true)
     expect(listedIds(wrapper)).toEqual(['Thu, 1 Oct'])
-    expect(wrapper.find('.trip-log-hidden-toggle').text()).toBe('Show 2 hidden trips')
+    await openFilters(wrapper)
+    expect(hiddenLabel(wrapper)).toBe('Show 2 hidden trips')
+  })
+
+  it('puts the period and the hidden trips behind the filters button, and names the period', async () => {
+    const wrapper = await mountView()
+
+    expect(wrapper.find('select').exists()).toBe(false)
+    expect(wrapper.get('.view-header__caption').text()).toBe('October 2026')
+    const dialog = await openFilters(wrapper)
+    expect(dialog.findAll('select')).toHaveLength(2)
+    expect(hiddenLabel(wrapper)).toBe('Show hidden trip')
   })
 
   it('loads the whole year when the month is cleared', async () => {
     const wrapper = await mountView()
 
     // The first option, "Whole year", has no month.
-    const month = wrapper.findAll('select')[1]!
+    const dialog = await openFilters(wrapper)
+    const month = dialog.findAll('select')[1]!
     ;(month.element as HTMLSelectElement).selectedIndex = 0
     await month.trigger('change')
     await flushPromises()
@@ -254,6 +284,7 @@ describe('TripLogView', () => {
     const [, from, to] = vi.mocked(tripLogApi.log).mock.lastCall!
     expect(new Date(from).getMonth()).toBe(0)
     expect(new Date(to).getFullYear()).toBe(2027)
+    expect(wrapper.get('.view-header__caption').text()).toBe('2026')
   })
 
   it('asks for no addresses while place names are switched off', async () => {
