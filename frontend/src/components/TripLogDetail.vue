@@ -300,13 +300,8 @@ const notesId = computed(() => `trip-log-notes-${props.entry.id}`)
       />
     </section>
 
+    <!-- Editing the route and opening it on the map are buttons on the route preview. -->
     <div class="trip-log-detail__actions">
-      <RouterLink
-        class="btn btn-outline-secondary btn-sm"
-        :to="{ name: 'tripEdit', params: { id: entry.id } }"
-      >
-        <font-awesome-icon icon="pen-to-square" />{{ t('tripLog.editRoute') }}
-      </RouterLink>
       <button
         v-if="canJoinNext"
         type="button"
