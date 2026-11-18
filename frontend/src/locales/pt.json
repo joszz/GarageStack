@@ -836,8 +836,8 @@
     "year": "Ano",
     "month": "Mês",
     "wholeYear": "Ano inteiro",
-    "moreFigures": "Mostrar finalidades e dados de condução",
-    "fewerFigures": "Ocultar finalidades e dados de condução",
+    "moreFigures": "Mostrar as finalidades",
+    "fewerFigures": "Ocultar as finalidades",
     "totalsLabel": "Distância por finalidade",
     "totalLabel": "{purpose} ({n})",
     "classifyAll": "{n} viagem ({distance}) ainda não tem finalidade. Marcar como: | {n} viagens ({distance}) ainda não têm finalidade. Marcar todas como:",
@@ -850,7 +850,7 @@
       "averageTrip": "Viagem média",
       "longestTrip": "Maior viagem",
       "averageSpeed": "Velocidade média",
-      "averageSpeedHint": "A distância dividida pelo tempo dirigindo, incluindo paradas no trânsito"
+      "open": "Mostrar tempo de condução, viagem média e mais longa, e velocidade média"
     },
     "cardDesc": {
       "allTrips": "A distância percorrida em todas as viagens deste período, com o número de viagens entre parênteses. Viagens ocultas ficam de fora. A distância de uma viagem vem do hodômetro, ou dos pontos de GPS quando o carro não enviou leituras do hodômetro.",

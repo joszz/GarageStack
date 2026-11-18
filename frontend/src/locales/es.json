@@ -836,8 +836,8 @@
     "year": "Año",
     "month": "Mes",
     "wholeYear": "Año completo",
-    "moreFigures": "Mostrar motivos y cifras de conducción",
-    "fewerFigures": "Ocultar motivos y cifras de conducción",
+    "moreFigures": "Mostrar los motivos",
+    "fewerFigures": "Ocultar los motivos",
     "totalsLabel": "Distancia por propósito",
     "totalLabel": "{purpose} ({n})",
     "classifyAll": "Hay {n} trayecto ({distance}) sin clasificar. Asígnale un propósito: | Hay {n} trayectos ({distance}) sin clasificar. Asígnales un propósito:",
@@ -850,7 +850,7 @@
       "averageTrip": "Duración media del trayecto",
       "longestTrip": "Viaje más largo",
       "averageSpeed": "Velocidad media",
-      "averageSpeedHint": "La distancia sobre el tiempo dedicado a conducir it, paradas en el tráfico incluidas"
+      "open": "Mostrar tiempo de conducción, trayecto medio y más largo, y velocidad media"
     },
     "cardDesc": {
       "allTrips": "La distancia recorrida en todos los viajes de este periodo, con el número de viajes entre paréntesis. Los viajes ocultos no se cuentan. La distancia de un viaje viene del cuentakilómetros, o de sus puntos GPS cuando el coche no envió lecturas del cuentakilómetros.",

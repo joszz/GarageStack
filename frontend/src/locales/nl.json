@@ -836,8 +836,8 @@
     "year": "Jaar",
     "month": "Maand",
     "wholeYear": "Heel het jaar",
-    "moreFigures": "Doelen en rijcijfers tonen",
-    "fewerFigures": "Doelen en rijcijfers verbergen",
+    "moreFigures": "Doelen tonen",
+    "fewerFigures": "Doelen verbergen",
     "totalsLabel": "Afstand per doel",
     "totalLabel": "{purpose} ({n})",
     "classifyAll": "{n} rit ({distance}) heeft nog geen doel. Markeer als: | {n} ritten ({distance}) hebben nog geen doel. Markeer ze allemaal als:",
@@ -850,7 +850,7 @@
       "averageTrip": "Gemiddelde rit",
       "longestTrip": "Langste rit",
       "averageSpeed": "Gemiddelde snelheid",
-      "averageSpeedHint": "De afstand gedeeld door de tijd die het rijden kostte, stilstand in het verkeer meegerekend"
+      "open": "Rijtijd, gemiddelde en langste rit en gemiddelde snelheid tonen"
     },
     "cardDesc": {
       "allTrips": "De afstand van alle ritten in deze periode, met het aantal ritten tussen haakjes. Verborgen ritten tellen niet mee. De afstand van een rit komt van de kilometerstand, of van de GPS-punten als de auto geen kilometerstand doorgaf.",

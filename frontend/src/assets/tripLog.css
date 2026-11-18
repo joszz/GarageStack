@@ -11,28 +11,21 @@
 
 /* Spaced like the status grid it borrows its cards from. On a phone and on a tablet beside the
    sidebar the content column is narrow, so "All trips" takes a row of its own and the purposes
-   share two columns; from 1024px they share a row of four, and from 1280px all five fit. */
-.trip-log-totals,
-.trip-log-summary {
+   share two columns; from 1024px they share a row of four, and from 1280px all five fit. The
+   driving figures are not here but in a dialog behind "All trips". */
+.trip-log-totals {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1rem;
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
 }
 
 .trip-log-totals__all {
   grid-column: 1 / -1;
 }
 
-/* The driving figures are set off from the trips below, as the dashboard and statistics set
-   their summaries off from what follows. */
-.trip-log-summary {
-  margin-bottom: 1.5rem;
-}
-
 @media (width >= 1024px) {
-  .trip-log-totals,
-  .trip-log-summary {
+  .trip-log-totals {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
@@ -45,6 +38,70 @@
   .trip-log-totals__all {
     grid-column: auto;
   }
+}
+
+/* ── Driving figures, in the dialog behind "All trips" ────── */
+
+/* Each figure as a row: its name on the left, its value on the right, and what it means under
+   both, ruled off from the next. */
+.trip-log-summary {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+}
+
+.trip-log-summary__item {
+  display: grid;
+  grid-template-areas:
+    'label value'
+    'description description';
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.25rem 1rem;
+  align-items: baseline;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.trip-log-summary__item:first-child {
+  padding-top: 0;
+}
+
+.trip-log-summary__item:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.trip-log-summary__label {
+  grid-area: label;
+  font-weight: 600;
+}
+
+.trip-log-summary__icon {
+  width: 1.1em;
+  margin-right: 0.5rem;
+  color: var(--color-text-muted);
+}
+
+.trip-log-summary__value {
+  grid-area: value;
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 600;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Spaced by a margin: the template's line break before it is not kept as a space. */
+.trip-log-summary__unit {
+  margin-left: 0.25em;
+  font-size: 0.8rem;
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+
+.trip-log-summary__description {
+  grid-area: description;
+  margin: 0;
 }
 
 /* Only a phone draws the button that folds the figures away (see the Phones section). */
@@ -81,28 +138,33 @@
 
 /* ── Trip list and detail ─────────────────────────────────── */
 
-/* One column; from 1280px the detail stands beside the list and stays in view as it scrolls. */
+/* One column; on a desktop (from 1024px, as WIDE_MEDIA_QUERY) the detail stands beside the list
+   and stays in view as it scrolls. It takes two fifths of the row, between 20rem and 30rem. */
 .trip-log-layout {
   display: grid;
   gap: 1rem;
   align-items: start;
 }
 
-@media (width >= 1280px) {
+@media (width >= 1024px) {
   .trip-log-layout {
-    grid-template-columns: minmax(0, 1fr) minmax(22rem, 30rem);
+    grid-template-columns: minmax(0, 1fr) clamp(20rem, 40%, 30rem);
   }
 
   /* No taller than the column it scrolls in: the window less the footer, the demo banner when
-     there is one, and a margin above and below. */
+     there is one, and a margin above and below. A column, so the map and the speed chart give up
+     height until the rest fits (see "Trip detail"): the page scrolls, the panel does not. Only a
+     window too short even for their smallest size leaves the panel to scroll on its own. */
   .trip-log-layout__detail {
     --detail-chrome: var(--footer-height);
 
     position: sticky;
     top: 1rem;
+    display: flex;
+    flex-direction: column;
     max-height: calc(100dvh - var(--detail-chrome) - 2rem);
     overflow-y: auto;
-    padding: 1.25rem;
+    padding: 1rem 1.25rem;
     border: 1px solid var(--color-border);
     border-radius: var(--radius);
     background: var(--color-surface);
@@ -111,6 +173,41 @@
 
   .has-demo-banner .trip-log-layout__detail {
     --detail-chrome: calc(var(--footer-height) + var(--demo-banner-height));
+  }
+
+  .trip-log-layout__detail > .trip-log-detail {
+    flex: 1 1 auto;
+    min-height: 0;
+    gap: 0.75rem;
+  }
+
+  /* Each starts at about its size in the dialog and shrinks with the window, the map a little
+     less. */
+  .trip-log-layout__detail .trip-route-map {
+    flex: 0 1 15rem;
+    height: auto;
+    min-height: 7rem;
+  }
+
+  .trip-log-layout__detail .trip-log-detail__chart {
+    flex: 0 1 13rem;
+    min-height: 6.5rem;
+  }
+
+  .trip-log-layout__detail .trip-log-detail__chart .chart-container__plot {
+    flex: 1;
+    height: auto;
+    min-height: 0;
+  }
+}
+
+/* A window too short for both, as a laptop's often is: the speed chart gives way, since the route
+   on the map is coloured by speed already. Beside a narrower list the panel wraps its addresses
+   and buttons onto more lines, so it needs a taller window to keep the chart. */
+@media (width >= 1024px) and (height < 780px),
+  (width >= 1024px) and (width < 1280px) and (height < 860px) {
+  .trip-log-layout__detail .trip-log-detail__chart.chart-container {
+    display: none;
   }
 }
 
@@ -327,7 +424,10 @@
 
 /* ── Trip detail ──────────────────────────────────────────── */
 
+/* A container, so the figures lay themselves out by the room the detail has, beside the list or
+   in a dialog. */
 .trip-log-detail {
+  container: trip-log-detail / inline-size;
   display: flex;
   flex-direction: column;
   gap: 1rem;
@@ -350,13 +450,17 @@
   font-weight: 600;
 }
 
-/* The purpose, and how it and the route came to be, spelled out where the row has only icons. */
+/* The time, the purpose, and how it and the route came to be, spelled out where the row has only
+   icons. One line while they fit, so the detail spends its height on the route. */
 .trip-log-detail__status {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.3rem;
-  margin-top: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem 0.75rem;
+}
+
+.trip-log-detail__time {
+  font-variant-numeric: tabular-nums;
 }
 
 .trip-log-detail__badge {
@@ -506,22 +610,33 @@
   color: var(--color-text-muted);
 }
 
-@media (width >= 768px) and (width < 1280px) {
+/* Four across once the detail has the room for their labels, in a dialog on a tablet; two by two
+   beside the list and in a dialog on a phone. */
+@container trip-log-detail (width >= 30rem) {
   .trip-log-detail__figures {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
+}
 
+@media (width >= 768px) and (width < 1024px) {
   .trip-route-map {
     height: 260px;
   }
 }
 
-/* The chart sits in the panel, which is its card already. */
+/* The chart sits in the panel, which is its card already. A column, so the plot takes the
+   height left under the title. */
 .trip-log-detail__chart.chart-container {
+  display: flex;
+  flex-direction: column;
   padding: 0;
   border: 0;
   background: none;
   box-shadow: none;
+}
+
+.trip-log-detail__chart .chart-container__plot {
+  height: 12rem;
 }
 
 .trip-log-detail__classify {
@@ -572,14 +687,13 @@
 /* ── Phones ───────────────────────────────────────────────── */
 
 @media (width <= 767px) {
-  .trip-log-totals,
-  .trip-log-summary {
+  .trip-log-totals {
     gap: 0.5rem;
+    margin-bottom: 1rem;
   }
 
-  /* Folded: "All trips" stays, the purposes and the driving figures wait behind the button. */
-  .trip-log-figures:not(.trip-log-figures--open) .trip-log-totals > :not(.trip-log-totals__all),
-  .trip-log-figures:not(.trip-log-figures--open) .trip-log-summary {
+  /* Folded: "All trips" stays, the purposes wait behind the button. */
+  .trip-log-figures:not(.trip-log-figures--open) .trip-log-totals > :not(.trip-log-totals__all) {
     display: none;
   }
 

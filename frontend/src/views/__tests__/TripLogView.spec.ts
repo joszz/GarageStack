@@ -147,7 +147,7 @@ describe('TripLogView', () => {
     expect(listedIds(wrapper)).toEqual(['Sat, 3 Oct', 'Thu, 1 Oct'])
   })
 
-  it('folds the purposes and driving figures behind one button, which says what it does', async () => {
+  it('folds the purposes behind one button, which says what it does', async () => {
     const wrapper = await mountView()
     const toggle = wrapper.get('.trip-log-figures__toggle')
 
@@ -160,10 +160,9 @@ describe('TripLogView', () => {
     expect(toggle.attributes('aria-expanded')).toBe('true')
     expect(toggle.text()).toBe(en.tripLog.fewerFigures)
     expect(wrapper.find('.trip-log-figures--open').exists()).toBe(true)
-    // Both folded sections are named as what the button controls.
-    for (const id of toggle.attributes('aria-controls')!.split(' ')) {
-      expect(wrapper.find(`[id="${id}"]`).exists()).toBe(true)
-    }
+    // The folded section is named as what the button controls.
+    const id = toggle.attributes('aria-controls')!
+    expect(wrapper.find(`[id="${id}"]`).classes()).toContain('trip-log-totals')
   })
 
   it('lists the hidden trips once asked to, and counts them on the switch', async () => {
@@ -279,25 +278,33 @@ describe('TripLogView', () => {
     expect(wrapper.findAll('.trip-log-totals progress')).toHaveLength(4)
   })
 
-  it('sums up the driving: time, average and longest trip, average speed', async () => {
+  it('sums up the driving in a dialog behind the all trips card, not on the page', async () => {
     vi.mocked(tripLogApi.log).mockResolvedValue([
       logEntry({ id: 1, startedAt: '2026-10-01T07:00:00Z', endedAt: '2026-10-01T07:34:00Z' }),
       logEntry({ id: 3, startedAt: '2026-10-03T07:00:00Z', endedAt: '2026-10-03T07:34:00Z' }),
     ])
     const wrapper = await mountView()
-    const summary = wrapper.find('.trip-log-summary').text()
+    expect(wrapper.find('.trip-log-summary').exists()).toBe(false)
+
+    await wrapper.get('.trip-log-totals__all .status-card').trigger('click')
+    const dialog = wrapper.get('[role="dialog"]')
+    expect(dialog.get('.detail-modal__title').text()).toBe(en.tripLog.summary.label)
+    const summary = dialog.get('.trip-log-summary').text()
 
     // Two trips of 34 minutes and 42.5 km each.
     expect(summary).toContain('1h 8m')
     expect(summary).toContain('42.5km')
     expect(summary).toContain('75km/h')
+
+    await dialog.get('.dialog-close').trigger('click')
+    expect(wrapper.find('.trip-log-summary').exists()).toBe(false)
   })
 
-  it('explains every total and driving figure behind its info button', async () => {
+  it('explains every total behind its info button', async () => {
     const wrapper = await mountView()
 
-    // All trips, four purposes and four driving figures.
-    expect(wrapper.findAll('.trip-log-figures .card-info-btn')).toHaveLength(9)
+    // All trips and four purposes; the driving figures explain themselves in their dialog.
+    expect(wrapper.findAll('.trip-log-figures .card-info-btn')).toHaveLength(5)
 
     await wrapper.find('.trip-log-totals__all .card-info-btn').trigger('click')
     const dialog = wrapper.find('[role="dialog"]')
