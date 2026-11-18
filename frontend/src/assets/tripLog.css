@@ -151,20 +151,20 @@
     grid-template-columns: minmax(0, 1fr) clamp(20rem, 40%, 30rem);
   }
 
-  /* No taller than the column it scrolls in: the window less the footer, the demo banner when
-     there is one, and a margin above and below. A column, so the map and the speed chart give up
-     height until the rest fits (see "Trip detail"): the page scrolls, the panel does not. Only a
-     window too short even for their smallest size leaves the panel to scroll on its own. */
+  /* Never past the bottom of the window: the page measures how far it is from the top of the
+     panel to the bottom of the column the page scrolls in (--room-below, see useRoomBelow),
+     less a margin as wide as the one above it. Content that does not fit scrolls in the panel,
+     and scrolling the page up gives the panel more height. Until the page has measured, the
+     window less the footer and the demo banner stands in. */
   .trip-log-layout__detail {
     --detail-chrome: var(--footer-height);
 
     position: sticky;
     top: 1rem;
-    display: flex;
-    flex-direction: column;
-    max-height: calc(100dvh - var(--detail-chrome) - 2rem);
+    max-height: calc(var(--room-below, 100dvh - var(--detail-chrome) - 1rem) - 1rem);
     overflow-y: auto;
-    padding: 1rem 1.25rem;
+    overscroll-behavior: contain;
+    padding: 1.25rem;
     border: 1px solid var(--color-border);
     border-radius: var(--radius);
     background: var(--color-surface);
@@ -173,41 +173,6 @@
 
   .has-demo-banner .trip-log-layout__detail {
     --detail-chrome: calc(var(--footer-height) + var(--demo-banner-height));
-  }
-
-  .trip-log-layout__detail > .trip-log-detail {
-    flex: 1 1 auto;
-    min-height: 0;
-    gap: 0.75rem;
-  }
-
-  /* Each starts at about its size in the dialog and shrinks with the window, the map a little
-     less. */
-  .trip-log-layout__detail .trip-route-map {
-    flex: 0 1 15rem;
-    height: auto;
-    min-height: 7rem;
-  }
-
-  .trip-log-layout__detail .trip-log-detail__chart {
-    flex: 0 1 13rem;
-    min-height: 6.5rem;
-  }
-
-  .trip-log-layout__detail .trip-log-detail__chart .chart-container__plot {
-    flex: 1;
-    height: auto;
-    min-height: 0;
-  }
-}
-
-/* A window too short for both, as a laptop's often is: the speed chart gives way, since the route
-   on the map is coloured by speed already. Beside a narrower list the panel wraps its addresses
-   and buttons onto more lines, so it needs a taller window to keep the chart. */
-@media (width >= 1024px) and (height < 780px),
-  (width >= 1024px) and (width < 1280px) and (height < 860px) {
-  .trip-log-layout__detail .trip-log-detail__chart.chart-container {
-    display: none;
   }
 }
 
@@ -624,11 +589,8 @@
   }
 }
 
-/* The chart sits in the panel, which is its card already. A column, so the plot takes the
-   height left under the title. */
+/* The chart sits in the panel, which is its card already. */
 .trip-log-detail__chart.chart-container {
-  display: flex;
-  flex-direction: column;
   padding: 0;
   border: 0;
   background: none;

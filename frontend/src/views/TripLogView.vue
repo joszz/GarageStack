@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import '@/assets/tripLog.css'
-import { computed, onMounted, onUnmounted, ref, useId, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, useId, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useVehicleStore } from '@/stores/vehicle'
 import { useTripLogStore } from '@/stores/tripLog'
@@ -29,6 +29,7 @@ import { useUnits } from '@/composables/useUnits'
 import { useErrorMessage } from '@/composables/useErrorMessage'
 import { useMediaQuery } from '@/composables/useMediaQuery'
 import { useTripRoute } from '@/composables/useTripRoute'
+import { useRoomBelow } from '@/composables/useRoomBelow'
 import ViewHeader from '@/components/ViewHeader.vue'
 
 const { t } = useI18n()
@@ -107,6 +108,10 @@ const selected = computed(() => {
 })
 
 const route = useTripRoute(vin, selected)
+
+// The panel starts below the totals, so it is kept from reaching past the bottom of the window
+// until the page scrolls it up; what does not fit scrolls inside it.
+useRoomBelow(useTemplateRef<HTMLElement>('detailPanel'))
 const detailInModal = computed(() => !wide.value && selected.value !== null)
 
 function closeDetail() {
@@ -340,6 +345,7 @@ function classifyAll(purpose: TripPurpose) {
 
       <aside
         v-if="wide && detail"
+        ref="detailPanel"
         class="trip-log-layout__detail"
         :aria-label="t('tripLog.detail.title')"
       >
