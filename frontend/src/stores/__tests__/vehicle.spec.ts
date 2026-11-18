@@ -187,6 +187,52 @@ describe('useVehicleStore - fetchVehicles', () => {
   })
 })
 
+describe('useVehicleStore - answers that bring nothing new', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    vi.clearAllMocks()
+  })
+
+  const reading = { recordedAt: '2026-11-18T12:00:00Z', evSocPercent: 71 } as TelemetrySnapshot
+
+  it('keeps the status it has when the same reading comes again, so nothing renders again', async () => {
+    const store = useVehicleStore()
+    vi.mocked(vehicleApi.status).mockResolvedValueOnce(reading)
+    await store.fetchStatus('FAKEVN00000000001')
+    const held = store.currentStatus
+
+    vi.mocked(vehicleApi.status).mockResolvedValueOnce({ ...reading })
+    await store.fetchStatus('FAKEVN00000000001')
+    expect(store.currentStatus).toBe(held)
+
+    store.applyLiveStatus({ ...reading })
+    expect(store.currentStatus).toBe(held)
+  })
+
+  it('takes a reading that differs', async () => {
+    const store = useVehicleStore()
+    vi.mocked(vehicleApi.status).mockResolvedValueOnce(reading)
+    await store.fetchStatus('FAKEVN00000000001')
+
+    store.applyLiveStatus({ ...reading, evSocPercent: 70 })
+
+    expect(store.currentStatus?.evSocPercent).toBe(70)
+  })
+
+  it('keeps the latest trip it has when the same trip comes again', async () => {
+    const store = useVehicleStore()
+    const trip = { index: 0, id: 7, points: [] } as unknown as Trip
+    vi.mocked(vehicleApi.latestTrip).mockResolvedValueOnce(trip)
+    await store.fetchLatestTrip('FAKEVN00000000001')
+    const held = store.latestTrip
+
+    vi.mocked(vehicleApi.latestTrip).mockResolvedValueOnce({ ...trip })
+    await store.fetchLatestTrip('FAKEVN00000000001')
+
+    expect(store.latestTrip).toBe(held)
+  })
+})
+
 describe('useVehicleStore - applyCommandResult', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
