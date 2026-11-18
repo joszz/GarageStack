@@ -192,7 +192,10 @@ function openFullMap() {
         {{ t('vehicle.location') }}
       </p>
 
-      <p v-if="address" class="location-map-card__address" :title="address">{{ address }}</p>
+      <!-- Held to select and copy, so not a long press into the layout editor (useLongPress). -->
+      <p v-if="address" class="location-map-card__address long-press-exempt" :title="address">
+        {{ address }}
+      </p>
       <p v-else-if="addressPending" class="location-map-card__address">
         <span
           class="skeleton skeleton--text skeleton--text-md"

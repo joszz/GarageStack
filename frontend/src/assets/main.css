@@ -341,11 +341,19 @@ body,
 }
 
 /* Cards a long press puts in edit mode (useLongPress): on a touchscreen the same press would
-   otherwise start selecting text or, on iOS, open the callout for a link or image. */
-@media (pointer: coarse) {
+   otherwise start selecting text or, on iOS, open the callout for a link or image. Any pointer,
+   not only the primary one: a laptop with a touchscreen has a fine primary pointer, yet a finger
+   on its screen makes the long press all the same. The parts where holding keeps its own meaning
+   (a chart's values, an address to copy) stay selectable. */
+@media (any-pointer: coarse) {
   .long-press-cards {
     -webkit-touch-callout: none;
     user-select: none;
+  }
+
+  .long-press-cards .long-press-exempt {
+    -webkit-touch-callout: default;
+    user-select: text;
   }
 }
 

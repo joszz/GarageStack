@@ -66,8 +66,9 @@ const { t } = useI18n()
       {{ title }}
     </h2>
     <!-- Chart.js sizes the canvas from this box, so a chart with maintainAspectRatio: false
-         takes its height from CSS here instead of from the title above it. -->
-    <div class="chart-container__plot">
+         takes its height from CSS here instead of from the title above it. A finger held on the
+         plot reads its tooltip, so it does not open the layout editor (useLongPress). -->
+    <div class="chart-container__plot long-press-exempt">
       <Chart :type="type" :data="data" :options="options" />
     </div>
   </div>

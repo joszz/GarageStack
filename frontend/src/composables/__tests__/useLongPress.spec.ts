@@ -1,23 +1,47 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { defineComponent, h } from 'vue'
 import { enableAutoUnmount, mount } from '@vue/test-utils'
-import { LONG_PRESS_MS, LONG_PRESS_TOLERANCE_PX, useLongPress } from '../useLongPress'
+import {
+  LIFT_CLICK_MS,
+  LONG_PRESS_EXEMPT_CLASS,
+  LONG_PRESS_MS,
+  LONG_PRESS_TOLERANCE_PX,
+  SCROLL_SETTLE_MS,
+  useLongPress,
+} from '../useLongPress'
 
 enableAutoUnmount(afterEach)
 
-// A grid with one card in it, its long press counted.
+// A grid with one card in it, its long press counted. Part of the card is a chart or an address,
+// where holding a finger means something else.
 function grid() {
   const onLongPress = vi.fn<() => void>()
   const wrapper = mount(
     defineComponent({
       setup() {
         const bindings = useLongPress(onLongPress)
-        return () => h('div', { class: 'grid', ...bindings }, [h('div', { class: 'card' })])
+        return () =>
+          h('div', { class: 'grid', ...bindings }, [
+            h('div', { class: 'card' }, [h('div', { class: ['plot', LONG_PRESS_EXEMPT_CLASS] })]),
+          ])
       },
     }),
     { attachTo: document.body },
   )
-  return { onLongPress, grid: wrapper.find('.grid'), card: wrapper.find('.card') }
+  return {
+    onLongPress,
+    grid: wrapper.find('.grid'),
+    card: wrapper.find('.card'),
+    exempt: wrapper.find('.plot'),
+  }
+}
+
+const click = () => new MouseEvent('click', { bubbles: true, cancelable: true })
+
+// An event as if it happened at `ms` on the page's clock, which a test cannot otherwise set.
+function at<E extends Event>(event: E, ms: number): E {
+  Object.defineProperty(event, 'timeStamp', { value: ms })
+  return event
 }
 
 function pointer(type: string, init: PointerEventInit = {}) {
@@ -124,7 +148,7 @@ describe('useLongPress', () => {
     expect(onLongPress).not.toHaveBeenCalled()
   })
 
-  it('swallows the click of the finger that made the long press, and only that one', () => {
+  it('swallows the click the lifting finger may still bring, even a little late', () => {
     const { card } = grid()
     const opened = vi.fn<() => void>()
     card.element.addEventListener('click', opened)
@@ -132,11 +156,124 @@ describe('useLongPress', () => {
     card.element.dispatchEvent(pointer('pointerdown'))
     vi.advanceTimersByTime(LONG_PRESS_MS)
     card.element.dispatchEvent(pointer('pointerup'))
-    card.element.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    vi.advanceTimersByTime(LIFT_CLICK_MS - 1)
+    card.element.dispatchEvent(click())
     expect(opened).not.toHaveBeenCalled()
 
-    vi.advanceTimersByTime(0)
-    card.element.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+    vi.advanceTimersByTime(1)
+    card.element.dispatchEvent(click())
     expect(opened).toHaveBeenCalledOnce()
+  })
+
+  // WebKit keeps sending a touch's events to the element it began on, removed by edit mode.
+  it('hears the lift on the pressed card once edit mode took it off the page', () => {
+    const { card } = grid()
+    const elsewhere = document.body.appendChild(document.createElement('button'))
+    const opened = vi.fn<() => void>()
+    elsewhere.addEventListener('click', opened)
+
+    card.element.dispatchEvent(pointer('pointerdown'))
+    vi.advanceTimersByTime(LONG_PRESS_MS)
+    const pressed = card.element
+    pressed.remove()
+    pressed.dispatchEvent(pointer('pointerup'))
+    vi.advanceTimersByTime(LIFT_CLICK_MS)
+
+    elsewhere.dispatchEvent(click())
+    expect(opened).toHaveBeenCalledOnce()
+    elsewhere.remove()
+  })
+
+  it('lets the next tap through even when the lift was never heard', () => {
+    const { card } = grid()
+    const done = document.body.appendChild(document.createElement('button'))
+    const opened = vi.fn<() => void>()
+    done.addEventListener('click', opened)
+
+    card.element.dispatchEvent(pointer('pointerdown'))
+    vi.advanceTimersByTime(LONG_PRESS_MS)
+    done.dispatchEvent(pointer('pointerdown'))
+    done.dispatchEvent(pointer('pointerup'))
+    done.dispatchEvent(click())
+
+    expect(opened).toHaveBeenCalledOnce()
+    done.remove()
+  })
+
+  it('leaves alone a press on a part where holding means something else', () => {
+    const { onLongPress, exempt } = grid()
+
+    exempt.element.dispatchEvent(pointer('pointerdown'))
+    vi.advanceTimersByTime(LONG_PRESS_MS)
+    const menu = new MouseEvent('contextmenu', { bubbles: true, cancelable: true })
+    exempt.element.dispatchEvent(menu)
+
+    expect(onLongPress).not.toHaveBeenCalled()
+    expect(menu.defaultPrevented).toBe(false)
+  })
+
+  it('does not fire for a finger that only stopped a fling and stays to read', () => {
+    const { onLongPress, card } = grid()
+
+    window.dispatchEvent(at(new Event('scroll'), 1000))
+    card.element.dispatchEvent(at(pointer('pointerdown'), 1000 + SCROLL_SETTLE_MS - 1))
+    vi.advanceTimersByTime(LONG_PRESS_MS)
+    expect(onLongPress).not.toHaveBeenCalled()
+
+    card.element.dispatchEvent(at(pointer('pointerdown'), 1000 + SCROLL_SETTLE_MS))
+    vi.advanceTimersByTime(LONG_PRESS_MS)
+    expect(onLongPress).toHaveBeenCalledOnce()
+  })
+
+  it('stops when the page scrolls under the finger', () => {
+    const { onLongPress, card } = grid()
+
+    card.element.dispatchEvent(pointer('pointerdown'))
+    document.body.dispatchEvent(new Event('scroll'))
+    vi.advanceTimersByTime(LONG_PRESS_MS)
+
+    expect(onLongPress).not.toHaveBeenCalled()
+  })
+
+  describe('the haptic tick', () => {
+    const vibrate = vi.fn<(pattern: VibratePattern) => boolean>()
+
+    function activation(hasBeenActive: boolean) {
+      Object.defineProperty(navigator, 'userActivation', {
+        value: { hasBeenActive, isActive: false },
+        configurable: true,
+      })
+    }
+
+    beforeEach(() => {
+      vibrate.mockClear()
+      Object.defineProperty(navigator, 'vibrate', { value: vibrate, configurable: true })
+    })
+
+    afterEach(() => {
+      Reflect.deleteProperty(navigator, 'vibrate')
+      Reflect.deleteProperty(navigator, 'userActivation')
+    })
+
+    it('ticks once the page has been tapped', () => {
+      activation(true)
+      const { card } = grid()
+
+      card.element.dispatchEvent(pointer('pointerdown'))
+      vi.advanceTimersByTime(LONG_PRESS_MS)
+
+      expect(vibrate).toHaveBeenCalledOnce()
+    })
+
+    it('stays still before the first tap, which Chrome would refuse and log', () => {
+      activation(false)
+      const { onLongPress, card } = grid()
+
+      card.element.dispatchEvent(pointer('pointerdown'))
+      vi.advanceTimersByTime(LONG_PRESS_MS)
+
+      expect(onLongPress).toHaveBeenCalledOnce()
+      expect(vibrate).not.toHaveBeenCalled()
+    })
   })
 })

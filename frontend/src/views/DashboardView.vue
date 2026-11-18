@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import '@/assets/dashboard.css'
-import { onMounted, onUnmounted, computed, defineAsyncComponent, ref, watch } from 'vue'
+import { onMounted, onUnmounted, computed, defineAsyncComponent, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useVehicleStore } from '@/stores/vehicle'
 import { useRdwStore } from '@/stores/rdw'
@@ -13,12 +13,13 @@ import CardInfoWrap from '@/components/CardInfoWrap.vue'
 import CarDiagram from '@/components/CarDiagram.vue'
 import LocationMapWidget from '@/components/LocationMapWidget.vue'
 import EditableCardSlot from '@/components/EditableCardSlot.vue'
+import EditLayoutButton from '@/components/EditLayoutButton.vue'
 import type EditableCardGridComponent from '@/components/EditableCardGrid.vue'
 import SkeletonCard from '@/components/SkeletonCard.vue'
 import SkeletonCarDiagram from '@/components/SkeletonCarDiagram.vue'
 import SkeletonLocationMap from '@/components/SkeletonLocationMap.vue'
 import { useUnits } from '@/composables/useUnits'
-import { useLongPress } from '@/composables/useLongPress'
+import { useEditMode } from '@/composables/useEditMode'
 import { mayBurnFuel } from '@/utils/vehicleType'
 import { energyUnit } from '@/utils/energy'
 import ViewHeader from '@/components/ViewHeader.vue'
@@ -37,7 +38,7 @@ const settings = useDashboardSettingsStore()
 
 const vin = computed(() => store.activeVin)
 const status = computed(() => store.currentStatus)
-const editMode = ref(false)
+const { editMode, cardLongPress } = useEditMode()
 
 const vehicleType = computed(() => store.effectiveVehicleType)
 const cardData = useCardData()
@@ -103,13 +104,6 @@ const cardDescriptionParams = computed(() => {
       : t('units.lowerIsBetter'),
   }
 })
-
-function toggleEditMode() {
-  editMode.value = !editMode.value
-}
-
-// On a touchscreen, holding a finger on any card opens the layout editor, as on a phone.
-const cardLongPress = useLongPress(() => (editMode.value = true))
 
 function hasData(id: CardId): boolean {
   return cardData.value !== null && cardHasData(id, cardData.value)
@@ -205,14 +199,7 @@ onUnmounted(() => {
           <font-awesome-icon icon="spinner" spin />
           {{ t('common.refreshing') }}
         </span>
-        <button
-          class="btn btn-sm"
-          :class="editMode ? 'btn-primary' : 'btn-outline-secondary'"
-          @click="toggleEditMode"
-        >
-          <font-awesome-icon :icon="editMode ? 'check' : 'pen-to-square'" />
-          {{ editMode ? t('dashboard.doneEditing') : t('dashboard.editLayout') }}
-        </button>
+        <EditLayoutButton v-model="editMode" />
       </template>
     </ViewHeader>
 

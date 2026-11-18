@@ -24,6 +24,7 @@ import SkeletonChart from '@/components/SkeletonChart.vue'
 import StatusCard from '@/components/StatusCard.vue'
 import StatsChartCard from '@/components/StatsChartCard.vue'
 import EditableCardSlot from '@/components/EditableCardSlot.vue'
+import EditLayoutButton from '@/components/EditLayoutButton.vue'
 import type EditableCardGridComponent from '@/components/EditableCardGrid.vue'
 import { DAY_MONTH, formatDate, formatHour, formatNumber } from '@/utils/format'
 import { resolveStatsPeriod, statsQuery } from '@/utils/statsPeriod'
@@ -50,7 +51,7 @@ import {
 } from '@/utils/statistics'
 import { useUnits } from '@/composables/useUnits'
 import { useErrorMessage } from '@/composables/useErrorMessage'
-import { useLongPress } from '@/composables/useLongPress'
+import { useEditMode } from '@/composables/useEditMode'
 import { useStatisticsCharts } from '@/composables/useStatisticsCharts'
 import ViewHeader from '@/components/ViewHeader.vue'
 
@@ -67,9 +68,7 @@ const uiSettings = useUiSettingsStore()
 const units = useUnits()
 const errorMessage = useErrorMessage()
 
-const editMode = ref(false)
-// On a touchscreen, holding a finger on any insight or chart opens the layout editor, as on a phone.
-const cardLongPress = useLongPress(() => (editMode.value = true))
+const { editMode, cardLongPress } = useEditMode()
 const loading = ref(false)
 const aggregateStats = ref<VehicleAggregateStats | null>(null)
 
@@ -431,14 +430,7 @@ const skeletonChartCount = computed(
         <ToolbarPanel>
           <StatsPeriodFilter />
         </ToolbarPanel>
-        <button
-          class="btn btn-sm"
-          :class="editMode ? 'btn-primary' : 'btn-outline-secondary'"
-          @click="editMode = !editMode"
-        >
-          <font-awesome-icon :icon="editMode ? 'check' : 'pen-to-square'" />
-          {{ editMode ? t('dashboard.doneEditing') : t('dashboard.editLayout') }}
-        </button>
+        <EditLayoutButton v-model="editMode" />
       </template>
     </ViewHeader>
 
