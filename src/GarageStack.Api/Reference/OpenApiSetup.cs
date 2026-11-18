@@ -1,3 +1,4 @@
+using System.Text.Json.Nodes;
 using GarageStack.Api.Authentication;
 using GarageStack.Api.Endpoints;
 using GarageStack.Api.Security;
@@ -7,6 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OpenApi;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.OpenApi;
+using Scalar.AspNetCore;
 
 namespace GarageStack.Api.Reference;
 
@@ -29,6 +31,9 @@ internal static class OpenApiSetup
 
     private const string ProblemContentType = "application/problem+json";
 
+    /// <summary>Where Scalar reads an operation's badges from.</summary>
+    internal const string BadgesExtension = "x-badges";
+
     public static IServiceCollection AddGarageStackOpenApi(this IServiceCollection services, ReleaseVersion? version) =>
         services.AddOpenApi(DocumentName, options =>
         {
@@ -37,6 +42,9 @@ internal static class OpenApiSetup
                 Describe(document, version);
                 return Task.CompletedTask;
             });
+            // The badges and code samples an endpoint declares (.WithBadge, .CodeSample) first, so
+            // the shared answers below can add the token badge to them.
+            options.AddScalarTransformers();
             options.AddOperationTransformer(AddSharedAnswersAsync);
             options.AddSchemaTransformer((schema, context, _) =>
             {
@@ -107,7 +115,10 @@ internal static class OpenApiSetup
             var tokenRefusal = ApiTokenAuthentication.Refusal(method, path);
             operation.Security = [Requirement(SessionScheme, context.Document)];
             if (tokenRefusal is null)
+            {
                 operation.Security.Add(Requirement(TokenScheme, context.Document));
+                AddBadge(operation, ApiReferenceText.TokenBadge);
+            }
 
             Answer(operation, StatusCodes.Status401Unauthorized, "Not signed in, or the API token is unknown or revoked.");
             if (tokenRefusal is not null)
@@ -141,6 +152,22 @@ internal static class OpenApiSetup
                 ? null
                 : new Dictionary<string, OpenApiMediaType> { [ProblemContentType] = new() { Schema = problem } },
         };
+    }
+
+    /// <summary>
+    /// Adds a badge after those the endpoint declared, which Scalar's transformer has already
+    /// written under the same extension.
+    /// </summary>
+    internal static void AddBadge(OpenApiOperation operation, string name)
+    {
+        operation.Extensions ??= new Dictionary<string, IOpenApiExtension>();
+        if (operation.Extensions.TryGetValue(BadgesExtension, out var existing) && existing is JsonNodeExtension { Node: JsonArray badges })
+        {
+            badges.Add(new JsonObject { ["name"] = name });
+            return;
+        }
+
+        operation.Extensions[BadgesExtension] = new JsonNodeExtension(new JsonArray(new JsonObject { ["name"] = name }));
     }
 
     private static OpenApiSecurityRequirement Requirement(string scheme, OpenApiDocument? document) =>

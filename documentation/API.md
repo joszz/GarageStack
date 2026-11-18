@@ -29,7 +29,9 @@ The reference page comes with a Content-Security-Policy of its own, built around
 | A script | `Authorization: Bearer gs_...`, a read-only token from Settings | GET only, and not the export, the logs or the tokens. See [read-only API tokens](../README.md#read-only-api-tokens) |
 | The Homepage widget | `X-Widget-Key: <WIDGET_API_KEY>` | `/api/widget` only. See [`WIDGET.md`](WIDGET.md) |
 
-The reference marks each endpoint with the ways in it accepts, so an endpoint a token cannot call says so.
+The reference marks each endpoint with the ways in it accepts, so an endpoint a token cannot call says so. Every endpoint a token can call also carries a **Read-only token** badge beside its name, the command endpoint **Sends to the car**, and the demo endpoint **Demo only**.
+
+The code examples open on curl, Python, Node.js and PowerShell, with every other language under the same menu. The widget endpoint's menu also holds the **Homepage services.yaml** block from [`WIDGET.md`](WIDGET.md).
 
 ## Answers
 
@@ -47,12 +49,14 @@ The document is generated from the endpoints themselves (ASP.NET Core's OpenAPI 
 - **Every endpoint** has a `.WithSummary("...")`, and says what it answers: `.Produces<T>()` for a body, `.Produces(StatusCodes.Status204NoContent)` (or another status) without one, and `.ProducesProblem(status)` for each refusal it makes through `ApiProblems`. A handler returns `IResult`, so the framework cannot see this for itself.
 - **Records** that go in or out carry XML doc comments: a `<summary>` and `<param>`s become the descriptions in the reference.
 - **A body read by hand** (a `JsonElement`) is described with an operation transformer on the endpoint, as the command endpoint does with `VehicleCommandRequest`.
+- **A badge or a code sample** comes from Scalar's own endpoint extensions (`using Scalar.AspNetCore;`): `.WithBadge(...)` for something a caller should know at a glance, such as an endpoint that sends to the car, and `.CodeSample(...)` for an example that is not a plain HTTP call, such as the Homepage block. Badge texts live in `ApiReferenceText`. `Scalar.AspNetCore.Microsoft` writes them into the document.
 
-What every endpoint shares is added in one place, [`OpenApiSetup`](../src/GarageStack.Api/Reference/OpenApiSetup.cs): which ways in an endpoint accepts (from the token rules in `ApiTokenAuthentication.Refusal`, the same ones the API enforces), and the `401`, `403` and `429` any request can meet.
+What every endpoint shares is added in one place, [`OpenApiSetup`](../src/GarageStack.Api/Reference/OpenApiSetup.cs): which ways in an endpoint accepts and the **Read-only token** badge (both from the token rules in `ApiTokenAuthentication.Refusal`, the same ones the API enforces), and the `401`, `403` and `429` any request can meet.
 
-Two tests in `GarageStack.Tests` hold this up:
+These tests in `GarageStack.Tests` hold this up:
 
 - `EveryEndpoint_DeclaresWhatItAnswers_AndItsGroupIsDescribed` fails for an endpoint without a summary, without a declared answer, or with a tag that has no description.
+- `ApiDocument_BadgesEveryEndpointATokenCanCall_AndWhatSendsToTheCar` holds the **Read-only token** badge to the security each endpoint lists, and `ApiDocument_ShowsTheHomepageBlockWithTheWidgetEndpoint_AsWidgetMdDoes` holds the Homepage block to `WIDGET.md`.
 - `ApiDocument_MatchesTheCommittedCopy` compares the document with [`openapi.json`](openapi.json). When they differ, it writes the new document there and fails: look at the change, and commit it with the code that made it. The diff shows a reviewer what the API change looks like from the outside.
 
 The page itself is [`ApiReferencePage`](../src/GarageStack.Api/Reference/ApiReferencePage.cs): where it is served, the sign-in redirect, and its Content-Security-Policy. `frontend/nginx-app.conf` gives `/api/reference` its own location without the app's policy, and `frontend/e2e/api-reference.spec.ts` checks the page in the production image.

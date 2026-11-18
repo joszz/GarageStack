@@ -16,7 +16,7 @@ Log in to GarageStack, open the browser developer tools (Network tab) and reload
 
 ## 3. Configure Homepage
 
-Add the following block to your Homepage `services.yaml`, replacing `YOUR_GARAGESTACK_URL`, `YOUR_VIN`, and `YOUR_WIDGET_API_KEY`:
+Add the following block to your Homepage `services.yaml`, replacing `YOUR_GARAGESTACK_URL`, `YOUR_VIN`, and `YOUR_WIDGET_API_KEY`. The [API reference](API.md#the-reference) shows the same block with the widget endpoint, under **Homepage services.yaml** in the example's menu:
 
 ```yaml
 - GarageStack:

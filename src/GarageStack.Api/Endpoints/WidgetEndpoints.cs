@@ -5,6 +5,7 @@ using GarageStack.Core.Interfaces;
 using GarageStack.Core.Models;
 using Microsoft.Extensions.Localization;
 using Microsoft.OpenApi;
+using Scalar.AspNetCore;
 
 namespace GarageStack.Api.Endpoints;
 
@@ -61,6 +62,7 @@ public static class WidgetEndpoints
             })
             .Produces<WidgetStatusDto>()
             .Produces(StatusCodes.Status204NoContent)
+            .CodeSample(ApiReferenceText.HomepageWidgetSample, label: "Homepage services.yaml")
             .WithSummary("Get latest vehicle status for Homepage widget (requires X-Widget-Key header)");
 
         return app;

@@ -1,10 +1,12 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using GarageStack.Api.Reference;
 using GarageStack.Core.Configuration;
 using GarageStack.Core.Helpers;
 using GarageStack.Core.Interfaces;
 using GarageStack.Core.Models;
 using Microsoft.OpenApi;
+using Scalar.AspNetCore;
 
 namespace GarageStack.Api.Endpoints;
 
@@ -232,6 +234,7 @@ public static class VehicleEndpoints
             if (operation.RequestBody?.Content?.TryGetValue("application/json", out var body) == true)
                 body.Schema = await context.GetOrCreateSchemaAsync(typeof(VehicleCommandRequest), cancellationToken: ct);
         })
+        .WithBadge(ApiReferenceText.SendsToCarBadge)
         .WithSummary("Send a command to the vehicle via MQTT; the car's answer arrives later over SignalR");
 
         vehicleGroup.MapGet("/stats", async (

@@ -16,7 +16,7 @@ internal static class ApiReferenceText
           you signed in with. It is the real thing: a command goes to the car, a delete deletes.
         - **From a script**, make a read-only token under *Settings, API tokens* and send it as
           `Authorization: Bearer gs_...`. A token only reads (GET), and never the export, the logs
-          or the tokens themselves.
+          or the tokens themselves: every endpoint it can call carries a *Read-only token* badge.
         - **The Homepage widget** sends the `X-Widget-Key` header (WIDGET_API_KEY) instead.
 
         ## Answers
@@ -30,6 +30,47 @@ internal static class ApiReferenceText
         - A command's outcome arrives later, over the SignalR hub at `/hubs/telemetry`, as the car
           answers it. The command endpoint only says it was sent.
         - `GET /api/health` reports the database, the MQTT broker and the Worker, without signing in.
+        """;
+
+    /// <summary>
+    /// The badges beside an endpoint's name. OpenApiSetup gives every endpoint an API token may call
+    /// <see cref="TokenBadge"/>; an endpoint declares the others itself with <c>.WithBadge(...)</c>.
+    /// </summary>
+    public const string TokenBadge = "Read-only token";
+
+    /// <inheritdoc cref="TokenBadge"/>
+    public const string SendsToCarBadge = "Sends to the car";
+
+    /// <inheritdoc cref="TokenBadge"/>
+    public const string DemoOnlyBadge = "Demo only";
+
+    /// <summary>
+    /// The block for Homepage's services.yaml, shown with the widget endpoint. documentation/WIDGET.md
+    /// shows the same block, and a test holds the two to each other.
+    /// </summary>
+    public const string HomepageWidgetSample = """
+        - GarageStack:
+            href: https://YOUR_GARAGESTACK_URL
+            description: MG Vehicle Status
+            widget:
+              type: customapi
+              url: https://YOUR_GARAGESTACK_URL/api/widget/YOUR_VIN/status
+              headers:
+                X-Widget-Key: "YOUR_WIDGET_API_KEY"
+              mappings:
+                - field: evSocPercent
+                  label: Battery
+                  format: percent
+                - field: isCharging
+                  label: Charging
+                  format: text
+                - field: exteriorTemperature
+                  label: Ext. Temp
+                  format: float
+                  suffix: "°C"
+                - field: isLocked
+                  label: Locked
+                  format: text
         """;
 
     /// <summary>Every tag an endpoint uses, with what its endpoints are for. A test holds the two to each other.</summary>

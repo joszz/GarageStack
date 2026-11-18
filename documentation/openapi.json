@@ -2,7 +2,7 @@
   "openapi": "3.1.1",
   "info": {
     "title": "GarageStack API",
-    "description": "GarageStack's own API: everything the web app shows and does, for scripts, Home Assistant and\nanything else you connect.\n\n## Signing in\n\n- **On this page**, *Test Request* sends the request as you, with the session of the browser\n  you signed in with. It is the real thing: a command goes to the car, a delete deletes.\n- **From a script**, make a read-only token under *Settings, API tokens* and send it as\n  `Authorization: Bearer gs_...`. A token only reads (GET), and never the export, the logs\n  or the tokens themselves.\n- **The Homepage widget** sends the `X-Widget-Key` header (WIDGET_API_KEY) instead.\n\n## Answers\n\n- Times are UTC, in ISO 8601. Distances are km, speeds km/h, temperatures °C, tyre pressures\n  bar, energy kWh and power kW, whatever units the web app is set to show.\n- A refusal is a problem details body (RFC 9457) with a `code`, such as `trip.changed`, that\n  stays the same between releases; `detail` says it in English.\n- Each address may make 120 requests a minute (RATE_LIMIT_GLOBAL_PER_MINUTE), and some\n  endpoints allow fewer. Past that the answer is 429.\n- A command's outcome arrives later, over the SignalR hub at `/hubs/telemetry`, as the car\n  answers it. The command endpoint only says it was sent.\n- `GET /api/health` reports the database, the MQTT broker and the Worker, without signing in.",
+    "description": "GarageStack's own API: everything the web app shows and does, for scripts, Home Assistant and\nanything else you connect.\n\n## Signing in\n\n- **On this page**, *Test Request* sends the request as you, with the session of the browser\n  you signed in with. It is the real thing: a command goes to the car, a delete deletes.\n- **From a script**, make a read-only token under *Settings, API tokens* and send it as\n  `Authorization: Bearer gs_...`. A token only reads (GET), and never the export, the logs\n  or the tokens themselves: every endpoint it can call carries a *Read-only token* badge.\n- **The Homepage widget** sends the `X-Widget-Key` header (WIDGET_API_KEY) instead.\n\n## Answers\n\n- Times are UTC, in ISO 8601. Distances are km, speeds km/h, temperatures °C, tyre pressures\n  bar, energy kWh and power kW, whatever units the web app is set to show.\n- A refusal is a problem details body (RFC 9457) with a `code`, such as `trip.changed`, that\n  stays the same between releases; `detail` says it in English.\n- Each address may make 120 requests a minute (RATE_LIMIT_GLOBAL_PER_MINUTE), and some\n  endpoints allow fewer. Past that the answer is 429.\n- A command's outcome arrives later, over the SignalR hub at `/hubs/telemetry`, as the car\n  answers it. The command endpoint only says it was sent.\n- `GET /api/health` reports the database, the MQTT broker and the Worker, without signing in.",
     "license": {
       "name": "MIT",
       "url": "https://github.com/joszz/garagestack/blob/main/LICENSE"
@@ -330,6 +330,11 @@
           {
             "apiToken": []
           }
+        ],
+        "x-badges": [
+          {
+            "name": "Read-only token"
+          }
         ]
       }
     },
@@ -363,6 +368,11 @@
           },
           {
             "apiToken": []
+          }
+        ],
+        "x-badges": [
+          {
+            "name": "Read-only token"
           }
         ]
       }
@@ -603,6 +613,11 @@
           {
             "apiToken": []
           }
+        ],
+        "x-badges": [
+          {
+            "name": "Read-only token"
+          }
         ]
       }
     },
@@ -732,6 +747,11 @@
           },
           {
             "apiToken": []
+          }
+        ],
+        "x-badges": [
+          {
+            "name": "Read-only token"
           }
         ]
       }
@@ -1056,6 +1076,11 @@
           {
             "apiToken": []
           }
+        ],
+        "x-badges": [
+          {
+            "name": "Read-only token"
+          }
         ]
       }
     },
@@ -1089,6 +1114,11 @@
           },
           {
             "apiToken": []
+          }
+        ],
+        "x-badges": [
+          {
+            "name": "Read-only token"
           }
         ]
       }
@@ -1129,6 +1159,11 @@
           },
           {
             "apiToken": []
+          }
+        ],
+        "x-badges": [
+          {
+            "name": "Read-only token"
           }
         ]
       }
@@ -1261,6 +1296,11 @@
           {
             "apiToken": []
           }
+        ],
+        "x-badges": [
+          {
+            "name": "Read-only token"
+          }
         ]
       }
     },
@@ -1329,6 +1369,11 @@
           {
             "apiToken": []
           }
+        ],
+        "x-badges": [
+          {
+            "name": "Read-only token"
+          }
         ]
       }
     },
@@ -1396,6 +1441,11 @@
           },
           {
             "apiToken": []
+          }
+        ],
+        "x-badges": [
+          {
+            "name": "Read-only token"
           }
         ]
       }
@@ -1472,6 +1522,11 @@
           {
             "apiToken": []
           }
+        ],
+        "x-badges": [
+          {
+            "name": "Read-only token"
+          }
         ]
       }
     },
@@ -1527,6 +1582,11 @@
           },
           {
             "apiToken": []
+          }
+        ],
+        "x-badges": [
+          {
+            "name": "Read-only token"
           }
         ]
       }
@@ -1677,6 +1737,11 @@
           {
             "session": []
           }
+        ],
+        "x-badges": [
+          {
+            "name": "Sends to the car"
+          }
         ]
       }
     },
@@ -1741,6 +1806,11 @@
           },
           {
             "apiToken": []
+          }
+        ],
+        "x-badges": [
+          {
+            "name": "Read-only token"
           }
         ]
       }
@@ -2136,6 +2206,11 @@
           {
             "apiToken": []
           }
+        ],
+        "x-badges": [
+          {
+            "name": "Read-only token"
+          }
         ]
       }
     },
@@ -2175,6 +2250,11 @@
           },
           {
             "apiToken": []
+          }
+        ],
+        "x-badges": [
+          {
+            "name": "Read-only token"
           }
         ]
       }
@@ -2243,6 +2323,11 @@
           },
           {
             "apiToken": []
+          }
+        ],
+        "x-badges": [
+          {
+            "name": "Read-only token"
           }
         ]
       }
@@ -2739,6 +2824,11 @@
           {
             "apiToken": []
           }
+        ],
+        "x-badges": [
+          {
+            "name": "Read-only token"
+          }
         ]
       }
     },
@@ -3118,6 +3208,11 @@
           {
             "apiToken": []
           }
+        ],
+        "x-badges": [
+          {
+            "name": "Read-only token"
+          }
         ]
       }
     },
@@ -3337,6 +3432,11 @@
           },
           {
             "apiToken": []
+          }
+        ],
+        "x-badges": [
+          {
+            "name": "Read-only token"
           }
         ]
       },
@@ -3688,6 +3788,11 @@
           {
             "apiToken": []
           }
+        ],
+        "x-badges": [
+          {
+            "name": "Read-only token"
+          }
         ]
       },
       "post": {
@@ -4033,6 +4138,11 @@
           {
             "apiToken": []
           }
+        ],
+        "x-badges": [
+          {
+            "name": "Read-only token"
+          }
         ]
       },
       "post": {
@@ -4283,6 +4393,11 @@
           },
           {
             "apiToken": []
+          }
+        ],
+        "x-badges": [
+          {
+            "name": "Read-only token"
           }
         ]
       },
@@ -4617,6 +4732,11 @@
           },
           {
             "apiToken": []
+          }
+        ],
+        "x-badges": [
+          {
+            "name": "Read-only token"
           }
         ]
       },
@@ -4963,6 +5083,11 @@
           {
             "apiToken": []
           }
+        ],
+        "x-badges": [
+          {
+            "name": "Read-only token"
+          }
         ]
       }
     },
@@ -5114,6 +5239,11 @@
           },
           {
             "apiToken": []
+          }
+        ],
+        "x-badges": [
+          {
+            "name": "Read-only token"
           }
         ]
       },
@@ -5372,6 +5502,12 @@
           {
             "widgetKey": []
           }
+        ],
+        "x-codeSamples": [
+          {
+            "source": "- GarageStack:\n    href: https://YOUR_GARAGESTACK_URL\n    description: MG Vehicle Status\n    widget:\n      type: customapi\n      url: https://YOUR_GARAGESTACK_URL/api/widget/YOUR_VIN/status\n      headers:\n        X-Widget-Key: \"YOUR_WIDGET_API_KEY\"\n      mappings:\n        - field: evSocPercent\n          label: Battery\n          format: percent\n        - field: isCharging\n          label: Charging\n          format: text\n        - field: exteriorTemperature\n          label: Ext. Temp\n          format: float\n          suffix: \"°C\"\n        - field: isLocked\n          label: Locked\n          format: text",
+            "label": "Homepage services.yaml"
+          }
         ]
       }
     },
@@ -5466,6 +5602,11 @@
           {
             "apiToken": []
           }
+        ],
+        "x-badges": [
+          {
+            "name": "Read-only token"
+          }
         ]
       }
     },
@@ -5530,6 +5671,11 @@
           },
           {
             "apiToken": []
+          }
+        ],
+        "x-badges": [
+          {
+            "name": "Read-only token"
           }
         ]
       }
@@ -5619,6 +5765,11 @@
           },
           {
             "apiToken": []
+          }
+        ],
+        "x-badges": [
+          {
+            "name": "Read-only token"
           }
         ]
       }
@@ -5899,6 +6050,11 @@
         "security": [
           {
             "session": []
+          }
+        ],
+        "x-badges": [
+          {
+            "name": "Demo only"
           }
         ]
       }

@@ -24,6 +24,18 @@ internal static class ApiReferencePage
         "base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
 
     /// <summary>
+    /// The tabs of the code examples, in order: what someone scripting against their own car
+    /// reaches for. Every other language stays under More.
+    /// </summary>
+    internal static readonly KeyValuePair<ScalarTarget, ScalarClient>[] FeaturedClients =
+    [
+        new(ScalarTarget.Shell, ScalarClient.Curl),
+        new(ScalarTarget.Python, ScalarClient.Requests),
+        new(ScalarTarget.Node, ScalarClient.Fetch),
+        new(ScalarTarget.PowerShell, ScalarClient.RestMethod),
+    ];
+
+    /// <summary>
     /// Sends a browser that is not signed in to the login page, which brings it back here, and
     /// gives the page its Content-Security-Policy. Between authentication and authorization, so
     /// the user is known and the redirect comes before authorization's bare 401. Nothing, while
@@ -74,6 +86,7 @@ internal static class ApiReferencePage
                 // leaves for another scheme or host than the page was loaded from.
                 .WithDynamicBaseServerUrl(true)
                 .WithDefaultHttpClient(ScalarTarget.Shell, ScalarClient.Curl)
+                .WithFeaturedClients(FeaturedClients)
                 // The session needs nothing filled in: the browser sends its cookie itself, and no
                 // script can read or set it. This value only replaces the placeholder Scalar shows.
                 .AddPreferredSecuritySchemes(OpenApiSetup.SessionScheme)
