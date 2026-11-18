@@ -5,6 +5,14 @@ import {
   precacheAndRoute,
 } from 'workbox-precaching'
 import { NavigationRoute, registerRoute } from 'workbox-routing'
+import { StaleWhileRevalidate } from 'workbox-strategies'
+import { ExpirationPlugin } from 'workbox-expiration'
+import {
+  MAP_TILE_CACHE,
+  MAP_TILE_CACHE_MAX_AGE_SECONDS,
+  MAP_TILE_CACHE_MAX_ENTRIES,
+  RASTER_TILE_ORIGIN,
+} from './utils/rasterTiles'
 
 declare const self: ServiceWorkerGlobalScope
 
@@ -18,6 +26,29 @@ precacheAndRoute(self.__WB_MANIFEST)
 registerRoute(
   new NavigationRoute(createHandlerBoundToURL('/index.html'), {
     denylist: [/^\/api\//, /^\/hubs\//],
+  }),
+)
+
+// Raster map tiles this browser has shown (the dashboard's map of the parked car, and the map
+// page without WebGL), kept so the card still shows the streets around the car without a signal.
+// A kept tile is shown at once and asked for again in the background, so it stays current while
+// online. Only tiles that were on screen: OpenStreetMap's tile policy forbids fetching areas
+// ahead.
+registerRoute(
+  ({ url, request }) => url.origin === RASTER_TILE_ORIGIN && request.destination === 'image',
+  new StaleWhileRevalidate({
+    cacheName: MAP_TILE_CACHE,
+    plugins: [
+      // Only a tile that arrived whole, over CORS. The strategy would keep an opaque answer too
+      // (status 0, which a page from before tiles asked for CORS still gets), and Chrome counts each
+      // of those as megabytes of storage.
+      { cacheWillUpdate: async ({ response }) => (response.status === 200 ? response : null) },
+      new ExpirationPlugin({
+        maxEntries: MAP_TILE_CACHE_MAX_ENTRIES,
+        maxAgeSeconds: MAP_TILE_CACHE_MAX_AGE_SECONDS,
+        purgeOnQuotaError: true,
+      }),
+    ],
   }),
 )
 
