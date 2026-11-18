@@ -1296,5 +1296,9 @@
     "fetchedAt": "Desde el RDW, {time}",
     "lastAttemptFailed": "El último intento de preguntar al RDW falló; intentarlo de nuevo más tarde.",
     "source": "Fuente: datos abiertos de RDW"
+  },
+  "offline": {
+    "savedState": "Sin conexión con GarageStack. Así estaba el coche la última vez que se vio, {time}.",
+    "savedStateUnknown": "Sin conexión con GarageStack. Así estaba el coche la última vez que este dispositivo lo cargó."
   }
 }

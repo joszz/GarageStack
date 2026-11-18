@@ -1,7 +1,9 @@
 import { computed, onScopeDispose, ref } from 'vue'
 import { defineStore } from 'pinia'
 import { authApi, type AuthConfigResponse } from '@/services/authApi'
+import { ApiError, STARTUP_REQUEST_TIMEOUT_MS } from '@/services/apiCore'
 import { forgetLastVin } from '@/utils/lastVin'
+import { forgetLastKnownState } from '@/utils/lastKnownState'
 
 const AUTH_USERNAME_KEY = 'garagestack-auth-username'
 const AUTH_EXPIRES_KEY = 'garagestack-auth-expires'
@@ -50,21 +52,31 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem(AUTH_USERNAME_KEY)
     localStorage.removeItem(AUTH_EXPIRES_KEY)
     forgetLastVin()
+    forgetLastKnownState()
   }
 
   async function verifySession(): Promise<void> {
     const generation = ++_generation
     try {
-      const result = await authApi.me()
+      // A session held in storage is not kept waiting on a connection that never answers (one
+      // bar of signal in a car park): past the limit it counts as no connection, below.
+      const result = await authApi.me(
+        isAuthenticated.value ? AbortSignal.timeout(STARTUP_REQUEST_TIMEOUT_MS) : undefined,
+      )
       if (generation !== _generation) return
       // Only treat the session as authenticated once we have an expiry to go with the
       // username, otherwise isAuthenticated would stay false while username looked set.
       if (result.expiresAtUtc) {
         persistSession(result.username, result.expiresAtUtc)
       }
-    } catch {
+    } catch (error) {
       if (generation !== _generation) return
-      clearSession()
+      // Only the server refusing the session ends it. Without a connection, or with the server
+      // down, the session held in storage stands, so the car can still be shown as last loaded;
+      // the next request the server refuses signs out as before. Asked again on the next
+      // navigation.
+      if (error instanceof ApiError && error.status < 500) clearSession()
+      else _verifyPromise = null
     }
   }
 

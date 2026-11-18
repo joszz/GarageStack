@@ -24,6 +24,7 @@ import { mayBurnFuel } from '@/utils/vehicleType'
 import { energyUnit } from '@/utils/energy'
 import { readLastVin } from '@/utils/lastVin'
 import ViewHeader from '@/components/ViewHeader.vue'
+import OfflineNotice from '@/components/OfflineNotice.vue'
 
 // Only edit mode drags cards around, and the drag-and-drop library is the size of every card on
 // this page together, so it loads when the layout editor opens rather than with the dashboard.
@@ -220,6 +221,9 @@ onUnmounted(() => {
         <EditLayoutButton v-model="editMode" />
       </template>
     </ViewHeader>
+
+    <!-- Back online: catch up on what was missed, as on returning to the tab. -->
+    <OfflineNotice @reconnect="refreshLive" />
 
     <!-- Edit mode: same grid with draggable card-slot wrappers -->
     <template v-if="editMode">
