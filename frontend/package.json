@@ -40,6 +40,7 @@
     "vue-draggable-plus": "^0.6.1",
     "vue-i18n": "^11.4.20",
     "vue-router": "^5.5.1",
+    "workbox-expiration": "^7.4.1",
     "workbox-precaching": "^7.4.1",
     "workbox-routing": "^7.4.1",
     "workbox-strategies": "^7.4.1"

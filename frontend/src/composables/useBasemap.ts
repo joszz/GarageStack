@@ -117,6 +117,10 @@ export function useBasemap(mapInstance: Ref<LeafletMap | null>, options: Basemap
     layer = L.tileLayer(RASTER_FALLBACK_TILE_URL, {
       attribution: OSM_ATTRIBUTION,
       maxZoom: RASTER_FALLBACK_MAX_ZOOM,
+      // As CORS requests, which the tile server allows, so the service worker can keep them for
+      // offline use (sw.ts). Without it each tile is an opaque response, which Chrome counts as
+      // megabytes of storage and the worker will not keep.
+      crossOrigin: true,
     }).addTo(map)
   }
 

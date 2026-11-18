@@ -234,6 +234,13 @@ describe('useBasemap', () => {
     expect(fetchMock).not.toHaveBeenCalled()
   })
 
+  // The service worker keeps these tiles for offline use, and only a CORS answer can be kept.
+  it('asks for raster tiles over CORS', async () => {
+    await mountBasemap(fakeMap(), { vector: false })
+
+    expect(lastOfKind('raster')?.options.crossOrigin).toBe(true)
+  })
+
   it('marks a raster map for the stylesheet, and unmarks it when it goes', async () => {
     const map = fakeMap()
     const { wrapper } = await mountBasemap(map, { vector: false })

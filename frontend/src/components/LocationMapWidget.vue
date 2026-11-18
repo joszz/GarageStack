@@ -110,11 +110,13 @@ function buildActiveTripLayers() {
 // current position) while keeping the car centered, so the whole trip stays visible as it
 // grows without the view drifting off the car. Built by taking the largest lat/lng offset from
 // the car to any trip point and mirroring it on the opposite side, which keeps the car at the
-// exact centre of the resulting bounds. Falls back to centering on the car when parked.
+// exact centre of the resulting bounds. Falls back to centering on the car when parked, and for a
+// trip without fixes: the copy saved for offline use keeps none, and framing the car alone zoomed
+// in past the tiles the card had shown (and kept).
 function updateMapView() {
   const map = mapInstance.value
   if (!map) return
-  const trip = activeTrip.value
+  const trip = activeTrip.value?.points.length ? activeTrip.value : null
   if (trip && hasLocation.value) {
     const car = center.value
     let maxLatDelta = 0

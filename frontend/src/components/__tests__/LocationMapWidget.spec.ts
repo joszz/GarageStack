@@ -1,15 +1,18 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { defineComponent, h, ref } from 'vue'
+import { defineComponent, h, onMounted, ref } from 'vue'
 import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia, type Pinia } from 'pinia'
 import { createI18n } from 'vue-i18n'
 import en from '@/locales/en.json'
-import type { TelemetrySnapshot, Vehicle } from '@/services/vehicleApi'
+import type { TelemetrySnapshot, Trip, Vehicle } from '@/services/vehicleApi'
 import { useVehicleStore } from '@/stores/vehicle'
 import LocationMapWidget from '../LocationMapWidget.vue'
 
 const push = vi.fn<(to: { name: string; query?: Record<string, string> }) => void>()
 vi.mock('vue-router', () => ({ useRouter: () => ({ push }) }))
+
+// The map the LMap stub hands to the card as ready, for a test that looks at the framing.
+const leaflet = vi.hoisted(() => ({ map: null as unknown }))
 vi.mock('@vue-leaflet/vue-leaflet', () => {
   const container = defineComponent({
     setup:
@@ -17,7 +20,16 @@ vi.mock('@vue-leaflet/vue-leaflet', () => {
       () =>
         h('div', slots.default?.()),
   })
-  return { LMap: container, LMarker: container }
+  const map = defineComponent({
+    emits: ['ready'],
+    setup(_, { slots, emit }) {
+      onMounted(() => {
+        if (leaflet.map) emit('ready', leaflet.map)
+      })
+      return () => h('div', slots.default?.())
+    },
+  })
+  return { LMap: map, LMarker: container }
 })
 vi.mock('@/composables/useBasemap', () => ({ useBasemap: () => undefined }))
 
@@ -139,5 +151,51 @@ describe('LocationMapWidget', () => {
         'to',
       ),
     ).toBe('0.000000,0.000000')
+  })
+
+  describe('framing', () => {
+    function fakeMap() {
+      return {
+        setView: vi.fn<(center: [number, number], zoom: number) => void>(),
+        fitBounds: vi.fn<() => void>(),
+        invalidateSize: vi.fn<() => void>(),
+        addLayer: vi.fn<() => void>(),
+        removeLayer: vi.fn<() => void>(),
+        hasLayer: () => false,
+      }
+    }
+
+    beforeEach(() => {
+      // jsdom has none; the card watches its size with one.
+      vi.stubGlobal(
+        'ResizeObserver',
+        class {
+          observe() {}
+          disconnect() {}
+        },
+      )
+    })
+
+    afterEach(() => {
+      leaflet.map = null
+      vi.unstubAllGlobals()
+    })
+
+    // The copy saved for offline use keeps the newest trip without its fixes. Framing the car
+    // alone zoomed in past the street view the card shows parked, whose tiles the worker keeps.
+    it('shows the street view for a trip under way that has no fixes', async () => {
+      const map = fakeMap()
+      leaflet.map = map
+      const store = useVehicleStore(pinia)
+      store.currentStatus = { ...status, currentJourneyDistance: 4.2, engineRunning: true }
+      store.latestTrip = { id: 3, points: [] } as unknown as Trip
+
+      mountWidget()
+      await flushPromises()
+      await new Promise((resolve) => requestAnimationFrame(resolve))
+
+      expect(map.setView).toHaveBeenLastCalledWith([52.09, 5.12], 14, { animate: false })
+      expect(map.fitBounds).not.toHaveBeenCalled()
+    })
   })
 })

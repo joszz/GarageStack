@@ -4,6 +4,7 @@ import { authApi, type AuthConfigResponse } from '@/services/authApi'
 import { ApiError, STARTUP_REQUEST_TIMEOUT_MS } from '@/services/apiCore'
 import { forgetLastVin } from '@/utils/lastVin'
 import { forgetLastKnownState } from '@/utils/lastKnownState'
+import { forgetMapTiles } from '@/utils/rasterTiles'
 
 const AUTH_USERNAME_KEY = 'garagestack-auth-username'
 const AUTH_EXPIRES_KEY = 'garagestack-auth-expires'
@@ -53,6 +54,7 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem(AUTH_EXPIRES_KEY)
     forgetLastVin()
     forgetLastKnownState()
+    void forgetMapTiles()
   }
 
   async function verifySession(): Promise<void> {

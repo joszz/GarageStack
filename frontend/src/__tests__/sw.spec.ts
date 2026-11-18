@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 import { createHandlerBoundToURL } from 'workbox-precaching'
-import { registerRoute, type NavigationRoute } from 'workbox-routing'
+import { NavigationRoute, registerRoute } from 'workbox-routing'
 
 vi.mock('workbox-precaching', () => ({
   cleanupOutdatedCaches: vi.fn<() => void>(),
@@ -19,6 +19,19 @@ vi.mock('workbox-routing', () => ({
       readonly handler: unknown,
       readonly options: { allowlist?: RegExp[]; denylist?: RegExp[] },
     ) {}
+  },
+}))
+
+// Strategies and plugins as plain records of what the worker configured them with.
+vi.mock('workbox-strategies', () => ({
+  StaleWhileRevalidate: class {
+    constructor(readonly options: unknown) {}
+  },
+}))
+
+vi.mock('workbox-expiration', () => ({
+  ExpirationPlugin: class {
+    constructor(readonly options: Record<string, unknown>) {}
   },
 }))
 
@@ -350,8 +363,12 @@ describe('service worker', () => {
   describe('opening a page', () => {
     async function navigationRoute() {
       await loadWorker()
-      expect(registerRoute).toHaveBeenCalledOnce()
-      return vi.mocked(registerRoute).mock.calls[0]![0] as unknown as NavigationRoute & {
+      const route = vi
+        .mocked(registerRoute)
+        .mock.calls.map((call) => call[0])
+        .find((r) => r instanceof NavigationRoute)
+      expect(route).toBeDefined()
+      return route as unknown as NavigationRoute & {
         handler: unknown
         options: { denylist: RegExp[] }
       }
@@ -379,5 +396,66 @@ describe('service worker', () => {
         expect(route.options.denylist.some((pattern) => pattern.test(path))).toBe(false)
       },
     )
+  })
+
+  describe('map tiles', () => {
+    type Matcher = (o: { url: URL; request: { destination: string } }) => boolean
+    interface Plugin {
+      cacheWillUpdate?: (p: { response: Response }) => Promise<Response | null>
+      options?: Record<string, unknown>
+    }
+    interface Strategy {
+      options: { cacheName: string; plugins: Plugin[] }
+    }
+
+    async function tileRoute() {
+      await loadWorker()
+      const call = vi.mocked(registerRoute).mock.calls.find((c) => typeof c[0] === 'function')
+      expect(call).toBeDefined()
+      return { matches: call![0] as unknown as Matcher, strategy: call![1] as unknown as Strategy }
+    }
+
+    const at = (href: string, destination = 'image') => ({
+      url: new URL(href),
+      request: { destination },
+    })
+
+    it('keeps the raster tiles the page shows', async () => {
+      const { matches, strategy } = await tileRoute()
+
+      expect(matches(at('https://tile.openstreetmap.org/14/8414/5394.png'))).toBe(true)
+      expect(strategy.options.cacheName).toBe('garagestack-map-tiles')
+    })
+
+    it.each([
+      ['a vector tile', 'https://tiles.openfreemap.org/planet/14/8414/5394.pbf', 'image'],
+      ['the API', 'https://garage.example/api/vehicles', ''],
+      ['a page on the tile host', 'https://tile.openstreetmap.org/', 'document'],
+    ])('leaves %s alone', async (_, href, destination) => {
+      const { matches } = await tileRoute()
+
+      expect(matches(at(href, destination))).toBe(false)
+    })
+
+    it('keeps a whole tile but not an opaque or failed answer', async () => {
+      const { strategy } = await tileRoute()
+      const keep = strategy.options.plugins.find((p) => p.cacheWillUpdate)!.cacheWillUpdate!
+      const tile = new Response('png', { status: 200 })
+
+      expect(await keep({ response: tile })).toBe(tile)
+      expect(await keep({ response: new Response(null, { status: 404 }) })).toBeNull()
+      expect(await keep({ response: { status: 0 } as Response })).toBeNull()
+    })
+
+    it('holds the cache to about 150 tiles and a month', async () => {
+      const { strategy } = await tileRoute()
+      const expiration = strategy.options.plugins.find((p) => p.options)!
+
+      expect(expiration.options).toMatchObject({
+        maxEntries: 150,
+        maxAgeSeconds: 30 * 24 * 60 * 60,
+        purgeOnQuotaError: true,
+      })
+    })
   })
 })
