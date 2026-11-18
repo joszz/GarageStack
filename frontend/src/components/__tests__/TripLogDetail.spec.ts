@@ -246,17 +246,12 @@ describe('TripLogDetail', () => {
     expect(routeMap(logEntry({ isHidden: true })).props('linkToMap')).toBe(false)
   })
 
-  it('opens the route editor, for a hidden trip too', () => {
-    const editLink = (entry: TripLogEntry) =>
-      mountDetail(entry)
-        .findAll('.router-link')
-        .find((l) => JSON.parse(l.attributes('data-to')!).name === 'tripEdit')
+  it('leaves the route editor to the route preview, handing it the trip', () => {
+    const wrapper = mountDetail(logEntry({ id: 9 }))
 
-    expect(JSON.parse(editLink(logEntry({ id: 9 }))!.attributes('data-to')!)).toEqual({
-      name: 'tripEdit',
-      params: { id: 9 },
-    })
-    expect(editLink(logEntry({ isHidden: true }))).toBeDefined()
+    expect(wrapper.findAll('.router-link')).toHaveLength(0)
+    expect(button(wrapper, 'Edit route')).toBeUndefined()
+    expect(wrapper.findComponent({ name: 'TripRouteMap' }).props('tripId')).toBe(9)
   })
 
   it('asks to join with the next trip, but not for the newest', async () => {
