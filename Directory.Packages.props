@@ -21,6 +21,9 @@
     <PackageVersion Include="Microsoft.Extensions.Caching.Memory" Version="10.0.15" />
     <PackageVersion Include="Microsoft.Extensions.Localization" Version="10.0.15" />
     <PackageVersion Include="Scalar.AspNetCore" Version="3.0.1" />
+    <!-- Writes the badges and code samples endpoints declare into the OpenAPI document. Released
+         together with Scalar.AspNetCore under the same version; keep the two equal. -->
+    <PackageVersion Include="Scalar.AspNetCore.Microsoft" Version="3.0.1" />
     <!-- Entity Framework Core -->
     <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.15" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.15" />

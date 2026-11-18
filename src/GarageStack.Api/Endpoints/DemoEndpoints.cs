@@ -1,6 +1,8 @@
+using GarageStack.Api.Reference;
 using GarageStack.Core.Interfaces;
 using GarageStack.Core.Models;
 using GarageStack.Data.Demo;
+using Scalar.AspNetCore;
 
 namespace GarageStack.Api.Endpoints;
 
@@ -16,6 +18,7 @@ public static class DemoEndpoints
 
         var group = app.MapGroup("/api/demo")
             .WithTags("Demo")
+            .WithBadge(ApiReferenceText.DemoOnlyBadge)
             .RequireAuthorization();
 
         group.MapGroup("/status/{vin}")

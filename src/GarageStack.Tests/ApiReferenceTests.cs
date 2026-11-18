@@ -159,6 +159,69 @@ public partial class AuthenticationFlowTests
         });
     }
 
+    // The token badge follows the same rule as the security an operation lists, so the two never
+    // disagree; the badges endpoints declare themselves reach the document too.
+    [Fact]
+    public async Task ApiDocument_BadgesEveryEndpointATokenCanCall_AndWhatSendsToTheCar()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var factory = CreatePasswordOnlyFactory();
+        using var client = CreateClient(factory);
+        await PasswordLoginAsync(client, ct);
+
+        var document = JsonNode.Parse(await client.GetStringAsync(DocumentPath, ct))!;
+        var operations = document["paths"]!.AsObject()
+            .SelectMany(path => path.Value!.AsObject().Select(op => (Name: $"{op.Key.ToUpperInvariant()} {path.Key}", Operation: op.Value!)))
+            .ToDictionary(op => op.Name, op => op.Operation);
+
+        Assert.All(operations, op =>
+        {
+            var tokenAccepted = op.Value["security"]?.AsArray().Any(s => s!.AsObject().ContainsKey(OpenApiSetup.TokenScheme)) == true;
+            Assert.True(tokenAccepted == Badges(op.Value).Contains(ApiReferenceText.TokenBadge),
+                $"{op.Key}: the token badge does not match whether a token is accepted ({tokenAccepted})");
+        });
+        Assert.Contains(ApiReferenceText.TokenBadge, Badges(operations["GET /api/vehicles"]));
+        Assert.Equal([ApiReferenceText.SendsToCarBadge], Badges(operations["POST /api/vehicles/{vin}/commands/{command}"]));
+        Assert.Equal([ApiReferenceText.DemoOnlyBadge], Badges(operations["POST /api/demo/status/{vin}"]));
+    }
+
+    private static List<string> Badges(JsonNode operation) =>
+        operation[OpenApiSetup.BadgesExtension]?.AsArray().Select(b => b!["name"]!.GetValue<string>()).ToList() ?? [];
+
+    // The widget endpoint shows the block for Homepage's services.yaml, the same one WIDGET.md
+    // tells people to paste.
+    [Fact]
+    public async Task ApiDocument_ShowsTheHomepageBlockWithTheWidgetEndpoint_AsWidgetMdDoes()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var factory = CreatePasswordOnlyFactory();
+        using var client = CreateClient(factory);
+        await PasswordLoginAsync(client, ct);
+
+        var document = JsonNode.Parse(await client.GetStringAsync(DocumentPath, ct))!;
+        var sample = Assert.Single(document["paths"]!["/api/widget/{vin}/status"]!["get"]!["x-codeSamples"]!.AsArray())!;
+        var widgetDoc = await File.ReadAllTextAsync(RepositoryFiles.PathOf("documentation/WIDGET.md"), ct);
+        var block = ApiReferenceText.HomepageWidgetSample.ReplaceLineEndings("\n");
+
+        Assert.Equal("Homepage services.yaml", sample["label"]!.GetValue<string>());
+        Assert.Equal(block, sample["source"]!.GetValue<string>().ReplaceLineEndings("\n"));
+        Assert.Contains($"```yaml\n{block}\n```", widgetDoc.ReplaceLineEndings("\n"), StringComparison.Ordinal);
+    }
+
+    // The code examples open on the clients someone scripting against their car reaches for.
+    [Fact]
+    public async Task ApiReferencePage_FeaturesTheScriptingClients_InOrder()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var factory = CreatePasswordOnlyFactory();
+        using var client = CreateClient(factory);
+        await PasswordLoginAsync(client, ct);
+
+        var page = await client.GetStringAsync(ReferencePagePath, ct);
+
+        Assert.Contains("\"featuredClients\":[\"shell/curl\",\"python/requests\",\"node/fetch\",\"powershell/restmethod\"]", page, StringComparison.Ordinal);
+    }
+
     // The document is committed, so a change to what the API takes or answers shows up in review.
     // A mismatch rewrites the committed copy and fails: look at the change, and commit it.
     [Fact]

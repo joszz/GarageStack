@@ -149,6 +149,13 @@ updates:
           - "Serilog"
           - "Serilog.*"
 
+      # Scalar.AspNetCore and Scalar.AspNetCore.Microsoft are released together under the same
+      # version, so one PR moves both.
+      scalar:
+        patterns:
+          - "Scalar.AspNetCore"
+          - "Scalar.AspNetCore.*"
+
       # xUnit + test SDK + coverage always need to be in sync
       test-framework:
         patterns:
