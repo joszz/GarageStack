@@ -125,6 +125,19 @@ describe('App mobile menu', () => {
   })
 })
 
+describe('App top bar', () => {
+  // Refresh and Settings land in the slot on a phone; with the bell they form one evenly spaced
+  // group, the slot coming first so the bell stays at the far end.
+  it('keeps the bell in one group with the teleported buttons, after them', async () => {
+    const wrapper = await mountAt('/')
+
+    const group = wrapper.find('.mobile-topbar__actions')
+    const children = group.element.children
+    expect(children[0]?.id).toBe('mobile-topbar-actions')
+    expect(children[children.length - 1]?.classList.contains('notif-bell')).toBe(true)
+  })
+})
+
 describe('App menu', () => {
   it('lists the charge history for a car that plugs in', async () => {
     vehicle.type = 'bev'

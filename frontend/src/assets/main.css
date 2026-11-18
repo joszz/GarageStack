@@ -79,13 +79,18 @@
   --topbar-height: 56px;
 
   /* The main column's padding, and how far down the page title and the sidebar logo start. Both
-     sit on a line as tall as the title's, so they share a middle, 20px down on desktop: the height
-     the logo always had. */
+     sit on a line as tall as the title's, so they share a middle, 32px down on desktop: enough
+     room above the page's buttons that they do not touch the window's top edge. */
   --content-padding: 2rem;
-  --title-top: 0.25rem;
+  --title-top: 1rem;
   --page-title-height: 2rem;
-  --footer-height: 48px;
+
+  /* Tall enough for a regular control with 8px above and below it. */
+  --footer-height: 52px;
   --radius: 10px;
+
+  /* Inside a card, between its border and what it holds. */
+  --card-padding: 1.25rem;
   --demo-banner-height: 2.2rem;
 
   /* Stacking layers, lowest first. Every map is its own layer (see .leaflet-container), so
@@ -107,12 +112,21 @@
      white card on the pale page blends into it. */
   --shadow-card: none;
 
-  /* One size for every field, text box, native select and multiselect alike, so a form or a panel
-     that mixes them lines up. */
-  --field-py: 0.375rem;
+  /* Two control heights for the whole app. The regular one is every button, field, select and
+     segmented choice, the page header's actions and the footer's buttons alike, so whatever stands
+     side by side lines up. The small one is for a button inside a card or a list row. A touch
+     screen raises both to --touch-target. */
+  --control-height: 2.25rem;
+  --control-height-sm: 1.75rem;
+
+  /* One size for every field, text box, native select and multiselect alike: the line, two
+     paddings and the 1px borders make --control-height. */
   --field-px: 0.625rem;
   --field-font-size: 0.875rem;
   --field-line-height: 1.375;
+  --field-py: calc(
+    (var(--control-height) - 2px - var(--field-font-size) * var(--field-line-height)) / 2
+  );
   --field-radius: 6px;
 
   /* The least height of anything tapped on a touch screen: buttons, chips and fields alike. */
@@ -295,20 +309,15 @@ body,
 }
 
 /* As tall as the title's line, so the buttons centre on the title rather than sitting on its
-   baseline. Touch buttons are taller than the line: they reach above and below it evenly. */
+   baseline. The buttons are taller than the line: they reach above and below it evenly. */
 .view-header__actions {
   margin-left: auto;
+  margin-block: calc((var(--page-title-height) - var(--control-height)) / 2);
   display: flex;
   align-items: center;
   gap: 0.5rem;
   flex-wrap: wrap;
   min-height: var(--page-title-height);
-}
-
-@media (pointer: coarse) {
-  .view-header__actions {
-    margin-block: calc((var(--page-title-height) - var(--touch-target)) / 2);
-  }
 }
 
 /* ── State indicators ─────────────────────────────────────── */
@@ -574,7 +583,7 @@ body,
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   box-shadow: var(--shadow-card);
-  padding: 1.25rem;
+  padding: var(--card-padding);
   overflow: visible;
 }
 
@@ -811,13 +820,10 @@ body,
    button keeps its small look and gets a larger invisible hit area instead. */
 @media (pointer: coarse) {
   :root {
-    /* 40px: the line, two paddings and the 1px borders. */
-    --field-py: calc(
-      (var(--touch-target) - 2px - var(--field-font-size) * var(--field-line-height)) / 2
-    );
+    --control-height: var(--touch-target);
+    --control-height-sm: var(--touch-target);
   }
 
-  .btn,
   .toggle-chip {
     min-height: var(--touch-target);
   }
@@ -958,23 +964,22 @@ body,
     display: none;
   }
 
-  .mobile-topbar__actions,
   .mobile-topbar .app-footer__actions {
     display: flex;
     align-items: center;
-    gap: 0.25rem;
+    gap: var(--topbar-gap);
   }
 
   /* Drawn like the bell beside them: an icon, no box. */
   .mobile-topbar .app-footer__btn {
-    width: 40px;
-    height: 40px;
+    width: var(--touch-target);
+    height: var(--touch-target);
     padding: 0;
     justify-content: center;
     background: none;
     border: none;
     border-radius: 6px;
-    font-size: 1.05rem;
+    font-size: var(--topbar-icon-size);
   }
 
   .mobile-topbar .app-footer__btn:hover {
@@ -983,6 +988,13 @@ body,
 
   .mobile-topbar .app-footer__btn-label {
     display: none;
+  }
+
+  /* The page's actions keep the small button's text and padding (their height stays the touch
+     target), so three of them still fit beside a short title such as the map's. */
+  .view-header__actions .btn {
+    font-size: 0.78rem;
+    padding-inline: 0.65rem;
   }
 
   .sidebar-meta .app-footer__meta {
@@ -1039,15 +1051,14 @@ body,
   :root {
     --content-padding: 0.75rem;
     --title-top: 0.75rem;
+
+    /* A step more than the gutter rather than nearly twice it, so a card's content keeps the
+       width of a narrow screen. */
+    --card-padding: 1rem;
   }
 
   .main-content {
     overflow-x: hidden;
-  }
-
-  /* Icon sits flush at button left so it aligns with card left edge */
-  .hamburger {
-    justify-content: flex-start;
   }
 
   /* Status cards: 2 columns on mobile */
@@ -1084,6 +1095,21 @@ body,
 @media (width >= 768px) and (width <= 1023px) {
   :root {
     --content-padding: 1.5rem;
+  }
+}
+
+/* ── Large screens ────────────────────────────────────────── */
+
+/* The margins grow with the window, so the content does not run up against its edges. */
+@media (width >= 1440px) {
+  :root {
+    --content-padding: 2.5rem;
+  }
+}
+
+@media (width >= 1920px) {
+  :root {
+    --content-padding: 3rem;
   }
 }
 

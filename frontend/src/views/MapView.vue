@@ -404,7 +404,7 @@ onMounted(async () => {
           :car-takes-charge="carTakesCharge"
           :speed-cameras-available="speedCamerasAvailable"
         />
-        <button class="btn btn-sm btn-outline-secondary" :disabled="!location" @click="flyToStatus">
+        <button class="btn btn-outline-secondary" :disabled="!location" @click="flyToStatus">
           <font-awesome-icon icon="location-dot" />
           {{ t('trips.findCar') }}
         </button>

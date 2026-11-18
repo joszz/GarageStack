@@ -5,10 +5,12 @@
   background: none;
   border: none;
   color: var(--color-text-muted);
-  font-size: 1.15rem;
+
+  /* The top bar's own button size, as Refresh and Settings beside it (shell.css). */
+  font-size: var(--topbar-icon-size);
   cursor: pointer;
-  width: 36px;
-  height: 36px;
+  width: var(--touch-target);
+  height: var(--touch-target);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -17,14 +19,6 @@
   transition:
     color 0.15s,
     background 0.15s;
-}
-
-/* A touch screen gets the 40px the other top bar buttons have (shell.css). */
-@media (pointer: coarse) {
-  .notif-bell {
-    width: 40px;
-    height: 40px;
-  }
 }
 
 .notif-bell:hover {

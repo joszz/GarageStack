@@ -61,7 +61,7 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   box-shadow: var(--shadow-card);
-  padding: 1.25rem;
+  padding: var(--card-padding);
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -207,18 +207,13 @@
 
 /* ── Large desktop (1440px+) ──────────────────────────────── */
 
+/* The car diagram keeps its size whatever the width, so a capped map left it adrift in a wide,
+   mostly empty card. From here the two share the row evenly and the map takes the room. */
 @media (width >= 1440px) {
+  .overview-row__car,
   .overview-row__map {
-    flex: 1.4 1 420px;
-    max-width: 560px;
-  }
-}
-
-/* ── Full-HD and above (1920px+) ──────────────────────────── */
-
-@media (width >= 1920px) {
-  .overview-row__map {
-    max-width: 680px;
+    flex: 1 1 0;
+    max-width: none;
   }
 }
 
