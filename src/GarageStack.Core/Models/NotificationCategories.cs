@@ -40,10 +40,28 @@ public static class NotificationCategories
     // What the maintenance categories below are grouped as wherever the user picks types.
     public const string Maintenance = "maintenance";
 
-    /// <summary>Maintenance categories carry the item id so one item's alert cannot suppress another's.</summary>
-    public static string MaintenanceOverdue(int itemId) => $"maintenance-overdue-{itemId}";
+    private const string MaintenanceOverduePrefix = Maintenance + "-overdue-";
+    private const string MaintenanceDueSoonPrefix = Maintenance + "-due-soon-";
 
-    public static string MaintenanceDueSoon(int itemId) => $"maintenance-due-soon-{itemId}";
+    /// <summary>Maintenance categories carry the item id so one item's alert cannot suppress another's.</summary>
+    public static string MaintenanceOverdue(int itemId) =>
+        string.Create(CultureInfo.InvariantCulture, $"{MaintenanceOverduePrefix}{itemId}");
+
+    public static string MaintenanceDueSoon(int itemId) =>
+        string.Create(CultureInfo.InvariantCulture, $"{MaintenanceDueSoonPrefix}{itemId}");
+
+    /// <summary>The item a due-soon or overdue maintenance category names, or null for any other category.</summary>
+    public static int? MaintenanceItemId(string? category)
+    {
+        if (category is null) return null;
+        foreach (var prefix in (ReadOnlySpan<string>)[MaintenanceOverduePrefix, MaintenanceDueSoonPrefix])
+        {
+            if (category.StartsWith(prefix, StringComparison.Ordinal)
+                && int.TryParse(category.AsSpan(prefix.Length), NumberStyles.None, CultureInfo.InvariantCulture, out var id))
+                return id;
+        }
+        return null;
+    }
 
     // What the RDW categories below are grouped as: the Dutch registration's APK, recalls and insurance.
     public const string Rdw = "rdw";

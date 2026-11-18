@@ -288,4 +288,16 @@
   <data name="RdwUninsuredBody" xml:space="preserve">
     <value>O RDW não tem registro de seguro WAM para o carro. Um carro em via pública precisa ter seguro.</value>
   </data>
+  <data name="ActionLockTitle" xml:space="preserve">
+    <value>Trancar</value>
+  </data>
+  <data name="ActionLockSent" xml:space="preserve">
+    <value>Comando para trancar enviado ao carro.</value>
+  </data>
+  <data name="ActionMaintenanceDoneTitle" xml:space="preserve">
+    <value>Marcar como feito</value>
+  </data>
+  <data name="ActionMaintenanceDoneSent" xml:space="preserve">
+    <value>Registrado como feito hoje.</value>
+  </data>
 </root>

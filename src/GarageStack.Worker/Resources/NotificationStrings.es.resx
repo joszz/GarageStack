@@ -288,4 +288,16 @@
   <data name="RdwUninsuredBody" xml:space="preserve">
     <value>La RDW no registra un seguro WAM para el coche. Todo coche que circule por vías públicas debe estar asegurado.</value>
   </data>
+  <data name="ActionLockTitle" xml:space="preserve">
+    <value>Bloquear</value>
+  </data>
+  <data name="ActionLockSent" xml:space="preserve">
+    <value>Orden de bloqueo enviada al coche.</value>
+  </data>
+  <data name="ActionMaintenanceDoneTitle" xml:space="preserve">
+    <value>Marcar como hecho</value>
+  </data>
+  <data name="ActionMaintenanceDoneSent" xml:space="preserve">
+    <value>Registrado como hecho hoy.</value>
+  </data>
 </root>

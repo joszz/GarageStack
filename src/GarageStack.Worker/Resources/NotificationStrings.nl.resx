@@ -288,4 +288,16 @@
   <data name="RdwUninsuredBody" xml:space="preserve">
     <value>De RDW heeft voor de auto geen WAM-verzekering geregistreerd. Een auto op de openbare weg moet verzekerd zijn.</value>
   </data>
+  <data name="ActionLockTitle" xml:space="preserve">
+    <value>Vergrendelen</value>
+  </data>
+  <data name="ActionLockSent" xml:space="preserve">
+    <value>Vergrendelopdracht naar de auto gestuurd.</value>
+  </data>
+  <data name="ActionMaintenanceDoneTitle" xml:space="preserve">
+    <value>Markeren als gedaan</value>
+  </data>
+  <data name="ActionMaintenanceDoneSent" xml:space="preserve">
+    <value>Vandaag als gedaan genoteerd.</value>
+  </data>
 </root>

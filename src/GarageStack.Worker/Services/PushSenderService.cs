@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using System.Text.Json;
 using GarageStack.Core.Configuration;
 using GarageStack.Core.Helpers;
 using GarageStack.Core.Interfaces;
@@ -8,6 +7,7 @@ using GarageStack.Data;
 using GarageStack.Data.Extensions;
 using Lib.Net.Http.WebPush;
 using Lib.Net.Http.WebPush.Authentication;
+using Microsoft.Extensions.Localization;
 using ModelPushSubscription = GarageStack.Core.Models.PushSubscription;
 using WebPushSubscription = Lib.Net.Http.WebPush.PushSubscription;
 
@@ -22,15 +22,18 @@ public sealed class PushSenderService : IPushSender, IDisposable
     private readonly HttpClient _httpClient;
     private readonly PushServiceClient? _pushClient;
     private readonly TimeProvider _clock;
+    private readonly IStringLocalizer<NotificationStrings> _strings;
 
     public PushSenderService(
         ILogger<PushSenderService> logger,
         IServiceScopeFactory scopeFactory,
         VapidOptions vapid,
         IHttpClientFactory httpClientFactory,
+        IStringLocalizer<NotificationStrings> strings,
         TimeProvider? clock = null)
     {
         _logger = logger;
+        _strings = strings;
         _clock = clock ?? TimeProvider.System;
         _scopeFactory = scopeFactory;
         _httpClient = httpClientFactory.CreateClient(nameof(PushSenderService));
@@ -94,9 +97,13 @@ public sealed class PushSenderService : IPushSender, IDisposable
 
         // Only re-queried if persistence above failed before it could compute this itself.
         unreadCount ??= await scope.ServiceProvider.GetRequiredService<INotificationRepository>().CountUnreadAsync(ct);
-        // The service worker (frontend/src/sw.ts) reads title, body, category and unreadCount;
-        // it picks the icon itself from the app's own assets.
-        var webPushPayload = JsonSerializer.Serialize(new { title, body, category, unreadCount });
+        // The service worker (frontend/src/sw.ts) shows it; it picks the icon itself from the
+        // app's own assets. Buttons on the notification need the car they act on.
+        var vin = vehicleId is { } id && NotificationActions.For(category).Count > 0
+            ? (await scope.ServiceProvider.GetRequiredService<IVehicleRepository>().GetAllAsync(ct))
+                .FirstOrDefault(v => v.Id == id)?.Vin
+            : null;
+        var webPushPayload = PushPayload.Serialize(PushPayload.For(title, body, category, unreadCount, vin, _strings));
         var message = new PushMessage(webPushPayload) { TimeToLive = 3600 };
         var dead = new ConcurrentBag<ModelPushSubscription>();
 
