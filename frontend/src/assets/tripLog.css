@@ -479,12 +479,18 @@
   pointer-events: none;
 }
 
-/* Over the map and, coming later in the markup, over the loading shimmer too. */
-.trip-route-map__open {
+/* Editing the route and opening the trip on the map, over the map's top right corner and, coming
+   later in the markup, over the loading shimmer too. */
+.trip-route-map__tools {
   position: absolute;
   top: 0.5rem;
   right: 0.5rem;
   z-index: var(--z-map-overlay);
+  display: flex;
+  gap: 0.4rem;
+}
+
+.trip-route-map__button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -497,26 +503,12 @@
   box-shadow: var(--shadow-card);
 }
 
-.trip-route-map__open:hover {
+.trip-route-map__button:hover {
   border-color: var(--color-primary);
 }
 
 .trip-route-map__straight {
   stroke: var(--color-text-muted);
-}
-
-.trip-route-map__end {
-  stroke: #fff;
-  stroke-width: 2;
-  fill-opacity: 1;
-}
-
-.trip-route-map__end--start {
-  fill: var(--color-success);
-}
-
-.trip-route-map__end--finish {
-  fill: var(--color-danger);
 }
 
 /* Distance, duration and speeds: two by two in the panel, four across in a wide dialog. */

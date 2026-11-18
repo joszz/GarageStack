@@ -10,6 +10,7 @@ import { speedLimitSegments } from '@/utils/speedLimits'
 import { speedSegments, speedToColor, tripColor } from '@/utils/speedColors'
 import { latLngsOf } from '@/utils/geo'
 import { addedStretches, phoneStretches } from '@/utils/tripSources'
+import { tripEndIcon, tripStartIcon } from '@/utils/tripMarkers'
 
 type HeatPoints = Parameters<typeof createHeatLayer>[0]
 
@@ -204,13 +205,7 @@ export function useTripLayers(o: TripLayersOptions) {
     const start = trip.points[0]
     if (!start) return
 
-    const startIcon = L.divIcon({
-      className: '',
-      html: '<div class="trip-marker trip-marker--start"></div>',
-      iconSize: [16, 16],
-      iconAnchor: [8, 8],
-    })
-    startMarker = L.marker([start.latitude, start.longitude], { icon: startIcon }).addTo(map)
+    startMarker = L.marker([start.latitude, start.longitude], { icon: tripStartIcon() }).addTo(map)
 
     if (realIdx === o.activeIndex.value && o.activeCarLatLng.value) {
       endMarker = L.marker(o.activeCarLatLng.value, {
@@ -222,13 +217,7 @@ export function useTripLayers(o: TripLayersOptions) {
     const end = trip.points[trip.points.length - 1]
     if (!end) return
 
-    const endIcon = L.divIcon({
-      className: '',
-      html: '<div class="trip-marker trip-marker--end"><div class="trip-flag-pole"></div><div class="trip-flag-flag"></div></div>',
-      iconSize: [20, 32],
-      iconAnchor: [2, 32],
-    })
-    endMarker = L.marker([end.latitude, end.longitude], { icon: endIcon }).addTo(map)
+    endMarker = L.marker([end.latitude, end.longitude], { icon: tripEndIcon() }).addTo(map)
   }
 
   function fitPoints(pts: [number, number][]) {

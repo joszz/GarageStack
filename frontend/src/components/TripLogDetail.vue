@@ -301,14 +301,6 @@ const notesId = computed(() => `trip-log-notes-${props.entry.id}`)
     </section>
 
     <div class="trip-log-detail__actions">
-      <!-- A hidden trip is left off the map, so there is nothing there to show it on. -->
-      <RouterLink
-        v-if="!entry.isHidden"
-        class="btn btn-outline-secondary btn-sm"
-        :to="{ name: 'map', query: { trip: entry.id, at: entry.startedAt } }"
-      >
-        <font-awesome-icon icon="map" />{{ t('tripLog.showOnMap') }}
-      </RouterLink>
       <RouterLink
         class="btn btn-outline-secondary btn-sm"
         :to="{ name: 'tripEdit', params: { id: entry.id } }"
