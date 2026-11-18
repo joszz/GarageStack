@@ -31,7 +31,7 @@ const buttonLabel = computed(() =>
 <template>
   <div>
     <button
-      class="btn btn-sm btn-outline-secondary toolbar-panel__btn"
+      class="btn btn-outline-secondary toolbar-panel__btn"
       :aria-label="buttonLabel"
       @click="isOpen = true"
     >

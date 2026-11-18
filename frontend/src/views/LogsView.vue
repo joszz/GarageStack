@@ -90,14 +90,14 @@ onUnmounted(() => {
     <ViewHeader :title="t('logs.title')" :subtitle="t('logs.subtitle')">
       <template #actions>
         <button
-          class="btn btn-sm"
+          class="btn"
           :class="live ? 'btn-success' : 'btn-outline-secondary'"
           :aria-pressed="live"
           @click="live = !live"
         >
           <font-awesome-icon icon="circle" />{{ t('logs.live') }}
         </button>
-        <button class="btn btn-primary btn-sm" :disabled="loading" @click="feed.reload">
+        <button class="btn btn-primary" :disabled="loading" @click="feed.reload">
           <font-awesome-icon icon="rotate" :spin="loading" />{{ t('logs.refresh') }}
         </button>
       </template>

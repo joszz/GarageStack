@@ -16,7 +16,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  padding: 1.25rem;
+  padding: var(--card-padding);
   overflow-y: auto;
   background: var(--color-surface);
   border: 1px solid var(--color-border);

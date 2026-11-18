@@ -9,7 +9,7 @@ const { t } = useI18n()
 
 <template>
   <button
-    class="btn btn-sm"
+    class="btn"
     :class="editing ? 'btn-primary' : 'btn-outline-secondary'"
     @click="editing = !editing"
   >

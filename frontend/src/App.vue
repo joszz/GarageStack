@@ -232,14 +232,16 @@ watch(
         <font-awesome-icon icon="car" />
         GarageStack
       </RouterLink>
-      <!-- Refresh and Settings, which AppFooter moves here on a phone. -->
-      <div id="mobile-topbar-actions" class="mobile-topbar__actions" />
-      <button class="notif-bell" :aria-label="notificationsLabel" @click="togglePanel">
-        <font-awesome-icon icon="bell" />
-        <span v-if="unreadCount > 0" class="notif-bell__badge" aria-hidden="true">{{
-          unreadCount
-        }}</span>
-      </button>
+      <div class="mobile-topbar__actions">
+        <!-- Refresh and Settings, which AppFooter moves here on a phone. -->
+        <div id="mobile-topbar-actions" class="mobile-topbar__slot" />
+        <button class="notif-bell" :aria-label="notificationsLabel" @click="togglePanel">
+          <font-awesome-icon icon="bell" />
+          <span v-if="unreadCount > 0" class="notif-bell__badge" aria-hidden="true">{{
+            unreadCount
+          }}</span>
+        </button>
+      </div>
     </header>
 
     <!-- Backdrop (mobile only) -->

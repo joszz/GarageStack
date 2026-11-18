@@ -69,7 +69,7 @@ function variant(schedule: ClimateSchedule): 'info' | 'warning' | undefined {
   <div class="view-container">
     <ViewHeader :title="t('climateSchedules.title')" :subtitle="t('climateSchedules.subtitle')">
       <template #actions>
-        <button class="btn btn-primary btn-sm" :disabled="!vin" @click="openAdd">
+        <button class="btn btn-primary" :disabled="!vin" @click="openAdd">
           <font-awesome-icon icon="plus" />{{ t('climateSchedules.addSchedule') }}
         </button>
       </template>

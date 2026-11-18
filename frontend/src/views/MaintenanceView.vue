@@ -73,7 +73,7 @@ watch(vin, (v) => {
     <ViewHeader :title="t('maintenance.title')" :subtitle="t('maintenance.subtitle')">
       <template #actions>
         <!-- The form needs a car to add the item to, and only exists once one is known. -->
-        <button class="btn btn-primary btn-sm" :disabled="!vin" @click="openAdd">
+        <button class="btn btn-primary" :disabled="!vin" @click="openAdd">
           <font-awesome-icon icon="plus" />{{ t('maintenance.addItem') }}
         </button>
       </template>

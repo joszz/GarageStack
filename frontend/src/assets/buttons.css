@@ -3,10 +3,13 @@
 
 /* ── Buttons ──────────────────────────────────────────────── */
 
+/* As tall as a field (--control-height), so a button beside a select or a text box lines up. */
 .btn {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
+  justify-content: center;
+  gap: 0.45rem;
+  min-height: var(--control-height);
   padding: 0.4rem 0.9rem;
   border-radius: 6px;
   font-size: 0.85rem;
@@ -55,9 +58,11 @@
   filter: var(--btn-hover-filter);
 }
 
+/* For a button inside a card or a list row. The page header's actions take the regular size. */
 .btn-sm {
+  min-height: var(--control-height-sm);
   font-size: 0.78rem;
-  padding: 0.3rem 0.6rem;
+  padding: 0.3rem 0.65rem;
 }
 
 .btn-primary {

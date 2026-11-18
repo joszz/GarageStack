@@ -19,7 +19,14 @@
 
 /* ── Mobile topbar ────────────────────────────────────────── */
 
+/* The top bar's icon buttons: one size, one icon size, one gap. The first and last reach past the
+   gutter by the room around their icon, so the menu icon starts on the cards' left edge and the
+   bell ends on their right edge. */
 .mobile-topbar {
+  --topbar-gap: 0.25rem;
+  --topbar-icon-size: 1.15rem;
+  --topbar-icon-inset: calc((var(--touch-target) - var(--topbar-icon-size)) / 2);
+
   display: none;
   position: fixed;
   top: 0;
@@ -29,8 +36,8 @@
   background: var(--color-surface);
   border-bottom: 1px solid var(--color-border);
   align-items: center;
-  gap: 0.75rem;
-  padding: 0 0.75rem;
+  gap: 0.5rem;
+  padding: 0 var(--content-padding);
   z-index: var(--z-topbar);
 }
 
@@ -44,11 +51,25 @@
   /* As large as the top bar's other buttons, so the row shares one middle. */
   width: var(--touch-target);
   height: var(--touch-target);
+  margin-left: calc(-1 * var(--topbar-icon-inset));
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 6px;
   flex-shrink: 0;
+}
+
+/* Refresh and Settings (teleported in by AppFooter) and the bell, as one group. */
+.mobile-topbar__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--topbar-gap);
+  margin-right: calc(-1 * var(--topbar-icon-inset));
+}
+
+/* Only a place for the teleported buttons to land: they join the group's own row. */
+.mobile-topbar__slot {
+  display: contents;
 }
 
 .hamburger:hover {
@@ -234,7 +255,7 @@
 .app-footer__actions {
   display: flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: 0.5rem;
 }
 
 .app-footer__btn {
@@ -243,8 +264,8 @@
   color: var(--color-text-muted);
   font-size: 0.85rem;
   cursor: pointer;
-  height: 32px;
-  padding: 0 0.65rem;
+  height: var(--control-height);
+  padding: 0 0.85rem;
   display: flex;
   align-items: center;
   gap: 0.4rem;
@@ -340,6 +361,7 @@
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  min-height: var(--control-height);
   padding: 0.5rem 0.75rem;
   border-radius: var(--radius);
   border: 1px solid var(--color-border);
