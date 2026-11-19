@@ -84,7 +84,13 @@ function defaultsFor(): UiSettings {
 }
 
 const THEMES: readonly ThemeChoice[] = ['dark', 'light', 'system']
-const LOCALES: readonly Locale[] = ['en', 'nl', 'es', 'pt']
+const LOCALES: readonly Locale[] = ['en', 'nl', 'es', 'pt-BR', 'pt-PT']
+
+// Before European Portuguese was added, Brazilian Portuguese was stored as plain "pt", in this
+// browser and in the account's copy alike.
+function storedLocale(value: unknown): unknown {
+  return value === 'pt' ? 'pt-BR' : value
+}
 const VEHICLE_TYPE_OVERRIDES: readonly VehicleTypeOverride[] = ['auto', 'hev', 'phev', 'bev']
 const CAR_COLOR_SCHEME_IDS = CAR_COLOR_SCHEMES.map((s) => s.id)
 // The map's trips are clamped to 90 days by the API; anything up to a year is accepted here so an
@@ -152,7 +158,7 @@ function parseRegion(raw: unknown, fallback: RegionSetting): RegionSetting {
 function parseUiFields(parsed: Record<string, unknown>, fallback: UiSettings): UiSettings {
   return {
     theme: oneOf(parsed.theme, THEMES, fallback.theme),
-    locale: oneOf(parsed.locale, LOCALES, fallback.locale),
+    locale: oneOf(storedLocale(parsed.locale), LOCALES, fallback.locale),
     showCardInfoIcons: parsed.showCardInfoIcons !== false,
     // On unless explicitly turned off, so an install from before this setting existed keeps
     // the behaviour it already had.

@@ -1,5 +1,6 @@
 import { shallowRef } from 'vue'
 import type { Locale } from '@/stores/settingsShared'
+import { localeLanguage } from '@/utils/locale'
 import { i18n } from '@/i18n'
 import type { HourCycle, Region } from '@/utils/region'
 
@@ -10,7 +11,8 @@ import type { HourCycle, Region } from '@/utils/region'
 function languageLocale(locale: Locale): string {
   if (locale === 'nl') return 'nl-NL'
   if (locale === 'es') return 'es-ES'
-  return locale === 'pt' ? 'pt-BR' : 'en-US'
+  // The Portuguese locales already name their country.
+  return locale === 'en' ? 'en-US' : locale
 }
 
 // Read through the i18n instance's reactive locale, so a computed or template that formats a
@@ -57,7 +59,7 @@ function dateLocale(): string {
   const language = activeLanguage()
   const { region } = regional.value
   if (region === null) return languageLocale(language)
-  const tag = `${language}-${region}`
+  const tag = `${localeLanguage(language)}-${region}`
   let locale = regionalLocales.get(tag)
   if (locale === undefined) {
     const supported = new Intl.DateTimeFormat(tag).resolvedOptions().locale === tag

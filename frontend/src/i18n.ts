@@ -25,7 +25,8 @@ export const i18n = createI18n({
 const loadMessages: Record<Exclude<Locale, 'en'>, () => Promise<{ default: typeof en }>> = {
   nl: () => import('./locales/nl.json'),
   es: () => import('./locales/es.json'),
-  pt: () => import('./locales/pt.json'),
+  'pt-BR': () => import('./locales/pt-BR.json'),
+  'pt-PT': () => import('./locales/pt-PT.json'),
 }
 
 // The language asked for last. A download that finishes after the user has moved on to another

@@ -16,7 +16,7 @@ export type VehicleTypeOverride = 'auto' | VehicleType
 export type Theme = 'dark' | 'light'
 /** The theme setting: one of the two, or whichever the device prefers at the moment. */
 export type ThemeChoice = Theme | 'system'
-export type Locale = 'en' | 'nl' | 'es' | 'pt'
+export type Locale = 'en' | 'nl' | 'es' | 'pt-BR' | 'pt-PT'
 
 export interface CarColorScheme {
   id: string
@@ -133,11 +133,18 @@ export function osPreferredTheme(): Theme {
   return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'
 }
 
+/**
+ * The interface language this browser asks for. Portuguese is European for Portugal and the other
+ * countries that write it the European way (pt-PT, pt-AO, pt-MZ, ...), and Brazilian for pt-BR and
+ * for a plain "pt", which names no country: Brazil has by far the most Portuguese speakers, and
+ * plain "pt" was Brazilian Portuguese here before European Portuguese was added.
+ */
 export function browserLocale(): Locale {
   const lang = navigator.language.toLowerCase()
   if (lang.startsWith('nl')) return 'nl'
   if (lang.startsWith('es')) return 'es'
-  return lang.startsWith('pt') ? 'pt' : 'en'
+  if (lang === 'pt' || lang.startsWith('pt-br')) return 'pt-BR'
+  return lang.startsWith('pt-') ? 'pt-PT' : 'en'
 }
 
 // Pre-split combined settings blob (single "garagestack-settings" key holding everything).

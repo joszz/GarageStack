@@ -13,7 +13,8 @@ describe('i18n', () => {
     i18n.global.locale.value = 'en'
     vi.doUnmock('@/locales/nl.json')
     vi.doUnmock('@/locales/es.json')
-    vi.doUnmock('@/locales/pt.json')
+    vi.doUnmock('@/locales/pt-BR.json')
+    vi.doUnmock('@/locales/pt-PT.json')
     vi.restoreAllMocks()
   })
 
@@ -46,14 +47,24 @@ describe('i18n', () => {
     expect(fresh.i18n.global.t('notifications.title')).toBe('Notificaciones')
   })
 
-  it('fetches Portuguese the first time it is chosen', async () => {
+  it('fetches Brazilian Portuguese the first time it is chosen', async () => {
     const fresh = await freshI18n()
     expect(fresh.i18n.global.availableLocales).toEqual(['en'])
 
-    await fresh.setLocale('pt')
+    await fresh.setLocale('pt-BR')
 
-    expect(fresh.i18n.global.locale.value).toBe('pt')
-    expect(fresh.i18n.global.t('notifications.title')).toBe('Notificações')
+    expect(fresh.i18n.global.locale.value).toBe('pt-BR')
+    expect(fresh.i18n.global.t('settings.title')).toBe('Configurações')
+  })
+
+  it('fetches European Portuguese the first time it is chosen', async () => {
+    const fresh = await freshI18n()
+    expect(fresh.i18n.global.availableLocales).toEqual(['en'])
+
+    await fresh.setLocale('pt-PT')
+
+    expect(fresh.i18n.global.locale.value).toBe('pt-PT')
+    expect(fresh.i18n.global.t('settings.title')).toBe('Definições')
   })
 
   it('keeps the language chosen last when an earlier download finishes after it', async () => {

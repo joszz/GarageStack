@@ -32,10 +32,16 @@ describe('useUiSettingsStore', () => {
     setRegionalFormat({ region: null, hourCycle: 'h23' })
   })
 
-  it('detects Portuguese from the browser language', () => {
-    vi.stubGlobal('navigator', { language: 'pt-BR' })
+  it.each([
+    ['pt-BR', 'pt-BR'],
+    ['pt-br', 'pt-BR'],
+    ['pt', 'pt-BR'],
+    ['pt-PT', 'pt-PT'],
+    ['pt-AO', 'pt-PT'],
+  ] as const)('detects %s from the browser as %s', (language, locale) => {
+    vi.stubGlobal('navigator', { language })
 
-    expect(browserLocale()).toBe('pt')
+    expect(browserLocale()).toBe(locale)
   })
 
   it('detects Spanish from the browser language', () => {
@@ -129,10 +135,19 @@ describe('useUiSettingsStore', () => {
     expect(store.filterDays).toBe(14)
   })
 
-  it('keeps a stored Portuguese locale when loading settings', () => {
+  it.each(['pt-BR', 'pt-PT'] as const)(
+    'keeps a stored %s locale when loading settings',
+    (locale) => {
+      localStorage.setItem(UI_KEY, JSON.stringify({ locale }))
+
+      expect(useUiSettingsStore().locale).toBe(locale)
+    },
+  )
+
+  it('reads a Portuguese locale stored before pt-PT existed as Brazilian Portuguese', () => {
     localStorage.setItem(UI_KEY, JSON.stringify({ locale: 'pt' }))
 
-    expect(useUiSettingsStore().locale).toBe('pt')
+    expect(useUiSettingsStore().locale).toBe('pt-BR')
   })
 
   it('keeps a stored Spanish locale when loading settings', () => {

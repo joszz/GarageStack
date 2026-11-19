@@ -125,7 +125,8 @@ const languageOptions = [
   { value: 'en', label: 'English' },
   { value: 'nl', label: 'Nederlands' },
   { value: 'es', label: 'Español' },
-  { value: 'pt', label: 'Português (Brasil)' },
+  { value: 'pt-BR', label: 'Português (Brasil)' },
+  { value: 'pt-PT', label: 'Português (Portugal)' },
 ] as const
 </script>
 
