@@ -2,12 +2,14 @@
 import '@/assets/dashboard.css'
 import { useI18n } from 'vue-i18n'
 import { useCarLocation, useParkedAddress } from '@/composables/useCarLocation'
+import { OSM_COPYRIGHT_URL } from '@/utils/credits'
 import LocationMapActions from './LocationMapActions.vue'
 
 /**
  * The room the location card leaves free when the map lies behind the dashboard
  * (DashboardMapBackdrop): the car stands in its middle, under a bar that says where that is and
- * holds the location card's buttons.
+ * holds the location card's buttons. The bar also carries the map's OpenStreetMap credit, which
+ * the map cannot show itself: its corners lie under the cards.
  */
 const { t } = useI18n()
 const car = useCarLocation()
@@ -33,6 +35,9 @@ const { address, addressPending } = useParkedAddress(car)
       <p v-else class="parking-spot__label">
         {{ hasLocation ? t('vehicle.location') : t('vehicle.locationUnavailable') }}
       </p>
+      <a class="parking-spot__credit" :href="OSM_COPYRIGHT_URL" target="_blank" rel="noreferrer"
+        >&copy; OpenStreetMap</a
+      >
       <LocationMapActions :location="location" @open-full-map="openFullMap" />
     </div>
   </div>

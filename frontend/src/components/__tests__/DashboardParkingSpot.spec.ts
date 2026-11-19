@@ -89,6 +89,16 @@ describe('DashboardParkingSpot', () => {
     expect(wrapper.get('.parking-spot__label').text()).toBe(en.vehicle.locationUnavailable)
   })
 
+  // The map behind the cards cannot show it: its corners lie under them.
+  it("carries the map's OpenStreetMap credit, linked to its copyright page", () => {
+    const wrapper = mountSpot()
+
+    const credit = wrapper.get('a.parking-spot__credit')
+    expect(credit.text()).toBe('© OpenStreetMap')
+    expect(credit.attributes('href')).toBe('https://www.openstreetmap.org/copyright')
+    expect(credit.attributes('target')).toBe('_blank')
+  })
+
   it('offers directions and the full map, as the location card does', async () => {
     const wrapper = mountSpot()
 
