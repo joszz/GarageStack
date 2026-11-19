@@ -116,13 +116,11 @@ describe('DashboardMapBackdrop', () => {
     expect(markerPoint(wrapper)).toEqual([800, 200])
   })
 
-  it('draws the credits in the corner of the spot, where no card covers them', async () => {
+  // Its corners lie under the cards; the spot's bar carries the credit (DashboardParkingSpot).
+  it('draws no credit of its own', async () => {
     const wrapper = await mountBackdrop()
 
-    const style = wrapper.get<HTMLElement>('.map-backdrop__map').element.style
-    expect(style.getPropertyValue('--spot-right')).toBe('0px')
-    expect(style.getPropertyValue('--spot-bottom')).toBe('400px')
-    expect(style.getPropertyValue('--spot-width')).toBe('400px')
+    expect(wrapper.find('.leaflet-control-attribution').exists()).toBe(false)
   })
 
   it('follows the spot when the layout moves it', async () => {

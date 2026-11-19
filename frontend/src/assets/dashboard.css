@@ -196,18 +196,6 @@
   pointer-events: none;
 }
 
-/* Everywhere but the spot lies under a card, so the map's credits are drawn in the spot's bottom
-   right corner, from where DashboardMapBackdrop says the spot is. */
-.map-backdrop__map .leaflet-bottom.leaflet-right {
-  right: var(--spot-right, 0);
-  bottom: var(--spot-bottom, 0);
-}
-
-.map-backdrop__map .leaflet-control-attribution {
-  max-width: var(--spot-width, 100%);
-  border-radius: var(--radius) 0 var(--radius) 0;
-}
-
 /* The cards over the map. */
 .dashboard--map-backdrop .tyre-diagram,
 .dashboard--map-backdrop .status-card,
@@ -222,7 +210,7 @@
 }
 
 /* The overview row and the spot are see-through boxes over the map, and would catch every click
-   meant for it (the pin, the credits). Only what is drawn in them takes clicks. Not while editing:
+   meant for it (the pin). Only what is drawn in them takes clicks. Not while editing:
    then the spot is a placeholder to drag like any other. */
 .dashboard--map-backdrop .overview-row.long-press-cards {
   pointer-events: none;
@@ -233,11 +221,13 @@
   pointer-events: auto;
 }
 
-/* As tall as the car diagram beside it, and never so short the pin has no street around it. */
+/* As tall as the car diagram beside it, and never so short the pin has no street around it. A
+   container, so its bar can fit itself to the spot's width rather than the window's. */
 .parking-spot {
   display: flex;
   flex-direction: column;
   min-height: 260px;
+  container-type: inline-size;
 }
 
 /* Says where the car is and holds the location card's buttons, over the top of the spot. */
@@ -268,6 +258,34 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* The map's OpenStreetMap credit, which its corners under the cards cannot show: small and quiet,
+   and never shortened, so a long address gives way to it rather than the other way round. */
+.parking-spot__credit {
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.parking-spot__credit:hover {
+  color: var(--color-text);
+}
+
+/* A narrow spot (beside a tablet's car diagram) has no room for the address, the credit and both
+   buttons on one line, and the address would give way to nothing. The credit goes under them. */
+@container (width < 22rem) {
+  .parking-spot__bar {
+    flex-wrap: wrap;
+    row-gap: 0.15rem;
+  }
+
+  .parking-spot__credit {
+    order: 1;
+    flex-basis: 100%;
+    text-align: right;
+  }
 }
 
 /* The location card's buttons, in the bar's row rather than over a map of their own. */

@@ -12,8 +12,14 @@ function link(href: string, text: string): string {
   return `<a href="${href}" ${LINK_ATTRS}>${text}</a>`
 }
 
+/**
+ * Where OpenStreetMap's credit links to. Also for a credit drawn outside the map, such as the
+ * dashboard's map behind the cards, which says it in the parking spot's bar (DashboardParkingSpot).
+ */
+export const OSM_COPYRIGHT_URL = 'https://www.openstreetmap.org/copyright'
+
 /** OpenStreetMap itself: the raster fallback tiles, and the data under every other credit here. */
-export const OSM_ATTRIBUTION = `${link('https://www.openstreetmap.org/copyright', '&copy; OpenStreetMap')} contributors`
+export const OSM_ATTRIBUTION = `${link(OSM_COPYRIGHT_URL, '&copy; OpenStreetMap')} contributors`
 
 /**
  * The vector basemap. OpenFreeMap's styles declare no attribution on their sources, so

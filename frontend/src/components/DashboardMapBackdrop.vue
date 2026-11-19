@@ -49,21 +49,11 @@ function spotInset(map: LeafletMap): MapInset | null {
   return insetWithin(outer, inner)
 }
 
-// The credits have to stay readable, and everywhere but the spot lies under a card. They are drawn
-// in the spot's bottom right corner (dashboard.css), from where it is said to be.
-function placeCredits(map: LeafletMap, inset: MapInset) {
-  const style = map.getContainer().style
-  style.setProperty('--spot-right', `${inset.right}px`)
-  style.setProperty('--spot-bottom', `${inset.bottom}px`)
-  style.setProperty('--spot-width', `${map.getSize().x - inset.left - inset.right}px`)
-}
-
 function frame() {
   const map = mapInstance.value
   if (!map || !hasLocation.value) return
   const inset = spotInset(map)
   if (!inset) return
-  placeCredits(map, inset)
 
   const points = activeTrip.value?.points ?? []
   const bounds = points.length ? boundsAroundCar(center.value, points) : null
@@ -123,6 +113,9 @@ watch(
     if (!element) return
     const map = L.map(element, {
       zoomControl: false,
+      // Nearly all of the map lies under the cards, its corners too, so the credit it must carry
+      // is said in the spot's bar instead (DashboardParkingSpot), where it is always in view.
+      attributionControl: false,
       dragging: false,
       scrollWheelZoom: false,
       doubleClickZoom: false,
