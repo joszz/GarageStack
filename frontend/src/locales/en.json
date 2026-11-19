@@ -40,6 +40,15 @@
     "period": "Period",
     "lastDays": "Last {days} days",
     "sessions": "Sessions",
+    "defaultRate": "Default price per kWh (€)",
+    "costOfRefills": "Cost of refills",
+    "pricedSessions": "{count} sessions priced",
+    "setRate": "Enter a rate",
+    "fullSessionPrice": "Full session price (€)",
+    "estimatedCost": "Estimated cost",
+    "sessionCost": "Session cost",
+    "savePrice": "Save price",
+    "clearPrice": "Remove override",
     "timeCharging": "Time charging",
     "ongoing": "In progress",
     "stateOfCharge": "State of charge",
@@ -57,6 +66,7 @@
     "empty": "No charge sessions are available yet.",
     "cardDesc": {
       "sessions": "The number of charging sessions in the chosen period, reconstructed from the charging state the car reported. A session still in progress counts too.",
+      "costOfRefills": "The total for this period. A manually entered session price takes precedence; otherwise, the default rate is multiplied by reported battery energy. Sessions without usable energy are excluded, and the charger may deliver more energy than reaches the battery.",
       "batteryEnergyGained": "The rise in battery energy, added up over the sessions: the energy that reached the battery, which is less than what the charger delivered. Shown only when the battery's capacity is known: on a BEV from the car, on a plug-in hybrid once the pack's real capacity is configured.",
       "timeCharging": "The time from the start to the end of charging, added up over the finished sessions. A session still in progress counts once it ends."
     }

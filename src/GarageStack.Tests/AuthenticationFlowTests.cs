@@ -1524,11 +1524,24 @@ public partial class AuthenticationFlowTests
 
         var anonymous = await visitor.GetAsync("/api/settings", ct);
         var unknown = await client.PatchAsJsonAsync("/api/settings/secrets", new { theme = "light" }, ct);
+        var chargeHistory = await client.PatchAsJsonAsync("/api/settings/chargeHistory", new
+        {
+            defaultRatePerKwh = 0.25,
+            manualSessionPrices = new Dictionary<string, decimal> { ["vehicle:session"] = 10m },
+        }, ct);
         var notAnObject = await client.PatchAsJsonAsync("/api/settings/ui", new[] { "light" }, ct);
 
         Assert.Equal(HttpStatusCode.Unauthorized, anonymous.StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, unknown.StatusCode);
         Assert.Equal("settings.unknownSection", await ProblemCodeAsync(unknown, ct));
+        Assert.Equal(HttpStatusCode.NoContent, chargeHistory.StatusCode);
+        using var savedSettings = System.Text.Json.JsonDocument.Parse(
+            await client.GetStringAsync("/api/settings", ct));
+        var savedRate = savedSettings.RootElement
+            .GetProperty("chargeHistory")
+            .GetProperty("defaultRatePerKwh")
+            .GetDouble();
+        Assert.Equal(0.25, savedRate);
         Assert.Equal(HttpStatusCode.BadRequest, notAnObject.StatusCode);
         Assert.Equal("settings.notAnObject", await ProblemCodeAsync(notAnObject, ct));
     }

@@ -90,6 +90,11 @@ export function formatNumber(value: number, decimals = 1, grouped = false): stri
   })
 }
 
+/** A monetary amount in the interface language's number format. */
+export function formatCurrency(value: number, currency: string): string {
+  return value.toLocaleString(numberLocale(), { style: 'currency', currency })
+}
+
 function toDate(value: string | Date): Date {
   return typeof value === 'string' ? new Date(value) : value
 }

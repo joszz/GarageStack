@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { computed, ref, useId } from 'vue'
+import { computed, ref, useId, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { vehicleApi, type ChargeSession, type ChargeSessionPowerPoint } from '@/services/vehicleApi'
-import { DAY_MONTH, formatDate, formatNumber, formatTime } from '@/utils/format'
+import { DAY_MONTH, formatCurrency, formatDate, formatNumber, formatTime } from '@/utils/format'
 import { formatDurationMs } from '@/utils/tripRows'
 import {
   energyGainedKwh,
@@ -21,6 +21,11 @@ const props = defineProps<{
   /** The next older session, for what was driven and used since it. */
   previous: ChargeSession | null
   energyContext: ChargeEnergyContext
+  manualPrice: number | null
+  defaultRatePerKwh: number | null
+}>()
+const emit = defineEmits<{
+  (event: 'update-manual-price', price: number | null): void
 }>()
 
 const { t } = useI18n()
@@ -29,10 +34,19 @@ const errorMessage = useErrorMessage()
 const panelId = useId()
 
 const expanded = ref(false)
+const priceInput = ref<string | number>('')
 const powerPoints = ref<ChargeSessionPowerPoint[] | null>(null)
 const powerLoading = ref(false)
 const powerError = ref<unknown>(null)
 const powerChart = useChargePowerChart(powerPoints)
+
+watch(
+  () => props.manualPrice,
+  (price) => {
+    priceInput.value = price === null ? '' : String(price)
+  },
+  { immediate: true },
+)
 
 const isDc = computed(() => props.session.chargingType?.toUpperCase() === 'DC')
 const ongoing = computed(() => props.session.endedAt === null)
@@ -98,6 +112,29 @@ const gained = computed(() => {
   const { startSocPercent: from, endSocPercent: to } = props.session
   return from !== null && to !== null && to >= from ? `+${percent(to - from)}` : null
 })
+
+const energyGained = computed(() => energyGainedKwh(props.session, props.energyContext))
+const displayedCost = computed(
+  () =>
+    props.manualPrice ??
+    (props.defaultRatePerKwh !== null && energyGained.value !== null
+      ? props.defaultRatePerKwh * energyGained.value
+      : null),
+)
+const canSavePrice = computed(() => {
+  if (String(priceInput.value).trim() === '') return false
+  const value = Number(priceInput.value)
+  return Number.isFinite(value) && value >= 0
+})
+
+function savePrice(): void {
+  if (canSavePrice.value) emit('update-manual-price', Number(priceInput.value))
+}
+
+function clearPrice(): void {
+  priceInput.value = ''
+  emit('update-manual-price', null)
+}
 
 const since = computed(() =>
   sincePreviousCharge(props.session, props.previous, props.energyContext),
@@ -243,6 +280,54 @@ function toggle(): void {
         <div v-if="energyContext.vehicleType === 'bev'">
           <dt>{{ t('chargeHistory.consumptionSincePreviousCharge') }}</dt>
           <dd>{{ consumption }}</dd>
+        </div>
+        <div>
+          <dt>
+            {{
+              t(manualPrice === null ? 'chargeHistory.estimatedCost' : 'chargeHistory.sessionCost')
+            }}
+          </dt>
+          <dd>
+            {{
+              displayedCost === null
+                ? t('chargeHistory.notReported')
+                : formatCurrency(displayedCost, 'EUR')
+            }}
+          </dd>
+        </div>
+        <div class="charge-history-detail__price">
+          <dt>
+            <label :for="`${panelId}-price`">{{ t('chargeHistory.fullSessionPrice') }}</label>
+          </dt>
+          <dd>
+            <input
+              :id="`${panelId}-price`"
+              v-model="priceInput"
+              class="form-control"
+              type="number"
+              min="0"
+              step="0.01"
+              inputmode="decimal"
+            />
+            <div class="charge-history-detail__price-actions">
+              <button
+                type="button"
+                class="btn btn-primary btn-sm"
+                :disabled="!canSavePrice"
+                @click="savePrice"
+              >
+                {{ t('chargeHistory.savePrice') }}
+              </button>
+              <button
+                v-if="manualPrice !== null"
+                type="button"
+                class="btn btn-outline-secondary btn-sm"
+                @click="clearPrice"
+              >
+                {{ t('chargeHistory.clearPrice') }}
+              </button>
+            </div>
+          </dd>
         </div>
       </dl>
 

@@ -7,8 +7,12 @@ import { useVehicleStore } from '@/stores/vehicle'
 import { vehicleApi, type ChargeSession } from '@/services/vehicleApi'
 import { mayPlugIn } from '@/utils/vehicleType'
 import { energyGainedKwh, type ChargeEnergyContext } from '@/utils/chargeSessions'
-import { formatNumber } from '@/utils/format'
+import { formatCurrency, formatNumber } from '@/utils/format'
 import { formatDurationMs } from '@/utils/tripRows'
+import {
+  chargeSessionPriceKey,
+  useChargeHistorySettingsStore,
+} from '@/stores/chargeHistorySettings'
 import { useErrorMessage } from '@/composables/useErrorMessage'
 import { useReconnect } from '@/composables/useReconnect'
 import ViewHeader from '@/components/ViewHeader.vue'
@@ -23,11 +27,13 @@ type PeriodDays = (typeof PERIOD_DAYS)[number]
 const { t } = useI18n()
 const router = useRouter()
 const vehicleStore = useVehicleStore()
+const chargeHistorySettings = useChargeHistorySettingsStore()
 const errorMessage = useErrorMessage()
 const sessions = ref<ChargeSession[]>([])
 const loading = ref(false)
 const loadError = ref<unknown>(null)
 const periodDays = ref<PeriodDays>(90)
+const defaultRateInput = ref<string | number>('')
 
 const vin = computed(() => vehicleStore.activeVin)
 const energyContext = computed((): ChargeEnergyContext => ({
@@ -52,6 +58,68 @@ const totalTime = computed(() => {
   )
   return ms > 0 ? formatDurationMs(ms, t) : null
 })
+
+const pricedSessionCount = computed(
+  () => sessions.value.filter((session) => sessionCost(session) !== null).length,
+)
+
+const totalCost = computed(() => {
+  let total = 0
+  let count = 0
+  for (const session of sessions.value) {
+    const cost = sessionCost(session)
+    if (cost !== null) {
+      total += cost
+      count++
+    }
+  }
+  return count > 0 ? total : null
+})
+
+function sessionCost(session: ChargeSession): number | null {
+  if (!vin.value) return null
+  const manual =
+    chargeHistorySettings.manualSessionPrices[chargeSessionPriceKey(vin.value, session.startedAt)]
+  if (manual !== undefined) return manual
+  const rate = chargeHistorySettings.defaultRatePerKwh
+  const energy = energyGainedKwh(session, energyContext.value)
+  return rate !== null && energy !== null ? rate * energy : null
+}
+
+watch(
+  () => chargeHistorySettings.defaultRatePerKwh,
+  (rate) => {
+    defaultRateInput.value = rate === null ? '' : String(rate)
+  },
+  { immediate: true },
+)
+
+function saveDefaultRate(): void {
+  const value = String(defaultRateInput.value).trim()
+  if (value === '') {
+    chargeHistorySettings.defaultRatePerKwh = null
+    return
+  }
+  const rate = Number(value)
+  if (Number.isFinite(rate) && rate >= 0) {
+    chargeHistorySettings.defaultRatePerKwh = rate
+  } else {
+    defaultRateInput.value =
+      chargeHistorySettings.defaultRatePerKwh === null
+        ? ''
+        : String(chargeHistorySettings.defaultRatePerKwh)
+  }
+}
+
+function updateManualPrice(startedAt: string, price: number | null): void {
+  const activeVin = vin.value
+  if (!activeVin) return
+  if (price === null) {
+    chargeHistorySettings.clearManualSessionPrice(activeVin, startedAt)
+  } else {
+    chargeHistorySettings.setManualSessionPrice(activeVin, startedAt, price)
+  }
+}
 
 // A plain hybrid never charges from a plug. The menu leaves the page out for one; someone who
 // opens its address anyway lands on the dashboard.
@@ -105,9 +173,37 @@ watch(charges, (now) => {
           </option>
         </select>
       </label>
+      <label class="charge-history-filters__field">
+        <span class="text-xs text-muted">{{ t('chargeHistory.defaultRate') }}</span>
+        <span class="charge-history-rate">
+          <input
+            v-model="defaultRateInput"
+            class="form-control"
+            type="number"
+            min="0"
+            step="0.01"
+            inputmode="decimal"
+            @change="saveDefaultRate"
+          />
+          <span aria-hidden="true">€/kWh</span>
+        </span>
+      </label>
     </div>
 
     <div v-if="sessions.length > 0" class="status-grid charge-history-totals">
+      <CardInfoWrap
+        :title="t('chargeHistory.costOfRefills')"
+        :description="t('chargeHistory.cardDesc.costOfRefills')"
+      >
+        <StatusCard
+          icon="euro-sign"
+          :label="t('chargeHistory.costOfRefills')"
+          :value="
+            totalCost === null ? t('chargeHistory.setRate') : formatCurrency(totalCost, 'EUR')
+          "
+          :note="t('chargeHistory.pricedSessions', { count: pricedSessionCount })"
+        />
+      </CardInfoWrap>
       <CardInfoWrap
         :title="t('chargeHistory.sessions')"
         :description="t('chargeHistory.cardDesc.sessions')"
@@ -164,6 +260,13 @@ watch(charges, (now) => {
         :session="session"
         :previous="sessions[index + 1] ?? null"
         :energy-context="energyContext"
+        :manual-price="
+          chargeHistorySettings.manualSessionPrices[
+            chargeSessionPriceKey(vin, session.startedAt)
+          ] ?? null
+        "
+        :default-rate-per-kwh="chargeHistorySettings.defaultRatePerKwh"
+        @update-manual-price="(price) => updateManualPrice(session.startedAt, price)"
       />
     </ol>
   </div>

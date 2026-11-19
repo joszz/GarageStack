@@ -40,6 +40,15 @@
     "period": "Período",
     "lastDays": "Últimos {days} dias",
     "sessions": "Sessões",
+    "defaultRate": "Preço padrão por kWh (€)",
+    "costOfRefills": "Custo das recargas",
+    "pricedSessions": "{count} sessões com preço",
+    "setRate": "Insira uma tarifa",
+    "fullSessionPrice": "Preço total da sessão (€)",
+    "estimatedCost": "Custo estimado",
+    "sessionCost": "Custo da sessão",
+    "savePrice": "Salvar preço",
+    "clearPrice": "Remover preço manual",
     "timeCharging": "Tempo de carregamento",
     "ongoing": "Em andamento",
     "stateOfCharge": "Nível da bateria",
@@ -57,6 +66,7 @@
     "empty": "Ainda não há sessões de carregamento disponíveis.",
     "cardDesc": {
       "sessions": "O número de sessões de carregamento no período escolhido, reconstruídas a partir do estado de carga que o carro enviou. Uma sessão em andamento também conta.",
+      "costOfRefills": "O total deste período. O preço manual da sessão tem prioridade; caso contrário, a tarifa padrão é multiplicada pela energia da bateria informada. Sessões sem energia utilizável são excluídas; o carregador pode fornecer mais energia do que chega à bateria.",
       "batteryEnergyGained": "O aumento de energia na bateria, somado nas sessões: a energia que chegou à bateria, menor do que a entregue pelo carregador. Exibido apenas quando a capacidade da bateria é conhecida: num BEV pelo próprio carro, num híbrido plug-in quando a capacidade real do pacote estiver configurada.",
       "timeCharging": "O tempo do início ao fim do carregamento, somado nas sessões concluídas. Uma sessão em andamento conta quando termina."
     }

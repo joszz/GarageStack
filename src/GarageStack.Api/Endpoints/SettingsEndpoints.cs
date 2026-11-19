@@ -13,8 +13,8 @@ namespace GarageStack.Api.Endpoints;
 /// </summary>
 public static class SettingsEndpoints
 {
-    /// <summary>A save carries a few changed keys; even a whole section is a fraction of this.</summary>
-    internal const long MaxRequestBytes = 2L * UserSettingsLimits.JsonMaxLength;
+    /// <summary>Allows a whole charge-history section; each section still has its own saved-size limit.</summary>
+    internal const long MaxRequestBytes = 2L * UserSettingsLimits.ChargeHistoryJsonMaxLength;
 
     public static IEndpointRouteBuilder MapSettingsEndpoints(this IEndpointRouteBuilder app)
     {
@@ -52,7 +52,7 @@ public static class SettingsEndpoints
             return await settings.MergeAsync(account, section, ToChanges(changes), ct) switch
             {
                 SettingsSaveResult.TooLarge => ApiProblems.Problem(StatusCodes.Status413PayloadTooLarge, "settings.tooLarge",
-                    $"A settings section may hold at most {UserSettingsLimits.JsonMaxLength} characters"),
+                    $"A settings section may hold at most {UserSettingsLimits.JsonMaxLengthFor(section)} characters"),
                 SettingsSaveResult.Conflict => ApiProblems.Problem(StatusCodes.Status409Conflict, "settings.conflict",
                     "Other devices were saving the same settings at the same moment; send the change again"),
                 _ => Results.NoContent(),

@@ -3,10 +3,10 @@ using System.Collections.Frozen;
 namespace GarageStack.Core.Models;
 
 /// <summary>
-/// One section ("ui", "dashboard" or "map") of one account's settings: a JSON object of top-level
-/// keys, as the browser keeps them. Kept on the server so an account's settings follow it to every
-/// device. The server does not interpret the values; the browser checks each one as it reads it,
-/// just as it does with its own stored copy.
+/// One section of one account's settings: a JSON object of top-level keys, as the browser keeps
+/// them. Kept on the server so an account's settings follow it to every device. The server does
+/// not interpret the values; the browser checks each one as it reads it, just as it does with its
+/// own stored copy.
 /// </summary>
 public class UserSettings
 {
@@ -32,7 +32,7 @@ public class UserSettings
 public static class UserSettingsLimits
 {
     /// <summary>The sections the browser keeps. A fixed list, so an account cannot add rows without end.</summary>
-    public static readonly FrozenSet<string> Sections = FrozenSet.Create(StringComparer.Ordinal, "ui", "dashboard", "map");
+    public static readonly FrozenSet<string> Sections = FrozenSet.Create(StringComparer.Ordinal, "ui", "dashboard", "map", "chargeHistory");
 
     public const int SectionMaxLength = 16;
 
@@ -48,6 +48,12 @@ public static class UserSettingsLimits
     /// the dashboard's card layout, needs.
     /// </summary>
     public const int JsonMaxLength = 16 * 1024;
+
+    /// <summary>Charge-session price overrides need room for a year's worth of charging sessions.</summary>
+    public const int ChargeHistoryJsonMaxLength = 128 * 1024;
+
+    public static int JsonMaxLengthFor(string section) =>
+        section == "chargeHistory" ? ChargeHistoryJsonMaxLength : JsonMaxLength;
 }
 
 public enum SettingsSaveResult
