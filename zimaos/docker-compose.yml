@@ -31,11 +31,12 @@ services:
       - target: 80
         published: "8080"
         protocol: tcp
-      # MQTT broker, only for external clients such as Home Assistant. Remove if unused.
-      # For Home Assistant add HA_MQTT_USERNAME and HA_MQTT_PASSWORD under environment.
-      - target: 1883
-        published: "1883"
-        protocol: tcp
+      # The MQTT broker stays private to the container, as in the Unraid template. Only for
+      # external clients such as Home Assistant: uncomment these three lines, and add
+      # HA_MQTT_USERNAME and HA_MQTT_PASSWORD under environment.
+      # - target: 1883
+      #   published: "1883"
+      #   protocol: tcp
     volumes:
       - type: bind
         source: /DATA/AppData/garagestack/data
@@ -69,9 +70,6 @@ services:
         - container: "80"
           description:
             en_us: Web UI
-        - container: "1883"
-          description:
-            en_us: MQTT broker (optional, for Home Assistant)
       volumes:
         - container: /data
           description:
