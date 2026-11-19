@@ -32,7 +32,8 @@
     "climateSchedules": "Klimaatschema's",
     "maintenance": "Onderhoud",
     "logs": "Logboek",
-    "menuLabel": "Menu"
+    "menuLabel": "Menu",
+    "vehicle": "Auto"
   },
   "chargeHistory": {
     "title": "Laadgeschiedenis",

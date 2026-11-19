@@ -15,6 +15,8 @@ export const useRdwStore = defineStore('rdw', () => {
   const status = shallowRef<RdwStatus | null>(null)
   const error = ref<Error | null>(null)
   let inFlight: Promise<void> | null = null
+  // The car the status belongs to, so switching cars reads the other car's plate.
+  let loadedVin: string | null = null
 
   /** Reads the plate and the lookup again. Once the deployment said it is off, it is not asked again. */
   async function fetchStatus(vin: string) {
@@ -22,7 +24,9 @@ export const useRdwStore = defineStore('rdw', () => {
     if (inFlight) return inFlight
     inFlight = (async () => {
       try {
-        status.value = await rdwApi.get(vin)
+        const answer = await rdwApi.get(vin)
+        loadedVin = vin
+        status.value = answer
         available.value = true
         error.value = null
       } catch (e) {
@@ -41,12 +45,18 @@ export const useRdwStore = defineStore('rdw', () => {
 
   /** Reads the status the first time anything needs it. */
   async function ensureLoaded(vin: string) {
-    if (available.value === null && !status.value) await fetchStatus(vin)
+    if (available.value === false) return
+    if (loadedVin !== vin) {
+      // Another car's plate must not show while this one's is read.
+      if (loadedVin !== null) status.value = null
+      await fetchStatus(vin)
+    }
   }
 
   /** Saves the plate as typed (blank removes it); the API normalises it and looks it up. Throws when refused. */
   async function setLicensePlate(vin: string, plate: string) {
     status.value = await rdwApi.setLicensePlate(vin, plate.trim() || null)
+    loadedVin = vin
     available.value = true
   }
 

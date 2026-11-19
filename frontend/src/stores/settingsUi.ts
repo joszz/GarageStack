@@ -46,6 +46,12 @@ const STORAGE_KEY = 'garagestack-settings-ui'
  */
 export const DEFAULT_FILTER_DAYS = 7
 
+/** The settings that belong to one car rather than to the whole account. */
+export interface VehicleUiSettings {
+  carColorScheme: string
+  vehicleTypeOverride: VehicleTypeOverride
+}
+
 interface UiSettings {
   theme: ThemeChoice
   locale: Locale
@@ -58,6 +64,12 @@ interface UiSettings {
   /** The statistics page's period; the map keeps filterDays. */
   statsPeriod: StatsPeriod
   notificationTypeExclusions: string[]
+  /**
+   * The colour and type override of each car, by VIN. A car without an entry uses
+   * carColorScheme and vehicleTypeOverride above, which is all a one-car install from before
+   * there was a choice of car ever stored.
+   */
+  vehicleSettings: Record<string, VehicleUiSettings>
   region: RegionSetting
   clock: ClockSetting
   units: UnitSettings
@@ -75,6 +87,7 @@ function defaultsFor(): UiSettings {
     filterDays: DEFAULT_FILTER_DAYS,
     statsPeriod: { ...DEFAULT_STATS_PERIOD },
     notificationTypeExclusions: [],
+    vehicleSettings: {},
     // Everything follows the region the browser is in, which its time zone tells far better than
     // its language does. An install from before these settings keeps the units it stored.
     region: 'auto',
@@ -145,11 +158,46 @@ function parseUnits(raw: unknown, fallback: UnitSettings): UnitSettings {
   }
 }
 
+// An account holds a handful of cars at most; the cap only keeps a hand-edited copy from
+// growing without bound.
+const MAX_VEHICLE_SETTINGS = 50
+const MAX_VIN_LENGTH = 32
+
+// Each car's entry is checked on its own, and each of its values falls back to the account-wide
+// one, so one bad value never resets another car.
+function parseVehicleSettings(
+  raw: unknown,
+  fallback: Pick<UiSettings, 'carColorScheme' | 'vehicleTypeOverride'>,
+): Record<string, VehicleUiSettings> {
+  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return {}
+  const result: Record<string, VehicleUiSettings> = {}
+  for (const [vin, value] of Object.entries(raw).slice(0, MAX_VEHICLE_SETTINGS)) {
+    if (!vin || vin.length > MAX_VIN_LENGTH) continue
+    if (typeof value !== 'object' || value === null) continue
+    const entry = value as Record<string, unknown>
+    result[vin] = {
+      carColorScheme: oneOf(entry.carColorScheme, CAR_COLOR_SCHEME_IDS, fallback.carColorScheme),
+      vehicleTypeOverride: oneOf(
+        entry.vehicleTypeOverride,
+        VEHICLE_TYPE_OVERRIDES,
+        fallback.vehicleTypeOverride,
+      ),
+    }
+  }
+  return result
+}
+
 function parseRegion(raw: unknown, fallback: RegionSetting): RegionSetting {
   return raw === 'auto' || isRegion(raw) ? raw : fallback
 }
 
 function parseUiFields(parsed: Record<string, unknown>, fallback: UiSettings): UiSettings {
+  const carColorScheme = oneOf(parsed.carColorScheme, CAR_COLOR_SCHEME_IDS, fallback.carColorScheme)
+  const vehicleTypeOverride = oneOf(
+    parsed.vehicleTypeOverride,
+    VEHICLE_TYPE_OVERRIDES,
+    fallback.vehicleTypeOverride,
+  )
   return {
     theme: oneOf(parsed.theme, THEMES, fallback.theme),
     locale: oneOf(parsed.locale, LOCALES, fallback.locale),
@@ -158,17 +206,17 @@ function parseUiFields(parsed: Record<string, unknown>, fallback: UiSettings): U
     // the behaviour it already had.
     placeNamesEnabled: parsed.placeNamesEnabled !== false,
     colorfulMaps: parsed.colorfulMaps === true,
-    carColorScheme: oneOf(parsed.carColorScheme, CAR_COLOR_SCHEME_IDS, fallback.carColorScheme),
-    vehicleTypeOverride: oneOf(
-      parsed.vehicleTypeOverride,
-      VEHICLE_TYPE_OVERRIDES,
-      fallback.vehicleTypeOverride,
-    ),
+    carColorScheme,
+    vehicleTypeOverride,
     filterDays: positiveDays(parsed.filterDays, fallback.filterDays),
     statsPeriod: parseStatsPeriod(parsed.statsPeriod, parsed.filterDays, fallback.statsPeriod),
     notificationTypeExclusions: Array.isArray(parsed.notificationTypeExclusions)
       ? (parsed.notificationTypeExclusions as string[])
       : fallback.notificationTypeExclusions,
+    vehicleSettings: parseVehicleSettings(parsed.vehicleSettings, {
+      carColorScheme,
+      vehicleTypeOverride,
+    }),
     region: parseRegion(parsed.region, fallback.region),
     clock: oneOf(parsed.clock, CLOCK_SETTINGS, fallback.clock),
     units: parseUnits(parsed.units, fallback.units),
@@ -216,7 +264,44 @@ export const useUiSettingsStore = defineStore('settingsUi', () => {
 
   // The theme and the car's colours live on the document, so they follow the setting at once.
   watch(effectiveTheme, (theme) => applyTheme(theme), { immediate: true })
-  watch(() => settings.carColorScheme, applyCarColors, { immediate: true })
+
+  // The car every view follows, set by the vehicle store. Null until the vehicle list is in,
+  // when the account-wide values stand.
+  const activeVin = ref<string | null>(null)
+  function setActiveVin(vin: string | null) {
+    activeVin.value = vin
+  }
+
+  // Read and written for the active car: its own entry when it has one, otherwise the
+  // account-wide value. The first change made for a car gives it its own entry.
+  function perVehicle<K extends keyof VehicleUiSettings>(key: K) {
+    return computed<VehicleUiSettings[K]>({
+      get: () => {
+        const vin = activeVin.value
+        return (vin && settings.vehicleSettings[vin]?.[key]) || settings[key]
+      },
+      set: (value) => {
+        const vin = activeVin.value
+        if (!vin) {
+          ;(settings as VehicleUiSettings)[key] = value
+          return
+        }
+        const current = settings.vehicleSettings[vin] ?? {
+          carColorScheme: settings.carColorScheme,
+          vehicleTypeOverride: settings.vehicleTypeOverride,
+        }
+        // Replaced whole, so the account sync sees the section change.
+        settings.vehicleSettings = {
+          ...settings.vehicleSettings,
+          [vin]: { ...current, [key]: value },
+        }
+      },
+    })
+  }
+  const carColorScheme = perVehicle('carColorScheme')
+  const vehicleTypeOverride = perVehicle('vehicleTypeOverride')
+
+  watch(carColorScheme, applyCarColors, { immediate: true })
 
   // Detected once per page load: what this device says, so "auto" can differ between devices
   // while every choice made instead follows the account.
@@ -236,6 +321,10 @@ export const useUiSettingsStore = defineStore('settingsUi', () => {
 
   return {
     ...toRefs(settings),
+    // After the spread, so these stand in for the account-wide values of the same name.
+    carColorScheme,
+    vehicleTypeOverride,
+    setActiveVin,
     effectiveTheme,
     detectedRegion,
     effectiveRegion,

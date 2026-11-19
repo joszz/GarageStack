@@ -11,6 +11,7 @@ import AppFooter from '@/components/AppFooter.vue'
 import NotificationPanel from '@/components/NotificationPanel.vue'
 import DemoBanner from '@/components/DemoBanner.vue'
 import PwaInstallModal from '@/components/PwaInstallModal.vue'
+import VehicleSwitcher from '@/components/VehicleSwitcher.vue'
 
 const DemoControlPanel = defineAsyncComponent(() => import('@/components/DemoControlPanel.vue'))
 import { useNotifications, prependNotification } from '@/composables/useNotifications'
@@ -81,7 +82,6 @@ const notificationsLabel = computed(() =>
     : t('notifications.title'),
 )
 
-const carModel = computed(() => vehicleStore.activeVehicle?.model ?? null)
 const vehicleId = computed(() => vehicleStore.activeVehicle?.id ?? null)
 
 const availabilityToast = ref<'online' | 'offline' | null>(null)
@@ -316,10 +316,7 @@ watch(
         </ul>
 
         <div class="sidebar-footer">
-          <div v-if="carModel" class="sidebar-car-model">
-            <font-awesome-icon icon="car" />
-            <span>{{ carModel }}</span>
-          </div>
+          <VehicleSwitcher />
           <div
             v-if="signalRAttempted && !signalRConnected"
             class="sidebar-online-status sidebar-online-status--offline"
@@ -412,7 +409,10 @@ watch(
       </nav>
 
       <main ref="mainContent" class="main-content">
-        <RouterView />
+        <!-- Keyed on the car, so switching cars mounts the page afresh and it loads that car. -->
+        <RouterView v-slot="{ Component }">
+          <component :is="Component" :key="vehicleStore.activeVin ?? ''" />
+        </RouterView>
       </main>
     </div>
 

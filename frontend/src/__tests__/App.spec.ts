@@ -23,6 +23,9 @@ vi.mock('@/stores/vehicle', () => ({
   useVehicleStore: () => ({
     currentStatus: null,
     activeVehicle: vehicle.active,
+    activeVin: null,
+    vehicles: [],
+    hasMultipleVehicles: false,
     effectiveVehicleType: vehicle.type,
     loading: false,
     lastUpdated: null,
