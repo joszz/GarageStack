@@ -43,6 +43,11 @@ interface DashboardSettings {
   showLocationMap: boolean
   /** Whether the location map comes before the car diagram, rather than after it. */
   mapFirst: boolean
+  /**
+   * The car's map across the whole dashboard, with the cards over it and the car parked where the
+   * location card would be. Only on a wide enough screen; a phone keeps the card.
+   */
+  mapBackdrop: boolean
   /** The statistics page's per-month table. */
   showStatsMonths: boolean
 }
@@ -55,6 +60,7 @@ function defaultsFor(): DashboardSettings {
     showTyreDiagram: true,
     showLocationMap: true,
     mapFirst: false,
+    mapBackdrop: false,
     showStatsMonths: true,
   }
 }
@@ -71,6 +77,7 @@ function parseDashboardFields(parsed: Record<string, unknown>): DashboardSetting
     showTyreDiagram: parsed.showTyreDiagram !== false,
     showLocationMap: parsed.showLocationMap !== false,
     mapFirst: parsed.mapFirst === true,
+    mapBackdrop: parsed.mapBackdrop === true,
     showStatsMonths: parsed.showStatsMonths !== false,
   }
 }

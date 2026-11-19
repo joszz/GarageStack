@@ -1,6 +1,14 @@
 <script setup lang="ts">
 import '@/assets/dashboard.css'
-import { onMounted, onUnmounted, computed, defineAsyncComponent, watch } from 'vue'
+import {
+  onMounted,
+  onUnmounted,
+  computed,
+  defineAsyncComponent,
+  shallowRef,
+  watch,
+  type ComponentPublicInstance,
+} from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useVehicleStore } from '@/stores/vehicle'
 import { useRdwStore } from '@/stores/rdw'
@@ -13,6 +21,8 @@ import DashboardCardContent from '@/components/DashboardCardContent.vue'
 import CardInfoWrap from '@/components/CardInfoWrap.vue'
 import CarDiagram from '@/components/CarDiagram.vue'
 import LocationMapWidget from '@/components/LocationMapWidget.vue'
+import DashboardMapBackdrop from '@/components/DashboardMapBackdrop.vue'
+import DashboardParkingSpot from '@/components/DashboardParkingSpot.vue'
 import EditLayoutButton from '@/components/EditLayoutButton.vue'
 import type EditableCardGridComponent from '@/components/EditableCardGrid.vue'
 import SkeletonCard from '@/components/SkeletonCard.vue'
@@ -21,6 +31,7 @@ import SkeletonLocationMap from '@/components/SkeletonLocationMap.vue'
 import { useUnits } from '@/composables/useUnits'
 import { useEditMode } from '@/composables/useEditMode'
 import { useReconnect } from '@/composables/useReconnect'
+import { useMediaQuery } from '@/composables/useMediaQuery'
 import { mayBurnFuel } from '@/utils/vehicleType'
 import { energyUnit } from '@/utils/energy'
 import { readLastVin } from '@/utils/lastVin'
@@ -52,6 +63,22 @@ const OVERVIEW_PARTS: Record<OverviewId, { className: string; icon: string; labe
 }
 
 const shownOverview = computed(() => settings.overview.filter((part) => part.visible))
+
+// The map behind the dashboard, where the user asked for it. Only beside the sidebar: on a phone
+// the cards fill the width in one column and would leave no room to see the map, so the location
+// card stays. Hiding the location map hides this map too.
+const wideEnoughForBackdrop = useMediaQuery('(width >= 768px)')
+const mapBackdrop = computed(
+  () => settings.mapBackdrop && settings.showLocationMap && wideEnoughForBackdrop.value,
+)
+
+// The room in the overview row where the car stands on the map behind (DashboardParkingSpot, or
+// its placeholder while editing). A component's ref is its instance, so its element is taken.
+const parkingSpot = shallowRef<HTMLElement | null>(null)
+function setParkingSpot(el: Element | ComponentPublicInstance | null) {
+  const element = el && '$el' in el ? (el.$el as Element) : el
+  parkingSpot.value = element instanceof HTMLElement ? element : null
+}
 
 // Shared prop set for the two <CarDiagram> invocations (edit mode + normal mode), which
 // are otherwise identical aside from their v-if guard and wrapper class.
@@ -214,7 +241,15 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="view-container">
+  <div
+    class="view-container"
+    :class="{
+      'dashboard--map-backdrop': mapBackdrop && status,
+      'dashboard--map-first': settings.mapFirst,
+    }"
+  >
+    <DashboardMapBackdrop v-if="mapBackdrop && status" :spot="parkingSpot" />
+
     <ViewHeader :title="t('dashboard.title')">
       <template #actions>
         <span v-if="store.loading && status" class="refresh-indicator text-muted" role="status">
@@ -236,6 +271,14 @@ onUnmounted(() => {
       >
         <template #default="{ item: part }">
           <CarDiagram v-if="part.id === 'car' && part.visible && status" v-bind="carDiagramProps" />
+          <div
+            v-else-if="part.id === 'map' && part.visible && mapBackdrop"
+            :ref="setParkingSpot"
+            class="card-slot__placeholder card-slot__placeholder--chart parking-spot--edit"
+          >
+            <font-awesome-icon icon="location-dot" />
+            <span>{{ t('vehicle.location') }}</span>
+          </div>
           <LocationMapWidget v-else-if="part.id === 'map' && part.visible" />
           <div v-else class="card-slot__placeholder card-slot__placeholder--chart">
             <font-awesome-icon :icon="OVERVIEW_PARTS[part.id].icon" />
@@ -279,6 +322,8 @@ onUnmounted(() => {
         <div v-if="shownOverview.length" class="overview-row mb-4">
           <template v-for="part in shownOverview" :key="part.id">
             <SkeletonCarDiagram v-if="part.id === 'car'" :class="OVERVIEW_PARTS.car.className" />
+            <!-- The map behind comes with the car's status; until then its spot stays empty. -->
+            <div v-else-if="mapBackdrop" :class="OVERVIEW_PARTS.map.className" />
             <SkeletonLocationMap v-else :class="OVERVIEW_PARTS.map.className" />
           </template>
         </div>
@@ -307,6 +352,11 @@ onUnmounted(() => {
               v-if="part.id === 'car'"
               v-bind="carDiagramProps"
               :class="OVERVIEW_PARTS.car.className"
+            />
+            <DashboardParkingSpot
+              v-else-if="mapBackdrop"
+              :ref="setParkingSpot"
+              :class="OVERVIEW_PARTS.map.className"
             />
             <LocationMapWidget v-else :class="OVERVIEW_PARTS.map.className" />
           </template>

@@ -1,0 +1,184 @@
+<script setup lang="ts">
+import '@/assets/dashboard.css'
+import { onUnmounted, shallowRef, useTemplateRef, watch } from 'vue'
+import {
+  L,
+  boundsAroundCar,
+  fitToBounds,
+  insetWithin,
+  setViewInBox,
+  type LeafletMap,
+  type MapInset,
+} from '@/utils/leaflet'
+import { useBasemap } from '@/composables/useBasemap'
+import { useCarLocation } from '@/composables/useCarLocation'
+import { buildCarMarkerIcon, moveCarMarker } from '@/utils/mapCarIcon'
+import { latLngsOf } from '@/utils/geo'
+
+/**
+ * The car's map behind the whole dashboard. The car stands in the middle of `spot`, the room the
+ * location card leaves free, and the cards lie over the rest of the map. It only shows where the
+ * car is, so it cannot be panned or zoomed; the full map is a click away.
+ */
+const props = defineProps<{ spot: HTMLElement | null }>()
+
+const { status, location, hasLocation, center, activeTrip, openFullMap } = useCarLocation()
+
+// As close as the location card's map, a step closer: there is more room around the car here.
+const PARKED_ZOOM = 15
+// Pixels kept clear inside the spot around a route, so its ends do not touch the cards.
+const ROUTE_PADDING = 24
+
+const container = useTemplateRef<HTMLElement>('container')
+const mapInstance = shallowRef<LeafletMap | null>(null)
+// Raster tiles, as on the location card: the dashboard is the page most visits start on, and the
+// vector renderer is well over a megabyte. The tiles shown are also the ones kept for offline use.
+useBasemap(mapInstance, { vector: false })
+
+let marker: L.Marker | null = null
+let routeLine: L.Polyline | null = null
+let observer: ResizeObserver | null = null
+
+/** Where the spot lies in the map, or null while either has no size yet. */
+function spotInset(map: LeafletMap): MapInset | null {
+  const spot = props.spot
+  if (!spot) return null
+  const outer = map.getContainer().getBoundingClientRect()
+  const inner = spot.getBoundingClientRect()
+  if (outer.width === 0 || inner.width === 0 || inner.height === 0) return null
+  return insetWithin(outer, inner)
+}
+
+// The credits have to stay readable, and everywhere but the spot lies under a card. They are drawn
+// in the spot's bottom right corner (dashboard.css), from where it is said to be.
+function placeCredits(map: LeafletMap, inset: MapInset) {
+  const style = map.getContainer().style
+  style.setProperty('--spot-right', `${inset.right}px`)
+  style.setProperty('--spot-bottom', `${inset.bottom}px`)
+  style.setProperty('--spot-width', `${map.getSize().x - inset.left - inset.right}px`)
+}
+
+function frame() {
+  const map = mapInstance.value
+  if (!map || !hasLocation.value) return
+  const inset = spotInset(map)
+  if (!inset) return
+  placeCredits(map, inset)
+
+  const points = activeTrip.value?.points ?? []
+  const bounds = points.length ? boundsAroundCar(center.value, points) : null
+  if (bounds && !bounds.getNorthEast().equals(bounds.getSouthWest())) {
+    fitToBounds(map, bounds, {
+      topLeft: [inset.left + ROUTE_PADDING, inset.top + ROUTE_PADDING],
+      bottomRight: [inset.right + ROUTE_PADDING, inset.bottom + ROUTE_PADDING],
+    })
+  } else {
+    setViewInBox(map, center.value, PARKED_ZOOM, inset)
+  }
+}
+
+// Parked: the plain pin, as on the location card, which opens the full map. Driving: the route so
+// far and the car turned to its heading. Out of the tab order: the spot's own button opens the
+// full map from the keyboard.
+function drawCar() {
+  const map = mapInstance.value
+  marker?.remove()
+  marker = null
+  routeLine?.remove()
+  routeLine = null
+  if (!map || !hasLocation.value) return
+
+  const trip = activeTrip.value
+  if (trip && trip.points.length >= 2) {
+    routeLine = L.polyline(latLngsOf(trip.points), {
+      color: '#3b82f6',
+      weight: 4,
+      opacity: 0.8,
+      interactive: false,
+    }).addTo(map)
+  }
+  marker = trip
+    ? L.marker(center.value, {
+        icon: buildCarMarkerIcon(status.value?.heading ?? 0),
+        keyboard: false,
+      })
+    : L.marker(center.value, { keyboard: false })
+  marker.on('click', openFullMap).addTo(map)
+}
+
+function destroyMap() {
+  observer?.disconnect()
+  observer = null
+  marker = null
+  routeLine = null
+  mapInstance.value?.remove()
+  mapInstance.value = null
+}
+
+// The map exists while the car has a position: the container is only rendered then.
+watch(
+  container,
+  (element) => {
+    destroyMap()
+    if (!element) return
+    const map = L.map(element, {
+      zoomControl: false,
+      dragging: false,
+      scrollWheelZoom: false,
+      doubleClickZoom: false,
+      touchZoom: false,
+      boxZoom: false,
+      keyboard: false,
+    })
+    mapInstance.value = map
+    // The dashboard grows as its cards load and the spot moves with the layout, so either changing
+    // size puts the car back in the middle of the spot.
+    observer = new ResizeObserver(() => {
+      map.invalidateSize({ pan: false })
+      frame()
+    })
+    observer.observe(element)
+    if (props.spot) observer.observe(props.spot)
+    drawCar()
+    frame()
+  },
+  { flush: 'post' },
+)
+
+// Edit mode swaps the spot for a placeholder of its own, and a layout change can replace it.
+watch(
+  () => props.spot,
+  (spot, previous) => {
+    if (previous) observer?.unobserve(previous)
+    if (spot) observer?.observe(spot)
+    frame()
+  },
+)
+
+// A new report moves the car (and on a trip, turns it) and may grow the route.
+watch(status, (s) => {
+  const point = location.value
+  if (!mapInstance.value || !point) return
+  if (marker && activeTrip.value) {
+    moveCarMarker(marker, [point.latitude, point.longitude], s?.heading ?? null)
+  } else {
+    marker?.setLatLng([point.latitude, point.longitude])
+  }
+  frame()
+})
+
+// A trip starting or ending swaps the pin for the car, or back, and the framing with it.
+watch(activeTrip, () => {
+  drawCar()
+  frame()
+})
+
+onUnmounted(destroyMap)
+</script>
+
+<template>
+  <div class="map-backdrop">
+    <div v-if="hasLocation" ref="container" class="map-backdrop__map" />
+    <div class="map-backdrop__fade" />
+  </div>
+</template>

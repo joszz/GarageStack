@@ -2,6 +2,7 @@
 import { computed, nextTick, ref, useId, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useUiSettingsStore } from '@/stores/settingsUi'
+import { useDashboardSettingsStore } from '@/stores/settingsDashboard'
 import { useRdwStore } from '@/stores/rdw'
 import { useVehicleStore } from '@/stores/vehicle'
 import DetailModal from '../DetailModal.vue'
@@ -30,6 +31,7 @@ defineEmits<{ close: [] }>()
 
 const { t } = useI18n()
 const settings = useUiSettingsStore()
+const dashboardSettings = useDashboardSettingsStore()
 const rdw = useRdwStore()
 const vehicleStore = useVehicleStore()
 const connection = useConnection()
@@ -192,6 +194,12 @@ const languageOptions = [
               :label="t('settings.dashboard.cardInfoIcons')"
               :desc="t('settings.dashboard.cardInfoIconsDesc')"
               input-id="footer-toggle-card-info-icons"
+            />
+            <SettingsToggle
+              v-model="dashboardSettings.mapBackdrop"
+              :label="t('settings.dashboard.mapBackdrop')"
+              :desc="t('settings.dashboard.mapBackdropDesc')"
+              input-id="footer-toggle-map-backdrop"
             />
           </div>
         </SettingsSection>

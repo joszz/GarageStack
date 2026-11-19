@@ -77,3 +77,60 @@ export function fitToPoints(
   if (points.length === 0) return
   fitToBounds(map, L.latLngBounds([...points]), padding)
 }
+
+/**
+ * The smallest bounds that hold every point of a trip with the car at their exact centre: the
+ * largest offset from the car to any point, mirrored on the other side. Framing these keeps the
+ * whole route in view as it grows, without the view drifting off the car.
+ */
+export function boundsAroundCar(
+  car: readonly [number, number],
+  points: readonly { latitude: number; longitude: number }[],
+): LatLngBounds {
+  let maxLatDelta = 0
+  let maxLngDelta = 0
+  for (const p of points) {
+    maxLatDelta = Math.max(maxLatDelta, Math.abs(p.latitude - car[0]))
+    maxLngDelta = Math.max(maxLngDelta, Math.abs(p.longitude - car[1]))
+  }
+  return L.latLngBounds(
+    [car[0] - maxLatDelta, car[1] - maxLngDelta],
+    [car[0] + maxLatDelta, car[1] + maxLngDelta],
+  )
+}
+
+/** A box inside a map, as its distance in pixels from each edge of the map's container. */
+export interface MapInset {
+  top: number
+  right: number
+  bottom: number
+  left: number
+}
+
+/**
+ * Where `inner` lies inside `outer`, both as the page lays them out (getBoundingClientRect).
+ * Both scroll together, so the answer holds however far the page is scrolled.
+ */
+export function insetWithin(outer: DOMRectReadOnly, inner: DOMRectReadOnly): MapInset {
+  return {
+    top: inner.top - outer.top,
+    right: outer.right - inner.right,
+    bottom: outer.bottom - inner.bottom,
+    left: inner.left - outer.left,
+  }
+}
+
+/**
+ * Puts `point` at the middle of `box` at `zoom`, rather than at the middle of the map: the view's
+ * centre is moved by as far as the box's middle lies from the map's.
+ */
+export function setViewInBox(
+  map: LeafletMap,
+  point: readonly [number, number],
+  zoom: number,
+  box: MapInset,
+): void {
+  const offset = L.point((box.left - box.right) / 2, (box.top - box.bottom) / 2)
+  const centre = map.unproject(map.project([point[0], point[1]], zoom).subtract(offset), zoom)
+  map.setView(centre, zoom, { animate: false })
+}
