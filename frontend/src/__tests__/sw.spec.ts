@@ -25,6 +25,15 @@ vi.mock('workbox-routing', () => ({
 // Strategies and plugins as plain records of what the worker configured them with.
 vi.mock('workbox-strategies', () => ({
   StaleWhileRevalidate: class {
+    readonly kind = 'stale-while-revalidate'
+    constructor(readonly options: unknown) {}
+  },
+  NetworkFirst: class {
+    readonly kind = 'network-first'
+    constructor(readonly options: unknown) {}
+  },
+  CacheFirst: class {
+    readonly kind = 'cache-first'
     constructor(readonly options: unknown) {}
   },
 }))
@@ -398,22 +407,111 @@ describe('service worker', () => {
     )
   })
 
-  describe('map tiles', () => {
-    type Matcher = (o: { url: URL; request: { destination: string } }) => boolean
-    interface Plugin {
-      cacheWillUpdate?: (p: { response: Response }) => Promise<Response | null>
-      options?: Record<string, unknown>
-    }
-    interface Strategy {
-      options: { cacheName: string; plugins: Plugin[] }
-    }
+  type Matcher = (o: { url: URL; request: { destination: string } }) => boolean
+  interface Plugin {
+    cacheWillUpdate?: (p: { response: Response }) => Promise<Response | null>
+    fetchDidSucceed?: unknown
+    options?: Record<string, unknown>
+  }
+  interface Strategy {
+    kind: string
+    options: { cacheName: string; plugins: Plugin[] }
+  }
 
-    async function tileRoute() {
-      await loadWorker()
-      const call = vi.mocked(registerRoute).mock.calls.find((c) => typeof c[0] === 'function')
-      expect(call).toBeDefined()
-      return { matches: call![0] as unknown as Matcher, strategy: call![1] as unknown as Strategy }
-    }
+  // The route the worker registered for a cache, as the matcher and the strategy it was given.
+  async function cachedRoute(cacheName: string) {
+    await loadWorker()
+    const call = vi
+      .mocked(registerRoute)
+      .mock.calls.find(
+        (c) => (c[1] as unknown as Strategy | undefined)?.options?.cacheName === cacheName,
+      )
+    expect(call).toBeDefined()
+    return { matches: call![0] as unknown as Matcher, strategy: call![1] as unknown as Strategy }
+  }
+
+  describe('saved API answers', () => {
+    const at = (href: string) => ({ url: new URL(href), request: { destination: '' } })
+
+    it('asks the server first and keeps its answers to stand in without one', async () => {
+      const { strategy } = await cachedRoute('garagestack-api')
+
+      expect(strategy.kind).toBe('network-first')
+      expect(strategy.options.plugins.some((p) => p.fetchDidSucceed)).toBe(true)
+    })
+
+    it.each([
+      `${ORIGIN}/api/vehicles`,
+      `${ORIGIN}/api/vehicles/FAKEVN00000000001/stats/daily?from=2026-11-01&to=2026-11-18`,
+      `${ORIGIN}/api/vehicles/FAKEVN00000000001/trips/log?from=a&to=b`,
+    ])('keeps %s', async (href) => {
+      const { matches } = await cachedRoute('garagestack-api')
+
+      expect(matches(at(href))).toBe(true)
+    })
+
+    it.each([
+      ['the log viewer', `${ORIGIN}/api/logs`],
+      ['the session check', `${ORIGIN}/api/auth/me`],
+      ['the same path on another site', 'https://elsewhere.example/api/vehicles'],
+    ])('leaves %s alone', async (_, href) => {
+      const { matches } = await cachedRoute('garagestack-api')
+
+      expect(matches(at(href))).toBe(false)
+    })
+
+    it('holds the cache to 300 answers and three months', async () => {
+      const { strategy } = await cachedRoute('garagestack-api')
+      const expiration = strategy.options.plugins.find((p) => p.options)!
+
+      expect(expiration.options).toMatchObject({
+        maxEntries: 300,
+        maxAgeSeconds: 90 * 24 * 60 * 60,
+        purgeOnQuotaError: true,
+      })
+    })
+  })
+
+  describe('vector basemap', () => {
+    const at = (href: string) => ({ url: new URL(href), request: { destination: '' } })
+
+    it('keeps what the map has shown of the basemap, a month at most', async () => {
+      const { matches, strategy } = await cachedRoute('garagestack-basemap')
+
+      expect(matches(at('https://tiles.openfreemap.org/planet/20261101/14/8414/5394.pbf'))).toBe(
+        true,
+      )
+      expect(matches(at('https://tiles.openfreemap.org/styles/liberty'))).toBe(true)
+      expect(strategy.options.plugins.find((p) => p.options)!.options).toMatchObject({
+        maxEntries: 400,
+        maxAgeSeconds: 30 * 24 * 60 * 60,
+      })
+    })
+
+    it('leaves the raster tiles and the app itself alone', async () => {
+      const { matches } = await cachedRoute('garagestack-basemap')
+
+      expect(matches(at('https://tile.openstreetmap.org/14/8414/5394.png'))).toBe(false)
+      expect(matches(at(`${ORIGIN}/assets/index.js`))).toBe(false)
+    })
+  })
+
+  describe('map renderer', () => {
+    const at = (href: string) => ({ url: new URL(href), request: { destination: 'script' } })
+
+    it('keeps the renderer once a map has loaded it, used as is', async () => {
+      const { matches, strategy } = await cachedRoute('garagestack-map-renderer')
+
+      expect(strategy.kind).toBe('cache-first')
+      expect(matches(at(`${ORIGIN}/assets/maplibreLayer-4n2PAy1z.js`))).toBe(true)
+      expect(matches(at(`${ORIGIN}/assets/maplibre-gl-worker-Dlv-oLtU.js`))).toBe(true)
+      expect(matches(at(`${ORIGIN}/assets/index-abc.js`))).toBe(false)
+      expect(matches(at('https://elsewhere.example/assets/maplibreLayer.js'))).toBe(false)
+    })
+  })
+
+  describe('map tiles', () => {
+    const tileRoute = () => cachedRoute('garagestack-map-tiles')
 
     const at = (href: string, destination = 'image') => ({
       url: new URL(href),

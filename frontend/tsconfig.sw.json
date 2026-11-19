@@ -1,6 +1,6 @@
 {
   "extends": "@vue/tsconfig/tsconfig.json",
-  "include": ["src/sw.ts"],
+  "include": ["sw-env.d.ts", "src/sw.ts"],
   "compilerOptions": {
     // The service worker runs in a worker, not a page: no DOM, the worker's own globals instead.
     "lib": ["ES2023", "WebWorker"],

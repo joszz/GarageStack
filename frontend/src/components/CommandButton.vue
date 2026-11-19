@@ -2,8 +2,11 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useTwoTapConfirm } from '@/composables/useTwoTapConfirm'
+import { useConnection } from '@/composables/useConnection'
 
 const { t } = useI18n()
+// No command reaches the car without the server, so the button is not offered meanwhile.
+const connection = useConnection()
 
 const props = withDefaults(
   defineProps<{
@@ -41,6 +44,7 @@ function onClick() {
 
 <template>
   <button
+    v-if="connection.reachable"
     class="btn"
     :class="{ 'btn--pending': pending, 'btn--armed': armed }"
     :disabled="sending || pending || disabled"

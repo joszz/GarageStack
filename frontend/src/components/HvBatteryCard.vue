@@ -7,6 +7,7 @@ import CommandButton from './CommandButton.vue'
 import CommandFeedback from './CommandFeedback.vue'
 import RangeControl from './RangeControl.vue'
 import { useVehicleCommand } from '@/composables/useVehicleCommand'
+import { useConnection } from '@/composables/useConnection'
 import { useCommandDraft } from '@/composables/useCommandDraft'
 import { formatNumber } from '@/utils/format'
 import StatusBadge from '@/components/StatusBadge.vue'
@@ -38,6 +39,9 @@ const props = defineProps<{
 }>()
 
 const { sending, lastResult, isPending, send } = useVehicleCommand()
+// Without the server no command reaches the car: the controls are hidden meanwhile.
+const connection = useConnection()
+const canSend = computed(() => connection.reachable)
 
 const roundedSocPercent = computed(() =>
   props.socPercent === null ? null : Math.round(props.socPercent),
@@ -180,7 +184,7 @@ function setChargeTarget() {
     </div>
 
     <!-- Charge current limit - PHEV/BEV only -->
-    <div v-if="canSetChargeLimit" class="detail-modal__section">
+    <div v-if="canSetChargeLimit && canSend" class="detail-modal__section">
       <div class="detail-modal__section-title">{{ t('control.chargeLimit') }}</div>
       <div class="modal-btn-group">
         <CommandButton
@@ -203,7 +207,7 @@ function setChargeTarget() {
     </div>
 
     <!-- Charge target - only on the cars that take one -->
-    <div v-if="canSetChargeTarget" class="detail-modal__section">
+    <div v-if="canSetChargeTarget && canSend" class="detail-modal__section">
       <div class="detail-modal__section-title">{{ t('control.chargeTarget') }}</div>
       <div class="detail-list">
         <RangeControl

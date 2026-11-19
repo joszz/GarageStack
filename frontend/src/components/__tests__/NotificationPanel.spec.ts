@@ -1,10 +1,12 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createI18n } from 'vue-i18n'
 import en from '@/locales/en.json'
 import NotificationPanel from '../NotificationPanel.vue'
 import type { AppNotification } from '@/services/notificationsApi'
 import { ApiError } from '@/services/apiCore'
+import { resetConnection } from '@/composables/useConnection'
+import { setBrowserOnline } from '@/composables/__tests__/connectionStub'
 
 const i18n = createI18n({ legacy: false, locale: 'en', messages: { en } })
 
@@ -68,6 +70,23 @@ describe('NotificationPanel', () => {
 
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
     expect(wrapper.emitted('close')).toHaveLength(1)
+    wrapper.unmount()
+  })
+})
+
+describe('NotificationPanel without the server', () => {
+  beforeEach(() => setBrowserOnline(false))
+  afterEach(() => {
+    vi.restoreAllMocks()
+    resetConnection()
+  })
+
+  it('shows the notifications without archiving or deleting', () => {
+    const wrapper = mountPanel({ notifications: [notification] })
+
+    expect(wrapper.text()).toContain(notification.title)
+    expect(wrapper.find('.notif-item__actions').exists()).toBe(false)
+    expect(wrapper.find('.notif-panel__footer').exists()).toBe(false)
     wrapper.unmount()
   })
 })

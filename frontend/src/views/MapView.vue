@@ -37,6 +37,8 @@ import { daysAgoIso, MS_PER_DAY, startOfLocalDay } from '@/utils/dates'
 import { DAY_MONTH, formatDate } from '@/utils/format'
 import { isPhoneViewport } from '@/utils/viewport'
 import { useUnits } from '@/composables/useUnits'
+import { useReconnect } from '@/composables/useReconnect'
+import { useConnection } from '@/composables/useConnection'
 import { burnsFuel, plugsIn } from '@/utils/vehicleType'
 import { latLngsOf } from '@/utils/geo'
 import ViewHeader from '@/components/ViewHeader.vue'
@@ -46,6 +48,8 @@ const units = useUnits()
 const route = useRoute()
 const router = useRouter()
 const store = useVehicleStore()
+// Editing a route needs the server: the button is not offered without it.
+const connection = useConnection()
 const settingsStore = useMapSettingsStore()
 const uiSettingsStore = useUiSettingsStore()
 
@@ -349,6 +353,11 @@ async function showPeriod() {
 
 watch(dateRangeDays, showPeriod)
 
+// Back from offline: the server's car and trips replace the saved ones, keeping the selection.
+useReconnect(async () => {
+  if (vin.value) await Promise.all([store.fetchStatus(vin.value), fetchShownTrips(vin.value)])
+})
+
 // Trip just finished: silently prepend without resetting selection or page. A day shown from
 // the trip log is in the past, so a new trip is not one of its own.
 watch(
@@ -467,7 +476,7 @@ onMounted(async () => {
 
         <div v-if="selectedTrip" class="map-tools">
           <RouterLink
-            v-if="selectedTrip.id != null"
+            v-if="selectedTrip.id != null && connection.reachable"
             class="map-control-btn"
             :to="{ name: 'tripEdit', params: { id: selectedTrip.id } }"
             :title="t('trips.editRoute')"

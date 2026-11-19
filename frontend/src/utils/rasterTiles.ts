@@ -20,15 +20,3 @@ export const MAP_TILE_CACHE = 'garagestack-map-tiles'
 /** About 4 MB of tiles: the card's few tiles around many parking spots, and the map page's last views. */
 export const MAP_TILE_CACHE_MAX_ENTRIES = 150
 export const MAP_TILE_CACHE_MAX_AGE_SECONDS = 30 * 24 * 60 * 60
-
-/**
- * Forgets the cached tiles, on sign-out: together they show where the car has been parked. A page
- * without Cache Storage (plain HTTP on a LAN address) has none to forget.
- */
-export async function forgetMapTiles(): Promise<void> {
-  try {
-    await globalThis.caches?.delete(MAP_TILE_CACHE)
-  } catch {
-    // Nothing to do: the cache expires on its own.
-  }
-}

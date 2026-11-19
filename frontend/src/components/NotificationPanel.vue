@@ -8,6 +8,7 @@ import { useRelativeTime } from '@/composables/useRelativeTime'
 import { useErrorMessage } from '@/composables/useErrorMessage'
 import { useEscapeKey } from '@/composables/useEscapeKey'
 import { useDialogFocus } from '@/composables/useDialogFocus'
+import { useConnection } from '@/composables/useConnection'
 
 const PAGE_SIZE = 10
 
@@ -58,6 +59,8 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
+// Archiving and deleting need the server: without it the notifications are only read.
+const connection = useConnection()
 const errorMessage = useErrorMessage()
 
 const showArchived = ref(false)
@@ -221,7 +224,7 @@ useDialogFocus(panel, () => props.open)
                   <span class="notif-item__body">{{ n.body }}</span>
                   <span class="notif-item__time text-muted">{{ relativeTime(n.createdAt) }}</span>
                 </div>
-                <div class="notif-item__actions">
+                <div v-if="connection.reachable" class="notif-item__actions">
                   <button
                     v-if="!n.isArchived"
                     class="notif-item__btn"
@@ -245,7 +248,10 @@ useDialogFocus(panel, () => props.open)
             </ul>
           </div>
 
-          <div v-if="!loading && notifications.length > 0" class="notif-panel__footer">
+          <div
+            v-if="!loading && notifications.length > 0 && connection.reachable"
+            class="notif-panel__footer"
+          >
             <template v-if="pendingAction">
               <div class="notif-panel__confirm">
                 <span class="notif-panel__confirm-msg">

@@ -1317,6 +1317,7 @@
   },
   "offline": {
     "savedState": "Geen verbinding met GarageStack. Dit is de auto zoals laatst gezien, {time}.",
-    "savedStateUnknown": "Geen verbinding met GarageStack. Dit is de auto zoals dit apparaat hem laatst heeft geladen."
+    "savedPage": "Geen verbinding met GarageStack. Deze pagina toont wat dit apparaat laatst heeft geladen, {time}.",
+    "savedPageUnknown": "Geen verbinding met GarageStack. Deze pagina toont wat dit apparaat laatst heeft geladen."
   }
 }

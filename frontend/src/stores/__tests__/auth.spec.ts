@@ -177,7 +177,7 @@ describe('useAuthStore', () => {
     expect(localStorage.getItem(AUTH_EXPIRES_KEY)).toBeNull()
   })
 
-  it('forgets the map tiles kept for offline use when the session ends', async () => {
+  it('forgets the map tiles and API answers kept for offline use when the session ends', async () => {
     const deleteCache = vi.fn<(name: string) => Promise<boolean>>().mockResolvedValue(true)
     vi.stubGlobal('caches', { delete: deleteCache })
     localStorage.setItem(AUTH_USERNAME_KEY, 'testuser')
@@ -186,7 +186,11 @@ describe('useAuthStore', () => {
 
     await useAuthStore().logout()
 
-    expect(deleteCache).toHaveBeenCalledWith('garagestack-map-tiles')
+    expect(deleteCache.mock.calls.map(([name]) => name).sort()).toEqual([
+      'garagestack-api',
+      'garagestack-basemap',
+      'garagestack-map-tiles',
+    ])
     vi.unstubAllGlobals()
   })
 

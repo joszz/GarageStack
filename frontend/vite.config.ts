@@ -171,10 +171,10 @@ export default defineConfig({
       },
       injectManifest: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
-        // The map renderer and its tile worker are ~1.5 MB and only a map page ever loads them,
-        // while the tiles they draw are not cached offline anyway. Precaching them would put
-        // that download on every install, including for someone who never opens the map, so they
-        // stay network-fetched; if they fail to arrive, the basemap falls back to raster tiles.
+        // The map renderer and its tile worker are ~1.5 MB and only a map page ever loads them.
+        // Precaching them would put that download on every install, including for someone who
+        // never opens the map, so the worker keeps them only once a map has loaded them (see
+        // sw.ts); if they fail to arrive, the basemap falls back to raster tiles.
         globIgnores: ['**/assets/maplibre*'],
       },
     }),

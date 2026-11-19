@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { createI18n } from 'vue-i18n'
@@ -13,6 +13,8 @@ import {
 import { ApiError } from '@/services/apiCore'
 import { maintenanceItem } from '@/services/__tests__/maintenanceFixtures'
 import { DetailModalStub } from './stubs'
+import { resetConnection } from '@/composables/useConnection'
+import { setBrowserOnline } from '@/composables/__tests__/connectionStub'
 
 vi.mock('@/services/maintenanceApi', () => ({
   maintenanceApi: {
@@ -111,5 +113,26 @@ describe('MaintenanceItemDetailModal', () => {
 
     expect(wrapper.find('.text-danger').text()).toBe(en.errors.offline)
     expect(wrapper.findAll('.maintenance-history__row')).toHaveLength(1)
+  })
+})
+
+describe('MaintenanceItemDetailModal without the server', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    setBrowserOnline(false)
+  })
+  afterEach(() => {
+    vi.restoreAllMocks()
+    resetConnection()
+  })
+
+  it('shows the item and its history without logging, editing or deleting', async () => {
+    vi.mocked(maintenanceApi.listLog).mockResolvedValueOnce([entry])
+    const wrapper = await openModal()
+
+    expect(wrapper.text()).toContain(en.maintenance.history)
+    expect(wrapper.find('.maintenance-log-form').exists()).toBe(false)
+    expect(wrapper.find('.maintenance-history__delete').exists()).toBe(false)
+    expect(wrapper.findAll('button').map((b) => b.text())).not.toContain(en.maintenance.editItem)
   })
 })

@@ -3,6 +3,7 @@ import { computed, nextTick, shallowRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useVehicleStore } from '@/stores/vehicle'
 import { useVehicleCommand } from '@/composables/useVehicleCommand'
+import { useConnection } from '@/composables/useConnection'
 import { useModal } from '@/composables/useModal'
 import { useUpdateNotice } from '@/composables/useUpdateNotice'
 import { useMediaQuery } from '@/composables/useMediaQuery'
@@ -13,6 +14,9 @@ import type SettingsModalComponent from './settings/SettingsModal.vue'
 const { t } = useI18n()
 const vehicleStore = useVehicleStore()
 const { sending, send } = useVehicleCommand()
+// Without the server no command reaches the car: the controls are hidden meanwhile.
+const connection = useConnection()
+const canSend = computed(() => connection.reachable)
 const { isOpen: modalOpen, open: showModal, close: closeModal } = useModal()
 const { notice: updateNotice } = useUpdateNotice()
 
@@ -75,6 +79,7 @@ function refresh() {
     <Teleport defer to="#mobile-topbar-actions" :disabled="!isPhone">
       <div class="app-footer__actions">
         <button
+          v-if="canSend"
           class="app-footer__btn"
           :aria-label="t('control.refresh')"
           :disabled="vehicleStore.loading || sending === 'refresh' || !vin"

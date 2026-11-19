@@ -7,6 +7,7 @@ import CommandButton from './CommandButton.vue'
 import CommandFeedback from './CommandFeedback.vue'
 import ChargingScheduleForm from './ChargingScheduleForm.vue'
 import { useVehicleCommand } from '@/composables/useVehicleCommand'
+import { useConnection } from '@/composables/useConnection'
 import { formatDateTime, formatNumber, formatTimeOfDay } from '@/utils/format'
 import { gatewayLabel } from '@/utils/gatewayLabel'
 import { chargerPowerKw } from '@/utils/energy'
@@ -43,6 +44,9 @@ const obcPower = computed(() =>
 )
 
 const { sending, lastResult, isPending, send } = useVehicleCommand()
+// Without the server no command reaches the car: the controls are hidden meanwhile.
+const connection = useConnection()
+const canSend = computed(() => connection.reachable)
 
 // Each is taken as done once the car reports the change, not on the gateway's word alone.
 function setCharging(start: boolean) {
@@ -125,7 +129,10 @@ const scheduleModeLabel = computed(() =>
     variant="info"
   >
     <div class="detail-list">
-      <div v-if="isCharging !== null" class="detail-list__item detail-list__item--control">
+      <div
+        v-if="isCharging !== null && canSend"
+        class="detail-list__item detail-list__item--control"
+      >
         <font-awesome-icon icon="bolt" class="detail-list__item-icon" />
         <span class="detail-list__item-label">{{ t('control.charging') }}</span>
         <CommandButton
@@ -140,7 +147,9 @@ const scheduleModeLabel = computed(() =>
         />
       </div>
       <div
-        v-if="isCharging === false && chargerConnected === false && !isPending('charging')"
+        v-if="
+          canSend && isCharging === false && chargerConnected === false && !isPending('charging')
+        "
         class="detail-list__feedback text-muted"
       >
         {{ t('control.plugInFirst') }}
@@ -254,7 +263,7 @@ const scheduleModeLabel = computed(() =>
     </div>
 
     <ChargingScheduleForm
-      v-if="vin"
+      v-if="vin && canSend"
       class="mt-3"
       :vin="vin"
       :mode="chargingScheduleMode"

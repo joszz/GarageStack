@@ -1,6 +1,10 @@
 import type { Page } from '@playwright/test'
 import { test, expect, open } from './fixtures'
 
+// The status is mocked below, and the service worker now fetches the API answers it keeps
+// for offline use itself, which bypasses Playwright's API mocks.
+test.use({ serviceWorkers: 'block' })
+
 interface DemoStatus {
   latitude: number | null
   longitude: number | null

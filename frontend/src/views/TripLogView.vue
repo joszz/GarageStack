@@ -31,11 +31,15 @@ import { useErrorMessage } from '@/composables/useErrorMessage'
 import { useMediaQuery } from '@/composables/useMediaQuery'
 import { useTripRoute } from '@/composables/useTripRoute'
 import { useRoomBelow } from '@/composables/useRoomBelow'
+import { useReconnect } from '@/composables/useReconnect'
+import { useConnection } from '@/composables/useConnection'
 import ViewHeader from '@/components/ViewHeader.vue'
 
 const { t } = useI18n()
 const vehicleStore = useVehicleStore()
 const store = useTripLogStore()
+// Classifying needs the server: without it the log is only read.
+const connection = useConnection()
 const commutePlaces = useCommutePlacesStore()
 const uiSettings = useUiSettingsStore()
 const units = useUnits()
@@ -191,6 +195,8 @@ onMounted(load)
 watch(period, reload)
 watch(vin, reload)
 watch(() => commutePlaces.revision, reloadLog)
+// Back from offline: the server's log replaces the saved one.
+useReconnect(reloadLog)
 
 // Switching place names off stops the lookups and shows coordinates; switching them back on asks
 // for whatever this page is still missing.
@@ -295,7 +301,7 @@ function classifyAll(purpose: TripPurpose) {
       </button>
     </div>
 
-    <div v-if="unclassified > 0 && !store.loading" class="trip-log-bulk">
+    <div v-if="unclassified > 0 && !store.loading && connection.reachable" class="trip-log-bulk">
       <span class="text-sm">
         <font-awesome-icon icon="circle-exclamation" class="trip-log-bulk__icon" />{{
           t(

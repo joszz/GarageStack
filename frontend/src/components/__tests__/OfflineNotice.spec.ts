@@ -6,7 +6,14 @@ import en from '@/locales/en.json'
 import type { TelemetrySnapshot } from '@/services/vehicleApi'
 import { useVehicleStore } from '@/stores/vehicle'
 import { formatDateTime } from '@/utils/format'
+import { resetConnection, watchConnection } from '@/composables/useConnection'
+import { setConnectionListener, type ConnectionListener } from '@/services/apiCore'
 import OfflineNotice from '../OfflineNotice.vue'
+
+vi.mock('@/services/apiCore', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/services/apiCore')>()),
+  setConnectionListener: vi.fn<(listener: ConnectionListener | null) => void>(),
+}))
 
 enableAutoUnmount(afterEach)
 
@@ -20,6 +27,12 @@ function setOnline(online: boolean) {
   vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(online)
 }
 
+/** What the API layer tells the connection, as main.ts wires it. */
+function requests(): ConnectionListener {
+  watchConnection()
+  return vi.mocked(setConnectionListener).mock.lastCall![0]!
+}
+
 function mountNotice() {
   const i18n = createI18n({ legacy: false, locale: 'en', messages: { en } })
   return mount(OfflineNotice, {
@@ -27,65 +40,54 @@ function mountNotice() {
   })
 }
 
-/** The store as it starts from the copy this browser saved. */
-function showSaved(status: TelemetrySnapshot | null = reading) {
-  const store = useVehicleStore()
-  store.currentStatus = status
-  store.showingSavedState = true
-  return store
-}
-
 describe('OfflineNotice', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     setOnline(true)
+    resetConnection()
   })
 
   afterEach(() => {
+    resetConnection()
     vi.restoreAllMocks()
   })
 
-  it("says the car is the saved copy, with the car's own time, when the browser is offline", () => {
+  it('stays quiet while the server answers', () => {
+    requests().answered()
+
+    expect(mountNotice().find('[role="status"]').exists()).toBe(false)
+  })
+
+  it('says how old the oldest saved answer on the page is', () => {
+    const api = requests()
+    api.answeredFromSave('2026-11-17T08:00:00Z')
+    api.answeredFromSave('2026-11-16T08:00:00Z')
+
+    expect(mountNotice().get('[role="status"]').text()).toBe(
+      en.offline.savedPage.replace('{time}', formatDateTime('2026-11-16T08:00:00Z')),
+    )
+  })
+
+  it("names the car's own time for the car this browser kept, with nothing else saved", () => {
     setOnline(false)
-    showSaved()
+    resetConnection()
+    const store = useVehicleStore()
+    store.currentStatus = reading
+    store.showingSavedState = true
 
-    const notice = mountNotice().get('[role="status"]')
-
-    expect(notice.text()).toBe(
+    expect(mountNotice().get('[role="status"]').text()).toBe(
       en.offline.savedState.replace('{time}', formatDateTime(reading.lastVehicleStateAt!)),
     )
   })
 
-  it('says so when the server could not be reached while the browser thinks it is online', () => {
-    const store = showSaved()
-    store.statusError = new TypeError('Failed to fetch')
+  it('still says there is no connection when the page has nothing dated to show', () => {
+    requests().unreachable()
 
-    expect(mountNotice().find('[role="status"]').exists()).toBe(true)
+    expect(mountNotice().get('[role="status"]').text()).toBe(en.offline.savedPageUnknown)
   })
 
-  it('stays quiet while the saved copy is only a stand-in for an answer on its way', () => {
-    showSaved()
-
-    expect(mountNotice().find('[role="status"]').exists()).toBe(false)
-  })
-
-  it('stays quiet once the server has answered, even offline afterwards', () => {
-    setOnline(false)
-    const store = showSaved()
-    store.showingSavedState = false
-
-    expect(mountNotice().find('[role="status"]').exists()).toBe(false)
-  })
-
-  it('stays quiet with no car to show', () => {
-    setOnline(false)
-    showSaved(null)
-
-    expect(mountNotice().find('[role="status"]').exists()).toBe(false)
-  })
-
-  it('appears when the connection drops and asks for what was missed when it returns', async () => {
-    showSaved()
+  it('appears when the connection drops and goes when the server answers again', async () => {
+    const api = requests()
     const wrapper = mountNotice()
     expect(wrapper.find('[role="status"]').exists()).toBe(false)
 
@@ -94,8 +96,8 @@ describe('OfflineNotice', () => {
     expect(wrapper.find('[role="status"]').exists()).toBe(true)
 
     window.dispatchEvent(new Event('online'))
+    api.answered()
     await wrapper.vm.$nextTick()
-    expect(wrapper.emitted('reconnect')).toHaveLength(1)
     expect(wrapper.find('[role="status"]').exists()).toBe(false)
   })
 })

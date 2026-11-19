@@ -1,7 +1,9 @@
 <script setup lang="ts">
 // A page's title row: the heading, the page's actions on the right, an optional caption under the
 // heading inside the row (the period Statistics shows), and an optional line about the page under
-// the row.
+// the row. Under it all, the notice that the server cannot be reached, so every page says so.
+import OfflineNotice from '@/components/OfflineNotice.vue'
+
 defineProps<{
   title: string
   caption?: string
@@ -21,4 +23,5 @@ defineProps<{
     </div>
   </div>
   <p v-if="subtitle" class="text-muted view-subtitle">{{ subtitle }}</p>
+  <OfflineNotice />
 </template>

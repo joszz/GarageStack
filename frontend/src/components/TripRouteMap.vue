@@ -12,6 +12,7 @@ import { speedSegments, speedToColor } from '@/utils/speedColors'
 import { phoneStretches } from '@/utils/tripSources'
 import { tripEndIcon, tripStartIcon } from '@/utils/tripMarkers'
 import PhoneSourceKey from './PhoneSourceKey.vue'
+import { useConnection } from '@/composables/useConnection'
 
 const props = defineProps<{
   /** The route's fixes; null while they load or when they could not be. */
@@ -27,6 +28,8 @@ const props = defineProps<{
 }>()
 
 const { t } = useI18n()
+// Editing the route needs the server: the button is not offered without it.
+const connection = useConnection()
 const phoneLines = computed(() => phoneStretches(props.points ?? []))
 
 // A preview that cannot be panned or zoomed, as the dashboard's location card. It zooms in
@@ -199,6 +202,7 @@ watch(framed, () => {
 
     <div ref="tools" class="trip-route-map__tools">
       <RouterLink
+        v-if="connection.reachable"
         class="trip-route-map__button"
         :to="{ name: 'tripEdit', params: { id: tripId } }"
         :aria-label="t('tripLog.editRoute')"

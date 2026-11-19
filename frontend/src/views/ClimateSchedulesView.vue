@@ -12,11 +12,15 @@ import { CLIMATE_MODE_ICONS } from '@/utils/climate'
 import { formatTimeOfDay } from '@/utils/format'
 import { useUnits } from '@/composables/useUnits'
 import { useErrorMessage } from '@/composables/useErrorMessage'
+import { useReconnect } from '@/composables/useReconnect'
+import { useConnection } from '@/composables/useConnection'
 import ViewHeader from '@/components/ViewHeader.vue'
 
 const { t } = useI18n()
 const vehicleStore = useVehicleStore()
 const store = useClimateSchedulesStore()
+// Changing a schedule needs the server: without it the schedules are only read.
+const connection = useConnection()
 const units = useUnits()
 const errorMessage = useErrorMessage()
 
@@ -31,6 +35,8 @@ async function load() {
 }
 
 onMounted(load)
+// Back from offline: the server's schedules replace the saved ones.
+useReconnect(load)
 
 watch(vin, (v) => {
   if (v) store.fetchSchedules(v)
@@ -69,7 +75,12 @@ function variant(schedule: ClimateSchedule): 'info' | 'warning' | undefined {
   <div class="view-container">
     <ViewHeader :title="t('climateSchedules.title')" :subtitle="t('climateSchedules.subtitle')">
       <template #actions>
-        <button class="btn btn-primary" :disabled="!vin" @click="openAdd">
+        <button
+          v-if="connection.reachable"
+          class="btn btn-primary"
+          :disabled="!vin"
+          @click="openAdd"
+        >
           <font-awesome-icon icon="plus" />{{ t('climateSchedules.addSchedule') }}
         </button>
       </template>
@@ -90,7 +101,7 @@ function variant(schedule: ClimateSchedule): 'info' | 'warning' | undefined {
         :value="formatTimeOfDay(schedule.startTime)"
         :note="note(schedule)"
         :variant="variant(schedule)"
-        clickable
+        :clickable="connection.reachable"
         @click="openEdit(schedule)"
       />
     </div>

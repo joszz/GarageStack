@@ -7,6 +7,7 @@ import CommandButton from './CommandButton.vue'
 import CommandFeedback from './CommandFeedback.vue'
 import BatteryHeatingScheduleForm from './BatteryHeatingScheduleForm.vue'
 import { useVehicleCommand } from '@/composables/useVehicleCommand'
+import { useConnection } from '@/composables/useConnection'
 import { formatTimeOfDay } from '@/utils/format'
 import StatusBadge from '@/components/StatusBadge.vue'
 
@@ -28,6 +29,9 @@ const summaryValue = computed((): string | null => {
 })
 
 const { sending, lastResult, isPending, send } = useVehicleCommand()
+// Without the server no command reaches the car: the controls are hidden meanwhile.
+const connection = useConnection()
+const canSend = computed(() => connection.reachable)
 
 function setHeating(on: boolean) {
   send(props.vin, 'battery-heating', String(on), { isConfirmed: (s) => s.batteryHeating === on })
@@ -94,7 +98,7 @@ const scheduleModeLabel = computed(() => {
     </div>
 
     <BatteryHeatingScheduleForm
-      v-if="vin"
+      v-if="vin && canSend"
       class="mt-3"
       :vin="vin"
       :mode="scheduleMode"
