@@ -141,11 +141,19 @@
      blurred. A small radius keeps the blur cheap, and the layer only exists while it is open. */
   --overlay-bg: rgb(0 0 0 / 50%);
   --overlay-blur: blur(4px);
+
+  /* A card over a map (the map behind the dashboard, dashboard.css): its surface lets a little of
+     the map through, blurred, so the card stays readable over busy streets. Defined here, where
+     each theme's surface is, so the mix follows the theme. */
+  --glass-bg: color-mix(in srgb, var(--color-surface) 60%, transparent);
+  --glass-blur: blur(12px) saturate(1.4);
 }
 
 @media (prefers-reduced-transparency: reduce) {
   :root {
     --overlay-blur: none;
+    --glass-bg: var(--color-surface);
+    --glass-blur: none;
   }
 }
 

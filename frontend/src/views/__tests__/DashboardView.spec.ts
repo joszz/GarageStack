@@ -4,6 +4,7 @@ import { createPinia, setActivePinia, type Pinia } from 'pinia'
 import { createI18n } from 'vue-i18n'
 import en from '@/locales/en.json'
 import DashboardView from '../DashboardView.vue'
+import DashboardMapBackdrop from '@/components/DashboardMapBackdrop.vue'
 import { vehicleApi, type TelemetrySnapshot, type Trip, type Vehicle } from '@/services/vehicleApi'
 import { rdwApi } from '@/services/rdwApi'
 import { ApiError } from '@/services/apiCore'
@@ -69,6 +70,8 @@ async function mountView() {
         FontAwesomeIcon: true,
         CarDiagram: true,
         LocationMapWidget: true,
+        DashboardMapBackdrop: true,
+        DashboardParkingSpot: true,
         CardInfoWrap: { template: '<div><slot /></div>' },
         DashboardCardContent: {
           props: ['cardId'],
@@ -103,6 +106,7 @@ describe('DashboardView', () => {
 
   afterEach(() => {
     vi.restoreAllMocks()
+    vi.unstubAllGlobals()
     Reflect.deleteProperty(navigator, 'serviceWorker')
   })
 
@@ -283,5 +287,83 @@ describe('DashboardView', () => {
     )
     // Hidden by default: a placeholder because it is switched off, not for want of data.
     expect(placeholder(en.settings.cards.speed)!.text()).not.toContain(en.dashboard.cardWithoutData)
+  })
+
+  describe('map behind the dashboard', () => {
+    // A screen beside the sidebar, or a phone.
+    function screenIsWide(wide: boolean) {
+      vi.stubGlobal('matchMedia', (query: string) => ({
+        matches: wide && query === '(width >= 768px)',
+        media: query,
+        addEventListener: () => {},
+        removeEventListener: () => {},
+      }))
+    }
+
+    it('lays the map under the cards and parks the car where the location card was', async () => {
+      screenIsWide(true)
+      useDashboardSettingsStore(pinia).mapBackdrop = true
+      const wrapper = await mountView()
+
+      expect(wrapper.get('.view-container').classes()).toContain('dashboard--map-backdrop')
+      expect(wrapper.find('location-map-widget-stub').exists()).toBe(false)
+      const spot = wrapper.get('dashboard-parking-spot-stub')
+      expect(wrapper.getComponent(DashboardMapBackdrop).props('spot')).toBe(spot.element)
+    })
+
+    it('keeps the parking spot, and the cards with the car diagram, where they stood once swapped', async () => {
+      screenIsWide(true)
+      const settings = useDashboardSettingsStore(pinia)
+      settings.mapBackdrop = true
+      settings.mapFirst = true
+      const wrapper = await mountView()
+
+      const order = wrapper
+        .get('.overview-row')
+        .findAll(':scope > *')
+        .map((el) => el.element.tagName.toLowerCase())
+      expect(order).toEqual(['dashboard-parking-spot-stub', 'car-diagram-stub'])
+      // So the cards below keep to the car diagram's side on a wide screen (dashboard.css).
+      expect(wrapper.get('.view-container').classes()).toContain('dashboard--map-first')
+    })
+
+    it('keeps the location card on a phone, where the cards would cover the map', async () => {
+      screenIsWide(false)
+      useDashboardSettingsStore(pinia).mapBackdrop = true
+      const wrapper = await mountView()
+
+      expect(wrapper.find('location-map-widget-stub').exists()).toBe(true)
+      expect(wrapper.findComponent(DashboardMapBackdrop).exists()).toBe(false)
+      expect(wrapper.get('.view-container').classes()).not.toContain('dashboard--map-backdrop')
+    })
+
+    it('has no map behind while the location map is hidden', async () => {
+      screenIsWide(true)
+      const settings = useDashboardSettingsStore(pinia)
+      settings.mapBackdrop = true
+      settings.showLocationMap = false
+      const wrapper = await mountView()
+
+      expect(wrapper.findComponent(DashboardMapBackdrop).exists()).toBe(false)
+      expect(wrapper.find('dashboard-parking-spot-stub').exists()).toBe(false)
+    })
+
+    it('keeps the car in the placeholder that stands in for the spot while editing', async () => {
+      screenIsWide(true)
+      useDashboardSettingsStore(pinia).mapBackdrop = true
+      const wrapper = await mountView()
+
+      await wrapper
+        .findAll('button')
+        .find((b) => b.text() === en.dashboard.editLayout)!
+        .trigger('click')
+      await vi.dynamicImportSettled()
+      await flushPromises()
+
+      const placeholder = wrapper.get('.parking-spot--edit')
+      expect(placeholder.text()).toBe(en.vehicle.location)
+      expect(wrapper.find('location-map-widget-stub').exists()).toBe(false)
+      expect(wrapper.getComponent(DashboardMapBackdrop).props('spot')).toBe(placeholder.element)
+    })
   })
 })

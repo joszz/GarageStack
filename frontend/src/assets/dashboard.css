@@ -142,6 +142,150 @@
   background: var(--color-surface-2);
 }
 
+/* ── Map behind the dashboard ─────────────────────────────── */
+
+/* The setting "Map behind the dashboard" (DashboardMapBackdrop): the map fills the main column,
+   the cards lie over it as glass, and the car stands in the room the location card would take
+   (.parking-spot). The page is its own stacking context, so the map can sit under everything in
+   it (z-index -1) without dropping behind the page itself. At least as tall as the column, so a
+   short dashboard still has map down to the bottom of the window. */
+.dashboard--map-backdrop {
+  position: relative;
+  isolation: isolate;
+  min-height: 100%;
+}
+
+/* Out to the edges of the main column, through its padding, and scrolling with the cards: the car
+   stays in its spot however far the page is scrolled. */
+.map-backdrop {
+  position: absolute;
+  inset: calc(-1 * var(--title-top)) calc(-1 * var(--content-padding))
+    calc(-1 * var(--content-padding));
+  z-index: -1;
+  overflow: hidden;
+  background: var(--color-bg);
+}
+
+.map-backdrop__map {
+  position: absolute;
+  inset: 0;
+  background: var(--color-bg);
+}
+
+/* The streets a little toward the page's background, so the map stays behind the cards rather
+   than competing with them. Only the tiles: the car and its route stay at full strength. */
+.map-backdrop__map .leaflet-tile-pane {
+  opacity: 0.8;
+}
+
+/* The map fades into the page on every side, so it has no hard edge against the sidebar or the
+   footer. Across the column's gutter at the sides and the bottom: faded out at the edge, at full
+   strength where the cards begin. Further at the top, where the page title and its buttons lie on
+   the map too. */
+.map-backdrop__fade {
+  --fade-top: calc(var(--title-top) + var(--page-title-height) + 1.5rem);
+  --fade-side: var(--content-padding);
+
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(var(--color-bg) 35%, transparent) top / 100% var(--fade-top) no-repeat,
+    linear-gradient(to top, var(--color-bg), transparent) bottom / 100% var(--fade-side) no-repeat,
+    linear-gradient(to right, var(--color-bg), transparent) left / var(--fade-side) 100% no-repeat,
+    linear-gradient(to left, var(--color-bg), transparent) right / var(--fade-side) 100% no-repeat;
+  pointer-events: none;
+}
+
+/* Everywhere but the spot lies under a card, so the map's credits are drawn in the spot's bottom
+   right corner, from where DashboardMapBackdrop says the spot is. */
+.map-backdrop__map .leaflet-bottom.leaflet-right {
+  right: var(--spot-right, 0);
+  bottom: var(--spot-bottom, 0);
+}
+
+.map-backdrop__map .leaflet-control-attribution {
+  max-width: var(--spot-width, 100%);
+  border-radius: var(--radius) 0 var(--radius) 0;
+}
+
+/* The cards over the map. */
+.dashboard--map-backdrop .tyre-diagram,
+.dashboard--map-backdrop .status-card,
+.dashboard--map-backdrop .card-slot__placeholder {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+}
+
+.dashboard--map-backdrop .status-card--clickable:hover,
+.dashboard--map-backdrop .status-card--clickable:focus-visible {
+  background: color-mix(in srgb, var(--color-surface-2) 70%, transparent);
+}
+
+/* The overview row and the spot are see-through boxes over the map, and would catch every click
+   meant for it (the pin, the credits). Only what is drawn in them takes clicks. Not while editing:
+   then the spot is a placeholder to drag like any other. */
+.dashboard--map-backdrop .overview-row.long-press-cards {
+  pointer-events: none;
+}
+
+.dashboard--map-backdrop .overview-row.long-press-cards > :not(.parking-spot),
+.parking-spot__bar {
+  pointer-events: auto;
+}
+
+/* As tall as the car diagram beside it, and never so short the pin has no street around it. */
+.parking-spot {
+  display: flex;
+  flex-direction: column;
+  min-height: 260px;
+}
+
+/* Says where the car is and holds the location card's buttons, over the top of the spot. */
+.parking-spot__bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  padding: 0.35rem 0.35rem 0.35rem 0.75rem;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+}
+
+.parking-spot__icon {
+  flex-shrink: 0;
+  color: var(--color-primary);
+}
+
+/* Truncated rather than wrapped, as on the location card. */
+.parking-spot__label {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: 0.85rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The location card's buttons, in the bar's row rather than over a map of their own. */
+.parking-spot__bar .location-map-card__actions {
+  position: static;
+  flex-shrink: 0;
+}
+
+/* While editing, the spot is a placeholder as tall as the car diagram beside it, so the car stays
+   where it was, and see-through with its label at the top, so the car shows in the middle. */
+.dashboard--map-backdrop .overview-row .parking-spot--edit {
+  flex: 1;
+  min-height: 260px;
+  justify-content: flex-start;
+  background: transparent;
+  backdrop-filter: none;
+}
+
 /* ── RDW card dialog ──────────────────────────────────────── */
 
 .rdw-recall {
@@ -214,6 +358,17 @@
   .overview-row__map {
     flex: 1 1 0;
     max-width: none;
+  }
+
+  /* With the map behind the dashboard the data keeps to the car diagram's half and the map has
+     the other half to itself: the cards are as wide as the car diagram (half the row less half
+     the overview row's 1rem gap), and stand under it on whichever side it is. */
+  .dashboard--map-backdrop .status-grid {
+    width: calc((100% - 1rem) / 2);
+  }
+
+  .dashboard--map-backdrop.dashboard--map-first .status-grid {
+    margin-left: auto;
   }
 }
 

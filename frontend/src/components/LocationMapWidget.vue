@@ -1,68 +1,21 @@
 <script setup lang="ts">
 import '@/assets/dashboard.css'
-import { computed, onUnmounted, ref, watch } from 'vue'
+import { onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRouter } from 'vue-router'
 import { LMap, LMarker } from '@vue-leaflet/vue-leaflet'
-import { L, fitToBounds, fitToPoints, type LeafletMap } from '@/utils/leaflet'
+import { L, boundsAroundCar, fitToBounds, fitToPoints, type LeafletMap } from '@/utils/leaflet'
 import { useLeafletMap } from '@/composables/useLeafletMap'
 import { useBasemap } from '@/composables/useBasemap'
-import { useVehicleStore } from '@/stores/vehicle'
-import { useReverseGeocode } from '@/composables/useReverseGeocode'
-import { addressLabel } from '@/utils/places'
+import { useCarLocation, useParkedAddress } from '@/composables/useCarLocation'
 import CardInfoWrap from './CardInfoWrap.vue'
 import { buildCarMarkerIcon, moveCarMarker } from '@/utils/mapCarIcon'
 import { latLngsOf } from '@/utils/geo'
-import { carLocation } from '@/utils/carLocation'
-import LocationDirections from './LocationDirections.vue'
+import LocationMapActions from './LocationMapActions.vue'
 
 const { t } = useI18n()
-const router = useRouter()
-const store = useVehicleStore()
-const directionsOpen = ref(false)
-
-const status = computed(() => store.currentStatus)
-const location = computed(() => carLocation(store.activeVehicle, status.value))
-const hasLocation = computed(() => location.value !== null)
-const center = computed<[number, number]>(() => [
-  location.value?.latitude ?? 0,
-  location.value?.longitude ?? 0,
-])
-
-// The API serves the still-open segment as the latest trip while the car hasn't parked for 5+
-// minutes, so a positive currentJourneyDistance means that trip is the one being driven.
-const activeTrip = computed(() => {
-  if (status.value?.vehicleId !== store.activeVehicle?.id) return null
-  const dist = status.value?.currentJourneyDistance
-  if (dist == null || dist <= 0) return null
-  return store.latestTrip
-})
-
-// The street the car is parked in, so the card says where it is rather than only showing it.
-// Only while parked: on the move this would ask for a new address on every position update, and
-// name a street the car has already left. The card draws the live route instead.
-const { requestPlaces, placeFor, placeNamesEnabled, placesResolving } = useReverseGeocode()
-
-const parkedAt = computed(() =>
-  activeTrip.value || !location.value || location.value.mayBeMoving ? null : center.value,
-)
-
-watch(
-  parkedAt,
-  (point) => {
-    if (point) requestPlaces([{ lat: point[0], lng: point[1] }], 'address')
-  },
-  { immediate: true },
-)
-
-const address = computed(() =>
-  addressLabel(placeFor(parkedAt.value?.[0], parkedAt.value?.[1], 'address')),
-)
-
-const addressPending = computed(
-  () =>
-    parkedAt.value !== null && !address.value && placeNamesEnabled.value && placesResolving.value,
-)
+const car = useCarLocation()
+const { status, location, hasLocation, center, activeTrip, openFullMap } = car
+const { address, addressPending } = useParkedAddress(car)
 
 const mapOptions = {
   zoomControl: false,
@@ -106,11 +59,8 @@ function buildActiveTripLayers() {
   }).addTo(map)
 }
 
-// While a trip is in progress, fit the view to the entire route travelled so far (start to
-// current position) while keeping the car centered, so the whole trip stays visible as it
-// grows without the view drifting off the car. Built by taking the largest lat/lng offset from
-// the car to any trip point and mirroring it on the opposite side, which keeps the car at the
-// exact centre of the resulting bounds. Falls back to centering on the car when parked, and for a
+// While a trip is in progress, fit the view to the entire route travelled so far with the car
+// kept at the centre (boundsAroundCar). Falls back to centering on the car when parked, and for a
 // trip without fixes: the copy saved for offline use keeps none, and framing the car alone zoomed
 // in past the tiles the card had shown (and kept).
 function updateMapView() {
@@ -118,21 +68,7 @@ function updateMapView() {
   if (!map) return
   const trip = activeTrip.value?.points.length ? activeTrip.value : null
   if (trip && hasLocation.value) {
-    const car = center.value
-    let maxLatDelta = 0
-    let maxLngDelta = 0
-    for (const p of trip.points) {
-      maxLatDelta = Math.max(maxLatDelta, Math.abs(p.latitude - car[0]))
-      maxLngDelta = Math.max(maxLngDelta, Math.abs(p.longitude - car[1]))
-    }
-    fitToBounds(
-      map,
-      L.latLngBounds(
-        [car[0] - maxLatDelta, car[1] - maxLngDelta],
-        [car[0] + maxLatDelta, car[1] + maxLngDelta],
-      ),
-      24,
-    )
+    fitToBounds(map, boundsAroundCar(center.value, trip.points), 24)
   } else if (trip && trip.points.length > 0) {
     fitToPoints(map, latLngsOf(trip.points), 24)
   } else if (hasLocation.value) {
@@ -174,16 +110,6 @@ watch(activeTrip, () => {
 onUnmounted(() => {
   clearActiveTripLayers()
 })
-
-function openFullMap() {
-  // Same deep-link MapView already supports for the "active trip" dashboard card - it
-  // auto-selects the last trip in the list, which is the in-progress one when there is one.
-  if (activeTrip.value) {
-    router.push({ name: 'map', query: { selectLatest: '1' } })
-  } else {
-    router.push({ name: 'map' })
-  }
-}
 </script>
 
 <template>
@@ -222,33 +148,8 @@ function openFullMap() {
           <span>{{ t('vehicle.locationUnavailable') }}</span>
         </div>
 
-        <div class="location-map-card__actions">
-          <button
-            type="button"
-            class="location-map-card__directions"
-            :aria-label="t('directions.open')"
-            :title="t('directions.open')"
-            aria-haspopup="dialog"
-            @click.stop="directionsOpen = true"
-          >
-            <font-awesome-icon icon="diamond-turn-right" aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            class="location-map-card__expand"
-            :aria-label="t('dashboard.openFullMap')"
-            :title="t('dashboard.openFullMap')"
-            @click.stop="openFullMap"
-          >
-            <font-awesome-icon icon="map" />
-          </button>
-        </div>
+        <LocationMapActions :location="location" @open-full-map="openFullMap" />
       </div>
-      <LocationDirections
-        :location="location"
-        :open="directionsOpen"
-        @close="directionsOpen = false"
-      />
     </div>
   </CardInfoWrap>
 </template>

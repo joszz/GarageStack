@@ -441,6 +441,25 @@ describe('useDashboardSettingsStore', () => {
     expect(JSON.parse(localStorage.getItem(DASHBOARD_KEY)!).showStatsMonths).toBe(false)
   })
 
+  it('keeps the map behind the dashboard off until it is switched on, and remembers that', async () => {
+    const store = useDashboardSettingsStore()
+    expect(store.mapBackdrop).toBe(false)
+
+    store.mapBackdrop = true
+    await nextTick()
+    vi.advanceTimersByTime(SAVE_DEBOUNCE_MS)
+    setActivePinia(createPinia())
+
+    expect(useDashboardSettingsStore().mapBackdrop).toBe(true)
+  })
+
+  it('leaves the map behind the dashboard as it is on a layout reset, as it is no part of the layout', () => {
+    const store = useDashboardSettingsStore()
+    store.mapBackdrop = true
+    store.resetLayout('bev', () => true)
+    expect(store.mapBackdrop).toBe(true)
+  })
+
   describe('car diagram and location map', () => {
     const ids = (store: ReturnType<typeof useDashboardSettingsStore>) =>
       store.overview.map((part) => part.id)

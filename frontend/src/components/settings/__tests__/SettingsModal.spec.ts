@@ -12,6 +12,7 @@ import { dawarichApi, type DawarichStatus } from '@/services/dawarichApi'
 import type { Vehicle } from '@/services/vehicleApi'
 import { useVehicleStore } from '@/stores/vehicle'
 import { useUiSettingsStore } from '@/stores/settingsUi'
+import { useDashboardSettingsStore } from '@/stores/settingsDashboard'
 import { useRdwStore } from '@/stores/rdw'
 import SettingsModal from '../SettingsModal.vue'
 import PhoneGpsSettings from '../PhoneGpsSettings.vue'
@@ -357,5 +358,21 @@ describe('SettingsModal without the server', () => {
       'Notifications',
     ])
     expect(panel(wrapper, 'vehicle').find('.license-plate-form').exists()).toBe(false)
+  })
+})
+
+describe('SettingsModal appearance', () => {
+  it('switches the map behind the dashboard on and back off, for the old layout', async () => {
+    const { wrapper } = await render()
+    const settings = useDashboardSettingsStore(pinia)
+    const toggle = panel(wrapper, 'general').get('#footer-toggle-map-backdrop')
+    expect(panel(wrapper, 'general').text()).toContain(en.settings.dashboard.mapBackdrop)
+    expect((toggle.element as HTMLInputElement).checked).toBe(false)
+
+    await toggle.setValue(true)
+    expect(settings.mapBackdrop).toBe(true)
+
+    await toggle.setValue(false)
+    expect(settings.mapBackdrop).toBe(false)
   })
 })
