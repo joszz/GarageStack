@@ -53,6 +53,21 @@ public sealed class PushSenderService : IPushSender, IDisposable
 
     public bool IsConfigured => _pushClient is not null;
 
+    /// <summary>
+    /// The push title with the car in front ("MG4 · Engine started") when the account has more
+    /// than one car, named as the app names it (frontend/src/utils/vehicleLabels.ts): its model,
+    /// with the end of the VIN when another car shares that model. Unchanged with one car.
+    /// </summary>
+    internal static string TitleWithCar(string title, IReadOnlyList<Vehicle> vehicles, int? vehicleId)
+    {
+        if (vehicles.Count < 2 || vehicles.FirstOrDefault(v => v.Id == vehicleId) is not { } car) return title;
+        static string Name(Vehicle v) => v.Model ?? v.Series ?? v.Vin;
+        var name = Name(car);
+        var shared = name != car.Vin && vehicles.Count(v => Name(v) == name) > 1;
+        var label = shared ? $"{name} (…{car.Vin[^Math.Min(6, car.Vin.Length)..]})" : name;
+        return $"{label} · {title}";
+    }
+
     public async Task SendToAllAsync(string title, string body, CancellationToken ct = default, string? category = null, int? vehicleId = null)
     {
         int? unreadCount = null;
@@ -98,12 +113,16 @@ public sealed class PushSenderService : IPushSender, IDisposable
         // Only re-queried if persistence above failed before it could compute this itself.
         unreadCount ??= await scope.ServiceProvider.GetRequiredService<INotificationRepository>().CountUnreadAsync(ct);
         // The service worker (frontend/src/sw.ts) shows it; it picks the icon itself from the
-        // app's own assets. Buttons on the notification need the car they act on.
-        var vin = vehicleId is { } id && NotificationActions.For(category).Count > 0
-            ? (await scope.ServiceProvider.GetRequiredService<IVehicleRepository>().GetAllAsync(ct))
-                .FirstOrDefault(v => v.Id == id)?.Vin
+        // app's own assets. Buttons on the notification need the car they act on, and with more
+        // than one car on the account the title says which car it is about.
+        var vehicles = vehicleId is null
+            ? []
+            : await scope.ServiceProvider.GetRequiredService<IVehicleRepository>().GetAllAsync(ct);
+        var vin = NotificationActions.For(category).Count > 0
+            ? vehicles.FirstOrDefault(v => v.Id == vehicleId)?.Vin
             : null;
-        var webPushPayload = PushPayload.Serialize(PushPayload.For(title, body, category, unreadCount, vin, _strings));
+        var pushTitle = TitleWithCar(title, vehicles, vehicleId);
+        var webPushPayload = PushPayload.Serialize(PushPayload.For(pushTitle, body, category, unreadCount, vin, _strings));
         var message = new PushMessage(webPushPayload) { TimeToLive = 3600 };
         var dead = new ConcurrentBag<ModelPushSubscription>();
 

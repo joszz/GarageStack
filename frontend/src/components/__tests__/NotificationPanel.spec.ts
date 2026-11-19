@@ -1,6 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createI18n } from 'vue-i18n'
+import { createPinia, setActivePinia } from 'pinia'
+import { useVehicleStore } from '@/stores/vehicle'
+import type { Vehicle } from '@/services/vehicleApi'
 import en from '@/locales/en.json'
 import NotificationPanel from '../NotificationPanel.vue'
 import type { AppNotification } from '@/services/notificationsApi'
@@ -19,6 +22,20 @@ const notification: AppNotification = {
   isArchived: false,
 }
 
+function car(id: number, vin: string, model: string): Vehicle {
+  return {
+    id,
+    vin,
+    model,
+    series: null,
+    createdAt: '2026-01-01T00:00:00Z',
+    vehicleType: 'bev',
+    hvBatteryCapacityKwh: null,
+    supportsTargetSoc: false,
+    hasPowerTailgate: false,
+  }
+}
+
 function mountPanel(props: Partial<InstanceType<typeof NotificationPanel>['$props']> = {}) {
   return mount(NotificationPanel, {
     props: { open: true, notifications: [], loading: false, ...props },
@@ -28,6 +45,29 @@ function mountPanel(props: Partial<InstanceType<typeof NotificationPanel>['$prop
 }
 
 describe('NotificationPanel', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  it('names the car a notification is about when the account has more than one', () => {
+    useVehicleStore().vehicles = [
+      car(1, 'VIN00000000000001', 'MG HS'),
+      car(2, 'VIN00000000000002', 'MG4'),
+    ]
+    const wrapper = mountPanel({ notifications: [{ ...notification, vehicleId: 2 }] })
+
+    expect(wrapper.find('.notif-item__car').text()).toBe('MG4')
+    wrapper.unmount()
+  })
+
+  it('leaves the car out with one car on the account', () => {
+    useVehicleStore().vehicles = [car(1, 'VIN00000000000001', 'MG4')]
+    const wrapper = mountPanel({ notifications: [{ ...notification, vehicleId: 1 }] })
+
+    expect(wrapper.find('.notif-item__car').exists()).toBe(false)
+    wrapper.unmount()
+  })
+
   it('says the list could not be loaded instead of claiming there is nothing, and offers a retry', async () => {
     const wrapper = mountPanel({ fetchError: new TypeError('Failed to fetch') })
 
@@ -75,7 +115,10 @@ describe('NotificationPanel', () => {
 })
 
 describe('NotificationPanel without the server', () => {
-  beforeEach(() => setBrowserOnline(false))
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    setBrowserOnline(false)
+  })
   afterEach(() => {
     vi.restoreAllMocks()
     resetConnection()

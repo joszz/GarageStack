@@ -17,6 +17,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useLoadingTracker } from '@/composables/useLoadingTracker'
 import { readLastVin, rememberVin } from '@/utils/lastVin'
 import { readLastKnownState, saveLastKnownState } from '@/utils/lastKnownState'
+import { vehicleLabels } from '@/utils/vehicleLabels'
 
 // Defined with the API contract it comes from; re-exported here because every view reads the
 // vehicle's type through this store.
@@ -231,6 +232,15 @@ export const useVehicleStore = defineStore('vehicle', () => {
   const activeVin = computed((): string | null => activeVehicle.value?.vin ?? null)
   const hasMultipleVehicles = computed(() => vehicles.value.length > 1)
 
+  // A notification names its car only when there is more than one to tell apart.
+  const labelsById = computed(
+    () => new Map(vehicleLabels(vehicles.value).map((l) => [l.id, l.label] as const)),
+  )
+  function carLabelFor(vehicleId: number | null | undefined): string | null {
+    if (!hasMultipleVehicles.value || vehicleId == null) return null
+    return labelsById.value.get(vehicleId) ?? null
+  }
+
   // The colour and the type override are kept per car in the UI settings.
   watch(activeVin, (vin) => uiSettings.setActiveVin(vin), { immediate: true })
 
@@ -303,6 +313,7 @@ export const useVehicleStore = defineStore('vehicle', () => {
     activeVin,
     hasMultipleVehicles,
     selectVehicle,
+    carLabelFor,
     currentStatus,
     currentPosition,
     vehicleConfig,

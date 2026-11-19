@@ -283,6 +283,15 @@
   min-width: 0;
 }
 
+.notif-item__car {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
 .notif-item__title {
   font-size: 0.875rem;
   font-weight: 600;
