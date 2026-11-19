@@ -1,0 +1,110 @@
+# GarageStack for ZimaOS (and CasaOS).
+#
+# Install: ZimaOS dashboard -> App Store -> "+" (top right) -> Install a customized app -> Import,
+# then paste this file. Fill in SAIC_USER, SAIC_PASSWORD and CORS_ORIGIN before installing.
+#
+# This uses the all-in-one image (docker/all-in-one): nginx, the API, the Worker, PostgreSQL,
+# Mosquitto and the SAIC MQTT Gateway all run in this one container, with every bit of state under
+# /data. See docker/all-in-one/README.md for the layout and documentation/CONFIGURATION.md for
+# every other variable, which can be added under "environment" with the same name.
+#
+# The image is published for linux/amd64 and linux/arm64.
+name: garagestack
+
+services:
+  garagestack:
+    image: ghcr.io/joszz/garagestack:latest
+    container_name: garagestack
+    restart: unless-stopped
+    environment:
+      # Optional web login of its own. Left empty, you sign in with the MG iSmart account below.
+      AUTH_USERNAME: ""
+      AUTH_PASSWORD: ""
+      # MG iSmart account (must be the vehicle owner account).
+      SAIC_USER: ""
+      SAIC_PASSWORD: ""
+      # Region the car is registered in: eu, au or tr.
+      SAIC_REGION: "eu"
+      # The exact URL you open GarageStack on, e.g. http://192.168.1.100:8080
+      CORS_ORIGIN: "http://localhost:8080"
+    ports:
+      - target: 80
+        published: "8080"
+        protocol: tcp
+      # MQTT broker, only for external clients such as Home Assistant. Remove if unused.
+      # For Home Assistant add HA_MQTT_USERNAME and HA_MQTT_PASSWORD under environment.
+      - target: 1883
+        published: "1883"
+        protocol: tcp
+    volumes:
+      - type: bind
+        source: /DATA/AppData/garagestack/data
+        target: /data
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    x-casaos:
+      envs:
+        - container: AUTH_USERNAME
+          description:
+            en_us: Optional web login username (empty uses SAIC_USER)
+        - container: AUTH_PASSWORD
+          description:
+            en_us: Optional web login password (empty uses SAIC_PASSWORD)
+        - container: SAIC_USER
+          description:
+            en_us: MG iSmart account email (vehicle owner account)
+        - container: SAIC_PASSWORD
+          description:
+            en_us: MG iSmart account password
+        - container: SAIC_REGION
+          description:
+            en_us: "Region the car is registered in: eu, au or tr"
+        - container: CORS_ORIGIN
+          description:
+            en_us: Exact URL you open GarageStack on, e.g. http://192.168.1.100:8080
+      ports:
+        - container: "80"
+          description:
+            en_us: Web UI
+        - container: "1883"
+          description:
+            en_us: MQTT broker (optional, for Home Assistant)
+      volumes:
+        - container: /data
+          description:
+            en_us: Database, broker data, logs and keys
+
+x-casaos:
+  architectures:
+    - amd64
+    - arm64
+  main: garagestack
+  author: joszz
+  developer: joszz
+  category: Home Automation
+  icon: https://raw.githubusercontent.com/joszz/garagestack/main/frontend/public/pwa-192x192.png
+  tagline:
+    en_us: Self-hosted dashboard for MG / SAIC cars
+  description:
+    en_us: >-
+      GarageStack is an open-source, self-hosted dashboard for MG / SAIC electric, plug-in hybrid
+      and hybrid cars. It connects to the MG iSmart cloud through the SAIC MQTT Gateway and keeps
+      everything in its own embedded PostgreSQL database: live dashboard, remote commands, climate
+      schedules, energy statistics, trips and heatmaps, a trip log with CSV export, maintenance
+      reminders, push notifications and Home Assistant integration through MQTT discovery.
+  title:
+    en_us: GarageStack
+  index: /
+  port_map: "8080"
+  scheme: http
+  store_app_id: garagestack
+  project_url: https://github.com/joszz/garagestack
+  tips:
+    before_install:
+      en_us: >-
+        Set SAIC_USER, SAIC_PASSWORD and SAIC_REGION to your MG iSmart account, and CORS_ORIGIN to
+        the exact address you will open GarageStack on (http://<ZimaOS IP>:8080). You sign in with
+        the MG iSmart account, or with AUTH_USERNAME / AUTH_PASSWORD when you set them.
