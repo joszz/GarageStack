@@ -22,7 +22,7 @@ public static class DemoSeeder
 
         if (!await db.Vehicles.AnyAsync(ct))
         {
-            db.Vehicles.Add(DemoVehicleRepository.DemoVehicle);
+            db.Vehicles.AddRange(DemoVehicleRepository.All);
             await db.SaveChangesAsync(ct);
         }
 

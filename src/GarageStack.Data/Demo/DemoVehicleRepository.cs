@@ -19,11 +19,32 @@ public sealed class DemoVehicleRepository : IVehicleRepository
         LicensePlate = "ZZ123Z",
     };
 
+    /// <summary>
+    /// A second car, a plug-in hybrid, for trying the car picker. Only there when DEMO_SECOND_VEHICLE
+    /// is true, so the public demo keeps its one car. It shares the first car's telemetry.
+    /// </summary>
+    public static readonly Vehicle SecondDemoVehicle = new()
+    {
+        Id = 2,
+        Vin = "DEMOVIN0000067890",
+        Model = "MG HS PHEV",
+        Series = "HS",
+        SaicUser = "demo@example.com",
+        CreatedAt = DateTime.UtcNow.AddMonths(-3),
+        ConfigJson = """{"hw_version":"AS23 PHEV","BType":"0"}""",
+    };
+
+    public static bool SecondVehicleEnabled =>
+        string.Equals(Environment.GetEnvironmentVariable("DEMO_SECOND_VEHICLE"), "true", StringComparison.OrdinalIgnoreCase);
+
+    public static IReadOnlyList<Vehicle> All =>
+        SecondVehicleEnabled ? [DemoVehicle, SecondDemoVehicle] : [DemoVehicle];
+
     public Task<IReadOnlyList<Vehicle>> GetAllAsync(CancellationToken ct = default) =>
-        Task.FromResult<IReadOnlyList<Vehicle>>([DemoVehicle]);
+        Task.FromResult(All);
 
     public Task<Vehicle?> GetByVinAsync(string vin, CancellationToken ct = default) =>
-        Task.FromResult<Vehicle?>(vin == DemoVehicle.Vin ? DemoVehicle : null);
+        Task.FromResult(All.FirstOrDefault(v => v.Vin == vin));
 
     public Task<Vehicle> GetOrCreateByVinAsync(string vin, string? saicUser = null, CancellationToken ct = default) =>
         Task.FromResult(DemoVehicle);
@@ -44,14 +65,16 @@ public sealed class DemoVehicleRepository : IVehicleRepository
     // Kept, unlike the gateway's own updates: entering a plate is how the RDW card is tried out.
     public Task SetLicensePlateAsync(int vehicleId, string? licensePlate, CancellationToken ct = default)
     {
-        if (vehicleId == DemoVehicle.Id) DemoVehicle.LicensePlate = licensePlate;
+        var vehicle = All.FirstOrDefault(v => v.Id == vehicleId);
+        if (vehicle is not null) vehicle.LicensePlate = licensePlate;
         return Task.CompletedTask;
     }
 
     // Kept too: switching it on is how the tailgate controls are tried out.
     public Task SetHasPowerTailgateAsync(int vehicleId, bool hasPowerTailgate, CancellationToken ct = default)
     {
-        if (vehicleId == DemoVehicle.Id) DemoVehicle.HasPowerTailgate = hasPowerTailgate;
+        var tailgateCar = All.FirstOrDefault(v => v.Id == vehicleId);
+        if (tailgateCar is not null) tailgateCar.HasPowerTailgate = hasPowerTailgate;
         return Task.CompletedTask;
     }
 }
