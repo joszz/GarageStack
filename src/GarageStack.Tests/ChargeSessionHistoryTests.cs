@@ -109,6 +109,66 @@ public class ChargeSessionHistoryTests
     }
 
     [Fact]
+    public void Build_UsesReportedStartAndEndWhenChargingStateWasMissed()
+    {
+        var start = T0;
+        var end = T0.AddMinutes(17);
+        var before = Reading(-194, soc: 35.6) with { HvSocKwh = 22.78 };
+        var after = Reading(50, soc: 82.8, type: "1") with
+        {
+            ChargingLastStartAt = start,
+            ChargingLastEndAt = end,
+            HvSocKwh = 52.97,
+        };
+
+        var session = Assert.Single(ChargeSessionHistory.Build([before, after]));
+
+        Assert.Equal(start, session.StartedAt);
+        Assert.Equal(end, session.EndedAt);
+        Assert.Equal(35.6, session.StartSocPercent);
+        Assert.Equal(82.8, session.EndSocPercent);
+        Assert.Equal(30.19, session.BatteryEnergyGainedKwh!.Value, 2);
+        Assert.Null(session.ChargingType);
+        Assert.Null(session.MaxPowerKw);
+    }
+
+    [Fact]
+    public void Build_DoesNotInferAReportedIntervalWithoutAnEnergyIncrease()
+    {
+        var readings = new[]
+        {
+            Reading(-10, soc: 40) with { HvSocKwh = 28 },
+            Reading(20, soc: 40, type: "1") with
+            {
+                ChargingLastStartAt = T0,
+                ChargingLastEndAt = T0.AddMinutes(10),
+                HvSocKwh = 28,
+            },
+        };
+
+        Assert.Empty(ChargeSessionHistory.Build(readings));
+    }
+
+    [Fact]
+    public void Build_DoesNotDuplicateAReportedIntervalOverlappingAStateTransition()
+    {
+        var readings = new[]
+        {
+            Reading(0, charging: true, soc: 40, type: "7") with { ChargingLastStartAt = T0 },
+            Reading(55, charging: false, soc: 60, type: "7") with
+            {
+                ChargingLastStartAt = T0.AddMinutes(5),
+                ChargingLastEndAt = T0.AddMinutes(55),
+            },
+        };
+
+        var session = Assert.Single(ChargeSessionHistory.Build(readings));
+
+        Assert.Equal(T0, session.StartedAt);
+        Assert.Equal(T0.AddMinutes(55), session.EndedAt);
+    }
+
+    [Fact]
     public void Build_KeepsOnlySessionsThatOverlapThePeriod()
     {
         List<ChargeSessionReading> readings =

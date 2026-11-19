@@ -3,9 +3,9 @@ using GarageStack.Core.Models;
 namespace GarageStack.Core.Helpers;
 
 /// <summary>
-/// Rebuilds charge sessions from telemetry: a session runs from the reading where
-/// drivetrain/charging turns true to the one where it turns false, and uses the gateway's own
-/// charging/lastStart and charging/lastEnd times when they fall between those readings.
+/// Rebuilds charge sessions from telemetry, using charging-state transitions and the gateway's
+/// reported start/end times. If the charging state was missed, a complete reported interval with
+/// an observed increase in state of charge or battery energy can still recover the session.
 /// </summary>
 public static class ChargeSessionHistory
 {
@@ -38,6 +38,21 @@ public static class ChargeSessionHistory
     /// <summary>Every session in the readings, newest first.</summary>
     public static IReadOnlyList<ChargeSession> Build(IEnumerable<ChargeSessionReading> readings)
     {
+        var orderedReadings = new List<ChargeSessionReading>();
+        DateTime? newestChargeStateAt = null;
+        foreach (var reading in readings.OrderBy(r => r.RecordedAt).ThenBy(r => r.Id))
+        {
+            // The gateway can replay retained charging topics after reconnecting. Ignore a poll
+            // older than the newest charge-state poll, including when rebuilding reported times.
+            if (reading.LastChargeStateAt is { } stamp)
+            {
+                if (newestChargeStateAt is { } newest && stamp < newest)
+                    continue;
+                newestChargeStateAt = stamp;
+            }
+            orderedReadings.Add(reading);
+        }
+
         var sessions = new List<ChargeSession>();
         bool? charging = null;
         double? soc = null;
@@ -49,7 +64,6 @@ public static class ChargeSessionHistory
         DateTime? lastReportedStartAt = null;
         DateTime? lastReportedEndAt = null;
         DateTime? lastTransitionAt = null;
-        DateTime? newestChargeStateAt = null;
         DateTime? startedAt = null;
         double? startSoc = null;
         double? endSoc = null;
@@ -61,18 +75,8 @@ public static class ChargeSessionHistory
         string? sessionType = null;
         double? maxPowerKw = null;
 
-        foreach (var reading in readings.OrderBy(r => r.RecordedAt).ThenBy(r => r.Id))
+        foreach (var reading in orderedReadings)
         {
-            // The gateway publishes its retained topics again when it starts, and the broker when
-            // the Worker reconnects. Such a row carries the stamp of the poll it came from, older
-            // than one already seen, and would otherwise reopen a charge that has ended.
-            if (reading.LastChargeStateAt is { } stamp)
-            {
-                if (newestChargeStateAt is { } newest && stamp < newest)
-                    continue;
-                newestChargeStateAt = stamp;
-            }
-
             soc = reading.EvSocPercent ?? soc;
             batteryKwh = reading.HvSocKwh ?? batteryKwh;
             odometerKm = reading.OdometerKm ?? odometerKm;
@@ -147,7 +151,53 @@ public static class ChargeSessionHistory
                 startBatteryKwh, endBatteryKwh, sessionOdometerKm,
                 sessionLatitude, sessionLongitude, maxPowerKw));
 
+        AddReportedSessions(orderedReadings, sessions);
         return sessions.OrderByDescending(s => s.StartedAt).ToArray();
+    }
+
+    private static void AddReportedSessions(
+        IReadOnlyList<ChargeSessionReading> readings, List<ChargeSession> sessions)
+    {
+        var reported = readings
+            .Where(r => r.ChargingLastStartAt is not null && r.ChargingLastEndAt is not null)
+            .GroupBy(r => (StartedAt: r.ChargingLastStartAt!.Value, EndedAt: r.ChargingLastEndAt!.Value))
+            .Select(g => g.FirstOrDefault(r => r.RecordedAt >= g.Key.EndedAt))
+            .OfType<ChargeSessionReading>();
+
+        foreach (var report in reported)
+        {
+            var start = report.ChargingLastStartAt!.Value;
+            var end = report.ChargingLastEndAt!.Value;
+            if (end <= start ||
+                end - start > SessionLookaround ||
+                report.RecordedAt < end ||
+                report.RecordedAt - end > SessionLookaround ||
+                sessions.Any(s => s.StartedAt < end && (s.EndedAt ?? DateTime.MaxValue) > start))
+                continue;
+
+            var before = readings.LastOrDefault(r => r.RecordedAt <= start);
+            var after = readings.FirstOrDefault(r => r.RecordedAt >= end);
+            if (after is null || after.RecordedAt - end > SessionLookaround)
+                continue;
+
+            var startSoc = before?.EvSocPercent;
+            var endSoc = after.EvSocPercent;
+            var startBatteryKwh = before?.HvSocKwh;
+            var endBatteryKwh = after.HvSocKwh;
+            if (!(startSoc is { } startPercent && endSoc is { } endPercent && endPercent > startPercent) &&
+                !(startBatteryKwh is { } startKwh && endBatteryKwh is { } endKwh && endKwh > startKwh))
+                continue;
+
+            var interval = readings.Where(r => r.RecordedAt >= start && r.RecordedAt <= end).ToArray();
+            var type = interval.Select(r => ChargingKind.FromGateway(r.ChargingType)).FirstOrDefault(t => t is not null);
+            var powers = interval.Select(r => r.PowerKw).Where(p => p is not null).ToArray();
+            var maxPowerKw = powers.Length > 0 ? powers.Max() : null;
+            sessions.Add(CreateSession(
+                start, end,
+                startSoc, endSoc, type,
+                startBatteryKwh, endBatteryKwh, after.OdometerKm,
+                after.Latitude, after.Longitude, maxPowerKw));
+        }
     }
 
     /// <summary>The charging power over time, from the readings of one session.</summary>

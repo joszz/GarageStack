@@ -6,7 +6,7 @@ See [ARCHITECTURE.md](../documentation/ARCHITECTURE.md) for how the services (Wo
 
 ## Getting Started
 
-Don't have a real MG vehicle or SAIC account to test against? See [DEMO.md](../documentation/DEMO.md) -- demo mode runs the full app against realistic fake data with no MG credentials, database, or MQTT broker required, and is the fastest way to get the frontend running locally.
+Don't have a real MG vehicle or SAIC account to test against? See [DEMO.md](../documentation/DEMO.md) -- demo mode runs the full app with CSV-backed telemetry and in-memory demo services, without MG credentials, a database, or an MQTT broker, and is the fastest way to get the frontend running locally.
 
 To work against the full stack (real or self-provided credentials):
 

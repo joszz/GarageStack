@@ -1,10 +1,10 @@
 # Demo Mode
 
-Demo mode runs GarageStack with realistic fake data and requires no MG iSmart credentials, no database, and no MQTT broker.
+Demo mode uses the local telemetry CSV for vehicle history, charging sessions, and trips when it is present. If it is absent, the original generated demo data is used. It requires no MG iSmart credentials, database, or MQTT broker.
 
 ## What you get
 
-- MG ZS EV with 400 days of history (including occasional home AC and public DC charging sessions with battery and power curves), ten finished trips from the last five weeks (most around Amsterdam, a few further afield) and one in progress
+- Vehicle telemetry, charging sessions, and trip routes from `telemetry/telemetry.csv` when present; otherwise the original generated mock data
 - Dashboard, Statistics, and Map views fully populated
 - A **Demo Controls** panel (bottom-right button) to toggle vehicle states live: doors, windows, lights, lock, engine, charging, SOC, temperature
 - A demo banner across the top reminding you that data is not real
@@ -13,6 +13,8 @@ Demo mode runs GarageStack with realistic fake data and requires no MG iSmart cr
 
 ```bash
 cp .env.demo.example .env.demo
+mkdir -p telemetry
+# Copy your telemetry.csv into ./telemetry/telemetry.csv
 docker compose --env-file .env.demo -f docker-compose.demo.yml up --build
 ```
 
@@ -93,11 +95,13 @@ Click the flask icon in the bottom-right corner to open the panel. Changes take 
 | --- | --- |
 | `AppDbContext` | An in-memory database for everything you add yourself: settings, maintenance, climate schedules, home and work places, API tokens, notifications |
 | `IVehicleRepository` | Returns one static MG ZS EV |
-| `ITelemetryRepository` | Serves pre-built snapshots; mutable via `/api/demo/status/{vin}` |
-| `ITripRepository` | Serves the pre-built trips |
+| `ITelemetryRepository` | Serves the CSV snapshots; mutable via `/api/demo/status/{vin}` |
+| `ITripRepository` | Derives trips and odometer readings from the CSV |
 | `IRdwClient` | Answers for the RDW with any plate: an APK due in three weeks, one open recall and one repaired, so the RDW card shows without a car and without a request leaving the machine. The demo seeds the two notifications the Worker would have sent about it. `RDW_ENABLED=false` leaves the card, the plate field and those notifications out |
 | `IMqttPublisher` | Carries commands out on the demo car: after two seconds the car's state changes and the answer arrives, as from the gateway. Starting to charge without the cable plugged in (Demo Controls) is refused, to show a refusal |
 | `LogFiles:WorkerDirectory` | When `WORKER_LOG_DIRECTORY` is not set, a folder under the temp directory holding a day of sample Worker log entries (`DemoWorkerLog`), so the log viewer shows both services instead of asking for the Worker's folder |
+
+The demo Compose file mounts the `telemetry/` directory read-only and sets `DEMO_TELEMETRY_CSV` for the API. Put your capture at `telemetry/telemetry.csv`; the file is local-only and is not included in the repository or image. If the file is absent, the demo uses its generated telemetry, charge history, trip routes, and phone fixes instead. A present but invalid CSV fails explicitly rather than silently switching to mock data.
 
 No PostgreSQL, Mosquitto, Worker, or SAIC gateway containers are started.
 

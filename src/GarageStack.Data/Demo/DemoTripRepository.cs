@@ -6,9 +6,9 @@ using GarageStack.Core.Models;
 namespace GarageStack.Data.Demo;
 
 /// <summary>
-/// Serves the demo's fixed trips. Demo mode runs no Worker, so nothing is ever recorded: saving is
-/// a no-op and the recording line is never set. What a visitor records in the trip log is kept in
-/// memory for as long as the demo runs.
+/// Serves trips derived from the telemetry capture. Demo mode runs no Worker, so saving is a no-op
+/// and the recording line is never set. What a visitor records in the trip log is kept in memory
+/// for as long as the demo runs.
 /// </summary>
 public sealed class DemoTripRepository : ITripRepository
 {
@@ -48,7 +48,7 @@ public sealed class DemoTripRepository : ITripRepository
     // Every demo trip carries its fixes, so there is nothing to fill in.
     public Task<int> FillSpeedFiguresAsync(int batchSize, CancellationToken ct = default) => Task.FromResult(0);
 
-    // The demo's fixed timeline ends with the trip it is driving, whatever the clock says.
+    // The timeline comes from the capture, regardless of the current clock.
     public Task<TripDto?> GetLatestAsync(int vehicleId, DateTime now, CancellationToken ct = default) =>
         Task.FromResult<TripDto?>(DemoTrips.All.Count > 0 ? DemoTrips.All[^1] with { Index = 0 } : null);
 

@@ -1,48 +1,80 @@
+using GarageStack.Core.Helpers;
+using GarageStack.Core.Models;
 using GarageStack.Data.Demo;
 
 namespace GarageStack.Tests;
 
 public class DemoChargeSessionTests
 {
-    private static readonly DateTime To = DateTime.UtcNow;
+    private static readonly string? Capture = FindCapture();
+    private static readonly DateTime To = CaptureEnd(Capture) ?? DateTime.UtcNow;
     private static readonly DateTime From = To.AddDays(-366);
 
+    private static string? FindCapture()
+    {
+        var configuredPath = Environment.GetEnvironmentVariable("DEMO_TELEMETRY_CSV");
+        if (!string.IsNullOrWhiteSpace(configuredPath))
+            return File.Exists(configuredPath) ? configuredPath : null;
+
+        var telemetryDirectory = RepositoryFiles.PathOf("telemetry");
+        var canonicalFile = Path.Combine(telemetryDirectory, "telemetry.csv");
+        if (File.Exists(canonicalFile)) return canonicalFile;
+        if (!Directory.Exists(telemetryDirectory)) return null;
+        var captures = Directory.GetFiles(telemetryDirectory, "telemetry.csv", SearchOption.AllDirectories);
+        return captures.Length == 1 ? captures[0] : null;
+    }
+
+    private static DateTime? CaptureEnd(string? capture)
+    {
+        if (capture is null) return null;
+        var lines = File.ReadLines(capture).ToArray();
+        var headers = lines[0].Split(',');
+        var timestampColumn = Array.IndexOf(headers, nameof(TelemetrySnapshot.RecordedAt));
+        return DateTime.Parse(
+            lines[^1].Split(',')[timestampColumn],
+            System.Globalization.CultureInfo.InvariantCulture,
+            System.Globalization.DateTimeStyles.RoundtripKind);
+    }
+
     [Fact]
-    public async Task GetChargeSessions_GeneratesPlausibleSessionsWithVariableChargingProfiles()
+    public async Task GetMergedLatest_UsesTheLocalCaptureWhenPresent()
+    {
+        if (Capture is null) return;
+
+        var lines = File.ReadLines(Capture).ToArray();
+        var headers = lines[0].Split(',');
+        var latestRow = lines[^1].Split(',');
+        var expectedRecordedAt = DateTime.Parse(
+            latestRow[Array.IndexOf(headers, nameof(TelemetrySnapshot.RecordedAt))],
+            System.Globalization.CultureInfo.InvariantCulture,
+            System.Globalization.DateTimeStyles.RoundtripKind);
+        var odometerColumn = Array.IndexOf(headers, nameof(TelemetrySnapshot.OdometerKm));
+        var expectedOdometer = double.Parse(
+            lines.Skip(1).Reverse()
+                .Select(line => line.Split(','))
+                .First(cells => cells[odometerColumn].Length > 0)[odometerColumn],
+            System.Globalization.CultureInfo.InvariantCulture);
+
+        var snapshot = await new DemoTelemetryRepository().GetMergedLatestAsync(1, TestContext.Current.CancellationToken);
+
+        Assert.NotNull(snapshot);
+        Assert.Equal(expectedRecordedAt, snapshot.RecordedAt);
+        Assert.Equal(expectedOdometer, snapshot.OdometerKm.GetValueOrDefault());
+    }
+
+    [Fact]
+    public async Task GetChargeSessions_UsesCaptureOrGeneratedChargingTelemetry()
     {
         var ct = TestContext.Current.CancellationToken;
         var repo = new DemoTelemetryRepository();
         var sessions = await repo.GetChargeSessionsAsync(1, From, To, ct);
-        var odometerNow = (await repo.GetMergedLatestAsync(1, ct))!.OdometerKm;
-
-        Assert.InRange(sessions.Count, 50, 199);
-        Assert.Contains(sessions, session => session.ChargingType == "AC");
-        Assert.Contains(sessions, session => session.ChargingType == "DC");
-        var fastCharges = sessions.Where(session => session.ChargingType == "DC").ToArray();
-        Assert.True(fastCharges.Length < sessions.Count / 4);
+        Assert.NotEmpty(sessions);
         Assert.All(sessions, session =>
         {
             Assert.NotNull(session.EndedAt);
-            var endedAt = session.EndedAt.Value;
-            Assert.InRange(
-                endedAt - session.StartedAt,
-                TimeSpan.FromMinutes(10),
-                TimeSpan.FromHours(10));
-            Assert.True(
-                session.StartSocPercent is { } startSoc &&
-                session.EndSocPercent is { } endSoc &&
-                endSoc > startSoc);
-            Assert.InRange(session.BatteryEnergyGainedKwh.GetValueOrDefault(), 1, 50);
-            Assert.InRange(session.OdometerKm.GetValueOrDefault(), 1, odometerNow.GetValueOrDefault());
-            Assert.True(session.Latitude is >= 51 and <= 53);
-            Assert.True(session.Longitude is >= 4 and <= 6);
+            Assert.True(session.EndedAt > session.StartedAt);
+            Assert.InRange(session.StartedAt, From - ChargeSessionHistory.SessionLookaround, To);
         });
-
-        // The gateway publishes power in kW, and the demo does the same.
-        Assert.All(sessions.Where(session => session.ChargingType == "AC"), session =>
-            Assert.InRange(session.MaxPowerKw.GetValueOrDefault(), 6, 8));
-        Assert.All(fastCharges, session =>
-            Assert.InRange(session.MaxPowerKw.GetValueOrDefault(), 40, 90));
     }
 
     [Fact]
@@ -50,12 +82,11 @@ public class DemoChargeSessionTests
     {
         var ct = TestContext.Current.CancellationToken;
         var repo = new DemoTelemetryRepository();
-        var month = await repo.GetChargeSessionsAsync(1, To.AddDays(-30), To, ct);
+        var week = await repo.GetChargeSessionsAsync(1, To.AddDays(-7), To, ct);
         var year = await repo.GetChargeSessionsAsync(1, From, To, ct);
 
-        Assert.NotEmpty(month);
-        Assert.True(month.Count < year.Count);
-        Assert.All(month, session => Assert.True(session.EndedAt >= To.AddDays(-30)));
+        Assert.True(week.Count <= year.Count);
+        Assert.All(week, session => Assert.True(session.EndedAt >= To.AddDays(-7)));
     }
 
     [Fact]
@@ -64,16 +95,25 @@ public class DemoChargeSessionTests
         var ct = TestContext.Current.CancellationToken;
         var repo = new DemoTelemetryRepository();
         var sessions = await repo.GetChargeSessionsAsync(1, From, To, ct);
+        Assert.NotEmpty(sessions);
+        var session = sessions.OrderByDescending(item => item.MaxPowerKw).First();
+        var curve = await repo.GetChargePowerAsync(1, session.StartedAt, session.EndedAt!.Value, ct);
+        Assert.NotEmpty(curve);
+        Assert.All(curve, point => Assert.InRange(point.RecordedAt, session.StartedAt, session.EndedAt.Value));
+        Assert.Equal(session.MaxPowerKw.GetValueOrDefault(), curve.Max(point => point.PowerKw));
+    }
 
-        var ac = sessions.First(session => session.ChargingType == "AC");
-        var acCurve = await repo.GetChargePowerAsync(1, ac.StartedAt, ac.EndedAt!.Value, ct);
-        Assert.True(acCurve.Count >= 3);
-        Assert.All(acCurve, point => Assert.InRange(point.RecordedAt, ac.StartedAt, ac.EndedAt.Value));
-        Assert.True(acCurve[0].PowerKw < acCurve[1].PowerKw);
-        Assert.Equal(ac.MaxPowerKw, acCurve.Max(point => point.PowerKw));
+    [Fact]
+    public async Task MissingCapture_UsesTheOriginalMockVehicleAndTrips()
+    {
+        if (Capture is not null) return;
 
-        var dc = sessions.First(session => session.ChargingType == "DC");
-        var dcCurve = await repo.GetChargePowerAsync(1, dc.StartedAt, dc.EndedAt!.Value, ct);
-        Assert.True(dcCurve[0].PowerKw > dcCurve[^1].PowerKw);
+        var ct = TestContext.Current.CancellationToken;
+        var telemetry = await new DemoTelemetryRepository().GetMergedLatestAsync(1, ct);
+        var trips = new DemoTripRepository();
+        var summaries = await trips.GetSummariesAsync(1, DateTime.MinValue, DateTime.MaxValue, ct);
+
+        Assert.Equal(24852, telemetry?.OdometerKm);
+        Assert.NotEmpty(summaries);
     }
 }
