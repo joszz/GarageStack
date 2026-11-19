@@ -9,6 +9,7 @@ import RangeControl from './RangeControl.vue'
 import CommandFailure from './CommandFailure.vue'
 import ChipGroup from './ChipGroup.vue'
 import { useVehicleCommand } from '@/composables/useVehicleCommand'
+import { useConnection } from '@/composables/useConnection'
 import type { ClimateMode, TelemetrySnapshot } from '@/services/vehicleApi'
 import { useUnits } from '@/composables/useUnits'
 import { useClimateLabels } from '@/composables/useClimateLabels'
@@ -42,6 +43,9 @@ const props = defineProps<{
 const modalOpen = ref(false)
 const applyInProgress = ref(false)
 const { sending, lastResult, isPending, send, waitUntilSettled } = useVehicleCommand()
+// Without the server no command reaches the car: the controls are hidden meanwhile.
+const connection = useConnection()
+const canSend = computed(() => connection.reachable)
 
 // What climate is doing now, and the mode the chips start on: the running one, else normal.
 const currentMode = computed(() => climateModeOf(props))
@@ -201,7 +205,7 @@ const controlsDisabled = computed(() => isApplying.value || !props.vin)
   >
     <div class="detail-list">
       <RangeControl
-        v-if="climateOn !== null || remoteTemperature !== null"
+        v-if="canSend && (climateOn !== null || remoteTemperature !== null)"
         v-model="sliderTemp"
         icon="temperature-half"
         :label="t('control.temperature')"
@@ -213,14 +217,14 @@ const controlsDisabled = computed(() => isApplying.value || !props.vin)
       />
 
       <DetailListSwitch
-        v-if="climateOn !== null"
+        v-if="canSend && climateOn !== null"
         v-model="localClimateOn"
         icon="wind"
         :label="t('control.climate')"
         :disabled="controlsDisabled"
       />
 
-      <div v-if="climateOn !== null && localClimateOn" class="detail-list__item">
+      <div v-if="canSend && climateOn !== null && localClimateOn" class="detail-list__item">
         <font-awesome-icon icon="sliders" class="detail-list__item-icon" />
         <ChipGroup
           v-model="localMode"
@@ -231,7 +235,7 @@ const controlsDisabled = computed(() => isApplying.value || !props.vin)
       </div>
 
       <DetailListSwitch
-        v-if="rearWindowDefroster !== null"
+        v-if="canSend && rearWindowDefroster !== null"
         v-model="localRearDefroster"
         icon="car-rear"
         :label="t('control.rearDefroster')"
@@ -255,7 +259,7 @@ const controlsDisabled = computed(() => isApplying.value || !props.vin)
       />
 
       <RangeControl
-        v-if="heatedSeatFrontLeft !== null"
+        v-if="canSend && heatedSeatFrontLeft !== null"
         v-model="seatLeftLocal"
         icon="couch"
         :label="t('vehicle.climateDetail.seatLeft')"
@@ -267,7 +271,7 @@ const controlsDisabled = computed(() => isApplying.value || !props.vin)
       />
 
       <RangeControl
-        v-if="heatedSeatFrontRight !== null"
+        v-if="canSend && heatedSeatFrontRight !== null"
         v-model="seatRightLocal"
         icon="couch"
         :label="t('vehicle.climateDetail.seatRight')"
@@ -304,6 +308,7 @@ const controlsDisabled = computed(() => isApplying.value || !props.vin)
         {{ t('common.cancel') }}
       </button>
       <button
+        v-if="canSend"
         class="btn btn-primary"
         :class="anyPending ? 'btn--pending' : ''"
         :disabled="applyInProgress || !vin || !hasPendingChanges"

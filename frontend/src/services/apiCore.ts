@@ -1,3 +1,5 @@
+import { savedAtOf } from '@/utils/savedApi'
+
 const BASE_URL = import.meta.env.VITE_API_URL ?? ''
 
 let unauthorizedHandler: (() => void) | null = null
@@ -9,6 +11,44 @@ export function setUnauthorizedHandler(handler: (() => void) | null) {
 
 export function clearUnauthorizedState() {
   handlingUnauthorized = false
+}
+
+/** Told how each request went, so the app knows whether the server can be reached. */
+export interface ConnectionListener {
+  /** The server answered. */
+  answered(): void
+  /** The service worker answered with the copy it saved (see utils/savedApi), from `savedAt`. */
+  answeredFromSave(savedAt: string): void
+  /** No answer: no connection, a timeout, or a proxy saying the server is down. */
+  unreachable(): void
+}
+
+let connectionListener: ConnectionListener | null = null
+
+export function setConnectionListener(listener: ConnectionListener | null) {
+  connectionListener = listener
+}
+
+/** What a proxy answers when the server behind it is down. */
+const SERVER_DOWN = new Set([502, 503, 504])
+
+// fetch() for every request, telling the listener how it went. A request the page itself called
+// off (a newer one replaced it) says nothing about the connection; one that timed out does.
+async function fetchApi(path: string, init: RequestInit): Promise<Response> {
+  let res: Response
+  try {
+    res = await fetch(`${BASE_URL}${path}`, init)
+  } catch (error) {
+    if (!(error instanceof DOMException && error.name === 'AbortError')) {
+      connectionListener?.unreachable()
+    }
+    throw error
+  }
+  const savedAt = savedAtOf(res)
+  if (savedAt !== null) connectionListener?.answeredFromSave(savedAt)
+  else if (SERVER_DOWN.has(res.status)) connectionListener?.unreachable()
+  else connectionListener?.answered()
+  return res
 }
 
 /**
@@ -81,7 +121,7 @@ function jsonInit(method: string, body?: unknown): RequestInit {
 
 /** Fetches `path` and parses the JSON response (undefined on 204). */
 export async function request<T>(path: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(`${BASE_URL}${path}`, {
+  const res = await fetchApi(path, {
     ...options,
     credentials: 'include',
   })
@@ -107,7 +147,7 @@ export async function send(
   body?: unknown,
   init?: RequestInit,
 ): Promise<void> {
-  const res = await fetch(`${BASE_URL}${path}`, {
+  const res = await fetchApi(path, {
     ...jsonInit(method, body),
     ...init,
     credentials: 'include',

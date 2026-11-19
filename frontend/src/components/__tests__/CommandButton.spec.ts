@@ -1,8 +1,10 @@
-import { describe, it, expect, afterEach, vi } from 'vitest'
+import { describe, it, expect, afterEach, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createI18n } from 'vue-i18n'
 import en from '@/locales/en.json'
 import CommandButton from '../CommandButton.vue'
+import { resetConnection } from '@/composables/useConnection'
+import { setBrowserOnline } from '@/composables/__tests__/connectionStub'
 
 const i18n = createI18n({ legacy: false, locale: 'en', messages: { en } })
 
@@ -61,5 +63,17 @@ describe('CommandButton', () => {
 
   it('says it is waiting for the car while pending', () => {
     expect(mountButton({ pending: true }).text()).toBe(en.control.pending)
+  })
+})
+
+describe('CommandButton without the server', () => {
+  beforeEach(() => setBrowserOnline(false))
+  afterEach(() => {
+    vi.restoreAllMocks()
+    resetConnection()
+  })
+
+  it('is not offered: no command reaches the car', () => {
+    expect(mountButton().find('button').exists()).toBe(false)
   })
 })

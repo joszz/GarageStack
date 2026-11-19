@@ -1317,6 +1317,7 @@
   },
   "offline": {
     "savedState": "No connection to GarageStack. This is the car as last seen, {time}.",
-    "savedStateUnknown": "No connection to GarageStack. This is the car as this device last loaded it."
+    "savedPage": "No connection to GarageStack. This page shows what this device last loaded, {time}.",
+    "savedPageUnknown": "No connection to GarageStack. This page shows what this device last loaded."
   }
 }

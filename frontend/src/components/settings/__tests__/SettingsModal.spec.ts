@@ -15,6 +15,8 @@ import { useUiSettingsStore } from '@/stores/settingsUi'
 import { useRdwStore } from '@/stores/rdw'
 import SettingsModal from '../SettingsModal.vue'
 import PhoneGpsSettings from '../PhoneGpsSettings.vue'
+import { resetConnection } from '@/composables/useConnection'
+import { setBrowserOnline } from '@/composables/__tests__/connectionStub'
 
 vi.mock('@/services/apiTokensApi', async (original) => ({
   ...(await original<typeof import('@/services/apiTokensApi')>()),
@@ -338,4 +340,22 @@ describe('SettingsModal tabs', () => {
       expect(locale.rdw.notFound).toContain(`${title} > ${tabs.vehicle} > ${licensePlate.title}`)
     },
   )
+})
+
+describe('SettingsModal without the server', () => {
+  beforeEach(() => setBrowserOnline(false))
+  afterEach(() => resetConnection())
+
+  it("offers only this browser's own settings, which reach the account later", async () => {
+    useRdwStore(pinia).available = true
+    const { wrapper } = await render()
+
+    expect(wrapper.findAll('[role=tab]').map((button) => button.text())).toEqual([
+      'General',
+      'Vehicle',
+      'Map',
+      'Notifications',
+    ])
+    expect(panel(wrapper, 'vehicle').find('.license-plate-form').exists()).toBe(false)
+  })
 })

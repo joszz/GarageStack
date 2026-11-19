@@ -53,6 +53,7 @@ import { useUnits } from '@/composables/useUnits'
 import { useErrorMessage } from '@/composables/useErrorMessage'
 import { useEditMode } from '@/composables/useEditMode'
 import { useStatisticsCharts } from '@/composables/useStatisticsCharts'
+import { useReconnect } from '@/composables/useReconnect'
 import ViewHeader from '@/components/ViewHeader.vue'
 
 // Only edit mode rearranges the cards; the drag-and-drop library loads when it opens. The cast
@@ -109,6 +110,8 @@ async function load() {
 }
 
 onMounted(load)
+// Back from offline: the server's figures replace the saved ones.
+useReconnect(load)
 // By its days rather than its preset: "this month" and a custom period can be the same days.
 watch(() => `${period.value.first.getTime()}-${period.value.last.getTime()}`, load)
 

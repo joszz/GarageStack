@@ -5,6 +5,7 @@ import { computed, ref, watch, onBeforeUnmount, defineAsyncComponent } from 'vue
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
+import { useConnection } from '@/composables/useConnection'
 import { useVehicleStore } from '@/stores/vehicle'
 import AppFooter from '@/components/AppFooter.vue'
 import NotificationPanel from '@/components/NotificationPanel.vue'
@@ -29,6 +30,9 @@ const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
+// The log viewer reads the server's log files as they are: nothing of it is saved for offline use,
+// so its menu entry is not offered without the server.
+const connection = useConnection()
 const vehicleStore = useVehicleStore()
 const vehicleStatus = computed(() => vehicleStore.currentStatus)
 // A plain hybrid never charges from a plug, so its menu has no charge history.
@@ -303,7 +307,7 @@ watch(
               <span>{{ t('nav.maintenance') }}</span>
             </RouterLink>
           </li>
-          <li>
+          <li v-if="connection.reachable">
             <RouterLink to="/logs" active-class="active">
               <font-awesome-icon icon="file-lines" />
               <span>{{ t('nav.logs') }}</span>

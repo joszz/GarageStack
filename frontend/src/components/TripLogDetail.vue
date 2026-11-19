@@ -25,6 +25,7 @@ import { useTripSpeedChart } from '@/composables/useTripSpeedChart'
 import ChipGroup from './ChipGroup.vue'
 import StatsChartCard from './StatsChartCard.vue'
 import TripRouteMap from './TripRouteMap.vue'
+import { useConnection } from '@/composables/useConnection'
 
 const props = defineProps<{
   entry: TripLogEntry
@@ -54,6 +55,10 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
+// Without the server a trip is only read: its purpose and notes show but cannot change, and the
+// actions that change it are not offered.
+const connection = useConnection()
+const readOnly = computed(() => props.saving || !connection.reachable)
 const units = useUnits()
 
 const { from, to } = useTripEnds({
@@ -211,6 +216,7 @@ const notesId = computed(() => `trip-log-notes-${props.entry.id}`)
           type="button"
           class="trip-log-detail__place"
           :class="end === from ? 'trip-log-detail__place--start' : 'trip-log-detail__place--end'"
+          :disabled="!connection.reachable"
           :title="t('tripLog.places.useEnd', { place: end.label })"
           :aria-label="t('tripLog.places.useEnd', { place: end.label })"
           @click="emit('pickPlace', end.lat, end.lng)"
@@ -281,7 +287,7 @@ const notesId = computed(() => `trip-log-notes-${props.entry.id}`)
         :options="purposeOptions"
         :model-value="entry.purpose"
         :group-label="t('tripLog.purposeLabel')"
-        :disabled="saving"
+        :disabled="readOnly"
         deselectable
         @update:model-value="choosePurpose"
       />
@@ -294,14 +300,14 @@ const notesId = computed(() => `trip-log-notes-${props.entry.id}`)
         class="trip-log-detail__notes"
         :maxlength="TRIP_NOTES_MAX_LENGTH"
         :placeholder="t('tripLog.notesPlaceholder')"
-        :disabled="saving"
+        :disabled="readOnly"
         @change="saveNotes"
         @keydown.enter="($event.target as HTMLInputElement).blur()"
       />
     </section>
 
     <!-- Editing the route and opening it on the map are buttons on the route preview. -->
-    <div class="trip-log-detail__actions">
+    <div v-if="connection.reachable" class="trip-log-detail__actions">
       <button
         v-if="canJoinNext"
         type="button"

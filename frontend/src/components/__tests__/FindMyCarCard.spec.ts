@@ -1,9 +1,11 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createI18n } from 'vue-i18n'
 import { ref } from 'vue'
 import en from '@/locales/en.json'
 import FindMyCarCard from '../FindMyCarCard.vue'
+import { resetConnection } from '@/composables/useConnection'
+import { setBrowserOnline } from '@/composables/__tests__/connectionStub'
 
 vi.mock('@/composables/useVehicleCommand', () => ({
   useVehicleCommand: () => ({
@@ -25,5 +27,22 @@ describe('FindMyCarCard', () => {
 
     expect(card.find('.status-card__value').text()).toBe('Off')
     expect(card.classes()).not.toContain('status-card--warning')
+  })
+})
+
+describe('FindMyCarCard without the server', () => {
+  beforeEach(() => setBrowserOnline(false))
+  afterEach(() => {
+    vi.restoreAllMocks()
+    resetConnection()
+  })
+
+  it('is left out: it is only a command', () => {
+    const wrapper = mount(FindMyCarCard, {
+      props: { vin: 'FAKEVN00000000001' },
+      global: { plugins: [i18n], stubs: { DetailModal: true, FontAwesomeIcon: true } },
+    })
+
+    expect(wrapper.find('.status-card').exists()).toBe(false)
   })
 })

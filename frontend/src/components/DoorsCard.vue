@@ -7,6 +7,7 @@ import CommandButton from './CommandButton.vue'
 import CommandFailure from './CommandFailure.vue'
 import CommandFeedback from './CommandFeedback.vue'
 import { useVehicleCommand } from '@/composables/useVehicleCommand'
+import { useConnection } from '@/composables/useConnection'
 import { useBooleanStatusList } from '@/composables/useBooleanStatusList'
 
 const { t } = useI18n()
@@ -25,6 +26,9 @@ const props = defineProps<{
 }>()
 
 const { sending, lastResult, isPending, send } = useVehicleCommand()
+// Without the server no command reaches the car: the controls are hidden meanwhile.
+const connection = useConnection()
+const canSend = computed(() => connection.reachable)
 
 const localLocked = ref<boolean | null>(null)
 const effectiveLocked = computed(() => localLocked.value ?? props.isLocked)
@@ -119,7 +123,7 @@ const showTailgate = computed(
 )
 
 const hasControls = computed(
-  () => props.isLocked !== null || canOpenBoot.value || showTailgate.value,
+  () => canSend.value && (props.isLocked !== null || canOpenBoot.value || showTailgate.value),
 )
 
 function openBoot() {

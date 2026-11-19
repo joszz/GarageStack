@@ -10,6 +10,7 @@ import { energyGainedKwh, type ChargeEnergyContext } from '@/utils/chargeSession
 import { formatNumber } from '@/utils/format'
 import { formatDurationMs } from '@/utils/tripRows'
 import { useErrorMessage } from '@/composables/useErrorMessage'
+import { useReconnect } from '@/composables/useReconnect'
 import ViewHeader from '@/components/ViewHeader.vue'
 import StatusCard from '@/components/StatusCard.vue'
 import CardInfoWrap from '@/components/CardInfoWrap.vue'
@@ -79,6 +80,8 @@ async function load(): Promise<void> {
 }
 
 onMounted(load)
+// Back from offline: the server's sessions replace the saved ones.
+useReconnect(load)
 watch(periodDays, load)
 // The first load sets the active car itself; only switching to another one loads again.
 watch(vin, (now, before) => {

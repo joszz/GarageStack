@@ -20,11 +20,11 @@ import SkeletonCarDiagram from '@/components/SkeletonCarDiagram.vue'
 import SkeletonLocationMap from '@/components/SkeletonLocationMap.vue'
 import { useUnits } from '@/composables/useUnits'
 import { useEditMode } from '@/composables/useEditMode'
+import { useReconnect } from '@/composables/useReconnect'
 import { mayBurnFuel } from '@/utils/vehicleType'
 import { energyUnit } from '@/utils/energy'
 import { readLastVin } from '@/utils/lastVin'
 import ViewHeader from '@/components/ViewHeader.vue'
-import OfflineNotice from '@/components/OfflineNotice.vue'
 
 // Only edit mode drags cards around, and the drag-and-drop library is the size of every card on
 // this page together, so it loads when the layout editor opens rather than with the dashboard.
@@ -172,6 +172,9 @@ watch(
   },
 )
 
+// The server is back: catch up on what was missed, as on returning to the tab.
+useReconnect(refreshLive)
+
 function handleVisibilityChange() {
   if (document.visibilityState === 'visible') {
     // Catch any updates missed while the tab was hidden (e.g. SignalR reconnect gap)
@@ -221,9 +224,6 @@ onUnmounted(() => {
         <EditLayoutButton v-model="editMode" />
       </template>
     </ViewHeader>
-
-    <!-- Back online: catch up on what was missed, as on returning to the tab. -->
-    <OfflineNotice @reconnect="refreshLive" />
 
     <!-- Edit mode: same grid with draggable card-slot wrappers -->
     <template v-if="editMode">

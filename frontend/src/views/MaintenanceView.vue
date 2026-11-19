@@ -11,11 +11,15 @@ import type { MaintenanceItem, MaintenanceDueStatus } from '@/services/maintenan
 import { dueStatusVariant, formatIntervalSummary } from '@/utils/maintenance'
 import { useUnits } from '@/composables/useUnits'
 import { useErrorMessage } from '@/composables/useErrorMessage'
+import { useReconnect } from '@/composables/useReconnect'
+import { useConnection } from '@/composables/useConnection'
 import ViewHeader from '@/components/ViewHeader.vue'
 
 const { t } = useI18n()
 const vehicleStore = useVehicleStore()
 const store = useMaintenanceStore()
+// Adding an item needs the server: without it the items are only read.
+const connection = useConnection()
 const units = useUnits()
 const errorMessage = useErrorMessage()
 
@@ -32,6 +36,8 @@ async function load() {
 }
 
 onMounted(load)
+// Back from offline: the server's items replace the saved ones.
+useReconnect(load)
 
 const STATUS_ORDER: Record<MaintenanceDueStatus, number> = {
   overdue: 0,
@@ -73,7 +79,12 @@ watch(vin, (v) => {
     <ViewHeader :title="t('maintenance.title')" :subtitle="t('maintenance.subtitle')">
       <template #actions>
         <!-- The form needs a car to add the item to, and only exists once one is known. -->
-        <button class="btn btn-primary" :disabled="!vin" @click="openAdd">
+        <button
+          v-if="connection.reachable"
+          class="btn btn-primary"
+          :disabled="!vin"
+          @click="openAdd"
+        >
           <font-awesome-icon icon="plus" />{{ t('maintenance.addItem') }}
         </button>
       </template>

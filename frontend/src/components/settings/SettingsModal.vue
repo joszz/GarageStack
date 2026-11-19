@@ -21,6 +21,7 @@ import ApiTokenSettings from './ApiTokenSettings.vue'
 import CalendarFeedSetting from './CalendarFeedSetting.vue'
 import PhoneGpsSettings from './PhoneGpsSettings.vue'
 import { apiUrl } from '@/services/apiCore'
+import { useConnection } from '@/composables/useConnection'
 import type { ChipOption } from '@/utils/chips'
 import type { ThemeChoice } from '@/stores/settingsShared'
 
@@ -31,6 +32,7 @@ const { t } = useI18n()
 const settings = useUiSettingsStore()
 const rdw = useRdwStore()
 const vehicleStore = useVehicleStore()
+const connection = useConnection()
 const id = useId()
 const tablist = useTemplateRef<HTMLElement>('tablist')
 const panels = useTemplateRef<HTMLElement>('panels')
@@ -45,9 +47,15 @@ const tabDefinitions = [
 ] as const
 type SettingsTab = (typeof tabDefinitions)[number]['id']
 const activeTab = ref<SettingsTab>('general')
+// The tabs that only talk to the server (phone trackers, tokens, the calendar feed, exports) are
+// not offered without it. The rest are this browser's own settings, which reach the account
+// once the server is back.
+const SERVER_TABS: readonly SettingsTab[] = ['phone', 'data']
 const tabs = computed(() =>
   tabDefinitions.filter(
-    (tab) => tab.id !== 'phone' || (!!vehicleStore.activeVin && phoneGpsVisible.value),
+    (tab) =>
+      (connection.reachable || !SERVER_TABS.includes(tab.id)) &&
+      (tab.id !== 'phone' || (!!vehicleStore.activeVin && phoneGpsVisible.value)),
   ),
 )
 
@@ -212,9 +220,12 @@ const languageOptions = [
         <div class="settings-toggles">
           <CarColorPicker />
           <VehicleTypeSetting />
-          <PowerTailgateSetting />
-          <CommutePlacesSetting />
-          <LicensePlateSetting v-if="rdw.available" />
+          <!-- Saved on the server as soon as they change, so not offered without it. -->
+          <template v-if="connection.reachable">
+            <PowerTailgateSetting />
+            <CommutePlacesSetting />
+            <LicensePlateSetting v-if="rdw.available" />
+          </template>
         </div>
       </div>
 

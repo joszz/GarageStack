@@ -15,6 +15,7 @@ import { useMeasureField } from '@/composables/useMeasureField'
 import { useStoreAction } from '@/composables/useStoreAction'
 import { useTwoTapConfirm } from '@/composables/useTwoTapConfirm'
 import StatusBadge from '@/components/StatusBadge.vue'
+import { useConnection } from '@/composables/useConnection'
 
 const props = defineProps<{
   open: boolean
@@ -25,6 +26,8 @@ const props = defineProps<{
 const emit = defineEmits<{ (e: 'close'): void; (e: 'edit', item: MaintenanceItem): void }>()
 
 const { t } = useI18n()
+// Logging, editing and deleting need the server: without it the item and its history are only read.
+const connection = useConnection()
 const store = useMaintenanceStore()
 const vehicleStore = useVehicleStore()
 const units = useUnits()
@@ -123,7 +126,7 @@ async function confirmDelete() {
         <p v-if="currentItem.notes" class="text-muted text-sm">{{ currentItem.notes }}</p>
       </section>
 
-      <section class="detail-modal__section">
+      <section v-if="connection.reachable" class="detail-modal__section">
         <h4 class="detail-modal__section-title">{{ t('maintenance.logService') }}</h4>
         <form class="form-stack maintenance-log-form" @submit.prevent="submitLog">
           <div class="form-row">
@@ -175,6 +178,7 @@ async function confirmDelete() {
             </span>
             <span v-if="entry.notes" class="text-muted">{{ entry.notes }}</span>
             <button
+              v-if="connection.reachable"
               type="button"
               class="btn btn-sm maintenance-history__delete"
               :class="armedEntry === entry.id ? 'btn-danger' : 'btn-outline-secondary'"
@@ -205,7 +209,7 @@ async function confirmDelete() {
         @cancel="cancelDelete"
         @confirm="confirmDelete"
       />
-      <template v-else>
+      <template v-else-if="connection.reachable">
         <span v-if="deleteError" class="text-danger text-sm" role="alert">{{ deleteError }}</span>
         <button class="btn btn-outline-secondary" @click="requestDelete">
           <font-awesome-icon icon="trash" />{{ t('maintenance.delete') }}

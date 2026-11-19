@@ -444,8 +444,13 @@
   cursor: pointer;
 }
 
-.trip-log-detail__place:hover {
+.trip-log-detail__place:hover:not(:disabled) {
   text-decoration: underline;
+}
+
+/* Without the server the end cannot be set as home or work: it is only the address. */
+.trip-log-detail__place:disabled {
+  cursor: default;
 }
 
 .trip-log-detail__place--end {

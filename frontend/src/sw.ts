@@ -5,7 +5,7 @@ import {
   precacheAndRoute,
 } from 'workbox-precaching'
 import { NavigationRoute, registerRoute } from 'workbox-routing'
-import { StaleWhileRevalidate } from 'workbox-strategies'
+import { CacheFirst, NetworkFirst, StaleWhileRevalidate } from 'workbox-strategies'
 import { ExpirationPlugin } from 'workbox-expiration'
 import {
   MAP_TILE_CACHE,
@@ -13,6 +13,23 @@ import {
   MAP_TILE_CACHE_MAX_ENTRIES,
   RASTER_TILE_ORIGIN,
 } from './utils/rasterTiles'
+import {
+  isSavedApiPath,
+  SAVED_API_CACHE,
+  SAVED_API_MAX_AGE_SECONDS,
+  SAVED_API_MAX_ENTRIES,
+} from './utils/savedApi'
+import { savedApiPlugin } from './utils/savedApiPlugin'
+import { BASEMAP_STYLE_URLS } from './utils/basemapStyleUrls'
+import {
+  BASEMAP_CACHE,
+  BASEMAP_CACHE_MAX_AGE_SECONDS,
+  BASEMAP_CACHE_MAX_ENTRIES,
+  basemapOrigins,
+  isMapRendererPath,
+  MAP_RENDERER_CACHE,
+  MAP_RENDERER_MAX_ENTRIES,
+} from './utils/vectorTiles'
 
 declare const self: ServiceWorkerGlobalScope
 
@@ -21,11 +38,31 @@ precacheAndRoute(self.__WB_MANIFEST)
 
 // Every page is the same app, so opening any of them (a shortcut to /map, a reload on the trip
 // log) gets the copy of index.html this worker holds, as / already does through the precache.
-// Without a signal the app still opens, and shows the car as this browser last loaded it. The API
-// and the live-update hub are the server's and always go to the network.
+// Without a signal the app still opens, and shows the car as this browser last loaded it. An API
+// address or the live-update hub opened as a page is the server's and goes to the network.
 registerRoute(
   new NavigationRoute(createHandlerBoundToURL('/index.html'), {
     denylist: [/^\/api\//, /^\/hubs\//],
+  }),
+)
+
+// The API's answers the pages read (the car, its statistics, trips, charge sessions, maintenance),
+// kept so a page still shows what this browser last loaded when the server cannot be reached.
+// Always the server's answer when there is one: the saved copy only stands in when the request
+// fails or a proxy says the server is down, and it carries a stamp the page reads to say so.
+// Commands and every other write are never kept, nor any page outside isSavedApiPath.
+registerRoute(
+  ({ url }) => url.origin === self.location.origin && isSavedApiPath(url.pathname),
+  new NetworkFirst({
+    cacheName: SAVED_API_CACHE,
+    plugins: [
+      new ExpirationPlugin({
+        maxEntries: SAVED_API_MAX_ENTRIES,
+        maxAgeSeconds: SAVED_API_MAX_AGE_SECONDS,
+        purgeOnQuotaError: true,
+      }),
+      savedApiPlugin(),
+    ],
   }),
 )
 
@@ -48,6 +85,37 @@ registerRoute(
         maxAgeSeconds: MAP_TILE_CACHE_MAX_AGE_SECONDS,
         purgeOnQuotaError: true,
       }),
+    ],
+  }),
+)
+
+// The vector basemap the map page and the trip routes have shown (style, tiles, fonts, sprites),
+// kept the same way, so a route still has its streets without a signal. Only what was on screen.
+const basemapHosts = basemapOrigins(Object.values(BASEMAP_STYLE_URLS), self.location.origin)
+registerRoute(
+  ({ url }) => basemapHosts.has(url.origin),
+  new StaleWhileRevalidate({
+    cacheName: BASEMAP_CACHE,
+    plugins: [
+      { cacheWillUpdate: async ({ response }) => (response.status === 200 ? response : null) },
+      new ExpirationPlugin({
+        maxEntries: BASEMAP_CACHE_MAX_ENTRIES,
+        maxAgeSeconds: BASEMAP_CACHE_MAX_AGE_SECONDS,
+        purgeOnQuotaError: true,
+      }),
+    ],
+  }),
+)
+
+// The map renderer, once a map page has loaded it: without it the basemap above cannot be drawn
+// offline. Its files are named by their content, so the kept copy is used as is.
+registerRoute(
+  ({ url }) => url.origin === self.location.origin && isMapRendererPath(url.pathname),
+  new CacheFirst({
+    cacheName: MAP_RENDERER_CACHE,
+    plugins: [
+      { cacheWillUpdate: async ({ response }) => (response.status === 200 ? response : null) },
+      new ExpirationPlugin({ maxEntries: MAP_RENDERER_MAX_ENTRIES, purgeOnQuotaError: true }),
     ],
   }),
 )

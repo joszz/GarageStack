@@ -19,6 +19,7 @@ import App from './App.vue'
 import router from './router'
 import { useUiSettingsStore } from './stores/settingsUi'
 import { useAuthStore } from './stores/auth'
+import { connectionPageChanged, watchConnection } from './composables/useConnection'
 import { setUnauthorizedHandler, clearUnauthorizedState } from './services/apiCore'
 import { i18n, setLocale } from './i18n'
 import { installErrorReporting } from './utils/errorReporting'
@@ -28,6 +29,10 @@ watchServiceWorkerUpdates()
 const app = createApp(App)
 const pinia = createPinia()
 app.use(pinia)
+
+// Hears how every request goes from the first one on (the session check), so the pages know when
+// they show saved answers because the server cannot be reached.
+watchConnection()
 
 // Errors in someone's browser reach the API's log, so a bug only they hit is not invisible.
 installErrorReporting(app, () => useAuthStore().isAuthenticated)
@@ -43,6 +48,8 @@ watch(
 )
 
 app.use(router)
+// What the last page showed says nothing about how old the next page's answers are.
+router.afterEach(connectionPageChanged)
 app.use(i18n)
 installFontAwesome(app)
 

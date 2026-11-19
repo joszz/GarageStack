@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createI18n } from 'vue-i18n'
 import { createPinia, setActivePinia } from 'pinia'
@@ -8,6 +8,8 @@ import type { TripLogEntry } from '@/services/tripLogApi'
 import type { TripPoint } from '@/services/vehicleApi'
 import { deventer, logEntry, zwolle } from '@/services/__tests__/tripLogFixtures'
 import type { CommutePlace } from '@/services/commutePlacesApi'
+import { resetConnection } from '@/composables/useConnection'
+import { setBrowserOnline } from '@/composables/__tests__/connectionStub'
 
 // The map and the chart draw on canvases and tiles jsdom has none of; their own specs cover them.
 vi.mock('../TripRouteMap.vue', () => ({
@@ -279,5 +281,23 @@ describe('TripLogDetail', () => {
         .find('.trip-log-detail__edited')
         .text(),
     ).toBe(en.tripLog.editedHint)
+  })
+})
+
+describe('TripLogDetail without the server', () => {
+  beforeEach(() => setBrowserOnline(false))
+  afterEach(() => {
+    vi.restoreAllMocks()
+    resetConnection()
+  })
+
+  it('shows the purpose and notes but lets neither change, and offers no actions', () => {
+    const wrapper = mountDetail(logEntry({ purpose: 'business', notes: 'Client visit' }))
+
+    expect(purposeButton(wrapper, 'Business').attributes('disabled')).toBeDefined()
+    expect((wrapper.find('input').element as HTMLInputElement).value).toBe('Client visit')
+    expect(wrapper.find('input').attributes('disabled')).toBeDefined()
+    expect(wrapper.find('.trip-log-detail__actions').exists()).toBe(false)
+    expect(wrapper.find('.trip-log-detail__place').attributes('disabled')).toBeDefined()
   })
 })

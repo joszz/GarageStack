@@ -5,8 +5,11 @@ import {
   request,
   requestJson,
   send,
+  setConnectionListener,
   setUnauthorizedHandler,
+  type ConnectionListener,
 } from '@/services/apiCore'
+import { SAVED_AT_HEADER } from '@/utils/savedApi'
 import { makeResponse, type FetchSpy } from './fetchStub'
 
 describe('apiCore JSON helpers', () => {
@@ -142,5 +145,87 @@ describe('apiCore unauthorized handler', () => {
     setUnauthorizedHandler(null)
     await request('/api/x').catch(() => {})
     expect(handler).not.toHaveBeenCalled()
+  })
+})
+
+function fakeListener() {
+  return {
+    answered: vi.fn<ConnectionListener['answered']>(),
+    answeredFromSave: vi.fn<ConnectionListener['answeredFromSave']>(),
+    unreachable: vi.fn<ConnectionListener['unreachable']>(),
+  }
+}
+
+describe('apiCore connection listener', () => {
+  let listener: ReturnType<typeof fakeListener>
+
+  beforeEach(() => {
+    listener = fakeListener()
+    setConnectionListener(listener)
+  })
+
+  afterEach(() => {
+    setConnectionListener(null)
+    vi.unstubAllGlobals()
+  })
+
+  it('hears that the server answered, even with a refusal', async () => {
+    vi.stubGlobal('fetch', vi.fn<FetchSpy>().mockResolvedValue(makeResponse(404)))
+
+    await expect(request('/api/x')).rejects.toBeInstanceOf(ApiError)
+
+    expect(listener.answered).toHaveBeenCalledOnce()
+    expect(listener.unreachable).not.toHaveBeenCalled()
+  })
+
+  it("hears when the answer is the service worker's saved copy, and from when", async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn<typeof fetch>()
+        .mockResolvedValue(
+          new Response('[]', { headers: { [SAVED_AT_HEADER]: '2026-11-17T08:00:00.000Z' } }),
+        ),
+    )
+
+    await expect(request('/api/vehicles')).resolves.toEqual([])
+
+    expect(listener.answeredFromSave).toHaveBeenCalledExactlyOnceWith('2026-11-17T08:00:00.000Z')
+    expect(listener.answered).not.toHaveBeenCalled()
+  })
+
+  it('hears that there was no answer without a connection', async () => {
+    vi.stubGlobal('fetch', vi.fn<FetchSpy>().mockRejectedValue(new TypeError('Failed to fetch')))
+
+    await expect(send('/api/x', 'POST')).rejects.toBeInstanceOf(TypeError)
+
+    expect(listener.unreachable).toHaveBeenCalledOnce()
+  })
+
+  it('takes a timeout or a proxy saying the server is down as no answer', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn<FetchSpy>()
+        .mockRejectedValueOnce(new DOMException('timed out', 'TimeoutError'))
+        .mockResolvedValueOnce(makeResponse(502)),
+    )
+
+    await expect(request('/api/x')).rejects.toThrow('timed out')
+    await expect(request('/api/x')).rejects.toBeInstanceOf(ApiError)
+
+    expect(listener.unreachable).toHaveBeenCalledTimes(2)
+  })
+
+  it('hears nothing of a request the page called off itself', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn<FetchSpy>().mockRejectedValue(new DOMException('aborted', 'AbortError')),
+    )
+
+    await expect(request('/api/x')).rejects.toThrow('aborted')
+
+    expect(listener.unreachable).not.toHaveBeenCalled()
+    expect(listener.answered).not.toHaveBeenCalled()
   })
 })

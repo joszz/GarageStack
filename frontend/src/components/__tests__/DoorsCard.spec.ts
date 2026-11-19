@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { ref } from 'vue'
 import { mount } from '@vue/test-utils'
 import { createI18n } from 'vue-i18n'
@@ -6,6 +6,8 @@ import en from '@/locales/en.json'
 import type { SendOptions } from '@/composables/useVehicleCommand'
 import type { TelemetrySnapshot } from '@/services/vehicleApi'
 import DoorsCard from '../DoorsCard.vue'
+import { resetConnection } from '@/composables/useConnection'
+import { setBrowserOnline } from '@/composables/__tests__/connectionStub'
 
 const send =
   vi.fn<
@@ -141,5 +143,21 @@ describe('DoorsCard', () => {
         buttonLabels(mountCard({ hasPowerTailgate: true, isLocked: null, trunkOpen: null })),
       ).toEqual([])
     })
+  })
+})
+
+describe('DoorsCard without the server', () => {
+  beforeEach(() => setBrowserOnline(false))
+  afterEach(() => {
+    vi.restoreAllMocks()
+    resetConnection()
+  })
+
+  it('shows the doors but offers no lock or boot', () => {
+    const wrapper = mountCard({ isLocked: false, driverDoorOpen: true })
+
+    expect(buttonLabels(wrapper)).not.toContain('Lock')
+    expect(wrapper.find('.detail-list__item--control').exists()).toBe(false)
+    expect(wrapper.text()).toContain(en.common.open)
   })
 })

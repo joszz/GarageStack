@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ExpandableStatusCard from './ExpandableStatusCard.vue'
 import CommandButton from './CommandButton.vue'
 import CommandFailure from './CommandFailure.vue'
 import { useVehicleCommand } from '@/composables/useVehicleCommand'
+import { useConnection } from '@/composables/useConnection'
 
 const { t } = useI18n()
 
@@ -13,6 +14,9 @@ const props = defineProps<{
 }>()
 
 const { sending, lastResult, isPending, send } = useVehicleCommand()
+// Without the server no command reaches the car: the controls are hidden meanwhile.
+const connection = useConnection()
+const canSend = computed(() => connection.reachable)
 const active = ref(false)
 
 // No telemetry reports the horn, so the card shows the request as soon as the API takes it and
@@ -29,7 +33,9 @@ async function request(target: boolean) {
 </script>
 
 <template>
+  <!-- Only a command: without the server there is nothing to show. -->
   <ExpandableStatusCard
+    v-if="canSend"
     icon="car-burst"
     :title="t('control.findMyCar')"
     :value="active ? t('control.findMyCarActive') : t('common.off')"

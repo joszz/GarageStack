@@ -4,6 +4,8 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { createI18n } from 'vue-i18n'
 import { createMemoryHistory, createRouter } from 'vue-router'
 import App from '../App.vue'
+import { resetConnection } from '@/composables/useConnection'
+import { setBrowserOnline } from '@/composables/__tests__/connectionStub'
 
 const session = vi.hoisted(() => ({ authenticated: false }))
 
@@ -153,6 +155,18 @@ describe('App menu', () => {
 
     expect(wrapper.find('.sidebar-nav a[href="/charge-history"]').exists()).toBe(false)
     vehicle.type = 'bev'
+  })
+
+  // Nothing of the server's log files is saved for offline use.
+  it('leaves the log viewer out without the server, and lists it again once it is back', async () => {
+    setBrowserOnline(false)
+    const wrapper = await mountAt('/')
+    expect(wrapper.find('.sidebar-nav a[href="/logs"]').exists()).toBe(false)
+
+    vi.restoreAllMocks()
+    resetConnection()
+    await wrapper.vm.$nextTick()
+    expect(wrapper.find('.sidebar-nav a[href="/logs"]').exists()).toBe(true)
   })
 })
 
