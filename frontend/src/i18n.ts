@@ -1,6 +1,7 @@
 import { watch } from 'vue'
 import { createI18n } from 'vue-i18n'
 import type { Locale } from '@/stores/settingsShared'
+import { localeTag } from '@/utils/locale'
 import en from './locales/en.json'
 
 // Typed with every language, not only the one loaded up front: vue-i18n takes the locales it
@@ -25,7 +26,7 @@ export const i18n = createI18n({
 const loadMessages: Record<Exclude<Locale, 'en'>, () => Promise<{ default: typeof en }>> = {
   nl: () => import('./locales/nl.json'),
   es: () => import('./locales/es.json'),
-  'pt-BR': () => import('./locales/pt-BR.json'),
+  pt: () => import('./locales/pt.json'),
   'pt-PT': () => import('./locales/pt-PT.json'),
 }
 
@@ -54,11 +55,12 @@ export async function setLocale(locale: Locale): Promise<void> {
 }
 
 // The page names its language, so a screen reader reads Dutch in a Dutch voice and the browser
-// hyphenates a long word (a dashboard tile's label) by that language's rules.
+// hyphenates a long word (a dashboard tile's label) by that language's rules. Brazilian
+// Portuguese is named as such, so it is not read in a European voice.
 watch(
   i18n.global.locale,
   (locale) => {
-    document.documentElement.lang = locale
+    document.documentElement.lang = localeTag(locale as Locale)
   },
   { immediate: true },
 )

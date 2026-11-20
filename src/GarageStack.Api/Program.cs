@@ -202,7 +202,7 @@ finally
 }
 
 // The languages a request can ask for (Accept-Language, or ?culture= on the calendar feed). Plain
-// "pt" is Brazilian Portuguese: the Resources/*.pt.resx files hold it, so pt-BR falls back to them
-// and a calendar link from before pt-PT existed keeps its texts. pt-PT has files of its own.
+// "pt" is Brazilian Portuguese, held in Resources/*.pt.resx; a pt-BR request falls back to it.
+// pt-PT has files of its own.
 static List<CultureInfo> SupportedCultures() =>
-    [.. new[] { "en", "nl", "es", "pt", "pt-BR", "pt-PT" }.Select(CultureInfo.GetCultureInfo)];
+    [.. new[] { "en", "nl", "es", "pt", "pt-PT" }.Select(CultureInfo.GetCultureInfo)];

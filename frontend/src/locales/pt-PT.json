@@ -206,6 +206,8 @@
     "diagramLabel": "Diagrama de estado do veículo",
     "wentOnline": "O veículo está online",
     "wentOffline": "O veículo ficou offline",
+    "gatewaySignedOut": "Falha ao iniciar sessão na conta MG",
+    "gatewaySignedOutHint": "O gateway não consegue iniciar sessão na conta MG, por isso não chegam novos dados do carro. Volta a tentar a cada 15 minutos.",
     "fuel": "Combustível",
     "range": "Autonomia",
     "odometer": "Conta-quilómetros",
@@ -828,6 +830,8 @@
   "demo": {
     "banner": "Modo de demonstração - a mostrar apenas dados de exemplo",
     "controlPanel": "Controles da demonstração",
+    "online": "Online",
+    "gatewaySignedIn": "Início de sessão MG",
     "doors": "Portas / Capô / Bagageira",
     "windows": "Janelas",
     "lights": "Luzes",

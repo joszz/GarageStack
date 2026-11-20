@@ -48,7 +48,7 @@ describe('format', () => {
   })
 
   it('writes numbers and dates in Brazilian Portuguese conventions', () => {
-    i18n.global.locale.value = 'pt-BR'
+    i18n.global.locale.value = 'pt'
 
     expect(numberLocale()).toBe('pt-BR')
     expect(formatNumber(24852.4, 1, true)).toBe('24.852,4')

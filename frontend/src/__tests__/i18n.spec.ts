@@ -13,7 +13,7 @@ describe('i18n', () => {
     i18n.global.locale.value = 'en'
     vi.doUnmock('@/locales/nl.json')
     vi.doUnmock('@/locales/es.json')
-    vi.doUnmock('@/locales/pt-BR.json')
+    vi.doUnmock('@/locales/pt.json')
     vi.doUnmock('@/locales/pt-PT.json')
     vi.restoreAllMocks()
   })
@@ -25,6 +25,16 @@ describe('i18n', () => {
     await nextTick()
 
     expect(document.documentElement.lang).toBe('nl')
+  })
+
+  it.each([
+    ['pt', 'pt-BR'],
+    ['pt-PT', 'pt-PT'],
+  ] as const)('names the %s interface as %s on the page', async (locale, lang) => {
+    i18n.global.locale.value = locale
+    await nextTick()
+
+    expect(document.documentElement.lang).toBe(lang)
   })
 
   it('ships English only, and fetches Dutch the first time it is chosen', async () => {
@@ -51,9 +61,9 @@ describe('i18n', () => {
     const fresh = await freshI18n()
     expect(fresh.i18n.global.availableLocales).toEqual(['en'])
 
-    await fresh.setLocale('pt-BR')
+    await fresh.setLocale('pt')
 
-    expect(fresh.i18n.global.locale.value).toBe('pt-BR')
+    expect(fresh.i18n.global.locale.value).toBe('pt')
     expect(fresh.i18n.global.t('settings.title')).toBe('Configurações')
   })
 

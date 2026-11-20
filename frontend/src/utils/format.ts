@@ -1,6 +1,6 @@
 import { shallowRef } from 'vue'
 import type { Locale } from '@/stores/settingsShared'
-import { localeLanguage } from '@/utils/locale'
+import { localeLanguage, localeTag } from '@/utils/locale'
 import { i18n } from '@/i18n'
 import type { HourCycle, Region } from '@/utils/region'
 
@@ -11,8 +11,7 @@ import type { HourCycle, Region } from '@/utils/region'
 function languageLocale(locale: Locale): string {
   if (locale === 'nl') return 'nl-NL'
   if (locale === 'es') return 'es-ES'
-  // The Portuguese locales already name their country.
-  return locale === 'en' ? 'en-US' : locale
+  return locale === 'en' ? 'en-US' : localeTag(locale)
 }
 
 // Read through the i18n instance's reactive locale, so a computed or template that formats a

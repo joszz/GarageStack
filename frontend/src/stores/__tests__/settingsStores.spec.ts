@@ -33,9 +33,9 @@ describe('useUiSettingsStore', () => {
   })
 
   it.each([
-    ['pt-BR', 'pt-BR'],
-    ['pt-br', 'pt-BR'],
-    ['pt', 'pt-BR'],
+    ['pt-BR', 'pt'],
+    ['pt-br', 'pt'],
+    ['pt', 'pt'],
     ['pt-PT', 'pt-PT'],
     ['pt-AO', 'pt-PT'],
   ] as const)('detects %s from the browser as %s', (language, locale) => {
@@ -135,19 +135,10 @@ describe('useUiSettingsStore', () => {
     expect(store.filterDays).toBe(14)
   })
 
-  it.each(['pt-BR', 'pt-PT'] as const)(
-    'keeps a stored %s locale when loading settings',
-    (locale) => {
-      localStorage.setItem(UI_KEY, JSON.stringify({ locale }))
+  it.each(['pt', 'pt-PT'] as const)('keeps a stored %s locale when loading settings', (locale) => {
+    localStorage.setItem(UI_KEY, JSON.stringify({ locale }))
 
-      expect(useUiSettingsStore().locale).toBe(locale)
-    },
-  )
-
-  it('reads a Portuguese locale stored before pt-PT existed as Brazilian Portuguese', () => {
-    localStorage.setItem(UI_KEY, JSON.stringify({ locale: 'pt' }))
-
-    expect(useUiSettingsStore().locale).toBe('pt-BR')
+    expect(useUiSettingsStore().locale).toBe(locale)
   })
 
   it('keeps a stored Spanish locale when loading settings', () => {

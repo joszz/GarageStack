@@ -181,8 +181,8 @@ export function useReverseGeocode() {
   wanted.value = uiSettings.placeNamesEnabled
 
   // Place names are language-specific ("Den Haag" / "The Hague"), so a language switch invalidates
-  // pending work and re-asks for everything still on screen in the new language. Between pt-BR
-  // and pt-PT the names stay: OpenStreetMap has one Portuguese name per place.
+  // pending work and re-asks for everything still on screen in the new language. Between pt and
+  // pt-PT the names stay: OpenStreetMap has one Portuguese name per place.
   watch(
     () => localeLanguage(uiSettings.locale),
     (lang) => {

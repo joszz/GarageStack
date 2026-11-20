@@ -54,7 +54,7 @@ describe('localizeStyleLabels', () => {
     ])
   })
 
-  it.each(['pt-BR', 'pt-PT'] as const)(
+  it.each(['pt', 'pt-PT'] as const)(
     'labels the map in Portuguese for %s, as OpenStreetMap names places per language',
     (locale) => {
       const style = styleWith([
