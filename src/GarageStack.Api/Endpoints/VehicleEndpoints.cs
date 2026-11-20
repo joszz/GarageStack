@@ -41,20 +41,18 @@ public static class VehicleEndpoints
         .Produces<VehicleListItemDto[]>()
         .WithSummary("List all vehicles");
 
-        // Without a vin, the deployment's own thresholds: what a car with no settings of its own gets.
-        group.MapGet("/tyre-pressure-thresholds", async (string? vin, IVehicleRepository vehicles, CancellationToken ct) =>
-        {
-            if (string.IsNullOrEmpty(vin)) return Results.Ok(defaults.Tyres);
-            var vehicle = await vehicles.GetByVinAsync(vin, ct);
-            return vehicle is null
-                ? Results.NotFound()
-                : Results.Ok(VehicleSettingsResolver.Resolve(vehicle, defaults).Tyres);
-        })
+        // The deployment's own thresholds: what a car with no settings of its own gets. A car's
+        // own are under /{vin}/tyre-pressure-thresholds.
+        group.MapGet("/tyre-pressure-thresholds", () => Results.Ok(defaults.Tyres))
         .Produces<TyrePressureThresholds>()
-        .Produces(StatusCodes.Status404NotFound)
-        .WithSummary("Get the tyre pressure colour-coding thresholds for a vehicle (vin), or the deployment's defaults without one");
+        .WithSummary("Get the deployment's tyre pressure colour-coding thresholds, which a vehicle without settings of its own uses");
 
         var vehicleGroup = group.MapGroup("/{vin}").ResolvesVehicle();
+
+        vehicleGroup.MapGet("/tyre-pressure-thresholds", (HttpContext httpContext) =>
+            Results.Ok(VehicleSettingsResolver.Resolve(httpContext.ResolvedVehicle(), defaults).Tyres))
+        .Produces<TyrePressureThresholds>()
+        .WithSummary("Get the vehicle's tyre pressure colour-coding thresholds: its own settings, else the deployment's");
 
         vehicleGroup.MapVehicleSettings(defaults);
 

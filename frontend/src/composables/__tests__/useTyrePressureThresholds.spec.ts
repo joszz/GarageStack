@@ -44,6 +44,48 @@ describe('useTyrePressureThresholds', () => {
     return import('../useTyrePressureThresholds')
   }
 
+  // The list has come back, without a car: only then the deployment's thresholds are asked for.
+  async function accountWithoutACar() {
+    const { useVehicleStore } = await import('@/stores/vehicle')
+    useVehicleStore().vehiclesListed = true
+  }
+
+  // A one-car install: the car is on its way, so the deployment's thresholds are not asked for
+  // first and the car's again after.
+  it('asks once, for the car, when its VIN arrives after the page has mounted', async () => {
+    const fetchMock = answering({ lowBar: 2.4, goodBar: 2.55, highBar: 2.7, dropBar: 0.2 })
+    vi.stubGlobal('fetch', fetchMock)
+    const { useTyrePressureThresholds } = await freshComposable()
+    const { useVehicleStore } = await import('@/stores/vehicle')
+    const store = useVehicleStore()
+
+    useTyrePressureThresholds()
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    expect(fetchMock).not.toHaveBeenCalled()
+
+    store.vehicles = [
+      {
+        id: 1,
+        vin: 'FAKEVN00000000001',
+        model: null,
+        series: null,
+        createdAt: '2026-01-01T00:00:00Z',
+        vehicleType: 'hev',
+        vehicleTypeOverride: null,
+        hvBatteryCapacityKwh: null,
+        supportsTargetSoc: false,
+        hasPowerTailgate: false,
+      },
+    ]
+    store.vehiclesListed = true
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    expect(fetchMock).toHaveBeenCalledOnce()
+    expect(String(fetchMock.mock.calls[0]![0])).toContain(
+      '/api/vehicles/FAKEVN00000000001/tyre-pressure-thresholds',
+    )
+  })
+
   function answering(body: unknown) {
     return vi
       .fn<(url: string) => Promise<unknown>>()
@@ -74,8 +116,9 @@ describe('useTyrePressureThresholds', () => {
     const thresholds = useTyrePressureThresholds()
     await new Promise((resolve) => setTimeout(resolve, 0))
 
+    expect(fetchMock).toHaveBeenCalledOnce()
     expect(String(fetchMock.mock.calls[0]![0])).toContain(
-      'tyre-pressure-thresholds?vin=FAKEVN00000000001',
+      '/api/vehicles/FAKEVN00000000001/tyre-pressure-thresholds',
     )
     expect(thresholds.value).toEqual(custom)
 
@@ -95,6 +138,7 @@ describe('useTyrePressureThresholds', () => {
     )
 
     const { useTyrePressureThresholds } = await freshComposable()
+    await accountWithoutACar()
     const thresholds = useTyrePressureThresholds()
     expect(thresholds.value).toEqual(DEFAULT_TYRE_PRESSURE_THRESHOLDS)
 
@@ -111,6 +155,7 @@ describe('useTyrePressureThresholds', () => {
     )
 
     const { useTyrePressureThresholds } = await freshComposable()
+    await accountWithoutACar()
     const thresholds = useTyrePressureThresholds()
 
     await nextTick()
