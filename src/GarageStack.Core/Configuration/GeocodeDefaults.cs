@@ -26,11 +26,16 @@ public static class GeocodeDefaults
     public const int MaxPointsPerRequest = 60;
 
     /// <summary>
-    /// Returns <paramref name="language"/> when it is one we support, otherwise the default.
-    /// Requests carry it into an upstream query string, so it never leaves this allow-list.
+    /// Returns the language of <paramref name="language"/> when it is one we support, otherwise
+    /// the default. A region is dropped ("pt-PT" and "pt-BR" both become "pt"): OpenStreetMap names
+    /// places per language, and one cache row per language serves both. Requests carry the result
+    /// into an upstream query string, so it never leaves this allow-list.
     /// </summary>
-    public static string NormalizeLanguage(string? language) =>
-        language is not null && SupportedLanguages.Contains(language, StringComparer.OrdinalIgnoreCase)
-            ? language.ToLowerInvariant()
+    public static string NormalizeLanguage(string? language)
+    {
+        var primary = language?.Split('-', 2)[0];
+        return primary is not null && SupportedLanguages.Contains(primary, StringComparer.OrdinalIgnoreCase)
+            ? primary.ToLowerInvariant()
             : DefaultLanguage;
+    }
 }

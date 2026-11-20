@@ -1,4 +1,5 @@
 import type { Locale, Theme } from '@/stores/settingsShared'
+import { localeLanguage } from '@/utils/locale'
 
 /**
  * A MapLibre style document, typed only as far as this module touches it. The full
@@ -47,7 +48,7 @@ export const VECTOR_MAX_ZOOM = 20
 export function localizeStyleLabels(style: MapStyle, locale: Locale): MapStyle {
   if (!Array.isArray(style.layers)) return style
 
-  const localName = `name:${locale}`
+  const localName = `name:${localeLanguage(locale)}`
   return {
     ...style,
     layers: style.layers.map((layer) => {

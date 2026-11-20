@@ -147,8 +147,8 @@ try
     app.UseRequestLocalization(new RequestLocalizationOptions
     {
         DefaultRequestCulture = new RequestCulture("en"),
-        SupportedCultures = [new CultureInfo("en"), new CultureInfo("nl"), new CultureInfo("es"), new CultureInfo("pt")],
-        SupportedUICultures = [new CultureInfo("en"), new CultureInfo("nl"), new CultureInfo("es"), new CultureInfo("pt")],
+        SupportedCultures = SupportedCultures(),
+        SupportedUICultures = SupportedCultures(),
     });
     app.UseAuthentication();
     app.UseApiReferencePage(apiReference);
@@ -200,3 +200,9 @@ finally
 {
     Log.CloseAndFlush();
 }
+
+// The languages a request can ask for (Accept-Language, or ?culture= on the calendar feed). Plain
+// "pt" is Brazilian Portuguese, held in Resources/*.pt.resx; a pt-BR request falls back to it.
+// pt-PT has files of its own.
+static List<CultureInfo> SupportedCultures() =>
+    [.. new[] { "en", "nl", "es", "pt", "pt-PT" }.Select(CultureInfo.GetCultureInfo)];
