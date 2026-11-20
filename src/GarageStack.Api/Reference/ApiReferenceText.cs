@@ -77,7 +77,7 @@ internal static class ApiReferenceText
     public static readonly IReadOnlyDictionary<string, string> Tags = new Dictionary<string, string>(StringComparer.Ordinal)
     {
         ["Authentication"] = "Signing in and out, and which sign-in methods this install offers.",
-        ["Vehicles"] = "The cars: their latest telemetry, statistics, charge sessions and tyre pressures, and the commands sent to them.",
+        ["Vehicles"] = "The cars: their latest telemetry, statistics, charge sessions and tyre pressures, their own settings, and the commands sent to them.",
         ["Trips"] = "Trips as recorded, and the trip log: purposes, notes, hiding, joining and editing a route.",
         ["Maintenance"] = "Service items with their intervals and when they are due, and each item's service history.",
         ["Climate schedules"] = "Climate runs the Worker starts at set times on set days.",

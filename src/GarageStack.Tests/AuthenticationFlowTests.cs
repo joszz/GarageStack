@@ -883,6 +883,62 @@ public partial class AuthenticationFlowTests
         }
     }
 
+    // The demo ZS EV, with no settings of its own and no deployment defaults configured: every
+    // value is what the API answered before per-car settings existed.
+    [Fact]
+    public async Task VehicleSettings_EmptyGiveTodaysValues_AndAPerCarValueReachesTheApi()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var factory = CreatePasswordOnlyFactory();
+        using var client = CreateClient(factory);
+        await PasswordLoginAsync(client, ct);
+        var settingsUrl = $"/api/vehicles/{DemoVin}/settings";
+        var thresholdsUrl = $"/api/vehicles/tyre-pressure-thresholds?vin={DemoVin}";
+
+        try
+        {
+            var before = await client.GetFromJsonAsync<JsonElement>(settingsUrl, ct);
+            var listBefore = await client.GetFromJsonAsync<JsonElement>("/api/vehicles", ct);
+            var tyresBefore = await client.GetFromJsonAsync<TyrePressureThresholds>(thresholdsUrl, ct);
+
+            Assert.Equal(JsonValueKind.Null, before.GetProperty("values").GetProperty("tyreLowBar").ValueKind);
+            Assert.Equal(2.2, before.GetProperty("defaults").GetProperty("tyreLowBar").GetDouble());
+            Assert.Equal("bev", before.GetProperty("defaults").GetProperty("vehicleType").GetString());
+            Assert.Equal(JsonValueKind.Null, listBefore[0].GetProperty("hvBatteryCapacityKwh").ValueKind);
+            Assert.Equal(JsonValueKind.Null, listBefore[0].GetProperty("vehicleTypeOverride").ValueKind);
+            Assert.Equal(TyrePressureThresholds.Default, tyresBefore);
+
+            var saved = await client.PatchAsJsonAsync(settingsUrl, new { tyreLowBar = 2.4, hvBatteryCapacityKwh = 51.0, vehicleType = "phev" }, ct);
+            var listAfter = await client.GetFromJsonAsync<JsonElement>("/api/vehicles", ct);
+            var tyresAfter = await client.GetFromJsonAsync<TyrePressureThresholds>(thresholdsUrl, ct);
+            var deployment = await client.GetFromJsonAsync<TyrePressureThresholds>("/api/vehicles/tyre-pressure-thresholds", ct);
+
+            Assert.Equal(HttpStatusCode.OK, saved.StatusCode);
+            Assert.Equal(2.4, (await saved.Content.ReadFromJsonAsync<JsonElement>(ct)).GetProperty("values").GetProperty("tyreLowBar").GetDouble());
+            Assert.Equal(51.0, listAfter[0].GetProperty("hvBatteryCapacityKwh").GetDouble());
+            Assert.Equal("phev", listAfter[0].GetProperty("vehicleTypeOverride").GetString());
+            Assert.Equal("bev", listAfter[0].GetProperty("vehicleType").GetString());
+            Assert.Equal(TyrePressureThresholds.Default with { LowBar = 2.4 }, tyresAfter);
+            Assert.Equal(TyrePressureThresholds.Default, deployment);
+
+            // A field left out stays; a plain hybrid takes no battery size of its own.
+            var hybrid = await client.PatchAsJsonAsync(settingsUrl, new { vehicleType = "hev" }, ct);
+            var outOfRange = await client.PatchAsJsonAsync(settingsUrl, new { lowFuelPercent = 120 }, ct);
+            var unknown = await client.PatchAsJsonAsync(settingsUrl, new { colour = "red" }, ct);
+            var unknownCar = await client.GetAsync("/api/vehicles/tyre-pressure-thresholds?vin=FAKEVN00000000001", ct);
+
+            Assert.Equal(HttpStatusCode.BadRequest, hybrid.StatusCode);
+            Assert.Equal(VehicleSettingsRules.BatteryOnHybridCode, await ProblemCodeAsync(hybrid, ct));
+            Assert.Equal(VehicleSettingsRules.OutOfRangeCode, await ProblemCodeAsync(outOfRange, ct));
+            Assert.Equal(VehicleSettingsEndpoints.UnknownFieldCode, await ProblemCodeAsync(unknown, ct));
+            Assert.Equal(HttpStatusCode.NotFound, unknownCar.StatusCode);
+        }
+        finally
+        {
+            await client.PatchAsJsonAsync(settingsUrl, new { tyreLowBar = (double?)null, hvBatteryCapacityKwh = (double?)null, vehicleType = (string?)null }, ct);
+        }
+    }
+
     [Fact]
     public async Task Notifications_ListAndRefuseAnUnknownOne()
     {

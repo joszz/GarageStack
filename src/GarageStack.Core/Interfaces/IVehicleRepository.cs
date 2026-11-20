@@ -43,4 +43,10 @@ public interface IVehicleRepository
 
     /// <summary>Says whether the car has a power tailgate. See <see cref="Vehicle.HasPowerTailgate"/>.</summary>
     Task SetHasPowerTailgateAsync(int vehicleId, bool hasPowerTailgate, CancellationToken ct = default);
+
+    /// <summary>
+    /// Stores the car's own settings whole, a null value leaving that one at the deployment's
+    /// default. See <see cref="Vehicle.Settings"/>.
+    /// </summary>
+    Task SetSettingsAsync(int vehicleId, VehicleSettings settings, CancellationToken ct = default);
 }

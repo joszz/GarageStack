@@ -660,6 +660,24 @@
       "phev": "PHEV (híbrido enchufable)",
       "bev": "BEV (completamente eléctrico)"
     },
+    "vehicleSettings": {
+      "title": "Ajustes de {car}",
+      "desc": "La capacidad de batería, las presiones de neumáticos y los niveles de aviso propios de este coche. Deje un campo vacío para usar el valor predeterminado del servidor, mostrado en gris. Los colores del panel y las notificaciones los siguen.",
+      "noDefault": "Sin definir",
+      "save": "Guardar",
+      "undo": "Deshacer cambios",
+      "saved": "Guardado.",
+      "fields": {
+        "hvBatteryCapacityKwh": "Capacidad de batería (kWh)",
+        "tyreLowBar": "Presión baja de neumáticos ({unit})",
+        "tyreGoodBar": "Presión correcta de neumáticos ({unit})",
+        "tyreHighBar": "Presión alta de neumáticos ({unit})",
+        "tyreDropBar": "Margen de pinchazo lento ({unit})",
+        "auxBatteryLowVolt": "Batería de 12 V baja (V)",
+        "lowFuelPercent": "Combustible bajo (%)",
+        "lowEvPercent": "Carga baja (%)"
+      }
+    },
     "licensePlate": {
       "title": "Matrícula",
       "desc": "La matrícula neerlandesa del coche, necesaria para consultar la fecha de vencimiento de la APK, las llamadas a revisión y el seguro registrados por la RDW. Solo se envía la matrícula a la RDW.",
@@ -1226,6 +1244,15 @@
       "rdw": {
         "disabled": "RDW están desactivadas en este servidor.",
         "invalidPlate": "Una placa consta de letras y dígitos, como máximo 8 sin guiones."
+      },
+      "vehicleSettings": {
+        "outOfRange": "Un valor está fuera del rango permitido.",
+        "tyreOrder": "Las presiones de neumáticos deben ir de baja a correcta a alta.",
+        "batteryOnHybrid": "Un híbrido sin enchufe no admite una capacidad de batería propia.",
+        "vehicleTypeUnknown": "Elija HEV, PHEV o BEV.",
+        "bodyNotObject": "No se pudieron leer los ajustes.",
+        "unknownField": "Uno de los ajustes enviados no existe.",
+        "wrongType": "Un ajuste debe ser un número, o estar vacío."
       }
     }
   },

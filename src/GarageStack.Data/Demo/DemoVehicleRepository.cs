@@ -54,4 +54,11 @@ public sealed class DemoVehicleRepository : IVehicleRepository
         if (vehicleId == DemoVehicle.Id) DemoVehicle.HasPowerTailgate = hasPowerTailgate;
         return Task.CompletedTask;
     }
+
+    // Kept in memory as well, so the vehicle settings can be tried out; a restart forgets them.
+    public Task SetSettingsAsync(int vehicleId, VehicleSettings settings, CancellationToken ct = default)
+    {
+        if (vehicleId == DemoVehicle.Id) DemoVehicle.Settings = settings.Copy();
+        return Task.CompletedTask;
+    }
 }

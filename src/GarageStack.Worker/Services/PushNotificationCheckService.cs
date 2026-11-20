@@ -12,8 +12,7 @@ public class PushNotificationCheckService(
     ILogger<PushNotificationCheckService> logger,
     IServiceScopeFactory scopeFactory,
     IPushSender pushSender,
-    TyrePressureThresholds tyrePressureThresholds,
-    AlertThresholds alertThresholds,
+    VehicleDefaults defaults,
     IStringLocalizer<NotificationStrings> strings,
     TimeProvider? clock = null) : PeriodicBackgroundService(logger)
 {
@@ -90,14 +89,16 @@ public class PushNotificationCheckService(
     internal async Task CheckLevelsAsync(
         Vehicle vehicle, TelemetrySnapshot snapshot, ITelemetryRepository telemetry, INotificationRepository notifications, DateTime now, CancellationToken ct)
     {
-        var vehicleType = VehicleTypeHelper.GetVehicleType(vehicle);
+        // Each car's own levels, falling back to the deployment's.
+        var settings = VehicleSettingsResolver.Resolve(vehicle, defaults);
+        var vehicleType = settings.VehicleType;
         var stopReason = VehicleTypeHelper.CanCharge(vehicleType)
             ? await telemetry.GetChargingStopReasonAsync(vehicle.Id, ct)
             : null;
         var alerts = new List<(string key, string title, string body)>();
-        CheckTyrePressure(snapshot, alerts);
-        CheckEvSoc(snapshot, vehicleType, alerts);
-        CheckFuelLevel(snapshot, vehicleType, alerts);
+        CheckTyrePressure(snapshot, settings.Tyres, alerts);
+        CheckEvSoc(snapshot, vehicleType, settings.Alerts, alerts);
+        CheckFuelLevel(snapshot, vehicleType, settings.Alerts, alerts);
         CheckChargingStopped(snapshot, vehicle.Vin, vehicleType, stopReason, alerts);
         CheckDataStale(snapshot, now, alerts);
         if (alerts.Count == 0) return;
@@ -140,7 +141,7 @@ public class PushNotificationCheckService(
         CheckUnlockedWhileParked(readings, alerts);
         CheckDoorsOpenWhileParked(readings, alerts);
         CheckWindowsOpenWhileParked(readings, alerts);
-        CheckAuxBatteryWhileParked(readings, alerts);
+        CheckAuxBatteryWhileParked(readings, VehicleSettingsResolver.Resolve(vehicle, defaults).Alerts, alerts);
         if (alerts.Count > 0)
             await SendAsync(vehicle, alerts, notifications, ct, onceSince: readings[0].ArrivedAt);
 
@@ -234,7 +235,7 @@ public class PushNotificationCheckService(
         }
     }
 
-    internal void CheckTyrePressure(TelemetrySnapshot s, List<(string, string, string)> alerts)
+    internal void CheckTyrePressure(TelemetrySnapshot s, TyrePressureThresholds tyrePressureThresholds, List<(string, string, string)> alerts)
     {
         var low = TyrePositions
             .Where(p => p.Read(s) is { } bar && bar < tyrePressureThresholds.LowBar)
@@ -251,7 +252,7 @@ public class PushNotificationCheckService(
             alerts.Add((NotificationCategories.HighTyre, strings["HighTyreTitle"], strings["HighTyreBody", string.Join(", ", high)]));
     }
 
-    internal void CheckEvSoc(TelemetrySnapshot s, string vehicleType, List<(string, string, string)> alerts)
+    internal void CheckEvSoc(TelemetrySnapshot s, string vehicleType, AlertThresholds alertThresholds, List<(string, string, string)> alerts)
     {
         if (!VehicleTypeHelper.CanCharge(vehicleType)) return;
         if (s.EvSocPercent is { } soc && soc < alertThresholds.LowEvPercent)
@@ -259,7 +260,7 @@ public class PushNotificationCheckService(
     }
 
     // A car without a combustion engine can still report a fuel level of zero.
-    internal void CheckFuelLevel(TelemetrySnapshot s, string vehicleType, List<(string, string, string)> alerts)
+    internal void CheckFuelLevel(TelemetrySnapshot s, string vehicleType, AlertThresholds alertThresholds, List<(string, string, string)> alerts)
     {
         if (!VehicleTypeHelper.HasCombustionEngine(vehicleType)) return;
         if (s.FuelLevelPercent is { } fuel && fuel < alertThresholds.LowFuelPercent)
@@ -273,10 +274,12 @@ public class PushNotificationCheckService(
     /// </summary>
     internal void CheckDataStale(TelemetrySnapshot s, DateTime now, List<(string, string, string)> alerts)
     {
-        if (alertThresholds.StaleDataHours <= 0) return;
+        // Deployment-wide: how often the gateway polls is not a property of one car.
+        var staleDataHours = defaults.Alerts.StaleDataHours;
+        if (staleDataHours <= 0) return;
 
         var silentFor = now - NewestReportAt(s);
-        if (silentFor.TotalHours < alertThresholds.StaleDataHours) return;
+        if (silentFor.TotalHours < staleDataHours) return;
 
         alerts.Add((NotificationCategories.DataStale, strings["DataStaleTitle"], strings["DataStaleBody", $"{silentFor.TotalHours:F0}"]));
     }
@@ -330,7 +333,7 @@ public class PushNotificationCheckService(
 
     // While the car is on, the traction battery tops the 12V battery up, so only a parked car's
     // voltage says how the battery is doing. Several polls in a row keep one dip from counting.
-    internal void CheckAuxBatteryWhileParked(IReadOnlyList<StatusReading> readings, List<(string, string, string)> alerts)
+    internal void CheckAuxBatteryWhileParked(IReadOnlyList<StatusReading> readings, AlertThresholds alertThresholds, List<(string, string, string)> alerts)
     {
         if (!ParkedProblem.Persists(readings, s => s.BatteryVoltage < alertThresholds.AuxBatteryLowVolt)) return;
 

@@ -125,6 +125,8 @@ than one.
 
 ## The car
 
+Each car can also have its own battery size, tyre pressures and warning levels, under Settings > Vehicle (`/api/vehicles/{vin}/settings`). These variables are the defaults: a car takes them for every value its own settings leave empty, so an install that never opens those settings behaves as before. `STALE_DATA_HOURS` stays the same for every car. The vehicle type override is kept with the car there too.
+
 | Variable | Default | What it does |
 | --- | --- | --- |
 | `TYRE_PRESSURE_LOW_BAR` / `TYRE_PRESSURE_GOOD_BAR` / `TYRE_PRESSURE_HIGH_BAR` | `2.2` / `2.6` / `3.2` | Tyre pressure bands in bar, for the diagram's colours and the tyre notifications. Set them from your car's placard. |

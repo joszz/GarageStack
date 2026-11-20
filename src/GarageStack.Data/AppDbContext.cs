@@ -47,6 +47,15 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.Property(v => v.Vin).HasMaxLength(17).IsRequired();
             e.Property(v => v.LastMessageId).HasMaxLength(VehicleLimits.MessageIdMaxLength);
             e.Property(v => v.LicensePlate).HasMaxLength(LicensePlate.MaxLength);
+            // A table of its own, one row per car once anything is saved: no row is every value
+            // left at the deployment's default.
+            e.OwnsOne(v => v.Settings, settings =>
+            {
+                settings.ToTable("VehicleSettings");
+                settings.WithOwner().HasForeignKey("VehicleId");
+                settings.HasKey("VehicleId");
+                settings.Property(x => x.VehicleType).HasMaxLength(8);
+            });
         });
 
         modelBuilder.Entity<RdwVehicleInfo>(e =>

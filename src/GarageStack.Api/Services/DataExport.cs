@@ -66,6 +66,7 @@ internal sealed class DataExport(
                 car.LicensePlate,
                 car.HasPowerTailgate,
                 vehicleType = VehicleTypeHelper.GetVehicleType(car),
+                car.Settings,
                 car.CreatedAt,
                 car.LastParkedAt,
                 car.ParkedLatitude,
