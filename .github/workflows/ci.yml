@@ -326,6 +326,11 @@ jobs:
         run: |
           git ls-files -z '*Dockerfile' | xargs -0 docker run --rm -v "$PWD:/repo" -w /repo             hadolint/hadolint:v2.14.0@sha256:27086352fd5e1907ea2b934eb1023f217c5ae087992eb59fde121dce9c9ff21e hadolint
 
+      # The ZimaOS / CasaOS template is pasted into the App Store as it is, so it must at least
+      # keep parsing as a compose file.
+      - name: ZimaOS template parses
+        run: docker compose -f zimaos/docker-compose.yml config --quiet
+
       - name: actionlint
         run: |
           docker run --rm -v "$PWD:/repo" -w /repo             rhysd/actionlint:1.7.12@sha256:b1934ee5f1c509618f2508e6eb47ee0d3520686341fec936f3b79331f9315667 -color

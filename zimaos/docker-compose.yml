@@ -2,6 +2,7 @@
 #
 # Install: ZimaOS dashboard -> App Store -> "+" (top right) -> Install a customized app -> Import,
 # then paste this file. Fill in SAIC_USER, SAIC_PASSWORD and CORS_ORIGIN before installing.
+# For push notifications, also fill in VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY.
 #
 # This uses the all-in-one image (docker/all-in-one): nginx, the API, the Worker, PostgreSQL,
 # Mosquitto and the SAIC MQTT Gateway all run in this one container, with every bit of state under
@@ -23,10 +24,14 @@ services:
       # MG iSmart account (must be the vehicle owner account).
       SAIC_USER: ""
       SAIC_PASSWORD: ""
-      # Region the car is registered in: eu, au or tr.
+      # Region the car is registered in: eu, au, tr or br.
       SAIC_REGION: "eu"
       # The exact URL you open GarageStack on, e.g. http://192.168.1.100:8080
       CORS_ORIGIN: "http://localhost:8080"
+      # Optional Web Push keys, generated once with: npx web-push generate-vapid-keys
+      # Without both, push stays off and notifications only reach the bell in the app.
+      VAPID_PUBLIC_KEY: ""
+      VAPID_PRIVATE_KEY: ""
     ports:
       - target: 80
         published: "8080"
@@ -62,10 +67,16 @@ services:
             en_us: MG iSmart account password
         - container: SAIC_REGION
           description:
-            en_us: "Region the car is registered in: eu, au or tr"
+            en_us: "Region the car is registered in: eu, au, tr or br"
         - container: CORS_ORIGIN
           description:
             en_us: Exact URL you open GarageStack on, e.g. http://192.168.1.100:8080
+        - container: VAPID_PUBLIC_KEY
+          description:
+            en_us: "Optional, for push notifications: Web Push public key, from npx web-push generate-vapid-keys. Empty keeps push off"
+        - container: VAPID_PRIVATE_KEY
+          description:
+            en_us: "Optional, for push notifications: Web Push private key, generated with the public one. Empty keeps push off"
       ports:
         - container: "80"
           description:
@@ -105,4 +116,6 @@ x-casaos:
       en_us: >-
         Set SAIC_USER, SAIC_PASSWORD and SAIC_REGION to your MG iSmart account, and CORS_ORIGIN to
         the exact address you will open GarageStack on (http://<ZimaOS IP>:8080). You sign in with
-        the MG iSmart account, or with AUTH_USERNAME / AUTH_PASSWORD when you set them.
+        the MG iSmart account, or with AUTH_USERNAME / AUTH_PASSWORD when you set them. For push
+        notifications, set VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY (npx web-push generate-vapid-keys);
+        without them, notifications only reach the bell in the app.
