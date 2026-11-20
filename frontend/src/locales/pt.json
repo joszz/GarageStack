@@ -660,6 +660,24 @@
       "phev": "PHEV (híbrido plug-in)",
       "bev": "BEV (totalmente elétrico)"
     },
+    "vehicleSettings": {
+      "title": "Configurações de {car}",
+      "desc": "A capacidade da bateria, as pressões dos pneus e os níveis de alerta próprios deste carro. Deixe um campo vazio para usar o padrão do servidor, mostrado em cinza. As cores do painel e as notificações seguem esses valores.",
+      "noDefault": "Não definido",
+      "save": "Salvar",
+      "undo": "Desfazer alterações",
+      "saved": "Salvo.",
+      "fields": {
+        "hvBatteryCapacityKwh": "Capacidade da bateria (kWh)",
+        "tyreLowBar": "Pressão baixa dos pneus ({unit})",
+        "tyreGoodBar": "Pressão correta dos pneus ({unit})",
+        "tyreHighBar": "Pressão alta dos pneus ({unit})",
+        "tyreDropBar": "Margem de furo lento ({unit})",
+        "auxBatteryLowVolt": "Bateria de 12 V baixa (V)",
+        "lowFuelPercent": "Combustível baixo (%)",
+        "lowEvPercent": "Carga baixa (%)"
+      }
+    },
     "licensePlate": {
       "title": "Placa",
       "desc": "A placa holandesa do carro, usada para consultar no RDW (órgão de trânsito da Holanda) a data da APK (inspeção veicular), os recalls e o seguro registrados. Somente a placa é enviada ao RDW.",
@@ -1226,6 +1244,15 @@
       "rdw": {
         "disabled": "As consultas ao RDW (órgão de trânsito holandês) estão desativadas neste servidor.",
         "invalidPlate": "Uma placa tem letras e números, no máximo 8 caracteres sem os hifens."
+      },
+      "vehicleSettings": {
+        "outOfRange": "Um valor está fora da faixa permitida.",
+        "tyreOrder": "As pressões dos pneus devem ir de baixa para correta e alta.",
+        "batteryOnHybrid": "Um híbrido sem plugue não aceita capacidade de bateria própria.",
+        "vehicleTypeUnknown": "Escolha HEV, PHEV ou BEV.",
+        "bodyNotObject": "Não foi possível ler as configurações.",
+        "unknownField": "Uma das configurações enviadas não existe.",
+        "wrongType": "Uma configuração deve ser um número, ou ficar vazia."
       }
     }
   },

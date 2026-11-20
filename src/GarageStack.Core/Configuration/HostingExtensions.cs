@@ -104,6 +104,23 @@ public static class HostingExtensions
             : fallback;
 
     /// <summary>
+    /// Every deployment default a car's own settings fall back to (tyres, alerts, battery size),
+    /// registered one by one and together as <see cref="VehicleDefaults"/> for
+    /// <see cref="Helpers.VehicleSettingsResolver"/>.
+    /// </summary>
+    public static IServiceCollection AddVehicleDefaults(
+        this IServiceCollection services, IConfiguration configuration)
+    {
+        services.AddTyrePressureThresholds(configuration);
+        services.AddAlertThresholds(configuration);
+        services.AddHvBatteryCapacity(configuration);
+        return services.AddSingleton(sp => new VehicleDefaults(
+            sp.GetRequiredService<TyrePressureThresholds>(),
+            sp.GetRequiredService<AlertThresholds>(),
+            sp.GetRequiredService<HvBatteryCapacity>()));
+    }
+
+    /// <summary>
     /// The traction battery's real capacity from configuration, or
     /// <see cref="HvBatteryCapacity.Unknown"/> when the deployment has not said. A value of zero
     /// or less is treated as unset: it would make every state of charge meaningless rather than

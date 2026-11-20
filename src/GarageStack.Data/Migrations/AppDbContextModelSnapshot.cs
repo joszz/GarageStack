@@ -1243,6 +1243,52 @@ namespace GarageStack.Data.Migrations
                     b.Navigation("Vehicle");
                 });
 
+            modelBuilder.Entity("GarageStack.Core.Models.Vehicle", b =>
+                {
+                    b.OwnsOne("GarageStack.Core.Models.VehicleSettings", "Settings", b1 =>
+                        {
+                            b1.Property<int>("VehicleId")
+                                .HasColumnType("integer");
+
+                            b1.Property<double?>("AuxBatteryLowVolt")
+                                .HasColumnType("double precision");
+
+                            b1.Property<double?>("HvBatteryCapacityKwh")
+                                .HasColumnType("double precision");
+
+                            b1.Property<double?>("LowEvPercent")
+                                .HasColumnType("double precision");
+
+                            b1.Property<double?>("LowFuelPercent")
+                                .HasColumnType("double precision");
+
+                            b1.Property<double?>("TyreDropBar")
+                                .HasColumnType("double precision");
+
+                            b1.Property<double?>("TyreGoodBar")
+                                .HasColumnType("double precision");
+
+                            b1.Property<double?>("TyreHighBar")
+                                .HasColumnType("double precision");
+
+                            b1.Property<double?>("TyreLowBar")
+                                .HasColumnType("double precision");
+
+                            b1.Property<string>("VehicleType")
+                                .HasMaxLength(8)
+                                .HasColumnType("character varying(8)");
+
+                            b1.HasKey("VehicleId");
+
+                            b1.ToTable("VehicleSettings", (string)null);
+
+                            b1.WithOwner()
+                                .HasForeignKey("VehicleId");
+                        });
+
+                    b.Navigation("Settings");
+                });
+
             modelBuilder.Entity("GarageStack.Core.Models.VehiclePhoneTracker", b =>
                 {
                     b.HasOne("GarageStack.Core.Models.Vehicle", "Vehicle")

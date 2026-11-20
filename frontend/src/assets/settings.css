@@ -351,3 +351,19 @@
   flex-wrap: wrap;
   gap: 0.5rem;
 }
+
+/* ── Vehicle settings ─────────────────────────────────────── */
+
+/* The car's own values, two to a row where there is room for a label and its field. */
+.vehicle-settings-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr));
+  gap: 0.75rem;
+}
+
+.vehicle-settings-form__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  grid-column: 1 / -1;
+}

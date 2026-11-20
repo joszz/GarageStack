@@ -4,6 +4,9 @@ import {
   vehicleApi,
   type Vehicle,
   type VehicleType,
+  type SettableVehicleType,
+  type VehicleSettings,
+  type VehicleSettingsValues,
   type TelemetrySnapshot,
   type DailyStat,
   type Trip,
@@ -121,6 +124,21 @@ export const useVehicleStore = defineStore('vehicle', () => {
     )
   }
 
+  // The car's own settings with the deployment's defaults, for the settings page. Only the
+  // active car's: whichever car is edited is the one the page names.
+  const vehicleSettings = shallowRef<VehicleSettings | null>(null)
+
+  async function fetchSettings(vin: string) {
+    vehicleSettings.value = await vehicleApi.settings(vin)
+  }
+
+  // The list is fetched again after a save: the battery size it carries is the one in effect,
+  // which the server works out from the car's type and the deployment's default.
+  async function saveSettings(vin: string, changes: Partial<VehicleSettingsValues>) {
+    vehicleSettings.value = await vehicleApi.updateSettings(vin, changes)
+    await fetchVehicles(true)
+  }
+
   async function fetchStatus(vin: string) {
     await withLoading(statusError, async () => {
       takeStatus(await vehicleApi.status(vin))
@@ -218,12 +236,21 @@ export const useVehicleStore = defineStore('vehicle', () => {
     (): VehicleType => activeVehicle.value?.vehicleType ?? 'unknown',
   )
 
+  // The type set for this car in its settings on the server, or one saved in this account's
+  // browser settings before the type moved there. That older one belongs to no car in particular,
+  // so it stands only while there is a single car to apply it to.
+  const vehicleTypeOverride = computed((): SettableVehicleType | null => {
+    const own = activeVehicle.value?.vehicleTypeOverride
+    if (own) return own
+    const legacy = uiSettings.vehicleTypeOverride
+    return legacy !== 'auto' && legacy !== 'unknown' && vehicles.value.length <= 1 ? legacy : null
+  })
+
   // What every view should treat the car as: the user's manual override when set, otherwise
   // the detected type. Defined once here rather than in each view.
-  const effectiveVehicleType = computed((): VehicleType => {
-    const override = uiSettings.vehicleTypeOverride
-    return override === 'auto' ? detectedVehicleType.value : override
-  })
+  const effectiveVehicleType = computed(
+    (): VehicleType => vehicleTypeOverride.value ?? detectedVehicleType.value,
+  )
 
   /** Where the car was last seen, for a map with nothing else to start at; null before a fix. */
   const currentPosition = computed((): [number, number] | null => {
@@ -256,7 +283,9 @@ export const useVehicleStore = defineStore('vehicle', () => {
     currentPosition,
     vehicleConfig,
     detectedVehicleType,
+    vehicleTypeOverride,
     effectiveVehicleType,
+    vehicleSettings,
     hvBatteryCapacityKwh,
     energyCounterScale,
     dailyStats,
@@ -280,6 +309,8 @@ export const useVehicleStore = defineStore('vehicle', () => {
     lastCommandResult,
     fetchVehicles,
     setPowerTailgate,
+    fetchSettings,
+    saveSettings,
     fetchStatus,
     fetchConfig,
     fetchDailyStats,
