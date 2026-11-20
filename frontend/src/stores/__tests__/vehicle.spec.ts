@@ -1,6 +1,7 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { nextTick } from 'vue'
 import { setActivePinia, createPinia } from 'pinia'
+import { flushPromises } from '@vue/test-utils'
 import { useVehicleStore } from '@/stores/vehicle'
 import { useUiSettingsStore } from '@/stores/settingsUi'
 import { vehicleApi } from '@/services/vehicleApi'
@@ -173,6 +174,68 @@ describe('useVehicleStore - effectiveVehicleType', () => {
     })
     expect(store.effectiveVehicleType).toBe('phev')
     expect(store.hvBatteryCapacityKwh).toBe(21)
+  })
+})
+
+// A type chosen in the browser before the type moved to the car, saved to the car once.
+describe('useVehicleStore - moving the browser type to the car', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    setActivePinia(createPinia())
+    vi.mocked(vehicleApi.updateSettings).mockClear()
+  })
+
+  afterEach(() => {
+    vi.mocked(vehicleApi.list).mockResolvedValue([])
+  })
+
+  async function listed(...cars: Vehicle[]) {
+    vi.mocked(vehicleApi.list).mockResolvedValue(cars)
+    const store = useVehicleStore()
+    await store.fetchVehicles(true)
+    await flushPromises()
+    return store
+  }
+
+  it("saves a one-car install's browser type to the car and clears the browser one", async () => {
+    useUiSettingsStore().vehicleTypeOverride = 'phev'
+
+    await listed(vehicle('hev'))
+
+    expect(vehicleApi.updateSettings).toHaveBeenCalledExactlyOnceWith('FAKEVN00000000001', {
+      vehicleType: 'phev',
+    })
+    expect(useUiSettingsStore().vehicleTypeOverride).toBe('auto')
+  })
+
+  it('clears the battery size along with it when the type is a plain hybrid', async () => {
+    useUiSettingsStore().vehicleTypeOverride = 'hev'
+
+    await listed(vehicle('phev'))
+
+    expect(vehicleApi.updateSettings).toHaveBeenCalledExactlyOnceWith('FAKEVN00000000001', {
+      vehicleType: 'hev',
+      hvBatteryCapacityKwh: null,
+    })
+  })
+
+  it('leaves it alone with auto, two cars, or a type the car already has', async () => {
+    await listed(vehicle('hev'))
+    useUiSettingsStore().vehicleTypeOverride = 'phev'
+    await listed(vehicle('hev'), { ...vehicle('bev'), id: 2, vin: 'FAKEVN00000000002' })
+    await listed({ ...vehicle('hev'), vehicleTypeOverride: 'bev' })
+
+    expect(vehicleApi.updateSettings).not.toHaveBeenCalled()
+    expect(useUiSettingsStore().vehicleTypeOverride).toBe('phev')
+  })
+
+  it('keeps the browser type when the save fails, to try again later', async () => {
+    useUiSettingsStore().vehicleTypeOverride = 'phev'
+    vi.mocked(vehicleApi.updateSettings).mockRejectedValueOnce(new TypeError('offline'))
+
+    await listed(vehicle('hev'))
+
+    expect(useUiSettingsStore().vehicleTypeOverride).toBe('phev')
   })
 })
 

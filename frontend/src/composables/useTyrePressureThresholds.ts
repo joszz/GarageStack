@@ -41,11 +41,16 @@ export function reloadTyrePressureThresholds(vin: string | null): Promise<void> 
   return load(vin)
 }
 
+// Asked for once per page load: for the car once its VIN is known, and for the deployment's own
+// thresholds only once the list has come back without a car. Until then the built-in defaults
+// stand, as they would while the request is on its way.
 export function useTyrePressureThresholds() {
   const vehicleStore = useVehicleStore()
   watch(
-    () => vehicleStore.activeVin,
-    (vin) => void load(vin),
+    () => vehicleStore.activeVin ?? (vehicleStore.vehiclesListed ? null : undefined),
+    (vin) => {
+      if (vin !== undefined) void load(vin)
+    },
     { immediate: true },
   )
   return thresholds

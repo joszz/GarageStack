@@ -893,7 +893,7 @@ public partial class AuthenticationFlowTests
         using var client = CreateClient(factory);
         await PasswordLoginAsync(client, ct);
         var settingsUrl = $"/api/vehicles/{DemoVin}/settings";
-        var thresholdsUrl = $"/api/vehicles/tyre-pressure-thresholds?vin={DemoVin}";
+        var thresholdsUrl = $"/api/vehicles/{DemoVin}/tyre-pressure-thresholds";
 
         try
         {
@@ -925,7 +925,7 @@ public partial class AuthenticationFlowTests
             var hybrid = await client.PatchAsJsonAsync(settingsUrl, new { vehicleType = "hev" }, ct);
             var outOfRange = await client.PatchAsJsonAsync(settingsUrl, new { lowFuelPercent = 120 }, ct);
             var unknown = await client.PatchAsJsonAsync(settingsUrl, new { colour = "red" }, ct);
-            var unknownCar = await client.GetAsync("/api/vehicles/tyre-pressure-thresholds?vin=FAKEVN00000000001", ct);
+            var unknownCar = await client.GetAsync("/api/vehicles/FAKEVN00000000001/tyre-pressure-thresholds", ct);
 
             Assert.Equal(HttpStatusCode.BadRequest, hybrid.StatusCode);
             Assert.Equal(VehicleSettingsRules.BatteryOnHybridCode, await ProblemCodeAsync(hybrid, ct));

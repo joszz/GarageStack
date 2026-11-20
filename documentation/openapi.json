@@ -1281,16 +1281,7 @@
         "tags": [
           "Vehicles"
         ],
-        "summary": "Get the tyre pressure colour-coding thresholds for a vehicle (vin), or the deployment's defaults without one",
-        "parameters": [
-          {
-            "name": "vin",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
+        "summary": "Get the deployment's tyre pressure colour-coding thresholds, which a vehicle without settings of its own uses",
         "responses": {
           "200": {
             "description": "OK",
@@ -1302,8 +1293,47 @@
               }
             }
           },
+          "401": {
+            "description": "Not signed in, or the API token is unknown or revoked."
+          },
+          "429": {
+            "description": "Too many requests from this address; wait a minute and try again."
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          }
+        ],
+        "x-badges": [
+          {
+            "name": "Read-only token"
+          }
+        ]
+      }
+    },
+    "/api/vehicles/{vin}/tyre-pressure-thresholds": {
+      "get": {
+        "tags": [
+          "Vehicles"
+        ],
+        "summary": "Get the vehicle's tyre pressure colour-coding thresholds: its own settings, else the deployment's",
+        "responses": {
           "404": {
             "description": "Not Found"
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TyrePressureThresholds"
+                }
+              }
+            }
           },
           "401": {
             "description": "Not signed in, or the API token is unknown or revoked."

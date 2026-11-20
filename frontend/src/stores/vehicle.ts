@@ -48,6 +48,9 @@ export const useVehicleStore = defineStore('vehicle', () => {
   let vehiclesFromSave = saved !== null
 
   const vehicles = ref<Vehicle[]>(saved?.vehicles ?? [])
+  // Whether the server has answered with the list this visit, so an empty list means no car
+  // rather than one still on its way.
+  const vehiclesListed = ref(false)
   const vehicleConfig = ref<Record<string, string>>(saved?.config ?? {})
   // shallowRef: these are only ever replaced wholesale on fetch, never mutated
   // field-by-field, so deep reactivity on every GPS point/telemetry snapshot is wasted work.
@@ -93,9 +96,40 @@ export const useVehicleStore = defineStore('vehicle', () => {
     await withLoading(vehiclesError, async () => {
       vehicles.value = await vehicleApi.list()
       vehiclesFromSave = false
+      vehiclesListed.value = true
       if (activeVin.value) rememberVin(activeVin.value)
       saveState()
     })
+    void moveBrowserTypeToCar()
+  }
+
+  // A type chosen in this account's browser settings before the type moved to the car is saved
+  // to the car once, so the server (the Worker's alerts, the charge history, which settings it
+  // takes) treats the car as the browser already does. Only with one car, whose own type is not
+  // set: the older choice belongs to no car in particular. Views mount once the account's
+  // settings are in (router), so the browser's value here is the account's. A failed save keeps
+  // it, to be tried again with the next list.
+  let movingType = false
+  async function moveBrowserTypeToCar() {
+    const legacy = uiSettings.vehicleTypeOverride
+    const car = vehicles.value.length === 1 ? vehicles.value[0] : null
+    if (vehiclesFromSave || movingType || !car || car.vehicleTypeOverride) return
+    if (legacy === 'auto' || legacy === 'unknown') return
+    movingType = true
+    try {
+      // A plain hybrid keeps no battery size of its own, as when the type is picked by hand.
+      await saveSettings(
+        car.vin,
+        legacy === 'hev'
+          ? { vehicleType: legacy, hvBatteryCapacityKwh: null }
+          : { vehicleType: legacy },
+      )
+      uiSettings.vehicleTypeOverride = 'auto'
+    } catch {
+      // Offline, or refused: the browser's choice keeps applying meanwhile.
+    } finally {
+      movingType = false
+    }
   }
 
   // Every answer the dashboard shows is written through to the saved copy, so it is as fresh as
@@ -345,6 +379,7 @@ export const useVehicleStore = defineStore('vehicle', () => {
 
   return {
     vehicles,
+    vehiclesListed,
     activeVehicle,
     activeVin,
     hasMultipleVehicles,
