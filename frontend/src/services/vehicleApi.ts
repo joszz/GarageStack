@@ -324,7 +324,11 @@ export const vehicleApi = {
     ),
   /** The car's own thresholds, or the deployment's without a vin. */
   tyrePressureThresholds: (vin?: string) =>
-    request<TyrePressureThresholds>(`/api/vehicles/tyre-pressure-thresholds${buildQuery({ vin })}`),
+    request<TyrePressureThresholds>(
+      vin
+        ? `/api/vehicles/${vin}/tyre-pressure-thresholds`
+        : '/api/vehicles/tyre-pressure-thresholds',
+    ),
   settings: (vin: string) => request<VehicleSettings>(`/api/vehicles/${vin}/settings`),
   /** Changes only the fields given; null puts one back to the deployment default. */
   updateSettings: (vin: string, changes: Partial<VehicleSettingsValues>) =>
