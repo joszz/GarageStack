@@ -32,6 +32,7 @@ try
     builder.Services.AddSingleton(VapidOptions.From(builder.Configuration));
     builder.Services.AddSingleton<IPushSender, PushSenderService>();
     builder.Services.AddSingleton<MqttConnectionState>();
+    builder.Services.AddSingleton<GatewaySignInState>();
     builder.Services.AddHostedService<MqttConsumerService>();
     builder.Services.AddHostedService<WorkerHeartbeatService>();
     builder.Services.AddHostedService<PushNotificationCheckService>();

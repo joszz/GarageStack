@@ -15,6 +15,7 @@ public sealed class WorkerHeartbeatService(
     ILogger<WorkerHeartbeatService> logger,
     IServiceScopeFactory scopeFactory,
     MqttConnectionState mqtt,
+    GatewaySignInState gatewaySignIn,
     TimeProvider? clock = null) : PeriodicBackgroundService(logger)
 {
     private DateTime UtcNow => (clock ?? TimeProvider.System).GetUtcNow().UtcDateTime;
@@ -68,7 +69,8 @@ public sealed class WorkerHeartbeatService(
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
             if (!await db.Database.CanConnectAsync(ct)) return false;
 
-            await db.Database.NotifyAsync(PgChannels.WorkerHeartbeat, new WorkerHeartbeatPayload(mqttConnected).ToJson(), ct);
+            var heartbeat = new WorkerHeartbeatPayload(mqttConnected, gatewaySignIn.SignedIn);
+            await db.Database.NotifyAsync(PgChannels.WorkerHeartbeat, heartbeat.ToJson(), ct);
             return true;
         }
         catch (Exception ex) when (ex is not OperationCanceledException)

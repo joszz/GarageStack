@@ -22,6 +22,28 @@ public class TelemetryRepositoryPostgresTests
     }
 
     [Fact]
+    public async Task TheClimateShareOfAPeriod_CountsInOneQueryWithoutAnUnorderedFirst()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var database = await PostgresDatabase.CreateAsync(ct);
+        await using var db = database.CreateContext();
+        var vehicleId = await AddVehicleAsync(db, ct);
+        db.TelemetrySnapshots.AddRange(
+            new TelemetrySnapshot { VehicleId = vehicleId, RecordedAt = Now.AddMinutes(-3), ClimateOn = true },
+            new TelemetrySnapshot { VehicleId = vehicleId, RecordedAt = Now.AddMinutes(-2), ClimateOn = false },
+            new TelemetrySnapshot { VehicleId = vehicleId, RecordedAt = Now.AddMinutes(-1), FuelLevelPercent = 50 },
+            new TelemetrySnapshot { VehicleId = vehicleId, RecordedAt = Now.AddDays(-30), ClimateOn = true });
+        await db.SaveChangesAsync(ct);
+        var repo = new TelemetryRepository(db);
+
+        var stats = await repo.GetAggregateStatsAsync(vehicleId, Now.AddDays(-1), Now, ct);
+        var empty = await repo.GetAggregateStatsAsync(vehicleId, Now.AddDays(1), Now.AddDays(2), ct);
+
+        Assert.Equal(new VehicleAggregateStats(50, 1, 2), stats);
+        Assert.Equal(new VehicleAggregateStats(null, 0, 0), empty);
+    }
+
+    [Fact]
     public async Task WhatTheRecorderReadsToAnchorATrip_TranslatesToSql()
     {
         var ct = TestContext.Current.CancellationToken;

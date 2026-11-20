@@ -96,6 +96,7 @@ try
     builder.Services.AddScoped<VehicleFactsService>();
     builder.Services.AddSingleton<VehicleCommandGate>();
     builder.Services.AddSingleton<VehicleCommandSender>();
+    builder.Services.AddSingleton<GatewaySignInMonitor>();
 
     builder.Services.AddSignalR();
     builder.Services.AddGarageStackHealthChecks(isDemoMode);
@@ -179,6 +180,7 @@ try
     app.MapDawarichEndpoints();
     app.MapWidgetEndpoints();
     app.MapUpdateEndpoints();
+    app.MapGatewayEndpoints();
     app.MapClientErrorEndpoints();
     app.MapMapEndpoints();
 

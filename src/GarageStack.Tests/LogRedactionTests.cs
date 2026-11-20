@@ -28,6 +28,20 @@ public class LogRedactionTests
         Assert.DoesNotContain("user@example.com", redacted);
     }
 
+    // The Api publishes these at Information level on every state change and start.
+    [Theory]
+    [InlineData("garagestack/FAKEVN00000000001/state", "garagestack/***0001/state")]
+    [InlineData(
+        "homeassistant/sensor/garagestack_FAKEVN00000000001/apk_days_left/config",
+        "homeassistant/sensor/garagestack_***0001/apk_days_left/config")]
+    [InlineData(
+        "homeassistant/binary_sensor/garagestack_FAKEVN00000000001/wam_insured/config",
+        "homeassistant/binary_sensor/garagestack_***0001/wam_insured/config")]
+    public void MqttTopic_GarageStackOwnTopics_ShortenTheVin(string topic, string expected)
+    {
+        Assert.Equal(expected, LogRedaction.MqttTopic(topic));
+    }
+
     [Fact]
     public void MqttTopic_NonVehicleTopic_IsLeftAloneApartFromLineEndings()
     {
