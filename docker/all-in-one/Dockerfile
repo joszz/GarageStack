@@ -37,7 +37,7 @@ ENV VITE_MAP_STYLE_COLORFUL=$MAP_STYLE_COLORFUL
 RUN pnpm run build
 
 # ── Stage 2: Build .NET API and Worker ────────────────────────────────────────
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS dotnet-build
+FROM mcr.microsoft.com/dotnet/sdk:11.0 AS dotnet-build
 WORKDIR /src
 ARG APP_VERSION=0.0.0-local
 # Shared build settings (target framework, analyzers) and central package versions. MSBuild
@@ -72,7 +72,7 @@ RUN printf '%s\n' "${RELEASE_VERSION:-unknown}" > /tmp/release-version
 # image, the one the separate API image runs on. Trixie replaced gnupg with sqv for apt signature
 # verification, and sqv rejects SHA1-signed keys (policy change since 2026-02-01), which breaks
 # the Microsoft apt repo. Copying also needs no install script fetched and run at build time.
-FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS dotnet-runtime
+FROM mcr.microsoft.com/dotnet/aspnet:11.0 AS dotnet-runtime
 
 # ── Stage 5: Final all-in-one runtime image ───────────────────────────────────
 # python:3.14-slim is Debian trixie (13) -- the same base the saic gateway uses,
@@ -109,7 +109,7 @@ RUN echo "os patch date: ${OS_PATCH_DATE}" \
 # master process stays root to bind port 80.
 RUN useradd --system --create-home --home-dir /home/appuser --shell /usr/sbin/nologin appuser
 
-# .NET 10 ASP.NET Core runtime, from the dotnet-runtime stage above.
+# .NET 11 ASP.NET Core runtime, from the dotnet-runtime stage above.
 COPY --from=dotnet-runtime /usr/share/dotnet /usr/local/dotnet
 
 # PostgreSQL's own bin directory comes first, so psql, pg_dump and the rest run directly rather

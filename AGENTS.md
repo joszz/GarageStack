@@ -18,7 +18,7 @@ Run demo mode: the whole app on sample data, without a car, a database or a brok
 - **No inline styles**: the Content Security Policy forbids them. No `style` attributes and no `<style>` blocks in components.
 - **TypeScript only** in the frontend, with no `any`, no `@ts-ignore` and no lint suppressions.
 - **pnpm**, never npm or yarn.
-- **.NET stays on the latest LTS** (10 today). Do not move packages, the SDK or the base images to a non-LTS major.
+- **.NET follows the newest major** (11 today). A new major moves by hand, all at once (target framework, packages, SDK, images, CI), once the Npgsql EF provider for it is out.
 - **Translations**: every text a user sees goes through vue-i18n. A new key goes into every file in `frontend/src/locales/` (`en`, `nl`, `es`, `pt`), or the type check fails.
 - **The current time** comes from an injected `TimeProvider`, never `DateTime.UtcNow` or `DateTimeOffset.UtcNow`: `BannedSymbols.txt` fails the build on those outside the tests, entity defaults and demo data.
 - **Dates, times and units** are formatted through `utils/format.ts` and `useUnits()`, never by hand.
