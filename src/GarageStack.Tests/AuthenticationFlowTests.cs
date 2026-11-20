@@ -1,5 +1,4 @@
 using System.Net;
-using System.Net.Http.Json;
 using System.Text.Json;
 using GarageStack.Api;
 using GarageStack.Api.Authentication;

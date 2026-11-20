@@ -92,8 +92,10 @@ public class TripDtoTests
         {
             at = at.AddMilliseconds(compact.IntervalsMs[i]);
             Assert.Equal(points[i].RecordedAt, at);
-            Assert.Equal(points[i].Latitude, line[i].Lat, 6);
-            Assert.Equal(points[i].Longitude, line[i].Lng, 6);
+            // Within one unit of the sixth decimal: a coordinate exactly on a half unit may round
+            // either way, so comparing both sides rounded to 6 digits can differ by one.
+            Assert.Equal(points[i].Latitude, line[i].Lat, 1e-6);
+            Assert.Equal(points[i].Longitude, line[i].Lng, 1e-6);
             Assert.Equal(points[i].Speed, compact.Speeds[i]);
         }
         Assert.Equal([2000L, 40500L, 44500L], compact.IntervalsMs);
