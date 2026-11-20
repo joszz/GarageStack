@@ -18,19 +18,33 @@ vi.mock('@/stores/auth', () => ({
 }))
 
 const vehicle = vi.hoisted(() => ({ type: 'bev', active: null as { id: number } | null }))
-
-vi.mock('@/stores/vehicle', () => ({
-  useVehicleStore: () => ({
-    currentStatus: null,
-    activeVehicle: vehicle.active,
-    activeVin: null,
-    vehicles: [],
-    hasMultipleVehicles: false,
-    effectiveVehicleType: vehicle.type,
-    loading: false,
-    lastUpdated: null,
-  }),
+// What the routed page is keyed on, reactive so a test can play the list arriving or a switch.
+const live = vi.hoisted(() => ({
+  state: null as { activeVin: string | null; switchCount: number } | null,
 }))
+
+vi.mock('@/stores/vehicle', async () => {
+  const { reactive } = await import('vue')
+  live.state = reactive({ activeVin: null, switchCount: 0 })
+  const state = live.state
+  return {
+    useVehicleStore: () => ({
+      currentStatus: null,
+      activeVehicle: vehicle.active,
+      get activeVin() {
+        return state.activeVin
+      },
+      get switchCount() {
+        return state.switchCount
+      },
+      vehicles: [],
+      hasMultipleVehicles: false,
+      effectiveVehicleType: vehicle.type,
+      loading: false,
+      lastUpdated: null,
+    }),
+  }
+})
 
 vi.mock('@/composables/useNotifications', () => ({
   prependNotification: vi.fn<() => void>(),
@@ -197,5 +211,63 @@ describe('App live updates', () => {
     await mountAt('/')
 
     expect(signalR.start).not.toHaveBeenCalled()
+  })
+})
+
+describe('App routed page', () => {
+  afterEach(() => {
+    live.state!.activeVin = null
+    live.state!.switchCount = 0
+  })
+
+  async function mountCounting() {
+    let mounts = 0
+    const Counted = defineComponent({
+      mounted: () => {
+        mounts += 1
+      },
+      render: () => null,
+    })
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [{ path: '/', component: Counted }],
+    })
+    await router.push('/')
+    mount(App, {
+      global: {
+        plugins: [i18n, router],
+        stubs: {
+          FontAwesomeIcon: true,
+          AppFooter: true,
+          NotificationPanel: true,
+          DemoBanner: true,
+          PwaInstallModal: true,
+        },
+      },
+    })
+    await flushPromises()
+    return () => mounts
+  }
+
+  // After a sign-in the vehicle list arrives once the page is already up: a one-car install must
+  // not mount it a second time for that.
+  it('mounts the page once when the car becomes known after a sign-in', async () => {
+    const mounts = await mountCounting()
+
+    live.state!.activeVin = 'FAKEVN00000000001'
+    await flushPromises()
+
+    expect(mounts()).toBe(1)
+  })
+
+  it('mounts the page afresh when the user picks another car', async () => {
+    live.state!.activeVin = 'FAKEVN00000000001'
+    const mounts = await mountCounting()
+
+    live.state!.activeVin = 'FAKEVN00000000002'
+    live.state!.switchCount += 1
+    await flushPromises()
+
+    expect(mounts()).toBe(2)
   })
 })

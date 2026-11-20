@@ -231,6 +231,10 @@ export const useVehicleStore = defineStore('vehicle', () => {
   )
   const activeVin = computed((): string | null => activeVehicle.value?.vin ?? null)
   const hasMultipleVehicles = computed(() => vehicles.value.length > 1)
+  // Counts the times the user picked another car. Pages are keyed on it, so they mount afresh
+  // for the new car; the vehicle list arriving after a sign-in does not count, so a one-car
+  // install mounts each page once, as before.
+  const switchCount = ref(0)
 
   // A notification names its car only when there is more than one to tell apart.
   const labelsById = computed(
@@ -253,6 +257,7 @@ export const useVehicleStore = defineStore('vehicle', () => {
     if (vin === activeVin.value || !vehicles.value.some((v) => v.vin === vin)) return
     selectedVin.value = vin
     rememberVin(vin)
+    switchCount.value += 1
     currentStatus.value = null
     vehicleConfig.value = {}
     dailyStats.value = []
@@ -312,7 +317,9 @@ export const useVehicleStore = defineStore('vehicle', () => {
     activeVehicle,
     activeVin,
     hasMultipleVehicles,
+    switchCount,
     selectVehicle,
+    isForAnotherCar,
     carLabelFor,
     currentStatus,
     currentPosition,

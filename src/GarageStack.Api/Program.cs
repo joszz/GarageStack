@@ -127,7 +127,10 @@ try
     {
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         if (isDemoMode)
-            await DemoSeeder.SeedAsync(db, scope.ServiceProvider.GetRequiredService<RdwOptions>().Enabled);
+            await DemoSeeder.SeedAsync(
+                db,
+                scope.ServiceProvider.GetRequiredService<RdwOptions>().Enabled,
+                scope.ServiceProvider.GetRequiredService<DemoOptions>());
         else
             await db.Database.MigrateAsync();
     }

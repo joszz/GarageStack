@@ -409,9 +409,10 @@ watch(
       </nav>
 
       <main ref="mainContent" class="main-content">
-        <!-- Keyed on the car, so switching cars mounts the page afresh and it loads that car. -->
+        <!-- Keyed on the user's switches of car, so the page mounts afresh and loads the new car.
+             Not on the VIN itself: that arrives after a sign-in and would mount every page twice. -->
         <RouterView v-slot="{ Component }">
-          <component :is="Component" :key="vehicleStore.activeVin ?? ''" />
+          <component :is="Component" :key="vehicleStore.switchCount" />
         </RouterView>
       </main>
     </div>

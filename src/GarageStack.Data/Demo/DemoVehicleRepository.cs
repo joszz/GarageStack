@@ -3,7 +3,7 @@ using GarageStack.Core.Models;
 
 namespace GarageStack.Data.Demo;
 
-public sealed class DemoVehicleRepository : IVehicleRepository
+public sealed class DemoVehicleRepository(DemoOptions options) : IVehicleRepository
 {
     public static readonly Vehicle DemoVehicle = new()
     {
@@ -20,8 +20,9 @@ public sealed class DemoVehicleRepository : IVehicleRepository
     };
 
     /// <summary>
-    /// A second car, a plug-in hybrid, for trying the car picker. Only there when DEMO_SECOND_VEHICLE
-    /// is true, so the public demo keeps its one car. It shares the first car's telemetry.
+    /// A second car, a plug-in hybrid, for trying the car picker. Only there when
+    /// <see cref="DemoOptions.SecondVehicle"/> is on, so the public demo keeps its one car. It shares
+    /// the first car's telemetry.
     /// </summary>
     public static readonly Vehicle SecondDemoVehicle = new()
     {
@@ -31,14 +32,12 @@ public sealed class DemoVehicleRepository : IVehicleRepository
         Series = "HS",
         SaicUser = "demo@example.com",
         CreatedAt = DateTime.UtcNow.AddMonths(-3),
-        ConfigJson = """{"hw_version":"AS23 PHEV","BType":"0"}""",
+        // BType 2: it plugs in, as a real plug-in hybrid reports (0 is a plain hybrid), but takes
+        // no charge target, so the demo shows a car without that control too.
+        ConfigJson = """{"hw_version":"AS23 PHEV","BType":"2"}""",
     };
 
-    public static bool SecondVehicleEnabled =>
-        string.Equals(Environment.GetEnvironmentVariable("DEMO_SECOND_VEHICLE"), "true", StringComparison.OrdinalIgnoreCase);
-
-    public static IReadOnlyList<Vehicle> All =>
-        SecondVehicleEnabled ? [DemoVehicle, SecondDemoVehicle] : [DemoVehicle];
+    private IReadOnlyList<Vehicle> All => options.Vehicles;
 
     public Task<IReadOnlyList<Vehicle>> GetAllAsync(CancellationToken ct = default) =>
         Task.FromResult(All);

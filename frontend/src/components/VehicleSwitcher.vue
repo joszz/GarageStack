@@ -46,16 +46,3 @@ async function onChange(event: Event) {
     <span>{{ activeLabel }}</span>
   </div>
 </template>
-
-<style scoped>
-.vehicle-switcher {
-  padding-block: 0.25rem;
-}
-
-.vehicle-switcher__select {
-  flex: 1;
-  min-width: 0;
-  font-size: 0.85rem;
-  font-weight: 600;
-}
-</style>
