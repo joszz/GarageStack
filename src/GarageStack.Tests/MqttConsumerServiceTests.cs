@@ -465,7 +465,13 @@ public class MqttConsumerServiceConnectionStateTests
         await client.WaitForConnectAsync();
         Assert.True(SpinWait.SpinUntil(() => state.IsConnected, TimeSpan.FromSeconds(5)), "connected after subscribing");
 
+        // The test service retries without a delay, so the reconnect would otherwise race the check
+        // below and could already be back online. Holding the next connect open until shutdown
+        // checks the state while the broker is gone, as it would be during a real outage.
+        client.QueueConnectBehavior(ct => Task.Delay(Timeout.Infinite, ct));
         await client.TriggerDisconnectAsync();
+        await client.WaitForConnectAsync();
+        Assert.Equal(2, client.ConnectCount);
         Assert.False(state.IsConnected);
 
         await cts.CancelAsync();
