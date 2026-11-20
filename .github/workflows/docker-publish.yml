@@ -84,15 +84,23 @@ env:
 #     deletes package versions by tag, and the per-architecture manifests of a
 #     multi-architecture image carry none, so previews stay single-architecture for now.
 #   pull request that changes this file: both architectures build, nothing is pushed.
+#
+# A fork publishes nothing: its pushes, schedule and manual runs skip every job, so its CI stays
+# green without packages permission. A fork that wants its own images sets the repository
+# variable PUBLISH_IMAGES to true; they go to ghcr.io/<its owner, lowercase>.
 jobs:
   # One version for every architecture of every image, however long each build takes.
   version:
     name: Resolve version
+    # build and merge need this job, so skipping it skips them too.
+    if: github.event_name == 'pull_request' || github.repository == 'joszz/GarageStack' || vars.PUBLISH_IMAGES == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
       contents: read
     outputs:
+      # GHCR image names are lowercase; an owner such as SomeUser is not.
+      owner: ${{ steps.owner.outputs.name }}
       version: ${{ steps.minver.outputs.version }}
       patch_date: ${{ steps.patchdate.outputs.date }}
       ref: ${{ steps.target.outputs.ref }}
@@ -221,6 +229,13 @@ jobs:
         shell: bash
         run: echo "date=$(date -u +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
 
+      - name: Image owner
+        id: owner
+        shell: bash
+        env:
+          OWNER: ${{ github.repository_owner }}
+        run: echo "name=${OWNER,,}" >> "$GITHUB_OUTPUT"
+
   build:
     name: ${{ matrix.label }} (${{ matrix.arch }})
     needs: version
@@ -293,13 +308,13 @@ jobs:
         run: |
           set -euo pipefail
           IMAGE="${{ matrix.image }}"
-          SCOPE="repository:${{ github.repository_owner }}/${IMAGE}:pull,push"
+          SCOPE="repository:${{ needs.version.outputs.owner }}/${IMAGE}:pull,push"
           STATUS=$(curl -sS -o /tmp/ghcr-token.json -w "%{http_code}" \
             -u "${{ github.actor }}:${{ secrets.GHCR_PAT != '' && secrets.GHCR_PAT || github.token }}" \
             "https://ghcr.io/token?service=ghcr.io&scope=${SCOPE}")
 
           if [ "$STATUS" -ge 400 ] || ! grep -q '"token"' /tmp/ghcr-token.json; then
-            echo "::error::GHCR auth preflight failed. Token does not have ghcr pull/push for ${{ github.repository_owner }}/${IMAGE}."
+            echo "::error::GHCR auth preflight failed. Token does not have ghcr pull/push for ${{ needs.version.outputs.owner }}/${IMAGE}."
             echo "::error::Check repo Actions permissions (Read and write), package access, or configure GHCR_PAT with write:packages/read:packages."
             cat /tmp/ghcr-token.json
             exit 1
@@ -322,7 +337,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
         with:
-          images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.image }}
+          images: ${{ env.REGISTRY }}/${{ needs.version.outputs.owner }}/${{ matrix.image }}
           # Keep this tag list the same as the one in the merge job.
           flavor: latest=false
           labels: org.opencontainers.image.revision=${{ needs.version.outputs.revision }}
@@ -354,7 +369,7 @@ jobs:
           push: ${{ env.PUBLISH == 'true' && env.RELEASE_GRADE != 'true' }}
           tags: ${{ env.RELEASE_GRADE != 'true' && steps.meta.outputs.tags || '' }}
           # By digest only, no tag: the merge job tags the index that ties the architectures.
-          outputs: ${{ env.RELEASE_GRADE == 'true' && format('type=image,name={0}/{1}/{2},push-by-digest=true,name-canonical=true,push=true', env.REGISTRY, github.repository_owner, matrix.image) || '' }}
+          outputs: ${{ env.RELEASE_GRADE == 'true' && format('type=image,name={0}/{1}/{2},push-by-digest=true,name-canonical=true,push=true', env.REGISTRY, needs.version.outputs.owner, matrix.image) || '' }}
           provenance: ${{ env.RELEASE_GRADE == 'true' && 'mode=max' || 'false' }}
           sbom: ${{ env.RELEASE_GRADE == 'true' }}
           labels: ${{ steps.meta.outputs.labels }}
@@ -424,7 +439,7 @@ jobs:
             image: garagestack-worker
     env:
       # The workflow-level env is not available here, so the registry is spelled out.
-      IMAGE: ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}
+      IMAGE: ghcr.io/${{ needs.version.outputs.owner }}/${{ matrix.image }}
       # linux/amd64 and linux/arm64, the architectures of the build matrix.
       EXPECTED_DIGESTS: 2
     steps:

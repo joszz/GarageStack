@@ -77,12 +77,15 @@ Commits follow [Conventional Commits](https://www.conventionalcommits.org/), wit
 
 ## CI on a fork
 
-The Docker build workflow requires two repository secrets to avoid Docker Hub anonymous pull rate limits (GitHub runners share IPs and exhaust the limit quickly):
+A fork starts with Actions off; turn them on in its **Actions** tab. CI, CodeQL and the Trivy file scan then run on your pushes and need no setup.
 
-- **`DOCKERHUB_USERNAME`** - Your Docker Hub username
-- **`DOCKERHUB_TOKEN`** - A Docker Hub access token (hub.docker.com > Account Settings > Security > New Access Token)
+What only makes sense for this repository is skipped on a fork: publishing images, scanning the published images, the dependency snapshot and marking issues stale. Those runs show as skipped, not failed.
 
-Add them under **Settings > Secrets and variables > Actions** in your fork. A free Docker Hub account is sufficient.
+To publish your own images to `ghcr.io/<your name, lowercase>`, set these under **Settings > Secrets and variables > Actions** in your fork:
+
+- the variable **`PUBLISH_IMAGES`** to `true`. This also turns on the weekly scan of your published images.
+- **Settings > Actions > General > Workflow permissions** to **Read and write**, or a secret **`GHCR_PAT`** with `write:packages`.
+- optionally the secrets **`DOCKERHUB_USERNAME`** and **`DOCKERHUB_TOKEN`** (a Docker Hub access token), so the builds do not hit Docker Hub's anonymous pull limit. A free account is enough.
 
 ## Reporting Issues
 
