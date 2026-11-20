@@ -5,6 +5,7 @@ import en from '@/locales/en.json'
 import nl from '@/locales/nl.json'
 import es from '@/locales/es.json'
 import pt from '@/locales/pt.json'
+import ptPT from '@/locales/pt-PT.json'
 import type { CarLocation } from '@/utils/carLocation'
 import LocationDirections from '../LocationDirections.vue'
 import { installFontAwesome } from '@/plugins/fontAwesome'
@@ -21,9 +22,13 @@ const location: CarLocation = {
 
 function mountDirections(
   point: CarLocation | null = location,
-  locale: 'en' | 'nl' | 'es' | 'pt' = 'en',
+  locale: 'en' | 'nl' | 'es' | 'pt' | 'pt-PT' = 'en',
 ) {
-  const i18n = createI18n({ legacy: false, locale, messages: { en, nl, es, pt } })
+  const i18n = createI18n({
+    legacy: false,
+    locale,
+    messages: { en, nl, es, pt, 'pt-PT': ptPT },
+  })
   return mount(LocationDirections, {
     props: { location: point, open: true },
     global: { plugins: [i18n], stubs: { FontAwesomeIcon: true, Teleport: true } },
@@ -98,9 +103,9 @@ describe('LocationDirections', () => {
     expect(getCurrentPosition).not.toHaveBeenCalled()
   })
 
-  it.each(['en', 'nl', 'es', 'pt'] as const)('shows the controls in %s', (locale) => {
+  it.each(['en', 'nl', 'es', 'pt', 'pt-PT'] as const)('shows the controls in %s', (locale) => {
     const wrapper = mountDirections(location, locale)
-    const messages = { en, nl, es, pt }[locale]
+    const messages = { en, nl, es, pt, 'pt-PT': ptPT }[locale]
 
     expect(wrapper.text()).toContain(messages.directions.osm)
     expect(wrapper.text()).toContain(messages.directions.google)
@@ -109,7 +114,11 @@ describe('LocationDirections', () => {
   })
 
   it('updates the dialog when its language changes', async () => {
-    const i18n = createI18n({ legacy: false, locale: 'en', messages: { en, nl, es, pt } })
+    const i18n = createI18n({
+      legacy: false,
+      locale: 'en',
+      messages: { en, nl, es, pt, 'pt-PT': ptPT },
+    })
     const wrapper = mount(LocationDirections, {
       props: { location, open: true },
       global: { plugins: [i18n], stubs: { FontAwesomeIcon: true, Teleport: true } },

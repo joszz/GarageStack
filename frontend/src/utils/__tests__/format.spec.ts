@@ -55,6 +55,23 @@ describe('format', () => {
     expect(formatDate(moment, { day: 'numeric', month: 'long' })).toBe('26 de setembro')
   })
 
+  it('writes numbers and dates in European Portuguese conventions', () => {
+    i18n.global.locale.value = 'pt-PT'
+
+    expect(numberLocale()).toBe('pt-PT')
+    expect(formatNumber(24852.4, 1, true)).toBe('24\u00a0852,4')
+    expect(formatDate(moment, { day: 'numeric', month: 'long' })).toBe('26 de setembro')
+  })
+
+  it('writes Portuguese dates in the order of the region the user is in', () => {
+    i18n.global.locale.value = 'pt-PT'
+    setRegionalFormat({ region: 'BR', hourCycle: 'h23' })
+
+    expect(formatDate(moment, { day: '2-digit', month: '2-digit', year: 'numeric' })).toBe(
+      '26/09/2026',
+    )
+  })
+
   it('keeps numbers in the interface language wherever the browser is', () => {
     setRegionalFormat({ region: 'NL', hourCycle: 'h23' })
 

@@ -83,6 +83,22 @@ public class LocalizedStringsTests
         Assert.Equal("Motor ligado", title.Value);
     }
 
+    // Plain "pt" is Brazilian Portuguese, so NOTIFICATION_LANGUAGE=pt from before pt-PT existed
+    // keeps its texts, and pt-BR falls back to the same files.
+    [Theory]
+    [InlineData("pt", "Seu carro foi ligado.")]
+    [InlineData("pt-BR", "Seu carro foi ligado.")]
+    [InlineData("pt-PT", "O seu carro foi ligado.")]
+    public void NotificationStrings_TellBrazilianFromEuropeanPortuguese(string culture, string expected)
+    {
+        var strings = WorkerLocalizer.Notifications();
+
+        var body = WithUiCulture(culture, () => strings["EngineStartBody"]);
+
+        Assert.False(body.ResourceNotFound);
+        Assert.Equal(expected, body.Value);
+    }
+
     [Fact]
     public void WidgetStrings_ResolveDutch_WhenUiCultureIsDutch()
     {
@@ -114,5 +130,19 @@ public class LocalizedStringsTests
 
         Assert.False(locked.ResourceNotFound);
         Assert.Equal("Trancado", locked.Value);
+    }
+
+    [Theory]
+    [InlineData("pt", "Carregando")]
+    [InlineData("pt-BR", "Carregando")]
+    [InlineData("pt-PT", "A carregar")]
+    public void WidgetStrings_TellBrazilianFromEuropeanPortuguese(string culture, string expected)
+    {
+        var strings = Resolve<WidgetStrings>();
+
+        var charging = WithUiCulture(culture, () => strings["ChargingYes"]);
+
+        Assert.False(charging.ResourceNotFound);
+        Assert.Equal(expected, charging.Value);
     }
 }

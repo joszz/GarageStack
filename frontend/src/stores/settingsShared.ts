@@ -16,7 +16,11 @@ export type VehicleTypeOverride = 'auto' | VehicleType
 export type Theme = 'dark' | 'light'
 /** The theme setting: one of the two, or whichever the device prefers at the moment. */
 export type ThemeChoice = Theme | 'system'
-export type Locale = 'en' | 'nl' | 'es' | 'pt'
+/**
+ * An interface language. A code names only the language, and a country is added only where the
+ * language has variants: `pt` is Brazilian Portuguese, `pt-PT` European Portuguese.
+ */
+export type Locale = 'en' | 'nl' | 'es' | 'pt' | 'pt-PT'
 
 export interface CarColorScheme {
   id: string
@@ -133,10 +137,16 @@ export function osPreferredTheme(): Theme {
   return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'
 }
 
+/**
+ * The interface language this browser asks for. Portuguese is European for Portugal and the other
+ * countries that write it the European way (pt-PT, pt-AO, pt-MZ, ...), and Brazilian (`pt`) for
+ * pt-BR and for a plain "pt", which names no country.
+ */
 export function browserLocale(): Locale {
   const lang = navigator.language.toLowerCase()
   if (lang.startsWith('nl')) return 'nl'
   if (lang.startsWith('es')) return 'es'
+  if (lang.startsWith('pt-') && !lang.startsWith('pt-br')) return 'pt-PT'
   return lang.startsWith('pt') ? 'pt' : 'en'
 }
 

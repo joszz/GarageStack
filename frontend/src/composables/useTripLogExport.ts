@@ -8,6 +8,7 @@ import { asError } from '@/utils/errors'
 import { missingPlaces, periodRange, type TripLogPeriod } from '@/utils/tripLog'
 import { tripLogCsv, tripLogFileName } from '@/utils/tripLogCsv'
 import { lookUpTripPlaces, withPlaces } from '@/utils/tripLogPlaces'
+import { localeLanguage } from '@/utils/locale'
 
 /**
  * Saves a period of the trip log as CSV, hidden trips left out. It reads the trips itself rather
@@ -38,7 +39,7 @@ export function useTripLogExport() {
     count()
     let available = true
     try {
-      available = await lookUpTripPlaces(vin, uiSettings.locale, {
+      available = await lookUpTripPlaces(vin, localeLanguage(uiSettings.locale), {
         entries: () => entries,
         apply: (found) => {
           entries = withPlaces(entries, found)

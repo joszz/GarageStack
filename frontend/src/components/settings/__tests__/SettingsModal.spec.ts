@@ -7,6 +7,7 @@ import en from '@/locales/en.json'
 import nl from '@/locales/nl.json'
 import es from '@/locales/es.json'
 import pt from '@/locales/pt.json'
+import ptPT from '@/locales/pt-PT.json'
 import { apiTokensApi } from '@/services/apiTokensApi'
 import { dawarichApi, type DawarichStatus } from '@/services/dawarichApi'
 import type { Vehicle } from '@/services/vehicleApi'
@@ -94,7 +95,11 @@ beforeEach(() => {
 })
 
 async function render(open = true) {
-  const i18n = createI18n({ legacy: false, locale: 'en', messages: { en, nl, es, pt } })
+  const i18n = createI18n({
+    legacy: false,
+    locale: 'en',
+    messages: { en, nl, es, pt, 'pt-PT': ptPT },
+  })
   const wrapper = mount(SettingsModal, {
     props: { open },
     attachTo: document.body,
@@ -308,19 +313,23 @@ describe('SettingsModal tabs', () => {
     vi.mocked(dawarichApi.status).mockResolvedValue({ configured: true, status: 'ok' })
     const { wrapper, i18n } = await render()
     await tab(wrapper, 'data').trigger('click')
-    for (const locale of ['nl', 'es', 'pt'] as const) {
+    for (const locale of ['nl', 'es', 'pt', 'pt-PT'] as const) {
       i18n.global.locale.value = locale
       await flushPromises()
-      expect(tab(wrapper, 'vehicle').text()).toBe({ nl, es, pt }[locale].settings.tabs.vehicle)
-      expect(tab(wrapper, 'phone').text()).toBe({ nl, es, pt }[locale].settings.tabs.phoneShort)
+      expect(tab(wrapper, 'vehicle').text()).toBe(
+        { nl, es, pt, 'pt-PT': ptPT }[locale].settings.tabs.vehicle,
+      )
+      expect(tab(wrapper, 'phone').text()).toBe(
+        { nl, es, pt, 'pt-PT': ptPT }[locale].settings.tabs.phoneShort,
+      )
       expect(tab(wrapper, 'phone').attributes('aria-label')).toBe(
-        { nl, es, pt }[locale].settings.tabs.phone,
+        { nl, es, pt, 'pt-PT': ptPT }[locale].settings.tabs.phone,
       )
       expect(tab(wrapper, 'phone').attributes('title')).toBe(
-        { nl, es, pt }[locale].settings.tabs.phone,
+        { nl, es, pt, 'pt-PT': ptPT }[locale].settings.tabs.phone,
       )
       expect(wrapper.get('[role=dialog]').attributes('aria-label')).toBe(
-        { nl, es, pt }[locale].settings.title,
+        { nl, es, pt, 'pt-PT': ptPT }[locale].settings.title,
       )
     }
     await wrapper.setProps({ open: false })
@@ -329,7 +338,7 @@ describe('SettingsModal tabs', () => {
     expect(tab(wrapper, 'general').attributes('aria-selected')).toBe('true')
   })
 
-  it.each([en, nl, es, pt])(
+  it.each([en, nl, es, pt, ptPT])(
     'keeps navigation hints consistent with the settings labels',
     (locale) => {
       const { title, tabs, licensePlate, commutePlaces } = locale.settings

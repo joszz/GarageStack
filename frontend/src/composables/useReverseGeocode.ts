@@ -9,6 +9,7 @@ import {
   type Place,
 } from '@/services/mapApi'
 import { useUiSettingsStore } from '@/stores/settingsUi'
+import { localeLanguage } from '@/utils/locale'
 import { resolveInRounds } from '@/utils/resolveInRounds'
 
 /**
@@ -176,17 +177,18 @@ function refill(lang: string) {
 
 export function useReverseGeocode() {
   const uiSettings = useUiSettingsStore()
-  language.value = uiSettings.locale
+  language.value = localeLanguage(uiSettings.locale)
   wanted.value = uiSettings.placeNamesEnabled
 
-  // Place names are language-specific ("Den Haag" / "The Hague"), so a locale switch invalidates
-  // pending work and re-asks for everything still on screen in the new language.
+  // Place names are language-specific ("Den Haag" / "The Hague"), so a language switch invalidates
+  // pending work and re-asks for everything still on screen in the new language. Between pt and
+  // pt-PT the names stay: OpenStreetMap has one Portuguese name per place.
   watch(
-    () => uiSettings.locale,
-    (locale) => {
-      if (locale === language.value) return
-      language.value = locale
-      refill(locale)
+    () => localeLanguage(uiSettings.locale),
+    (lang) => {
+      if (lang === language.value) return
+      language.value = lang
+      refill(lang)
     },
   )
 
