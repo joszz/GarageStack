@@ -92,6 +92,7 @@ internal static class ApiReferenceText
         ["Export"] = "Everything GarageStack keeps, as one zip.",
         ["Logs"] = "The API's and the Worker's log entries, as the log viewer pages through them.",
         ["Updates"] = "Whether a newer GarageStack release is out.",
+        ["Gateway"] = "Whether the SAIC gateway is signed in to the MG account: when it is not, no car sends data, whatever the car itself is doing.",
         ["Diagnostics"] = "Errors the web app ran into in the browser, for the API's log, and an anonymized zip to attach to a bug report.",
         ["Widget"] = "The car's status in one call, for a Homepage dashboard widget.",
         ["Calendar"] = "A calendar feed (iCalendar) of the APK, maintenance due dates and climate schedules, opened by the token in its address. The link is made and stopped from a signed-in session.",

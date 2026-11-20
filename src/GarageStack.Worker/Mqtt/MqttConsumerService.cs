@@ -28,7 +28,8 @@ public class MqttConsumerService : BackgroundService
         IPushSender pushSender,
         IStringLocalizer<NotificationStrings> strings,
         CommandAnswerWaiter answers,
-        MqttConnectionState connection)
+        MqttConnectionState connection,
+        GatewaySignInState signIn)
     {
         _logger = logger;
         _options = options.Value;
@@ -37,7 +38,7 @@ public class MqttConsumerService : BackgroundService
         var vehicles = new VehicleResolver(scopeFactory);
         _handlers =
         [
-            new AccountStatusHandler(logger, scopeFactory, pushSender, strings, TimeProvider.System),
+            new AccountStatusHandler(logger, scopeFactory, pushSender, strings, TimeProvider.System, signIn),
             new HaDiscoveryHandler(logger, vehicles),
             new VehicleConfigHandler(logger, vehicles),
             new VehicleMessageHandler(logger, scopeFactory, pushSender, strings, TimeProvider.System),

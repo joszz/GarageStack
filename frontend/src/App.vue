@@ -16,6 +16,8 @@ const DemoControlPanel = defineAsyncComponent(() => import('@/components/DemoCon
 import { useNotifications, prependNotification } from '@/composables/useNotifications'
 import { useBrowserNotifications } from '@/composables/useBrowserNotifications'
 import { useSignalR } from '@/composables/useSignalR'
+import { useGatewayStatus } from '@/composables/useGatewayStatus'
+import { useSettledAvailability } from '@/composables/useSettledAvailability'
 import { useFavicon } from '@/composables/useFavicon'
 import { usePageTitle } from '@/composables/usePageTitle'
 import { useRelativeTime } from '@/composables/useRelativeTime'
@@ -38,21 +40,40 @@ const vehicleStatus = computed(() => vehicleStore.currentStatus)
 // A plain hybrid never charges from a plug, so its menu has no charge history.
 const showsChargeHistory = computed(() => mayPlugIn(vehicleStore.effectiveVehicleType))
 
+// A car flips to offline for a minute or so whenever a few polls in a row fail, which while
+// driving is any stretch of weak signal: the app only says so once it lasts.
+const isAvailable = useSettledAvailability(
+  () => vehicleStatus.value?.isAvailable,
+  () => vehicleStore.activeVehicle?.id,
+)
+// A gateway that cannot sign in to MG gets nothing from any car: that, not the car, is the news.
+const gateway = useGatewayStatus()
+const gatewaySignedOut = computed(() => gateway.signedIn.value === false)
+
 const onlineStatusText = computed(() => {
-  const s = vehicleStatus.value
-  if (!s || s.isAvailable === null) return null
-  return s.isAvailable ? t('common.online') : t('common.offline')
+  if (!vehicleStatus.value) return null
+  if (gatewaySignedOut.value) return t('vehicle.gatewaySignedOut')
+  if (isAvailable.value === null) return null
+  return isAvailable.value ? t('common.online') : t('common.offline')
 })
 
+const onlineStatusTitle = computed(() =>
+  gatewaySignedOut.value ? t('vehicle.gatewaySignedOutHint') : onlineStatusText.value,
+)
+
 const onlineStatusVariant = computed(() => {
-  const s = vehicleStatus.value
-  if (!s || s.isAvailable === null) return null
-  return s.isAvailable ? 'online' : 'offline'
+  if (!vehicleStatus.value) return null
+  if (gatewaySignedOut.value) return 'offline'
+  if (isAvailable.value === null) return null
+  return isAvailable.value ? 'online' : 'offline'
 })
 
 const { relativeTime } = useRelativeTime()
 
+// Left out beside a failed MG sign-in, which needs the room: the Recorded line below still says
+// how old the data is.
 const onlineStatusTime = computed(() => {
+  if (gatewaySignedOut.value) return undefined
   const iso = vehicleStatus.value?.lastVehicleStateAt
   return iso ? relativeTime(iso) : undefined
 })
@@ -87,18 +108,15 @@ const vehicleId = computed(() => vehicleStore.activeVehicle?.id ?? null)
 const availabilityToast = ref<'online' | 'offline' | null>(null)
 let toastTimer: ReturnType<typeof setTimeout> | null = null
 
-watch(
-  () => vehicleStore.currentStatus?.isAvailable,
-  (now, prev) => {
-    if (prev === undefined || prev === null || now === null || now === undefined) return
-    if (now === prev) return
-    if (toastTimer) clearTimeout(toastTimer)
-    availabilityToast.value = now ? 'online' : 'offline'
-    toastTimer = setTimeout(() => {
-      availabilityToast.value = null
-    }, 5000)
-  },
-)
+watch(isAvailable, (now, prev) => {
+  if (prev === null || now === null) return
+  if (now === prev) return
+  if (toastTimer) clearTimeout(toastTimer)
+  availabilityToast.value = now ? 'online' : 'offline'
+  toastTimer = setTimeout(() => {
+    availabilityToast.value = null
+  }, 5000)
+})
 
 onBeforeUnmount(() => {
   if (toastTimer) clearTimeout(toastTimer)
@@ -120,9 +138,11 @@ const {
   },
   onTripCompleted: () => vehicleStore.notifyTripCompleted(),
   onCommandResult: (result) => vehicleStore.applyCommandResult(result),
+  onGatewayStatus: (status) => gateway.apply(status),
   // Telemetry that arrived while the connection was down never reached this page.
   onReconnected: () => {
     if (vehicleStore.activeVin) void vehicleStore.fetchStatus(vehicleStore.activeVin)
+    void gateway.refresh()
   },
 })
 
@@ -141,6 +161,7 @@ watch(
     if (id && authenticated) {
       signalRAttempted.value = true
       startSignalR(id)
+      void gateway.refresh()
     } else if (!authenticated) {
       signalRAttempted.value = false
       stopSignalR()
@@ -342,7 +363,7 @@ watch(
             </template>
             <template v-else>
               <font-awesome-icon icon="wifi" aria-hidden="true" />
-              <span class="sidebar-footer__text" :title="onlineStatusText ?? undefined">{{
+              <span class="sidebar-footer__text" :title="onlineStatusTitle ?? undefined">{{
                 onlineStatusText
               }}</span>
               <span

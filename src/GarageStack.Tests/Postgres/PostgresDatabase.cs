@@ -1,5 +1,6 @@
 using GarageStack.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Npgsql;
 
 namespace GarageStack.Tests;
@@ -64,9 +65,16 @@ internal sealed class PostgresDatabase : IAsyncDisposable
         return new PostgresDatabase(admin, name);
     }
 
-    /// <summary>A context on this database, as the services get one. Dispose it.</summary>
+    /// <summary>
+    /// A context on this database, as the services get one. Dispose it. A query that cuts an
+    /// unordered, unfiltered result with First fails the test: EF only warns about it, and only
+    /// in the relational pipeline, so the in-memory tests never see it.
+    /// </summary>
     public AppDbContext CreateContext() =>
-        new(new DbContextOptionsBuilder<AppDbContext>().UseNpgsql(ConnectionString).Options);
+        new(new DbContextOptionsBuilder<AppDbContext>()
+            .UseNpgsql(ConnectionString)
+            .ConfigureWarnings(w => w.Throw(CoreEventId.FirstWithoutOrderByAndFilterWarning))
+            .Options);
 
     public async ValueTask DisposeAsync()
     {

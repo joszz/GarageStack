@@ -55,10 +55,15 @@ public static partial class LogRedaction
     public static string UrlHost(string? url) =>
         Uri.TryCreate(url, UriKind.Absolute, out var uri) ? uri.Host : "***";
 
-    /// <summary>Redacts the account email and VIN segments of a saic-mqtt-gateway topic.</summary>
+    /// <summary>
+    /// Redacts the account email and VIN segments of a saic-mqtt-gateway topic, and the VIN in any
+    /// other topic: GarageStack's own state topic (garagestack/{vin}/state) and its Home Assistant
+    /// discovery topics (homeassistant/sensor/garagestack_{vin}/...) carry it too.
+    /// </summary>
     public static string MqttTopic(string topic)
     {
         var sanitized = topic.ReplaceLineEndings(" ");
-        return SaicTopicPrefix().Replace(sanitized, m => $"saic/***/vehicles/{Vin(m.Groups[1].Value)}/");
+        var saicRedacted = SaicTopicPrefix().Replace(sanitized, m => $"saic/***/vehicles/{Vin(m.Groups[1].Value)}/");
+        return Vins(saicRedacted);
     }
 }

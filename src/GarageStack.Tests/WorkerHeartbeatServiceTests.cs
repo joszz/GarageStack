@@ -26,7 +26,7 @@ public class WorkerHeartbeatServiceTests : IDisposable
     {
         var mqtt = new MqttConnectionState();
         mqtt.Set(mqttConnected);
-        return new WorkerHeartbeatService(NullLogger<WorkerHeartbeatService>.Instance, scopes, mqtt) { FilePath = _file };
+        return new WorkerHeartbeatService(NullLogger<WorkerHeartbeatService>.Instance, scopes, mqtt, new GatewaySignInState()) { FilePath = _file };
     }
 
     [Fact]

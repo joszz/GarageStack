@@ -206,6 +206,8 @@
     "diagramLabel": "Diagrama de estado del vehículo",
     "wentOnline": "El vehículo está en línea",
     "wentOffline": "El vehículo se desconectó",
+    "gatewaySignedOut": "Error al iniciar sesión en MG",
+    "gatewaySignedOutHint": "La pasarela no puede iniciar sesión en la cuenta de MG, así que no llegan datos nuevos del coche. Lo vuelve a intentar cada 15 minutos.",
     "fuel": "Combustible",
     "range": "Alcance",
     "odometer": "Odómetro",
@@ -828,6 +830,8 @@
   "demo": {
     "banner": "Modo de demostración: muestra solo datos de muestra",
     "controlPanel": "Controles de demostración",
+    "online": "En línea",
+    "gatewaySignedIn": "Sesión MG",
     "doors": "Puertas / Capó / Maletero",
     "windows": "Ventanas",
     "lights": "Luces",

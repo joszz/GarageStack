@@ -206,6 +206,8 @@
     "diagramLabel": "Voertuigstatusdiagram",
     "wentOnline": "Voertuig is online",
     "wentOffline": "Voertuig is offline gegaan",
+    "gatewaySignedOut": "Inloggen bij MG mislukt",
+    "gatewaySignedOutHint": "De gateway kan niet inloggen op het MG-account, dus er komt geen nieuwe data van de auto binnen. Hij probeert het elke 15 minuten opnieuw.",
     "fuel": "Brandstof",
     "range": "Bereik",
     "odometer": "Kilometerteller",
@@ -828,6 +830,8 @@
   "demo": {
     "banner": "Demo modus - alleen voorbeelddata wordt getoond",
     "controlPanel": "Demo Bediening",
+    "online": "Online",
+    "gatewaySignedIn": "MG-login",
     "doors": "Deuren / Motorkap / Kofferbak",
     "windows": "Ramen",
     "lights": "Verlichting",

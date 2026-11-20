@@ -134,7 +134,7 @@ file sealed class TestableMqttConsumerService : MqttConsumerService
 
     public TestableMqttConsumerService(
         FakePushSender push, FakeMqttClient client, FakeServiceScopeFactory? scopes = null, MqttConnectionState? connection = null)
-        : base(NullLogger<MqttConsumerService>.Instance, Options.Create(new MqttOptions()), scopes ?? new FakeServiceScopeFactory(), push, WorkerLocalizer.Notifications(), new CommandAnswerWaiter(), connection ?? new MqttConnectionState())
+        : base(NullLogger<MqttConsumerService>.Instance, Options.Create(new MqttOptions()), scopes ?? new FakeServiceScopeFactory(), push, WorkerLocalizer.Notifications(), new CommandAnswerWaiter(), connection ?? new MqttConnectionState(), new GatewaySignInState())
     {
         _client = client;
     }

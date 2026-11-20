@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { demoApi } from '@/services/demoApi'
 import { useVehicleStore } from '@/stores/vehicle'
 import { useUnits } from '@/composables/useUnits'
+import { useGatewayStatus } from '@/composables/useGatewayStatus'
 import type { TelemetrySnapshot } from '@/services/vehicleApi'
 
 const props = defineProps<{ open: boolean }>()
@@ -40,7 +41,17 @@ const stateToggles: ToggleButtonConfig[] = [
   { field: 'isLocked', label: 'demo.locked' },
   { field: 'engineRunning', label: 'demo.engine' },
   { field: 'climateOn', label: 'demo.climate' },
+  { field: 'isAvailable', label: 'demo.online' },
 ]
+
+// The demo gateway is signed in until the panel says otherwise.
+const gateway = useGatewayStatus()
+const gatewaySignedIn = computed(() => gateway.signedIn.value !== false)
+
+async function toggleGateway() {
+  await demoApi.setGateway(!gatewaySignedIn.value)
+  await gateway.refresh()
+}
 
 const chargingToggles: ToggleButtonConfig[] = [
   { field: 'chargerConnected', label: 'demo.chargerConnected' },
@@ -193,6 +204,14 @@ async function setLights(mode: 'off' | 'side' | 'dipped' | 'main') {
             @click="toggle(btn.field, status?.[btn.field] as boolean | null | undefined)"
           >
             {{ t(btn.label) }}
+          </button>
+          <button
+            class="demo-toggle-btn"
+            :class="{ 'is-active': gatewaySignedIn }"
+            :aria-pressed="gatewaySignedIn"
+            @click="toggleGateway"
+          >
+            {{ t('demo.gatewaySignedIn') }}
           </button>
         </div>
       </div>

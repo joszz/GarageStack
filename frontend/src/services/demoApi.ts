@@ -22,9 +22,12 @@ export interface DemoStatusOverride {
   evSocPercent?: number | null
   interiorTemperature?: number | null
   exteriorTemperature?: number | null
+  isAvailable?: boolean | null
 }
 
 export const demoApi = {
   setStatus: (vin: string, override: DemoStatusOverride) =>
     send(`/api/demo/status/${vin}`, 'POST', override),
+  /** Plays the gateway signing in to the MG account, or failing to. */
+  setGateway: (signedIn: boolean) => send('/api/demo/gateway', 'POST', { signedIn }),
 }
