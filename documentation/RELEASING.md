@@ -34,7 +34,7 @@ All images live on GitHub Container Registry (`ghcr.io`). Replace `joszz` with t
 | `1.2` | `garagestack:1.2` | On any `v1.2.x` tag |
 | `1` | `garagestack:1` | On any `v1.x.x` tag |
 | `sha-abc1234` | `garagestack:sha-abc1234` | Every published build, named after the commit it was built from: pushes to `main`, tags, weekly rebuild, manual dispatch |
-| `pr-123` | `garagestack:pr-123` | Preview of pull request 123 while it has the `test-build` label; follows every push, deleted when the label comes off or the PR closes. See [`PREVIEW_BUILDS.md`](PREVIEW_BUILDS.md) |
+| `pr-123` | `garagestack:pr-123` | Preview of pull request 123 while it has the `test-build` label; follows every push (a fork's is rebuilt by hand), deleted when the label comes off or the PR closes. See [`PREVIEW_BUILDS.md`](PREVIEW_BUILDS.md) |
 | `pr-123-abc1234` | `garagestack:pr-123-abc1234` | One exact commit of that preview; deleted with it |
 
 ---

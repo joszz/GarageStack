@@ -3,12 +3,26 @@ name: Preview build
 # Publishes images for a pull request labelled test-build, tagged pr-<number>, so someone with the
 # car the change is for can run it before it is merged. Every push to the pull request replaces
 # them; preview-cleanup.yml deletes them when the label comes off or the pull request closes.
-# See documentation/PREVIEW_BUILDS.md.
+#
+# A pull request from a fork gets no packages permission, so the label alone builds nothing
+# there. A maintainer reads its changes, then runs this workflow by hand (Run workflow) with the
+# pull request number and the commit they read. Only that exact commit is built, and a push to
+# the fork afterwards needs a new review and a new run. See documentation/PREVIEW_BUILDS.md.
 
 on:
   pull_request:
     branches: [main]
     types: [labeled, synchronize, reopened]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: Pull request from a fork to build (it needs the test-build label)
+        type: number
+        required: true
+      commit:
+        description: The full commit of that pull request you reviewed (its head)
+        type: string
+        required: true
 
 permissions:
   contents: read
@@ -17,17 +31,66 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
+  # A build by hand: the pull request has to be open, aimed at main, labelled test-build, and
+  # still at the commit the maintainer reviewed. docker-publish.yml checks GitHub's merge of it
+  # against that commit again when it builds.
+  check:
+    name: Check pr-${{ inputs.pr_number }}
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+      PR: ${{ inputs.pr_number }}
+      COMMIT: ${{ inputs.commit }}
+    steps:
+      - name: Check the pull request and the reviewed commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! [[ "$COMMIT" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::commit must be the full 40-character commit, as git rev-parse prints it" >&2
+            exit 1
+          fi
+          PULL=$(gh api "repos/$REPO/pulls/$PR")
+          STATE=$(jq -r .state <<< "$PULL")
+          BASE=$(jq -r .base.ref <<< "$PULL")
+          HEAD=$(jq -r .head.sha <<< "$PULL")
+          LABELLED=$(jq -r 'any(.labels[]; .name == "test-build")' <<< "$PULL")
+          if [ "$STATE" != open ] || [ "$BASE" != main ]; then
+            echo "::error::#$PR is $STATE and aimed at $BASE; only an open pull request to main is built" >&2
+            exit 1
+          fi
+          if [ "$LABELLED" != true ]; then
+            echo "::error::#$PR has no test-build label. Add it first, so closing the pull request deletes the images again." >&2
+            exit 1
+          fi
+          if [ "$HEAD" != "$COMMIT" ]; then
+            echo "::error::#$PR is at $HEAD now, not $COMMIT. Review the commits since then and run again with the new head." >&2
+            exit 1
+          fi
+          echo "Building #$PR at $COMMIT"
+
   build:
-    name: Publish pr-${{ github.event.pull_request.number }}
-    # Only for branches of this repository: a fork's pull request gets no packages permission.
-    # Adding another label to a labelled pull request is not a reason to build again.
+    name: Publish pr-${{ inputs.pr_number || github.event.pull_request.number }}
+    needs: check
+    # By hand: once the check passed. On a pull request: only for branches of this repository,
+    # since a fork's pull request gets no packages permission. Adding another label to a labelled
+    # pull request is not a reason to build again.
     if: >-
-      github.event.pull_request.head.repo.full_name == github.repository &&
-      contains(github.event.pull_request.labels.*.name, 'test-build') &&
-      (github.event.action != 'labeled' || github.event.label.name == 'test-build')
+      !cancelled() &&
+      (github.event_name == 'workflow_dispatch' && needs.check.result == 'success' ||
+       github.event_name == 'pull_request' &&
+       github.event.pull_request.head.repo.full_name == github.repository &&
+       contains(github.event.pull_request.labels.*.name, 'test-build') &&
+       (github.event.action != 'labeled' || github.event.label.name == 'test-build'))
     # Shared with the cleanup, so closing the pull request stops a build that is still pushing.
     concurrency:
-      group: preview-${{ github.event.pull_request.number }}
+      group: preview-${{ inputs.pr_number || github.event.pull_request.number }}
       cancel-in-progress: true
     permissions:
       contents: read
@@ -35,12 +98,14 @@ jobs:
       id-token: write
     uses: ./.github/workflows/docker-publish.yml
     with:
-      pr_number: ${{ github.event.pull_request.number }}
+      pr_number: ${{ inputs.pr_number || github.event.pull_request.number }}
+      pr_commit: ${{ inputs.commit || '' }}
     secrets: inherit
 
   comment:
     name: Tell the tester
     needs: build
+    if: ${{ !cancelled() && needs.build.result == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -50,17 +115,20 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       REPO: ${{ github.repository }}
       OWNER: ${{ github.repository_owner }}
-      PR: ${{ github.event.pull_request.number }}
-      HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      PR: ${{ inputs.pr_number || github.event.pull_request.number }}
+      HEAD_SHA: ${{ inputs.commit || github.event.pull_request.head.sha }}
       VERSION: ${{ needs.build.outputs.version }}
+      BY_HAND: ${{ github.event_name == 'workflow_dispatch' }}
     steps:
       # The same commit the build used (the pull request merged into main), with history and
-      # tags, to see which migrations it carries that the latest release does not.
+      # tags, to see which migrations it carries that the latest release does not. A build by
+      # hand names that merge itself; on a pull request it is the run's own commit.
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           persist-credentials: false
+          ref: ${{ needs.build.outputs.ref }}
 
       - name: Post or update the preview comment
         shell: bash
@@ -83,7 +151,11 @@ jobs:
             echo "### Preview build \`pr-$PR\`"
             echo
             echo "Images for this pull request are published, built from $SHORT (version \`$VERSION\`, shown in the footer)."
-            echo "Every push here replaces them. Closing the pull request or removing the \`test-build\` label deletes them."
+            if [ "$BY_HAND" = true ]; then
+              echo "This pull request comes from a fork, so a maintainer builds it by hand after reading the changes: a push here does not rebuild the images by itself. Closing the pull request or removing the \`test-build\` label deletes them."
+            else
+              echo "Every push here replaces them. Closing the pull request or removing the \`test-build\` label deletes them."
+            fi
             echo
             if [ "$MIGRATIONS" -gt 0 ]; then
               echo "> [!WARNING]"
