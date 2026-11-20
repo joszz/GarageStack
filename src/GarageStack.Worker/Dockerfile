@@ -17,6 +17,8 @@ RUN dotnet publish -c Release -o /app /p:MinVerVersionOverride=${APP_VERSION#v}
 
 FROM mcr.microsoft.com/dotnet/runtime:11.0 AS runtime
 WORKDIR /app
+# Ubuntu 26.04 ships Pebble (a Go service manager) in the base image. Nothing here runs it,
+# but its Go runtime trips Trivy on every Go CVE until Canonical rebuilds, so it goes.
 # OS_PATCH_DATE busts the layer cache so apt-get upgrade actually re-runs instead of
 # reusing a stale cached layer from before an OS package fix was published.
 ARG OS_PATCH_DATE=0
@@ -24,7 +26,7 @@ RUN echo "os patch date: ${OS_PATCH_DATE}" \
 	&& apt-get update \
 	&& apt-get upgrade -y \
 	&& apt-get install -y --no-install-recommends libgssapi-krb5-2 tzdata \
-	&& rm -rf /var/lib/apt/lists/*
+	&& rm -rf /var/lib/apt/lists/* /usr/bin/pebble /var/lib/pebble
 COPY --from=build /app .
 COPY --chmod=755 src/GarageStack.Worker/docker-entrypoint.sh /docker-entrypoint.sh
 # The Worker has no HTTP listener to probe (unlike Api/frontend). Its heartbeat
