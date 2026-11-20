@@ -23,25 +23,40 @@ public static class VehicleEndpoints
 
         // Resolved once here rather than taken as a handler parameter: it is deployment
         // configuration, not request input.
-        var hvBatteryCapacity = app.ServiceProvider.GetRequiredService<HvBatteryCapacity>();
+        var defaults = app.ServiceProvider.GetRequiredService<VehicleDefaults>();
         var clock = app.ServiceProvider.GetRequiredService<TimeProvider>();
-        var tyreThresholds = app.ServiceProvider.GetRequiredService<TyrePressureThresholds>();
 
         group.MapGet("/", async (IVehicleRepository vehicles, CancellationToken ct) =>
         {
             var all = await vehicles.GetAllAsync(ct);
-            return Results.Ok(all.Select(v => new VehicleListItemDto(
-                v.Id, v.Vin, v.Model, v.Series, v.CreatedAt, VehicleTypeHelper.GetVehicleType(v),
-                hvBatteryCapacity.Kwh, VehicleTypeHelper.SupportsTargetSoc(v), v.HasPowerTailgate)));
+            return Results.Ok(all.Select(v =>
+            {
+                var effective = VehicleSettingsResolver.Resolve(v, defaults);
+                return new VehicleListItemDto(
+                    v.Id, v.Vin, v.Model, v.Series, v.CreatedAt, effective.DetectedVehicleType,
+                    v.Settings?.VehicleType, effective.HvBatteryCapacityKwh,
+                    VehicleTypeHelper.SupportsTargetSoc(v), v.HasPowerTailgate);
+            }));
         })
         .Produces<VehicleListItemDto[]>()
         .WithSummary("List all vehicles");
 
-        group.MapGet("/tyre-pressure-thresholds", (TyrePressureThresholds thresholds) => Results.Ok(thresholds))
+        // Without a vin, the deployment's own thresholds: what a car with no settings of its own gets.
+        group.MapGet("/tyre-pressure-thresholds", async (string? vin, IVehicleRepository vehicles, CancellationToken ct) =>
+        {
+            if (string.IsNullOrEmpty(vin)) return Results.Ok(defaults.Tyres);
+            var vehicle = await vehicles.GetByVinAsync(vin, ct);
+            return vehicle is null
+                ? Results.NotFound()
+                : Results.Ok(VehicleSettingsResolver.Resolve(vehicle, defaults).Tyres);
+        })
         .Produces<TyrePressureThresholds>()
-        .WithSummary("Get configured tyre pressure colour-coding thresholds");
+        .Produces(StatusCodes.Status404NotFound)
+        .WithSummary("Get the tyre pressure colour-coding thresholds for a vehicle (vin), or the deployment's defaults without one");
 
         var vehicleGroup = group.MapGroup("/{vin}").ResolvesVehicle();
+
+        vehicleGroup.MapVehicleSettings(defaults);
 
         vehicleGroup.MapGet("/config", (HttpContext httpContext) =>
         {
@@ -90,7 +105,7 @@ public static class VehicleEndpoints
             var rangeError = DateRange.TryResolve(from, to, TimeSpan.FromDays(90), TimeSpan.FromDays(366),
                 clock.GetUtcNow().UtcDateTime, out var start, out var end);
             if (rangeError is not null) return rangeError;
-            if (!ChargeSessionHistory.Applies(VehicleTypeHelper.GetVehicleType(vehicle)))
+            if (!ChargeSessionHistory.Applies(VehicleSettingsResolver.Resolve(vehicle, defaults).VehicleType))
                 return Results.Ok(Array.Empty<ChargeSession>());
 
             return Results.Ok(await telemetry.GetChargeSessionsAsync(vehicle.Id, start, end, ct));
@@ -118,7 +133,7 @@ public static class VehicleEndpoints
                 return ApiProblems.BadRequest("range.inverted", "from must be before to");
             if (end - start > ChargeSessionHistory.LongestPowerSpan)
                 end = start + ChargeSessionHistory.LongestPowerSpan;
-            if (!ChargeSessionHistory.Applies(VehicleTypeHelper.GetVehicleType(vehicle)))
+            if (!ChargeSessionHistory.Applies(VehicleSettingsResolver.Resolve(vehicle, defaults).VehicleType))
                 return Results.Ok(Array.Empty<ChargeSessionPowerPoint>());
 
             return Results.Ok(await telemetry.GetChargePowerAsync(vehicle.Id, start, end, ct));
@@ -175,7 +190,7 @@ public static class VehicleEndpoints
 
             // Decided here, by the same rule the Worker's alert uses, so the dialog never says a
             // tyre is losing air when no alert would say so, or the other way round.
-            var losing = trend?.Losing(tyreThresholds.DropBar)
+            var losing = trend?.Losing(VehicleSettingsResolver.Resolve(vehicle, defaults).Tyres.DropBar)
                 .Select(p => JsonNamingPolicy.CamelCase.ConvertName(p.ToString()))
                 .ToList() ?? [];
             return Results.Ok(new TyreHistoryDto(days, trend, TyreTrend.WindowDays, losing));
@@ -276,8 +291,10 @@ public static class VehicleEndpoints
 /// A vehicle as the list endpoint returns it. <c>VehicleType</c> is the drivetrain detected from
 /// the vehicle's reported hardware version (hev, phev, bev, or unknown while nothing has reported
 /// one), served here so every client reads the same answer instead of parsing it themselves.
-/// <c>HvBatteryCapacityKwh</c> rides along for the same reason: it decides how a client turns a
-/// state of charge into kWh, and is null when the deployment has not configured one.
+/// <c>VehicleTypeOverride</c> is the type set in the vehicle's settings, null when the detected
+/// one stands. <c>HvBatteryCapacityKwh</c> rides along for the same reason: it decides how a
+/// client turns a state of charge into kWh. It is the car's own setting, else the deployment's,
+/// and null when neither says.
 /// <c>SupportsTargetSoc</c> says whether the car takes a charge target, by the gateway's own test.
 /// <c>HasPowerTailgate</c> is what the user set: whether the boot can be opened and closed.
 /// </summary>
@@ -288,6 +305,7 @@ public record VehicleListItemDto(
     string? Series,
     DateTime CreatedAt,
     string VehicleType,
+    string? VehicleTypeOverride,
     double? HvBatteryCapacityKwh,
     bool SupportsTargetSoc,
     bool HasPowerTailgate);

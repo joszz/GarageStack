@@ -10,6 +10,7 @@ function car(id: number, vin: string, model: string | null, series: string | nul
     series,
     createdAt: '2026-01-01T00:00:00Z',
     vehicleType: 'bev',
+    vehicleTypeOverride: null,
     hvBatteryCapacityKwh: null,
     supportsTargetSoc: false,
     hasPowerTailgate: false,

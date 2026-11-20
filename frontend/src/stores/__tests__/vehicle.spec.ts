@@ -12,7 +12,23 @@ import type {
   DailyStat,
   Trip,
   TripSummary,
+  VehicleSettings,
+  VehicleSettingsValues,
 } from '@/services/vehicleApi'
+
+const { noSettings } = vi.hoisted(() => ({
+  noSettings: {
+    hvBatteryCapacityKwh: null,
+    tyreLowBar: null,
+    tyreGoodBar: null,
+    tyreHighBar: null,
+    tyreDropBar: null,
+    auxBatteryLowVolt: null,
+    lowFuelPercent: null,
+    lowEvPercent: null,
+    vehicleType: null,
+  },
+}))
 
 vi.mock('@/services/vehicleApi', () => ({
   vehicleApi: {
@@ -24,6 +40,10 @@ vi.mock('@/services/vehicleApi', () => ({
     tripSummaries: vi.fn<() => Promise<TripSummary[]>>().mockResolvedValue([]),
     latestTrip: vi.fn<() => Promise<Trip | undefined>>().mockResolvedValue(undefined),
     sendCommand: vi.fn<() => Promise<void>>().mockResolvedValue(undefined),
+    settings: vi.fn<(vin: string) => Promise<VehicleSettings>>(),
+    updateSettings: vi
+      .fn<(vin: string, changes: Partial<VehicleSettingsValues>) => Promise<VehicleSettings>>()
+      .mockResolvedValue({ values: noSettings, defaults: noSettings }),
     setPowerTailgate: vi
       .fn<(vin: string, enabled: boolean) => Promise<{ enabled: boolean }>>()
       .mockImplementation((_vin, enabled) => Promise.resolve({ enabled })),
@@ -38,6 +58,7 @@ function vehicle(vehicleType: Vehicle['vehicleType']): Vehicle {
     series: null,
     createdAt: '2026-01-01T00:00:00Z',
     vehicleType,
+    vehicleTypeOverride: null,
     hvBatteryCapacityKwh: null,
     supportsTargetSoc: false,
     hasPowerTailgate: false,
@@ -122,6 +143,37 @@ describe('useVehicleStore - effectiveVehicleType', () => {
     ui.vehicleTypeOverride = 'hev'
     expect(store.effectiveVehicleType).toBe('hev')
   })
+
+  it("takes the type set in the car's settings over the browser's older one", () => {
+    const store = useVehicleStore()
+    useUiSettingsStore().vehicleTypeOverride = 'hev'
+    store.vehicles = [{ ...vehicle('bev'), vehicleTypeOverride: 'phev' }]
+    expect(store.effectiveVehicleType).toBe('phev')
+  })
+
+  // The browser's older choice belongs to no car in particular, so it means nothing with two.
+  it("ignores the browser's older type once there is more than one car", () => {
+    const store = useVehicleStore()
+    useUiSettingsStore().vehicleTypeOverride = 'hev'
+    store.vehicles = [vehicle('bev'), { ...vehicle('phev'), id: 2, vin: 'FAKEVN00000000002' }]
+    expect(store.effectiveVehicleType).toBe('bev')
+  })
+
+  it('saves settings with the car and fetches the list again for the values in effect', async () => {
+    const store = useVehicleStore()
+    store.vehicles = [vehicle('bev')]
+    vi.mocked(vehicleApi.list).mockResolvedValueOnce([
+      { ...vehicle('bev'), vehicleTypeOverride: 'phev', hvBatteryCapacityKwh: 21 },
+    ])
+
+    await store.saveSettings('FAKEVN00000000001', { vehicleType: 'phev' })
+
+    expect(vehicleApi.updateSettings).toHaveBeenCalledWith('FAKEVN00000000001', {
+      vehicleType: 'phev',
+    })
+    expect(store.effectiveVehicleType).toBe('phev')
+    expect(store.hvBatteryCapacityKwh).toBe(21)
+  })
 })
 
 describe('useVehicleStore - hvBatteryCapacityKwh', () => {
@@ -184,6 +236,7 @@ describe('useVehicleStore - fetchVehicles', () => {
         series: null,
         createdAt: '',
         vehicleType: 'bev',
+        vehicleTypeOverride: null,
         hvBatteryCapacityKwh: null,
         supportsTargetSoc: false,
         hasPowerTailgate: false,
@@ -544,19 +597,18 @@ describe('useVehicleStore - choosing a car', () => {
     expect(store.currentStatus).toStrictEqual(status)
   })
 
-  it('keeps the colour and the type override per car', async () => {
+  it('keeps the colour per car in the browser, and each car its own type', async () => {
     const store = useVehicleStore()
     const ui = useUiSettingsStore()
-    store.vehicles = [first, second]
+    store.vehicles = [{ ...first, vehicleTypeOverride: 'phev' }, second]
     await nextTick()
 
     ui.carColorScheme = 'blue'
-    ui.vehicleTypeOverride = 'hev'
-    expect(store.effectiveVehicleType).toBe('hev')
+    expect(store.effectiveVehicleType).toBe('phev')
 
     store.selectVehicle(second.vin)
     await nextTick()
-    // The second car has no entry of its own yet: the account-wide values stand.
+    // The second car has no colour of its own yet, and no type set: the detected one stands.
     expect(ui.carColorScheme).toBe('orange')
     expect(store.effectiveVehicleType).toBe('bev')
 
@@ -564,7 +616,34 @@ describe('useVehicleStore - choosing a car', () => {
     store.selectVehicle(first.vin)
     await nextTick()
     expect(ui.carColorScheme).toBe('blue')
-    expect(store.effectiveVehicleType).toBe('hev')
+    expect(store.effectiveVehicleType).toBe('phev')
+  })
+
+  // A type saved in the browser before it moved to the car belongs to no car in particular.
+  it("leaves out the browser's older type once there are two cars", () => {
+    const store = useVehicleStore()
+    useUiSettingsStore().vehicleTypeOverride = 'hev'
+    store.vehicles = [first, second]
+    expect(store.effectiveVehicleType).toBe(first.vehicleType)
+  })
+
+  it("drops the settings on a switch, and a late answer for the previous car's", async () => {
+    const store = useVehicleStore()
+    store.vehicles = [first, second]
+    const answer: VehicleSettings = { values: noSettings, defaults: noSettings }
+    let deliver!: (s: VehicleSettings) => void
+    vi.mocked(vehicleApi.settings).mockImplementationOnce(
+      () => new Promise<VehicleSettings>((resolve) => (deliver = resolve)),
+    )
+    store.vehicleSettings = answer
+
+    const pending = store.fetchSettings(first.vin)
+    store.selectVehicle(second.vin)
+    expect(store.vehicleSettings).toBeNull()
+
+    deliver(answer)
+    await pending
+    expect(store.vehicleSettings).toBeNull()
   })
 
   it('drops an answer for the car switched away from while it was on its way', async () => {

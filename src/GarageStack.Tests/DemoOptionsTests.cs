@@ -1,4 +1,5 @@
 using GarageStack.Core.Helpers;
+using GarageStack.Core.Models;
 using GarageStack.Data.Demo;
 using Microsoft.Extensions.Configuration;
 
@@ -40,6 +41,25 @@ public class DemoOptionsTests
         Assert.Null(await oneCar.GetByVinAsync(DemoVehicleRepository.SecondDemoVehicle.Vin, TestContext.Current.CancellationToken));
         Assert.Equal(2, (await twoCars.GetAllAsync(TestContext.Current.CancellationToken)).Count);
         Assert.NotNull(await twoCars.GetByVinAsync(DemoVehicleRepository.SecondDemoVehicle.Vin, TestContext.Current.CancellationToken));
+    }
+
+    // Only the second car is changed: the first is shared with the host tests running alongside.
+    [Fact]
+    public async Task Repository_KeepsSettingsForTheCarTheyAreFor()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var twoCars = new DemoVehicleRepository(From("true"));
+        var second = DemoVehicleRepository.SecondDemoVehicle;
+        try
+        {
+            await twoCars.SetSettingsAsync(second.Id, new VehicleSettings { HvBatteryCapacityKwh = 17.6 }, ct);
+
+            Assert.Equal(17.6, (await twoCars.GetByVinAsync(second.Vin, ct))!.Settings?.HvBatteryCapacityKwh);
+        }
+        finally
+        {
+            second.Settings = null;
+        }
     }
 
     // It reports what a real plug-in hybrid does (BType 2), not a plain hybrid's 0.

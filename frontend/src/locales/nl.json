@@ -661,6 +661,24 @@
       "phev": "PHEV (Plug-in hybride)",
       "bev": "BEV (Volledig elektrisch)"
     },
+    "vehicleSettings": {
+      "title": "Instellingen voor {car}",
+      "desc": "De eigen accucapaciteit, bandenspanningen en waarschuwingsniveaus van deze auto. Laat een veld leeg voor de standaard van de server, grijs weergegeven. De kleuren op het dashboard en de meldingen volgen ze.",
+      "noDefault": "Niet ingesteld",
+      "save": "Opslaan",
+      "undo": "Wijzigingen ongedaan maken",
+      "saved": "Opgeslagen.",
+      "fields": {
+        "hvBatteryCapacityKwh": "Accucapaciteit (kWh)",
+        "tyreLowBar": "Lage bandenspanning ({unit})",
+        "tyreGoodBar": "Goede bandenspanning ({unit})",
+        "tyreHighBar": "Hoge bandenspanning ({unit})",
+        "tyreDropBar": "Marge langzaam lek ({unit})",
+        "auxBatteryLowVolt": "Lage 12V-accu (V)",
+        "lowFuelPercent": "Weinig brandstof (%)",
+        "lowEvPercent": "Lage lading (%)"
+      }
+    },
     "licensePlate": {
       "title": "Kenteken",
       "desc": "Het Nederlandse kenteken van de auto, voor de APK-datum, terugroepacties en verzekering die de RDW heeft geregistreerd. Alleen het kenteken gaat naar de RDW.",
@@ -1227,6 +1245,15 @@
       "rdw": {
         "disabled": "Opzoeken bij de RDW staat uit op deze server.",
         "invalidPlate": "Een kenteken bestaat uit letters en cijfers, hoogstens 8 zonder de streepjes."
+      },
+      "vehicleSettings": {
+        "outOfRange": "Een waarde valt buiten het bereik dat is toegestaan.",
+        "tyreOrder": "De bandenspanningen moeten oplopen van laag via goed naar hoog.",
+        "batteryOnHybrid": "Een hybride zonder stekker heeft geen eigen accucapaciteit.",
+        "vehicleTypeUnknown": "Kies HEV, PHEV of BEV.",
+        "bodyNotObject": "De instellingen konden niet worden gelezen.",
+        "unknownField": "Een van de verstuurde instellingen bestaat niet.",
+        "wrongType": "Een instelling moet een getal zijn, of leeg."
       }
     }
   },

@@ -102,6 +102,17 @@ public class VehicleRepository(AppDbContext db, ILogger<VehicleRepository>? logg
         await db.SaveChangesAsync(ct);
     }
 
+    public async Task SetSettingsAsync(int vehicleId, VehicleSettings settings, CancellationToken ct = default)
+    {
+        var vehicle = await db.Vehicles.FirstOrDefaultAsync(v => v.Id == vehicleId, ct);
+        if (vehicle is null) return;
+        // Copied onto the row already there rather than swapped for a new one, which EF would
+        // write as a delete and an insert.
+        if (vehicle.Settings is null) vehicle.Settings = settings.Copy();
+        else db.Entry(vehicle.Settings).CurrentValues.SetValues(settings);
+        await db.SaveChangesAsync(ct);
+    }
+
     public async Task SetConfigValueAsync(int vehicleId, string key, string value, CancellationToken ct = default)
     {
         var vehicle = await db.Vehicles.FindAsync([vehicleId], ct);

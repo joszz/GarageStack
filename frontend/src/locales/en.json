@@ -661,6 +661,24 @@
       "phev": "PHEV (Plug-in Hybrid)",
       "bev": "BEV (Full Electric)"
     },
+    "vehicleSettings": {
+      "title": "Settings for {car}",
+      "desc": "This car's own battery size, tyre pressures and warning levels. Leave a field empty for the server's default, shown greyed out. The dashboard colours and the notifications follow them.",
+      "noDefault": "Not set",
+      "save": "Save",
+      "undo": "Undo changes",
+      "saved": "Saved.",
+      "fields": {
+        "hvBatteryCapacityKwh": "Battery capacity (kWh)",
+        "tyreLowBar": "Low tyre pressure ({unit})",
+        "tyreGoodBar": "Good tyre pressure ({unit})",
+        "tyreHighBar": "High tyre pressure ({unit})",
+        "tyreDropBar": "Slow puncture margin ({unit})",
+        "auxBatteryLowVolt": "Low 12V battery (V)",
+        "lowFuelPercent": "Low fuel (%)",
+        "lowEvPercent": "Low charge (%)"
+      }
+    },
     "licensePlate": {
       "title": "Licence plate",
       "desc": "The car's Dutch licence plate, for the APK date, recalls and insurance the RDW has on record. Only the plate is sent to the RDW.",
@@ -1227,6 +1245,15 @@
       "rdw": {
         "disabled": "RDW lookups are switched off on this server.",
         "invalidPlate": "A plate is letters and digits, at most 8 without the dashes."
+      },
+      "vehicleSettings": {
+        "outOfRange": "A value is outside the range it may take.",
+        "tyreOrder": "The tyre pressures must run from low to good to high.",
+        "batteryOnHybrid": "A hybrid without a plug takes no battery capacity of its own.",
+        "vehicleTypeUnknown": "Choose HEV, PHEV or BEV.",
+        "bodyNotObject": "The settings could not be read.",
+        "unknownField": "One of the settings sent does not exist.",
+        "wrongType": "A setting must be a number, or empty."
       }
     }
   },

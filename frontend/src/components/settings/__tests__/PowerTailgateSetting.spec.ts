@@ -14,6 +14,7 @@ const car: Vehicle = {
   series: null,
   createdAt: '2026-01-01T00:00:00Z',
   vehicleType: 'bev',
+  vehicleTypeOverride: null,
   hvBatteryCapacityKwh: null,
   supportsTargetSoc: false,
   hasPowerTailgate: false,

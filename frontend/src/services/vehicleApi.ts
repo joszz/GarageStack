@@ -4,6 +4,9 @@ import { decodePolyline } from '@/utils/polyline'
 /** Drivetrains the API can report, detected from the vehicle's hardware version. */
 export type VehicleType = 'hev' | 'phev' | 'bev' | 'unknown'
 
+/** The drivetrains a car can be set to: "unknown" is only ever detected. */
+export type SettableVehicleType = Exclude<VehicleType, 'unknown'>
+
 export interface Vehicle {
   id: number
   vin: string
@@ -12,10 +15,12 @@ export interface Vehicle {
   createdAt: string
   /** Drivetrain the API detected from the vehicle's hardware version. */
   vehicleType: VehicleType
+  /** The drivetrain set in the vehicle's settings, or null while the detected one stands. */
+  vehicleTypeOverride: SettableVehicleType | null
   /**
-   * The traction battery's real usable capacity when the deployment configures one, overriding
-   * the EV-sized figure the gateway assumes. Null leaves that figure in place for a plug-in car
-   * and hides kWh entirely for a hybrid, where it is known to be wrong.
+   * The traction battery's real usable capacity, from the vehicle's settings or else the
+   * deployment, overriding the EV-sized figure the gateway assumes. Null leaves that figure in
+   * place for a plug-in car and hides kWh entirely for a hybrid, where it is known to be wrong.
    */
   hvBatteryCapacityKwh: number | null
   /** Whether the car takes a charge target, by the gateway's own test; it drops one on any other. */
@@ -253,6 +258,28 @@ export interface CommandResult {
   detail: string | null
 }
 
+/**
+ * Every per-car setting, in the API's units (kWh, bar, volts, percent). Null is a value not set,
+ * which takes the deployment's default.
+ */
+export interface VehicleSettingsValues {
+  hvBatteryCapacityKwh: number | null
+  tyreLowBar: number | null
+  tyreGoodBar: number | null
+  tyreHighBar: number | null
+  tyreDropBar: number | null
+  auxBatteryLowVolt: number | null
+  lowFuelPercent: number | null
+  lowEvPercent: number | null
+  vehicleType: SettableVehicleType | null
+}
+
+/** A car's own settings, and the deployment default each empty one takes (the detected type for vehicleType). */
+export interface VehicleSettings {
+  values: VehicleSettingsValues
+  defaults: VehicleSettingsValues
+}
+
 export interface TyrePressureThresholds {
   lowBar: number
   goodBar: number
@@ -295,8 +322,13 @@ export const vehicleApi = {
     request<ChargeSessionPowerPoint[]>(
       `/api/vehicles/${vin}/charge-sessions/power${buildQuery({ from, to })}`,
     ),
-  tyrePressureThresholds: () =>
-    request<TyrePressureThresholds>('/api/vehicles/tyre-pressure-thresholds'),
+  /** The car's own thresholds, or the deployment's without a vin. */
+  tyrePressureThresholds: (vin?: string) =>
+    request<TyrePressureThresholds>(`/api/vehicles/tyre-pressure-thresholds${buildQuery({ vin })}`),
+  settings: (vin: string) => request<VehicleSettings>(`/api/vehicles/${vin}/settings`),
+  /** Changes only the fields given; null puts one back to the deployment default. */
+  updateSettings: (vin: string, changes: Partial<VehicleSettingsValues>) =>
+    requestJson<VehicleSettings>(`/api/vehicles/${vin}/settings`, 'PATCH', changes),
   config: (vin: string) => request<Record<string, string>>(`/api/vehicles/${vin}/config`),
   /** Says whether the car has a power tailgate; answers with what was saved. */
   setPowerTailgate: (vin: string, enabled: boolean) =>

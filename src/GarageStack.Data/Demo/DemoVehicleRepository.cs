@@ -76,4 +76,12 @@ public sealed class DemoVehicleRepository(DemoOptions options) : IVehicleReposit
         if (tailgateCar is not null) tailgateCar.HasPowerTailgate = hasPowerTailgate;
         return Task.CompletedTask;
     }
+
+    // Kept in memory as well, so the vehicle settings can be tried out; a restart forgets them.
+    public Task SetSettingsAsync(int vehicleId, VehicleSettings settings, CancellationToken ct = default)
+    {
+        var vehicle = All.FirstOrDefault(v => v.Id == vehicleId);
+        if (vehicle is not null) vehicle.Settings = settings.Copy();
+        return Task.CompletedTask;
+    }
 }
