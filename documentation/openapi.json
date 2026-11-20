@@ -415,6 +415,45 @@
         ]
       }
     },
+    "/api/gateway": {
+      "get": {
+        "tags": [
+          "Gateway"
+        ],
+        "summary": "Whether the gateway is signed in to the MG account",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GatewayStatus"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the API token is unknown or revoked."
+          },
+          "429": {
+            "description": "Too many requests from this address; wait a minute and try again."
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          }
+        ],
+        "x-badges": [
+          {
+            "name": "Read-only token"
+          }
+        ]
+      }
+    },
     "/api/client-errors": {
       "post": {
         "tags": [
@@ -6211,6 +6250,92 @@
           }
         ]
       }
+    },
+    "/api/demo/gateway": {
+      "post": {
+        "tags": [
+          "Demo"
+        ],
+        "summary": "Make the demo gateway signed in to the MG account or not, as the Demo Controls panel does",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DemoGatewayDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "401": {
+            "description": "Not signed in, or the API token is unknown or revoked."
+          },
+          "403": {
+            "description": "`token.readOnly`: An API token can only read; sign in to change anything.\n\n`csrf.originNotAllowed`: sent from a page on an address that is not CORS_ORIGIN.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "title": {
+                      "type": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "status": {
+                      "type": [
+                        "null",
+                        "integer"
+                      ],
+                      "format": "int32"
+                    },
+                    "detail": {
+                      "type": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "instance": {
+                      "type": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "code": {
+                      "type": "string",
+                      "description": "Why, as a code that stays the same between releases, such as trip.changed. detail says it in English."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests from this address; wait a minute and try again."
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "x-badges": [
+          {
+            "name": "Demo only"
+          }
+        ]
+      }
     }
   },
   "components": {
@@ -7118,6 +7243,19 @@
         },
         "description": "Deployment configuration and a credential check, never the URL or key."
       },
+      "DemoGatewayDto": {
+        "required": [
+          "signedIn"
+        ],
+        "type": "object",
+        "properties": {
+          "signedIn": {
+            "type": "boolean",
+            "description": "False plays a failed sign-in, true a good one."
+          }
+        },
+        "description": "What the demo gateway should say about its MG sign-in."
+      },
       "DemoStatusOverrideDto": {
         "required": [
           "isLocked",
@@ -7280,8 +7418,30 @@
               "number"
             ],
             "format": "double"
+          },
+          "isAvailable": {
+            "type": [
+              "null",
+              "boolean"
+            ]
           }
         }
+      },
+      "GatewayStatus": {
+        "required": [
+          "signedIn"
+        ],
+        "type": "object",
+        "properties": {
+          "signedIn": {
+            "type": [
+              "null",
+              "boolean"
+            ],
+            "description": "True while it is; false after a failed sign-in, until the next good one (it tries again every\nfifteen minutes); null while the gateway has not said, or the Worker is older than this answer."
+          }
+        },
+        "description": "Whether the SAIC gateway is signed in to the MG account."
       },
       "GeoPoint": {
         "required": [
@@ -10492,6 +10652,10 @@
     {
       "name": "Updates",
       "description": "Whether a newer GarageStack release is out."
+    },
+    {
+      "name": "Gateway",
+      "description": "Whether the SAIC gateway is signed in to the MG account: when it is not, no car sends data, whatever the car itself is doing."
     },
     {
       "name": "Authentication",

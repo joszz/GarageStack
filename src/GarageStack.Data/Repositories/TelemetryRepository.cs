@@ -508,11 +508,13 @@ public class TelemetryRepository(
     {
         // Single grouped query instead of two round-trips: total count and the
         // ClimateOn == true count are both conditional aggregates over the same filtered set.
+        // Grouping by a constant gives one row, or none for an empty period: Single says so, where
+        // First made EF warn about taking the first of an unordered result.
         var agg = await db.TelemetrySnapshots
             .Where(s => s.VehicleId == vehicleId && s.RecordedAt >= from && s.RecordedAt <= to && s.ClimateOn != null)
             .GroupBy(s => 1)
             .Select(g => new { Known = g.Count(), On = g.Count(s => s.ClimateOn == true) })
-            .FirstOrDefaultAsync(ct);
+            .SingleOrDefaultAsync(ct);
 
         var climateKnown = agg?.Known ?? 0;
         var climateOn = agg?.On ?? 0;

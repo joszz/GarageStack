@@ -19,7 +19,8 @@ public sealed class AccountStatusHandler(
     IServiceScopeFactory scopeFactory,
     IPushSender pushSender,
     IStringLocalizer<NotificationStrings> strings,
-    TimeProvider timeProvider) : IMqttMessageHandler
+    TimeProvider timeProvider,
+    GatewaySignInState signIn) : IMqttMessageHandler
 {
     internal const string LastLoginSubtopic = "lastLogin";
     internal const string LastLoginErrorSubtopic = "lastLoginError";
@@ -39,10 +40,17 @@ public sealed class AccountStatusHandler(
         {
             case LastLoginSubtopic:
                 if (TryParseTime(message.Payload, out var signedInAt))
+                {
                     _lastLogin[topic.User] = signedInAt;
+                    signIn.SignedInAt(signedInAt);
+                }
                 return true;
 
             case LastLoginErrorSubtopic:
+                // Retained or live, the time of the last failure says whether the gateway is signed in
+                // now, against the time of its last good sign-in. Only the alert below tells them apart.
+                if (TryParseTime(message.Payload, out var failedAt))
+                    signIn.FailedAt(failedAt);
                 // A retained failure is one the broker held before this Worker subscribed: it says
                 // when the gateway last failed, not that it is failing now. A live one is news, and
                 // the gateway sends another every time it tries again.

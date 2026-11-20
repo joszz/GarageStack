@@ -207,6 +207,8 @@
     "diagramLabel": "Vehicle status diagram",
     "wentOnline": "Vehicle is online",
     "wentOffline": "Vehicle went offline",
+    "gatewaySignedOut": "MG sign-in failed",
+    "gatewaySignedOutHint": "The gateway cannot sign in to the MG account, so no new data arrives from the car. It tries again every 15 minutes.",
     "fuel": "Fuel",
     "range": "Range",
     "odometer": "Odometer",
@@ -829,6 +831,8 @@
   "demo": {
     "banner": "Demo mode - displaying sample data only",
     "controlPanel": "Demo Controls",
+    "online": "Online",
+    "gatewaySignedIn": "MG sign-in",
     "doors": "Doors / Bonnet / Trunk",
     "windows": "Windows",
     "lights": "Lights",

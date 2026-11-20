@@ -54,6 +54,23 @@ describe('localizeStyleLabels', () => {
     ])
   })
 
+  it.each(['pt', 'pt-PT'] as const)(
+    'labels the map in Portuguese for %s, as OpenStreetMap names places per language',
+    (locale) => {
+      const style = styleWith([
+        { id: 'place_label', type: 'symbol', layout: { 'text-field': openMapTilesTextField } },
+      ])
+
+      const localized = localizeStyleLabels(style, locale)
+
+      expect(localized.layers![0]!.layout!['text-field']).toEqual([
+        'coalesce',
+        ['get', 'name:pt'],
+        openMapTilesTextField,
+      ])
+    },
+  )
+
   it('leaves layers that label something other than a name alone', () => {
     // Road shields label by ref ("A28"), which has no translation to fall back to.
     const shield = {

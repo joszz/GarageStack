@@ -22,5 +22,6 @@ public record DemoStatusOverrideDto(
     double? EvSocPercent,
     double? InteriorTemperature,
     double? ExteriorTemperature,
-    double? Speed
+    double? Speed,
+    bool? IsAvailable = null
 );

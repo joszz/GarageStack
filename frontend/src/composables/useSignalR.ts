@@ -3,12 +3,15 @@ import type { HubConnection } from '@microsoft/signalr'
 import { apiUrl } from '@/services/apiCore'
 import type { CommandResult, TelemetrySnapshot } from '@/services/vehicleApi'
 import type { AppNotification } from '@/services/notificationsApi'
+import type { GatewayStatus } from '@/services/gatewayApi'
 
 export interface SignalRCallbacks {
   onTelemetryUpdated: (snapshot: TelemetrySnapshot) => void
   onNotificationReceived: (notification: AppNotification) => void
   onTripCompleted: (vehicleId: number) => void
   onCommandResult: (result: CommandResult) => void
+  /** The gateway signed in to the MG account, or failed to. */
+  onGatewayStatus?: (status: GatewayStatus) => void
   /**
    * The connection is back after dropping. Whatever the server pushed in between is lost, so this
    * is the moment to read the live state again.
@@ -42,8 +45,8 @@ function loadClient(): Promise<SignalRClient> {
 
 /**
  * Owns the SignalR connection to the `/hubs/telemetry` hub: connecting, joining the given
- * vehicle's group, reconnection, and dispatching the four server-pushed events (telemetry,
- * notifications, trip-completed, command results) to caller-supplied callbacks. This is the app's only real-time
+ * vehicle's group, reconnection, and dispatching the five server-pushed events (telemetry,
+ * notifications, trip-completed, command results, the gateway's sign-in) to caller-supplied callbacks. This is the app's only real-time
  * channel - there is no REST-polling fallback, so it keeps retrying indefinitely rather than
  * giving up: SignalR's default policy stops after a handful of attempts, which left the
  * dashboard stale until a manual reload after something as ordinary as an API restart.
@@ -104,6 +107,10 @@ export function useSignalR(callbacks: SignalRCallbacks) {
 
     created.on('commandResult', (result: CommandResult) => {
       callbacks.onCommandResult(result)
+    })
+
+    created.on('gatewayStatus', (status: GatewayStatus) => {
+      callbacks.onGatewayStatus?.(status)
     })
 
     created.onreconnecting(() => {

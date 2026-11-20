@@ -19,6 +19,7 @@ public sealed class AccountStatusHandlerTests : IDisposable
 
     private readonly ServiceProvider _services;
     private readonly FakePushSender _push = new();
+    private readonly GatewaySignInState _signIn = new();
     private readonly AccountStatusHandler _handler;
 
     public AccountStatusHandlerTests()
@@ -34,7 +35,8 @@ public sealed class AccountStatusHandlerTests : IDisposable
             _services.GetRequiredService<IServiceScopeFactory>(),
             _push,
             WorkerLocalizer.Notifications(),
-            new FixedTimeProvider(Now));
+            new FixedTimeProvider(Now),
+            _signIn);
     }
 
     public void Dispose() => _services.Dispose();
@@ -71,6 +73,21 @@ public sealed class AccountStatusHandlerTests : IDisposable
         await ReceiveAsync("lastLoginError", "2026-10-01T08:00:00+00:00", retained: true);
 
         Assert.Empty(_push.Sent);
+    }
+
+    // An old failure is no alert, but newer than the last good sign-in it still says the gateway is
+    // signed out right now: the heartbeat passes that on, so the app can show it.
+    [Fact]
+    public async Task RetainedFailure_NewerThanTheLastSignIn_MarksTheGatewaySignedOut()
+    {
+        await ReceiveAsync("lastLogin", "2026-10-11T10:00:00+00:00", retained: true);
+        await ReceiveAsync("lastLoginError", "2026-10-11T19:45:00+00:00", retained: true);
+
+        Assert.False(_signIn.SignedIn);
+        Assert.Empty(_push.Sent);
+
+        await ReceiveAsync("lastLogin", "2026-10-11T20:00:00+00:00");
+        Assert.True(_signIn.SignedIn);
     }
 
     [Fact]

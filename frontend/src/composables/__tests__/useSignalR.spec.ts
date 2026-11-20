@@ -43,6 +43,7 @@ const callbacks: SignalRCallbacks = {
   onNotificationReceived: vi.fn<SignalRCallbacks['onNotificationReceived']>(),
   onTripCompleted: vi.fn<SignalRCallbacks['onTripCompleted']>(),
   onCommandResult: vi.fn<SignalRCallbacks['onCommandResult']>(),
+  onGatewayStatus: vi.fn<NonNullable<SignalRCallbacks['onGatewayStatus']>>(),
   onReconnected: vi.fn<NonNullable<SignalRCallbacks['onReconnected']>>(),
 }
 
@@ -70,6 +71,17 @@ function handlerOf(connection: Record<string, ReturnType<typeof vi.fn>>, method:
 }
 
 describe('useSignalR', () => {
+  it("passes on the gateway's sign-in when it changes", async () => {
+    const { api } = mountSignalR()
+    await api.start(7)
+    const on = hub.connections[0]!.on!.mock.calls as Array<[string, (arg: unknown) => void]>
+    const [, handler] = on.find(([event]) => event === 'gatewayStatus')!
+
+    handler({ signedIn: false })
+
+    expect(callbacks.onGatewayStatus).toHaveBeenCalledWith({ signedIn: false })
+  })
+
   it('connects and joins the vehicle group', async () => {
     const { api } = mountSignalR()
 

@@ -3,7 +3,6 @@ using GarageStack.Api.Hubs;
 using GarageStack.Api.Services;
 using GarageStack.Core.Models;
 using GarageStack.Data.Demo;
-using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace GarageStack.Tests;
@@ -99,42 +98,5 @@ public class DemoCommandPublisherTests
         var snapshot = (await car.GetMergedLatestAsync(1, ct))!;
         Assert.Equal(("UNTIL_CONFIGURED_TIME", "23:00", "06:30"),
             (snapshot.ChargingScheduleMode, snapshot.ChargingScheduleStartTime, snapshot.ChargingScheduleEndTime));
-    }
-
-    // What the publisher sends to browsers, recorded by group and method.
-    private sealed class RecordingHub : IHubContext<TelemetryHub>, IHubClients
-    {
-        private readonly TaskCompletionSource _resultSent = new(TaskCreationOptions.RunContinuationsAsynchronously);
-
-        public List<(string Group, string Method, object? Arg)> Sent { get; } = [];
-
-        IHubClients IHubContext<TelemetryHub>.Clients => this;
-        IGroupManager IHubContext<TelemetryHub>.Groups => throw new NotSupportedException();
-
-        public async Task<object?> WaitForAsync(string method)
-        {
-            await _resultSent.Task.WaitAsync(TimeSpan.FromSeconds(5));
-            lock (Sent) return Sent.Single(s => s.Method == method).Arg;
-        }
-
-        public IClientProxy Group(string groupName) => new Proxy(this, groupName);
-        public IClientProxy All => throw new NotSupportedException();
-        public IClientProxy AllExcept(IReadOnlyList<string> excludedConnectionIds) => throw new NotSupportedException();
-        public IClientProxy Client(string connectionId) => throw new NotSupportedException();
-        public IClientProxy Clients(IReadOnlyList<string> connectionIds) => throw new NotSupportedException();
-        public IClientProxy GroupExcept(string groupName, IReadOnlyList<string> excludedConnectionIds) => throw new NotSupportedException();
-        public IClientProxy Groups(IReadOnlyList<string> groupNames) => throw new NotSupportedException();
-        public IClientProxy User(string userId) => throw new NotSupportedException();
-        public IClientProxy Users(IReadOnlyList<string> userIds) => throw new NotSupportedException();
-
-        private sealed class Proxy(RecordingHub hub, string group) : IClientProxy
-        {
-            public Task SendCoreAsync(string method, object?[] args, CancellationToken cancellationToken = default)
-            {
-                lock (hub.Sent) hub.Sent.Add((group, method, args.FirstOrDefault()));
-                if (method == "commandResult") hub._resultSent.TrySetResult();
-                return Task.CompletedTask;
-            }
-        }
     }
 }

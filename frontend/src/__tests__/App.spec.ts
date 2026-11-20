@@ -17,7 +17,11 @@ vi.mock('@/stores/auth', () => ({
   }),
 }))
 
-const vehicle = vi.hoisted(() => ({ type: 'bev', active: null as { id: number } | null }))
+const vehicle = vi.hoisted(() => ({
+  type: 'bev',
+  active: null as { id: number } | null,
+  status: null as { isAvailable: boolean | null } | null,
+}))
 // What the routed page is keyed on, reactive so a test can play the list arriving or a switch.
 const live = vi.hoisted(() => ({
   state: null as { activeVin: string | null; switchCount: number } | null,
@@ -29,7 +33,7 @@ vi.mock('@/stores/vehicle', async () => {
   const state = live.state
   return {
     useVehicleStore: () => ({
-      currentStatus: null,
+      currentStatus: vehicle.status,
       activeVehicle: vehicle.active,
       get activeVin() {
         return state.activeVin
@@ -73,6 +77,12 @@ vi.mock('@/composables/useSignalR', () => ({
     start: signalR.start,
     stop: vi.fn<() => void>(),
   }),
+}))
+
+const gateway = vi.hoisted(() => ({ signedIn: null as boolean | null }))
+
+vi.mock('@/services/gatewayApi', () => ({
+  gatewayApi: { get: () => Promise.resolve({ signedIn: gateway.signedIn }) },
 }))
 
 vi.mock('@/composables/useBrowserNotifications', () => ({
@@ -269,5 +279,38 @@ describe('App routed page', () => {
     await flushPromises()
 
     expect(mounts()).toBe(2)
+  })
+})
+
+describe('App car status', () => {
+  afterEach(() => {
+    session.authenticated = false
+    vehicle.active = null
+    vehicle.status = null
+    gateway.signedIn = null
+  })
+
+  async function statusText() {
+    session.authenticated = true
+    vehicle.active = { id: 7 }
+    const wrapper = await mountAt('/')
+    await flushPromises()
+    // The last one: a "live updates paused" line above it shares the class.
+    return wrapper.findAll('.sidebar-online-status').slice(-1)[0]!.text()
+  }
+
+  it('shows a car that is offline on opening as offline straight away', async () => {
+    vehicle.status = { isAvailable: false }
+    gateway.signedIn = true
+
+    expect(await statusText()).toContain('common.offline')
+  })
+
+  // No car sends anything while the gateway cannot sign in, so that is what the app says.
+  it('says the MG sign-in failed rather than that the car is offline', async () => {
+    vehicle.status = { isAvailable: false }
+    gateway.signedIn = false
+
+    expect(await statusText()).toContain('vehicle.gatewaySignedOut')
   })
 })

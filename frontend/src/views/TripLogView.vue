@@ -34,6 +34,7 @@ import { useRoomBelow } from '@/composables/useRoomBelow'
 import { useReconnect } from '@/composables/useReconnect'
 import { useConnection } from '@/composables/useConnection'
 import ViewHeader from '@/components/ViewHeader.vue'
+import { localeLanguage } from '@/utils/locale'
 
 const { t } = useI18n()
 const vehicleStore = useVehicleStore()
@@ -154,7 +155,8 @@ const detail = computed(() => {
 // ── Loading ───────────────────────────────────────────────
 
 function lookUpPlaces() {
-  if (vin.value && placesShown.value) void store.resolvePlaces(vin.value, uiSettings.locale)
+  if (vin.value && placesShown.value)
+    void store.resolvePlaces(vin.value, localeLanguage(uiSettings.locale))
 }
 
 async function load() {

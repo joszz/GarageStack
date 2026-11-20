@@ -18,6 +18,7 @@ internal sealed class TelemetryNotificationService(
     VehicleCommandGate commandGate,
     VehicleCommandRequestHandler commandRequests,
     WorkerHeartbeatMonitor workerHeartbeats,
+    GatewaySignInMonitor gatewaySignIn,
     ILogger<TelemetryNotificationService> logger) : BackgroundService
 {
     // Trailing-edge debounce per vehicle: coalesces rapid MQTT bursts (multiple
@@ -65,7 +66,10 @@ internal sealed class TelemetryNotificationService(
                     break;
                 case PgChannels.WorkerHeartbeat:
                     if (WorkerHeartbeatPayload.FromJson(evt.Payload) is { } heartbeat)
+                    {
                         workerHeartbeats.Record(heartbeat);
+                        _ = gatewaySignIn.UpdateAsync(heartbeat.GatewaySignedIn, stoppingToken);
+                    }
                     else if (!_reportedUnreadableHeartbeat)
                     {
                         // A Worker from another release speaks a format this API does not read,
