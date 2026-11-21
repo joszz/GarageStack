@@ -98,7 +98,9 @@ jobs:
       id-token: write
     uses: ./.github/workflows/docker-publish.yml
     with:
-      pr_number: ${{ inputs.pr_number || github.event.pull_request.number }}
+      # fromJSON: a number typed into Run workflow reaches a reusable workflow as text, which its
+      # number input refuses before any job starts (the run fails with no job and no log).
+      pr_number: ${{ fromJSON(inputs.pr_number || github.event.pull_request.number) }}
       pr_commit: ${{ inputs.commit || '' }}
     secrets: inherit
 

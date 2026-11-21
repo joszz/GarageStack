@@ -1,5 +1,5 @@
 {
-  "openapi": "3.1.1",
+  "openapi": "3.2.0",
   "info": {
     "title": "GarageStack API",
     "description": "GarageStack's own API: everything the web app shows and does, for scripts, Home Assistant and\nanything else you connect.\n\n## Signing in\n\n- **On this page**, *Test Request* sends the request as you, with the session of the browser\n  you signed in with. It is the real thing: a command goes to the car, a delete deletes.\n- **From a script**, make a read-only token under *Settings, API tokens* and send it as\n  `Authorization: Bearer gs_...`. A token only reads (GET), and never the export, the logs\n  or the tokens themselves: every endpoint it can call carries a *Read-only token* badge.\n- **The Homepage widget** sends the `X-Widget-Key` header (WIDGET_API_KEY) instead.\n\n## Answers\n\n- Times are UTC, in ISO 8601. Distances are km, speeds km/h, temperatures °C, tyre pressures\n  bar, energy kWh and power kW, whatever units the web app is set to show.\n- A refusal is a problem details body (RFC 9457) with a `code`, such as `trip.changed`, that\n  stays the same between releases; `detail` says it in English.\n- Each address may make 120 requests a minute (RATE_LIMIT_GLOBAL_PER_MINUTE), and some\n  endpoints allow fewer. Past that the answer is 429.\n- A command's outcome arrives later, over the SignalR hub at `/hubs/telemetry`, as the car\n  answers it. The command endpoint only says it was sent.\n- `GET /api/health` reports the database, the MQTT broker and the Worker, without signing in.",
@@ -791,22 +791,22 @@
         ],
         "summary": "Get the signed-in account's settings, by section; a section never saved is left out",
         "responses": {
-          "403": {
-            "description": "Forbidden",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
           "200": {
             "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             }
@@ -860,8 +860,11 @@
           "required": true
         },
         "responses": {
-          "403": {
-            "description": "`token.readOnly`: An API token can only read; sign in to change anything.\n\n`csrf.originNotAllowed`: sent from a page on an address that is not CORS_ORIGIN.",
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -870,11 +873,8 @@
               }
             }
           },
-          "204": {
-            "description": "No Content"
-          },
-          "400": {
-            "description": "Bad Request",
+          "403": {
+            "description": "`token.readOnly`: An API token can only read; sign in to change anything.\n\n`csrf.originNotAllowed`: sent from a page on an address that is not CORS_ORIGIN.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -934,16 +934,6 @@
         ],
         "summary": "List the signed-in account's API tokens, newest first, without the tokens themselves",
         "responses": {
-          "403": {
-            "description": "`token.cannotManageTokens`: API tokens are managed from a signed-in session only.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
           "200": {
             "description": "OK",
             "content": {
@@ -953,6 +943,16 @@
                   "items": {
                     "$ref": "#/components/schemas/ApiTokenDto"
                   }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`token.cannotManageTokens`: API tokens are managed from a signed-in session only.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             }
@@ -986,16 +986,6 @@
           "required": true
         },
         "responses": {
-          "403": {
-            "description": "`token.readOnly`: An API token can only read; sign in to change anything.\n\n`csrf.originNotAllowed`: sent from a page on an address that is not CORS_ORIGIN.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
           "200": {
             "description": "OK",
             "content": {
@@ -1008,6 +998,16 @@
           },
           "400": {
             "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`token.readOnly`: An API token can only read; sign in to change anything.\n\n`csrf.originNotAllowed`: sent from a page on an address that is not CORS_ORIGIN.",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1048,6 +1048,9 @@
           }
         ],
         "responses": {
+          "204": {
+            "description": "No Content"
+          },
           "403": {
             "description": "`token.readOnly`: An API token can only read; sign in to change anything.\n\n`csrf.originNotAllowed`: sent from a page on an address that is not CORS_ORIGIN.",
             "content": {
@@ -1057,9 +1060,6 @@
                 }
               }
             }
-          },
-          "204": {
-            "description": "No Content"
           },
           "404": {
             "description": "Not Found"
@@ -1085,22 +1085,22 @@
         ],
         "summary": "Whether this deployment serves the API reference page (API_REFERENCE_ENABLED)",
         "responses": {
-          "403": {
-            "description": "`token.cannotManageTokens`: API tokens are managed from a signed-in session only.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
           "200": {
             "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiReferenceStatus"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`token.cannotManageTokens`: API tokens are managed from a signed-in session only.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             }
@@ -1126,22 +1126,22 @@
         ],
         "summary": "Whether the signed-in account has a calendar link, without the link itself",
         "responses": {
-          "403": {
-            "description": "`token.cannotManageTokens`: API tokens are managed from a signed-in session only.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
           "200": {
             "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/CalendarLinkDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`token.cannotManageTokens`: API tokens are managed from a signed-in session only.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             }
@@ -1165,22 +1165,22 @@
         ],
         "summary": "Make the account's calendar link, replacing the one it had; the response is the only time its token is shown",
         "responses": {
-          "403": {
-            "description": "`token.readOnly`: An API token can only read; sign in to change anything.\n\n`csrf.originNotAllowed`: sent from a page on an address that is not CORS_ORIGIN.",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
           "200": {
             "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/CreatedCalendarLinkDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`token.readOnly`: An API token can only read; sign in to change anything.\n\n`csrf.originNotAllowed`: sent from a page on an address that is not CORS_ORIGIN.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             }
@@ -1204,6 +1204,9 @@
         ],
         "summary": "Stop the account's calendar link: calendar apps get nothing more from it",
         "responses": {
+          "204": {
+            "description": "No Content"
+          },
           "403": {
             "description": "`token.readOnly`: An API token can only read; sign in to change anything.\n\n`csrf.originNotAllowed`: sent from a page on an address that is not CORS_ORIGIN.",
             "content": {
@@ -1213,9 +1216,6 @@
                 }
               }
             }
-          },
-          "204": {
-            "description": "No Content"
           },
           "404": {
             "description": "Not Found"
@@ -1322,9 +1322,6 @@
         ],
         "summary": "Get the vehicle's tyre pressure colour-coding thresholds: its own settings, else the deployment's",
         "responses": {
-          "404": {
-            "description": "Not Found"
-          },
           "200": {
             "description": "OK",
             "content": {
@@ -1334,6 +1331,9 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Not Found"
           },
           "401": {
             "description": "Not signed in, or the API token is unknown or revoked."
@@ -1364,9 +1364,6 @@
         ],
         "summary": "Get the vehicle's own settings, with the deployment default each empty one falls back to",
         "responses": {
-          "404": {
-            "description": "Not Found"
-          },
           "200": {
             "description": "OK",
             "content": {
@@ -1376,6 +1373,9 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Not Found"
           },
           "401": {
             "description": "Not signed in, or the API token is unknown or revoked."
@@ -1499,9 +1499,6 @@
           "required": true
         },
         "responses": {
-          "404": {
-            "description": "Not Found"
-          },
           "200": {
             "description": "OK",
             "content": {
@@ -1521,6 +1518,9 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Not Found"
           },
           "401": {
             "description": "Not signed in, or the API token is unknown or revoked."
@@ -1590,9 +1590,6 @@
         ],
         "summary": "Get vehicle capability config",
         "responses": {
-          "404": {
-            "description": "Not Found"
-          },
           "200": {
             "description": "OK",
             "content": {
@@ -1605,6 +1602,9 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Not Found"
           },
           "401": {
             "description": "Not signed in, or the API token is unknown or revoked."
@@ -1645,9 +1645,6 @@
           "required": true
         },
         "responses": {
-          "404": {
-            "description": "Not Found"
-          },
           "200": {
             "description": "OK",
             "content": {
@@ -1657,6 +1654,9 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Not Found"
           },
           "401": {
             "description": "Not signed in, or the API token is unknown or revoked."
@@ -1726,9 +1726,6 @@
         ],
         "summary": "Get latest telemetry for a vehicle (204 before the car has reported anything)",
         "responses": {
-          "404": {
-            "description": "Not Found"
-          },
           "200": {
             "description": "OK",
             "content": {
@@ -1741,6 +1738,9 @@
           },
           "204": {
             "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found"
           },
           "401": {
             "description": "Not signed in, or the API token is unknown or revoked."
@@ -1789,9 +1789,6 @@
           }
         ],
         "responses": {
-          "404": {
-            "description": "Not Found"
-          },
           "200": {
             "description": "OK",
             "content": {
@@ -1814,6 +1811,9 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Not Found"
           },
           "401": {
             "description": "Not signed in, or the API token is unknown or revoked."
@@ -1862,9 +1862,6 @@
           }
         ],
         "responses": {
-          "404": {
-            "description": "Not Found"
-          },
           "200": {
             "description": "OK",
             "content": {
@@ -1887,6 +1884,9 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Not Found"
           },
           "401": {
             "description": "Not signed in, or the API token is unknown or revoked."
@@ -1942,9 +1942,6 @@
           }
         ],
         "responses": {
-          "404": {
-            "description": "Not Found"
-          },
           "200": {
             "description": "OK",
             "content": {
@@ -1967,6 +1964,9 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Not Found"
           },
           "401": {
             "description": "Not signed in, or the API token is unknown or revoked."
@@ -2006,9 +2006,6 @@
           }
         ],
         "responses": {
-          "404": {
-            "description": "Not Found"
-          },
           "200": {
             "description": "OK",
             "content": {
@@ -2028,6 +2025,9 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Not Found"
           },
           "401": {
             "description": "Not signed in, or the API token is unknown or revoked."
@@ -2106,9 +2106,6 @@
           "required": true
         },
         "responses": {
-          "404": {
-            "description": "Not Found"
-          },
           "200": {
             "description": "OK",
             "content": {
@@ -2128,6 +2125,9 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Not Found"
           },
           "409": {
             "description": "Conflict",
@@ -2230,9 +2230,6 @@
           }
         ],
         "responses": {
-          "404": {
-            "description": "Not Found"
-          },
           "200": {
             "description": "OK",
             "content": {
@@ -2252,6 +2249,9 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Not Found"
           },
           "401": {
             "description": "Not signed in, or the API token is unknown or revoked."
@@ -2314,9 +2314,6 @@
           }
         ],
         "responses": {
-          "404": {
-            "description": "Not Found"
-          },
           "200": {
             "description": "OK",
             "content": {
@@ -2652,6 +2649,9 @@
               }
             }
           },
+          "404": {
+            "description": "Not Found"
+          },
           "401": {
             "description": "Not signed in, or the API token is unknown or revoked."
           },
@@ -2681,9 +2681,6 @@
         ],
         "summary": "Get the newest trip: the one being driven, or else the last one driven",
         "responses": {
-          "404": {
-            "description": "Not Found"
-          },
           "200": {
             "description": "OK",
             "content": {
@@ -2696,6 +2693,9 @@
           },
           "204": {
             "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found"
           },
           "401": {
             "description": "Not signed in, or the API token is unknown or revoked."
@@ -2744,9 +2744,6 @@
           }
         ],
         "responses": {
-          "404": {
-            "description": "Not Found"
-          },
           "200": {
             "description": "OK",
             "content": {
@@ -2769,6 +2766,9 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Not Found"
           },
           "401": {
             "description": "Not signed in, or the API token is unknown or revoked."
@@ -2820,9 +2820,6 @@
           "required": true
         },
         "responses": {
-          "404": {
-            "description": "Not Found"
-          },
           "200": {
             "description": "OK",
             "content": {
@@ -2842,6 +2839,9 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Not Found"
           },
           "401": {
             "description": "Not signed in, or the API token is unknown or revoked."
@@ -2921,9 +2921,6 @@
           "required": true
         },
         "responses": {
-          "404": {
-            "description": "Not Found"
-          },
           "200": {
             "description": "OK",
             "content": {
@@ -2943,6 +2940,9 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Not Found"
           },
           "401": {
             "description": "Not signed in, or the API token is unknown or revoked."
@@ -3033,9 +3033,6 @@
           "required": true
         },
         "responses": {
-          "404": {
-            "description": "Not Found"
-          },
           "200": {
             "description": "OK",
             "content": {
@@ -3055,6 +3052,9 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Not Found"
           },
           "401": {
             "description": "Not signed in, or the API token is unknown or revoked."
@@ -3135,9 +3135,6 @@
           }
         ],
         "responses": {
-          "404": {
-            "description": "Not Found"
-          },
           "200": {
             "description": "OK",
             "content": {
@@ -3147,6 +3144,9 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Not Found"
           },
           "409": {
             "description": "Conflict",
@@ -3237,9 +3237,6 @@
           }
         ],
         "responses": {
-          "404": {
-            "description": "Not Found"
-          },
           "200": {
             "description": "OK",
             "content": {
@@ -3259,6 +3256,9 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Not Found"
           },
           "409": {
             "description": "Conflict",
@@ -3320,9 +3320,6 @@
           "required": true
         },
         "responses": {
-          "404": {
-            "description": "Not Found"
-          },
           "200": {
             "description": "OK",
             "content": {
@@ -3342,6 +3339,9 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Not Found"
           },
           "409": {
             "description": "Conflict",
@@ -3432,9 +3432,6 @@
           }
         ],
         "responses": {
-          "404": {
-            "description": "Not Found"
-          },
           "200": {
             "description": "OK",
             "content": {
@@ -3454,6 +3451,9 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Not Found"
           },
           "409": {
             "description": "Conflict",
@@ -3543,9 +3543,6 @@
           "required": true
         },
         "responses": {
-          "404": {
-            "description": "Not Found"
-          },
           "200": {
             "description": "OK",
             "content": {
@@ -3565,6 +3562,9 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Not Found"
           },
           "401": {
             "description": "Not signed in, or the API token is unknown or revoked."
@@ -4218,9 +4218,6 @@
         ],
         "summary": "List maintenance items with computed due status",
         "responses": {
-          "404": {
-            "description": "Not Found"
-          },
           "200": {
             "description": "OK",
             "content": {
@@ -4233,6 +4230,9 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Not Found"
           },
           "401": {
             "description": "Not signed in, or the API token is unknown or revoked."
@@ -4271,9 +4271,6 @@
           "required": true
         },
         "responses": {
-          "404": {
-            "description": "Not Found"
-          },
           "200": {
             "description": "OK",
             "content": {
@@ -4293,6 +4290,9 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Not Found"
           },
           "401": {
             "description": "Not signed in, or the API token is unknown or revoked."
@@ -4383,9 +4383,6 @@
           "required": true
         },
         "responses": {
-          "404": {
-            "description": "Not Found"
-          },
           "200": {
             "description": "OK",
             "content": {
@@ -4405,6 +4402,9 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Not Found"
           },
           "401": {
             "description": "Not signed in, or the API token is unknown or revoked."
@@ -4483,11 +4483,11 @@
           }
         ],
         "responses": {
-          "404": {
-            "description": "Not Found"
-          },
           "200": {
             "description": "OK"
+          },
+          "404": {
+            "description": "Not Found"
           },
           "401": {
             "description": "Not signed in, or the API token is unknown or revoked."
@@ -4568,9 +4568,6 @@
           }
         ],
         "responses": {
-          "404": {
-            "description": "Not Found"
-          },
           "200": {
             "description": "OK",
             "content": {
@@ -4583,6 +4580,9 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Not Found"
           },
           "401": {
             "description": "Not signed in, or the API token is unknown or revoked."
@@ -4632,9 +4632,6 @@
           "required": true
         },
         "responses": {
-          "404": {
-            "description": "Not Found"
-          },
           "200": {
             "description": "OK",
             "content": {
@@ -4654,6 +4651,9 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Not Found"
           },
           "401": {
             "description": "Not signed in, or the API token is unknown or revoked."
@@ -4743,9 +4743,6 @@
           }
         ],
         "responses": {
-          "404": {
-            "description": "Not Found"
-          },
           "200": {
             "description": "OK",
             "content": {
@@ -4755,6 +4752,9 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Not Found"
           },
           "401": {
             "description": "Not signed in, or the API token is unknown or revoked."
@@ -4824,9 +4824,6 @@
         ],
         "summary": "List climate schedules, earliest time of day first",
         "responses": {
-          "404": {
-            "description": "Not Found"
-          },
           "200": {
             "description": "OK",
             "content": {
@@ -4839,6 +4836,9 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Not Found"
           },
           "401": {
             "description": "Not signed in, or the API token is unknown or revoked."
@@ -4877,9 +4877,6 @@
           "required": true
         },
         "responses": {
-          "404": {
-            "description": "Not Found"
-          },
           "200": {
             "description": "OK",
             "content": {
@@ -4899,6 +4896,9 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Not Found"
           },
           "401": {
             "description": "Not signed in, or the API token is unknown or revoked."
@@ -4989,9 +4989,6 @@
           "required": true
         },
         "responses": {
-          "404": {
-            "description": "Not Found"
-          },
           "200": {
             "description": "OK",
             "content": {
@@ -5011,6 +5008,9 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Not Found"
           },
           "401": {
             "description": "Not signed in, or the API token is unknown or revoked."
@@ -5089,11 +5089,11 @@
           }
         ],
         "responses": {
-          "404": {
-            "description": "Not Found"
-          },
           "200": {
             "description": "OK"
+          },
+          "404": {
+            "description": "Not Found"
           },
           "401": {
             "description": "Not signed in, or the API token is unknown or revoked."
@@ -5163,9 +5163,6 @@
         ],
         "summary": "List the vehicle's home and work places, home first",
         "responses": {
-          "404": {
-            "description": "Not Found"
-          },
           "200": {
             "description": "OK",
             "content": {
@@ -5178,6 +5175,9 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Not Found"
           },
           "401": {
             "description": "Not signed in, or the API token is unknown or revoked."
@@ -5216,9 +5216,6 @@
           "required": true
         },
         "responses": {
-          "404": {
-            "description": "Not Found"
-          },
           "200": {
             "description": "OK",
             "content": {
@@ -5238,6 +5235,9 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Not Found"
           },
           "401": {
             "description": "Not signed in, or the API token is unknown or revoked."
@@ -5328,9 +5328,6 @@
           "required": true
         },
         "responses": {
-          "404": {
-            "description": "Not Found"
-          },
           "200": {
             "description": "OK",
             "content": {
@@ -5350,6 +5347,9 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Not Found"
           },
           "401": {
             "description": "Not signed in, or the API token is unknown or revoked."
@@ -5428,9 +5428,6 @@
           }
         ],
         "responses": {
-          "404": {
-            "description": "Not Found"
-          },
           "200": {
             "description": "OK",
             "content": {
@@ -5440,6 +5437,9 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Not Found"
           },
           "401": {
             "description": "Not signed in, or the API token is unknown or revoked."
@@ -5509,22 +5509,22 @@
         ],
         "summary": "The vehicle's plate and what the RDW last said about it",
         "responses": {
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
           "200": {
             "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/RdwStatusDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             }
@@ -5568,16 +5568,6 @@
           "required": true
         },
         "responses": {
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
           "200": {
             "description": "OK",
             "content": {
@@ -5590,6 +5580,16 @@
           },
           "400": {
             "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -5666,22 +5666,22 @@
         ],
         "summary": "List linked phone trackers and trackers seen in Dawarich during the last 30 days",
         "responses": {
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
           "200": {
             "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/PhoneTrackersResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             }
@@ -5723,16 +5723,6 @@
           "required": true
         },
         "responses": {
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
           "200": {
             "description": "OK",
             "content": {
@@ -5748,6 +5738,16 @@
           },
           "400": {
             "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -5834,8 +5834,11 @@
           "required": true
         },
         "responses": {
-          "404": {
-            "description": "Not Found",
+          "202": {
+            "description": "Accepted"
+          },
+          "400": {
+            "description": "Bad Request",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -5844,11 +5847,8 @@
               }
             }
           },
-          "202": {
-            "description": "Accepted"
-          },
-          "400": {
-            "description": "Bad Request",
+          "404": {
+            "description": "Not Found",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -5925,22 +5925,6 @@
         ],
         "summary": "Get latest vehicle status for Homepage widget (requires X-Widget-Key header)",
         "responses": {
-          "401": {
-            "description": "Unauthorized"
-          },
-          "503": {
-            "description": "Service Unavailable",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found"
-          },
           "200": {
             "description": "OK",
             "content": {
@@ -5953,6 +5937,22 @@
           },
           "204": {
             "description": "No Content"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           },
           "429": {
             "description": "Too many requests from this address; wait a minute and try again."
@@ -6447,11 +6447,11 @@
           "required": true
         },
         "responses": {
-          "404": {
-            "description": "Not Found"
-          },
           "204": {
             "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found"
           },
           "401": {
             "description": "Not signed in, or the API token is unknown or revoked."
@@ -7790,10 +7790,7 @@
             ]
           },
           "id": {
-            "type": [
-              "null",
-              "string"
-            ],
+            "type": "string",
             "description": "Where the entry starts: unique, and the same on every read, so the log viewer keys its list on it."
           }
         },
@@ -11091,64 +11088,16 @@
   },
   "tags": [
     {
-      "name": "Calendar",
-      "description": "A calendar feed (iCalendar) of the APK, maintenance due dates and climate schedules, opened by the token in its address. The link is made and stopped from a signed-in session."
-    },
-    {
-      "name": "Export",
-      "description": "Everything GarageStack keeps, as one zip."
-    },
-    {
-      "name": "Diagnostics",
-      "description": "Errors the web app ran into in the browser, for the API's log, and an anonymized zip to attach to a bug report."
-    },
-    {
-      "name": "Logs",
-      "description": "The API's and the Worker's log entries, as the log viewer pages through them."
-    },
-    {
-      "name": "Dawarich",
-      "description": "Phone GPS from Dawarich, merged into trips. Answers 404 `dawarich.disabled` unless Dawarich is configured."
-    },
-    {
-      "name": "Updates",
-      "description": "Whether a newer GarageStack release is out."
-    },
-    {
-      "name": "Gateway",
-      "description": "Whether the SAIC gateway is signed in to the MG account: when it is not, no car sends data, whatever the car itself is doing."
+      "name": "API tokens",
+      "description": "Read-only tokens for scripts. Made and revoked from a signed-in session only."
     },
     {
       "name": "Authentication",
       "description": "Signing in and out, and which sign-in methods this install offers."
     },
     {
-      "name": "Settings",
-      "description": "The signed-in account's settings, kept per section so they follow it to every device."
-    },
-    {
-      "name": "API tokens",
-      "description": "Read-only tokens for scripts. Made and revoked from a signed-in session only."
-    },
-    {
-      "name": "Vehicles",
-      "description": "The cars: their latest telemetry, statistics, charge sessions and tyre pressures, their own settings, and the commands sent to them."
-    },
-    {
-      "name": "Trips",
-      "description": "Trips as recorded, and the trip log: purposes, notes, hiding, joining and editing a route."
-    },
-    {
-      "name": "Push Notifications",
-      "description": "Browser push subscriptions (Web Push)."
-    },
-    {
-      "name": "Notifications",
-      "description": "The alerts the Worker raised, as the bell lists them."
-    },
-    {
-      "name": "Maintenance",
-      "description": "Service items with their intervals and when they are due, and each item's service history."
+      "name": "Calendar",
+      "description": "A calendar feed (iCalendar) of the APK, maintenance due dates and climate schedules, opened by the token in its address. The link is made and stopped from a signed-in session."
     },
     {
       "name": "Climate schedules",
@@ -11159,20 +11108,68 @@
       "description": "Home and work places. Trips between them are labelled as commutes, unless someone chose a purpose."
     },
     {
-      "name": "RDW",
-      "description": "The Dutch registration: APK, insurance and recalls. Answers 404 `rdw.disabled` unless RDW_ENABLED is set."
+      "name": "Dawarich",
+      "description": "Phone GPS from Dawarich, merged into trips. Answers 404 `dawarich.disabled` unless Dawarich is configured."
     },
     {
-      "name": "Widget",
-      "description": "The car's status in one call, for a Homepage dashboard widget."
+      "name": "Demo",
+      "description": "Demo mode only: change the demo car's state, as the Demo Controls panel does."
+    },
+    {
+      "name": "Diagnostics",
+      "description": "Errors the web app ran into in the browser, for the API's log, and an anonymized zip to attach to a bug report."
+    },
+    {
+      "name": "Export",
+      "description": "Everything GarageStack keeps, as one zip."
+    },
+    {
+      "name": "Gateway",
+      "description": "Whether the SAIC gateway is signed in to the MG account: when it is not, no car sends data, whatever the car itself is doing."
+    },
+    {
+      "name": "Logs",
+      "description": "The API's and the Worker's log entries, as the log viewer pages through them."
+    },
+    {
+      "name": "Maintenance",
+      "description": "Service items with their intervals and when they are due, and each item's service history."
     },
     {
       "name": "Map",
       "description": "Charging stations (Open Charge Map), points of interest, addresses and map matching (OpenStreetMap services), all cached."
     },
     {
-      "name": "Demo",
-      "description": "Demo mode only: change the demo car's state, as the Demo Controls panel does."
+      "name": "Notifications",
+      "description": "The alerts the Worker raised, as the bell lists them."
+    },
+    {
+      "name": "Push Notifications",
+      "description": "Browser push subscriptions (Web Push)."
+    },
+    {
+      "name": "RDW",
+      "description": "The Dutch registration: APK, insurance and recalls. Answers 404 `rdw.disabled` unless RDW_ENABLED is set."
+    },
+    {
+      "name": "Settings",
+      "description": "The signed-in account's settings, kept per section so they follow it to every device."
+    },
+    {
+      "name": "Trips",
+      "description": "Trips as recorded, and the trip log: purposes, notes, hiding, joining and editing a route."
+    },
+    {
+      "name": "Updates",
+      "description": "Whether a newer GarageStack release is out."
+    },
+    {
+      "name": "Vehicles",
+      "description": "The cars: their latest telemetry, statistics, charge sessions and tyre pressures, their own settings, and the commands sent to them."
+    },
+    {
+      "name": "Widget",
+      "description": "The car's status in one call, for a Homepage dashboard widget."
     }
   ]
 }

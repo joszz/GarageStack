@@ -244,8 +244,9 @@ public static class VehicleEndpoints
 
             // The body is read by hand, so a missing or wrong value gets a code of its own; this
             // says what it holds instead of "any JSON".
-            if (operation.RequestBody?.Content?.TryGetValue("application/json", out var body) == true)
-                body.Schema = await context.GetOrCreateSchemaAsync(typeof(VehicleCommandRequest), cancellationToken: ct);
+            if (operation.RequestBody?.Content?.TryGetValue("application/json", out var body) == true
+                && body is OpenApiMediaType media)
+                media.Schema = await context.GetOrCreateSchemaAsync(typeof(VehicleCommandRequest), cancellationToken: ct);
         })
         .WithBadge(ApiReferenceText.SendsToCarBadge)
         .WithSummary("Send a command to the vehicle via MQTT; the car's answer arrives later over SignalR");

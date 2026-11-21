@@ -11,7 +11,7 @@ Don't have a real MG vehicle or SAIC account to test against? See [DEMO.md](../d
 To work against the full stack (real or self-provided credentials):
 
 1. Fork the repository and clone it locally.
-2. Install prerequisites: .NET (latest LTS), Node.js 26 (what CI and the images build with), PNPM, PostgreSQL, Docker (optional). Use the PNPM version in the `packageManager` field of `frontend/package.json`: `pnpm self-update <version>` installs it. Node 25 and later no longer bundle corepack, so `corepack enable` only works after `npm install --global corepack`. PNPM does not switch to it by itself in this repo (see the note in `frontend/pnpm-workspace.yaml`).
+2. Install prerequisites: .NET 11, Node.js 26 (what CI and the images build with), PNPM, PostgreSQL, Docker (optional). Use the PNPM version in the `packageManager` field of `frontend/package.json`: `pnpm self-update <version>` installs it. Node 25 and later no longer bundle corepack, so `corepack enable` only works after `npm install --global corepack`. PNPM does not switch to it by itself in this repo (see the note in `frontend/pnpm-workspace.yaml`).
 3. Copy `.env.example` to `.env` and fill in your values.
 4. Run `pnpm install` inside the `frontend/` directory.
 5. Run `dotnet restore` from the repository root (the solution spans multiple projects under `src/`).
@@ -77,12 +77,15 @@ Commits follow [Conventional Commits](https://www.conventionalcommits.org/), wit
 
 ## CI on a fork
 
-The Docker build workflow requires two repository secrets to avoid Docker Hub anonymous pull rate limits (GitHub runners share IPs and exhaust the limit quickly):
+A fork starts with Actions off; turn them on in its **Actions** tab. CI, CodeQL and the Trivy file scan then run on your pushes and need no setup.
 
-- **`DOCKERHUB_USERNAME`** - Your Docker Hub username
-- **`DOCKERHUB_TOKEN`** - A Docker Hub access token (hub.docker.com > Account Settings > Security > New Access Token)
+What only makes sense for this repository is skipped on a fork: publishing images, scanning the published images, the dependency snapshot and marking issues stale. Those runs show as skipped, not failed.
 
-Add them under **Settings > Secrets and variables > Actions** in your fork. A free Docker Hub account is sufficient.
+To publish your own images to `ghcr.io/<your name, lowercase>`, set these under **Settings > Secrets and variables > Actions** in your fork:
+
+- the variable **`PUBLISH_IMAGES`** to `true`. This also turns on the weekly scan of your published images.
+- **Settings > Actions > General > Workflow permissions** to **Read and write**, or a secret **`GHCR_PAT`** with `write:packages`.
+- optionally the secrets **`DOCKERHUB_USERNAME`** and **`DOCKERHUB_TOKEN`** (a Docker Hub access token), so the builds do not hit Docker Hub's anonymous pull limit. A free account is enough.
 
 ## Reporting Issues
 

@@ -64,7 +64,10 @@ jobs:
     # Scans :latest, the newest release and what users run, after a publish and weekly. Not on
     # the push to main itself: a scan started by the push would run while that publish is still
     # building. A publish run on a pull request only tries the workflow and pushes nothing.
-    if: github.event_name == 'schedule' || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event != 'pull_request')
+    # A fork has no images to scan unless it publishes its own (see docker-publish.yml).
+    if: >-
+      (github.repository == 'joszz/GarageStack' || vars.PUBLISH_IMAGES == 'true') &&
+      (github.event_name == 'schedule' || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event != 'pull_request'))
     permissions:
       contents: read
       security-events: write
@@ -75,6 +78,14 @@ jobs:
         label: [garagestack, garagestack-frontend, garagestack-api, garagestack-worker]
         arch: [amd64, arm64]
     steps:
+      # GHCR image names are lowercase; an owner such as SomeUser is not.
+      - name: Image owner
+        id: owner
+        shell: bash
+        env:
+          OWNER: ${{ github.repository_owner }}
+        run: echo "name=${OWNER,,}" >> "$GITHUB_OUTPUT"
+
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
         with:
@@ -88,7 +99,7 @@ jobs:
           # :latest is a multi-architecture index; this picks the image to scan out of it.
           TRIVY_PLATFORM: linux/${{ matrix.arch }}
         with:
-          image-ref: ghcr.io/${{ github.repository_owner }}/${{ matrix.label }}:latest
+          image-ref: ghcr.io/${{ steps.owner.outputs.name }}/${{ matrix.label }}:latest
           format: sarif
           output: trivy-image.sarif
           severity: CRITICAL,HIGH
