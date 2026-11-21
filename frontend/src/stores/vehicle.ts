@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, shallowRef, computed, nextTick, type ShallowRef } from 'vue'
+import { ref, shallowRef, computed, nextTick, watch, type ShallowRef } from 'vue'
 import {
   vehicleApi,
   type Vehicle,
@@ -18,8 +18,9 @@ import { counterScale, type CounterScale } from '@/utils/energy'
 import { useUiSettingsStore } from '@/stores/settingsUi'
 import { useAuthStore } from '@/stores/auth'
 import { useLoadingTracker } from '@/composables/useLoadingTracker'
-import { rememberVin } from '@/utils/lastVin'
+import { readLastVin, rememberVin } from '@/utils/lastVin'
 import { readLastKnownState, saveLastKnownState } from '@/utils/lastKnownState'
+import { vehicleLabels } from '@/utils/vehicleLabels'
 
 // Defined with the API contract it comes from; re-exported here because every view reads the
 // vehicle's type through this store.
@@ -158,30 +159,44 @@ export const useVehicleStore = defineStore('vehicle', () => {
     )
   }
 
+  // True for an answer about a car other than the one shown: one switched away from while the
+  // answer was on its way. Before the list is in, no car is known and the dashboard's early guess
+  // (see DashboardView) is let through.
+  function isForAnotherCar(vin: string): boolean {
+    return activeVin.value !== null && vin !== activeVin.value
+  }
+
   // The car's own settings with the deployment's defaults, for the settings page. Only the
-  // active car's: whichever car is edited is the one the page names.
+  // active car's: whichever car is edited is the one the page names. Dropped on a switch, and an
+  // answer for a car switched away from is not kept.
   const vehicleSettings = shallowRef<VehicleSettings | null>(null)
 
   async function fetchSettings(vin: string) {
-    vehicleSettings.value = await vehicleApi.settings(vin)
+    const answer = await vehicleApi.settings(vin)
+    if (!isForAnotherCar(vin)) vehicleSettings.value = answer
   }
 
   // The list is fetched again after a save: the battery size it carries is the one in effect,
   // which the server works out from the car's type and the deployment's default.
   async function saveSettings(vin: string, changes: Partial<VehicleSettingsValues>) {
-    vehicleSettings.value = await vehicleApi.updateSettings(vin, changes)
+    const answer = await vehicleApi.updateSettings(vin, changes)
+    if (!isForAnotherCar(vin)) vehicleSettings.value = answer
     await fetchVehicles(true)
   }
 
   async function fetchStatus(vin: string) {
     await withLoading(statusError, async () => {
-      takeStatus(await vehicleApi.status(vin))
+      const snapshot = await vehicleApi.status(vin)
+      if (isForAnotherCar(vin)) return
+      takeStatus(snapshot)
     })
   }
 
   async function fetchConfig(vin: string) {
     try {
-      vehicleConfig.value = await vehicleApi.config(vin)
+      const config = await vehicleApi.config(vin)
+      if (isForAnotherCar(vin)) return
+      vehicleConfig.value = config
       saveState()
     } catch {
       // config may not exist yet
@@ -248,7 +263,9 @@ export const useVehicleStore = defineStore('vehicle', () => {
 
   async function fetchLatestTrip(vin: string) {
     await withLoading(latestTripError, async () => {
-      keepIfUnchanged(latestTrip, (await vehicleApi.latestTrip(vin)) ?? null)
+      const trip = (await vehicleApi.latestTrip(vin)) ?? null
+      if (isForAnotherCar(vin)) return
+      keepIfUnchanged(latestTrip, trip)
       saveState()
     })
   }
@@ -259,10 +276,68 @@ export const useVehicleStore = defineStore('vehicle', () => {
     })
   }
 
-  // GarageStack follows one car. Every view needs the same one, so "the first vehicle" is
-  // resolved here instead of being re-derived from the list by index in each component.
-  const activeVehicle = computed((): Vehicle | null => vehicles.value[0] ?? null)
+  // Every view follows one car at a time, so which one is resolved here instead of in each
+  // component: the car this browser last followed (utils/lastVin), or the first one when there is
+  // none or it is no longer on the account.
+  const selectedVin = ref<string | null>(readLastVin())
+  const activeVehicle = computed(
+    (): Vehicle | null =>
+      vehicles.value.find((v) => v.vin === selectedVin.value) ?? vehicles.value[0] ?? null,
+  )
   const activeVin = computed((): string | null => activeVehicle.value?.vin ?? null)
+  const hasMultipleVehicles = computed(() => vehicles.value.length > 1)
+  // Counts the times the user picked another car. Pages are keyed on it, so they mount afresh
+  // for the new car; the vehicle list arriving after a sign-in does not count, so a one-car
+  // install mounts each page once, as before.
+  const switchCount = ref(0)
+
+  // A notification names its car only when there is more than one to tell apart.
+  const labelsById = computed(
+    () => new Map(vehicleLabels(vehicles.value).map((l) => [l.id, l.label] as const)),
+  )
+  function carLabelFor(vehicleId: number | null | undefined): string | null {
+    if (!hasMultipleVehicles.value || vehicleId == null) return null
+    return labelsById.value.get(vehicleId) ?? null
+  }
+
+  // The colour is kept per car in the UI settings, but only once there is a second car to tell
+  // apart: a one-car install keeps the account-wide colour, exactly as before there was a choice
+  // of car, so the login page and the first paint show the same colour as the dashboard. The
+  // type override is kept with the car on the server.
+  watch(
+    [activeVin, hasMultipleVehicles],
+    ([vin, several]) => uiSettings.setColorVin(several ? vin : null),
+    { immediate: true },
+  )
+
+  /**
+   * Makes another car the one every view shows. What was loaded for the previous car is dropped
+   * at once, so no view shows one car's figures under the other's name while it reloads; the
+   * saved copy follows the new car as soon as its answers come in.
+   */
+  function selectVehicle(vin: string) {
+    if (vin === activeVin.value || !vehicles.value.some((v) => v.vin === vin)) return
+    selectedVin.value = vin
+    rememberVin(vin)
+    switchCount.value += 1
+    currentStatus.value = null
+    vehicleSettings.value = null
+    vehicleConfig.value = {}
+    dailyStats.value = []
+    todayStat.value = null
+    todayStatVin = null
+    todayStatRequest += 1
+    trips.value = []
+    latestTrip.value = null
+    tripSummaries.value = []
+    lastUpdated.value = null
+    showingSavedState.value = false
+    statusError.value = null
+    dailyStatsError.value = null
+    tripsError.value = null
+    latestTripError.value = null
+    tripSummariesError.value = null
+  }
 
   // Detected by the API from the vehicle's reported hardware version, so the rule lives in one
   // place rather than once per client. Unknown until a vehicle has been fetched.
@@ -314,6 +389,11 @@ export const useVehicleStore = defineStore('vehicle', () => {
     vehiclesListed,
     activeVehicle,
     activeVin,
+    hasMultipleVehicles,
+    switchCount,
+    selectVehicle,
+    isForAnotherCar,
+    carLabelFor,
     currentStatus,
     currentPosition,
     vehicleConfig,

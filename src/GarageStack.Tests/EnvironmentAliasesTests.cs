@@ -100,7 +100,7 @@ public class EnvironmentAliasesTests
 
     // Read by the services under exactly these names.
     private static readonly HashSet<string> ReadDirectly =
-        ["ASPNETCORE_ENVIRONMENT", "ASPNETCORE_URLS", "DEBUG_LOGS", "DEMO_MODE", "SAIC_USER", "SAIC_PASSWORD"];
+        ["ASPNETCORE_ENVIRONMENT", "ASPNETCORE_URLS", "DEBUG_LOGS", "DEMO_MODE", "DEMO_SECOND_VEHICLE", "SAIC_USER", "SAIC_PASSWORD"];
 
     // Consumed by the deployment itself (compose, the entrypoint, the gateway, Mosquitto,
     // Postgres) and never meant to reach .NET.

@@ -14,7 +14,7 @@ public static class NotificationEndpoints
         {
             if (limit is < 1 or > 500) limit = 100;
             var list = await notifications.ListAsync(limit, ct);
-            return Results.Ok(list.Select(n => new NotificationDto(n.Id, n.Title, n.Body, n.CreatedAt, n.IsArchived, n.Category)));
+            return Results.Ok(list.Select(n => new NotificationDto(n.Id, n.Title, n.Body, n.CreatedAt, n.IsArchived, n.Category, n.VehicleId)));
         })
         .Produces<NotificationDto[]>()
         .WithSummary("List non-deleted notifications (most recent first, default limit 100)");
@@ -51,4 +51,5 @@ public static class NotificationEndpoints
     }
 }
 
-public record NotificationDto(int Id, string Title, string Body, DateTime CreatedAt, bool IsArchived, string? Category);
+// VehicleId: the car it is about; null for one about the account or the deployment.
+public record NotificationDto(int Id, string Title, string Body, DateTime CreatedAt, bool IsArchived, string? Category, int? VehicleId);

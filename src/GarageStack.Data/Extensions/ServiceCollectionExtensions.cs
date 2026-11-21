@@ -44,6 +44,7 @@ public static class ServiceCollectionExtensions
 
         // Every repository but these three is the real one, over the in-memory database.
         services.AddSharedRepositories();
+        services.AddSingleton(sp => DemoOptions.From(sp.GetRequiredService<IConfiguration>()));
         services.AddScoped<IVehicleRepository, DemoVehicleRepository>();
         services.AddSingleton<ITelemetryRepository, DemoTelemetryRepository>();
         services.AddSingleton<ITripRepository, DemoTripRepository>();

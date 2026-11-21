@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { nextTick } from 'vue'
 import { setActivePinia, createPinia } from 'pinia'
 import { flushPromises } from '@vue/test-utils'
 import { useVehicleStore } from '@/stores/vehicle'
@@ -590,5 +591,167 @@ describe('useVehicleStore - the car as last loaded, for when the server cannot b
     useVehicleStore().applyLiveStatus(saved.status)
 
     expect(readLastKnownState()).toBeNull()
+  })
+})
+
+describe('useVehicleStore - choosing a car', () => {
+  const first = { ...vehicle('phev'), id: 1, vin: 'FAKEVN00000000001', model: 'MG HS' }
+  const second = { ...vehicle('bev'), id: 2, vin: 'FAKEVN00000000002', model: 'MG4' }
+
+  beforeEach(() => {
+    localStorage.clear()
+    setActivePinia(createPinia())
+  })
+
+  it('follows the first car until another is chosen', () => {
+    const store = useVehicleStore()
+    store.vehicles = [first, second]
+    expect(store.hasMultipleVehicles).toBe(true)
+    expect(store.activeVin).toBe(first.vin)
+
+    store.selectVehicle(second.vin)
+    expect(store.activeVin).toBe(second.vin)
+    expect(store.detectedVehicleType).toBe('bev')
+  })
+
+  it('remembers the chosen car on this device', () => {
+    useVehicleStore().vehicles = [first, second]
+    useVehicleStore().selectVehicle(second.vin)
+
+    setActivePinia(createPinia())
+    const reloaded = useVehicleStore()
+    reloaded.vehicles = [first, second]
+    expect(reloaded.activeVin).toBe(second.vin)
+  })
+
+  it('falls back to the first car when the remembered one is gone', () => {
+    localStorage.setItem('garagestack-last-vin', 'NOT-ON-THE-ACCOUNT')
+    const store = useVehicleStore()
+    store.vehicles = [first, second]
+    expect(store.activeVin).toBe(first.vin)
+  })
+
+  it('ignores a car that is not on the account', () => {
+    const store = useVehicleStore()
+    store.vehicles = [first, second]
+    store.selectVehicle('NOT-ON-THE-ACCOUNT')
+    expect(store.activeVin).toBe(first.vin)
+  })
+
+  it("drops the previous car's data on a switch", () => {
+    const store = useVehicleStore()
+    store.vehicles = [first, second]
+    store.currentStatus = { isAvailable: true } as TelemetrySnapshot
+    store.latestTrip = { id: 7 } as Trip
+    store.lastUpdated = new Date()
+
+    store.selectVehicle(second.vin)
+    expect(store.currentStatus).toBeNull()
+    expect(store.latestTrip).toBeNull()
+    expect(store.lastUpdated).toBeNull()
+  })
+
+  it('keeps the data when the active car is chosen again', () => {
+    const store = useVehicleStore()
+    store.vehicles = [first, second]
+    const status = { isAvailable: true } as TelemetrySnapshot
+    store.currentStatus = status
+    store.selectVehicle(first.vin)
+    expect(store.currentStatus).toStrictEqual(status)
+  })
+
+  it('keeps the colour per car in the browser, and each car its own type', async () => {
+    const store = useVehicleStore()
+    const ui = useUiSettingsStore()
+    store.vehicles = [{ ...first, vehicleTypeOverride: 'phev' }, second]
+    await nextTick()
+
+    ui.carColorScheme = 'blue'
+    expect(store.effectiveVehicleType).toBe('phev')
+
+    store.selectVehicle(second.vin)
+    await nextTick()
+    // The second car has no colour of its own yet, and no type set: the detected one stands.
+    expect(ui.carColorScheme).toBe('orange')
+    expect(store.effectiveVehicleType).toBe('bev')
+
+    ui.carColorScheme = 'red'
+    store.selectVehicle(first.vin)
+    await nextTick()
+    expect(ui.carColorScheme).toBe('blue')
+    expect(store.effectiveVehicleType).toBe('phev')
+  })
+
+  // With one car the colour stays account-wide, as before there was a choice of car, so the login
+  // page and the first paint (before the list is in) show the same colour as the dashboard.
+  it('keeps the colour account-wide with a single car', async () => {
+    const store = useVehicleStore()
+    const ui = useUiSettingsStore()
+    store.vehicles = [first]
+    await nextTick()
+
+    ui.carColorScheme = 'blue'
+    expect(ui.vehicleSettings).toStrictEqual({})
+
+    // A second car joins: the first keeps the colour it had, and the new one starts from it.
+    store.vehicles = [first, second]
+    await nextTick()
+    expect(ui.carColorScheme).toBe('blue')
+    store.selectVehicle(second.vin)
+    await nextTick()
+    expect(ui.carColorScheme).toBe('blue')
+  })
+
+  it('ignores a per-car colour once the account is down to one car', async () => {
+    const store = useVehicleStore()
+    const ui = useUiSettingsStore()
+    ui.carColorScheme = 'blue'
+    ui.vehicleSettings = { [first.vin]: { carColorScheme: 'red' } }
+    store.vehicles = [first]
+    await nextTick()
+    expect(ui.carColorScheme).toBe('blue')
+  })
+
+  // A type saved in the browser before it moved to the car belongs to no car in particular.
+  it("leaves out the browser's older type once there are two cars", () => {
+    const store = useVehicleStore()
+    useUiSettingsStore().vehicleTypeOverride = 'hev'
+    store.vehicles = [first, second]
+    expect(store.effectiveVehicleType).toBe(first.vehicleType)
+  })
+
+  it("drops the settings on a switch, and a late answer for the previous car's", async () => {
+    const store = useVehicleStore()
+    store.vehicles = [first, second]
+    const answer: VehicleSettings = { values: noSettings, defaults: noSettings }
+    let deliver!: (s: VehicleSettings) => void
+    vi.mocked(vehicleApi.settings).mockImplementationOnce(
+      () => new Promise<VehicleSettings>((resolve) => (deliver = resolve)),
+    )
+    store.vehicleSettings = answer
+
+    const pending = store.fetchSettings(first.vin)
+    store.selectVehicle(second.vin)
+    expect(store.vehicleSettings).toBeNull()
+
+    deliver(answer)
+    await pending
+    expect(store.vehicleSettings).toBeNull()
+  })
+
+  it('drops an answer for the car switched away from while it was on its way', async () => {
+    const store = useVehicleStore()
+    store.vehicles = [first, second]
+    let answer!: (s: TelemetrySnapshot) => void
+    vi.mocked(vehicleApi.status).mockImplementationOnce(
+      () => new Promise<TelemetrySnapshot>((resolve) => (answer = resolve)),
+    )
+
+    const pending = store.fetchStatus(first.vin)
+    store.selectVehicle(second.vin)
+    answer({ isAvailable: true } as TelemetrySnapshot)
+    await pending
+
+    expect(store.currentStatus).toBeNull()
   })
 })

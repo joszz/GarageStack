@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useLoadingTracker } from '@/composables/useLoadingTracker'
+import { useVehicleStore } from '@/stores/vehicle'
 import {
   climateScheduleApi,
   type ClimateSchedule,
@@ -35,16 +36,28 @@ export const useClimateSchedulesStore = defineStore('climateSchedules', () => {
   const { loading, withLoading } = useLoadingTracker()
   const itemsError = ref<Error | null>(null)
   const actionError = ref<Error | null>(null)
+  // The list belongs to one car: it is dropped when the user picks another, and an answer for the
+  // car switched away from (a slow one, still on its way) is not kept.
+  const vehicleStore = useVehicleStore()
+  watch(
+    () => vehicleStore.switchCount,
+    () => {
+      schedules.value = []
+    },
+  )
 
   async function fetchSchedules(vin: string) {
     await withLoading(itemsError, async () => {
-      schedules.value = await climateScheduleApi.list(vin)
+      const list = await climateScheduleApi.list(vin)
+      if (vehicleStore.isForAnotherCar(vin)) return
+      schedules.value = list
     })
   }
 
   async function createSchedule(vin: string, req: ClimateScheduleRequest) {
     await withLoading(actionError, async () => {
       const created = await climateScheduleApi.create(vin, req)
+      if (vehicleStore.isForAnotherCar(vin)) return
       schedules.value = [...schedules.value, created].sort(byStartTime)
     })
   }
@@ -52,6 +65,7 @@ export const useClimateSchedulesStore = defineStore('climateSchedules', () => {
   async function updateSchedule(vin: string, id: number, req: ClimateScheduleRequest) {
     await withLoading(actionError, async () => {
       const updated = await climateScheduleApi.update(vin, id, req)
+      if (vehicleStore.isForAnotherCar(vin)) return
       schedules.value = schedules.value.map((s) => (s.id === id ? updated : s)).sort(byStartTime)
     })
   }
@@ -63,6 +77,7 @@ export const useClimateSchedulesStore = defineStore('climateSchedules', () => {
   async function deleteSchedule(vin: string, id: number) {
     await withLoading(actionError, async () => {
       await climateScheduleApi.delete(vin, id)
+      if (vehicleStore.isForAnotherCar(vin)) return
       schedules.value = schedules.value.filter((s) => s.id !== id)
     })
   }

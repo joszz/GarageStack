@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using GarageStack.Core.Configuration;
+using GarageStack.Core.Models;
 using GarageStack.Worker.Services;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -66,5 +67,40 @@ public class PushSenderServiceTests
         // real AppDbContext), and push delivery is skipped entirely since IsConfigured is
         // false - neither failure should propagate out of SendToAllAsync.
         await svc.SendToAllAsync("Test", "Body", CancellationToken.None);
+    }
+
+    private static Vehicle Car(int id, string vin, string? model) => new() { Id = id, Vin = vin, Model = model };
+
+    [Fact]
+    public void TitleWithCar_OneCar_LeavesTheTitleAlone()
+    {
+        var title = PushSenderService.TitleWithCar("Engine started", [Car(1, "VIN00000000000001", "MG4")], 1);
+
+        Assert.Equal("Engine started", title);
+    }
+
+    [Fact]
+    public void TitleWithCar_SeveralCars_PutsTheCarInFront()
+    {
+        Vehicle[] cars = [Car(1, "VIN00000000000001", "MG HS"), Car(2, "VIN00000000000002", "MG4")];
+
+        Assert.Equal("MG4 · Engine started", PushSenderService.TitleWithCar("Engine started", cars, 2));
+    }
+
+    [Fact]
+    public void TitleWithCar_SameModelTwice_AddsTheEndOfTheVin()
+    {
+        Vehicle[] cars = [Car(1, "VIN00000000AAAAAA", "MG4"), Car(2, "VIN00000000BBBBBB", "MG4")];
+
+        Assert.Equal("MG4 (…BBBBBB) · Low tyre", PushSenderService.TitleWithCar("Low tyre", cars, 2));
+    }
+
+    [Fact]
+    public void TitleWithCar_NoCarOrUnknownCar_LeavesTheTitleAlone()
+    {
+        Vehicle[] cars = [Car(1, "VIN00000000000001", "MG HS"), Car(2, "VIN00000000000002", "MG4")];
+
+        Assert.Equal("Update", PushSenderService.TitleWithCar("Update", cars, null));
+        Assert.Equal("Update", PushSenderService.TitleWithCar("Update", cars, 9));
     }
 }

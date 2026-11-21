@@ -90,4 +90,23 @@ describe('useRdwStore', () => {
 
     expect(rdwApi.get).toHaveBeenCalledTimes(1)
   })
+
+  it("reads the other car's plate after a switch, without showing the first one meanwhile", async () => {
+    const { rdwApi } = await import('@/services/rdwApi')
+    const otherPlate: RdwStatus = { licensePlate: 'XY987Z', info: null }
+    vi.mocked(rdwApi.get).mockImplementation(async (vin: string) =>
+      vin === 'VIN1' ? withPlate : otherPlate,
+    )
+    const store = useRdwStore()
+
+    await store.ensureLoaded('VIN1')
+    await store.ensureLoaded('VIN1')
+    expect(rdwApi.get).toHaveBeenCalledTimes(1)
+
+    const switching = store.ensureLoaded('VIN2')
+    expect(store.status).toBeNull()
+    await switching
+    expect(store.status?.licensePlate).toBe('XY987Z')
+    expect(rdwApi.get).toHaveBeenCalledTimes(2)
+  })
 })

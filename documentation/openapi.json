@@ -8187,7 +8187,8 @@
           "body",
           "createdAt",
           "isArchived",
-          "category"
+          "category",
+          "vehicleId"
         ],
         "type": "object",
         "properties": {
@@ -8213,6 +8214,13 @@
               "null",
               "string"
             ]
+          },
+          "vehicleId": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
           }
         }
       },
