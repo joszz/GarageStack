@@ -300,8 +300,15 @@ export const useVehicleStore = defineStore('vehicle', () => {
     return labelsById.value.get(vehicleId) ?? null
   }
 
-  // The colour is kept per car in the UI settings; the type override is kept with the car.
-  watch(activeVin, (vin) => uiSettings.setActiveVin(vin), { immediate: true })
+  // The colour is kept per car in the UI settings, but only once there is a second car to tell
+  // apart: a one-car install keeps the account-wide colour, exactly as before there was a choice
+  // of car, so the login page and the first paint show the same colour as the dashboard. The
+  // type override is kept with the car on the server.
+  watch(
+    [activeVin, hasMultipleVehicles],
+    ([vin, several]) => uiSettings.setColorVin(several ? vin : null),
+    { immediate: true },
+  )
 
   /**
    * Makes another car the one every view shows. What was loaded for the previous car is dropped

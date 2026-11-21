@@ -67,8 +67,8 @@ interface UiSettings {
   statsPeriod: StatsPeriod
   notificationTypeExclusions: string[]
   /**
-   * The colour of each car, by VIN. A car without an entry uses carColorScheme above, which is
-   * all a one-car install from before there was a choice of car ever stored. vehicleTypeOverride
+   * The colour of each car, by VIN, used only while the account has more than one car. A car
+   * without an entry, and every one-car install, uses carColorScheme above. vehicleTypeOverride
    * above is from before the type moved to the car's own settings, and only counts with one car.
    */
   vehicleSettings: Record<string, VehicleUiSettings>
@@ -258,23 +258,24 @@ export const useUiSettingsStore = defineStore('settingsUi', () => {
   // The theme and the car's colours live on the document, so they follow the setting at once.
   watch(effectiveTheme, (theme) => applyTheme(theme), { immediate: true })
 
-  // The car every view follows, set by the vehicle store. Null until the vehicle list is in,
-  // when the account-wide colour stands.
-  const activeVin = ref<string | null>(null)
-  function setActiveVin(vin: string | null) {
-    activeVin.value = vin
+  // The car whose own colour applies, set by the vehicle store: the active car once the account
+  // has more than one. Null with a single car, or before the vehicle list is in, and then the
+  // account-wide colour stands, as it did before there was a choice of car.
+  const colorVin = ref<string | null>(null)
+  function setColorVin(vin: string | null) {
+    colorVin.value = vin
   }
 
-  // Read and written for the active car: its own entry when it has one, otherwise the
-  // account-wide value. The first change made for a car gives it its own entry.
+  // Read and written for that car: its own entry when it has one, otherwise the account-wide
+  // value. The first change made for a car gives it its own entry.
   function perVehicle<K extends keyof VehicleUiSettings>(key: K) {
     return computed<VehicleUiSettings[K]>({
       get: () => {
-        const vin = activeVin.value
+        const vin = colorVin.value
         return (vin && settings.vehicleSettings[vin]?.[key]) || settings[key]
       },
       set: (value) => {
-        const vin = activeVin.value
+        const vin = colorVin.value
         if (!vin) {
           ;(settings as VehicleUiSettings)[key] = value
           return
@@ -314,7 +315,7 @@ export const useUiSettingsStore = defineStore('settingsUi', () => {
     ...toRefs(settings),
     // After the spread, so it stands in for the account-wide value of the same name.
     carColorScheme,
-    setActiveVin,
+    setColorVin,
     effectiveTheme,
     detectedRegion,
     effectiveRegion,

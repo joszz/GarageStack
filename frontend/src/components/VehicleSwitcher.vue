@@ -8,7 +8,7 @@ import { vehicleLabels } from '@/utils/vehicleLabels'
 /**
  * The car every view follows. With one car on the account it is just the car's name; with more,
  * a picker. Choosing another car drops the previous one's data (see selectVehicle) and the views
- * load the new one's, since App keys the routed view on the active VIN.
+ * load the new one's, since App keys the routed view on the store's switchCount.
  */
 const { t } = useI18n()
 const route = useRoute()

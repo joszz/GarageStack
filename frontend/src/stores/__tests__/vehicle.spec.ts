@@ -682,6 +682,36 @@ describe('useVehicleStore - choosing a car', () => {
     expect(store.effectiveVehicleType).toBe('phev')
   })
 
+  // With one car the colour stays account-wide, as before there was a choice of car, so the login
+  // page and the first paint (before the list is in) show the same colour as the dashboard.
+  it('keeps the colour account-wide with a single car', async () => {
+    const store = useVehicleStore()
+    const ui = useUiSettingsStore()
+    store.vehicles = [first]
+    await nextTick()
+
+    ui.carColorScheme = 'blue'
+    expect(ui.vehicleSettings).toStrictEqual({})
+
+    // A second car joins: the first keeps the colour it had, and the new one starts from it.
+    store.vehicles = [first, second]
+    await nextTick()
+    expect(ui.carColorScheme).toBe('blue')
+    store.selectVehicle(second.vin)
+    await nextTick()
+    expect(ui.carColorScheme).toBe('blue')
+  })
+
+  it('ignores a per-car colour once the account is down to one car', async () => {
+    const store = useVehicleStore()
+    const ui = useUiSettingsStore()
+    ui.carColorScheme = 'blue'
+    ui.vehicleSettings = { [first.vin]: { carColorScheme: 'red' } }
+    store.vehicles = [first]
+    await nextTick()
+    expect(ui.carColorScheme).toBe('blue')
+  })
+
   // A type saved in the browser before it moved to the car belongs to no car in particular.
   it("leaves out the browser's older type once there are two cars", () => {
     const store = useVehicleStore()
