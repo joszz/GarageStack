@@ -178,6 +178,17 @@
   opacity: 0.8;
 }
 
+/* At a fractional display scale (125% on Windows) the tiles' edges fall between device pixels and
+   a hairline gap shows between them, a grid across the whole backdrop. Leaflet's own remedy
+   (blending the tiles plus-lighter) does not close it, so each tile reaches one pixel into the
+   next, drawn normally so the overlap does not show as a bright line. Leaflet sizes the tiles in
+   their style attribute, hence the !important. Only here: the smaller maps never caught the eye. */
+.map-backdrop__map img.leaflet-tile {
+  width: 257px !important;
+  height: 257px !important;
+  mix-blend-mode: normal;
+}
+
 /* The map fades into the page on every side, so it has no hard edge against the sidebar or the
    footer. Across the column's gutter at the sides and the bottom: faded out at the edge, at full
    strength where the cards begin. Further at the top, where the page title and its buttons lie on
