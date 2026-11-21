@@ -205,7 +205,9 @@ export const useVehicleStore = defineStore('vehicle', () => {
 
   async function fetchDailyStats(vin: string, from: string, to: string) {
     await withLoading(dailyStatsError, async () => {
-      dailyStats.value = await vehicleApi.dailyStats(vin, from, to, browserTimeZone())
+      const days = await vehicleApi.dailyStats(vin, from, to, browserTimeZone())
+      if (isForAnotherCar(vin)) return
+      dailyStats.value = days
     })
   }
 
@@ -257,7 +259,9 @@ export const useVehicleStore = defineStore('vehicle', () => {
 
   async function fetchTrips(vin: string, from?: string, to?: string) {
     await withLoading(tripsError, async () => {
-      trips.value = await vehicleApi.trips(vin, from, to)
+      const list = await vehicleApi.trips(vin, from, to)
+      if (isForAnotherCar(vin)) return
+      trips.value = list
     })
   }
 
@@ -272,7 +276,9 @@ export const useVehicleStore = defineStore('vehicle', () => {
 
   async function fetchTripSummaries(vin: string, from?: string, to?: string) {
     await withLoading(tripSummariesError, async () => {
-      tripSummaries.value = await vehicleApi.tripSummaries(vin, from, to)
+      const summaries = await vehicleApi.tripSummaries(vin, from, to)
+      if (isForAnotherCar(vin)) return
+      tripSummaries.value = summaries
     })
   }
 

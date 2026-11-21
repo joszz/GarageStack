@@ -754,4 +754,41 @@ describe('useVehicleStore - choosing a car', () => {
 
     expect(store.currentStatus).toBeNull()
   })
+
+  // The statistics page asks for all three. The new car's answer can come first, and the previous
+  // car's slower one must not replace it.
+  it("keeps the new car's statistics when the previous car's answer comes last", async () => {
+    const store = useVehicleStore()
+    store.vehicles = [first, second]
+    const late: Array<() => void> = []
+    function slowOnce<T>(fn: (...args: never[]) => Promise<T>, value: T) {
+      vi.mocked(fn).mockImplementationOnce(
+        () => new Promise<T>((resolve) => late.push(() => resolve(value))),
+      )
+    }
+    slowOnce(vehicleApi.dailyStats, [{ date: '2026-11-21' } as DailyStat])
+    slowOnce(vehicleApi.trips, [{ id: 1 } as Trip])
+    slowOnce(vehicleApi.tripSummaries, [{ id: 1 } as unknown as TripSummary])
+
+    const pending = [
+      store.fetchDailyStats(first.vin, '2026-11-21', '2026-11-21'),
+      store.fetchTrips(first.vin),
+      store.fetchTripSummaries(first.vin),
+    ]
+    store.selectVehicle(second.vin)
+    const own = { date: '2026-11-21', evSocPercent: 73 } as DailyStat
+    vi.mocked(vehicleApi.dailyStats).mockResolvedValueOnce([own])
+    vi.mocked(vehicleApi.trips).mockResolvedValueOnce([])
+    vi.mocked(vehicleApi.tripSummaries).mockResolvedValueOnce([])
+    await store.fetchDailyStats(second.vin, '2026-11-21', '2026-11-21')
+    await store.fetchTrips(second.vin)
+    await store.fetchTripSummaries(second.vin)
+
+    late.forEach((deliver) => deliver())
+    await Promise.all(pending)
+
+    expect(store.dailyStats).toEqual([own])
+    expect(store.trips).toEqual([])
+    expect(store.tripSummaries).toEqual([])
+  })
 })
