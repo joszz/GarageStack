@@ -64,6 +64,25 @@ describe('EditLayoutButton', () => {
     expect(wrapper.emitted('update:modelValue')).toEqual([[false]])
   })
 
+  it('offers no reset outside the editor', () => {
+    expect(button(false).findAll('button')).toHaveLength(1)
+  })
+
+  it('resets the layout from beside Done in the header, which gives way to the bar on touch', async () => {
+    const wrapper = button(true)
+    const header = wrapper.findAll('button')
+    const reset = header[0]!
+
+    expect(header[1]!.classes()).toContain('edit-layout-btn')
+    expect(reset.text()).toBe(en.dashboard.resetLayoutShort)
+    expect(reset.attributes('title')).toBe(en.dashboard.resetLayout)
+    expect(reset.classes()).toContain('edit-layout-btn--touch-hidden')
+    await reset.trigger('click')
+
+    expect(wrapper.emitted('reset')).toEqual([[]])
+    expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+  })
+
   it('resets the layout from the floating bar, and stays in the editor', async () => {
     const wrapper = button(true)
     const reset = wrapper.get('.edit-mode-bar .btn-outline-secondary')

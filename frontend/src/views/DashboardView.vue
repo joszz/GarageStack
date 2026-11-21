@@ -319,11 +319,6 @@ onUnmounted(() => {
           </div>
         </template>
       </EditableCardGrid>
-
-      <button class="btn btn-outline-secondary mt-3 edit-layout-reset" @click="resetLayout">
-        <font-awesome-icon icon="rotate-left" />
-        {{ t('dashboard.resetLayout') }}
-      </button>
     </template>
 
     <!-- Normal mode -->

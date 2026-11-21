@@ -206,7 +206,7 @@ describe('DashboardView', () => {
     expect(vehicleApi.status).toHaveBeenCalledOnce()
   })
 
-  it('offers to reset the layout while it is being edited', async () => {
+  it('offers to reset the layout beside Done while it is being edited', async () => {
     const wrapper = await mountView()
 
     await wrapper
@@ -217,7 +217,7 @@ describe('DashboardView', () => {
     await flushPromises()
 
     expect(wrapper.find('.card-grid').exists()).toBe(true)
-    expect(wrapper.text()).toContain(en.dashboard.resetLayout)
+    expect(wrapper.text()).toContain(en.dashboard.resetLayoutShort)
     expect(wrapper.text()).toContain(en.dashboard.doneEditing)
   })
 

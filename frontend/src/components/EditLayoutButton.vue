@@ -3,13 +3,13 @@ import { useI18n } from 'vue-i18n'
 import '@/assets/editMode.css'
 
 /**
- * Opens and closes the layout editor (useEditMode). With a mouse the header button does both.
- * On a touchscreen a long press on a card opens the editor and a bar floating at the bottom of the
- * screen closes it, as on a phone's home screen, so the header button gives way: while editing,
- * and while a card is there to press (`cardsShown`). With no card on the page (all hidden, or no
- * data) the button stays, or the editor could not be opened at all. The bar also resets the
- * layout (`reset`), in place of the page's own reset button (`edit-layout-reset`), which it hides.
- * Which of the two a screen gets is up to CSS (editMode.css).
+ * Opens, resets (`reset`) and closes the layout editor (useEditMode). With a mouse the header's
+ * buttons do all three: while editing, Reset sits beside Done. On a touchscreen a long press on a
+ * card opens the editor and a bar floating at the bottom of the screen resets and closes it, as
+ * on a phone's home screen, so the header's buttons give way: while editing, and while a card is
+ * there to press (`cardsShown`). With no card on the page (all hidden, or no data) the edit button
+ * stays, or the editor could not be opened at all. Which of the two a screen gets is up to CSS
+ * (editMode.css).
  */
 const editing = defineModel<boolean>({ required: true })
 defineProps<{ cardsShown: boolean }>()
@@ -19,6 +19,16 @@ const { t } = useI18n()
 </script>
 
 <template>
+  <!-- Short, as in the bar: the full words would crowd a header that wraps on a narrow window. -->
+  <button
+    v-if="editing"
+    class="btn btn-outline-secondary edit-layout-btn--touch-hidden"
+    :title="t('dashboard.resetLayout')"
+    @click="emit('reset')"
+  >
+    <font-awesome-icon icon="rotate-left" />
+    {{ t('dashboard.resetLayoutShort') }}
+  </button>
   <button
     class="btn edit-layout-btn"
     :class="[
@@ -39,7 +49,11 @@ const { t } = useI18n()
         role="toolbar"
         :aria-label="t('dashboard.editingLayout')"
       >
-        <button class="btn btn-outline-secondary" @click="emit('reset')">
+        <button
+          class="btn btn-outline-secondary"
+          :title="t('dashboard.resetLayout')"
+          @click="emit('reset')"
+        >
           <font-awesome-icon icon="rotate-left" />
           {{ t('dashboard.resetLayoutShort') }}
         </button>

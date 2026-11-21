@@ -618,17 +618,6 @@ const skeletonChartCount = computed(
           <StatsMonthTable :months="months" :energy-unit="monthEnergyUnit" />
         </div>
 
-        <!-- Reset + done editing -->
-        <template v-if="editMode">
-          <button
-            class="btn btn-outline-secondary mt-3 edit-layout-reset"
-            @click="resetStatsLayout"
-          >
-            <font-awesome-icon icon="rotate-left" />
-            {{ t('dashboard.resetLayout') }}
-          </button>
-        </template>
-
         <!-- Chart info modal -->
         <DetailModal
           :open="activeChartInfo !== null"
