@@ -7,11 +7,13 @@ import '@/assets/editMode.css'
  * On a touchscreen a long press on a card opens the editor and a bar floating at the bottom of the
  * screen closes it, as on a phone's home screen, so the header button gives way: while editing,
  * and while a card is there to press (`cardsShown`). With no card on the page (all hidden, or no
- * data) the button stays, or the editor could not be opened at all. Which of the two a screen
- * gets is up to CSS (editMode.css).
+ * data) the button stays, or the editor could not be opened at all. The bar also resets the
+ * layout (`reset`), in place of the page's own reset button (`edit-layout-reset`), which it hides.
+ * Which of the two a screen gets is up to CSS (editMode.css).
  */
 const editing = defineModel<boolean>({ required: true })
 defineProps<{ cardsShown: boolean }>()
+const emit = defineEmits<{ reset: [] }>()
 
 const { t } = useI18n()
 </script>
@@ -37,7 +39,10 @@ const { t } = useI18n()
         role="toolbar"
         :aria-label="t('dashboard.editingLayout')"
       >
-        <span class="edit-mode-bar__label">{{ t('dashboard.editingLayout') }}</span>
+        <button class="btn btn-outline-secondary" @click="emit('reset')">
+          <font-awesome-icon icon="rotate-left" />
+          {{ t('dashboard.resetLayoutShort') }}
+        </button>
         <button class="btn btn-primary" @click="editing = false">
           <font-awesome-icon icon="check" />
           {{ t('dashboard.doneEditing') }}

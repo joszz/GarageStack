@@ -69,6 +69,7 @@
     "doneEditing": "Done",
     "editingLayout": "Editing layout",
     "resetLayout": "Reset to defaults",
+    "resetLayoutShort": "Reset",
     "hideCard": "Hide card",
     "showCard": "Show card",
     "cardInfoBtn": "Card information",

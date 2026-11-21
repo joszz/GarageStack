@@ -266,7 +266,7 @@ onUnmounted(() => {
           <font-awesome-icon icon="spinner" spin />
           <span class="refresh-indicator__label">{{ t('common.refreshing') }}</span>
         </span>
-        <EditLayoutButton v-model="editMode" :cards-shown="cardsShown" />
+        <EditLayoutButton v-model="editMode" :cards-shown="cardsShown" @reset="resetLayout" />
       </template>
     </ViewHeader>
 
@@ -320,7 +320,7 @@ onUnmounted(() => {
         </template>
       </EditableCardGrid>
 
-      <button class="btn btn-outline-secondary mt-3" @click="resetLayout">
+      <button class="btn btn-outline-secondary mt-3 edit-layout-reset" @click="resetLayout">
         <font-awesome-icon icon="rotate-left" />
         {{ t('dashboard.resetLayout') }}
       </button>

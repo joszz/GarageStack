@@ -452,7 +452,7 @@ const skeletonChartCount = computed(
         <ToolbarPanel>
           <StatsPeriodFilter />
         </ToolbarPanel>
-        <EditLayoutButton v-model="editMode" :cards-shown="cardsShown" />
+        <EditLayoutButton v-model="editMode" :cards-shown="cardsShown" @reset="resetStatsLayout" />
       </template>
     </ViewHeader>
 
@@ -620,7 +620,10 @@ const skeletonChartCount = computed(
 
         <!-- Reset + done editing -->
         <template v-if="editMode">
-          <button class="btn btn-outline-secondary mt-3" @click="resetStatsLayout">
+          <button
+            class="btn btn-outline-secondary mt-3 edit-layout-reset"
+            @click="resetStatsLayout"
+          >
             <font-awesome-icon icon="rotate-left" />
             {{ t('dashboard.resetLayout') }}
           </button>

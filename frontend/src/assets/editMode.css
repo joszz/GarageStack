@@ -185,8 +185,9 @@
 
 /* ── Opening and closing the editor (EditLayoutButton.vue) ── */
 
-/* With a mouse the header button opens and closes the editor; on a touchscreen a long press on a
-   card opens it and the floating bar below closes it. The primary pointer decides, not any
+/* With a mouse the header button opens and closes the editor, and the page's own button resets
+   the layout; on a touchscreen a long press on a card opens it and the floating bar below resets
+   and closes it. The primary pointer decides, not any
    pointer: a laptop with a touchscreen gets the long press as well, but its mouse needs the
    button. */
 .edit-mode-bar {
@@ -194,7 +195,8 @@
 }
 
 @media (hover: none) and (pointer: coarse) {
-  .edit-layout-btn--touch-hidden {
+  .edit-layout-btn--touch-hidden,
+  .edit-layout-reset {
     display: none;
   }
 
@@ -209,7 +211,7 @@
     gap: 1rem;
     max-width: 24rem;
     margin-inline: auto;
-    padding: 0.5rem 0.5rem 0.5rem 1.25rem;
+    padding: 0.5rem;
     background: var(--color-surface);
     border: 1px solid var(--color-border);
     border-radius: calc(var(--touch-target) / 2 + 0.5rem);
@@ -220,15 +222,10 @@
     border-radius: calc(var(--touch-target) / 2);
   }
 
-  /* Room under the page for the bar, so it never covers the last card or the reset button. */
+  /* Room under the page for the bar, so it never covers the last card. */
   .view-container:has(.edit-layout-btn--editing) {
     padding-bottom: calc(var(--touch-target) + 3rem);
   }
-}
-
-.edit-mode-bar__label {
-  min-width: 0;
-  font-weight: 600;
 }
 
 .edit-mode-bar-enter-active,

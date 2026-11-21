@@ -69,6 +69,7 @@
     "doneEditing": "Hecho",
     "editingLayout": "Editando el diseño",
     "resetLayout": "Restablecer los valores predeterminados",
+    "resetLayoutShort": "Restablecer",
     "hideCard": "Ocultar tarjeta",
     "showCard": "Mostrar tarjeta",
     "cardInfoBtn": "Información de la tarjeta",

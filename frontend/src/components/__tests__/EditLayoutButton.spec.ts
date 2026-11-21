@@ -58,9 +58,20 @@ describe('EditLayoutButton', () => {
 
     expect(wrapper.get('.edit-layout-btn').classes()).toContain('edit-layout-btn--touch-hidden')
     expect(bar.attributes('aria-label')).toBe(en.dashboard.editingLayout)
-    expect(bar.text()).toContain(en.dashboard.editingLayout)
-    await bar.get('button').trigger('click')
+    await bar.get('.btn-primary').trigger('click')
 
+    expect(bar.get('.btn-primary').text()).toBe(en.dashboard.doneEditing)
     expect(wrapper.emitted('update:modelValue')).toEqual([[false]])
+  })
+
+  it('resets the layout from the floating bar, and stays in the editor', async () => {
+    const wrapper = button(true)
+    const reset = wrapper.get('.edit-mode-bar .btn-outline-secondary')
+
+    expect(reset.text()).toBe(en.dashboard.resetLayoutShort)
+    await reset.trigger('click')
+
+    expect(wrapper.emitted('reset')).toEqual([[]])
+    expect(wrapper.emitted('update:modelValue')).toBeUndefined()
   })
 })
