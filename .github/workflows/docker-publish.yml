@@ -31,10 +31,20 @@ on:
         description: Pull request to publish preview images for, tagged pr-<number>
         type: number
         required: true
+      pr_commit:
+        description: >-
+          For a pull request from a fork, built by hand: the commit of the pull request a
+          maintainer reviewed. GitHub's merge of exactly that commit into main is built.
+        type: string
+        required: false
+        default: ''
     outputs:
       version:
         description: The version the preview images carry
         value: ${{ jobs.version.outputs.version }}
+      ref:
+        description: The commit the images were built from when it is not the run's own (a fork's preview)
+        value: ${{ jobs.version.outputs.ref }}
 
 # A newer push to a PR makes its running build pointless; on main and tags a build is never cut
 # off halfway through publishing, the next one waits instead. A preview has a group of its own,
@@ -61,27 +71,36 @@ env:
 #     (v1.2.3-rc.1) gets its own version tag only.
 #   weekly rebuild, or a manual run for the release: the newest release again, from its tag,
 #     with today's OS packages, under the same tags as when it was released, latest included.
-#   preview: the pull request, as pr-<number>; see preview-build.yml.
+#   preview: the pull request, as pr-<number>; see preview-build.yml. A fork's pull request is
+#     built by hand (pr_commit), from main's run: it never writes the build cache.
 #
 # How an image gets published, by kind of run:
 #   release (push to main, tag, schedule, manual run): every architecture is built on its own
 #     hardware and pushed by digest only, with no tag. The merge job then ties the digests into
 #     one tagged multi-architecture index and signs that index. Provenance and SBOM are made per
 #     architecture by the build.
-#   preview (pull request labelled test-build): amd64 only, pushed with its pr-<number> tags
-#     straight from the build. The cleanup in preview-cleanup.yml deletes package versions by
-#     tag, and the per-architecture manifests of a multi-architecture image carry none, so
-#     previews stay single-architecture for now.
+#   preview (pull request labelled test-build, or a fork's built by hand): amd64 only, pushed
+#     with its pr-<number> tags straight from the build. The cleanup in preview-cleanup.yml
+#     deletes package versions by tag, and the per-architecture manifests of a
+#     multi-architecture image carry none, so previews stay single-architecture for now.
 #   pull request that changes this file: both architectures build, nothing is pushed.
+#
+# A fork publishes nothing: its pushes, schedule and manual runs skip every job, so its CI stays
+# green without packages permission. A fork that wants its own images sets the repository
+# variable PUBLISH_IMAGES to true; they go to ghcr.io/<its owner, lowercase>.
 jobs:
   # One version for every architecture of every image, however long each build takes.
   version:
     name: Resolve version
+    # build and merge need this job, so skipping it skips them too.
+    if: github.event_name == 'pull_request' || github.repository == 'joszz/GarageStack' || vars.PUBLISH_IMAGES == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
       contents: read
     outputs:
+      # GHCR image names are lowercase; an owner such as SomeUser is not.
+      owner: ${{ steps.owner.outputs.name }}
       version: ${{ steps.minver.outputs.version }}
       patch_date: ${{ steps.patchdate.outputs.date }}
       ref: ${{ steps.target.outputs.ref }}
@@ -92,6 +111,7 @@ jobs:
       edge: ${{ steps.target.outputs.edge }}
     env:
       PR_NUMBER: ${{ inputs.pr_number }}
+      PR_COMMIT: ${{ inputs.pr_commit }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -100,7 +120,8 @@ jobs:
 
       # Decides what this run builds and which tags it moves; see the overview above the jobs.
       # A rebuild of the newest release checks its tag out here, so MinVer below reads the
-      # release's own version, and passes the tag on as ref for the builds to check out.
+      # release's own version, and passes the tag on as ref for the builds to check out. A fork's
+      # preview does the same with GitHub's merge of the reviewed commit.
       - name: Pick what to build
         id: target
         shell: bash
@@ -110,7 +131,7 @@ jobs:
           REF_NAME: ${{ github.ref_name }}
           TARGET: ${{ inputs.target }}
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch || 'main' }}
-          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_HEAD_SHA: ${{ inputs.pr_commit || github.event.pull_request.head.sha }}
         run: |
           set -euo pipefail
           # The newest release: the highest vX.Y.Z tag, pre-releases left out.
@@ -119,7 +140,23 @@ jobs:
           RELEASE=""
           LATEST=false
           EDGE=false
-          if [ "${PR_NUMBER:-0}" -gt 0 ] || [ "$EVENT" = pull_request ]; then
+          if [ -n "$PR_COMMIT" ]; then
+            # A fork's preview, started by hand: GitHub's merge of the pull request into main, as
+            # a labelled pull request from this repository builds, but only while it is the merge
+            # of the commit the maintainer reviewed. A push since then stops it here.
+            if ! [[ "$PR_COMMIT" =~ ^[0-9a-f]{40}$ ]] || [ "${PR_NUMBER:-0}" -le 0 ]; then
+              echo "::error::A fork's preview needs the pull request number and the full 40-character commit" >&2
+              exit 1
+            fi
+            git fetch --quiet origin "+refs/pull/$PR_NUMBER/merge:refs/remotes/origin/preview-merge"
+            CHECKOUT_REF=$(git rev-parse refs/remotes/origin/preview-merge)
+            MERGED=$(git rev-parse "$CHECKOUT_REF^2")
+            if [ "$MERGED" != "$PR_COMMIT" ]; then
+              echo "::error::GitHub's merge of #$PR_NUMBER is built from $MERGED, not $PR_COMMIT. Either the pull request moved on (review the new commits and run again with its new head), or GitHub has not updated the merge yet (run again in a minute)." >&2
+              exit 1
+            fi
+            git checkout --quiet --detach "$CHECKOUT_REF"
+          elif [ "${PR_NUMBER:-0}" -gt 0 ] || [ "$EVENT" = pull_request ]; then
             # A preview, or a pull request that only tries this file: no release tags.
             :
           elif [ "$EVENT" = push ] && [[ "$REF" == refs/tags/v* ]]; then
@@ -156,7 +193,7 @@ jobs:
       - name: Set up .NET SDK
         uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         with:
-          dotnet-version: 10.0.x
+          dotnet-version: 11.0.x
 
       - name: Compute MinVer version
         id: minver
@@ -192,6 +229,13 @@ jobs:
         shell: bash
         run: echo "date=$(date -u +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
 
+      - name: Image owner
+        id: owner
+        shell: bash
+        env:
+          OWNER: ${{ github.repository_owner }}
+        run: echo "name=${OWNER,,}" >> "$GITHUB_OUTPUT"
+
   build:
     name: ${{ matrix.label }} (${{ matrix.arch }})
     needs: version
@@ -208,8 +252,9 @@ jobs:
       PUBLISH: ${{ github.event_name != 'pull_request' || inputs.pr_number > 0 }}
       # A preview is a throwaway test build: no SBOM, provenance or signature, which would each
       # leave untagged versions in the registry that the cleanup cannot tell apart. It is also
-      # the only kind of run that pushes tags from the build itself; see the notes above.
-      RELEASE_GRADE: ${{ github.event_name != 'pull_request' }}
+      # the only kind of run that pushes tags from the build itself; see the notes above. A fork's
+      # preview runs as a workflow_dispatch, so the pull request number decides, not the event.
+      RELEASE_GRADE: ${{ github.event_name != 'pull_request' && !(inputs.pr_number > 0) }}
 
     strategy:
       fail-fast: false
@@ -263,13 +308,13 @@ jobs:
         run: |
           set -euo pipefail
           IMAGE="${{ matrix.image }}"
-          SCOPE="repository:${{ github.repository_owner }}/${IMAGE}:pull,push"
+          SCOPE="repository:${{ needs.version.outputs.owner }}/${IMAGE}:pull,push"
           STATUS=$(curl -sS -o /tmp/ghcr-token.json -w "%{http_code}" \
             -u "${{ github.actor }}:${{ secrets.GHCR_PAT != '' && secrets.GHCR_PAT || github.token }}" \
             "https://ghcr.io/token?service=ghcr.io&scope=${SCOPE}")
 
           if [ "$STATUS" -ge 400 ] || ! grep -q '"token"' /tmp/ghcr-token.json; then
-            echo "::error::GHCR auth preflight failed. Token does not have ghcr pull/push for ${{ github.repository_owner }}/${IMAGE}."
+            echo "::error::GHCR auth preflight failed. Token does not have ghcr pull/push for ${{ needs.version.outputs.owner }}/${IMAGE}."
             echo "::error::Check repo Actions permissions (Read and write), package access, or configure GHCR_PAT with write:packages/read:packages."
             cat /tmp/ghcr-token.json
             exit 1
@@ -291,11 +336,8 @@ jobs:
       - name: Extract image metadata
         id: meta
         uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
-        env:
-          # A preview's commit tag names the pull request's own commit, not GitHub's merge commit.
-          DOCKER_METADATA_PR_HEAD_SHA: ${{ inputs.pr_number > 0 }}
         with:
-          images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.image }}
+          images: ${{ env.REGISTRY }}/${{ needs.version.outputs.owner }}/${{ matrix.image }}
           # Keep this tag list the same as the one in the merge job.
           flavor: latest=false
           labels: org.opencontainers.image.revision=${{ needs.version.outputs.revision }}
@@ -310,9 +352,11 @@ jobs:
             type=semver,pattern={{major}},value=${{ needs.version.outputs.release }},enable=${{ needs.version.outputs.release != '' }}
             # short SHA of the commit built, for traceability
             type=raw,value=sha-${{ needs.version.outputs.short_sha }},enable=${{ !(inputs.pr_number > 0) }}
-            # a preview: pr-123 follows the pull request, pr-123-abc1234 is one exact commit
+            # a preview: pr-123 follows the pull request, pr-123-abc1234 is one exact commit. The
+            # commit is the pull request's own (revision), not GitHub's merge of it, and not the
+            # run's: a fork's preview runs on main.
             type=raw,value=pr-${{ inputs.pr_number }},enable=${{ inputs.pr_number > 0 }}
-            type=sha,format=short,prefix=pr-${{ inputs.pr_number }}-,enable=${{ inputs.pr_number > 0 }}
+            type=raw,value=pr-${{ inputs.pr_number }}-${{ needs.version.outputs.short_sha }},enable=${{ inputs.pr_number > 0 }}
 
       - name: Build and push
         id: build
@@ -325,7 +369,7 @@ jobs:
           push: ${{ env.PUBLISH == 'true' && env.RELEASE_GRADE != 'true' }}
           tags: ${{ env.RELEASE_GRADE != 'true' && steps.meta.outputs.tags || '' }}
           # By digest only, no tag: the merge job tags the index that ties the architectures.
-          outputs: ${{ env.RELEASE_GRADE == 'true' && format('type=image,name={0}/{1}/{2},push-by-digest=true,name-canonical=true,push=true', env.REGISTRY, github.repository_owner, matrix.image) || '' }}
+          outputs: ${{ env.RELEASE_GRADE == 'true' && format('type=image,name={0}/{1}/{2},push-by-digest=true,name-canonical=true,push=true', env.REGISTRY, needs.version.outputs.owner, matrix.image) || '' }}
           provenance: ${{ env.RELEASE_GRADE == 'true' && 'mode=max' || 'false' }}
           sbom: ${{ env.RELEASE_GRADE == 'true' }}
           labels: ${{ steps.meta.outputs.labels }}
@@ -333,9 +377,11 @@ jobs:
             APP_VERSION=${{ needs.version.outputs.version }}
             OS_PATCH_DATE=${{ needs.version.outputs.patch_date }}
           # Each image gets its own GHA cache scope, and each architecture its own, so the two
-          # do not evict each other. amd64 keeps the scope it always had.
+          # do not evict each other. amd64 keeps the scope it always had. A fork's preview runs on
+          # main, so what it wrote would be main's cache, which the releases build from: it reads
+          # the cache and writes none.
           cache-from: type=gha,scope=${{ matrix.label }}${{ matrix.arch != 'amd64' && format('-{0}', matrix.arch) || '' }}
-          cache-to: type=gha,scope=${{ matrix.label }}${{ matrix.arch != 'amd64' && format('-{0}', matrix.arch) || '' }},mode=min,ignore-error=true
+          cache-to: ${{ inputs.pr_commit == '' && format('type=gha,scope={0}{1},mode=min,ignore-error=true', matrix.label, matrix.arch != 'amd64' && format('-{0}', matrix.arch) || '') || '' }}
 
       - name: Export digest
         if: env.RELEASE_GRADE == 'true'
@@ -371,7 +417,7 @@ jobs:
     # build failed, as each image did before. Without a status function, one failed build of
     # any image or architecture would skip every merge, amd64 included. An image with an
     # architecture missing still fails here, on the digest count.
-    if: ${{ !cancelled() && github.event_name != 'pull_request' && needs.build.result != 'skipped' }}
+    if: ${{ !cancelled() && github.event_name != 'pull_request' && !(inputs.pr_number > 0) && needs.build.result != 'skipped' }}
     needs: [version, build]
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -393,7 +439,7 @@ jobs:
             image: garagestack-worker
     env:
       # The workflow-level env is not available here, so the registry is spelled out.
-      IMAGE: ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}
+      IMAGE: ghcr.io/${{ needs.version.outputs.owner }}/${{ matrix.image }}
       # linux/amd64 and linux/arm64, the architectures of the build matrix.
       EXPECTED_DIGESTS: 2
     steps:

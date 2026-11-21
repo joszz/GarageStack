@@ -3,6 +3,7 @@ using GarageStack.Core.Configuration;
 using GarageStack.Core.Helpers;
 using GarageStack.Core.Interfaces;
 using GarageStack.Core.Models;
+using Microsoft.OpenApi;
 
 namespace GarageStack.Api.Endpoints;
 
@@ -45,8 +46,9 @@ public static class VehicleSettingsEndpoints
         .AddOpenApiOperationTransformer(async (operation, context, ct) =>
         {
             // Read by hand, so a field left out can be told from one cleared with null.
-            if (operation.RequestBody?.Content?.TryGetValue("application/json", out var content) == true)
-                content.Schema = await context.GetOrCreateSchemaAsync(typeof(VehicleSettingsValues), cancellationToken: ct);
+            if (operation.RequestBody?.Content?.TryGetValue("application/json", out var content) == true
+                && content is OpenApiMediaType media)
+                media.Schema = await context.GetOrCreateSchemaAsync(typeof(VehicleSettingsValues), cancellationToken: ct);
         })
         .WithSummary("Change some of the vehicle's own settings: a field left out stays, null puts it back to the deployment default");
     }

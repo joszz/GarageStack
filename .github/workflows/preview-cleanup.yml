@@ -2,9 +2,13 @@ name: Preview cleanup
 
 # Deletes the pr-<number> images preview-build.yml published, once the pull request closes (merged
 # or not) or loses its test-build label. See documentation/PREVIEW_BUILDS.md.
-
+#
+# pull_request_target rather than pull_request: a fork's pull request is built by hand (see
+# preview-build.yml), and only pull_request_target gives its close the packages permission to
+# delete those images. It runs this file as it is on main and never checks out the pull
+# request's code, so nothing from the fork runs with that permission.
 on:
-  pull_request:
+  pull_request_target:
     branches: [main]
     types: [closed, unlabeled]
   workflow_dispatch:
@@ -22,9 +26,8 @@ jobs:
     name: Delete pr-${{ inputs.pr_number || github.event.pull_request.number }}
     if: >-
       github.event_name == 'workflow_dispatch' ||
-      (github.event.pull_request.head.repo.full_name == github.repository &&
-       ((github.event.action == 'closed' && contains(github.event.pull_request.labels.*.name, 'test-build')) ||
-        (github.event.action == 'unlabeled' && github.event.label.name == 'test-build')))
+      (github.event.action == 'closed' && contains(github.event.pull_request.labels.*.name, 'test-build')) ||
+      (github.event.action == 'unlabeled' && github.event.label.name == 'test-build')
     runs-on: ubuntu-latest
     timeout-minutes: 10
     # Shared with the build, so a build still pushing is stopped before its images are deleted.

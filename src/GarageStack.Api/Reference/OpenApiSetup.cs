@@ -158,7 +158,7 @@ internal static class OpenApiSetup
             Description = description,
             Content = problem is null
                 ? null
-                : new Dictionary<string, OpenApiMediaType> { [ProblemContentType] = new() { Schema = problem } },
+                : new Dictionary<string, IOpenApiMediaType> { [ProblemContentType] = new OpenApiMediaType { Schema = problem } },
         };
     }
 

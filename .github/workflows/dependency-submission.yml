@@ -13,6 +13,8 @@ env:
 jobs:
   snapshot:
     name: Dependency snapshot
+    # A fork usually has no dependency graph to submit to, and needs none.
+    if: github.repository == 'joszz/GarageStack'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:

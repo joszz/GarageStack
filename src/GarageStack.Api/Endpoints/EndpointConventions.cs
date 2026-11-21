@@ -40,7 +40,8 @@ internal static class EndpointConventions
                     oneOf.Add(await context.GetOrCreateSchemaAsync(shape, cancellationToken: ct));
 
                 if (operation.Responses?.TryGetValue("200", out var ok) == true
-                    && ok.Content?.TryGetValue("application/json", out var json) == true)
-                    json.Schema = new OpenApiSchema { OneOf = oneOf };
+                    && ok.Content?.TryGetValue("application/json", out var json) == true
+                    && json is OpenApiMediaType media)
+                    media.Schema = new OpenApiSchema { OneOf = oneOf };
             });
 }

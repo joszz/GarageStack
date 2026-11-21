@@ -6,10 +6,11 @@ A preview build is a set of throwaway images for one pull request, so someone wi
 - Every push to the pull request replaces those images.
 - Removing the label, closing the pull request or merging it **deletes the images again**.
 - `latest`, `edge`, the version tags and the `sha-` tags are never touched, so nobody else notices.
+- A pull request **from a fork** is built by hand instead, after you have read it: see [Pull requests from forks](#pull-requests-from-forks).
 
 Contents:
 
-- [Maintainer checklist](#maintainer-checklist)
+- [Maintainer checklist](#maintainer-checklist), with [Pull requests from forks](#pull-requests-from-forks)
 - [Testing a preview build](#testing-a-preview-build) (the part to send testers to), with [My data is gone after switching](#my-data-is-gone-after-switching)
 - [Database changes](#database-changes)
 - [How it works](#how-it-works)
@@ -33,6 +34,24 @@ Contents:
    - **It does not work:** close the pull request (or just remove the label while you rethink). The images are deleted and nothing else changed.
 
 Need a fresh build without a new commit, for example to pick up a newer `main`? Remove the label and add it again.
+
+### Pull requests from forks
+
+A pull request from a fork never gets permission to publish packages, so the label alone builds nothing there: the *Preview build* run shows as skipped. Building it means running the contributor's code with this repository's permission to publish, so it only happens when you start it, for a commit you have read.
+
+1. **Read the changes**, Dockerfiles and build files included. The workflows always run as they are on `main`, so changes the pull request makes to `.github/workflows/` take no part in the build.
+2. **Add the `test-build` label.** The build refuses a pull request without it, so that closing the pull request or removing the label deletes the images, as for any other preview.
+3. **Run the workflow** with the pull request number and the commit you read, its head:
+
+   ```sh
+   gh pr view 123 --json headRefOid --jq .headRefOid
+   gh workflow run preview-build.yml -f pr_number=123 -f commit=<that commit>
+   ```
+
+   Or in the Actions tab: *Preview build*, *Run workflow*. It checks that the pull request is still at that commit, then builds GitHub's merge of it into `main`, as for a branch of this repository. If the contributor has pushed since you read it, the run stops and names the new head.
+4. **After every push from the contributor**, read the new commits and run it again with the new head. The images do not follow the pull request by themselves, and the preview comment says so to the tester.
+
+A build by hand reads the build cache of `main` but writes none: whatever a fork's build produced would otherwise be cached under `main`, where the releases are built from.
 
 ---
 
@@ -140,17 +159,17 @@ A tester runs the preview against their real database. If the build carries an E
 
 | Piece | What it does |
 | ----- | ------------ |
-| [`preview-build.yml`](../.github/workflows/preview-build.yml) | Runs on `labeled`, `synchronize` and `reopened` for pull requests to `main`. When the pull request has the `test-build` label and comes from this repository, it calls `docker-publish.yml` with the pull request number, then posts or updates the preview comment (found by the hidden marker `<!-- garagestack-preview-build -->`). |
+| [`preview-build.yml`](../.github/workflows/preview-build.yml) | Runs on `labeled`, `synchronize` and `reopened` for pull requests to `main`. When the pull request has the `test-build` label and comes from this repository, it calls `docker-publish.yml` with the pull request number, then posts or updates the preview comment (found by the hidden marker `<!-- garagestack-preview-build -->`). For a fork's pull request it runs by hand (`workflow_dispatch` with the number and the reviewed commit): a check job first confirms the pull request is open, labelled and still at that commit. |
 | [`docker-publish.yml`](../.github/workflows/docker-publish.yml) | The normal image pipeline, callable through `workflow_call` with `pr_number`. For a preview it pushes `pr-<number>` and `pr-<number>-<commit>`, and stamps the version with `.pr.<number>`. It skips the SBOM, provenance and Cosign signature, so each image is a single registry version that the cleanup can find by tag. |
-| [`preview-cleanup.yml`](../.github/workflows/preview-cleanup.yml) | Runs when a labelled pull request closes or loses the label, or by hand (*Run workflow* with a pull request number). Deletes every version of the four packages tagged `pr-<number>` or `pr-<number>-<commit>`, and rewrites the preview comment to say so. |
+| [`preview-cleanup.yml`](../.github/workflows/preview-cleanup.yml) | Runs when a labelled pull request closes or loses the label, or by hand (*Run workflow* with a pull request number). It listens on `pull_request_target`, so a fork's pull request can delete its images too; it never checks out the pull request's code. Deletes every version of the four packages tagged `pr-<number>` or `pr-<number>-<commit>`, and rewrites the preview comment to say so. |
 | [`docker-compose.yml`](../docker-compose.yml) | Runs `ghcr.io/joszz/garagestack-*:${GARAGESTACK_TAG}`, `latest` by default, so a tester who runs from a clone only sets `GARAGESTACK_TAG=pr-<number>` in `.env`. |
 
 Details worth knowing:
 
-- **Which commit is built.** Like CI, the build uses GitHub's merge of the pull request into the current `main`, so the tester also gets everything merged since the branch was made. The `pr-<number>-<commit>` tag names the pull request's own commit.
+- **Which commit is built.** Like CI, the build uses GitHub's merge of the pull request into the current `main`, so the tester also gets everything merged since the branch was made. The `pr-<number>-<commit>` tag names the pull request's own commit. A fork's build by hand builds that merge only while it is the merge of the commit given, and otherwise stops.
 - **Images per build.** All four: the all-in-one image and the three Compose services. A new push replaces `pr-<number>`; the older build keeps its `pr-<number>-<commit>` tag until the cleanup removes it. Only rebuilding the very same commit (label off and on) leaves the previous build untagged, which costs a little registry space and nothing else.
 - **Concurrency.** The build and the cleanup share the group `preview-<number>`: closing a pull request stops a build that is still pushing before the images are deleted. A newer push cancels the build of the previous one.
-- **Who can trigger it.** Only people who can label pull requests (triage access and up), and only for branches in this repository. A fork's pull request never gets the packages permission.
+- **Who can trigger it.** Only people who can label pull requests (triage access and up), and only for branches in this repository. A fork's pull request never gets the packages permission: only someone with write access can build it, by hand, for a commit they name (see [Pull requests from forks](#pull-requests-from-forks)).
 - **Update check.** A preview's version is a pre-release of the next patch, so the footer does not offer the current release as an update.
 - **Trivy and the security workflow** do not scan previews; they scan `latest` after each publish as before.
 
@@ -158,7 +177,7 @@ Details worth knowing:
 
 ## Troubleshooting
 
-**The label does nothing.** Check that the pull request targets `main`, comes from a branch in this repository (not a fork), and that the label is spelled `test-build`. If the label does not exist yet:
+**The label does nothing.** Check that the pull request targets `main`, comes from a branch in this repository, and that the label is spelled `test-build`. A pull request from a fork is never built by the label: see [Pull requests from forks](#pull-requests-from-forks). If the label does not exist yet:
 
 ```sh
 gh label create test-build --color 5319E7 --description "Publish pr-<number> preview images for testers"
