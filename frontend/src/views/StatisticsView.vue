@@ -409,6 +409,21 @@ const chartRows = computed(() =>
   settings.statsCharts.map((item) => ({ item, def: chartDefMap.value.get(item.id)! })),
 )
 
+// A card on screen that a long press opens the editor from (EditLayoutButton), by the same tests
+// the template shows them with. While loading the skeletons stand in for them, so the header
+// button does not flash on a phone.
+const cardsShown = computed(() => {
+  if (loading.value) return true
+  if (!status.value && !hasPeriodData.value) return false
+  const shown = ({ item, def }: { item: { visible: boolean }; def: { applicable: boolean } }) =>
+    item.visible && def.applicable
+  return (
+    insightRows.value.some(shown) ||
+    (hasReadings.value && chartRows.value.some(shown)) ||
+    (showMonths.value && settings.showStatsMonths)
+  )
+})
+
 // ── Layout reset ──────────────────────────────────────────────
 
 function resetStatsLayout() {
@@ -437,7 +452,7 @@ const skeletonChartCount = computed(
         <ToolbarPanel>
           <StatsPeriodFilter />
         </ToolbarPanel>
-        <EditLayoutButton v-model="editMode" />
+        <EditLayoutButton v-model="editMode" :cards-shown="cardsShown" />
       </template>
     </ViewHeader>
 

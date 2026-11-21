@@ -67,6 +67,7 @@
     "cardWithoutData": "Hidden until your car reports this",
     "editLayout": "Edit layout",
     "doneEditing": "Done",
+    "editingLayout": "Editing layout",
     "resetLayout": "Reset to defaults",
     "hideCard": "Hide card",
     "showCard": "Show card",
