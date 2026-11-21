@@ -205,6 +205,8 @@ docker run -d \
 
 **Unraid:** import `unraid/garagestack.xml` from Community Apps and fill in the variables in the template UI.
 
+**ZimaOS / CasaOS:** in the App Store, choose "+" → "Install a customized app" → "Import", paste [`zimaos/docker-compose.yml`](zimaos/docker-compose.yml), and fill in `SAIC_USER`, `SAIC_PASSWORD`, `SAIC_REGION` and `CORS_ORIGIN` in the settings form, plus `VAPID_PUBLIC_KEY` and `VAPID_PRIVATE_KEY` for push notifications.
+
 See [`docker/all-in-one/README.md`](docker/all-in-one/README.md) for the volume layout and Unraid setup steps, and [`CONFIGURATION.md`](documentation/CONFIGURATION.md) for every variable.
 
 ---
