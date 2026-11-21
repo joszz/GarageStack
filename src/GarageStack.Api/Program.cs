@@ -80,8 +80,7 @@ try
         opts.SerializerOptions.Converters.Add(new FiniteDoubleConverter());
     });
 
-    builder.Services.AddTyrePressureThresholds(builder.Configuration);
-    builder.Services.AddHvBatteryCapacity(builder.Configuration);
+    builder.Services.AddVehicleDefaults(builder.Configuration);
     builder.Services.AddSingleton(VapidOptions.From(builder.Configuration));
 
     builder.Services.AddScoped<ChargingStationService>();

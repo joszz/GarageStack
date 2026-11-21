@@ -16,7 +16,7 @@ public class TyreTrendCheckService(
     ILogger<TyreTrendCheckService> logger,
     IServiceScopeFactory scopeFactory,
     IPushSender pushSender,
-    TyrePressureThresholds thresholds,
+    VehicleDefaults defaults,
     IStringLocalizer<NotificationStrings> strings,
     TimeProvider time) : PeriodicBackgroundService(logger)
 {
@@ -39,8 +39,6 @@ public class TyreTrendCheckService(
 
     protected override async Task RunOnceAsync(CancellationToken ct)
     {
-        if (thresholds.DropBar <= 0) return;
-
         using var scope = scopeFactory.CreateScope();
         var telemetry = scope.ServiceProvider.GetRequiredService<ITelemetryRepository>();
         var notifications = scope.ServiceProvider.GetRequiredService<INotificationRepository>();
@@ -53,8 +51,12 @@ public class TyreTrendCheckService(
 
         foreach (var vehicle in vehicles)
         {
+            // Each car's own margin; zero switches its alert off.
+            var dropBar = VehicleSettingsResolver.Resolve(vehicle, defaults).Tyres.DropBar;
+            if (dropBar <= 0) continue;
+
             var days = await telemetry.GetDailyStatsAsync(vehicle.Id, first, today, zone, today, ct);
-            if (BuildAlert(TyreTrend.Measure(days), thresholds.DropBar, strings) is not { } alert) continue;
+            if (BuildAlert(TyreTrend.Measure(days), dropBar, strings) is not { } alert) continue;
 
             var shouldNotify = await _cooldownGate.ShouldNotifyAsync(
                 vehicle.Vin, vehicle.Id, NotificationCategories.SlowPuncture, notifications, ct);

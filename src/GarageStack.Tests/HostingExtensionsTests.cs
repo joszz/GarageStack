@@ -90,6 +90,30 @@ public class HostingExtensionsTests
         Assert.Equal(AlertThresholds.Default with { AuxBatteryLowVolt = 11.8 }, thresholds);
     }
 
+    [Fact]
+    public void VehicleDefaults_WithNothingConfigured_AreTheBuiltInDefaults()
+    {
+        var defaults = new ServiceCollection()
+            .AddVehicleDefaults(Config())
+            .BuildServiceProvider()
+            .GetRequiredService<VehicleDefaults>();
+
+        Assert.Equal(VehicleDefaults.Default, defaults);
+    }
+
+    [Fact]
+    public void VehicleDefaults_GatherEachConfiguredDefault()
+    {
+        var defaults = new ServiceCollection()
+            .AddVehicleDefaults(Config(("TyrePressure:LowBar", "2.4"), ("Alerts:LowFuelPercent", "10"), ("HvBattery:CapacityKwh", "1.83")))
+            .BuildServiceProvider()
+            .GetRequiredService<VehicleDefaults>();
+
+        Assert.Equal(2.4, defaults.Tyres.LowBar);
+        Assert.Equal(10, defaults.Alerts.LowFuelPercent);
+        Assert.Equal(1.83, defaults.Battery.Kwh);
+    }
+
     private static HvBatteryCapacity ResolveCapacity(IConfiguration configuration) =>
         new ServiceCollection()
             .AddHvBatteryCapacity(configuration)

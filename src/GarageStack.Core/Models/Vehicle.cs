@@ -56,6 +56,12 @@ public class Vehicle
     /// </summary>
     public bool HasPowerTailgate { get; set; }
 
+    /// <summary>
+    /// The user's settings for this car, or null while none was ever saved: then every value is
+    /// the deployment's default. See <see cref="VehicleSettings"/>.
+    /// </summary>
+    public VehicleSettings? Settings { get; set; }
+
     public ICollection<TelemetrySnapshot> TelemetrySnapshots { get; set; } = [];
 }
 

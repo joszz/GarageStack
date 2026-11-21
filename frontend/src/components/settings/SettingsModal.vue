@@ -13,6 +13,7 @@ import SettingsSection from './SettingsSection.vue'
 import ChipGroup from '../ChipGroup.vue'
 import CarColorPicker from './CarColorPicker.vue'
 import VehicleTypeSetting from './VehicleTypeSetting.vue'
+import VehicleSettingsForm from './VehicleSettingsForm.vue'
 import LicensePlateSetting from './LicensePlateSetting.vue'
 import PowerTailgateSetting from './PowerTailgateSetting.vue'
 import CommutePlacesSetting from './CommutePlacesSetting.vue'
@@ -232,6 +233,7 @@ const languageOptions = [
           <!-- Saved on the server as soon as they change, so not offered without it. -->
           <template v-if="connection.reachable">
             <PowerTailgateSetting />
+            <VehicleSettingsForm v-if="vehicleStore.activeVin" />
             <CommutePlacesSetting />
             <LicensePlateSetting v-if="rdw.available" />
           </template>

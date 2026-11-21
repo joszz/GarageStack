@@ -19,8 +19,10 @@ public class PushNotificationCheckServiceTests
             NullLogger<PushNotificationCheckService>.Instance,
             new FakeServiceScopeFactory(),
             push ?? new FakePushSender(),
-            thresholds ?? TyrePressureThresholds.Default,
-            alertThresholds ?? AlertThresholds.Default,
+            new VehicleDefaults(
+                thresholds ?? TyrePressureThresholds.Default,
+                alertThresholds ?? AlertThresholds.Default,
+                HvBatteryCapacity.Unknown),
             WorkerLocalizer.Notifications());
 
     private static TelemetrySnapshot Parked(Action<TelemetrySnapshot>? configure = null)
@@ -373,7 +375,7 @@ public class PushNotificationCheckServiceTests
         var svc = CreateService();
         var alerts = new List<(string, string, string)>();
 
-        svc.CheckTyrePressure(new TelemetrySnapshot { TyrePressureFrontLeft = 2.0 }, alerts);
+        svc.CheckTyrePressure(new TelemetrySnapshot { TyrePressureFrontLeft = 2.0 }, TyrePressureThresholds.Default, alerts);
 
         Assert.Single(alerts);
         Assert.Equal("low-tyre", alerts[0].Item1);
@@ -386,7 +388,7 @@ public class PushNotificationCheckServiceTests
         var svc = CreateService();
         var alerts = new List<(string, string, string)>();
 
-        svc.CheckTyrePressure(new TelemetrySnapshot { TyrePressureRearRight = 3.5 }, alerts);
+        svc.CheckTyrePressure(new TelemetrySnapshot { TyrePressureRearRight = 3.5 }, TyrePressureThresholds.Default, alerts);
 
         Assert.Single(alerts);
         Assert.Equal("high-tyre", alerts[0].Item1);
@@ -399,7 +401,7 @@ public class PushNotificationCheckServiceTests
         var svc = CreateService();
         var alerts = new List<(string, string, string)>();
 
-        svc.CheckTyrePressure(new TelemetrySnapshot { TyrePressureFrontLeft = 2.5 }, alerts);
+        svc.CheckTyrePressure(new TelemetrySnapshot { TyrePressureFrontLeft = 2.5 }, TyrePressureThresholds.Default, alerts);
 
         Assert.Empty(alerts);
     }
@@ -407,12 +409,12 @@ public class PushNotificationCheckServiceTests
     [Fact]
     public void CheckTyrePressure_UsesConfiguredThresholds_NotHardcodedDefaults()
     {
-        var svc = CreateService(new TyrePressureThresholds(LowBar: 2.4, GoodBar: 2.55, HighBar: 2.7));
+        var svc = CreateService();
         var alerts = new List<(string, string, string)>();
 
         // 2.3 bar is above the default 2.2 low bar (would not alert with defaults), but below
         // the configured 2.4 low bar here.
-        svc.CheckTyrePressure(new TelemetrySnapshot { TyrePressureFrontLeft = 2.3 }, alerts);
+        svc.CheckTyrePressure(new TelemetrySnapshot { TyrePressureFrontLeft = 2.3 }, new TyrePressureThresholds(LowBar: 2.4, GoodBar: 2.55, HighBar: 2.7), alerts);
 
         Assert.Single(alerts);
         Assert.Equal("low-tyre", alerts[0].Item1);
@@ -425,11 +427,11 @@ public class PushNotificationCheckServiceTests
     [Fact]
     public void CheckEvSoc_BelowTheConfiguredLevel_FiresAlert()
     {
-        var svc = CreateService(alertThresholds: AlertThresholds.Default with { LowEvPercent = 30 });
+        var svc = CreateService();
         var alerts = new List<(string, string, string)>();
 
         // 25 % is above the default 20 % (no alert with defaults) but below the configured 30 %.
-        svc.CheckEvSoc(new TelemetrySnapshot { EvSocPercent = 25 }, "bev", alerts);
+        svc.CheckEvSoc(new TelemetrySnapshot { EvSocPercent = 25 }, "bev", AlertThresholds.Default with { LowEvPercent = 30 }, alerts);
 
         Assert.Equal("low-ev", Assert.Single(alerts).Item1);
     }
@@ -437,10 +439,10 @@ public class PushNotificationCheckServiceTests
     [Fact]
     public void CheckEvSoc_ThresholdZero_NeverFires()
     {
-        var svc = CreateService(alertThresholds: AlertThresholds.Default with { LowEvPercent = 0 });
+        var svc = CreateService();
         var alerts = new List<(string, string, string)>();
 
-        svc.CheckEvSoc(new TelemetrySnapshot { EvSocPercent = 0 }, "bev", alerts);
+        svc.CheckEvSoc(new TelemetrySnapshot { EvSocPercent = 0 }, "bev", AlertThresholds.Default with { LowEvPercent = 0 }, alerts);
 
         Assert.Empty(alerts);
     }
@@ -452,7 +454,7 @@ public class PushNotificationCheckServiceTests
     {
         var alerts = new List<(string, string, string)>();
 
-        CreateService().CheckFuelLevel(new TelemetrySnapshot { FuelLevelPercent = 9 }, vehicleType, alerts);
+        CreateService().CheckFuelLevel(new TelemetrySnapshot { FuelLevelPercent = 9 }, vehicleType, AlertThresholds.Default, alerts);
 
         var (category, _, body) = Assert.Single(alerts);
         Assert.Equal("low-fuel", category);
@@ -464,7 +466,7 @@ public class PushNotificationCheckServiceTests
     {
         var alerts = new List<(string, string, string)>();
 
-        CreateService().CheckFuelLevel(new TelemetrySnapshot { FuelLevelPercent = 15 }, "hev", alerts);
+        CreateService().CheckFuelLevel(new TelemetrySnapshot { FuelLevelPercent = 15 }, "hev", AlertThresholds.Default, alerts);
 
         Assert.Empty(alerts);
     }
@@ -477,7 +479,7 @@ public class PushNotificationCheckServiceTests
     {
         var alerts = new List<(string, string, string)>();
 
-        CreateService().CheckFuelLevel(new TelemetrySnapshot { FuelLevelPercent = 0 }, vehicleType, alerts);
+        CreateService().CheckFuelLevel(new TelemetrySnapshot { FuelLevelPercent = 0 }, vehicleType, AlertThresholds.Default, alerts);
 
         Assert.Empty(alerts);
     }
@@ -558,7 +560,7 @@ public class PushNotificationCheckServiceTests
     {
         var alerts = new List<(string, string, string)>();
 
-        CreateService().CheckAuxBatteryWhileParked(Polls(Volts(11.9), Volts(11.8), Volts(11.8), Volts(11.7)), alerts);
+        CreateService().CheckAuxBatteryWhileParked(Polls(Volts(11.9), Volts(11.8), Volts(11.8), Volts(11.7)), AlertThresholds.Default, alerts);
 
         var (category, _, body) = Assert.Single(alerts);
         Assert.Equal("low-12v", category);
@@ -570,7 +572,7 @@ public class PushNotificationCheckServiceTests
     {
         var alerts = new List<(string, string, string)>();
 
-        CreateService().CheckAuxBatteryWhileParked(Polls(Volts(12.4), Volts(12.4), Volts(12.4), Volts(11.6)), alerts);
+        CreateService().CheckAuxBatteryWhileParked(Polls(Volts(12.4), Volts(12.4), Volts(12.4), Volts(11.6)), AlertThresholds.Default, alerts);
 
         Assert.Empty(alerts);
     }
@@ -580,7 +582,7 @@ public class PushNotificationCheckServiceTests
     {
         var alerts = new List<(string, string, string)>();
 
-        CreateService().CheckAuxBatteryWhileParked(Polls(Volts(null), Volts(null), Volts(null), Volts(null)), alerts);
+        CreateService().CheckAuxBatteryWhileParked(Polls(Volts(null), Volts(null), Volts(null), Volts(null)), AlertThresholds.Default, alerts);
 
         Assert.Empty(alerts);
     }
@@ -588,10 +590,10 @@ public class PushNotificationCheckServiceTests
     [Fact]
     public void CheckAuxBatteryWhileParked_UsesTheConfiguredVoltage()
     {
-        var svc = CreateService(alertThresholds: AlertThresholds.Default with { AuxBatteryLowVolt = 12.3 });
+        var svc = CreateService();
         var alerts = new List<(string, string, string)>();
 
-        svc.CheckAuxBatteryWhileParked(Polls(Volts(12.2), Volts(12.2), Volts(12.2), Volts(12.2)), alerts);
+        svc.CheckAuxBatteryWhileParked(Polls(Volts(12.2), Volts(12.2), Volts(12.2), Volts(12.2)), AlertThresholds.Default with { AuxBatteryLowVolt = 12.3 }, alerts);
 
         Assert.Equal("low-12v", Assert.Single(alerts).Item1);
     }
@@ -656,6 +658,66 @@ public class PushNotificationCheckServiceTests
         await CreateService(push: push).CheckLevelsAsync(vehicle, SoftTyreReportedAt(now.AddMinutes(-2)), new TelemetryRepository(db), new NotificationRepository(db), now, ct);
 
         Assert.Equal("low-tyre", Assert.Single(push.Sent).Category);
+    }
+
+    // ---------------------------------------------------------------------------
+    // Per-car settings: each car's own levels, the deployment's where it has none
+    // ---------------------------------------------------------------------------
+
+    private static TelemetrySnapshot ReportedNow(DateTime now, Action<TelemetrySnapshot> configure)
+    {
+        var s = new TelemetrySnapshot { RecordedAt = now.AddMinutes(-2), LastVehicleStateAt = now.AddMinutes(-2) };
+        configure(s);
+        return s;
+    }
+
+    // 2.3 bar is above the deployment's 2.2: a car with nothing of its own is not warned.
+    [Fact]
+    public async Task CheckLevelsAsync_CarWithoutSettings_KeepsTheDeploymentLevels()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var now = DateTime.UtcNow;
+        await using var db = CreateDb();
+        var vehicle = await AddVehicleAsync(db, ct);
+        var push = new FakePushSender();
+
+        await CreateService(push: push).CheckLevelsAsync(
+            vehicle, ReportedNow(now, s => s.TyrePressureFrontLeft = 2.3), new TelemetryRepository(db), new NotificationRepository(db), now, ct);
+
+        Assert.Empty(push.Sent);
+    }
+
+    [Fact]
+    public async Task CheckLevelsAsync_CarWithItsOwnTyreLevel_IsWarnedBelowIt()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var now = DateTime.UtcNow;
+        await using var db = CreateDb();
+        var vehicle = await AddVehicleAsync(db, ct);
+        vehicle.Settings = new VehicleSettings { TyreLowBar = 2.4, TyreGoodBar = 2.7 };
+        var push = new FakePushSender();
+
+        await CreateService(push: push).CheckLevelsAsync(
+            vehicle, ReportedNow(now, s => s.TyrePressureFrontLeft = 2.3), new TelemetryRepository(db), new NotificationRepository(db), now, ct);
+
+        Assert.Equal(NotificationCategories.LowTyre, Assert.Single(push.Sent).Category);
+    }
+
+    // The type set for the car counts as well: nothing detected would take it for one with a tank.
+    [Fact]
+    public async Task CheckLevelsAsync_CarSetToAHybridWithItsOwnFuelLevel_IsWarnedBelowIt()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var now = DateTime.UtcNow;
+        await using var db = CreateDb();
+        var vehicle = await AddVehicleAsync(db, ct);
+        vehicle.Settings = new VehicleSettings { VehicleType = "hev", LowFuelPercent = 30 };
+        var push = new FakePushSender();
+
+        await CreateService(push: push).CheckLevelsAsync(
+            vehicle, ReportedNow(now, s => s.FuelLevelPercent = 25), new TelemetryRepository(db), new NotificationRepository(db), now, ct);
+
+        Assert.Equal(NotificationCategories.LowFuel, Assert.Single(push.Sent).Category);
     }
 
     // ---------------------------------------------------------------------------

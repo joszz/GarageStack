@@ -1281,7 +1281,7 @@
         "tags": [
           "Vehicles"
         ],
-        "summary": "Get configured tyre pressure colour-coding thresholds",
+        "summary": "Get the deployment's tyre pressure colour-coding thresholds, which a vehicle without settings of its own uses",
         "responses": {
           "200": {
             "description": "OK",
@@ -1311,6 +1311,274 @@
         "x-badges": [
           {
             "name": "Read-only token"
+          }
+        ]
+      }
+    },
+    "/api/vehicles/{vin}/tyre-pressure-thresholds": {
+      "get": {
+        "tags": [
+          "Vehicles"
+        ],
+        "summary": "Get the vehicle's tyre pressure colour-coding thresholds: its own settings, else the deployment's",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TyrePressureThresholds"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "401": {
+            "description": "Not signed in, or the API token is unknown or revoked."
+          },
+          "429": {
+            "description": "Too many requests from this address; wait a minute and try again."
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          }
+        ],
+        "x-badges": [
+          {
+            "name": "Read-only token"
+          }
+        ]
+      }
+    },
+    "/api/vehicles/{vin}/settings": {
+      "get": {
+        "tags": [
+          "Vehicles"
+        ],
+        "summary": "Get the vehicle's own settings, with the deployment default each empty one falls back to",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VehicleSettingsDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "401": {
+            "description": "Not signed in, or the API token is unknown or revoked."
+          },
+          "429": {
+            "description": "Too many requests from this address; wait a minute and try again."
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          }
+        ],
+        "x-badges": [
+          {
+            "name": "Read-only token"
+          }
+        ]
+      },
+      "patch": {
+        "tags": [
+          "Vehicles"
+        ],
+        "summary": "Change some of the vehicle's own settings: a field left out stays, null puts it back to the deployment default",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "required": [
+                  "hvBatteryCapacityKwh",
+                  "tyreLowBar",
+                  "tyreGoodBar",
+                  "tyreHighBar",
+                  "tyreDropBar",
+                  "auxBatteryLowVolt",
+                  "lowFuelPercent",
+                  "lowEvPercent",
+                  "vehicleType"
+                ],
+                "type": "object",
+                "properties": {
+                  "hvBatteryCapacityKwh": {
+                    "type": [
+                      "null",
+                      "number"
+                    ],
+                    "description": "Usable traction battery size, 0.5 to 200 kWh. Refused on a plain hybrid (hev).",
+                    "format": "double"
+                  },
+                  "tyreLowBar": {
+                    "type": [
+                      "null",
+                      "number"
+                    ],
+                    "description": "Below this a tyre is low, 1 to 5 bar.",
+                    "format": "double"
+                  },
+                  "tyreGoodBar": {
+                    "type": [
+                      "null",
+                      "number"
+                    ],
+                    "description": "From this a tyre is at its placard pressure, 1 to 5 bar, from the low one up.",
+                    "format": "double"
+                  },
+                  "tyreHighBar": {
+                    "type": [
+                      "null",
+                      "number"
+                    ],
+                    "description": "Above this a tyre is too high, 1 to 5 bar, from the good one up.",
+                    "format": "double"
+                  },
+                  "tyreDropBar": {
+                    "type": [
+                      "null",
+                      "number"
+                    ],
+                    "description": "How far one tyre may fall behind the others over two weeks, 0 to 1 bar; 0 switches the slow-puncture alert off.",
+                    "format": "double"
+                  },
+                  "auxBatteryLowVolt": {
+                    "type": [
+                      "null",
+                      "number"
+                    ],
+                    "description": "12V battery voltage a parked car is warned below, 0 to 15 V; 0 switches the alert off.",
+                    "format": "double"
+                  },
+                  "lowFuelPercent": {
+                    "type": [
+                      "null",
+                      "number"
+                    ],
+                    "description": "Fuel level warned below, 0 to 100 %; 0 switches the alert off.",
+                    "format": "double"
+                  },
+                  "lowEvPercent": {
+                    "type": [
+                      "null",
+                      "number"
+                    ],
+                    "description": "Charge level a plug-in is warned below, 0 to 100 %; 0 switches the alert off.",
+                    "format": "double"
+                  },
+                  "vehicleType": {
+                    "type": [
+                      "null",
+                      "string"
+                    ],
+                    "description": "The drivetrain: hev, phev or bev. As a default, the detected one, or null while none is."
+                  }
+                },
+                "description": "Every per-car setting. In a change, a field left out stays as it is and null clears it; in an\nanswer, null is a value not set."
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VehicleSettingsDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "401": {
+            "description": "Not signed in, or the API token is unknown or revoked."
+          },
+          "403": {
+            "description": "`token.readOnly`: An API token can only read; sign in to change anything.\n\n`csrf.originNotAllowed`: sent from a page on an address that is not CORS_ORIGIN.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "title": {
+                      "type": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "status": {
+                      "type": [
+                        "null",
+                        "integer"
+                      ],
+                      "format": "int32"
+                    },
+                    "detail": {
+                      "type": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "instance": {
+                      "type": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "code": {
+                      "type": "string",
+                      "description": "Why, as a code that stays the same between releases, such as trip.changed. detail says it in English."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests from this address; wait a minute and try again."
+          }
+        },
+        "security": [
+          {
+            "session": []
           }
         ]
       }
@@ -9898,6 +10166,17 @@
             "type": "boolean",
             "description": "Whether the car has a power tailgate, so the boot can be opened and closed remotely rather\nthan only unlatched. Nothing in the vehicle data tells, and the gateway sends the command to\nany car (one without a power tailgate refuses it), so the user switches it on."
           },
+          "settings": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "description": "The user's settings for this car, or null while none was ever saved: then every value is\nthe deployment's default. See VehicleSettings.",
+                "$ref": "#/components/schemas/VehicleSettings"
+              }
+            ]
+          },
           "telemetrySnapshots": {
             "type": "array",
             "items": {
@@ -9955,6 +10234,7 @@
           "series",
           "createdAt",
           "vehicleType",
+          "vehicleTypeOverride",
           "hvBatteryCapacityKwh",
           "supportsTargetSoc",
           "hasPowerTailgate"
@@ -9987,6 +10267,12 @@
           "vehicleType": {
             "type": "string"
           },
+          "vehicleTypeOverride": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
           "hvBatteryCapacityKwh": {
             "type": [
               "null",
@@ -10001,7 +10287,190 @@
             "type": "boolean"
           }
         },
-        "description": "A vehicle as the list endpoint returns it. `VehicleType` is the drivetrain detected from\nthe vehicle's reported hardware version (hev, phev, bev, or unknown while nothing has reported\none), served here so every client reads the same answer instead of parsing it themselves.\n`HvBatteryCapacityKwh` rides along for the same reason: it decides how a client turns a\nstate of charge into kWh, and is null when the deployment has not configured one.\n`SupportsTargetSoc` says whether the car takes a charge target, by the gateway's own test.\n`HasPowerTailgate` is what the user set: whether the boot can be opened and closed."
+        "description": "A vehicle as the list endpoint returns it. `VehicleType` is the drivetrain detected from\nthe vehicle's reported hardware version (hev, phev, bev, or unknown while nothing has reported\none), served here so every client reads the same answer instead of parsing it themselves.\n`VehicleTypeOverride` is the type set in the vehicle's settings, null when the detected\none stands. `HvBatteryCapacityKwh` rides along for the same reason: it decides how a\nclient turns a state of charge into kWh. It is the car's own setting, else the deployment's,\nand null when neither says.\n`SupportsTargetSoc` says whether the car takes a charge target, by the gateway's own test.\n`HasPowerTailgate` is what the user set: whether the boot can be opened and closed."
+      },
+      "VehicleSettings": {
+        "type": "object",
+        "properties": {
+          "hvBatteryCapacityKwh": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "Usable traction battery size in kWh (HV_BATTERY_CAPACITY_KWH). Not taken on a plain hybrid.",
+            "format": "double"
+          },
+          "tyreLowBar": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "Below this a tyre is low, in bar (TYRE_PRESSURE_LOW_BAR).",
+            "format": "double"
+          },
+          "tyreGoodBar": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "From this a tyre is at its placard pressure, in bar (TYRE_PRESSURE_GOOD_BAR).",
+            "format": "double"
+          },
+          "tyreHighBar": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "Above this a tyre is too high, in bar (TYRE_PRESSURE_HIGH_BAR).",
+            "format": "double"
+          },
+          "tyreDropBar": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "The slow-puncture alert's fall against the other tyres, in bar (TYRE_PRESSURE_DROP_BAR).",
+            "format": "double"
+          },
+          "auxBatteryLowVolt": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "12V battery voltage a parked car is warned below (AUX_BATTERY_LOW_VOLT).",
+            "format": "double"
+          },
+          "lowFuelPercent": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "Fuel level in percent the car is warned below (LOW_FUEL_PERCENT).",
+            "format": "double"
+          },
+          "lowEvPercent": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "Charge level in percent a plug-in is warned below (LOW_EV_PERCENT).",
+            "format": "double"
+          },
+          "vehicleType": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The drivetrain the user says the car has (hev, phev or bev), for when the one detected from\nwhat the gateway reports is wrong. Null follows the detected type."
+          }
+        },
+        "description": "What the user set for one car, in its own table beside the vehicle. Every value is optional:\nleft empty, the car takes the deployment's default (the environment variable named on each),\nso an install that never opens these settings behaves as it did before they existed.\nVehicleSettingsResolver turns them into the values in effect. Anything\nelse kept per car, such as a default charge price, belongs here too."
+      },
+      "VehicleSettingsDto": {
+        "required": [
+          "values",
+          "defaults"
+        ],
+        "type": "object",
+        "properties": {
+          "values": {
+            "description": "What is set for this car; null where nothing is.",
+            "$ref": "#/components/schemas/VehicleSettingsValues"
+          },
+          "defaults": {
+            "description": "The deployment's defaults: its environment variables, and the detected vehicle type.",
+            "$ref": "#/components/schemas/VehicleSettingsValues"
+          }
+        },
+        "description": "A car's own settings, and the deployment's default each empty one takes."
+      },
+      "VehicleSettingsValues": {
+        "required": [
+          "hvBatteryCapacityKwh",
+          "tyreLowBar",
+          "tyreGoodBar",
+          "tyreHighBar",
+          "tyreDropBar",
+          "auxBatteryLowVolt",
+          "lowFuelPercent",
+          "lowEvPercent",
+          "vehicleType"
+        ],
+        "type": "object",
+        "properties": {
+          "hvBatteryCapacityKwh": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "Usable traction battery size, 0.5 to 200 kWh. Refused on a plain hybrid (hev).",
+            "format": "double"
+          },
+          "tyreLowBar": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "Below this a tyre is low, 1 to 5 bar.",
+            "format": "double"
+          },
+          "tyreGoodBar": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "From this a tyre is at its placard pressure, 1 to 5 bar, from the low one up.",
+            "format": "double"
+          },
+          "tyreHighBar": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "Above this a tyre is too high, 1 to 5 bar, from the good one up.",
+            "format": "double"
+          },
+          "tyreDropBar": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "How far one tyre may fall behind the others over two weeks, 0 to 1 bar; 0 switches the slow-puncture alert off.",
+            "format": "double"
+          },
+          "auxBatteryLowVolt": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "12V battery voltage a parked car is warned below, 0 to 15 V; 0 switches the alert off.",
+            "format": "double"
+          },
+          "lowFuelPercent": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "Fuel level warned below, 0 to 100 %; 0 switches the alert off.",
+            "format": "double"
+          },
+          "lowEvPercent": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "Charge level a plug-in is warned below, 0 to 100 %; 0 switches the alert off.",
+            "format": "double"
+          },
+          "vehicleType": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The drivetrain: hev, phev or bev. As a default, the detected one, or null while none is."
+          }
+        },
+        "description": "Every per-car setting. In a change, a field left out stays as it is and null clears it; in an\nanswer, null is a value not set."
       },
       "WidgetStatusDto": {
         "required": [
@@ -10696,7 +11165,7 @@
     },
     {
       "name": "Vehicles",
-      "description": "The cars: their latest telemetry, statistics, charge sessions and tyre pressures, and the commands sent to them."
+      "description": "The cars: their latest telemetry, statistics, charge sessions and tyre pressures, their own settings, and the commands sent to them."
     },
     {
       "name": "Widget",

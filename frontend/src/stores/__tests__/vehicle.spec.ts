@@ -1,5 +1,6 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
+import { flushPromises } from '@vue/test-utils'
 import { useVehicleStore } from '@/stores/vehicle'
 import { useUiSettingsStore } from '@/stores/settingsUi'
 import { vehicleApi } from '@/services/vehicleApi'
@@ -11,7 +12,23 @@ import type {
   DailyStat,
   Trip,
   TripSummary,
+  VehicleSettings,
+  VehicleSettingsValues,
 } from '@/services/vehicleApi'
+
+const { noSettings } = vi.hoisted(() => ({
+  noSettings: {
+    hvBatteryCapacityKwh: null,
+    tyreLowBar: null,
+    tyreGoodBar: null,
+    tyreHighBar: null,
+    tyreDropBar: null,
+    auxBatteryLowVolt: null,
+    lowFuelPercent: null,
+    lowEvPercent: null,
+    vehicleType: null,
+  },
+}))
 
 vi.mock('@/services/vehicleApi', () => ({
   vehicleApi: {
@@ -23,6 +40,10 @@ vi.mock('@/services/vehicleApi', () => ({
     tripSummaries: vi.fn<() => Promise<TripSummary[]>>().mockResolvedValue([]),
     latestTrip: vi.fn<() => Promise<Trip | undefined>>().mockResolvedValue(undefined),
     sendCommand: vi.fn<() => Promise<void>>().mockResolvedValue(undefined),
+    settings: vi.fn<(vin: string) => Promise<VehicleSettings>>(),
+    updateSettings: vi
+      .fn<(vin: string, changes: Partial<VehicleSettingsValues>) => Promise<VehicleSettings>>()
+      .mockResolvedValue({ values: noSettings, defaults: noSettings }),
     setPowerTailgate: vi
       .fn<(vin: string, enabled: boolean) => Promise<{ enabled: boolean }>>()
       .mockImplementation((_vin, enabled) => Promise.resolve({ enabled })),
@@ -37,6 +58,7 @@ function vehicle(vehicleType: Vehicle['vehicleType']): Vehicle {
     series: null,
     createdAt: '2026-01-01T00:00:00Z',
     vehicleType,
+    vehicleTypeOverride: null,
     hvBatteryCapacityKwh: null,
     supportsTargetSoc: false,
     hasPowerTailgate: false,
@@ -121,6 +143,99 @@ describe('useVehicleStore - effectiveVehicleType', () => {
     ui.vehicleTypeOverride = 'hev'
     expect(store.effectiveVehicleType).toBe('hev')
   })
+
+  it("takes the type set in the car's settings over the browser's older one", () => {
+    const store = useVehicleStore()
+    useUiSettingsStore().vehicleTypeOverride = 'hev'
+    store.vehicles = [{ ...vehicle('bev'), vehicleTypeOverride: 'phev' }]
+    expect(store.effectiveVehicleType).toBe('phev')
+  })
+
+  // The browser's older choice belongs to no car in particular, so it means nothing with two.
+  it("ignores the browser's older type once there is more than one car", () => {
+    const store = useVehicleStore()
+    useUiSettingsStore().vehicleTypeOverride = 'hev'
+    store.vehicles = [vehicle('bev'), { ...vehicle('phev'), id: 2, vin: 'FAKEVN00000000002' }]
+    expect(store.effectiveVehicleType).toBe('bev')
+  })
+
+  it('saves settings with the car and fetches the list again for the values in effect', async () => {
+    const store = useVehicleStore()
+    store.vehicles = [vehicle('bev')]
+    vi.mocked(vehicleApi.list).mockResolvedValueOnce([
+      { ...vehicle('bev'), vehicleTypeOverride: 'phev', hvBatteryCapacityKwh: 21 },
+    ])
+
+    await store.saveSettings('FAKEVN00000000001', { vehicleType: 'phev' })
+
+    expect(vehicleApi.updateSettings).toHaveBeenCalledWith('FAKEVN00000000001', {
+      vehicleType: 'phev',
+    })
+    expect(store.effectiveVehicleType).toBe('phev')
+    expect(store.hvBatteryCapacityKwh).toBe(21)
+  })
+})
+
+// A type chosen in the browser before the type moved to the car, saved to the car once.
+describe('useVehicleStore - moving the browser type to the car', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    setActivePinia(createPinia())
+    vi.mocked(vehicleApi.updateSettings).mockClear()
+  })
+
+  afterEach(() => {
+    vi.mocked(vehicleApi.list).mockResolvedValue([])
+  })
+
+  async function listed(...cars: Vehicle[]) {
+    vi.mocked(vehicleApi.list).mockResolvedValue(cars)
+    const store = useVehicleStore()
+    await store.fetchVehicles(true)
+    await flushPromises()
+    return store
+  }
+
+  it("saves a one-car install's browser type to the car and clears the browser one", async () => {
+    useUiSettingsStore().vehicleTypeOverride = 'phev'
+
+    await listed(vehicle('hev'))
+
+    expect(vehicleApi.updateSettings).toHaveBeenCalledExactlyOnceWith('FAKEVN00000000001', {
+      vehicleType: 'phev',
+    })
+    expect(useUiSettingsStore().vehicleTypeOverride).toBe('auto')
+  })
+
+  it('clears the battery size along with it when the type is a plain hybrid', async () => {
+    useUiSettingsStore().vehicleTypeOverride = 'hev'
+
+    await listed(vehicle('phev'))
+
+    expect(vehicleApi.updateSettings).toHaveBeenCalledExactlyOnceWith('FAKEVN00000000001', {
+      vehicleType: 'hev',
+      hvBatteryCapacityKwh: null,
+    })
+  })
+
+  it('leaves it alone with auto, two cars, or a type the car already has', async () => {
+    await listed(vehicle('hev'))
+    useUiSettingsStore().vehicleTypeOverride = 'phev'
+    await listed(vehicle('hev'), { ...vehicle('bev'), id: 2, vin: 'FAKEVN00000000002' })
+    await listed({ ...vehicle('hev'), vehicleTypeOverride: 'bev' })
+
+    expect(vehicleApi.updateSettings).not.toHaveBeenCalled()
+    expect(useUiSettingsStore().vehicleTypeOverride).toBe('phev')
+  })
+
+  it('keeps the browser type when the save fails, to try again later', async () => {
+    useUiSettingsStore().vehicleTypeOverride = 'phev'
+    vi.mocked(vehicleApi.updateSettings).mockRejectedValueOnce(new TypeError('offline'))
+
+    await listed(vehicle('hev'))
+
+    expect(useUiSettingsStore().vehicleTypeOverride).toBe('phev')
+  })
 })
 
 describe('useVehicleStore - hvBatteryCapacityKwh', () => {
@@ -183,6 +298,7 @@ describe('useVehicleStore - fetchVehicles', () => {
         series: null,
         createdAt: '',
         vehicleType: 'bev',
+        vehicleTypeOverride: null,
         hvBatteryCapacityKwh: null,
         supportsTargetSoc: false,
         hasPowerTailgate: false,
