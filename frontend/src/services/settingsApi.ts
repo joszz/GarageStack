@@ -1,7 +1,7 @@
 import { request, send, STARTUP_REQUEST_TIMEOUT_MS } from '@/services/apiCore'
 
 /** The sections an account's settings are kept in, one per settings store. Mirrors UserSettingsLimits.Sections. */
-export const SETTINGS_SECTIONS = ['ui', 'dashboard', 'map'] as const
+export const SETTINGS_SECTIONS = ['ui', 'dashboard', 'map', 'chargeHistory'] as const
 export type SettingsSection = (typeof SETTINGS_SECTIONS)[number]
 
 /** Every section the account has saved, each a JSON object of its settings. One never saved is absent. */

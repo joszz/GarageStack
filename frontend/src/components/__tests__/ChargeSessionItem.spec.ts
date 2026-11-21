@@ -50,9 +50,13 @@ function mountItem(
   energyContext: ChargeEnergyContext,
   session: ChargeSession = current,
   before: ChargeSession | null = previous,
+  pricing: { manualPrice: number | null; defaultRatePerKwh: number | null } = {
+    manualPrice: null,
+    defaultRatePerKwh: null,
+  },
 ) {
   return mount(ChargeSessionItem, {
-    props: { vin: VIN, session, previous: before, energyContext },
+    props: { vin: VIN, session, previous: before, energyContext, ...pricing },
     global: {
       plugins: [i18n],
       stubs: {
@@ -179,6 +183,42 @@ describe('ChargeSessionItem', () => {
     const wrapper = mountItem({ vehicleType: 'phev', configuredCapacityKwh: 20 })
 
     expect(wrapper.find('.charge-history-item__energy').text()).toBe('8.0 kWh')
+  })
+
+  it('estimates the session cost from the default rate and accepts a manual total', async () => {
+    const wrapper = mountItem(bev, current, previous, {
+      manualPrice: null,
+      defaultRatePerKwh: 0.25,
+    })
+    await wrapper.find('.charge-history-item__toggle').trigger('click')
+    await flushPromises()
+
+    const cost = wrapper
+      .findAll('dl > div')
+      .find((row) => row.find('dt').text() === en.chargeHistory.estimatedCost)
+    expect(cost?.find('dd').text()).toBe('€7.25')
+
+    await wrapper.find('input[type="number"]').setValue('10')
+    await wrapper.find('.charge-history-detail__price-actions button').trigger('click')
+    expect(wrapper.emitted('update-manual-price')).toEqual([[10]])
+  })
+
+  it('clears a manual session total to restore the default-rate estimate', async () => {
+    const wrapper = mountItem(bev, current, previous, {
+      manualPrice: 10,
+      defaultRatePerKwh: 0.25,
+    })
+    await wrapper.find('.charge-history-item__toggle').trigger('click')
+    await flushPromises()
+
+    const cost = wrapper
+      .findAll('dl > div')
+      .find((row) => row.find('dt').text() === en.chargeHistory.sessionCost)
+    expect(cost?.find('dd').text()).toBe('€10.00')
+    await wrapper.findAll('.charge-history-detail__price-actions button')[1]!.trigger('click')
+    expect(wrapper.emitted('update-manual-price')).toEqual([[null]])
+    await wrapper.setProps({ manualPrice: null })
+    expect(detail(wrapper, en.chargeHistory.estimatedCost)).toBe('€7.25')
   })
 
   it('leaves out what the car did not report', () => {

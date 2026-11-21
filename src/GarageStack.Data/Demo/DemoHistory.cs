@@ -80,7 +80,7 @@ internal static class DemoHistory
         var firstDay = now.Date.AddDays(-Days);
         var drives = BuildDrives(firstDay, rng);
 
-        var odometer = DemoTrips.CurrentOdometerKm - DemoTrips.InProgressDistanceKm - drives.Sum(d => d.Km);
+        var odometer = DemoMockTrips.CurrentOdometerKm - DemoMockTrips.InProgressDistanceKm - drives.Sum(d => d.Km);
         var soc = ChargeTargetPercent;
         var fuel = 80.0;
         var dayKm = 0.0;
@@ -261,9 +261,9 @@ internal static class DemoHistory
     // story; before them a commute on weekdays and the odd outing at the weekend.
     private static List<Drive> BuildDrives(DateTime firstDay, Random rng)
     {
-        var finished = DemoTrips.All.Where(t => t.Id is not null).ToList();
+        var finished = DemoMockTrips.All.Where(t => t.Id is not null).ToList();
         var drives = finished
-            .Select(t => new Drive(t.StartedAt, t.EndedAt, t.DistanceKm * DemoTrips.RoadFactor, Rate(rng)))
+            .Select(t => new Drive(t.StartedAt, t.EndedAt, t.DistanceKm * DemoMockTrips.RoadFactor, Rate(rng)))
             .ToList();
 
         var tripsFrom = finished.Min(t => t.StartedAt).Date;

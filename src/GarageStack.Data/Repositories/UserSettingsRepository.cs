@@ -72,7 +72,7 @@ public class UserSettingsRepository(
         var row = await db.UserSettings.FirstOrDefaultAsync(s => s.AccountKey == accountKey && s.Section == section, ct);
 
         var merged = SettingsDocument.Merge(row?.Json, changes, ex => LogUnreadable(ex, section));
-        if (merged.Length > UserSettingsLimits.JsonMaxLength) return SettingsSaveResult.TooLarge;
+        if (merged.Length > UserSettingsLimits.JsonMaxLengthFor(section)) return SettingsSaveResult.TooLarge;
 
         if (row is null)
         {

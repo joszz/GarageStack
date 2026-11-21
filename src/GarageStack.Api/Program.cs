@@ -48,7 +48,7 @@ try
 
     if (isDemoMode)
     {
-        Log.Information("DEMO MODE enabled -- using in-memory fake data, no database or MQTT required");
+        Log.Information("DEMO MODE enabled -- using the telemetry CSV when present and original demo data otherwise; no database or MQTT required");
         builder.Services.AddDemoServices();
         // Demo mode runs no Worker, so the log viewer reads a day of sample Worker entries instead.
         if (string.IsNullOrEmpty(builder.Configuration["LogFiles:WorkerDirectory"]))

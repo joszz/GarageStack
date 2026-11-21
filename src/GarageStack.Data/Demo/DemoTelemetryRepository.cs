@@ -8,15 +8,22 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
 {
     private static long _nextId = 9000;
     private static readonly object _lock = new();
+    private static IReadOnlyList<TelemetrySnapshot> History =>
+        DemoTelemetryCapture.Snapshots ?? DemoHistory.Snapshots;
 
-    // What the demo ZS EV covers on a full battery. The electric range is derived from the state of
-    // charge, so the two stay in step when the demo panel moves the state of charge.
     private const double FullBatteryRangeKm = 400.0;
 
     private static double ElectricRangeAt(double socPercent) =>
         Math.Round(socPercent / 100.0 * FullBatteryRangeKm);
 
-    private TelemetrySnapshot _current = BuildDefaultSnapshot();
+    private static double? ElectricRangeAt(TelemetrySnapshot snapshot, double socPercent) =>
+        snapshot.ElectricRangeKm is { } range && snapshot.EvSocPercent is { } currentSoc && currentSoc > 0
+            ? Math.Round(range / currentSoc * socPercent)
+            : null;
+
+    private TelemetrySnapshot _current = DemoTelemetryCapture.Snapshots is { Count: > 0 } captured
+        ? DemoTelemetryCapture.MergeLatest(captured)
+        : BuildDefaultSnapshot();
 
     public Task<long> AddAsync(TelemetrySnapshot snapshot, CancellationToken ct = default) =>
         Task.FromResult(Interlocked.Increment(ref _nextId));
@@ -33,38 +40,97 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
         int vehicleId, DateOnly from, DateOnly to, TimeZoneInfo zone, DateOnly today, CancellationToken ct = default)
     {
         var builder = new DailyStatsBuilder(zone, from, to, today);
-        foreach (var snapshot in DemoHistory.Snapshots.OrderBy(s => s.RecordedAt))
+        foreach (var snapshot in History.OrderBy(s => s.RecordedAt))
             builder.Add(TelemetryHistoryPoint.FromSnapshot(snapshot));
         return Task.FromResult(builder.Build());
     }
 
-    // DemoTripRepository serves the demo's trips from DemoTrips directly, so nothing asks the demo
-    // telemetry for the fixes to cut them from.
     public Task<IReadOnlyList<TripPoint>> GetGpsFixesAsync(
-        int vehicleId, DateTime from, DateTime to, CancellationToken ct = default) =>
-        Task.FromResult<IReadOnlyList<TripPoint>>([]);
+        int vehicleId, DateTime from, DateTime to, CancellationToken ct = default)
+    {
+        if (DemoTelemetryCapture.Snapshots is not { } captured)
+            return Task.FromResult<IReadOnlyList<TripPoint>>([]);
 
-    public Task<DateTime?> GetFirstGpsFixAtAsync(int vehicleId, CancellationToken ct = default) =>
-        Task.FromResult<DateTime?>(null);
+        IReadOnlyList<TripPoint> fixes = captured
+            .Where(s => s.RecordedAt >= from && s.RecordedAt < to && s.Latitude is not null && s.Longitude is not null)
+            .OrderBy(s => s.RecordedAt)
+            .Select(s => new TripPoint(s.RecordedAt, s.Latitude!.Value, s.Longitude!.Value, s.Speed, null))
+            .ToArray();
+        return Task.FromResult(fixes);
+    }
 
-    // Only the Worker's recorder anchors trips, and demo mode runs no Worker.
-    public Task<TripPoint?> GetLastGpsFixBeforeAsync(int vehicleId, DateTime before, CancellationToken ct = default) =>
-        Task.FromResult<TripPoint?>(null);
+    public Task<DateTime?> GetFirstGpsFixAtAsync(int vehicleId, CancellationToken ct = default)
+    {
+        if (DemoTelemetryCapture.Snapshots is not { } captured)
+            return Task.FromResult<DateTime?>(null);
+
+        return Task.FromResult(captured
+            .Where(s => s.Latitude is not null && s.Longitude is not null)
+            .Select(s => (DateTime?)s.RecordedAt)
+            .Min());
+    }
+
+    public Task<TripPoint?> GetLastGpsFixBeforeAsync(int vehicleId, DateTime before, CancellationToken ct = default)
+    {
+        if (DemoTelemetryCapture.Snapshots is not { } captured)
+            return Task.FromResult<TripPoint?>(null);
+
+        return Task.FromResult(captured
+            .Where(s => s.RecordedAt < before && s.Latitude is not null && s.Longitude is not null)
+            .OrderByDescending(s => s.RecordedAt)
+            .Select(s => new TripPoint(s.RecordedAt, s.Latitude!.Value, s.Longitude!.Value, s.Speed, null))
+            .FirstOrDefault());
+    }
 
     public Task<IReadOnlyList<DateTime>> GetReportTimesAsync(
-        int vehicleId, DateTime after, DateTime before, int limit, CancellationToken ct = default) =>
-        Task.FromResult<IReadOnlyList<DateTime>>([]);
+        int vehicleId, DateTime after, DateTime before, int limit, CancellationToken ct = default)
+    {
+        if (DemoTelemetryCapture.Snapshots is not { } captured)
+            return Task.FromResult<IReadOnlyList<DateTime>>([]);
+
+        IReadOnlyList<DateTime> times = captured
+            .Where(s => s.RecordedAt > after && s.RecordedAt < before)
+            .OrderByDescending(s => s.RecordedAt)
+            .Take(limit)
+            .Select(s => s.RecordedAt)
+            .ToArray();
+        return Task.FromResult(times);
+    }
 
     // Maintenance asks for the reading now, which is the live snapshot's. Past readings are only
-    // asked for by the Worker's recorder, and demo mode runs no Worker: DemoTrips carries those.
+    // asked for by the Worker's recorder, and demo mode runs no Worker.
     public Task<double?> GetOdometerAtAsync(int vehicleId, DateTime at, CancellationToken ct = default)
     {
+        if (DemoTelemetryCapture.Snapshots is { } captured)
+        {
+            var odometer = captured
+                .Where(snapshot => snapshot.RecordedAt <= at && snapshot.OdometerKm is not null)
+                .OrderByDescending(snapshot => snapshot.RecordedAt)
+                .Select(snapshot => snapshot.OdometerKm)
+                .FirstOrDefault();
+            return Task.FromResult(odometer);
+        }
         lock (_lock) { return Task.FromResult(_current.OdometerKm); }
     }
 
-    // Only the Worker's parked alerts weigh past polls, and demo mode runs no Worker.
-    public Task<IReadOnlyList<StatusReading>> GetStatusReadingsAsync(int vehicleId, int count, CancellationToken ct = default) =>
-        Task.FromResult<IReadOnlyList<StatusReading>>([]);
+    public Task<IReadOnlyList<StatusReading>> GetStatusReadingsAsync(int vehicleId, int count, CancellationToken ct = default)
+    {
+        if (DemoTelemetryCapture.Snapshots is not { } captured)
+            return Task.FromResult<IReadOnlyList<StatusReading>>([]);
+
+        IReadOnlyList<StatusReading> readings = captured
+            .Where(snapshot => snapshot.IsLocked is not null || snapshot.DriverDoorOpen is not null ||
+                snapshot.PassengerDoorOpen is not null || snapshot.RearLeftDoorOpen is not null ||
+                snapshot.RearRightDoorOpen is not null || snapshot.TrunkOpen is not null ||
+                snapshot.BonnetOpen is not null || snapshot.DriverWindowOpen is not null ||
+                snapshot.PassengerWindowOpen is not null || snapshot.RearLeftWindowOpen is not null ||
+                snapshot.RearRightWindowOpen is not null)
+            .OrderByDescending(snapshot => snapshot.RecordedAt)
+            .Take(count)
+            .Select(snapshot => new StatusReading(snapshot.RecordedAt, snapshot))
+            .ToArray();
+        return Task.FromResult(readings);
+    }
 
     public Task<string?> GetChargingStopReasonAsync(int vehicleId, CancellationToken ct = default) =>
         Task.FromResult<string?>(null);
@@ -81,35 +147,49 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
         int vehicleId, DateTime from, DateTime to, CancellationToken ct = default) =>
         ChargeSessionHistory.PowerCurve(await ChargeReadingsAsync(vehicleId, from, to, ct));
 
-    // The generated history, then the live snapshot the demo controls change.
     private async Task<List<ChargeSessionReading>> ChargeReadingsAsync(
         int vehicleId, DateTime from, DateTime to, CancellationToken ct)
     {
-        var readings = DemoHistory.Snapshots
-            .Where(s => s.RecordedAt >= from && s.RecordedAt <= to)
+        var history = History;
+        var readings = history
+            .Where(snapshot => snapshot.RecordedAt >= from && snapshot.RecordedAt <= to)
             .Select(ChargeSessionReading.FromSnapshot)
             .ToList();
-        if (await GetMergedLatestAsync(vehicleId, ct) is { } current && current.RecordedAt >= from && current.RecordedAt <= to)
+
+        if (await GetMergedLatestAsync(vehicleId, ct) is { } current &&
+            current.RecordedAt >= from && current.RecordedAt <= to &&
+            history.Count > 0 && current.RecordedAt > history[^1].RecordedAt)
             readings.Add(ChargeSessionReading.FromSnapshot(current));
         return readings;
     }
 
-    // The generated history, oldest first, then the live snapshot the demo controls change.
     public async IAsyncEnumerable<TelemetrySnapshot> StreamAllAsync(
         int vehicleId, DateTime? since = null, [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken ct = default)
     {
-        foreach (var snapshot in DemoHistory.Snapshots.Where(s => since is null || s.RecordedAt >= since).OrderBy(s => s.RecordedAt))
+        var latest = (await GetMergedLatestAsync(vehicleId, ct))!;
+        foreach (var snapshot in History
+            .Where(s => s.Id != latest.Id && (since is null || s.RecordedAt >= since))
+            .OrderBy(s => s.RecordedAt))
         {
             ct.ThrowIfCancellationRequested();
             yield return snapshot;
         }
-        var latest = (await GetMergedLatestAsync(vehicleId, ct))!;
         if (since is null || latest.RecordedAt >= since)
             yield return latest;
     }
 
     public Task<PositionFix?> GetLatestPositionAsync(int vehicleId, CancellationToken ct = default)
     {
+        if (DemoTelemetryCapture.Snapshots is { } captured)
+        {
+            var fix = captured
+                .Where(snapshot => snapshot.Latitude is not null && snapshot.Longitude is not null)
+                .OrderByDescending(snapshot => snapshot.RecordedAt)
+                .FirstOrDefault();
+            return Task.FromResult(fix is null
+                ? null
+                : new PositionFix(fix.Latitude!.Value, fix.Longitude!.Value, fix.Heading));
+        }
         lock (_lock)
         {
             return Task.FromResult(_current is { Latitude: { } lat, Longitude: { } lon }
@@ -123,7 +203,7 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
     public Task<VehicleAggregateStats> GetAggregateStatsAsync(
         int vehicleId, DateTime from, DateTime to, CancellationToken ct = default)
     {
-        var history = DemoHistory.Snapshots.Where(s => s.RecordedAt >= from && s.RecordedAt <= to).ToList();
+        var history = History.Where(s => s.RecordedAt >= from && s.RecordedAt <= to).ToList();
         var known = history.Count(s => s.ClimateOn != null);
         var on = history.Count(s => s.ClimateOn == true);
         var pct = known > 0 ? (int?)Math.Round((double)on / known * 100) : null;
@@ -158,9 +238,11 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
             if (dto.LightsSide.HasValue) _current.LightsSide = dto.LightsSide;
             if (dto.EvSocPercent.HasValue)
             {
+                var electricRange = ElectricRangeAt(_current, dto.EvSocPercent.Value);
                 _current.EvSocPercent = dto.EvSocPercent;
-                _current.HvSocKwh = Math.Round(dto.EvSocPercent.Value / 100.0 * DemoHistory.CapacityKwh, 1);
-                _current.ElectricRangeKm = ElectricRangeAt(dto.EvSocPercent.Value);
+                if (_current.HvTotalCapacityKwh is { } capacity && capacity > 0)
+                    _current.HvSocKwh = Math.Round(dto.EvSocPercent.Value / 100.0 * capacity, 1);
+                if (electricRange is { } range) _current.ElectricRangeKm = range;
             }
             if (dto.InteriorTemperature.HasValue) _current.InteriorTemperature = dto.InteriorTemperature;
             if (dto.ExteriorTemperature.HasValue) _current.ExteriorTemperature = dto.ExteriorTemperature;
@@ -253,11 +335,9 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
 
     private static TelemetrySnapshot BuildDefaultSnapshot()
     {
-        var current = DemoTrips.InProgressWaypoints[^1];
-
-        // Carries on from the history: today's drives so far plus the trip in progress.
+        var current = DemoMockTrips.InProgressWaypoints[^1];
         var history = DemoHistory.Last;
-        var drivingKm = DemoTrips.InProgressDistanceKm;
+        var drivingKm = DemoMockTrips.InProgressDistanceKm;
         var drivingKwh = drivingKm * DemoHistory.InProgressKwhPerKm;
         var soc = Math.Round(history.SocPercent - drivingKwh / DemoHistory.CapacityKwh * 100);
 
@@ -276,7 +356,7 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
             HvCurrent = 42.0,
             HvPower = 16.2,
             HvBatteryActive = true,
-            OdometerKm = DemoTrips.CurrentOdometerKm,
+            OdometerKm = DemoMockTrips.CurrentOdometerKm,
             EngineRunning = true,
             IsCharging = false,
             ChargerConnected = false,
@@ -295,7 +375,7 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
             RemoteTemperature = 19.5,
             Speed = current.SpeedKmh,
             Heading = 150,
-            CurrentJourneyDistance = Math.Round(DemoTrips.InProgressDistanceKm, 1),
+            CurrentJourneyDistance = Math.Round(DemoMockTrips.InProgressDistanceKm, 1),
             IsLocked = true,
             ClimateOn = false,
             ClimateMode = "off",
@@ -314,7 +394,6 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
             TyrePressureFrontLeft = 2.4,
             TyrePressureFrontRight = 2.4,
             TyrePressureRearLeft = 2.5,
-            // Where the slow leak in the history below has brought it: still above the low line.
             TyrePressureRearRight = 2.26,
             Latitude = current.Lat,
             Longitude = current.Lon,
@@ -338,4 +417,5 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
             ChargingScheduleEndTime = "07:00",
         };
     }
+
 }

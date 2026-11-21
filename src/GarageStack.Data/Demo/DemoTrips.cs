@@ -7,7 +7,7 @@ namespace GarageStack.Data.Demo;
 /// The demo vehicle's trips: ten finished ones, and the one it is driving right now. Shared by
 /// the demo telemetry, whose live position is where that trip has got to, and the demo trip list.
 /// </summary>
-internal static class DemoTrips
+internal static class DemoMockTrips
 {
     // The road already driven on the trip in progress, ending at the live position the demo
     // snapshot reports. Kept as one source so the current status marker and the in-progress

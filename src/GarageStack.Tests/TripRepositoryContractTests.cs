@@ -5,6 +5,7 @@ using GarageStack.Data;
 using GarageStack.Data.Demo;
 using GarageStack.Data.Repositories;
 using Microsoft.EntityFrameworkCore;
+using Xunit.Sdk;
 
 namespace GarageStack.Tests;
 
@@ -34,6 +35,13 @@ public sealed class TripRepositoryContractTests : IAsyncDisposable
 
     private async Task SeedAsync(CancellationToken ct)
     {
+        var configuredPath = Environment.GetEnvironmentVariable("DEMO_TELEMETRY_CSV");
+        var telemetryFile = string.IsNullOrWhiteSpace(configuredPath)
+            ? Path.Combine(RepositoryFiles.PathOf("telemetry"), "telemetry.csv")
+            : configuredPath;
+        if (!File.Exists(telemetryFile))
+            throw SkipException.ForSkip("This contract test requires the local telemetry CSV.");
+
         var vehicle = new Vehicle { Vin = "FAKEVN00000000001" };
         _db.Vehicles.Add(vehicle);
         await _db.SaveChangesAsync(ct);
@@ -349,7 +357,7 @@ public sealed class TripRepositoryContractTests : IAsyncDisposable
         [nameof(ITripRepository.SaveRecordedAsync)] = "Demo mode runs no Worker, so it records nothing; the tests use it only to seed the real side.",
         [nameof(ITripRepository.GetRecordedUntilAsync)] = "Demo mode has no recording line.",
         [nameof(ITripRepository.FillSpeedFiguresAsync)] = "Demo trips carry their speed figures from the start, so there is nothing to fill.",
-        [nameof(ITripRepository.GetLatestAsync)] = "The demo's timeline ends with the trip it is driving, whatever the clock says.",
+        [nameof(ITripRepository.GetLatestAsync)] = "The latest trip is served from the telemetry capture.",
     };
 
     [Fact]

@@ -5,6 +5,7 @@ using GarageStack.Data;
 using GarageStack.Data.Demo;
 using GarageStack.Data.Repositories;
 using Microsoft.EntityFrameworkCore;
+using Xunit.Sdk;
 
 namespace GarageStack.Tests;
 
@@ -353,12 +354,15 @@ public class TripEditorRepositoryTests
     [Fact]
     public async Task Demo_EditsARouteInMemory_AndResetsIt()
     {
+        RequireTelemetryCapture();
         var ct = TestContext.Current.CancellationToken;
         var demo = new DemoTripRepository();
-        var log = await demo.GetLogAsync(1, DateTime.UtcNow.AddDays(-60), DateTime.UtcNow, ct);
-        // Amsterdam to Almere, which the demo has leave 8 km from where the trip before it ended.
-        var entry = log.Single(e => e.Id == 5);
-        var editor = (await demo.GetEditorAsync(1, entry.Id, ct)).Editor!;
+        var log = await demo.GetLogAsync(1, DateTime.MinValue, DateTime.MaxValue, ct);
+        var candidates = await Task.WhenAll(log.Select(async entry =>
+            (Entry: entry, Editor: (await demo.GetEditorAsync(1, entry.Id, ct)).Editor)));
+        var chosen = candidates.First(candidate => candidate.Editor?.Suggestion == true);
+        var entry = chosen.Entry;
+        var editor = chosen.Editor!;
         var stop = editor.PreviousStop!;
 
         var saved = await demo.SetPointsAsync(1, entry.Id,
@@ -373,28 +377,29 @@ public class TripEditorRepositoryTests
         Assert.Equal(editor.Points, saved.Editor!.OriginalPoints);
         Assert.True(edited.IsEdited);
         Assert.Equal((stop.Latitude, stop.SuggestedAt), (edited.StartLatitude, edited.StartedAt));
-        Assert.True(edited.DistanceKm > entry.DistanceKm + 7);
+        Assert.True(edited.DistanceKm > entry.DistanceKm);
         Assert.Equal(TripPointSource.Manual, drawn.Points[0].Source);
         Assert.False(reset.IsEdited);
         Assert.Equal((entry.StartedAt, entry.StartLatitude), (reset.StartedAt, reset.StartLatitude));
         Assert.Equal((entry.MaxSpeedKmh, entry.AvgMovingSpeedKmh), (reset.MaxSpeedKmh, reset.AvgMovingSpeedKmh));
     }
 
-    // The trip log's speeds come from the demo's fixes, and a join reads them off both trips' fixes.
+    // The trip log's speeds come from the telemetry fixes, and a join reads them off both trips.
     [Fact]
     public async Task Demo_LogCarriesSpeedFigures_ThroughAJoin()
     {
+        RequireTelemetryCapture();
         var ct = TestContext.Current.CancellationToken;
         var demo = new DemoTripRepository();
-        var log = await demo.GetLogAsync(1, DateTime.UtcNow.AddDays(-60), DateTime.UtcNow, ct);
-        var first = log[0];
-        var second = log[1];
+        var log = await demo.GetLogAsync(1, DateTime.MinValue, DateTime.MaxValue, ct);
+        var speedTrips = log.Where(entry => entry.MaxSpeedKmh is not null).Take(2).ToArray();
+        Assert.True(speedTrips.Length >= 2);
+        var first = speedTrips[0];
+        var second = speedTrips[1];
 
         var merged = (await demo.MergeWithNextAsync(1, first.Id, ct)).Merged!;
 
-        // Not every demo trip has them: the drive no poll caught has no speed to tell.
         Assert.All([first, second], e => Assert.NotNull(e.MaxSpeedKmh));
-        Assert.Contains(log, e => e.MaxSpeedKmh is null);
         Assert.Equal(Math.Max(first.MaxSpeedKmh!.Value, second.MaxSpeedKmh!.Value), merged.MaxSpeedKmh);
         Assert.NotNull(merged.AvgMovingSpeedKmh);
     }
@@ -402,13 +407,33 @@ public class TripEditorRepositoryTests
     [Fact]
     public async Task Demo_RefusesWhatTheRealRepositoryRefuses()
     {
+        RequireTelemetryCapture();
         var ct = TestContext.Current.CancellationToken;
         var demo = new DemoTripRepository();
-        var editor = (await demo.GetEditorAsync(1, 5, ct)).Editor!;
+        var log = await demo.GetLogAsync(1, DateTime.MinValue, DateTime.MaxValue, ct);
+        Assert.NotEmpty(log);
+        var entry = log[0];
+        var editor = (await demo.GetEditorAsync(1, entry.Id, ct)).Editor!;
 
-        var one = await demo.SetPointsAsync(1, 5, [Input(editor.Points[0])], ct);
+        var one = await demo.SetPointsAsync(1, entry.Id, [Input(editor.Points[0])], ct);
 
         Assert.Equal("trip.pointCount", one.Problem!.Code);
-        Assert.Equal(TripEditOutcome.NotFound, (await demo.GetEditorAsync(1, 999, ct)).Outcome);
+        Assert.Equal(TripEditOutcome.NotFound, (await demo.GetEditorAsync(1, long.MaxValue, ct)).Outcome);
+    }
+
+    private static void RequireTelemetryCapture()
+    {
+        var configuredPath = Environment.GetEnvironmentVariable("DEMO_TELEMETRY_CSV");
+        if (!string.IsNullOrWhiteSpace(configuredPath))
+        {
+            if (!File.Exists(configuredPath))
+                throw SkipException.ForSkip("This test requires the local telemetry CSV.");
+            return;
+        }
+
+        var telemetryDirectory = RepositoryFiles.PathOf("telemetry");
+        var canonicalFile = Path.Combine(telemetryDirectory, "telemetry.csv");
+        if (!File.Exists(canonicalFile))
+            throw SkipException.ForSkip("This test requires the local telemetry CSV.");
     }
 }

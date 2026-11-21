@@ -187,7 +187,8 @@ The Docker images set these themselves.
 | --- | --- | --- |
 | `ConnectionStrings__DefaultConnection` | none | PostgreSQL connection string for the API and the Worker, for example `Host=localhost;Database=garagestack;Username=garagestack;Password=...`. |
 | `ASPNETCORE_ENVIRONMENT` | `Production` | `Development` relaxes CORS and CSRF for local work. The API reference at `/api/reference/` is there in every environment; see [`API.md`](API.md). |
-| `DEMO_MODE` | `false` | `true` runs the API on built-in fake data, without a database, broker or gateway. See [`DEMO.md`](DEMO.md). |
+| `DEMO_MODE` | `false` | `true` runs the API with in-memory demo services and CSV-backed telemetry when a capture is present, otherwise generated mock data; no database, broker or gateway is needed. See [`DEMO.md`](DEMO.md). |
+| `DEMO_TELEMETRY_CSV` | automatic discovery | Path to the CSV capture used by demo mode. If the configured file is absent, demo mode falls back to its generated mock data; a present but invalid file fails explicitly. The demo Compose file sets this to its read-only telemetry mount. |
 
 ## Settings without a variable
 

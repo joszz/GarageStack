@@ -10,6 +10,10 @@ import {
   type Vehicle,
   type VehicleType,
 } from '@/services/vehicleApi'
+import {
+  chargeSessionPriceKey,
+  useChargeHistorySettingsStore,
+} from '@/stores/chargeHistorySettings'
 
 const replace = vi.fn<(to: unknown) => Promise<void>>()
 
@@ -106,7 +110,7 @@ describe('ChargeHistoryView', () => {
       '2026-10-20T08:00:00Z|2026-10-19T10:00:00Z',
       '2026-10-19T10:00:00Z|-',
     ])
-    expect(wrapper.find('.summary').text()).toBe('Sessions 2')
+    expect(wrapper.findAll('.summary')[1]!.text()).toBe('Sessions 2')
   })
 
   it('totals the energy of every session and the time of the ended ones', async () => {
@@ -114,10 +118,44 @@ describe('ChargeHistoryView', () => {
     await flushPromises()
 
     expect(wrapper.findAll('.summary').map((card) => card.text())).toEqual([
+      `${en.chargeHistory.costOfRefills} ${en.chargeHistory.setRate}`,
       'Sessions 2',
       `${en.chargeHistory.batteryEnergyGained} 56.0`,
       `${en.chargeHistory.timeCharging} 1h 0m`,
     ])
+  })
+
+  it('estimates period cost from the default rate and known battery energy', async () => {
+    useChargeHistorySettingsStore().defaultRatePerKwh = 0.25
+    const wrapper = mountView()
+    await flushPromises()
+
+    expect(wrapper.find('.summary').text()).toContain('€14.00')
+    expect(wrapper.find('.summary').text()).toContain(en.chargeHistory.costOfRefills)
+  })
+
+  it('uses a manual session price instead of the default rate', async () => {
+    const settings = useChargeHistorySettingsStore()
+    settings.defaultRatePerKwh = 0.25
+    settings.manualSessionPrices[
+      chargeSessionPriceKey('FAKEVN00000000001', '2026-10-20T08:00:00Z')
+    ] = 10
+    const wrapper = mountView()
+    await flushPromises()
+
+    expect(wrapper.find('.summary').text()).toContain('€17.00')
+  })
+
+  it('saves an edited default rate and updates the period cost', async () => {
+    const wrapper = mountView()
+    await flushPromises()
+
+    const input = wrapper.find('.charge-history-rate input')
+    await input.setValue('0.5')
+    await input.trigger('change')
+    await flushPromises()
+
+    expect(wrapper.find('.summary').text()).toContain('€28.00')
   })
 
   it('explains each total behind its info button', async () => {
@@ -125,9 +163,9 @@ describe('ChargeHistoryView', () => {
     await flushPromises()
 
     const buttons = wrapper.findAll('.charge-history-totals .card-info-btn')
-    expect(buttons).toHaveLength(3)
+    expect(buttons).toHaveLength(4)
 
-    await buttons[1]!.trigger('click')
+    await buttons[2]!.trigger('click')
     const dialog = wrapper.find('[role="dialog"]')
     expect(dialog.find('.detail-modal__title').text()).toBe(en.chargeHistory.batteryEnergyGained)
     expect(dialog.text()).toContain(en.chargeHistory.cardDesc.batteryEnergyGained)

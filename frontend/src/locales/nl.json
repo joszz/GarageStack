@@ -40,6 +40,15 @@
     "period": "Periode",
     "lastDays": "Laatste {days} dagen",
     "sessions": "Sessies",
+    "defaultRate": "Standaardprijs per kWh (€)",
+    "costOfRefills": "Laadkosten",
+    "pricedSessions": "{count} sessies geprijsd",
+    "setRate": "Vul een tarief in",
+    "fullSessionPrice": "Totale prijs van de sessie (€)",
+    "estimatedCost": "Geschatte kosten",
+    "sessionCost": "Kosten van de sessie",
+    "savePrice": "Prijs opslaan",
+    "clearPrice": "Handmatige prijs verwijderen",
     "timeCharging": "Laadtijd",
     "ongoing": "Bezig",
     "stateOfCharge": "Laadniveau",
@@ -57,6 +66,7 @@
     "empty": "Er zijn nog geen laadsessies beschikbaar.",
     "cardDesc": {
       "sessions": "Het aantal laadsessies in de gekozen periode, samengesteld uit de laadstatus die de auto doorgaf. Een sessie die nog bezig is telt ook mee.",
+      "costOfRefills": "Het totaal voor deze periode. Een handmatig ingevoerde sessieprijs heeft voorrang; anders wordt het standaardtarief vermenigvuldigd met de gemelde batterij-energie. Sessies zonder bruikbare energie tellen niet mee; de lader kan meer energie leveren dan de batterij opslaat.",
       "batteryEnergyGained": "De toename van de energie in de batterij, opgeteld over de sessies: de energie die de batterij bereikte, minder dan wat de lader leverde. Alleen zichtbaar als de capaciteit van de batterij bekend is: bij een BEV van de auto zelf, bij een plug-in hybride zodra de echte capaciteit van het accupakket is ingesteld.",
       "timeCharging": "De tijd van begin tot eind van het laden, opgeteld over de afgeronde sessies. Een sessie die nog bezig is telt mee zodra hij klaar is."
     }
