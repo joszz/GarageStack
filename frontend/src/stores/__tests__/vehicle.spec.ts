@@ -672,10 +672,10 @@ describe('useVehicleStore - choosing a car', () => {
     store.selectVehicle(second.vin)
     await nextTick()
     // The second car has no colour of its own yet, and no type set: the detected one stands.
-    expect(ui.carColorScheme).toBe('orange')
+    expect(ui.carColorScheme).toBe('red')
     expect(store.effectiveVehicleType).toBe('bev')
 
-    ui.carColorScheme = 'red'
+    ui.carColorScheme = 'green'
     store.selectVehicle(first.vin)
     await nextTick()
     expect(ui.carColorScheme).toBe('blue')

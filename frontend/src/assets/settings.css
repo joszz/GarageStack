@@ -282,10 +282,11 @@
   min-width: 0;
 }
 
-/* Two rows of five: the neutrals over the colours, the last being the user's own. */
+/* One row: the presets, then the user's own. 34px each where the column has the room (the
+   settings' 20rem control column does), narrower on the smallest phones rather than wrapping. */
 .car-color-swatches {
   display: grid;
-  grid-template-columns: repeat(5, 34px);
+  grid-template-columns: repeat(8, minmax(0, 34px));
   gap: 0.4rem;
 }
 
@@ -299,8 +300,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
+  width: 100%;
+  aspect-ratio: 1;
   border-radius: 50%;
   border: none;
   padding: 0;

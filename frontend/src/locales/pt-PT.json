@@ -633,7 +633,6 @@
     "carColor": {
       "title": "Cor do carro",
       "desc": "Como o carro é desenhado no painel e no mapa.",
-      "orange": "Laranja",
       "red": "Vermelho",
       "blue": "Azul",
       "silver": "Prata",
@@ -641,7 +640,6 @@
       "anthracite": "Antracite",
       "black": "Preto",
       "green": "Verde",
-      "purple": "Roxo",
       "custom": "As suas cores",
       "primary": "Cor principal",
       "secondary": "Cor secundária"
