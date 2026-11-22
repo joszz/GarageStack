@@ -146,6 +146,16 @@ function hasData(id: CardId): boolean {
   return cardData.value !== null && cardHasData(id, cardData.value)
 }
 
+// A card on screen that a long press opens the editor from (EditLayoutButton). While the status
+// loads its skeletons stand in for the cards, so the header button does not flash on a phone.
+const cardsShown = computed(() => {
+  if (!status.value) return store.loading
+  return (
+    shownOverview.value.length > 0 ||
+    settings.cards.some((card) => card.visible && hasData(card.id))
+  )
+})
+
 function resetLayout() {
   settings.resetLayout(vehicleType.value, hasData)
 }
@@ -256,7 +266,7 @@ onUnmounted(() => {
           <font-awesome-icon icon="spinner" spin />
           <span class="refresh-indicator__label">{{ t('common.refreshing') }}</span>
         </span>
-        <EditLayoutButton v-model="editMode" />
+        <EditLayoutButton v-model="editMode" :cards-shown="cardsShown" @reset="resetLayout" />
       </template>
     </ViewHeader>
 
@@ -309,11 +319,6 @@ onUnmounted(() => {
           </div>
         </template>
       </EditableCardGrid>
-
-      <button class="btn btn-outline-secondary mt-3" @click="resetLayout">
-        <font-awesome-icon icon="rotate-left" />
-        {{ t('dashboard.resetLayout') }}
-      </button>
     </template>
 
     <!-- Normal mode -->

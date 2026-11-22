@@ -259,7 +259,7 @@ describe('StatisticsView', () => {
     expect(wrapper.find('.month-table').exists()).toBe(false)
 
     await editLayout(wrapper)
-    await buttonNamed(wrapper, en.dashboard.resetLayout).trigger('click')
+    await buttonNamed(wrapper, en.dashboard.resetLayoutShort).trigger('click')
     await doneEditing(wrapper)
 
     expect(wrapper.find('.month-table').exists()).toBe(true)
