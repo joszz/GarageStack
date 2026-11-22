@@ -4,6 +4,7 @@ import { authApi, type AuthConfigResponse } from '@/services/authApi'
 import { ApiError, STARTUP_REQUEST_TIMEOUT_MS } from '@/services/apiCore'
 import { forgetLastVin } from '@/utils/lastVin'
 import { forgetLastKnownState } from '@/utils/lastKnownState'
+import { forgetQueuedPositions } from '@/utils/phoneGps'
 import { forgetCaches } from '@/utils/cacheStorage'
 import { MAP_TILE_CACHE } from '@/utils/rasterTiles'
 import { BASEMAP_CACHE } from '@/utils/vectorTiles'
@@ -57,6 +58,7 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem(AUTH_EXPIRES_KEY)
     forgetLastVin()
     forgetLastKnownState()
+    forgetQueuedPositions()
     void forgetCaches(MAP_TILE_CACHE, BASEMAP_CACHE, SAVED_API_CACHE)
   }
 

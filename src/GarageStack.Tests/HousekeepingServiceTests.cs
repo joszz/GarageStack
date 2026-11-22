@@ -28,6 +28,7 @@ public class HousekeepingServiceTests
         return new ServiceCollection()
             .AddDbContext<AppDbContext>(o => o.UseInMemoryDatabase(name, root))
             .AddScoped<IHousekeepingRepository, HousekeepingRepository>()
+            .AddScoped<IPhonePositionRepository, PhonePositionRepository>()
             .AddScoped<IVehicleRepository, VehicleRepository>()
             .AddScoped<ITelemetryRepository>(sp => new TelemetryRepository(sp.GetRequiredService<AppDbContext>()))
             .AddScoped<ITripRepository>(sp => new TripRepository(sp.GetRequiredService<AppDbContext>(), sp.GetRequiredService<ITelemetryRepository>()))
@@ -68,6 +69,11 @@ public class HousekeepingServiceTests
                 // The notification cooldowns still read deleted rows of the last week.
                 Notification("deleted lately", deleted: true, TimeSpan.FromDays(10)),
                 Notification("kept by the user", deleted: false, TimeSpan.FromDays(40)));
+            db.Vehicles.Add(new() { Id = 1, Vin = "FAKEVN00000000001" });
+            db.PhonePositions.AddRange(
+                Position(TimeSpan.FromDays(31)),
+                // Within the 30 days a late upload may still need it for.
+                Position(TimeSpan.FromDays(29)));
             await db.SaveChangesAsync(ct);
         }
 
@@ -79,5 +85,16 @@ public class HousekeepingServiceTests
         Assert.Equal(
             ["deleted lately", "kept by the user"],
             await after.AppNotifications.Select(n => n.Title).OrderBy(t => t).ToListAsync(ct));
+        var kept = Assert.Single(await after.PhonePositions.ToListAsync(ct));
+        Assert.True(kept.RecordedAt > DateTime.UtcNow - PhonePosition.KeptFor);
     }
+
+    private static PhonePosition Position(TimeSpan age) => new()
+    {
+        VehicleId = 1,
+        TrackerId = "fake-device-1",
+        RecordedAt = DateTime.UtcNow - age,
+        Latitude = 52,
+        Longitude = 5,
+    };
 }

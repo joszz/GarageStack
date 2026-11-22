@@ -91,6 +91,7 @@ vi.mock('@/composables/useBrowserNotifications', () => ({
 
 vi.mock('@/composables/useFavicon', () => ({ useFavicon: vi.fn<() => void>() }))
 vi.mock('@/composables/useScreenWakeLock', () => ({ useScreenWakeLock: vi.fn<() => void>() }))
+vi.mock('@/composables/usePhoneGpsRecorder', () => ({ usePhoneGpsRecorder: vi.fn<() => void>() }))
 
 // Its template imports the app icon from public/, which only Vite resolves.
 vi.mock('@/components/PwaInstallModal.vue', () => ({ default: { render: () => null } }))

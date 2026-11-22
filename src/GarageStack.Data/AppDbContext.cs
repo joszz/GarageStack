@@ -25,6 +25,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<RdwVehicleInfo> RdwVehicleInfos => Set<RdwVehicleInfo>();
     public DbSet<VehiclePhoneTracker> VehiclePhoneTrackers => Set<VehiclePhoneTracker>();
     public DbSet<PhoneBackfillRequest> PhoneBackfillRequests => Set<PhoneBackfillRequest>();
+    public DbSet<PhonePosition> PhonePositions => Set<PhonePosition>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -39,6 +40,16 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         {
             e.HasKey(r => r.VehicleId);
             e.HasOne(r => r.Vehicle).WithMany().HasForeignKey(r => r.VehicleId).OnDelete(DeleteBehavior.Cascade);
+        });
+        modelBuilder.Entity<PhonePosition>(e =>
+        {
+            e.HasKey(p => p.Id);
+            // One position per tracker and moment, so a batch sent twice is stored once. Fusion
+            // reads a car's positions by time, across its trackers.
+            e.HasIndex(p => new { p.VehicleId, p.TrackerId, p.RecordedAt }).IsUnique();
+            e.HasIndex(p => new { p.VehicleId, p.RecordedAt });
+            e.Property(p => p.TrackerId).HasMaxLength(PhonePosition.MaxTrackerLength).IsRequired();
+            e.HasOne(p => p.Vehicle).WithMany().HasForeignKey(p => p.VehicleId).OnDelete(DeleteBehavior.Cascade);
         });
         modelBuilder.Entity<Vehicle>(e =>
         {

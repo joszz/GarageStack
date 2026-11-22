@@ -180,6 +180,7 @@ try
     app.MapCommutePlaceEndpoints();
     app.MapRdwEndpoints();
     app.MapDawarichEndpoints();
+    app.MapPhonePositionEndpoints();
     app.MapWidgetEndpoints();
     app.MapUpdateEndpoints();
     app.MapGatewayEndpoints();

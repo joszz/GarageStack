@@ -74,6 +74,8 @@ interface UiSettings {
   colorfulMaps: boolean
   /** Whether the installed app keeps the screen on while it is in view. This device only. */
   keepScreenOn: boolean
+  /** Whether the installed app records the phone's GPS for the car's trips. This device only. */
+  recordPhoneGps: boolean
   carColorScheme: string
   /** The paints of the custom scheme, null until it is first chosen. */
   carCustomColors: CarColors | null
@@ -101,6 +103,7 @@ function defaultsFor(): UiSettings {
     placeNamesEnabled: true,
     colorfulMaps: false,
     keepScreenOn: false,
+    recordPhoneGps: false,
     carColorScheme: DEFAULT_CAR_COLOR_SCHEME,
     carCustomColors: null,
     vehicleTypeOverride: 'auto',
@@ -222,6 +225,7 @@ function parseUiFields(parsed: Record<string, unknown>, fallback: UiSettings): U
     placeNamesEnabled: parsed.placeNamesEnabled !== false,
     colorfulMaps: parsed.colorfulMaps === true,
     keepScreenOn: parsed.keepScreenOn === true,
+    recordPhoneGps: parsed.recordPhoneGps === true,
     ...carColor,
     vehicleTypeOverride: oneOf(
       parsed.vehicleTypeOverride,
@@ -265,8 +269,9 @@ export const useUiSettingsStore = defineStore('settingsUi', () => {
     // The notification checklist decides whether this browser is subscribed to push
     // (useNotificationPushSync), so it stays with the device: unticking everything on one
     // computer must not unsubscribe a phone, or subscribe it without a tap there. Keeping the
-    // screen on suits a phone in a holder, not every computer the account signs in on.
-    localKeys: ['notificationTypeExclusions', 'keepScreenOn'],
+    // screen on suits a phone in a holder, not every computer the account signs in on, and only
+    // the phone that travels in the car should record GPS.
+    localKeys: ['notificationTypeExclusions', 'keepScreenOn', 'recordPhoneGps'],
   })
 
   // What this device prefers, kept current: "system" follows it when the OS switches at sunset.

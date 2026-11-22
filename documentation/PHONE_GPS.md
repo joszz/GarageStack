@@ -1,10 +1,41 @@
-# Phone GPS with Dawarich
+# Phone GPS
 
-GarageStack can fill gaps in a car's recorded trips using a phone track already held by
-your own [Dawarich](https://dawarich.app/) instance. It only pulls data from Dawarich.
-There is no public phone ingest endpoint and no new trip is created from phone data.
+GarageStack can fill gaps in a car's recorded trips with a phone's GPS, from either of two
+sources:
 
-## Setup
+- **The GarageStack app itself**, installed on the phone and open on screen during the drive.
+  Nothing to set up beyond a switch. See [From the GarageStack app](#from-the-garagestack-app).
+- **Your own [Dawarich](https://dawarich.app/) instance**, which a tracking app on the phone
+  feeds in the background. See [Setup with Dawarich](#setup-with-dawarich).
+
+Both can be used at once. No new trip is created from phone data: phone positions only fill
+trips the car recorded, and only once they are shown to have travelled with the car
+([How a trip is filled](#how-a-trip-is-filled)).
+
+## From the GarageStack app
+
+A web app can only follow the phone's GPS while it is on screen, so this suits a phone in a
+holder with GarageStack open during the drive. It stops while another app, such as a
+navigation app, is in front, and starts again when GarageStack is back.
+
+1. Install GarageStack on the phone (the browser's **Install app** or **Add to Home Screen**)
+   and open it from the home screen. The settings below only appear in the installed app, and
+   only where the browser supports keeping the screen on and location.
+2. Open **Settings > General > This device**. Switch on **Keep the screen on**, then
+   **Record GPS during drives**, and allow location access when the phone asks.
+3. Select the car the phone travels in. The app records for the selected car.
+
+The app sends a fix every five seconds or so while the phone moves (one a minute while it stands
+still), leaves out fixes less accurate than 50 metres, and sends them in batches about twice a
+minute. Without signal it keeps them on the phone, up to about eight hours of driving, and sends
+them once it is back. Both switches belong to that phone only; they do not follow the account to
+other devices. If the phone refuses location access, the setting says so: allow it in the
+phone's settings, then switch **Record GPS during drives** off and on again.
+
+Behind a reverse proxy that sets its own `Permissions-Policy`, allow `geolocation=(self)`, or
+the browser never asks for the location. GarageStack's own nginx sends that.
+
+## Setup with Dawarich
 
 1. Keep Dawarich running wherever it already runs. It does not need to be inside GarageStack's
    container.
@@ -45,7 +76,12 @@ The key belongs to one Dawarich user. Multiple trackers from that account can be
 ## How a trip is filled
 
 The Worker checks every three minutes, at most ten trips per pass. It waits 15 minutes after
-a trip ends for the phone's upload. Set `DAWARICH_FUSION_DELAY_MINUTES` to change this.
+a trip ends for the phone's upload. Set `DAWARICH_FUSION_DELAY_MINUTES` to change this; it
+applies to the app's positions as well.
+
+A Dawarich tracker must be linked to the car (above). The app's positions need no link: they
+were recorded for the car selected in the app, and the matching below still decides whether
+the phone was in it.
 
 A tracker must match at least two car fixes within 300 metres (or twice the reported
 accuracy), with at least 70% of paired car fixes agreeing. Where the phone has fixes on both
@@ -78,7 +114,9 @@ moves on to the next trip and retries this one on later passes, marking it faile
 A rejected key pauses attempts for 30 minutes and logs one warning until authentication
 recovers. Invalid responses or excessive data mark that trip failed at once, without holding up
 the next one; request backfill after correcting the cause.
-A trip with no matching phone data is not retried automatically: backfill it after late uploads.
+A trip with no matching Dawarich data is not retried automatically: backfill it after late
+uploads. Positions the app sends late, after a stretch without signal, put a trip that found no
+phone back in the queue by themselves.
 Reload the trip list/map after the Worker has processed the trips.
 
 Responses are capped at 4 MiB per page and 100 pages of 1,000 points. A trip window that
@@ -92,20 +130,29 @@ phone points remain part of the trips; remove them in the route editor if wanted
 
 ## Privacy and export
 
-Only phone positions accepted into a car trip are persisted. Other fetched fixes exist in
-memory only and are discarded. There is no separate phone position table or retention job.
+From Dawarich, only phone positions accepted into a car trip are persisted. Other fetched fixes
+exist in memory only and are discarded.
+
+The app's positions are stored as sent, in the `PhonePositions` table, under a random id the
+app made for that phone. They are kept 30 days, so a trip can still be filled after a late
+upload, and then removed by the Worker's housekeeping. Those accepted into a trip stay part of
+it. Sending them needs a signed-in session: a read-only API token cannot. Signing out forgets
+the positions still waiting on the phone.
 Logs contain counts, outcomes and safe error messages, not coordinates or API keys.
 The key stays in deployment configuration, never the database or browser.
 
-The full data export includes linked trackers and saved routes, including phone points and
-the original route when manually edited. No Dawarich key is exported.
+The full data export includes linked trackers, the app's stored positions of the last 30 days,
+and saved routes, including phone points and the original route when manually edited. No Dawarich key is exported.
 Existing map services still apply: fused geometry can be sent to your configured map matcher,
 and endpoints to your geocoder. Disable `MAPMATCHING__ENABLED` and `GEOCODING__ENABLED`, or
 use your own services, if you do not want that geometry leaving your network.
 
 ## Battery
 
-Continuous high-accuracy tracking costs battery. Enable it only in the car where practical:
+Continuous high-accuracy tracking costs battery. With the app, a screen kept on costs more:
+keep the phone on a charger in the car.
+
+For a Dawarich tracker: Enable it only in the car where practical:
 Android can use a Home Assistant or Tasker automation triggered by the car's Bluetooth
 connection; iOS can use a Shortcuts automation on CarPlay or Bluetooth connection where the
 chosen tracker supports it. Configure a matching stop action when leaving the car.

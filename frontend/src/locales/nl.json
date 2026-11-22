@@ -644,9 +644,19 @@
       "primary": "Primaire kleur",
       "secondary": "Secundaire kleur"
     },
+    "device": {
+      "title": "Dit apparaat"
+    },
+    "phoneGps": {
+      "label": "GPS opnemen tijdens ritten",
+      "desc": "Stuurt de locatie van deze telefoon naar GarageStack zolang de app op het scherm open is, om de gaten tussen de eigen posities van de auto in zijn ritten op te vullen. Alleen zolang GarageStack vooraan staat: een navigatie-app erboven stopt het. Posities worden 30 dagen bewaard.",
+      "needsScreen": "Werkt alleen met het scherm aan, zodat de app tijdens de rit op het scherm blijft.",
+      "denied": "Locatietoegang is geblokkeerd voor GarageStack. Sta die toe in de instellingen van de telefoon en zet dit daarna opnieuw aan.",
+      "recording": "De positie van de telefoon wordt opgenomen."
+    },
     "keepScreenOn": {
       "label": "Scherm aan houden",
-      "desc": "Voorkomt dat het scherm dimt of vergrendelt zolang de app open is, voor een telefoon in een houder of een tablet aan de muur. Kost meer batterij. Alleen op dit apparaat."
+      "desc": "Voorkomt dat het scherm dimt of vergrendelt zolang de app open is, voor een telefoon in een houder of een tablet aan de muur. Kost meer batterij."
     },
     "dashboard": {
       "cardInfoIcons": "Info-iconen tonen",

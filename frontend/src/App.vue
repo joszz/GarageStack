@@ -22,6 +22,7 @@ import { useSettledAvailability } from '@/composables/useSettledAvailability'
 import { useFavicon } from '@/composables/useFavicon'
 import { usePageTitle } from '@/composables/usePageTitle'
 import { useScreenWakeLock } from '@/composables/useScreenWakeLock'
+import { usePhoneGpsRecorder } from '@/composables/usePhoneGpsRecorder'
 import { useRelativeTime } from '@/composables/useRelativeTime'
 import { useEscapeKey } from '@/composables/useEscapeKey'
 import { formatDateTime, formatTime } from '@/utils/format'
@@ -126,6 +127,7 @@ onBeforeUnmount(() => {
 useFavicon()
 usePageTitle()
 useScreenWakeLock()
+usePhoneGpsRecorder()
 const browserNotifications = useBrowserNotifications()
 
 const {

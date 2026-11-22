@@ -78,6 +78,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IPushSubscriptionRepository, PushSubscriptionRepository>();
         services.AddScoped<IApiTokenRepository, ApiTokenRepository>();
         services.AddScoped<IPhoneFusionRepository, PhoneFusionRepository>();
+        services.AddScoped<IPhonePositionRepository, PhonePositionRepository>();
         services.TryAddSingleton(TimeProvider.System);
         return services.AddGarageStackPoiClients();
     }

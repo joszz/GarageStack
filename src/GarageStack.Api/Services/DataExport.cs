@@ -19,6 +19,7 @@ internal sealed class DataExport(
     INotificationRepository notifications,
     IUserSettingsRepository settings,
     IPhoneFusionRepository phones,
+    IPhonePositionRepository phonePositions,
     TimeProvider clock)
 {
     // Further back than any car GarageStack has ever recorded, and forward past today.
@@ -47,6 +48,7 @@ internal sealed class DataExport(
                 ["vehicles/{vin}/climate-schedules.json"] = "Climate schedules",
                 ["vehicles/{vin}/commute-places.json"] = "Home and work places",
                 ["vehicles/{vin}/phone-trackers.json"] = "Linked Dawarich trackers, without credentials",
+                ["vehicles/{vin}/phone-positions.json"] = "Positions the installed app sent from a phone in the last 30 days",
                 ["vehicles/{vin}/routes/{id}.json"] = "Saved route points including phone points and the original route when edited",
                 ["vehicles/{vin}/telemetry.csv"] = "Every telemetry row, oldest first, as recorded",
             },
@@ -75,6 +77,16 @@ internal sealed class DataExport(
             var log = await trips.GetLogAsync(car.Id, Beginning, end, ct);
             await ZipExport.WriteJsonAsync(zip, $"{folder}/trips.json", log, ct);
             await ZipExport.WriteJsonAsync(zip, $"{folder}/phone-trackers.json", await phones.ListAsync(car.Id, ct), ct);
+            await ZipExport.WriteJsonAsync(zip, $"{folder}/phone-positions.json",
+                (await phonePositions.ListAsync(car.Id, ct)).Select(p => new
+                {
+                    p.TrackerId,
+                    p.RecordedAt,
+                    p.Latitude,
+                    p.Longitude,
+                    p.AccuracyM,
+                    p.SpeedKmh,
+                }), ct);
             // One read for every route: the trip editor's lookups per trip would cost a handful of
             // queries each, and a trip that cannot be read must not break the zip half way.
             await foreach (var route in trips.GetRoutesAsync(car.Id, Beginning, end, ct))

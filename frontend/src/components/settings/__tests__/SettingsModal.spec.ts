@@ -385,9 +385,10 @@ describe('SettingsModal appearance', () => {
     await toggle.setValue(false)
     expect(settings.mapBackdrop).toBe(false)
   })
-  describe('keep the screen on', () => {
+  describe('this device', () => {
     afterEach(() => {
       Reflect.deleteProperty(navigator, 'wakeLock')
+      Reflect.deleteProperty(navigator, 'geolocation')
       vi.unstubAllGlobals()
     })
 
@@ -400,6 +401,10 @@ describe('SettingsModal appearance', () => {
       Object.defineProperty(navigator, 'wakeLock', {
         configurable: true,
         value: { request: vi.fn<() => Promise<never>>() },
+      })
+      Object.defineProperty(navigator, 'geolocation', {
+        configurable: true,
+        value: { watchPosition: vi.fn<() => number>(), clearWatch: vi.fn<() => void>() },
       })
     }
 
@@ -417,6 +422,23 @@ describe('SettingsModal appearance', () => {
       runAs(false)
       const { wrapper } = await render()
       expect(panel(wrapper, 'general').find('#footer-toggle-keep-screen-on').exists()).toBe(false)
+      expect(panel(wrapper, 'general').find('#footer-toggle-record-phone-gps').exists()).toBe(false)
+    })
+
+    it('offers recording GPS only once the screen is kept on', async () => {
+      runAs(true)
+      const { wrapper } = await render()
+      const general = panel(wrapper, 'general')
+      const gps = general.get<HTMLInputElement>('#footer-toggle-record-phone-gps')
+      expect(gps.element.disabled).toBe(true)
+      expect(general.text()).toContain(en.settings.phoneGps.needsScreen)
+
+      await general.get('#footer-toggle-keep-screen-on').setValue(true)
+      expect(gps.element.disabled).toBe(false)
+      await gps.setValue(true)
+
+      expect(useUiSettingsStore(pinia).recordPhoneGps).toBe(true)
+      expect(general.text()).not.toContain(en.settings.phoneGps.needsScreen)
     })
   })
 })

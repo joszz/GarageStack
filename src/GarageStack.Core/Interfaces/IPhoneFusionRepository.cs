@@ -15,7 +15,12 @@ public interface IPhoneFusionRepository
     Task SetAsync(int vehicleId, IReadOnlyList<string> trackers, DateTime now, CancellationToken ct);
     Task RequestBackfillAsync(int vehicleId, DateTime from, DateTime until, CancellationToken ct);
     Task QueueBackfillAsync(CancellationToken ct);
-    Task<IReadOnlyList<long>> PendingAsync(DateTime before, int limit, CancellationToken ct);
-    Task<PhoneFusionWork?> ReadWorkAsync(long id, CancellationToken ct);
+    /// <summary>
+    /// Trips ready to fuse: ended before <paramref name="before"/>, with a linked Dawarich tracker
+    /// (only when <paramref name="dawarich"/>, Dawarich being configured) or positions from the app.
+    /// </summary>
+    Task<IReadOnlyList<long>> PendingAsync(DateTime before, int limit, bool dawarich, CancellationToken ct);
+    /// <summary>What fusing the trip needs; its Dawarich trackers only when <paramref name="dawarich"/>.</summary>
+    Task<PhoneFusionWork?> ReadWorkAsync(long id, bool dawarich, CancellationToken ct);
     Task<PhoneFusionOutcome?> CompleteAsync(PhoneFusionWork work, PhoneFusionResult result, DateTime now, CancellationToken ct);
 }
