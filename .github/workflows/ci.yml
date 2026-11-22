@@ -52,6 +52,13 @@ jobs:
         working-directory: frontend
         run: pnpm exec prettier --check src/ e2e/
 
+      # The website in site/ (published by pages.yml) is held to the frontend's own rules.
+      - name: Website lint
+        working-directory: frontend
+        run: |
+          pnpm exec stylelint --config stylelint.config.js "../site/**/*.css"
+          pnpm exec prettier --check --config .prettierrc.json ../site/
+
   frontend-typecheck:
     name: Frontend type-check
     runs-on: ubuntu-latest

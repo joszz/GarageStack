@@ -1,0 +1,59 @@
+name: Website
+
+# Publishes the website in site/ to GitHub Pages: https://joszz.github.io/GarageStack/
+# site/assemble.sh adds the screenshots and icons from where the app keeps them, so retaking the
+# screenshots updates the site too. The CI workflow lints the site on every pull request.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - site/**
+      - documentation/screenshots/**
+      - frontend/public/logo.svg
+      - frontend/public/favicon.ico
+      - frontend/public/apple-touch-icon-180x180.png
+      - .github/workflows/pages.yml
+  workflow_dispatch:
+
+# One deployment at a time, and a running one is never cut off halfway.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  build:
+    name: Build
+    # Forks have no Pages site of this project to publish to.
+    if: github.repository == 'joszz/GarageStack'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Assemble the website
+        run: bash site/assemble.sh _site
+
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: _site
+
+  deploy:
+    name: Deploy
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
