@@ -509,7 +509,7 @@ GarageStack has a read-only endpoint for the [gethomepage.dev](https://gethomepa
 
 Under **Settings > Data & API > Calendar feed**, **Make a calendar link** gives an address a calendar app can subscribe to. **Add to calendar** opens it in the calendar app of the device you are on; elsewhere, paste the link where the app adds a calendar from a URL (Google Calendar: *Other calendars > From URL*). The calendar holds:
 
-- the APK expiry date, as a whole-day event, when [RDW lookups](#the-dutch-registration-rdw) are on and the car has a plate;
+- the APK expiry date, as a whole-day event, when [RDW lookups](#dutch-registration-rdw) are on and the car has a plate;
 - each maintenance item's due date, for items with an interval in months (an item due by distance alone has no date to show);
 - every climate schedule run of the next two weeks.
 

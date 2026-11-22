@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <!-- include head -->
+    <title>Install: GarageStack</title>
+    <meta
+      name="description"
+      content="Install GarageStack with Docker: one all-in-one container, a Docker Compose stack or the Unraid template, on amd64 or arm64."
+    />
+    <link rel="canonical" href="https://joszz.github.io/GarageStack/install.html" />
+    <meta property="og:title" content="Install GarageStack" />
+    <meta
+      property="og:description"
+      content="One all-in-one container, a Docker Compose stack or the Unraid template, on amd64 or arm64."
+    />
+    <meta property="og:url" content="https://joszz.github.io/GarageStack/install.html" />
+  </head>
+  <body>
+    <!-- include header install -->
+
+    <main id="main">
+      <header class="page-head">
+        <div class="container">
+          <h1>Install</h1>
+          <p class="lead">
+            GarageStack runs in Docker on any 64-bit machine: a PC, a NAS, a home server or a
+            Raspberry Pi 4 or 5.
+          </p>
+          <nav class="chips" aria-label="On this page">
+            <a href="#before">Before you start</a>
+            <a href="#all-in-one">One container</a>
+            <a href="#compose">Docker Compose</a>
+            <a href="#unraid">Unraid</a>
+            <a href="#after">After installing</a>
+            <a href="#docs">Documentation</a>
+          </nav>
+        </div>
+      </header>
+
+      <div class="container guide">
+        <section id="before" class="guide-step" aria-labelledby="before-title">
+          <h2 id="before-title">Before you start</h2>
+          <ul class="checklist">
+            <li>
+              A 64-bit host, <code>linux/amd64</code> or <code>linux/arm64</code>. 32-bit ARM is not
+              supported.
+            </li>
+            <li>Docker 23.0 or later, or Podman with Docker Compose compatibility.</li>
+            <li>An MG iSmart account with your car already linked in the official app.</li>
+            <li>Outbound internet access, for the MG servers and the map services.</li>
+          </ul>
+
+          <div class="callout" role="note">
+            <svg class="icon" aria-hidden="true">
+              <use href="assets/icons.svg#triangle-exclamation" />
+            </svg>
+            <div>
+              <p>
+                <strong>One session per MG account.</strong> Signing in anywhere else with the same
+                account, the official MG app included, signs GarageStack out. GarageStack also needs
+                the owner account, so give the MG app a secondary account instead:
+              </p>
+              <ol>
+                <li>
+                  In the MG app, open
+                  <strong>Settings &gt; Account management &gt; Add secondary account</strong>.
+                </li>
+                <li>Invite a second email address and accept the invite on that account.</li>
+                <li>Give the secondary account access to your car.</li>
+                <li>
+                  Use the secondary account in the MG app, and the owner account in GarageStack.
+                </li>
+              </ol>
+            </div>
+          </div>
+        </section>
+
+        <section id="all-in-one" class="guide-step" aria-labelledby="all-in-one-title">
+          <h2 id="all-in-one-title"><span class="step-tag">Option A</span> One container</h2>
+          <p class="text-muted">
+            A single image with everything inside: the web app, PostgreSQL, the MQTT broker and the
+            SAIC gateway. The easiest way to start, and ideal for a NAS.
+          </p>
+          <div class="code-block" data-label="Shell">
+            <pre><code>docker run -d \
+  --name garagestack \
+  -p 8080:80 \
+  -v ./garagestack-data:/data \
+  -e SAIC_USER=your@email.com \
+  -e SAIC_PASSWORD=yourpassword \
+  -e SAIC_REGION=eu \
+  -e CORS_ORIGIN=http://192.168.1.100:8080 \
+  ghcr.io/joszz/garagestack:latest</code></pre>
+          </div>
+          <ul class="checklist">
+            <li>
+              <code>SAIC_REGION</code> is <code>eu</code>, <code>au</code>, <code>tr</code> or
+              <code>br</code>. <code>CORS_ORIGIN</code> is the address you open in your browser.
+            </li>
+            <li>
+              Open port 8080 and sign in with your MG login, or set <code>AUTH_USERNAME</code> and
+              <code>AUTH_PASSWORD</code>, or
+              <a
+                href="https://github.com/joszz/GarageStack/blob/main/documentation/AUTHENTICATION.md"
+                >single sign-on</a
+              >.
+            </li>
+            <li>
+              The database password is made for you on the first start and kept in the data folder.
+            </li>
+            <li>
+              <code>latest</code> is the newest release. Pin a version such as <code>0.25.0</code>
+              to choose when you update.
+            </li>
+          </ul>
+        </section>
+
+        <section id="compose" class="guide-step" aria-labelledby="compose-title">
+          <h2 id="compose-title"><span class="step-tag">Option B</span> Docker Compose</h2>
+          <p class="text-muted">
+            Separate containers for each part, so they update on their own and you can use your own
+            PostgreSQL server. Needs Docker Compose 2.20 or later.
+          </p>
+          <ol class="steps">
+            <li>
+              <h3>Get the compose file</h3>
+              <div class="code-block" data-label="Shell">
+                <pre><code>git clone https://github.com/joszz/garagestack.git
+cd garagestack
+cp .env.example .env</code></pre>
+              </div>
+            </li>
+            <li>
+              <h3>Fill in <code>.env</code></h3>
+              <dl class="var-list">
+                <dt><code>SAIC_USER</code>, <code>SAIC_PASSWORD</code></dt>
+                <dd>Your MG iSmart login.</dd>
+                <dt><code>SAIC_REGION</code></dt>
+                <dd>
+                  <code>eu</code> (the default), <code>au</code>, <code>tr</code> or
+                  <code>br</code>.
+                </dd>
+                <dt><code>CORS_ORIGIN</code></dt>
+                <dd>
+                  The address you open in your browser, such as
+                  <code>http://192.168.1.100:8080</code>.
+                </dd>
+                <dt><code>POSTGRES_PASSWORD</code>, <code>MQTT_BROKER_PASSWORD</code></dt>
+                <dd>Make each with <code>openssl rand -hex 32</code>.</dd>
+              </dl>
+            </li>
+            <li>
+              <h3>Start it</h3>
+              <div class="code-block" data-label="With the bundled PostgreSQL">
+                <pre><code>docker compose --profile bundled-postgres up -d</code></pre>
+              </div>
+              <p class="text-muted">
+                With your own PostgreSQL server, set the <code>POSTGRES_*</code> settings in
+                <code>.env</code> and run <code>docker compose up -d</code>. The app is on port
+                8080.
+              </p>
+            </li>
+          </ol>
+        </section>
+
+        <section id="unraid" class="guide-step" aria-labelledby="unraid-title">
+          <h2 id="unraid-title">
+            <svg class="icon" aria-hidden="true"><use href="assets/icons.svg#box-open" /></svg>
+            Unraid
+          </h2>
+          <p class="text-muted">
+            Find GarageStack in Community Apps and fill in the settings in the template. It runs the
+            all-in-one image, with its data in one folder.
+            <a href="https://github.com/joszz/GarageStack/blob/main/docker/all-in-one/README.md"
+              >The all-in-one image and Unraid</a
+            >
+          </p>
+        </section>
+
+        <section id="after" class="guide-step" aria-labelledby="after-title">
+          <h2 id="after-title">After installing</h2>
+          <ul class="link-grid">
+            <li>
+              <a class="card link-card" href="https://github.com/joszz/GarageStack#https">
+                <span class="icon-tile"
+                  ><svg aria-hidden="true"><use href="assets/icons.svg#lock" /></svg
+                ></span>
+                <span class="link-card-title">HTTPS</span>
+                <span class="text-muted"
+                  >Needed for push notifications and installing it as an app. Reverse proxy examples
+                  included.</span
+                >
+              </a>
+            </li>
+            <li>
+              <a
+                class="card link-card"
+                href="https://github.com/joszz/GarageStack#push-notifications"
+              >
+                <span class="icon-tile"
+                  ><svg aria-hidden="true"><use href="assets/icons.svg#bell" /></svg
+                ></span>
+                <span class="link-card-title">Push notifications</span>
+                <span class="text-muted"
+                  >Make a pair of VAPID keys, and choose per device what to hear about.</span
+                >
+              </a>
+            </li>
+            <li>
+              <a class="card link-card" href="https://github.com/joszz/GarageStack#updating">
+                <span class="icon-tile"
+                  ><svg aria-hidden="true"><use href="assets/icons.svg#tag" /></svg
+                ></span>
+                <span class="link-card-title">Updating</span>
+                <span class="text-muted"
+                  >Pull the new image. The app tells you when a new release is out.</span
+                >
+              </a>
+            </li>
+            <li>
+              <a
+                class="card link-card"
+                href="https://github.com/joszz/GarageStack#backup-and-restore"
+              >
+                <span class="icon-tile"
+                  ><svg aria-hidden="true"><use href="assets/icons.svg#server" /></svg
+                ></span>
+                <span class="link-card-title">Backups</span>
+                <span class="text-muted">What to keep, and how to back it up and restore it.</span>
+              </a>
+            </li>
+          </ul>
+        </section>
+
+        <section id="docs" class="guide-step" aria-labelledby="docs-title">
+          <h2 id="docs-title">Documentation</h2>
+          <ul class="link-grid">
+            <li>
+              <a
+                class="card link-card"
+                href="https://github.com/joszz/GarageStack/blob/main/documentation/CONFIGURATION.md"
+              >
+                <span class="icon-tile"
+                  ><svg aria-hidden="true"><use href="assets/icons.svg#book" /></svg
+                ></span>
+                <span class="link-card-title">Configuration</span>
+                <span class="text-muted">Every setting, with its default.</span>
+              </a>
+            </li>
+            <li>
+              <a
+                class="card link-card"
+                href="https://github.com/joszz/GarageStack/blob/main/documentation/AUTHENTICATION.md"
+              >
+                <span class="icon-tile"
+                  ><svg aria-hidden="true"><use href="assets/icons.svg#user-shield" /></svg
+                ></span>
+                <span class="link-card-title">Signing in</span>
+                <span class="text-muted"
+                  >Single sign-on, the built-in login, and provider examples.</span
+                >
+              </a>
+            </li>
+            <li>
+              <a
+                class="card link-card"
+                href="https://github.com/joszz/GarageStack/blob/main/documentation/HOME_ASSISTANT.md"
+              >
+                <span class="icon-tile"
+                  ><svg aria-hidden="true"><use href="assets/icons.svg#house-signal" /></svg
+                ></span>
+                <span class="link-card-title">Home Assistant</span>
+                <span class="text-muted"
+                  >The car in Home Assistant, through MQTT or an API token.</span
+                >
+              </a>
+            </li>
+            <li>
+              <a class="card link-card" href="https://github.com/joszz/GarageStack#documentation">
+                <span class="icon-tile"
+                  ><svg aria-hidden="true"><use href="assets/icons.svg#github" /></svg
+                ></span>
+                <span class="link-card-title">Everything else</span>
+                <span class="text-muted"
+                  >The full README and the rest of the documentation on GitHub.</span
+                >
+              </a>
+            </li>
+          </ul>
+        </section>
+      </div>
+    </main>
+
+    <!-- include footer -->
+  </body>
+</html>

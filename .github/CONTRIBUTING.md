@@ -66,7 +66,9 @@ GarageStack ships in English, Dutch, Spanish and Brazilian Portuguese. A new lan
 
 ## The website
 
-The project's website, [joszz.github.io/GarageStack](https://joszz.github.io/GarageStack/), is one static page in `site/`: plain HTML, plain CSS on the app's colour tokens, and a small script for the Copy button. It has no build step of its own. `site/assemble.sh` copies it into `_site/` together with the screenshots from `documentation/screenshots/` and the logo and icons from `frontend/public/`, so a retaken screenshot shows up on the site with the next deploy. The **Website** workflow (`.github/workflows/pages.yml`) runs it and publishes to GitHub Pages on every push to `main` that touches those files.
+The project's website, [joszz.github.io/GarageStack](https://joszz.github.io/GarageStack/), is a few static pages in `site/` (home, features, screenshots and install): plain HTML, plain CSS on the app's colour tokens, and a small script that adds a Copy button to each code block. `site/assemble.sh` builds it into `_site/`: it puts the shared parts from `site/partials/` (the `<head>` lines, the top bar and the footer) into each page where it says `<!-- include header features -->`, the second word marking that page's link as the current one, and adds the screenshots from `documentation/screenshots/` and the logo and icons from `frontend/public/`, so a retaken screenshot shows up on the site with the next deploy. The **Website** workflow (`.github/workflows/pages.yml`) runs it and publishes to GitHub Pages on every push to `main` that touches those files.
+
+A new page is a copy of one of the others with its own `<title>`, description, canonical and Open Graph lines, and a link in `site/partials/header.html` and `footer.html`.
 
 To preview a change:
 
