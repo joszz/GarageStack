@@ -137,5 +137,7 @@ Demo mode is the quickest way to see a change working, for a coding agent as muc
 | `FRONTEND_PORT` | `8080` | Host port for the frontend container |
 | `API_PORT` | `5001` | Host port for the API container |
 | `CORS_ORIGIN` | `http://localhost:8080` | Allowed CORS origin |
+| `DEBUG_LOGS` | `false` | `true` logs debug detail from the API |
+| `RATE_LIMIT_GLOBAL_PER_MINUTE` | `2000` | Requests per minute from one address. Higher than a real deployment's 120, so the browser tests can drive several pages at once |
 | `RDW_ENABLED` | `true` in demo mode | `false` leaves out the RDW card, the licence plate field and the seeded RDW notifications. Unlike a real deployment, where it is off unless set, the demo shows it: its stand-in RDW sends nothing anywhere. |
 | `DEMO_SECOND_VEHICLE` | `false` | `true` adds a second car, an MG HS PHEV (`DEMOVIN0000067890`), next to the ZS EV, to try the car picker and notifications that name their car. It shares the first car's telemetry, and its location card stays empty: the demo's positions belong to the first car. |
