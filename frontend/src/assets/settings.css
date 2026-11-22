@@ -272,17 +272,33 @@
 
 /* ── Car colour picker ────────────────────────────────────── */
 
-/* All eight in one row of the settings' control column (20rem). */
-.car-color-swatches {
+/* The swatches, and under them the custom colours while those are chosen. The whole column
+   wide, so the swatches start where the selects in the rows below do. */
+.car-color-picker {
   display: flex;
-  flex-wrap: wrap;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+/* Two rows of five: the neutrals over the colours, the last being the user's own. */
+.car-color-swatches {
+  display: grid;
+  grid-template-columns: repeat(5, 34px);
   gap: 0.4rem;
 }
 
 /* The rings are drawn inside the swatch, not around it: the settings body scrolls, so anything
    outside the first swatch (an outline, a hover zoom) is cut off at the dialog's edge. The chosen
-   swatch gets a text-coloured ring with a gap of card colour between it and the paint. */
+   swatch gets a text-coloured ring with a gap of card colour between it and the paint. The resting
+   ring is light on the dark card and dark on the light one, so black and white keep their edge. */
 .car-color-swatch {
+  --swatch-ring: rgb(255 255 255 / 22%);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 34px;
   height: 34px;
   border-radius: 50%;
@@ -290,8 +306,25 @@
   padding: 0;
   cursor: pointer;
   background: linear-gradient(135deg, var(--swatch-s) 50%, var(--swatch-p) 50%);
-  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 15%);
+  box-shadow: inset 0 0 0 1px var(--swatch-ring);
   transition: box-shadow 0.15s;
+}
+
+[data-theme='light'] .car-color-swatch {
+  --swatch-ring: rgb(0 0 0 / 18%);
+}
+
+/* Custom before a pair is picked: every colour at once. */
+.car-color-swatch--unset {
+  background: conic-gradient(#e53935, #f9b233, #43a047, #1e88e5, #8e24aa, #e53935);
+}
+
+/* White with a dark halo, legible on any paint the user picks. */
+.car-color-swatch__icon {
+  width: 0.85rem;
+  height: 0.85rem;
+  color: #fff;
+  filter: drop-shadow(0 0 1.5px rgb(0 0 0 / 85%));
 }
 
 .car-color-swatch:hover {
@@ -308,6 +341,75 @@
 .car-color-swatch:focus-visible {
   outline: var(--focus-ring);
   outline-offset: -2px;
+}
+
+/* The custom pair: the car in it, and beside it a colour well and its name for each paint, one
+   under the other. */
+.car-color-custom {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.car-color-custom__fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+/* As tall as the two wells, in the silhouette's own proportions (108 by 208). */
+.car-color-preview {
+  flex: none;
+  height: calc(var(--control-height) * 2 + 0.5rem);
+  aspect-ratio: 108 / 208;
+  filter: drop-shadow(0 2px 3px rgb(0 0 0 / 35%));
+}
+
+.car-color-preview .car-svg-body {
+  stroke: var(--car-outline);
+  stroke-width: 1.5;
+  paint-order: stroke;
+}
+
+.car-color-custom__field {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+/* The browser's colour well, sized and framed like a field. Its swatch is drawn by the browser
+   in a box of its own, which only these pseudo-elements reach. */
+.car-color-input {
+  flex: none;
+  width: calc(var(--control-height) * 1.5);
+  height: var(--control-height);
+  padding: 3px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--field-radius);
+  background: var(--field-bg);
+  cursor: pointer;
+}
+
+.car-color-input::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.car-color-input::-webkit-color-swatch {
+  border: none;
+  border-radius: 3px;
+}
+
+.car-color-input::-moz-color-swatch {
+  border: none;
+  border-radius: 3px;
+}
+
+.car-color-input:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 1px;
 }
 
 /* ── API tokens ───────────────────────────────────────────── */

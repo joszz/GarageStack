@@ -639,8 +639,12 @@
       "silver": "Zilver",
       "white": "Parelwit",
       "anthracite": "Antraciet",
+      "black": "Zwart",
       "green": "Groen",
-      "purple": "Paars"
+      "purple": "Paars",
+      "custom": "Eigen kleuren",
+      "primary": "Primaire kleur",
+      "secondary": "Secundaire kleur"
     },
     "dashboard": {
       "cardInfoIcons": "Info-iconen tonen",

@@ -76,6 +76,7 @@ export {
   faMessage,
   faMobileScreen,
   faMoon,
+  faPalette,
   faPenToSquare,
   faPercent,
   faPlug,
