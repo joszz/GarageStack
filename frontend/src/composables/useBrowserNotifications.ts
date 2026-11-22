@@ -1,6 +1,8 @@
 import type { AppNotification } from '@/services/notificationsApi'
 import { useUiSettingsStore } from '@/stores/settingsUi'
 import { notificationCategoryId } from '@/utils/notificationCategories'
+import { useVehicleStore } from '@/stores/vehicle'
+import { titleWithCar } from '@/utils/vehicleLabels'
 
 // The same tag the service worker gives a push, so a newer notice of a kind replaces the last.
 const FALLBACK_TAG = 'garagestack-notification'
@@ -19,6 +21,7 @@ async function hasPushSubscription(): Promise<boolean> {
  */
 export function useBrowserNotifications() {
   const settings = useUiSettingsStore()
+  const vehicles = useVehicleStore()
 
   async function show(notification: AppNotification): Promise<void> {
     if (!('Notification' in window) || Notification.permission !== 'granted') return
@@ -28,11 +31,14 @@ export function useBrowserNotifications() {
     if (await hasPushSubscription()) return
 
     try {
-      new Notification(notification.title, {
-        body: notification.body,
-        icon: '/pwa-192x192.png',
-        tag: notification.category ?? FALLBACK_TAG,
-      })
+      new Notification(
+        titleWithCar(notification.title, vehicles.carLabelFor(notification.vehicleId)),
+        {
+          body: notification.body,
+          icon: '/pwa-192x192.png',
+          tag: notification.category ?? FALLBACK_TAG,
+        },
+      )
     } catch {
       // Some platforms only allow notifications from a service worker.
     }

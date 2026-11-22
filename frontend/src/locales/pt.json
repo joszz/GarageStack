@@ -32,7 +32,8 @@
     "climateSchedules": "Agendamentos de climatização",
     "maintenance": "Manutenção",
     "logs": "Logs",
-    "menuLabel": "Menu"
+    "menuLabel": "Menu",
+    "vehicle": "Carro"
   },
   "chargeHistory": {
     "title": "Histórico de carregamento",

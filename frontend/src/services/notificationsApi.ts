@@ -7,6 +7,8 @@ export interface AppNotification {
   createdAt: string
   isArchived: boolean
   category: string | null
+  /** The car it is about; null for one about the account or the deployment. */
+  vehicleId?: number | null
 }
 
 export const notificationsApi = {

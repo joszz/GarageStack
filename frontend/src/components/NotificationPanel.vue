@@ -9,8 +9,12 @@ import { useErrorMessage } from '@/composables/useErrorMessage'
 import { useEscapeKey } from '@/composables/useEscapeKey'
 import { useDialogFocus } from '@/composables/useDialogFocus'
 import { useConnection } from '@/composables/useConnection'
+import { useVehicleStore } from '@/stores/vehicle'
 
 const PAGE_SIZE = 10
+
+// With more than one car on the account, each notification says which car it is about.
+const vehicleStore = useVehicleStore()
 
 const CATEGORY_ICONS: Record<string, string[]> = {
   'low-tyre': ['fas', 'circle-exclamation'],
@@ -220,6 +224,10 @@ useDialogFocus(panel, () => props.open)
                   <font-awesome-icon :icon="categoryIcon(n.category)" />
                 </div>
                 <div class="notif-item__content">
+                  <span v-if="vehicleStore.carLabelFor(n.vehicleId)" class="notif-item__car">
+                    <font-awesome-icon icon="car" aria-hidden="true" />
+                    {{ vehicleStore.carLabelFor(n.vehicleId) }}
+                  </span>
                   <span class="notif-item__title">{{ n.title }}</span>
                   <span class="notif-item__body">{{ n.body }}</span>
                   <span class="notif-item__time text-muted">{{ relativeTime(n.createdAt) }}</span>

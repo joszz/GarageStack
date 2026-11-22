@@ -32,7 +32,8 @@
     "climateSchedules": "Climate schedules",
     "maintenance": "Maintenance",
     "logs": "Logs",
-    "menuLabel": "Menu"
+    "menuLabel": "Menu",
+    "vehicle": "Car"
   },
   "chargeHistory": {
     "title": "Charge history",

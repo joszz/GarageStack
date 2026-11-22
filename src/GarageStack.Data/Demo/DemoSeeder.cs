@@ -15,14 +15,16 @@ public static class DemoSeeder
 {
     /// <param name="db">The in-memory demo database.</param>
     /// <param name="rdwEnabled">Whether to seed the RDW lookup and its notifications: not when RDW_ENABLED=false.</param>
+    /// <param name="demo">Which cars to seed; the one ZS EV when null.</param>
     /// <param name="ct">Cancels the seeding.</param>
-    public static async Task SeedAsync(AppDbContext db, bool rdwEnabled = true, CancellationToken ct = default)
+    public static async Task SeedAsync(
+        AppDbContext db, bool rdwEnabled = true, DemoOptions? demo = null, CancellationToken ct = default)
     {
         await db.Database.EnsureCreatedAsync(ct);
 
         if (!await db.Vehicles.AnyAsync(ct))
         {
-            db.Vehicles.Add(DemoVehicleRepository.DemoVehicle);
+            db.Vehicles.AddRange((demo ?? new DemoOptions(SecondVehicle: false)).Vehicles);
             await db.SaveChangesAsync(ct);
         }
 

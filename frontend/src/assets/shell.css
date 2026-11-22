@@ -305,6 +305,18 @@
   font-weight: 600;
 }
 
+/* With more than one car the name becomes a picker (VehicleSwitcher). */
+.vehicle-switcher {
+  padding-block: 0.25rem;
+}
+
+.vehicle-switcher__select {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
 .sidebar-online-status,
 .sidebar-user {
   display: flex;
