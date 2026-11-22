@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import type { TripPoint } from '@/services/vehicleApi'
-import { addedStretches, phoneStretches } from '../tripSources'
+import type { Trip, TripPoint } from '@/services/vehicleApi'
+import { addedStretches, hasPhonePoints, phoneStretches, withoutPhonePoints } from '../tripSources'
 
 const point = (latitude: number, source?: TripPoint['source']): TripPoint => ({
   recordedAt: '2026-01-01T10:00:00.000Z',
@@ -73,5 +73,45 @@ describe('addedStretches', () => {
         [52.1, 5],
       ],
     ])
+  })
+})
+
+describe('withoutPhonePoints', () => {
+  const trip = (points: TripPoint[]): Trip => ({
+    index: 0,
+    id: 1,
+    startedAt: '2026-01-01T10:00:00.000Z',
+    endedAt: '2026-01-01T10:30:00.000Z',
+    distanceKm: 10,
+    pointCount: points.length,
+    endLatitude: 52.3,
+    endLongitude: 5,
+    maxSpeedKmh: null,
+    avgMovingSpeedKmh: null,
+    movingSpeedSamples: 0,
+    points,
+  })
+
+  it('keeps the points of the car, a parking spot and an edit', () => {
+    const fused = trip([
+      point(52.0, 'anchored'),
+      point(52.1),
+      point(52.15, 'phone'),
+      point(52.2, 'manual'),
+    ])
+
+    const own = withoutPhonePoints(fused)
+
+    expect(own.points.map((p) => p.latitude)).toEqual([52.0, 52.1, 52.2])
+    // Its own count, so the snapped line found with the phone's points is not reused for it.
+    expect(own.pointCount).toBe(3)
+    expect(hasPhonePoints(fused)).toBe(true)
+    expect(hasPhonePoints(own)).toBe(false)
+  })
+
+  it('hands back the same trip when no phone added to it', () => {
+    const plain = trip([point(52.0), point(52.1)])
+
+    expect(withoutPhonePoints(plain)).toBe(plain)
   })
 })

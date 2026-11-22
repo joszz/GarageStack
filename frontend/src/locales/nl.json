@@ -448,6 +448,8 @@
     "chargingStalls": "laadpunten",
     "fuelStations": "Tankstations",
     "fuelStationsDesc": "Toont tankstations bij jouw locatie.",
+    "phoneGps": "Telefoon-GPS",
+    "phoneGpsDesc": "Voegt de stukken die een telefoon vastlegde (via Dawarich of de app) toe aan de ritten, gestippeld getekend. Uit toont de kaart alleen wat de auto zelf vastlegde.",
     "serviceAreas": "Verzorgingsplaatsen",
     "serviceAreasDesc": "Toont verzorgingsplaatsen op de snelweg bij jouw locatie.",
     "speedCameras": "Flitsers",

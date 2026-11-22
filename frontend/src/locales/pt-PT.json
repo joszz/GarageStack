@@ -448,6 +448,8 @@
     "chargingStalls": "carregadores",
     "fuelStations": "Postos de combustível",
     "fuelStationsDesc": "Mostra os postos de combustível perto da sua posição.",
+    "phoneGps": "GPS do telemóvel",
+    "phoneGpsDesc": "Adiciona às viagens os troços que um telemóvel registou (através do Dawarich ou da aplicação), desenhados a ponteado. Desligado, o mapa mostra só o que o próprio carro registou.",
     "serviceAreas": "Áreas de serviço em autoestradas",
     "serviceAreasDesc": "Mostra áreas de serviço e áreas de descanso em autoestradas perto da sua posição.",
     "speedCameras": "Radares de velocidade",

@@ -131,7 +131,7 @@ A car that reports a position every few minutes leaves gaps a phone can fill. Th
 
   Joining two trips keeps `Fused` when either was fused, and otherwise starts the joined trip over as never looked at. An edited trip is never fused again.
 - **When Dawarich is down.** A rejected key pauses fusion for 30 minutes and logs once; Dawarich not answering its health check pauses it for five. The app's positions wait as well, since fusing a trip without its linked Dawarich tracker would settle it before that phone's points could be added. Answers are capped at 4 MB.
-- **Display.** Phone points are drawn dashed like other points with a source (*Dashed stretches* above), with a key saying so (`PhoneSourceKey`). `phoneFusionAt` is part of a trip log entry, so a trip's cached route is fetched again once it is fused.
+- **Display.** Phone points are drawn dashed like other points with a source (*Dashed stretches* above), with a key saying so (`PhoneSourceKey`). On the map page they are a layer (`phoneGpsEnabled` in the map settings, offered once a loaded trip has phone points): off, `MapView` hands the map each trip through `withoutPhonePoints` (`utils/tripSources.ts`), so the line, the heatmap and the snapped line all follow the car's own fixes, while the sidebar keeps the trips as saved. The copy carries its own `pointCount`, which the snapped-line cache keys on. The demo fuses two of its trips with `TripPhoneFusion` (`DemoTrips.PhoneTrips`), so the dotted stretches and the layer show without a car. `phoneFusionAt` is part of a trip log entry, so a trip's cached route is fetched again once it is fused.
 
 ## The Dutch registration (RDW)
 

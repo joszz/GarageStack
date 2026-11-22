@@ -1,4 +1,4 @@
-import type { TripPoint } from '@/services/vehicleApi'
+import type { Trip, TripPoint } from '@/services/vehicleApi'
 import type { LatLng } from '@/utils/geo'
 
 /** A line drawn through a trip's points, with each point's vertex on it. */
@@ -65,4 +65,21 @@ function sourceStretches(
     runEnd = to
   }
   return runs
+}
+
+/** Whether a phone (Dawarich or the installed app) added any points to the trip. */
+export function hasPhonePoints(trip: Trip): boolean {
+  return trip.points.some((point) => point.source === 'phone')
+}
+
+/**
+ * The trip as the car recorded it, without the points a phone added: what the map draws with its
+ * phone GPS layer off. The same object when there were none, so nothing redraws for it; otherwise
+ * a copy with its own point count, which the snapped-line cache keys on, so the line the matcher
+ * found with the phone's points is not drawn for the trip without them.
+ */
+export function withoutPhonePoints(trip: Trip): Trip {
+  if (!hasPhonePoints(trip)) return trip
+  const points = trip.points.filter((point) => point.source !== 'phone')
+  return { ...trip, points, pointCount: points.length }
 }
