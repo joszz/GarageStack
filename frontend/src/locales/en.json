@@ -644,9 +644,19 @@
       "primary": "Primary colour",
       "secondary": "Secondary colour"
     },
+    "device": {
+      "title": "This device"
+    },
+    "phoneGps": {
+      "label": "Record GPS during drives",
+      "desc": "Sends this phone's location to GarageStack while the app is open on screen, to fill in the gaps between the car's own positions in its trips. Only while GarageStack is in front: a navigation app on top stops it. Positions are kept 30 days.",
+      "needsScreen": "Needs the screen kept on, so the app stays on screen during the drive.",
+      "denied": "Location access is blocked for GarageStack. Allow it in the phone's settings, then switch this on again.",
+      "recording": "Recording the phone's position."
+    },
     "keepScreenOn": {
       "label": "Keep the screen on",
-      "desc": "Stops the screen from dimming or locking while the app is open, for a phone in a holder or a tablet on the wall. Uses more battery. This device only."
+      "desc": "Stops the screen from dimming or locking while the app is open, for a phone in a holder or a tablet on the wall. Uses more battery."
     },
     "dashboard": {
       "cardInfoIcons": "Show info icons",

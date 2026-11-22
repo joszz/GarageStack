@@ -24,11 +24,11 @@ public class PhoneFusionPostgresTests
             [new(TripEdit.Summarize(points), 100, 102)], start.AddHours(1), ct);
         var repo = new PhoneFusionRepository(db, telemetry, NullLogger<PhoneFusionRepository>.Instance);
         await repo.SetAsync(car.Id, ["fake-phone"], start.AddDays(1), ct);
-        Assert.Empty(await repo.PendingAsync(start.AddDays(2), 10, ct));
+        Assert.Empty(await repo.PendingAsync(start.AddDays(2), 10, dawarich: true, ct));
         await repo.RequestBackfillAsync(car.Id, start.AddDays(-1), start.AddDays(1), ct);
         await repo.QueueBackfillAsync(ct);
-        var id = Assert.Single(await repo.PendingAsync(start.AddDays(2), 10, ct));
-        var work = (await repo.ReadWorkAsync(id, ct))!;
+        var id = Assert.Single(await repo.PendingAsync(start.AddDays(2), 10, dawarich: true, ct));
+        var work = (await repo.ReadWorkAsync(id, dawarich: true, ct))!;
         TripPoint[] fused = [points[0], new(start.AddMinutes(1), 52.005, 5, 40, TripPointSource.Phone), points[1]];
         await repo.CompleteAsync(work, new(fused, PhoneFusionOutcome.Fused), start.AddHours(2), ct);
         var trip = await db.Trips.AsNoTracking().SingleAsync(ct);
@@ -38,6 +38,6 @@ public class PhoneFusionPostgresTests
         Assert.Null(trip.OriginalPointsJson);
         await repo.SetAsync(car.Id, [], start.AddDays(1), ct);
         Assert.Empty(await repo.ListAsync(car.Id, ct));
-        Assert.Empty(await repo.PendingAsync(start.AddDays(2), 10, ct));
+        Assert.Empty(await repo.PendingAsync(start.AddDays(2), 10, dawarich: true, ct));
     }
 }

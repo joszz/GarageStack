@@ -136,15 +136,17 @@ describe('settings kept on the account', () => {
     expect(save).toHaveBeenCalledExactlyOnceWith('ui', { locale: 'nl' })
   })
 
-  it('keeps "keep the screen on" on this device, since it suits one screen and not every one', async () => {
-    localStorage.setItem(UI_KEY, JSON.stringify({ keepScreenOn: true }))
-    load.mockResolvedValue({ ui: { theme: 'light', keepScreenOn: false } })
+  it('keeps the screen and GPS settings on this device, since they suit one phone and not every one', async () => {
+    localStorage.setItem(UI_KEY, JSON.stringify({ keepScreenOn: true, recordPhoneGps: true }))
+    load.mockResolvedValue({ ui: { theme: 'light', keepScreenOn: false, recordPhoneGps: false } })
     const ui = useUiSettingsStore()
     await useSettingsSyncStore().start()
 
     expect(ui.keepScreenOn).toBe(true)
+    expect(ui.recordPhoneGps).toBe(true)
 
     ui.keepScreenOn = false
+    ui.recordPhoneGps = false
     ui.locale = 'nl'
     await settle()
 

@@ -5918,6 +5918,114 @@
         ]
       }
     },
+    "/api/vehicles/{vin}/phone-positions": {
+      "post": {
+        "tags": [
+          "Phone GPS"
+        ],
+        "summary": "Store positions the installed app recorded on a phone in the car, to be added to its trips",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PhonePositionsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PhonePositionsStored"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or the API token is unknown or revoked."
+          },
+          "403": {
+            "description": "`token.readOnly`: An API token can only read; sign in to change anything.\n\n`csrf.originNotAllowed`: sent from a page on an address that is not CORS_ORIGIN.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "title": {
+                      "type": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "status": {
+                      "type": [
+                        "null",
+                        "integer"
+                      ],
+                      "format": "int32"
+                    },
+                    "detail": {
+                      "type": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "instance": {
+                      "type": [
+                        "null",
+                        "string"
+                      ]
+                    },
+                    "code": {
+                      "type": "string",
+                      "description": "Why, as a code that stays the same between releases, such as trip.changed. detail says it in English."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests from this address; wait a minute and try again."
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ]
+      }
+    },
     "/api/widget/{vin}/status": {
       "get": {
         "tags": [
@@ -8239,6 +8347,91 @@
           }
         },
         "description": "The earliest date to consider for an explicit historical backfill."
+      },
+      "PhonePositionInput": {
+        "required": [
+          "recordedAt",
+          "latitude",
+          "longitude",
+          "accuracyM",
+          "speedKmh"
+        ],
+        "type": "object",
+        "properties": {
+          "recordedAt": {
+            "type": "string",
+            "description": "When the phone took the fix.",
+            "format": "date-time"
+          },
+          "latitude": {
+            "type": "number",
+            "description": "Degrees, WGS 84.",
+            "format": "double"
+          },
+          "longitude": {
+            "type": "number",
+            "description": "Degrees, WGS 84.",
+            "format": "double"
+          },
+          "accuracyM": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "The phone's stated horizontal accuracy in metres.",
+            "format": "double"
+          },
+          "speedKmh": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "The phone's own speed, in km/h, when it gave one.",
+            "format": "double"
+          }
+        },
+        "description": "One position as the app sends it."
+      },
+      "PhonePositionsRequest": {
+        "required": [
+          "trackerId",
+          "positions"
+        ],
+        "type": "object",
+        "properties": {
+          "trackerId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The random id the app made for itself on the device."
+          },
+          "positions": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/PhonePositionInput"
+            },
+            "description": "At most 500 positions. Those older than 7 days or more than 5 minutes ahead are left out."
+          }
+        },
+        "description": "A batch of positions from one device."
+      },
+      "PhonePositionsStored": {
+        "required": [
+          "stored"
+        ],
+        "type": "object",
+        "properties": {
+          "stored": {
+            "type": "integer",
+            "description": "How many positions were new; a batch sent again stores none.",
+            "format": "int32"
+          }
+        },
+        "description": "What the batch added."
       },
       "PhoneTracker": {
         "required": [
@@ -11150,6 +11343,10 @@
     {
       "name": "Notifications",
       "description": "The alerts the Worker raised, as the bell lists them."
+    },
+    {
+      "name": "Phone GPS",
+      "description": "Positions the installed app records on a phone in the car while it is open on screen, merged into trips like Dawarich's. Kept 30 days. Needs a signed-in session."
     },
     {
       "name": "Push Notifications",

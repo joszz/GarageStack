@@ -1144,7 +1144,7 @@ public partial class AuthenticationFlowTests
         var folder = $"vehicles/{DemoVin}";
         Assert.Contains("export.json", names);
         Assert.Contains("notifications.json", names);
-        foreach (var file in new[] { "vehicle.json", "trips.json", "maintenance.json", "climate-schedules.json", "commute-places.json", "telemetry.csv", "phone-trackers.json" })
+        foreach (var file in new[] { "vehicle.json", "trips.json", "maintenance.json", "climate-schedules.json", "commute-places.json", "telemetry.csv", "phone-trackers.json", "phone-positions.json" })
             Assert.Contains($"{folder}/{file}", names);
 
         using var csv = new StreamReader(zip.GetEntry($"{folder}/telemetry.csv")!.Open());
@@ -1721,6 +1721,52 @@ public partial class AuthenticationFlowTests
         {
             await client.PutAsJsonAsync(path, new { trackerIds = Array.Empty<string>() }, ct);
         }
+    }
+
+    // The installed app's positions: stored once however often a batch is sent, refused when
+    // malformed, and only from a signed-in session, never a read-only token.
+    [Fact]
+    public async Task PhonePositions_AreStoredOnce_AndNeedASession()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var factory = CreatePasswordOnlyFactory();
+        using var client = CreateClient(factory);
+        var path = $"/api/vehicles/{DemoVin}/phone-positions";
+        var now = DateTimeOffset.UtcNow;
+        var batch = new
+        {
+            trackerId = "fake-device-0001",
+            positions = new[]
+            {
+                new { recordedAt = now.AddMinutes(-2), latitude = 52.0, longitude = 5.0, accuracyM = 5.0, speedKmh = 40.0 },
+                new { recordedAt = now.AddMinutes(-1), latitude = 52.005, longitude = 5.0, accuracyM = 5.0, speedKmh = 40.0 },
+            },
+        };
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.PostAsJsonAsync(path, batch, ct)).StatusCode);
+        await PasswordLoginAsync(client, ct);
+
+        var first = await client.PostAsJsonAsync(path, batch, ct);
+        Assert.Equal(new(2), await first.Content.ReadFromJsonAsync<PhonePositionsStored>(ct));
+        var again = await client.PostAsJsonAsync(path, batch, ct);
+        Assert.Equal(new(0), await again.Content.ReadFromJsonAsync<PhonePositionsStored>(ct));
+
+        var badTracker = await client.PostAsJsonAsync(path, batch with { trackerId = "x" }, ct);
+        Assert.Equal(HttpStatusCode.BadRequest, badTracker.StatusCode);
+        Assert.Equal("phone.invalidTracker", (await badTracker.Content.ReadFromJsonAsync<JsonElement>(ct)).GetProperty("code").GetString());
+        var badPosition = await client.PostAsJsonAsync(path, new
+        {
+            batch.trackerId,
+            positions = new[] { new { recordedAt = now, latitude = 95.0, longitude = 5.0, accuracyM = 5.0, speedKmh = 40.0 } },
+        }, ct);
+        Assert.Equal(HttpStatusCode.BadRequest, badPosition.StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound,
+            (await client.PostAsJsonAsync("/api/vehicles/FAKEVN00000000009/phone-positions", batch, ct)).StatusCode);
+
+        var created = await client.PostAsJsonAsync("/api/tokens", new { name = "Phone positions read-only test" }, ct);
+        var token = (await created.Content.ReadFromJsonAsync<JsonElement>(ct)).GetProperty("token").GetString()!;
+        using var bearer = CreateClient(factory, handleCookies: false);
+        bearer.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+        Assert.Equal(HttpStatusCode.Forbidden, (await bearer.PostAsJsonAsync(path, batch, ct)).StatusCode);
     }
 
     // The demo answers for the RDW itself: a plate goes in as typed, comes back as the RDW keys it,

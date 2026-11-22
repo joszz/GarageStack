@@ -4,6 +4,7 @@ import { authApi } from '@/services/authApi'
 import { ApiError } from '@/services/apiCore'
 import { readLastKnownState, saveLastKnownState } from '@/utils/lastKnownState'
 import { readLastVin, rememberVin } from '@/utils/lastVin'
+import { queuePosition, queuedPositions } from '@/utils/phoneGps'
 import type { MeResponse, LoginResponse, AuthConfigResponse } from '@/services/authApi'
 import { useAuthStore } from '@/stores/auth'
 
@@ -139,6 +140,21 @@ describe('useAuthStore', () => {
     await useAuthStore().logout()
 
     expect(readLastVin()).toBeNull()
+  })
+
+  it('logout() forgets the phone positions still waiting to be sent', async () => {
+    queuePosition('FAKEVN00000000001', {
+      recordedAt: '2026-01-01T10:00:00.000Z',
+      latitude: 52,
+      longitude: 5,
+      accuracyM: 5,
+      speedKmh: null,
+    })
+    vi.mocked(authApi.logout).mockResolvedValue(undefined)
+
+    await useAuthStore().logout()
+
+    expect(queuedPositions('FAKEVN00000000001')).toEqual([])
   })
 
   it('logout() calls the API', async () => {

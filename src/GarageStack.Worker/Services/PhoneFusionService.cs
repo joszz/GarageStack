@@ -5,6 +5,10 @@ using GarageStack.Core.Models;
 
 namespace GarageStack.Worker.Services;
 
+/// <summary>
+/// Adds phone positions to saved trips: those of linked Dawarich trackers, when Dawarich is
+/// configured, and those the installed app sent from a phone in the car, which need nothing set up.
+/// </summary>
 public class PhoneFusionService(
     ILogger<PhoneFusionService> logger, IServiceScopeFactory scopes, DawarichOptions options,
     TimeProvider time) : PeriodicBackgroundService(logger)
@@ -17,37 +21,44 @@ public class PhoneFusionService(
     // Failed passes per trip while Dawarich was up. Kept in memory: a restart only gives a trip
     // a few more tries.
     private readonly Dictionary<long, int> _attempts = [];
-    protected override string Name => "Dawarich phone fusion";
+    protected override string Name => "Phone GPS fusion";
     protected override TimeSpan Interval => TimeSpan.FromMinutes(3);
     protected override TimeSpan InitialDelay => TimeSpan.FromMinutes(1);
-
-    protected override Task ExecuteAsync(CancellationToken stoppingToken) =>
-        options.Enabled ? base.ExecuteAsync(stoppingToken) : Task.CompletedTask;
 
     protected override Task RunOnceAsync(CancellationToken ct) => RunPassAsync(ct);
 
     public async Task RunPassAsync(CancellationToken ct)
     {
         var now = time.GetUtcNow();
-        if (!options.Enabled || now < _retryAt) return;
+        // A Dawarich outage pauses the app's positions too: fusing a trip without the Dawarich
+        // tracker linked to it would settle it before that phone's points could be added.
+        if (now < _retryAt) return;
+        var dawarich = options.Enabled;
         using var scope = scopes.CreateScope();
         var repo = scope.ServiceProvider.GetRequiredService<IPhoneFusionRepository>();
         var client = scope.ServiceProvider.GetRequiredService<IDawarichClient>();
-        await repo.QueueBackfillAsync(ct);
-        foreach (var id in await repo.PendingAsync(now.UtcDateTime.AddMinutes(-options.FusionDelayMinutes), BatchSize, ct))
+        var positions = scope.ServiceProvider.GetRequiredService<IPhonePositionRepository>();
+        if (dawarich) await repo.QueueBackfillAsync(ct);
+        foreach (var id in await repo.PendingAsync(now.UtcDateTime.AddMinutes(-options.FusionDelayMinutes), BatchSize, dawarich, ct))
         {
-            var work = await repo.ReadWorkAsync(id, ct);
+            var work = await repo.ReadWorkAsync(id, dawarich, ct);
             if (work is null) continue;
             try
             {
                 var from = work.Parked?.RecordedAt ?? work.Points[0].RecordedAt;
                 if (work.PreviousEnd is { } previous && from < previous) from = previous;
-                var fixes = await client.GetPointsAsync(from, work.Points[^1].RecordedAt, ct);
-                var result = TripPhoneFusion.Apply(work.Points, work.Parked, work.PreviousEnd,
-                    fixes.Where(f => work.Trackers.Any(t => t.TrackerId == f.TrackerId)).ToArray());
+                var to = work.Points[^1].RecordedAt;
+                var fixes = await positions.GetFixesAsync(work.VehicleId, from, to, ct);
+                if (work.Trackers.Count > 0)
+                {
+                    var linked = (await client.GetPointsAsync(from, to, ct))
+                        .Where(f => work.Trackers.Any(t => t.TrackerId == f.TrackerId));
+                    fixes = [.. fixes, .. linked];
+                    if (_badKey) logger.LogInformation("Dawarich authentication recovered");
+                    _badKey = false;
+                }
+                var result = TripPhoneFusion.Apply(work.Points, work.Parked, work.PreviousEnd, fixes);
                 var applied = await repo.CompleteAsync(work, result, now.UtcDateTime, ct);
-                if (_badKey) logger.LogInformation("Dawarich authentication recovered");
-                _badKey = false;
                 _attempts.Remove(id);
                 if (applied is { } outcome)
                     logger.LogInformation("Phone fusion trip {TripId}: {Outcome}, {Added} points added",

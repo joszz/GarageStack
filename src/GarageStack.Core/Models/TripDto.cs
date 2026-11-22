@@ -27,7 +27,7 @@ public enum TripPointSource
     [JsonStringEnumMemberName("manual")]
     Manual,
 
-    /// <summary>Recorded by a linked phone in Dawarich and confirmed against the car.</summary>
+    /// <summary>Recorded by a phone, through Dawarich or the installed app, and confirmed against the car.</summary>
     [JsonStringEnumMemberName("phone")]
     Phone,
 }

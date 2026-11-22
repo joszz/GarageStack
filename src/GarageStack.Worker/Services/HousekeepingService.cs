@@ -1,13 +1,15 @@
 using GarageStack.Core.Configuration;
 using GarageStack.Core.Helpers;
 using GarageStack.Core.Interfaces;
+using GarageStack.Core.Models;
 
 namespace GarageStack.Worker.Services;
 
 /// <summary>
 /// Keeps the database from growing without end. Compacts each vehicle's old telemetry with
 /// <see cref="TelemetryCompactor"/>, and removes cached place names and snapped trips that have
-/// expired, and notifications the user deleted a while ago. Also works out the speed figures of
+/// expired, notifications the user deleted a while ago, and phone positions from the app once
+/// <see cref="PhonePosition.KeptFor"/> has passed. Also works out the speed figures of
 /// trips saved before those were stored with the trip. Cached map POIs stay: the map shows an
 /// expired tile's stations while it fetches the tile again.
 /// </summary>
@@ -65,7 +67,11 @@ public class HousekeepingService(
 
         var expired = await housekeeping.RemoveExpiredCacheEntriesAsync(now - ExpiredCacheGrace, ct);
         var deleted = await housekeeping.RemoveDeletedNotificationsAsync(now - DeletedNotificationsKept, ct);
-        if (expired > 0 || deleted > 0)
-            logger.LogInformation("Housekeeping removed {Expired} expired cache entries and {Deleted} deleted notifications", expired, deleted);
+        var positions = await scope.ServiceProvider.GetRequiredService<IPhonePositionRepository>()
+            .RemoveOlderThanAsync(now - PhonePosition.KeptFor, ct);
+        if (expired > 0 || deleted > 0 || positions > 0)
+            logger.LogInformation(
+                "Housekeeping removed {Expired} expired cache entries, {Deleted} deleted notifications and {Positions} old phone positions",
+                expired, deleted, positions);
     }
 }

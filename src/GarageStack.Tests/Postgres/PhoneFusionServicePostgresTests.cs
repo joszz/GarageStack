@@ -1,3 +1,4 @@
+using GarageStack.Core.Helpers;
 using GarageStack.Core.Interfaces;
 using GarageStack.Core.Models;
 using GarageStack.Data;
@@ -59,6 +60,7 @@ public class PhoneFusionServicePostgresTests
         services.AddDbContext<AppDbContext>(o => o.UseNpgsql(database.ConnectionString));
         services.AddScoped<ITelemetryRepository, TelemetryRepository>();
         services.AddScoped<IPhoneFusionRepository, PhoneFusionRepository>();
+        services.AddScoped<IPhonePositionRepository, PhonePositionRepository>();
         services.AddSingleton<IDawarichClient>(client);
         var provider = services.BuildServiceProvider();
         await using (var scope = provider.CreateAsyncScope())
@@ -168,5 +170,39 @@ public class PhoneFusionServicePostgresTests
         }
 
         Assert.Null(Assert.Single((await TripsAsync(provider, ct)).Values).PhoneFusion);
+    }
+
+    // Without Dawarich, a trip is fused from what the installed app sent from a phone in the car,
+    // which needs no tracker linked. A trip the app sent nothing for is left alone.
+    [Fact]
+    public async Task TheAppsPositionsFuseATripWithoutDawarich()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var client = new Client();
+        var (provider, _, clock, database) = await SetupAsync(client, ct, Start, Later);
+        await using var _ = database;
+        await using var __ = provider;
+        await using (var scope = provider.CreateAsyncScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            db.VehiclePhoneTrackers.RemoveRange(db.VehiclePhoneTrackers);
+            await db.SaveChangesAsync(ct);
+            var positions = PhonePositionBatch.Parse(1, "fake-device-0001",
+                [.. new[] { 0, 1, 2 }.Select(m => new PhonePositionInput(new(Start.AddMinutes(m)), 52 + 0.005 * m, 5, 5, 40))],
+                Start.AddMinutes(3))!;
+            await scope.ServiceProvider.GetRequiredService<IPhonePositionRepository>()
+                .AddAsync(1, "fake-device-0001", positions, ct);
+        }
+        var worker = new PhoneFusionService(NullLogger<PhoneFusionService>.Instance,
+            provider.GetRequiredService<IServiceScopeFactory>(), new(), clock);
+        clock.Now = new(Later.AddHours(1));
+
+        await worker.RunPassAsync(ct);
+
+        Assert.Equal(0, client.Calls);
+        var trips = await TripsAsync(provider, ct);
+        Assert.Equal(PhoneFusionOutcome.Fused, trips[Start].PhoneFusion);
+        Assert.Contains("\"phone\"", trips[Start].PointsJson);
+        Assert.Null(trips[Later].PhoneFusion);
     }
 }

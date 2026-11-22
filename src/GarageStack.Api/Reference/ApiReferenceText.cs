@@ -84,6 +84,7 @@ internal static class ApiReferenceText
         ["Commute places"] = "Home and work places. Trips between them are labelled as commutes, unless someone chose a purpose.",
         ["RDW"] = "The Dutch registration: APK, insurance and recalls. Answers 404 `rdw.disabled` unless RDW_ENABLED is set.",
         ["Dawarich"] = "Phone GPS from Dawarich, merged into trips. Answers 404 `dawarich.disabled` unless Dawarich is configured.",
+        ["Phone GPS"] = "Positions the installed app records on a phone in the car while it is open on screen, merged into trips like Dawarich's. Kept 30 days. Needs a signed-in session.",
         ["Map"] = "Charging stations (Open Charge Map), points of interest, addresses and map matching (OpenStreetMap services), all cached.",
         ["Notifications"] = "The alerts the Worker raised, as the bell lists them.",
         ["Push Notifications"] = "Browser push subscriptions (Web Push).",

@@ -644,9 +644,19 @@
       "primary": "Color principal",
       "secondary": "Color secundario"
     },
+    "device": {
+      "title": "Este dispositivo"
+    },
+    "phoneGps": {
+      "label": "Registrar el GPS durante los trayectos",
+      "desc": "Envía la ubicación de este teléfono a GarageStack mientras la aplicación está abierta en pantalla, para rellenar los huecos entre las posiciones del propio coche en sus trayectos. Solo mientras GarageStack está delante: una aplicación de navegación encima lo detiene. Las posiciones se guardan 30 días.",
+      "needsScreen": "Necesita la pantalla encendida, para que la aplicación siga en pantalla durante el trayecto.",
+      "denied": "El acceso a la ubicación está bloqueado para GarageStack. Permítelo en los ajustes del teléfono y vuelve a activar esto.",
+      "recording": "Registrando la posición del teléfono."
+    },
     "keepScreenOn": {
       "label": "Mantener la pantalla encendida",
-      "desc": "Evita que la pantalla se atenúe o se bloquee mientras la aplicación está abierta, para un teléfono en un soporte o una tableta en la pared. Gasta más batería. Solo en este dispositivo."
+      "desc": "Evita que la pantalla se atenúe o se bloquee mientras la aplicación está abierta, para un teléfono en un soporte o una tableta en la pared. Gasta más batería."
     },
     "dashboard": {
       "cardInfoIcons": "Mostrar iconos de información",

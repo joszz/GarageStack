@@ -85,23 +85,31 @@ public sealed class PhoneFusionRepository(
         finally { db.ChangeTracker.Clear(); }
     }
 
-    public async Task<IReadOnlyList<long>> PendingAsync(DateTime before, int limit, CancellationToken ct) =>
+    // A trip is fused for a Dawarich tracker linked before it started (or any linked one, once a
+    // backfill queued it), or because the app sent positions from a phone during it. The app's
+    // positions need no link: the phone recorded for this car, and the match still decides.
+    public async Task<IReadOnlyList<long>> PendingAsync(DateTime before, int limit, bool dawarich, CancellationToken ct) =>
         await db.Trips.AsNoTracking().Where(t => t.EndedAt <= before && t.EditedAt == null && !t.IsHidden &&
-                (t.PhoneFusion == PhoneFusionOutcome.Pending ||
-                 t.PhoneFusion == null && db.VehiclePhoneTrackers.Any(l => l.VehicleId == t.VehicleId && l.CreatedAt <= t.StartedAt)) &&
-                db.VehiclePhoneTrackers.Any(l => l.VehicleId == t.VehicleId))
+                (t.PhoneFusion == null || t.PhoneFusion == PhoneFusionOutcome.Pending) &&
+                (dawarich && db.VehiclePhoneTrackers.Any(l => l.VehicleId == t.VehicleId &&
+                        (t.PhoneFusion == PhoneFusionOutcome.Pending || l.CreatedAt <= t.StartedAt)) ||
+                    db.PhonePositions.Any(p => p.VehicleId == t.VehicleId && p.RecordedAt >= t.StartedAt && p.RecordedAt <= t.EndedAt)))
             .OrderBy(t => t.EndedAt).Take(limit).Select(t => t.Id).ToListAsync(ct);
 
-    public async Task<PhoneFusionWork?> ReadWorkAsync(long id, CancellationToken ct)
+    public async Task<PhoneFusionWork?> ReadWorkAsync(long id, bool dawarich, CancellationToken ct)
     {
         var trip = await db.Trips.AsNoTracking().SingleOrDefaultAsync(t => t.Id == id && t.EditedAt == null && !t.IsHidden &&
             (t.PhoneFusion == null || t.PhoneFusion == PhoneFusionOutcome.Pending), ct);
         if (trip is null) return null;
-        var links = await db.VehiclePhoneTrackers.AsNoTracking()
-            .Where(l => l.VehicleId == trip.VehicleId &&
-                (trip.PhoneFusion == PhoneFusionOutcome.Pending || l.CreatedAt <= trip.StartedAt))
-            .ToListAsync(ct);
-        if (links.Count == 0) return null;
+        var links = dawarich
+            ? await db.VehiclePhoneTrackers.AsNoTracking()
+                .Where(l => l.VehicleId == trip.VehicleId &&
+                    (trip.PhoneFusion == PhoneFusionOutcome.Pending || l.CreatedAt <= trip.StartedAt))
+                .ToListAsync(ct)
+            : [];
+        if (links.Count == 0 && !await db.PhonePositions.AnyAsync(p => p.VehicleId == trip.VehicleId &&
+                p.RecordedAt >= trip.StartedAt && p.RecordedAt <= trip.EndedAt, ct))
+            return null;
         List<TripPoint>? points;
         try { points = JsonSerializer.Deserialize<List<TripPoint>>(trip.PointsJson); }
         catch (JsonException)

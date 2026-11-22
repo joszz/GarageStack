@@ -12,6 +12,9 @@ test('serves the security headers on the app page itself', async ({ page }) => {
   expect(headers['content-security-policy']).toContain("default-src 'none'")
   expect(headers['x-frame-options']).toBe('DENY')
   expect(headers['x-content-type-options']).toBe('nosniff')
+  // Location for the page itself, which records phone GPS during a drive, and nothing it embeds.
+  expect(headers['permissions-policy']).toContain('geolocation=(self)')
+  expect(headers['permissions-policy']).toContain('camera=()')
 })
 
 test('renders the dashboard within the policy', async ({ page, cspViolations }) => {

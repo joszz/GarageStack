@@ -35,11 +35,11 @@ public class PhoneFusionRepositoryPostgresTests
         var id = await SeedAsync(db, ct);
         var repo = Phones(db);
         await repo.SetAsync(1, ["fake-phone"], Start.AddDays(1), ct);
-        Assert.Empty(await repo.PendingAsync(Start.AddDays(2), 10, ct));
+        Assert.Empty(await repo.PendingAsync(Start.AddDays(2), 10, dawarich: true, ct));
         await repo.RequestBackfillAsync(1, Start.AddDays(-1), Start.AddDays(1), ct);
         await repo.QueueBackfillAsync(ct);
-        Assert.Empty(await repo.PendingAsync(Start.AddMinutes(1), 10, ct));
-        Assert.Equal([id], await repo.PendingAsync(Start.AddDays(2), 10, ct));
+        Assert.Empty(await repo.PendingAsync(Start.AddMinutes(1), 10, dawarich: true, ct));
+        Assert.Equal([id], await repo.PendingAsync(Start.AddDays(2), 10, dawarich: true, ct));
         Assert.Empty(await db.PhoneBackfillRequests.ToListAsync(ct));
     }
 
@@ -52,7 +52,7 @@ public class PhoneFusionRepositoryPostgresTests
         var id = await SeedAsync(db, ct);
         var repo = Phones(db);
         await repo.SetAsync(1, ["fake-phone"], Start.AddDays(-1), ct);
-        var work = (await repo.ReadWorkAsync(id, ct))!;
+        var work = (await repo.ReadWorkAsync(id, dawarich: true, ct))!;
         TripPoint[] fused = [Points[0], new(Start.AddMinutes(1), 52.005, 5, 40, TripPointSource.Phone), Points[1]];
         await repo.CompleteAsync(work, new(fused, PhoneFusionOutcome.Fused), Start.AddHours(1), ct);
         var row = await db.Trips.AsNoTracking().SingleAsync(ct);
@@ -76,9 +76,9 @@ public class PhoneFusionRepositoryPostgresTests
         var id = await SeedAsync(db, ct);
         var repo = Phones(db);
         await repo.SetAsync(1, ["fake-phone"], Start.AddDays(-1), ct);
-        var work = (await repo.ReadWorkAsync(id, ct))!;
+        var work = (await repo.ReadWorkAsync(id, dawarich: true, ct))!;
         await repo.CompleteAsync(work, new(Points, PhoneFusionOutcome.NoMatch), Start, ct);
-        Assert.Null(await repo.ReadWorkAsync(id, ct));
+        Assert.Null(await repo.ReadWorkAsync(id, dawarich: true, ct));
         Assert.Null(await repo.CompleteAsync(work, new(Points, PhoneFusionOutcome.Failed), Start, ct));
         Assert.Equal(PhoneFusionOutcome.NoMatch, (await db.Trips.SingleAsync(ct)).PhoneFusion);
     }
@@ -101,7 +101,7 @@ public class PhoneFusionRepositoryPostgresTests
         await db.SaveChangesAsync(ct);
         var repo = Phones(db);
         await repo.SetAsync(1, ["fake-phone"], Start.AddDays(-2), ct);
-        var work = (await repo.ReadWorkAsync(id, ct))!;
+        var work = (await repo.ReadWorkAsync(id, dawarich: true, ct))!;
         Assert.NotNull(work.Parked);
         Assert.True(work.Parked.RecordedAt > Start.AddMinutes(-5));
         Assert.Equal(51.99, work.Parked.Latitude);
@@ -116,7 +116,7 @@ public class PhoneFusionRepositoryPostgresTests
         var id = await SeedAsync(db, ct);
         var repo = Phones(db);
         await repo.SetAsync(1, ["fake-phone"], Start.AddDays(-1), ct);
-        var work = (await repo.ReadWorkAsync(id, ct))!;
+        var work = (await repo.ReadWorkAsync(id, dawarich: true, ct))!;
         await repo.SetAsync(1, [], Start.AddDays(1), ct);
         await repo.SetAsync(1, ["fake-phone"], Start.AddDays(1), ct);
         await repo.CompleteAsync(work, new(Points, PhoneFusionOutcome.Fused), Start.AddDays(1), ct);
@@ -151,7 +151,7 @@ public class PhoneFusionRepositoryPostgresTests
         var id = await SeedAsync(db, ct);
         var repo = Phones(db);
         await repo.SetAsync(1, ["fake-phone"], Start.AddDays(-1), ct);
-        var work = (await repo.ReadWorkAsync(id, ct))!;
+        var work = (await repo.ReadWorkAsync(id, dawarich: true, ct))!;
         await repo.SetAsync(1, [], Start, ct);
         await repo.CompleteAsync(work, new(Points, PhoneFusionOutcome.Fused), Start, ct);
         Assert.Equal(PhoneFusionOutcome.NotLinked, (await db.Trips.SingleAsync(ct)).PhoneFusion);
@@ -160,7 +160,7 @@ public class PhoneFusionRepositoryPostgresTests
         trip.EditedAt = Start;
         trip.PhoneFusion = PhoneFusionOutcome.Pending;
         await db.SaveChangesAsync(ct);
-        Assert.Empty(await repo.PendingAsync(Start.AddDays(1), 10, ct));
+        Assert.Empty(await repo.PendingAsync(Start.AddDays(1), 10, dawarich: true, ct));
         await repo.CompleteAsync(work, new(Points, PhoneFusionOutcome.Fused), Start, ct);
         Assert.Equal(PhoneFusionOutcome.Pending, (await db.Trips.SingleAsync(ct)).PhoneFusion);
     }
