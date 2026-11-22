@@ -38,7 +38,7 @@ internal static class DemoTrips
     public const double CurrentOdometerKm = 24852;
 
     private static readonly Lazy<IReadOnlyList<TripDto>> _all =
-        new(() => [.. BuildTrips().OrderBy(t => t.StartedAt).Select((t, i) => t with { Index = i })],
+        new(() => [.. BuildTrips().Select(WithPhone).OrderBy(t => t.StartedAt).Select((t, i) => t with { Index = i })],
             LazyThreadSafetyMode.ExecutionAndPublication);
 
     /// <summary>Every demo trip, oldest first, ending with the one in progress.</summary>
@@ -67,6 +67,36 @@ internal static class DemoTrips
     {
         [4] = "Client meeting",
     };
+
+    // Trips a phone travelled in, fused as the Worker fuses them (Dawarich or the installed app),
+    // so the map's dotted phone stretches and its Phone GPS layer show in the demo too.
+    private static readonly HashSet<long> PhoneTrips = [4, 10];
+
+    /// <summary>
+    /// What a phone in the car would have logged on a trip: a fix at each of the car's own, and one
+    /// halfway to the next, which is where the car has nothing and the phone fills the gap.
+    /// </summary>
+    internal static IEnumerable<PhoneFix> PhoneFixes(IEnumerable<TripPoint> points, string trackerId)
+    {
+        TripPoint? before = null;
+        foreach (var p in points.Where(p => p.Source is null))
+        {
+            if (before is not null)
+                yield return new(before.RecordedAt + (p.RecordedAt - before.RecordedAt) / 2,
+                    (before.Latitude + p.Latitude) / 2, (before.Longitude + p.Longitude) / 2, 5, p.Speed, trackerId);
+            yield return new(p.RecordedAt, p.Latitude, p.Longitude, 5, p.Speed, trackerId);
+            before = p;
+        }
+    }
+
+    private static TripDto WithPhone(TripDto trip)
+    {
+        if (trip.Id is not { } id || !PhoneTrips.Contains(id)) return trip;
+        var result = TripPhoneFusion.Apply(trip.Points, null, null, [.. PhoneFixes(trip.Points, "demo-phone")]);
+        return result.Outcome == PhoneFusionOutcome.Fused
+            ? trip with { Points = result.Points, PointCount = result.Points.Count }
+            : throw new InvalidOperationException($"Demo trip {id} found no phone to fuse.");
+    }
 
     // Roads wind between the fixes a trip is drawn from, so the odometer covers a little more
     // ground than the straight lines through them. The demo history drives the same distance.

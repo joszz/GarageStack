@@ -399,6 +399,21 @@ public class TripEditorRepositoryTests
         Assert.NotNull(merged.AvgMovingSpeedKmh);
     }
 
+    // A phone travelled in two demo trips, fused as the Worker would, so the map's dotted phone
+    // stretches and its Phone GPS layer have something to show without a car.
+    [Fact]
+    public async Task Demo_HasPhoneStretches_OnTheTripsAPhoneTravelledIn()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var trips = await new DemoTripRepository().GetTripsAsync(1, DateTime.UtcNow.AddDays(-60), DateTime.UtcNow, ct);
+
+        var withPhone = trips.Where(t => t.Points.Any(p => p.Source == TripPointSource.Phone)).ToList();
+
+        Assert.Equal([4L, 10L], withPhone.Select(t => t.Id!.Value).Order());
+        Assert.All(withPhone, t => Assert.Equal(t.Points.Count, t.PointCount));
+        Assert.All(withPhone, t => Assert.True(t.Points.Count(p => p.Source is null) >= 2));
+    }
+
     [Fact]
     public async Task Demo_RefusesWhatTheRealRepositoryRefuses()
     {

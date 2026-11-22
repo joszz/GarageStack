@@ -448,6 +448,8 @@
     "chargingStalls": "stalls",
     "fuelStations": "Fuel stations",
     "fuelStationsDesc": "Shows fuel stations near your position.",
+    "phoneGps": "Phone GPS",
+    "phoneGpsDesc": "Adds the stretches a phone recorded (through Dawarich or the app) to the trips, drawn dotted. Off, the map shows only what the car recorded itself.",
     "serviceAreas": "Motorway service areas",
     "serviceAreasDesc": "Shows motorway service areas and rest stops near your position.",
     "speedCameras": "Speed cameras",

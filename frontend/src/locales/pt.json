@@ -448,6 +448,8 @@
     "chargingStalls": "carregadores",
     "fuelStations": "Postos de combustível",
     "fuelStationsDesc": "Mostra os postos de combustível perto da sua posição.",
+    "phoneGps": "GPS do celular",
+    "phoneGpsDesc": "Adiciona às viagens os trechos que um celular registrou (pelo Dawarich ou pelo app), desenhados pontilhados. Desligado, o mapa mostra só o que o próprio carro registrou.",
     "serviceAreas": "Áreas de serviço em rodovias",
     "serviceAreasDesc": "Mostra áreas de serviço e pontos de parada em rodovias perto da sua posição.",
     "speedCameras": "Radares de velocidade",

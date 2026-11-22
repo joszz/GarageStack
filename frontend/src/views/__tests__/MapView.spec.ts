@@ -6,6 +6,8 @@ import { createI18n } from 'vue-i18n'
 import en from '@/locales/en.json'
 import nl from '@/locales/nl.json'
 import MapView from '../MapView.vue'
+import MapLayerPanel from '@/components/map/MapLayerPanel.vue'
+import { useMapSettingsStore } from '@/stores/settingsMap'
 import { vehicleApi, type TelemetrySnapshot, type Trip, type Vehicle } from '@/services/vehicleApi'
 import type { Place } from '@/services/mapApi'
 import type { TripMatch } from '@/composables/useTripMatch'
@@ -432,6 +434,51 @@ describe('MapView', () => {
 
     expect(requestMatch).toHaveBeenLastCalledWith(expect.objectContaining({ index: 2 }))
     expect(wrapper.find('.map-pill').text()).toBe('Snapped · 12.4 km')
+  })
+
+  it("leaves a phone's points off the map with its layer off, and offers the layer only then", async () => {
+    const fused: Trip = {
+      ...trip(1),
+      pointCount: 3,
+      points: [
+        trip(1).points[0]!,
+        {
+          recordedAt: trip(1).points[0]!.recordedAt,
+          latitude: 52.05,
+          longitude: 5.05,
+          speed: null,
+          source: 'phone',
+        },
+        trip(1).points[1]!,
+      ],
+    }
+    vi.mocked(vehicleApi.trips).mockResolvedValue([trip(0), fused, trip(2)])
+    const wrapper = await mountView()
+    const drawn = () => tripLayerOptions.trips.value
+
+    expect(wrapper.findComponent(MapLayerPanel).props('phoneGpsAvailable')).toBe(true)
+    expect(drawn()[1]!.points).toHaveLength(3)
+    await sidebar(wrapper).findAll('li')[1]!.trigger('click')
+    expect(wrapper.text()).toContain(en.dawarich.phonePoints)
+
+    useMapSettingsStore(pinia).phoneGpsEnabled = false
+    await flushPromises()
+
+    expect(drawn()[1]!.points.map((p) => p.latitude)).toEqual([52, 52.1])
+    expect(drawn()[0]).toBe(useVehicleStore(pinia).trips[0])
+    // The selected trip is snapped as the car recorded it, and the key for dotted points goes.
+    expect(requestMatch).toHaveBeenLastCalledWith(
+      expect.objectContaining({ index: 1, pointCount: 2 }),
+    )
+    expect(wrapper.text()).not.toContain(en.dawarich.phonePoints)
+    // The sidebar keeps the trip as saved.
+    expect(useVehicleStore(pinia).trips[1]!.points).toHaveLength(3)
+  })
+
+  it('does not offer the phone GPS layer when no phone added to any trip', async () => {
+    const wrapper = await mountView()
+
+    expect(wrapper.findComponent(MapLayerPanel).props('phoneGpsAvailable')).toBe(false)
   })
 
   it('takes the request to open on the newest trip off the address once it has it', async () => {

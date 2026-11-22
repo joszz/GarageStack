@@ -19,6 +19,8 @@ interface MapSettings {
   fuelTypeFilter: string[]
   serviceAreasEnabled: boolean
   speedCamerasEnabled: boolean
+  /** Whether the map draws the points a phone added to trips (dotted); off, only the car's own. */
+  phoneGpsEnabled: boolean
   /**
    * Whether the speed key on the map is open; null until it is opened or folded here, when it
    * follows the screen. Kept per device, as a phone's map is too short for what suits a desktop.
@@ -43,6 +45,7 @@ function defaultsFor(): MapSettings {
     fuelTypeFilter: [],
     serviceAreasEnabled: false,
     speedCamerasEnabled: false,
+    phoneGpsEnabled: true,
     legendExpanded: null,
   }
 }
@@ -72,6 +75,8 @@ function parseMapFields(parsed: Record<string, unknown>): MapSettings {
       : [],
     serviceAreasEnabled: parsed.serviceAreasEnabled === true,
     speedCamerasEnabled: parsed.speedCamerasEnabled === true,
+    // On unless switched off, as the map drew phone points before this was a layer.
+    phoneGpsEnabled: parsed.phoneGpsEnabled !== false,
     legendExpanded: typeof parsed.legendExpanded === 'boolean' ? parsed.legendExpanded : null,
   }
 }

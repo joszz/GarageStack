@@ -12,6 +12,8 @@ const props = defineProps<{
   carTakesCharge: boolean
   /** False when the deployment does not serve the speed camera layer. */
   speedCamerasAvailable: boolean
+  /** True once a phone (Dawarich or the installed app) added points to one of the trips. */
+  phoneGpsAvailable: boolean
 }>()
 
 const { t } = useI18n()
@@ -25,6 +27,7 @@ const {
   speedCamerasEnabled,
   fuelStationsEnabled,
   chargingStationsEnabled,
+  phoneGpsEnabled,
 } = storeToRefs(useMapSettingsStore())
 
 // The badge on the panel's button: the layers that are on and would show.
@@ -40,6 +43,7 @@ const activeCount = computed(() => {
     props.speedCamerasAvailable && speedCamerasEnabled.value,
     props.carTakesFuel && fuelStationsEnabled.value,
     props.carTakesCharge && chargingStationsEnabled.value,
+    props.phoneGpsAvailable && phoneGpsEnabled.value,
   ]
   return active.filter(Boolean).length
 })
@@ -79,6 +83,15 @@ const activeCount = computed(() => {
       :label="t('trips.speedLimitOverlay')"
       :desc="t('trips.speedLimitOverlayDesc')"
       icon="gauge-high"
+    />
+    <!-- Only once a phone has added points to a trip: without a location service there is
+         nothing to leave out. -->
+    <SettingsToggle
+      v-if="phoneGpsAvailable"
+      v-model="phoneGpsEnabled"
+      :label="t('trips.phoneGps')"
+      :desc="t('trips.phoneGpsDesc')"
+      icon="mobile-screen"
     />
     <SettingsToggle
       v-model="serviceAreasEnabled"

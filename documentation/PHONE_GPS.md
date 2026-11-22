@@ -98,8 +98,10 @@ Without an anchor, recovery uses the same car-derived departure estimate as star
 not the entire time the car was parked. This deliberately excludes unrelated phone movements
 earlier in a long stop, even if they started near the car.
 Phone stretches appear as purple dots on the maps, with a legend, and the trip detail shows
-a phone GPS badge. The route editor can remove phone points. Reset restores the fused route
-as recorded, not the sparse route from before fusion.
+a phone GPS badge. On the map page, the **Phone GPS** switch under **Layers** (offered once a
+phone has added points to a trip) leaves them out, so the map shows only what the car recorded
+itself; the trips themselves keep them. The route editor can remove phone points. Reset
+restores the fused route as recorded, not the sparse route from before fusion.
 
 ## Older trips and retries
 

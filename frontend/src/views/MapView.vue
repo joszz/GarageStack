@@ -41,6 +41,7 @@ import { useReconnect } from '@/composables/useReconnect'
 import { useConnection } from '@/composables/useConnection'
 import { burnsFuel, plugsIn } from '@/utils/vehicleType'
 import { latLngsOf } from '@/utils/geo'
+import { hasPhonePoints, withoutPhonePoints } from '@/utils/tripSources'
 import ViewHeader from '@/components/ViewHeader.vue'
 
 const { t } = useI18n()
@@ -56,7 +57,13 @@ const uiSettingsStore = useUiSettingsStore()
 const vin = computed(() => store.activeVin)
 const status = computed(() => store.currentStatus)
 const location = computed(() => carLocation(store.activeVehicle, status.value))
-const trips = computed(() => store.trips)
+// Phone GPS is a layer: off, the map draws every trip as the car recorded it, without the points
+// a phone (Dawarich or the installed app) added. The sidebar keeps the trips as saved. Offered
+// only once a phone added something to one of them.
+const phoneGpsAvailable = computed(() => store.trips.some(hasPhonePoints))
+const trips = computed(() =>
+  settingsStore.phoneGpsEnabled ? store.trips : store.trips.map(withoutPhonePoints),
+)
 const vehicleType = computed(() => store.effectiveVehicleType)
 // Which of the two cars' rows either panel offers. Until vehicleType resolves from 'unknown',
 // neither flag is true, so both cars' layer rows and both their filters would appear and then
@@ -155,7 +162,7 @@ const activeCarLatLng = computed<[number, number] | null>(() => {
   const s = status.value
   if (s?.latitude != null && s?.longitude != null) return [s.latitude, s.longitude]
   const idx = activeTripIndex.value
-  const trip = idx !== null ? store.trips[idx] : undefined
+  const trip = idx !== null ? trips.value[idx] : undefined
   const last = trip?.points[trip.points.length - 1]
   return last ? [last.latitude, last.longitude] : null
 })
@@ -167,7 +174,7 @@ const activeCarLatLng = computed<[number, number] | null>(() => {
 const { requestMatch, matchFor, snapEnabled, matching: tripMatching } = useTripMatch()
 
 const selectedTrip = computed<Trip | null>(() =>
-  selectedTripIndex.value === null ? null : (store.trips[selectedTripIndex.value] ?? null),
+  selectedTripIndex.value === null ? null : (trips.value[selectedTripIndex.value] ?? null),
 )
 const selectedMatch = computed(() => matchFor(selectedTrip.value))
 
@@ -198,7 +205,7 @@ watch(
  * that have been selected at some point and cuts corners like the raw fixes do for the rest.
  */
 const heatLines = computed<[number, number][][]>(() =>
-  store.trips.map((trip) => matchFor(trip)?.coordinates ?? latLngsOf(trip.points)),
+  trips.value.map((trip) => matchFor(trip)?.coordinates ?? latLngsOf(trip.points)),
 )
 
 const heatPoints = computed(() => distanceWeightedSamples(heatLines.value, MAX_HEATMAP_POINTS))
@@ -221,9 +228,10 @@ const limitColoursShown = computed(
   () => (speedLimitSummaryOfTrip.value?.knownKm ?? 0) > 0 && selectedMatch.value !== null,
 )
 
-// Points a phone logged (Dawarich) are drawn dotted, which the legend explains.
-const tripHasPhonePoints = computed(
-  () => selectedTrip.value?.points.some((point) => point.source === 'phone') ?? false,
+// Points a phone logged (Dawarich or the app) are drawn dotted, which the legend explains. With
+// the layer off the selected trip has none, so the key goes with them.
+const tripHasPhonePoints = computed(() =>
+  selectedTrip.value ? hasPhonePoints(selectedTrip.value) : false,
 )
 
 // Every key the map shows sits in one legend behind one button. A phone's map is too short to
@@ -412,6 +420,7 @@ onMounted(async () => {
           :car-takes-fuel="carTakesFuel"
           :car-takes-charge="carTakesCharge"
           :speed-cameras-available="speedCamerasAvailable"
+          :phone-gps-available="phoneGpsAvailable"
         />
         <button class="btn btn-outline-secondary" :disabled="!location" @click="flyToStatus">
           <font-awesome-icon icon="location-dot" />
