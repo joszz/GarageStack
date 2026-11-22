@@ -1,0 +1,383 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <!-- include head -->
+    <title>Features: GarageStack</title>
+    <meta
+      name="description"
+      content="What GarageStack does for your MG: a live dashboard, every trip on a map, a trip log, charge history, remote control, climate schedules, notifications and more."
+    />
+    <link rel="canonical" href="https://joszz.github.io/GarageStack/features.html" />
+    <meta property="og:title" content="GarageStack features" />
+    <meta
+      property="og:description"
+      content="A live dashboard, every trip on a map, a trip log, charge history, remote control and notifications for your MG."
+    />
+    <meta property="og:url" content="https://joszz.github.io/GarageStack/features.html" />
+  </head>
+  <body>
+    <!-- include header features -->
+
+    <main id="main">
+      <header class="page-head">
+        <div class="container">
+          <h1>Features</h1>
+          <p class="lead">
+            GarageStack signs in to the SAIC iSmart API, the same backend the official MG app uses,
+            and turns what your car reports into something worth opening.
+          </p>
+          <nav class="chips" aria-label="On this page">
+            <a href="#dashboard">Dashboard</a>
+            <a href="#map">Map</a>
+            <a href="#trip-log">Trip log</a>
+            <a href="#charging">Charging</a>
+            <a href="#control">Remote control</a>
+            <a href="#notifications">Notifications</a>
+            <a href="#maintenance">Maintenance</a>
+            <a href="#app">The app</a>
+            <a href="#homelab">Homelab</a>
+            <a href="#privacy">Privacy</a>
+          </nav>
+        </div>
+      </header>
+
+      <section id="dashboard" class="feature-section">
+        <div class="container feature-row">
+          <a class="feature-shot" href="screenshots/desktop-dashboard.webp">
+            <img
+              class="shot"
+              src="screenshots/desktop-dashboard.webp"
+              alt="The dashboard: the car on the road with its speed, tyre pressures and charge, a map of where it is, and cards for the battery, range, doors, windows, climate and today's driving"
+              width="1280"
+              height="800"
+            />
+          </a>
+          <div class="feature-text">
+            <h2>See the car at a glance</h2>
+            <p class="text-muted">
+              One live dashboard, with the cards that fit your hybrid, plug-in hybrid or full
+              electric car.
+            </p>
+            <ul class="checklist">
+              <li>Fuel, battery, range, tyre pressures, doors, windows, lights and climate.</li>
+              <li>Reorder and hide the cards, and draw the car in its own colour.</li>
+              <li>
+                Tap a tyre for a month of pressures; a tyre falling behind the others is flagged as
+                a slow puncture.
+              </li>
+              <li>Walking directions to where the car is parked.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section id="map" class="feature-section">
+        <div class="container feature-row">
+          <a class="feature-shot" href="screenshots/desktop-map-trip.webp">
+            <img
+              class="shot"
+              src="screenshots/desktop-map-trip.webp"
+              alt="One trip from Amsterdam to Utrecht, snapped to the roads and coloured green where it kept to the speed limit and red where it went over"
+              width="1280"
+              height="800"
+              loading="lazy"
+            />
+          </a>
+          <div class="feature-text">
+            <h2>Every drive on a map</h2>
+            <p class="text-muted">
+              Trips are saved by themselves a few minutes after the car parks, and named by where
+              they went.
+            </p>
+            <ul class="checklist">
+              <li>Drawn along the roads you took, over a heatmap of the roads you drive most.</li>
+              <li>Coloured by speed, or against the speed limits along the way.</li>
+              <li>
+                Charging stations, fuel stations, service areas and speed cameras as map layers.
+              </li>
+              <li>Fill gaps in a trip with your phone's GPS from Dawarich.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section id="trip-log" class="feature-section">
+        <div class="container feature-row">
+          <a class="feature-shot" href="screenshots/desktop-trip-log.webp">
+            <img
+              class="shot"
+              src="screenshots/desktop-trip-log.webp"
+              alt="The trip log: totals per purpose, a compact list of trips with their purpose, times, addresses and distance, and beside it the selected trip's details with its route on a map"
+              width="1280"
+              height="800"
+              loading="lazy"
+            />
+          </a>
+          <div class="feature-text">
+            <h2>A trip log for the taxman</h2>
+            <p class="text-muted">
+              The addresses and odometer readings a tax trip log asks for, kept for you.
+            </p>
+            <ul class="checklist">
+              <li>
+                Mark trips as business, commute or private; commutes between home and work mark
+                themselves.
+              </li>
+              <li>Add notes, hide a GPS glitch, and join two trips a fuel stop split.</li>
+              <li>Fix a route the car recorded badly, right on the map.</li>
+              <li>Export a month or a year as a spreadsheet.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section id="charging" class="feature-section">
+        <div class="container feature-row">
+          <a class="feature-shot" href="screenshots/desktop-charge-history.webp">
+            <img
+              class="shot"
+              src="screenshots/desktop-charge-history.webp"
+              alt="The charge history: a list of AC and DC sessions with their charge levels, peak power and energy, the newest one opened on its charging power curve"
+              width="1280"
+              height="800"
+              loading="lazy"
+            />
+          </a>
+          <div class="feature-text">
+            <h2>Charging and energy</h2>
+            <p class="text-muted">Every charge, and how far each one took you.</p>
+            <ul class="checklist">
+              <li>Sessions with their duration, state of charge, energy gained and peak power.</li>
+              <li>
+                The power curve of each charge, where it charged, and the consumption since the one
+                before.
+              </li>
+              <li>
+                Statistics on energy and fuel use, efficiency and electric share, from a week to
+                several years.
+              </li>
+              <li>Kilometres or miles, L/100 km or mpg, Celsius or Fahrenheit.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section id="control" class="feature-section">
+        <div class="container feature-row">
+          <a class="feature-shot" href="screenshots/desktop-climate-schedules.webp">
+            <img
+              class="shot"
+              src="screenshots/desktop-climate-schedules.webp"
+              alt="The climate schedules: a weekday schedule at 07:30 with seat heating, and a one-off front defrost at 08:15, each with when it runs next"
+              width="1280"
+              height="800"
+              loading="lazy"
+            />
+          </a>
+          <div class="feature-text">
+            <h2>Control it from anywhere</h2>
+            <p class="text-muted">
+              Every command reports whether the car carried it out, and if not, why.
+            </p>
+            <ul class="checklist">
+              <li>
+                Pre-condition the cabin, lock or unlock, open the boot, or flash the lights to find
+                the car.
+              </li>
+              <li>
+                On a plug-in car: start or stop charging, set the charge limit and the schedules.
+              </li>
+              <li>
+                Climate schedules for weekday mornings or a one-off trip, with seat heating and a
+                skip for mild days.
+              </li>
+              <li>Schedules run on the server, so no phone has to be open.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section id="notifications" class="feature-section">
+        <div class="container feature-row">
+          <div class="card alert-card">
+            <ul class="alert-list">
+              <li>Low or high tyre pressure</li>
+              <li>A slow puncture</li>
+              <li>Car left unlocked</li>
+              <li>Door or window left open</li>
+              <li>Moved while parked</li>
+              <li>Charging complete or interrupted</li>
+              <li>Low battery or fuel</li>
+              <li>A weak 12V battery</li>
+              <li>Arrived home or at work</li>
+              <li>Maintenance due</li>
+              <li>A climate schedule ran</li>
+              <li>Messages from the MG app</li>
+            </ul>
+          </div>
+          <div class="feature-text">
+            <h2>Hear when something is off</h2>
+            <p class="text-muted">
+              Push notifications on your phone and computer, and in the app's bell.
+            </p>
+            <ul class="checklist">
+              <li>Each device picks the notifications it wants.</li>
+              <li>A car that sleeps for days with a soft tyre is reported once, not every hour.</li>
+              <li>Lock the car or log a service straight from the notification.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section id="maintenance" class="feature-section">
+        <div class="container feature-row">
+          <a class="feature-shot" href="screenshots/desktop-maintenance.webp">
+            <img
+              class="shot"
+              src="screenshots/desktop-maintenance.webp"
+              alt="The maintenance list: service items marked overdue, due soon, OK or not tracked yet"
+              width="1280"
+              height="800"
+              loading="lazy"
+            />
+          </a>
+          <div class="feature-text">
+            <h2>Maintenance and registration</h2>
+            <p class="text-muted">Know what is due before the car tells you.</p>
+            <ul class="checklist">
+              <li>Service items by distance, by time or both, worked out from the odometer.</li>
+              <li>Log each service, and see the most urgent item on the dashboard.</li>
+              <li>A Dutch plate shows the APK date and open recalls from the RDW.</li>
+              <li>A calendar feed with the due dates and the coming climate schedules.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section id="app" class="feature-section">
+        <div class="container feature-row">
+          <a class="feature-shot" href="screenshots/desktop-dashboard-offline.webp">
+            <img
+              class="shot"
+              src="screenshots/desktop-dashboard-offline.webp"
+              alt="The dashboard with no connection to GarageStack: a notice above the cards says the page shows what this device last loaded"
+              width="1280"
+              height="800"
+              loading="lazy"
+            />
+          </a>
+          <div class="feature-text">
+            <h2>An app on every device</h2>
+            <p class="text-muted">Install it on your phone or computer like any other app.</p>
+            <ul class="checklist">
+              <li>Opens without a connection, showing what it last loaded, maps included.</li>
+              <li>Dark or light theme, and English, Dutch, Spanish or Portuguese.</li>
+              <li>Your layout and settings follow you to every device.</li>
+              <li>Works from a small phone to a wide screen.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section id="homelab" class="feature-section">
+        <div class="container">
+          <header class="section-head">
+            <h2>Fits into your homelab</h2>
+            <p class="text-muted">Built to sit next to the rest of your self-hosted services.</p>
+          </header>
+          <ul class="link-grid">
+            <li>
+              <a
+                class="card link-card"
+                href="https://github.com/joszz/GarageStack/blob/main/documentation/HOME_ASSISTANT.md"
+              >
+                <span class="icon-tile"
+                  ><svg aria-hidden="true"><use href="assets/icons.svg#house-signal" /></svg
+                ></span>
+                <span class="link-card-title">Home Assistant</span>
+                <span class="text-muted"
+                  >The car appears through MQTT discovery, sharing GarageStack's MG session.</span
+                >
+              </a>
+            </li>
+            <li>
+              <a
+                class="card link-card"
+                href="https://github.com/joszz/GarageStack/blob/main/documentation/WIDGET.md"
+              >
+                <span class="icon-tile"
+                  ><svg aria-hidden="true"><use href="assets/icons.svg#table-cells-large" /></svg
+                ></span>
+                <span class="link-card-title">Homepage widget</span>
+                <span class="text-muted">Key stats on your gethomepage.dev dashboard.</span>
+              </a>
+            </li>
+            <li>
+              <a
+                class="card link-card"
+                href="https://github.com/joszz/GarageStack/blob/main/documentation/AUTHENTICATION.md"
+              >
+                <span class="icon-tile"
+                  ><svg aria-hidden="true"><use href="assets/icons.svg#user-shield" /></svg
+                ></span>
+                <span class="link-card-title">Single sign-on</span>
+                <span class="text-muted"
+                  >Authentik, Authelia, Keycloak, Pocket ID or any OpenID Connect provider.</span
+                >
+              </a>
+            </li>
+            <li>
+              <a
+                class="card link-card"
+                href="https://github.com/joszz/GarageStack#read-only-api-tokens"
+              >
+                <span class="icon-tile"
+                  ><svg aria-hidden="true"><use href="assets/icons.svg#key" /></svg
+                ></span>
+                <span class="link-card-title">Read-only API</span>
+                <span class="text-muted"
+                  >Tokens for scripts and dashboards, and an OpenAPI description of every
+                  endpoint.</span
+                >
+              </a>
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <section id="privacy" class="feature-section">
+        <div class="container privacy">
+          <span class="icon-tile"
+            ><svg aria-hidden="true"><use href="assets/icons.svg#lock" /></svg
+          ></span>
+          <h2>What stays home</h2>
+          <p class="text-muted">
+            The car's telemetry, its trips, your notifications and your settings stay on your
+            server. A few features ask public services for what they know, such as OpenStreetMap for
+            place names and map layers, and each one apart from the MG servers can be switched off.
+          </p>
+          <p>
+            <a href="https://github.com/joszz/GarageStack#what-leaves-your-network">
+              What leaves your network, service by service
+            </a>
+          </p>
+        </div>
+      </section>
+
+      <section class="cta">
+        <div class="container cta-inner">
+          <h2>Try it on your car</h2>
+          <div class="actions">
+            <a class="btn btn-primary" href="install.html">
+              <span>Install guide</span>
+              <svg class="icon" aria-hidden="true"><use href="assets/icons.svg#arrow-right" /></svg>
+            </a>
+            <a class="btn btn-ghost" href="screenshots.html">More screenshots</a>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- include footer -->
+  </body>
+</html>

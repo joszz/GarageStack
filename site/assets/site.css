@@ -1,9 +1,9 @@
-/* The GarageStack website: one page, plain CSS.
+/* The GarageStack website: plain CSS for every page.
 
    Breakpoints, the app's set (frontend/src/assets/main.css):
      (width <= 479px)   narrow phones
-     (width <= 767px)   phones: one column, the phone screenshot left out of the hero
-     (width >= 1024px)  desktop: the hero side by side */
+     (width <= 767px)   phones: one column, the page links on a row of their own
+     (width >= 1024px)  desktop: the home page's hero side by side */
 
 :root {
   color-scheme: dark;
@@ -24,9 +24,10 @@
   --shadow-pop: rgb(0 0 0 / 50%);
 
   /* The site's own. */
-  --container: 1200px;
+  --color-primary-tint: rgb(59 130 246 / 14%);
+  --container: 1160px;
   --gutter: clamp(1rem, 4vw, 2rem);
-  --section-space: clamp(3rem, 8vw, 6rem);
+  --section-space: clamp(3.5rem, 8vw, 6rem);
   --topbar-height: 3.75rem;
   --font: inter, system-ui, -apple-system, 'Segoe UI', roboto, sans-serif;
   --font-mono: ui-monospace, 'Cascadia Code', 'SF Mono', consolas, monospace;
@@ -42,7 +43,7 @@
 
 html {
   scroll-behavior: smooth;
-  scroll-padding-top: calc(var(--topbar-height) + 1rem);
+  scroll-padding-top: calc(var(--topbar-height) + 1.5rem);
 }
 
 body {
@@ -84,7 +85,12 @@ h3 {
   text-wrap: balance;
 }
 
-p {
+p,
+ul,
+ol,
+dl,
+dd,
+figure {
   margin: 0;
 }
 
@@ -97,6 +103,7 @@ code {
   padding: 0.1em 0.35em;
   border-radius: 4px;
   background: var(--color-surface-2);
+  overflow-wrap: anywhere;
 }
 
 .text-muted {
@@ -131,7 +138,7 @@ code {
   top: 0.75rem;
 }
 
-/* ── Buttons, cards ───────────────────────────────────────── */
+/* ── Buttons, cards, icons, screenshots ───────────────────── */
 
 .btn {
   display: inline-flex;
@@ -179,22 +186,86 @@ code {
   font-size: 0.9rem;
 }
 
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
 .card {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
 }
 
-.feature-icon {
-  width: 1.5rem;
-  height: 1.5rem;
+/* A card that is a link lights its border up on hover. */
+a.card {
+  color: var(--color-text);
+  text-decoration: none;
+  transition: border-color 0.15s;
+}
+
+a.card:hover {
+  border-color: var(--color-primary);
+  color: var(--color-text);
+}
+
+.icon-tile {
+  display: inline-grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 8px;
+  background: var(--color-primary-tint);
   color: var(--color-primary-light);
+}
+
+.icon-tile svg {
+  width: 1.2rem;
+  height: 1.2rem;
 }
 
 .shot {
   border-radius: var(--radius);
   border: 1px solid var(--color-border);
-  box-shadow: 0 1.5rem 3rem var(--shadow-pop);
+  box-shadow: 0 1.25rem 2.5rem var(--shadow-pop);
+}
+
+.more {
+  margin-top: 2.5rem;
+  text-align: center;
+}
+
+.more a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+}
+
+/* A list with a tick before each item. */
+.checklist {
+  display: grid;
+  gap: 0.6rem;
+  padding: 0;
+  list-style: none;
+}
+
+.checklist li {
+  position: relative;
+  padding-left: 1.6rem;
+}
+
+.checklist li::before {
+  content: '';
+  position: absolute;
+  top: 0.45em;
+  left: 0.2rem;
+  width: 0.4rem;
+  height: 0.7rem;
+  border: solid var(--color-success);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
 }
 
 /* ── Top bar ──────────────────────────────────────────────── */
@@ -211,7 +282,7 @@ code {
 .topbar-inner {
   display: flex;
   align-items: center;
-  gap: 1.5rem;
+  gap: 2rem;
   min-height: var(--topbar-height);
 }
 
@@ -225,26 +296,43 @@ code {
   text-decoration: none;
 }
 
+.brand:hover {
+  color: var(--color-text);
+}
+
 .topbar-nav {
   display: flex;
-  gap: 1.5rem;
+  gap: 1.75rem;
   margin-left: auto;
 }
 
 .topbar-nav a {
+  position: relative;
+  padding-block: 0.4rem;
   color: var(--color-text-muted);
   text-decoration: none;
   font-weight: 500;
+  white-space: nowrap;
 }
 
-.topbar-nav a:hover {
+.topbar-nav a:hover,
+.topbar-nav a[aria-current='page'] {
   color: var(--color-text);
 }
 
-/* ── Hero ─────────────────────────────────────────────────── */
+.topbar-nav a[aria-current='page']::after {
+  content: '';
+  position: absolute;
+  inset: auto 0 0;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--color-primary);
+}
+
+/* ── Home: hero ───────────────────────────────────────────── */
 
 .hero {
-  padding-block: var(--section-space);
+  padding-block: clamp(3rem, 8vw, 5.5rem);
   background:
     radial-gradient(ellipse 60% 50% at 80% 30%, rgb(59 130 246 / 18%), transparent), var(--color-bg);
   overflow: hidden;
@@ -258,36 +346,34 @@ code {
 
 .hero-text {
   display: grid;
-  gap: 1.25rem;
-  max-width: 40rem;
+  gap: 1.5rem;
+  max-width: 36rem;
 }
 
 .eyebrow {
   color: var(--color-primary-light);
   font-weight: 600;
-  font-size: 0.9rem;
-  letter-spacing: 0.04em;
+  font-size: 0.85rem;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
 .hero h1 {
-  font-size: clamp(1.9rem, 1.2rem + 3vw, 3.1rem);
-  letter-spacing: -0.02em;
+  font-size: clamp(2.2rem, 1.4rem + 3.5vw, 3.6rem);
+  letter-spacing: -0.025em;
 }
 
 .lead {
   color: var(--color-text-muted);
-  font-size: 1.125rem;
+  font-size: 1.15rem;
 }
 
-.actions {
+.hero-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem;
-}
-
-.badges a {
-  display: inline-block;
+  align-items: center;
+  gap: 0.5rem 1.25rem;
+  font-size: 0.9rem;
 }
 
 .hero-shots {
@@ -303,7 +389,7 @@ code {
   border-radius: 1rem;
 }
 
-/* ── Compatibility strip ──────────────────────────────────── */
+/* ── Home: the strip under the hero ───────────────────────── */
 
 .compat {
   border-block: 1px solid var(--color-border);
@@ -311,31 +397,32 @@ code {
 }
 
 .compat-inner {
-  display: grid;
-  gap: 0.5rem;
-  padding-block: 1.75rem;
-}
-
-.compat-title {
   display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  font-size: 1.1rem;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.75rem;
+  padding-block: 1.25rem;
+  color: var(--color-text-muted);
 }
 
-.compat-title .icon {
+.compat-inner .icon {
+  position: relative;
+  top: 0.15em;
   color: var(--color-success);
 }
 
-.compat p {
-  color: var(--color-text-muted);
-  max-width: 60rem;
+.compat strong {
+  color: var(--color-text);
 }
 
 /* ── Sections ─────────────────────────────────────────────── */
 
 .section {
   padding-block: var(--section-space);
+}
+
+.section-tight {
+  padding-top: clamp(2rem, 5vw, 3rem);
 }
 
 .section-alt {
@@ -355,140 +442,358 @@ code {
 }
 
 .section-head h2 {
-  font-size: clamp(1.6rem, 1.2rem + 1.6vw, 2.3rem);
-  letter-spacing: -0.01em;
+  font-size: clamp(1.6rem, 1.2rem + 1.6vw, 2.25rem);
+  letter-spacing: -0.015em;
 }
 
 .section-head p {
-  max-width: 42rem;
+  max-width: 40rem;
   margin-inline: auto;
 }
 
-/* ── Features ─────────────────────────────────────────────── */
+/* ── Home: highlights, spotlight, pillars, call to action ─── */
 
-.feature-grid,
+.highlight-grid,
 .link-grid,
-.footer-links {
-  list-style: none;
+.pillars,
+.gallery,
+.footer-links,
+.alert-list {
   margin: 0;
   padding: 0;
+  list-style: none;
 }
 
-.feature-grid {
+.highlight-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 19rem), 1fr));
   gap: 1rem;
 }
 
-.feature {
-  display: grid;
-  align-content: start;
-  gap: 0.6rem;
-  padding: 1.5rem;
-}
-
-.feature h3 {
-  font-size: 1.1rem;
-}
-
-.feature p {
-  color: var(--color-text-muted);
-}
-
-/* ── Screenshot showcase ──────────────────────────────────── */
-
-.showcase {
-  display: grid;
-  gap: clamp(3rem, 7vw, 5rem);
-}
-
-.showcase-row {
-  display: grid;
-  gap: 1.5rem;
-  align-items: center;
-  margin: 0;
-}
-
-.showcase-shot {
-  display: block;
-  border-radius: var(--radius);
-}
-
-.showcase-shot .shot {
-  transition: transform 0.2s;
-}
-
-.showcase-shot:hover .shot {
-  transform: translateY(-4px);
-}
-
-.showcase-text {
-  display: grid;
-  gap: 0.75rem;
-}
-
-.showcase-text h3 {
-  font-size: 1.4rem;
-}
-
-.showcase-text p {
-  color: var(--color-text-muted);
-}
-
-.more {
-  margin-top: 3rem;
-  text-align: center;
-}
-
-.more a {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-weight: 600;
-}
-
-/* ── Link cards (homelab, install) ────────────────────────── */
-
-.link-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 16rem), 1fr));
-  gap: 1rem;
-}
-
+.highlight,
 .link-card {
   display: grid;
   align-content: start;
   gap: 0.5rem;
   height: 100%;
-  padding: 1.25rem 1.4rem;
-  color: var(--color-text);
-  text-decoration: none;
-  transition: border-color 0.15s;
+  padding: 1.4rem;
 }
 
-.link-card:hover {
+.highlight .icon-tile,
+.link-card .icon-tile {
+  margin-bottom: 0.4rem;
+}
+
+.highlight-title,
+.link-card-title {
+  font-weight: 600;
+  font-size: 1.05rem;
+}
+
+.spotlight {
+  max-width: 64rem;
+}
+
+.spotlight-shot {
+  display: block;
+  border-radius: var(--radius);
+}
+
+.pillars {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+  gap: 2.5rem;
+  text-align: center;
+}
+
+.pillars li {
+  display: grid;
+  justify-items: center;
+  gap: 0.6rem;
+}
+
+.pillars h3 {
+  font-size: 1.15rem;
+}
+
+.pillars p {
+  max-width: 20rem;
+}
+
+.cta {
+  padding-block: var(--section-space);
+  border-top: 1px solid var(--color-border);
+  background:
+    radial-gradient(ellipse 50% 80% at 50% 100%, rgb(59 130 246 / 16%), transparent),
+    var(--color-surface);
+}
+
+.cta-inner {
+  display: grid;
+  justify-items: center;
+  gap: 1rem;
+  text-align: center;
+}
+
+.cta h2 {
+  font-size: clamp(1.6rem, 1.2rem + 1.6vw, 2.25rem);
+}
+
+.cta .actions {
+  justify-content: center;
+  margin-top: 0.5rem;
+}
+
+/* ── Subpages: page header and its chips ──────────────────── */
+
+.page-head {
+  padding-block: clamp(2.5rem, 6vw, 4rem) clamp(2rem, 4vw, 2.5rem);
+  border-bottom: 1px solid var(--color-border);
+  background:
+    radial-gradient(ellipse 50% 100% at 85% 0%, rgb(59 130 246 / 14%), transparent), var(--color-bg);
+}
+
+.page-head .container {
+  display: grid;
+  gap: 1rem;
+}
+
+.page-head h1 {
+  font-size: clamp(2rem, 1.4rem + 2.5vw, 3rem);
+  letter-spacing: -0.02em;
+}
+
+.page-head .lead {
+  max-width: 44rem;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.chips a {
+  padding: 0.3rem 0.85rem;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  text-decoration: none;
+}
+
+.chips a:hover {
   border-color: var(--color-primary);
   color: var(--color-text);
 }
 
-.link-card-title {
-  font-weight: 600;
+/* ── Features page ────────────────────────────────────────── */
+
+.feature-section {
+  padding-block: clamp(3rem, 7vw, 5rem);
+}
+
+.feature-section + .feature-section {
+  border-top: 1px solid var(--color-border);
+}
+
+.feature-row {
+  display: grid;
+  gap: 2rem;
+  align-items: center;
+}
+
+.feature-shot {
+  display: block;
+  border-radius: var(--radius);
+}
+
+.feature-text {
+  display: grid;
+  gap: 1rem;
+}
+
+.feature-text h2 {
+  font-size: clamp(1.5rem, 1.2rem + 1.2vw, 2rem);
+  letter-spacing: -0.01em;
+}
+
+.alert-card {
+  padding: clamp(1.25rem, 3vw, 2rem);
+}
+
+.alert-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 13rem), 1fr));
+  gap: 0.75rem 1.5rem;
+}
+
+.alert-list li {
+  position: relative;
+  padding-left: 1.25rem;
+}
+
+.alert-list li::before {
+  content: '';
+  position: absolute;
+  top: 0.55em;
+  left: 0;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--color-warning);
+}
+
+.link-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr));
+  gap: 1rem;
 }
 
 .link-card .text-muted {
   font-size: 0.95rem;
 }
 
-/* ── Install ──────────────────────────────────────────────── */
-
-.install {
+.privacy {
   display: grid;
-  gap: 1.5rem;
-  max-width: 56rem;
+  justify-items: center;
+  gap: 1rem;
+  max-width: 44rem;
+  text-align: center;
 }
 
-.install .section-head {
-  margin-bottom: 0.5rem;
+.privacy h2 {
+  font-size: clamp(1.5rem, 1.2rem + 1.2vw, 2rem);
+}
+
+/* ── Screenshots page ─────────────────────────────────────── */
+
+.gallery-title {
+  margin-bottom: 1.5rem;
+  font-size: 1.5rem;
+}
+
+.gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 22rem), 1fr));
+  gap: 2rem 1.5rem;
+}
+
+.gallery-phone {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 10rem), 1fr));
+}
+
+.gallery-item {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.gallery-item a {
+  display: block;
+  border-radius: var(--radius);
+}
+
+.gallery-item .shot {
+  box-shadow: none;
+  transition: border-color 0.15s;
+}
+
+.gallery-item a:hover .shot {
+  border-color: var(--color-primary);
+}
+
+.gallery-item figcaption {
+  color: var(--color-text-muted);
+  font-size: 0.95rem;
+}
+
+/* ── Install page ─────────────────────────────────────────── */
+
+.guide {
+  display: grid;
+  max-width: 52rem;
+}
+
+.guide-step {
+  display: grid;
+  gap: 1.25rem;
+  padding-block: clamp(2.5rem, 6vw, 3.5rem);
+}
+
+.guide-step + .guide-step {
+  border-top: 1px solid var(--color-border);
+}
+
+.guide-step h2 {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: clamp(1.4rem, 1.2rem + 1vw, 1.8rem);
+}
+
+.guide-step h2 .icon {
+  color: var(--color-primary-light);
+}
+
+.step-tag {
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  background: var(--color-primary-tint);
+  color: var(--color-primary-light);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* Numbered steps, the number in a circle beside each. */
+.steps {
+  display: grid;
+  gap: 1.75rem;
+  padding: 0;
+  list-style: none;
+  counter-reset: step;
+}
+
+.steps > li {
+  display: grid;
+  gap: 0.85rem;
+  position: relative;
+  padding-left: 2.75rem;
+  counter-increment: step;
+}
+
+.steps > li::before {
+  content: counter(step);
+  position: absolute;
+  top: -0.1rem;
+  left: 0;
+  display: grid;
+  place-items: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  border-radius: 50%;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.steps h3 {
+  font-size: 1.1rem;
+}
+
+.var-list {
+  display: grid;
+  gap: 0.25rem 1.5rem;
+}
+
+.var-list dd {
+  margin-bottom: 0.6rem;
+  color: var(--color-text-muted);
 }
 
 .callout {
@@ -500,15 +805,22 @@ code {
   background: rgb(245 158 11 / 8%);
 }
 
-.callout .icon {
+.callout > .icon {
   margin-top: 0.3rem;
   color: var(--color-warning);
+}
+
+.callout ol {
+  display: grid;
+  gap: 0.35rem;
+  margin-top: 0.75rem;
+  padding-left: 1.25rem;
 }
 
 .code-block {
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
-  background: var(--color-bg);
+  background: var(--color-surface);
   overflow: hidden;
 }
 
@@ -516,15 +828,16 @@ code {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  min-height: 3rem;
-  padding: 0.4rem 0.6rem 0.4rem 1.25rem;
+  gap: 1rem;
+  min-height: 2.75rem;
+  padding: 0.35rem 0.5rem 0.35rem 1.25rem;
   border-bottom: 1px solid var(--color-border);
-  font-size: 0.9rem;
+  font-size: 0.85rem;
 }
 
 .code-block pre {
   margin: 0;
-  padding: 1.25rem;
+  padding: 1rem 1.25rem;
   overflow-x: auto;
   font-size: 0.9rem;
   line-height: 1.7;
@@ -532,14 +845,6 @@ code {
 
 .copy-button.is-copied .icon {
   color: var(--color-success);
-}
-
-.install-note {
-  font-size: 0.95rem;
-}
-
-.link-grid-small {
-  margin-top: 0.5rem;
 }
 
 /* ── Footer ───────────────────────────────────────────────── */
@@ -551,14 +856,18 @@ code {
 
 .footer-inner {
   display: grid;
-  gap: 1.25rem;
+  gap: 1.5rem;
 }
 
-.footer-brand {
+.footer-top {
   display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  font-weight: 700;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 1.5rem 3rem;
+}
+
+.footer-top .brand {
+  margin-right: auto;
 }
 
 .footer-links {
@@ -588,41 +897,71 @@ code {
 /* ── Wider screens ────────────────────────────────────────── */
 
 @media (width >= 768px) {
-  .showcase-row {
+  .feature-row {
     grid-template-columns: 3fr 2fr;
-    gap: 3rem;
+    gap: 3.5rem;
   }
 
-  /* Every other row puts the screenshot on the right, still in the wider column. */
-  .showcase-row:nth-child(even) {
+  /* Every other feature puts its screenshot on the right, still in the wider column. */
+  .feature-section:nth-of-type(even) .feature-row {
     grid-template-columns: 2fr 3fr;
   }
 
-  .showcase-row:nth-child(even) .showcase-shot {
+  .feature-section:nth-of-type(even) .feature-row > :first-child {
     order: 2;
+  }
+
+  .var-list {
+    grid-template-columns: max-content 1fr;
+  }
+
+  .var-list dd {
+    margin-bottom: 0;
   }
 }
 
 @media (width >= 1024px) {
   .hero-inner {
-    grid-template-columns: 5fr 6fr;
+    grid-template-columns: 5fr 7fr;
   }
 }
 
 /* ── Phones ───────────────────────────────────────────────── */
 
 @media (width <= 767px) {
-  .topbar-nav,
+  /* The page links get a row of their own under the logo, scrolling sideways if they must. */
+  .topbar-inner {
+    flex-wrap: wrap;
+    row-gap: 0;
+  }
+
+  .topbar-github {
+    margin-left: auto;
+  }
+
+  .topbar-nav {
+    order: 3;
+    width: 100%;
+    margin-left: 0;
+    gap: 1.5rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .topbar-nav a {
+    padding-block: 0.5rem 0.65rem;
+  }
+
   .shot-phone {
     display: none;
   }
 
-  .topbar-inner > .btn {
-    margin-left: auto;
-  }
-
   .hero-shots {
     padding-bottom: 0;
+  }
+
+  .compat-inner {
+    justify-content: flex-start;
   }
 
   .section-head {
@@ -634,13 +973,16 @@ code {
   }
 
   /* One card per row: the icon beside the text keeps the list short. */
+  .highlight,
   .link-card {
     grid-template-columns: auto 1fr;
-    column-gap: 1rem;
+    gap: 0.25rem 1rem;
   }
 
-  .link-card .feature-icon {
+  .highlight .icon-tile,
+  .link-card .icon-tile {
     grid-row: span 2;
+    margin-bottom: 0;
   }
 }
 
@@ -650,25 +992,26 @@ code {
   }
 
   .code-block pre {
-    padding: 1rem;
+    padding: 0.9rem 1rem;
     font-size: 0.8rem;
   }
 
   .callout {
     padding: 0.9rem 1rem;
   }
+
+  .steps > li {
+    padding-left: 0;
+    padding-top: 2.6rem;
+  }
+
+  .gallery-phone {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
-  }
-
-  .showcase-shot .shot {
-    transition: none;
-  }
-
-  .showcase-shot:hover .shot {
-    transform: none;
   }
 }
