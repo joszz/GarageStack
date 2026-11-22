@@ -24,6 +24,7 @@ import CalendarFeedSetting from './CalendarFeedSetting.vue'
 import PhoneGpsSettings from './PhoneGpsSettings.vue'
 import { apiUrl } from '@/services/apiCore'
 import { useConnection } from '@/composables/useConnection'
+import { useKeepScreenOnOffered } from '@/composables/useScreenWakeLock'
 import type { ChipOption } from '@/utils/chips'
 import type { ThemeChoice } from '@/stores/settingsShared'
 
@@ -36,6 +37,7 @@ const dashboardSettings = useDashboardSettingsStore()
 const rdw = useRdwStore()
 const vehicleStore = useVehicleStore()
 const connection = useConnection()
+const keepScreenOnOffered = useKeepScreenOnOffered()
 const id = useId()
 const tablist = useTemplateRef<HTMLElement>('tablist')
 const panels = useTemplateRef<HTMLElement>('panels')
@@ -202,6 +204,14 @@ const languageOptions = [
               :label="t('settings.dashboard.mapBackdrop')"
               :desc="t('settings.dashboard.mapBackdropDesc')"
               input-id="footer-toggle-map-backdrop"
+            />
+            <!-- Only in the installed app: a browser tab dims like any other page. -->
+            <SettingsToggle
+              v-if="keepScreenOnOffered"
+              v-model="settings.keepScreenOn"
+              :label="t('settings.keepScreenOn.label')"
+              :desc="t('settings.keepScreenOn.desc')"
+              input-id="footer-toggle-keep-screen-on"
             />
           </div>
         </SettingsSection>

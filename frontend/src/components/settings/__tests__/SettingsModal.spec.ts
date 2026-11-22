@@ -385,4 +385,38 @@ describe('SettingsModal appearance', () => {
     await toggle.setValue(false)
     expect(settings.mapBackdrop).toBe(false)
   })
+  describe('keep the screen on', () => {
+    afterEach(() => {
+      Reflect.deleteProperty(navigator, 'wakeLock')
+      vi.unstubAllGlobals()
+    })
+
+    function runAs(installed: boolean) {
+      vi.stubGlobal('matchMedia', (query: string) => ({
+        matches: installed && query === '(display-mode: standalone)',
+        addEventListener: () => {},
+        removeEventListener: () => {},
+      }))
+      Object.defineProperty(navigator, 'wakeLock', {
+        configurable: true,
+        value: { request: vi.fn<() => Promise<never>>() },
+      })
+    }
+
+    it('is offered in the installed app and switches the setting', async () => {
+      runAs(true)
+      const { wrapper } = await render()
+      const toggle = panel(wrapper, 'general').get('#footer-toggle-keep-screen-on')
+      expect(panel(wrapper, 'general').text()).toContain(en.settings.keepScreenOn.label)
+
+      await toggle.setValue(true)
+      expect(useUiSettingsStore(pinia).keepScreenOn).toBe(true)
+    })
+
+    it('is not offered in a browser tab', async () => {
+      runAs(false)
+      const { wrapper } = await render()
+      expect(panel(wrapper, 'general').find('#footer-toggle-keep-screen-on').exists()).toBe(false)
+    })
+  })
 })

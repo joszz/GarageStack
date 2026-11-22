@@ -644,6 +644,10 @@
       "primary": "Cor principal",
       "secondary": "Cor secundária"
     },
+    "keepScreenOn": {
+      "label": "Manter o ecrã ligado",
+      "desc": "Impede que o ecrã escureça ou bloqueie enquanto a aplicação estiver aberta, para um telemóvel num suporte ou um tablet na parede. Gasta mais bateria. Só neste dispositivo."
+    },
     "dashboard": {
       "cardInfoIcons": "Mostrar ícones de informação",
       "cardInfoIconsDesc": "Adiciona a cada cartão do painel e das estatísticas um botão que explica o que o cartão mostra.",
