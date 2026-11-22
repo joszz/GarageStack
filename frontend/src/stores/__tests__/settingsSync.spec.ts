@@ -136,6 +136,21 @@ describe('settings kept on the account', () => {
     expect(save).toHaveBeenCalledExactlyOnceWith('ui', { locale: 'nl' })
   })
 
+  it('keeps "keep the screen on" on this device, since it suits one screen and not every one', async () => {
+    localStorage.setItem(UI_KEY, JSON.stringify({ keepScreenOn: true }))
+    load.mockResolvedValue({ ui: { theme: 'light', keepScreenOn: false } })
+    const ui = useUiSettingsStore()
+    await useSettingsSyncStore().start()
+
+    expect(ui.keepScreenOn).toBe(true)
+
+    ui.keepScreenOn = false
+    ui.locale = 'nl'
+    await settle()
+
+    expect(save).toHaveBeenCalledExactlyOnceWith('ui', { locale: 'nl' })
+  })
+
   it('sends nothing before keeping starts or after it stops', async () => {
     const ui = useUiSettingsStore()
     const sync = useSettingsSyncStore()

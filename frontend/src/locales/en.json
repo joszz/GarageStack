@@ -644,6 +644,10 @@
       "primary": "Primary colour",
       "secondary": "Secondary colour"
     },
+    "keepScreenOn": {
+      "label": "Keep the screen on",
+      "desc": "Stops the screen from dimming or locking while the app is open, for a phone in a holder or a tablet on the wall. Uses more battery. This device only."
+    },
     "dashboard": {
       "cardInfoIcons": "Show info icons",
       "cardInfoIconsDesc": "Adds a button to each dashboard and statistics card that explains what the card shows.",

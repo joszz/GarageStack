@@ -1,4 +1,5 @@
 import { ref, onMounted, onUnmounted } from 'vue'
+import { isInstalledApp as isInstalled } from '@/utils/pwa'
 
 const STORAGE_KEY = 'garagestack-pwa-install-dismissed'
 
@@ -9,14 +10,6 @@ interface BeforeInstallPromptEvent extends Event {
 
 const promptEvent = ref<BeforeInstallPromptEvent | null>(null)
 const modalVisible = ref(false)
-
-function isInstalled(): boolean {
-  return (
-    window.matchMedia('(display-mode: standalone)').matches ||
-    ('standalone' in window.navigator &&
-      (window.navigator as Navigator & { standalone: boolean }).standalone === true)
-  )
-}
 
 function isDismissedForever(): boolean {
   try {

@@ -644,6 +644,10 @@
       "primary": "Color principal",
       "secondary": "Color secundario"
     },
+    "keepScreenOn": {
+      "label": "Mantener la pantalla encendida",
+      "desc": "Evita que la pantalla se atenúe o se bloquee mientras la aplicación está abierta, para un teléfono en un soporte o una tableta en la pared. Gasta más batería. Solo en este dispositivo."
+    },
     "dashboard": {
       "cardInfoIcons": "Mostrar iconos de información",
       "cardInfoIconsDesc": "Añade a cada tarjeta del panel y de las estadísticas un botón que explica lo que muestra.",

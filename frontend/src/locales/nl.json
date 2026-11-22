@@ -644,6 +644,10 @@
       "primary": "Primaire kleur",
       "secondary": "Secundaire kleur"
     },
+    "keepScreenOn": {
+      "label": "Scherm aan houden",
+      "desc": "Voorkomt dat het scherm dimt of vergrendelt zolang de app open is, voor een telefoon in een houder of een tablet aan de muur. Kost meer batterij. Alleen op dit apparaat."
+    },
     "dashboard": {
       "cardInfoIcons": "Info-iconen tonen",
       "cardInfoIconsDesc": "Voegt aan elke kaart op het dashboard en bij de statistieken een knop toe die uitlegt wat de kaart toont.",
