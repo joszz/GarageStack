@@ -64,6 +64,24 @@ GarageStack ships in English, Dutch, Spanish and Brazilian Portuguese. A new lan
 
 `en.json` and `nl.json` hold the same keys; keep that true for the new file, since a missing key falls back to English silently.
 
+## The website
+
+The project's website, [joszz.github.io/GarageStack](https://joszz.github.io/GarageStack/), is one static page in `site/`: plain HTML, plain CSS on the app's colour tokens, and a small script for the Copy button. It has no build step of its own. `site/assemble.sh` copies it into `_site/` together with the screenshots from `documentation/screenshots/` and the logo and icons from `frontend/public/`, so a retaken screenshot shows up on the site with the next deploy. The **Website** workflow (`.github/workflows/pages.yml`) runs it and publishes to GitHub Pages on every push to `main` that touches those files.
+
+To preview a change:
+
+```bash
+bash site/assemble.sh
+cd _site && python -m http.server 8000   # then open http://localhost:8000
+```
+
+The icons are a sprite of Font Awesome Free icons in `site/assets/icons.svg`; a new one is a `<symbol>` with the icon's name as its `id`, taken from the same `@fortawesome` packages the app uses. CI lints the site with the frontend's Stylelint and Prettier settings; to fix what it finds, from `frontend/`:
+
+```bash
+pnpm exec stylelint --config stylelint.config.js "../site/**/*.css" --fix
+pnpm exec prettier --write --config .prettierrc.json ../site/
+```
+
 ## Commit Style
 
 Commits follow [Conventional Commits](https://www.conventionalcommits.org/), with a short imperative description after the type: `feat: add trip heatmap filter`, `fix(frontend): round the battery percentage`. The type decides which heading of the release notes a change goes under; see [RELEASING.md](../documentation/RELEASING.md#commit-convention).

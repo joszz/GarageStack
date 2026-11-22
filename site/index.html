@@ -1,0 +1,672 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; img-src 'self' https://img.shields.io; style-src 'self'; script-src 'self'; base-uri 'none'; form-action 'none'"
+    />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <title>GarageStack: a self-hosted dashboard for your MG</title>
+    <meta
+      name="description"
+      content="A free, open-source, self-hosted dashboard, trip log, charge history and map for modern MG cars such as the MG4, MG5, ZS EV and HS PHEV."
+    />
+    <link rel="canonical" href="https://joszz.github.io/GarageStack/" />
+    <meta name="theme-color" content="#0f1117" />
+    <meta name="color-scheme" content="dark" />
+    <link rel="icon" href="favicon.ico" sizes="48x48" />
+    <link rel="icon" href="logo.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="apple-touch-icon-180x180.png" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="GarageStack" />
+    <meta property="og:title" content="GarageStack: a self-hosted dashboard for your MG" />
+    <meta
+      property="og:description"
+      content="Dashboard, trip log, charge history, climate schedules and a map of every drive, on your own hardware."
+    />
+    <meta property="og:url" content="https://joszz.github.io/GarageStack/" />
+    <meta
+      property="og:image"
+      content="https://joszz.github.io/GarageStack/screenshots/desktop-dashboard.webp"
+    />
+    <meta property="og:image:width" content="1280" />
+    <meta property="og:image:height" content="800" />
+    <meta
+      property="og:image:alt"
+      content="The GarageStack dashboard with the car, its tyre pressures and charge, a map and status cards"
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <link rel="stylesheet" href="assets/site.css" />
+    <script src="assets/site.js" defer></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <header class="topbar">
+      <div class="container topbar-inner">
+        <a class="brand" href="./" aria-label="GarageStack home">
+          <img src="logo.svg" alt="" width="32" height="32" />
+          <span>GarageStack</span>
+        </a>
+        <nav class="topbar-nav" aria-label="Sections">
+          <a href="#features">Features</a>
+          <a href="#screenshots">Screenshots</a>
+          <a href="#homelab">Homelab</a>
+          <a href="#install">Install</a>
+        </nav>
+        <a class="btn btn-ghost btn-small" href="https://github.com/joszz/GarageStack">
+          <svg class="icon" aria-hidden="true"><use href="assets/icons.svg#github" /></svg>
+          <span>GitHub</span>
+        </a>
+      </div>
+    </header>
+
+    <main id="main">
+      <section class="hero">
+        <div class="container hero-inner">
+          <div class="hero-text">
+            <p class="eyebrow">Free and open source, MIT licence</p>
+            <h1>A self-hosted dashboard, trip log, charge history and map for your MG.</h1>
+            <p class="lead">
+              GarageStack signs in to the SAIC iSmart API, the same backend the official MG app
+              uses, and turns what your car reports into something worth opening. It runs in Docker
+              on your own hardware, with no subscription and no account beyond your MG login.
+            </p>
+            <div class="actions">
+              <a class="btn btn-primary" href="#install">
+                <span>Get started</span>
+                <svg class="icon" aria-hidden="true">
+                  <use href="assets/icons.svg#arrow-right" />
+                </svg>
+              </a>
+              <a class="btn btn-ghost" href="https://github.com/joszz/GarageStack">
+                <svg class="icon" aria-hidden="true"><use href="assets/icons.svg#github" /></svg>
+                <span>View on GitHub</span>
+              </a>
+            </div>
+            <p class="badges">
+              <a href="https://github.com/joszz/GarageStack/releases/latest">
+                <img
+                  src="https://img.shields.io/github/v/release/joszz/GarageStack?label=latest%20release&color=3b82f6"
+                  alt="Latest release"
+                  width="148"
+                  height="20"
+                />
+              </a>
+            </p>
+          </div>
+          <div class="hero-shots">
+            <img
+              class="shot shot-desktop"
+              src="screenshots/desktop-dashboard.webp"
+              alt="The GarageStack dashboard: the car on the road with its speed, tyre pressures and charge, a map of where it is, and cards for the battery, range, doors, windows, climate and today's driving"
+              width="1280"
+              height="800"
+              fetchpriority="high"
+            />
+            <img
+              class="shot shot-phone"
+              src="screenshots/mobile-dashboard.webp"
+              alt="The same dashboard on a phone"
+              width="780"
+              height="1688"
+            />
+          </div>
+        </div>
+      </section>
+
+      <section class="compat" aria-labelledby="compat-title">
+        <div class="container compat-inner">
+          <h2 id="compat-title" class="compat-title">
+            <svg class="icon" aria-hidden="true"><use href="assets/icons.svg#circle-check" /></svg>
+            Works with modern MG cars
+          </h2>
+          <p>
+            The ones built by SAIC Motor that use the MG iSmart app, such as the MG4, MG5, ZS EV and
+            HS (Hybrid+ and PHEV). Hybrid, plug-in hybrid and full electric cars each get the cards
+            that fit them. Classic British-built MGs (MGB, Midget, MGF and the like) are not
+            supported.
+          </p>
+        </div>
+      </section>
+
+      <section id="features" class="section" aria-labelledby="features-title">
+        <div class="container">
+          <header class="section-head">
+            <h2 id="features-title">Everything your car reports, in one place</h2>
+            <p class="text-muted">
+              More than the official app shows, and kept for as long as you like.
+            </p>
+          </header>
+          <ul class="feature-grid">
+            <li class="card feature">
+              <svg class="feature-icon" aria-hidden="true">
+                <use href="assets/icons.svg#gauge-high" />
+              </svg>
+              <h3>See the car at a glance</h3>
+              <p>
+                Fuel, battery, tyre pressures, doors, windows and climate on one live dashboard,
+                with cards you can reorder and hide.
+              </p>
+            </li>
+            <li class="card feature">
+              <svg class="feature-icon" aria-hidden="true">
+                <use href="assets/icons.svg#route" />
+              </svg>
+              <h3>Relive every drive</h3>
+              <p>
+                Trips are saved automatically, named by where they went and drawn along the roads
+                you took, with heatmaps and the speed limits on the way.
+              </p>
+            </li>
+            <li class="card feature">
+              <svg class="feature-icon" aria-hidden="true">
+                <use href="assets/icons.svg#file-invoice" />
+              </svg>
+              <h3>A trip log for the taxman</h3>
+              <p>
+                Mark trips as business, commute or private, add notes, and export a month or a year
+                as a spreadsheet.
+              </p>
+            </li>
+            <li class="card feature">
+              <svg class="feature-icon" aria-hidden="true">
+                <use href="assets/icons.svg#charging-station" />
+              </svg>
+              <h3>Charge history</h3>
+              <p>
+                Completed and ongoing sessions with their duration, charging type, power curve and
+                state of charge.
+              </p>
+            </li>
+            <li class="card feature">
+              <svg class="feature-icon" aria-hidden="true">
+                <use href="assets/icons.svg#mobile-screen-button" />
+              </svg>
+              <h3>Control it from anywhere</h3>
+              <p>
+                Pre-condition the cabin, lock the car or flash its lights to find it, and see
+                whether the car actually carried the command out.
+              </p>
+            </li>
+            <li class="card feature">
+              <svg class="feature-icon" aria-hidden="true">
+                <use href="assets/icons.svg#temperature-half" />
+              </svg>
+              <h3>Warm when you leave</h3>
+              <p>
+                Schedule climate for weekday mornings or a one-off trip, with seat heating, the
+                defrosters, and a skip for mild days.
+              </p>
+            </li>
+            <li class="card feature">
+              <svg class="feature-icon" aria-hidden="true">
+                <use href="assets/icons.svg#bell" />
+              </svg>
+              <h3>Hear when something is off</h3>
+              <p>
+                Push notifications for low tyre pressure, a car left unlocked, a window left open,
+                charging complete and more.
+              </p>
+            </li>
+            <li class="card feature">
+              <svg class="feature-icon" aria-hidden="true">
+                <use href="assets/icons.svg#wifi" />
+              </svg>
+              <h3>An app on your phone</h3>
+              <p>
+                Install it as an app, and it still opens without a connection, showing what it last
+                loaded, maps included.
+              </p>
+            </li>
+            <li class="card feature">
+              <svg class="feature-icon" aria-hidden="true">
+                <use href="assets/icons.svg#lock" />
+              </svg>
+              <h3>Keep it yours</h3>
+              <p>
+                Everything runs on your own hardware, as one container or a Compose stack. Your data
+                never goes to a cloud of ours, because there is none.
+              </p>
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <section id="screenshots" class="section section-alt" aria-labelledby="screenshots-title">
+        <div class="container">
+          <header class="section-head">
+            <h2 id="screenshots-title">A closer look</h2>
+            <p class="text-muted">
+              Taken in demo mode, so the car, its trips and the addresses are sample data.
+            </p>
+          </header>
+
+          <div class="showcase">
+            <figure class="showcase-row">
+              <a class="showcase-shot" href="screenshots/desktop-map.webp">
+                <img
+                  class="shot"
+                  src="screenshots/desktop-map.webp"
+                  alt="The map: a month of trips listed by where they went, drawn along the roads between Amsterdam, Haarlem, Almere, Utrecht and Amersfoort over a heatmap of the most driven roads"
+                  width="1280"
+                  height="800"
+                  loading="lazy"
+                />
+              </a>
+              <figcaption class="showcase-text">
+                <svg class="feature-icon" aria-hidden="true">
+                  <use href="assets/icons.svg#map-location-dot" />
+                </svg>
+                <h3>Every trip on one map</h3>
+                <p>
+                  Listed by where it went and drawn along the roads you took, over a heatmap of the
+                  roads you drive most. Filter by period, and add charging stations, fuel stations,
+                  service areas and speed cameras from OpenStreetMap.
+                </p>
+              </figcaption>
+            </figure>
+
+            <figure class="showcase-row">
+              <a class="showcase-shot" href="screenshots/desktop-map-trip.webp">
+                <img
+                  class="shot"
+                  src="screenshots/desktop-map-trip.webp"
+                  alt="One trip from Amsterdam to Utrecht, snapped to the roads and coloured green where it kept to the speed limit and red where it went over"
+                  width="1280"
+                  height="800"
+                  loading="lazy"
+                />
+              </a>
+              <figcaption class="showcase-text">
+                <svg class="feature-icon" aria-hidden="true">
+                  <use href="assets/icons.svg#route" />
+                </svg>
+                <h3>Against the speed limit</h3>
+                <p>
+                  A single trip is snapped to the roads it was driven on and coloured by speed or by
+                  the limits signposted along it, with how far over it went and for how much of the
+                  trip.
+                </p>
+              </figcaption>
+            </figure>
+
+            <figure class="showcase-row">
+              <a class="showcase-shot" href="screenshots/desktop-trip-log.webp">
+                <img
+                  class="shot"
+                  src="screenshots/desktop-trip-log.webp"
+                  alt="The trip log: totals per purpose, a compact list of trips with their purpose, times, addresses and distance, and beside it the selected trip's details with its route on a map"
+                  width="1280"
+                  height="800"
+                  loading="lazy"
+                />
+              </a>
+              <figcaption class="showcase-text">
+                <svg class="feature-icon" aria-hidden="true">
+                  <use href="assets/icons.svg#file-invoice" />
+                </svg>
+                <h3>The trip log</h3>
+                <p>
+                  Commutes between home and work are marked by themselves. Add notes, hide a GPS
+                  glitch, join two trips a fuel stop split, fix a route on the map, and export the
+                  addresses and odometer readings a tax trip log asks for.
+                </p>
+              </figcaption>
+            </figure>
+
+            <figure class="showcase-row">
+              <a class="showcase-shot" href="screenshots/desktop-statistics-energy.webp">
+                <img
+                  class="shot"
+                  src="screenshots/desktop-statistics-energy.webp"
+                  alt="The statistics: the energy used per day in kWh as bars, with the efficiency in kWh/100 km as a line over them"
+                  width="1280"
+                  height="800"
+                  loading="lazy"
+                />
+              </a>
+              <figcaption class="showcase-text">
+                <svg class="feature-icon" aria-hidden="true">
+                  <use href="assets/icons.svg#chart-line" />
+                </svg>
+                <h3>Statistics over the years</h3>
+                <p>
+                  Energy and fuel use, efficiency, electric share, average speed and more, for any
+                  period from a week to several years.
+                </p>
+              </figcaption>
+            </figure>
+
+            <figure class="showcase-row">
+              <a class="showcase-shot" href="screenshots/desktop-charge-history.webp">
+                <img
+                  class="shot"
+                  src="screenshots/desktop-charge-history.webp"
+                  alt="The charge history: a list of AC and DC sessions with their charge levels, peak power and energy, the newest one opened on its charging power curve"
+                  width="1280"
+                  height="800"
+                  loading="lazy"
+                />
+              </a>
+              <figcaption class="showcase-text">
+                <svg class="feature-icon" aria-hidden="true">
+                  <use href="assets/icons.svg#plug-circle-bolt" />
+                </svg>
+                <h3>Every charge, rebuilt</h3>
+                <p>
+                  Sessions with their duration, state of charge, energy gained and peak power. Open
+                  one for its power curve, where it charged and the consumption since the charge
+                  before.
+                </p>
+              </figcaption>
+            </figure>
+
+            <figure class="showcase-row">
+              <a class="showcase-shot" href="screenshots/desktop-climate-schedules.webp">
+                <img
+                  class="shot"
+                  src="screenshots/desktop-climate-schedules.webp"
+                  alt="The climate schedules: a weekday schedule at 07:30 with seat heating, and a one-off front defrost at 08:15, each with when it runs next"
+                  width="1280"
+                  height="800"
+                  loading="lazy"
+                />
+              </a>
+              <figcaption class="showcase-text">
+                <svg class="feature-icon" aria-hidden="true">
+                  <use href="assets/icons.svg#temperature-half" />
+                </svg>
+                <h3>Climate on a schedule</h3>
+                <p>
+                  Schedules run on the server, so no phone has to be open. Each run tells you
+                  whether the car started climate.
+                </p>
+              </figcaption>
+            </figure>
+
+            <figure class="showcase-row">
+              <a class="showcase-shot" href="screenshots/desktop-dashboard-map-backdrop.webp">
+                <img
+                  class="shot"
+                  src="screenshots/desktop-dashboard-map-backdrop.webp"
+                  alt="The dashboard with the car's map across the whole page, the overview and the cards floating over it"
+                  width="1280"
+                  height="800"
+                  loading="lazy"
+                />
+              </a>
+              <figcaption class="showcase-text">
+                <svg class="feature-icon" aria-hidden="true">
+                  <use href="assets/icons.svg#gauge-high" />
+                </svg>
+                <h3>Make it your own</h3>
+                <p>
+                  Reorder and hide cards, put the map behind the dashboard, and pick a dark or light
+                  theme, kilometres or miles, and English, Dutch, Spanish or Portuguese. Your
+                  settings follow you to every device.
+                </p>
+              </figcaption>
+            </figure>
+          </div>
+
+          <p class="more">
+            <a
+              href="https://github.com/joszz/GarageStack/blob/main/documentation/screenshots/README.md"
+            >
+              <span>See every screenshot, on a computer and on a phone</span>
+              <svg class="icon" aria-hidden="true"><use href="assets/icons.svg#arrow-right" /></svg>
+            </a>
+          </p>
+        </div>
+      </section>
+
+      <section id="homelab" class="section" aria-labelledby="homelab-title">
+        <div class="container">
+          <header class="section-head">
+            <h2 id="homelab-title">Fits into your homelab</h2>
+            <p class="text-muted">Built to sit next to the rest of your self-hosted services.</p>
+          </header>
+          <ul class="link-grid">
+            <li>
+              <a
+                class="card link-card"
+                href="https://github.com/joszz/GarageStack/blob/main/documentation/HOME_ASSISTANT.md"
+              >
+                <svg class="feature-icon" aria-hidden="true">
+                  <use href="assets/icons.svg#house-signal" />
+                </svg>
+                <span class="link-card-title">Home Assistant</span>
+                <span class="text-muted"
+                  >The car appears through MQTT discovery, sharing GarageStack's MG session.</span
+                >
+              </a>
+            </li>
+            <li>
+              <a
+                class="card link-card"
+                href="https://github.com/joszz/GarageStack/blob/main/documentation/WIDGET.md"
+              >
+                <svg class="feature-icon" aria-hidden="true">
+                  <use href="assets/icons.svg#table-cells-large" />
+                </svg>
+                <span class="link-card-title">Homepage widget</span>
+                <span class="text-muted">Key stats on your gethomepage.dev dashboard.</span>
+              </a>
+            </li>
+            <li>
+              <a
+                class="card link-card"
+                href="https://github.com/joszz/GarageStack/blob/main/documentation/AUTHENTICATION.md"
+              >
+                <svg class="feature-icon" aria-hidden="true">
+                  <use href="assets/icons.svg#user-shield" />
+                </svg>
+                <span class="link-card-title">Single sign-on</span>
+                <span class="text-muted"
+                  >Authentik, Authelia, Keycloak, Pocket ID or any OpenID Connect provider.</span
+                >
+              </a>
+            </li>
+            <li>
+              <a class="card link-card" href="https://github.com/joszz/GarageStack#installation">
+                <svg class="feature-icon" aria-hidden="true">
+                  <use href="assets/icons.svg#docker" />
+                </svg>
+                <span class="link-card-title">Docker, amd64 and arm64</span>
+                <span class="text-muted"
+                  >One all-in-one container or a Compose stack, on a PC, NAS or Raspberry Pi.</span
+                >
+              </a>
+            </li>
+            <li>
+              <a
+                class="card link-card"
+                href="https://github.com/joszz/GarageStack/blob/main/docker/all-in-one/README.md"
+              >
+                <svg class="feature-icon" aria-hidden="true">
+                  <use href="assets/icons.svg#box-open" />
+                </svg>
+                <span class="link-card-title">Unraid</span>
+                <span class="text-muted"
+                  >A template in Community Apps, with every setting in the template UI.</span
+                >
+              </a>
+            </li>
+            <li>
+              <a
+                class="card link-card"
+                href="https://github.com/joszz/GarageStack#read-only-api-tokens"
+              >
+                <svg class="feature-icon" aria-hidden="true">
+                  <use href="assets/icons.svg#key" />
+                </svg>
+                <span class="link-card-title">Read-only API</span>
+                <span class="text-muted"
+                  >Tokens for scripts and dashboards, and an OpenAPI description of every
+                  endpoint.</span
+                >
+              </a>
+            </li>
+            <li>
+              <a class="card link-card" href="https://github.com/joszz/GarageStack#calendar-feed">
+                <svg class="feature-icon" aria-hidden="true">
+                  <use href="assets/icons.svg#calendar-days" />
+                </svg>
+                <span class="link-card-title">Calendar feed</span>
+                <span class="text-muted"
+                  >Maintenance, the Dutch APK and climate schedules in your calendar app.</span
+                >
+              </a>
+            </li>
+            <li>
+              <a
+                class="card link-card"
+                href="https://github.com/joszz/GarageStack#what-leaves-your-network"
+              >
+                <svg class="feature-icon" aria-hidden="true">
+                  <use href="assets/icons.svg#server" />
+                </svg>
+                <span class="link-card-title">What leaves your network</span>
+                <span class="text-muted"
+                  >Every outside service it talks to, and how to switch each one off.</span
+                >
+              </a>
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <section id="install" class="section section-alt" aria-labelledby="install-title">
+        <div class="container install">
+          <header class="section-head">
+            <h2 id="install-title">Up and running in one command</h2>
+            <p class="text-muted">
+              The all-in-one image bundles everything it needs: the web app, PostgreSQL, the MQTT
+              broker and the SAIC gateway.
+            </p>
+          </header>
+
+          <div class="callout" role="note">
+            <svg class="icon" aria-hidden="true">
+              <use href="assets/icons.svg#triangle-exclamation" />
+            </svg>
+            <p>
+              <strong>One session per MG account.</strong> Signing in to the official MG app with
+              the same account signs GarageStack out. Give the app a secondary account and keep the
+              owner account for GarageStack:
+              <a href="https://github.com/joszz/GarageStack#mg-ismart-account-and-session-limits"
+                >how to set that up</a
+              >.
+            </p>
+          </div>
+
+          <div class="code-block">
+            <div class="code-head">
+              <span class="text-muted">Docker</span>
+              <button
+                class="btn btn-ghost btn-small copy-button"
+                type="button"
+                data-copy-target="install-command"
+                hidden
+              >
+                <svg class="icon" aria-hidden="true"><use href="assets/icons.svg#copy" /></svg>
+                <span class="copy-label">Copy</span>
+              </button>
+            </div>
+            <pre><code id="install-command">docker run -d \
+  --name garagestack \
+  -p 8080:80 \
+  -v ./garagestack-data:/data \
+  -e SAIC_USER=your@email.com \
+  -e SAIC_PASSWORD=yourpassword \
+  -e SAIC_REGION=eu \
+  -e CORS_ORIGIN=http://192.168.1.100:8080 \
+  ghcr.io/joszz/garagestack:latest</code></pre>
+          </div>
+
+          <p class="text-muted install-note">
+            Then open port 8080 and sign in with your MG login. <code>SAIC_REGION</code> is
+            <code>eu</code>, <code>au</code>, <code>tr</code> or <code>br</code>, and
+            <code>CORS_ORIGIN</code> is the address you open in your browser.
+          </p>
+
+          <ul class="link-grid link-grid-small">
+            <li>
+              <a
+                class="card link-card"
+                href="https://github.com/joszz/GarageStack#option-b-docker-compose"
+              >
+                <svg class="feature-icon" aria-hidden="true">
+                  <use href="assets/icons.svg#docker" />
+                </svg>
+                <span class="link-card-title">Docker Compose</span>
+                <span class="text-muted"
+                  >Separate containers, and your own PostgreSQL if you like.</span
+                >
+              </a>
+            </li>
+            <li>
+              <a
+                class="card link-card"
+                href="https://github.com/joszz/GarageStack/blob/main/documentation/CONFIGURATION.md"
+              >
+                <svg class="feature-icon" aria-hidden="true">
+                  <use href="assets/icons.svg#book" />
+                </svg>
+                <span class="link-card-title">Configuration</span>
+                <span class="text-muted">Every setting, with its default.</span>
+              </a>
+            </li>
+            <li>
+              <a class="card link-card" href="https://github.com/joszz/GarageStack/releases">
+                <svg class="feature-icon" aria-hidden="true">
+                  <use href="assets/icons.svg#tag" />
+                </svg>
+                <span class="link-card-title">Releases</span>
+                <span class="text-muted"
+                  >What changed in each version, and what to check before upgrading.</span
+                >
+              </a>
+            </li>
+          </ul>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="container footer-inner">
+        <div class="footer-brand">
+          <img src="logo.svg" alt="" width="28" height="28" loading="lazy" />
+          <span>GarageStack</span>
+        </div>
+        <nav aria-label="Project links">
+          <ul class="footer-links">
+            <li><a href="https://github.com/joszz/GarageStack">Source</a></li>
+            <li><a href="https://github.com/joszz/GarageStack#documentation">Documentation</a></li>
+            <li><a href="https://github.com/joszz/GarageStack/releases">Releases</a></li>
+            <li>
+              <a href="https://github.com/joszz/GarageStack/blob/main/.github/CONTRIBUTING.md"
+                >Contributing</a
+              >
+            </li>
+            <li><a href="https://github.com/joszz/GarageStack/security/policy">Security</a></li>
+            <li>
+              <a href="https://github.com/joszz/GarageStack/blob/main/LICENSE">MIT licence</a>
+            </li>
+          </ul>
+        </nav>
+        <p class="footer-note text-muted">
+          GarageStack is an independent project, not affiliated with or endorsed by MG Motor or SAIC
+          Motor. It talks to the SAIC iSmart API through the
+          <a href="https://github.com/SAIC-iSmart-API">SAIC-iSmart-API</a> gateway. Icons by
+          <a href="https://fontawesome.com">Font Awesome</a> (CC BY 4.0).
+        </p>
+      </div>
+    </footer>
+  </body>
+</html>

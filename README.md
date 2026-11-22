@@ -5,6 +5,7 @@
 [![Latest release](https://img.shields.io/github/v/release/joszz/GarageStack)](https://github.com/joszz/GarageStack/releases/latest)
 [![Docker image build](https://github.com/joszz/GarageStack/actions/workflows/docker-publish.yml/badge.svg?branch=main)](https://github.com/joszz/GarageStack/actions/workflows/docker-publish.yml)
 [![MIT licence](https://img.shields.io/github/license/joszz/GarageStack)](LICENSE)
+[![Website](https://img.shields.io/badge/website-joszz.github.io%2FGarageStack-3b82f6)](https://joszz.github.io/GarageStack/)
 
 ![The GarageStack dashboard: the car on the road with its speed, tyre pressures and charge, a map of where it is, and cards for the battery, range, doors, windows, climate and today's driving](documentation/screenshots/desktop-dashboard.webp)
 
