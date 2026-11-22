@@ -9,8 +9,8 @@
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Demo",
         "DEMO_MODE": "true",
-        "Auth__Username": "demo",
-        "Auth__Password": "demo",
+        "AUTH_USERNAME": "demo",
+        "AUTH_PASSWORD": "demo",
         "Cors__Origins__0": "http://localhost:5173"
       }
     },
