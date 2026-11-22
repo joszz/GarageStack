@@ -639,8 +639,12 @@
       "silver": "Prata",
       "white": "Branco perolado",
       "anthracite": "Antracite",
+      "black": "Preto",
       "green": "Verde",
-      "purple": "Roxo"
+      "purple": "Roxo",
+      "custom": "As suas cores",
+      "primary": "Cor principal",
+      "secondary": "Cor secundária"
     },
     "dashboard": {
       "cardInfoIcons": "Mostrar ícones de informação",

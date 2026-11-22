@@ -223,6 +223,93 @@ describe('useUiSettingsStore', () => {
     expect(useUiSettingsStore().colorfulMaps).toBe(true)
   })
 
+  describe('car colour', () => {
+    const paint = () => {
+      const style = document.documentElement.style
+      return {
+        primary: style.getPropertyValue('--car-primary'),
+        secondary: style.getPropertyValue('--car-secondary'),
+      }
+    }
+
+    it('paints the car orange until another colour is chosen', () => {
+      const store = useUiSettingsStore()
+
+      expect(store.carColorScheme).toBe('orange')
+      expect(store.carCustomColors).toBeNull()
+      expect(paint()).toStrictEqual({ primary: '#f9b233', secondary: '#f39200' })
+    })
+
+    it('paints the document in a chosen preset at once', async () => {
+      const store = useUiSettingsStore()
+
+      store.chooseCarColorScheme('black')
+      await nextTick()
+
+      expect(paint()).toStrictEqual({ primary: '#2c2f35', secondary: '#1b1d21' })
+    })
+
+    it('starts the custom colours from the paints on screen, the first time only', async () => {
+      const store = useUiSettingsStore()
+      store.chooseCarColorScheme('blue')
+
+      store.chooseCarColorScheme('custom')
+      await nextTick()
+      expect(store.carCustomColors).toStrictEqual({ primary: '#2f80dc', secondary: '#1c5fb0' })
+
+      store.carCustomColors = { primary: '#123456', secondary: '#abcdef' }
+      store.chooseCarColorScheme('red')
+      store.chooseCarColorScheme('custom')
+      await nextTick()
+      expect(paint()).toStrictEqual({ primary: '#123456', secondary: '#abcdef' })
+    })
+
+    it('saves the custom colours, and loads them back', async () => {
+      const store = useUiSettingsStore()
+      store.chooseCarColorScheme('custom')
+      store.carCustomColors = { primary: '#102030', secondary: '#405060' }
+      await nextTick()
+      vi.advanceTimersByTime(SAVE_DEBOUNCE_MS)
+
+      setActivePinia(createPinia())
+      const loaded = useUiSettingsStore()
+      expect(loaded.carColorScheme).toBe('custom')
+      expect(loaded.carColors).toStrictEqual({ primary: '#102030', secondary: '#405060' })
+    })
+
+    it.each([
+      ['not a colour', { primary: 'red', secondary: '#405060' }],
+      ['an injected value', { primary: '#102030; background: url(x)', secondary: '#405060' }],
+      ['a short hex', { primary: '#123', secondary: '#405060' }],
+      ['half a pair', { primary: '#102030' }],
+    ])('ignores stored custom colours that are %s', (_, carCustomColors) => {
+      localStorage.setItem(UI_KEY, JSON.stringify({ carColorScheme: 'custom', carCustomColors }))
+
+      const store = useUiSettingsStore()
+      expect(store.carCustomColors).toBeNull()
+      // Custom without a pair falls back to the default paints rather than none.
+      expect(store.carColors).toStrictEqual({ primary: '#f9b233', secondary: '#f39200' })
+    })
+
+    it('keeps stored custom colours in lower case', () => {
+      localStorage.setItem(
+        UI_KEY,
+        JSON.stringify({ carCustomColors: { primary: '#ABCDEF', secondary: '#0A0B0C' } }),
+      )
+
+      expect(useUiSettingsStore().carCustomColors).toStrictEqual({
+        primary: '#abcdef',
+        secondary: '#0a0b0c',
+      })
+    })
+
+    it('falls back to orange for a scheme it does not know', () => {
+      localStorage.setItem(UI_KEY, JSON.stringify({ carColorScheme: 'tartan' }))
+
+      expect(useUiSettingsStore().carColorScheme).toBe('orange')
+    })
+  })
+
   it('defaults notificationTypeExclusions to an empty array (no exclusions, show all)', () => {
     const store = useUiSettingsStore()
     expect(store.notificationTypeExclusions).toEqual([])

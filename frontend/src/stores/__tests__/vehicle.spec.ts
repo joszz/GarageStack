@@ -682,6 +682,28 @@ describe('useVehicleStore - choosing a car', () => {
     expect(store.effectiveVehicleType).toBe('phev')
   })
 
+  it('keeps custom colours per car', async () => {
+    const store = useVehicleStore()
+    const ui = useUiSettingsStore()
+    store.vehicles = [first, second]
+    await nextTick()
+
+    ui.chooseCarColorScheme('custom')
+    ui.carCustomColors = { primary: '#111111', secondary: '#222222' }
+
+    store.selectVehicle(second.vin)
+    await nextTick()
+    ui.chooseCarColorScheme('custom')
+    ui.carCustomColors = { primary: '#333333', secondary: '#444444' }
+
+    store.selectVehicle(first.vin)
+    await nextTick()
+    expect(ui.carColors).toStrictEqual({ primary: '#111111', secondary: '#222222' })
+    store.selectVehicle(second.vin)
+    await nextTick()
+    expect(ui.carColors).toStrictEqual({ primary: '#333333', secondary: '#444444' })
+  })
+
   // With one car the colour stays account-wide, as before there was a choice of car, so the login
   // page and the first paint (before the list is in) show the same colour as the dashboard.
   it('keeps the colour account-wide with a single car', async () => {

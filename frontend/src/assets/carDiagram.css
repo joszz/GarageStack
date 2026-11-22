@@ -7,11 +7,12 @@
 
 /* ── Car contour and shadow ─────────────────────────────── */
 
-/* A contour a shade darker than the paint and a soft shadow (#car-shadow), so a pale paint
-   such as pearl white doesn't wash into the white card, and a dark one into the road. Only here:
-   the map marker draws the same silhouette at a size where an outline would be clutter. */
+/* A contour (--car-outline, dark on the light theme and light on the dark one) and a soft shadow
+   (#car-shadow), so a pale paint such as pearl white doesn't wash into the white card, and a
+   black one into the dark card or road. The map marker, too small for a stroke, draws the same
+   contour as a hairline glow (.trip-marker--active in main.css). */
 .tyre-diagram__car .car-svg-body {
-  stroke: color-mix(in srgb, var(--car-secondary, #f39200) 65%, #000);
+  stroke: var(--car-outline);
   stroke-width: 0.8;
   paint-order: stroke;
 }

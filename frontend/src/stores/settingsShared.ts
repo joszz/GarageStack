@@ -22,22 +22,74 @@ export type ThemeChoice = Theme | 'system'
  */
 export type Locale = 'en' | 'nl' | 'es' | 'pt' | 'pt-PT'
 
-export interface CarColorScheme {
-  id: string
+/**
+ * The car's two paints as `#rrggbb`: the body (its sides, and the stripes between the roof ribs)
+ * and the roof and bonnet over it. The presets make the second a shade darker.
+ */
+export interface CarColors {
   primary: string
   secondary: string
 }
 
+export interface CarColorScheme extends CarColors {
+  id: string
+}
+
+/**
+ * The paints offered, neutrals first and then the colours. Each keeps a mid enough tone to stand
+ * apart from both the dark and the light card and road; the theme's --car-outline (main.css)
+ * gives the darkest and lightest an edge where they meet a background of their own tone. An id is
+ * stored in the settings, so one is never renamed or dropped, only added.
+ */
 export const CAR_COLOR_SCHEMES: CarColorScheme[] = [
+  { id: 'white', primary: '#f4f5f6', secondary: '#d3d8dd' },
+  { id: 'silver', primary: '#bfc6cd', secondary: '#959ea8' },
+  { id: 'anthracite', primary: '#5a636d', secondary: '#434a53' },
+  { id: 'black', primary: '#2c2f35', secondary: '#1b1d21' },
+  { id: 'red', primary: '#d93030', secondary: '#b01f24' },
   { id: 'orange', primary: '#f9b233', secondary: '#f39200' },
-  { id: 'red', primary: '#e53935', secondary: '#c62828' },
-  { id: 'blue', primary: '#1e88e5', secondary: '#1565c0' },
-  { id: 'silver', primary: '#cfd8dc', secondary: '#90a4ae' },
-  { id: 'white', primary: '#eceff1', secondary: '#b0bec5' },
-  { id: 'anthracite', primary: '#455a64', secondary: '#263238' },
-  { id: 'green', primary: '#43a047', secondary: '#2e7d32' },
-  { id: 'purple', primary: '#8e24aa', secondary: '#6a1b9a' },
+  { id: 'green', primary: '#2f9e5e', secondary: '#207646' },
+  { id: 'blue', primary: '#2f80dc', secondary: '#1c5fb0' },
+  { id: 'purple', primary: '#9348c4', secondary: '#6d2d9b' },
 ]
+
+/** The scheme a car starts on, and falls back to: the orange of the app's own car. */
+export const DEFAULT_CAR_COLOR_SCHEME = 'orange'
+
+/** The scheme that paints the car in the user's own two colours rather than a preset. */
+export const CUSTOM_CAR_COLOR_SCHEME = 'custom'
+
+export const CAR_COLOR_SCHEME_IDS: readonly string[] = [
+  ...CAR_COLOR_SCHEMES.map((s) => s.id),
+  CUSTOM_CAR_COLOR_SCHEME,
+]
+
+const HEX_COLOR = /^#[0-9a-f]{6}$/i
+
+/**
+ * A stored pair of custom paints, or null when it is not one: a colour input only ever gives
+ * `#rrggbb`, so anything else was edited by hand or saved by another build, and is not applied
+ * to the page as it is.
+ */
+export function parseCarColors(raw: unknown): CarColors | null {
+  if (typeof raw !== 'object' || raw === null) return null
+  const { primary, secondary } = raw as Record<string, unknown>
+  if (typeof primary !== 'string' || !HEX_COLOR.test(primary)) return null
+  if (typeof secondary !== 'string' || !HEX_COLOR.test(secondary)) return null
+  return { primary: primary.toLowerCase(), secondary: secondary.toLowerCase() }
+}
+
+/**
+ * The paints a scheme stands for: a preset's own, or the custom pair. Custom without a pair, and
+ * an id no preset has, fall back to the default scheme.
+ */
+export function resolveCarColors(schemeId: string, custom: CarColors | null): CarColors {
+  if (schemeId === CUSTOM_CAR_COLOR_SCHEME && custom) return { ...custom }
+  const scheme =
+    CAR_COLOR_SCHEMES.find((s) => s.id === schemeId) ??
+    CAR_COLOR_SCHEMES.find((s) => s.id === DEFAULT_CAR_COLOR_SCHEME)!
+  return { primary: scheme.primary, secondary: scheme.secondary }
+}
 
 export type StatsInsightId =
   | 'periodDistance'

@@ -1,12 +1,17 @@
 import { defineStore } from 'pinia'
 import { computed, reactive, ref, toRefs, watch } from 'vue'
-import type { Theme, ThemeChoice, Locale, VehicleTypeOverride } from './settingsShared'
+import type { CarColors, Theme, ThemeChoice, Locale, VehicleTypeOverride } from './settingsShared'
 import {
   osPreferredTheme,
   browserLocale,
   CAR_COLOR_SCHEMES,
+  CAR_COLOR_SCHEME_IDS,
+  CUSTOM_CAR_COLOR_SCHEME,
+  DEFAULT_CAR_COLOR_SCHEME,
   loadStoredSettings,
+  parseCarColors,
   persistSettings,
+  resolveCarColors,
 } from './settingsShared'
 import { setRegionalFormat } from '@/utils/format'
 import { applyTheme } from '@/utils/theme'
@@ -29,8 +34,14 @@ import {
   type UnitSettings,
 } from '@/utils/units'
 
-export type { Theme, Locale, VehicleTypeOverride, CarColorScheme } from './settingsShared'
-export { CAR_COLOR_SCHEMES }
+export type {
+  Theme,
+  Locale,
+  VehicleTypeOverride,
+  CarColors,
+  CarColorScheme,
+} from './settingsShared'
+export { CAR_COLOR_SCHEMES, CUSTOM_CAR_COLOR_SCHEME }
 
 /** The region dates, the clock and "auto" units follow: the detected one, or one chosen instead. */
 export type RegionSetting = 'auto' | Region
@@ -52,6 +63,8 @@ export const DEFAULT_FILTER_DAYS = 7
  */
 export interface VehicleUiSettings {
   carColorScheme: string
+  /** The car's own custom paints; without them it shares the account-wide pair. */
+  carCustomColors?: CarColors | null
 }
 
 interface UiSettings {
@@ -61,6 +74,8 @@ interface UiSettings {
   placeNamesEnabled: boolean
   colorfulMaps: boolean
   carColorScheme: string
+  /** The paints of the custom scheme, null until it is first chosen. */
+  carCustomColors: CarColors | null
   vehicleTypeOverride: VehicleTypeOverride
   filterDays: number
   /** The statistics page's period; the map keeps filterDays. */
@@ -84,7 +99,8 @@ function defaultsFor(): UiSettings {
     showCardInfoIcons: true,
     placeNamesEnabled: true,
     colorfulMaps: false,
-    carColorScheme: 'orange',
+    carColorScheme: DEFAULT_CAR_COLOR_SCHEME,
+    carCustomColors: null,
     vehicleTypeOverride: 'auto',
     filterDays: DEFAULT_FILTER_DAYS,
     statsPeriod: { ...DEFAULT_STATS_PERIOD },
@@ -101,7 +117,6 @@ function defaultsFor(): UiSettings {
 const THEMES: readonly ThemeChoice[] = ['dark', 'light', 'system']
 const LOCALES: readonly Locale[] = ['en', 'nl', 'es', 'pt', 'pt-PT']
 const VEHICLE_TYPE_OVERRIDES: readonly VehicleTypeOverride[] = ['auto', 'hev', 'phev', 'bev']
-const CAR_COLOR_SCHEME_IDS = CAR_COLOR_SCHEMES.map((s) => s.id)
 // The map's trips are clamped to 90 days by the API; anything up to a year is accepted here so an
 // older build's stored value is not thrown away.
 const MAX_FILTER_DAYS = 365
@@ -179,6 +194,7 @@ function parseVehicleSettings(
     const entry = value as Record<string, unknown>
     result[vin] = {
       carColorScheme: oneOf(entry.carColorScheme, CAR_COLOR_SCHEME_IDS, fallback.carColorScheme),
+      carCustomColors: parseCarColors(entry.carCustomColors),
     }
   }
   return result
@@ -199,6 +215,7 @@ function parseUiFields(parsed: Record<string, unknown>, fallback: UiSettings): U
     placeNamesEnabled: parsed.placeNamesEnabled !== false,
     colorfulMaps: parsed.colorfulMaps === true,
     carColorScheme,
+    carCustomColors: parseCarColors(parsed.carCustomColors),
     vehicleTypeOverride: oneOf(
       parsed.vehicleTypeOverride,
       VEHICLE_TYPE_OVERRIDES,
@@ -225,10 +242,9 @@ function loadUiSettings(): UiSettings {
   )
 }
 
-function applyCarColors(id: string) {
-  const scheme = CAR_COLOR_SCHEMES.find((s) => s.id === id) ?? CAR_COLOR_SCHEMES[0]!
-  document.documentElement.style.setProperty('--car-primary', scheme.primary)
-  document.documentElement.style.setProperty('--car-secondary', scheme.secondary)
+function applyCarColors({ primary, secondary }: CarColors) {
+  document.documentElement.style.setProperty('--car-primary', primary)
+  document.documentElement.style.setProperty('--car-secondary', secondary)
 }
 
 export const useUiSettingsStore = defineStore('settingsUi', () => {
@@ -269,19 +285,23 @@ export const useUiSettingsStore = defineStore('settingsUi', () => {
   // Read and written for that car: its own entry when it has one, otherwise the account-wide
   // value. The first change made for a car gives it its own entry.
   function perVehicle<K extends keyof VehicleUiSettings>(key: K) {
-    return computed<VehicleUiSettings[K]>({
+    return computed<UiSettings[K]>({
       get: () => {
         const vin = colorVin.value
-        return (vin && settings.vehicleSettings[vin]?.[key]) || settings[key]
+        const own: VehicleUiSettings[K] | undefined = vin
+          ? settings.vehicleSettings[vin]?.[key]
+          : undefined
+        return (own || settings[key]) as UiSettings[K]
       },
       set: (value) => {
         const vin = colorVin.value
         if (!vin) {
-          ;(settings as VehicleUiSettings)[key] = value
+          ;(settings as Pick<UiSettings, K>)[key] = value
           return
         }
         const current = settings.vehicleSettings[vin] ?? {
           carColorScheme: settings.carColorScheme,
+          carCustomColors: settings.carCustomColors,
         }
         // Replaced whole, so the account sync sees the section change.
         settings.vehicleSettings = {
@@ -292,8 +312,22 @@ export const useUiSettingsStore = defineStore('settingsUi', () => {
     })
   }
   const carColorScheme = perVehicle('carColorScheme')
+  const carCustomColors = perVehicle('carCustomColors')
 
-  watch(carColorScheme, applyCarColors, { immediate: true })
+  /** The paints the car is drawn in now, whichever scheme they come from. */
+  const carColors = computed(() => resolveCarColors(carColorScheme.value, carCustomColors.value))
+  watch(carColors, applyCarColors, { immediate: true })
+
+  /**
+   * Picks a scheme. Custom chosen for the first time starts from the paints on screen, so the
+   * colour pickers open on the car as it looks rather than on black.
+   */
+  function chooseCarColorScheme(id: string) {
+    if (id === CUSTOM_CAR_COLOR_SCHEME && !carCustomColors.value) {
+      carCustomColors.value = carColors.value
+    }
+    carColorScheme.value = id
+  }
 
   // Detected once per page load: what this device says, so "auto" can differ between devices
   // while every choice made instead follows the account.
@@ -313,8 +347,11 @@ export const useUiSettingsStore = defineStore('settingsUi', () => {
 
   return {
     ...toRefs(settings),
-    // After the spread, so it stands in for the account-wide value of the same name.
+    // After the spread, so they stand in for the account-wide values of the same name.
     carColorScheme,
+    carCustomColors,
+    carColors,
+    chooseCarColorScheme,
     setColorVin,
     effectiveTheme,
     detectedRegion,
