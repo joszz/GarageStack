@@ -6,13 +6,52 @@ Without -Menu : sets up env and opens Windows Terminal with all three panes.
 With    -Menu : runs the menu pane (called internally by Windows Terminal).
 With -Frontend: waits for the API port, then runs Vite (so the first page
                 load does not hit ECONNREFUSED while dotnet is still building).
+With    -Api  : runs the API with the Demo launch profile and the settings from .env.demo.
+
+The demo settings live in one place, .env.demo, for this script and for docker-compose.demo.yml
+alike. The script creates it from .env.demo.example on first run. Its ports and CORS origin
+are the Docker stack's: here the API is on :5000 and Vite on :5173.
 #>
-param([switch]$Menu, [switch]$Frontend)
+param([switch]$Menu, [switch]$Frontend, [switch]$Api)
 
 $ErrorActionPreference = 'Stop'
 $root         = $PSScriptRoot
 $apiPath      = Join-Path $root 'src\GarageStack.Api'
 $frontendPath = Join-Path $root 'frontend'
+$demoEnv      = Join-Path $root '.env.demo'
+$demoEnvExample = Join-Path $root '.env.demo.example'
+
+# Settings in .env.demo that only the Docker stack reads: its host ports, its origin, and the
+# switch it always sets itself.
+$dockerOnly = @('FRONTEND_PORT', 'API_PORT', 'CORS_ORIGIN', 'DEMO_MODE')
+
+# The KEY=VALUE lines of .env.demo (or the example while there is none), without comments,
+# blank values or surrounding quotes. A blank value means "unset", as in the compose file.
+function Read-DemoSettings {
+    $path = if (Test-Path $demoEnv) { $demoEnv } else { $demoEnvExample }
+    $settings = [ordered]@{}
+    if (-not (Test-Path $path)) { return $settings }
+    foreach ($line in Get-Content $path) {
+        $trimmed = $line.Trim()
+        if (-not $trimmed -or $trimmed.StartsWith('#')) { continue }
+        $at = $trimmed.IndexOf('=')
+        if ($at -lt 1) { continue }
+        $name  = $trimmed.Substring(0, $at).Trim()
+        $value = $trimmed.Substring($at + 1).Trim()
+        if ($value.Length -ge 2 -and $value[0] -eq $value[-1] -and $value[0] -in '"', "'") {
+            $value = $value.Substring(1, $value.Length - 2)
+        }
+        if ($value) { $settings[$name] = $value }
+    }
+    return $settings
+}
+
+function Get-DemoLogin {
+    $settings = Read-DemoSettings
+    $user = if ($settings['AUTH_USERNAME']) { $settings['AUTH_USERNAME'] } else { 'demo' }
+    $pass = if ($settings['AUTH_PASSWORD']) { $settings['AUTH_PASSWORD'] } else { 'demo' }
+    return "$user / $pass"
+}
 
 function Test-PortOpen([int]$port) {
     $tcp = [System.Net.Sockets.TcpClient]::new()
@@ -57,6 +96,7 @@ function Write-Dot([int]$port) {
 # Menu mode - runs inside the left pane
 # ---------------------------------------------------------------------------
 if ($Menu) {
+    $login = Get-DemoLogin
     while ($true) {
         Clear-Host
         Write-Host ''
@@ -73,7 +113,7 @@ if ($Menu) {
         Write-Host 'localhost:5173' -ForegroundColor DarkGray
         Write-Host ''
         Write-Host '  Open in browser' -ForegroundColor DarkGray
-        Write-Host '  [a]  App  (demo / demo)' -ForegroundColor Green
+        Write-Host "  [a]  App  ($login)" -ForegroundColor Green
         Write-Host '  [s]  API reference (Scalar)' -ForegroundColor Green
         Write-Host '  [o]  OpenAPI JSON' -ForegroundColor Green
         Write-Host ''
@@ -119,9 +159,31 @@ if ($Menu) {
     pnpm dev
 
 # ---------------------------------------------------------------------------
+# API mode - the Demo launch profile, with the settings from .env.demo
+# ---------------------------------------------------------------------------
+} elseif ($Api) {
+    Set-Location $apiPath
+    # dotnet run -e beats the launch profile's own values, so .env.demo has the last word.
+    $runArgs = @('run', '--launch-profile', 'Demo')
+    $settings = Read-DemoSettings
+    foreach ($name in $settings.Keys) {
+        if ($name -in $dockerOnly) { continue }
+        $runArgs += '-e', "$name=$($settings[$name])"
+        if ($name -ne 'AUTH_PASSWORD') {
+            Write-Host "  $name=$($settings[$name])" -ForegroundColor DarkGray
+        }
+    }
+    dotnet @runArgs
+
+# ---------------------------------------------------------------------------
 # Launcher mode - env setup, then open WT with all three panes
 # ---------------------------------------------------------------------------
 } else {
+    if (-not (Test-Path $demoEnv) -and (Test-Path $demoEnvExample)) {
+        Copy-Item $demoEnvExample $demoEnv
+        Write-Host 'Created .env.demo from example' -ForegroundColor Green
+    }
+
     $envLocal        = Join-Path $frontendPath '.env.development.local'
     $envLocalExample = Join-Path $frontendPath '.env.development.local.example'
 
@@ -138,12 +200,12 @@ if ($Menu) {
     Write-Host ''
     Write-Host '  GarageStack Demo' -ForegroundColor Yellow
     Write-Host '  API      -> http://localhost:5000' -ForegroundColor Cyan
-    Write-Host '  Frontend -> http://localhost:5173  (login: demo / demo)' -ForegroundColor Cyan
+    Write-Host "  Frontend -> http://localhost:5173  (login: $(Get-DemoLogin))" -ForegroundColor Cyan
     Write-Host ''
 
     if (-not (Get-Command wt -ErrorAction SilentlyContinue)) {
         Write-Warning 'Windows Terminal (wt) not found -- opening separate windows instead.'
-        Start-Process pwsh -ArgumentList '-NoExit', '-Command', "cd '$apiPath'; dotnet run --launch-profile Demo"
+        Start-Process pwsh -ArgumentList '-NoExit', '-Command', "& '$PSCommandPath' -Api"
         Start-Process pwsh -ArgumentList '-NoExit', '-Command', "& '$PSCommandPath' -Frontend"
         & $PSCommandPath -Menu
         exit 0
@@ -152,6 +214,7 @@ if ($Menu) {
     $scriptPath = $PSCommandPath
     $cmd = "& `"$scriptPath`" -Menu"
     $frontendCmd = "& `"$scriptPath`" -Frontend"
+    $apiCmd = "& `"$scriptPath`" -Api"
 
     # Layout: [Menu (left) | API (top-right) / Frontend (bottom-right)]
     # 1. new-tab  -> menu pane (full width)
@@ -163,7 +226,7 @@ if ($Menu) {
         ';',
         'split-pane', '-V', '--size', '0.72',
         '--title', 'GarageStack API (Demo)', '--tabColor', '#f59e0b',
-        '-d', $apiPath, 'pwsh', '-NoExit', '-Command', 'dotnet run --launch-profile Demo',
+        '-d', $apiPath, 'pwsh', '-NoExit', '-Command', $apiCmd,
         ';',
         'split-pane', '-H',
         '--title', 'GarageStack Frontend (Demo)', '--tabColor', '#3b82f6',

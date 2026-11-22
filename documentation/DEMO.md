@@ -32,7 +32,7 @@ This stack is also what the Playwright smoke tests run against, in CI and locall
 
 Opens Windows Terminal with three panes: a menu on the left, and the API above the frontend on the right. Without Windows Terminal it opens the API and the frontend in two separate windows and runs the menu in the current one.
 
-The script auto-creates `frontend/.env.development.local` from the example file on first run.
+The script auto-creates `frontend/.env.development.local` and `.env.demo` from their example files on first run. It starts the API with the settings in `.env.demo`, the same file the Docker stack reads, so the second car, the RDW card or other credentials are set in one place for both. Only the ports and the CORS origin there are the Docker stack's: the script always uses :5000 for the API and :5173 for the frontend. A change to `.env.demo` takes effect when the API starts again.
 
 ### Manual start
 
@@ -43,7 +43,7 @@ cd src/GarageStack.Api
 dotnet run --launch-profile Demo
 ```
 
-This starts the API at `http://localhost:5000` with `DEMO_MODE=true`, `Auth:Username=demo`, and `Auth:Password=demo` pre-configured. No database or MQTT connection is made.
+This starts the API at `http://localhost:5000` with `DEMO_MODE=true`, `AUTH_USERNAME=demo`, and `AUTH_PASSWORD=demo` pre-configured. No database or MQTT connection is made. Started this way it does not read `.env.demo`: pass a setting with `-e`, which beats the launch profile, for example `dotnet run --launch-profile Demo -e DEMO_SECOND_VEHICLE=true`.
 
 Open the API reference through the frontend, at [http://localhost:5173/api/reference/](http://localhost:5173/api/reference/) once the frontend below runs: Vite passes `/api` on to the API, so the page shares the app's session and *Test Request* works after signing in. Straight from the API, at `http://localhost:5000/api/reference/`, it cannot sign you in (the login page is the app's), and a change sent from there is refused: that address is not an allowed origin.
 
@@ -66,7 +66,7 @@ The `.env.development.local` file sets `VITE_DEMO_MODE=true` so the demo banner 
 | Docker | [http://localhost:8080](http://localhost:8080) | `demo` | `demo` |
 | Local dev | [http://localhost:5173](http://localhost:5173) | `demo` | `demo` |
 
-The credentials come from `AUTH_USERNAME` / `AUTH_PASSWORD` in `.env.demo` (Docker) or the `Auth__Username` / `Auth__Password` values in the `Demo` launch profile (local). Change them in either place if you want different credentials.
+The credentials come from `AUTH_USERNAME` / `AUTH_PASSWORD` in `.env.demo`, for Docker and for `start-demo.ps1` alike. A bare `dotnet run --launch-profile Demo` uses the `Demo` launch profile's demo / demo instead.
 
 Demo mode deliberately sticks to the built-in password login. Configuring `OIDC_AUTHORITY` would switch the demo over to single sign-on as well -- see [`AUTHENTICATION.md`](AUTHENTICATION.md).
 
