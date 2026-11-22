@@ -23,10 +23,13 @@ public class UserSettingsRepository(
         var rows = await db.UserSettings
             .AsNoTracking()
             .Where(s => s.AccountKey == accountKey)
+            .OrderBy(s => s.Id)
             .Select(s => new { s.Section, s.Json })
             .ToListAsync(ct);
 
-        return rows.ToDictionary(
+        // One row per section, which PostgreSQL's unique index guarantees. Demo mode's in-memory
+        // database can hold two for a moment while a racing save gives way (MergeAttemptAsync).
+        return rows.DistinctBy(row => row.Section).ToDictionary(
             row => row.Section,
             row => SettingsDocument.Read(row.Json, ex => LogUnreadable(ex, row.Section)));
     }
@@ -74,6 +77,7 @@ public class UserSettingsRepository(
         var merged = SettingsDocument.Merge(row?.Json, changes, ex => LogUnreadable(ex, section));
         if (merged.Length > UserSettingsLimits.JsonMaxLength) return SettingsSaveResult.TooLarge;
 
+        var created = row is null;
         if (row is null)
         {
             row = new UserSettings { AccountKey = accountKey, Section = section };
@@ -84,6 +88,18 @@ public class UserSettingsRepository(
         row.Version++;
         row.UpdatedAt = UtcNow;
         await db.SaveChangesAsync(ct);
+
+        // Demo mode's in-memory database keeps no unique index, so two devices creating the same
+        // section at once would both succeed and leave two rows. A save that finds another row
+        // after its own gives way, as PostgreSQL's unique violation makes it: its row goes, and
+        // MergeAsync merges its keys again into the one that stays.
+        if (created && !db.Database.IsRelational() &&
+            await db.UserSettings.AnyAsync(s => s.AccountKey == accountKey && s.Section == section && s.Id != row.Id, ct))
+        {
+            db.UserSettings.Remove(row);
+            await db.SaveChangesAsync(ct);
+            throw new DbUpdateConcurrencyException($"Settings section {section} was created by another device first.");
+        }
 
         return SettingsSaveResult.Saved;
     }
