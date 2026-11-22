@@ -146,6 +146,45 @@ public class UserSettingsRepositoryTests
         Assert.Equal("true", await ValueAsync(repo, Alice, "ui", "round1", ct));
     }
 
+    // Demo mode's in-memory database has no unique index: two devices creating the same section
+    // at once must still end up with one row holding both devices' keys, as on PostgreSQL.
+    [Fact]
+    public async Task Merge_ThatRacedAnotherDeviceCreatingTheSection_LeavesOneRowWithBothDevicesKeys()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var name = Guid.NewGuid().ToString();
+        var race = new RaceBeforeSaves(times: 1, async _ =>
+        {
+            await using var phone = NewDb(name);
+            await new UserSettingsRepository(phone).MergeAsync(Alice, "dashboard", Changes("""{"mapFirst":true}"""), ct);
+        });
+        await using var db = NewDb(name, race);
+
+        var result = await new UserSettingsRepository(db).MergeAsync(Alice, "dashboard", Changes("""{"showStatsMonths":false}"""), ct);
+
+        Assert.Equal(SettingsSaveResult.Saved, result);
+        await using var check = NewDb(name);
+        Assert.Equal(1, await check.UserSettings.CountAsync(s => s.AccountKey == Alice && s.Section == "dashboard", ct));
+        var repo = new UserSettingsRepository(check);
+        Assert.Equal("true", await ValueAsync(repo, Alice, "dashboard", "mapFirst", ct));
+        Assert.Equal("false", await ValueAsync(repo, Alice, "dashboard", "showStatsMonths", ct));
+    }
+
+    [Fact]
+    public async Task Get_WhileARacingSaveStillHoldsASecondRow_ServesOne()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var db = NewDb(Guid.NewGuid().ToString());
+        db.UserSettings.AddRange(
+            new UserSettings { AccountKey = Alice, Section = "ui", Json = """{"theme":"dark"}""" },
+            new UserSettings { AccountKey = Alice, Section = "ui", Json = """{"theme":"light"}""" });
+        await db.SaveChangesAsync(ct);
+
+        var sections = await new UserSettingsRepository(db).GetAsync(Alice, ct);
+
+        Assert.Equal("dark", Assert.Single(sections).Value.GetProperty("theme").GetString());
+    }
+
     [Fact]
     public async Task Get_AnUnreadableSection_IsServedEmpty()
     {
