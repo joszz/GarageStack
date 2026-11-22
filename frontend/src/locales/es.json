@@ -633,7 +633,6 @@
     "carColor": {
       "title": "Color del coche",
       "desc": "Cómo se dibuja el coche en el panel y en el mapa.",
-      "orange": "Naranja",
       "red": "Rojo",
       "blue": "Azul",
       "silver": "Plata",
@@ -641,7 +640,6 @@
       "anthracite": "Antracita",
       "black": "Negro",
       "green": "Verde",
-      "purple": "Púrpura",
       "custom": "Tus propios colores",
       "primary": "Color principal",
       "secondary": "Color secundario"

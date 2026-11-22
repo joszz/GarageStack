@@ -38,8 +38,9 @@ export interface CarColorScheme extends CarColors {
 /**
  * The paints offered, neutrals first and then the colours. Each keeps a mid enough tone to stand
  * apart from both the dark and the light card and road; the theme's --car-outline (main.css)
- * gives the darkest and lightest an edge where they meet a background of their own tone. An id is
- * stored in the settings, so one is never renamed or dropped, only added.
+ * gives the darkest and lightest an edge where they meet a background of their own tone. Seven, so
+ * they and the custom swatch fit one row on a phone. An id is stored in the settings, so one is
+ * never renamed; a dropped one goes to RETIRED_CAR_COLOR_SCHEMES.
  */
 export const CAR_COLOR_SCHEMES: CarColorScheme[] = [
   { id: 'white', primary: '#f4f5f6', secondary: '#d3d8dd' },
@@ -47,14 +48,22 @@ export const CAR_COLOR_SCHEMES: CarColorScheme[] = [
   { id: 'anthracite', primary: '#5a636d', secondary: '#434a53' },
   { id: 'black', primary: '#2c2f35', secondary: '#1b1d21' },
   { id: 'red', primary: '#d93030', secondary: '#b01f24' },
-  { id: 'orange', primary: '#f9b233', secondary: '#f39200' },
   { id: 'green', primary: '#2f9e5e', secondary: '#207646' },
   { id: 'blue', primary: '#2f80dc', secondary: '#1c5fb0' },
-  { id: 'purple', primary: '#9348c4', secondary: '#6d2d9b' },
 ]
 
-/** The scheme a car starts on, and falls back to: the orange of the app's own car. */
-export const DEFAULT_CAR_COLOR_SCHEME = 'orange'
+/**
+ * Presets no longer offered, with the paints they had. A car stored on one is moved to the
+ * custom scheme in those same paints, so it looks as it did. Orange was the default until then,
+ * so it is also what every car that never had a colour chosen was stored on.
+ */
+const RETIRED_CAR_COLOR_SCHEMES: ReadonlyMap<string, CarColors> = new Map([
+  ['orange', { primary: '#f9b233', secondary: '#f39200' }],
+  ['purple', { primary: '#9348c4', secondary: '#6d2d9b' }],
+])
+
+/** The scheme a car starts on, and falls back to. */
+export const DEFAULT_CAR_COLOR_SCHEME = 'red'
 
 /** The scheme that paints the car in the user's own two colours rather than a preset. */
 export const CUSTOM_CAR_COLOR_SCHEME = 'custom'
@@ -63,6 +72,32 @@ export const CAR_COLOR_SCHEME_IDS: readonly string[] = [
   ...CAR_COLOR_SCHEMES.map((s) => s.id),
   CUSTOM_CAR_COLOR_SCHEME,
 ]
+
+/** A car's colour as stored: the scheme, and the custom pair it uses when custom is chosen. */
+export interface CarColorChoice {
+  carColorScheme: string
+  carCustomColors: CarColors | null
+}
+
+/**
+ * A stored colour choice, checked: an unknown scheme falls back, a malformed pair is dropped, and
+ * a retired preset becomes the custom scheme in its old paints.
+ */
+export function parseCarColorChoice(
+  rawScheme: unknown,
+  rawCustom: unknown,
+  fallbackScheme: string,
+): CarColorChoice {
+  const retired = typeof rawScheme === 'string' ? RETIRED_CAR_COLOR_SCHEMES.get(rawScheme) : null
+  if (retired) return { carColorScheme: CUSTOM_CAR_COLOR_SCHEME, carCustomColors: { ...retired } }
+  return {
+    carColorScheme:
+      typeof rawScheme === 'string' && CAR_COLOR_SCHEME_IDS.includes(rawScheme)
+        ? rawScheme
+        : fallbackScheme,
+    carCustomColors: parseCarColors(rawCustom),
+  }
+}
 
 const HEX_COLOR = /^#[0-9a-f]{6}$/i
 

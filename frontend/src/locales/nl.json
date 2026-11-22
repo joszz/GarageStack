@@ -633,7 +633,6 @@
     "carColor": {
       "title": "Autokleur",
       "desc": "Hoe de auto op het dashboard en de kaart wordt getekend.",
-      "orange": "Oranje",
       "red": "Rood",
       "blue": "Blauw",
       "silver": "Zilver",
@@ -641,7 +640,6 @@
       "anthracite": "Antraciet",
       "black": "Zwart",
       "green": "Groen",
-      "purple": "Paars",
       "custom": "Eigen kleuren",
       "primary": "Primaire kleur",
       "secondary": "Secundaire kleur"

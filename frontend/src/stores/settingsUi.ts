@@ -5,11 +5,10 @@ import {
   osPreferredTheme,
   browserLocale,
   CAR_COLOR_SCHEMES,
-  CAR_COLOR_SCHEME_IDS,
   CUSTOM_CAR_COLOR_SCHEME,
   DEFAULT_CAR_COLOR_SCHEME,
   loadStoredSettings,
-  parseCarColors,
+  parseCarColorChoice,
   persistSettings,
   resolveCarColors,
 } from './settingsShared'
@@ -192,10 +191,11 @@ function parseVehicleSettings(
     if (!vin || vin.length > MAX_VIN_LENGTH) continue
     if (typeof value !== 'object' || value === null) continue
     const entry = value as Record<string, unknown>
-    result[vin] = {
-      carColorScheme: oneOf(entry.carColorScheme, CAR_COLOR_SCHEME_IDS, fallback.carColorScheme),
-      carCustomColors: parseCarColors(entry.carCustomColors),
-    }
+    result[vin] = parseCarColorChoice(
+      entry.carColorScheme,
+      entry.carCustomColors,
+      fallback.carColorScheme,
+    )
   }
   return result
 }
@@ -205,7 +205,11 @@ function parseRegion(raw: unknown, fallback: RegionSetting): RegionSetting {
 }
 
 function parseUiFields(parsed: Record<string, unknown>, fallback: UiSettings): UiSettings {
-  const carColorScheme = oneOf(parsed.carColorScheme, CAR_COLOR_SCHEME_IDS, fallback.carColorScheme)
+  const carColor = parseCarColorChoice(
+    parsed.carColorScheme,
+    parsed.carCustomColors,
+    fallback.carColorScheme,
+  )
   return {
     theme: oneOf(parsed.theme, THEMES, fallback.theme),
     locale: oneOf(parsed.locale, LOCALES, fallback.locale),
@@ -214,8 +218,7 @@ function parseUiFields(parsed: Record<string, unknown>, fallback: UiSettings): U
     // the behaviour it already had.
     placeNamesEnabled: parsed.placeNamesEnabled !== false,
     colorfulMaps: parsed.colorfulMaps === true,
-    carColorScheme,
-    carCustomColors: parseCarColors(parsed.carCustomColors),
+    ...carColor,
     vehicleTypeOverride: oneOf(
       parsed.vehicleTypeOverride,
       VEHICLE_TYPE_OVERRIDES,
@@ -226,7 +229,7 @@ function parseUiFields(parsed: Record<string, unknown>, fallback: UiSettings): U
     notificationTypeExclusions: Array.isArray(parsed.notificationTypeExclusions)
       ? (parsed.notificationTypeExclusions as string[])
       : fallback.notificationTypeExclusions,
-    vehicleSettings: parseVehicleSettings(parsed.vehicleSettings, { carColorScheme }),
+    vehicleSettings: parseVehicleSettings(parsed.vehicleSettings, carColor),
     region: parseRegion(parsed.region, fallback.region),
     clock: oneOf(parsed.clock, CLOCK_SETTINGS, fallback.clock),
     units: parseUnits(parsed.units, fallback.units),
