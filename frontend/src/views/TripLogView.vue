@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import '@/assets/tripLog.css'
 import { computed, onMounted, onUnmounted, ref, useId, useTemplateRef, watch } from 'vue'
+import { storeToRefs } from 'pinia'
 import { useI18n } from 'vue-i18n'
 import { useVehicleStore } from '@/stores/vehicle'
 import { useTripLogStore } from '@/stores/tripLog'
@@ -19,6 +20,7 @@ import { formatNumber } from '@/utils/format'
 import {
   currentMonthPeriod,
   distanceShare,
+  isSamePeriod,
   periodLabel,
   PURPOSE_CARD_VARIANTS,
   PURPOSE_ICONS,
@@ -53,11 +55,19 @@ const errorMessage = useErrorMessage()
 
 const vin = computed(() => vehicleStore.activeVin)
 
-const period = ref<TripLogPeriod>(currentMonthPeriod())
+// Kept in the settings, as the map and statistics keep theirs, so the page comes back on the
+// period it was left on. The current month is stored as none, so a page left there follows the
+// calendar into the next month instead of staying on this one.
+const period = computed<TripLogPeriod>({
+  get: () => uiSettings.tripLogPeriod ?? currentMonthPeriod(),
+  set: (value) => {
+    uiSettings.tripLogPeriod = isSamePeriod(value, currentMonthPeriod()) ? null : value
+  },
+})
 const caption = computed(() => periodLabel(period.value))
 
 // Hidden trips stay out of the list unless asked for, as they stay out of the totals and export.
-const showHidden = ref(false)
+const { tripLogShowHidden: showHidden } = storeToRefs(uiSettings)
 const listed = computed(() => (showHidden.value ? store.entries : store.visibleEntries))
 
 // Newest first on screen, where the trips still to classify are; the store keeps date order.

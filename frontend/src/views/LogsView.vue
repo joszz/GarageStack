@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import '@/assets/logs.css'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { storeToRefs } from 'pinia'
 import { useI18n } from 'vue-i18n'
 import ChipGroup from '@/components/ChipGroup.vue'
 import LogEntryItem from '@/components/LogEntryItem.vue'
 import ViewHeader from '@/components/ViewHeader.vue'
-import { LOG_LEVELS, type LogLevel, type LogSourceName } from '@/services/logsApi'
+import { LOG_LEVEL_CHOICES, LOG_SOURCE_CHOICES } from '@/services/logsApi'
+import { useUiSettingsStore } from '@/stores/settingsUi'
 import { useLogFeed } from '@/composables/useLogFeed'
 import { useScrollSentinel } from '@/composables/useScrollSentinel'
 import { scrollParent } from '@/utils/viewport'
@@ -17,11 +19,9 @@ const { t } = useI18n()
 const PAGE_SIZE = 50
 const LIVE_INTERVAL_MS = 10_000
 const SEARCH_DELAY_MS = 300
-// The levels worth starting from: Verbose is never written, and Fatal alone is next to nothing.
-const LEVEL_CHOICES = LOG_LEVELS.filter((l) => l !== 'Verbose' && l !== 'Fatal')
-
-const source = ref<LogSourceName | 'all'>('all')
-const level = ref<LogLevel>('Information')
+// The files and the level are kept in the settings, as the other pages keep their filters. The
+// search is not: a remembered search would quietly hide entries on the next visit.
+const { logSource: source, logLevel: level } = storeToRefs(useUiSettingsStore())
 const search = ref('')
 const live = ref(false)
 
@@ -38,7 +38,7 @@ const { sentinelRef, observe, recheck } = useScrollSentinel(
 )
 
 const sourceOptions = computed(() =>
-  (['all', 'api', 'worker'] as const).map((value) => ({
+  LOG_SOURCE_CHOICES.map((value) => ({
     value,
     label: t(`logs.sources.${value}`),
   })),
@@ -111,7 +111,7 @@ onUnmounted(() => {
         :group-label="t('logs.source')"
       />
       <select v-model="level" class="form-select" :aria-label="t('logs.level')">
-        <option v-for="choice in LEVEL_CHOICES" :key="choice" :value="choice">
+        <option v-for="choice in LOG_LEVEL_CHOICES" :key="choice" :value="choice">
           {{ t('logs.fromLevel', { level: t(`logs.levels.${choice}`) }) }}
         </option>
       </select>

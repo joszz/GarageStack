@@ -2,6 +2,9 @@ import { describe, it, expect } from 'vitest'
 import { deventer, logEntry, place } from '@/services/__tests__/tripLogFixtures'
 import {
   currentMonthPeriod,
+  isSamePeriod,
+  parseTripLogPeriod,
+  tripLogYears,
   distanceShare,
   endLabel,
   loggedDistanceKm,
@@ -18,6 +21,44 @@ import {
 describe('currentMonthPeriod', () => {
   it("starts at the local month, which is not yet UTC's at midnight on the first", () => {
     expect(currentMonthPeriod(new Date(2026, 10, 1, 0, 30))).toEqual({ year: 2026, month: 10 })
+  })
+})
+
+describe('tripLogYears', () => {
+  it('offers this year and the four before it', () => {
+    expect(tripLogYears(new Date(2026, 10, 1))).toEqual([2026, 2025, 2024, 2023, 2022])
+  })
+})
+
+describe('isSamePeriod', () => {
+  it('compares the year and the month', () => {
+    expect(isSamePeriod({ year: 2026, month: 3 }, { year: 2026, month: 3 })).toBe(true)
+    expect(isSamePeriod({ year: 2026, month: 3 }, { year: 2026, month: null })).toBe(false)
+    expect(isSamePeriod({ year: 2026, month: 3 }, { year: 2025, month: 3 })).toBe(false)
+  })
+})
+
+describe('parseTripLogPeriod', () => {
+  const today = new Date(2026, 10, 15)
+
+  it('reads a month or a whole year', () => {
+    expect(parseTripLogPeriod({ year: 2025, month: 0 }, today)).toEqual({ year: 2025, month: 0 })
+    expect(parseTripLogPeriod({ year: 2024, month: null }, today)).toEqual({
+      year: 2024,
+      month: null,
+    })
+  })
+
+  it.each([
+    ['nothing', null],
+    ['text', '2026-03'],
+    ['a year no longer offered', { year: 2021, month: 1 }],
+    ['a year to come', { year: 2027, month: 1 }],
+    ['a month past December', { year: 2026, month: 12 }],
+    ['a broken month', { year: 2026, month: 1.5 }],
+    ['no month at all', { year: 2026 }],
+  ])('drops %s', (_, raw) => {
+    expect(parseTripLogPeriod(raw, today)).toBeNull()
   })
 })
 

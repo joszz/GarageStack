@@ -15,6 +15,19 @@ import {
 import { setRegionalFormat } from '@/utils/format'
 import { applyTheme } from '@/utils/theme'
 import { DEFAULT_STATS_PERIOD, isStatsPeriod, type StatsPeriod } from '@/utils/statsPeriod'
+import { parseTripLogPeriod, type TripLogPeriod } from '@/utils/tripLog'
+import {
+  CHARGE_HISTORY_DAYS,
+  DEFAULT_CHARGE_HISTORY_DAYS,
+  type ChargeHistoryDays,
+} from '@/utils/chargeSessions'
+import {
+  DEFAULT_LOG_LEVEL,
+  LOG_LEVEL_CHOICES,
+  LOG_SOURCE_CHOICES,
+  type LogLevel,
+  type LogSourceChoice,
+} from '@/services/logsApi'
 import {
   detectRegion,
   isRegion,
@@ -83,6 +96,14 @@ interface UiSettings {
   filterDays: number
   /** The statistics page's period; the map keeps filterDays. */
   statsPeriod: StatsPeriod
+  /** The trip log's month or year; null follows the calendar to the current month. */
+  tripLogPeriod: TripLogPeriod | null
+  /** Whether the trip log lists the hidden trips too. */
+  tripLogShowHidden: boolean
+  chargeHistoryDays: ChargeHistoryDays
+  /** The log viewer's files and the lowest level it shows. */
+  logSource: LogSourceChoice
+  logLevel: LogLevel
   notificationTypeExclusions: string[]
   /**
    * The colour of each car, by VIN, used only while the account has more than one car. A car
@@ -109,6 +130,11 @@ function defaultsFor(): UiSettings {
     vehicleTypeOverride: 'auto',
     filterDays: DEFAULT_FILTER_DAYS,
     statsPeriod: { ...DEFAULT_STATS_PERIOD },
+    tripLogPeriod: null,
+    tripLogShowHidden: false,
+    chargeHistoryDays: DEFAULT_CHARGE_HISTORY_DAYS,
+    logSource: 'all',
+    logLevel: DEFAULT_LOG_LEVEL,
     notificationTypeExclusions: [],
     vehicleSettings: {},
     // Everything follows the region the browser is in, which its time zone tells far better than
@@ -234,6 +260,15 @@ function parseUiFields(parsed: Record<string, unknown>, fallback: UiSettings): U
     ),
     filterDays: positiveDays(parsed.filterDays, fallback.filterDays),
     statsPeriod: parseStatsPeriod(parsed.statsPeriod, parsed.filterDays, fallback.statsPeriod),
+    tripLogPeriod: parseTripLogPeriod(parsed.tripLogPeriod),
+    tripLogShowHidden: parsed.tripLogShowHidden === true,
+    chargeHistoryDays: oneOf(
+      parsed.chargeHistoryDays,
+      CHARGE_HISTORY_DAYS,
+      fallback.chargeHistoryDays,
+    ),
+    logSource: oneOf(parsed.logSource, LOG_SOURCE_CHOICES, fallback.logSource),
+    logLevel: oneOf(parsed.logLevel, LOG_LEVEL_CHOICES, fallback.logLevel),
     notificationTypeExclusions: Array.isArray(parsed.notificationTypeExclusions)
       ? (parsed.notificationTypeExclusions as string[])
       : fallback.notificationTypeExclusions,

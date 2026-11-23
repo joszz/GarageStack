@@ -82,6 +82,7 @@ const messages = (wrapper: Awaited<ReturnType<typeof render>>) =>
 
 describe('LogsView', () => {
   beforeEach(() => {
+    localStorage.clear()
     setActivePinia(createPinia())
     page.mockReset()
     observers.length = 0
@@ -124,6 +125,28 @@ describe('LogsView', () => {
       search: '',
       limit: 50,
     })
+  })
+
+  it('comes back on the source and level it was left on, but not the search', async () => {
+    const first = await render()
+    page.mockResolvedValue(newest)
+    await first.find('select').setValue('Error')
+    await first.findAll('.logs-filters button')[2]!.trigger('click')
+    await first.find('input[type=search]').setValue('mqtt')
+    await flushPromises()
+    first.unmount()
+    page.mockClear()
+
+    const wrapper = await render()
+
+    expect(page).toHaveBeenCalledWith({
+      source: 'worker',
+      level: 'Error',
+      search: '',
+      limit: 50,
+    })
+    expect((wrapper.find('select').element as HTMLSelectElement).value).toBe('Error')
+    expect((wrapper.find('input[type=search]').element as HTMLInputElement).value).toBe('')
   })
 
   it("says the Worker's files are out of sight when the API cannot read them", async () => {

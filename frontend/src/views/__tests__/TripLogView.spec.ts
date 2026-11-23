@@ -119,6 +119,8 @@ let pinia: Pinia
 
 describe('TripLogView', () => {
   beforeEach(() => {
+    // The filters are saved, so one test's choice would otherwise open the next one's page.
+    localStorage.clear()
     pinia = createPinia()
     setActivePinia(pinia)
     vi.clearAllMocks()
@@ -285,6 +287,38 @@ describe('TripLogView', () => {
     expect(new Date(from).getMonth()).toBe(0)
     expect(new Date(to).getFullYear()).toBe(2027)
     expect(wrapper.get('.view-header__caption').text()).toBe('2026')
+  })
+
+  it('comes back on the period and the hidden trips it was left on', async () => {
+    const first = await mountView()
+    const dialog = await openFilters(first)
+    const month = dialog.findAll('select')[1]!
+    ;(month.element as HTMLSelectElement).selectedIndex = 0
+    await month.trigger('change')
+    await dialog.get('input[role="switch"]').setValue(true)
+    await flushPromises()
+    first.unmount()
+
+    const wrapper = await mountView()
+
+    expect(wrapper.get('.view-header__caption').text()).toBe('2026')
+    const [, from] = vi.mocked(tripLogApi.log).mock.lastCall!
+    expect(new Date(from).getMonth()).toBe(0)
+    expect(listedIds(wrapper)).toEqual(['Sat, 3 Oct', 'Fri, 2 Oct', 'Thu, 1 Oct'])
+    expect(useUiSettingsStore(pinia).tripLogPeriod).toEqual({ year: 2026, month: null })
+  })
+
+  it('keeps no period for the current month, so it follows the calendar', async () => {
+    const wrapper = await mountView()
+    const dialog = await openFilters(wrapper)
+    const month = dialog.findAll('select')[1]!
+    ;(month.element as HTMLSelectElement).selectedIndex = 0
+    await month.trigger('change')
+    await month.setValue('9')
+    await flushPromises()
+
+    expect(wrapper.get('.view-header__caption').text()).toBe('October 2026')
+    expect(useUiSettingsStore(pinia).tripLogPeriod).toBeNull()
   })
 
   it('asks for no addresses while place names are switched off', async () => {
