@@ -986,6 +986,11 @@
       "purpose": "Soort rit",
       "notes": "Notities"
     },
+    "gpx": {
+      "download": "GPX",
+      "hint": "De route opslaan als GPX-bestand, voor een routeplanner, een sportapp of het geotaggen van foto's",
+      "name": "{date}: {from} naar {to}"
+    },
     "places": {
       "title": "Thuis en werk",
       "addTitle": "Plaats toevoegen",

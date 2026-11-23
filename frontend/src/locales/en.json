@@ -986,6 +986,11 @@
       "purpose": "Purpose",
       "notes": "Notes"
     },
+    "gpx": {
+      "download": "GPX",
+      "hint": "Save the route as a GPX file, for a route planner, a sports app or geotagging photos",
+      "name": "{date}: {from} to {to}"
+    },
     "places": {
       "title": "Home and work",
       "addTitle": "Add a place",

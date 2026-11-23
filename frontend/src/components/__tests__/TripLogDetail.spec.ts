@@ -20,6 +20,8 @@ vi.mock('../TripRouteMap.vue', () => ({
     template: '<div class="route-map" />',
   },
 }))
+const downloadGpx = vi.hoisted(() => vi.fn<(filename: string, gpx: string) => void>())
+vi.mock('@/utils/download', () => ({ downloadGpx }))
 vi.mock('../StatsChartCard.vue', () => ({
   default: {
     name: 'StatsChartCard',
@@ -139,6 +141,25 @@ describe('TripLogDetail', () => {
     const wrapper = mountDetail(logEntry({ counterUsed: 255 }))
 
     expect(wrapper.findAll('.trip-log-detail__figure')).toHaveLength(4)
+  })
+
+  it('saves the route it shows as a GPX file, named after the trip', async () => {
+    const wrapper = mountDetail(logEntry({ startPlace: null, endPlace: null }), {
+      placesShown: false,
+      routePoints: [fix(50), fix(80)],
+    })
+
+    await button(wrapper, en.tripLog.gpx.download)!.trigger('click')
+
+    expect(downloadGpx).toHaveBeenCalledOnce()
+    const [filename, gpx] = downloadGpx.mock.calls[0]!
+    expect(filename).toMatch(/^trip-2026-09-24-\d{4}\.gpx$/)
+    expect(gpx.match(/<trkpt /g)).toHaveLength(2)
+    expect(gpx).toContain('52.51230, 6.09210 to 52.25540, 6.16390')
+  })
+
+  it('offers no GPX file without a route to put in it', () => {
+    expect(button(mountDetail(logEntry()), en.tripLog.gpx.download)).toBeUndefined()
   })
 
   it('shows a dash for speeds the car did not report', () => {

@@ -986,6 +986,11 @@
       "purpose": "Finalidade",
       "notes": "Observações"
     },
+    "gpx": {
+      "download": "GPX",
+      "hint": "Salvar a rota como arquivo GPX, para um planejador de rotas, um app de esportes ou geomarcar fotos",
+      "name": "{date}: de {from} a {to}"
+    },
     "places": {
       "title": "Casa e trabalho",
       "addTitle": "Adicionar um local",
