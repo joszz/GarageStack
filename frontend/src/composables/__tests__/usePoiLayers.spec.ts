@@ -261,6 +261,44 @@ describe('usePoiLayers', () => {
     expect(html).toContain('Diesel · LPG')
   })
 
+  it('builds a layer for car parks, car washes, air pumps and garages, each on its own switch', async () => {
+    const settings = useMapSettingsStore(pinia)
+    settings.parkingEnabled = true
+    vi.mocked(mapApi.poi).mockResolvedValue({ items: [], hasMore: false, available: true })
+    setup('bev')
+    const places = layers.slice(4) as unknown as (FakeLayer & {
+      options: TileLayerOptions<PoiItem>
+    })[]
+
+    expect(places.map((l) => l.options.clusterClassName)).toEqual([
+      'poi-cluster poi-cluster--parking',
+      'poi-cluster poi-cluster--car-wash',
+      'poi-cluster poi-cluster--air',
+      'poi-cluster poi-cluster--garage',
+    ])
+    expect(places.map((l) => l.options.enabled.value)).toEqual([true, false, false, false])
+
+    await places[2]!.options.fetchItems({ lat: 52, lng: 5 } as never, 10)
+    expect(mapApi.poi).toHaveBeenCalledWith('compressed_air', 52, 5, 10, 'bev')
+  })
+
+  it('names a nameless car park after its layer, and says what OSM knows of it', () => {
+    setup('hev')
+    const marker = layers[4]!.options.toMarker(
+      poi(
+        { parking: 'underground', fee: 'yes', maxheight: '1.9' },
+        { name: null, poiType: 'parking' },
+      ) as never,
+    ) as unknown as { className: string; popup: () => string }
+
+    expect(marker.className).toBe('poi-marker poi-marker--parking')
+    const html = marker.popup()
+    expect(html).toContain(en.poi.parking.title)
+    expect(html).toContain(en.poi.parking.kind.underground)
+    expect(html).toContain(en.poi.fee.paid)
+    expect(html).toContain('Height limit 1.9')
+  })
+
   it('loads again a moment after the map moves, and lets go of the map and the layers when done', async () => {
     const { wrapper, map } = setup('hev')
     await nextTick()

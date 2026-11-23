@@ -25,6 +25,10 @@ const {
   speedLimitOverlayEnabled,
   serviceAreasEnabled,
   speedCamerasEnabled,
+  parkingEnabled,
+  carWashesEnabled,
+  airPumpsEnabled,
+  garagesEnabled,
   fuelStationsEnabled,
   chargingStationsEnabled,
   phoneGpsEnabled,
@@ -41,6 +45,10 @@ const activeCount = computed(() => {
     snapToRoadsEnabled.value && speedLimitOverlayEnabled.value,
     serviceAreasEnabled.value,
     props.speedCamerasAvailable && speedCamerasEnabled.value,
+    parkingEnabled.value,
+    carWashesEnabled.value,
+    airPumpsEnabled.value,
+    garagesEnabled.value,
     props.carTakesFuel && fuelStationsEnabled.value,
     props.carTakesCharge && chargingStationsEnabled.value,
     props.phoneGpsAvailable && phoneGpsEnabled.value,
@@ -107,6 +115,30 @@ const activeCount = computed(() => {
       :label="t('trips.speedCameras')"
       :desc="t('trips.speedCamerasDesc')"
       icon="camera"
+    />
+    <SettingsToggle
+      v-model="parkingEnabled"
+      :label="t('poi.parking.layer')"
+      :desc="t('poi.parking.layerDesc')"
+      icon="square-parking"
+    />
+    <SettingsToggle
+      v-model="carWashesEnabled"
+      :label="t('poi.carWash.layer')"
+      :desc="t('poi.carWash.layerDesc')"
+      icon="car-side"
+    />
+    <SettingsToggle
+      v-model="airPumpsEnabled"
+      :label="t('poi.air.layer')"
+      :desc="t('poi.air.layerDesc')"
+      icon="wind"
+    />
+    <SettingsToggle
+      v-model="garagesEnabled"
+      :label="t('poi.repair.layer')"
+      :desc="t('poi.repair.layerDesc')"
+      icon="screwdriver-wrench"
     />
     <SettingsToggle
       v-if="carTakesFuel"

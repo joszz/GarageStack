@@ -246,6 +246,23 @@
   background: var(--poi-speed-camera);
 }
 
+.poi-marker--parking {
+  background: var(--poi-parking);
+  font-weight: 700;
+}
+
+.poi-marker--car-wash {
+  background: var(--poi-car-wash);
+}
+
+.poi-marker--air {
+  background: var(--poi-air);
+}
+
+.poi-marker--garage {
+  background: var(--poi-garage);
+}
+
 .poi-marker--charging {
   background: var(--poi-charging);
   font-size: 14px;
@@ -283,6 +300,26 @@
 .poi-cluster--speed-camera {
   background: var(--poi-speed-camera);
   border-color: color-mix(in srgb, var(--poi-speed-camera) 35%, transparent);
+}
+
+.poi-cluster--parking {
+  background: var(--poi-parking);
+  border-color: color-mix(in srgb, var(--poi-parking) 35%, transparent);
+}
+
+.poi-cluster--car-wash {
+  background: var(--poi-car-wash);
+  border-color: color-mix(in srgb, var(--poi-car-wash) 35%, transparent);
+}
+
+.poi-cluster--air {
+  background: var(--poi-air);
+  border-color: color-mix(in srgb, var(--poi-air) 35%, transparent);
+}
+
+.poi-cluster--garage {
+  background: var(--poi-garage);
+  border-color: color-mix(in srgb, var(--poi-garage) 35%, transparent);
 }
 
 .poi-cluster--charging {

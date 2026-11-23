@@ -6299,7 +6299,7 @@
         "tags": [
           "Map"
         ],
-        "summary": "Get nearby POIs (fuel stations, service areas, speed cameras) from OSM Overpass cache",
+        "summary": "Get nearby POIs (fuel stations, service areas, speed cameras, parking, car washes, air pumps, garages) from OSM Overpass cache",
         "parameters": [
           {
             "name": "type",

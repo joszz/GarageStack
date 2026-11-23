@@ -51,6 +51,27 @@ describe('MapLayerPanel', () => {
     expect(badge(wrapper)).toBe('2')
   })
 
+  it('offers car parks, car washes, air pumps and garages to every car, and counts them', async () => {
+    const wrapper = await mountPanel(false)
+    const toggle = (label: string) =>
+      wrapper.get<HTMLInputElement>(
+        `.settings-toggle input[type="checkbox"][aria-label="${label}"]`,
+      )
+
+    for (const label of [
+      en.poi.parking.layer,
+      en.poi.carWash.layer,
+      en.poi.air.layer,
+      en.poi.repair.layer,
+    ])
+      expect(toggle(label).element.checked).toBe(false)
+
+    await toggle(en.poi.air.layer).setValue(true)
+
+    expect(useMapSettingsStore().airPumpsEnabled).toBe(true)
+    expect(badge(wrapper)).toBe('3')
+  })
+
   it('leaves the layer out, and out of the count, without a location service', async () => {
     const wrapper = await mountPanel(false)
 

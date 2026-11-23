@@ -42,7 +42,7 @@ public sealed class PoiPreCachingService(
 
             // Two questions, both of which have to say yes: the car has a use for the layer, and
             // the deployment serves it (speed cameras can be switched off).
-            foreach (var poiType in PoiTypePolicy.AllowedOverpassTypes(vehicleType).Where(overpassClient.IsTypeEnabled))
+            foreach (var poiType in PoiTypePolicy.PreCachedOverpassTypesFor(vehicleType).Where(overpassClient.IsTypeEnabled))
                 await PreCacheAsync(
                     repository, PoiCacheDefaults.OverpassSource, poiType, "Overpass", vinForLog, lat, lng,
                     async (cellLat, cellLng, token) => await overpassClient.FetchBackgroundAsync(poiType, cellLat, cellLng, token),

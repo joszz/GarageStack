@@ -13,6 +13,42 @@ import { speedCameraKind, speedCameraLimit } from '@/utils/speedCameras'
 import { OCM_ATTRIBUTION } from '@/utils/credits'
 import { useLayerCredit } from './useLayerCredit'
 import { burnsFuel, mayBurnFuel, mayPlugIn } from '@/utils/vehicleType'
+import { OSM_PLACE_LAYERS, placeLines, type OsmPlaceLayer, type PlaceLine } from '@/utils/osmPlaces'
+
+type PlaceSetting = 'parkingEnabled' | 'carWashesEnabled' | 'airPumpsEnabled' | 'garagesEnabled'
+
+// The layers that are nothing but places from OpenStreetMap: one switch, one colour and one
+// glyph each, the same tiles and the same popup layout. The marker and cluster classes are
+// `poi-marker--<className>` and `poi-cluster--<className>` (map.css).
+const PLACE_LAYERS: Record<
+  OsmPlaceLayer,
+  { setting: PlaceSetting; className: string; glyph: string; titleKey: string }
+> = {
+  parking: {
+    setting: 'parkingEnabled',
+    className: 'parking',
+    glyph: 'P',
+    titleKey: 'poi.parking.title',
+  },
+  car_wash: {
+    setting: 'carWashesEnabled',
+    className: 'car-wash',
+    glyph: '&#129533;',
+    titleKey: 'poi.carWash.title',
+  },
+  compressed_air: {
+    setting: 'airPumpsEnabled',
+    className: 'air',
+    glyph: '&#128168;',
+    titleKey: 'poi.air.title',
+  },
+  car_repair: {
+    setting: 'garagesEnabled',
+    className: 'garage',
+    glyph: '&#128295;',
+    titleKey: 'poi.repair.title',
+  },
+}
 
 /**
  * The shape every POI popup takes: a title and the meta lines that have something to say. One
@@ -57,7 +93,7 @@ export interface UsePoiLayersOptions {
 
 /**
  * Owns everything related to the charging-station, fuel-station, service-area and speed-camera
- * map layers: settings bindings, on-demand tile fetching/caching, marker clustering, and popups.
+ * map layers, and the parking, car wash, air pump and garage ones: settings bindings, on-demand tile fetching/caching, marker clustering, and popups.
  * Reacts to pan/zoom (via the map instance passed in) and to the relevant settings toggling on
  * its own.
  */
@@ -290,7 +326,34 @@ export function usePoiLayers({ mapInstance, vehicleType }: UsePoiLayersOptions) 
     onLoadingChange: trackLoading,
   })
 
-  const layers = [chargingLayer, fuelLayer, serviceAreaLayer, speedCameraLayer]
+  const placeLine = (line: PlaceLine) =>
+    'text' in line ? line.text : t(line.key, line.params ?? {})
+
+  const placeLayers = OSM_PLACE_LAYERS.map((layer) => {
+    const def = PLACE_LAYERS[layer]
+    return createTileLayer<PoiItem>({
+      map: mapInstance,
+      enabled: computed(() => settingsStore[def.setting]),
+      clusterClassName: `poi-cluster poi-cluster--${def.className}`,
+      idOf: (item) => item.externalId,
+      fetchItems: (center, radiusKm) =>
+        mapApi.poi(layer, center.lat, center.lng, radiusKm, vehicleType.value),
+      toMarker: (item) =>
+        createMarker(
+          item.latitude,
+          item.longitude,
+          `poi-marker poi-marker--${def.className}`,
+          def.glyph,
+          () =>
+            poiPopupHtml(item.name ?? t(def.titleKey), placeLines(layer, item.tags).map(placeLine)),
+        ),
+      moreToFetch: ({ hasMore }) => hasMore,
+      chainDelayMs: ({ newItems }) => (newItems ? 400 : 5000),
+      onLoadingChange: trackLoading,
+    })
+  })
+
+  const layers = [chargingLayer, fuelLayer, serviceAreaLayer, speedCameraLayer, ...placeLayers]
 
   // Coalesced brand names shown in the filter dropdown (e.g. "BP" covers "BP" and "BP express").
   // See canonicalFuelBrand for the raw-variant -> canonical mapping.

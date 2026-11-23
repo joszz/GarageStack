@@ -562,7 +562,7 @@ Opening an external map or map app shares the destination coordinates with it. N
 
 ## Map overlays
 
-The map view supports four POI overlay layers: charging stations, fuel stations, motorway service areas and speed cameras. All data is cached in the database and served instantly on subsequent visits. Open the **Filters** panel (sliders icon, top-right of the map) to toggle each layer and adjust filters.
+The map view supports eight POI overlay layers: charging stations, fuel stations, motorway service areas, speed cameras, car parks, car washes, air pumps and garages. All data is cached in the database and served instantly on subsequent visits. Open the **Filters** panel (sliders icon, top-right of the map) to toggle each layer and adjust filters.
 
 ### Basemap
 
@@ -614,6 +614,16 @@ Sourced from OpenStreetMap (`highway=speed_camera`) via the Overpass API -- no A
 - Positions on a map, not warnings: GarageStack is a dashboard of the car's state, and nothing here alerts you to a camera ahead while driving.
 - Several countries restrict pointing a driver at camera positions, France and Germany among them. Set `SPEEDCAMERAS__ENABLED=false` to remove the layer from the deployment: the toggle then disappears from the layer panel, the endpoint serves nothing, and the Worker fetches no camera data either.
 - Same DB-backed cache and Worker pre-population as fuel stations. The same Overpass slowness applies for uncached tiles outside the pre-populated radius -- see the note in the Fuel stations section above.
+
+### Car parks, car washes, air pumps and garages
+
+Sourced from OpenStreetMap via the Overpass API -- no API key required. Four layers of their own in the map's layer panel, all off by default and offered to every car.
+
+- **Car parks** shows multi-storey and underground car parks, park and ride, and car parks with a name (`amenity=parking`), none that is closed to the public. The many small unnamed lots a city holds are left out, as they would bury the map. A popup names the kind of car park, whether it charges, its height limit (`maxheight`) and its spaces, where OSM has them.
+- **Car washes** (`amenity=car_wash`), with self-service and automatic washes marked.
+- **Air pumps** (`amenity=compressed_air`, and fuel stations tagged `compressed_air=yes`), for topping up the tyres after a low tyre pressure alert.
+- **Garages**: car repair shops and tyre shops (`shop=car_repair`, `shop=tyres`), with their brand, so an MG dealer that is mapped as one says so.
+- Same DB-backed cache as the other layers, but not pre-populated by the Worker: a tile is looked up the first time the map shows it with the layer on, to keep the load on the shared public Overpass instance down. The first look at a new area can therefore take a moment.
 
 ### Place names (reverse geocoding)
 

@@ -1397,5 +1397,43 @@
     "savedState": "Geen verbinding met GarageStack. Dit is de auto zoals laatst gezien, {time}.",
     "savedPage": "Geen verbinding met GarageStack. Deze pagina toont wat dit apparaat laatst heeft geladen, {time}.",
     "savedPageUnknown": "Geen verbinding met GarageStack. Deze pagina toont wat dit apparaat laatst heeft geladen."
+  },
+  "poi": {
+    "fee": {
+      "paid": "Betaald",
+      "free": "Gratis"
+    },
+    "parking": {
+      "title": "Parkeerplaats",
+      "layer": "Parkeergarages",
+      "layerDesc": "Parkeergarages, ondergrondse garages, P+R en parkeerterreinen met een naam, uit OpenStreetMap. Pop-ups tonen het tarief, de maximale hoogte en het aantal plaatsen als die bekend zijn.",
+      "kind": {
+        "multiStorey": "Parkeergarage",
+        "underground": "Ondergronds",
+        "surface": "Buiten"
+      },
+      "parkRide": "P+R",
+      "maxHeight": "Maximale hoogte {height}",
+      "capacity": "{count} plaatsen"
+    },
+    "carWash": {
+      "title": "Wasstraat",
+      "layer": "Wasstraten",
+      "layerDesc": "Wasstraten en wasboxen uit OpenStreetMap.",
+      "selfService": "Zelf wassen",
+      "automated": "Automatisch"
+    },
+    "air": {
+      "title": "Bandenpomp",
+      "layer": "Bandenpompen",
+      "layerDesc": "Plekken om je banden op te pompen, bij tankstations en los, uit OpenStreetMap.",
+      "atFuelStation": "Bij het tankstation"
+    },
+    "repair": {
+      "title": "Garage",
+      "layer": "Garages",
+      "layerDesc": "Autogarages en bandenspecialisten uit OpenStreetMap.",
+      "tyres": "Bandenspecialist"
+    }
   }
 }

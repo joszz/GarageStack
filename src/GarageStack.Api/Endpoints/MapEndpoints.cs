@@ -94,7 +94,7 @@ public static class MapEndpoints
         })
         .Produces<PoiResult>()
         .ProducesProblem(StatusCodes.Status400BadRequest)
-        .WithSummary("Get nearby POIs (fuel stations, service areas, speed cameras) from OSM Overpass cache");
+        .WithSummary("Get nearby POIs (fuel stations, service areas, speed cameras, parking, car washes, air pumps, garages) from OSM Overpass cache");
 
         // POST rather than GET because a trip list asks about dozens of coordinates at once, and
         // one batched request per list beats one request per trip against the global rate limit.

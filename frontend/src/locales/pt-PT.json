@@ -1397,5 +1397,43 @@
     "savedState": "Sem ligação ao GarageStack. Este é o carro tal como foi visto pela última vez, {time}.",
     "savedPage": "Sem ligação ao GarageStack. Esta página mostra o que este dispositivo carregou pela última vez, {time}.",
     "savedPageUnknown": "Sem ligação ao GarageStack. Esta página mostra o que este dispositivo carregou pela última vez."
+  },
+  "poi": {
+    "fee": {
+      "paid": "Pago",
+      "free": "Gratuito"
+    },
+    "parking": {
+      "title": "Parque de estacionamento",
+      "layer": "Parques de estacionamento",
+      "layerDesc": "Parques de vários pisos e subterrâneos, park and ride e parques com nome, do OpenStreetMap. Os pop-ups mostram a tarifa, a altura máxima e os lugares quando são conhecidos.",
+      "kind": {
+        "multiStorey": "Vários pisos",
+        "underground": "Subterrâneo",
+        "surface": "Ao ar livre"
+      },
+      "parkRide": "Park and ride",
+      "maxHeight": "Altura máxima {height}",
+      "capacity": "{count} lugares"
+    },
+    "carWash": {
+      "title": "Lavagem automóvel",
+      "layer": "Lavagens automóveis",
+      "layerDesc": "Lavagens de automóveis do OpenStreetMap.",
+      "selfService": "Self-service",
+      "automated": "Automática"
+    },
+    "air": {
+      "title": "Bomba de ar",
+      "layer": "Bombas de ar",
+      "layerDesc": "Locais para encher os pneus, em postos de abastecimento e sozinhos, do OpenStreetMap.",
+      "atFuelStation": "No posto de abastecimento"
+    },
+    "repair": {
+      "title": "Oficina",
+      "layer": "Oficinas",
+      "layerDesc": "Oficinas automóveis e lojas de pneus do OpenStreetMap.",
+      "tyres": "Loja de pneus"
+    }
   }
 }

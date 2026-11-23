@@ -1397,5 +1397,43 @@
     "savedState": "Sin conexión con GarageStack. Así estaba el coche la última vez que se vio, {time}.",
     "savedPage": "Sin conexión con GarageStack. Esta página muestra lo que este dispositivo cargó por última vez, {time}.",
     "savedPageUnknown": "Sin conexión con GarageStack. Esta página muestra lo que este dispositivo cargó por última vez."
+  },
+  "poi": {
+    "fee": {
+      "paid": "De pago",
+      "free": "Gratis"
+    },
+    "parking": {
+      "title": "Aparcamiento",
+      "layer": "Aparcamientos",
+      "layerDesc": "Aparcamientos de varias plantas y subterráneos, de disuasión y aparcamientos con nombre, de OpenStreetMap. Las ventanas muestran la tarifa, la altura máxima y las plazas cuando se conocen.",
+      "kind": {
+        "multiStorey": "De varias plantas",
+        "underground": "Subterráneo",
+        "surface": "Al aire libre"
+      },
+      "parkRide": "Aparcamiento disuasorio",
+      "maxHeight": "Altura máxima {height}",
+      "capacity": "{count} plazas"
+    },
+    "carWash": {
+      "title": "Lavadero",
+      "layer": "Lavaderos",
+      "layerDesc": "Lavaderos de coches de OpenStreetMap.",
+      "selfService": "Autoservicio",
+      "automated": "Automático"
+    },
+    "air": {
+      "title": "Inflador",
+      "layer": "Infladores",
+      "layerDesc": "Sitios para inflar los neumáticos, en gasolineras y sueltos, de OpenStreetMap.",
+      "atFuelStation": "En la gasolinera"
+    },
+    "repair": {
+      "title": "Taller",
+      "layer": "Talleres",
+      "layerDesc": "Talleres de coches y tiendas de neumáticos de OpenStreetMap.",
+      "tyres": "Tienda de neumáticos"
+    }
   }
 }

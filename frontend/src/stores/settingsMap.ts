@@ -19,6 +19,10 @@ interface MapSettings {
   fuelTypeFilter: string[]
   serviceAreasEnabled: boolean
   speedCamerasEnabled: boolean
+  parkingEnabled: boolean
+  carWashesEnabled: boolean
+  airPumpsEnabled: boolean
+  garagesEnabled: boolean
   /** Whether the map draws the points a phone added to trips (dotted); off, only the car's own. */
   phoneGpsEnabled: boolean
   /**
@@ -45,6 +49,10 @@ function defaultsFor(): MapSettings {
     fuelTypeFilter: [],
     serviceAreasEnabled: false,
     speedCamerasEnabled: false,
+    parkingEnabled: false,
+    carWashesEnabled: false,
+    airPumpsEnabled: false,
+    garagesEnabled: false,
     phoneGpsEnabled: true,
     legendExpanded: null,
   }
@@ -75,6 +83,10 @@ function parseMapFields(parsed: Record<string, unknown>): MapSettings {
       : [],
     serviceAreasEnabled: parsed.serviceAreasEnabled === true,
     speedCamerasEnabled: parsed.speedCamerasEnabled === true,
+    parkingEnabled: parsed.parkingEnabled === true,
+    carWashesEnabled: parsed.carWashesEnabled === true,
+    airPumpsEnabled: parsed.airPumpsEnabled === true,
+    garagesEnabled: parsed.garagesEnabled === true,
     // On unless switched off, as the map drew phone points before this was a layer.
     phoneGpsEnabled: parsed.phoneGpsEnabled !== false,
     legendExpanded: typeof parsed.legendExpanded === 'boolean' ? parsed.legendExpanded : null,
