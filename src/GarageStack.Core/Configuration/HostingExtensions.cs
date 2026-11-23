@@ -23,10 +23,19 @@ public static class HostingExtensions
     /// <summary>
     /// Logger for the window before the host exists, so a failure while reading configuration
     /// still reaches the console instead of vanishing. Replaced by the configured logger as soon
-    /// as the host is built.
+    /// as the host is built. Without <paramref name="configuration"/> it logs from Information
+    /// up; with it, it follows the same levels as the host's logger, so what startup reports
+    /// (demo mode, the CORS and proxy warnings) heeds Serilog:MinimumLevel and DEBUG_LOGS too.
     /// </summary>
-    public static ILogger CreateBootstrapLogger() =>
-        new LoggerConfiguration().WriteTo.Console().CreateBootstrapLogger();
+    public static ILogger CreateBootstrapLogger(IConfiguration? configuration = null)
+    {
+        var config = new LoggerConfiguration().WriteTo.Console();
+
+        if (configuration is not null)
+            ApplyLevels(config, configuration);
+
+        return config.CreateBootstrapLogger();
+    }
 
     /// <summary>
     /// Logging as both services do it: console plus a daily rolling file, kept for
@@ -37,30 +46,33 @@ public static class HostingExtensions
     public static IServiceCollection AddGarageStackSerilog(
         this IServiceCollection services, IConfiguration configuration, string logFilePrefix)
     {
-        var debugLogs = string.Equals(configuration["DEBUG_LOGS"], "true", StringComparison.OrdinalIgnoreCase);
         var retainedFiles = Math.Max(1, configuration.IntegerOrDefault("LogFiles:Retained", DefaultRetainedLogFiles));
 
         return services.AddSerilog((_, config) =>
-        {
-            config.ReadFrom.Configuration(configuration)
-                  .WriteTo.Console()
-                  .WriteTo.File(
-                      new LogFileFormatter(),
-                      $"logs/{logFilePrefix}-.log",
-                      rollingInterval: RollingInterval.Day,
-                      retainedFileCountLimit: retainedFiles,
-                      fileSizeLimitBytes: MaxLogFileBytes,
-                      rollOnFileSizeLimit: true);
+            ApplyLevels(config, configuration)
+                .WriteTo.Console()
+                .WriteTo.File(
+                    new LogFileFormatter(),
+                    $"logs/{logFilePrefix}-.log",
+                    rollingInterval: RollingInterval.Day,
+                    retainedFileCountLimit: retainedFiles,
+                    fileSizeLimitBytes: MaxLogFileBytes,
+                    rollOnFileSizeLimit: true));
+    }
 
-            if (debugLogs)
-                config.MinimumLevel.Debug()
-                      .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
-                      .MinimumLevel.Override("System", LogEventLevel.Warning);
+    // The Serilog section of the configuration, plus the levels the app sets itself.
+    private static LoggerConfiguration ApplyLevels(LoggerConfiguration config, IConfiguration configuration)
+    {
+        config.ReadFrom.Configuration(configuration);
 
-            // ASP.NET's own "Request starting" line repeats the request log line with the path
-            // unredacted (the VIN in full), so it stays quiet whatever the configuration says.
-            config.MinimumLevel.Override("Microsoft.AspNetCore.Hosting.Diagnostics", LogEventLevel.Warning);
-        });
+        if (string.Equals(configuration["DEBUG_LOGS"], "true", StringComparison.OrdinalIgnoreCase))
+            config.MinimumLevel.Debug()
+                  .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
+                  .MinimumLevel.Override("System", LogEventLevel.Warning);
+
+        // ASP.NET's own "Request starting" line repeats the request log line with the path
+        // unredacted (the VIN in full), so it stays quiet whatever the configuration says.
+        return config.MinimumLevel.Override("Microsoft.AspNetCore.Hosting.Diagnostics", LogEventLevel.Warning);
     }
 
     /// <summary>

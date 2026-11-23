@@ -13,6 +13,8 @@ try
     var builder = Host.CreateApplicationBuilder(args);
     builder.Configuration.AddGarageStackEnvironment();
 
+    // What the rest of startup logs follows the configured levels from here on.
+    Log.Logger = HostingExtensions.CreateBootstrapLogger(builder.Configuration);
     builder.Services.AddGarageStackSerilog(builder.Configuration, "worker");
 
     var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")

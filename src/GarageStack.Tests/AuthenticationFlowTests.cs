@@ -1991,8 +1991,12 @@ public partial class AuthenticationFlowTests
     private static Dictionary<string, string?> BaseSettingsByKey() => new()
     {
         ["ASPNETCORE_ENVIRONMENT"] = "Production",
-        // Per-request info logging from a host started for every test drowns the test output.
-        ["Serilog__MinimumLevel__Default"] = "Warning",
+        // A host starts for every test, and its startup warnings (localhost CORS, no trusted
+        // proxies) are expected here, so only errors reach the test output. appsettings.json
+        // lets Microsoft warnings through, so those namespaces are raised as well.
+        ["Serilog__MinimumLevel__Default"] = "Error",
+        ["Serilog__MinimumLevel__Override__Microsoft"] = "Error",
+        ["Serilog__MinimumLevel__Override__Microsoft.AspNetCore"] = "Error",
         // No database, MQTT or SAIC gateway needed.
         ["DEMO_MODE"] = "true",
         // A test never asks GitHub for the latest release.
