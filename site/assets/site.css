@@ -929,10 +929,12 @@ a.card:hover {
 /* ── Phones ───────────────────────────────────────────────── */
 
 @media (width <= 767px) {
-  /* The page links get a row of their own under the logo, scrolling sideways if they must. */
+  /* The page links get a row of their own under the logo, scrolling sideways if they must.
+     The logo row gets room above it, so it does not touch the top of the screen. */
   .topbar-inner {
     flex-wrap: wrap;
-    row-gap: 0;
+    row-gap: 0.25rem;
+    padding-top: 0.75rem;
   }
 
   .topbar-github {
