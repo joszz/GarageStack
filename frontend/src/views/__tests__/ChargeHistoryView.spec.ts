@@ -144,6 +144,22 @@ describe('ChargeHistoryView', () => {
     expect(Date.parse(to!) - Date.parse(from!)).toBe(365 * 24 * 60 * 60 * 1000)
   })
 
+  it('comes back on the period it was left on', async () => {
+    const first = mountView()
+    await flushPromises()
+    await first.find('select').setValue('365')
+    await flushPromises()
+    first.unmount()
+    vi.mocked(vehicleApi.chargeSessions).mockClear()
+
+    const wrapper = mountView()
+    await flushPromises()
+
+    expect((wrapper.find('select').element as HTMLSelectElement).value).toBe('365')
+    const [, from, to] = vi.mocked(vehicleApi.chargeSessions).mock.calls[0]!
+    expect(Date.parse(to!) - Date.parse(from!)).toBe(365 * 24 * 60 * 60 * 1000)
+  })
+
   it('sends a plain hybrid to the dashboard without asking for sessions', async () => {
     vi.mocked(vehicleApi.list).mockResolvedValue([vehicle('hev')])
     mountView()

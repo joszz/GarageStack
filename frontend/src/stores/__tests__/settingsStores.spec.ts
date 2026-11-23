@@ -196,6 +196,77 @@ describe('useUiSettingsStore', () => {
     expect(saved.filterDays).toBe(7)
   })
 
+  it('opens the trip log on the current month, without hidden trips', () => {
+    const store = useUiSettingsStore()
+    expect(store.tripLogPeriod).toBeNull()
+    expect(store.tripLogShowHidden).toBe(false)
+  })
+
+  it('loads a stored trip log period, and drops one it cannot show', () => {
+    vi.setSystemTime(new Date(2026, 10, 15))
+    localStorage.setItem(
+      UI_KEY,
+      JSON.stringify({ tripLogPeriod: { year: 2025, month: null }, tripLogShowHidden: true }),
+    )
+    let store = useUiSettingsStore()
+    expect(store.tripLogPeriod).toEqual({ year: 2025, month: null })
+    expect(store.tripLogShowHidden).toBe(true)
+
+    for (const period of [{ year: 2015, month: 3 }, { year: 2026, month: 12 }, 'soon']) {
+      setActivePinia(createPinia())
+      localStorage.setItem(UI_KEY, JSON.stringify({ tripLogPeriod: period }))
+      store = useUiSettingsStore()
+      expect(store.tripLogPeriod).toBeNull()
+    }
+  })
+
+  it('opens the charge history on 90 days and the logs on everything from Information', () => {
+    const store = useUiSettingsStore()
+    expect(store.chargeHistoryDays).toBe(90)
+    expect(store.logSource).toBe('all')
+    expect(store.logLevel).toBe('Information')
+  })
+
+  it('loads the stored charge history and log filters, and falls back on unknown ones', () => {
+    localStorage.setItem(
+      UI_KEY,
+      JSON.stringify({ chargeHistoryDays: 365, logSource: 'worker', logLevel: 'Error' }),
+    )
+    let store = useUiSettingsStore()
+    expect(store.chargeHistoryDays).toBe(365)
+    expect(store.logSource).toBe('worker')
+    expect(store.logLevel).toBe('Error')
+
+    setActivePinia(createPinia())
+    localStorage.setItem(
+      UI_KEY,
+      JSON.stringify({ chargeHistoryDays: 14, logSource: 'mqtt', logLevel: 'Verbose' }),
+    )
+    store = useUiSettingsStore()
+    expect(store.chargeHistoryDays).toBe(90)
+    expect(store.logSource).toBe('all')
+    expect(store.logLevel).toBe('Information')
+  })
+
+  it('saves the trip log, charge history and log filters', async () => {
+    vi.setSystemTime(new Date(2026, 10, 15))
+    const store = useUiSettingsStore()
+    store.tripLogPeriod = { year: 2026, month: 2 }
+    store.tripLogShowHidden = true
+    store.chargeHistoryDays = 30
+    store.logLevel = 'Warning'
+    await nextTick()
+    vi.advanceTimersByTime(SAVE_DEBOUNCE_MS)
+
+    const saved = JSON.parse(localStorage.getItem(UI_KEY)!)
+    expect(saved).toMatchObject({
+      tripLogPeriod: { year: 2026, month: 2 },
+      tripLogShowHidden: true,
+      chargeHistoryDays: 30,
+      logLevel: 'Warning',
+    })
+  })
+
   it('persists placeNamesEnabled being turned off, and loads it back', async () => {
     const store = useUiSettingsStore()
     store.placeNamesEnabled = false

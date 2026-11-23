@@ -1,12 +1,18 @@
 <script setup lang="ts">
 import '@/assets/chargeHistory.css'
 import { computed, onMounted, ref, watch } from 'vue'
+import { storeToRefs } from 'pinia'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { useVehicleStore } from '@/stores/vehicle'
+import { useUiSettingsStore } from '@/stores/settingsUi'
 import { vehicleApi, type ChargeSession } from '@/services/vehicleApi'
 import { mayPlugIn } from '@/utils/vehicleType'
-import { energyGainedKwh, type ChargeEnergyContext } from '@/utils/chargeSessions'
+import {
+  CHARGE_HISTORY_DAYS,
+  energyGainedKwh,
+  type ChargeEnergyContext,
+} from '@/utils/chargeSessions'
 import { formatNumber } from '@/utils/format'
 import { formatDurationMs } from '@/utils/tripRows'
 import { useErrorMessage } from '@/composables/useErrorMessage'
@@ -16,10 +22,6 @@ import StatusCard from '@/components/StatusCard.vue'
 import CardInfoWrap from '@/components/CardInfoWrap.vue'
 import ChargeSessionItem from '@/components/ChargeSessionItem.vue'
 
-/** The periods offered, in days. The API reads at most a year at a time. */
-const PERIOD_DAYS = [30, 90, 365] as const
-type PeriodDays = (typeof PERIOD_DAYS)[number]
-
 const { t } = useI18n()
 const router = useRouter()
 const vehicleStore = useVehicleStore()
@@ -27,7 +29,8 @@ const errorMessage = useErrorMessage()
 const sessions = ref<ChargeSession[]>([])
 const loading = ref(false)
 const loadError = ref<unknown>(null)
-const periodDays = ref<PeriodDays>(90)
+// Kept in the settings, as the map's period is, so the page comes back on the one it was left on.
+const { chargeHistoryDays: periodDays } = storeToRefs(useUiSettingsStore())
 
 const vin = computed(() => vehicleStore.activeVin)
 const energyContext = computed((): ChargeEnergyContext => ({
@@ -100,7 +103,7 @@ watch(charges, (now) => {
       <label class="charge-history-filters__field">
         <span class="text-xs text-muted">{{ t('chargeHistory.period') }}</span>
         <select v-model.number="periodDays" class="form-select">
-          <option v-for="days in PERIOD_DAYS" :key="days" :value="days">
+          <option v-for="days in CHARGE_HISTORY_DAYS" :key="days" :value="days">
             {{ t('chargeHistory.lastDays', { days }) }}
           </option>
         </select>

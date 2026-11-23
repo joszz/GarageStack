@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { currentMonthPeriod, type TripLogPeriod } from '@/utils/tripLog'
+import { currentMonthPeriod, isSamePeriod, type TripLogPeriod } from '@/utils/tripLog'
 import ToolbarPanel from './ToolbarPanel.vue'
 import SettingsToggle from './SettingsToggle.vue'
 import TripLogPeriodFields from './TripLogPeriodFields.vue'
@@ -20,9 +20,8 @@ const { t } = useI18n()
 
 // The badge on the button: the period counts once it is not the month the page opens on.
 const activeCount = computed(() => {
-  const start = currentMonthPeriod()
   const active = [
-    period.value.year !== start.year || period.value.month !== start.month,
+    !isSamePeriod(period.value, currentMonthPeriod()),
     showHidden.value && props.hiddenCount > 0,
   ]
   return active.filter(Boolean).length

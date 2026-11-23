@@ -4,7 +4,16 @@ import { buildQuery, request } from '@/services/apiCore'
 export const LOG_LEVELS = ['Verbose', 'Debug', 'Information', 'Warning', 'Error', 'Fatal'] as const
 export type LogLevel = (typeof LOG_LEVELS)[number]
 
+/** The levels worth starting from: Verbose is never written, and Fatal alone is next to nothing. */
+export const LOG_LEVEL_CHOICES: readonly LogLevel[] = LOG_LEVELS.filter(
+  (l) => l !== 'Verbose' && l !== 'Fatal',
+)
+export const DEFAULT_LOG_LEVEL: LogLevel = 'Information'
+
 export type LogSourceName = 'api' | 'worker'
+/** The files the log viewer reads from: both, or one of them. */
+export const LOG_SOURCE_CHOICES = ['all', 'api', 'worker'] as const
+export type LogSourceChoice = (typeof LOG_SOURCE_CHOICES)[number]
 
 export interface LogEntry {
   /** Where the entry starts in its file: unique, and the same on every read. */

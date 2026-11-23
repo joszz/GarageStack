@@ -22,6 +22,36 @@ export function currentMonthPeriod(today = new Date()): TripLogPeriod {
 }
 
 /**
+ * How many years back a period can be picked. Trips are saved from the Worker's first run
+ * onwards, which also saves the history before it, so a few years back covers any install.
+ */
+export const TRIP_LOG_YEARS_OFFERED = 5
+
+/** The years a period can be picked from, this one first. */
+export function tripLogYears(today = new Date()): number[] {
+  const thisYear = today.getFullYear()
+  return Array.from({ length: TRIP_LOG_YEARS_OFFERED }, (_, i) => thisYear - i)
+}
+
+export function isSamePeriod(a: TripLogPeriod, b: TripLogPeriod): boolean {
+  return a.year === b.year && a.month === b.month
+}
+
+/**
+ * A stored period, checked: null when it is not one, or when its year is no longer offered, so
+ * the page falls back to the current month rather than a year its fields cannot show.
+ */
+export function parseTripLogPeriod(raw: unknown, today = new Date()): TripLogPeriod | null {
+  if (typeof raw !== 'object' || raw === null) return null
+  const { year, month } = raw as Record<string, unknown>
+  if (typeof year !== 'number' || !tripLogYears(today).includes(year)) return null
+  if (month === null) return { year, month: null }
+  return typeof month === 'number' && Number.isInteger(month) && month >= 0 && month <= 11
+    ? { year, month }
+    : null
+}
+
+/**
  * The period's bounds, start included and end excluded, in the browser's own time zone: a
  * driver's September runs from their midnight to their midnight, not UTC's.
  */
