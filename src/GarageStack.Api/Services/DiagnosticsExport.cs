@@ -14,13 +14,14 @@ namespace GarageStack.Api.Services;
 /// What a bug report needs, in one zip that is safe to attach to a public issue: how the server
 /// is set up and whether its parts are healthy, per car what GarageStack knows about it and the
 /// last week of readings without where the car was, and the warnings and errors of the last week
-/// from the logs. VINs become car-1, car-2, ...; plates, email addresses, IP addresses, URLs and
-/// positions are left out or replaced (<see cref="DiagnosticsRedaction"/>).
+/// from the logs. VINs become car-1, car-2, ...; plates, email addresses, IP addresses, URLs, host
+/// names, sign-in names and positions are left out or replaced (<see cref="DiagnosticsRedaction"/>).
 /// </summary>
 internal sealed class DiagnosticsExport(
     IVehicleRepository vehicles,
     ITelemetryRepository telemetry,
     HealthCheckService health,
+    GatewaySignInMonitor gatewaySignIn,
     DiagnosticsFeatures features,
     LogDirectories logs,
     TimeProvider clock)
@@ -72,18 +73,26 @@ internal sealed class DiagnosticsExport(
             health = new
             {
                 status = report.Status.ToString(),
-                checks = report.Entries.ToDictionary(e => e.Key, e => e.Value.Status.ToString()),
+                // The reason too: a check that threw says why in its own words, so scrubbed as well.
+                checks = report.Entries.ToDictionary(e => e.Key, e => new
+                {
+                    status = e.Value.Status.ToString(),
+                    reason = redaction.Scrub(e.Value.Description),
+                }),
+                // Whether the gateway is signed in to the MG account, as the Worker last said; null
+                // while it has not said. Signed out, no car sends anything, whatever the checks say.
+                gatewaySignedIn = gatewaySignIn.SignedIn,
             },
             features = features.Switches,
             cars = cars.Count,
             contents = new Dictionary<string, string>
             {
-                ["diagnostics.json"] = "This file: the version, the platform, which optional parts are switched on, and the health checks",
+                ["diagnostics.json"] = "This file: the version, the platform, which optional parts are switched on, the health checks and whether the gateway is signed in to the MG account",
                 ["cars/car-{n}/car.json"] = "What GarageStack knows about the car: model, series, detected drivetrain and the configuration codes the gateway reported",
                 ["cars/car-{n}/telemetry.csv"] = $"Every telemetry row of the last {Window.TotalDays:0} days, oldest first, without the position, elevation, speed and heading",
                 ["logs.txt"] = $"Warnings and errors of the API and the Worker from the last {Window.TotalDays:0} days, oldest first",
             },
-            removed = "VINs (each car is car-1, car-2, ...), licence plates, the MG account, email and IP addresses, the host and query of URLs, the account name in file paths and anything that looks like a coordinate. Trips, places, notifications and settings are not included.",
+            removed = "VINs (each car is car-1, car-2, ...), licence plates, the MG account, email and IP addresses, the host and query of URLs, host names before a port, the name and groups of a single sign-in, the account name in file paths and anything that looks like a coordinate. Trips, places, notifications and settings are not included.",
         }, ct);
 
         for (var i = 0; i < cars.Count; i++)

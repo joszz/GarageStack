@@ -109,6 +109,39 @@ public class DiagnosticsRedactionTests
         Assert.Equal(expected, Redaction.Scrub(text));
     }
 
+    [Theory]
+    [InlineData("No such host is known. (dawarich.example.org:443)", "No such host is known. ([host]:443)")]
+    [InlineData("Connection refused (valhalla.home.example.net:8002)", "Connection refused ([host]:8002)")]
+    [InlineData("Error while connecting with host 'mqtt.example.org:1883'", "Error while connecting with host '[host]:1883'")]
+    public void Scrub_ReplacesAHostNameBeforeAPort(string text, string expected)
+    {
+        Assert.Equal(expected, Redaction.Scrub(text));
+    }
+
+    // A compose service is the same on every install, and a script's line and column are not a port.
+    [Theory]
+    [InlineData("Connection refused (postgres:5432)")]
+    [InlineData("Connection refused (localhost:1883)")]
+    [InlineData("at main.js:1:200")]
+    [InlineData("at http://localhost:5173/assets/index-abc123.js:12:3")]
+    public void Scrub_KeepsHostsThatSayNothing(string text)
+    {
+        Assert.Equal(text, Redaction.Scrub(text));
+    }
+
+    [Theory]
+    [InlineData(
+        "OIDC sign-in denied for Jane Doe: groups [doe-family, admins] do not match OIDC_ALLOWED_GROUPS",
+        "OIDC sign-in denied for [user]: groups [groups] do not match OIDC_ALLOWED_GROUPS")]
+    [InlineData(
+        "OIDC sign-in denied for j***@example.com: email is not in OIDC_ALLOWED_EMAILS",
+        "OIDC sign-in denied for [user]: email is not in OIDC_ALLOWED_EMAILS")]
+    [InlineData("OIDC sign-in for Jane Doe (no restrictions)", "OIDC sign-in for [user] (no restrictions)")]
+    public void Scrub_ReplacesTheNameAndGroupsOfASingleSignIn(string text, string expected)
+    {
+        Assert.Equal(expected, Redaction.Scrub(text));
+    }
+
     [Fact]
     public void Scrub_ReplacesCoordinates()
     {
@@ -122,6 +155,7 @@ public class DiagnosticsRedactionTests
     [InlineData("SoC 81.5 % at 12.6 V, 3 commands queued")]
     [InlineData("GarageStack 0.19.1 on .NET 10.0.14")]
     [InlineData("HTTP GET /api/settings responded 500 in 1.0346 ms")]
+    [InlineData(@"at GarageStack.Api.Services.PoiService.GetAsync() in /src/PoiService.cs:line 31")]
     public void Scrub_LeavesTextWithoutIdentifiersAlone(string text)
     {
         Assert.Equal(text, Redaction.Scrub(text));
