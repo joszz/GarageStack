@@ -13,8 +13,9 @@ public sealed class DemoVehicleRepository(DemoOptions options) : IVehicleReposit
         Series = "ZS EV",
         SaicUser = "demo@example.com",
         CreatedAt = DateTime.UtcNow.AddMonths(-6),
-        // BType 1: a ZS EV takes a charge target, so the demo shows that control.
-        ConfigJson = """{"hw_version":"MG_BEV_1.0","BType":"1"}""",
+        // BType 1: a ZS EV takes a charge target, so the demo shows that control. Four doors and
+        // no sunroof (S35 0), as most cars report.
+        ConfigJson = """{"hw_version":"MG_BEV_1.0","BType":"1","DOOR":"1111","S35":"0"}""",
         // A made-up plate in the current Dutch format; the demo's RDW client answers for any plate.
         LicensePlate = "ZZ123Z",
     };
@@ -33,8 +34,9 @@ public sealed class DemoVehicleRepository(DemoOptions options) : IVehicleReposit
         SaicUser = "demo@example.com",
         CreatedAt = DateTime.UtcNow.AddMonths(-3),
         // BType 2: it plugs in, as a real plug-in hybrid reports (0 is a plain hybrid), but takes
-        // no charge target, so the demo shows a car without that control too.
-        ConfigJson = """{"hw_version":"AS23 PHEV","BType":"2"}""",
+        // no charge target, so the demo shows a car without that control too. CTRLBOOT 2 reports a
+        // power tailgate, so its controls show without switching it on in the settings.
+        ConfigJson = """{"hw_version":"AS23 PHEV","BType":"2","DOOR":"1111","S35":"0","CTRLBOOT":"2"}""",
     };
 
     private IReadOnlyList<Vehicle> All => options.Vehicles;

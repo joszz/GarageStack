@@ -1724,7 +1724,7 @@
         "tags": [
           "Vehicles"
         ],
-        "summary": "Get latest telemetry for a vehicle (204 before the car has reported anything)",
+        "summary": "Get latest telemetry for a vehicle (204 before the car has reported anything). Doors, their windows and a sunroof the car's configuration codes say it lacks are null",
         "responses": {
           "200": {
             "description": "OK",
@@ -8656,7 +8656,7 @@
             "type": "boolean"
           }
         },
-        "description": "Whether the vehicle has a power tailgate. See bool Vehicle.HasPowerTailgate."
+        "description": "Whether the vehicle has a power tailgate, as the user says: it wins over what the car's codes report."
       },
       "ProblemDetails": {
         "type": "object",
@@ -10364,8 +10364,11 @@
             "description": "The Dutch registration, as string? LicensePlate.Normalize(string? plate) writes it, for the\nRDW lookup. Neither the gateway nor SAIC reports it, so the user enters it. Kept on the\nvehicle rather than in the browser's settings because the Worker looks it up."
           },
           "hasPowerTailgate": {
-            "type": "boolean",
-            "description": "Whether the car has a power tailgate, so the boot can be opened and closed remotely rather\nthan only unlatched. Nothing in the vehicle data tells, and the gateway sends the command to\nany car (one without a power tailgate refuses it), so the user switches it on."
+            "type": [
+              "null",
+              "boolean"
+            ],
+            "description": "Whether the car has a power tailgate, so the boot can be opened and closed remotely rather\nthan only unlatched, as the user set it. Null while the user never did: then the car's codes\ndecide (see bool VehicleEquipment.HasPowerTailgate(Vehicle v)), which few cars send,\nand the gateway sends the command to any car (one without a power tailgate refuses it)."
           },
           "settings": {
             "oneOf": [
@@ -10488,7 +10491,7 @@
             "type": "boolean"
           }
         },
-        "description": "A vehicle as the list endpoint returns it. `VehicleType` is the drivetrain detected from\nthe vehicle's reported hardware version (hev, phev, bev, or unknown while nothing has reported\none), served here so every client reads the same answer instead of parsing it themselves.\n`VehicleTypeOverride` is the type set in the vehicle's settings, null when the detected\none stands. `HvBatteryCapacityKwh` rides along for the same reason: it decides how a\nclient turns a state of charge into kWh. It is the car's own setting, else the deployment's,\nand null when neither says.\n`SupportsTargetSoc` says whether the car takes a charge target, by the gateway's own test.\n`HasPowerTailgate` is what the user set: whether the boot can be opened and closed."
+        "description": "A vehicle as the list endpoint returns it. `VehicleType` is the drivetrain detected from\nthe vehicle's reported hardware version (hev, phev, bev, or unknown while nothing has reported\none), served here so every client reads the same answer instead of parsing it themselves.\n`VehicleTypeOverride` is the type set in the vehicle's settings, null when the detected\none stands. `HvBatteryCapacityKwh` rides along for the same reason: it decides how a\nclient turns a state of charge into kWh. It is the car's own setting, else the deployment's,\nand null when neither says.\n`SupportsTargetSoc` says whether the car takes a charge target, by the gateway's own test.\n`HasPowerTailgate` says whether the boot can be opened and closed: what the user set, else\nwhat the car's codes report."
       },
       "VehicleSettings": {
         "type": "object",

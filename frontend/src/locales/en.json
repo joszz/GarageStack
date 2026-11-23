@@ -711,7 +711,7 @@
     },
     "powerTailgate": {
       "label": "Power tailgate",
-      "desc": "Switch this on if the car's boot opens and closes by itself. The Doors card can then open and close it, instead of only unlocking it. A car without a power tailgate refuses the command."
+      "desc": "Switch this on if the car's boot opens and closes by itself. The Doors card can then open and close it, instead of only unlocking it. It starts on when the car reports a power tailgate. A car without a power tailgate refuses the command."
     },
     "commutePlaces": {
       "title": "Home and work",

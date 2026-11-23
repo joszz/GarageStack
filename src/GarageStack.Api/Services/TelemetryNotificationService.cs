@@ -159,6 +159,11 @@ internal sealed class TelemetryNotificationService(
             var snapshot = await repo.GetMergedLatestAsync(vehicleId, ct);
             if (snapshot is null) return;
 
+            // Shaped as /status answers it, so the page shows the same either way.
+            var vehicles = await scope.ServiceProvider.GetRequiredService<IVehicleRepository>().GetAllAsync(ct);
+            if (vehicles.FirstOrDefault(v => v.Id == vehicleId) is { } vehicle)
+                snapshot = VehicleEquipment.WithoutMissingEquipment(snapshot, vehicle);
+
             await hubContext.Clients.Group(TelemetryHub.GroupFor(vehicleId))
                 .SendAsync("telemetryUpdated", snapshot, ct);
 

@@ -1,6 +1,7 @@
 using GarageStack.Api.Reference;
 using GarageStack.Api.Security;
 using GarageStack.Api.Services;
+using GarageStack.Core.Helpers;
 using GarageStack.Core.Interfaces;
 using GarageStack.Core.Models;
 using Microsoft.Extensions.Localization;
@@ -58,7 +59,8 @@ public static class WidgetEndpoints
                 var snapshot = await telemetry.GetMergedLatestAsync(vehicle.Id, ct);
                 return snapshot is null
                     ? Results.NoContent()
-                    : Results.Ok(WidgetStatusDto.FromSnapshot(snapshot, await facts.GetAsync(vehicle, ct), localizer));
+                    : Results.Ok(WidgetStatusDto.FromSnapshot(
+                        VehicleEquipment.WithoutMissingEquipment(snapshot, vehicle), await facts.GetAsync(vehicle, ct), localizer));
             })
             .Produces<WidgetStatusDto>()
             .Produces(StatusCodes.Status204NoContent)

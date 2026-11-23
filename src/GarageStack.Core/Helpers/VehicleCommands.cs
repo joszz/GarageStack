@@ -78,10 +78,10 @@ public static class VehicleCommands
         ["boot"] = new("doors/boot", value =>
             value == "false" ? null : "'boot' value must be 'false': the latch can only be opened"),
         // Moves a power tailgate open or shut; its state still arrives on doors/boot. The gateway
-        // sends it to any car, so it is only sent to a car the user says has one.
+        // sends it to any car, so it is only sent to a car that has one, by its codes or the user's say.
         ["power-tailgate"] = new("doors/boot/powerTailgate", value =>
             value is "open" or "close" ? null : "'power-tailgate' value must be 'open' or 'close'",
-            (vehicle, _) => vehicle.HasPowerTailgate),
+            (vehicle, _) => VehicleEquipment.HasPowerTailgate(vehicle)),
         ["refresh"] = new("refresh/mode", value =>
             value == "force" ? null : "'refresh' value must be 'force'"),
     };

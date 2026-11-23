@@ -711,7 +711,7 @@
     },
     "powerTailgate": {
       "label": "Portón trasero eléctrico",
-      "desc": "Actívelo si el maletero del coche se abre y se cierra solo. La tarjeta Puertas podrá entonces abrirlo y cerrarlo, en lugar de solo desbloquearlo. Un coche sin portón trasero eléctrico rechaza la orden."
+      "desc": "Actívelo si el maletero del coche se abre y se cierra solo. La tarjeta Puertas podrá entonces abrirlo y cerrarlo, en lugar de solo desbloquearlo. Ya está activado si el coche indica que tiene portón trasero eléctrico. Un coche sin portón trasero eléctrico rechaza la orden."
     },
     "commutePlaces": {
       "title": "Hogar y trabajo",

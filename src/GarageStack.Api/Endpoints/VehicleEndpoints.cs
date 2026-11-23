@@ -35,7 +35,7 @@ public static class VehicleEndpoints
                 return new VehicleListItemDto(
                     v.Id, v.Vin, v.Model, v.Series, v.CreatedAt, effective.DetectedVehicleType,
                     v.Settings?.VehicleType, effective.HvBatteryCapacityKwh,
-                    VehicleTypeHelper.SupportsTargetSoc(v), v.HasPowerTailgate);
+                    VehicleTypeHelper.SupportsTargetSoc(v), VehicleEquipment.HasPowerTailgate(v));
             }));
         })
         .Produces<VehicleListItemDto[]>()
@@ -67,7 +67,7 @@ public static class VehicleEndpoints
         .Produces<Dictionary<string, string>>()
         .WithSummary("Get vehicle capability config");
 
-        // The user's say, not the car's: nothing the car reports tells whether it has one.
+        // The user's say, which wins over the car's codes: few cars report whether they have one.
         vehicleGroup.MapPut("/power-tailgate", async (
             HttpContext httpContext,
             PowerTailgateSetting req,
@@ -85,11 +85,13 @@ public static class VehicleEndpoints
         {
             var vehicle = httpContext.ResolvedVehicle();
             var snapshot = await telemetry.GetMergedLatestAsync(vehicle.Id, ct);
-            return snapshot is null ? Results.NoContent() : Results.Ok(snapshot);
+            return snapshot is null
+                ? Results.NoContent()
+                : Results.Ok(VehicleEquipment.WithoutMissingEquipment(snapshot, vehicle));
         })
         .Produces<TelemetrySnapshot>()
         .Produces(StatusCodes.Status204NoContent)
-        .WithSummary("Get latest telemetry for a vehicle (204 before the car has reported anything)");
+        .WithSummary("Get latest telemetry for a vehicle (204 before the car has reported anything). Doors, their windows and a sunroof the car's configuration codes say it lacks are null");
 
         // A plain hybrid gets none: see ChargeSessionHistory.Applies.
         vehicleGroup.MapGet("/charge-sessions", async (
@@ -295,7 +297,8 @@ public static class VehicleEndpoints
 /// client turns a state of charge into kWh. It is the car's own setting, else the deployment's,
 /// and null when neither says.
 /// <c>SupportsTargetSoc</c> says whether the car takes a charge target, by the gateway's own test.
-/// <c>HasPowerTailgate</c> is what the user set: whether the boot can be opened and closed.
+/// <c>HasPowerTailgate</c> says whether the boot can be opened and closed: what the user set, else
+/// what the car's codes report.
 /// </summary>
 public record VehicleListItemDto(
     int Id,
@@ -309,7 +312,7 @@ public record VehicleListItemDto(
     bool SupportsTargetSoc,
     bool HasPowerTailgate);
 
-/// <summary>Whether the vehicle has a power tailgate. See <see cref="Vehicle.HasPowerTailgate"/>.</summary>
+/// <summary>Whether the vehicle has a power tailgate, as the user says: it wins over what the car's codes report.</summary>
 public record PowerTailgateSetting(bool Enabled);
 
 /// <summary>A command's value, always as text: "on", "True", "80", or a small JSON object for a schedule.</summary>

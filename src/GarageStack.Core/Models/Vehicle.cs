@@ -51,10 +51,11 @@ public class Vehicle
 
     /// <summary>
     /// Whether the car has a power tailgate, so the boot can be opened and closed remotely rather
-    /// than only unlatched. Nothing in the vehicle data tells, and the gateway sends the command to
-    /// any car (one without a power tailgate refuses it), so the user switches it on.
+    /// than only unlatched, as the user set it. Null while the user never did: then the car's codes
+    /// decide (see <see cref="Helpers.VehicleEquipment.HasPowerTailgate"/>), which few cars send,
+    /// and the gateway sends the command to any car (one without a power tailgate refuses it).
     /// </summary>
-    public bool HasPowerTailgate { get; set; }
+    public bool? HasPowerTailgate { get; set; }
 
     /// <summary>
     /// The user's settings for this car, or null while none was ever saved: then every value is
