@@ -11,6 +11,7 @@ import { useConnection } from '@/composables/useConnection'
 import { formatDateTime, formatNumber, formatTimeOfDay } from '@/utils/format'
 import { gatewayLabel } from '@/utils/gatewayLabel'
 import { chargerPowerKw } from '@/utils/energy'
+import { chargingKind } from '@/utils/chargeSessions'
 import StatusBadge from '@/components/StatusBadge.vue'
 
 const i18n = useI18n()
@@ -43,6 +44,9 @@ const obcPower = computed(() =>
   chargerPowerKw(props.obcPowerSinglePhase, props.obcPowerThreePhase, props.hvPower),
 )
 
+// AC or DC; the gateway's other numbers are the car's state, not the kind of charge.
+const kind = computed(() => chargingKind(props.chargingType))
+
 const { sending, lastResult, isPending, send } = useVehicleCommand()
 // Without the server no command reaches the car: the controls are hidden meanwhile.
 const connection = useConnection()
@@ -65,7 +69,7 @@ const summaryValue = computed((): string | null => {
   if (props.remainingChargingTime !== null)
     parts.push(`${props.remainingChargingTime} ${t('common.min')}`)
   if (parts.length) return parts.join(' · ')
-  if (props.chargingType) return props.chargingType
+  if (kind.value) return kind.value
   if (props.chargingCableLock !== null)
     return props.chargingCableLock
       ? t('vehicle.chargingSession.locked')
@@ -77,7 +81,7 @@ const hasAnyData = computed(
   () =>
     obcPower.value !== null ||
     props.isCharging !== null ||
-    props.chargingType !== null ||
+    kind.value !== null ||
     props.chargingCableLock !== null ||
     props.remainingChargingTime !== null ||
     props.bmsChargeStatus !== null,
@@ -210,12 +214,12 @@ const scheduleModeLabel = computed(() =>
         :label="t('vehicle.remainingCharge')"
       />
       <DetailListItem
-        v-if="chargingType"
+        v-if="kind"
         icon="charging-station"
         :label="t('vehicle.chargingSession.type')"
       >
         <template #value>
-          <StatusBadge variant="info">{{ chargingType }}</StatusBadge>
+          <StatusBadge variant="info">{{ kind }}</StatusBadge>
         </template>
       </DetailListItem>
       <DetailListItem
