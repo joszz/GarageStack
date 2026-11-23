@@ -6,6 +6,7 @@ using GarageStack.Data;
 using GarageStack.Data.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace GarageStack.Tests;
 
@@ -26,7 +27,7 @@ public sealed class DiagnosticsExportTests : IDisposable
                 new Dictionary<string, HealthReportEntry>
                 {
                     ["database"] = new(HealthStatus.Healthy, null, TimeSpan.Zero, null, null),
-                    ["mqtt"] = new(HealthStatus.Unhealthy, null, TimeSpan.Zero, null, null),
+                    ["mqtt"] = new(HealthStatus.Unhealthy, "No such host is known. (mqtt.example.org:1883)", TimeSpan.Zero, null, null),
                 },
                 TimeSpan.Zero));
     }
@@ -59,11 +60,14 @@ public sealed class DiagnosticsExportTests : IDisposable
                 Speed = 50,
             });
         await db.SaveChangesAsync(ct);
+        var gatewaySignIn = new GatewaySignInMonitor(new RecordingHub(), NullLogger<GatewaySignInMonitor>.Instance);
+        await gatewaySignIn.UpdateAsync(false, ct);
 
         var export = new DiagnosticsExport(
             new VehicleRepository(db),
             new TelemetryRepository(db),
             new FixedHealth(),
+            gatewaySignIn,
             new DiagnosticsFeatures(false, new Dictionary<string, bool> { ["rdw"] = true }),
             new LogDirectories(new Dictionary<string, string?> { ["api"] = _logs, ["worker"] = null }),
             new FixedTimeProvider(Now));
@@ -142,9 +146,43 @@ public sealed class DiagnosticsExportTests : IDisposable
 
         using var diagnostics = JsonDocument.Parse(await ReadAsync(zip, "diagnostics.json", ct));
         var root = diagnostics.RootElement;
-        Assert.Equal("Unhealthy", root.GetProperty("health").GetProperty("checks").GetProperty("mqtt").GetString());
+        var health = root.GetProperty("health");
+        var mqtt = health.GetProperty("checks").GetProperty("mqtt");
+        Assert.Equal("Unhealthy", mqtt.GetProperty("status").GetString());
+        Assert.Equal("No such host is known. ([host]:1883)", mqtt.GetProperty("reason").GetString());
+        Assert.False(health.GetProperty("gatewaySignedIn").GetBoolean());
         Assert.True(root.GetProperty("features").GetProperty("rdw").GetBoolean());
         Assert.False(root.GetProperty("demoMode").GetBoolean());
         Assert.Equal(1, root.GetProperty("cars").GetInt32());
+    }
+
+    // Every telemetry column goes into a file meant for a public issue unless it is left out, so a
+    // new one has to be added here, after deciding it does not say where the car was (if it does,
+    // it belongs in DiagnosticsExport's LocationColumns instead).
+    [Fact]
+    public void TelemetryColumns_AreTheOnesCheckedToSayNothingAboutWhereTheCarWas()
+    {
+        string[] expected =
+        [
+            "Id", "RecordedAt", "FuelLevelPercent", "FuelRangeKm", "OdometerKm", "IsLocked", "EngineRunning",
+            "ClimateOn", "ClimateMode", "DriverDoorOpen", "PassengerDoorOpen", "RearLeftDoorOpen",
+            "RearRightDoorOpen", "TrunkOpen", "BonnetOpen", "DriverWindowOpen", "PassengerWindowOpen",
+            "RearLeftWindowOpen", "RearRightWindowOpen", "BatteryVoltage", "InteriorTemperature",
+            "ExteriorTemperature", "EvSocPercent", "ElectricRangeKm", "IsCharging", "SunRoofOpen",
+            "TyrePressureFrontLeft", "TyrePressureFrontRight", "TyrePressureRearLeft", "TyrePressureRearRight",
+            "MileageOfTheDay", "PowerUsageOfDay", "MileageSinceLastCharge", "HvVoltage", "HvCurrent", "HvPower",
+            "HvSocKwh", "HvTotalCapacityKwh", "PowerUsageSinceLastCharge", "ChargerConnected", "HvBatteryActive",
+            "LightsMainBeam", "LightsDippedBeam", "LightsSide", "RemoteTemperature", "HeatedSeatFrontLeft",
+            "HeatedSeatFrontRight", "RearWindowDefroster", "SteeringWheelHeating", "IsAvailable",
+            "LastVehicleStateAt", "LastChargeStateAt", "CurrentJourneyDistance", "ChargingType",
+            "ChargingCableLock", "RemainingChargingTime", "BmsChargeStatus", "OnboardChargerPlugStatus",
+            "OffboardChargerPlugStatus", "LastChargeEndingPower", "ChargingLastStartAt", "ChargingLastEndAt",
+            "ChargingStopReason", "SocTargetPercent", "ChargeCurrentLimit", "ChargingScheduleMode",
+            "ChargingScheduleStartTime", "ChargingScheduleEndTime", "ObcCurrent", "ObcVoltage",
+            "ObcPowerSinglePhase", "ObcPowerThreePhase", "BatteryHeating", "BatteryHeatingScheduleMode",
+            "BatteryHeatingScheduleStartTime",
+        ];
+
+        Assert.Equal(expected, DiagnosticsExport.TelemetryColumns.Select(c => c.Name));
     }
 }

@@ -7,10 +7,12 @@ namespace GarageStack.Core.Helpers;
 /// which is made to be attached to a public bug report. Each known car becomes car-1, car-2, ...
 /// in the order given, both its full VIN and the shortened form the logs write
 /// (<see cref="LogRedaction.Vin"/>), so a reader can still tell which lines are about which car.
-/// Licence plates, email addresses, IP addresses, the host and query of URLs, the account name in
-/// a home folder and anything that looks like a coordinate are replaced too; loopback addresses
-/// stay, as they identify nobody. It errs on the side of removing: a long decimal that was not a position is
-/// lost, a position that slipped through cannot be taken back.
+/// Licence plates, email addresses, IP addresses, the host and query of URLs, a host name before a
+/// port, the account name in a home folder, the name and groups of a single sign-in and anything
+/// that looks like a coordinate are replaced too; loopback addresses and single-word host names
+/// (the compose services: postgres, mosquitto) stay, as they identify nobody. It errs on the side
+/// of removing: a long decimal that was not a position is lost, a position that slipped through
+/// cannot be taken back.
 /// </summary>
 public sealed partial class DiagnosticsRedaction
 {
@@ -54,6 +56,9 @@ public sealed partial class DiagnosticsRedaction
         scrubbed = SaicAccount().Replace(scrubbed, "saic/[account]/vehicles/");
         scrubbed = HomeFolder().Replace(scrubbed, "${root}[user]");
         scrubbed = Email().Replace(scrubbed, "[email]");
+        scrubbed = HostBeforePort().Replace(scrubbed, "[host]");
+        scrubbed = SignInName().Replace(scrubbed, "[user]");
+        scrubbed = SignInGroups().Replace(scrubbed, "groups [groups]");
 
         foreach (var (vin, label) in _cars)
             scrubbed = scrubbed.Replace(vin, label, StringComparison.OrdinalIgnoreCase);
@@ -93,6 +98,22 @@ public sealed partial class DiagnosticsRedaction
     // The account name in a home folder of a stack trace's file paths (C:\Users\name\, /home/name/).
     [GeneratedRegex(@"(?<root>(?:[A-Za-z]:\\Users\\|/home/|/Users/))[^\\/\s]+", RegexOptions.IgnoreCase)]
     private static partial Regex HomeFolder();
+
+    // A dotted host name before a port, as .NET writes a connection it could not make ("No such
+    // host is known. (dawarich.example.org:443)"), often a personal domain. Not a script's name
+    // before its line and column in a browser's stack (main.js:1:200), nor one in a path.
+    [GeneratedRegex(@"(?<![\w.@/\\-])(?:[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?\.)+[A-Za-z]{2,}(?=:\d{1,5}(?![\d:]))")]
+    private static partial Regex HostBeforePort();
+
+    // The name the sign-in provider gave, in the API's single sign-in lines ("OIDC sign-in denied
+    // for Jane Doe: ...", "OIDC sign-in for Jane Doe (...)"): kept in the log, so the owner can
+    // tell who it was, but a name all the same.
+    [GeneratedRegex(@"(?<=\bOIDC sign-in (?:denied )?for ).+?(?=: | \()")]
+    private static partial Regex SignInName();
+
+    // The groups a denied sign-in had ("groups [family, admins] do not match"), which can name people.
+    [GeneratedRegex(@"\bgroups \[[^\]]*\]")]
+    private static partial Regex SignInGroups();
 
     [GeneratedRegex(@"saic/[^/\s]+/vehicles/")]
     private static partial Regex SaicAccount();
