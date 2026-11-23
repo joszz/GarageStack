@@ -24,13 +24,13 @@ public static class DemoEndpoints
 
         group.MapGroup("/status/{vin}")
             .ResolvesVehicle()
-            .MapPost("/", (DemoStatusOverrideDto dto) =>
+            .MapPost("/", (HttpContext httpContext, DemoStatusOverrideDto dto) =>
             {
-                demoRepo.ApplyOverride(dto);
+                demoRepo.ApplyOverride(httpContext.ResolvedVehicle().Id, dto);
                 return Results.NoContent();
             })
             .Produces(StatusCodes.Status204NoContent)
-            .WithSummary("Override demo vehicle status fields, as the Demo Controls panel does");
+            .WithSummary("Override one demo car's status fields, as the Demo Controls panel does; the other car keeps its own");
 
         var gatewaySignIn = app.ServiceProvider.GetRequiredService<GatewaySignInMonitor>();
         group.MapPost("/gateway", async (DemoGatewayDto dto, CancellationToken ct) =>

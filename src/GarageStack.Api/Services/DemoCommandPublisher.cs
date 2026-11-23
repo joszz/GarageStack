@@ -7,13 +7,15 @@ using Microsoft.AspNetCore.SignalR;
 namespace GarageStack.Api.Services;
 
 /// <summary>
-/// Demo mode's gateway. Instead of publishing a command it carries it out on the demo car a moment
-/// later and answers it the way the gateway would: the car's new state goes out as telemetry, the
-/// answer as a command result, and the command gate is released. The demo then shows a command's
-/// whole round trip, the button waiting and the card changing, instead of a wait that times out.
+/// Demo mode's gateway. Instead of publishing a command it carries it out on the demo car it names a
+/// moment later and answers it the way the gateway would: the car's new state goes out as telemetry
+/// to that car's viewers, the answer as a command result, and the command gate is released. The demo
+/// then shows a command's whole round trip, the button waiting and the card changing, instead of a
+/// wait that times out.
 /// </summary>
 internal sealed class DemoCommandPublisher(
     DemoTelemetryRepository car,
+    DemoOptions demo,
     IHubContext<TelemetryHub> hub,
     VehicleCommandGate gate,
     ILogger<DemoCommandPublisher> logger,
@@ -42,10 +44,13 @@ internal sealed class DemoCommandPublisher(
         try
         {
             await Task.Delay(_answerDelay);
-            var refusal = car.ApplyCommand(command, value);
-            var group = hub.Clients.Group(TelemetryHub.GroupFor(DemoVehicleRepository.DemoVehicle.Id));
+            // Only the demo's own cars are sent commands: the API finds the car before it sends one.
+            if (demo.Vehicles.FirstOrDefault(v => v.Vin == vin) is not { } vehicle) return;
 
-            if (refusal is null && await car.GetMergedLatestAsync(DemoVehicleRepository.DemoVehicle.Id) is { } snapshot)
+            var refusal = car.ApplyCommand(vehicle.Id, command, value);
+            var group = hub.Clients.Group(TelemetryHub.GroupFor(vehicle.Id));
+
+            if (refusal is null && await car.GetMergedLatestAsync(vehicle.Id) is { } snapshot)
                 await group.SendAsync("telemetryUpdated", snapshot);
             await group.SendAsync("commandResult", new CommandResultMessage(command, refusal is null, refusal));
         }

@@ -6647,7 +6647,7 @@
         "tags": [
           "Demo"
         ],
-        "summary": "Override demo vehicle status fields, as the Demo Controls panel does",
+        "summary": "Override one demo car's status fields, as the Demo Controls panel does; the other car keeps its own",
         "requestBody": {
           "content": {
             "application/json": {

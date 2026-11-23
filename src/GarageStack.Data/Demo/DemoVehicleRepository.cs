@@ -22,8 +22,8 @@ public sealed class DemoVehicleRepository(DemoOptions options) : IVehicleReposit
 
     /// <summary>
     /// A second car, a plug-in hybrid, for trying the car picker. Only there when
-    /// <see cref="DemoOptions.SecondVehicle"/> is on, so the public demo keeps its one car. It shares
-    /// the first car's telemetry.
+    /// <see cref="DemoOptions.SecondVehicle"/> is on, so the public demo keeps its one car. It has
+    /// telemetry, trips and history of its own (DemoCars.HsPhev).
     /// </summary>
     public static readonly Vehicle SecondDemoVehicle = new()
     {
@@ -37,6 +37,9 @@ public sealed class DemoVehicleRepository(DemoOptions options) : IVehicleReposit
         // no charge target, so the demo shows a car without that control too. CTRLBOOT 2 reports a
         // power tailgate, so its controls show without switching it on in the settings.
         ConfigJson = """{"hw_version":"AS23 PHEV","BType":"2","DOOR":"1111","S35":"0","CTRLBOOT":"2"}""",
+        // GarageStack takes a plug-in hybrid's battery size only from its settings, as the gateway's
+        // figure for one is MG's nominal pack. Set, as an owner would, so its kWh figures show.
+        Settings = new VehicleSettings { HvBatteryCapacityKwh = 24.7 },
     };
 
     private IReadOnlyList<Vehicle> All => options.Vehicles;
