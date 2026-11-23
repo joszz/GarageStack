@@ -7,7 +7,7 @@ Demo mode runs GarageStack with realistic fake data and requires no MG iSmart cr
 - MG ZS EV with 400 days of history (including occasional home AC and public DC charging sessions with battery and power curves), ten finished trips from the last five weeks (most around Amsterdam, a few further afield) and one in progress
 - Optionally a second car, an MG HS plug-in hybrid parked at home in Utrecht, with its own trips, history, charging, maintenance and live state (`DEMO_SECOND_VEHICLE`, below)
 - Dashboard, Statistics, and Map views fully populated
-- A **Demo Controls** panel (bottom-right button) to toggle vehicle states live: doors, windows, lights, lock, engine, charging, SOC, temperature
+- **Demo Controls** (in the sidebar) to change the car live: doors, windows, lights, lock, driving, charging, battery and fuel, 12 V, temperatures and tyres
 - A demo banner across the top reminding you that data is not real
 
 ## Docker (quickest start)
@@ -58,7 +58,7 @@ pnpm dev
 
 Open [http://localhost:5173](http://localhost:5173) and log in with **demo / demo**.
 
-The `.env.development.local` file sets `VITE_DEMO_MODE=true` so the demo banner and Demo Controls panel are visible. This file is git-ignored by Vite, so it will not be committed.
+The `.env.development.local` file sets `VITE_DEMO_MODE=true` so the demo banner and the Demo Controls are visible. This file is git-ignored by Vite, so it will not be committed.
 
 ## Logging in
 
@@ -71,20 +71,19 @@ The credentials come from `AUTH_USERNAME` / `AUTH_PASSWORD` in `.env.demo`, for 
 
 Demo mode deliberately sticks to the built-in password login. Configuring `OIDC_AUTHORITY` would switch the demo over to single sign-on as well -- see [`AUTHENTICATION.md`](AUTHENTICATION.md).
 
-## Demo Controls panel
+## Demo Controls
 
-Click the flask icon in the bottom-right corner to open the panel. Changes take effect immediately and refresh the dashboard. Available controls:
+Open them with **Demo Controls** in the sidebar (in the menu on a phone). They open in the app's usual dialog and change the car shown, and only that car: with two cars, the title names the one you are changing. A switch takes effect at once, a slider when you let go, and the dashboard follows. Close the dialog (or press Escape) to look at the result.
 
-| Section | Controls |
+| Tab | Controls |
 | --- | --- |
-| Doors / Bonnet / Trunk | Toggle each opening open/closed |
-| Windows | Toggle each window open/closed |
-| Lights | Main beam, dipped beam, sidelights |
-| State | Locked, engine running, climate |
-| Charging | Charger connected, actively charging |
-| Battery SOC | Slider 10-100% |
-| Speed | Slider 0-200 km/h |
-| Temperature | Interior and exterior (°C) |
+| Car | Each door, the bonnet and the boot; each window; locked; lights (off, side, dipped, main beam) |
+| Driving | Parked or driving, speed 0-200 km/h, engine, online, MG sign-in of the gateway |
+| Energy | Cable connected, charging, AC or DC, charging power; battery level, fuel level (on a car with a tank), 12 V battery |
+| Climate | Climate on, interior and exterior temperature |
+| Tyres | Each tyre's pressure |
+
+The car's state stays in one piece: starting a charge plugs the cable in, pulling the cable ends the charge, a charge shows the power of the car's own wall box until you set another, and driving unplugs the car. Readings show in your units; what is sent is metric.
 
 ## How it works
 
@@ -123,7 +122,7 @@ Demo mode is the quickest way to see a change working, for a coding agent as muc
   ```
 
 - **Learn the API from [`openapi.json`](openapi.json)**, the committed OpenAPI document: every path, what it takes and answers, and the refusals with their codes. A running API serves the same at `/api/openapi/v1.json`, and as a page at `/api/reference/`.
-- **The demo car is `DEMOVIN0000012345`.** Change its state as the Demo Controls panel does, with `POST /api/demo/status/DEMOVIN0000012345` and any of the fields of `DemoStatusOverrideDto`, such as `{"isLocked": false, "evSocPercent": 35}`. A command (`POST /api/vehicles/{vin}/commands/{command}`) is carried out two seconds later, as the gateway would. With `DEMO_SECOND_VEHICLE=true` the second car is `DEMOVIN0000067890`; both calls change only the car they name.
+- **The demo car is `DEMOVIN0000012345`.** Change its state as the Demo Controls do, with `POST /api/demo/status/DEMOVIN0000012345` and any of the fields of `DemoStatusOverrideDto`, such as `{"isLocked": false, "evSocPercent": 35}`. A command (`POST /api/vehicles/{vin}/commands/{command}`) is carried out two seconds later, as the gateway would. With `DEMO_SECOND_VEHICLE=true` the second car is `DEMOVIN0000067890`; both calls change only the car they name.
 - **Nothing is kept.** What you add lives in memory and is gone when the API stops; the seeded data is the same on every start.
 - **A new field or feature needs demo data as well**, in `src/GarageStack.Data/Demo/`, or it never shows here. A change to trips also needs its step in `TripRepositoryContractTests`, which holds `DemoTripRepository` to the same results as the database.
 - **To see a page**, run the API and the app and point a throwaway Playwright script at `http://localhost:5173` (the frontend's own `@playwright/test`, with the Chromium it installed): sign in at `/login` with demo / demo, then capture what you need. The tests in `frontend/e2e` run against the Docker stack instead.

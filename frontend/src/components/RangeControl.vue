@@ -18,6 +18,10 @@ withDefaults(
 )
 
 const model = defineModel<number>({ required: true })
+
+// Once the slider is let go (or stepped with the keyboard), for a parent that acts on the value
+// it settles on rather than on every step of a drag.
+const emit = defineEmits<{ change: [value: number] }>()
 </script>
 
 <template>
@@ -39,6 +43,7 @@ const model = defineModel<number>({ required: true })
           :disabled="disabled"
           :aria-label="label"
           :aria-valuetext="valueText"
+          @change="emit('change', model)"
         />
         <span v-if="edgeLabels">{{ edgeLabels[1] }}</span>
       </div>
