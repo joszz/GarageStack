@@ -652,6 +652,7 @@
     "carColor": {
       "title": "Car colour",
       "desc": "How the car is drawn on the dashboard and the map.",
+      "orange": "Orange",
       "red": "Red",
       "blue": "Blue",
       "silver": "Silver",

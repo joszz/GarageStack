@@ -303,7 +303,7 @@
    settings' 20rem control column does), narrower on the smallest phones rather than wrapping. */
 .car-color-swatches {
   display: grid;
-  grid-template-columns: repeat(8, minmax(0, 34px));
+  grid-template-columns: repeat(9, minmax(0, 34px));
   gap: 0.4rem;
 }
 

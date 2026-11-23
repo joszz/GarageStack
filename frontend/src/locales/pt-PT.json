@@ -652,6 +652,7 @@
     "carColor": {
       "title": "Cor do carro",
       "desc": "Como o carro é desenhado no painel e no mapa.",
+      "orange": "Laranja",
       "red": "Vermelho",
       "blue": "Azul",
       "silver": "Prata",

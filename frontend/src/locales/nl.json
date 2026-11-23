@@ -652,6 +652,7 @@
     "carColor": {
       "title": "Autokleur",
       "desc": "Hoe de auto op het dashboard en de kaart wordt getekend.",
+      "orange": "Oranje",
       "red": "Rood",
       "blue": "Blauw",
       "silver": "Zilver",
