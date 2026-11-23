@@ -954,12 +954,16 @@ a.card:hover {
     padding-block: 0.5rem 0.65rem;
   }
 
-  .shot-phone {
-    display: none;
+  /* The phone screenshot stays, a little larger, overlapping the right edge of the desktop one. */
+  .hero-shots {
+    padding-right: 1rem;
+    padding-bottom: 2.5rem;
   }
 
-  .hero-shots {
-    padding-bottom: 0;
+  .shot-phone {
+    right: 0;
+    width: 30%;
+    border-radius: 0.6rem;
   }
 
   .compat-inner {
