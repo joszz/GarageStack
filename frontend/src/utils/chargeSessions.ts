@@ -6,6 +6,28 @@ export const CHARGE_HISTORY_DAYS = [30, 90, 365] as const
 export type ChargeHistoryDays = (typeof CHARGE_HISTORY_DAYS)[number]
 export const DEFAULT_CHARGE_HISTORY_DAYS: ChargeHistoryDays = 90
 
+export type ChargingKind = 'AC' | 'DC'
+
+/**
+ * Whether a charge is AC or DC, from drivetrain/chargingType, as Core's ChargingKind reads it. The
+ * gateway passes on the SAIC API's raw number there, which the API does not document. The gateway's
+ * README lists 6 as AC and 7 as DC, both checked against logged responses. Other numbers describe
+ * the car's state, such as 10 for a charge that has ended, so they give null. The demo and the
+ * charge history already write "AC" and "DC".
+ */
+export function chargingKind(value: string | null): ChargingKind | null {
+  switch (value?.trim().toUpperCase()) {
+    case '6':
+    case 'AC':
+      return 'AC'
+    case '7':
+    case 'DC':
+      return 'DC'
+    default:
+      return null
+  }
+}
+
 /** What the charge history needs to know about the car to trust a battery figure. */
 export interface ChargeEnergyContext {
   vehicleType: VehicleType

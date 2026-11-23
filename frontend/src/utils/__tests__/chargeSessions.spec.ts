@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { ChargeSession } from '@/services/vehicleApi'
-import { energyGainedKwh, sincePreviousCharge } from '../chargeSessions'
+import { chargingKind, energyGainedKwh, sincePreviousCharge } from '../chargeSessions'
 import { trustedBatteryKwh } from '../energy'
 
 function session(fields: Partial<ChargeSession>): ChargeSession {
@@ -86,5 +86,24 @@ describe('sincePreviousCharge', () => {
       sincePreviousCharge(parked, previous, { vehicleType: 'bev', configuredCapacityKwh: null })
         .whPerKm,
     ).toBeNull()
+  })
+})
+
+describe('chargingKind', () => {
+  it("reads the gateway's 6 as AC and 7 as DC", () => {
+    expect(chargingKind('6')).toBe('AC')
+    expect(chargingKind('7')).toBe('DC')
+  })
+
+  it('keeps the AC and DC the demo and the charge history write', () => {
+    expect(chargingKind('AC')).toBe('AC')
+    expect(chargingKind(' dc ')).toBe('DC')
+  })
+
+  it("gives nothing for the car's other states or no value", () => {
+    expect(chargingKind('10')).toBeNull()
+    expect(chargingKind('0')).toBeNull()
+    expect(chargingKind('')).toBeNull()
+    expect(chargingKind(null)).toBeNull()
   })
 })

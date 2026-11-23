@@ -91,6 +91,21 @@ describe('ChargingSessionCard', () => {
     expect(text).not.toContain('CONNECTED_NOT_CHARGING')
   })
 
+  // Discussion #527: a Marvel R showed the gateway's raw "6" as its charging type.
+  it("words the gateway's charging type as AC or DC", () => {
+    const wrapper = mountCard({ chargingType: '6' })
+
+    expect(wrapper.find('.badge-info').text()).toBe('AC')
+    expect(mountCard({ chargingType: '7' }).text()).toContain('DC')
+  })
+
+  it("leaves out a charging type that is the car's state, not AC or DC", () => {
+    const wrapper = mountCard({ chargingType: '10', isCharging: false })
+
+    expect(wrapper.text()).not.toContain('Charging type')
+    expect(wrapper.text()).not.toContain('10')
+  })
+
   it("words the charging schedule's mode", () => {
     const text = mountCard({
       bmsChargeStatus: 'UNPLUGGED',
