@@ -536,7 +536,7 @@
     "minutesAgo": "Hace {n} min",
     "hoursAgo": "Hace {n} h",
     "typeFilter": "Tipo de filtro",
-    "typeFilterDesc": "Elija qué tipos de notificaciones muestra y recibe este dispositivo.",
+    "typeFilterDesc": "Elija qué tipos de notificaciones muestra y recibe este dispositivo. Los resúmenes semanal y mensual están desactivados hasta que los actives, y solo llegan a un dispositivo con las notificaciones push activadas.",
     "selectAll": "Seleccionar todo",
     "deselectAll": "Deseleccionar todo",
     "categories": {
@@ -560,7 +560,9 @@
       "gatewayLogin": "Error al iniciar sesión en MG",
       "dataStale": "No hay datos del coche",
       "placeArrival": "Llegó a casa o al trabajo",
-      "placeDeparture": "Salió de casa o del trabajo"
+      "placeDeparture": "Salió de casa o del trabajo",
+      "weeklySummary": "Resumen semanal (lunes por la mañana)",
+      "monthlySummary": "Resumen mensual (el día 1)"
     }
   },
   "auth": {

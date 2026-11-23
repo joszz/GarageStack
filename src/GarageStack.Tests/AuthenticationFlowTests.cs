@@ -349,6 +349,27 @@ public partial class AuthenticationFlowTests
         Assert.Equal(HttpStatusCode.NotFound, missing.StatusCode);
     }
 
+    // The demo runs no Worker, so it seeds the weekly summary the Worker would have sent, from
+    // the same demo data the statistics show.
+    [Fact]
+    public async Task Demo_HoldsTheWeeklySummaryTheWorkerWouldHaveSent()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var factory = CreatePasswordOnlyFactory();
+        using var client = CreateClient(factory);
+        var login = await client.PostAsJsonAsync(
+            "/api/auth/login",
+            new { username = DemoUsername, password = DemoPassword, rememberMe = false },
+            ct);
+        Assert.Equal(HttpStatusCode.OK, login.StatusCode);
+
+        var notifications = await client.GetFromJsonAsync<JsonElement>("/api/notifications", ct);
+        var summary = notifications.EnumerateArray().Single(n => n.GetProperty("category").GetString() == "weekly-summary");
+
+        Assert.StartsWith("Your week: ", summary.GetProperty("title").GetString());
+        Assert.Contains(" kWh", summary.GetProperty("body").GetString());
+    }
+
     // Through the whole stack: setting home and work labels an unclassified demo trip between them
     // straight away, a second home is refused, and removing them takes the label off again. Places are removed at the end,
     // since the demo database is shared by every host in this run.

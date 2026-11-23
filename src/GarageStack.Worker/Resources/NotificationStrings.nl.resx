@@ -300,4 +300,28 @@
   <data name="ActionMaintenanceDoneSent" xml:space="preserve">
     <value>Vandaag als gedaan genoteerd.</value>
   </data>
+  <data name="WeeklySummaryTitle" xml:space="preserve">
+    <value>Jouw week: {0} km</value>
+  </data>
+  <data name="MonthlySummaryTitle" xml:space="preserve">
+    <value>Jouw {0}: {1} km</value>
+  </data>
+  <data name="SummaryOneTrip" xml:space="preserve">
+    <value>1 rit</value>
+  </data>
+  <data name="SummaryTrips" xml:space="preserve">
+    <value>{0} ritten</value>
+  </data>
+  <data name="SummaryFuel" xml:space="preserve">
+    <value>{0} L brandstof</value>
+  </data>
+  <data name="SummaryFuelConsumption" xml:space="preserve">
+    <value>{0} L/100 km</value>
+  </data>
+  <data name="SummaryEnergy" xml:space="preserve">
+    <value>{0} kWh</value>
+  </data>
+  <data name="SummaryEnergyConsumption" xml:space="preserve">
+    <value>{0} kWh/100 km</value>
+  </data>
 </root>

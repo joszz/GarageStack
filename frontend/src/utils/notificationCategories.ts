@@ -23,6 +23,8 @@ export const NOTIFICATION_CATEGORY_IDS = [
   'place-departure',
   'maintenance',
   'rdw',
+  'weekly-summary',
+  'monthly-summary',
 ] as const
 
 export type NotificationCategoryId = (typeof NOTIFICATION_CATEGORY_IDS)[number]
@@ -51,6 +53,32 @@ export function notificationCategoryIdsFor(
       (mayPlugIn(vehicleType) || !PLUG_IN_ONLY_CATEGORY_IDS.includes(id)) &&
       (mayBurnFuel(vehicleType) || !FUEL_ONLY_CATEGORY_IDS.includes(id)),
   )
+}
+
+/**
+ * The types a device switches on rather than off, as NotificationCategories.OptInGroups on the
+ * server: a summary every week unasked would be noise.
+ */
+export const OPT_IN_CATEGORY_IDS: readonly NotificationCategoryId[] = [
+  'weekly-summary',
+  'monthly-summary',
+]
+
+export function isOptIn(id: NotificationCategoryId): boolean {
+  return OPT_IN_CATEGORY_IDS.includes(id)
+}
+
+/**
+ * Whether this device shows a notification of the type `id`: an opt-in type once switched on, any
+ * other until switched off, and one without a known type always, since nothing can switch it off.
+ */
+export function isCategoryShown(
+  id: NotificationCategoryId | null,
+  exclusions: readonly string[],
+  inclusions: readonly string[],
+): boolean {
+  if (id === null) return true
+  return isOptIn(id) ? inclusions.includes(id) : !exclusions.includes(id)
 }
 
 // Maintenance notifications carry a dynamic per-item suffix (maintenance-<id>) rather than a

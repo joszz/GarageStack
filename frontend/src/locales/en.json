@@ -536,7 +536,7 @@
     "minutesAgo": "{n} min ago",
     "hoursAgo": "{n}h ago",
     "typeFilter": "Type filter",
-    "typeFilterDesc": "Choose which notification types this device shows and gets pushed.",
+    "typeFilterDesc": "Choose which notification types this device shows and gets pushed. The weekly and monthly summaries are off until you switch them on, and come only to a device with push on.",
     "selectAll": "Select all",
     "deselectAll": "Deselect all",
     "categories": {
@@ -560,7 +560,9 @@
       "gatewayLogin": "MG sign-in failed",
       "dataStale": "No data from the car",
       "placeArrival": "Arrived at home or work",
-      "placeDeparture": "Left home or work"
+      "placeDeparture": "Left home or work",
+      "weeklySummary": "Weekly summary (Monday morning)",
+      "monthlySummary": "Monthly summary (on the 1st)"
     }
   },
   "auth": {

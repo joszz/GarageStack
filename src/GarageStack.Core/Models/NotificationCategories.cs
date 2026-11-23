@@ -36,6 +36,9 @@ public static class NotificationCategories
     // The car parked at, or drove away from, a home or work place that asks for it (CommutePlace.Notify).
     public const string PlaceArrival = "place-arrival";
     public const string PlaceDeparture = "place-departure";
+    // What the car did last week or last month: trips, distance and what it used.
+    public const string WeeklySummary = "weekly-summary";
+    public const string MonthlySummary = "monthly-summary";
 
     // What the maintenance categories below are grouped as wherever the user picks types.
     public const string Maintenance = "maintenance";
@@ -87,7 +90,17 @@ public static class NotificationCategories
     {
         LowTyre, HighTyre, SlowPuncture, LowEv, ChargingComplete, ChargingInterrupted, EngineStart, UnlockedParked, DoorsOpenParked,
         WindowsOpenParked, MovedParked, VehicleMessage, ClimateSchedule, Low12V, LowFuel, GatewayLogin, DataStale,
-        PlaceArrival, PlaceDeparture, Maintenance, Rdw,
+        PlaceArrival, PlaceDeparture, Maintenance, Rdw, WeeklySummary, MonthlySummary,
+    };
+
+    /// <summary>
+    /// The types a device has to switch on rather than off. Every other type is wanted until the
+    /// device says otherwise; a summary that arrives every week unasked would be noise, and would
+    /// start arriving on every device the day an update brings it.
+    /// </summary>
+    public static readonly IReadOnlySet<string> OptInGroups = new HashSet<string>(StringComparer.Ordinal)
+    {
+        WeeklySummary, MonthlySummary,
     };
 
     /// <summary>
@@ -106,10 +119,17 @@ public static class NotificationCategories
         };
 
     /// <summary>
-    /// Whether a device that switched off <paramref name="excludedGroups"/> still wants a
-    /// <paramref name="category"/> notification. One without a known type always goes out: the
-    /// checklist offers no way to switch it off.
+    /// Whether a device that switched off <paramref name="excludedGroups"/>, and switched on
+    /// <paramref name="includedGroups"/>, wants a <paramref name="category"/> notification. One
+    /// without a known type always goes out: the checklist offers no way to switch it off. An
+    /// opt-in type goes out only once switched on.
     /// </summary>
-    public static bool IsWanted(string? category, IReadOnlyCollection<string> excludedGroups) =>
-        GroupOf(category) is not { } group || !excludedGroups.Contains(group);
+    public static bool IsWanted(
+        string? category, IReadOnlyCollection<string> excludedGroups, IReadOnlyCollection<string>? includedGroups = null) =>
+        GroupOf(category) switch
+        {
+            null => true,
+            var group when OptInGroups.Contains(group) => includedGroups?.Contains(group) == true,
+            var group => !excludedGroups.Contains(group),
+        };
 }

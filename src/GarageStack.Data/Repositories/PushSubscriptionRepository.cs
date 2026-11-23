@@ -11,7 +11,7 @@ public class PushSubscriptionRepository(AppDbContext db) : IPushSubscriptionRepo
 
     public async Task UpsertAsync(
         string endpoint, string p256DhKey, string authKey, IReadOnlyList<string>? excludedCategories,
-        CancellationToken ct = default)
+        IReadOnlyList<string>? includedCategories, CancellationToken ct = default)
     {
         var existing = await db.PushSubscriptions.FirstOrDefaultAsync(s => s.Endpoint == endpoint, ct);
 
@@ -21,13 +21,16 @@ public class PushSubscriptionRepository(AppDbContext db) : IPushSubscriptionRepo
             // subscription arriving again on the next load) costs one read and no write at all.
             var keysChanged = existing.P256DhKey != p256DhKey || existing.AuthKey != authKey;
             var exclusionsChanged = excludedCategories is not null && !excludedCategories.SequenceEqual(existing.ExcludedCategories);
-            if (!keysChanged && !exclusionsChanged)
+            var inclusionsChanged = includedCategories is not null && !includedCategories.SequenceEqual(existing.IncludedCategories);
+            if (!keysChanged && !exclusionsChanged && !inclusionsChanged)
                 return;
 
             existing.P256DhKey = p256DhKey;
             existing.AuthKey = authKey;
             if (excludedCategories is not null)
                 existing.ExcludedCategories = [.. excludedCategories];
+            if (includedCategories is not null)
+                existing.IncludedCategories = [.. includedCategories];
             await db.SaveChangesAsync(ct);
             return;
         }
@@ -38,6 +41,7 @@ public class PushSubscriptionRepository(AppDbContext db) : IPushSubscriptionRepo
             P256DhKey = p256DhKey,
             AuthKey = authKey,
             ExcludedCategories = [.. excludedCategories ?? []],
+            IncludedCategories = [.. includedCategories ?? []],
         });
 
         try

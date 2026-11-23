@@ -7,6 +7,8 @@ import { useRdwStore } from '@/stores/rdw'
 import { useNotificationPushSync } from '@/composables/useNotificationPushSync'
 import SettingsToggle from '../SettingsToggle.vue'
 import {
+  isCategoryShown,
+  isOptIn,
   notificationCategoryIdsFor,
   type NotificationCategoryId,
 } from '@/utils/notificationCategories'
@@ -50,6 +52,8 @@ const NOTIFICATION_CATEGORY_LABEL_KEYS: Record<NotificationCategoryId, string> =
   'place-departure': 'placeDeparture',
   maintenance: 'maintenance',
   rdw: 'rdw',
+  'weekly-summary': 'weeklySummary',
+  'monthly-summary': 'monthlySummary',
 }
 
 // Only the types this drivetrain can actually produce: a plain hybrid never charges, so offering
@@ -68,11 +72,16 @@ const notificationTypeOptions = computed(() =>
   })),
 )
 
-// Both bulk actions touch only the offered types, leaving an exclusion the user set for a type
-// this drivetrain hides untouched: switching the vehicle type back restores their choice rather
-// than silently turning that category on.
+// Both bulk actions touch only the offered alert types, leaving an exclusion the user set for a
+// type this drivetrain hides untouched: switching the vehicle type back restores their choice
+// rather than silently turning that category on. The summaries are left as they are too: they
+// are something to ask for, not an alert, and "all on" would otherwise start a weekly push.
+const offeredAlertTypes = computed(() =>
+  offeredNotificationTypes.value.filter((id) => !isOptIn(id)),
+)
+
 function selectAllNotificationTypes() {
-  const offered = offeredNotificationTypes.value as readonly string[]
+  const offered = offeredAlertTypes.value as readonly string[]
   settings.notificationTypeExclusions = settings.notificationTypeExclusions.filter(
     (excludedId) => !offered.includes(excludedId),
   )
@@ -80,15 +89,29 @@ function selectAllNotificationTypes() {
 
 function deselectAllNotificationTypes() {
   settings.notificationTypeExclusions = [
-    ...new Set([...settings.notificationTypeExclusions, ...offeredNotificationTypes.value]),
+    ...new Set([...settings.notificationTypeExclusions, ...offeredAlertTypes.value]),
   ]
 }
 
+function without(list: readonly string[], id: string): string[] {
+  return list.filter((other) => other !== id)
+}
+
+// An opt-in type is switched on by being in the inclusions, any other off by being in the exclusions.
 function toggleNotificationType(id: NotificationCategoryId, checked: boolean) {
+  if (isOptIn(id)) {
+    settings.notificationTypeInclusions = checked
+      ? [...without(settings.notificationTypeInclusions, id), id]
+      : without(settings.notificationTypeInclusions, id)
+    return
+  }
   settings.notificationTypeExclusions = checked
-    ? settings.notificationTypeExclusions.filter((excludedId) => excludedId !== id)
+    ? without(settings.notificationTypeExclusions, id)
     : [...settings.notificationTypeExclusions, id]
 }
+
+const isShown = (id: NotificationCategoryId) =>
+  isCategoryShown(id, settings.notificationTypeExclusions, settings.notificationTypeInclusions)
 </script>
 
 <template>
@@ -149,7 +172,7 @@ function toggleNotificationType(id: NotificationCategoryId, checked: boolean) {
               class="form-check-input"
               type="checkbox"
               role="switch"
-              :checked="!settings.notificationTypeExclusions.includes(opt.value)"
+              :checked="isShown(opt.value)"
               @change="
                 toggleNotificationType(opt.value, ($event.target as HTMLInputElement).checked)
               "

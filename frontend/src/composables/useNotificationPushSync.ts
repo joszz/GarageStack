@@ -9,6 +9,7 @@ export function useNotificationPushSync() {
   const settings = useUiSettingsStore()
   const { pushSupported, pushState, pushError, togglePush, syncExclusions } = usePush({
     excludedCategories: () => settings.notificationTypeExclusions,
+    includedCategories: () => settings.notificationTypeInclusions,
   })
 
   const showPermissionDeniedNotice = computed(() => pushSupported && pushState.value === 'denied')
@@ -28,9 +29,10 @@ export function useNotificationPushSync() {
   )
 
   if (pushSupported) {
-    // As a sorted string, so only a change in which types are off reaches the server.
+    // As a sorted string, so only a change in which types are off, or on, reaches the server.
     watch(
-      () => [...settings.notificationTypeExclusions].sort().join(),
+      () =>
+        `${[...settings.notificationTypeExclusions].sort().join()}|${[...settings.notificationTypeInclusions].sort().join()}`,
       () => void syncExclusions(),
     )
   }

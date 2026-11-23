@@ -8887,6 +8887,15 @@
             "items": {
               "type": "string"
             }
+          },
+          "includedCategories": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
           }
         }
       },

@@ -37,6 +37,7 @@ try
     builder.Services.AddHostedService<PushNotificationCheckService>();
     builder.Services.AddHostedService<MaintenanceCheckService>();
     builder.Services.AddHostedService<TyreTrendCheckService>();
+    builder.Services.AddHostedService<DrivingSummaryService>();
     builder.Services.AddHostedService<PoiPreCachingService>();
     builder.Services.AddHostedService<TripRecorderService>();
     builder.Services.AddHostedService<PhoneFusionService>();

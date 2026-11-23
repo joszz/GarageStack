@@ -136,11 +136,26 @@ public class PushSubscriptionUpsertTests
         var ct = TestContext.Current.CancellationToken;
         await using var db = CreateDb();
         var repo = new PushSubscriptionRepository(db);
-        await repo.UpsertAsync(Endpoint, "p256dh", "auth", null, ct);
-        await repo.UpsertAsync("https://push.example/other", "p256dh", "auth", null, ct);
+        await repo.UpsertAsync(Endpoint, "p256dh", "auth", null, null, ct);
+        await repo.UpsertAsync("https://push.example/other", "p256dh", "auth", null, null, ct);
 
         await repo.RemoveAsync([Endpoint, "https://push.example/unknown"], ct);
 
         Assert.Equal("https://push.example/other", Assert.Single(await repo.ListAsync(ct)).Endpoint);
+    }
+
+    // Only the opt-in types count as switched on; anything else in the list is not one.
+    [Fact]
+    public async Task StoresTheOptInTypesSwitchedOn_AndKeepsThemWhenTheListIsLeftOut()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var db = CreateDb();
+        var repo = new PushSubscriptionRepository(db);
+
+        await PushEndpoints.UpsertSubscriptionAsync(repo,
+            new PushSubscribeRequest(Endpoint, "p256dh", "auth", IncludedCategories: ["weekly-summary", "low-tyre", "bogus"]), ct);
+        await PushEndpoints.UpsertSubscriptionAsync(repo, new PushSubscribeRequest(Endpoint, "p256dh", "auth"), ct);
+
+        Assert.Equal(["weekly-summary"], (await db.PushSubscriptions.AsNoTracking().SingleAsync(ct)).IncludedCategories);
     }
 }
