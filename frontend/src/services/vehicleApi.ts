@@ -146,6 +146,8 @@ export interface DailyStat {
   counterUnbacked: boolean
   /** The day's distance off the car's distance-of-the-day counter, which pairs with counterTotal. */
   distanceKm: number | null
+  /** The mean of the day's outside temperature readings, in degrees Celsius. */
+  exteriorTemperature?: number | null
 }
 
 export interface VehicleAggregateStats {

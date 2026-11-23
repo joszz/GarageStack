@@ -7599,9 +7599,10 @@
             "type": "boolean",
             "default": false
           },
-          "distanceKm": {}
+          "distanceKm": {},
+          "exteriorTemperature": {}
         },
-        "description": "One local day for the statistics page: the averages of what the car reported that day, and the\nday's total off its energy counter. A value is null when the car reported none of it that day.\n`CounterTotal` is in the counter's own unit: kWh out of the traction battery on a plug-in\ncar, hundredths of a litre of fuel on a plain hybrid (see the frontend's utils/energy).\n`SinceChargeTotal` is the same day read off the since-last-charge counter instead, and\n`CounterUnbacked` says the day counter rose more than that counter allows, which is how\na car whose day counter cannot be trusted shows itself (issue #551). The frontend decides\nwhich of the two to show, because only it knows whether the car plugs in.\n`DistanceKm` is the day's total off the car's distance-of-the-day counter, read the same\nway as `CounterTotal`, so the two pair up into an efficiency for the same stretch of driving."
+        "description": "One local day for the statistics page: the averages of what the car reported that day, and the\nday's total off its energy counter. A value is null when the car reported none of it that day.\n`CounterTotal` is in the counter's own unit: kWh out of the traction battery on a plug-in\ncar, hundredths of a litre of fuel on a plain hybrid (see the frontend's utils/energy).\n`SinceChargeTotal` is the same day read off the since-last-charge counter instead, and\n`CounterUnbacked` says the day counter rose more than that counter allows, which is how\na car whose day counter cannot be trusted shows itself (issue #551). The frontend decides\nwhich of the two to show, because only it knows whether the car plugs in.\n`DistanceKm` is the day's total off the car's distance-of-the-day counter, read the same\nway as `CounterTotal`, so the two pair up into an efficiency for the same stretch of driving.\n`ExteriorTemperature` is the mean of the day's outside temperature readings, in degrees\nCelsius, for weighing that efficiency against the weather."
       },
       "DawarichStatusResponse": {
         "required": [

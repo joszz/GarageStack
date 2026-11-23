@@ -291,3 +291,41 @@ export function roundedRange(min: number, max: number): { min: number; max: numb
   const step = 10 ** Math.floor(Math.log10(max - min)) / 2
   return { min: Math.floor(min / step) * step, max: Math.ceil(max / step) * step }
 }
+
+/** How wide a band of outside temperatures is, in degrees Celsius. */
+export const TEMPERATURE_BAND_C = 5
+
+/** The days of a period whose mean outside temperature fell in one band, and what they used. */
+export interface TemperatureBand {
+  /** The band's lower bound in degrees Celsius; it runs up to `fromC + TEMPERATURE_BAND_C`. */
+  fromC: number
+  /** The energy (or fuel) counter's total and the distance over those days. */
+  used: CounterOverDistance
+  days: number
+}
+
+/**
+ * The period's days by their mean outside temperature, five degrees to a band, coldest first,
+ * each with what its days used over the distance they counted: how much more the car takes in
+ * winter. A day without a temperature, or without both counters, is left out; a band only shows
+ * once it holds a day.
+ */
+export function temperatureBands(
+  stats: readonly DailyStat[],
+  scale: CounterScale,
+): TemperatureBand[] {
+  const bands = new Map<number, TemperatureBand>()
+  for (const day of stats) {
+    const temperature = day.exteriorTemperature ?? null
+    const counter = dailyCounterTotal(day, scale)
+    if (temperature === null || counter === null || day.distanceKm === null) continue
+    const fromC = Math.floor(temperature / TEMPERATURE_BAND_C) * TEMPERATURE_BAND_C
+    const band = bands.get(fromC)
+    const used = { counter, distanceKm: day.distanceKm }
+    if (band) {
+      band.used = addCounterOverDistance(band.used, used)!
+      band.days += 1
+    } else bands.set(fromC, { fromC, used, days: 1 })
+  }
+  return [...bands.values()].sort((a, b) => a.fromC - b.fromC)
+}

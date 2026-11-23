@@ -142,7 +142,8 @@
       "tyreChart": "Daily average tyre pressure per wheel over the selected period. Typical passenger-car range is {low} – {high} {unit}.",
       "hybridSocChart": "Daily average EV battery and fuel level over the selected period. Lets you compare how both energy sources change together.",
       "dailyKwhChart": "The bars are the kWh taken from the battery per day, week or month, as the car's own counter reports it, standby losses while parked included. A finished day counts the peak of its counter; today counts only the increase since midnight, or since the last counter reset. The line is the efficiency over the same days, in {unit}, against the right-hand axis; a point with less than {min} of driving has none.",
-      "dailyFuelChart": "The bars are the fuel burned per day, week or month, from the trip computer's own counter. A finished day counts the peak of its counter; today counts only the increase since midnight, or since the last counter reset. The line is the consumption over the same days, in {unit}, against the right-hand axis; a point with less than {min} of driving has none."
+      "dailyFuelChart": "The bars are the fuel burned per day, week or month, from the trip computer's own counter. A finished day counts the peak of its counter; today counts only the increase since midnight, or since the last counter reset. The line is the consumption over the same days, in {unit}, against the right-hand axis; a point with less than {min} of driving has none.",
+      "temperatureChart": "What the car used per distance, in {unit}, on the days of the selected period grouped by their average outside temperature, coldest on the left. Lower is better. It shows how much more the car takes in the cold. A band whose days hold less than {min} of driving is left out."
     },
     "hybridSocChart": "EV & Fuel Levels",
     "weekOf": "Week of {date}",
@@ -156,6 +157,11 @@
       "week": "Fuel Use per Week ({unit})",
       "month": "Fuel Use per Month ({unit})"
     },
+    "temperatureChart": {
+      "fuel": "Consumption by Outside Temperature",
+      "energy": "Efficiency by Outside Temperature"
+    },
+    "temperatureBand": "{from} to {to} {unit}",
     "period": {
       "label": "Period",
       "desc": "The days the statistics cover. Longer periods are charted per week, and per month beyond a year.",

@@ -18,6 +18,7 @@ import {
   periodCounterTotal,
   periodDistanceKm,
   roundedRange,
+  temperatureBands,
   totalDistanceKm,
 } from '@/utils/statistics'
 import { counterScale } from '@/utils/energy'
@@ -247,5 +248,40 @@ describe('periodCounterTotal', () => {
     ]
     expect(periodCounterTotal(days, BEV)).toBeCloseTo(2.25, 6)
     expect(periodCounterTotal([day('2026-11-04')], BEV)).toBeNull()
+  })
+})
+
+describe('temperatureBands', () => {
+  const scale = { unit: 'litres' as const, factor: 1 }
+
+  it('groups the days by their outside temperature, five degrees a band, coldest first', () => {
+    const bands = temperatureBands(
+      [
+        day('2026-04-14', { counterTotal: 250, distanceKm: 50, exteriorTemperature: 12.1 }),
+        day('2026-01-14', { counterTotal: 210, distanceKm: 30, exteriorTemperature: -2.5 }),
+        day('2026-01-15', { counterTotal: 140, distanceKm: 20, exteriorTemperature: -0.4 }),
+        day('2026-01-16', { counterTotal: 0, distanceKm: 0, exteriorTemperature: 0 }),
+      ],
+      scale,
+    )
+
+    expect(bands).toEqual([
+      { fromC: -5, used: { counter: 350, distanceKm: 50 }, days: 2 },
+      { fromC: 0, used: { counter: 0, distanceKm: 0 }, days: 1 },
+      { fromC: 10, used: { counter: 250, distanceKm: 50 }, days: 1 },
+    ])
+  })
+
+  it('leaves out a day without a temperature or without both counters', () => {
+    expect(
+      temperatureBands(
+        [
+          day('2026-04-14', { counterTotal: 250, distanceKm: 50 }),
+          day('2026-04-15', { counterTotal: null, distanceKm: 50, exteriorTemperature: 9 }),
+          day('2026-04-16', { counterTotal: 250, distanceKm: null, exteriorTemperature: 9 }),
+        ],
+        scale,
+      ),
+    ).toEqual([])
   })
 })

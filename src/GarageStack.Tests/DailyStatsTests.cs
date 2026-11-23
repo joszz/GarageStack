@@ -36,8 +36,9 @@ public class DailyStatsBuilderTests
     private static readonly DateOnly Today = new(2026, 10, 12);
 
     private static TelemetryHistoryPoint Reading(
-        DateTime utc, double? soc = null, double? volts = null, double? counter = null, double? distance = null) =>
-        new(utc, null, soc, counter, volts, null, null, null, null, null, null, distance, null, null, null, null);
+        DateTime utc, double? soc = null, double? volts = null, double? counter = null, double? distance = null,
+        double? outside = null) =>
+        new(utc, null, soc, counter, volts, null, null, null, null, null, null, distance, null, null, null, null, outside);
 
     [Fact]
     public void AReadingBelongsToItsLocalDay()
@@ -66,6 +67,19 @@ public class DailyStatsBuilderTests
         Assert.Equal(60, day.EvSocPercent);
         Assert.Equal(12.5, day.BatteryVoltage!.Value, 3);
         Assert.Null(day.FuelLevelPercent);
+    }
+
+    [Fact]
+    public void ADayAveragesItsOutsideTemperature()
+    {
+        var builder = new DailyStatsBuilder(Amsterdam, Today.AddDays(-1), Today.AddDays(-1), Today);
+        var morning = new DateTime(2026, 10, 11, 6, 0, 0, DateTimeKind.Utc);
+
+        builder.Add(Reading(morning, volts: 12.4, outside: 4));
+        builder.Add(Reading(morning.AddHours(6), volts: 12.5, outside: 11));
+        builder.Add(Reading(morning.AddHours(12), volts: 12.5));
+
+        Assert.Equal(7.5, Assert.Single(builder.Build()).ExteriorTemperature);
     }
 
     // Every day of the period comes back, so a chart's axis spans it evenly; the future does not.
@@ -146,7 +160,7 @@ public class DailyEnergyCheckTests
     private static readonly DateOnly Today = new(2026, 11, 4);
 
     private static TelemetryHistoryPoint Reading(DateTime utc, double? counter, double? since, bool? charging = null) =>
-        new(utc, null, null, counter, null, null, charging, null, null, null, null, null, null, null, null, since);
+        new(utc, null, null, counter, null, null, charging, null, null, null, null, null, null, null, null, since, null);
 
     private static IReadOnlyList<DailyStat> Build(DateOnly from, DateOnly to, params TelemetryHistoryPoint[] readings)
     {

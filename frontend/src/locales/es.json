@@ -142,7 +142,8 @@
       "tyreChart": "Presión media diaria de cada neumático durante el período seleccionado. El intervalo habitual para un turismo es de {low} a {high} {unit}.",
       "hybridSocChart": "Nivel medio diario de la batería eléctrica y del combustible durante el período seleccionado. Permite comparar cómo cambian ambas fuentes de energía.",
       "dailyKwhChart": "Las barras son los kWh tomados de la batería por día, semana o mes, según el propio contador del coche, incluidas las pérdidas mientras está aparcado. Para un día completo se usa el valor máximo del contador; para hoy, solo el aumento desde medianoche o desde el último reinicio del contador. La línea es la eficiencia en los mismos días, en {unit}, en el eje derecho; un punto con menos de {min} de conducción no tiene valor.",
-      "dailyFuelChart": "Las barras son el combustible consumido por día, semana o mes, según el contador del ordenador de a bordo. Para un día completo se usa el valor máximo del contador; para hoy, solo el aumento desde medianoche o desde el último reinicio. La línea es el consumo en los mismos días, en {unit}, en el eje derecho; un punto con menos de {min} de conducción no tiene valor."
+      "dailyFuelChart": "Las barras son el combustible consumido por día, semana o mes, según el contador del ordenador de a bordo. Para un día completo se usa el valor máximo del contador; para hoy, solo el aumento desde medianoche o desde el último reinicio. La línea es el consumo en los mismos días, en {unit}, en el eje derecho; un punto con menos de {min} de conducción no tiene valor.",
+      "temperatureChart": "Lo que usó el coche por distancia, en {unit}, en los días del periodo elegido agrupados por su temperatura exterior media, los más fríos a la izquierda. Cuanto más bajo, mejor. Muestra cuánto más necesita el coche con frío. Se omite un grupo cuyos días suman menos de {min} de conducción."
     },
     "hybridSocChart": "EV y niveles de combustible",
     "weekOf": "Semana de {date}",
@@ -156,6 +157,11 @@
       "week": "Uso de combustible por semana ({unit})",
       "month": "Uso de combustible por mes ({unit})"
     },
+    "temperatureChart": {
+      "fuel": "Consumo según la temperatura exterior",
+      "energy": "Eficiencia según la temperatura exterior"
+    },
+    "temperatureBand": "{from} a {to} {unit}",
     "period": {
       "label": "Período",
       "desc": "Los días que cubren las estadísticas. Los períodos más largos se registran por semana y por mes más allá de un año.",

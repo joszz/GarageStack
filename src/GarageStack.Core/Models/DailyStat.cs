@@ -11,6 +11,8 @@ namespace GarageStack.Core.Models;
 /// which of the two to show, because only it knows whether the car plugs in.
 /// <c>DistanceKm</c> is the day's total off the car's distance-of-the-day counter, read the same
 /// way as <c>CounterTotal</c>, so the two pair up into an efficiency for the same stretch of driving.
+/// <c>ExteriorTemperature</c> is the mean of the day's outside temperature readings, in degrees
+/// Celsius, for weighing that efficiency against the weather.
 /// </summary>
 public sealed record DailyStat(
     DateOnly Date,
@@ -24,4 +26,5 @@ public sealed record DailyStat(
     double? CounterTotal,
     double? SinceChargeTotal = null,
     bool CounterUnbacked = false,
-    double? DistanceKm = null);
+    double? DistanceKm = null,
+    double? ExteriorTemperature = null);
