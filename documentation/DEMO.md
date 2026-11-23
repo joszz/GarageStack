@@ -5,6 +5,7 @@ Demo mode runs GarageStack with realistic fake data and requires no MG iSmart cr
 ## What you get
 
 - MG ZS EV with 400 days of history (including occasional home AC and public DC charging sessions with battery and power curves), ten finished trips from the last five weeks (most around Amsterdam, a few further afield) and one in progress
+- Optionally a second car, an MG HS plug-in hybrid parked at home in Utrecht, with its own trips, history, charging, maintenance and live state (`DEMO_SECOND_VEHICLE`, below)
 - Dashboard, Statistics, and Map views fully populated
 - A **Demo Controls** panel (bottom-right button) to toggle vehicle states live: doors, windows, lights, lock, engine, charging, SOC, temperature
 - A demo banner across the top reminding you that data is not real
@@ -92,9 +93,9 @@ Click the flask icon in the bottom-right corner to open the panel. Changes take 
 | Interface | Demo implementation |
 | --- | --- |
 | `AppDbContext` | An in-memory database for everything you add yourself: settings, maintenance, climate schedules, home and work places, API tokens, notifications |
-| `IVehicleRepository` | Returns one static MG ZS EV |
-| `ITelemetryRepository` | Serves pre-built snapshots; mutable via `/api/demo/status/{vin}` |
-| `ITripRepository` | Serves the pre-built trips |
+| `IVehicleRepository` | Returns the MG ZS EV, and the MG HS PHEV when `DEMO_SECOND_VEHICLE` is on |
+| `ITelemetryRepository` | Serves each car's pre-built snapshots and its own live state; mutable per car via `/api/demo/status/{vin}` |
+| `ITripRepository` | Serves each car's pre-built trips, and keeps what you change on one car apart from the other |
 | `IRdwClient` | Answers for the RDW with any plate: an APK due in three weeks, one open recall and one repaired, so the RDW card shows without a car and without a request leaving the machine. The demo seeds the two notifications the Worker would have sent about it. `RDW_ENABLED=false` leaves the card, the plate field and those notifications out |
 | `IMqttPublisher` | Carries commands out on the demo car: after two seconds the car's state changes and the answer arrives, as from the gateway. Starting to charge without the cable plugged in (Demo Controls) is refused, to show a refusal |
 | `LogFiles:WorkerDirectory` | When `WORKER_LOG_DIRECTORY` is not set, a folder under the temp directory holding a day of sample Worker log entries (`DemoWorkerLog`), so the log viewer shows both services instead of asking for the Worker's folder |
@@ -122,7 +123,7 @@ Demo mode is the quickest way to see a change working, for a coding agent as muc
   ```
 
 - **Learn the API from [`openapi.json`](openapi.json)**, the committed OpenAPI document: every path, what it takes and answers, and the refusals with their codes. A running API serves the same at `/api/openapi/v1.json`, and as a page at `/api/reference/`.
-- **The demo car is `DEMOVIN0000012345`.** Change its state as the Demo Controls panel does, with `POST /api/demo/status/DEMOVIN0000012345` and any of the fields of `DemoStatusOverrideDto`, such as `{"isLocked": false, "evSocPercent": 35}`. A command (`POST /api/vehicles/{vin}/commands/{command}`) is carried out two seconds later, as the gateway would.
+- **The demo car is `DEMOVIN0000012345`.** Change its state as the Demo Controls panel does, with `POST /api/demo/status/DEMOVIN0000012345` and any of the fields of `DemoStatusOverrideDto`, such as `{"isLocked": false, "evSocPercent": 35}`. A command (`POST /api/vehicles/{vin}/commands/{command}`) is carried out two seconds later, as the gateway would. With `DEMO_SECOND_VEHICLE=true` the second car is `DEMOVIN0000067890`; both calls change only the car they name.
 - **Nothing is kept.** What you add lives in memory and is gone when the API stops; the seeded data is the same on every start.
 - **A new field or feature needs demo data as well**, in `src/GarageStack.Data/Demo/`, or it never shows here. A change to trips also needs its step in `TripRepositoryContractTests`, which holds `DemoTripRepository` to the same results as the database.
 - **To see a page**, run the API and the app and point a throwaway Playwright script at `http://localhost:5173` (the frontend's own `@playwright/test`, with the Chromium it installed): sign in at `/login` with demo / demo, then capture what you need. The tests in `frontend/e2e` run against the Docker stack instead.
@@ -140,4 +141,4 @@ Demo mode is the quickest way to see a change working, for a coding agent as muc
 | `DEBUG_LOGS` | `false` | `true` logs debug detail from the API |
 | `RATE_LIMIT_GLOBAL_PER_MINUTE` | `2000` | Requests per minute from one address. Higher than a real deployment's 120, so the browser tests can drive several pages at once |
 | `RDW_ENABLED` | `true` in demo mode | `false` leaves out the RDW card, the licence plate field and the seeded RDW notifications. Unlike a real deployment, where it is off unless set, the demo shows it: its stand-in RDW sends nothing anywhere. |
-| `DEMO_SECOND_VEHICLE` | `false` | `true` adds a second car, an MG HS PHEV (`DEMOVIN0000067890`), next to the ZS EV, to try the car picker and notifications that name their car. It shares the first car's telemetry, and its location card stays empty: the demo's positions belong to the first car. |
+| `DEMO_SECOND_VEHICLE` | `false` | `true` adds a second car, an MG HS PHEV (`DEMOVIN0000067890`), next to the ZS EV, to try the car picker and notifications that name their car. It tells its own story, so switching cars is plain to see: parked and plugged in at home in Utrecht instead of driving around Amsterdam, its own trips (numbered from 101), a smaller battery it charges every evening on a slower wall box and never at a fast charger, fuel it burns once the battery runs out, its own maintenance and climate schedule, and no licence plate, so its RDW card offers the field to enter one. The demo's phone (the Phone GPS layer) rides with the ZS. |

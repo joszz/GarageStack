@@ -9,13 +9,16 @@ using Microsoft.EntityFrameworkCore;
 namespace GarageStack.Tests;
 
 /// <summary>
-/// The demo's trip repository against the real one. Both hold the demo's trips (the real one
+/// The demo's trip repository against the real one. Both hold one demo car's trips (the real one
 /// seeded with exactly what the demo serves), the same steps are taken on each, and their trip logs
 /// and maps must come out the same. A trip feature built only on one side fails here instead of
-/// drifting unnoticed.
+/// drifting unnoticed. Each demo car runs them, as their trips differ: see the classes below.
 /// </summary>
-public sealed class TripRepositoryContractTests : IAsyncDisposable
+public abstract class TripRepositoryContractTests : IAsyncDisposable
 {
+    /// <summary>The demo car whose trips the steps are taken on; the real side holds them under the same id.</summary>
+    protected abstract Vehicle DemoCar { get; }
+
     private readonly AppDbContext _db = new(new DbContextOptionsBuilder<AppDbContext>()
         .UseInMemoryDatabase(Guid.NewGuid().ToString()).Options);
 
@@ -34,7 +37,7 @@ public sealed class TripRepositoryContractTests : IAsyncDisposable
 
     private async Task SeedAsync(CancellationToken ct)
     {
-        var vehicle = new Vehicle { Vin = "FAKEVN00000000001" };
+        var vehicle = new Vehicle { Id = DemoCar.Id, Vin = "FAKEVN00000000001" };
         _db.Vehicles.Add(vehicle);
         await _db.SaveChangesAsync(ct);
         _vehicleId = vehicle.Id;
@@ -351,7 +354,7 @@ public sealed class TripRepositoryContractTests : IAsyncDisposable
         [nameof(ITripRepository.GetRecordedUntilAsync)] = "Demo mode has no recording line.",
         [nameof(ITripRepository.FillSpeedFiguresAsync)] = "Demo trips carry their speed figures from the start, so there is nothing to fill.",
         [nameof(ITripRepository.FillCounterUseAsync)] = "Demo trips carry their counter use from the start, so there is nothing to fill.",
-        [nameof(ITripRepository.GetLatestAsync)] = "The demo's timeline ends with the trip it is driving, whatever the clock says.",
+        [nameof(ITripRepository.GetLatestAsync)] = "The demo's timeline ends with the trip the car is driving, or its last one while it is parked, whatever the clock says.",
     };
 
     [Fact]
@@ -364,4 +367,16 @@ public sealed class TripRepositoryContractTests : IAsyncDisposable
         Assert.Empty(accounted.Except(methods));
         Assert.Equal(accounted.Count, accounted.Distinct().Count());
     }
+}
+
+/// <summary>The contract on the ZS EV's trips, the car the demo is driving.</summary>
+public sealed class ZsEvTripRepositoryContractTests : TripRepositoryContractTests
+{
+    protected override Vehicle DemoCar => DemoVehicleRepository.DemoVehicle;
+}
+
+/// <summary>The contract on the HS plug-in hybrid's trips, the parked second car.</summary>
+public sealed class HsPhevTripRepositoryContractTests : TripRepositoryContractTests
+{
+    protected override Vehicle DemoCar => DemoVehicleRepository.SecondDemoVehicle;
 }
