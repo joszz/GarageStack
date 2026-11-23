@@ -10,6 +10,7 @@ import SettingsToggle from '../SettingsToggle.vue'
 import RegionalSettings from '../RegionalSettings.vue'
 import SettingsSelect from '../SettingsSelect.vue'
 import SettingsSection from './SettingsSection.vue'
+import SettingsTabs from '../SettingsTabs.vue'
 import ChipGroup from '../ChipGroup.vue'
 import CarColorPicker from './CarColorPicker.vue'
 import VehicleTypeSetting from './VehicleTypeSetting.vue'
@@ -38,7 +39,10 @@ const rdw = useRdwStore()
 const vehicleStore = useVehicleStore()
 const connection = useConnection()
 const id = useId()
-const tablist = useTemplateRef<HTMLElement>('tablist')
+const tabStrip = useTemplateRef<{
+  select: (tab: SettingsTab, focus?: boolean) => void
+  $el: HTMLElement
+}>('tabStrip')
 const panels = useTemplateRef<HTMLElement>('panels')
 const phoneGpsVisible = ref(false)
 const tabDefinitions = [
@@ -63,46 +67,24 @@ const tabs = computed(() =>
   ),
 )
 
-function selectTab(tab: SettingsTab, focus = false) {
-  activeTab.value = tab
-  const body = panels.value?.parentElement
-  if (body) body.scrollTop = 0
-  const button = tablist.value?.querySelector<HTMLButtonElement>(`[data-tab="${tab}"]`)
-  if (focus) button?.focus({ preventScroll: true })
-  button?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
-}
-
-function onTabKeydown(event: KeyboardEvent) {
-  const index = tabs.value.findIndex((tab) => tab.id === activeTab.value)
-  let next: number
-  switch (event.key) {
-    case 'ArrowRight':
-      next = (index + 1) % tabs.value.length
-      break
-    case 'ArrowLeft':
-      next = (index - 1 + tabs.value.length) % tabs.value.length
-      break
-    case 'Home':
-      next = 0
-      break
-    case 'End':
-      next = tabs.value.length - 1
-      break
-    default:
-      return
-  }
-  event.preventDefault()
-  selectTab(tabs.value[next]!.id, true)
-}
+const tabItems = computed(() =>
+  tabs.value.map((tab) => ({
+    ...tab,
+    label: t(`settings.tabs.${tab.id}`),
+    shortLabel: tab.id === 'phone' ? t('settings.tabs.phoneShort') : undefined,
+  })),
+)
 
 watch(tabs, async (visibleTabs) => {
   if (visibleTabs.some((tab) => tab.id === activeTab.value)) return
   const focused = document.activeElement
   const restoreFocus =
-    focused === document.body || tablist.value?.contains(focused) || panels.value?.contains(focused)
+    focused === document.body ||
+    !!tabStrip.value?.$el.contains(focused) ||
+    !!panels.value?.contains(focused)
   activeTab.value = 'general'
   await nextTick()
-  if (props.open) selectTab('general', restoreFocus)
+  if (props.open) tabStrip.value?.select('general', restoreFocus)
 })
 
 // The plate field only exists where the deployment looks plates up, which only the API knows.
@@ -135,36 +117,13 @@ const languageOptions = [
 <template>
   <DetailModal :open="open" :title="t('settings.title')" wide @close="$emit('close')">
     <template #navigation>
-      <div class="settings-tabs-viewport">
-        <div
-          ref="tablist"
-          class="settings-tabs"
-          role="tablist"
-          :aria-label="t('settings.tabs.label')"
-          @keydown="onTabKeydown"
-        >
-          <button
-            v-for="tab in tabs"
-            :id="`${id}-tab-${tab.id}`"
-            :key="tab.id"
-            type="button"
-            role="tab"
-            class="settings-tabs__tab"
-            :data-tab="tab.id"
-            :aria-selected="activeTab === tab.id"
-            :aria-controls="`${id}-panel-${tab.id}`"
-            :aria-label="t(`settings.tabs.${tab.id}`)"
-            :title="t(`settings.tabs.${tab.id}`)"
-            :tabindex="activeTab === tab.id ? 0 : -1"
-            @click="selectTab(tab.id)"
-          >
-            <font-awesome-icon :icon="tab.icon" aria-hidden="true" />
-            <span class="settings-tabs__label">{{
-              t(`settings.tabs.${tab.id === 'phone' ? 'phoneShort' : tab.id}`)
-            }}</span>
-          </button>
-        </div>
-      </div>
+      <SettingsTabs
+        ref="tabStrip"
+        v-model="activeTab"
+        :tabs="tabItems"
+        :label="t('settings.tabs.label')"
+        :id-prefix="id"
+      />
     </template>
     <div ref="panels" class="settings-panels">
       <div

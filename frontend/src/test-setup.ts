@@ -22,3 +22,10 @@ Object.defineProperty(window, 'matchMedia', {
     dispatchEvent: () => false,
   }),
 })
+
+// jsdom does not lay out or scroll. Configurable, so a spec can spy on it.
+Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
+  writable: true,
+  configurable: true,
+  value: () => {},
+})

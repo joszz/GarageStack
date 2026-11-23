@@ -72,6 +72,70 @@ describe('MapLayerPanel', () => {
     expect(badge(wrapper)).toBe('3')
   })
 
+  it('groups the layers by what they draw on, one tab at a time', async () => {
+    const wrapper = mount(MapLayerPanel, {
+      props: {
+        carTakesFuel: true,
+        carTakesCharge: true,
+        speedCamerasAvailable: true,
+        phoneGpsAvailable: true,
+      },
+      attachTo: document.body,
+      global: { plugins: [i18n], stubs: { Teleport: true, FontAwesomeIcon: true } },
+    })
+    await wrapper.get('.toolbar-panel__btn').trigger('click')
+    const tabs = wrapper.findAll('[role=tab]')
+    const panel = (name: string) => wrapper.get(`[id$="-panel-${name}"]`)
+    const labels = (name: string) =>
+      panel(name)
+        .findAll('input[role=switch]')
+        .map((input) => input.attributes('aria-label'))
+
+    expect(tabs.map((tab) => tab.text())).toEqual(['Routes', 'Trip', 'Places'])
+    expect(tabs.map((tab) => tab.attributes('aria-label'))).toEqual([
+      en.trips.layerTabs.routes,
+      en.trips.layerTabs.trip,
+      en.trips.layerTabs.places,
+    ])
+    expect(labels('routes')).toEqual([en.trips.heatmap, en.trips.routeOutline, en.trips.phoneGps])
+    expect(labels('trip')).toEqual([
+      en.trips.snapToRoads,
+      en.trips.speedOverlay,
+      en.trips.speedLimitOverlay,
+    ])
+    expect(labels('places')).toEqual([
+      en.trips.fuelStations,
+      en.trips.chargingStations,
+      en.trips.serviceAreas,
+      en.trips.speedCameras,
+      en.poi.parking.layer,
+      en.poi.carWash.layer,
+      en.poi.air.layer,
+      en.poi.repair.layer,
+    ])
+    expect(wrapper.findAll('[role=tabpanel]').filter((item) => item.isVisible())).toHaveLength(1)
+    expect(panel('routes').isVisible()).toBe(true)
+
+    await tabs[2]!.trigger('click')
+
+    expect(panel('places').isVisible()).toBe(true)
+    expect(panel('routes').isVisible()).toBe(false)
+    expect(panel('places').attributes('aria-labelledby')).toBe(tabs[2]!.attributes('id'))
+  })
+
+  it('offers speed limits beside snapping, and only while snapping is on', async () => {
+    const wrapper = await mountPanel(false)
+    const trip = wrapper.get('[id$="-panel-trip"]')
+
+    const snap = trip.get(`input[aria-label="${en.trips.snapToRoads}"]`)
+    expect(trip.text()).toContain(en.trips.speedLimitOverlay)
+    await snap.setValue(false)
+
+    expect(trip.text()).not.toContain(en.trips.speedLimitOverlay)
+    // Patched in place, not rebuilt, so the switch just pressed keeps the keyboard focus.
+    expect(snap.element.isConnected).toBe(true)
+  })
+
   it('leaves the layer out, and out of the count, without a location service', async () => {
     const wrapper = await mountPanel(false)
 

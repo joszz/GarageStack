@@ -434,6 +434,14 @@
     "speedOverlayDesc": "Zichtbaar wanneer een enkele rit is geselecteerd",
     "speedLimitOverlay": "Snelheidslimieten",
     "speedLimitOverlayDesc": "Kleur de geselecteerde rit naar wat er volgens OpenStreetMap langs de route stond aangegeven.",
+    "layerTabs": {
+      "label": "Laaggroepen",
+      "routes": "Alle ritten",
+      "routesShort": "Routes",
+      "trip": "Geselecteerde rit",
+      "tripShort": "Rit",
+      "places": "Plaatsen"
+    },
     "speedLimitUnder": "Binnen de limiet",
     "speedLimitOver": "Boven de limiet",
     "speedLimitUnknown": "Geen limiet in OSM",

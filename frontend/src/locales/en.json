@@ -434,6 +434,14 @@
     "speedOverlayDesc": "Visible when a single trip is selected",
     "speedLimitOverlay": "Speed limits",
     "speedLimitOverlayDesc": "Colour the selected trip by what OpenStreetMap says was signposted along it.",
+    "layerTabs": {
+      "label": "Layer groups",
+      "routes": "All trips",
+      "routesShort": "Routes",
+      "trip": "Selected trip",
+      "tripShort": "Trip",
+      "places": "Places"
+    },
     "speedLimitUnder": "Within the limit",
     "speedLimitOver": "Over the limit",
     "speedLimitUnknown": "No limit in OSM",
