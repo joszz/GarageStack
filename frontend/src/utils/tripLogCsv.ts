@@ -1,8 +1,16 @@
 import type { TripLogEntry } from '@/services/tripLogApi'
 import { csvFormatFor, toCsv, type CsvCell } from '@/utils/csv'
 import { formatDate, formatTime, numberLocale } from '@/utils/format'
-import { endLabel, loggedDistanceKm, periodKey, type TripLogPeriod } from '@/utils/tripLog'
+import {
+  endLabel,
+  loggedDistanceKm,
+  periodKey,
+  tripFuel,
+  type TripLogPeriod,
+} from '@/utils/tripLog'
 import type { UnitFormatter } from '@/utils/units'
+import type { VehicleType } from '@/services/vehicleApi'
+import { energyUnit } from '@/utils/energy'
 
 // `t` is injected rather than obtained via useI18n() so this stays a plain, directly testable
 // function, as in tripRows.
@@ -14,16 +22,24 @@ export interface TripLogCsvContext {
   units: UnitFormatter
   /** False when place names are switched off: the ends are then written as coordinates. */
   placesShown: boolean
+  /** A plain hybrid's log gets a column for the fuel each trip burned. */
+  vehicleType: VehicleType
 }
 
 /**
  * The trip log as CSV, one trip per line, with the columns a Dutch "rittenregistratie" asks for:
  * date, where from and where to, the odometer at either end, the distance, and whether the trip
  * was business or private. Times and notes ride along; a trip nobody classified yet has a blank
- * purpose rather than a guess.
+ * purpose rather than a guess. A plain hybrid's log adds the fuel each trip burned, blank for a
+ * trip the car sent no readings for.
  */
 export function tripLogCsv(entries: readonly TripLogEntry[], ctx: TripLogCsvContext): string {
-  const { t, units, placesShown } = ctx
+  const { t, units, placesShown, vehicleType } = ctx
+  const withFuel = energyUnit(vehicleType) === 'litres'
+  const volume = (entry: TripLogEntry) => {
+    const fuel = tripFuel(entry, vehicleType)
+    return fuel === null ? null : Math.round(units.convert('volume', fuel.litres) * 100) / 100
+  }
   // A number rather than text, so a spreadsheet can add the column up.
   const distance = (km: number | null) =>
     km === null ? null : Math.round(units.convert('distance', km) * 10) / 10
@@ -38,6 +54,7 @@ export function tripLogCsv(entries: readonly TripLogEntry[], ctx: TripLogCsvCont
     t('tripLog.csv.odometerStart', unit),
     t('tripLog.csv.odometerEnd', unit),
     t('tripLog.csv.distance', unit),
+    ...(withFuel ? [t('tripLog.csv.fuel', { unit: units.symbol('volume') })] : []),
     t('tripLog.csv.purpose'),
     t('tripLog.csv.notes'),
   ]
@@ -51,6 +68,7 @@ export function tripLogCsv(entries: readonly TripLogEntry[], ctx: TripLogCsvCont
     distance(entry.odometerStartKm),
     distance(entry.odometerEndKm),
     distance(loggedDistanceKm(entry)),
+    ...(withFuel ? [volume(entry)] : []),
     entry.purpose ? t(`tripLog.purpose.${entry.purpose}`) : null,
     entry.notes,
   ])

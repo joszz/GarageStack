@@ -386,6 +386,25 @@ public class TelemetryRepository(
             .Select(s => s.OdometerKm)
             .FirstOrDefaultAsync(ct);
 
+    public async Task<IReadOnlyList<double>> GetDayCounterReadingsAsync(
+        int vehicleId, DateTime from, DateTime to, CancellationToken ct = default)
+    {
+        var before = await db.TelemetrySnapshots
+            .AsNoTracking()
+            .Where(s => s.VehicleId == vehicleId && s.RecordedAt <= from && s.PowerUsageOfDay != null)
+            .OrderByDescending(s => s.RecordedAt)
+            .Select(s => s.PowerUsageOfDay)
+            .FirstOrDefaultAsync(ct);
+        var during = await db.TelemetrySnapshots
+            .AsNoTracking()
+            .Where(s => s.VehicleId == vehicleId && s.RecordedAt > from && s.RecordedAt <= to && s.PowerUsageOfDay != null)
+            .OrderBy(s => s.RecordedAt)
+            .Select(s => s.PowerUsageOfDay!.Value)
+            .ToListAsync(ct);
+
+        return before is { } first ? [first, .. during] : during;
+    }
+
     // See DayDistance. Readings that start inside the window (a fresh install) start from the
     // first odometer reading there is. One query for a car whose counter is sane.
     private async Task<double?> CheckDayDistanceAsync(

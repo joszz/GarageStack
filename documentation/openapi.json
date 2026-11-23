@@ -9809,7 +9809,8 @@
               "string"
             ],
             "format": "date-time"
-          }
+          },
+          "counterUsed": {}
         },
         "description": "One line of the trip log: a saved trip without its fixes, plus what the driver recorded about\nit. A place is null until it has been looked up."
       },

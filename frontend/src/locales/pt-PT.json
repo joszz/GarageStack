@@ -917,6 +917,8 @@
       "averageTrip": "Viagem média",
       "longestTrip": "Maior viagem",
       "averageSpeed": "Velocidade média",
+      "fuelUsed": "Combustível usado",
+      "consumption": "Consumo médio",
       "open": "Mostrar tempo de condução, viagem média e mais longa, e velocidade média"
     },
     "cardDesc": {
@@ -928,7 +930,9 @@
       "drivingTime": "O tempo da partida até à chegada, somado em todas as viagens deste período. As paragens no trânsito contam; o tempo estacionado entre viagens não.",
       "averageTrip": "A distância do período dividida pelo número de viagens.",
       "longestTrip": "A distância da viagem mais longa deste período.",
-      "averageSpeed": "A distância do período dividida pelo tempo de condução, por isso as paragens no trânsito e nos semáforos reduzem-na. A velocidade média nos detalhes de uma viagem usa antes as velocidades que o carro enviou em movimento."
+      "averageSpeed": "A distância do período dividida pelo tempo de condução, por isso as paragens no trânsito e nos semáforos reduzem-na. A velocidade média nos detalhes de uma viagem usa antes as velocidades que o carro enviou em movimento.",
+      "fuelUsed": "O combustível que o computador de bordo contou nas viagens deste período. As viagens sem leituras ficam de fora.",
+      "consumption": "O combustível usado sobre a distância dessas mesmas viagens. Quanto menor, melhor. Mostrado quando essas viagens somam pelo menos {min}."
     },
     "detail": {
       "title": "Detalhes da viagem",
@@ -939,6 +943,10 @@
       "averageSpeed": "Veloc. média",
       "averageSpeedHint": "A média das velocidades comunicadas pelo carro em movimento",
       "topSpeed": "Velocidade máxima",
+      "fuelUsed": "Combustível usado",
+      "fuelUsedHint": "O que o computador de bordo contou desde a saída até o carro estacionar",
+      "consumption": "Consumo",
+      "consumptionHint": "O combustível usado sobre a distância da viagem. Omitido numa viagem com menos de 1 km, onde é sobretudo arredondamento.",
       "speed": "Velocidade",
       "speedChart": "Velocidade durante a viagem"
     },
@@ -966,6 +974,7 @@
       "odometerStart": "Conta-quilómetros inicial ({unit})",
       "odometerEnd": "Conta-quilómetros final ({unit})",
       "distance": "Distância ({unit})",
+      "fuel": "Combustível ({unit})",
       "purpose": "Finalidade",
       "notes": "Observações"
     },

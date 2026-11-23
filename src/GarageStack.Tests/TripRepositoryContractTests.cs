@@ -43,7 +43,7 @@ public sealed class TripRepositoryContractTests : IAsyncDisposable
         var log = await _demo.GetLogAsync(_vehicleId, From, To, ct);
         var trips = (await _demo.GetTripsAsync(_vehicleId, From, To, ct)).Where(t => t.Id is not null).ToDictionary(t => t.Id!.Value);
         await _real.SaveRecordedAsync(_vehicleId,
-            [.. log.Select(e => new RecordedTrip(trips[e.Id] with { Id = null }, e.OdometerStartKm, e.OdometerEndKm))],
+            [.. log.Select(e => new RecordedTrip(trips[e.Id] with { Id = null }, e.OdometerStartKm, e.OdometerEndKm, e.CounterUsed, 2))],
             log[^1].EndedAt.AddMinutes(1), ct);
 
         _demoIds = [.. log.Select(e => e.Id)];
@@ -83,6 +83,7 @@ public sealed class TripRepositoryContractTests : IAsyncDisposable
         e.IsEdited,
         Max = Math.Round(e.MaxSpeedKmh ?? -1, 6),
         Avg = Math.Round(e.AvgMovingSpeedKmh ?? -1, 6),
+        Counter = Math.Round(e.CounterUsed ?? -1, 6),
     };
 
     // What the statistics read of the finished trips.
@@ -349,6 +350,7 @@ public sealed class TripRepositoryContractTests : IAsyncDisposable
         [nameof(ITripRepository.SaveRecordedAsync)] = "Demo mode runs no Worker, so it records nothing; the tests use it only to seed the real side.",
         [nameof(ITripRepository.GetRecordedUntilAsync)] = "Demo mode has no recording line.",
         [nameof(ITripRepository.FillSpeedFiguresAsync)] = "Demo trips carry their speed figures from the start, so there is nothing to fill.",
+        [nameof(ITripRepository.FillCounterUseAsync)] = "Demo trips carry their counter use from the start, so there is nothing to fill.",
         [nameof(ITripRepository.GetLatestAsync)] = "The demo's timeline ends with the trip it is driving, whatever the clock says.",
     };
 

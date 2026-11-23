@@ -50,6 +50,12 @@ public class TripRecorderTests
             await Db.SaveChangesAsync(ct);
         }
 
+        public async Task AddCounterAsync(DateTime at, double counter, CancellationToken ct)
+        {
+            Db.TelemetrySnapshots.Add(new TelemetrySnapshot { VehicleId = Vehicle.Id, RecordedAt = at, PowerUsageOfDay = counter });
+            await Db.SaveChangesAsync(ct);
+        }
+
         public Task<List<Trip>> SavedAsync(CancellationToken ct) =>
             Db.Trips.AsNoTracking().OrderBy(t => t.StartedAt).ToListAsync(ct);
 
@@ -83,6 +89,39 @@ public class TripRecorderTests
         Assert.Equal(24010.0, trip.OdometerStartKm);
         Assert.Equal(24021.4, trip.OdometerEndKm);
         Assert.Equal((51.50, 51.60), (trip.StartLatitude, trip.EndLatitude));
+    }
+
+    [Fact]
+    public async Task SavedTrip_CarriesTheDayCountersRiseUntilItParked()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var s = new Setup();
+        await s.AddFixesAsync(Drive(T0), ct);
+        await s.AddCounterAsync(T0.AddHours(-3), 300, ct);      // the morning's trip
+        await s.AddCounterAsync(T0.AddMinutes(-2), 412, ct);    // parked before leaving
+        await s.AddCounterAsync(T0.AddMinutes(5), 470, ct);     // mid-drive
+        await s.AddCounterAsync(T0.AddMinutes(12), 597, ct);    // reported after parking
+        await s.AddCounterAsync(T0.AddHours(3), 800, ct);       // the next trip's, too late to count
+
+        await s.Recorder.RecordAsync(s.Vehicle.Id, T0.AddHours(4), ct);
+
+        var trip = Assert.Single(await s.SavedAsync(ct));
+        Assert.Equal(185, trip.CounterUsed);
+        Assert.Equal(3, trip.CounterReadings);
+    }
+
+    [Fact]
+    public async Task SavedTrip_WithoutACounter_IsMarkedAsLookedAt()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var s = new Setup();
+        await s.AddFixesAsync(Drive(T0), ct);
+
+        await s.Recorder.RecordAsync(s.Vehicle.Id, T0.AddHours(1), ct);
+
+        var trip = Assert.Single(await s.SavedAsync(ct));
+        Assert.Null(trip.CounterUsed);
+        Assert.Equal(0, trip.CounterReadings);
     }
 
     [Fact]

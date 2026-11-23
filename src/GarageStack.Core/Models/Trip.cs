@@ -58,6 +58,20 @@ public class Trip
     public double? OdometerEndKm { get; set; }
 
     /// <summary>
+    /// What the day counter (powerUsageOfDay) rose by from the trip's start until the car had
+    /// parked, in the counter's own unit: fuel in hundredths of a litre on a plain hybrid, kWh on a
+    /// plug-in car (<see cref="Helpers.TripCounterUse"/>). Null when too few readings came.
+    /// </summary>
+    public double? CounterUsed { get; set; }
+
+    /// <summary>
+    /// How many counter readings <see cref="CounterUsed"/> came from. Null on a trip saved before it
+    /// existed until housekeeping works it out (ITripRepository.FillCounterUseAsync); 0 marks a trip
+    /// whose car sent none, so it is not looked at again.
+    /// </summary>
+    public int? CounterReadings { get; set; }
+
+    /// <summary>
     /// The address at either end, as a JSON <see cref="PlaceAddress"/>. Null until the trip log
     /// has looked it up. Kept here rather than in the geocode cache, which expires: a trip log
     /// kept for the tax year has to show the same address in twelve months.

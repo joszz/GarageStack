@@ -73,6 +73,13 @@ public interface ITelemetryRepository
     Task<double?> GetOdometerAtAsync(int vehicleId, DateTime at, CancellationToken ct = default);
 
     /// <summary>
+    /// The day counter's (powerUsageOfDay) readings over a trip, oldest first: the last one at or
+    /// before <paramref name="from"/>, then every one after it up to <paramref name="to"/>. Empty
+    /// when the car reports no such counter. See <see cref="Helpers.TripCounterUse"/>.
+    /// </summary>
+    Task<IReadOnlyList<double>> GetDayCounterReadingsAsync(int vehicleId, DateTime from, DateTime to, CancellationToken ct = default);
+
+    /// <summary>
     /// The car's last <paramref name="count"/> status polls (lock, doors, windows), newest first.
     /// A poll the broker delivers again, as it does with retained messages on a reconnect, is still
     /// one poll: it comes back once, at the time it first arrived.

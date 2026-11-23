@@ -62,6 +62,12 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
         lock (_lock) { return Task.FromResult(_current.OdometerKm); }
     }
 
+    // Only the Worker's recorder reads a trip's counter, and demo mode runs no Worker: DemoTrips
+    // carries what each trip used.
+    public Task<IReadOnlyList<double>> GetDayCounterReadingsAsync(
+        int vehicleId, DateTime from, DateTime to, CancellationToken ct = default) =>
+        Task.FromResult<IReadOnlyList<double>>([]);
+
     // Only the Worker's parked alerts weigh past polls, and demo mode runs no Worker.
     public Task<IReadOnlyList<StatusReading>> GetStatusReadingsAsync(int vehicleId, int count, CancellationToken ct = default) =>
         Task.FromResult<IReadOnlyList<StatusReading>>([]);

@@ -599,6 +599,33 @@ public class TripRepositoryTests
         Assert.Equal([3, 3, 0], trips.Select(t => t.MovingSpeedSamples));
         Assert.Equal([50, 50, null], trips.Select(t => t.MaxSpeedKmh));
     }
+
+    [Fact]
+    public async Task FillCounterUse_WorksOutOlderTrips_InBatches()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (db, repo, vehicle) = await SetupAsync(ct);
+        await using var _ = db;
+        await SaveOneAsync(repo, vehicle, T0, ct);
+        await SaveOneAsync(repo, vehicle, T0.AddDays(1), ct);
+        await SaveOneAsync(repo, vehicle, T0.AddDays(2), ct);
+        foreach (var t in await db.Trips.ToListAsync(ct)) (t.CounterUsed, t.CounterReadings) = (null, null);
+        // The first trip's counter rose 150, the second's saw one reading only, the third none.
+        db.TelemetrySnapshots.AddRange(
+            new TelemetrySnapshot { VehicleId = vehicle.Id, RecordedAt = T0.AddMinutes(-1), PowerUsageOfDay = 100 },
+            new TelemetrySnapshot { VehicleId = vehicle.Id, RecordedAt = T0.AddMinutes(12), PowerUsageOfDay = 250 },
+            new TelemetrySnapshot { VehicleId = vehicle.Id, RecordedAt = T0.AddDays(1).AddMinutes(-1), PowerUsageOfDay = 0 });
+        await db.SaveChangesAsync(ct);
+        db.ChangeTracker.Clear();
+
+        Assert.Equal(2, await repo.FillCounterUseAsync(2, ct));
+        Assert.Equal(1, await repo.FillCounterUseAsync(2, ct));
+        Assert.Equal(0, await repo.FillCounterUseAsync(2, ct));
+
+        var trips = await db.Trips.AsNoTracking().OrderBy(t => t.Id).ToListAsync(ct);
+        Assert.Equal([150, null, null], trips.Select(t => t.CounterUsed));
+        Assert.Equal([2, 1, 1], trips.Select(t => t.CounterReadings));
+    }
 }
 
 // Hiding a glitch, and joining two trips a short stop split.

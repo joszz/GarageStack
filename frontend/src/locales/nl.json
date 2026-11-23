@@ -917,6 +917,8 @@
       "averageTrip": "Gemiddelde rit",
       "longestTrip": "Langste rit",
       "averageSpeed": "Gemiddelde snelheid",
+      "fuelUsed": "Brandstof verbruikt",
+      "consumption": "Gemiddeld verbruik",
       "open": "Rijtijd, gemiddelde en langste rit en gemiddelde snelheid tonen"
     },
     "cardDesc": {
@@ -928,7 +930,9 @@
       "drivingTime": "De tijd van vertrek tot aankomst, opgeteld over alle ritten in deze periode. Stilstand in het verkeer telt mee, de tijd geparkeerd tussen ritten niet.",
       "averageTrip": "De afstand van de periode gedeeld door het aantal ritten.",
       "longestTrip": "De afstand van de langste rit in deze periode.",
-      "averageSpeed": "De afstand van de periode gedeeld door de rijtijd, dus stilstand in het verkeer en voor verkeerslichten haalt hem omlaag. De gemiddelde snelheid in de details van een rit gebruikt in plaats daarvan de snelheden die de auto tijdens het rijden doorgaf."
+      "averageSpeed": "De afstand van de periode gedeeld door de rijtijd, dus stilstand in het verkeer en voor verkeerslichten haalt hem omlaag. De gemiddelde snelheid in de details van een rit gebruikt in plaats daarvan de snelheden die de auto tijdens het rijden doorgaf.",
+      "fuelUsed": "De brandstof die de boordcomputer telde over de ritten in deze periode. Ritten waarvoor de auto niets doorgaf tellen niet mee.",
+      "consumption": "De verbruikte brandstof over de afstand van dezelfde ritten. Lager is beter. Getoond zodra die ritten samen minstens {min} beslaan."
     },
     "detail": {
       "title": "Ritdetails",
@@ -939,6 +943,10 @@
       "averageSpeed": "Gem. snelheid",
       "averageSpeedHint": "Het gemiddelde van de snelheden die de auto tijdens het rijden doorgaf",
       "topSpeed": "Topsnelheid",
+      "fuelUsed": "Brandstof verbruikt",
+      "fuelUsedHint": "Wat de boordcomputer telde vanaf vertrek tot de auto geparkeerd stond",
+      "consumption": "Verbruik",
+      "consumptionHint": "De verbruikte brandstof over de afstand van de rit. Weggelaten bij een rit korter dan 1 km, waar het vooral afronding is.",
       "speed": "Snelheid",
       "speedChart": "Snelheid tijdens de rit"
     },
@@ -966,6 +974,7 @@
       "odometerStart": "Beginstand ({unit})",
       "odometerEnd": "Eindstand ({unit})",
       "distance": "Afstand ({unit})",
+      "fuel": "Brandstof ({unit})",
       "purpose": "Soort rit",
       "notes": "Notities"
     },

@@ -44,6 +44,11 @@ export interface TripLogEntry {
   /** The highest speed a fix reported, and the mean while moving; null when no fix carried one. */
   maxSpeedKmh: number | null
   avgMovingSpeedKmh: number | null
+  /**
+   * What the car's day counter rose by over the trip, in the counter's own unit: fuel in
+   * hundredths of a litre on a plain hybrid (see utils/energy). Null without readings.
+   */
+  counterUsed?: number | null
 }
 
 /**

@@ -18,7 +18,9 @@ public sealed record TripJoinPart(
     bool PurposeIsManual,
     PhoneFusionOutcome? PhoneFusion,
     DateTime? PhoneFusionAt,
-    DateTime? EditedAt);
+    DateTime? EditedAt,
+    // What the day counter rose by over the trip (Trip.CounterUsed).
+    double? CounterUsed = null);
 
 /// <summary>What the joined trip holds besides what it takes from the second trip unchanged.</summary>
 public sealed record TripJoined(
@@ -34,7 +36,8 @@ public sealed record TripJoined(
     bool PurposeIsManual,
     PhoneFusionOutcome? PhoneFusion,
     DateTime? PhoneFusionAt,
-    DateTime? EditedAt);
+    DateTime? EditedAt,
+    double? CounterUsed);
 
 /// <summary>
 /// Joining a trip with the saved trip after it, such as two trips a fuel stop split: what the joined
@@ -84,7 +87,9 @@ public static class TripJoin
             PhoneFusion: first.PhoneFusion == PhoneFusionOutcome.Fused || second.PhoneFusion == PhoneFusionOutcome.Fused
                 ? PhoneFusionOutcome.Fused : null,
             PhoneFusionAt: Latest(first.PhoneFusionAt, second.PhoneFusionAt),
-            EditedAt: edited ? Latest(first.EditedAt, second.EditedAt) : first.EditedAt);
+            EditedAt: edited ? Latest(first.EditedAt, second.EditedAt) : first.EditedAt,
+            // Both trips' use; unknown when either's is, rather than half the drive passed off as all of it.
+            CounterUsed: first.CounterUsed + second.CounterUsed);
     }
 
     /// <summary>Both trips' notes, the first's first; one trip's when the other has none.</summary>

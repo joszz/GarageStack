@@ -33,7 +33,9 @@ describe('tripLogCsv', () => {
 
   it('writes a header, then one line per trip in the columns a trip log asks for', () => {
     setRegionalFormat({ region: 'NL', hourCycle: 'h23' })
-    const [header, row] = lines(tripLogCsv([entry], { t, units, placesShown: true }))
+    const [header, row] = lines(
+      tripLogCsv([entry], { t, units, placesShown: true, vehicleType: 'bev' }),
+    )
 
     expect(header).toBe(
       [
@@ -56,7 +58,7 @@ describe('tripLogCsv', () => {
 
   it('writes the date and times as the region and clock have them', () => {
     setRegionalFormat({ region: 'US', hourCycle: 'h12' })
-    const [, row] = lines(tripLogCsv([entry], { t, units, placesShown: true }))
+    const [, row] = lines(tripLogCsv([entry], { t, units, placesShown: true, vehicleType: 'bev' }))
 
     // ICU puts a narrow no-break space before PM.
     const cells = row!.split(',').map((cell) => cell.replace(/\s/g, ' '))
@@ -64,7 +66,9 @@ describe('tripLogCsv', () => {
   })
 
   it('writes the distances in miles, and says so in the headers, for a log read in miles', () => {
-    const [header, row] = lines(tripLogCsv([entry], { t, units: miles, placesShown: true }))
+    const [header, row] = lines(
+      tripLogCsv([entry], { t, units: miles, placesShown: true, vehicleType: 'bev' }),
+    )
 
     expect(header!.split(',').slice(5, 8)).toEqual([
       'tripLog.csv.odometerStart(units.mi)',
@@ -77,7 +81,7 @@ describe('tripLogCsv', () => {
   it('follows Dutch spreadsheet conventions in Dutch', () => {
     i18n.global.locale.value = 'nl'
     setRegionalFormat({ region: 'NL', hourCycle: 'h23' })
-    const [, row] = lines(tripLogCsv([entry], { t, units, placesShown: true }))
+    const [, row] = lines(tripLogCsv([entry], { t, units, placesShown: true, vehicleType: 'bev' }))
 
     expect(row).toBe(
       '24-9-2026;14:32;15:06;Grote Markt 1, 8011 PK Zwolle;Brink 2, 7411 BT Deventer;24010;24052,5;42,5;tripLog.purpose.business;Client visit',
@@ -91,6 +95,7 @@ describe('tripLogCsv', () => {
         t,
         units,
         placesShown: false,
+        vehicleType: 'bev',
       }),
     )
 
@@ -105,10 +110,29 @@ describe('tripLogCsv', () => {
         t,
         units,
         placesShown: false,
+        vehicleType: 'bev',
       }),
     )
 
     expect(row!.split(',').slice(-5)).toEqual(['', '24052.5', '12.3', '', ''])
+  })
+
+  it("adds the fuel a hybrid's trip burned after the distance, blank without readings", () => {
+    const [header, burned, unknown] = lines(
+      tripLogCsv([logEntry({ counterUsed: 255 }), logEntry({ id: 2, counterUsed: null })], {
+        t,
+        units,
+        placesShown: false,
+        vehicleType: 'hev',
+      }),
+    )
+
+    expect(header!.split(',').slice(7, 9)).toEqual([
+      'tripLog.csv.distance(units.km)',
+      'tripLog.csv.fuel(units.litre)',
+    ])
+    expect(burned!.split(',').slice(-4)).toEqual(['42.5', '2.55', '', ''])
+    expect(unknown!.split(',').slice(-4)).toEqual(['42.5', '', '', ''])
   })
 })
 
