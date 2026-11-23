@@ -66,7 +66,7 @@ internal sealed class DataExport(
                 car.Vin,
                 car.Model,
                 car.LicensePlate,
-                car.HasPowerTailgate,
+                HasPowerTailgate = VehicleEquipment.HasPowerTailgate(car),
                 vehicleType = VehicleTypeHelper.GetVehicleType(car),
                 car.Settings,
                 car.CreatedAt,

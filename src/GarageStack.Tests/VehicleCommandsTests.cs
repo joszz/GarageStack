@@ -90,16 +90,29 @@ public class VehicleCommandsTests
         Assert.True(VehicleCommands.Supports(command, Car("0"), "true"));
     }
 
-    // Nothing the car reports tells whether it has a power tailgate, so only the user's say counts.
+    // The user's say counts first; without it, the car's codes (none here, and no MG S6 EV series).
     [Theory]
     [InlineData(false, false)]
     [InlineData(true, true)]
-    public void Supports_PowerTailgate_OnlyOnACarTheUserSaysHasOne(bool hasPowerTailgate, bool expected)
+    [InlineData(null, false)]
+    public void Supports_PowerTailgate_OnlyOnACarThatHasOne(bool? hasPowerTailgate, bool expected)
     {
         var car = Car("1");
         car.HasPowerTailgate = hasPowerTailgate;
 
         Assert.Equal(expected, VehicleCommands.Supports("power-tailgate", car, "open"));
+    }
+
+    [Fact]
+    public void Supports_PowerTailgate_OnACarWhoseCodesReportOne()
+    {
+        var car = new Vehicle
+        {
+            Vin = "FAKEVN00000000001",
+            ConfigJson = """{"hw_version":"EH32 S","CTRLBOOT":"2"}""",
+        };
+
+        Assert.True(VehicleCommands.Supports("power-tailgate", car, "open"));
     }
 
     // Charging until the target is dropped, like the target itself, on a car that takes none;

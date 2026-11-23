@@ -97,7 +97,9 @@ internal sealed class DiagnosticsExport(
                 vehicleType = VehicleTypeHelper.GetVehicleType(car),
                 // Only the type: the rest of the car's settings are left out, as other settings are.
                 vehicleTypeOverride = car.Settings?.VehicleType,
-                car.HasPowerTailgate,
+                // What the user set (null: never) and what counts, by that or else the codes.
+                hasPowerTailgateSetting = car.HasPowerTailgate,
+                hasPowerTailgate = VehicleEquipment.HasPowerTailgate(car),
                 // Codes the gateway reports, scrubbed anyway: nothing promises what a new one holds.
                 configuration = SafeJson.TryDeserialize<Dictionary<string, string>>(car.ConfigJson)?
                     .ToDictionary(c => c.Key, c => redaction.Scrub(c.Value)),

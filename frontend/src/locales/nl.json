@@ -711,7 +711,7 @@
     },
     "powerTailgate": {
       "label": "Elektrische achterklep",
-      "desc": "Zet dit aan als de achterklep van de auto vanzelf opent en sluit. De Deuren-kaart kan hem dan openen en sluiten, in plaats van alleen ontgrendelen. Een auto zonder elektrische achterklep weigert de opdracht."
+      "desc": "Zet dit aan als de achterklep van de auto vanzelf opent en sluit. De Deuren-kaart kan hem dan openen en sluiten, in plaats van alleen ontgrendelen. Het staat al aan als de auto zelf een elektrische achterklep meldt. Een auto zonder elektrische achterklep weigert de opdracht."
     },
     "commutePlaces": {
       "title": "Thuis en werk",

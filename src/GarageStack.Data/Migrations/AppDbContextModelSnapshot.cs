@@ -17,7 +17,7 @@ partial class AppDbContextModelSnapshot : ModelSnapshot
     // If you encounter a merge conflict in the line below, it means you need to
     // discard one of the migration branches and recreate its migrations on top of
     // the other branch. See https://aka.ms/efcore-docs-migrations-conflicts for more info.
-    public override string LastMigrationId => "20261122193356_AddPhonePositions";
+    public override string LastMigrationId => "20261123072920_PowerTailgateFromCodes";
 
     protected override void BuildModel(ModelBuilder modelBuilder)
     {
@@ -1126,7 +1126,7 @@ partial class AppDbContextModelSnapshot : ModelSnapshot
                 b.Property<DateTime>("CreatedAt")
                     .HasColumnType("timestamp with time zone");
 
-                b.Property<bool>("HasPowerTailgate")
+                b.Property<bool?>("HasPowerTailgate")
                     .HasColumnType("boolean");
 
                 b.Property<string>("LastMessageId")

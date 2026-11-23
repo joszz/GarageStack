@@ -711,7 +711,7 @@
     },
     "powerTailgate": {
       "label": "Tampa traseira elétrica",
-      "desc": "Ative se o porta-malas do carro abre e fecha sozinho. O cartão Portas poderá então abri-lo e fechá-lo, em vez de apenas destravá-lo. Um carro sem tampa traseira elétrica recusa o comando."
+      "desc": "Ative se o porta-malas do carro abre e fecha sozinho. O cartão Portas poderá então abri-lo e fechá-lo, em vez de apenas destravá-lo. Já vem ativado quando o carro informa que tem tampa traseira elétrica. Um carro sem tampa traseira elétrica recusa o comando."
     },
     "commutePlaces": {
       "title": "Casa e trabalho",
