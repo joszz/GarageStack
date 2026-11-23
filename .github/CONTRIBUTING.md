@@ -93,6 +93,7 @@ Commits follow [Conventional Commits](https://www.conventionalcommits.org/), wit
 - Fill in the PR template fully.
 - Link any related issues with `Closes #<number>`.
 - PRs require at least one approving review before merge.
+- A pull request that changes only the website (`site/`) or Markdown skips the builds, tests and images, and the `edge` images are not rebuilt for it once merged. Lint and the project rules still run, and so do the backend tests when a page in `documentation/` changed, since they read some of those pages.
 - A change that needs someone else's car to prove it (charging, battery counters, a model the maintainer does not drive) can get a throwaway preview build: the maintainer adds the `test-build` label and the images are published as `pr-<number>`. A pull request from a fork is built by hand once the maintainer has read it, so a later push waits for a new build. See [PREVIEW_BUILDS.md](../documentation/PREVIEW_BUILDS.md).
 
 ## CI on a fork

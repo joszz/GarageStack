@@ -14,6 +14,63 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
+  # A change to only the website (site/) or Markdown needs no build, tests or images: the jobs
+  # below skip then, and a skipped job counts as passed for the checks the ruleset requires.
+  # Backend tests still run for documentation/, since they read some of its pages (the
+  # configuration reference, the widget page). Lint and the project rules always run.
+  # Renamed files count by their old name too, so moving code into site/ does not skip anything.
+  # When the list cannot be read, everything runs.
+  changes:
+    name: Changed files
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      code: ${{ steps.classify.outputs.code }}
+      docs: ${{ steps.classify.outputs.docs }}
+    steps:
+      - name: Classify the changed files
+        id: classify
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+          BEFORE: ${{ github.event.before }}
+          AFTER: ${{ github.sha }}
+        run: |
+          names='.filename, (.previous_filename // empty)'
+          files=''
+          if [ -n "$PR" ]; then
+            # The API lists at most 3000 files of a pull request.
+            files=$(gh api --paginate "repos/$REPO/pulls/$PR/files" --jq ".[] | $names") || files=''
+            [ "$(printf '%s\n' "$files" | wc -l)" -lt 3000 ] || files=''
+          elif [ -n "$BEFORE" ] && [ "$BEFORE" != 0000000000000000000000000000000000000000 ]; then
+            # A comparison lists at most 300 files.
+            files=$(gh api "repos/$REPO/compare/$BEFORE...$AFTER" \
+              --jq "if (.files | length) < 300 then .files[] | $names else empty end") || files=''
+          fi
+
+          code=false
+          docs=false
+          [ -n "$files" ] || code=true
+          while IFS= read -r file; do
+            case "$file" in
+              '') ;;
+              site/*) ;;
+              documentation/*.md) docs=true ;;
+              *.md) ;;
+              *) code=true ;;
+            esac
+          done <<< "$files"
+
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          echo "docs=$docs" >> "$GITHUB_OUTPUT"
+          if [ "$code" = false ]; then
+            echo "Only the website or documentation changed: builds, tests and images are skipped." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
   project-rules:
     name: Project rules
     runs-on: ubuntu-latest
@@ -61,6 +118,8 @@ jobs:
 
   frontend-typecheck:
     name: Frontend type-check
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.code != 'false' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -76,6 +135,8 @@ jobs:
 
   frontend-test:
     name: Frontend tests
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.code != 'false' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -109,6 +170,8 @@ jobs:
   # policy violation once shipped to main with every other check green.
   e2e:
     name: End-to-end smoke test
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.code != 'false' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
@@ -175,6 +238,8 @@ jobs:
 
   backend-test:
     name: Backend tests
+    needs: changes
+    if: ${{ !cancelled() && (needs.changes.outputs.code != 'false' || needs.changes.outputs.docs == 'true') }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -231,6 +296,8 @@ jobs:
 
   backend-build:
     name: Backend build
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.code != 'false' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -266,9 +333,13 @@ jobs:
   # docker-publish.yml tags no image that misses an architecture, so an arm64-only break found
   # after merging would also hold back the amd64 image. The amd64 jobs keep the names the
   # ruleset requires; the arm64 jobs carry the architecture in theirs.
+  # A matrix job skipped as a whole reports under its unexpanded name, which leaves the required
+  # checks waiting forever. So for a website or documentation change the job still runs, and its
+  # steps skip.
   container-build:
     name: Container build (${{ matrix.label }}${{ matrix.arch != 'amd64' && format(', {0}', matrix.arch) || '' }})
-    if: github.event_name == 'pull_request'
+    needs: changes
+    if: ${{ !cancelled() && github.event_name == 'pull_request' }}
     runs-on: ${{ matrix.arch == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
     timeout-minutes: 30
     permissions:
@@ -292,9 +363,15 @@ jobs:
             context: .
             dockerfile: src/GarageStack.Worker/Dockerfile
     steps:
+      - name: Nothing to build
+        if: needs.changes.outputs.code == 'false'
+        run: echo "Only the website or documentation changed, so there is no image to build."
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: needs.changes.outputs.code != 'false'
 
       - name: Log in to Docker Hub (avoids pull rate limits)
+        if: needs.changes.outputs.code != 'false'
         continue-on-error: true
         uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
         with:
@@ -302,8 +379,10 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+        if: needs.changes.outputs.code != 'false'
 
       - name: Build (no push)
+        if: needs.changes.outputs.code != 'false'
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: ${{ matrix.context }}

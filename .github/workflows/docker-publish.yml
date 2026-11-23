@@ -12,11 +12,16 @@ on:
   # packages' security fixes between releases.
   schedule:
     - cron: '0 5 * * 1'
+  # A change to only the website or Markdown leaves edge as it is: the images would be the same.
+  # A release tag always builds, since GitHub does not apply path filters to tags.
   push:
     branches:
       - main
     tags:
       - "v*"
+    paths-ignore:
+      - "site/**"
+      - "**/*.md"
   # On pull requests ci.yml builds every image already; this runs only to try a change to itself.
   pull_request:
     branches:
