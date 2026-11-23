@@ -19,6 +19,7 @@ public class VehicleTypeHelperTests
     [Theory]
     [InlineData("AS33HEV S", "0", "HS 2024 BLACK", "hev")] // MG HS Hybrid+
     [InlineData("ZP22 EU", "0", "MG3 2024 RED", "hev")] // MG3 Hybrid+
+    [InlineData("ZS32 EU", "0", "ZS 2024 WHITE", "hev")] // MG ZS Hybrid+ (gateway 0.14.0-rc5 fixtures)
     [InlineData("AS33P S", "2", "HS SUPER HYBRID 2025 GREY", "phev")] // MG HS PHEV
     [InlineData("IS31P L", "2", "MG S9 PHEV 2025 WHITE", "phev")] // MG S9 PHEV
     [InlineData("EH32 S", "1", "MG4 ELECTRIC 2023 BLUE", "bev")] // MG4
