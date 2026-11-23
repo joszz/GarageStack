@@ -9,17 +9,19 @@ namespace GarageStack.Tests;
 
 public class DemoCommandPublisherTests
 {
-    private const string Vin = "DEMOVIN0000012345";
+    private static readonly Vehicle First = DemoVehicleRepository.DemoVehicle;
+    private static readonly Vehicle Second = DemoVehicleRepository.SecondDemoVehicle;
 
-    private static string TopicFor(string command) =>
-        $"saic/demo@example.com/vehicles/{Vin}/{Core.Helpers.VehicleCommands.TopicFor(command)}/set";
+    private static string TopicFor(string command, string? vin = null) =>
+        $"saic/demo@example.com/vehicles/{vin ?? First.Vin}/{Core.Helpers.VehicleCommands.TopicFor(command)}/set";
 
     private static (DemoCommandPublisher Publisher, DemoTelemetryRepository Car, RecordingHub Hub) Create()
     {
         var car = new DemoTelemetryRepository();
         var hub = new RecordingHub();
         var publisher = new DemoCommandPublisher(
-            car, hub, new VehicleCommandGate(), NullLogger<DemoCommandPublisher>.Instance, TimeSpan.Zero);
+            car, new DemoOptions(SecondVehicle: true), hub, new VehicleCommandGate(),
+            NullLogger<DemoCommandPublisher>.Instance, TimeSpan.Zero);
         return (publisher, car, hub);
     }
 
@@ -37,6 +39,24 @@ public class DemoCommandPublisherTests
         var snapshot = Assert.IsType<TelemetrySnapshot>(hub.Sent.Single(s => s.Method == "telemetryUpdated").Arg);
         Assert.False(snapshot.IsLocked);
         Assert.All(hub.Sent, s => Assert.Equal(TelemetryHub.GroupFor(1), s.Group));
+    }
+
+    // The second car's command is carried out on that car and answered to those watching it; the
+    // first car, and whoever watches it, hear nothing.
+    [Fact]
+    public async Task ACommandForTheSecondCar_ChangesThatCarOnly_AndIsAnsweredToItsViewers()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (publisher, car, hub) = Create();
+
+        await publisher.PublishAsync(TopicFor("lock", Second.Vin), "False", ct);
+        await hub.WaitForAsync("commandResult");
+
+        Assert.False((await car.GetMergedLatestAsync(Second.Id, ct))!.IsLocked);
+        Assert.True((await car.GetMergedLatestAsync(First.Id, ct))!.IsLocked);
+        Assert.All(hub.Sent, s => Assert.Equal(TelemetryHub.GroupFor(Second.Id), s.Group));
+        var snapshot = Assert.IsType<TelemetrySnapshot>(hub.Sent.Single(s => s.Method == "telemetryUpdated").Arg);
+        Assert.Equal(Second.Id, snapshot.VehicleId);
     }
 
     [Fact]
@@ -67,7 +87,7 @@ public class DemoCommandPublisherTests
         var ct = TestContext.Current.CancellationToken;
         var car = new DemoTelemetryRepository();
 
-        Assert.Null(car.ApplyCommand(command, value));
+        Assert.Null(car.ApplyCommand(1, command, value));
 
         var snapshot = (await car.GetMergedLatestAsync(1, ct))!;
         var actual = typeof(TelemetrySnapshot).GetProperty(field)!.GetValue(snapshot);
@@ -81,8 +101,8 @@ public class DemoCommandPublisherTests
         var ct = TestContext.Current.CancellationToken;
         var car = new DemoTelemetryRepository();
 
-        car.ApplyCommand("power-tailgate", "open");
-        car.ApplyCommand("power-tailgate", "close");
+        car.ApplyCommand(1, "power-tailgate", "open");
+        car.ApplyCommand(1, "power-tailgate", "close");
 
         Assert.False((await car.GetMergedLatestAsync(1, ct))!.TrunkOpen);
     }
@@ -93,7 +113,7 @@ public class DemoCommandPublisherTests
         var ct = TestContext.Current.CancellationToken;
         var car = new DemoTelemetryRepository();
 
-        car.ApplyCommand("scheduled-charging", """{"mode":"UNTIL_CONFIGURED_TIME","startTime":"23:00","endTime":"06:30"}""");
+        car.ApplyCommand(1, "scheduled-charging", """{"mode":"UNTIL_CONFIGURED_TIME","startTime":"23:00","endTime":"06:30"}""");
 
         var snapshot = (await car.GetMergedLatestAsync(1, ct))!;
         Assert.Equal(("UNTIL_CONFIGURED_TIME", "23:00", "06:30"),

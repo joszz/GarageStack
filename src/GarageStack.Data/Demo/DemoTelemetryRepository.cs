@@ -4,19 +4,31 @@ using GarageStack.Core.Models;
 
 namespace GarageStack.Data.Demo;
 
+/// <summary>
+/// Each demo car's telemetry: its generated history, and a live reading the demo controls and the
+/// car's commands change. Every car keeps its own, so a change to one leaves the other as it was.
+/// </summary>
 public sealed class DemoTelemetryRepository : ITelemetryRepository
 {
     private static long _nextId = 9000;
-    private static readonly object _lock = new();
+    private readonly Lock _lock = new();
 
-    // What the demo ZS EV covers on a full battery. The electric range is derived from the state of
-    // charge, so the two stay in step when the demo panel moves the state of charge.
-    private const double FullBatteryRangeKm = 400.0;
+    // The live reading of each car, by vehicle id, made when it is first asked for.
+    private readonly Dictionary<int, TelemetrySnapshot> _current = [];
 
-    private static double ElectricRangeAt(double socPercent) =>
-        Math.Round(socPercent / 100.0 * FullBatteryRangeKm);
+    // The electric range is derived from the state of charge, so the two stay in step when the demo
+    // panel moves the state of charge.
+    private static double ElectricRangeAt(DemoCar car, double socPercent) =>
+        Math.Round(socPercent / 100.0 * car.FullBatteryRangeKm);
 
-    private TelemetrySnapshot _current = BuildDefaultSnapshot();
+    // The live reading of a car. Call with the lock held.
+    private TelemetrySnapshot Current(int vehicleId)
+    {
+        var car = DemoCars.For(vehicleId);
+        if (!_current.TryGetValue(car.Vehicle.Id, out var current))
+            _current[car.Vehicle.Id] = current = BuildDefaultSnapshot(car);
+        return current;
+    }
 
     public Task<long> AddAsync(TelemetrySnapshot snapshot, CancellationToken ct = default) =>
         Task.FromResult(Interlocked.Increment(ref _nextId));
@@ -26,19 +38,19 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
 
     public Task<TelemetrySnapshot?> GetMergedLatestAsync(int vehicleId, CancellationToken ct = default)
     {
-        lock (_lock) { return Task.FromResult<TelemetrySnapshot?>(_current.Clone()); }
+        lock (_lock) { return Task.FromResult<TelemetrySnapshot?>(Current(vehicleId).Clone()); }
     }
 
     public Task<IReadOnlyList<DailyStat>> GetDailyStatsAsync(
         int vehicleId, DateOnly from, DateOnly to, TimeZoneInfo zone, DateOnly today, CancellationToken ct = default)
     {
         var builder = new DailyStatsBuilder(zone, from, to, today);
-        foreach (var snapshot in DemoHistory.Snapshots.OrderBy(s => s.RecordedAt))
+        foreach (var snapshot in DemoCars.For(vehicleId).History.Snapshots.OrderBy(s => s.RecordedAt))
             builder.Add(TelemetryHistoryPoint.FromSnapshot(snapshot));
         return Task.FromResult(builder.Build());
     }
 
-    // DemoTripRepository serves the demo's trips from DemoTrips directly, so nothing asks the demo
+    // DemoTripRepository serves the demo's trips from each car's DemoTrips directly, so nothing asks the demo
     // telemetry for the fixes to cut them from.
     public Task<IReadOnlyList<TripPoint>> GetGpsFixesAsync(
         int vehicleId, DateTime from, DateTime to, CancellationToken ct = default) =>
@@ -59,7 +71,7 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
     // asked for by the Worker's recorder, and demo mode runs no Worker: DemoTrips carries those.
     public Task<double?> GetOdometerAtAsync(int vehicleId, DateTime at, CancellationToken ct = default)
     {
-        lock (_lock) { return Task.FromResult(_current.OdometerKm); }
+        lock (_lock) { return Task.FromResult(Current(vehicleId).OdometerKm); }
     }
 
     // Only the Worker's recorder reads a trip's counter, and demo mode runs no Worker: DemoTrips
@@ -74,7 +86,7 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
         int vehicleId, DateTime from, DateTime to, CancellationToken ct = default) =>
         Task.FromResult<IReadOnlyList<ElevationReading>>(
         [
-            .. DemoTrips.All
+            .. DemoCars.For(vehicleId).Trips.All
                 .SelectMany(t => t.Points)
                 .Where(p => p.Source is null && p.RecordedAt >= from && p.RecordedAt <= to)
                 .OrderBy(p => p.RecordedAt)
@@ -107,7 +119,7 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
     private async Task<List<ChargeSessionReading>> ChargeReadingsAsync(
         int vehicleId, DateTime from, DateTime to, CancellationToken ct)
     {
-        var readings = DemoHistory.Snapshots
+        var readings = DemoCars.For(vehicleId).History.Snapshots
             .Where(s => s.RecordedAt >= from && s.RecordedAt <= to)
             .Select(ChargeSessionReading.FromSnapshot)
             .ToList();
@@ -120,7 +132,7 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
     public async IAsyncEnumerable<TelemetrySnapshot> StreamAllAsync(
         int vehicleId, DateTime? since = null, [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken ct = default)
     {
-        foreach (var snapshot in DemoHistory.Snapshots.Where(s => since is null || s.RecordedAt >= since).OrderBy(s => s.RecordedAt))
+        foreach (var snapshot in DemoCars.For(vehicleId).History.Snapshots.Where(s => since is null || s.RecordedAt >= since).OrderBy(s => s.RecordedAt))
         {
             ct.ThrowIfCancellationRequested();
             yield return snapshot;
@@ -134,8 +146,9 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
     {
         lock (_lock)
         {
-            return Task.FromResult(_current is { Latitude: { } lat, Longitude: { } lon }
-                ? new PositionFix(lat, lon, _current.Heading)
+            var current = Current(vehicleId);
+            return Task.FromResult(current is { Latitude: { } lat, Longitude: { } lon }
+                ? new PositionFix(lat, lon, current.Heading)
                 : null);
         }
     }
@@ -145,66 +158,70 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
     public Task<VehicleAggregateStats> GetAggregateStatsAsync(
         int vehicleId, DateTime from, DateTime to, CancellationToken ct = default)
     {
-        var history = DemoHistory.Snapshots.Where(s => s.RecordedAt >= from && s.RecordedAt <= to).ToList();
+        var history = DemoCars.For(vehicleId).History.Snapshots.Where(s => s.RecordedAt >= from && s.RecordedAt <= to).ToList();
         var known = history.Count(s => s.ClimateOn != null);
         var on = history.Count(s => s.ClimateOn == true);
         var pct = known > 0 ? (int?)Math.Round((double)on / known * 100) : null;
         return Task.FromResult(new VehicleAggregateStats(pct, on, known));
     }
 
-    public void ApplyOverride(DemoStatusOverrideDto dto)
+    /// <summary>Sets what the demo controls change on one car's live reading; the other cars keep theirs.</summary>
+    public void ApplyOverride(int vehicleId, DemoStatusOverrideDto dto)
     {
         lock (_lock)
         {
-            if (dto.IsLocked.HasValue) _current.IsLocked = dto.IsLocked;
-            if (dto.EngineRunning.HasValue) _current.EngineRunning = dto.EngineRunning;
+            var car = DemoCars.For(vehicleId);
+            var current = Current(vehicleId);
+            if (dto.IsLocked.HasValue) current.IsLocked = dto.IsLocked;
+            if (dto.EngineRunning.HasValue) current.EngineRunning = dto.EngineRunning;
             if (dto.ClimateOn.HasValue)
             {
-                _current.ClimateOn = dto.ClimateOn;
-                _current.ClimateMode = dto.ClimateOn.Value ? "on" : "off";
+                current.ClimateOn = dto.ClimateOn;
+                current.ClimateMode = dto.ClimateOn.Value ? "on" : "off";
             }
-            if (dto.DriverDoorOpen.HasValue) _current.DriverDoorOpen = dto.DriverDoorOpen;
-            if (dto.PassengerDoorOpen.HasValue) _current.PassengerDoorOpen = dto.PassengerDoorOpen;
-            if (dto.RearLeftDoorOpen.HasValue) _current.RearLeftDoorOpen = dto.RearLeftDoorOpen;
-            if (dto.RearRightDoorOpen.HasValue) _current.RearRightDoorOpen = dto.RearRightDoorOpen;
-            if (dto.TrunkOpen.HasValue) _current.TrunkOpen = dto.TrunkOpen;
-            if (dto.BonnetOpen.HasValue) _current.BonnetOpen = dto.BonnetOpen;
-            if (dto.DriverWindowOpen.HasValue) _current.DriverWindowOpen = dto.DriverWindowOpen;
-            if (dto.PassengerWindowOpen.HasValue) _current.PassengerWindowOpen = dto.PassengerWindowOpen;
-            if (dto.RearLeftWindowOpen.HasValue) _current.RearLeftWindowOpen = dto.RearLeftWindowOpen;
-            if (dto.RearRightWindowOpen.HasValue) _current.RearRightWindowOpen = dto.RearRightWindowOpen;
-            if (dto.ChargerConnected.HasValue) _current.ChargerConnected = dto.ChargerConnected;
-            if (dto.IsCharging.HasValue) _current.IsCharging = dto.IsCharging;
-            if (dto.LightsMainBeam.HasValue) _current.LightsMainBeam = dto.LightsMainBeam;
-            if (dto.LightsDippedBeam.HasValue) _current.LightsDippedBeam = dto.LightsDippedBeam;
-            if (dto.LightsSide.HasValue) _current.LightsSide = dto.LightsSide;
+            if (dto.DriverDoorOpen.HasValue) current.DriverDoorOpen = dto.DriverDoorOpen;
+            if (dto.PassengerDoorOpen.HasValue) current.PassengerDoorOpen = dto.PassengerDoorOpen;
+            if (dto.RearLeftDoorOpen.HasValue) current.RearLeftDoorOpen = dto.RearLeftDoorOpen;
+            if (dto.RearRightDoorOpen.HasValue) current.RearRightDoorOpen = dto.RearRightDoorOpen;
+            if (dto.TrunkOpen.HasValue) current.TrunkOpen = dto.TrunkOpen;
+            if (dto.BonnetOpen.HasValue) current.BonnetOpen = dto.BonnetOpen;
+            if (dto.DriverWindowOpen.HasValue) current.DriverWindowOpen = dto.DriverWindowOpen;
+            if (dto.PassengerWindowOpen.HasValue) current.PassengerWindowOpen = dto.PassengerWindowOpen;
+            if (dto.RearLeftWindowOpen.HasValue) current.RearLeftWindowOpen = dto.RearLeftWindowOpen;
+            if (dto.RearRightWindowOpen.HasValue) current.RearRightWindowOpen = dto.RearRightWindowOpen;
+            if (dto.ChargerConnected.HasValue) current.ChargerConnected = dto.ChargerConnected;
+            if (dto.IsCharging.HasValue) current.IsCharging = dto.IsCharging;
+            if (dto.LightsMainBeam.HasValue) current.LightsMainBeam = dto.LightsMainBeam;
+            if (dto.LightsDippedBeam.HasValue) current.LightsDippedBeam = dto.LightsDippedBeam;
+            if (dto.LightsSide.HasValue) current.LightsSide = dto.LightsSide;
             if (dto.EvSocPercent.HasValue)
             {
-                _current.EvSocPercent = dto.EvSocPercent;
-                _current.HvSocKwh = Math.Round(dto.EvSocPercent.Value / 100.0 * DemoHistory.CapacityKwh, 1);
-                _current.ElectricRangeKm = ElectricRangeAt(dto.EvSocPercent.Value);
+                current.EvSocPercent = dto.EvSocPercent;
+                current.HvSocKwh = Math.Round(dto.EvSocPercent.Value / 100.0 * car.CapacityKwh, 1);
+                current.ElectricRangeKm = ElectricRangeAt(car, dto.EvSocPercent.Value);
             }
-            if (dto.InteriorTemperature.HasValue) _current.InteriorTemperature = dto.InteriorTemperature;
-            if (dto.ExteriorTemperature.HasValue) _current.ExteriorTemperature = dto.ExteriorTemperature;
-            if (dto.Speed.HasValue) _current.Speed = dto.Speed;
-            if (dto.IsAvailable.HasValue) _current.IsAvailable = dto.IsAvailable;
+            if (dto.InteriorTemperature.HasValue) current.InteriorTemperature = dto.InteriorTemperature;
+            if (dto.ExteriorTemperature.HasValue) current.ExteriorTemperature = dto.ExteriorTemperature;
+            if (dto.Speed.HasValue) current.Speed = dto.Speed;
+            if (dto.IsAvailable.HasValue) current.IsAvailable = dto.IsAvailable;
         }
     }
 
     /// <summary>
-    /// Carries out a command the way the car would, on the demo car's state: the command name and
+    /// Carries out a command the way the car would, on one demo car's state: the command name and
     /// value as <see cref="VehicleCommands"/> checked them. Returns why the car refused, the way the
     /// gateway reports it, or null when it carried the command out.
     /// </summary>
-    public string? ApplyCommand(string command, string value)
+    public string? ApplyCommand(int vehicleId, string command, string value)
     {
         lock (_lock)
         {
-            var refusal = Apply(_current, command, value);
+            var current = Current(vehicleId);
+            var refusal = Apply(current, command, value);
             if (refusal is null)
             {
-                _current.RecordedAt = DateTime.UtcNow;
-                _current.LastVehicleStateAt = _current.RecordedAt;
+                current.RecordedAt = DateTime.UtcNow;
+                current.LastVehicleStateAt = current.RecordedAt;
             }
             return refusal;
         }
@@ -276,51 +293,55 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
         return null;
     }
 
-    private static TelemetrySnapshot BuildDefaultSnapshot()
+    // The car's live reading as the demo starts. A car on the road carries on from its history with
+    // the trip it is driving; a parked one stands where its last trip ended, plugged in at home and
+    // waiting for its charging schedule.
+    private static TelemetrySnapshot BuildDefaultSnapshot(DemoCar car)
     {
-        var current = DemoTrips.InProgressWaypoints[^1];
+        var trips = car.Trips;
+        var position = trips.Position;
+        var driving = trips.InProgress is not null;
 
-        // Carries on from the history: today's drives so far plus the trip in progress.
-        var history = DemoHistory.Last;
-        var drivingKm = DemoTrips.InProgressDistanceKm;
-        var drivingKwh = drivingKm * DemoHistory.InProgressKwhPerKm;
-        var soc = Math.Round(history.SocPercent - drivingKwh / DemoHistory.CapacityKwh * 100);
+        var history = car.History.Last;
+        var drivingKm = trips.InProgressDistanceKm;
+        var drivingKwh = drivingKm * car.InProgressKwhPerKm;
+        var soc = Math.Round(history.SocPercent - drivingKwh / car.CapacityKwh * 100);
 
         return new()
         {
             Id = 1,
-            VehicleId = 1,
+            VehicleId = car.Vehicle.Id,
             RecordedAt = DateTime.UtcNow,
-            FuelLevelPercent = 68,
-            FuelRangeKm = 420,
+            FuelLevelPercent = history.FuelPercent,
+            FuelRangeKm = Math.Round(history.FuelPercent / 100.0 * car.FuelRangeKm),
             EvSocPercent = soc,
-            ElectricRangeKm = ElectricRangeAt(soc),
-            HvSocKwh = Math.Round(soc / 100.0 * DemoHistory.CapacityKwh, 1),
-            HvTotalCapacityKwh = DemoHistory.CapacityKwh,
-            HvVoltage = 386.0,
-            HvCurrent = 42.0,
-            HvPower = 16.2,
-            HvBatteryActive = true,
-            OdometerKm = DemoTrips.CurrentOdometerKm,
-            EngineRunning = true,
+            ElectricRangeKm = ElectricRangeAt(car, soc),
+            HvSocKwh = Math.Round(soc / 100.0 * car.CapacityKwh, 1),
+            HvTotalCapacityKwh = car.CapacityKwh,
+            HvVoltage = car.NominalVoltage,
+            HvCurrent = driving ? 42.0 : 0.0,
+            HvPower = driving ? 16.2 : 0.0,
+            HvBatteryActive = driving,
+            OdometerKm = car.CurrentOdometerKm,
+            EngineRunning = driving,
             IsCharging = false,
-            ChargerConnected = false,
+            ChargerConnected = !driving,
             ChargingType = "AC",
-            ChargingCableLock = false,
-            BmsChargeStatus = "UNPLUGGED",
-            SocTargetPercent = 80,
+            ChargingCableLock = !driving,
+            BmsChargeStatus = driving ? "UNPLUGGED" : "CHARGING_STOPPED",
+            SocTargetPercent = VehicleTypeHelper.SupportsTargetSoc(car.Vehicle) ? (int)car.ChargeTargetPercent : null,
             ChargeCurrentLimit = "Max",
             OnboardChargerPlugStatus = 0,
             OffboardChargerPlugStatus = 0,
             ObcVoltage = 0.0,
             ObcCurrent = 0.0,
             ObcPowerSinglePhase = 0.0,
-            InteriorTemperature = 21.0,
+            InteriorTemperature = driving ? 21.0 : 16.0,
             ExteriorTemperature = 14.0,
             RemoteTemperature = 19.5,
-            Speed = current.SpeedKmh,
-            Heading = 150,
-            CurrentJourneyDistance = Math.Round(DemoTrips.InProgressDistanceKm, 1),
+            Speed = driving ? position.Speed : 0,
+            Heading = driving ? 150 : 270,
+            CurrentJourneyDistance = Math.Round(drivingKm, 1),
             IsLocked = true,
             ClimateOn = false,
             ClimateMode = "off",
@@ -336,15 +357,15 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
             RearLeftWindowOpen = false,
             RearRightWindowOpen = false,
             SunRoofOpen = null,
-            TyrePressureFrontLeft = 2.4,
-            TyrePressureFrontRight = 2.4,
-            TyrePressureRearLeft = 2.5,
-            // Where the slow leak in the history below has brought it: still above the low line.
-            TyrePressureRearRight = 2.26,
-            Latitude = current.Lat,
-            Longitude = current.Lon,
+            TyrePressureFrontLeft = car.FrontTyreBar,
+            TyrePressureFrontRight = car.FrontTyreBar,
+            TyrePressureRearLeft = car.RearTyreBar,
+            // Where a slow leak in the history has brought it: still above the low line.
+            TyrePressureRearRight = Math.Round(car.History.RearRightTyreBarNow, 2),
+            Latitude = position.Latitude,
+            Longitude = position.Longitude,
             Elevation = 3.0,
-            BatteryVoltage = 12.7,
+            BatteryVoltage = car.AuxBatteryVolts + 0.1,
             LightsMainBeam = false,
             LightsDippedBeam = false,
             LightsSide = false,
@@ -360,8 +381,8 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
             PowerUsageOfDay = Math.Round(history.DayKwh + drivingKwh, 2),
             PowerUsageSinceLastCharge = Math.Round(history.SinceChargeKwh + drivingKwh, 2),
             ChargingScheduleMode = "UNTIL_CONFIGURED_TIME",
-            ChargingScheduleStartTime = "00:00",
-            ChargingScheduleEndTime = "07:00",
+            ChargingScheduleStartTime = car.ChargingSchedule.Start,
+            ChargingScheduleEndTime = car.ChargingSchedule.End,
         };
     }
 }

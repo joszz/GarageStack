@@ -50,6 +50,7 @@ public class DemoOptionsTests
         var ct = TestContext.Current.CancellationToken;
         var twoCars = new DemoVehicleRepository(From("true"));
         var second = DemoVehicleRepository.SecondDemoVehicle;
+        var before = second.Settings;
         try
         {
             await twoCars.SetSettingsAsync(second.Id, new VehicleSettings { HvBatteryCapacityKwh = 17.6 }, ct);
@@ -58,7 +59,7 @@ public class DemoOptionsTests
         }
         finally
         {
-            second.Settings = null;
+            second.Settings = before;
         }
     }
 
@@ -70,5 +71,18 @@ public class DemoOptionsTests
 
         Assert.Equal("phev", VehicleTypeHelper.GetVehicleType(car));
         Assert.False(VehicleTypeHelper.SupportsTargetSoc(car));
+    }
+
+    // A plug-in hybrid's own capacity is not taken, so the demo sets it as an owner would, to show
+    // its kWh figures: the same size its telemetry reports.
+    [Fact]
+    public async Task SecondCar_HasItsBatterySizeSet_AsItsTelemetryReportsIt()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var car = DemoVehicleRepository.SecondDemoVehicle;
+
+        var snapshot = await new DemoTelemetryRepository().GetMergedLatestAsync(car.Id, ct);
+
+        Assert.Equal(snapshot!.HvTotalCapacityKwh, car.Settings?.HvBatteryCapacityKwh);
     }
 }
