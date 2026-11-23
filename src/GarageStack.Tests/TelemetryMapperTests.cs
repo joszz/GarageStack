@@ -58,6 +58,8 @@ public class TelemetryMapperTests
     [InlineData("climate/remoteTemperature", "18.0", nameof(TelemetrySnapshot.RemoteTemperature), 18.0)]
     [InlineData("climate/exteriorTemperature", "10.0", nameof(TelemetrySnapshot.ExteriorTemperature), 10.0)]
     [InlineData("climate/rearWindowDefrosterHeating", "true", nameof(TelemetrySnapshot.RearWindowDefroster), true)]
+    [InlineData("climate/steeringWheelHeating", "on", nameof(TelemetrySnapshot.SteeringWheelHeating), true)]
+    [InlineData("climate/steeringWheelHeating", "off", nameof(TelemetrySnapshot.SteeringWheelHeating), false)]
     [InlineData("climate/heatedSeatsFrontLeftLevel", "2", nameof(TelemetrySnapshot.HeatedSeatFrontLeft), 2)]
     [InlineData("climate/heatedSeatsFrontRightLevel", "3", nameof(TelemetrySnapshot.HeatedSeatFrontRight), 3)]
     // Tyres

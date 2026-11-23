@@ -93,6 +93,7 @@ export interface TelemetrySnapshot {
   heatedSeatFrontLeft: number | null
   heatedSeatFrontRight: number | null
   rearWindowDefroster: boolean | null
+  steeringWheelHeating: boolean | null
   isAvailable: boolean | null
   lastVehicleStateAt: string | null
   lastChargeStateAt: string | null

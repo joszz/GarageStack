@@ -35,6 +35,25 @@ public class VehicleCommandValidationTests
         Assert.NotNull(VehicleCommands.Validate(command, value));
     }
 
+    // ── steering-wheel-heating ──────────────────────────────────────────────────
+    // The gateway switches it with a boolean, unlike the rear window's on and off.
+    [Theory]
+    [InlineData("true")]
+    [InlineData("false")]
+    public void SteeringWheelHeating_TrueOrFalse_ReturnsNull(string value)
+    {
+        Assert.Null(VehicleCommands.Validate("steering-wheel-heating", value));
+    }
+
+    [Theory]
+    [InlineData("on")]
+    [InlineData("1")]
+    [InlineData("True")]
+    public void SteeringWheelHeating_OtherValues_ReturnsError(string value)
+    {
+        Assert.NotNull(VehicleCommands.Validate("steering-wheel-heating", value));
+    }
+
     // ── climate-temperature ───────────────────────────────────────────────────
     [Theory]
     [InlineData("16")]

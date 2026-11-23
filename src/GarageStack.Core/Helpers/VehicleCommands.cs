@@ -48,6 +48,8 @@ public static class VehicleCommands
         ["rear-defroster"] = new("climate/rearWindowDefrosterHeating", value => OnOff("rear-defroster", value)),
         ["seat-left"] = new("climate/heatedSeatsFrontLeftLevel", value => IntegerBetween("seat-left", value, 0, 3)),
         ["seat-right"] = new("climate/heatedSeatsFrontRightLevel", value => IntegerBetween("seat-right", value, 0, 3)),
+        // On or off only: the gateway reads the car's heating level, but switches it with a boolean.
+        ["steering-wheel-heating"] = new("climate/steeringWheelHeating", value => TrueFalse("steering-wheel-heating", value)),
         ["find-my-car"] = new("location/findMyCar", value =>
             value is "activate" or "stop" ? null : "'find-my-car' value must be 'activate' or 'stop'"),
         ["charge-limit"] = new("drivetrain/chargeCurrentLimit", value =>

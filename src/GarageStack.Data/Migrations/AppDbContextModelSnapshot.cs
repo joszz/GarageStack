@@ -17,7 +17,7 @@ partial class AppDbContextModelSnapshot : ModelSnapshot
     // If you encounter a merge conflict in the line below, it means you need to
     // discard one of the migration branches and recreate its migrations on top of
     // the other branch. See https://aka.ms/efcore-docs-migrations-conflicts for more info.
-    public override string LastMigrationId => "20261123123456_AddPushSubscriptionIncludedCategories";
+    public override string LastMigrationId => "20261123195850_RestoreSteeringWheelHeating";
 
     protected override void BuildModel(ModelBuilder modelBuilder)
     {
@@ -948,6 +948,9 @@ partial class AppDbContextModelSnapshot : ModelSnapshot
 
                 b.Property<double?>("Speed")
                     .HasColumnType("double precision");
+
+                b.Property<bool?>("SteeringWheelHeating")
+                    .HasColumnType("boolean");
 
                 b.Property<bool?>("SunRoofOpen")
                     .HasColumnType("boolean");

@@ -45,6 +45,7 @@ function mountCard(props: Record<string, unknown> = {}) {
       heatedSeatFrontLeft: 0,
       heatedSeatFrontRight: 0,
       rearWindowDefroster: false,
+      steeringWheelHeating: false,
       ...props,
     },
     global: {
@@ -122,6 +123,34 @@ describe('ClimateDetailCard', () => {
     }
     expect(isConfirmed({ climateOn: true, climateMode: 'on' })).toBe(false)
     expect(isConfirmed({ climateOn: true, climateMode: 'front' })).toBe(true)
+  })
+
+  it('switches the steering wheel heating on, until the car reports it on', async () => {
+    const wrapper = mountCard()
+    await open(wrapper)
+
+    await wrapper.find('input[aria-label="Steering wheel heating"]').trigger('change')
+    await button(wrapper, 'Apply').trigger('click')
+    await flushPromises()
+
+    expect(send.mock.calls).toHaveLength(1)
+    expect(send.mock.calls[0]!.slice(0, 3)).toEqual([
+      'FAKEVN00000000001',
+      'steering-wheel-heating',
+      'true',
+    ])
+    const { isConfirmed } = send.mock.calls[0]![3] as {
+      isConfirmed: (s: { steeringWheelHeating: boolean | null }) => boolean
+    }
+    expect(isConfirmed({ steeringWheelHeating: false })).toBe(false)
+    expect(isConfirmed({ steeringWheelHeating: true })).toBe(true)
+  })
+
+  it('offers no steering wheel heating before the car reports it', async () => {
+    const wrapper = mountCard({ steeringWheelHeating: null })
+    await open(wrapper)
+
+    expect(wrapper.find('input[aria-label="Steering wheel heating"]').exists()).toBe(false)
   })
 
   it('links to the schedules, with how many are switched on', async () => {

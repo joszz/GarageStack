@@ -9,7 +9,7 @@ public class VehicleCommandsTests
 {
     public static TheoryData<string> Commands() =>
     [
-        "climate", "climate-temperature", "rear-defroster", "seat-left", "seat-right",
+        "climate", "climate-temperature", "rear-defroster", "seat-left", "seat-right", "steering-wheel-heating",
         "find-my-car", "charge-limit", "charge-target", "charging", "charging-cable-lock",
         "battery-heating", "scheduled-charging", "battery-heating-schedule", "lock", "boot",
         "power-tailgate", "refresh",
