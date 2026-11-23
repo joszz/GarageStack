@@ -1397,5 +1397,43 @@
     "savedState": "No connection to GarageStack. This is the car as last seen, {time}.",
     "savedPage": "No connection to GarageStack. This page shows what this device last loaded, {time}.",
     "savedPageUnknown": "No connection to GarageStack. This page shows what this device last loaded."
+  },
+  "poi": {
+    "fee": {
+      "paid": "Paid",
+      "free": "Free"
+    },
+    "parking": {
+      "title": "Car park",
+      "layer": "Car parks",
+      "layerDesc": "Multi-storey and underground car parks, park and ride, and car parks with a name, from OpenStreetMap. Popups show the fee, height limit and spaces where they are known.",
+      "kind": {
+        "multiStorey": "Multi-storey",
+        "underground": "Underground",
+        "surface": "Open air"
+      },
+      "parkRide": "Park and ride",
+      "maxHeight": "Height limit {height}",
+      "capacity": "{count} spaces"
+    },
+    "carWash": {
+      "title": "Car wash",
+      "layer": "Car washes",
+      "layerDesc": "Car washes from OpenStreetMap.",
+      "selfService": "Self-service",
+      "automated": "Automatic"
+    },
+    "air": {
+      "title": "Air pump",
+      "layer": "Air pumps",
+      "layerDesc": "Places to pump up your tyres, at fuel stations and on their own, from OpenStreetMap.",
+      "atFuelStation": "At the fuel station"
+    },
+    "repair": {
+      "title": "Garage",
+      "layer": "Garages",
+      "layerDesc": "Car repair shops and tyre shops from OpenStreetMap.",
+      "tyres": "Tyre shop"
+    }
   }
 }

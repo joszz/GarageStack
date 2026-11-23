@@ -46,6 +46,10 @@
   --poi-charging: #22c55e;
   --poi-charging-cluster: #16a34a;
   --poi-unknown: #6b7280;
+  --poi-parking: #2563eb;
+  --poi-car-wash: #0891b2;
+  --poi-air: #0d9488;
+  --poi-garage: #ea580c;
 
   /* The status colours strong enough for text on a card, and for white text on them. On a dark
      surface that is the status colour itself; the light theme needs deeper shades (about 5:1). */

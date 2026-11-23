@@ -233,6 +233,10 @@ public class PoiServiceTests
     [InlineData("speed_camera", "hev", true)]
     [InlineData("speed_camera", "phev", true)]
     [InlineData("speed_camera", "unknown", true)]
+    [InlineData("parking", "hev", true)]
+    [InlineData("car_wash", "bev", true)]
+    [InlineData("compressed_air", "hev", true)]
+    [InlineData("car_repair", "unknown", true)]
     public void IsPoiTypeAllowed_ReturnsExpectedResult(string poiType, string vehicleType, bool expected)
     {
         Assert.Equal(expected, PoiTypePolicy.IsAllowed(poiType, vehicleType));
@@ -242,6 +246,10 @@ public class PoiServiceTests
     [InlineData("fuel", PoiTypePolicy.Fuel)]
     [InlineData("service_area", PoiTypePolicy.ServiceArea)]
     [InlineData("speed_camera", PoiTypePolicy.SpeedCamera)]
+    [InlineData("parking", PoiTypePolicy.Parking)]
+    [InlineData("car_wash", PoiTypePolicy.CarWash)]
+    [InlineData("compressed_air", PoiTypePolicy.CompressedAir)]
+    [InlineData("car_repair", PoiTypePolicy.CarRepair)]
     [InlineData("Fuel", null)]
     [InlineData("fuel\r\nforged", null)]
     [InlineData("", null)]
@@ -255,5 +263,32 @@ public class PoiServiceTests
         Assert.Equal(expected, normalized);
         if (normalized is not null)
             Assert.NotSame(requestValue, normalized);
+    }
+
+    // A fuel station with an air pump is in two layers, and the cache keeps one row per id.
+    [Fact]
+    public async Task AnElementInTwoLayers_GetsAnIdOfItsOwnInTheNewer()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var client = BuildOverpassClient(new FakeHttpHandler(OneNodeResponse));
+
+        var fuel = await client.FetchBackgroundAsync(PoiTypePolicy.Fuel, 104, 9, ct);
+        var air = await client.FetchBackgroundAsync(PoiTypePolicy.CompressedAir, 104, 9, ct);
+
+        Assert.Equal("node/1234", Assert.Single(fuel).ExternalId);
+        Assert.Equal("compressed_air:node/1234", Assert.Single(air).ExternalId);
+    }
+
+    // The Worker caches the first three around every car; the rest only on demand, so switching
+    // them on costs the public Overpass instance nothing until someone looks.
+    [Fact]
+    public void PreCaching_TakesOnlyTheLayersEveryCarHadBefore()
+    {
+        Assert.Equal(
+            [PoiTypePolicy.Fuel, PoiTypePolicy.ServiceArea, PoiTypePolicy.SpeedCamera],
+            PoiTypePolicy.PreCachedOverpassTypesFor("hev"));
+        Assert.Equal(
+            [PoiTypePolicy.ServiceArea, PoiTypePolicy.SpeedCamera],
+            PoiTypePolicy.PreCachedOverpassTypesFor("bev"));
     }
 }

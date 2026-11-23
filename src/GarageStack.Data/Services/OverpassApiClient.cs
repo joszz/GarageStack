@@ -40,6 +40,24 @@ public sealed class OverpassApiClient(
     // ties together, so the nodes alone cover the layer and no way lookup is needed.
     private const string SpeedCameraQuery =
         "[out:json][timeout:30];node[\"highway\"=\"speed_camera\"]{bbox};out;";
+    // A city tile holds thousands of small lots, a supermarket's and a block's, which would bury
+    // the map and say nothing a driver looks a car park up for. So only the car parks someone goes
+    // looking for: multi-storey and underground ones, park and ride, and lots with a name; none
+    // that is closed to the public.
+    private const string ParkingQuery =
+        "[out:json][timeout:30];(" +
+        "nw[\"amenity\"=\"parking\"][\"parking\"~\"^(multi-storey|underground)$\"][\"access\"!~\"^(private|no)$\"]{bbox};" +
+        "nw[\"amenity\"=\"parking\"][\"park_ride\"~\"^(yes|bus|train|tram|metro)$\"][\"access\"!~\"^(private|no)$\"]{bbox};" +
+        "nw[\"amenity\"=\"parking\"][\"name\"][\"access\"!~\"^(private|no)$\"]{bbox};" +
+        ");out center;";
+    private const string CarWashQuery =
+        "[out:json][timeout:30];nw[\"amenity\"=\"car_wash\"]{bbox};out center;";
+    // An air pump is mapped as a point of its own, or as a tag on the fuel station it stands at.
+    private const string CompressedAirQuery =
+        "[out:json][timeout:30];(nw[\"amenity\"=\"compressed_air\"]{bbox};" +
+        "nw[\"amenity\"=\"fuel\"][\"compressed_air\"=\"yes\"]{bbox};);out center;";
+    private const string CarRepairQuery =
+        "[out:json][timeout:30];(nw[\"shop\"=\"car_repair\"]{bbox};nw[\"shop\"=\"tyres\"]{bbox};);out center;";
 
     /// <summary>
     /// Whether this deployment serves <paramref name="poiType"/> at all. Only the speed camera
@@ -56,6 +74,10 @@ public sealed class OverpassApiClient(
         PoiTypePolicy.Fuel => FuelQuery,
         PoiTypePolicy.ServiceArea => ServiceAreaQuery,
         PoiTypePolicy.SpeedCamera => SpeedCameraQuery,
+        PoiTypePolicy.Parking => ParkingQuery,
+        PoiTypePolicy.CarWash => CarWashQuery,
+        PoiTypePolicy.CompressedAir => CompressedAirQuery,
+        PoiTypePolicy.CarRepair => CarRepairQuery,
         _ => throw new ArgumentOutOfRangeException(nameof(poiType), poiType, "Not an Overpass POI type"),
     };
 
@@ -129,6 +151,16 @@ public sealed class OverpassApiClient(
     private static string BuildBbox(int cellLat, int cellLng) =>
         FormattableString.Invariant($"({cellLat / 2.0},{cellLng / 2.0},{(cellLat + 1) / 2.0},{(cellLng + 1) / 2.0})");
 
+    // The cache keeps one row per source and id, while one OSM element can belong to more than one
+    // layer: a fuel station with an air pump is in both. The layers added after the first three
+    // therefore key their rows by layer too. The first three keep the bare id their cached rows
+    // already have; none of their elements can be in another of them.
+    private static readonly HashSet<string> BareIdTypes =
+        [PoiTypePolicy.Fuel, PoiTypePolicy.ServiceArea, PoiTypePolicy.SpeedCamera];
+
+    internal static string ExternalIdOf(string poiType, string elementType, long id) =>
+        BareIdTypes.Contains(poiType) ? $"{elementType}/{id}" : $"{poiType}:{elementType}/{id}";
+
     private static PoiItem MapElement(OverpassElement e, string poiType)
     {
         var lat = e.Type == "node" ? e.Lat : e.Center?.Lat ?? 0;
@@ -139,7 +171,7 @@ public sealed class OverpassApiClient(
         {
             Source = PoiCacheDefaults.OverpassSource,
             PoiType = poiType,
-            ExternalId = $"{e.Type}/{e.Id}",
+            ExternalId = ExternalIdOf(poiType, e.Type, e.Id),
             Latitude = lat,
             Longitude = lng,
             Name = e.Tags?.GetValueOrDefault("name"),
