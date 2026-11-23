@@ -372,6 +372,7 @@
     "unlock": "Destrancar",
     "temperature": "Temperatura do ar",
     "rearDefroster": "Desembaçador traseiro",
+    "steeringWheelHeating": "Aquecimento do volante",
     "mode": {
       "label": "Modo de climatização",
       "on": "Climatização",

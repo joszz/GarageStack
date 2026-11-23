@@ -372,6 +372,7 @@
     "unlock": "Ontgrendelen",
     "temperature": "AC temperatuur",
     "rearDefroster": "Achterruitsverwarming",
+    "steeringWheelHeating": "Stuurverwarming",
     "mode": {
       "label": "Klimaatstand",
       "on": "Klimaat",

@@ -2080,7 +2080,8 @@
                 "refresh",
                 "scheduled-charging",
                 "seat-left",
-                "seat-right"
+                "seat-right",
+                "steering-wheel-heating"
               ],
               "type": "string"
             }
@@ -9485,6 +9486,12 @@
             "format": "int32"
           },
           "rearWindowDefroster": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "steeringWheelHeating": {
             "type": [
               "null",
               "boolean"

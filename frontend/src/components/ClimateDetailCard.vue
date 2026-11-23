@@ -38,6 +38,7 @@ const props = defineProps<{
   heatedSeatFrontLeft: number | null
   heatedSeatFrontRight: number | null
   rearWindowDefroster: boolean | null
+  steeringWheelHeating: boolean | null
 }>()
 
 const modalOpen = ref(false)
@@ -57,6 +58,7 @@ function runningMode(): ClimateOnMode {
 const localClimateOn = ref<boolean | null>(props.climateOn)
 const localMode = ref<ClimateOnMode>(runningMode())
 const localRearDefroster = ref<boolean | null>(props.rearWindowDefroster)
+const localSteeringWheel = ref<boolean | null>(props.steeringWheelHeating)
 const sliderTemp = ref<number>(props.remoteTemperature ?? 22)
 const seatLeftLocal = ref<number>(props.heatedSeatFrontLeft ?? 0)
 const seatRightLocal = ref<number>(props.heatedSeatFrontRight ?? 0)
@@ -66,6 +68,7 @@ watch(modalOpen, (open) => {
     localClimateOn.value = props.climateOn
     localMode.value = runningMode()
     localRearDefroster.value = props.rearWindowDefroster
+    localSteeringWheel.value = props.steeringWheelHeating
     sliderTemp.value = props.remoteTemperature ?? 22
     seatLeftLocal.value = props.heatedSeatFrontLeft ?? 0
     seatRightLocal.value = props.heatedSeatFrontRight ?? 0
@@ -97,12 +100,14 @@ const hasAnyData = computed(
     props.exteriorTemperature !== null ||
     props.heatedSeatFrontLeft !== null ||
     props.heatedSeatFrontRight !== null ||
-    props.rearWindowDefroster !== null,
+    props.rearWindowDefroster !== null ||
+    props.steeringWheelHeating !== null,
 )
 
 const commandKeys = [
   'climate',
   'rear-defroster',
+  'steering-wheel-heating',
   'climate-temperature',
   'seat-left',
   'seat-right',
@@ -149,6 +154,15 @@ const pendingChanges = computed((): ClimateChange[] => {
       command: 'rear-defroster',
       value: defroster ? 'on' : 'off',
       isConfirmed: (s) => s.rearWindowDefroster === defroster,
+    })
+  // The gateway reports every car's steering wheel, heated or not, so the switch is offered
+  // whenever a value came in, as the gateway's own Home Assistant switch is.
+  const steeringWheel = localSteeringWheel.value
+  if (props.steeringWheelHeating !== null && steeringWheel !== props.steeringWheelHeating)
+    changes.push({
+      command: 'steering-wheel-heating',
+      value: String(steeringWheel),
+      isConfirmed: (s) => s.steeringWheelHeating === steeringWheel,
     })
   const seatLeft = seatLeftLocal.value
   if (props.heatedSeatFrontLeft !== null && seatLeft !== props.heatedSeatFrontLeft)
@@ -239,6 +253,14 @@ const controlsDisabled = computed(() => isApplying.value || !props.vin)
         v-model="localRearDefroster"
         icon="car-rear"
         :label="t('control.rearDefroster')"
+        :disabled="controlsDisabled"
+      />
+
+      <DetailListSwitch
+        v-if="canSend && steeringWheelHeating !== null"
+        v-model="localSteeringWheel"
+        icon="fire"
+        :label="t('control.steeringWheelHeating')"
         :disabled="controlsDisabled"
       />
 

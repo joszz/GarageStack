@@ -270,6 +270,10 @@ public static class TelemetryMapper
             case "climate/rearWindowDefrosterHeating":
                 s.RearWindowDefroster = asBool;
                 return true;
+            // "on" or "off": the gateway turns the car's heating level into one of the two.
+            case "climate/steeringWheelHeating":
+                s.SteeringWheelHeating = asBool;
+                return true;
 
             default:
                 return null;

@@ -233,6 +233,9 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
             case "seat-right":
                 car.HeatedSeatFrontRight = int.Parse(value, System.Globalization.CultureInfo.InvariantCulture);
                 break;
+            case "steering-wheel-heating":
+                car.SteeringWheelHeating = value == "true";
+                break;
             case "lock":
                 car.IsLocked = value == "True";
                 break;
@@ -348,6 +351,7 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
             HeatedSeatFrontLeft = 0,
             HeatedSeatFrontRight = 0,
             RearWindowDefroster = false,
+            SteeringWheelHeating = false,
             IsAvailable = true,
             LastVehicleStateAt = DateTime.UtcNow,
             LastChargeStateAt = DateTime.UtcNow.AddHours(-8),

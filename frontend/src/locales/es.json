@@ -372,6 +372,7 @@
     "unlock": "Desbloqueo",
     "temperature": "Temperatura del aire acondicionado",
     "rearDefroster": "Descongelador trasero",
+    "steeringWheelHeating": "Volante calefactado",
     "mode": {
       "label": "Modo del climatizador",
       "on": "Clima",
