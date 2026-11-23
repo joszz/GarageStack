@@ -401,6 +401,15 @@ GarageStack checks your vehicle's state every 5 minutes and sends both a browser
 | MG app message | The official MG app receives a message, such as an alarm or a reminder (sent as it arrives, once per message) |
 | Scheduled climate | A climate schedule ran: climate started, the car refused, or it did not answer (nothing is sent for a run skipped because the car was in use or the day was mild) |
 
+Two more are summaries rather than alerts, and are off until you switch them on:
+
+| Summary | When |
+| ------- | ---- |
+| Weekly summary | Monday from 08:00, for Monday to Sunday before: the trips, the distance, and on a plain hybrid the fuel burned and the L/100 km, on a full electric car the kWh and kWh/100 km (a plug-in hybrid's kWh are left out, as its counter comes on a nominal pack) |
+| Monthly summary | The 1st from 08:00, for the month before, with the same figures |
+
+Days are counted in the time zone the worker runs in (`TZ`), as the other alerts' are. A period without driving sends nothing, and while no device has switched a summary on, the worker does not send or keep it at all.
+
 Push notifications require VAPID keys to be configured (`VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY`). Without them, alerts still appear in the in-app notification panel. While GarageStack is open in a browser that allowed notifications but is not subscribed to push, the same alerts show up as system notifications too; a subscribed browser gets them through push instead, so nothing arrives twice.
 
 Two alerts carry a button, on Android and in desktop Chrome and Edge (Safari on iOS shows no notification buttons, and tapping the notification opens the app as before):
@@ -410,7 +419,7 @@ Two alerts carry a button, on Android and in desktop Chrome and Edge (Safari on 
 
 The notification then says the command was sent or the service logged. When it could not be done (no connection, signed out, the car busy with another command), the app opens instead. The button sends its request from your browser like the app's own buttons, so `CORS_ORIGIN` must match the address you use, as for every command.
 
-Settings > Notifications has a push switch for the device you are on and a per-type checklist for these alerts, which offers only the types the car's drivetrain can produce: the plug-in alerts (low EV battery, charging complete, charging interrupted) are left out for a plain hybrid, low fuel for a full electric car, and the RDW type (APK, recalls and insurance) wherever `RDW_ENABLED` is off. Both are kept per device: a type switched off on your phone still reaches your laptop, and still shows up in the notification panel. Only the switch turns push on or off; the checklist never asks the browser for permission.
+Settings > Notifications has a push switch for the device you are on and a per-type checklist for these alerts, which offers only the types the car's drivetrain can produce: the plug-in alerts (low EV battery, charging complete, charging interrupted) are left out for a plain hybrid, low fuel for a full electric car, and the RDW type (APK, recalls and insurance) wherever `RDW_ENABLED` is off. Both are kept per device: a type switched off on your phone still reaches your laptop, and still shows up in the notification panel. The weekly and monthly summaries are the other way round: a device gets them, in push and in its notification panel, only once it has switched them on, and **All on** and **All off** leave them as they are. Only the switch turns push on or off; the checklist never asks the browser for permission.
 
 Notification texts are written by the background worker, which has no browser to take a language from, so their language is a deployment setting: `NOTIFICATION_LANGUAGE=en` (default), `nl`, `es` or `pt`. The web UI's language selection does not affect them.
 
@@ -450,6 +459,7 @@ Note: "keys left in the car" is not currently supported because the SAIC MQTT ga
 - **Totals.** The distance per purpose for the period is shown at the top. On a phone only the total shows until you open **Show the purposes**. Click **All trips** for the driving time, the average and longest trip and the average speed, and on a hybrid the fuel used and the average consumption.
 - **Trip details.** On a computer the selected trip's details stand beside the list and never reach past the bottom of the window; what does not fit scrolls inside them. On a phone or tablet a trip opens its details in a dialog.
 - **GPX.** **GPX** under a trip's details saves its route as a GPX track, for a route planner, a sports app or geotagging photos: every point the route preview draws, with its time and the speed the car reported. It is built in the browser from the route already loaded, so it works offline too.
+- **Elevation.** Under the speed chart, a trip's details show its height profile, in metres or in feet with miles, from the height the car's GPS reported along the way. It is read from the recorded telemetry rather than kept with the trip, so trips saved earlier have one too, as long as their telemetry is kept. A GPS height is rough, a few metres either way; readings no road could be at are left out, and a car that reports no height shows no profile.
 - **Distance.** A trip counts for the distance on its odometer when the car reported a reading at both ends. Otherwise it counts for the distance along its GPS fixes, which is a little short because the fixes cut corners.
 - **Fuel on a hybrid.** On a plain hybrid each trip's details show the fuel it burned and its consumption, from the trip computer's own fuel counter between leaving and parking, and **All trips** adds them up for the period. The counter starts again every day, which a trip past midnight takes in its stride. A trip shorter than 1 km shows no consumption, as there it is mostly rounding. Trips saved before this existed get their figures the next time the Worker tidies up, from the telemetry that is still kept. Other drivetrains count energy on that counter rather than fuel, so they show neither.
 - **Addresses** are looked up once through the same OpenStreetMap geocoder as the map, and then kept with the trip for good, so a log exported next year still shows them. With place names switched off (Settings > Map, or `GEOCODING__ENABLED=false`), ends show as coordinates and no lookups are made.

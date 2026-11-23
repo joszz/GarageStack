@@ -54,4 +54,14 @@ public class NotificationCategoriesTests
     {
         Assert.True(NotificationCategories.IsWanted(null, ["engine-start"]));
     }
+
+    // A summary every week unasked would be noise, so it goes out only to a device that asked.
+    [Fact]
+    public void IsWanted_OptInType_GoesOutOnlyOnceSwitchedOn()
+    {
+        Assert.False(NotificationCategories.IsWanted("weekly-summary", []));
+        Assert.False(NotificationCategories.IsWanted("weekly-summary", [], ["monthly-summary"]));
+        Assert.True(NotificationCategories.IsWanted("weekly-summary", [], ["weekly-summary"]));
+        Assert.True(NotificationCategories.IsWanted("low-tyre", [], ["weekly-summary"]));
+    }
 }

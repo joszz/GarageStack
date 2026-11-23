@@ -1,6 +1,6 @@
 import type { AppNotification } from '@/services/notificationsApi'
 import { useUiSettingsStore } from '@/stores/settingsUi'
-import { notificationCategoryId } from '@/utils/notificationCategories'
+import { isCategoryShown, notificationCategoryId } from '@/utils/notificationCategories'
 import { useVehicleStore } from '@/stores/vehicle'
 import { titleWithCar } from '@/utils/vehicleLabels'
 
@@ -27,7 +27,14 @@ export function useBrowserNotifications() {
     if (!('Notification' in window) || Notification.permission !== 'granted') return
 
     const category = notificationCategoryId(notification.category)
-    if (category !== null && settings.notificationTypeExclusions.includes(category)) return
+    if (
+      !isCategoryShown(
+        category,
+        settings.notificationTypeExclusions,
+        settings.notificationTypeInclusions,
+      )
+    )
+      return
     if (await hasPushSubscription()) return
 
     try {

@@ -100,6 +100,7 @@ public static class PushEndpoints
         subscriptions.UpsertAsync(
             req.Endpoint, req.P256DhKey, req.AuthKey,
             req.ExcludedCategories is { } requested ? KnownGroups(requested) : null,
+            req.IncludedCategories is { } included ? KnownGroups(included.Where(NotificationCategories.OptInGroups.Contains)) : null,
             ct);
 
     // Only the types the checklist offers, once each and in one order, so an unchanged list
@@ -108,8 +109,11 @@ public static class PushEndpoints
         [.. requested.Where(NotificationCategories.Groups.Contains).Distinct().Order(StringComparer.Ordinal)];
 }
 
-// ExcludedCategories: the notification types this device switched off. Null leaves the stored list as it is.
-public record PushSubscribeRequest(string Endpoint, string P256DhKey, string AuthKey, IReadOnlyList<string>? ExcludedCategories = null);
+// ExcludedCategories: the notification types this device switched off; IncludedCategories: the opt-in
+// ones it switched on (the weekly and monthly summaries). Null leaves that stored list as it is.
+public record PushSubscribeRequest(
+    string Endpoint, string P256DhKey, string AuthKey,
+    IReadOnlyList<string>? ExcludedCategories = null, IReadOnlyList<string>? IncludedCategories = null);
 public record PushUnsubscribeRequest(string Endpoint);
 
 /// <summary>The server's VAPID public key, which a browser subscribes to push with.</summary>

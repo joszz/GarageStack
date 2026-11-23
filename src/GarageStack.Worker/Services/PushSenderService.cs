@@ -106,7 +106,7 @@ public sealed class PushSenderService : IPushSender, IDisposable
         // Each device switched its own types off. The in-app record above is shared and kept
         // regardless; only the push to a device that does not want this type is left out.
         var subscriptions = (await subscriptionRepository.ListAsync(ct))
-            .Where(s => NotificationCategories.IsWanted(category, s.ExcludedCategories))
+            .Where(s => NotificationCategories.IsWanted(category, s.ExcludedCategories, s.IncludedCategories))
             .ToList();
         if (subscriptions.Count == 0) return;
 

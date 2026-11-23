@@ -36,6 +36,8 @@ const CATEGORY_ICONS: Record<string, string[]> = {
   'data-stale': ['fas', 'clock'],
   'place-arrival': ['fas', 'house'],
   'place-departure': ['fas', 'arrow-right-from-bracket'],
+  'weekly-summary': ['fas', 'chart-line'],
+  'monthly-summary': ['fas', 'chart-line'],
 }
 
 function categoryIcon(category: string | null): string[] {

@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import {
   TRIP_NOTES_MAX_LENGTH,
   TRIP_PURPOSES,
+  type ElevationReading,
   type TripLogEntry,
   type TripPurpose,
 } from '@/services/tripLogApi'
@@ -24,6 +25,7 @@ import type { ChipOption } from '@/utils/chips'
 import { useUnits } from '@/composables/useUnits'
 import { useTripEnds } from '@/composables/useTripEnds'
 import { useTripSpeedChart } from '@/composables/useTripSpeedChart'
+import { useTripElevationChart } from '@/composables/useTripElevationChart'
 import ChipGroup from './ChipGroup.vue'
 import StatsChartCard from './StatsChartCard.vue'
 import TripRouteMap from './TripRouteMap.vue'
@@ -47,6 +49,8 @@ const props = defineProps<{
   commutePlaces: readonly CommutePlace[]
   /** A saved trip follows this one, so it can be joined with it. */
   canJoinNext: boolean
+  /** The heights the car reported during the trip; empty when it reported none. */
+  elevation?: readonly ElevationReading[]
 }>()
 
 const emit = defineEmits<{
@@ -165,6 +169,7 @@ const figures = computed(() => [
 ])
 
 const speedChart = useTripSpeedChart(toRef(props, 'routePoints'))
+const elevationChart = useTripElevationChart(computed(() => props.elevation ?? []))
 
 // The field is edited locally and sent when it loses focus, rather than on every keystroke.
 const notesDraft = ref(props.entry.notes ?? '')
@@ -325,6 +330,17 @@ function downloadRoute() {
       type="line"
       :data="speedChart.data"
       :options="speedChart.options"
+      :show-info="false"
+    />
+
+    <StatsChartCard
+      v-if="elevationChart"
+      class="trip-log-detail__chart"
+      :title="t('tripLog.detail.elevationChart')"
+      icon="mountain"
+      type="line"
+      :data="elevationChart.data"
+      :options="elevationChart.options"
       :show-info="false"
     />
 

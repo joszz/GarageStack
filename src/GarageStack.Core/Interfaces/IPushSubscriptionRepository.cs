@@ -11,12 +11,12 @@ public interface IPushSubscriptionRepository
     /// <summary>
     /// Stores a subscription against its endpoint, inserting or updating as needed. The app
     /// registers its subscription again on every load, so this runs often and is both idempotent
-    /// and safe to run twice at once. A null <paramref name="excludedCategories"/> leaves the
-    /// stored list as it is.
+    /// and safe to run twice at once. A null <paramref name="excludedCategories"/> or
+    /// <paramref name="includedCategories"/> leaves that stored list as it is.
     /// </summary>
     Task UpsertAsync(
         string endpoint, string p256DhKey, string authKey, IReadOnlyList<string>? excludedCategories,
-        CancellationToken ct = default);
+        IReadOnlyList<string>? includedCategories, CancellationToken ct = default);
 
     /// <summary>Removes the subscriptions with these endpoints; unknown ones are ignored.</summary>
     Task RemoveAsync(IReadOnlyCollection<string> endpoints, CancellationToken ct = default);

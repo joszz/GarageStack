@@ -13,4 +13,10 @@ public class PushSubscription
     /// The checklist is kept per device, so each browser's subscription carries its own.
     /// </summary>
     public List<string> ExcludedCategories { get; set; } = [];
+
+    /// <summary>
+    /// The opt-in notification types this device switched on (<see cref="NotificationCategories.OptInGroups"/>),
+    /// which no device gets until it does.
+    /// </summary>
+    public List<string> IncludedCategories { get; set; } = [];
 }

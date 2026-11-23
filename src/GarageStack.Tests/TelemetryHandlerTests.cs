@@ -48,6 +48,7 @@ file sealed class SlowFakeTelemetryRepository : ITelemetryRepository
     public Task<IReadOnlyList<DateTime>> GetReportTimesAsync(int vehicleId, DateTime after, DateTime before, int limit, CancellationToken ct = default) => throw new NotImplementedException();
     public Task<double?> GetOdometerAtAsync(int vehicleId, DateTime at, CancellationToken ct = default) => throw new NotImplementedException();
     public Task<IReadOnlyList<double>> GetDayCounterReadingsAsync(int vehicleId, DateTime from, DateTime to, CancellationToken ct = default) => throw new NotImplementedException();
+    public Task<IReadOnlyList<ElevationReading>> GetElevationsAsync(int vehicleId, DateTime from, DateTime to, CancellationToken ct = default) => throw new NotImplementedException();
     public Task<IReadOnlyList<StatusReading>> GetStatusReadingsAsync(int vehicleId, int count, CancellationToken ct = default) => throw new NotImplementedException();
     public IAsyncEnumerable<TelemetrySnapshot> StreamAllAsync(int vehicleId, DateTime? since = null, CancellationToken ct = default) => throw new NotImplementedException();
     public Task<PositionFix?> GetLatestPositionAsync(int vehicleId, CancellationToken ct = default) => throw new NotImplementedException();

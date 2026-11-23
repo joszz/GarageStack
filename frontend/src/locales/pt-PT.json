@@ -536,7 +536,7 @@
     "minutesAgo": "há {n} min",
     "hoursAgo": "há {n} h",
     "typeFilter": "Filtro de tipos",
-    "typeFilterDesc": "Escolha quais tipos de notificação este dispositivo mostra e recebe por push.",
+    "typeFilterDesc": "Escolha quais tipos de notificação este dispositivo mostra e recebe por push. Os resumos semanal e mensal ficam desligados até os ligar, e só chegam a um dispositivo com push ligado.",
     "selectAll": "Selecionar todas",
     "deselectAll": "Desmarcar todas",
     "categories": {
@@ -560,7 +560,9 @@
       "gatewayLogin": "Falha ao iniciar sessão na conta MG",
       "dataStale": "Sem dados do carro",
       "placeArrival": "Chegada a casa ou ao trabalho",
-      "placeDeparture": "Saída de casa ou do trabalho"
+      "placeDeparture": "Saída de casa ou do trabalho",
+      "weeklySummary": "Resumo semanal (segunda de manhã)",
+      "monthlySummary": "Resumo mensal (no dia 1)"
     }
   },
   "auth": {
@@ -844,6 +846,8 @@
     "mpg": "mpg",
     "litre": "L",
     "gallon": "gal",
+    "metre": "m",
+    "foot": "pés",
     "lowerIsBetter": "menor é melhor",
     "higherIsBetter": "maior é melhor"
   },
@@ -956,7 +960,9 @@
       "consumption": "Consumo",
       "consumptionHint": "O combustível usado sobre a distância da viagem. Omitido numa viagem com menos de 1 km, onde é sobretudo arredondamento.",
       "speed": "Velocidade",
-      "speedChart": "Velocidade durante a viagem"
+      "speedChart": "Velocidade durante a viagem",
+      "elevation": "Altitude",
+      "elevationChart": "Altitude durante a viagem"
     },
     "purposeLabel": "Finalidade",
     "purpose": {

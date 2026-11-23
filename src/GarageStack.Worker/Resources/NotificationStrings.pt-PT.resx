@@ -300,4 +300,28 @@
   <data name="ActionMaintenanceDoneSent" xml:space="preserve">
     <value>Registado como feito hoje.</value>
   </data>
+  <data name="WeeklySummaryTitle" xml:space="preserve">
+    <value>A sua semana: {0} km</value>
+  </data>
+  <data name="MonthlySummaryTitle" xml:space="preserve">
+    <value>O seu {0}: {1} km</value>
+  </data>
+  <data name="SummaryOneTrip" xml:space="preserve">
+    <value>1 viagem</value>
+  </data>
+  <data name="SummaryTrips" xml:space="preserve">
+    <value>{0} viagens</value>
+  </data>
+  <data name="SummaryFuel" xml:space="preserve">
+    <value>{0} L de combustível</value>
+  </data>
+  <data name="SummaryFuelConsumption" xml:space="preserve">
+    <value>{0} L/100 km</value>
+  </data>
+  <data name="SummaryEnergy" xml:space="preserve">
+    <value>{0} kWh</value>
+  </data>
+  <data name="SummaryEnergyConsumption" xml:space="preserve">
+    <value>{0} kWh/100 km</value>
+  </data>
 </root>

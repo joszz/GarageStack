@@ -80,6 +80,12 @@ public interface ITelemetryRepository
     Task<IReadOnlyList<double>> GetDayCounterReadingsAsync(int vehicleId, DateTime from, DateTime to, CancellationToken ct = default);
 
     /// <summary>
+    /// The height the car's GPS reported from <paramref name="from"/> to <paramref name="to"/>,
+    /// oldest first, leaving out readings no road could be at (see <see cref="ElevationReading.IsPlausible"/>).
+    /// </summary>
+    Task<IReadOnlyList<ElevationReading>> GetElevationsAsync(int vehicleId, DateTime from, DateTime to, CancellationToken ct = default);
+
+    /// <summary>
     /// The car's last <paramref name="count"/> status polls (lock, doors, windows), newest first.
     /// A poll the broker delivers again, as it does with retained messages on a reconnect, is still
     /// one poll: it comes back once, at the time it first arrived.

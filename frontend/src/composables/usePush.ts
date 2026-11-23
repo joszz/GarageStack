@@ -15,6 +15,8 @@ export type PushState = 'unknown' | 'subscribed' | 'unsubscribed' | 'denied'
 export interface UsePushOptions {
   /** The notification types this device switched off, so the server leaves them out of its pushes. */
   excludedCategories?: () => readonly string[]
+  /** The opt-in types this device switched on, which the server sends nobody until asked. */
+  includedCategories?: () => readonly string[]
 }
 
 export function usePush(options: UsePushOptions = {}) {
@@ -34,6 +36,7 @@ export function usePush(options: UsePushOptions = {}) {
       json.keys?.['p256dh'] ?? '',
       json.keys?.['auth'] ?? '',
       options.excludedCategories?.(),
+      options.includedCategories?.(),
     )
   }
 

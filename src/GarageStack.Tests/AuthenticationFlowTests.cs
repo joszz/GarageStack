@@ -321,6 +321,55 @@ public partial class AuthenticationFlowTests
             await response.Content.ReadAsStringAsync(ct));
     }
 
+    // Through the whole stack: a demo trip's elevation profile is its own fixes' heights, in its
+    // time span, and a trip the car does not have has none.
+    [Fact]
+    public async Task TripElevation_IsTheTripsOwnProfile_AndUnknownTripsHaveNone()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var factory = CreatePasswordOnlyFactory();
+        using var client = CreateClient(factory);
+        var login = await client.PostAsJsonAsync(
+            "/api/auth/login",
+            new { username = DemoUsername, password = DemoPassword, rememberMe = false },
+            ct);
+        Assert.Equal(HttpStatusCode.OK, login.StatusCode);
+        var vin = (await client.GetFromJsonAsync<JsonElement>("/api/vehicles", ct))[0].GetProperty("vin").GetString();
+        var logUrl = $"/api/vehicles/{vin}/trips/log?from={DateTimeOffset.UtcNow.AddDays(-60):O}&to={DateTimeOffset.UtcNow:O}"
+            .Replace("+", "%2B", StringComparison.Ordinal);
+        var trip = (await client.GetFromJsonAsync<List<TripLogEntry>>(logUrl, ct))![0];
+
+        var heights = await client.GetFromJsonAsync<List<ElevationReading>>($"/api/vehicles/{vin}/trips/{trip.Id}/elevation", ct);
+        var missing = await client.GetAsync($"/api/vehicles/{vin}/trips/999999/elevation", ct);
+
+        Assert.NotNull(heights);
+        Assert.True(heights.Count > 1);
+        Assert.All(heights, h => Assert.InRange(h.RecordedAt, trip.StartedAt, trip.EndedAt));
+        Assert.Equal(heights.OrderBy(h => h.RecordedAt), heights);
+        Assert.Equal(HttpStatusCode.NotFound, missing.StatusCode);
+    }
+
+    // The demo runs no Worker, so it seeds the weekly summary the Worker would have sent, from
+    // the same demo data the statistics show.
+    [Fact]
+    public async Task Demo_HoldsTheWeeklySummaryTheWorkerWouldHaveSent()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var factory = CreatePasswordOnlyFactory();
+        using var client = CreateClient(factory);
+        var login = await client.PostAsJsonAsync(
+            "/api/auth/login",
+            new { username = DemoUsername, password = DemoPassword, rememberMe = false },
+            ct);
+        Assert.Equal(HttpStatusCode.OK, login.StatusCode);
+
+        var notifications = await client.GetFromJsonAsync<JsonElement>("/api/notifications", ct);
+        var summary = notifications.EnumerateArray().Single(n => n.GetProperty("category").GetString() == "weekly-summary");
+
+        Assert.StartsWith("Your week: ", summary.GetProperty("title").GetString());
+        Assert.Contains(" kWh", summary.GetProperty("body").GetString());
+    }
+
     // Through the whole stack: setting home and work labels an unclassified demo trip between them
     // straight away, a second home is refused, and removing them takes the label off again. Places are removed at the end,
     // since the demo database is shared by every host in this run.

@@ -109,6 +109,8 @@ interface UiSettings {
   logSource: LogSourceChoice
   logLevel: LogLevel
   notificationTypeExclusions: string[]
+  /** The opt-in notification types this device switched on (the weekly and monthly summaries). */
+  notificationTypeInclusions: string[]
   /**
    * The colour of each car, by VIN, used only while the account has more than one car. A car
    * without an entry, and every one-car install, uses carColorScheme above. vehicleTypeOverride
@@ -141,6 +143,7 @@ function defaultsFor(): UiSettings {
     logSource: 'all',
     logLevel: DEFAULT_LOG_LEVEL,
     notificationTypeExclusions: [],
+    notificationTypeInclusions: [],
     vehicleSettings: {},
     // Everything follows the region the browser is in, which its time zone tells far better than
     // its language does. An install from before these settings keeps the units it stored.
@@ -278,6 +281,11 @@ function parseUiFields(parsed: Record<string, unknown>, fallback: UiSettings): U
     notificationTypeExclusions: Array.isArray(parsed.notificationTypeExclusions)
       ? (parsed.notificationTypeExclusions as string[])
       : fallback.notificationTypeExclusions,
+    notificationTypeInclusions: Array.isArray(parsed.notificationTypeInclusions)
+      ? (parsed.notificationTypeInclusions as unknown[]).filter(
+          (value): value is string => typeof value === 'string',
+        )
+      : fallback.notificationTypeInclusions,
     vehicleSettings: parseVehicleSettings(parsed.vehicleSettings, carColor),
     region: parseRegion(parsed.region, fallback.region),
     clock: oneOf(parsed.clock, CLOCK_SETTINGS, fallback.clock),
@@ -316,7 +324,12 @@ export const useUiSettingsStore = defineStore('settingsUi', () => {
     // computer must not unsubscribe a phone, or subscribe it without a tap there. Keeping the
     // screen on suits a phone in a holder, not every computer the account signs in on, and only
     // the phone that travels in the car should record GPS.
-    localKeys: ['notificationTypeExclusions', 'keepScreenOn', 'recordPhoneGps'],
+    localKeys: [
+      'notificationTypeExclusions',
+      'notificationTypeInclusions',
+      'keepScreenOn',
+      'recordPhoneGps',
+    ],
   })
 
   // What this device prefers, kept current: "system" follows it when the OS switches at sunset.

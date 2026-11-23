@@ -103,6 +103,12 @@ export interface TripPlacesResult {
   hasMore: boolean
 }
 
+/** The height the car's GPS reported at one moment of a trip, in metres above sea level. */
+export interface ElevationReading {
+  recordedAt: string
+  elevationM: number
+}
+
 export const tripLogApi = {
   log: (vin: string, from: string, to: string) =>
     request<TripLogEntry[]>(`/api/vehicles/${vin}/trips/log${buildQuery({ from, to })}`),
@@ -118,6 +124,8 @@ export const tripLogApi = {
       ids,
       purpose,
     }),
+  elevation: (vin: string, id: number) =>
+    request<ElevationReading[]>(`/api/vehicles/${vin}/trips/${id}/elevation`),
   editor: (vin: string, id: number) =>
     request<TripEditor>(`/api/vehicles/${vin}/trips/${id}/editor`),
   // The whole route at once; the answer is the editor as the trip now is.

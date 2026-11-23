@@ -34,6 +34,9 @@ public static class DemoSeeder
         if (rdwEnabled && !await db.RdwVehicleInfos.AnyAsync(ct))
             await SeedRdwAsync(db, ct);
 
+        if (!await db.AppNotifications.AnyAsync(n => n.Category == NotificationCategories.WeeklySummary, ct))
+            await SeedWeeklySummaryAsync(db, ct);
+
         if (await db.MaintenanceItems.AnyAsync(ct))
             return;
 
@@ -145,6 +148,43 @@ public static class DemoSeeder
                 Category = NotificationCategories.RdwApkDue(ApkReminder.MonthNoticeDays, registration.ApkExpiresOn!.Value),
                 VehicleId = vehicle.Id,
             });
+        await db.SaveChangesAsync(ct);
+    }
+
+    // What the Worker's DrivingSummaryService would have sent this Monday about the demo car's
+    // past week, from the same demo trips and history the trip log and statistics show, in the
+    // English it sends. It shows once a device switches the weekly summary on, as a real one does.
+    private static async Task SeedWeeklySummaryAsync(AppDbContext db, CancellationToken ct)
+    {
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var monday = today.AddDays(-(((int)today.DayOfWeek + 6) % 7));
+        var (from, to) = (monday.AddDays(-7), monday.AddDays(-1));
+        var (start, end) = DailyStatsBuilder.UtcRange(from, to, TimeZoneInfo.Utc);
+
+        var builder = new DailyStatsBuilder(TimeZoneInfo.Utc, from, to, today);
+        foreach (var snapshot in DemoHistory.Snapshots.Where(s => s.RecordedAt < end))
+            builder.Add(TelemetryHistoryPoint.FromSnapshot(snapshot));
+        var trips = DemoTrips.All
+            .Where(t => t.Id is not null && t.StartedAt >= start && t.StartedAt < end)
+            .Select(t => t.ToSummary())
+            .ToList();
+        var figures = DrivingSummary.Build(trips, builder.Build(), "bev");
+        if (!figures.HasDriving) return;
+
+        var en = System.Globalization.CultureInfo.GetCultureInfo("en");
+        List<string> parts = [figures.Trips == 1 ? "1 trip" : $"{figures.Trips} trips", string.Format(en, "{0:N1} kWh", figures.EnergyKwh)];
+        if (figures.PerHundredKm is { } perHundred) parts.Add(string.Format(en, "{0:N1} kWh/100 km", perHundred));
+
+        db.AppNotifications.Add(new AppNotification
+        {
+            Title = string.Format(en, "Your week: {0:N0} km", figures.DistanceKm),
+            Body = string.Join(" · ", parts),
+            CreatedAt = monday.ToDateTime(new TimeOnly(8, 0), DateTimeKind.Utc) is var sent && sent < DateTime.UtcNow
+                ? sent
+                : DateTime.UtcNow,
+            Category = NotificationCategories.WeeklySummary,
+            VehicleId = DemoVehicleRepository.DemoVehicle.Id,
+        });
         await db.SaveChangesAsync(ct);
     }
 

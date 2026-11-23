@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
+  isCategoryShown,
   notificationCategoryId,
   notificationCategoryIdsFor,
   NOTIFICATION_CATEGORY_IDS,
@@ -57,5 +58,15 @@ describe('notificationCategoryIdsFor', () => {
 
   it.each(['phev', 'unknown'] as const)('offers every category for %s', (type) => {
     expect(notificationCategoryIdsFor(type)).toEqual([...NOTIFICATION_CATEGORY_IDS])
+  })
+})
+
+describe('isCategoryShown', () => {
+  it('shows an opt-in type only once switched on, and any other until switched off', () => {
+    expect(isCategoryShown('weekly-summary', [], [])).toBe(false)
+    expect(isCategoryShown('weekly-summary', [], ['weekly-summary'])).toBe(true)
+    expect(isCategoryShown('engine-start', [], [])).toBe(true)
+    expect(isCategoryShown('engine-start', ['engine-start'], [])).toBe(false)
+    expect(isCategoryShown(null, ['engine-start'], [])).toBe(true)
   })
 })

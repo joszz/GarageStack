@@ -100,6 +100,7 @@ describe('usePush on load', () => {
       'p256dh-key',
       'auth-key',
       undefined,
+      undefined,
     )
     expect(pushManager.subscribe).not.toHaveBeenCalled()
     expect(api().pushState.value).toBe('subscribed')
@@ -120,6 +121,7 @@ describe('usePush on load', () => {
       'https://push.example/abc',
       'p256dh-key',
       'auth-key',
+      undefined,
       undefined,
     )
     expect(api().pushState.value).toBe('subscribed')
@@ -183,6 +185,7 @@ describe('usePush on load', () => {
       'p256dh-key',
       'auth-key',
       undefined,
+      undefined,
     )
     expect(api().pushState.value).toBe('subscribed')
   })
@@ -240,6 +243,7 @@ describe('usePush togglePush', () => {
       'p256dh-key',
       'auth-key',
       undefined,
+      undefined,
     )
     expect(api().pushState.value).toBe('subscribed')
     expect(api().pushError.value).toBe(false)
@@ -275,6 +279,7 @@ describe('usePush and the types this device switched off', () => {
       'p256dh-key',
       'auth-key',
       ['engine-start'],
+      undefined,
     )
   })
 
@@ -293,6 +298,23 @@ describe('usePush and the types this device switched off', () => {
       'p256dh-key',
       'auth-key',
       ['engine-start', 'maintenance'],
+      undefined,
+    )
+  })
+
+  it('sends the opt-in types this device switched on with them', async () => {
+    pushManager.getSubscription.mockResolvedValue(makeSubscription())
+    setPermission('granted')
+
+    mountUsePush({ excludedCategories: () => [], includedCategories: () => ['weekly-summary'] })
+    await flush()
+
+    expect(subscribeMock).toHaveBeenCalledWith(
+      'https://push.example/abc',
+      'p256dh-key',
+      'auth-key',
+      [],
+      ['weekly-summary'],
     )
   })
 

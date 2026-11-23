@@ -536,7 +536,7 @@
     "minutesAgo": "{n} min geleden",
     "hoursAgo": "{n}u geleden",
     "typeFilter": "Typefilter",
-    "typeFilterDesc": "Kies welke meldingstypen dit apparaat toont en als pushmelding krijgt.",
+    "typeFilterDesc": "Kies welke meldingstypen dit apparaat toont en als pushmelding krijgt. Het week- en maandoverzicht staan uit tot je ze aanzet, en komen alleen op een apparaat met pushmeldingen aan.",
     "selectAll": "Alles selecteren",
     "deselectAll": "Alles deselecteren",
     "categories": {
@@ -560,7 +560,9 @@
       "gatewayLogin": "Inloggen bij MG mislukt",
       "dataStale": "Geen data van de auto",
       "placeArrival": "Aangekomen thuis of op het werk",
-      "placeDeparture": "Vertrokken van huis of werk"
+      "placeDeparture": "Vertrokken van huis of werk",
+      "weeklySummary": "Weekoverzicht (maandagochtend)",
+      "monthlySummary": "Maandoverzicht (op de 1e)"
     }
   },
   "auth": {
@@ -844,6 +846,8 @@
     "mpg": "mpg",
     "litre": "L",
     "gallon": "gal",
+    "metre": "m",
+    "foot": "ft",
     "lowerIsBetter": "lager beter is",
     "higherIsBetter": "hoger beter is"
   },
@@ -956,7 +960,9 @@
       "consumption": "Verbruik",
       "consumptionHint": "De verbruikte brandstof over de afstand van de rit. Weggelaten bij een rit korter dan 1 km, waar het vooral afronding is.",
       "speed": "Snelheid",
-      "speedChart": "Snelheid tijdens de rit"
+      "speedChart": "Snelheid tijdens de rit",
+      "elevation": "Hoogte",
+      "elevationChart": "Hoogte tijdens de rit"
     },
     "purposeLabel": "Doel",
     "purpose": {

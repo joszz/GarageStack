@@ -2,7 +2,7 @@ import { ref, computed, watch, onUnmounted, getCurrentInstance } from 'vue'
 import { notificationsApi, type AppNotification } from '@/services/notificationsApi'
 import { useAuthStore } from '@/stores/auth'
 import { useUiSettingsStore } from '@/stores/settingsUi'
-import { notificationCategoryId } from '@/utils/notificationCategories'
+import { isCategoryShown, notificationCategoryId } from '@/utils/notificationCategories'
 import { asError } from '@/utils/errors'
 
 const notifications = ref<AppNotification[]>([])
@@ -54,11 +54,10 @@ export function useNotifications() {
   // category (never selectable in the checklist) is always shown, even while a filter is active.
   const visibleNotifications = computed(() => {
     const excluded = uiSettings.notificationTypeExclusions
-    if (excluded.length === 0) return notifications.value
-    return notifications.value.filter((n) => {
-      const categoryId = notificationCategoryId(n.category)
-      return categoryId === null || !excluded.includes(categoryId)
-    })
+    const included = uiSettings.notificationTypeInclusions
+    return notifications.value.filter((n) =>
+      isCategoryShown(notificationCategoryId(n.category), excluded, included),
+    )
   })
 
   const unreadCount = computed(() => visibleNotifications.value.filter((n) => !n.isArchived).length)

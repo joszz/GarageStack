@@ -17,7 +17,12 @@ vi.mock('@/stores/rdw', () => ({
 }))
 
 vi.mock('@/stores/settingsUi', () => ({
-  useUiSettingsStore: () => ({ notificationTypeExclusions: [] }),
+  useUiSettingsStore: () => settingsStub,
+}))
+
+const settingsStub = vi.hoisted(() => ({
+  notificationTypeExclusions: [] as string[],
+  notificationTypeInclusions: [] as string[],
 }))
 
 const pushSupported = vi.hoisted(() => ({ value: true }))
@@ -52,6 +57,43 @@ describe('NotificationTypeSettings', () => {
     vehicleType.value = 'unknown'
     pushSupported.value = true
     rdwAvailable.value = null
+    settingsStub.notificationTypeExclusions = []
+    settingsStub.notificationTypeInclusions = []
+  })
+
+  function summarySwitch(wrapper: ReturnType<typeof mountSettings>, key: string) {
+    return wrapper
+      .findAll('.notif-type-checklist__item')
+      .find((item) => item.text() === `notifications.categories.${key}`)!
+      .get<HTMLInputElement>('input')
+  }
+
+  it('offers the summaries off until switched on, kept apart from the alerts', async () => {
+    const wrapper = mountSettings()
+    const weekly = summarySwitch(wrapper, 'weeklySummary')
+    expect(weekly.element.checked).toBe(false)
+
+    await weekly.setValue(true)
+    expect(settingsStub.notificationTypeInclusions).toEqual(['weekly-summary'])
+    expect(settingsStub.notificationTypeExclusions).toEqual([])
+
+    await weekly.setValue(false)
+    expect(settingsStub.notificationTypeInclusions).toEqual([])
+  })
+
+  // "All off" and "all on" are about the alerts: they must not start or stop a weekly push.
+  it('leaves the summaries alone when every type is switched on or off', async () => {
+    settingsStub.notificationTypeInclusions = ['monthly-summary']
+    const wrapper = mountSettings()
+    const [allOn, allOff] = wrapper.findAll('.notif-type-filter__actions button')
+
+    await allOff!.trigger('click')
+    expect(settingsStub.notificationTypeExclusions).not.toContain('weekly-summary')
+    expect(settingsStub.notificationTypeExclusions).toContain('engine-start')
+    await allOn!.trigger('click')
+
+    expect(settingsStub.notificationTypeExclusions).toEqual([])
+    expect(settingsStub.notificationTypeInclusions).toEqual(['monthly-summary'])
   })
 
   it('offers the RDW type only where the deployment looks plates up', () => {

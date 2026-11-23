@@ -53,6 +53,7 @@ function mountDetail(
     saving: boolean
     commutePlaces: CommutePlace[]
     canJoinNext: boolean
+    elevation: { recordedAt: string; elevationM: number }[]
   }> = {},
 ) {
   return mount(TripLogDetail, {
@@ -160,6 +161,19 @@ describe('TripLogDetail', () => {
 
   it('offers no GPX file without a route to put in it', () => {
     expect(button(mountDetail(logEntry()), en.tripLog.gpx.download)).toBeUndefined()
+  })
+
+  it('draws the elevation profile once there are heights to draw', () => {
+    expect(mountDetail(logEntry()).findAll('.speed-chart')).toHaveLength(0)
+
+    const charts = mountDetail(logEntry(), {
+      elevation: [
+        { recordedAt: '2026-09-24T12:32:00.000Z', elevationM: 2 },
+        { recordedAt: '2026-09-24T12:50:00.000Z', elevationM: 9 },
+      ],
+    }).findAllComponents({ name: 'StatsChartCard' })
+
+    expect(charts.map((c) => c.props('title'))).toEqual([en.tripLog.detail.elevationChart])
   })
 
   it('shows a dash for speeds the car did not report', () => {
