@@ -142,7 +142,8 @@
       "tyreChart": "Pressão média diária dos pneus, por roda, no período selecionado. A faixa típica de um carro de passeio é de {low} a {high} {unit}.",
       "hybridSocChart": "Nível médio diário da bateria do EV e do combustível no período selecionado. Permite comparar como as duas fontes de energia variam juntas.",
       "dailyKwhChart": "As barras são os kWh retirados da bateria por dia, semana ou mês, conforme indica o próprio contador do carro, incluindo as perdas com o carro estacionado. Um dia concluído conta o pico do seu contador; hoje conta apenas o aumento desde a meia-noite ou desde a última reposição do contador. A linha é a eficiência nos mesmos dias, em {unit}, no eixo da direita; um ponto com menos de {min} de condução fica sem valor.",
-      "dailyFuelChart": "As barras são o combustível consumido por dia, semana ou mês, a partir do contador do próprio computador de bordo. Um dia concluído conta o pico do seu contador; hoje conta apenas o aumento desde a meia-noite ou desde a última reposição do contador. A linha é o consumo nos mesmos dias, em {unit}, no eixo da direita; um ponto com menos de {min} de condução fica sem valor."
+      "dailyFuelChart": "As barras são o combustível consumido por dia, semana ou mês, a partir do contador do próprio computador de bordo. Um dia concluído conta o pico do seu contador; hoje conta apenas o aumento desde a meia-noite ou desde a última reposição do contador. A linha é o consumo nos mesmos dias, em {unit}, no eixo da direita; um ponto com menos de {min} de condução fica sem valor.",
+      "temperatureChart": "O que o carro gastou por distância, em {unit}, nos dias do período escolhido agrupados pela temperatura exterior média, os mais frios à esquerda. Quanto menor, melhor. Mostra quanto mais o carro gasta com frio. Um grupo cujos dias somam menos de {min} de condução fica de fora."
     },
     "hybridSocChart": "Níveis de EV e combustível",
     "weekOf": "Semana de {date}",
@@ -156,6 +157,11 @@
       "week": "Consumo de combustível por semana ({unit})",
       "month": "Consumo de combustível por mês ({unit})"
     },
+    "temperatureChart": {
+      "fuel": "Consumo por temperatura exterior",
+      "energy": "Eficiência por temperatura exterior"
+    },
+    "temperatureBand": "{from} a {to} {unit}",
     "period": {
       "label": "Período",
       "desc": "Os dias abrangidos pelas estatísticas. Períodos mais longos aparecem por semana e, acima de um ano, por mês.",

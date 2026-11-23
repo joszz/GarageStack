@@ -21,6 +21,8 @@ import {
   bucketTotals,
   roundedRange,
   roundTo2,
+  TEMPERATURE_BAND_C,
+  temperatureBands,
   type StatsBucket,
 } from '@/utils/statistics'
 import type { StatsGrouping } from '@/utils/statsPeriod'
@@ -47,6 +49,7 @@ const CHART_ICONS: Record<StatsChartId, string> = {
   tyreChart: 'gauge',
   hybridSocChart: 'wave-square',
   dailyKwhChart: 'bolt-lightning',
+  temperatureChart: 'temperature-half',
 }
 
 // Named in the legend by their short translated position (FL in English, LV in Dutch, DI in Spanish, DE in Portuguese).
@@ -140,6 +143,7 @@ function useChartFrame(buckets: Ref<StatsBucket[]>, grouping: Ref<StatsGrouping>
     legend: boolean,
     y: { min: number; max?: number },
     y1?: { min: number },
+    xLabels?: Ref<string[]>,
   ) {
     const { text, grid } = chartTheme.value
     const axis = { grid: { color: grid }, border: { color: grid } }
@@ -168,7 +172,8 @@ function useChartFrame(buckets: Ref<StatsBucket[]>, grouping: Ref<StatsGrouping>
             autoSkip: true,
             maxTicksLimit: 8,
             // On a category axis a tick's value is the index of its label.
-            callback: (value: string | number) => tickLabels.value[Number(value)] ?? value,
+            callback: (value: string | number) =>
+              (xLabels ?? tickLabels).value[Number(value)] ?? value,
           },
         },
         y: { ...y, ...axis, ticks: { color: text } },
@@ -296,6 +301,45 @@ export function useStatisticsCharts(
     ],
   }))
 
+  // Every day of the period in temperature bands, coldest first, each with what its days used
+  // per distance. A band with too little driving to say anything is left off the chart.
+  const bands = computed(() =>
+    temperatureBands(
+      buckets.value.flatMap((b) => b.days),
+      counterScale.value,
+    ).flatMap((band) => {
+      const used = efficiency(band.used, energyUnit(vehicleType.value))
+      return used
+        ? [{ ...band, value: roundTo2(units.value.convert(used.quantity, used.metric)) }]
+        : []
+    }),
+  )
+  const bandLabels = computed(() => {
+    const u = units.value
+    const degrees = (c: number) => Math.round(u.convert('temperature', c))
+    return bands.value.map((band) =>
+      t('statistics.temperatureBand', {
+        from: degrees(band.fromC),
+        to: degrees(band.fromC + TEMPERATURE_BAND_C),
+        unit: u.symbol('temperature'),
+      }),
+    )
+  })
+  const temperatureChartData = computed(() => ({
+    labels: bandLabels.value,
+    datasets: [
+      {
+        label: units.value.symbol(efficiencyQuantity.value),
+        data: bands.value.map((band) => band.value),
+        borderColor: '#0ea5e9',
+        backgroundColor: 'rgba(14,165,233,0.7)',
+      },
+    ],
+  }))
+  const temperatureOptions = computed(() =>
+    chartOptions(2.6, false, { min: 0 }, undefined, bandLabels),
+  )
+
   const percentOptions = computed(() => chartOptions(2.6, false, PERCENT_AXIS))
   const pressureOptions = computed(() => {
     const u = units.value
@@ -370,6 +414,25 @@ export function useStatisticsCharts(
       type: 'bar',
       data: dailyEnergyChartData.value,
       options: kwhOptions.value,
+    },
+    {
+      id: 'temperatureChart',
+      icon: CHART_ICONS.temperatureChart,
+      title: t(
+        reportsFuelCounter.value
+          ? 'statistics.temperatureChart.fuel'
+          : 'statistics.temperatureChart.energy',
+      ),
+      description: t('statistics.chartDesc.temperatureChart', {
+        unit: units.value.symbol(efficiencyQuantity.value),
+        min: units.value.format('distance', MIN_EFFICIENCY_DISTANCE_KM, { decimals: 0 }),
+      }),
+      vehicleApplicable: countsDailyEnergy.value,
+      applicable:
+        countsDailyEnergy.value && counterScale.value.factor !== null && bands.value.length > 0,
+      type: 'bar',
+      data: temperatureChartData.value,
+      options: temperatureOptions.value,
     },
   ])
 }

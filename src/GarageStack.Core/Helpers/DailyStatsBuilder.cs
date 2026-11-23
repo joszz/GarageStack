@@ -39,7 +39,7 @@ public sealed class DailyStatsBuilder(TimeZoneInfo zone, DateOnly from, DateOnly
     private sealed class Day
     {
         public readonly Mean EvSoc = new(), Fuel = new(), FrontLeft = new(), FrontRight = new(),
-            RearLeft = new(), RearRight = new(), Voltage = new();
+            RearLeft = new(), RearRight = new(), Voltage = new(), Outside = new();
         public readonly List<double> Counter = [], Distance = [];
         public readonly EnergyCheck Energy = new();
     }
@@ -76,6 +76,7 @@ public sealed class DailyStatsBuilder(TimeZoneInfo zone, DateOnly from, DateOnly
         day.RearLeft.Add(reading.TyrePressureRearLeft);
         day.RearRight.Add(reading.TyrePressureRearRight);
         day.Voltage.Add(reading.BatteryVoltage);
+        day.Outside.Add(reading.ExteriorTemperature);
         if (reading.PowerUsageOfDay is { } counter && double.IsFinite(counter)) day.Counter.Add(counter);
         if (reading.MileageOfTheDay is { } distance && double.IsFinite(distance)) day.Distance.Add(distance);
     }
@@ -98,7 +99,7 @@ public sealed class DailyStatsBuilder(TimeZoneInfo zone, DateOnly from, DateOnly
             var distance = DistanceTotal(day.Distance, date == today);
             stats.Add(new DailyStat(date, day.EvSoc.Value, day.Fuel.Value, day.FrontLeft.Value, day.FrontRight.Value,
                 day.RearLeft.Value, day.RearRight.Value, day.Voltage.Value, counter,
-                day.Energy.SinceChargeTotal, day.Energy.IsUnbacked(counter), distance));
+                day.Energy.SinceChargeTotal, day.Energy.IsUnbacked(counter), distance, day.Outside.Value));
         }
         return stats;
     }

@@ -133,6 +133,8 @@ Cards are shown or hidden automatically based on vehicle type (HEV / PHEV / BEV)
 
 The Statistics view shows insight cards and charts for a period of its own: the last 7, 30 or 90 days, this or last month, this or last year, or custom dates. Charts show a point per day up to about three months, per week up to a year, and per month beyond that. A period longer than a month also gets a table of trips, distance and energy per month. Cards are draggable and individually toggleable.
 
+**Consumption by outside temperature** groups the period's days by their average outside temperature, five degrees to a bar, and shows what the car used per distance on them: L/100 km on a plain hybrid, kWh/100 km on a plug-in car. It shows how much more the car takes in winter. A bar needs at least 5 km of driving on its days, and a longer period, such as this year, fills more of them.
+
 | Insight | Description |
 | ------- | ----------- |
 | Distance in period | Total distance across all trips in the selected window |

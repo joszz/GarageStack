@@ -142,7 +142,8 @@
       "tyreChart": "Dagelijkse gemiddelde bandenspanning per wiel in de geselecteerde periode. Normaal bereik voor personenwagens is circa {low} – {high} {unit}.",
       "hybridSocChart": "Dagelijks gemiddeld EV-accuniveau en brandstofniveau in de geselecteerde periode. Geeft inzicht in hoe beide energiebronnen zich samen ontwikkelen.",
       "dailyKwhChart": "De staven zijn de kWh die per dag, week of maand uit de accu kwamen, zoals de eigen teller van de auto die meldt, inclusief wat de accu verliest terwijl de auto geparkeerd staat. Een afgelopen dag telt de hoogste stand van de teller; vandaag telt alleen de toename sinds middernacht, of sinds de laatste reset van de teller. De lijn is het verbruik over dezelfde dagen, in {unit}, op de rechteras; een punt met minder dan {min} rijden heeft er geen.",
-      "dailyFuelChart": "De staven zijn de brandstof die per dag, week of maand verbruikt is, volgens de eigen teller van de boordcomputer. Een afgelopen dag telt de hoogste stand van de teller; vandaag telt alleen de toename sinds middernacht, of sinds de laatste reset van de teller. De lijn is het verbruik over dezelfde dagen, in {unit}, op de rechteras; een punt met minder dan {min} rijden heeft er geen."
+      "dailyFuelChart": "De staven zijn de brandstof die per dag, week of maand verbruikt is, volgens de eigen teller van de boordcomputer. Een afgelopen dag telt de hoogste stand van de teller; vandaag telt alleen de toename sinds middernacht, of sinds de laatste reset van de teller. De lijn is het verbruik over dezelfde dagen, in {unit}, op de rechteras; een punt met minder dan {min} rijden heeft er geen.",
+      "temperatureChart": "Wat de auto per afstand verbruikte, in {unit}, op de dagen van de gekozen periode, gegroepeerd naar hun gemiddelde buitentemperatuur, de koudste links. Lager is beter. Zo zie je hoeveel meer de auto in de kou nodig heeft. Een groep waarvan de dagen samen minder dan {min} rijden bevatten, wordt weggelaten."
     },
     "hybridSocChart": "EV & Brandstofniveaus",
     "weekOf": "Week van {date}",
@@ -156,6 +157,11 @@
       "week": "Brandstofverbruik per week ({unit})",
       "month": "Brandstofverbruik per maand ({unit})"
     },
+    "temperatureChart": {
+      "fuel": "Verbruik naar buitentemperatuur",
+      "energy": "Efficiëntie naar buitentemperatuur"
+    },
+    "temperatureBand": "{from} tot {to} {unit}",
     "period": {
       "label": "Periode",
       "desc": "De dagen die de statistieken beslaan. Langere periodes worden per week getoond, en per maand vanaf een jaar.",

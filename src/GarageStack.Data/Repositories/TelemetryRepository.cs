@@ -73,10 +73,11 @@ public class TelemetryRepository(
     // and inflate the row count, causing the stride downsampler to skip the sparser fuel/EV/kWh
     // rows. GPS data for routes belongs to the trips endpoint, not chart history. The fields that
     // count are exactly the ones TelemetryHistoryPoint carries, read from that type so the two
-    // cannot drift apart.
+    // cannot drift apart, bar the ones it reads along without selecting rows by them.
     private static readonly Expression<Func<TelemetrySnapshot, bool>> HasChartData =
         AnyFieldSet(typeof(TelemetryHistoryPoint)
             .GetProperties(BindingFlags.Public | BindingFlags.Instance)
+            .Where(p => !TelemetryHistoryPoint.ReadAlongOnly.Contains(p.Name))
             .Select(p => typeof(TelemetrySnapshot).GetProperty(p.Name)
                 ?? throw new InvalidOperationException(
                     $"TelemetryHistoryPoint.{p.Name} has no matching TelemetrySnapshot property.")));

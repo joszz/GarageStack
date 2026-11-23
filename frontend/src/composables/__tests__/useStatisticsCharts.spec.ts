@@ -160,15 +160,68 @@ describe('useStatisticsCharts', () => {
     })
   })
 
+  describe('temperature chart', () => {
+    // Three cold days and a mild one: 7.0 L/100 km below freezing, 5.0 at 12 degrees.
+    const WINTER_AND_SPRING = [
+      bucket('2026-01-14', [
+        day('2026-01-14', { counterTotal: 210, distanceKm: 30, exteriorTemperature: -2.5 }),
+        day('2026-01-15', { counterTotal: 140, distanceKm: 20, exteriorTemperature: -0.4 }),
+        day('2026-01-16', { counterTotal: 5, distanceKm: 1, exteriorTemperature: 3 }),
+      ]),
+      bucket('2026-04-14', [
+        day('2026-04-14', { counterTotal: 250, distanceKm: 50, exteriorTemperature: 12.1 }),
+        day('2026-04-15', { counterTotal: 90, distanceKm: 30 }),
+      ]),
+    ]
+
+    it("draws a hybrid's consumption per band of outside temperature, coldest first", () => {
+      const c = chart('hev', 'temperatureChart', WINTER_AND_SPRING)
+
+      expect(c.applicable).toBe(true)
+      expect(c.title).toBe(en.statistics.temperatureChart.fuel)
+      expect(c.data.labels).toEqual(['-5 to 0 °C', '10 to 15 °C'])
+      expect(c.data.datasets[0]!.label).toBe('L/100 km')
+      expect(c.data.datasets[0]!.data).toEqual([7, 5])
+    })
+
+    it('names the bands in the chosen temperature unit', () => {
+      useUiSettingsStore().units = { ...useUiSettingsStore().units, temperature: 'fahrenheit' }
+
+      expect(chart('hev', 'temperatureChart', WINTER_AND_SPRING).data.labels).toEqual([
+        '23 to 32 °F',
+        '50 to 59 °F',
+      ])
+    })
+
+    it('reads as efficiency on a car that counts energy', () => {
+      expect(chart('bev', 'temperatureChart').title).toBe(en.statistics.temperatureChart.energy)
+    })
+
+    it('has nothing to draw without a day that reports its temperature', () => {
+      expect(chart('hev', 'temperatureChart', TWO_DAYS).applicable).toBe(false)
+    })
+  })
+
   it('offers each drivetrain only the charts that mean something for it', () => {
     const offered = (type: VehicleType) =>
       chartsFor(type)
         .filter((c) => c.vehicleApplicable)
         .map((c) => c.id)
 
-    expect(offered('bev')).toEqual(['evChart', 'tyreChart', 'dailyKwhChart'])
-    expect(offered('phev')).toEqual(['evChart', 'tyreChart', 'hybridSocChart', 'dailyKwhChart'])
-    expect(offered('hev')).toEqual(['tyreChart', 'hybridSocChart', 'dailyKwhChart'])
+    expect(offered('bev')).toEqual(['evChart', 'tyreChart', 'dailyKwhChart', 'temperatureChart'])
+    expect(offered('phev')).toEqual([
+      'evChart',
+      'tyreChart',
+      'hybridSocChart',
+      'dailyKwhChart',
+      'temperatureChart',
+    ])
+    expect(offered('hev')).toEqual([
+      'tyreChart',
+      'hybridSocChart',
+      'dailyKwhChart',
+      'temperatureChart',
+    ])
   })
 
   // A canvas draws in whatever colours it is given; left alone, Chart.js greys suit neither theme.

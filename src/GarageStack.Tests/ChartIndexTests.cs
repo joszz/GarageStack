@@ -24,6 +24,7 @@ public partial class ChartIndexTests
         var read = typeof(TelemetryHistoryPoint).GetConstructors().Single().GetParameters()
             .Select(p => p.Name!)
             .Where(name => name != nameof(TelemetryHistoryPoint.RecordedAt))
+            .Where(name => !TelemetryHistoryPoint.ReadAlongOnly.Contains(name))
             .Order()
             .ToList();
 

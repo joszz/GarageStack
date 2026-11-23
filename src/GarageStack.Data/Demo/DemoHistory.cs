@@ -46,6 +46,11 @@ internal static class DemoHistory
     /// <summary>What the trip in progress has taken so far, at the middle of that range.</summary>
     public const double InProgressKwhPerKm = (KwhPerKmMin + KwhPerKmMax) / 2;
 
+    // Below this outside temperature a drive takes more, by this share per degree: the heater, a
+    // cold battery and denser air, so the statistics' temperature chart has a winter to show.
+    private const double MildFromCelsius = 15;
+    private const double ColdSharePerDegree = 0.012;
+
     // Morning, midday, after work, evening (plug-in time). 21:00 UTC is still the same day in
     // Europe, so every reading belongs to the day its counters count.
     private static readonly int[] ReadingHours = [7, 12, 17, 21];
@@ -109,7 +114,7 @@ internal static class DemoHistory
                 for (; nextDrive < drives.Count && drives[nextDrive].End <= at; nextDrive++)
                 {
                     var drive = drives[nextDrive];
-                    var kwh = drive.Km * drive.KwhPerKm;
+                    var kwh = drive.Km * drive.KwhPerKm * (1 + Math.Max(0, MildFromCelsius - Outside(drive.End)) * ColdSharePerDegree);
                     odometer += drive.Km;
                     dayKm += drive.Km;
                     sinceKm += drive.Km;
@@ -204,7 +209,7 @@ internal static class DemoHistory
 
         TelemetrySnapshot Reading(long rowId, DateTime at, int day, int hour, Random random, ChargeReading? charge = null)
         {
-            var extTemp = 13.0 + (random.NextDouble() - 0.5) * 10.0;
+            var extTemp = Outside(at) + (random.NextDouble() - 0.5) * 6.0;
             var frontPressure = 2.4 + (random.NextDouble() - 0.5) * 0.06;
             var rearPressure = 2.5 + (random.NextDouble() - 0.5) * 0.06;
             // The rear right has a slow puncture: over the last twelve days it loses air the other
@@ -255,6 +260,15 @@ internal static class DemoHistory
                 HvBatteryActive = true,
             };
         }
+    }
+
+    // The outside temperature by season and time of day: about 3 °C on a January night, 22 °C on a
+    // July afternoon.
+    private static double Outside(DateTime at)
+    {
+        var season = -Math.Cos(2 * Math.PI * (at.DayOfYear - 15) / 365.0);
+        var afternoon = -Math.Cos(2 * Math.PI * (at.Hour - 3) / 24.0);
+        return 11 + season * 8 + afternoon * 3;
     }
 
     // The demo trips for as far back as they go, so the statistics and the trip log tell the same
