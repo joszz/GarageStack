@@ -1,8 +1,15 @@
 name: CodeQL
 
 on:
+  # A pull request changing only Markdown or the website's pages, styles and icons has no code to
+  # analyse. The website's script still is, and every push to main is analysed in full.
   pull_request:
     branches: [main]
+    paths-ignore:
+      - "**/*.md"
+      - "site/**/*.html"
+      - "site/**/*.css"
+      - "site/**/*.svg"
   push:
     branches: [main]
   schedule:
