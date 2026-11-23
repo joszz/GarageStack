@@ -5,7 +5,8 @@ import DetailModal from './DetailModal.vue'
 
 /**
  * A view-header button that opens a modal of settings rows. Defaults to the filters button every
- * view had; a title and icon turn it into any other panel, such as the map's layer switcher.
+ * view had; a title and icon turn it into any other panel, such as the map's layer switcher, and
+ * the navigation slot puts tabs in its header (SettingsTabs).
  *
  * @param count How many of the panel's settings are doing something right now, shown as a badge
  *   on the button so the panel does not have to be opened to find out. Hidden when zero.
@@ -40,7 +41,17 @@ const buttonLabel = computed(() =>
         {{ activeCount }}
       </span>
     </button>
-    <DetailModal :open="isOpen" :title="label" @close="isOpen = false">
+    <!-- Tabs for a panel with too many settings for one list, such as the map's layers; each of
+         its panels is a list of its own. Two modals rather than a navigation slot behind a v-if:
+         a conditional slot has Vue rebuild the panel on every change, taking the focus off the
+         switch just pressed. -->
+    <DetailModal v-if="$slots.navigation" :open="isOpen" :title="label" @close="isOpen = false">
+      <template #navigation>
+        <slot name="navigation" />
+      </template>
+      <slot />
+    </DetailModal>
+    <DetailModal v-else :open="isOpen" :title="label" @close="isOpen = false">
       <div class="settings-toggles">
         <slot />
       </div>

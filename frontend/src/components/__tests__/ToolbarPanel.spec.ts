@@ -103,6 +103,21 @@ describe('ToolbarPanel', () => {
     expect(wrapper.find('[data-testid="slot-child"]').text()).toBe('hello')
   })
 
+  // Without tabs the modal must not get a navigation slot at all: an empty one still gives it the
+  // tall, tabbed layout.
+  it('passes tabs to the modal header only when given', async () => {
+    const wrapper = mount(ToolbarPanel, {
+      global: { plugins: [i18n], stubs: { DetailModal: DetailModalStub, FontAwesomeIcon: FaStub } },
+      slots: { navigation: '<nav data-testid="tabs" />', default: '<p />' },
+    })
+    await wrapper.find('button').trigger('click')
+    expect(wrapper.find('[data-testid="tabs"]').exists()).toBe(true)
+
+    const plain = mountPanel('<p />')
+    await plain.find('button').trigger('click')
+    expect(plain.findComponent(DetailModalStub).vm.$slots.navigation).toBeUndefined()
+  })
+
   it('slot content is not visible when the modal is closed', () => {
     const wrapper = mountPanel('<p data-testid="slot-child">hello</p>')
     // Modal starts closed; the stub hides its content via v-if

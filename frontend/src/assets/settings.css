@@ -252,11 +252,28 @@
    ("Notificaciones"). On most phones the row is narrower, so there the chosen tab is an icon too,
    told apart by its frame. */
 @container (width < 18.5rem) {
-  .settings-tabs__tab[aria-selected='true'] .settings-tabs__label {
+  .settings-tabs:not(.settings-tabs--few)
+    .settings-tabs__tab[aria-selected='true']
+    .settings-tabs__label {
     display: none;
   }
 
-  .settings-tabs__tab[aria-selected='true'] {
+  .settings-tabs:not(.settings-tabs--few) .settings-tabs__tab[aria-selected='true'] {
+    flex: 0 1 44px;
+    justify-content: center;
+    min-width: 24px;
+    padding-inline: 0.25rem;
+  }
+}
+
+/* A row of three tabs (the map's layers) has two icons beside the chosen tab, so its name fits
+   down to about 12rem, the longest short name being Dutch "Plaatsen". */
+@container (width < 12rem) {
+  .settings-tabs--few .settings-tabs__tab[aria-selected='true'] .settings-tabs__label {
+    display: none;
+  }
+
+  .settings-tabs--few .settings-tabs__tab[aria-selected='true'] {
     flex: 0 1 44px;
     justify-content: center;
     min-width: 24px;

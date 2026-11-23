@@ -434,6 +434,14 @@
     "speedOverlayDesc": "Visível quando uma única viagem está selecionada",
     "speedLimitOverlay": "Limites de velocidade",
     "speedLimitOverlayDesc": "Colore a viagem selecionada conforme a sinalização indicada pelo OpenStreetMap ao longo do trajeto.",
+    "layerTabs": {
+      "label": "Grupos de camadas",
+      "routes": "Todas as viagens",
+      "routesShort": "Trajetos",
+      "trip": "Viagem selecionada",
+      "tripShort": "Viagem",
+      "places": "Locais"
+    },
     "speedLimitUnder": "Dentro do limite",
     "speedLimitOver": "Acima do limite",
     "speedLimitUnknown": "Sem limite no OSM",
