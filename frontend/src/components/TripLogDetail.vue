@@ -16,7 +16,9 @@ import {
   odometerDistanceKm,
   PURPOSE_BADGE_CLASSES,
   PURPOSE_ICONS,
+  tripFuel,
 } from '@/utils/tripLog'
+import { useVehicleStore } from '@/stores/vehicle'
 import { COMMUTE_PLACE_ICONS } from '@/utils/commutePlaces'
 import type { ChipOption } from '@/utils/chips'
 import { useUnits } from '@/composables/useUnits'
@@ -94,6 +96,33 @@ const odometerLabel = computed(() => {
   return start && finish ? `${start.value} - ${finish.value}` : null
 })
 
+const vehicleStore = useVehicleStore()
+// Only a plain hybrid's counter holds fuel; on another car the trip shows no fuel at all.
+const fuel = computed(() => tripFuel(props.entry, vehicleStore.effectiveVehicleType))
+
+const fuelFigures = computed(() =>
+  fuel.value
+    ? [
+        {
+          key: 'fuel',
+          icon: 'gas-pump',
+          label: t('tripLog.detail.fuelUsed'),
+          measure: units.value.measure('volume', fuel.value.litres, { decimals: 2 }),
+          title: t('tripLog.detail.fuelUsedHint'),
+          note: null,
+        },
+        {
+          key: 'consumption',
+          icon: 'leaf',
+          label: t('tripLog.detail.consumption'),
+          measure: units.value.measure('fuelConsumption', fuel.value.litresPer100Km),
+          title: t('tripLog.detail.consumptionHint'),
+          note: null,
+        },
+      ]
+    : [],
+)
+
 const figures = computed(() => [
   {
     key: 'distance',
@@ -130,6 +159,7 @@ const figures = computed(() => [
     title: undefined,
     note: null,
   },
+  ...fuelFigures.value,
 ])
 
 const speedChart = useTripSpeedChart(toRef(props, 'routePoints'))

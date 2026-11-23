@@ -2,6 +2,7 @@ import { onUnmounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { tripLogApi, type TripLogEntry } from '@/services/tripLogApi'
 import { useUiSettingsStore } from '@/stores/settingsUi'
+import { useVehicleStore } from '@/stores/vehicle'
 import { useUnits } from '@/composables/useUnits'
 import { downloadCsv } from '@/utils/download'
 import { asError } from '@/utils/errors'
@@ -21,6 +22,7 @@ export function useTripLogExport() {
   const { t } = useI18n()
   const units = useUnits()
   const uiSettings = useUiSettingsStore()
+  const vehicleStore = useVehicleStore()
 
   const busy = ref(false)
   /** How many trips still wait for an address while they are looked up; null otherwise. */
@@ -78,7 +80,12 @@ export function useTripLogExport() {
       }
       if (stopped) return
 
-      const csv = tripLogCsv(entries, { t, units: units.value, placesShown })
+      const csv = tripLogCsv(entries, {
+        t,
+        units: units.value,
+        placesShown,
+        vehicleType: vehicleStore.effectiveVehicleType,
+      })
       downloadCsv(tripLogFileName(period), csv)
     } catch (e) {
       error.value = asError(e)

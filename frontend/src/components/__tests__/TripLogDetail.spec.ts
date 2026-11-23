@@ -10,6 +10,7 @@ import { deventer, logEntry, zwolle } from '@/services/__tests__/tripLogFixtures
 import type { CommutePlace } from '@/services/commutePlacesApi'
 import { resetConnection } from '@/composables/useConnection'
 import { setBrowserOnline } from '@/composables/__tests__/connectionStub'
+import { useUiSettingsStore } from '@/stores/settingsUi'
 
 // The map and the chart draw on canvases and tiles jsdom has none of; their own specs cover them.
 vi.mock('../TripRouteMap.vue', () => ({
@@ -123,6 +124,21 @@ describe('TripLogDetail', () => {
 
     expect(badge.text()).toBe('Private')
     expect(badge.classes()).toContain('badge-success')
+  })
+
+  it('shows the fuel a hybrid burned on the trip, and its consumption', () => {
+    useUiSettingsStore().vehicleTypeOverride = 'hev'
+    const wrapper = mountDetail(logEntry({ counterUsed: 255 }))
+
+    expect(figure(wrapper, 'Fuel used')).toBe('2.55L')
+    expect(figure(wrapper, 'Consumption')).toBe('6.0L/100km')
+  })
+
+  it('shows no fuel on a car whose counter holds energy', () => {
+    useUiSettingsStore().vehicleTypeOverride = 'bev'
+    const wrapper = mountDetail(logEntry({ counterUsed: 255 }))
+
+    expect(wrapper.findAll('.trip-log-detail__figure')).toHaveLength(4)
   })
 
   it('shows a dash for speeds the car did not report', () => {

@@ -80,10 +80,10 @@ public class TripRecorder(ITelemetryRepository telemetry, ITripRepository trips,
             var parked = segmentation.ParkedBefore[cut.Index];
             var anchored = parked is null ? null : await AnchorAsync(vehicleId, cut, parked, ct);
             var trip = anchored?.Trip ?? cut;
-            recorded.Add(new RecordedTrip(
+            recorded.Add(await WithCounterUseAsync(vehicleId, new RecordedTrip(
                 trip,
                 anchored is { } a ? a.OdometerStartKm : await telemetry.GetOdometerAtAsync(vehicleId, trip.StartedAt, ct),
-                await telemetry.GetOdometerAtAsync(vehicleId, trip.EndedAt + TripSegmenter.ParkThreshold, ct)));
+                await telemetry.GetOdometerAtAsync(vehicleId, trip.EndedAt + TripSegmenter.ParkThreshold, ct)), ct));
         }
 
         // Numbered on from the trips, so every index in the run is its own.
@@ -135,7 +135,17 @@ public class TripRecorder(ITelemetryRepository telemetry, ITripRepository trips,
         logger.LogInformation(
             "Vehicle {VehicleId} drove {Distance:F2} km unseen, from {Departure:o} to {Seen:o}; saved as a trip",
             vehicleId, trip.DistanceKm, trip.StartedAt, trip.EndedAt);
-        return new RecordedTrip(trip, before, after);
+        return await WithCounterUseAsync(vehicleId, new RecordedTrip(trip, before, after), ct);
+    }
+
+    // What the day counter rose by over the trip, read up to when its end odometer is: the car
+    // reports its final counter a poll or two after it stops, with its final mileage.
+    private async Task<RecordedTrip> WithCounterUseAsync(int vehicleId, RecordedTrip recorded, CancellationToken ct)
+    {
+        var trip = recorded.Trip;
+        var readings = await telemetry.GetDayCounterReadingsAsync(
+            vehicleId, trip.StartedAt, trip.EndedAt + TripSegmenter.ParkThreshold, ct);
+        return recorded with { CounterUsed = TripCounterUse.Rise(readings), CounterReadings = readings.Count };
     }
 
     // The trip started at its parking spot, with the odometer read there, or null when it should not.

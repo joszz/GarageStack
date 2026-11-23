@@ -5,6 +5,7 @@ import { createI18n } from 'vue-i18n'
 import en from '@/locales/en.json'
 import TripLogSummaryModal from '../TripLogSummaryModal.vue'
 import type { PeriodSummary } from '@/utils/tripLog'
+import { useUiSettingsStore } from '@/stores/settingsUi'
 
 const i18n = createI18n({ legacy: false, locale: 'en', messages: { en } })
 
@@ -15,6 +16,8 @@ const summary: PeriodSummary = {
   averageTripKm: 42.5,
   longestTripKm: 50,
   averageSpeedKmh: 75,
+  // 5.10 L over the 85 km: 6.0 L/100 km.
+  counter: { counter: 510, distanceKm: 85 },
 }
 
 function mountModal(props: { open: boolean; summary: PeriodSummary }) {
@@ -79,10 +82,36 @@ describe('TripLogSummaryModal', () => {
         averageTripKm: null,
         longestTripKm: null,
         averageSpeedKmh: null,
+        counter: null,
       },
     })
 
     expect(figures(wrapper).map((f) => f.value)).toEqual(['-', '-', '-', '-'])
+  })
+
+  it("adds a hybrid's fuel and consumption over the period", () => {
+    useUiSettingsStore().vehicleTypeOverride = 'hev'
+    const wrapper = mountModal({ open: true, summary })
+
+    expect(figures(wrapper).slice(4)).toEqual([
+      {
+        label: en.tripLog.summary.fuelUsed,
+        value: '5.1L',
+        description: en.tripLog.cardDesc.fuelUsed,
+      },
+      {
+        label: en.tripLog.summary.consumption,
+        value: '6.0L/100 km',
+        description: en.tripLog.cardDesc.consumption.replace('{min}', '5 km'),
+      },
+    ])
+  })
+
+  it('shows no fuel on a car whose counter holds energy', () => {
+    useUiSettingsStore().vehicleTypeOverride = 'bev'
+    const wrapper = mountModal({ open: true, summary })
+
+    expect(figures(wrapper)).toHaveLength(4)
   })
 
   it('asks to close from its close button', async () => {

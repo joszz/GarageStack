@@ -1,7 +1,11 @@
 namespace GarageStack.Core.Models;
 
-/// <summary>A finished trip with the odometer readings at either end, as the Worker saves it.</summary>
-public sealed record RecordedTrip(TripDto Trip, double? OdometerStartKm, double? OdometerEndKm);
+/// <summary>
+/// A finished trip with the odometer readings at either end, as the Worker saves it, and what the
+/// day counter rose by over it (<see cref="Helpers.TripCounterUse"/>) from how many readings.
+/// </summary>
+public sealed record RecordedTrip(
+    TripDto Trip, double? OdometerStartKm, double? OdometerEndKm, double? CounterUsed = null, int CounterReadings = 0);
 
 /// <summary>
 /// One line of the trip log: a saved trip without its fixes, plus what the driver recorded about
@@ -31,7 +35,9 @@ public sealed record TripLogEntry(
     // The highest speed a fix reported, and the mean while moving; null when no fix carried one.
     double? MaxSpeedKmh = null,
     double? AvgMovingSpeedKmh = null,
-    DateTime? PhoneFusionAt = null);
+    DateTime? PhoneFusionAt = null,
+    // What the day counter rose by over the trip, in its own unit (Trip.CounterUsed).
+    double? CounterUsed = null);
 
 /// <summary>How joining a trip with the next one went (<see cref="Interfaces.ITripRepository.MergeWithNextAsync"/>).</summary>
 public enum TripMergeOutcome

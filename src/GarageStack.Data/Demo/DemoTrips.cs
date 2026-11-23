@@ -102,6 +102,11 @@ internal static class DemoTrips
     // ground than the straight lines through them. The demo history drives the same distance.
     internal const double RoadFactor = 1.08;
 
+    // The trip log shows a trip's fuel only on a plain hybrid, so each trip's counter is a hybrid's:
+    // hundredths of a litre, which per km is L/100 km. Between 5.0 and 7.3 by trip, as traffic and
+    // weather would have it; switch the demo car to a hybrid in the settings to see it.
+    private static double HybridLitresPer100Km(long id) => 5.0 + id * 7 % 24 / 10.0;
+
     // The odometer is counted back from the live reading, so the readings run on from one trip to
     // the next and end where the car is now.
     private static List<TripLogEntry> BuildLog()
@@ -123,7 +128,8 @@ internal static class DemoTrips
                 StartPlace: null, EndPlace: null,
                 Purposes.TryGetValue(id, out var purpose) ? purpose : null,
                 Notes.GetValueOrDefault(id),
-                MaxSpeedKmh: trip.MaxSpeedKmh, AvgMovingSpeedKmh: trip.AvgMovingSpeedKmh);
+                MaxSpeedKmh: trip.MaxSpeedKmh, AvgMovingSpeedKmh: trip.AvgMovingSpeedKmh,
+                CounterUsed: Math.Round(trip.DistanceKm * RoadFactor * HybridLitresPer100Km(id), 2));
             odometer = start;
         }
 

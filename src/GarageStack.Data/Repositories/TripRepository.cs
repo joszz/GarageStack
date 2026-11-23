@@ -102,6 +102,29 @@ public class TripRepository(
         return trips.Count;
     }
 
+    public async Task<int> FillCounterUseAsync(int batchSize, CancellationToken ct = default)
+    {
+        var trips = await db.Trips
+            .Where(t => t.CounterReadings == null)
+            .OrderBy(t => t.Id)
+            .Take(batchSize)
+            .ToListAsync(ct);
+
+        // Read up to where the Worker reads a new trip's counter (TripRecorder). Old telemetry is
+        // folded into quarter-hour rows, which still holds the counter's rise, if more coarsely.
+        foreach (var trip in trips)
+        {
+            var readings = await telemetry.GetDayCounterReadingsAsync(
+                trip.VehicleId, trip.StartedAt, trip.EndedAt + TripSegmenter.ParkThreshold, ct);
+            trip.CounterUsed = TripCounterUse.Rise(readings);
+            trip.CounterReadings = readings.Count;
+        }
+
+        await db.SaveChangesAsync(ct);
+        db.ChangeTracker.Clear();
+        return trips.Count;
+    }
+
     // How far back the newest unsaved trip is looked for. The Worker saves a finished trip within
     // minutes, so the fixes past the recording line only span more than this while it is down.
     private static readonly TimeSpan LatestTripLookback = TimeSpan.FromDays(7);
@@ -165,6 +188,8 @@ public class TripRepository(
                 EndLongitude = trip.Points[^1].Longitude,
                 OdometerStartKm = recorded.OdometerStartKm,
                 OdometerEndKm = recorded.OdometerEndKm,
+                CounterUsed = recorded.CounterUsed,
+                CounterReadings = recorded.CounterReadings,
                 MaxSpeedKmh = trip.MaxSpeedKmh,
                 AvgMovingSpeedKmh = trip.AvgMovingSpeedKmh,
                 MovingSpeedSamples = trip.MovingSpeedSamples,
@@ -294,6 +319,8 @@ public class TripRepository(
         first.EndLatitude = second.EndLatitude;
         first.EndLongitude = second.EndLongitude;
         first.OdometerEndKm = second.OdometerEndKm;
+        first.CounterUsed = joined.CounterUsed;
+        first.CounterReadings = (first.CounterReadings ?? 0) + (second.CounterReadings ?? 0);
         first.EndPlaceJson = second.EndPlaceJson;
         first.MaxSpeedKmh = joined.MaxSpeedKmh;
         first.AvgMovingSpeedKmh = joined.AvgMovingSpeedKmh;
@@ -494,7 +521,7 @@ public class TripRepository(
     private static TripJoinPart Part(Trip trip, IReadOnlyList<TripPoint> points, IReadOnlyList<TripPoint>? original) => new(
         trip.DistanceKm, trip.StartLatitude, trip.StartLongitude, trip.EndLatitude, trip.EndLongitude,
         points, original, trip.IsHidden, trip.Notes, trip.Purpose, trip.PurposeIsManual,
-        trip.PhoneFusion, trip.PhoneFusionAt, trip.EditedAt);
+        trip.PhoneFusion, trip.PhoneFusionAt, trip.EditedAt, trip.CounterUsed);
 
     public async Task SavePlacesAsync(int vehicleId, IReadOnlyList<TripPlaces> places, CancellationToken ct = default)
     {
@@ -520,14 +547,14 @@ public class TripRepository(
         t.StartLatitude, t.StartLongitude, t.EndLatitude, t.EndLongitude,
         t.OdometerStartKm, t.OdometerEndKm,
         t.StartPlaceJson, t.EndPlaceJson, t.Purpose, t.Notes, t.PurposeIsManual, t.IsHidden, t.EditedAt != null,
-        t.MaxSpeedKmh, t.AvgMovingSpeedKmh, t.PhoneFusionAt);
+        t.MaxSpeedKmh, t.AvgMovingSpeedKmh, t.PhoneFusionAt, t.CounterUsed);
 
     private sealed record LogRow(
         long Id, DateTime StartedAt, DateTime EndedAt, double DistanceKm,
         double StartLatitude, double StartLongitude, double EndLatitude, double EndLongitude,
         double? OdometerStartKm, double? OdometerEndKm,
         string? StartPlaceJson, string? EndPlaceJson, TripPurpose? Purpose, string? Notes, bool PurposeIsManual, bool IsHidden,
-        bool IsEdited, double? MaxSpeedKmh, double? AvgMovingSpeedKmh, DateTime? PhoneFusionAt);
+        bool IsEdited, double? MaxSpeedKmh, double? AvgMovingSpeedKmh, DateTime? PhoneFusionAt, double? CounterUsed);
 
     private TripLogEntry ToEntry(LogRow r) => new(
         r.Id, r.StartedAt, r.EndedAt, r.DistanceKm,
@@ -536,7 +563,7 @@ public class TripRepository(
         ReadPlace(r.Id, r.StartPlaceJson), ReadPlace(r.Id, r.EndPlaceJson),
         r.Purpose, r.Notes, PurposeIsAutomatic: r.Purpose is not null && !r.PurposeIsManual, IsHidden: r.IsHidden,
         IsEdited: r.IsEdited, MaxSpeedKmh: r.MaxSpeedKmh, AvgMovingSpeedKmh: r.AvgMovingSpeedKmh,
-        PhoneFusionAt: r.PhoneFusionAt);
+        PhoneFusionAt: r.PhoneFusionAt, CounterUsed: r.CounterUsed);
 
     // An unreadable place is as good as none: the trip log looks it up again.
     private PlaceAddress? ReadPlace(long tripId, string? json) =>

@@ -16,6 +16,7 @@ import {
   periodSummary,
   purposeTotals,
   tripDurationMs,
+  tripFuel,
 } from '../tripLog'
 
 describe('currentMonthPeriod', () => {
@@ -183,7 +184,45 @@ describe('periodSummary', () => {
       averageTripKm: null,
       longestTripKm: null,
       averageSpeedKmh: null,
+      counter: null,
     })
+  })
+
+  it('sums the counter over the trips that report it, with their distance only', () => {
+    const summary = periodSummary([
+      logEntry({ counterUsed: 255 }),
+      logEntry({ id: 2, odometerStartKm: null, distanceKm: 17.5, counterUsed: 110 }),
+      logEntry({ id: 3, distanceKm: 12, odometerStartKm: null, counterUsed: null }),
+    ])
+
+    expect(summary.counter?.counter).toBeCloseTo(365)
+    expect(summary.counter?.distanceKm).toBeCloseTo(60)
+  })
+})
+
+describe('tripFuel', () => {
+  it("reads a hybrid's counter as litres over the odometer distance", () => {
+    // 2.55 L over the 42.5 km on the odometer.
+    const fuel = tripFuel(logEntry({ counterUsed: 255 }), 'hev')
+
+    expect(fuel?.litres).toBeCloseTo(2.55)
+    expect(fuel?.litresPer100Km).toBeCloseTo(6)
+  })
+
+  it('leaves the consumption out on a trip too short for it to mean anything', () => {
+    const fuel = tripFuel(
+      logEntry({ odometerStartKm: null, odometerEndKm: null, distanceKm: 0.4, counterUsed: 3 }),
+      'hev',
+    )
+
+    expect(fuel).toEqual({ litres: 0.03, litresPer100Km: null })
+  })
+
+  it('shows no fuel on a car whose counter holds energy, or without readings', () => {
+    expect(tripFuel(logEntry({ counterUsed: 255 }), 'bev')).toBeNull()
+    expect(tripFuel(logEntry({ counterUsed: 255 }), 'phev')).toBeNull()
+    expect(tripFuel(logEntry({ counterUsed: null }), 'hev')).toBeNull()
+    expect(tripFuel(logEntry(), 'hev')).toBeNull()
   })
 })
 

@@ -48,6 +48,9 @@ public sealed class DemoTripRepository : ITripRepository
     // Every demo trip carries its fixes, so there is nothing to fill in.
     public Task<int> FillSpeedFiguresAsync(int batchSize, CancellationToken ct = default) => Task.FromResult(0);
 
+    // Every demo trip carries what it used (DemoTrips), so there is nothing to fill in.
+    public Task<int> FillCounterUseAsync(int batchSize, CancellationToken ct = default) => Task.FromResult(0);
+
     // The demo's fixed timeline ends with the trip it is driving, whatever the clock says.
     public Task<TripDto?> GetLatestAsync(int vehicleId, DateTime now, CancellationToken ct = default) =>
         Task.FromResult<TripDto?>(DemoTrips.All.Count > 0 ? DemoTrips.All[^1] with { Index = 0 } : null);
@@ -167,6 +170,7 @@ public sealed class DemoTripRepository : ITripRepository
                 MaxSpeedKmh = joined.MaxSpeedKmh,
                 AvgMovingSpeedKmh = joined.AvgMovingSpeedKmh,
                 PhoneFusionAt = joined.PhoneFusionAt,
+                CounterUsed = joined.CounterUsed,
             };
             _log[id] = merged;
             _log.Remove(second.Id);
@@ -194,7 +198,7 @@ public sealed class DemoTripRepository : ITripRepository
             CurrentPoints(entry.Id),
             edited ? RecordedPoints(entry.Id) : null,
             entry.IsHidden, entry.Notes, entry.Purpose, _manual.Contains(entry.Id),
-            PhoneFusion: null, entry.PhoneFusionAt, edited ? route.At : null);
+            PhoneFusion: null, entry.PhoneFusionAt, edited ? route.At : null, entry.CounterUsed);
     }
 
     public async IAsyncEnumerable<TripRoute> GetRoutesAsync(int vehicleId, DateTime from, DateTime to, [EnumeratorCancellation] CancellationToken ct = default)

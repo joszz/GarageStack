@@ -5,6 +5,8 @@ import type { PeriodSummary } from '@/utils/tripLog'
 import { formatDurationMs } from '@/utils/tripRows'
 import type { Measure } from '@/utils/units'
 import { useUnits } from '@/composables/useUnits'
+import { useVehicleStore } from '@/stores/vehicle'
+import { efficiency, energyUnit, litres, MIN_EFFICIENCY_DISTANCE_KM } from '@/utils/energy'
 import DetailModal from './DetailModal.vue'
 
 const props = defineProps<{
@@ -17,6 +19,26 @@ const emit = defineEmits<{ (e: 'close'): void }>()
 
 const { t } = useI18n()
 const units = useUnits()
+const vehicleStore = useVehicleStore()
+
+// Only a plain hybrid's counter holds fuel, so only a hybrid's period shows what it burned.
+const fuelFigures = computed(() => {
+  const used = props.summary.counter
+  if (!used || energyUnit(vehicleStore.effectiveVehicleType) !== 'litres') return []
+  const consumption = efficiency(used, 'litres')
+  return [
+    {
+      key: 'fuelUsed',
+      icon: 'gas-pump',
+      ...measured(units.value.measure('volume', litres(used.counter))),
+    },
+    {
+      key: 'consumption',
+      icon: 'leaf',
+      ...measured(consumption && units.value.measure(consumption.quantity, consumption.metric)),
+    },
+  ]
+})
 
 function measured(m: Measure | null) {
   return { value: m?.value ?? null, unit: m?.unit ?? '' }
@@ -48,10 +70,13 @@ const figures = computed(() => {
       icon: 'gauge',
       ...measured(units.value.measure('speed', s.averageSpeedKmh, { decimals: 0 })),
     },
+    ...fuelFigures.value,
   ].map((figure) => ({
     ...figure,
     label: t(`tripLog.summary.${figure.key}`),
-    description: t(`tripLog.cardDesc.${figure.key}`),
+    description: t(`tripLog.cardDesc.${figure.key}`, {
+      min: units.value.format('distance', MIN_EFFICIENCY_DISTANCE_KM, { decimals: 0 }),
+    }),
   }))
 })
 </script>

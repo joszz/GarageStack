@@ -917,6 +917,8 @@
       "averageTrip": "Average trip",
       "longestTrip": "Longest trip",
       "averageSpeed": "Average speed",
+      "fuelUsed": "Fuel used",
+      "consumption": "Average consumption",
       "open": "Show driving time, average and longest trip, and average speed"
     },
     "cardDesc": {
@@ -928,7 +930,9 @@
       "drivingTime": "The time from departure to arrival, added up over every trip in this period. Stops in traffic count; the time parked between trips does not.",
       "averageTrip": "The period's distance divided by the number of trips.",
       "longestTrip": "The distance of the longest single trip in this period.",
-      "averageSpeed": "The period's distance divided by the driving time, so stops in traffic and at lights lower it. A trip's own average speed in its details uses the speeds the car reported while moving instead."
+      "averageSpeed": "The period's distance divided by the driving time, so stops in traffic and at lights lower it. A trip's own average speed in its details uses the speeds the car reported while moving instead.",
+      "fuelUsed": "The fuel the car's trip computer counted over the trips in this period. Trips it sent no readings for are left out.",
+      "consumption": "The fuel used over the distance of the same trips. Lower is better. Shown once those trips cover at least {min}."
     },
     "detail": {
       "title": "Trip details",
@@ -939,6 +943,10 @@
       "averageSpeed": "Avg speed",
       "averageSpeedHint": "The mean of the speeds the car reported while moving",
       "topSpeed": "Top speed",
+      "fuelUsed": "Fuel used",
+      "fuelUsedHint": "What the car's trip computer counted from leaving until it had parked",
+      "consumption": "Consumption",
+      "consumptionHint": "The fuel used over the trip's distance. Left out on a trip shorter than 1 km, where it is mostly rounding.",
       "speed": "Speed",
       "speedChart": "Speed during the trip"
     },
@@ -966,6 +974,7 @@
       "odometerStart": "Odometer start ({unit})",
       "odometerEnd": "Odometer end ({unit})",
       "distance": "Distance ({unit})",
+      "fuel": "Fuel ({unit})",
       "purpose": "Purpose",
       "notes": "Notes"
     },

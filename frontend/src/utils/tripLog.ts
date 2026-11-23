@@ -3,6 +3,14 @@ import { TRIP_PURPOSES, type TripLogEntry, type TripPurpose } from '@/services/t
 import { coordinateLabel, postalAddressLabel } from '@/utils/places'
 import { pad2 } from '@/utils/dates'
 import { formatDate } from '@/utils/format'
+import type { VehicleType } from '@/services/vehicleApi'
+import {
+  addCounterOverDistance,
+  energyUnit,
+  litres,
+  litresPer100Km,
+  type CounterOverDistance,
+} from '@/utils/energy'
 
 /**
  * The rules of the trip log that do not need a component: which dates a period covers, which
@@ -140,6 +148,41 @@ export function tripDurationMs(entry: TripLogEntry): number {
   return Math.max(0, Date.parse(entry.endedAt) - Date.parse(entry.startedAt))
 }
 
+/**
+ * Below this distance a trip's consumption is mostly the counter's rounding: it counts fuel in
+ * hundredths of a litre, so 0.01 L on a 300 m trip already reads as 3.3 L/100 km.
+ */
+export const MIN_TRIP_CONSUMPTION_KM = 1
+
+/** What a trip's day counter rose by, over the distance the log counts it for. */
+export function tripCounterOverDistance(entry: TripLogEntry): CounterOverDistance | null {
+  const counter = entry.counterUsed ?? null
+  return counter === null ? null : { counter, distanceKm: loggedDistanceKm(entry) }
+}
+
+/** What a plain hybrid burned on a trip, in litres and per 100 km. */
+export interface TripFuel {
+  litres: number
+  /** Null over a trip too short for it to mean anything. */
+  litresPer100Km: number | null
+}
+
+/**
+ * The fuel a trip burned, read off a plain hybrid's fuel counter. Null on any other drivetrain,
+ * whose counter holds energy rather than fuel, and on a trip without counter readings.
+ */
+export function tripFuel(entry: TripLogEntry, vehicleType: VehicleType): TripFuel | null {
+  const used = tripCounterOverDistance(entry)
+  if (used === null || energyUnit(vehicleType) !== 'litres') return null
+  return {
+    litres: litres(used.counter) ?? 0,
+    litresPer100Km:
+      used.distanceKm >= MIN_TRIP_CONSUMPTION_KM
+        ? litresPer100Km(used.counter, used.distanceKm)
+        : null,
+  }
+}
+
 /** What the period's trips add up to, all purposes together. */
 export interface PeriodSummary {
   trips: number
@@ -150,14 +193,18 @@ export interface PeriodSummary {
   longestTripKm: number | null
   /** The distance over the time spent driving it, stops at lights and in traffic included. */
   averageSpeedKmh: number | null
+  /** The day counter's rise over the trips that report it, with their distance; null without any. */
+  counter: CounterOverDistance | null
 }
 
 export function periodSummary(entries: readonly TripLogEntry[]): PeriodSummary {
   let km = 0
   let drivingMs = 0
   let longest: number | null = null
+  let counter: CounterOverDistance | null = null
   for (const entry of entries) {
     const distance = loggedDistanceKm(entry)
+    counter = addCounterOverDistance(counter, tripCounterOverDistance(entry))
     km += distance
     drivingMs += tripDurationMs(entry)
     longest = longest === null ? distance : Math.max(longest, distance)
@@ -170,6 +217,7 @@ export function periodSummary(entries: readonly TripLogEntry[]): PeriodSummary {
     averageTripKm: trips > 0 ? km / trips : null,
     longestTripKm: longest,
     averageSpeedKmh: drivingMs > 0 ? km / (drivingMs / 3_600_000) : null,
+    counter,
   }
 }
 

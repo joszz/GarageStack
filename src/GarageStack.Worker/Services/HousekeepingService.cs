@@ -9,8 +9,8 @@ namespace GarageStack.Worker.Services;
 /// Keeps the database from growing without end. Compacts each vehicle's old telemetry with
 /// <see cref="TelemetryCompactor"/>, and removes cached place names and snapped trips that have
 /// expired, notifications the user deleted a while ago, and phone positions from the app once
-/// <see cref="PhonePosition.KeptFor"/> has passed. Also works out the speed figures of
-/// trips saved before those were stored with the trip. Cached map POIs stay: the map shows an
+/// <see cref="PhonePosition.KeptFor"/> has passed. Also works out the speed figures and the
+/// counter use of trips saved before those were stored with the trip. Cached map POIs stay: the map shows an
 /// expired tile's stations while it fetches the tile again.
 /// </summary>
 public class HousekeepingService(
@@ -30,6 +30,9 @@ public class HousekeepingService(
 
     // Trips per save while filling in speed figures: each one reads its fixes.
     internal const int SpeedFigureBatch = 200;
+
+    // Trips per save while filling in counter use: each one reads its counter readings.
+    internal const int CounterUseBatch = 200;
 
     protected override string Name => "Housekeeping";
 
@@ -64,6 +67,16 @@ public class HousekeepingService(
         while (filled == SpeedFigureBatch);
         if (totalFilled > 0)
             logger.LogInformation("Worked out speed figures for {Count} trip(s) saved before they were stored", totalFilled);
+
+        totalFilled = 0;
+        do
+        {
+            filled = await trips.FillCounterUseAsync(CounterUseBatch, ct);
+            totalFilled += filled;
+        }
+        while (filled == CounterUseBatch);
+        if (totalFilled > 0)
+            logger.LogInformation("Worked out the counter use of {Count} trip(s) saved before it was stored", totalFilled);
 
         var expired = await housekeeping.RemoveExpiredCacheEntriesAsync(now - ExpiredCacheGrace, ct);
         var deleted = await housekeeping.RemoveDeletedNotificationsAsync(now - DeletedNotificationsKept, ct);

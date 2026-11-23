@@ -29,6 +29,13 @@ public interface ITripRepository
     Task<int> FillSpeedFiguresAsync(int batchSize, CancellationToken ct = default);
 
     /// <summary>
+    /// Works out what the day counter rose by over up to <paramref name="batchSize"/> saved trips
+    /// that have not been looked at yet, trips saved before <see cref="Trip.CounterUsed"/> was
+    /// stored. Returns how many it did; fewer than the batch means none are left.
+    /// </summary>
+    Task<int> FillCounterUseAsync(int batchSize, CancellationToken ct = default);
+
+    /// <summary>
     /// The vehicle's newest trip at <paramref name="now"/>: the one being driven or finished but not
     /// saved yet when there is one, otherwise the newest saved trip. Null when it has none.
     /// </summary>
