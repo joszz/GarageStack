@@ -68,6 +68,22 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
         int vehicleId, DateTime from, DateTime to, CancellationToken ct = default) =>
         Task.FromResult<IReadOnlyList<double>>([]);
 
+    // The demo trips' own fixes, at a height made up from where they are: a gentle rise and fall
+    // of a few metres, as a drive in the Netherlands has, so the trip log shows a profile.
+    public Task<IReadOnlyList<ElevationReading>> GetElevationsAsync(
+        int vehicleId, DateTime from, DateTime to, CancellationToken ct = default) =>
+        Task.FromResult<IReadOnlyList<ElevationReading>>(
+        [
+            .. DemoTrips.All
+                .SelectMany(t => t.Points)
+                .Where(p => p.Source is null && p.RecordedAt >= from && p.RecordedAt <= to)
+                .OrderBy(p => p.RecordedAt)
+                .Select(p => new ElevationReading(p.RecordedAt, DemoElevation(p.Latitude, p.Longitude))),
+        ]);
+
+    private static double DemoElevation(double latitude, double longitude) =>
+        Math.Round(4 + 3 * Math.Sin(latitude * 120) + 2 * Math.Cos(longitude * 90), 1);
+
     // Only the Worker's parked alerts weigh past polls, and demo mode runs no Worker.
     public Task<IReadOnlyList<StatusReading>> GetStatusReadingsAsync(int vehicleId, int count, CancellationToken ct = default) =>
         Task.FromResult<IReadOnlyList<StatusReading>>([]);

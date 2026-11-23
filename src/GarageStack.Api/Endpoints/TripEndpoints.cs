@@ -166,6 +166,26 @@ public static class TripEndpoints
         .Produces(StatusCodes.Status404NotFound)
         .WithSummary("Join a trip with the saved trip after it, such as two trips a fuel stop split");
 
+        // Read from the telemetry rather than kept with the trip, so a trip saved before this
+        // existed has its profile too, and the route editor never has to keep heights in step.
+        group.MapGet("/{id:long}/elevation", async (
+            HttpContext httpContext,
+            long id,
+            ITripRepository trips,
+            ITelemetryRepository telemetry,
+            CancellationToken ct) =>
+        {
+            var vehicle = httpContext.ResolvedVehicle();
+            if ((await trips.GetLogEntriesAsync(vehicle.Id, [id], ct)).SingleOrDefault() is not { } trip)
+                return Results.NotFound();
+            var readings = await telemetry.GetElevationsAsync(vehicle.Id, trip.StartedAt, trip.EndedAt, ct);
+            return Results.Ok(readings);
+        })
+        .Produces<ElevationReading[]>()
+        .Produces(StatusCodes.Status404NotFound)
+        .WithSummary("Get the height the car's GPS reported during a saved trip, for its elevation profile")
+        .WithDescription($"In metres above sea level, oldest first, at most {ElevationReading.MaxReadings} readings. Readings no road could be at, which a GPS without a fix sends, are left out. Empty when the car reports no height.");
+
         group.MapGet("/{id:long}/editor", async (
             HttpContext httpContext,
             long id,

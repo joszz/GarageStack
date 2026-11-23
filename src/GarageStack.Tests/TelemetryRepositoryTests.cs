@@ -669,6 +669,52 @@ public class TelemetryRepositoryTests
 
         Assert.Null(await new TelemetryRepository(db).GetChargingStopReasonAsync(vehicleId, ct));
     }
+
+    // ── Elevation ────────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task GetElevations_GivesTheTripsHeights_LeavingOutWhatNoRoadIsAt()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var db = CreateDb();
+        var vehicle = new Vehicle { Vin = "FAKEVN00000000001" };
+        db.Vehicles.Add(vehicle);
+        await db.SaveChangesAsync(ct);
+        var t0 = new DateTime(2026, 1, 1, 10, 0, 0, DateTimeKind.Utc);
+        db.TelemetrySnapshots.AddRange(
+            new TelemetrySnapshot { VehicleId = vehicle.Id, RecordedAt = t0.AddMinutes(-5), Elevation = 3 },
+            new TelemetrySnapshot { VehicleId = vehicle.Id, RecordedAt = t0.AddMinutes(4), Elevation = 18.5 },
+            new TelemetrySnapshot { VehicleId = vehicle.Id, RecordedAt = t0, Elevation = 2.5 },
+            new TelemetrySnapshot { VehicleId = vehicle.Id, RecordedAt = t0.AddMinutes(2), Elevation = -9999 },
+            new TelemetrySnapshot { VehicleId = vehicle.Id, RecordedAt = t0.AddMinutes(3), BatteryVoltage = 12.6 },
+            new TelemetrySnapshot { VehicleId = vehicle.Id + 1, RecordedAt = t0.AddMinutes(1), Elevation = 40 });
+        await db.SaveChangesAsync(ct);
+
+        var heights = await new TelemetryRepository(db).GetElevationsAsync(vehicle.Id, t0, t0.AddMinutes(10), ct);
+
+        Assert.Equal([new ElevationReading(t0, 2.5), new ElevationReading(t0.AddMinutes(4), 18.5)], heights);
+    }
+
+    [Fact]
+    public async Task GetElevations_ThinsALongTripOut_KeepingItsLastReading()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var db = CreateDb();
+        var vehicle = new Vehicle { Vin = "FAKEVN00000000001" };
+        db.Vehicles.Add(vehicle);
+        await db.SaveChangesAsync(ct);
+        var t0 = new DateTime(2026, 1, 1, 10, 0, 0, DateTimeKind.Utc);
+        var count = ElevationReading.MaxReadings * 2 + 1;
+        db.TelemetrySnapshots.AddRange(Enumerable.Range(0, count).Select(i =>
+            new TelemetrySnapshot { VehicleId = vehicle.Id, RecordedAt = t0.AddSeconds(i * 10), Elevation = i % 50 }));
+        await db.SaveChangesAsync(ct);
+
+        var heights = await new TelemetryRepository(db).GetElevationsAsync(vehicle.Id, t0, t0.AddDays(1), ct);
+
+        Assert.True(heights.Count <= ElevationReading.MaxReadings + 1);
+        Assert.Equal(t0, heights[0].RecordedAt);
+        Assert.Equal(t0.AddSeconds((count - 1) * 10), heights[^1].RecordedAt);
+    }
 }
 
 // ── MergeIntoAsync tests ─────────────────────────────────────────────────────

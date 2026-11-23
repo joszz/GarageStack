@@ -104,7 +104,7 @@ export function resolveUnits(settings: Readonly<UnitSettings>, region: Region): 
 
 /**
  * Something the API measures, each always in one metric unit: kilometres, km/h, Wh/km, km per
- * percent of the tank, bar, degrees Celsius, L/100 km and litres respectively. The energy
+ * percent of the tank, bar, degrees Celsius, L/100 km, litres and metres respectively. The energy
  * consumption preference only changes how the canonical Wh/km value is presented.
  */
 export type Quantity =
@@ -116,6 +116,7 @@ export type Quantity =
   | 'temperature'
   | 'fuelConsumption'
   | 'volume'
+  | 'elevation'
 
 interface UnitDefinition {
   /** i18n key of the unit's symbol. */
@@ -134,6 +135,7 @@ interface UnitDefinition {
 
 // Exact by definition, apart from psi, which is derived from the pound and the inch.
 const KM_PER_MILE = 1.609344
+const METRES_PER_FOOT = 0.3048
 const PSI_PER_BAR = 14.503_773_8
 const KPA_PER_BAR = 100
 const LITRES_PER_UK_GALLON = 4.546_09
@@ -220,6 +222,13 @@ const VOLUME: Record<FuelConsumptionUnit, UnitDefinition> = {
   mpgUs: scaled('units.gallon', 1 / LITRES_PER_US_GALLON, 2),
 }
 
+// A height goes with the distance: metres beside kilometres, feet beside miles, as road signs and
+// maps have them.
+const ELEVATION: Record<DistanceUnit, UnitDefinition> = {
+  km: scaled('units.metre', 1, 0),
+  mi: scaled('units.foot', 1 / METRES_PER_FOOT, 0),
+}
+
 const UNIT_OF: { [Q in Quantity]: (preferences: UnitPreferences) => UnitDefinition } = {
   distance: (p) => DISTANCE[p.distance],
   speed: (p) => SPEED[p.distance],
@@ -229,6 +238,7 @@ const UNIT_OF: { [Q in Quantity]: (preferences: UnitPreferences) => UnitDefiniti
   temperature: (p) => TEMPERATURE[p.temperature],
   fuelConsumption: (p) => FUEL_CONSUMPTION[p.fuelConsumption],
   volume: (p) => VOLUME[p.fuelConsumption],
+  elevation: (p) => ELEVATION[p.distance],
 }
 
 /** A value ready to show: the rounded number and its unit, kept apart for cards that style them apart. */

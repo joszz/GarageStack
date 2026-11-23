@@ -844,6 +844,8 @@
     "mpg": "mpg",
     "litre": "L",
     "gallon": "gal",
+    "metre": "m",
+    "foot": "ft",
     "lowerIsBetter": "más bajo es mejor",
     "higherIsBetter": "más alto es mejor"
   },
@@ -956,7 +958,9 @@
       "consumption": "Consumo",
       "consumptionHint": "El combustible usado sobre la distancia del viaje. Se omite en un viaje de menos de 1 km, donde es sobre todo redondeo.",
       "speed": "Velocidad",
-      "speedChart": "Velocidad durante el viaje"
+      "speedChart": "Velocidad durante el viaje",
+      "elevation": "Altitud",
+      "elevationChart": "Altitud durante el viaje"
     },
     "purposeLabel": "Propósito",
     "purpose": {

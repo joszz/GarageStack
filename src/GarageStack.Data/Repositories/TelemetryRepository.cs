@@ -406,6 +406,32 @@ public class TelemetryRepository(
         return before is { } first ? [first, .. during] : during;
     }
 
+    public async Task<IReadOnlyList<ElevationReading>> GetElevationsAsync(
+        int vehicleId, DateTime from, DateTime to, CancellationToken ct = default)
+    {
+        var rows = await db.TelemetrySnapshots
+            .AsNoTracking()
+            .Where(s => s.VehicleId == vehicleId && s.RecordedAt >= from && s.RecordedAt <= to
+                        && s.Elevation >= ElevationReading.LowestRoadM && s.Elevation <= ElevationReading.HighestRoadM)
+            .OrderBy(s => s.RecordedAt)
+            .Select(s => new ElevationReading(s.RecordedAt, s.Elevation!.Value))
+            // A bound on what is read for a trip that ran on for days on a stuck sensor.
+            .Take(ElevationReading.MaxReadings * 4)
+            .ToListAsync(ct);
+        return Stride(rows, ElevationReading.MaxReadings);
+    }
+
+    // Every n-th reading so at most `max` are left, the last one kept: a profile needs its shape,
+    // not every fix, and an hour-long trip already fits.
+    private static List<ElevationReading> Stride(List<ElevationReading> readings, int max)
+    {
+        if (readings.Count <= max) return readings;
+        var step = (readings.Count + max - 1) / max;
+        var kept = readings.Where((_, i) => i % step == 0).ToList();
+        if (kept[^1] != readings[^1]) kept.Add(readings[^1]);
+        return kept;
+    }
+
     // See DayDistance. Readings that start inside the window (a fresh install) start from the
     // first odometer reading there is. One query for a car whose counter is sane.
     private async Task<double?> CheckDayDistanceAsync(

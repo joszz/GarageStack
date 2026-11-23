@@ -35,6 +35,7 @@ const QUANTITIES: Quantity[] = [
   'temperature',
   'fuelConsumption',
   'volume',
+  'elevation',
 ]
 
 describe('UnitFormatter', () => {
@@ -104,6 +105,11 @@ describe('UnitFormatter', () => {
   it('counts fuel in the gallon the consumption is quoted in', () => {
     expect(formatter({ fuelConsumption: 'mpgUk' }).format('volume', 4.54609)).toBe('1.00 gal')
     expect(formatter({ fuelConsumption: 'mpgUs' }).format('volume', 3.785411784)).toBe('1.00 gal')
+  })
+
+  it('gives a height in metres beside kilometres and in feet beside miles', () => {
+    expect(formatter().format('elevation', 312.4)).toBe('312 m')
+    expect(formatter({ distance: 'mi' }).format('elevation', 304.8)).toBe('1000 ft')
   })
 
   it('knows mpg counts the other way round from L/100 km', () => {

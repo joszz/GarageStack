@@ -3219,6 +3219,63 @@
         ]
       }
     },
+    "/api/vehicles/{vin}/trips/{id}/elevation": {
+      "get": {
+        "tags": [
+          "Trips"
+        ],
+        "summary": "Get the height the car's GPS reported during a saved trip, for its elevation profile",
+        "description": "In metres above sea level, oldest first, at most 2000 readings. Readings no road could be at, which a GPS without a fix sends, are left out. Empty when the car reports no height.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ElevationReading"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "401": {
+            "description": "Not signed in, or the API token is unknown or revoked."
+          },
+          "429": {
+            "description": "Too many requests from this address; wait a minute and try again."
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          }
+        ],
+        "x-badges": [
+          {
+            "name": "Read-only token"
+          }
+        ]
+      }
+    },
     "/api/vehicles/{vin}/trips/{id}/editor": {
       "get": {
         "tags": [
@@ -7849,6 +7906,24 @@
             ]
           }
         }
+      },
+      "ElevationReading": {
+        "required": [
+          "recordedAt",
+          "elevationM"
+        ],
+        "type": "object",
+        "properties": {
+          "recordedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "elevationM": {
+            "type": "number",
+            "format": "double"
+          }
+        },
+        "description": "The height above sea level the car's GPS reported at one moment, in metres."
       },
       "GatewayStatus": {
         "required": [

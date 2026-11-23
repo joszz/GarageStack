@@ -844,6 +844,8 @@
     "mpg": "mpg",
     "litre": "L",
     "gallon": "gal",
+    "metre": "m",
+    "foot": "ft",
     "lowerIsBetter": "lager beter is",
     "higherIsBetter": "hoger beter is"
   },
@@ -956,7 +958,9 @@
       "consumption": "Verbruik",
       "consumptionHint": "De verbruikte brandstof over de afstand van de rit. Weggelaten bij een rit korter dan 1 km, waar het vooral afronding is.",
       "speed": "Snelheid",
-      "speedChart": "Snelheid tijdens de rit"
+      "speedChart": "Snelheid tijdens de rit",
+      "elevation": "Hoogte",
+      "elevationChart": "Hoogte tijdens de rit"
     },
     "purposeLabel": "Doel",
     "purpose": {

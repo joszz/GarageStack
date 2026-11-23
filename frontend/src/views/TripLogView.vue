@@ -32,6 +32,7 @@ import { useUnits } from '@/composables/useUnits'
 import { useErrorMessage } from '@/composables/useErrorMessage'
 import { useMediaQuery } from '@/composables/useMediaQuery'
 import { useTripRoute } from '@/composables/useTripRoute'
+import { useTripElevation } from '@/composables/useTripElevation'
 import { useRoomBelow } from '@/composables/useRoomBelow'
 import { useReconnect } from '@/composables/useReconnect'
 import { useConnection } from '@/composables/useConnection'
@@ -125,6 +126,7 @@ const selected = computed(() => {
 })
 
 const route = useTripRoute(vin, selected)
+const elevation = useTripElevation(vin, selected)
 
 // The panel starts below the totals, so it is kept from reaching past the bottom of the window
 // until the page scrolls it up; what does not fit scrolls inside it.
@@ -145,6 +147,7 @@ const detail = computed(() => {
       routePoints: route.points.value,
       routeLoading: route.loading.value,
       routeError: route.error.value,
+      elevation: elevation.value,
       placesShown: placesShown.value,
       placesResolving: store.placesResolving,
       saving: store.saving.has(entry.id),
