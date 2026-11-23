@@ -303,12 +303,12 @@ describe('useUiSettingsStore', () => {
       }
     }
 
-    it('paints the car red until another colour is chosen', () => {
+    it('paints the car orange until another colour is chosen', () => {
       const store = useUiSettingsStore()
 
-      expect(store.carColorScheme).toBe('red')
+      expect(store.carColorScheme).toBe('orange')
       expect(store.carCustomColors).toBeNull()
-      expect(paint()).toStrictEqual({ primary: '#d93030', secondary: '#b01f24' })
+      expect(paint()).toStrictEqual({ primary: '#f9b233', secondary: '#f39200' })
     })
 
     it('paints the document in a chosen preset at once', async () => {
@@ -359,7 +359,7 @@ describe('useUiSettingsStore', () => {
       const store = useUiSettingsStore()
       expect(store.carCustomColors).toBeNull()
       // Custom without a pair falls back to the default paints rather than none.
-      expect(store.carColors).toStrictEqual({ primary: '#d93030', secondary: '#b01f24' })
+      expect(store.carColors).toStrictEqual({ primary: '#f9b233', secondary: '#f39200' })
     })
 
     it('keeps stored custom colours in lower case', () => {
@@ -374,29 +374,53 @@ describe('useUiSettingsStore', () => {
       })
     })
 
-    it('falls back to red for a scheme it does not know', () => {
+    it('falls back to orange for a scheme it does not know', () => {
       localStorage.setItem(UI_KEY, JSON.stringify({ carColorScheme: 'tartan' }))
 
-      expect(useUiSettingsStore().carColorScheme).toBe('red')
+      expect(useUiSettingsStore().carColorScheme).toBe('orange')
     })
 
-    // Orange was the default, so it is also stored for every car that never had a colour chosen.
-    it.each([
-      ['orange', { primary: '#f9b233', secondary: '#f39200' }],
-      ['purple', { primary: '#9348c4', secondary: '#6d2d9b' }],
-    ])('keeps a car stored on the retired %s preset looking as it did', (scheme, paints) => {
+    it('keeps a car stored on the retired purple preset looking as it did', () => {
+      const purple = { primary: '#9348c4', secondary: '#6d2d9b' }
       localStorage.setItem(
         UI_KEY,
         JSON.stringify({
-          carColorScheme: scheme,
+          carColorScheme: 'purple',
           carCustomColors: { primary: '#000000', secondary: '#000000' },
         }),
       )
 
       const store = useUiSettingsStore()
       expect(store.carColorScheme).toBe('custom')
-      expect(store.carCustomColors).toStrictEqual(paints)
-      expect(paint()).toStrictEqual(paints)
+      expect(store.carCustomColors).toStrictEqual(purple)
+      expect(paint()).toStrictEqual(purple)
+    })
+
+    // While orange was retired, every car on it (the default) was moved to custom orange.
+    it("puts a car on custom colours in exactly a preset's paints back on that preset", () => {
+      localStorage.setItem(
+        UI_KEY,
+        JSON.stringify({
+          carColorScheme: 'custom',
+          carCustomColors: { primary: '#f9b233', secondary: '#f39200' },
+        }),
+      )
+
+      const store = useUiSettingsStore()
+      expect(store.carColorScheme).toBe('orange')
+      expect(paint()).toStrictEqual({ primary: '#f9b233', secondary: '#f39200' })
+    })
+
+    it('keeps custom colours that only come close to a preset', () => {
+      const almost = { primary: '#f9b233', secondary: '#f39201' }
+      localStorage.setItem(
+        UI_KEY,
+        JSON.stringify({ carColorScheme: 'custom', carCustomColors: almost }),
+      )
+
+      const store = useUiSettingsStore()
+      expect(store.carColorScheme).toBe('custom')
+      expect(store.carCustomColors).toStrictEqual(almost)
     })
 
     it('moves each car on a retired preset to custom on its own', () => {
@@ -423,7 +447,7 @@ describe('useUiSettingsStore', () => {
     it('does not mistake an inherited property name for a retired preset', () => {
       localStorage.setItem(UI_KEY, JSON.stringify({ carColorScheme: 'constructor' }))
 
-      expect(useUiSettingsStore().carColorScheme).toBe('red')
+      expect(useUiSettingsStore().carColorScheme).toBe('orange')
     })
   })
 

@@ -157,7 +157,7 @@
      theme puts behind it and darker than anything light theme does, so a black car on the dark
      card and a white one on the light card both keep an edge. --car-primary and --car-secondary
      are set on the document by the settings (settingsUi). */
-  --car-outline: oklch(from var(--car-secondary, #b01f24) 62% min(c, 0.1) h);
+  --car-outline: oklch(from var(--car-secondary, #f39200) 62% min(c, 0.1) h);
 }
 
 @media (prefers-reduced-transparency: reduce) {
@@ -205,7 +205,7 @@
   --chart-grid: var(--color-border);
   --shadow-card: 0 1px 2px rgb(16 24 40 / 5%), 0 1px 3px rgb(16 24 40 / 8%);
   --field-caret: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 320 512'%3E%3Cpath fill='%235a6a7e' d='M31.3 192h257.3c17.8 0 26.7 21.5 14.1 34.1L174.1 354.8c-7.8 7.8-20.5 7.8-28.3 0L17.2 226.1C4.6 213.5 13.5 192 31.3 192z'/%3E%3C/svg%3E");
-  --car-outline: oklch(from var(--car-secondary, #b01f24) 32% min(c, 0.1) h);
+  --car-outline: oklch(from var(--car-secondary, #f39200) 32% min(c, 0.1) h);
 }
 
 *,
@@ -741,11 +741,11 @@ body,
 /* ── Car SVG illustration classes ────────────────────────── */
 
 .car-svg-body {
-  fill: var(--car-primary, #d93030);
+  fill: var(--car-primary, #f9b233);
 }
 
 .car-svg-accent {
-  fill: var(--car-secondary, #b01f24);
+  fill: var(--car-secondary, #f39200);
 }
 
 .car-svg-detail {

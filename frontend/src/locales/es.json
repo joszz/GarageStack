@@ -652,6 +652,7 @@
     "carColor": {
       "title": "Color del coche",
       "desc": "Cómo se dibuja el coche en el panel y en el mapa.",
+      "orange": "Naranja",
       "red": "Rojo",
       "blue": "Azul",
       "silver": "Plata",

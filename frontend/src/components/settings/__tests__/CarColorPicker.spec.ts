@@ -25,11 +25,11 @@ const swatch = (wrapper: ReturnType<typeof render>, name: string) =>
   wrapper.get(`button[aria-label="${name}"]`)
 
 describe('CarColorPicker', () => {
-  it('offers the seven presets and a custom choice, with the current one pressed', () => {
+  it('offers the eight presets and a custom choice, with the current one pressed', () => {
     const wrapper = render()
 
-    expect(wrapper.findAll('button.car-color-swatch')).toHaveLength(8)
-    expect(swatch(wrapper, 'Red').attributes('aria-pressed')).toBe('true')
+    expect(wrapper.findAll('button.car-color-swatch')).toHaveLength(9)
+    expect(swatch(wrapper, 'Orange').attributes('aria-pressed')).toBe('true')
     expect(swatch(wrapper, 'Black').attributes('aria-pressed')).toBe('false')
   })
 
@@ -40,7 +40,7 @@ describe('CarColorPicker', () => {
     await swatch(wrapper, 'Your own colours').trigger('click')
 
     const inputs = wrapper.findAll<HTMLInputElement>('input[type=color]')
-    expect(inputs.map((i) => i.element.value)).toStrictEqual(['#d93030', '#b01f24'])
+    expect(inputs.map((i) => i.element.value)).toStrictEqual(['#f9b233', '#f39200'])
     expect(wrapper.text()).toContain('Primary colour')
     expect(wrapper.text()).toContain('Secondary colour')
 
@@ -55,7 +55,7 @@ describe('CarColorPicker', () => {
     await wrapper.findAll('input[type=color]')[1]!.setValue('#00ff00')
 
     expect(useUiSettingsStore(pinia).carCustomColors).toStrictEqual({
-      primary: '#d93030',
+      primary: '#f9b233',
       secondary: '#00ff00',
     })
   })
@@ -68,6 +68,6 @@ describe('CarColorPicker', () => {
     await custom().trigger('click')
 
     expect(custom().classes()).not.toContain('car-color-swatch--unset')
-    expect(custom().attributes('style')).toContain('--swatch-p: #d93030')
+    expect(custom().attributes('style')).toContain('--swatch-p: #f9b233')
   })
 })
