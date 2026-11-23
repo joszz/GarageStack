@@ -986,6 +986,11 @@
       "purpose": "Propósito",
       "notes": "Notas"
     },
+    "gpx": {
+      "download": "GPX",
+      "hint": "Guardar la ruta como archivo GPX, para un planificador de rutas, una app deportiva o geoetiquetar fotos",
+      "name": "{date}: de {from} a {to}"
+    },
     "places": {
       "title": "Hogar y trabajo",
       "addTitle": "Añadir lugar",

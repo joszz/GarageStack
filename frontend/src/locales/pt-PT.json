@@ -986,6 +986,11 @@
       "purpose": "Finalidade",
       "notes": "Observações"
     },
+    "gpx": {
+      "download": "GPX",
+      "hint": "Guardar o percurso como ficheiro GPX, para um planeador de percursos, uma app de desporto ou georreferenciar fotografias",
+      "name": "{date}: de {from} a {to}"
+    },
     "places": {
       "title": "Casa e trabalho",
       "addTitle": "Adicionar um local",

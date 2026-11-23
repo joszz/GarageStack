@@ -28,6 +28,8 @@ import ChipGroup from './ChipGroup.vue'
 import StatsChartCard from './StatsChartCard.vue'
 import TripRouteMap from './TripRouteMap.vue'
 import { useConnection } from '@/composables/useConnection'
+import { tripGpx, tripGpxFileName } from '@/utils/gpx'
+import { downloadGpx } from '@/utils/download'
 
 const props = defineProps<{
   entry: TripLogEntry
@@ -200,6 +202,21 @@ function saveNotes() {
 }
 
 const notesId = computed(() => `trip-log-notes-${props.entry.id}`)
+
+// The route as the preview draws it, fixes the phone added and points placed by hand included.
+// It is built from what the page already holds, so it downloads without the server too.
+const canDownloadGpx = computed(() => (props.routePoints?.length ?? 0) > 1)
+
+function downloadRoute() {
+  const points = props.routePoints
+  if (!points || points.length < 2) return
+  const name = t('tripLog.gpx.name', {
+    date: formatDate(props.entry.startedAt),
+    from: from.value.label ?? '',
+    to: to.value.label ?? '',
+  })
+  downloadGpx(tripGpxFileName(props.entry.startedAt), tripGpx(name, points))
+}
 </script>
 
 <template>
@@ -337,9 +354,18 @@ const notesId = computed(() => `trip-log-notes-${props.entry.id}`)
     </section>
 
     <!-- Editing the route and opening it on the map are buttons on the route preview. -->
-    <div v-if="connection.reachable" class="trip-log-detail__actions">
+    <div v-if="connection.reachable || canDownloadGpx" class="trip-log-detail__actions">
       <button
-        v-if="canJoinNext"
+        v-if="canDownloadGpx"
+        type="button"
+        class="btn btn-outline-secondary btn-sm"
+        :title="t('tripLog.gpx.hint')"
+        @click="downloadRoute"
+      >
+        <font-awesome-icon icon="download" />{{ t('tripLog.gpx.download') }}
+      </button>
+      <button
+        v-if="connection.reachable && canJoinNext"
         type="button"
         class="btn btn-outline-secondary btn-sm"
         :disabled="saving"
@@ -349,6 +375,7 @@ const notesId = computed(() => `trip-log-notes-${props.entry.id}`)
         <font-awesome-icon icon="link" />{{ t('tripLog.joinNext') }}
       </button>
       <button
+        v-if="connection.reachable"
         type="button"
         class="btn btn-outline-secondary btn-sm trip-log-detail__hide"
         :disabled="saving"
