@@ -731,6 +731,8 @@
       "regionDesc": "Establece el orden de las fechas, y el reloj y las unidades que quedan en automático.",
       "clock": "Reloj",
       "clockDesc": "Cómo se escriben las horas del día.",
+      "currency": "Moneda",
+      "currencyDesc": "En qué se muestran los costes de mantenimiento. Cambiarla solo cambia el signo de los importes; no los convierte.",
       "clockOptions": {
         "h23": "24 horas ({example})",
         "h12": "12 horas ({example})"
@@ -1113,8 +1115,14 @@
     "logForm": {
       "performedAt": "Fecha de servicio",
       "odometer": "Odómetro ({unit})",
+      "cost": "Coste ({currency})",
       "notes": "Notas",
       "submit": "Servicio de registro"
+    },
+    "costs": {
+      "thisYear": "Gastado este año",
+      "note": "El año pasado {lastYear} · En total {allTime}",
+      "hint": "Lo que suman los mantenimientos que registraste con un coste, por el año en que se hicieron."
     },
     "status": {
       "unknown": "Aún no rastreado",
@@ -1224,7 +1232,8 @@
         "intervalKmOutOfRange": "El intervalo de distancia está fuera del rango que acepta GarageStack.",
         "intervalMonthsOutOfRange": "El intervalo de tiempo debe estar entre 1 y 120 meses.",
         "serviceDateInFuture": "La fecha del servicio no puede ser futura.",
-        "odometerNegative": "La lectura del odómetro no puede ser negativa."
+        "odometerNegative": "La lectura del odómetro no puede ser negativa.",
+        "costOutOfRange": "El coste debe estar entre 0 y 1.000.000, con dos decimales como mucho."
       },
       "climateSchedule": {
         "limitReached": "Cada coche puede tener hasta 20 programaciones.",

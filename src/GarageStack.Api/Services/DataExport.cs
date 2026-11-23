@@ -107,7 +107,7 @@ internal sealed class DataExport(
                     item.LastServiceDate,
                     item.LastServiceOdometerKm,
                     item.CreatedAt,
-                    history = history.Select(h => new { h.PerformedAt, h.OdometerKm, h.Notes, h.CreatedAt }),
+                    history = history.Select(h => new { h.PerformedAt, h.OdometerKm, h.Notes, h.Cost, h.CreatedAt }),
                 });
             }
             await ZipExport.WriteJsonAsync(zip, $"{folder}/maintenance.json", withHistory, ct);

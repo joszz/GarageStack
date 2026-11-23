@@ -3,6 +3,7 @@ import { setActivePinia, createPinia } from 'pinia'
 import { useMaintenanceStore } from '@/stores/maintenance'
 import { maintenanceItem } from '@/services/__tests__/maintenanceFixtures'
 import type {
+  MaintenanceCost,
   MaintenanceItem,
   MaintenanceLogEntry,
   LogMaintenanceServiceResponse,
@@ -17,6 +18,7 @@ vi.mock('@/services/maintenanceApi', () => ({
     listLog: vi.fn<() => Promise<MaintenanceLogEntry[]>>().mockResolvedValue([]),
     logService: vi.fn<() => Promise<LogMaintenanceServiceResponse>>(),
     deleteLogEntry: vi.fn<() => Promise<void>>().mockResolvedValue(undefined),
+    listCosts: vi.fn<() => Promise<MaintenanceCost[]>>().mockResolvedValue([]),
   },
 }))
 
@@ -84,6 +86,7 @@ describe('useMaintenanceStore', () => {
         performedAt: '2026-01-01',
         odometerKm: null,
         notes: null,
+        cost: null,
         createdAt: '2026-01-01',
       },
     ]
@@ -111,6 +114,7 @@ describe('useMaintenanceStore', () => {
         performedAt: '2026-07-10',
         odometerKm: 12000,
         notes: null,
+        cost: null,
         createdAt: '2026-07-10',
       },
     })
@@ -134,6 +138,32 @@ describe('useMaintenanceStore', () => {
     expect(store.overdueItems.map((i) => i.id)).toEqual([3])
     expect(store.dueSoonItems.map((i) => i.id)).toEqual([2])
     expect(store.attentionItems.map((i) => i.id)).toEqual([3, 2])
+  })
+
+  it("keeps the costs, and drops a deleted item's", async () => {
+    const { maintenanceApi } = await import('@/services/maintenanceApi')
+    vi.mocked(maintenanceApi.listCosts).mockResolvedValue([
+      { maintenanceItemId: 1, itemName: 'Oil', performedAt: '2026-03-01', cost: 89.95 },
+      { maintenanceItemId: 2, itemName: 'Tyres', performedAt: '2026-06-01', cost: 412 },
+    ])
+    const store = useMaintenanceStore()
+    await store.fetchCosts('VIN1')
+    expect(store.costs).toHaveLength(2)
+
+    await store.deleteItem('VIN1', 1)
+
+    expect(store.costs.map((c) => c.itemName)).toEqual(['Tyres'])
+  })
+
+  it('leaves the costs out when they cannot be read', async () => {
+    const { maintenanceApi } = await import('@/services/maintenanceApi')
+    vi.mocked(maintenanceApi.listCosts).mockRejectedValue(new Error('Network error'))
+    const store = useMaintenanceStore()
+
+    await store.fetchCosts('VIN1')
+
+    expect(store.costs).toEqual([])
+    expect(store.itemsError).toBeNull()
   })
 
   it('clears loading flag after fetch completes', async () => {

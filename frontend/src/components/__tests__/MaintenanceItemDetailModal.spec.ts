@@ -7,9 +7,11 @@ import MaintenanceItemDetailModal from '../MaintenanceItemDetailModal.vue'
 import {
   maintenanceApi,
   type LogMaintenanceServiceResponse,
+  type MaintenanceCost,
   type MaintenanceItem,
   type MaintenanceLogEntry,
 } from '@/services/maintenanceApi'
+import { useUiSettingsStore } from '@/stores/settingsUi'
 import { ApiError } from '@/services/apiCore'
 import { maintenanceItem } from '@/services/__tests__/maintenanceFixtures'
 import { DetailModalStub } from './stubs'
@@ -25,6 +27,7 @@ vi.mock('@/services/maintenanceApi', () => ({
     listLog: vi.fn<() => Promise<MaintenanceLogEntry[]>>().mockResolvedValue([]),
     logService: vi.fn<() => Promise<LogMaintenanceServiceResponse>>(),
     deleteLogEntry: vi.fn<() => Promise<void>>().mockResolvedValue(undefined),
+    listCosts: vi.fn<() => Promise<MaintenanceCost[]>>().mockResolvedValue([]),
   },
 }))
 
@@ -36,6 +39,7 @@ const entry: MaintenanceLogEntry = {
   performedAt: '2026-09-01',
   odometerKm: 12000,
   notes: null,
+  cost: null,
   createdAt: '2026-09-01',
 }
 
@@ -100,6 +104,35 @@ describe('MaintenanceItemDetailModal', () => {
     await button.trigger('click')
     await flushPromises()
     expect(maintenanceApi.deleteLogEntry).toHaveBeenCalledOnce()
+  })
+
+  it('logs a service with its cost, and none when the field is left empty', async () => {
+    const logged = { ...entry, id: 8, cost: 89.95 }
+    vi.mocked(maintenanceApi.logService).mockResolvedValue({
+      item: maintenanceItem(),
+      logEntry: logged,
+    })
+    const wrapper = await openModal()
+
+    await wrapper.get('#log-cost').setValue('89.95')
+    await wrapper.get('.maintenance-log-form').trigger('submit')
+    await flushPromises()
+    expect(vi.mocked(maintenanceApi.logService).mock.calls[0]![2]).toMatchObject({ cost: 89.95 })
+    expect(maintenanceApi.listCosts).toHaveBeenCalledOnce()
+    expect((wrapper.get('#log-cost').element as HTMLInputElement).value).toBe('')
+
+    await wrapper.get('.maintenance-log-form').trigger('submit')
+    await flushPromises()
+    expect(vi.mocked(maintenanceApi.logService).mock.calls[1]![2]).toMatchObject({ cost: null })
+  })
+
+  it('shows what a service cost in the chosen currency', async () => {
+    useUiSettingsStore().currency = 'GBP'
+    vi.mocked(maintenanceApi.listLog).mockResolvedValue([{ ...entry, cost: 412 }])
+    const wrapper = await openModal()
+
+    expect(wrapper.get('.maintenance-history__row').text()).toContain('£412.00')
+    expect(wrapper.get('label[for="log-cost"]').text()).toBe('Cost (£)')
   })
 
   it('says why when a history entry cannot be deleted', async () => {

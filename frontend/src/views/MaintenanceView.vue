@@ -7,6 +7,7 @@ import { useMaintenanceStore } from '@/stores/maintenance'
 import StatusCard from '@/components/StatusCard.vue'
 import MaintenanceItemFormModal from '@/components/MaintenanceItemFormModal.vue'
 import MaintenanceItemDetailModal from '@/components/MaintenanceItemDetailModal.vue'
+import MaintenanceCostCard from '@/components/MaintenanceCostCard.vue'
 import type { MaintenanceItem, MaintenanceDueStatus } from '@/services/maintenanceApi'
 import { dueStatusVariant, formatIntervalSummary } from '@/utils/maintenance'
 import { useUnits } from '@/composables/useUnits'
@@ -32,7 +33,7 @@ const selectedItem = ref<MaintenanceItem | null>(null)
 
 async function load() {
   await vehicleStore.fetchVehicles()
-  if (vin.value) await store.fetchItems(vin.value)
+  if (vin.value) await Promise.all([store.fetchItems(vin.value), store.fetchCosts(vin.value)])
 }
 
 onMounted(load)
@@ -70,7 +71,9 @@ function openEditFromDetail(item: MaintenanceItem) {
 }
 
 watch(vin, (v) => {
-  if (v) store.fetchItems(v)
+  if (!v) return
+  store.fetchItems(v)
+  store.fetchCosts(v)
 })
 </script>
 
@@ -97,6 +100,7 @@ watch(vin, (v) => {
       {{ t('maintenance.empty') }}
     </div>
     <div v-else class="status-card-list">
+      <MaintenanceCostCard :costs="store.costs" />
       <StatusCard
         v-for="item in sortedItems"
         :key="item.id"

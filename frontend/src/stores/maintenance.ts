@@ -6,6 +6,7 @@ import {
   maintenanceApi,
   type MaintenanceItem,
   type MaintenanceLogEntry,
+  type MaintenanceCost,
   type CreateMaintenanceItemRequest,
   type UpdateMaintenanceItemRequest,
   type LogMaintenanceServiceRequest,
@@ -14,6 +15,7 @@ import {
 export const useMaintenanceStore = defineStore('maintenance', () => {
   const items = ref<MaintenanceItem[]>([])
   const logEntries = ref<Record<number, MaintenanceLogEntry[]>>({})
+  const costs = ref<MaintenanceCost[]>([])
   const { loading, withLoading } = useLoadingTracker()
   const itemsError = ref<Error | null>(null)
   const actionError = ref<Error | null>(null)
@@ -25,6 +27,7 @@ export const useMaintenanceStore = defineStore('maintenance', () => {
     () => {
       items.value = []
       logEntries.value = {}
+      costs.value = []
     },
   )
 
@@ -34,6 +37,18 @@ export const useMaintenanceStore = defineStore('maintenance', () => {
       if (vehicleStore.isForAnotherCar(vin)) return
       items.value = list
     })
+  }
+
+  // The costs only add up the history, so a failed read leaves the totals out rather than
+  // standing in the way of the items.
+  async function fetchCosts(vin: string) {
+    try {
+      const list = await maintenanceApi.listCosts(vin)
+      if (vehicleStore.isForAnotherCar(vin)) return
+      costs.value = list
+    } catch {
+      if (!vehicleStore.isForAnotherCar(vin)) costs.value = []
+    }
   }
 
   async function createItem(vin: string, req: CreateMaintenanceItemRequest) {
@@ -58,6 +73,7 @@ export const useMaintenanceStore = defineStore('maintenance', () => {
       if (vehicleStore.isForAnotherCar(vin)) return
       items.value = items.value.filter((i) => i.id !== id)
       delete logEntries.value[id]
+      costs.value = costs.value.filter((c) => c.maintenanceItemId !== id)
     })
   }
 
@@ -76,6 +92,7 @@ export const useMaintenanceStore = defineStore('maintenance', () => {
       items.value = items.value.map((i) => (i.id === itemId ? item : i))
       const existing = logEntries.value[itemId]
       if (existing) logEntries.value = { ...logEntries.value, [itemId]: [logEntry, ...existing] }
+      if (logEntry.cost !== null) await fetchCosts(vin)
     })
   }
 
@@ -92,6 +109,7 @@ export const useMaintenanceStore = defineStore('maintenance', () => {
       const refreshed = await maintenanceApi.list(vin)
       if (vehicleStore.isForAnotherCar(vin)) return
       items.value = refreshed
+      await fetchCosts(vin)
     })
   }
 
@@ -102,6 +120,7 @@ export const useMaintenanceStore = defineStore('maintenance', () => {
   return {
     items,
     logEntries,
+    costs,
     loading,
     itemsError,
     actionError,
@@ -109,6 +128,7 @@ export const useMaintenanceStore = defineStore('maintenance', () => {
     dueSoonItems,
     attentionItems,
     fetchItems,
+    fetchCosts,
     createItem,
     updateItem,
     deleteItem,

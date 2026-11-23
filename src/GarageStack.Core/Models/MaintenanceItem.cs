@@ -27,4 +27,7 @@ public static class MaintenanceLimits
 
     /// <summary>For an item's notes and for a logged service's notes alike.</summary>
     public const int NotesMaxLength = 1000;
+
+    /// <summary>The most one service may cost, in whatever currency the user keeps their costs in.</summary>
+    public const decimal CostMax = 1_000_000m;
 }

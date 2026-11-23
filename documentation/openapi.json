@@ -4817,6 +4817,52 @@
         ]
       }
     },
+    "/api/vehicles/{vin}/maintenance/costs": {
+      "get": {
+        "tags": [
+          "Maintenance"
+        ],
+        "summary": "List every service with a cost, latest first",
+        "description": "For the totals per year: the frontend adds them up in the browser's time zone and shows them in the currency it is set to. A service logged without a cost is left out.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MaintenanceCostDto"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "401": {
+            "description": "Not signed in, or the API token is unknown or revoked."
+          },
+          "429": {
+            "description": "Too many requests from this address; wait a minute and try again."
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "apiToken": []
+          }
+        ],
+        "x-badges": [
+          {
+            "name": "Read-only token"
+          }
+        ]
+      }
+    },
     "/api/vehicles/{vin}/climate-schedules": {
       "get": {
         "tags": [
@@ -7974,6 +8020,13 @@
               "null",
               "string"
             ]
+          },
+          "cost": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
           }
         }
       },
@@ -8047,6 +8100,33 @@
           }
         },
         "description": "A log source and whether the API can read its files."
+      },
+      "MaintenanceCostDto": {
+        "required": [
+          "maintenanceItemId",
+          "itemName",
+          "performedAt",
+          "cost"
+        ],
+        "type": "object",
+        "properties": {
+          "maintenanceItemId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "itemName": {
+            "type": "string"
+          },
+          "performedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "cost": {
+            "type": "number",
+            "format": "double"
+          }
+        },
+        "description": "What one service cost, with the item's name so a list of costs needs no second lookup."
       },
       "MaintenanceItemDto": {
         "required": [
@@ -8156,6 +8236,7 @@
           "performedAt",
           "odometerKm",
           "notes",
+          "cost",
           "createdAt"
         ],
         "type": "object",
@@ -8184,6 +8265,13 @@
               "null",
               "string"
             ]
+          },
+          "cost": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
           },
           "createdAt": {
             "type": "string",

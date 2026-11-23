@@ -6,6 +6,7 @@ import { useVehicleStore } from '@/stores/vehicle'
 import { clockExample } from '@/utils/format'
 import { REGIONS, regionHourCycle, regionName, type HourCycle } from '@/utils/region'
 import { mayBurnFuel, mayPlugIn } from '@/utils/vehicleType'
+import { CURRENCIES, regionCurrency, type Currency } from '@/utils/currency'
 import SettingsSelect, { type SettingsSelectOption } from './SettingsSelect.vue'
 import {
   DISTANCE_UNITS,
@@ -98,6 +99,16 @@ const unitChoices = computed((): UnitChoice[] => [
     : []),
 ])
 
+// Each currency by its name in the interface language, with its code, as "Euro (EUR)".
+const currencyOptions = computed((): SettingsSelectOption<'auto' | Currency>[] => {
+  const names = new Intl.DisplayNames([locale.value], { type: 'currency' })
+  const label = (currency: Currency) => `${names.of(currency) ?? currency} (${currency})`
+  return [
+    { value: 'auto', label: automatic(label(regionCurrency(settings.effectiveRegion))) },
+    ...CURRENCIES.map((currency) => ({ value: currency, label: label(currency) })),
+  ]
+})
+
 // Each select offers its own unit's values only, so what it hands back belongs to its key.
 function chooseUnit(key: keyof UnitSettings, value: string) {
   ;(settings.units as Record<keyof UnitSettings, string>)[key] = value
@@ -129,5 +140,12 @@ function chooseUnit(key: keyof UnitSettings, value: string) {
     :desc="choice.desc"
     :options="choice.options"
     @update:model-value="(value: string) => chooseUnit(choice.key, value)"
+  />
+  <SettingsSelect
+    id="settings-currency"
+    v-model="settings.currency"
+    :label="t('settings.units.currency')"
+    :desc="t('settings.units.currencyDesc')"
+    :options="currencyOptions"
   />
 </template>

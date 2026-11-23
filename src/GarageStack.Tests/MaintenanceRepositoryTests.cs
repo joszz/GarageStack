@@ -1,3 +1,4 @@
+using GarageStack.Core.Interfaces;
 using GarageStack.Core.Models;
 using GarageStack.Data;
 using GarageStack.Data.Repositories;
@@ -66,5 +67,24 @@ public class MaintenanceRepositoryTests
         Assert.Null(await repo.LogServiceAsync(2, item.Id, new MaintenanceLogEntry { PerformedAt = June }, ct));
         Assert.False(await repo.DeleteAsync(2, item.Id, ct));
         Assert.Equal("Oil", Assert.Single(await repo.ListAsync(1, ct)).Name);
+    }
+
+    [Fact]
+    public async Task ListCosts_GivesTheVehiclesCostedServices_LatestFirst()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (repo, oil) = await SetupAsync(ct);
+        var tyres = await repo.AddAsync(new MaintenanceItem { VehicleId = 1, Name = "Tyres", IntervalKm = 40_000 }, ct);
+        var otherCar = await repo.AddAsync(new MaintenanceItem { VehicleId = 2, Name = "Oil", IntervalMonths = 12 }, ct);
+        await repo.LogServiceAsync(1, oil.Id, new MaintenanceLogEntry { PerformedAt = March, Cost = 89.95m }, ct);
+        await repo.LogServiceAsync(1, tyres.Id, new MaintenanceLogEntry { PerformedAt = June, Cost = 412m }, ct);
+        await repo.LogServiceAsync(1, oil.Id, new MaintenanceLogEntry { PerformedAt = June.AddDays(1) }, ct);
+        await repo.LogServiceAsync(2, otherCar.Id, new MaintenanceLogEntry { PerformedAt = June, Cost = 50m }, ct);
+
+        var costs = await repo.ListCostsAsync(1, ct);
+
+        Assert.Equal(
+            [new MaintenanceCost(tyres.Id, "Tyres", June, 412m), new MaintenanceCost(oil.Id, "Oil", March, 89.95m)],
+            costs);
     }
 }

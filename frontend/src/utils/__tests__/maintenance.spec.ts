@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { dueStatusVariant, formatIntervalSummary } from '@/utils/maintenance'
+import { costTotals, dueStatusVariant, formatIntervalSummary } from '@/utils/maintenance'
 import { METRIC_UNITS, UnitFormatter } from '@/utils/units'
 
 const t = (key: string, named?: Record<string, unknown>) =>
@@ -36,5 +36,27 @@ describe('dueStatusVariant', () => {
     expect(
       (['overdue', 'dueSoon', 'ok', 'unknown'] as const).map((status) => dueStatusVariant(status)),
     ).toEqual(['danger', 'warning', 'success', 'info'])
+  })
+})
+
+describe('costTotals', () => {
+  const today = new Date(2026, 10, 23)
+
+  it('adds the costs up by the local year each service fell in', () => {
+    expect(
+      costTotals(
+        [
+          { performedAt: '2026-03-01T00:00:00', cost: 89.95 },
+          { performedAt: '2026-11-02T00:00:00', cost: 412 },
+          { performedAt: '2025-06-01T00:00:00', cost: 118.75 },
+          { performedAt: '2021-06-01T00:00:00', cost: 685 },
+        ],
+        today,
+      ),
+    ).toEqual({ thisYear: 501.95, lastYear: 118.75, allTime: 1305.7 })
+  })
+
+  it('has no totals without a cost', () => {
+    expect(costTotals([], today)).toBeNull()
   })
 })

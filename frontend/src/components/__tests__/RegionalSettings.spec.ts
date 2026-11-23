@@ -71,6 +71,20 @@ describe('RegionalSettings', () => {
     expect(store.units.energyConsumption).toBe('auto')
   })
 
+  it("offers the region's currency on automatic, and keeps a chosen one", async () => {
+    const wrapper = mountSettings()
+    const store = useUiSettingsStore()
+
+    expect(automaticLabel(wrapper, 'settings-currency')).toBe('Automatic: Euro (EUR)')
+    await wrapper.find('#settings-region').setValue('GB')
+    expect(automaticLabel(wrapper, 'settings-currency')).toBe('Automatic: British Pound (GBP)')
+    expect(store.effectiveCurrency).toBe('GBP')
+
+    await wrapper.find('#settings-currency').setValue('CHF')
+    expect(store.currency).toBe('CHF')
+    expect(store.effectiveCurrency).toBe('CHF')
+  })
+
   // A plain hybrid never charges from a plug, so it has no electric consumption to show.
   it('offers no energy consumption unit on a plain hybrid', async () => {
     const wrapper = mountSettings()

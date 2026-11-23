@@ -108,7 +108,7 @@ public static class MaintenanceEndpoints
         {
             var vehicle = httpContext.ResolvedVehicle();
 
-            if (ValidateLogEntry(req.PerformedAt, req.OdometerKm, req.Notes, clock.GetUtcNow().UtcDateTime) is { } error)
+            if (ValidateLogEntry(req.PerformedAt, req.OdometerKm, req.Notes, req.Cost, clock.GetUtcNow().UtcDateTime) is { } error)
                 return ApiProblems.BadRequest(error);
 
             var logged = await maintenance.LogServiceAsync(vehicle.Id, id, new MaintenanceLogEntry
@@ -116,6 +116,7 @@ public static class MaintenanceEndpoints
                 PerformedAt = req.PerformedAt,
                 OdometerKm = req.OdometerKm,
                 Notes = req.Notes,
+                Cost = req.Cost,
             }, ct);
             if (logged is null) return Results.NotFound();
 
@@ -141,6 +142,16 @@ public static class MaintenanceEndpoints
         .Produces(StatusCodes.Status404NotFound)
         .WithSummary("Remove a service log entry, recomputing the item's baseline");
 
+        group.MapGet("/costs", async (
+            HttpContext httpContext, IMaintenanceRepository maintenance, CancellationToken ct) =>
+        {
+            var costs = await maintenance.ListCostsAsync(httpContext.ResolvedVehicle().Id, ct);
+            return Results.Ok(costs.Select(c => new MaintenanceCostDto(c.MaintenanceItemId, c.ItemName, c.PerformedAt, c.Cost)));
+        })
+        .Produces<MaintenanceCostDto[]>()
+        .WithSummary("List every service with a cost, latest first")
+        .WithDescription("For the totals per year: the frontend adds them up in the browser's time zone and shows them in the currency it is set to. A service logged without a cost is left out.");
+
         return app;
     }
 
@@ -161,8 +172,14 @@ public static class MaintenanceEndpoints
         return null;
     }
 
-    internal static ValidationError? ValidateLogEntry(DateTime performedAt, double? odometerKm, string? notes, DateTime now) =>
-        ValidateService(performedAt, odometerKm, now) ?? NotesError(notes);
+    internal static ValidationError? ValidateLogEntry(DateTime performedAt, double? odometerKm, string? notes, decimal? cost, DateTime now) =>
+        ValidateService(performedAt, odometerKm, now) ?? NotesError(notes) ?? CostError(cost);
+
+    // Cents at most, as the column keeps them: a third decimal would be rounded away unseen.
+    private static ValidationError? CostError(decimal? cost) =>
+        cost is { } c && (c < 0 || c > MaintenanceLimits.CostMax || decimal.Round(c, 2) != c)
+            ? new("maintenance.costOutOfRange", $"Cost must be between 0 and {MaintenanceLimits.CostMax:N0}, in cents at most")
+            : null;
 
     /// <summary>
     /// A service as a log entry records it, or as the last service a new item starts from: not in
@@ -184,7 +201,7 @@ public static class MaintenanceEndpoints
             : null;
 
     private static MaintenanceLogEntryDto ToDto(MaintenanceLogEntry entry) =>
-        new(entry.Id, entry.MaintenanceItemId, entry.PerformedAt, entry.OdometerKm, entry.Notes, entry.CreatedAt);
+        new(entry.Id, entry.MaintenanceItemId, entry.PerformedAt, entry.OdometerKm, entry.Notes, entry.Cost, entry.CreatedAt);
 
     // An item as it stands now: due against the car's current odometer reading.
     private static async Task<MaintenanceItemDto> ToDtoAsync(
@@ -222,8 +239,11 @@ public record CreateMaintenanceItemRequest(
 
 public record UpdateMaintenanceItemRequest(string Name, string? Notes, double? IntervalKm, int? IntervalMonths);
 
-public record LogMaintenanceServiceRequest(DateTime PerformedAt, double? OdometerKm, string? Notes);
+public record LogMaintenanceServiceRequest(DateTime PerformedAt, double? OdometerKm, string? Notes, decimal? Cost = null);
 
-public record MaintenanceLogEntryDto(int Id, int MaintenanceItemId, DateTime PerformedAt, double? OdometerKm, string? Notes, DateTime CreatedAt);
+public record MaintenanceLogEntryDto(int Id, int MaintenanceItemId, DateTime PerformedAt, double? OdometerKm, string? Notes, decimal? Cost, DateTime CreatedAt);
+
+/// <summary>What one service cost, with the item's name so a list of costs needs no second lookup.</summary>
+public record MaintenanceCostDto(int MaintenanceItemId, string ItemName, DateTime PerformedAt, decimal Cost);
 
 public record LogMaintenanceServiceResponse(MaintenanceItemDto Item, MaintenanceLogEntryDto LogEntry);
