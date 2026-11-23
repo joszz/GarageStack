@@ -233,6 +233,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.HasKey(l => l.Id);
             e.HasIndex(l => new { l.MaintenanceItemId, l.PerformedAt });
             e.Property(l => l.Notes).HasMaxLength(MaintenanceLimits.NotesMaxLength);
+            e.Property(l => l.Cost).HasPrecision(10, 2);
             e.HasOne(l => l.MaintenanceItem)
              .WithMany(m => m.LogEntries)
              .HasForeignKey(l => l.MaintenanceItemId)

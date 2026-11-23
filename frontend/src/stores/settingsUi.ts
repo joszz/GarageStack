@@ -13,6 +13,7 @@ import {
   resolveCarColors,
 } from './settingsShared'
 import { setRegionalFormat } from '@/utils/format'
+import { isCurrency, regionCurrency, type Currency } from '@/utils/currency'
 import { applyTheme } from '@/utils/theme'
 import { DEFAULT_STATS_PERIOD, isStatsPeriod, type StatsPeriod } from '@/utils/statsPeriod'
 import { parseTripLogPeriod, type TripLogPeriod } from '@/utils/tripLog'
@@ -60,6 +61,9 @@ export type RegionSetting = 'auto' | Region
 export type ClockSetting = 'auto' | HourCycle
 
 export const CLOCK_SETTINGS: readonly ClockSetting[] = ['auto', 'h23', 'h12']
+
+/** The currency costs show in, or "auto" for the one the region pays in. */
+export type CurrencySetting = 'auto' | Currency
 
 const STORAGE_KEY = 'garagestack-settings-ui'
 
@@ -114,6 +118,7 @@ interface UiSettings {
   region: RegionSetting
   clock: ClockSetting
   units: UnitSettings
+  currency: CurrencySetting
 }
 
 function defaultsFor(): UiSettings {
@@ -142,6 +147,7 @@ function defaultsFor(): UiSettings {
     region: 'auto',
     clock: 'auto',
     units: { ...AUTO_UNITS },
+    currency: 'auto',
   }
 }
 
@@ -276,6 +282,10 @@ function parseUiFields(parsed: Record<string, unknown>, fallback: UiSettings): U
     region: parseRegion(parsed.region, fallback.region),
     clock: oneOf(parsed.clock, CLOCK_SETTINGS, fallback.clock),
     units: parseUnits(parsed.units, fallback.units),
+    currency:
+      parsed.currency === 'auto' || isCurrency(parsed.currency)
+        ? parsed.currency
+        : fallback.currency,
   }
 }
 
@@ -385,6 +395,9 @@ export const useUiSettingsStore = defineStore('settingsUi', () => {
     settings.clock === 'auto' ? regionHourCycle(effectiveRegion.value) : settings.clock,
   )
   const effectiveUnits = computed(() => resolveUnits(settings.units, effectiveRegion.value))
+  const effectiveCurrency = computed(() =>
+    settings.currency === 'auto' ? regionCurrency(effectiveRegion.value) : settings.currency,
+  )
 
   // Dates and times are written by plain functions (utils/format), which follow this at once.
   watch(
@@ -406,5 +419,6 @@ export const useUiSettingsStore = defineStore('settingsUi', () => {
     effectiveRegion,
     effectiveHourCycle,
     effectiveUnits,
+    effectiveCurrency,
   }
 })

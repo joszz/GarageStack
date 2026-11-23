@@ -41,6 +41,7 @@ export {
   faCircleUp,
   faClipboardCheck,
   faClock,
+  faCoins,
   faClockRotateLeft,
   faCopy,
   faCouch,

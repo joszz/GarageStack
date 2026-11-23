@@ -10,5 +10,11 @@ public class MaintenanceLogEntry
     public double? OdometerKm { get; set; }
     public string? Notes { get; set; }
 
+    /// <summary>
+    /// What the service cost, or null when nobody said. Kept as a plain amount: the currency is a
+    /// display setting of the frontend, like the units, so a cost never changes with it.
+    /// </summary>
+    public decimal? Cost { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }

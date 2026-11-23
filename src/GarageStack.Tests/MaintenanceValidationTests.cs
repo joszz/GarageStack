@@ -8,8 +8,8 @@ public class MaintenanceValidationTests
     private static string? ItemRule(string name, string? notes, double? intervalKm, int? intervalMonths) =>
         MaintenanceEndpoints.ValidateItem(name, notes, intervalKm, intervalMonths)?.Code;
 
-    private static string? LogEntryRule(DateTime performedAt, double? odometerKm, string? notes = null) =>
-        MaintenanceEndpoints.ValidateLogEntry(performedAt, odometerKm, notes, DateTime.UtcNow)?.Code;
+    private static string? LogEntryRule(DateTime performedAt, double? odometerKm, string? notes = null, decimal? cost = null) =>
+        MaintenanceEndpoints.ValidateLogEntry(performedAt, odometerKm, notes, cost, DateTime.UtcNow)?.Code;
 
     private static string? LastServiceRule(DateTime? performedAt, double? odometerKm) =>
         MaintenanceEndpoints.ValidateService(performedAt, odometerKm, DateTime.UtcNow)?.Code;
@@ -115,6 +115,26 @@ public class MaintenanceValidationTests
     }
 
     // ── ValidateLogEntry ──────────────────────────────────────────────────────
+    [Theory]
+    [InlineData(null)]
+    [InlineData("0")]
+    [InlineData("89.95")]
+    [InlineData("1000000")]
+    public void ValidateLogEntry_CostInCentsWithinRange_ReturnsNull(string? cost)
+    {
+        Assert.Null(LogEntryRule(DateTime.UtcNow, null, cost: cost is null ? null : decimal.Parse(cost, System.Globalization.CultureInfo.InvariantCulture)));
+    }
+
+    [Theory]
+    [InlineData("-0.01")]
+    [InlineData("1000000.01")]
+    [InlineData("12.345")]
+    public void ValidateLogEntry_CostOutOfRangeOrPastCents_ReturnsError(string cost)
+    {
+        Assert.Equal("maintenance.costOutOfRange",
+            LogEntryRule(DateTime.UtcNow, null, cost: decimal.Parse(cost, System.Globalization.CultureInfo.InvariantCulture)));
+    }
+
     [Fact]
     public void ValidateLogEntry_TodayNoOdometer_ReturnsNull()
     {

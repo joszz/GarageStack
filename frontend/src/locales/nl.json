@@ -731,6 +731,8 @@
       "regionDesc": "Bepaalt de datumnotatie, en de klok en eenheden die op automatisch staan.",
       "clock": "Klok",
       "clockDesc": "Hoe tijdstippen worden geschreven.",
+      "currency": "Valuta",
+      "currencyDesc": "Waarin onderhoudskosten worden getoond. Wisselen geeft de bedragen een ander teken; het rekent ze niet om.",
       "clockOptions": {
         "h23": "24-uurs ({example})",
         "h12": "12-uurs ({example})"
@@ -1113,8 +1115,14 @@
     "logForm": {
       "performedAt": "Servicedatum",
       "odometer": "Kilometerstand ({unit})",
+      "cost": "Kosten ({currency})",
       "notes": "Notities",
       "submit": "Onderhoud registreren"
+    },
+    "costs": {
+      "thisYear": "Uitgegeven dit jaar",
+      "note": "Vorig jaar {lastYear} · Totaal {allTime}",
+      "hint": "Wat de onderhoudsbeurten die je met kosten hebt vastgelegd bij elkaar kosten, per jaar waarin ze zijn gedaan."
     },
     "status": {
       "unknown": "Nog niet bijgehouden",
@@ -1224,7 +1232,8 @@
         "intervalKmOutOfRange": "Het afstandsinterval valt buiten wat GarageStack accepteert.",
         "intervalMonthsOutOfRange": "Het tijdsinterval moet tussen 1 en 120 maanden liggen.",
         "serviceDateInFuture": "De servicedatum kan niet in de toekomst liggen.",
-        "odometerNegative": "De kilometerstand kan niet negatief zijn."
+        "odometerNegative": "De kilometerstand kan niet negatief zijn.",
+        "costOutOfRange": "De kosten moeten tussen 0 en 1.000.000 liggen, in hele centen."
       },
       "climateSchedule": {
         "limitReached": "Een auto kan hooguit 20 schema's hebben.",

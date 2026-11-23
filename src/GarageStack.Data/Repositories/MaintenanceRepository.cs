@@ -83,6 +83,13 @@ public class MaintenanceRepository(AppDbContext db) : IMaintenanceRepository
         return item;
     }
 
+    public async Task<IReadOnlyList<MaintenanceCost>> ListCostsAsync(int vehicleId, CancellationToken ct = default) =>
+        await db.MaintenanceLogEntries.AsNoTracking()
+            .Where(l => l.MaintenanceItem.VehicleId == vehicleId && l.Cost != null)
+            .OrderByDescending(l => l.PerformedAt)
+            .Select(l => new MaintenanceCost(l.MaintenanceItemId, l.MaintenanceItem.Name, l.PerformedAt, l.Cost!.Value))
+            .ToListAsync(ct);
+
     private Task<MaintenanceItem?> FindAsync(int vehicleId, int id, CancellationToken ct) =>
         db.MaintenanceItems.FirstOrDefaultAsync(m => m.Id == id && m.VehicleId == vehicleId, ct);
 

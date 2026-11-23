@@ -32,7 +32,13 @@ public interface IMaintenanceRepository
 
     /// <summary>Removes an entry from the item's history. Null when there is no such item or entry.</summary>
     Task<MaintenanceItem?> DeleteLogEntryAsync(int vehicleId, int itemId, int logId, CancellationToken ct = default);
+
+    /// <summary>Every service of the vehicle's items that has a cost, latest first.</summary>
+    Task<IReadOnlyList<MaintenanceCost>> ListCostsAsync(int vehicleId, CancellationToken ct = default);
 }
+
+/// <summary>What one service cost, and of which item.</summary>
+public sealed record MaintenanceCost(int MaintenanceItemId, string ItemName, DateTime PerformedAt, decimal Cost);
 
 /// <summary>A service just logged, and the item it moved forward.</summary>
 public sealed record MaintenanceServiceLogged(MaintenanceItem Item, MaintenanceLogEntry Entry);

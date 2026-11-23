@@ -731,6 +731,8 @@
       "regionDesc": "Sets the date order, and the clock and units left on automatic.",
       "clock": "Clock",
       "clockDesc": "How times of day are written.",
+      "currency": "Currency",
+      "currencyDesc": "What maintenance costs are shown in. Changing it relabels the amounts; it does not convert them.",
       "clockOptions": {
         "h23": "24-hour ({example})",
         "h12": "12-hour ({example})"
@@ -1113,8 +1115,14 @@
     "logForm": {
       "performedAt": "Service date",
       "odometer": "Odometer ({unit})",
+      "cost": "Cost ({currency})",
       "notes": "Notes",
       "submit": "Log service"
+    },
+    "costs": {
+      "thisYear": "Spent this year",
+      "note": "Last year {lastYear} · All time {allTime}",
+      "hint": "What the services you logged with a cost add up to, by the year they were done."
     },
     "status": {
       "unknown": "Not tracked yet",
@@ -1224,7 +1232,8 @@
         "intervalKmOutOfRange": "The distance interval is outside the range GarageStack accepts.",
         "intervalMonthsOutOfRange": "The time interval must be between 1 and 120 months.",
         "serviceDateInFuture": "The service date cannot be in the future.",
-        "odometerNegative": "The odometer reading cannot be negative."
+        "odometerNegative": "The odometer reading cannot be negative.",
+        "costOutOfRange": "The cost must be between 0 and 1,000,000, in cents at most."
       },
       "climateSchedule": {
         "limitReached": "A car can have at most 20 schedules.",

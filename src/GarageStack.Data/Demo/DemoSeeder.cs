@@ -74,14 +74,29 @@ public static class DemoSeeder
         db.MaintenanceItems.AddRange(oilChange, tyreRotation, majorService, cabinFilter);
         await db.SaveChangesAsync(ct);
 
-        // One log entry per item that has a service history, mirroring its baseline.
+        // One log entry per item that has a service history, mirroring its baseline, with what it
+        // cost so the costs card has something to add up; the oil change also has the one before.
+        var costs = new Dictionary<MaintenanceItem, decimal>
+        {
+            [oilChange] = 129.50m,
+            [tyreRotation] = 45m,
+            [majorService] = 685m,
+        };
         db.MaintenanceLogEntries.AddRange(
-            new[] { oilChange, tyreRotation, majorService }.Select(item => new MaintenanceLogEntry
+            costs.Select(cost => new MaintenanceLogEntry
             {
-                MaintenanceItemId = item.Id,
-                PerformedAt = item.LastServiceDate!.Value,
-                OdometerKm = item.LastServiceOdometerKm,
+                MaintenanceItemId = cost.Key.Id,
+                PerformedAt = cost.Key.LastServiceDate!.Value,
+                OdometerKm = cost.Key.LastServiceOdometerKm,
+                Cost = cost.Value,
             }));
+        db.MaintenanceLogEntries.Add(new MaintenanceLogEntry
+        {
+            MaintenanceItemId = oilChange.Id,
+            PerformedAt = oilChange.LastServiceDate!.Value.AddMonths(-12),
+            OdometerKm = oilChange.LastServiceOdometerKm - 15_000,
+            Cost = 118.75m,
+        });
         await db.SaveChangesAsync(ct);
     }
 

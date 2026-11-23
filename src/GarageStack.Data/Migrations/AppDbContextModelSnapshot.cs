@@ -17,7 +17,7 @@ partial class AppDbContextModelSnapshot : ModelSnapshot
     // If you encounter a merge conflict in the line below, it means you need to
     // discard one of the migration branches and recreate its migrations on top of
     // the other branch. See https://aka.ms/efcore-docs-migrations-conflicts for more info.
-    public override string LastMigrationId => "20261123113837_AddTripCounterUse";
+    public override string LastMigrationId => "20261123115849_AddMaintenanceCost";
 
     protected override void BuildModel(ModelBuilder modelBuilder)
     {
@@ -356,6 +356,10 @@ partial class AppDbContextModelSnapshot : ModelSnapshot
                     .HasColumnType("integer");
 
                 NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(id);
+
+                b.Property<decimal?>("Cost")
+                    .HasPrecision(10, 2)
+                    .HasColumnType("numeric(10,2)");
 
                 b.Property<DateTime>("CreatedAt")
                     .HasColumnType("timestamp with time zone");

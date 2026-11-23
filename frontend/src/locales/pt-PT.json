@@ -731,6 +731,8 @@
       "regionDesc": "Define a ordem da data, além do relógio e das unidades deixados no automático.",
       "clock": "Relógio",
       "clockDesc": "Como os horários são escritos.",
+      "currency": "Moeda",
+      "currencyDesc": "Em que os custos de manutenção são mostrados. Mudar altera só o sinal dos valores; não os converte.",
       "clockOptions": {
         "h23": "24 horas ({example})",
         "h12": "12 horas ({example})"
@@ -1113,8 +1115,14 @@
     "logForm": {
       "performedAt": "Data da revisão",
       "odometer": "Conta-quilómetros ({unit})",
+      "cost": "Custo ({currency})",
       "notes": "Observações",
       "submit": "Registar revisão"
+    },
+    "costs": {
+      "thisYear": "Gasto este ano",
+      "note": "Ano passado {lastYear} · No total {allTime}",
+      "hint": "O que somam as manutenções que registou com um custo, pelo ano em que foram feitas."
     },
     "status": {
       "unknown": "Sem acompanhamento",
@@ -1224,7 +1232,8 @@
         "intervalKmOutOfRange": "O intervalo de distância está fora do limite aceite pelo GarageStack.",
         "intervalMonthsOutOfRange": "O intervalo de tempo deve ficar entre 1 e 120 meses.",
         "serviceDateInFuture": "A data da revisão não pode ser no futuro.",
-        "odometerNegative": "A leitura do conta-quilómetros não pode ser negativa."
+        "odometerNegative": "A leitura do conta-quilómetros não pode ser negativa.",
+        "costOutOfRange": "O custo deve ficar entre 0 e 1.000.000, com no máximo duas casas decimais."
       },
       "climateSchedule": {
         "limitReached": "Cada carro pode ter no máximo 20 agendamentos.",

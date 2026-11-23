@@ -25,7 +25,17 @@ export interface MaintenanceLogEntry {
   performedAt: string
   odometerKm: number | null
   notes: string | null
+  /** What the service cost, as a plain amount in whatever currency the user keeps; null when not given. */
+  cost: number | null
   createdAt: string
+}
+
+/** What one service cost, and of which item. */
+export interface MaintenanceCost {
+  maintenanceItemId: number
+  itemName: string
+  performedAt: string
+  cost: number
 }
 
 export interface CreateMaintenanceItemRequest {
@@ -48,6 +58,7 @@ export interface LogMaintenanceServiceRequest {
   performedAt: string
   odometerKm?: number | null
   notes?: string | null
+  cost?: number | null
 }
 
 export interface LogMaintenanceServiceResponse {
@@ -72,4 +83,5 @@ export const maintenanceApi = {
     ),
   deleteLogEntry: (vin: string, id: number, logId: number) =>
     send(`/api/vehicles/${vin}/maintenance/${id}/log/${logId}`, 'DELETE'),
+  listCosts: (vin: string) => request<MaintenanceCost[]>(`/api/vehicles/${vin}/maintenance/costs`),
 }

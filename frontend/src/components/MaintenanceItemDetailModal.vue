@@ -16,6 +16,8 @@ import { useStoreAction } from '@/composables/useStoreAction'
 import { useTwoTapConfirm } from '@/composables/useTwoTapConfirm'
 import StatusBadge from '@/components/StatusBadge.vue'
 import { useConnection } from '@/composables/useConnection'
+import { useUiSettingsStore } from '@/stores/settingsUi'
+import { currencySymbol, formatCurrency } from '@/utils/currency'
 
 const props = defineProps<{
   open: boolean
@@ -35,6 +37,10 @@ const units = useUnits()
 const performedAt = ref('')
 const odometer = useMeasureField(units, 'distance')
 const logNotes = ref('')
+// v-model.number leaves an emptied field as '', which sends no cost.
+const logCost = ref<number | ''>('')
+const settings = useUiSettingsStore()
+const currency = computed(() => settings.effectiveCurrency)
 // Logging a service, removing a log entry and deleting the item each show their own outcome.
 const failure = () => store.actionError
 const { busy: logSaving, error: logError, run: runLog } = useStoreAction(failure)
@@ -58,6 +64,7 @@ watch(
     performedAt.value = localDateKey(new Date())
     odometer.load(vehicleStore.currentStatus?.odometerKm ?? null)
     logNotes.value = ''
+    logCost.value = ''
     store.fetchLog(props.vin, props.item.id)
   },
 )
@@ -70,9 +77,13 @@ async function submitLog() {
       performedAt: performedAt.value,
       odometerKm: odometer.metric(),
       notes: logNotes.value.trim() || null,
+      cost: logCost.value === '' ? null : logCost.value,
     }),
   )
-  if (logged) logNotes.value = ''
+  if (logged) {
+    logNotes.value = ''
+    logCost.value = ''
+  }
 }
 
 async function removeLogEntry(logId: number) {
@@ -148,6 +159,20 @@ async function confirmDelete() {
             </div>
           </div>
           <div class="form-group">
+            <label for="log-cost">{{
+              t('maintenance.logForm.cost', { currency: currencySymbol(currency) })
+            }}</label>
+            <input
+              id="log-cost"
+              v-model.number="logCost"
+              type="number"
+              min="0"
+              step="0.01"
+              inputmode="decimal"
+              class="form-control"
+            />
+          </div>
+          <div class="form-group">
             <label for="log-notes">{{ t('maintenance.logForm.notes') }}</label>
             <input
               id="log-notes"
@@ -176,6 +201,7 @@ async function confirmDelete() {
             <span v-if="entry.odometerKm != null" class="text-muted">
               {{ units.format('distance', entry.odometerKm, ODOMETER_FORMAT) }}
             </span>
+            <span v-if="entry.cost != null">{{ formatCurrency(entry.cost, currency) }}</span>
             <span v-if="entry.notes" class="text-muted">{{ entry.notes }}</span>
             <button
               v-if="connection.reachable"
