@@ -31,6 +31,8 @@ try
 
     builder.Configuration.AddGarageStackEnvironment();
 
+    // What the rest of startup logs follows the configured levels from here on.
+    Log.Logger = HostingExtensions.CreateBootstrapLogger(builder.Configuration);
     builder.Services.AddGarageStackSerilog(builder.Configuration, "api");
 
     // Pin the key ring to a fixed, CWD-relative path (mirrors "logs/api-.log" above) instead of

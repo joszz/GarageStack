@@ -2,6 +2,7 @@ using System.Globalization;
 using GarageStack.Core.Configuration;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Serilog.Events;
 
 namespace GarageStack.Tests;
 
@@ -141,6 +142,34 @@ public class HostingExtensionsTests
 
         Assert.Equal(HvBatteryCapacity.Unknown, capacity);
         Assert.Null(capacity.Kwh);
+    }
+
+    [Fact]
+    public void BootstrapLogger_WithoutConfiguration_LogsFromInformation()
+    {
+        var logger = HostingExtensions.CreateBootstrapLogger();
+
+        Assert.True(logger.IsEnabled(LogEventLevel.Information));
+        Assert.False(logger.IsEnabled(LogEventLevel.Debug));
+    }
+
+    // Startup logs its warnings before the host's logger exists, so a raised level has to reach
+    // the bootstrap logger as well, or they still come through.
+    [Fact]
+    public void BootstrapLogger_FollowsTheConfiguredMinimumLevel()
+    {
+        var logger = HostingExtensions.CreateBootstrapLogger(Config(("Serilog:MinimumLevel:Default", "Error")));
+
+        Assert.False(logger.IsEnabled(LogEventLevel.Warning));
+        Assert.True(logger.IsEnabled(LogEventLevel.Error));
+    }
+
+    [Fact]
+    public void BootstrapLogger_WithDebugLogs_LogsDebug()
+    {
+        var logger = HostingExtensions.CreateBootstrapLogger(Config(("DEBUG_LOGS", "true")));
+
+        Assert.True(logger.IsEnabled(LogEventLevel.Debug));
     }
 
     [Theory]
