@@ -22,9 +22,8 @@ vi.mock('@/services/vehicleApi', () => ({
   },
 }))
 
-// Loaded only in edit mode, as an async component, which a stub does not reach.
-// __esModule, so defineAsyncComponent takes the default export as the component. It hands each
-// card to the slot, as the real grid does, without the dragging.
+// Loaded only as edit mode opens (useEditMode), which a stub does not reach. It hands each card to
+// the slot, as the real grid does, without the dragging.
 vi.mock('@/components/EditableCardGrid.vue', () => ({
   __esModule: true,
   default: {

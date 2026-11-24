@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import '@/assets/statistics.css'
-import { onMounted, computed, defineAsyncComponent, ref, watch } from 'vue'
+import { onMounted, computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useVehicleStore } from '@/stores/vehicle'
 import { useDashboardSettingsStore } from '@/stores/settingsDashboard'
@@ -25,7 +25,6 @@ import StatusCard from '@/components/StatusCard.vue'
 import StatsChartCard from '@/components/StatsChartCard.vue'
 import EditableCardSlot from '@/components/EditableCardSlot.vue'
 import EditLayoutButton from '@/components/EditLayoutButton.vue'
-import type EditableCardGridComponent from '@/components/EditableCardGrid.vue'
 import { DAY_MONTH, formatDate, formatHour, formatNumber } from '@/utils/format'
 import { resolveStatsPeriod, statsQuery } from '@/utils/statsPeriod'
 import {
@@ -51,16 +50,10 @@ import {
 } from '@/utils/statistics'
 import { useUnits } from '@/composables/useUnits'
 import { useErrorMessage } from '@/composables/useErrorMessage'
-import { useEditMode } from '@/composables/useEditMode'
+import { EditableCardGrid, useEditMode } from '@/composables/useEditMode'
 import { useStatisticsCharts } from '@/composables/useStatisticsCharts'
 import { useReconnect } from '@/composables/useReconnect'
 import ViewHeader from '@/components/ViewHeader.vue'
-
-// Only edit mode rearranges the cards; the drag-and-drop library loads when it opens. The cast
-// restores the grid's generic item type, which defineAsyncComponent does not carry over.
-const EditableCardGrid = defineAsyncComponent(
-  () => import('@/components/EditableCardGrid.vue'),
-) as unknown as typeof EditableCardGridComponent
 
 const { t } = useI18n()
 const store = useVehicleStore()

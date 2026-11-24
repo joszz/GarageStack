@@ -21,6 +21,13 @@ export const LONG_PRESS_EXEMPT_CLASS = 'long-press-exempt'
 
 const LIFT_EVENTS = ['pointerup', 'pointercancel', 'touchend', 'touchcancel'] as const
 
+export interface LongPressOptions {
+  /** How long the finger rests before the press counts as long. */
+  ms?: number
+  /** Called as a press that may become long begins, to get ready for it while the finger rests. */
+  onPressStart?: () => void
+}
+
 /**
  * A long press with a finger on any card in a grid, the way a phone's home screen enters its
  * edit mode. Bind the result to the grid (`v-bind`): a press on one of its cards, not on the
@@ -31,7 +38,10 @@ const LIFT_EVENTS = ['pointerup', 'pointercancel', 'touchend', 'touchcancel'] as
  * that the same press may still bring are swallowed, so the card under the finger does not open
  * as well.
  */
-export function useLongPress(onLongPress: () => void, ms = LONG_PRESS_MS) {
+export function useLongPress(
+  onLongPress: () => void,
+  { ms = LONG_PRESS_MS, onPressStart }: LongPressOptions = {},
+) {
   let timer: ReturnType<typeof setTimeout> | undefined
   let start: { x: number; y: number; target: EventTarget } | null = null
   let lastScrollAt = Number.NEGATIVE_INFINITY
@@ -109,6 +119,7 @@ export function useLongPress(onLongPress: () => void, ms = LONG_PRESS_MS) {
     if (event.timeStamp - lastScrollAt < SCROLL_SETTLE_MS) return
     start = { x: event.clientX, y: event.clientY, target }
     timer = setTimeout(fire, ms)
+    onPressStart?.()
   }
 
   function onPointermove(event: PointerEvent) {
