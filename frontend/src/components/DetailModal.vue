@@ -5,7 +5,13 @@ import { useEscapeKey } from '@/composables/useEscapeKey'
 import { useDialogFocus } from '@/composables/useDialogFocus'
 
 const { t } = useI18n()
-const props = defineProps<{ title: string; open: boolean; wide?: boolean }>()
+const props = defineProps<{
+  title: string
+  open: boolean
+  wide?: boolean
+  /** Tabs on a row of their own under the title on a phone, for a title too long to share it. */
+  navigationBelow?: boolean
+}>()
 const emit = defineEmits<{ (e: 'close'): void }>()
 
 useEscapeKey(
@@ -27,6 +33,7 @@ useDialogFocus(dialog, () => props.open)
           :class="{
             'detail-modal--wide': wide,
             'detail-modal--with-navigation': !!$slots.navigation,
+            'detail-modal--navigation-below': navigationBelow,
           }"
           tabindex="-1"
           role="dialog"
