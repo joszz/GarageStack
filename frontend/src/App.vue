@@ -13,7 +13,7 @@ import DemoBanner from '@/components/DemoBanner.vue'
 import PwaInstallModal from '@/components/PwaInstallModal.vue'
 import VehicleSwitcher from '@/components/VehicleSwitcher.vue'
 
-const DemoControlPanel = defineAsyncComponent(() => import('@/components/DemoControlPanel.vue'))
+const DemoControlsModal = defineAsyncComponent(() => import('@/components/DemoControlsModal.vue'))
 import { useNotifications, prependNotification } from '@/composables/useNotifications'
 import { useBrowserNotifications } from '@/composables/useBrowserNotifications'
 import { useSignalR } from '@/composables/useSignalR'
@@ -474,7 +474,11 @@ watch(
       @delete-all="deleteAllNotifications"
     />
 
-    <DemoControlPanel v-if="isDemoMode" :open="demoControlsOpen" />
+    <DemoControlsModal
+      v-if="isDemoMode"
+      :open="demoControlsOpen"
+      @close="demoControlsOpen = false"
+    />
     <PwaInstallModal />
   </div>
 </template>

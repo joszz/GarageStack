@@ -899,7 +899,6 @@
     "state": "Estado",
     "charging": "Carregamento",
     "soc": "SoC da bateria",
-    "temperature": "Temperatura",
     "driver": "Condutor",
     "passenger": "Passageiro",
     "rearLeft": "Tras. esq.",
@@ -917,7 +916,26 @@
     "isCharging": "A carregar",
     "interior": "Interior",
     "exterior": "Exterior",
-    "speed": "Velocidade"
+    "speed": "Velocidade",
+    "tabs": {
+      "label": "Grupos de controlos de demonstração",
+      "car": "Carro",
+      "driving": "Condução",
+      "energy": "Energia",
+      "climate": "Climatização",
+      "tyres": "Pneus"
+    },
+    "motion": "Estacionado ou em andamento",
+    "parked": "Estacionado",
+    "driving": "Em andamento",
+    "chargingType": "Tipo de carregador",
+    "chargingPower": "Potência de carregamento",
+    "levels": "Níveis",
+    "fuel": "Combustível",
+    "auxBattery": "Bateria de 12 V",
+    "frontLeft": "Fr. esq.",
+    "frontRight": "Fr. dir.",
+    "failed": "O carro de demonstração não aceitou essa alteração. Tente novamente."
   },
   "tripLog": {
     "title": "Registo de viagens",

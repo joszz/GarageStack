@@ -7905,8 +7905,28 @@
               "null",
               "boolean"
             ]
+          },
+          "fuelLevelPercent": {},
+          "tyrePressureFrontLeft": {},
+          "tyrePressureFrontRight": {},
+          "tyrePressureRearLeft": {},
+          "tyrePressureRearRight": {},
+          "batteryVoltage": {},
+          "chargingType": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "chargingPowerKw": {},
+          "driving": {
+            "type": [
+              "null",
+              "boolean"
+            ]
           }
-        }
+        },
+        "description": "What the Demo Controls change on one demo car. Every field is optional: a field left out keeps\nits value. Metric, like the telemetry it stands in for: temperatures in °C, tyres in bar, the\n12 V battery in volts, the charger's power in kW. ChargingType takes \"AC\" or \"DC\". Driving true\nputs the car on the road (engine on, unplugged, moving), false parks it. Starting a charge plugs\nthe cable in, and pulling the cable ends the charge."
       },
       "ElevationReading": {
         "required": [

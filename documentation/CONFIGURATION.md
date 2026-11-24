@@ -177,7 +177,7 @@ The variables below are baked in when the images are built, so they need `--buil
 | `APP_VERSION` | `0.0.0-local` | Version shown in the footer and used by the update notice. A build has no git history to read it from, so pass it as above; a leading `v` is fine. Published images carry their own. |
 | `MAP_STYLE_DARK` / `MAP_STYLE_LIGHT` / `MAP_STYLE_COLORFUL` | OpenFreeMap's styles | MapLibre style URLs for your own basemap. Add the style's host to `connect-src` and `img-src` in `frontend/nginx-security-headers.conf` as well, or the browser refuses to load it. |
 | `VITE_API_URL` | same address as the page | Development only: where `pnpm dev` sends API requests when the API is not behind the Vite proxy. Set it in `frontend/.env.development.local`. |
-| `VITE_DEMO_MODE` | `false` | Shows the demo banner and the Demo Controls panel. The demo stack sets it. |
+| `VITE_DEMO_MODE` | `false` | Shows the demo banner and the Demo Controls. The demo stack sets it. |
 
 ## Running outside Docker
 

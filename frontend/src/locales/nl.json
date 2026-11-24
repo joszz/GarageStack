@@ -899,7 +899,6 @@
     "state": "Status",
     "charging": "Laden",
     "soc": "Batterij SOC",
-    "temperature": "Temperatuur",
     "driver": "Bestuurder",
     "passenger": "Passagier",
     "rearLeft": "Achter L",
@@ -917,7 +916,26 @@
     "isCharging": "Laden",
     "interior": "Interieur",
     "exterior": "Exterieur",
-    "speed": "Snelheid"
+    "speed": "Snelheid",
+    "tabs": {
+      "label": "Groepen demobediening",
+      "car": "Auto",
+      "driving": "Rijden",
+      "energy": "Energie",
+      "climate": "Klimaat",
+      "tyres": "Banden"
+    },
+    "motion": "Geparkeerd of rijdend",
+    "parked": "Geparkeerd",
+    "driving": "Rijdend",
+    "chargingType": "Soort lader",
+    "chargingPower": "Laadvermogen",
+    "levels": "Niveaus",
+    "fuel": "Brandstof",
+    "auxBattery": "12V-accu",
+    "frontLeft": "Voor L",
+    "frontRight": "Voor R",
+    "failed": "De demoauto nam die wijziging niet over. Probeer het opnieuw."
   },
   "tripLog": {
     "title": "Rittenregistratie",

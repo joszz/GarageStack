@@ -899,7 +899,6 @@
     "state": "State",
     "charging": "Charging",
     "soc": "Battery SOC",
-    "temperature": "Temperature",
     "driver": "Driver",
     "passenger": "Passenger",
     "rearLeft": "Rear L",
@@ -917,7 +916,26 @@
     "isCharging": "Charging",
     "interior": "Interior",
     "exterior": "Exterior",
-    "speed": "Speed"
+    "speed": "Speed",
+    "tabs": {
+      "label": "Demo control groups",
+      "car": "Car",
+      "driving": "Driving",
+      "energy": "Energy",
+      "climate": "Climate",
+      "tyres": "Tyres"
+    },
+    "motion": "Parked or driving",
+    "parked": "Parked",
+    "driving": "Driving",
+    "chargingType": "Charger type",
+    "chargingPower": "Charging power",
+    "levels": "Levels",
+    "fuel": "Fuel",
+    "auxBattery": "12 V battery",
+    "frontLeft": "Front L",
+    "frontRight": "Front R",
+    "failed": "The demo car did not take that change. Try again."
   },
   "tripLog": {
     "title": "Trip log",

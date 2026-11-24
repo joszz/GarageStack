@@ -172,6 +172,8 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
         {
             var car = DemoCars.For(vehicleId);
             var current = Current(vehicleId);
+            // First, so a speed sent with it is the one that stays.
+            if (dto.Driving.HasValue) SetDriving(car, current, dto.Driving.Value);
             if (dto.IsLocked.HasValue) current.IsLocked = dto.IsLocked;
             if (dto.EngineRunning.HasValue) current.EngineRunning = dto.EngineRunning;
             if (dto.ClimateOn.HasValue)
@@ -189,8 +191,8 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
             if (dto.PassengerWindowOpen.HasValue) current.PassengerWindowOpen = dto.PassengerWindowOpen;
             if (dto.RearLeftWindowOpen.HasValue) current.RearLeftWindowOpen = dto.RearLeftWindowOpen;
             if (dto.RearRightWindowOpen.HasValue) current.RearRightWindowOpen = dto.RearRightWindowOpen;
-            if (dto.ChargerConnected.HasValue) current.ChargerConnected = dto.ChargerConnected;
-            if (dto.IsCharging.HasValue) current.IsCharging = dto.IsCharging;
+            if (dto.ChargerConnected.HasValue || dto.IsCharging.HasValue || dto.ChargingType is not null || dto.ChargingPowerKw.HasValue)
+                ApplyCharging(car, current, dto);
             if (dto.LightsMainBeam.HasValue) current.LightsMainBeam = dto.LightsMainBeam;
             if (dto.LightsDippedBeam.HasValue) current.LightsDippedBeam = dto.LightsDippedBeam;
             if (dto.LightsSide.HasValue) current.LightsSide = dto.LightsSide;
@@ -204,7 +206,76 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
             if (dto.ExteriorTemperature.HasValue) current.ExteriorTemperature = dto.ExteriorTemperature;
             if (dto.Speed.HasValue) current.Speed = dto.Speed;
             if (dto.IsAvailable.HasValue) current.IsAvailable = dto.IsAvailable;
+            if (dto.FuelLevelPercent is { } fuel)
+            {
+                current.FuelLevelPercent = fuel;
+                current.FuelRangeKm = Math.Round(fuel / 100.0 * car.FuelRangeKm);
+            }
+            if (dto.TyrePressureFrontLeft.HasValue) current.TyrePressureFrontLeft = dto.TyrePressureFrontLeft;
+            if (dto.TyrePressureFrontRight.HasValue) current.TyrePressureFrontRight = dto.TyrePressureFrontRight;
+            if (dto.TyrePressureRearLeft.HasValue) current.TyrePressureRearLeft = dto.TyrePressureRearLeft;
+            if (dto.TyrePressureRearRight.HasValue) current.TyrePressureRearRight = dto.TyrePressureRearRight;
+            if (dto.BatteryVoltage.HasValue) current.BatteryVoltage = dto.BatteryVoltage;
         }
+    }
+
+    // On the road: engine on, unplugged, moving, and the trip in progress counted when the car has
+    // one. Parked: engine off and standing still, with no journey under way.
+    private static void SetDriving(DemoCar car, TelemetrySnapshot current, bool driving)
+    {
+        current.EngineRunning = driving;
+        current.HvBatteryActive = driving;
+        current.Speed = driving ? current.Speed is > 0 ? current.Speed : 50 : 0;
+        current.CurrentJourneyDistance = driving ? Math.Round(car.Trips.InProgressDistanceKm, 1) : 0;
+        if (!driving) return;
+        current.ChargerConnected = false;
+        current.IsCharging = false;
+        SetChargePower(current, null);
+    }
+
+    // The cable and the charge as the car reports them together: a charge needs the cable in, and
+    // pulling the cable ends it. A charge shows its power: the one sent, the one it had, or what a
+    // charger of its kind typically gives.
+    private static void ApplyCharging(DemoCar car, TelemetrySnapshot current, DemoStatusOverrideDto dto)
+    {
+        if (dto.ChargingType?.ToUpperInvariant() is "AC" or "DC")
+            current.ChargingType = dto.ChargingType.ToUpperInvariant();
+        if (dto.ChargerConnected.HasValue)
+        {
+            current.ChargerConnected = dto.ChargerConnected;
+            if (dto.ChargerConnected == false) current.IsCharging = false;
+        }
+        if (dto.IsCharging.HasValue)
+        {
+            current.IsCharging = dto.IsCharging;
+            if (dto.IsCharging == true) current.ChargerConnected = true;
+        }
+
+        var dc = current.ChargingType == "DC";
+        var power = dto.ChargingPowerKw is > 0 ? dto.ChargingPowerKw
+            : ChargePower(current) is > 0 and var had && dto.ChargingType is null ? had
+            : dc ? 75 : car.HomeChargerKw;
+        SetChargePower(current, current.IsCharging == true ? power : null);
+        current.BmsChargeStatus = current.IsCharging == true ? "CHARGING_1"
+            : current.ChargerConnected == true ? "CHARGING_STOPPED"
+            : "UNPLUGGED";
+        current.ChargingCableLock = current.ChargerConnected == true;
+    }
+
+    // What the charger gives now, as SetChargePower wrote it: the onboard charger's draw on AC, the
+    // battery's intake on DC.
+    private static double? ChargePower(TelemetrySnapshot current) =>
+        current.IsCharging != true ? null
+        : current.ChargingType == "DC" ? -current.HvPower
+        : current.ObcPowerSinglePhase;
+
+    // The battery takes what the charger gives less its losses; DC bypasses the onboard charger.
+    // Null stops the charge's power figures.
+    private static void SetChargePower(TelemetrySnapshot current, double? powerKw)
+    {
+        var dc = current.ChargingType == "DC";
+        current.ObcPowerSinglePhase = powerKw is { } ac && !dc ? Math.Round(ac, 1) : 0;
+        current.HvPower = powerKw is { } kw ? -Math.Round(kw * (dc ? 1 : 0.9), 1) : current.EngineRunning == true ? 16.2 : 0;
     }
 
     /// <summary>
@@ -217,7 +288,7 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
         lock (_lock)
         {
             var current = Current(vehicleId);
-            var refusal = Apply(current, command, value);
+            var refusal = Apply(DemoCars.For(vehicleId), current, command, value);
             if (refusal is null)
             {
                 current.RecordedAt = DateTime.UtcNow;
@@ -230,7 +301,7 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
     // The car's side of each command. Horn and lights and a refresh change nothing the dashboard
     // shows beyond the reading's time. Unlatching the boot pops it open; a power tailgate moves
     // either way.
-    private static string? Apply(TelemetrySnapshot car, string command, string value)
+    private static string? Apply(DemoCar demoCar, TelemetrySnapshot car, string command, string value)
     {
         switch (command)
         {
@@ -273,6 +344,7 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
             case "charging":
                 car.IsCharging = value == "true";
                 car.BmsChargeStatus = value == "true" ? "CHARGING_1" : "CHARGING_STOPPED";
+                SetChargePower(car, value == "true" ? car.ChargingType == "DC" ? 75 : demoCar.HomeChargerKw : null);
                 break;
             case "charging-cable-lock":
                 car.ChargingCableLock = value == "true";
