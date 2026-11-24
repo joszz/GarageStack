@@ -144,6 +144,15 @@
   gap: 0.35rem;
 }
 
+/* Rows side by side where the dialog is wide enough, for a long list of short rows such as the
+   Demo Controls' switches. One column on a phone, as every list. */
+@media (width >= 768px) {
+  .detail-list--columns {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 .detail-list__item {
   display: flex;
   align-items: center;

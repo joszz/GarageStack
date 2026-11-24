@@ -77,6 +77,17 @@ describe('DemoControlsModal', () => {
     expect(setStatus).toHaveBeenCalledWith(HS.vin, { isLocked: true })
   })
 
+  // The title names the car, too long to share its row with five tabs on a phone, and the rows
+  // sit side by side where the dialog is wide enough.
+  it('puts its tabs under the title on a phone and its rows in columns', () => {
+    const wrapper = render()
+
+    expect(wrapper.get('.detail-modal').classes()).toContain('detail-modal--navigation-below')
+    const lists = wrapper.findAll('.detail-list')
+    expect(lists.length).toBeGreaterThan(0)
+    expect(lists.every((list) => list.classes('detail-list--columns'))).toBe(true)
+  })
+
   it('names no car in the title while there is only one', () => {
     expect(render().get('.detail-modal__title').text()).toBe(en.demo.controlPanel)
   })

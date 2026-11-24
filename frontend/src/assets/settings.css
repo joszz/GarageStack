@@ -234,7 +234,8 @@
 }
 
 /* Below 360px the title, six icons and the close button do not fit on one line in every language
-   (Portuguese "Configurações" leaves 126px): the tabs take a row of their own under the title. */
+   (Portuguese "Configurações" leaves 126px): the tabs take a row of their own under the title. A
+   dialog with a longer title (one naming the car) does the same on any phone. */
 @media (width <= 359px) {
   .detail-modal--with-navigation .detail-modal__header {
     grid-template-areas:
@@ -244,6 +245,19 @@
   }
 
   .settings-tabs {
+    justify-content: flex-start;
+  }
+}
+
+@media (width <= 767px) {
+  .detail-modal--navigation-below.detail-modal--with-navigation .detail-modal__header {
+    grid-template-areas:
+      'title close'
+      'navigation navigation';
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .detail-modal--navigation-below .settings-tabs {
     justify-content: flex-start;
   }
 }

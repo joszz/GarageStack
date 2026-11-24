@@ -110,7 +110,7 @@ const kilowatts = (value: number) => `${formatNumber(value, 1)} kW`
 </script>
 
 <template>
-  <DetailModal :open="open" :title="title" wide @close="emit('close')">
+  <DetailModal :open="open" :title="title" wide navigation-below @close="emit('close')">
     <template #navigation>
       <SettingsTabs
         v-model="activeTab"
@@ -135,7 +135,7 @@ const kilowatts = (value: number) => `${formatNumber(value, 1)} kW`
       tabindex="0"
     >
       <SettingsSection :title="t('demo.doors')">
-        <div class="detail-list">
+        <div class="detail-list detail-list--columns">
           <DetailListSwitch
             v-for="row in doorRows"
             :key="row.field"
@@ -146,7 +146,7 @@ const kilowatts = (value: number) => `${formatNumber(value, 1)} kW`
         </div>
       </SettingsSection>
       <SettingsSection :title="t('demo.windows')">
-        <div class="detail-list">
+        <div class="detail-list detail-list--columns">
           <DetailListSwitch
             v-for="row in windowRows"
             :key="row.field"
@@ -157,7 +157,7 @@ const kilowatts = (value: number) => `${formatNumber(value, 1)} kW`
         </div>
       </SettingsSection>
       <SettingsSection :title="t('demo.state')">
-        <div class="detail-list">
+        <div class="detail-list detail-list--columns">
           <DetailListSwitch v-model="locked" icon="lock" :label="t('demo.locked')" />
           <div class="detail-list__item">
             <font-awesome-icon icon="lightbulb" class="detail-list__item-icon" />
@@ -178,7 +178,7 @@ const kilowatts = (value: number) => `${formatNumber(value, 1)} kW`
       :hidden="activeTab !== 'driving'"
       tabindex="0"
     >
-      <div class="detail-list">
+      <div class="detail-list detail-list--columns">
         <div class="detail-list__item">
           <font-awesome-icon icon="car-side" class="detail-list__item-icon" />
           <ChipGroup
@@ -214,7 +214,7 @@ const kilowatts = (value: number) => `${formatNumber(value, 1)} kW`
       tabindex="0"
     >
       <SettingsSection :title="t('demo.charging')">
-        <div class="detail-list">
+        <div class="detail-list detail-list--columns">
           <DetailListSwitch v-model="connected" icon="plug" :label="t('demo.chargerConnected')" />
           <DetailListSwitch
             v-model="charging"
@@ -243,7 +243,7 @@ const kilowatts = (value: number) => `${formatNumber(value, 1)} kW`
         </div>
       </SettingsSection>
       <SettingsSection :title="t('demo.levels')">
-        <div class="detail-list">
+        <div class="detail-list detail-list--columns">
           <RangeControl
             v-model="soc.value.value"
             icon="battery-half"
@@ -284,7 +284,7 @@ const kilowatts = (value: number) => `${formatNumber(value, 1)} kW`
       :hidden="activeTab !== 'climate'"
       tabindex="0"
     >
-      <div class="detail-list">
+      <div class="detail-list detail-list--columns">
         <DetailListSwitch v-model="climate" icon="wind" :label="t('demo.climate')" />
         <RangeControl
           v-model="interior.value.value"
@@ -316,7 +316,7 @@ const kilowatts = (value: number) => `${formatNumber(value, 1)} kW`
       :hidden="activeTab !== 'tyres'"
       tabindex="0"
     >
-      <div class="detail-list">
+      <div class="detail-list detail-list--columns">
         <RangeControl
           v-for="tyre in tyreRows"
           :key="tyre.field"
