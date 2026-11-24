@@ -98,6 +98,46 @@ public class DemoCarsTests
         Assert.Equal((parkedAt.Latitude, parkedAt.Longitude), (hs.Points[^1].Latitude, hs.Points[^1].Longitude));
     }
 
+    // A car does not jump across the map: each trip, the one under way included, leaves from where
+    // the one before it ended, and no two overlap. The one gap the ZS keeps on purpose is the way
+    // home from Amstelveen that was never recorded, so the route editor has a start to suggest.
+    [Theory]
+    [InlineData(1, new long[] { 5 })]
+    [InlineData(2, new long[0])]
+    public async Task EachTrip_LeavesFromWhereTheOneBeforeItEnded(int vehicleId, long[] leftFromElsewhere)
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var trips = await new DemoTripRepository().GetTripsAsync(vehicleId, From, To, ct);
+
+        Assert.True(trips.Count >= 10);
+        List<long?> jumps = [];
+        for (var i = 1; i < trips.Count; i++)
+        {
+            var (before, trip) = (trips[i - 1], trips[i]);
+            Assert.True(trip.StartedAt >= before.EndedAt, $"Trip {trip.Id} starts before trip {before.Id} ended");
+            var gapKm = GeoHelper.Haversine(before.Points[^1].Latitude, before.Points[^1].Longitude, trip.Points[0].Latitude, trip.Points[0].Longitude);
+            if (gapKm > 0.05) jumps.Add(trip.Id);
+        }
+
+        Assert.Equal(leftFromElsewhere.Cast<long?>(), jumps);
+    }
+
+    // Over the weeks the map shows, the ZS charges where its trips leave it: at home, on its wall box.
+    // A fast charge somewhere it never drove to would put it in two places at once.
+    [Fact]
+    public async Task OverTheTripWeeks_TheZsChargesOnlyAtHome()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var log = await new DemoTripRepository().GetLogAsync(Zs.Id, From, To, ct);
+        var home = (log[0].StartLatitude, log[0].StartLongitude);
+
+        var sessions = await new DemoTelemetryRepository().GetChargeSessionsAsync(Zs.Id, log[0].StartedAt.Date, To, ct);
+
+        Assert.NotEmpty(sessions);
+        Assert.All(sessions, s => Assert.Equal("AC", s.ChargingType));
+        Assert.All(sessions, s => Assert.True(GeoHelper.Haversine(s.Latitude!.Value, s.Longitude!.Value, home.StartLatitude, home.StartLongitude) < 0.5));
+    }
+
     // A plug-in hybrid charges at home every evening it needs to, on a slower wall box, and never
     // at a fast charger.
     [Fact]
