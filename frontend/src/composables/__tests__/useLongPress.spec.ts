@@ -16,10 +16,11 @@ enableAutoUnmount(afterEach)
 // where holding a finger means something else.
 function grid() {
   const onLongPress = vi.fn<() => void>()
+  const onPressStart = vi.fn<() => void>()
   const wrapper = mount(
     defineComponent({
       setup() {
-        const bindings = useLongPress(onLongPress)
+        const bindings = useLongPress(onLongPress, { onPressStart })
         return () =>
           h('div', { class: 'grid', ...bindings }, [
             h('div', { class: 'card' }, [h('div', { class: ['plot', LONG_PRESS_EXEMPT_CLASS] })]),
@@ -30,6 +31,7 @@ function grid() {
   )
   return {
     onLongPress,
+    onPressStart,
     grid: wrapper.find('.grid'),
     card: wrapper.find('.card'),
     exempt: wrapper.find('.plot'),
@@ -67,6 +69,18 @@ describe('useLongPress', () => {
     vi.advanceTimersByTime(1)
 
     expect(onLongPress).toHaveBeenCalledOnce()
+  })
+
+  it('says a press began as the finger goes down, to get ready while it rests', () => {
+    const { onPressStart, card, grid: el, exempt } = grid()
+
+    card.element.dispatchEvent(pointer('pointerdown', { pointerType: 'mouse' }))
+    el.element.dispatchEvent(pointer('pointerdown'))
+    exempt.element.dispatchEvent(pointer('pointerdown'))
+    expect(onPressStart).not.toHaveBeenCalled()
+
+    card.element.dispatchEvent(pointer('pointerdown'))
+    expect(onPressStart).toHaveBeenCalledOnce()
   })
 
   it('does not fire for a tap', () => {

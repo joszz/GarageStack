@@ -42,7 +42,7 @@ vi.mock('@vue-leaflet/vue-leaflet', () => ({
 }))
 vi.mock('@/composables/useBasemap', () => ({ useBasemap: () => undefined }))
 
-// Loaded only in edit mode, as an async component; see DashboardView.spec.ts.
+// Loaded only as edit mode opens; see DashboardView.spec.ts.
 vi.mock('@/components/EditableCardGrid.vue', () => ({
   __esModule: true,
   default: { template: '<div class="card-grid" />' },
