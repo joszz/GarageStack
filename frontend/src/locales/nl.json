@@ -39,6 +39,7 @@
     "title": "Laadgeschiedenis",
     "subtitle": "Laadsessies samengesteld uit opgeslagen laadstatussen. Batterij-energie is de verandering in de door de auto gemelde kWh; overige gegevens hangen af van beschikbare telemetrie.",
     "period": "Periode",
+    "periodDesc": "De dagen waarvan de laadsessies worden getoond en opgeteld.",
     "lastDays": "Laatste {days} dagen",
     "sessions": "Sessies",
     "timeCharging": "Laadtijd",
