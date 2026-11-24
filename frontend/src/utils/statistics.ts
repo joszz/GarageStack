@@ -8,7 +8,8 @@ import {
   type CounterScale,
 } from '@/utils/energy'
 import { DAY_MONTH } from '@/utils/format'
-import { parseLocalDate, type StatsGrouping } from '@/utils/statsPeriod'
+import { parseLocalDate } from '@/utils/period'
+import type { StatsGrouping } from '@/utils/statsPeriod'
 
 /**
  * The trip figures the statistics page shows, read from trip summaries rather than from every

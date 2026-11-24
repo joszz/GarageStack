@@ -20,14 +20,6 @@ export function localDateKey(date: Date): string {
 }
 
 /**
- * ISO timestamp for exactly `days` days before now. The "from" bound the dashboard and map use
- * for their trip queries.
- */
-export function daysAgoIso(days: number, now = Date.now()): string {
-  return new Date(now - days * MS_PER_DAY).toISOString()
-}
-
-/**
  * The browser's IANA time zone: what a new climate schedule keeps its start time in, and what the
  * statistics page's days run midnight to midnight in.
  */

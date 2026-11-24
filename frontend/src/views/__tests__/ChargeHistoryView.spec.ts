@@ -3,6 +3,7 @@ import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils'
 import { createI18n } from 'vue-i18n'
 import { createPinia, setActivePinia } from 'pinia'
 import en from '@/locales/en.json'
+import { formatPeriodRange, presetPeriod, resolvePeriod } from '@/utils/period'
 import ChargeHistoryView from '../ChargeHistoryView.vue'
 import {
   vehicleApi,
@@ -92,7 +93,12 @@ function mountView() {
   })
 }
 
+// Monday 19 October 2026, noon.
+const NOW = new Date(2026, 9, 19, 12)
+
 beforeEach(() => {
+  vi.useFakeTimers({ toFake: ['Date'] })
+  vi.setSystemTime(NOW)
   localStorage.clear()
   setActivePinia(createPinia())
   vi.clearAllMocks()
@@ -103,6 +109,10 @@ beforeEach(() => {
   ])
 })
 
+afterEach(() => {
+  vi.useRealTimers()
+})
+
 describe('ChargeHistoryView', () => {
   it('asks for the last 90 days and pairs each session with the one before it', async () => {
     const wrapper = mountView()
@@ -111,13 +121,16 @@ describe('ChargeHistoryView', () => {
     expect(vehicleApi.chargeSessions).toHaveBeenCalledTimes(1)
     const [vin, from, to] = vi.mocked(vehicleApi.chargeSessions).mock.calls[0]!
     expect(vin).toBe('FAKEVN00000000001')
-    expect(Date.parse(to!) - Date.parse(from!)).toBe(90 * 24 * 60 * 60 * 1000)
+    expect(from).toBe(new Date(2026, 6, 21).toISOString())
+    expect(to).toBe(NOW.toISOString())
     expect(wrapper.findAll('.item-stub').map((item) => item.text())).toEqual([
       '2026-10-20T08:00:00Z|2026-10-19T10:00:00Z',
       '2026-10-19T10:00:00Z|-',
     ])
     expect(wrapper.find('.summary').text()).toBe('Sessions 2')
-    expect(wrapper.get('.caption').text()).toBe('Last 90 days')
+    expect(wrapper.get('.caption').text()).toBe(
+      formatPeriodRange(resolvePeriod(presetPeriod('last90'), NOW)),
+    )
     expect(wrapper.find('.toolbar-panel__count').exists()).toBe(false)
   })
 
@@ -149,19 +162,22 @@ describe('ChargeHistoryView', () => {
     const wrapper = mountView()
     await flushPromises()
 
-    await (await periodSelect(wrapper)).setValue('365')
+    await (await periodSelect(wrapper)).setValue('lastYear')
     await flushPromises()
 
-    expect(wrapper.get('.caption').text()).toBe('Last 365 days')
+    expect(wrapper.get('.caption').text()).toBe(
+      formatPeriodRange(resolvePeriod(presetPeriod('lastYear'), NOW)),
+    )
     expect(wrapper.get('.toolbar-panel__count').text()).toBe('1')
     const [, from, to] = vi.mocked(vehicleApi.chargeSessions).mock.calls[1]!
-    expect(Date.parse(to!) - Date.parse(from!)).toBe(365 * 24 * 60 * 60 * 1000)
+    expect(from).toBe(new Date(2025, 0, 1).toISOString())
+    expect(to).toBe(new Date(2026, 0, 1).toISOString())
   })
 
   it('comes back on the period it was left on', async () => {
     const first = mountView()
     await flushPromises()
-    await (await periodSelect(first)).setValue('365')
+    await (await periodSelect(first)).setValue('lastYear')
     await flushPromises()
     first.unmount()
     vi.mocked(vehicleApi.chargeSessions).mockClear()
@@ -169,9 +185,9 @@ describe('ChargeHistoryView', () => {
     const wrapper = mountView()
     await flushPromises()
 
-    expect(((await periodSelect(wrapper)).element as HTMLSelectElement).value).toBe('365')
-    const [, from, to] = vi.mocked(vehicleApi.chargeSessions).mock.calls[0]!
-    expect(Date.parse(to!) - Date.parse(from!)).toBe(365 * 24 * 60 * 60 * 1000)
+    expect(((await periodSelect(wrapper)).element as HTMLSelectElement).value).toBe('lastYear')
+    const [, from] = vi.mocked(vehicleApi.chargeSessions).mock.calls[0]!
+    expect(from).toBe(new Date(2025, 0, 1).toISOString())
   })
 
   it('sends a plain hybrid to the dashboard without asking for sessions', async () => {

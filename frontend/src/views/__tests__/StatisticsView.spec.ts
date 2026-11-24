@@ -92,7 +92,7 @@ async function mountView() {
       plugins: [i18n, pinia],
       stubs: {
         FontAwesomeIcon: true,
-        StatsPeriodFilter: true,
+        PeriodFilterPanel: true,
         StatsChartCard: true,
         StatsMonthTable: { template: '<div class="month-table" />' },
         CardInfoWrap: { template: '<div><slot /></div>' },

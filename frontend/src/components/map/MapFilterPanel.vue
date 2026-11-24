@@ -6,10 +6,11 @@ import { useI18n } from 'vue-i18n'
 import Multiselect from '@vueform/multiselect'
 import Slider from '@vueform/slider'
 import { useMapSettingsStore } from '@/stores/settingsMap'
-import { DEFAULT_FILTER_DAYS, useUiSettingsStore } from '@/stores/settingsUi'
+import { useUiSettingsStore } from '@/stores/settingsUi'
 import { FUEL_TYPES } from '@/utils/fuelTypes'
+import { isSamePeriod, MAP_PERIOD } from '@/utils/period'
 import ToolbarPanel from '../ToolbarPanel.vue'
-import DateRangeFilter from '../DateRangeFilter.vue'
+import PeriodFilter from '../PeriodFilter.vue'
 
 // What narrows the map: the period, and the fuel and charging filters for the POI layers. A
 // filter belongs to what the car can use rather than to what is switched on right now, so these
@@ -26,7 +27,7 @@ const props = defineProps<{
 const { t } = useI18n()
 const { fuelTypeFilter, fuelBrandFilter, chargingMinPowerKw, chargingMaxPowerKw } =
   storeToRefs(useMapSettingsStore())
-const { filterDays } = storeToRefs(useUiSettingsStore())
+const { mapPeriod } = storeToRefs(useUiSettingsStore())
 
 // Fuel types are a fixed set, unlike brands, so the dropdown is built from the list itself
 // rather than from whatever the loaded stations happen to advertise.
@@ -66,7 +67,7 @@ function formatPowerTooltip(value: number): string {
 // differing from the one every view starts on.
 const activeCount = computed(() => {
   const active = [
-    filterDays.value !== DEFAULT_FILTER_DAYS,
+    !isSamePeriod(mapPeriod.value, MAP_PERIOD.fallback),
     props.carTakesFuel && fuelTypeFilter.value.length > 0,
     props.carTakesFuel && fuelBrandFilter.value.length > 0,
     // One row, so one count, however many of its two ends have been moved off "any".
@@ -78,7 +79,7 @@ const activeCount = computed(() => {
 
 <template>
   <ToolbarPanel :count="activeCount">
-    <DateRangeFilter />
+    <PeriodFilter v-model="mapPeriod" :options="MAP_PERIOD" :desc="t('trips.periodDesc')" />
     <template v-if="carTakesFuel">
       <div class="poi-filter">
         <div class="poi-filter__header">

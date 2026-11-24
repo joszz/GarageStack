@@ -1,12 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { daysAgoIso, pad2, startOfLocalDay, timeOfDay } from '@/utils/dates'
-
-describe('daysAgoIso', () => {
-  it('subtracts whole days from the given instant', () => {
-    const now = Date.UTC(2026, 8, 15, 12, 0, 0)
-    expect(daysAgoIso(7, now)).toBe('2026-09-08T12:00:00.000Z')
-  })
-})
+import { pad2, startOfLocalDay, timeOfDay } from '@/utils/dates'
 
 describe('timeOfDay', () => {
   it('reads a time with or without seconds as hours and minutes', () => {

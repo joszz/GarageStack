@@ -33,7 +33,14 @@ import '@/assets/map.css'
 import '@/assets/tripMarkers.css'
 import type { Trip } from '@/services/vehicleApi'
 import { speedLimitSummary } from '@/utils/speedLimits'
-import { daysAgoIso, MS_PER_DAY, startOfLocalDay } from '@/utils/dates'
+import { startOfLocalDay } from '@/utils/dates'
+import {
+  formatPeriodRange,
+  MAP_PERIOD,
+  periodIncludes,
+  periodQuery,
+  resolvePeriod,
+} from '@/utils/period'
 import { DAY_MONTH, formatDate } from '@/utils/format'
 import { isPhoneViewport } from '@/utils/viewport'
 import { useUnits } from '@/composables/useUnits'
@@ -75,7 +82,9 @@ const carTakesFuel = computed(() => burnsFuel(vehicleType.value))
 const carTakesCharge = computed(() => plugsIn(vehicleType.value))
 const selectedTripIndex = ref<number | null>(null)
 const { speedOverlayEnabled, speedLimitOverlayEnabled } = storeToRefs(settingsStore)
-const { filterDays: dateRangeDays } = storeToRefs(uiSettingsStore)
+const { mapPeriod } = storeToRefs(uiSettingsStore)
+const period = computed(() => resolvePeriod(mapPeriod.value, new Date(), MAP_PERIOD.maxDays))
+const periodLabel = computed(() => formatPeriodRange(period.value))
 
 let shouldSelectLatest = route.query.selectLatest === '1'
 
@@ -89,7 +98,7 @@ function dayOf(at: unknown): { from: string; to: string } | null {
   if (pendingTripId === null || typeof at !== 'string') return null
   const startedAt = new Date(at)
   if (Number.isNaN(startedAt.getTime())) return null
-  if (+startedAt >= Date.now() - dateRangeDays.value * MS_PER_DAY) return null
+  if (periodIncludes(period.value, startedAt)) return null
   const from = startOfLocalDay(startedAt)
   const to = new Date(from.getFullYear(), from.getMonth(), from.getDate() + 1)
   return { from: from.toISOString(), to: new Date(Math.min(+to, Date.now())).toISOString() }
@@ -103,9 +112,9 @@ const shownDayLabel = computed(() =>
 
 function fetchShownTrips(v: string) {
   const day = shownDay.value
-  return day
-    ? store.fetchTrips(v, day.from, day.to)
-    : store.fetchTrips(v, daysAgoIso(dateRangeDays.value))
+  if (day) return store.fetchTrips(v, day.from, day.to)
+  const { fromIso, toIso } = periodQuery(period.value)
+  return store.fetchTrips(v, fromIso, toIso)
 }
 const LOAD_MORE_SIZE = 10
 
@@ -359,7 +368,7 @@ async function showPeriod() {
   if (vin.value) await fetchShownTrips(vin.value)
 }
 
-watch(dateRangeDays, showPeriod)
+watch(() => `${period.value.first.getTime()}-${period.value.last.getTime()}`, showPeriod)
 
 // Back from offline: the server's car and trips replace the saved ones, keeping the selection.
 useReconnect(async () => {
@@ -367,12 +376,15 @@ useReconnect(async () => {
 })
 
 // Trip just finished: silently prepend without resetting selection or page. A day shown from
-// the trip log is in the past, so a new trip is not one of its own.
+// the trip log, or a period that ended before today, is in the past, so a new trip is not one
+// of its own.
 watch(
   () => store.tripJustCompleted,
   async (completed) => {
     if (!completed || !vin.value || shownDay.value) return
-    await store.fetchTrips(vin.value, daysAgoIso(dateRangeDays.value))
+    const { fromIso, toIso } = periodQuery(period.value)
+    if (toIso) return
+    await store.fetchTrips(vin.value, fromIso)
   },
 )
 
@@ -406,7 +418,7 @@ onMounted(async () => {
 
 <template>
   <div class="view-container view-container--map">
-    <ViewHeader :title="t('nav.map')">
+    <ViewHeader :title="t('nav.map')" :caption="periodLabel">
       <template #actions>
         <!-- Filters narrow what the map draws; the layer panel beside it decides what it draws
              at all. -->

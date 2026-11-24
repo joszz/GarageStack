@@ -131,7 +131,7 @@ Cards are shown or hidden automatically based on vehicle type (HEV / PHEV / BEV)
 
 ### Statistics insights
 
-The Statistics view shows insight cards and charts for a period of its own: the last 7, 30 or 90 days, this or last month, this or last year, or custom dates. Charts show a point per day up to about three months, per week up to a year, and per month beyond that. A period longer than a month also gets a table of trips, distance and energy per month. Cards are draggable and individually toggleable.
+The Statistics view shows insight cards and charts for a period of its own: the last 7, 30 or 90 days, this or last month, this or last year, or custom dates, picked under **Filters** at the top right, with its dates shown under the title. The map and the charge history offer the same choices, each keeping its own; the map leaves out this and last year and takes custom dates up to 90 days, as it draws every trip. Charts show a point per day up to about three months, per week up to a year, and per month beyond that. A period longer than a month also gets a table of trips, distance and energy per month. Cards are draggable and individually toggleable.
 
 **Consumption by outside temperature** groups the period's days by their average outside temperature, five degrees to a bar, and shows what the car used per distance on them: L/100 km on a plain hybrid, kWh/100 km on a plug-in car. It shows how much more the car takes in winter. A bar needs at least 5 km of driving on its days, and a longer period, such as this year, fills more of them.
 
@@ -471,7 +471,7 @@ Only trips the Worker has saved can be logged, so the trip being driven, and one
 
 ## Charge history
 
-**Charge history** in the sidebar lists completed and ongoing sessions for the last 30, 90 or 365 days, with their duration, state of charge, odometer reading and peak power. Open a session to see its charging-power curve, where it charged, and the distance and battery energy since the charge before. The kWh figures are the change in the car's own battery reading, not energy drawn from the charger. MG reports them on a nominal 72.5 kWh pack, which is only right for a BEV, so on a plug-in hybrid they show once `HV_BATTERY_CAPACITY_KWH` is set; consumption since the last charge shows on a BEV only. Sessions are rebuilt from recorded telemetry, so they depend on what the car reported and what is kept. A plain hybrid never charges from a plug and has no charge history.
+**Charge history** in the sidebar lists completed and ongoing sessions for a period picked under **Filters** (the last 90 days to begin with, up to a year of custom dates), with their duration, state of charge, odometer reading and peak power. Open a session to see its charging-power curve, where it charged, and the distance and battery energy since the charge before. The kWh figures are the change in the car's own battery reading, not energy drawn from the charger. MG reports them on a nominal 72.5 kWh pack, which is only right for a BEV, so on a plug-in hybrid they show once `HV_BATTERY_CAPACITY_KWH` is set; consumption since the last charge shows on a BEV only. Sessions are rebuilt from recorded telemetry, so they depend on what the car reported and what is kept. A plain hybrid never charges from a plug and has no charge history.
 
 ---
 

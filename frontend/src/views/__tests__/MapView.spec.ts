@@ -14,6 +14,7 @@ import type { TripMatch } from '@/composables/useTripMatch'
 import type { TripLayersOptions } from '@/composables/useTripLayers'
 import { useVehicleStore } from '@/stores/vehicle'
 import { useUiSettingsStore } from '@/stores/settingsUi'
+import { presetPeriod } from '@/utils/period'
 
 vi.mock('@/services/vehicleApi', () => ({
   vehicleApi: {
@@ -196,12 +197,35 @@ describe('MapView', () => {
     vi.useRealTimers()
   })
 
+  // A period starts at the local midnight its first day begins, as the statistics' do.
+  function daysBackIso(days: number): string {
+    const now = new Date()
+    return new Date(now.getFullYear(), now.getMonth(), now.getDate() - days).toISOString()
+  }
+
   it("loads the car's position and the trips of the date filter's days", async () => {
-    useUiSettingsStore(pinia).filterDays = 7
+    useUiSettingsStore(pinia).mapPeriod = presetPeriod('last7')
     await mountView()
 
     expect(vehicleApi.status).toHaveBeenCalledWith(car.vin)
-    expect(vehicleApi.trips).toHaveBeenCalledWith(car.vin, '2026-10-12T12:00:00.000Z', undefined)
+    expect(vehicleApi.trips).toHaveBeenCalledWith(car.vin, daysBackIso(7), undefined)
+  })
+
+  it('asks for a period in the past up to its end, and leaves it alone when a trip ends', async () => {
+    useUiSettingsStore(pinia).mapPeriod = presetPeriod('lastMonth')
+    await mountView()
+
+    const now = new Date()
+    expect(vehicleApi.trips).toHaveBeenCalledWith(
+      car.vin,
+      new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString(),
+      new Date(now.getFullYear(), now.getMonth(), 1).toISOString(),
+    )
+
+    vi.mocked(vehicleApi.trips).mockClear()
+    useVehicleStore(pinia).notifyTripCompleted()
+    await flushPromises()
+    expect(vehicleApi.trips).not.toHaveBeenCalled()
   })
 
   it('lists the trips newest first, and selects one on a tap and drops it on the next', async () => {
@@ -245,10 +269,10 @@ describe('MapView', () => {
     await sidebar(wrapper).findAll('li')[0]!.trigger('click')
     vi.mocked(vehicleApi.trips).mockClear()
 
-    useUiSettingsStore(pinia).filterDays = 90
+    useUiSettingsStore(pinia).mapPeriod = presetPeriod('last90')
     await flushPromises()
 
-    expect(vehicleApi.trips).toHaveBeenCalledWith(car.vin, '2026-07-21T12:00:00.000Z', undefined)
+    expect(vehicleApi.trips).toHaveBeenCalledWith(car.vin, daysBackIso(90), undefined)
     expect(sidebar(wrapper).attributes('data-selected')).toBeUndefined()
   })
 
@@ -491,12 +515,12 @@ describe('MapView', () => {
 
   it('selects the trip it was opened for from the trip log, once the trips are in', async () => {
     route.query = { trip: '2', at: trip(1).startedAt }
-    useUiSettingsStore(pinia).filterDays = 30
+    useUiSettingsStore(pinia).mapPeriod = presetPeriod('last30')
 
     const wrapper = await mountView()
 
     expect(router.replace).toHaveBeenCalledWith({ name: 'map' })
-    expect(vehicleApi.trips).toHaveBeenCalledWith(car.vin, '2026-09-19T12:00:00.000Z', undefined)
+    expect(vehicleApi.trips).toHaveBeenCalledWith(car.vin, daysBackIso(30), undefined)
     expect(tripLayerOptions.takePendingSelection()).toBe(1)
     // Asked once: a later reload of the trips does not select it again.
     expect(tripLayerOptions.takePendingSelection()).toBeNull()
@@ -519,11 +543,8 @@ describe('MapView', () => {
     await wrapper.find('.show-period').trigger('click')
     await flushPromises()
 
-    expect(vehicleApi.trips).toHaveBeenLastCalledWith(
-      car.vin,
-      '2026-10-12T12:00:00.000Z',
-      undefined,
-    )
+    // Back on the period the map starts on: the last 30 days.
+    expect(vehicleApi.trips).toHaveBeenLastCalledWith(car.vin, daysBackIso(30), undefined)
     expect(sidebar(wrapper).attributes('data-day')).toBeUndefined()
   })
 })

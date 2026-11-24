@@ -16,8 +16,7 @@ import { useLeafletMap } from '@/composables/useLeafletMap'
 import { useBasemap } from '@/composables/useBasemap'
 import CardInfoWrap from '@/components/CardInfoWrap.vue'
 import DetailModal from '@/components/DetailModal.vue'
-import ToolbarPanel from '@/components/ToolbarPanel.vue'
-import StatsPeriodFilter from '@/components/StatsPeriodFilter.vue'
+import PeriodFilterPanel from '@/components/PeriodFilterPanel.vue'
 import StatsMonthTable from '@/components/StatsMonthTable.vue'
 import SkeletonCard from '@/components/SkeletonCard.vue'
 import SkeletonChart from '@/components/SkeletonChart.vue'
@@ -25,8 +24,9 @@ import StatusCard from '@/components/StatusCard.vue'
 import StatsChartCard from '@/components/StatsChartCard.vue'
 import EditableCardSlot from '@/components/EditableCardSlot.vue'
 import EditLayoutButton from '@/components/EditLayoutButton.vue'
-import { DAY_MONTH, formatDate, formatHour, formatNumber } from '@/utils/format'
-import { resolveStatsPeriod, statsQuery } from '@/utils/statsPeriod'
+import { formatHour, formatNumber } from '@/utils/format'
+import { resolveStatsPeriod } from '@/utils/statsPeriod'
+import { formatPeriodRange, periodQuery, STATS_PERIOD } from '@/utils/period'
 import {
   counterOverDistance,
   efficiency,
@@ -66,19 +66,10 @@ const { editMode, cardLongPress } = useEditMode()
 const loading = ref(false)
 const aggregateStats = ref<VehicleAggregateStats | null>(null)
 
-// The days the page shows, from its own period (the map keeps its 7, 30 or 90 days).
+// The days the page shows, from its own period: the map and the charge history keep theirs.
 const period = computed(() => resolveStatsPeriod(uiSettings.statsPeriod))
 
-const periodLabel = computed(() => {
-  const { first, last } = period.value
-  const sameYear = first.getFullYear() === last.getFullYear()
-  const from = formatDate(first, {
-    day: 'numeric',
-    month: 'short',
-    ...(sameYear ? {} : { year: 'numeric' }),
-  })
-  return `${from} - ${formatDate(last, { ...DAY_MONTH, year: 'numeric' })}`
-})
+const periodLabel = computed(() => formatPeriodRange(period.value))
 
 const vin = computed(() => store.activeVin)
 const status = computed(() => store.currentStatus)
@@ -88,7 +79,7 @@ async function load() {
   try {
     await store.fetchVehicles()
     if (!vin.value) return
-    const query = statsQuery(period.value)
+    const query = periodQuery(period.value)
     const [, , , , stats] = await Promise.all([
       store.fetchDailyStats(vin.value, query.fromDate, query.toDate),
       store.fetchTripSummaries(vin.value, query.fromIso, query.toIso),
@@ -442,9 +433,11 @@ const skeletonChartCount = computed(
   <div class="view-container">
     <ViewHeader :title="t('nav.statistics')" :caption="periodLabel">
       <template #actions>
-        <ToolbarPanel>
-          <StatsPeriodFilter />
-        </ToolbarPanel>
+        <PeriodFilterPanel
+          v-model="uiSettings.statsPeriod"
+          :options="STATS_PERIOD"
+          :desc="t('statistics.periodDesc')"
+        />
         <EditLayoutButton v-model="editMode" :cards-shown="cardsShown" @reset="resetStatsLayout" />
       </template>
     </ViewHeader>
