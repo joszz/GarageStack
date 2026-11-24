@@ -244,9 +244,10 @@ async function scrollToEnergy(page) {
 // One trip, snapped to the roads and coloured against the speed limits, as the gallery shows it.
 async function selectTrip(page) {
   const trips = page.locator('.trip-list__button')
-  // To Utrecht, not from it: the drive back is a newer trip without a route to snap.
-  const toUtrecht = trips.filter({ hasText: /Amsterdam\s*Utrecht/ }).first()
-  await ((await toUtrecht.count()) > 0 ? toUtrecht : trips.first()).click()
+  // A drive down the motorway to The Hague, near the top of the list, so the speed limits have
+  // a long road to colour.
+  const toTheHague = trips.filter({ hasText: /Amsterdam\s*The Hague/ }).first()
+  await ((await toTheHague.count()) > 0 ? toTheHague : trips.first()).click()
   await settled(page)
 }
 

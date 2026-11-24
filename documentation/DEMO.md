@@ -4,7 +4,7 @@ Demo mode runs GarageStack with realistic fake data and requires no MG iSmart cr
 
 ## What you get
 
-- MG ZS EV with 400 days of history (including occasional home AC and public DC charging sessions with battery and power curves), ten finished trips from the last five weeks (most around Amsterdam, a few further afield) and one in progress
+- MG ZS EV with 400 days of history (including occasional home AC and public DC charging sessions with battery and power curves), 21 finished trips from the last five weeks, each leaving from where the one before it ended (out and back from Amsterdam, with day trips to Utrecht and Amersfoort, Den Haag and Delft, and Tilburg and Breda), and one in progress
 - Optionally a second car, an MG HS plug-in hybrid parked at home in Utrecht, with its own trips, history, charging, maintenance and live state (`DEMO_SECOND_VEHICLE`, below)
 - Dashboard, Statistics, and Map views fully populated
 - **Demo Controls** (in the sidebar) to change the car live: doors, windows, lights, lock, driving, charging, battery and fuel, 12 V, temperatures and tyres

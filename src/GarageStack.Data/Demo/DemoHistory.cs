@@ -1,3 +1,4 @@
+using GarageStack.Core.Helpers;
 using GarageStack.Core.Models;
 
 namespace GarageStack.Data.Demo;
@@ -25,6 +26,10 @@ internal sealed class DemoHistory
 
     // Filled up at the evening reading once the tank is below this.
     private const double RefuelBelowPercent = 20;
+
+    // Plugged in the evening before a long day out too, when the next day's drives would otherwise
+    // bring the battery home below this.
+    private const double ArriveAbovePercent = 20;
 
     // Below this outside temperature a drive takes more, by this share per degree: the heater, a
     // cold battery and denser air, so the statistics' temperature chart has a winter to show.
@@ -71,6 +76,9 @@ internal sealed class DemoHistory
         var now = DateTime.UtcNow;
         var firstDay = now.Date.AddDays(-Days);
         var drives = BuildDrives(firstDay, rng);
+        // On the days of the demo trips the map shows where the car went: it charges at home on
+        // those evenings, never at a fast charger it was not at, and not at all on a night away.
+        var tripsFrom = car.Trips.All.Where(t => t.Id is not null).Min(t => t.StartedAt).Date;
 
         var odometer = car.CurrentOdometerKm - car.Trips.InProgressDistanceKm - drives.Sum(d => d.Km);
         var soc = car.ChargeTargetPercent;
@@ -123,8 +131,9 @@ internal sealed class DemoHistory
 
                 // Plugged in in the evening when the battery is low, unless that charge would
                 // still be running now: the history holds finished charges only.
-                var fast = car.FastChargers.Count > 0 && day - lastFastChargeDay >= DaysBetweenFastCharges;
-                var plan = hour == ReadingHours[^1] && soc < car.ChargeBelowPercent ? PlanCharge(at, fast, rng) : null;
+                var fast = car.FastChargers.Count > 0 && date < tripsFrom && day - lastFastChargeDay >= DaysBetweenFastCharges;
+                var plugIn = (soc < car.ChargeBelowPercent || soc - PercentNeededNextDay(at) < ArriveAbovePercent) && !AwayFromHome(at);
+                var plan = hour == ReadingHours[^1] && plugIn ? PlanCharge(at, fast, rng) : null;
                 if (plan is null || plan[^1].At.AddMinutes(2) > now)
                 {
                     snapshots.Add(Reading(id++, at, day, hour, rng));
@@ -159,6 +168,16 @@ internal sealed class DemoHistory
             today ? dayKwh : 0,
             sinceKm,
             sinceKwh));
+
+        // The car's last demo trip ended away from home, so there is nothing to plug in to.
+        bool AwayFromHome(DateTime at) =>
+            car.Trips.All.LastOrDefault(t => t.Id is not null && t.EndedAt <= at) is { } last &&
+            GeoHelper.Haversine(last.Points[^1].Latitude, last.Points[^1].Longitude, car.Home.Latitude, car.Home.Longitude) > 0.5;
+
+        // What the drives of the coming day take from the battery, as a share of it.
+        double PercentNeededNextDay(DateTime evening) =>
+            drives.Where(d => d.Start > evening && d.Start <= evening.AddDays(1))
+                .Sum(d => d.Km * d.KwhPerKm) / car.CapacityKwh * 100;
 
         void Use(double kwh)
         {

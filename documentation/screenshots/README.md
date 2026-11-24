@@ -30,11 +30,11 @@ The main pages of GarageStack, on a desktop and on a phone. They were taken in [
 
 ### Map
 
-![The map: a month of trips listed by where they went, drawn along the roads between Amsterdam, Haarlem, Almere, Utrecht and Amersfoort over a heatmap of the most driven roads](desktop-map.webp)
+![The map: a month of trips listed by where they went, each leaving from where the one before it ended, drawn along the roads from Amsterdam to Haarlem, Almere, Utrecht, Amersfoort, The Hague and Delft over a heatmap of the most driven roads](desktop-map.webp)
 
 ### A single trip
 
-![One trip from Amsterdam to Utrecht, snapped to the roads and coloured green where it kept to the speed limit and red where it went over, with a legend summing up how much of it was over](desktop-map-trip.webp)
+![One trip from Amsterdam to The Hague, snapped to the roads and coloured green where it kept to the speed limit, red where it went over and grey where OpenStreetMap knows no limit, with a legend summing up how much of it was over](desktop-map-trip.webp)
 
 ### Statistics
 
