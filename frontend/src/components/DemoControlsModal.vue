@@ -110,7 +110,7 @@ const kilowatts = (value: number) => `${formatNumber(value, 1)} kW`
 </script>
 
 <template>
-  <DetailModal :open="open" :title="title" wide navigation-below @close="emit('close')">
+  <DetailModal :open="open" :title="title" wide navigation-below fit-content @close="emit('close')">
     <template #navigation>
       <SettingsTabs
         v-model="activeTab"
@@ -126,209 +126,212 @@ const kilowatts = (value: number) => `${formatNumber(value, 1)} kW`
     </p>
 
     <!-- Kept mounted between tabs, like the settings dialog's panels, so a slider keeps its
-         place and a switch its focus. -->
-    <div
-      :id="`${id}-panel-car`"
-      role="tabpanel"
-      :aria-labelledby="`${id}-tab-car`"
-      :hidden="activeTab !== 'car'"
-      tabindex="0"
-    >
-      <SettingsSection :title="t('demo.doors')">
-        <div class="detail-list detail-list--columns">
-          <DetailListSwitch
-            v-for="row in doorRows"
-            :key="row.field"
-            v-model="row.model.value"
-            :icon="row.icon"
-            :label="t(row.label)"
-          />
-        </div>
-      </SettingsSection>
-      <SettingsSection :title="t('demo.windows')">
-        <div class="detail-list detail-list--columns">
-          <DetailListSwitch
-            v-for="row in windowRows"
-            :key="row.field"
-            v-model="row.model.value"
-            :icon="row.icon"
-            :label="t(row.label)"
-          />
-        </div>
-      </SettingsSection>
-      <SettingsSection :title="t('demo.state')">
-        <div class="detail-list detail-list--columns">
-          <DetailListSwitch v-model="locked" icon="lock" :label="t('demo.locked')" />
-          <div class="detail-list__item">
-            <font-awesome-icon icon="lightbulb" class="detail-list__item-icon" />
-            <ChipGroup
-              v-model="demo.lights.value"
-              :options="lightOptions"
-              :group-label="t('demo.lights')"
+         place and a switch its focus. Stacked in one place, so the dialog is as tall as the
+         tallest tab and keeps that height whichever tab is open. -->
+    <div class="tab-panels">
+      <div
+        :id="`${id}-panel-car`"
+        role="tabpanel"
+        :aria-labelledby="`${id}-tab-car`"
+        :class="{ 'tab-panels__panel--inactive': activeTab !== 'car' }"
+        tabindex="0"
+      >
+        <SettingsSection :title="t('demo.doors')">
+          <div class="detail-list detail-list--columns">
+            <DetailListSwitch
+              v-for="row in doorRows"
+              :key="row.field"
+              v-model="row.model.value"
+              :icon="row.icon"
+              :label="t(row.label)"
             />
           </div>
-        </div>
-      </SettingsSection>
-    </div>
-
-    <div
-      :id="`${id}-panel-driving`"
-      role="tabpanel"
-      :aria-labelledby="`${id}-tab-driving`"
-      :hidden="activeTab !== 'driving'"
-      tabindex="0"
-    >
-      <div class="detail-list detail-list--columns">
-        <div class="detail-list__item">
-          <font-awesome-icon icon="car-side" class="detail-list__item-icon" />
-          <ChipGroup
-            v-model="demo.motion.value"
-            :options="motionOptions"
-            :group-label="t('demo.motion')"
-          />
-        </div>
-        <RangeControl
-          v-model="speed.value.value"
-          icon="gauge-high"
-          :label="t('demo.speed')"
-          :value-text="units.format('speed', speed.value.value) ?? ''"
-          :min="0"
-          :max="200"
-          @change="speed.commit"
-        />
-        <DetailListSwitch v-model="engine" icon="power-off" :label="t('demo.engine')" />
-        <DetailListSwitch v-model="online" icon="wifi" :label="t('demo.online')" />
-        <DetailListSwitch
-          v-model="demo.gatewaySignedIn.value"
-          icon="key"
-          :label="t('demo.gatewaySignedIn')"
-        />
+        </SettingsSection>
+        <SettingsSection :title="t('demo.windows')">
+          <div class="detail-list detail-list--columns">
+            <DetailListSwitch
+              v-for="row in windowRows"
+              :key="row.field"
+              v-model="row.model.value"
+              :icon="row.icon"
+              :label="t(row.label)"
+            />
+          </div>
+        </SettingsSection>
+        <SettingsSection :title="t('demo.state')">
+          <div class="detail-list detail-list--columns">
+            <DetailListSwitch v-model="locked" icon="lock" :label="t('demo.locked')" />
+            <div class="detail-list__item">
+              <font-awesome-icon icon="lightbulb" class="detail-list__item-icon" />
+              <ChipGroup
+                v-model="demo.lights.value"
+                :options="lightOptions"
+                :group-label="t('demo.lights')"
+              />
+            </div>
+          </div>
+        </SettingsSection>
       </div>
-    </div>
 
-    <div
-      :id="`${id}-panel-energy`"
-      role="tabpanel"
-      :aria-labelledby="`${id}-tab-energy`"
-      :hidden="activeTab !== 'energy'"
-      tabindex="0"
-    >
-      <SettingsSection :title="t('demo.charging')">
+      <div
+        :id="`${id}-panel-driving`"
+        role="tabpanel"
+        :aria-labelledby="`${id}-tab-driving`"
+        :class="{ 'tab-panels__panel--inactive': activeTab !== 'driving' }"
+        tabindex="0"
+      >
         <div class="detail-list detail-list--columns">
-          <DetailListSwitch v-model="connected" icon="plug" :label="t('demo.chargerConnected')" />
-          <DetailListSwitch
-            v-model="charging"
-            icon="plug-circle-bolt"
-            :label="t('demo.isCharging')"
-          />
           <div class="detail-list__item">
-            <font-awesome-icon icon="charging-station" class="detail-list__item-icon" />
+            <font-awesome-icon icon="car-side" class="detail-list__item-icon" />
             <ChipGroup
-              v-model="demo.chargingType.value"
-              :options="chargingTypeOptions"
-              :group-label="t('demo.chargingType')"
+              v-model="demo.motion.value"
+              :options="motionOptions"
+              :group-label="t('demo.motion')"
             />
           </div>
           <RangeControl
-            v-model="demo.chargingPower.value.value"
-            icon="bolt"
-            :label="t('demo.chargingPower')"
-            :value-text="kilowatts(demo.chargingPower.value.value)"
-            :min="1"
-            :max="demo.chargingType.value === 'DC' ? 150 : 22"
-            :step="0.5"
-            :disabled="!demo.status.value?.isCharging"
-            @change="demo.chargingPower.commit"
-          />
-        </div>
-      </SettingsSection>
-      <SettingsSection :title="t('demo.levels')">
-        <div class="detail-list detail-list--columns">
-          <RangeControl
-            v-model="soc.value.value"
-            icon="battery-half"
-            :label="t('demo.soc')"
-            :value-text="percent(soc.value.value)"
-            :min="5"
-            :max="100"
-            @change="soc.commit"
-          />
-          <RangeControl
-            v-if="demo.hasFuel.value"
-            v-model="fuel.value.value"
-            icon="gas-pump"
-            :label="t('demo.fuel')"
-            :value-text="percent(fuel.value.value)"
+            v-model="speed.value.value"
+            icon="gauge-high"
+            :label="t('demo.speed')"
+            :value-text="units.format('speed', speed.value.value) ?? ''"
             :min="0"
-            :max="100"
-            @change="fuel.commit"
+            :max="200"
+            @change="speed.commit"
           />
-          <RangeControl
-            v-model="auxBattery.value.value"
-            icon="car-battery"
-            :label="t('demo.auxBattery')"
-            :value-text="volts(auxBattery.value.value)"
-            :min="11"
-            :max="14.8"
-            :step="0.1"
-            @change="auxBattery.commit"
+          <DetailListSwitch v-model="engine" icon="power-off" :label="t('demo.engine')" />
+          <DetailListSwitch v-model="online" icon="wifi" :label="t('demo.online')" />
+          <DetailListSwitch
+            v-model="demo.gatewaySignedIn.value"
+            icon="key"
+            :label="t('demo.gatewaySignedIn')"
           />
         </div>
-      </SettingsSection>
-    </div>
-
-    <div
-      :id="`${id}-panel-climate`"
-      role="tabpanel"
-      :aria-labelledby="`${id}-tab-climate`"
-      :hidden="activeTab !== 'climate'"
-      tabindex="0"
-    >
-      <div class="detail-list detail-list--columns">
-        <DetailListSwitch v-model="climate" icon="wind" :label="t('demo.climate')" />
-        <RangeControl
-          v-model="interior.value.value"
-          icon="temperature-half"
-          :label="t('demo.interior')"
-          :value-text="temperature(interior.value.value)"
-          :min="-10"
-          :max="45"
-          :step="0.5"
-          @change="interior.commit"
-        />
-        <RangeControl
-          v-model="exterior.value.value"
-          icon="temperature-low"
-          :label="t('demo.exterior')"
-          :value-text="temperature(exterior.value.value)"
-          :min="-20"
-          :max="40"
-          :step="0.5"
-          @change="exterior.commit"
-        />
       </div>
-    </div>
 
-    <div
-      :id="`${id}-panel-tyres`"
-      role="tabpanel"
-      :aria-labelledby="`${id}-tab-tyres`"
-      :hidden="activeTab !== 'tyres'"
-      tabindex="0"
-    >
-      <div class="detail-list detail-list--columns">
-        <RangeControl
-          v-for="tyre in tyreRows"
-          :key="tyre.field"
-          v-model="tyre.slider.value.value"
-          icon="circle"
-          :label="t(tyre.label)"
-          :value-text="pressure(tyre.slider.value.value)"
-          :min="1.2"
-          :max="3.6"
-          :step="0.05"
-          @change="tyre.slider.commit"
-        />
+      <div
+        :id="`${id}-panel-energy`"
+        role="tabpanel"
+        :aria-labelledby="`${id}-tab-energy`"
+        :class="{ 'tab-panels__panel--inactive': activeTab !== 'energy' }"
+        tabindex="0"
+      >
+        <SettingsSection :title="t('demo.charging')">
+          <div class="detail-list detail-list--columns">
+            <DetailListSwitch v-model="connected" icon="plug" :label="t('demo.chargerConnected')" />
+            <DetailListSwitch
+              v-model="charging"
+              icon="plug-circle-bolt"
+              :label="t('demo.isCharging')"
+            />
+            <div class="detail-list__item">
+              <font-awesome-icon icon="charging-station" class="detail-list__item-icon" />
+              <ChipGroup
+                v-model="demo.chargingType.value"
+                :options="chargingTypeOptions"
+                :group-label="t('demo.chargingType')"
+              />
+            </div>
+            <RangeControl
+              v-model="demo.chargingPower.value.value"
+              icon="bolt"
+              :label="t('demo.chargingPower')"
+              :value-text="kilowatts(demo.chargingPower.value.value)"
+              :min="1"
+              :max="demo.chargingType.value === 'DC' ? 150 : 22"
+              :step="0.5"
+              :disabled="!demo.status.value?.isCharging"
+              @change="demo.chargingPower.commit"
+            />
+          </div>
+        </SettingsSection>
+        <SettingsSection :title="t('demo.levels')">
+          <div class="detail-list detail-list--columns">
+            <RangeControl
+              v-model="soc.value.value"
+              icon="battery-half"
+              :label="t('demo.soc')"
+              :value-text="percent(soc.value.value)"
+              :min="5"
+              :max="100"
+              @change="soc.commit"
+            />
+            <RangeControl
+              v-if="demo.hasFuel.value"
+              v-model="fuel.value.value"
+              icon="gas-pump"
+              :label="t('demo.fuel')"
+              :value-text="percent(fuel.value.value)"
+              :min="0"
+              :max="100"
+              @change="fuel.commit"
+            />
+            <RangeControl
+              v-model="auxBattery.value.value"
+              icon="car-battery"
+              :label="t('demo.auxBattery')"
+              :value-text="volts(auxBattery.value.value)"
+              :min="11"
+              :max="14.8"
+              :step="0.1"
+              @change="auxBattery.commit"
+            />
+          </div>
+        </SettingsSection>
+      </div>
+
+      <div
+        :id="`${id}-panel-climate`"
+        role="tabpanel"
+        :aria-labelledby="`${id}-tab-climate`"
+        :class="{ 'tab-panels__panel--inactive': activeTab !== 'climate' }"
+        tabindex="0"
+      >
+        <div class="detail-list detail-list--columns">
+          <DetailListSwitch v-model="climate" icon="wind" :label="t('demo.climate')" />
+          <RangeControl
+            v-model="interior.value.value"
+            icon="temperature-half"
+            :label="t('demo.interior')"
+            :value-text="temperature(interior.value.value)"
+            :min="-10"
+            :max="45"
+            :step="0.5"
+            @change="interior.commit"
+          />
+          <RangeControl
+            v-model="exterior.value.value"
+            icon="temperature-low"
+            :label="t('demo.exterior')"
+            :value-text="temperature(exterior.value.value)"
+            :min="-20"
+            :max="40"
+            :step="0.5"
+            @change="exterior.commit"
+          />
+        </div>
+      </div>
+
+      <div
+        :id="`${id}-panel-tyres`"
+        role="tabpanel"
+        :aria-labelledby="`${id}-tab-tyres`"
+        :class="{ 'tab-panels__panel--inactive': activeTab !== 'tyres' }"
+        tabindex="0"
+      >
+        <div class="detail-list detail-list--columns">
+          <RangeControl
+            v-for="tyre in tyreRows"
+            :key="tyre.field"
+            v-model="tyre.slider.value.value"
+            icon="circle"
+            :label="t(tyre.label)"
+            :value-text="pressure(tyre.slider.value.value)"
+            :min="1.2"
+            :max="3.6"
+            :step="0.05"
+            @change="tyre.slider.commit"
+          />
+        </div>
       </div>
     </div>
   </DetailModal>

@@ -67,6 +67,21 @@
   scrollbar-gutter: stable;
 }
 
+/* Tab panels stacked in one place: the tallest sets the height, so switching tabs moves nothing.
+   The others stay mounted, so a slider keeps its place, but unseen and out of the tab order. */
+.tab-panels {
+  display: grid;
+}
+
+.tab-panels > * {
+  grid-area: 1 / 1;
+  min-width: 0;
+}
+
+.tab-panels__panel--inactive {
+  visibility: hidden;
+}
+
 .detail-modal__navigation {
   grid-area: navigation;
   min-width: 0;
@@ -258,6 +273,12 @@
   .detail-modal--wide {
     max-width: 680px;
     width: 92vw;
+  }
+
+  /* As tall as its tallest tab, for a dialog whose tabs are all short (the Demo Controls). */
+  .detail-modal--fit-content.detail-modal--with-navigation {
+    height: auto;
+    max-height: min(80dvh, 42rem);
   }
 
   .detail-modal--wide.detail-modal--with-navigation {

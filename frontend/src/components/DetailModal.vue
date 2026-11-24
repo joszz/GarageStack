@@ -11,6 +11,11 @@ const props = defineProps<{
   wide?: boolean
   /** Tabs on a row of their own under the title on a phone, for a title too long to share it. */
   navigationBelow?: boolean
+  /**
+   * With tabs: as tall as its content rather than the settings dialog's fixed height, up to that
+   * height. Wants its panels in a `tab-panels`, so the height does not change with the tab.
+   */
+  fitContent?: boolean
 }>()
 const emit = defineEmits<{ (e: 'close'): void }>()
 
@@ -34,6 +39,7 @@ useDialogFocus(dialog, () => props.open)
             'detail-modal--wide': wide,
             'detail-modal--with-navigation': !!$slots.navigation,
             'detail-modal--navigation-below': navigationBelow,
+            'detail-modal--fit-content': fitContent,
           }"
           tabindex="-1"
           role="dialog"

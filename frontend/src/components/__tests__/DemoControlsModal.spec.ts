@@ -83,9 +83,27 @@ describe('DemoControlsModal', () => {
     const wrapper = render()
 
     expect(wrapper.get('.detail-modal').classes()).toContain('detail-modal--navigation-below')
+    expect(wrapper.get('.detail-modal').classes()).toContain('detail-modal--fit-content')
     const lists = wrapper.findAll('.detail-list')
     expect(lists.length).toBeGreaterThan(0)
     expect(lists.every((list) => list.classes('detail-list--columns'))).toBe(true)
+  })
+
+  // Every tab stays mounted in one place, so the dialog keeps the tallest one's height; only the
+  // chosen one shows.
+  it('shows only the chosen tab, keeping the others in place', async () => {
+    const wrapper = render()
+    const shown = () =>
+      wrapper
+        .findAll('[role="tabpanel"]')
+        .filter((panel) => !panel.classes('tab-panels__panel--inactive'))
+        .map((panel) => panel.attributes('aria-labelledby'))
+
+    expect(wrapper.findAll('.tab-panels > [role="tabpanel"]')).toHaveLength(5)
+    expect(shown()).toEqual([expect.stringMatching(/-tab-car$/)])
+
+    await openTab(wrapper, en.demo.tabs.tyres)
+    expect(shown()).toEqual([expect.stringMatching(/-tab-tyres$/)])
   })
 
   it('names no car in the title while there is only one', () => {
