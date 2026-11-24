@@ -9,6 +9,12 @@ import { useUiSettingsStore } from '@/stores/settingsUi'
 import { vehicleApi, type ChargeSession } from '@/services/vehicleApi'
 import { mayPlugIn } from '@/utils/vehicleType'
 import { energyGainedKwh, type ChargeEnergyContext } from '@/utils/chargeSessions'
+import {
+  CHARGE_HISTORY_PERIOD,
+  formatPeriodRange,
+  periodQuery,
+  resolvePeriod,
+} from '@/utils/period'
 import { formatNumber } from '@/utils/format'
 import { formatDurationMs } from '@/utils/tripRows'
 import { useErrorMessage } from '@/composables/useErrorMessage'
@@ -17,7 +23,7 @@ import ViewHeader from '@/components/ViewHeader.vue'
 import StatusCard from '@/components/StatusCard.vue'
 import CardInfoWrap from '@/components/CardInfoWrap.vue'
 import ChargeSessionItem from '@/components/ChargeSessionItem.vue'
-import ChargeHistoryFilterPanel from '@/components/ChargeHistoryFilterPanel.vue'
+import PeriodFilterPanel from '@/components/PeriodFilterPanel.vue'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -27,7 +33,10 @@ const sessions = ref<ChargeSession[]>([])
 const loading = ref(false)
 const loadError = ref<unknown>(null)
 // Kept in the settings, as the map's period is, so the page comes back on the one it was left on.
-const { chargeHistoryDays: periodDays } = storeToRefs(useUiSettingsStore())
+const { chargeHistoryPeriod } = storeToRefs(useUiSettingsStore())
+const period = computed(() =>
+  resolvePeriod(chargeHistoryPeriod.value, new Date(), CHARGE_HISTORY_PERIOD.maxDays),
+)
 
 const vin = computed(() => vehicleStore.activeVin)
 const energyContext = computed((): ChargeEnergyContext => ({
@@ -67,10 +76,10 @@ async function load(): Promise<void> {
       await router.replace({ name: 'dashboard' })
       return
     }
-    const to = new Date()
-    const from = new Date(to.getTime() - periodDays.value * 24 * 60 * 60 * 1000)
+    // A period ending today asks up to now, so a session still charging is listed.
+    const { fromIso, toIso } = periodQuery(period.value)
     sessions.value = vin.value
-      ? await vehicleApi.chargeSessions(vin.value, from.toISOString(), to.toISOString())
+      ? await vehicleApi.chargeSessions(vin.value, fromIso, toIso ?? new Date().toISOString())
       : []
   } catch (error) {
     loadError.value = error
@@ -82,7 +91,7 @@ async function load(): Promise<void> {
 onMounted(load)
 // Back from offline: the server's sessions replace the saved ones.
 useReconnect(load)
-watch(periodDays, load)
+watch(() => `${period.value.first.getTime()}-${period.value.last.getTime()}`, load)
 // The first load sets the active car itself; only switching to another one loads again.
 watch(vin, (now, before) => {
   if (before) void load()
@@ -96,11 +105,15 @@ watch(charges, (now) => {
   <div class="view-container">
     <ViewHeader
       :title="t('chargeHistory.title')"
-      :caption="t('chargeHistory.lastDays', { days: periodDays })"
+      :caption="formatPeriodRange(period)"
       :subtitle="t('chargeHistory.subtitle')"
     >
       <template #actions>
-        <ChargeHistoryFilterPanel v-model:period="periodDays" />
+        <PeriodFilterPanel
+          v-model="chargeHistoryPeriod"
+          :options="CHARGE_HISTORY_PERIOD"
+          :desc="t('chargeHistory.periodDesc')"
+        />
       </template>
     </ViewHeader>
 

@@ -1,11 +1,6 @@
 import type { ChargeSession, VehicleType } from '@/services/vehicleApi'
 import { trustedBatteryKwh, whPerKm } from './energy'
 
-/** The periods the charge history offers, in days. The API reads at most a year at a time. */
-export const CHARGE_HISTORY_DAYS = [30, 90, 365] as const
-export type ChargeHistoryDays = (typeof CHARGE_HISTORY_DAYS)[number]
-export const DEFAULT_CHARGE_HISTORY_DAYS: ChargeHistoryDays = 90
-
 export type ChargingKind = 'AC' | 'DC'
 
 /**

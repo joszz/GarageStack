@@ -115,7 +115,7 @@ describe('useUiSettingsStore', () => {
   it('falls back to defaults when localStorage is empty', () => {
     const store = useUiSettingsStore()
     expect(store.vehicleTypeOverride).toBe('auto')
-    expect(store.filterDays).toBe(7)
+    expect(store.mapPeriod).toEqual({ preset: 'last30', from: null, to: null })
   })
 
   it('loads settings from its own localStorage key on init', () => {
@@ -125,14 +125,31 @@ describe('useUiSettingsStore', () => {
         vehicleTypeOverride: 'bev',
         theme: 'light',
         locale: 'nl',
-        filterDays: 14,
+        mapPeriod: { preset: 'lastMonth', from: null, to: null },
       }),
     )
     const store = useUiSettingsStore()
     expect(store.theme).toBe('light')
     expect(store.locale).toBe('nl')
     expect(store.vehicleTypeOverride).toBe('bev')
-    expect(store.filterDays).toBe(14)
+    expect(store.mapPeriod).toEqual({ preset: 'lastMonth', from: null, to: null })
+  })
+
+  it('carries the map days an older build stored over, but not its old default of 7', () => {
+    localStorage.setItem(UI_KEY, JSON.stringify({ filterDays: 90 }))
+    expect(useUiSettingsStore().mapPeriod.preset).toBe('last90')
+
+    setActivePinia(createPinia())
+    localStorage.setItem(UI_KEY, JSON.stringify({ filterDays: 7 }))
+    expect(useUiSettingsStore().mapPeriod.preset).toBe('last30')
+  })
+
+  it('keeps the map off periods longer than it can draw', () => {
+    localStorage.setItem(
+      UI_KEY,
+      JSON.stringify({ mapPeriod: { preset: 'lastYear', from: null, to: null } }),
+    )
+    expect(useUiSettingsStore().mapPeriod.preset).toBe('last30')
   })
 
   it.each(['pt', 'pt-PT'] as const)('keeps a stored %s locale when loading settings', (locale) => {
@@ -185,7 +202,7 @@ describe('useUiSettingsStore', () => {
     expect(useUiSettingsStore().statsPeriod.preset).toBe('last30')
   })
 
-  it('saves the statistics period apart from the map days', async () => {
+  it('saves the statistics period apart from the map period', async () => {
     const store = useUiSettingsStore()
     store.statsPeriod = { preset: 'lastYear', from: null, to: null }
     await nextTick()
@@ -193,7 +210,7 @@ describe('useUiSettingsStore', () => {
 
     const saved = JSON.parse(localStorage.getItem(UI_KEY)!)
     expect(saved.statsPeriod.preset).toBe('lastYear')
-    expect(saved.filterDays).toBe(7)
+    expect(saved.mapPeriod.preset).toBe('last30')
   })
 
   it('opens the trip log on the current month, without hidden trips', () => {
@@ -222,7 +239,7 @@ describe('useUiSettingsStore', () => {
 
   it('opens the charge history on 90 days and the logs on everything from Information', () => {
     const store = useUiSettingsStore()
-    expect(store.chargeHistoryDays).toBe(90)
+    expect(store.chargeHistoryPeriod).toEqual({ preset: 'last90', from: null, to: null })
     expect(store.logSource).toBe('all')
     expect(store.logLevel).toBe('Information')
   })
@@ -230,10 +247,14 @@ describe('useUiSettingsStore', () => {
   it('loads the stored charge history and log filters, and falls back on unknown ones', () => {
     localStorage.setItem(
       UI_KEY,
-      JSON.stringify({ chargeHistoryDays: 365, logSource: 'worker', logLevel: 'Error' }),
+      JSON.stringify({
+        chargeHistoryPeriod: { preset: 'lastYear', from: null, to: null },
+        logSource: 'worker',
+        logLevel: 'Error',
+      }),
     )
     let store = useUiSettingsStore()
-    expect(store.chargeHistoryDays).toBe(365)
+    expect(store.chargeHistoryPeriod.preset).toBe('lastYear')
     expect(store.logSource).toBe('worker')
     expect(store.logLevel).toBe('Error')
 
@@ -243,9 +264,18 @@ describe('useUiSettingsStore', () => {
       JSON.stringify({ chargeHistoryDays: 14, logSource: 'mqtt', logLevel: 'Verbose' }),
     )
     store = useUiSettingsStore()
-    expect(store.chargeHistoryDays).toBe(90)
+    expect(store.chargeHistoryPeriod.preset).toBe('last90')
     expect(store.logSource).toBe('all')
     expect(store.logLevel).toBe('Information')
+  })
+
+  it('carries the charge history days an older build stored over where a preset has them', () => {
+    localStorage.setItem(UI_KEY, JSON.stringify({ chargeHistoryDays: 30 }))
+    expect(useUiSettingsStore().chargeHistoryPeriod.preset).toBe('last30')
+
+    setActivePinia(createPinia())
+    localStorage.setItem(UI_KEY, JSON.stringify({ chargeHistoryDays: 365 }))
+    expect(useUiSettingsStore().chargeHistoryPeriod.preset).toBe('last90')
   })
 
   it('saves the trip log, charge history and log filters', async () => {
@@ -253,7 +283,7 @@ describe('useUiSettingsStore', () => {
     const store = useUiSettingsStore()
     store.tripLogPeriod = { year: 2026, month: 2 }
     store.tripLogShowHidden = true
-    store.chargeHistoryDays = 30
+    store.chargeHistoryPeriod = { preset: 'thisYear', from: null, to: null }
     store.logLevel = 'Warning'
     await nextTick()
     vi.advanceTimersByTime(SAVE_DEBOUNCE_MS)
@@ -262,7 +292,7 @@ describe('useUiSettingsStore', () => {
     expect(saved).toMatchObject({
       tripLogPeriod: { year: 2026, month: 2 },
       tripLogShowHidden: true,
-      chargeHistoryDays: 30,
+      chargeHistoryPeriod: { preset: 'thisYear', from: null, to: null },
       logLevel: 'Warning',
     })
   })
@@ -814,7 +844,7 @@ describe('legacy combined-blob migration', () => {
     expect(ui.theme).toBe('light')
     expect(ui.locale).toBe('nl')
     expect(ui.vehicleTypeOverride).toBe('bev')
-    expect(ui.filterDays).toBe(14)
+    expect(ui.mapPeriod.preset).toBe('last30')
 
     const dashboard = useDashboardSettingsStore()
     expect(dashboard.showLocationMap).toBe(false)

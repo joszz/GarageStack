@@ -38,9 +38,7 @@
   "chargeHistory": {
     "title": "Laadgeschiedenis",
     "subtitle": "Laadsessies samengesteld uit opgeslagen laadstatussen. Batterij-energie is de verandering in de door de auto gemelde kWh; overige gegevens hangen af van beschikbare telemetrie.",
-    "period": "Periode",
     "periodDesc": "De dagen waarvan de laadsessies worden getoond en opgeteld.",
-    "lastDays": "Laatste {days} dagen",
     "sessions": "Sessies",
     "timeCharging": "Laadtijd",
     "ongoing": "Bezig",
@@ -163,22 +161,7 @@
       "energy": "Efficiëntie naar buitentemperatuur"
     },
     "temperatureBand": "{from} tot {to} {unit}",
-    "period": {
-      "label": "Periode",
-      "desc": "De dagen die de statistieken beslaan. Langere periodes worden per week getoond, en per maand vanaf een jaar.",
-      "preset": {
-        "last7": "Laatste 7 dagen",
-        "last30": "Laatste 30 dagen",
-        "last90": "Laatste 90 dagen",
-        "thisMonth": "Deze maand",
-        "lastMonth": "Vorige maand",
-        "thisYear": "Dit jaar",
-        "lastYear": "Vorig jaar",
-        "custom": "Eigen datums"
-      },
-      "from": "Van",
-      "to": "Tot en met"
-    },
+    "periodDesc": "De dagen die de statistieken beslaan. Langere periodes worden per week getoond, en per maand vanaf een jaar.",
     "months": {
       "title": "Per maand",
       "month": "Maand",
@@ -419,11 +402,7 @@
     "shownDay": "{day} wordt getoond",
     "showPeriod": "Terug naar de periode",
     "noTrips": "Geen ritten opgeslagen",
-    "dateRange": "Periode",
-    "last7days": "Afgelopen 7 dagen",
-    "last30days": "Afgelopen 30 dagen",
-    "last90days": "Afgelopen 90 dagen",
-    "dateRangeDesc": "Filtert de ritten op de kaart en in de lijst",
+    "periodDesc": "Filtert de ritten op de kaart en in de lijst",
     "heatmap": "Heatmap",
     "heatmapDesc": "Toont hoe vaak elke weg is gereden, gemeten naar afstand en niet naar stilstaan",
     "routeOutline": "Route omlijning",
@@ -888,6 +867,22 @@
     "hour": "Uur",
     "minute": "Minuut",
     "dayPeriod": "Ochtend of middag"
+  },
+  "period": {
+    "label": "Periode",
+    "preset": {
+      "last7": "Laatste 7 dagen",
+      "last30": "Laatste 30 dagen",
+      "last90": "Laatste 90 dagen",
+      "thisMonth": "Deze maand",
+      "lastMonth": "Vorige maand",
+      "thisYear": "Dit jaar",
+      "lastYear": "Vorig jaar",
+      "custom": "Eigen datums"
+    },
+    "from": "Van",
+    "to": "Tot en met",
+    "maxDays": "Hoogstens {days} dagen."
   },
   "demo": {
     "banner": "Demo modus - alleen voorbeelddata wordt getoond",

@@ -38,9 +38,7 @@
   "chargeHistory": {
     "title": "Historial de carga",
     "subtitle": "Sesiones reconstruidas a partir de los estados de carga registrados. La energía es el cambio en los kWh de batería comunicados por el coche; los demás datos dependen de la telemetría disponible.",
-    "period": "Periodo",
     "periodDesc": "Los días cuyas sesiones de carga se muestran y suman.",
-    "lastDays": "Últimos {days} días",
     "sessions": "Sesiones",
     "timeCharging": "Tiempo de carga",
     "ongoing": "En curso",
@@ -163,22 +161,7 @@
       "energy": "Eficiencia según la temperatura exterior"
     },
     "temperatureBand": "{from} a {to} {unit}",
-    "period": {
-      "label": "Período",
-      "desc": "Los días que cubren las estadísticas. Los períodos más largos se registran por semana y por mes más allá de un año.",
-      "preset": {
-        "last7": "Últimos 7 días",
-        "last30": "Últimos 30 días",
-        "last90": "Últimos 90 días",
-        "thisMonth": "Este mes",
-        "lastMonth": "El mes pasado",
-        "thisYear": "Este año",
-        "lastYear": "El año pasado",
-        "custom": "Fechas personalizadas"
-      },
-      "from": "De",
-      "to": "A"
-    },
+    "periodDesc": "Los días que cubren las estadísticas. Los períodos más largos se registran por semana y por mes más allá de un año.",
     "months": {
       "title": "Por mes",
       "month": "Mes",
@@ -419,11 +402,7 @@
     "shownDay": "Mostrando {day}",
     "showPeriod": "Volver al período",
     "noTrips": "No hay viajes registrados",
-    "dateRange": "Período",
-    "last7days": "Últimos 7 días",
-    "last30days": "Últimos 30 días",
-    "last90days": "Últimos 90 días",
-    "dateRangeDesc": "Filtra los viajes mostrados en el mapa y en la lista",
+    "periodDesc": "Filtra los viajes mostrados en el mapa y en la lista",
     "heatmap": "Mapa de calor",
     "heatmapDesc": "Muestra la frecuencia con la que se condujo cada carretera, medida por distancia en lugar de por tiempo de permanencia en ella",
     "routeOutline": "Esquema de ruta",
@@ -888,6 +867,22 @@
     "hour": "Hora",
     "minute": "Minuto",
     "dayPeriod": "AM o PM"
+  },
+  "period": {
+    "label": "Período",
+    "preset": {
+      "last7": "Últimos 7 días",
+      "last30": "Últimos 30 días",
+      "last90": "Últimos 90 días",
+      "thisMonth": "Este mes",
+      "lastMonth": "El mes pasado",
+      "thisYear": "Este año",
+      "lastYear": "El año pasado",
+      "custom": "Fechas personalizadas"
+    },
+    "from": "De",
+    "to": "A",
+    "maxDays": "Como máximo {days} días."
   },
   "demo": {
     "banner": "Modo de demostración: muestra solo datos de muestra",

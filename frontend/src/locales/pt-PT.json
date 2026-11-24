@@ -38,9 +38,7 @@
   "chargeHistory": {
     "title": "Histórico de carregamento",
     "subtitle": "Sessões reconstruídas a partir dos estados de carregamento registados. A energia é a variação dos kWh da bateria comunicados pelo carro; os restantes dados dependem da telemetria disponível.",
-    "period": "Período",
     "periodDesc": "Os dias cujas sessões de carregamento são listadas e somadas.",
-    "lastDays": "Últimos {days} dias",
     "sessions": "Sessões",
     "timeCharging": "Tempo de carregamento",
     "ongoing": "Em andamento",
@@ -163,22 +161,7 @@
       "energy": "Eficiência por temperatura exterior"
     },
     "temperatureBand": "{from} a {to} {unit}",
-    "period": {
-      "label": "Período",
-      "desc": "Os dias abrangidos pelas estatísticas. Períodos mais longos aparecem por semana e, acima de um ano, por mês.",
-      "preset": {
-        "last7": "Últimos 7 dias",
-        "last30": "Últimos 30 dias",
-        "last90": "Últimos 90 dias",
-        "thisMonth": "Este mês",
-        "lastMonth": "Mês passado",
-        "thisYear": "Este ano",
-        "lastYear": "Ano passado",
-        "custom": "Datas personalizadas"
-      },
-      "from": "De",
-      "to": "Até"
-    },
+    "periodDesc": "Os dias abrangidos pelas estatísticas. Períodos mais longos aparecem por semana e, acima de um ano, por mês.",
     "months": {
       "title": "Por mês",
       "month": "Mês",
@@ -419,11 +402,7 @@
     "shownDay": "A mostrar {day}",
     "showPeriod": "Voltar ao período",
     "noTrips": "Nenhuma viagem registada",
-    "dateRange": "Período",
-    "last7days": "Últimos 7 dias",
-    "last30days": "Últimos 30 dias",
-    "last90days": "Últimos 90 dias",
-    "dateRangeDesc": "Filtra as viagens mostradas no mapa e na lista",
+    "periodDesc": "Filtra as viagens mostradas no mapa e na lista",
     "heatmap": "Mapa de calor",
     "heatmapDesc": "Mostra a frequência com que cada via foi percorrida, medida pela distância e não pelo tempo parado nela",
     "routeOutline": "Contorno da rota",
@@ -888,6 +867,22 @@
     "hour": "Hora",
     "minute": "Minuto",
     "dayPeriod": "AM ou PM"
+  },
+  "period": {
+    "label": "Período",
+    "preset": {
+      "last7": "Últimos 7 dias",
+      "last30": "Últimos 30 dias",
+      "last90": "Últimos 90 dias",
+      "thisMonth": "Este mês",
+      "lastMonth": "Mês passado",
+      "thisYear": "Este ano",
+      "lastYear": "Ano passado",
+      "custom": "Datas personalizadas"
+    },
+    "from": "De",
+    "to": "Até",
+    "maxDays": "No máximo {days} dias."
   },
   "demo": {
     "banner": "Modo de demonstração - a mostrar apenas dados de exemplo",

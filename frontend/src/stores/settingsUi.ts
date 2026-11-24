@@ -15,13 +15,17 @@ import {
 import { setRegionalFormat } from '@/utils/format'
 import { isCurrency, regionCurrency, type Currency } from '@/utils/currency'
 import { applyTheme } from '@/utils/theme'
-import { DEFAULT_STATS_PERIOD, isStatsPeriod, type StatsPeriod } from '@/utils/statsPeriod'
-import { parseTripLogPeriod, type TripLogPeriod } from '@/utils/tripLog'
 import {
-  CHARGE_HISTORY_DAYS,
-  DEFAULT_CHARGE_HISTORY_DAYS,
-  type ChargeHistoryDays,
-} from '@/utils/chargeSessions'
+  CHARGE_HISTORY_PERIOD,
+  MAP_PERIOD,
+  parsePeriod,
+  presetPeriod,
+  STATS_PERIOD,
+  type Period,
+  type PeriodOptions,
+  type PeriodPreset,
+} from '@/utils/period'
+import { parseTripLogPeriod, type TripLogPeriod } from '@/utils/tripLog'
 import {
   DEFAULT_LOG_LEVEL,
   LOG_LEVEL_CHOICES,
@@ -68,12 +72,6 @@ export type CurrencySetting = 'auto' | Currency
 const STORAGE_KEY = 'garagestack-settings-ui'
 
 /**
- * The period every view starts on. Exported because a view that badges its filters as "changed"
- * has to compare against the same number the store defaults to, rather than its own copy of it.
- */
-export const DEFAULT_FILTER_DAYS = 7
-
-/**
  * The browser settings that belong to one car rather than to the whole account. Only the colour:
  * the type override describes the car, so it is kept with the car on the server.
  */
@@ -97,14 +95,14 @@ interface UiSettings {
   /** The paints of the custom scheme, null until it is first chosen. */
   carCustomColors: CarColors | null
   vehicleTypeOverride: VehicleTypeOverride
-  filterDays: number
-  /** The statistics page's period; the map keeps filterDays. */
-  statsPeriod: StatsPeriod
+  /** Each page's own period, of the presets it offers (utils/period). */
+  mapPeriod: Period
+  statsPeriod: Period
   /** The trip log's month or year; null follows the calendar to the current month. */
   tripLogPeriod: TripLogPeriod | null
   /** Whether the trip log lists the hidden trips too. */
   tripLogShowHidden: boolean
-  chargeHistoryDays: ChargeHistoryDays
+  chargeHistoryPeriod: Period
   /** The log viewer's files and the lowest level it shows. */
   logSource: LogSourceChoice
   logLevel: LogLevel
@@ -135,11 +133,11 @@ function defaultsFor(): UiSettings {
     carColorScheme: DEFAULT_CAR_COLOR_SCHEME,
     carCustomColors: null,
     vehicleTypeOverride: 'auto',
-    filterDays: DEFAULT_FILTER_DAYS,
-    statsPeriod: { ...DEFAULT_STATS_PERIOD },
+    mapPeriod: { ...MAP_PERIOD.fallback },
+    statsPeriod: { ...STATS_PERIOD.fallback },
     tripLogPeriod: null,
     tripLogShowHidden: false,
-    chargeHistoryDays: DEFAULT_CHARGE_HISTORY_DAYS,
+    chargeHistoryPeriod: { ...CHARGE_HISTORY_PERIOD.fallback },
     logSource: 'all',
     logLevel: DEFAULT_LOG_LEVEL,
     notificationTypeExclusions: [],
@@ -157,10 +155,6 @@ function defaultsFor(): UiSettings {
 const THEMES: readonly ThemeChoice[] = ['dark', 'light', 'system']
 const LOCALES: readonly Locale[] = ['en', 'nl', 'es', 'pt', 'pt-PT']
 const VEHICLE_TYPE_OVERRIDES: readonly VehicleTypeOverride[] = ['auto', 'hev', 'phev', 'bev']
-// The map's trips are clamped to 90 days by the API; anything up to a year is accepted here so an
-// older build's stored value is not thrown away.
-const MAX_FILTER_DAYS = 365
-
 // localStorage is user-editable and survives old builds, and the account's copy may have been
 // saved by an older or newer build on another device: an unknown value would otherwise be applied
 // verbatim (an unstyled theme, a select with no matching option).
@@ -168,26 +162,24 @@ function oneOf<T>(value: unknown, allowed: readonly T[], fallback: T): T {
   return (allowed as readonly unknown[]).includes(value) ? (value as T) : fallback
 }
 
-function positiveDays(value: unknown, fallback: number): number {
-  return typeof value === 'number' &&
-    Number.isInteger(value) &&
-    value > 0 &&
-    value <= MAX_FILTER_DAYS
-    ? value
-    : fallback
+// A page's period, or the one an older build kept as a number of days: the days in `carried` come
+// back as the preset of the same name, so nobody finds a page on another period than they left it.
+const DAYS_PRESETS: Record<number, Exclude<PeriodPreset, 'custom'>> = {
+  7: 'last7',
+  30: 'last30',
+  90: 'last90',
 }
 
-// The statistics page shared the map's days until it had a period of its own: a stored choice of
-// 7, 30 or 90 days carries over, so nobody finds the page on another period than they left it.
-function parseStatsPeriod(raw: unknown, storedDays: unknown, fallback: StatsPeriod): StatsPeriod {
-  if (isStatsPeriod(raw)) {
-    return raw.preset === 'custom'
-      ? { preset: 'custom', from: raw.from, to: raw.to }
-      : { preset: raw.preset, from: null, to: null }
-  }
-  const carried = { 7: 'last7', 30: 'last30', 90: 'last90' }[storedDays as number] as
-    StatsPeriod['preset'] | undefined
-  return carried ? { preset: carried, from: null, to: null } : { ...fallback }
+function parsePagePeriod(
+  raw: unknown,
+  storedDays: unknown,
+  options: PeriodOptions,
+  carried: readonly number[],
+): Period {
+  const period = parsePeriod(raw, options.presets)
+  if (period) return period
+  const days = storedDays as number
+  return carried.includes(days) ? presetPeriod(DAYS_PRESETS[days]!) : { ...options.fallback }
 }
 
 function orAuto<T>(allowed: readonly T[]): readonly ('auto' | T)[] {
@@ -267,14 +259,19 @@ function parseUiFields(parsed: Record<string, unknown>, fallback: UiSettings): U
       VEHICLE_TYPE_OVERRIDES,
       fallback.vehicleTypeOverride,
     ),
-    filterDays: positiveDays(parsed.filterDays, fallback.filterDays),
-    statsPeriod: parseStatsPeriod(parsed.statsPeriod, parsed.filterDays, fallback.statsPeriod),
+    // The map's old default of 7 days is not carried, since nobody chose it: the map starts on
+    // 30 days now, as the statistics do.
+    mapPeriod: parsePagePeriod(parsed.mapPeriod, parsed.filterDays, MAP_PERIOD, [30, 90]),
+    // The statistics shared the map's days until they had a period of their own.
+    statsPeriod: parsePagePeriod(parsed.statsPeriod, parsed.filterDays, STATS_PERIOD, [7, 30, 90]),
     tripLogPeriod: parseTripLogPeriod(parsed.tripLogPeriod),
     tripLogShowHidden: parsed.tripLogShowHidden === true,
-    chargeHistoryDays: oneOf(
+    // The old 365 days has no preset of its own, so it falls back to the 90 days it started on.
+    chargeHistoryPeriod: parsePagePeriod(
+      parsed.chargeHistoryPeriod,
       parsed.chargeHistoryDays,
-      CHARGE_HISTORY_DAYS,
-      fallback.chargeHistoryDays,
+      CHARGE_HISTORY_PERIOD,
+      [30, 90],
     ),
     logSource: oneOf(parsed.logSource, LOG_SOURCE_CHOICES, fallback.logSource),
     logLevel: oneOf(parsed.logLevel, LOG_LEVEL_CHOICES, fallback.logLevel),
