@@ -39,6 +39,7 @@
     "title": "Charge history",
     "subtitle": "Sessions reconstructed from recorded charging-state telemetry. Battery energy is the change in the car's reported battery kWh; power and other readings depend on available telemetry.",
     "period": "Period",
+    "periodDesc": "The days whose charge sessions are listed and totalled.",
     "lastDays": "Last {days} days",
     "sessions": "Sessions",
     "timeCharging": "Time charging",

@@ -39,6 +39,7 @@
     "title": "Histórico de carregamento",
     "subtitle": "Sessões reconstruídas a partir dos estados de carregamento registados. A energia é a variação dos kWh da bateria comunicados pelo carro; os restantes dados dependem da telemetria disponível.",
     "period": "Período",
+    "periodDesc": "Os dias cujas sessões de carregamento são listadas e somadas.",
     "lastDays": "Últimos {days} dias",
     "sessions": "Sessões",
     "timeCharging": "Tempo de carregamento",

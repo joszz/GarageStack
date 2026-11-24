@@ -39,6 +39,7 @@
     "title": "Historial de carga",
     "subtitle": "Sesiones reconstruidas a partir de los estados de carga registrados. La energía es el cambio en los kWh de batería comunicados por el coche; los demás datos dependen de la telemetría disponible.",
     "period": "Periodo",
+    "periodDesc": "Los días cuyas sesiones de carga se muestran y suman.",
     "lastDays": "Últimos {days} días",
     "sessions": "Sesiones",
     "timeCharging": "Tiempo de carga",

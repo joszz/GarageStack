@@ -1,18 +1,4 @@
-/* ── Period and totals ────────────────────────────────────── */
-
-/* The period above the totals, spaced as the trip log's filters and totals. */
-.charge-history-filters {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  margin-bottom: 1rem;
-}
-
-.charge-history-filters__field {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
+/* ── Totals ───────────────────────────────────────────────── */
 
 .charge-history-totals {
   margin-bottom: 1.5rem;

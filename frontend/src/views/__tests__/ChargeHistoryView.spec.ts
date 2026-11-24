@@ -64,13 +64,23 @@ const ItemStub = {
   template: '<li class="item-stub">{{ session.startedAt }}|{{ previous?.startedAt ?? "-" }}</li>',
 }
 
+// The period waits behind the header's filters button, as on the other pages.
+async function periodSelect(wrapper: ReturnType<typeof mountView>) {
+  await wrapper.get('.toolbar-panel__btn').trigger('click')
+  return wrapper.get('[role="dialog"] select')
+}
+
 function mountView() {
   return mount(ChargeHistoryView, {
     global: {
       plugins: [i18n],
       stubs: {
         FontAwesomeIcon: true,
-        ViewHeader: { template: '<header><h1>{{ title }}</h1></header>', props: ['title'] },
+        ViewHeader: {
+          template:
+            '<header><h1>{{ title }}</h1><p class="caption">{{ caption }}</p><slot name="actions" /></header>',
+          props: ['title', 'caption'],
+        },
         StatusCard: {
           template: '<div class="summary">{{ label }} {{ value }}</div>',
           props: ['label', 'value'],
@@ -107,6 +117,8 @@ describe('ChargeHistoryView', () => {
       '2026-10-19T10:00:00Z|-',
     ])
     expect(wrapper.find('.summary').text()).toBe('Sessions 2')
+    expect(wrapper.get('.caption').text()).toBe('Last 90 days')
+    expect(wrapper.find('.toolbar-panel__count').exists()).toBe(false)
   })
 
   it('totals the energy of every session and the time of the ended ones', async () => {
@@ -137,9 +149,11 @@ describe('ChargeHistoryView', () => {
     const wrapper = mountView()
     await flushPromises()
 
-    await wrapper.find('select').setValue('365')
+    await (await periodSelect(wrapper)).setValue('365')
     await flushPromises()
 
+    expect(wrapper.get('.caption').text()).toBe('Last 365 days')
+    expect(wrapper.get('.toolbar-panel__count').text()).toBe('1')
     const [, from, to] = vi.mocked(vehicleApi.chargeSessions).mock.calls[1]!
     expect(Date.parse(to!) - Date.parse(from!)).toBe(365 * 24 * 60 * 60 * 1000)
   })
@@ -147,7 +161,7 @@ describe('ChargeHistoryView', () => {
   it('comes back on the period it was left on', async () => {
     const first = mountView()
     await flushPromises()
-    await first.find('select').setValue('365')
+    await (await periodSelect(first)).setValue('365')
     await flushPromises()
     first.unmount()
     vi.mocked(vehicleApi.chargeSessions).mockClear()
@@ -155,7 +169,7 @@ describe('ChargeHistoryView', () => {
     const wrapper = mountView()
     await flushPromises()
 
-    expect((wrapper.find('select').element as HTMLSelectElement).value).toBe('365')
+    expect(((await periodSelect(wrapper)).element as HTMLSelectElement).value).toBe('365')
     const [, from, to] = vi.mocked(vehicleApi.chargeSessions).mock.calls[0]!
     expect(Date.parse(to!) - Date.parse(from!)).toBe(365 * 24 * 60 * 60 * 1000)
   })

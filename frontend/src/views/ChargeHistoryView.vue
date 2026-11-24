@@ -8,11 +8,7 @@ import { useVehicleStore } from '@/stores/vehicle'
 import { useUiSettingsStore } from '@/stores/settingsUi'
 import { vehicleApi, type ChargeSession } from '@/services/vehicleApi'
 import { mayPlugIn } from '@/utils/vehicleType'
-import {
-  CHARGE_HISTORY_DAYS,
-  energyGainedKwh,
-  type ChargeEnergyContext,
-} from '@/utils/chargeSessions'
+import { energyGainedKwh, type ChargeEnergyContext } from '@/utils/chargeSessions'
 import { formatNumber } from '@/utils/format'
 import { formatDurationMs } from '@/utils/tripRows'
 import { useErrorMessage } from '@/composables/useErrorMessage'
@@ -21,6 +17,7 @@ import ViewHeader from '@/components/ViewHeader.vue'
 import StatusCard from '@/components/StatusCard.vue'
 import CardInfoWrap from '@/components/CardInfoWrap.vue'
 import ChargeSessionItem from '@/components/ChargeSessionItem.vue'
+import ChargeHistoryFilterPanel from '@/components/ChargeHistoryFilterPanel.vue'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -97,18 +94,15 @@ watch(charges, (now) => {
 
 <template>
   <div class="view-container">
-    <ViewHeader :title="t('chargeHistory.title')" :subtitle="t('chargeHistory.subtitle')" />
-
-    <div class="charge-history-filters">
-      <label class="charge-history-filters__field">
-        <span class="text-xs text-muted">{{ t('chargeHistory.period') }}</span>
-        <select v-model.number="periodDays" class="form-select">
-          <option v-for="days in CHARGE_HISTORY_DAYS" :key="days" :value="days">
-            {{ t('chargeHistory.lastDays', { days }) }}
-          </option>
-        </select>
-      </label>
-    </div>
+    <ViewHeader
+      :title="t('chargeHistory.title')"
+      :caption="t('chargeHistory.lastDays', { days: periodDays })"
+      :subtitle="t('chargeHistory.subtitle')"
+    >
+      <template #actions>
+        <ChargeHistoryFilterPanel v-model:period="periodDays" />
+      </template>
+    </ViewHeader>
 
     <div v-if="sessions.length > 0" class="status-grid charge-history-totals">
       <CardInfoWrap
