@@ -95,6 +95,13 @@ public interface ITripRepository
     Task<TripMergeResult> MergeWithNextAsync(int vehicleId, long id, CancellationToken ct = default);
 
     /// <summary>
+    /// Undoes the last join that made this trip: puts back the two trips exactly as they were just
+    /// before it, the second with its own id again. What changed on the joined trip since is lost.
+    /// A purpose nobody chose is labelled again from home and work as they are now.
+    /// </summary>
+    Task<TripUnjoinResult> UnjoinAsync(int vehicleId, long id, CancellationToken ct = default);
+
+    /// <summary>
     /// The routes of a car's trips starting between <paramref name="from"/> and <paramref name="to"/>,
     /// oldest first, read in one pass for the data export. A trip whose points cannot be read is
     /// left out, as everywhere else; an unreadable recorded route only drops its original points.

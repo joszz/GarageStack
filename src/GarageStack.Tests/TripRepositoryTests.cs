@@ -770,4 +770,74 @@ public class TripManagementTests
         Assert.Equal(TripMergeOutcome.NotFound, (await repo.MergeWithNextAsync(vehicle.Id, second + 100, ct)).Outcome);
         Assert.Equal(2, await db.Trips.CountAsync(ct));
     }
+
+    [Fact]
+    public async Task Unjoin_PutsBothTripsBackExactly_TheSecondUnderItsOwnId()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (db, repo, vehicle) = await SetupAsync(ct);
+        await using var _ = db;
+        var (first, second) = await SaveCommuteWithAStopAsync(db, repo, vehicle, ct);
+        await repo.SetPurposeAndNotesAsync(vehicle.Id, first, null, "Fuel", ct);
+        await repo.SetPurposeAndNotesAsync(vehicle.Id, second, TripPurpose.Business, "Client visit", ct);
+        await repo.SavePlacesAsync(vehicle.Id, [new(second, new PlaceAddress("Pomp 1, Utrecht", "Pomp", "1", "Utrecht", "3511", "nl"), null)], ct);
+        var fused = await db.Trips.SingleAsync(t => t.Id == second, ct);
+        (fused.PhoneFusion, fused.PhoneFusionAt) = (PhoneFusionOutcome.NoMatch, T0.AddHours(1));
+        await db.SaveChangesAsync(ct);
+        var before = await SnapshotsAsync(db, ct);
+
+        await repo.MergeWithNextAsync(vehicle.Id, first, ct);
+        await repo.SetPurposeAndNotesAsync(vehicle.Id, first, TripPurpose.Private, "Changed since", ct);
+        var result = await repo.UnjoinAsync(vehicle.Id, first, ct);
+
+        Assert.Equal(TripUnjoinOutcome.Unjoined, result.Outcome);
+        Assert.Equal([first, second], result.Trips!.Select(t => t.Id));
+        Assert.All(result.Trips!, t => Assert.False(t.IsJoined));
+        Assert.Equal(before, await SnapshotsAsync(db, ct));
+        Assert.Equal(TripUnjoinOutcome.NotJoined, (await repo.UnjoinAsync(vehicle.Id, first, ct)).Outcome);
+    }
+
+    [Fact]
+    public async Task Unjoin_OnAnotherCarsTrip_FindsNothing_AndAnUnreadableJoinIsRefused()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (db, repo, vehicle) = await SetupAsync(ct);
+        await using var _ = db;
+        var (first, _) = await SaveCommuteWithAStopAsync(db, repo, vehicle, ct);
+        await repo.MergeWithNextAsync(vehicle.Id, first, ct);
+
+        Assert.Equal(TripUnjoinOutcome.NotFound, (await repo.UnjoinAsync(vehicle.Id + 1, first, ct)).Outcome);
+
+        var joined = await db.Trips.SingleAsync(t => t.Id == first, ct);
+        joined.JoinedFromJson = "{not json";
+        await db.SaveChangesAsync(ct);
+        Assert.Equal(TripUnjoinOutcome.Unreadable, (await repo.UnjoinAsync(vehicle.Id, first, ct)).Outcome);
+        Assert.Equal(1, await db.Trips.CountAsync(ct));
+    }
+
+    [Fact]
+    public async Task Unjoin_SendsAPhoneBackfillPastTheSecondTripBackForIt()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (db, repo, vehicle) = await SetupAsync(ct);
+        await using var _ = db;
+        var (first, second) = await SaveCommuteWithAStopAsync(db, repo, vehicle, ct);
+        await repo.MergeWithNextAsync(vehicle.Id, first, ct);
+        db.PhoneBackfillRequests.Add(new PhoneBackfillRequest
+        {
+            VehicleId = vehicle.Id,
+            From = T0.AddDays(-1),
+            Until = T0.AddDays(1),
+            AfterTripId = second + 10,
+        });
+        await db.SaveChangesAsync(ct);
+
+        await repo.UnjoinAsync(vehicle.Id, first, ct);
+
+        Assert.Equal(second - 1, (await db.PhoneBackfillRequests.AsNoTracking().SingleAsync(ct)).AfterTripId);
+    }
+
+    // Every stored column of every trip, oldest first.
+    private static async Task<List<TripSnapshot>> SnapshotsAsync(AppDbContext db, CancellationToken ct) =>
+        [.. (await db.Trips.AsNoTracking().OrderBy(t => t.StartedAt).ToListAsync(ct)).Select(TripSnapshot.From)];
 }

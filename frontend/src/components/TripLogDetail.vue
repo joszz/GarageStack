@@ -58,8 +58,10 @@ const emit = defineEmits<{
   /** One of the trip's ends, to set as home or work. */
   (e: 'pickPlace', latitude: number, longitude: number): void
   (e: 'setHidden', hidden: boolean): void
-  /** Asks to join with the trip after it; the page confirms, since it cannot be undone. */
+  /** Asks to join with the trip after it; the page confirms first. */
   (e: 'joinNext'): void
+  /** Asks to undo the join that made this trip; the page confirms, since later changes are lost. */
+  (e: 'unjoin'): void
 }>()
 
 const { t } = useI18n()
@@ -389,6 +391,16 @@ function downloadRoute() {
         @click="emit('joinNext')"
       >
         <font-awesome-icon icon="link" />{{ t('tripLog.joinNext') }}
+      </button>
+      <button
+        v-if="connection.reachable && entry.isJoined"
+        type="button"
+        class="btn btn-outline-secondary btn-sm"
+        :disabled="saving"
+        :title="t('tripLog.unjoinHint')"
+        @click="emit('unjoin')"
+      >
+        <font-awesome-icon icon="link-slash" />{{ t('tripLog.unjoin') }}
       </button>
       <button
         v-if="connection.reachable"

@@ -22,6 +22,7 @@ vi.mock('@/services/tripLogApi', async (importOriginal) => {
       setPurpose: vi.fn<typeof actual.tripLogApi.setPurpose>(),
       setHidden: vi.fn<typeof actual.tripLogApi.setHidden>(),
       mergeWithNext: vi.fn<typeof actual.tripLogApi.mergeWithNext>(),
+      unjoin: vi.fn<typeof actual.tripLogApi.unjoin>(),
       resolvePlaces: vi.fn<typeof actual.tripLogApi.resolvePlaces>(),
       editor: vi.fn<typeof actual.tripLogApi.editor>(),
     },
@@ -247,6 +248,32 @@ describe('TripLogView', () => {
 
     expect(tripLogApi.mergeWithNext).not.toHaveBeenCalled()
     expect(button(wrapper, 'Join trips')).toHaveLength(0)
+  })
+
+  it('undoes a join once confirmed, listing both trips again', async () => {
+    const restored = [
+      { ...trips[2]!, isJoined: false },
+      logEntry({ id: 4, startedAt: '2026-10-03T08:00:00Z' }),
+    ]
+    vi.mocked(tripLogApi.log).mockResolvedValue([trips[0]!, { ...trips[2]!, isJoined: true }])
+    vi.mocked(tripLogApi.unjoin).mockResolvedValue(restored)
+    const wrapper = await mountView()
+    expect(wrapper.findAll('.trip-log-item')).toHaveLength(2)
+
+    await pickTrip(wrapper, 0)
+    await button(wrapper, 'Undo join')[0]!.trigger('click')
+    expect(tripLogApi.unjoin).not.toHaveBeenCalled()
+
+    // The log is loaded again after the undo, since the second trip may start in another month.
+    vi.mocked(tripLogApi.log).mockResolvedValue([trips[0]!, ...restored])
+    const loads = vi.mocked(tripLogApi.log).mock.calls.length
+    await button(wrapper, 'Split trips')[0]!.trigger('click')
+    await flushPromises()
+
+    expect(tripLogApi.unjoin).toHaveBeenCalledWith(car.vin, 3)
+    expect(tripLogApi.log).toHaveBeenCalledTimes(loads + 1)
+    expect(button(wrapper, 'Split trips')).toHaveLength(0)
+    expect(wrapper.findAll('.trip-log-item')).toHaveLength(3)
   })
 
   it('hides a trip, which then leaves the list', async () => {

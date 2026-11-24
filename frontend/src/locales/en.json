@@ -1068,7 +1068,10 @@
     "hideHint": "Leave this trip out of the map, the statistics, the dashboard and these totals, for a positioning glitch. It stays listed under the hidden trips.",
     "joinNext": "Join with next trip",
     "joinNextConfirm": "Join trips",
-    "joinNextHint": "Joins this trip with the one after it, for a drive a short stop such as a fuel station split in two. Cannot be undone.",
+    "joinNextHint": "Joins this trip with the one after it, for a drive a short stop such as a fuel station split in two. You can undo it from the joined trip.",
+    "unjoin": "Undo join",
+    "unjoinConfirm": "Split trips",
+    "unjoinHint": "Puts back the two trips this one was joined from, as they were before the join. Changes made to this trip since are lost.",
     "filter": {
       "period": "Period",
       "periodDesc": "The month, or the whole year, whose trips are listed and totalled.",
@@ -1298,7 +1301,10 @@
         "overlapsNext": "The trip cannot end after the next trip started.",
         "pointTooFast": "A stretch of this route would mean driving faster than 250 km/h.",
         "changed": "This trip changed while you were editing it, for example by adding your phone's GPS. Nothing was saved. Reload the page and make the change again.",
-        "routeUnreadable": "This trip's route cannot be read, so it cannot be edited."
+        "routeUnreadable": "This trip's route cannot be read, so it cannot be edited.",
+        "notJoined": "This trip was not joined, or was joined before a join could be undone.",
+        "joinUnreadable": "What this trip was joined from cannot be read, so the join cannot be undone.",
+        "unjoinOverlaps": "Another trip now runs into the time of one of the two trips, so the join cannot be undone. Change that trip first."
       },
       "push": {
         "notConfigured": "Push notifications are not set up on this server.",

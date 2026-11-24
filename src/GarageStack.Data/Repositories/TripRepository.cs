@@ -312,6 +312,9 @@ public class TripRepository(
             : await db.CommutePlaces.AsNoTracking().Where(p => p.VehicleId == vehicleId).ToListAsync(ct);
         var joined = TripJoin.Join(Part(first, before.Points, firstOriginal), Part(second, after.Points, secondOriginal), places);
 
+        // Both as they are now, before the first changes, so the join can be undone.
+        first.JoinedFromJson = JsonSerializer.Serialize(
+            new TripJoinSnapshot(TripSnapshot.From(first), TripSnapshot.From(second)));
         first.DistanceKm = joined.DistanceKm;
         first.EndedAt = second.EndedAt;
         first.PointCount = joined.Points.Count;
@@ -340,6 +343,52 @@ public class TripRepository(
         db.Trips.Remove(second);
         await db.SaveChangesAsync(ct);
         return new(TripMergeOutcome.Merged, (await GetLogEntriesAsync(vehicleId, [id], ct)).SingleOrDefault());
+    }
+
+    public Task<TripUnjoinResult> UnjoinAsync(int vehicleId, long id, CancellationToken ct = default) =>
+        InEditTransactionAsync(() => UnjoinCoreAsync(vehicleId, id, ct), new TripUnjoinResult(TripUnjoinOutcome.Conflict), ct);
+
+    private async Task<TripUnjoinResult> UnjoinCoreAsync(int vehicleId, long id, CancellationToken ct)
+    {
+        var trip = await db.Trips.FirstOrDefaultAsync(t => t.Id == id && t.VehicleId == vehicleId, ct);
+        if (trip is null) return new(TripUnjoinOutcome.NotFound);
+        if (trip.JoinedFromJson is null) return new(TripUnjoinOutcome.NotJoined);
+
+        var snapshot = SafeJson.TryDeserialize<TripJoinSnapshot>(
+            trip.JoinedFromJson,
+            ex => logger?.LogWarning(ex, "Trip {Id} has an unreadable join, it cannot be undone", trip.Id));
+        if (snapshot is null || snapshot.First.Id != trip.Id ||
+            await db.Trips.AnyAsync(t => t.Id == snapshot.Second.Id, ct))
+            return new(TripUnjoinOutcome.Unreadable);
+
+        // An edit since the join can have shortened the joined trip and let the next or previous
+        // trip move into the time the two would take again.
+        var (from, until) = (snapshot.First.StartedAt, snapshot.Second.EndedAt);
+        if (await db.Trips.AnyAsync(t => t.VehicleId == vehicleId && t.Id != trip.Id && t.StartedAt < until && t.EndedAt > from, ct))
+            return new(TripUnjoinOutcome.Overlaps);
+
+        // The second trip's id was never handed out again, so it comes back under its own.
+        var second = new Trip { VehicleId = vehicleId };
+        snapshot.First.ApplyTo(trip);
+        snapshot.Second.ApplyTo(second);
+
+        IReadOnlyList<CommutePlace> places = trip.PurposeIsManual && second.PurposeIsManual
+            ? []
+            : await db.CommutePlaces.AsNoTracking().Where(p => p.VehicleId == vehicleId).ToListAsync(ct);
+        foreach (var restored in (Trip[])[trip, second])
+            restored.Purpose = TripUnjoin.Purpose(
+                restored.Purpose, restored.PurposeIsManual,
+                restored.StartLatitude, restored.StartLongitude, restored.EndLatitude, restored.EndLongitude, places);
+
+        // A phone backfill pages through the trips by id, and may already be past the one coming
+        // back under its old id: it goes back to take that one too.
+        if (await db.PhoneBackfillRequests.FindAsync([vehicleId], ct) is { } backfill && backfill.AfterTripId >= second.Id)
+            backfill.AfterTripId = second.Id - 1;
+
+        // One SaveChanges: the second trip comes back in the same transaction that shortens the first.
+        db.Trips.Add(second);
+        await db.SaveChangesAsync(ct);
+        return new(TripUnjoinOutcome.Unjoined, [.. (await GetLogEntriesAsync(vehicleId, [trip.Id, second.Id], ct)).OrderBy(e => e.StartedAt)]);
     }
 
     public async IAsyncEnumerable<TripRoute> GetRoutesAsync(
@@ -547,14 +596,15 @@ public class TripRepository(
         t.StartLatitude, t.StartLongitude, t.EndLatitude, t.EndLongitude,
         t.OdometerStartKm, t.OdometerEndKm,
         t.StartPlaceJson, t.EndPlaceJson, t.Purpose, t.Notes, t.PurposeIsManual, t.IsHidden, t.EditedAt != null,
-        t.MaxSpeedKmh, t.AvgMovingSpeedKmh, t.PhoneFusionAt, t.CounterUsed);
+        t.MaxSpeedKmh, t.AvgMovingSpeedKmh, t.PhoneFusionAt, t.CounterUsed, t.JoinedFromJson != null);
 
     private sealed record LogRow(
         long Id, DateTime StartedAt, DateTime EndedAt, double DistanceKm,
         double StartLatitude, double StartLongitude, double EndLatitude, double EndLongitude,
         double? OdometerStartKm, double? OdometerEndKm,
         string? StartPlaceJson, string? EndPlaceJson, TripPurpose? Purpose, string? Notes, bool PurposeIsManual, bool IsHidden,
-        bool IsEdited, double? MaxSpeedKmh, double? AvgMovingSpeedKmh, DateTime? PhoneFusionAt, double? CounterUsed);
+        bool IsEdited, double? MaxSpeedKmh, double? AvgMovingSpeedKmh, DateTime? PhoneFusionAt, double? CounterUsed,
+        bool IsJoined);
 
     private TripLogEntry ToEntry(LogRow r) => new(
         r.Id, r.StartedAt, r.EndedAt, r.DistanceKm,
@@ -563,7 +613,7 @@ public class TripRepository(
         ReadPlace(r.Id, r.StartPlaceJson), ReadPlace(r.Id, r.EndPlaceJson),
         r.Purpose, r.Notes, PurposeIsAutomatic: r.Purpose is not null && !r.PurposeIsManual, IsHidden: r.IsHidden,
         IsEdited: r.IsEdited, MaxSpeedKmh: r.MaxSpeedKmh, AvgMovingSpeedKmh: r.AvgMovingSpeedKmh,
-        PhoneFusionAt: r.PhoneFusionAt, CounterUsed: r.CounterUsed);
+        PhoneFusionAt: r.PhoneFusionAt, CounterUsed: r.CounterUsed, IsJoined: r.IsJoined);
 
     // An unreadable place is as good as none: the trip log looks it up again.
     private PlaceAddress? ReadPlace(long tripId, string? json) =>

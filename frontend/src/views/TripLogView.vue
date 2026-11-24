@@ -158,9 +158,8 @@ const detail = computed(() => {
       save: (purpose: TripPurpose | null, notes: string | null) => save(entry.id, purpose, notes),
       pickPlace: openPlaces,
       setHidden: (hidden: boolean) => setHidden(entry.id, hidden),
-      joinNext: () => {
-        joiningId.value = entry.id
-      },
+      joinNext: () => askJoin(entry.id, 'join'),
+      unjoin: () => askJoin(entry.id, 'unjoin'),
     },
   }
 })
@@ -233,17 +232,45 @@ function setHidden(id: number, hidden: boolean) {
   if (vin.value) void store.setHidden(vin.value, id, hidden)
 }
 
-// Joining cannot be undone, so it is asked for in a dialog rather than on the trip's own row.
-const joiningId = ref<number | null>(null)
-const joinBusy = computed(() => joiningId.value !== null && store.saving.has(joiningId.value))
+// Joining two trips, and undoing a join, which loses what changed on the joined trip since, are
+// asked for in a dialog rather than done from the trip's own row.
+type JoinAction = 'join' | 'unjoin'
+const joining = ref<{ id: number; action: JoinAction } | null>(null)
+// Kept once the dialog closes, so its text stays while it fades out.
+const joinAction = ref<JoinAction>('join')
+const joinBusy = computed(() => joining.value !== null && store.saving.has(joining.value.id))
+
+function askJoin(id: number, action: JoinAction) {
+  joinAction.value = action
+  joining.value = { id, action }
+}
+
+const joinDialog = {
+  join: {
+    title: 'tripLog.joinNext',
+    hint: 'tripLog.joinNextHint',
+    icon: 'link',
+    confirm: 'tripLog.joinNextConfirm',
+  },
+  unjoin: {
+    title: 'tripLog.unjoin',
+    hint: 'tripLog.unjoinHint',
+    icon: 'link-slash',
+    confirm: 'tripLog.unjoinConfirm',
+  },
+} as const
 
 function cancelJoin() {
-  if (!joinBusy.value) joiningId.value = null
+  if (!joinBusy.value) joining.value = null
 }
 
 async function confirmJoin() {
-  if (vin.value && joiningId.value !== null) await store.mergeWithNext(vin.value, joiningId.value)
-  joiningId.value = null
+  const pending = joining.value
+  if (vin.value && pending) {
+    if (pending.action === 'join') await store.mergeWithNext(vin.value, pending.id)
+    else if (await store.unjoin(vin.value, pending.id)) void reloadLog()
+  }
+  joining.value = null
 }
 
 function classifyAll(purpose: TripPurpose) {
@@ -386,8 +413,12 @@ function classifyAll(purpose: TripPurpose) {
       @close="summaryOpen = false"
     />
 
-    <DetailModal :open="joiningId !== null" :title="t('tripLog.joinNext')" @close="cancelJoin">
-      <p class="text-sm">{{ t('tripLog.joinNextHint') }}</p>
+    <DetailModal
+      :open="joining !== null"
+      :title="t(joinDialog[joinAction].title)"
+      @close="cancelJoin"
+    >
+      <p class="text-sm">{{ t(joinDialog[joinAction].hint) }}</p>
       <template #footer>
         <button
           type="button"
@@ -398,7 +429,9 @@ function classifyAll(purpose: TripPurpose) {
           {{ t('common.cancel') }}
         </button>
         <button type="button" class="btn btn-warning" :disabled="joinBusy" @click="confirmJoin">
-          <font-awesome-icon icon="link" />{{ t('tripLog.joinNextConfirm') }}
+          <font-awesome-icon :icon="joinDialog[joinAction].icon" />{{
+            t(joinDialog[joinAction].confirm)
+          }}
         </button>
       </template>
     </DetailModal>

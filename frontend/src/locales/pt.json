@@ -1068,7 +1068,10 @@
     "hideHint": "Deixa esta viagem fora do mapa, das estatísticas, do painel e destes totais, em caso de falha de posicionamento. Ela continua listada entre as viagens ocultas.",
     "joinNext": "Unir à próxima viagem",
     "joinNextConfirm": "Unir viagens",
-    "joinNextHint": "Une esta viagem à seguinte, para um trajeto que uma parada curta, como num posto de combustível, dividiu em dois. Não pode ser desfeito.",
+    "joinNextHint": "Une esta viagem à seguinte, para um trajeto que uma parada curta, como num posto de combustível, dividiu em dois. Pode ser desfeito a partir da viagem unida.",
+    "unjoin": "Desfazer união",
+    "unjoinConfirm": "Separar viagens",
+    "unjoinHint": "Restaura as duas viagens que formaram esta, como estavam antes da união. As alterações feitas nesta viagem desde então são perdidas.",
     "filter": {
       "period": "Período",
       "periodDesc": "O mês, ou o ano inteiro, cujas viagens são listadas e somadas.",
@@ -1298,7 +1301,10 @@
         "overlapsNext": "A viagem não pode terminar depois do início da próxima.",
         "pointTooFast": "Um trecho deste trajeto exigiria dirigir a mais de 250 km/h.",
         "changed": "Esta viagem mudou enquanto você a editava, por exemplo quando o GPS do celular foi adicionado a ela. Nada foi salvo. Recarregue a página e refaça a alteração.",
-        "routeUnreadable": "Não foi possível ler o trajeto desta viagem, então ela não pode ser editada."
+        "routeUnreadable": "Não foi possível ler o trajeto desta viagem, então ela não pode ser editada.",
+        "notJoined": "Esta viagem não foi unida, ou foi unida antes de ser possível desfazer uma união.",
+        "joinUnreadable": "Não é possível ler de quais viagens esta foi formada, então a união não pode ser desfeita.",
+        "unjoinOverlaps": "Outra viagem ocupa agora o tempo de uma das duas viagens, então a união não pode ser desfeita. Altere essa viagem primeiro."
       },
       "push": {
         "notConfigured": "As notificações push não estão configuradas neste servidor.",

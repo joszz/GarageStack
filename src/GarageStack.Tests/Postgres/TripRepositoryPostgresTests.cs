@@ -103,6 +103,38 @@ public class TripRepositoryPostgresTests
         Assert.Equal(6, Assert.IsType<List<TripPoint>>(SafeJson.TryDeserialize<List<TripPoint>>(trip.PointsJson)).Count);
     }
 
+    // The second trip comes back under its own id, which the identity column has to take; a trip
+    // saved afterwards still gets a new one.
+    [Fact]
+    public async Task UndoingAJoin_PutsTheSecondRowBackUnderItsOwnId()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var database = await PostgresDatabase.CreateAsync(ct);
+        await using var db = database.CreateContext();
+        var vehicleId = await AddVehicleAsync(db, ct);
+        await Repository(db).SaveRecordedAsync(vehicleId,
+            [Leg(T0, 52.0, 52.1, 1000, 1011), Leg(T0.AddMinutes(20), 52.1, 52.2, 1011, 1022)], T0.AddHours(1), ct);
+        var before = await TripsAsync(database, ct);
+
+        await using var joining = database.CreateContext();
+        await Repository(joining).MergeWithNextAsync(vehicleId, before[0].Id, ct);
+        await using var undoing = database.CreateContext();
+        var result = await Repository(undoing).UnjoinAsync(vehicleId, before[0].Id, ct);
+
+        Assert.Equal(TripUnjoinOutcome.Unjoined, result.Outcome);
+        Assert.Equal(before, await TripsAsync(database, ct));
+
+        await using var later = database.CreateContext();
+        await Repository(later).SaveRecordedAsync(vehicleId, [Leg(T0.AddHours(2), 52.2, 52.3)], T0.AddHours(3), ct);
+        Assert.True((await TripsAsync(database, ct))[^1].Id > before[1].Id);
+
+        static async Task<List<TripSnapshot>> TripsAsync(PostgresDatabase database, CancellationToken ct)
+        {
+            await using var context = database.CreateContext();
+            return [.. (await context.Trips.AsNoTracking().OrderBy(t => t.StartedAt).ToListAsync(ct)).Select(TripSnapshot.From)];
+        }
+    }
+
     [Fact]
     public async Task Relabelling_MarksTheTripsBetweenHomeAndWork()
     {
