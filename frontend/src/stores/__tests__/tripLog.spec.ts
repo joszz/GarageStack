@@ -15,6 +15,7 @@ vi.mock('@/services/tripLogApi', async (importOriginal) => {
       setPurpose: vi.fn<typeof actual.tripLogApi.setPurpose>(),
       setHidden: vi.fn<typeof actual.tripLogApi.setHidden>(),
       mergeWithNext: vi.fn<typeof actual.tripLogApi.mergeWithNext>(),
+      unjoin: vi.fn<typeof actual.tripLogApi.unjoin>(),
       resolvePlaces: vi.fn<typeof actual.tripLogApi.resolvePlaces>(),
     },
   }
@@ -177,6 +178,45 @@ describe('useTripLogStore', () => {
     expect(ok).toBe(false)
     expect(store.entries).toHaveLength(2)
     expect(store.actionError).not.toBeNull()
+  })
+
+  it('undoes a join: the two trips put back take the place of the joined one', async () => {
+    api.log.mockResolvedValue([
+      logEntry({ id: 1 }),
+      logEntry({ id: 2, isJoined: true }),
+      logEntry({ id: 4 }),
+    ])
+    api.unjoin.mockResolvedValue([
+      logEntry({ id: 2, distanceKm: 30 }),
+      logEntry({ id: 3, distanceKm: 50 }),
+    ])
+    const store = useTripLogStore()
+    await store.fetchLog('VIN1', { year: 2026, month: 8 })
+
+    const ok = await store.unjoin('VIN1', 2)
+
+    expect(ok).toBe(true)
+    expect(api.unjoin).toHaveBeenCalledWith('VIN1', 2)
+    expect(store.entries.map((e) => [e.id, e.distanceKm])).toEqual([
+      [1, 40],
+      [2, 30],
+      [3, 50],
+      [4, 40],
+    ])
+  })
+
+  it('keeps the joined trip when undoing the join is refused', async () => {
+    api.log.mockResolvedValue([logEntry({ id: 1, isJoined: true })])
+    api.unjoin.mockRejectedValue(new Error('409'))
+    const store = useTripLogStore()
+    await store.fetchLog('VIN1', { year: 2026, month: 8 })
+
+    const ok = await store.unjoin('VIN1', 1)
+
+    expect(ok).toBe(false)
+    expect(store.entries.map((e) => e.id)).toEqual([1])
+    expect(store.actionError).not.toBeNull()
+    expect(store.saving.size).toBe(0)
   })
 
   describe('resolvePlaces', () => {

@@ -1068,7 +1068,10 @@
     "hideHint": "Deixa esta viagem fora do mapa, das estatísticas, do painel e destes totais, em caso de falha de posicionamento. Continua listada entre as viagens ocultas.",
     "joinNext": "Unir à próxima viagem",
     "joinNextConfirm": "Unir viagens",
-    "joinNextHint": "Une esta viagem à seguinte, para um trajeto que uma paragem curta, como num posto de combustível, dividiu em dois. Não pode ser anulado.",
+    "joinNextHint": "Une esta viagem à seguinte, para um trajeto que uma paragem curta, como num posto de combustível, dividiu em dois. Pode ser anulado a partir da viagem unida.",
+    "unjoin": "Anular união",
+    "unjoinConfirm": "Separar viagens",
+    "unjoinHint": "Repõe as duas viagens que formaram esta, tal como estavam antes da união. As alterações feitas a esta viagem desde então perdem-se.",
     "filter": {
       "period": "Período",
       "periodDesc": "O mês, ou o ano inteiro, cujas viagens são listadas e somadas.",
@@ -1298,7 +1301,10 @@
         "overlapsNext": "A viagem não pode terminar depois do início da próxima.",
         "pointTooFast": "Um troço deste trajeto exigiria conduzir a mais de 250 km/h.",
         "changed": "Esta viagem mudou enquanto a editava, por exemplo quando o GPS do telemóvel lhe foi adicionado. Nada foi guardado. Recarregue a página e volte a fazer a alteração.",
-        "routeUnreadable": "Não foi possível ler o trajeto desta viagem, por isso não pode ser editada."
+        "routeUnreadable": "Não foi possível ler o trajeto desta viagem, por isso não pode ser editada.",
+        "notJoined": "Esta viagem não foi unida, ou foi unida antes de ser possível anular uma união.",
+        "joinUnreadable": "Não é possível ler de que viagens esta foi formada, por isso a união não pode ser anulada.",
+        "unjoinOverlaps": "Outra viagem ocupa agora o tempo de uma das duas viagens, por isso a união não pode ser anulada. Altere essa viagem primeiro."
       },
       "push": {
         "notConfigured": "As notificações push não estão configuradas neste servidor.",

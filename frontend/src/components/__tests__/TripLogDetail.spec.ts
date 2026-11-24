@@ -318,6 +318,15 @@ describe('TripLogDetail', () => {
     ).toBeUndefined()
   })
 
+  it('asks to undo a join, only on a trip that was joined', async () => {
+    const wrapper = mountDetail(logEntry({ isJoined: true }))
+
+    await button(wrapper, 'Undo join')!.trigger('click')
+
+    expect(wrapper.emitted('unjoin')).toHaveLength(1)
+    expect(button(mountDetail(logEntry()), 'Undo join')).toBeUndefined()
+  })
+
   it('says when a commute was marked automatically', () => {
     const automatic = mountDetail(logEntry({ purpose: 'commute', purposeIsAutomatic: true }))
     const chosen = mountDetail(logEntry({ purpose: 'commute' }))

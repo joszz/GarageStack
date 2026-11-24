@@ -64,6 +64,9 @@ public sealed class DemoTripRepository : ITripRepository
     public Task<TripMergeResult> MergeWithNextAsync(int vehicleId, long id, CancellationToken ct = default) =>
         For(vehicleId).MergeWithNextAsync(vehicleId, id, ct);
 
+    public Task<TripUnjoinResult> UnjoinAsync(int vehicleId, long id, CancellationToken ct = default) =>
+        For(vehicleId).UnjoinAsync(vehicleId, id, ct);
+
     public IAsyncEnumerable<TripRoute> GetRoutesAsync(int vehicleId, DateTime from, DateTime to, CancellationToken ct = default) =>
         For(vehicleId).GetRoutesAsync(vehicleId, from, to, ct);
 

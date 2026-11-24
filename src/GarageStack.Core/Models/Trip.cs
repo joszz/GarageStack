@@ -96,5 +96,11 @@ public class Trip
     /// </summary>
     public bool IsHidden { get; set; }
 
+    /// <summary>
+    /// The two trips this one was joined from, as a JSON <see cref="TripJoinSnapshot"/>, so the join
+    /// can be undone. Null for a trip that was never joined, or joined before this was kept.
+    /// </summary>
+    public string? JoinedFromJson { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }

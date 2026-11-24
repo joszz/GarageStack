@@ -37,7 +37,9 @@ public sealed record TripLogEntry(
     double? AvgMovingSpeedKmh = null,
     DateTime? PhoneFusionAt = null,
     // What the day counter rose by over the trip, in its own unit (Trip.CounterUsed).
-    double? CounterUsed = null);
+    double? CounterUsed = null,
+    // Joined from two trips, and the join can be undone (Trip.JoinedFromJson).
+    bool IsJoined = false);
 
 /// <summary>How joining a trip with the next one went (<see cref="Interfaces.ITripRepository.MergeWithNextAsync"/>).</summary>
 public enum TripMergeOutcome
@@ -59,6 +61,33 @@ public enum TripMergeOutcome
 
 /// <summary>The joined trip as the trip log shows it, when <see cref="Outcome"/> is <see cref="TripMergeOutcome.Merged"/>.</summary>
 public sealed record TripMergeResult(TripMergeOutcome Outcome, TripLogEntry? Merged = null);
+
+/// <summary>How undoing a join went (<see cref="Interfaces.ITripRepository.UnjoinAsync"/>).</summary>
+public enum TripUnjoinOutcome
+{
+    Unjoined,
+
+    /// <summary>The vehicle has no such saved trip.</summary>
+    NotFound,
+
+    /// <summary>The trip was not joined, or was joined before joins could be undone.</summary>
+    NotJoined,
+
+    /// <summary>What the trip was joined from cannot be read, so there is nothing to put back.</summary>
+    Unreadable,
+
+    /// <summary>
+    /// Another trip now runs into the time the two would take again, after an edit since the join;
+    /// nothing was changed.
+    /// </summary>
+    Overlaps,
+
+    /// <summary>The trip changed while the join was being undone (the Worker added the phone's points); nothing was saved.</summary>
+    Conflict,
+}
+
+/// <summary>The two trips put back, oldest first, when <see cref="Outcome"/> is <see cref="TripUnjoinOutcome.Unjoined"/>.</summary>
+public sealed record TripUnjoinResult(TripUnjoinOutcome Outcome, IReadOnlyList<TripLogEntry>? Trips = null);
 
 /// <summary>How many trips a re-label marked as commutes, and how many it unmarked.</summary>
 public sealed record CommuteRelabel(int Marked, int Cleared);

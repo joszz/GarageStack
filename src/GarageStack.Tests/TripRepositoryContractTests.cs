@@ -84,6 +84,7 @@ public abstract class TripRepositoryContractTests : IAsyncDisposable
         e.Notes,
         e.IsHidden,
         e.IsEdited,
+        e.IsJoined,
         Max = Math.Round(e.MaxSpeedKmh ?? -1, 6),
         Avg = Math.Round(e.AvgMovingSpeedKmh ?? -1, 6),
         Counter = Math.Round(e.CounterUsed ?? -1, 6),
@@ -298,6 +299,10 @@ public abstract class TripRepositoryContractTests : IAsyncDisposable
         Assert.Equal(TripMergeOutcome.NotFound, (await _real.MergeWithNextAsync(_vehicleId, missing, ct)).Outcome);
         Assert.Equal(TripMergeOutcome.NoNextTrip, (await _demo.MergeWithNextAsync(_vehicleId, _demoIds[^1], ct)).Outcome);
         Assert.Equal(TripMergeOutcome.NoNextTrip, (await _real.MergeWithNextAsync(_vehicleId, _realIds[^1], ct)).Outcome);
+        Assert.Equal(TripUnjoinOutcome.NotFound, (await _demo.UnjoinAsync(_vehicleId, missing, ct)).Outcome);
+        Assert.Equal(TripUnjoinOutcome.NotFound, (await _real.UnjoinAsync(_vehicleId, missing, ct)).Outcome);
+        Assert.Equal(TripUnjoinOutcome.NotJoined, (await _demo.UnjoinAsync(_vehicleId, _demoIds[0], ct)).Outcome);
+        Assert.Equal(TripUnjoinOutcome.NotJoined, (await _real.UnjoinAsync(_vehicleId, _realIds[0], ct)).Outcome);
 
         Assert.Equal(TripEditOutcome.NotFound, (await _demo.GetEditorAsync(_vehicleId, missing, ct)).Outcome);
         Assert.Equal(TripEditOutcome.NotFound, (await _real.GetEditorAsync(_vehicleId, missing, ct)).Outcome);
@@ -312,6 +317,121 @@ public abstract class TripRepositoryContractTests : IAsyncDisposable
         var demoRefusal = await _demo.SetPointsAsync(_vehicleId, _demoIds[2], one, ct);
         var realRefusal = await _real.SetPointsAsync(_vehicleId, _realIds[2], one, ct);
         Assert.Equal((TripEditOutcome.Invalid, demoRefusal.Problem!.Code), (realRefusal.Outcome, realRefusal.Problem!.Code));
+        await AssertSameAsync(ct);
+    }
+
+    [Fact]
+    public async Task UndoingAJoin_PutsBothTripsBack_WhatChangedSinceIncluded()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await SeedAsync(ct);
+        await OnBothAsync(1, (repo, id) => repo.SetPurposeAndNotesAsync(_vehicleId, id, TripPurpose.Business, "Fuel stop", ct));
+        await OnBothAsync(2, (repo, id) => repo.SetHiddenAsync(_vehicleId, id, true, ct));
+        var before = (await _real.GetLogAsync(_vehicleId, From, To, ct)).Select(Shown).ToList();
+
+        await OnBothAsync(1, (repo, id) => repo.MergeWithNextAsync(_vehicleId, id, ct));
+        Assert.True((await _real.GetLogEntriesAsync(_vehicleId, [_realIds[1]], ct))[0].IsJoined);
+
+        // Changed after the join, and lost when it is undone.
+        await OnBothAsync(1, (repo, id) => repo.SetPurposeAndNotesAsync(_vehicleId, id, TripPurpose.Private, "Later", ct));
+        await OnBothAsync(1, async (repo, id) =>
+        {
+            var editor = (await repo.GetEditorAsync(_vehicleId, id, ct)).Editor!;
+            var points = editor.Points.Where((_, i) => i != 1)
+                .Select(p => new TripPointInput(new DateTimeOffset(p.RecordedAt), p.Latitude, p.Longitude)).ToList();
+            Assert.Equal(TripEditOutcome.Ok, (await repo.SetPointsAsync(_vehicleId, id, points, ct)).Outcome);
+        });
+
+        await OnBothAsync(1, async (repo, id) =>
+        {
+            var result = await repo.UnjoinAsync(_vehicleId, id, ct);
+            Assert.Equal(TripUnjoinOutcome.Unjoined, result.Outcome);
+            Assert.Equal(2, result.Trips!.Count);
+        });
+
+        await AssertSameAsync(ct);
+        Assert.Equal(before, (await _real.GetLogAsync(_vehicleId, From, To, ct)).Select(Shown));
+        Assert.Equal(_realIds, (await _real.GetLogAsync(_vehicleId, From, To, ct)).Select(e => e.Id));
+    }
+
+    [Fact]
+    public async Task JoinsInARow_AreUndoneOneAtATime()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await SeedAsync(ct);
+        var before = (await _real.GetLogAsync(_vehicleId, From, To, ct)).Select(Shown).ToList();
+
+        await OnBothAsync(0, (repo, id) => repo.MergeWithNextAsync(_vehicleId, id, ct));
+        var once = (await _real.GetLogAsync(_vehicleId, From, To, ct)).Select(Shown).ToList();
+        await OnBothAsync(0, (repo, id) => repo.MergeWithNextAsync(_vehicleId, id, ct));
+        await AssertSameAsync(ct);
+
+        await OnBothAsync(0, (repo, id) => repo.UnjoinAsync(_vehicleId, id, ct));
+        await AssertSameAsync(ct);
+        Assert.Equal(once, (await _real.GetLogAsync(_vehicleId, From, To, ct)).Select(Shown));
+
+        await OnBothAsync(0, (repo, id) => repo.UnjoinAsync(_vehicleId, id, ct));
+        await AssertSameAsync(ct);
+        Assert.Equal(before, (await _real.GetLogAsync(_vehicleId, From, To, ct)).Select(Shown));
+    }
+
+    [Fact]
+    public async Task UndoingAJoin_IsRefused_WhenAnotherTripMovedIntoItsTimeSince()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await SeedAsync(ct);
+        var log = await _demo.GetLogAsync(_vehicleId, From, To, ct);
+        await OnBothAsync(1, (repo, id) => repo.MergeWithNextAsync(_vehicleId, id, ct));
+
+        // The joined trip cut back to the first trip's own fixes, then the trip after the second
+        // one started where the second one was still driving.
+        await OnBothAsync(1, async (repo, id) =>
+        {
+            var editor = (await repo.GetEditorAsync(_vehicleId, id, ct)).Editor!;
+            var points = editor.Points.Where(p => p.RecordedAt <= log[1].EndedAt)
+                .Select(p => new TripPointInput(new DateTimeOffset(p.RecordedAt), p.Latitude, p.Longitude)).ToList();
+            Assert.Equal(TripEditOutcome.Ok, (await repo.SetPointsAsync(_vehicleId, id, points, ct)).Outcome);
+        });
+        await OnBothAsync(3, async (repo, id) =>
+        {
+            var editor = (await repo.GetEditorAsync(_vehicleId, id, ct)).Editor!;
+            var start = editor.Points[0];
+            List<TripPointInput> points =
+            [
+                new(new DateTimeOffset(log[2].EndedAt.AddMinutes(-1)), start.Latitude, start.Longitude),
+                .. editor.Points.Select(p => new TripPointInput(new DateTimeOffset(p.RecordedAt), p.Latitude, p.Longitude)),
+            ];
+            Assert.Equal(TripEditOutcome.Ok, (await repo.SetPointsAsync(_vehicleId, id, points, ct)).Outcome);
+        });
+
+        await OnBothAsync(1, async (repo, id) =>
+            Assert.Equal(TripUnjoinOutcome.Overlaps, (await repo.UnjoinAsync(_vehicleId, id, ct)).Outcome));
+        await AssertSameAsync(ct);
+    }
+
+    [Fact]
+    public async Task UndoingAJoin_LabelsTripsNobodyLabelled_FromHomeAndWorkAsTheyAreNow()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await SeedAsync(ct);
+        var log = await _demo.GetLogAsync(_vehicleId, From, To, ct);
+        var first = Enumerable.Range(0, log.Count - 1).First(i => log[i].Purpose is null && log[i + 1].Purpose is null);
+        await OnBothAsync(first, (repo, id) => repo.MergeWithNextAsync(_vehicleId, id, ct));
+
+        // Home and work set after the join, where the first trip starts and ends.
+        CommutePlace[] places =
+        [
+            new() { VehicleId = _vehicleId, Kind = CommutePlaceKind.Home, Latitude = log[first].StartLatitude, Longitude = log[first].StartLongitude },
+            new() { VehicleId = _vehicleId, Kind = CommutePlaceKind.Work, Latitude = log[first].EndLatitude, Longitude = log[first].EndLongitude },
+        ];
+        _db.CommutePlaces.AddRange(places);
+        await _db.SaveChangesAsync(ct);
+        await _demo.RelabelCommutesAsync(_vehicleId, places, ct);
+        await _real.RelabelCommutesAsync(_vehicleId, places, ct);
+
+        await OnBothAsync(first, (repo, id) => repo.UnjoinAsync(_vehicleId, id, ct));
+
+        Assert.Equal(TripPurpose.Commute, (await _real.GetLogEntriesAsync(_vehicleId, [_realIds[first]], ct))[0].Purpose);
         await AssertSameAsync(ct);
     }
 
@@ -341,6 +461,7 @@ public abstract class TripRepositoryContractTests : IAsyncDisposable
         nameof(ITripRepository.RelabelCommutesAsync),
         nameof(ITripRepository.SetHiddenAsync),
         nameof(ITripRepository.MergeWithNextAsync),
+        nameof(ITripRepository.UnjoinAsync),
         nameof(ITripRepository.GetRoutesAsync),
         nameof(ITripRepository.GetEditorAsync),
         nameof(ITripRepository.SetPointsAsync),

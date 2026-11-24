@@ -166,6 +166,34 @@ public static class TripEndpoints
         .Produces(StatusCodes.Status404NotFound)
         .WithSummary("Join a trip with the saved trip after it, such as two trips a fuel stop split");
 
+        group.MapPost("/{id:long}/unjoin", async (
+            HttpContext httpContext,
+            long id,
+            ITripRepository trips,
+            CancellationToken ct) =>
+        {
+            var vehicle = httpContext.ResolvedVehicle();
+
+            var result = await trips.UnjoinAsync(vehicle.Id, id, ct);
+            return result.Outcome switch
+            {
+                TripUnjoinOutcome.Unjoined => Results.Ok(result.Trips),
+                TripUnjoinOutcome.NotJoined => ApiProblems.Problem(StatusCodes.Status409Conflict, "trip.notJoined",
+                    "This trip was not joined, or was joined before a join could be undone"),
+                TripUnjoinOutcome.Unreadable => ApiProblems.Problem(StatusCodes.Status409Conflict, "trip.joinUnreadable",
+                    "What this trip was joined from cannot be read"),
+                TripUnjoinOutcome.Overlaps => ApiProblems.Problem(StatusCodes.Status409Conflict, "trip.unjoinOverlaps",
+                    "Another trip now runs into the time of one of the two trips; change that trip first"),
+                TripUnjoinOutcome.Conflict => Changed(),
+                _ => Results.NotFound(),
+            };
+        })
+        .Produces<TripLogEntry[]>()
+        .ProducesProblem(StatusCodes.Status409Conflict)
+        .Produces(StatusCodes.Status404NotFound)
+        .WithSummary("Undo a join: put back the two trips as they were just before it, oldest first")
+        .WithDescription("Changes made to the joined trip since the join are lost. Joins undo one at a time, the last first.");
+
         // Read from the telemetry rather than kept with the trip, so a trip saved before this
         // existed has its profile too, and the route editor never has to keep heights in step.
         group.MapGet("/{id:long}/elevation", async (

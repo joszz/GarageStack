@@ -69,6 +69,7 @@ export {
   faLeaf,
   faLightbulb,
   faLink,
+  faLinkSlash,
   faLocationArrow,
   faLocationDot,
   faLock,

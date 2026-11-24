@@ -1068,7 +1068,10 @@
     "hideHint": "Deje este viaje fuera del mapa, las estadísticas, el tablero y estos totales, por un problema de posicionamiento. Permanece en la lista de viajes ocultos.",
     "joinNext": "Unirse al próximo viaje",
     "joinNextConfirm": "Unirse a viajes",
-    "joinNextHint": "Une este viaje con el siguiente, para conducir una breve parada, como una estación de combustible dividida en dos. No se puede deshacer.",
+    "joinNextHint": "Une este viaje con el siguiente, para un trayecto que una parada corta, como en una gasolinera, dividió en dos. Se puede deshacer desde el viaje unido.",
+    "unjoin": "Deshacer unión",
+    "unjoinConfirm": "Separar viajes",
+    "unjoinHint": "Restaura los dos viajes con los que se formó este, tal como estaban antes de unirlos. Se pierden los cambios hechos en este viaje desde entonces.",
     "filter": {
       "period": "Período",
       "periodDesc": "El mes, o el año completo, cuyos trayectos se muestran y suman.",
@@ -1298,7 +1301,10 @@
         "overlapsNext": "El viaje no puede finalizar después de que haya comenzado el siguiente viaje.",
         "pointTooFast": "Un tramo de esta ruta supondría circular a más de 250 km/h.",
         "changed": "Este viaje cambió mientras lo editabas, por ejemplo al añadir el GPS de tu teléfono. No se ha guardado nada. Vuelve a cargar la página y repite el cambio.",
-        "routeUnreadable": "La ruta de este viaje no se puede leer, por lo que no se puede editar."
+        "routeUnreadable": "La ruta de este viaje no se puede leer, por lo que no se puede editar.",
+        "notJoined": "Este viaje no se unió, o se unió antes de que una unión pudiera deshacerse.",
+        "joinUnreadable": "No se puede leer de qué viajes se formó este, así que la unión no se puede deshacer.",
+        "unjoinOverlaps": "Otro viaje ocupa ahora el tiempo de uno de los dos viajes, así que la unión no se puede deshacer. Cambia ese viaje primero."
       },
       "push": {
         "notConfigured": "Las notificaciones push no están configuradas en este servidor.",

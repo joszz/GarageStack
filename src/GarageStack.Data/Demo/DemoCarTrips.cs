@@ -28,6 +28,9 @@ internal sealed class DemoCarTrips(DemoTrips trips) : ITripRepository
     // Joined trips' routes as recorded: the two trips' recorded routes one after the other.
     private readonly Dictionary<long, IReadOnlyList<TripPoint>> _joined = [];
 
+    // The two trips each joined trip was made from, as they were, as Trip.JoinedFromJson keeps them.
+    private readonly Dictionary<long, DemoJoin> _unjoin = [];
+
     // Home and work as the API last passed them (RelabelCommutesAsync), for a join to label by, as
     // the real repository reads them from the database.
     private IReadOnlyList<CommutePlace> _places = [];
@@ -156,6 +159,7 @@ internal sealed class DemoCarTrips(DemoTrips trips) : ITripRepository
             if (second is null) return Task.FromResult(new TripMergeResult(TripMergeOutcome.NoNextTrip));
 
             var joined = TripJoin.Join(Part(first), Part(second), _places);
+            var undo = new DemoJoin(State(first), State(second));
             var merged = first with
             {
                 EndedAt = second.EndedAt,
@@ -173,12 +177,15 @@ internal sealed class DemoCarTrips(DemoTrips trips) : ITripRepository
                 AvgMovingSpeedKmh = joined.AvgMovingSpeedKmh,
                 PhoneFusionAt = joined.PhoneFusionAt,
                 CounterUsed = joined.CounterUsed,
+                IsJoined = true,
             };
             _log[id] = merged;
             _log.Remove(second.Id);
             _gone.Add(second.Id);
             _routes.Remove(second.Id);
             _joined.Remove(second.Id);
+            _unjoin.Remove(second.Id);
+            _unjoin[id] = undo;
             _joined[id] = joined.OriginalPoints ?? joined.Points;
             if (joined.OriginalPoints is not null) _routes[id] = (joined.Points, joined.EditedAt!.Value);
             else _routes.Remove(id);
@@ -188,6 +195,67 @@ internal sealed class DemoCarTrips(DemoTrips trips) : ITripRepository
             else _manual.Remove(id);
             return Task.FromResult(new TripMergeResult(TripMergeOutcome.Merged, merged));
         }
+    }
+
+    public Task<TripUnjoinResult> UnjoinAsync(int vehicleId, long id, CancellationToken ct = default)
+    {
+        lock (_lock)
+        {
+            if (!_log.ContainsKey(id)) return Task.FromResult(new TripUnjoinResult(TripUnjoinOutcome.NotFound));
+            if (!_unjoin.TryGetValue(id, out var join)) return Task.FromResult(new TripUnjoinResult(TripUnjoinOutcome.NotJoined));
+
+            // As for a real undo: no other trip may have moved into the time the two would take again.
+            var (from, until) = (join.First.Entry.StartedAt, join.Second.Entry.EndedAt);
+            if (_log.Values.Any(e => e.Id != id && e.StartedAt < until && e.EndedAt > from))
+                return Task.FromResult(new TripUnjoinResult(TripUnjoinOutcome.Overlaps));
+
+            TripLogEntry[] restored = [Restore(join.First), Restore(join.Second)];
+            return Task.FromResult(new TripUnjoinResult(TripUnjoinOutcome.Unjoined, restored));
+        }
+    }
+
+    // A trip in the trip log and everything kept beside it, as it was just before a join.
+    private sealed record DemoTripState(
+        TripLogEntry Entry,
+        bool Manual,
+        bool Gone,
+        (IReadOnlyList<TripPoint> Points, DateTime At)? Route,
+        IReadOnlyList<TripPoint>? Joined,
+        DemoJoin? Join);
+
+    private sealed record DemoJoin(DemoTripState First, DemoTripState Second);
+
+    private DemoTripState State(TripLogEntry entry) => new(
+        entry,
+        _manual.Contains(entry.Id),
+        _gone.Contains(entry.Id),
+        _routes.TryGetValue(entry.Id, out var route) ? route : null,
+        _joined.GetValueOrDefault(entry.Id),
+        _unjoin.GetValueOrDefault(entry.Id));
+
+    // Puts a trip back as it was, its purpose labelled again as a real undo does.
+    private TripLogEntry Restore(DemoTripState state)
+    {
+        var id = state.Entry.Id;
+        Toggle(_manual, id, state.Manual);
+        Toggle(_gone, id, state.Gone);
+        if (state.Route is { } route) _routes[id] = route;
+        else _routes.Remove(id);
+        if (state.Joined is { } joined) _joined[id] = joined;
+        else _joined.Remove(id);
+        if (state.Join is { } join) _unjoin[id] = join;
+        else _unjoin.Remove(id);
+
+        var entry = state.Entry;
+        var purpose = TripUnjoin.Purpose(
+            entry.Purpose, state.Manual, entry.StartLatitude, entry.StartLongitude, entry.EndLatitude, entry.EndLongitude, _places);
+        return _log[id] = entry with { Purpose = purpose, PurposeIsAutomatic = purpose is not null && !state.Manual };
+    }
+
+    private static void Toggle(HashSet<long> set, long id, bool on)
+    {
+        if (on) set.Add(id);
+        else set.Remove(id);
     }
 
     // A trip log entry as TripJoin takes it: with its route as the visitor left it, and as the

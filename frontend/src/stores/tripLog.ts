@@ -153,6 +153,26 @@ export const useTripLogStore = defineStore('tripLog', () => {
   }
 
   /**
+   * Undoes the join that made this trip: the two trips the server puts back take its place in the
+   * list, in the order they were driven. The second may start in the next period, so the page
+   * loads the log again afterwards, which also looks up the addresses they are missing.
+   */
+  async function unjoin(vin: string, id: number): Promise<boolean> {
+    markSaving([id], true)
+    actionError.value = null
+    try {
+      const restored = await tripLogApi.unjoin(vin, id)
+      entries.value = entries.value.flatMap((entry) => (entry.id === id ? restored : [entry]))
+      return true
+    } catch (e) {
+      actionError.value = asError(e)
+      return false
+    } finally {
+      markSaving([id], false)
+    }
+  }
+
+  /**
    * Looks up the addresses the listed trips are still missing (see lookUpTripPlaces). It works on
    * whatever the list holds at each round, so paging to another month mid-way carries on with
    * that month's trips.
@@ -204,6 +224,7 @@ export const useTripLogStore = defineStore('tripLog', () => {
     classifyUnclassified,
     setHidden,
     mergeWithNext,
+    unjoin,
     resolvePlaces,
     stopResolvingPlaces,
   }

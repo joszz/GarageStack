@@ -49,6 +49,8 @@ export interface TripLogEntry {
    * hundredths of a litre on a plain hybrid (see utils/energy). Null without readings.
    */
   counterUsed?: number | null
+  /** Joined from two trips, and the join can be undone. */
+  isJoined?: boolean
 }
 
 /**
@@ -119,6 +121,9 @@ export const tripLogApi = {
   // Joins the trip with the saved trip after it; the joined trip keeps this one's id.
   mergeWithNext: (vin: string, id: number) =>
     requestJson<TripLogEntry>(`/api/vehicles/${vin}/trips/${id}/merge-next`, 'POST'),
+  // Undoes the last join that made this trip; the answer is the two trips put back, oldest first.
+  unjoin: (vin: string, id: number) =>
+    requestJson<TripLogEntry[]>(`/api/vehicles/${vin}/trips/${id}/unjoin`, 'POST'),
   setPurpose: (vin: string, ids: number[], purpose: TripPurpose | null) =>
     requestJson<{ changed: number }>(`/api/vehicles/${vin}/trips/purpose`, 'POST', {
       ids,

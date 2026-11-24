@@ -1068,7 +1068,10 @@
     "hideHint": "Laat deze rit weg uit de kaart, de statistieken, het dashboard en deze totalen, bij een fout in de positie. Hij blijft staan bij de verborgen ritten.",
     "joinNext": "Samenvoegen met volgende rit",
     "joinNextConfirm": "Ritten samenvoegen",
-    "joinNextHint": "Voegt deze rit samen met de rit erna, voor een rit die door een korte stop, zoals bij een tankstation, in tweeën is gesplitst. Kan niet ongedaan worden gemaakt.",
+    "joinNextHint": "Voegt deze rit samen met de rit erna, voor een rit die door een korte stop, zoals bij een tankstation, in tweeën is gesplitst. Je kunt dit ongedaan maken vanuit de samengevoegde rit.",
+    "unjoin": "Samenvoegen ongedaan maken",
+    "unjoinConfirm": "Ritten splitsen",
+    "unjoinHint": "Zet de twee ritten waaruit deze rit is samengevoegd terug zoals ze vóór het samenvoegen waren. Wijzigingen die je sindsdien aan deze rit hebt gemaakt, gaan verloren.",
     "filter": {
       "period": "Periode",
       "periodDesc": "De maand, of het hele jaar, waarvan de ritten worden getoond en opgeteld.",
@@ -1298,7 +1301,10 @@
         "overlapsNext": "De rit kan niet eindigen nadat de volgende rit begon.",
         "pointTooFast": "Een stuk van deze route zou betekenen dat er harder dan 250 km/u is gereden.",
         "changed": "Deze rit is veranderd terwijl je hem bewerkte, bijvoorbeeld doordat de gps van je telefoon is toegevoegd. Er is niets opgeslagen. Laad de pagina opnieuw en breng de wijziging nog eens aan.",
-        "routeUnreadable": "De route van deze rit kan niet worden gelezen, dus hij kan niet worden bewerkt."
+        "routeUnreadable": "De route van deze rit kan niet worden gelezen, dus hij kan niet worden bewerkt.",
+        "notJoined": "Deze rit is niet samengevoegd, of is samengevoegd voordat dat ongedaan gemaakt kon worden.",
+        "joinUnreadable": "Waaruit deze rit is samengevoegd kan niet worden gelezen, dus het samenvoegen kan niet ongedaan worden gemaakt.",
+        "unjoinOverlaps": "Een andere rit valt nu in de tijd van een van de twee ritten, dus het samenvoegen kan niet ongedaan worden gemaakt. Pas die rit eerst aan."
       },
       "push": {
         "notConfigured": "Pushmeldingen zijn op deze server niet ingesteld.",
