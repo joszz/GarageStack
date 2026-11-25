@@ -667,6 +667,22 @@ describe('useMapSettingsStore', () => {
 
     expect(useMapSettingsStore().legendExpanded).toBe(false)
   })
+
+  it('remembers whether the trip list was folded, and leaves it open until then', async () => {
+    expect(useMapSettingsStore().tripListExpanded).toBeNull()
+
+    useMapSettingsStore().tripListExpanded = false
+    await nextTick()
+    vi.advanceTimersByTime(SAVE_DEBOUNCE_MS)
+    setActivePinia(createPinia())
+
+    expect(useMapSettingsStore().tripListExpanded).toBe(false)
+  })
+
+  it('reads a stored trip list state that is not true or false as not chosen yet', () => {
+    localStorage.setItem(MAP_KEY, JSON.stringify({ tripListExpanded: 'yes' }))
+    expect(useMapSettingsStore().tripListExpanded).toBeNull()
+  })
 })
 
 describe('useDashboardSettingsStore', () => {

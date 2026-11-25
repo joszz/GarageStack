@@ -76,17 +76,39 @@
   background: var(--color-surface-2);
 }
 
+/* The app's car, the way home. The page's heading beside it says where you are. */
 .mobile-brand {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  font-size: 1rem;
-  font-weight: 700;
+  justify-content: center;
+  width: var(--touch-target);
+  height: var(--touch-target);
+  flex-shrink: 0;
+  margin-left: calc(-1 * var(--topbar-icon-inset));
+  font-size: var(--topbar-icon-size);
   color: var(--color-primary);
+  border-radius: 6px;
   text-decoration: none;
+}
+
+.mobile-brand:hover {
+  background: var(--color-surface-2);
+}
+
+/* The page's heading (ViewHeader moves it here on a phone), on one line: a long one ends in an
+   ellipsis rather than pushing the buttons off the bar. */
+.mobile-topbar__title {
   flex: 1;
   min-width: 0;
+}
+
+.mobile-topbar__title h1 {
+  margin: 0;
   overflow: hidden;
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.3;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
@@ -201,10 +223,27 @@
   margin: 0.15rem 0 0;
 }
 
-/* A line about the page, tucked under its title rather than spaced like a section of its own. */
-.view-subtitle {
-  margin-top: -1rem;
-  margin-bottom: 1.5rem;
+/* The button that opens the line about the page, close beside the heading and as tall as its
+   line, so the actions keep their place on the right. */
+.view-header__info {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--page-title-height);
+  height: var(--page-title-height);
+  margin-left: -0.5rem;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  color: var(--color-text-muted);
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.view-header__info:hover {
+  background: var(--color-surface-2);
+  color: var(--color-text);
 }
 
 /* ── App footer ───────────────────────────────────────────── */

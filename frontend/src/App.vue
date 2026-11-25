@@ -20,7 +20,7 @@ import { useSignalR } from '@/composables/useSignalR'
 import { useGatewayStatus } from '@/composables/useGatewayStatus'
 import { useSettledAvailability } from '@/composables/useSettledAvailability'
 import { useFavicon } from '@/composables/useFavicon'
-import { usePageTitle } from '@/composables/usePageTitle'
+import { APP_NAME, usePageTitle } from '@/composables/usePageTitle'
 import { useScreenWakeLock } from '@/composables/useScreenWakeLock'
 import { usePhoneGpsRecorder } from '@/composables/usePhoneGpsRecorder'
 import { useRelativeTime } from '@/composables/useRelativeTime'
@@ -257,10 +257,11 @@ watch(
       >
         <font-awesome-icon :icon="menuOpen ? 'xmark' : 'bars'" />
       </button>
-      <RouterLink to="/" class="mobile-brand">
+      <RouterLink to="/" class="mobile-brand" :aria-label="APP_NAME" :title="APP_NAME">
         <font-awesome-icon icon="car" />
-        GarageStack
       </RouterLink>
+      <!-- The page's heading, which ViewHeader moves here on a phone. -->
+      <div id="mobile-topbar-title" class="mobile-topbar__title" />
       <div class="mobile-topbar__actions">
         <!-- Refresh and Settings, which AppFooter moves here on a phone. -->
         <div id="mobile-topbar-actions" class="mobile-topbar__slot" />

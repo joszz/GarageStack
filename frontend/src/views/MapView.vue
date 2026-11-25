@@ -253,6 +253,15 @@ const legendExpanded = computed({
   },
 })
 
+// Above the map, the trip list folds to its title to give the map its height. Open until it is
+// folded, and then it stays that way on this device.
+const tripListExpanded = computed({
+  get: () => settingsStore.tripListExpanded ?? true,
+  set: (expanded: boolean) => {
+    settingsStore.tripListExpanded = expanded
+  },
+})
+
 // ── Drawing ────────────────────────────────────────────────────────────────────
 const tripLayers = useTripLayers({
   map: mapInstance,
@@ -434,16 +443,13 @@ onMounted(async () => {
           :speed-cameras-available="speedCamerasAvailable"
           :phone-gps-available="phoneGpsAvailable"
         />
-        <button class="btn btn-outline-secondary" :disabled="!location" @click="flyToStatus">
-          <font-awesome-icon icon="location-dot" />
-          {{ t('trips.findCar') }}
-        </button>
       </template>
     </ViewHeader>
 
     <div class="map-layout">
       <TripSidebar
         ref="sidebar"
+        v-model:expanded="tripListExpanded"
         :rows="displayRows"
         :loading="store.loading"
         :empty="!store.trips.length"
@@ -478,6 +484,19 @@ onMounted(async () => {
             </LPopup>
           </LMarker>
         </LMap>
+
+        <div class="map-controls-end">
+          <button
+            type="button"
+            class="map-control-btn"
+            :disabled="!location"
+            :title="t('trips.findCar')"
+            :aria-label="t('trips.findCar')"
+            @click="flyToStatus"
+          >
+            <font-awesome-icon icon="location-dot" />
+          </button>
+        </div>
 
         <div v-if="poiLoading || snapStatus" class="map-pill-stack">
           <div v-if="poiLoading" class="map-pill" role="status" :aria-label="t('trips.poiLoading')">

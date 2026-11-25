@@ -1,8 +1,9 @@
-import { describe, it, expect, vi } from 'vitest'
+import { afterEach, describe, it, expect, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import { createI18n } from 'vue-i18n'
 import TripSidebar from '../TripSidebar.vue'
 import type { TripRow } from '@/utils/tripRows'
+import { WIDE_MEDIA_QUERY } from '@/utils/viewport'
 
 const i18n = createI18n({ legacy: false, locale: 'en', missingWarn: false, fallbackWarn: false })
 
@@ -86,5 +87,42 @@ describe('TripSidebar', () => {
     await flushPromises()
 
     expect(scrollBy).toHaveBeenCalledWith({ top: 360, behavior: 'instant' })
+  })
+
+  describe('folding above the map', () => {
+    afterEach(() => vi.unstubAllGlobals())
+
+    it('folds the list to its title and asks to keep it that way', async () => {
+      const wrapper = mountSidebar()
+      const toggle = wrapper.get('.trip-sidebar__toggle')
+      const body = wrapper.get('.trip-sidebar__body')
+      expect(toggle.attributes('aria-expanded')).toBe('true')
+      expect(toggle.attributes('aria-controls')).toBe(body.attributes('id'))
+
+      await toggle.trigger('click')
+
+      expect(wrapper.emitted('update:expanded')).toEqual([[false]])
+      await wrapper.setProps({ expanded: false })
+      expect(wrapper.get('.trip-sidebar').classes()).toContain('trip-sidebar--folded')
+      expect(toggle.attributes('aria-expanded')).toBe('false')
+      expect((body.element as HTMLElement).style.display).toBe('none')
+
+      await toggle.trigger('click')
+      expect(wrapper.emitted('update:expanded')).toEqual([[false], [true]])
+    })
+
+    it('keeps the list open beside the map, where folding would free nothing', () => {
+      vi.stubGlobal('matchMedia', (query: string) => ({
+        matches: query === WIDE_MEDIA_QUERY,
+        media: query,
+        addEventListener: () => {},
+        removeEventListener: () => {},
+      }))
+      const wrapper = mountSidebar({ expanded: false })
+
+      expect(wrapper.find('.trip-sidebar__toggle').exists()).toBe(false)
+      expect(wrapper.get('.trip-sidebar').classes()).not.toContain('trip-sidebar--folded')
+      expect((wrapper.get('.trip-sidebar__body').element as HTMLElement).style.display).toBe('')
+    })
   })
 })

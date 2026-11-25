@@ -30,6 +30,11 @@ interface MapSettings {
    * follows the screen. Kept per device, as a phone's map is too short for what suits a desktop.
    */
   legendExpanded: boolean | null
+  /**
+   * Whether the trip list above a narrow map is open; null until it is folded or opened, when it
+   * is open. Kept per device, as only a narrow screen folds it.
+   */
+  tripListExpanded: boolean | null
 }
 
 // A function rather than a constant: the lists in it are the store's own once loaded, and a
@@ -55,6 +60,7 @@ function defaultsFor(): MapSettings {
     garagesEnabled: false,
     phoneGpsEnabled: true,
     legendExpanded: null,
+    tripListExpanded: null,
   }
 }
 
@@ -90,6 +96,7 @@ function parseMapFields(parsed: Record<string, unknown>): MapSettings {
     // On unless switched off, as the map drew phone points before this was a layer.
     phoneGpsEnabled: parsed.phoneGpsEnabled !== false,
     legendExpanded: typeof parsed.legendExpanded === 'boolean' ? parsed.legendExpanded : null,
+    tripListExpanded: typeof parsed.tripListExpanded === 'boolean' ? parsed.tripListExpanded : null,
   }
 }
 
@@ -100,7 +107,7 @@ export const useMapSettingsStore = defineStore('settingsMap', () => {
     section: 'map',
     state: settings,
     parse: parseMapFields,
-    localKeys: ['legendExpanded'],
+    localKeys: ['legendExpanded', 'tripListExpanded'],
   })
   return toRefs(settings)
 })
