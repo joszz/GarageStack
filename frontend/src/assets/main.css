@@ -1019,6 +1019,26 @@ body,
     padding-inline: 0.65rem;
   }
 
+  /* The heading has gone up to the top bar, so the row keeps the caption, the info button and the
+     actions, all on one middle. */
+  .view-header {
+    align-items: center;
+  }
+
+  .view-header__caption {
+    margin: 0;
+  }
+
+  .view-header__info {
+    width: var(--touch-target);
+    height: var(--touch-target);
+  }
+
+  /* First in its row, its icon starts on the cards' left edge. */
+  .view-header__info:first-child {
+    margin-left: calc((1rem - var(--touch-target)) / 2);
+  }
+
   .sidebar-meta .app-footer__meta {
     flex-wrap: wrap;
     gap: 0.5rem;

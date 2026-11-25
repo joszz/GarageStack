@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { nextTick, useTemplateRef, watch } from 'vue'
+import { computed, nextTick, useId, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useMediaQuery } from '@/composables/useMediaQuery'
+import { WIDE_MEDIA_QUERY } from '@/utils/viewport'
 import type { TripRow } from '@/utils/tripRows'
 import { tripColorClass } from '@/utils/speedColors'
 
@@ -21,6 +23,14 @@ const props = defineProps<{
 }>()
 
 defineEmits<{ select: [realIdx: number]; showPeriod: [] }>()
+
+// Below the desktop width the list sits above the map, where it folds to its title to give the
+// map its height. Beside the map, folding would free nothing, so there it is always open.
+const expanded = defineModel<boolean>('expanded', { default: true })
+const isWide = useMediaQuery(WIDE_MEDIA_QUERY)
+const foldable = computed(() => !isWide.value)
+const folded = computed(() => foldable.value && !expanded.value)
+const listId = useId()
 
 const { t } = useI18n()
 const root = useTemplateRef<HTMLElement>('root')
@@ -61,11 +71,25 @@ watch(
 </script>
 
 <template>
-  <aside ref="root" class="trip-sidebar">
+  <aside ref="root" class="trip-sidebar" :class="{ 'trip-sidebar--folded': folded }">
     <div class="trip-sidebar__header">
       <h2 class="card-title trip-sidebar__title">
-        <font-awesome-icon icon="route" />
-        {{ t('trips.title') }}
+        <button
+          v-if="foldable"
+          type="button"
+          class="trip-sidebar__toggle"
+          :aria-expanded="!folded"
+          :aria-controls="listId"
+          @click="expanded = folded"
+        >
+          <font-awesome-icon icon="route" />
+          {{ t('trips.title') }}
+          <font-awesome-icon icon="chevron-down" class="trip-sidebar__chevron" />
+        </button>
+        <template v-else>
+          <font-awesome-icon icon="route" />
+          {{ t('trips.title') }}
+        </template>
       </h2>
       <div v-if="shownDay" class="trip-sidebar__day text-xs">
         <span class="text-muted">{{ t('trips.shownDay', { day: shownDay }) }}</span>
@@ -75,67 +99,74 @@ watch(
       </div>
     </div>
 
-    <div v-if="loading" class="trip-list">
-      <div v-for="i in skeletonRows" :key="i" class="trip-list__item">
-        <span class="trip-list__dot skeleton" />
-        <div class="trip-list__info">
-          <div class="trip-list__header">
-            <span class="skeleton skeleton--text skeleton--text-lg" />
-            <span class="skeleton skeleton--trip-time" />
-          </div>
-          <span class="skeleton skeleton--text skeleton--text-md" />
-        </div>
-      </div>
-    </div>
-
-    <div v-else-if="empty" class="empty-state text-sm">
-      {{ t('trips.noTrips') }}
-    </div>
-
-    <ul v-else class="trip-list">
-      <li v-for="{ row, realIdx } in rows" :key="realIdx">
-        <button
-          type="button"
-          class="trip-list__item trip-list__button"
-          :class="{ 'trip-list__item--active': selectedIndex === realIdx }"
-          :aria-pressed="selectedIndex === realIdx"
-          @click="$emit('select', realIdx)"
-        >
-          <span
-            class="trip-list__dot"
-            :class="[tripColorClass(realIdx), { 'trip-list__dot--live': realIdx === activeIndex }]"
-          />
+    <div v-show="!folded" :id="listId" class="trip-sidebar__body">
+      <div v-if="loading" class="trip-list">
+        <div v-for="i in skeletonRows" :key="i" class="trip-list__item">
+          <span class="trip-list__dot skeleton" />
           <div class="trip-list__info">
             <div class="trip-list__header">
-              <span
-                v-if="row.mode === 'route'"
-                class="trip-list__name trip-list__route"
-                :title="row.routeTitle"
-              >
-                <span class="trip-list__place">{{ row.from }}</span>
-                <template v-if="row.to">
-                  <font-awesome-icon icon="arrow-right" class="trip-list__route-arrow" />
-                  <span class="trip-list__place">{{ row.to }}</span>
-                </template>
-              </span>
-              <span
-                v-else-if="row.mode === 'pending'"
-                class="skeleton skeleton--text skeleton--text-lg trip-list__name-skeleton"
-                role="status"
-                :aria-label="t('trips.resolvingPlaces')"
-              />
-              <span v-else class="trip-list__name" :title="row.dateLabel">{{ row.dateLabel }}</span>
-              <span v-if="realIdx === activeIndex" class="trip-list__live-badge">{{
-                t('trips.inProgress')
-              }}</span>
-              <span v-else class="trip-list__time">{{ row.timeLabel }}</span>
+              <span class="skeleton skeleton--text skeleton--text-lg" />
+              <span class="skeleton skeleton--trip-time" />
             </div>
-            <span class="trip-list__meta" :title="row.metaTitle">{{ row.meta }}</span>
+            <span class="skeleton skeleton--text skeleton--text-md" />
           </div>
-        </button>
-      </li>
-    </ul>
-    <div ref="sentinel" />
+        </div>
+      </div>
+
+      <div v-else-if="empty" class="empty-state text-sm">
+        {{ t('trips.noTrips') }}
+      </div>
+
+      <ul v-else class="trip-list">
+        <li v-for="{ row, realIdx } in rows" :key="realIdx">
+          <button
+            type="button"
+            class="trip-list__item trip-list__button"
+            :class="{ 'trip-list__item--active': selectedIndex === realIdx }"
+            :aria-pressed="selectedIndex === realIdx"
+            @click="$emit('select', realIdx)"
+          >
+            <span
+              class="trip-list__dot"
+              :class="[
+                tripColorClass(realIdx),
+                { 'trip-list__dot--live': realIdx === activeIndex },
+              ]"
+            />
+            <div class="trip-list__info">
+              <div class="trip-list__header">
+                <span
+                  v-if="row.mode === 'route'"
+                  class="trip-list__name trip-list__route"
+                  :title="row.routeTitle"
+                >
+                  <span class="trip-list__place">{{ row.from }}</span>
+                  <template v-if="row.to">
+                    <font-awesome-icon icon="arrow-right" class="trip-list__route-arrow" />
+                    <span class="trip-list__place">{{ row.to }}</span>
+                  </template>
+                </span>
+                <span
+                  v-else-if="row.mode === 'pending'"
+                  class="skeleton skeleton--text skeleton--text-lg trip-list__name-skeleton"
+                  role="status"
+                  :aria-label="t('trips.resolvingPlaces')"
+                />
+                <span v-else class="trip-list__name" :title="row.dateLabel">{{
+                  row.dateLabel
+                }}</span>
+                <span v-if="realIdx === activeIndex" class="trip-list__live-badge">{{
+                  t('trips.inProgress')
+                }}</span>
+                <span v-else class="trip-list__time">{{ row.timeLabel }}</span>
+              </div>
+              <span class="trip-list__meta" :title="row.metaTitle">{{ row.meta }}</span>
+            </div>
+          </button>
+        </li>
+      </ul>
+      <div ref="sentinel" />
+    </div>
   </aside>
 </template>
 

@@ -169,7 +169,7 @@ async function mountView() {
 
 const sidebar = (wrapper: Awaited<ReturnType<typeof mountView>>) => wrapper.find('.sidebar')
 const findCar = (wrapper: Awaited<ReturnType<typeof mountView>>) =>
-  wrapper.findAll('button').find((b) => b.text() === en.trips.findCar)!
+  wrapper.get(`.map-controls-end button[aria-label="${en.trips.findCar}"]`)
 
 // Handed to the mount and to every store the test reads, rather than left to the active pinia,
 // which a busy test run has been seen to switch between a mount and its assertions.

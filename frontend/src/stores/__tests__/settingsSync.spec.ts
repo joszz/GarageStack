@@ -92,7 +92,7 @@ describe('settings kept on the account', () => {
     // here on.
     expect(Object.keys(changes).sort()).toEqual(
       Object.keys(map.$state)
-        .filter((key) => key !== 'legendExpanded')
+        .filter((key) => key !== 'legendExpanded' && key !== 'tripListExpanded')
         .sort(),
     )
     expect(changes.heatmapEnabled).toBe(false)

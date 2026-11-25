@@ -60,6 +60,55 @@
   margin-bottom: 0;
 }
 
+/* Only a wrapper to fold: the list's rows stay the sidebar's own flex items. */
+.trip-sidebar__body {
+  display: contents;
+}
+
+/* Above the map the title folds the list away: drawn as the title itself across the header, with
+   a chevron at the end that points down while the list is open. */
+.trip-sidebar__title:has(.trip-sidebar__toggle) {
+  flex: 1;
+}
+
+.trip-sidebar__toggle {
+  display: flex;
+  align-items: center;
+  gap: inherit;
+  width: 100%;
+  min-height: var(--touch-target);
+  margin-block: calc((1lh - var(--touch-target)) / 2);
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-align: left;
+  text-transform: inherit;
+  cursor: pointer;
+}
+
+.trip-sidebar__chevron {
+  margin-left: auto;
+  transition: transform 0.2s ease;
+}
+
+.trip-sidebar__toggle[aria-expanded='false'] .trip-sidebar__chevron {
+  transform: rotate(-90deg);
+}
+
+/* Folded, the sidebar is its title row and the map takes the rest. */
+.trip-sidebar--folded {
+  padding-bottom: 0;
+  overflow: hidden;
+}
+
+.trip-sidebar--folded .trip-sidebar__header {
+  border-bottom: none;
+  padding-bottom: 1rem;
+}
+
 .trip-list {
   list-style: none;
   display: flex;
@@ -386,6 +435,23 @@
 .map-control-btn:hover {
   background: var(--color-surface-2);
   color: var(--color-text);
+}
+
+.map-control-btn:disabled {
+  background: var(--color-surface) padding-box;
+  color: var(--color-text-muted);
+  cursor: not-allowed;
+}
+
+/* The map's own buttons on the right, level with the zoom control on the left: Find car. */
+.map-controls-end {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: var(--z-map-overlay);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 /* Status overlays on the map canvas: POI loading, trip snapping. Stacked in one column so two
