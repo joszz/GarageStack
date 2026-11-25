@@ -258,7 +258,7 @@ The `dependency-submission` workflow runs on every push to `main`. It uses the `
 The `stale` workflow runs every Monday at 08:00 UTC:
 
 - Issues and PRs inactive for **60 days** are labelled `stale`
-- Issues and PRs still inactive after a further **14 days** are closed
+- Issues still inactive after a further **14 days** are closed. PRs never are: a quiet PR often waits on review, not on its author
 - Exempt labels for issues: `pinned`, `security`, `bug`, `enhancement`
 - Exempt labels for PRs: `pinned`, `security`, `do-not-merge`
 - Issues and PRs attached to a milestone are always exempt
