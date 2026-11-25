@@ -1,0 +1,314 @@
+/* A list of rows with the picked row's detail beside it, as the trip log and the charge history
+   lay out theirs. The page adds its own colours and marks on top. */
+
+/* ── List and detail ──────────────────────────────────────── */
+
+/* One column; on a desktop (from 1024px, as WIDE_MEDIA_QUERY) the detail stands beside the list
+   and stays in view as it scrolls. It takes two fifths of the row, between 20rem and 30rem. */
+.list-detail {
+  display: grid;
+  gap: 1rem;
+  align-items: start;
+}
+
+@media (width >= 1024px) {
+  .list-detail {
+    grid-template-columns: minmax(0, 1fr) clamp(20rem, 40%, 30rem);
+  }
+
+  /* Never past the bottom of the window: the page measures how far it is from the top of the
+     panel to the bottom of the column the page scrolls in (--room-below, see useRoomBelow),
+     less a margin as wide as the one above it. Content that does not fit scrolls in the panel,
+     and scrolling the page up gives the panel more height. Until the page has measured, the
+     window less the footer and the demo banner stands in. */
+  .list-detail__panel {
+    --detail-chrome: var(--footer-height);
+
+    position: sticky;
+    top: 1rem;
+    max-height: calc(var(--room-below, 100dvh - var(--detail-chrome) - 1rem) - 1rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: var(--card-padding);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    background: var(--color-surface);
+    box-shadow: var(--shadow-card);
+  }
+
+  .has-demo-banner .list-detail__panel {
+    --detail-chrome: calc(var(--footer-height) + var(--demo-banner-height));
+  }
+}
+
+/* A container, so a row lays itself out by the room it has: the list is narrower beside the
+   detail than on its own, whatever the window. */
+.list-detail__list {
+  container-type: inline-size;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* ── A row ────────────────────────────────────────────────── */
+
+.list-row {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+  transition:
+    opacity 0.15s,
+    border-color 0.15s;
+}
+
+/* The row the detail shows: a bar down its side, as a status card marks its own state. */
+.list-row--selected {
+  border-color: var(--color-primary);
+  box-shadow:
+    inset 3px 0 0 var(--color-primary),
+    var(--shadow-card);
+}
+
+/* The whole row picks it, so it is one button laid out as the row: an icon down the left, when on
+   the first line, the row's own line under it, and the headline figure and chevron down the
+   right, centred on both lines. Never more than the two lines. */
+.list-row__select {
+  display: grid;
+  grid-template-areas:
+    'icon when value chevron'
+    'icon line value chevron';
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  gap: 0.2rem 0.75rem;
+  align-items: center;
+  width: 100%;
+  padding: 0.6rem 0.9rem;
+  border: 0;
+  border-radius: inherit;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.list-row__select:hover {
+  background: var(--color-surface-2);
+}
+
+.list-row__select:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: -2px;
+}
+
+/* A badge with only its icon, square. */
+.list-row__icon.badge {
+  grid-area: icon;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border-radius: 6px;
+  font-size: 0.85rem;
+}
+
+/* One line whatever the width, so a row stays two lines tall: the time gives way first, and
+   nothing reaches into the headline figure beside it. */
+.list-row__when {
+  grid-area: when;
+  display: flex;
+  align-items: baseline;
+  gap: 0.45rem;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.list-row__date {
+  flex: none;
+  font-weight: 600;
+}
+
+.list-row__time {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* The duration, or a state in its place. */
+.list-row__pill {
+  flex: none;
+  padding: 0 0.35rem;
+  border-radius: 4px;
+  background: var(--color-surface-2);
+  color: var(--color-text-muted);
+}
+
+.list-row__pill--active {
+  background: color-mix(in srgb, var(--color-success) 16%, var(--color-surface));
+  color: var(--color-success-text);
+  font-weight: 600;
+}
+
+.list-row__value {
+  grid-area: value;
+  font-weight: 600;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The second line, one line too: what does not fit is cut off rather than wrapped. */
+.list-row__line {
+  grid-area: line;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  font-size: 0.9rem;
+}
+
+.list-row__chevron {
+  grid-area: chevron;
+  justify-self: end;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+/* On a phone the first line has room for the start time only; the detail has both. */
+@container (width < 26rem) {
+  .list-row__end-time {
+    display: none;
+  }
+}
+
+/* On a 320 px phone not for the duration either, which the detail shows too. */
+@container (width < 20rem) {
+  .list-row__pill {
+    display: none;
+  }
+}
+
+/* ── The detail ───────────────────────────────────────────── */
+
+/* A container, so the figures lay themselves out by the room the detail has, beside the list or
+   in a dialog. */
+.list-detail-item {
+  container: list-detail-item / inline-size;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  transition: opacity 0.15s;
+}
+
+.list-detail-item__header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.list-detail-item__title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+/* The time and the row's state, spelled out where the row has only icons. One line while they
+   fit, so the detail spends its height on what follows. */
+.list-detail-item__status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem 0.75rem;
+}
+
+.list-detail-item__time {
+  font-variant-numeric: tabular-nums;
+}
+
+.list-detail-item__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.list-detail-item__subtitle {
+  margin: 0 0 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+/* The chart sits in the panel, which is its card already. */
+.list-detail-item__chart.chart-container {
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+}
+
+.list-detail-item__chart .chart-container__plot {
+  height: 12rem;
+}
+
+/* ── Figures: two by two in the panel, four across in a wide dialog ── */
+
+.detail-figures {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.detail-figure {
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-surface-2);
+}
+
+.detail-figure__label {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.detail-figure__value {
+  margin: 0.15rem 0 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Spaced by a margin: the template's line break before it is not kept as a space. */
+.detail-figure__unit {
+  margin-left: 0.25em;
+  font-size: 0.78rem;
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+
+.detail-figure__note {
+  margin: 0.1rem 0 0;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Four across once the detail has the room for their labels, in a dialog on a tablet; two by two
+   beside the list and in a dialog on a phone. */
+@container list-detail-item (width >= 30rem) {
+  .detail-figures {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}

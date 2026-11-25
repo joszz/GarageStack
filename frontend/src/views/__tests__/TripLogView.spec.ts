@@ -77,7 +77,7 @@ async function mountView() {
 }
 
 function listedIds(wrapper: Awaited<ReturnType<typeof mountView>>) {
-  return wrapper.findAll('.trip-log-item').map((item) => item.find('.trip-log-item__date').text())
+  return wrapper.findAll('.trip-log-item').map((item) => item.find('.list-row__date').text())
 }
 
 function button(wrapper: Awaited<ReturnType<typeof mountView>>, text: string) {
@@ -86,7 +86,7 @@ function button(wrapper: Awaited<ReturnType<typeof mountView>>, text: string) {
 
 // Picks the trip at this place in the list, which opens its detail.
 async function pickTrip(wrapper: Awaited<ReturnType<typeof mountView>>, index: number) {
-  await wrapper.findAll('.trip-log-item__select')[index]!.trigger('click')
+  await wrapper.findAll('.list-row__select')[index]!.trigger('click')
   await flushPromises()
 }
 
@@ -421,13 +421,13 @@ describe('TripLogView', () => {
 
     expect(wrapper.find('.detail-modal .trip-log-detail').exists()).toBe(true)
     expect(tripLogApi.editor).toHaveBeenCalledWith(car.vin, 1)
-    expect(wrapper.findAll('.trip-log-item')[1]!.classes()).toContain('trip-log-item--selected')
+    expect(wrapper.findAll('.trip-log-item')[1]!.classes()).toContain('list-row--selected')
   })
 
   it('shows the newest trip beside the list on a wide screen, until another is picked', async () => {
     wideWindow()
     const wrapper = await mountView()
-    const detail = () => wrapper.find('.trip-log-layout__detail .trip-log-detail')
+    const detail = () => wrapper.find('.list-detail__panel .trip-log-detail')
 
     expect(detail().exists()).toBe(true)
     expect(wrapper.find('.detail-modal .trip-log-detail').exists()).toBe(false)
@@ -436,6 +436,6 @@ describe('TripLogView', () => {
     await pickTrip(wrapper, 1)
 
     expect(tripLogApi.editor).toHaveBeenLastCalledWith(car.vin, 1)
-    expect(wrapper.findAll('.trip-log-item')[1]!.classes()).toContain('trip-log-item--selected')
+    expect(wrapper.findAll('.trip-log-item')[1]!.classes()).toContain('list-row--selected')
   })
 })

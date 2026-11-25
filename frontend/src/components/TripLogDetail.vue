@@ -22,6 +22,7 @@ import {
 import { useVehicleStore } from '@/stores/vehicle'
 import { COMMUTE_PLACE_ICONS } from '@/utils/commutePlaces'
 import type { ChipOption } from '@/utils/chips'
+import type { DetailFigure } from '@/utils/detailFigures'
 import { useUnits } from '@/composables/useUnits'
 import { useTripEnds } from '@/composables/useTripEnds'
 import { useTripSpeedChart } from '@/composables/useTripSpeedChart'
@@ -29,6 +30,7 @@ import { useTripElevationChart } from '@/composables/useTripElevationChart'
 import ChipGroup from './ChipGroup.vue'
 import StatsChartCard from './StatsChartCard.vue'
 import TripRouteMap from './TripRouteMap.vue'
+import DetailFigureList from './DetailFigureList.vue'
 import { useConnection } from '@/composables/useConnection'
 import { tripGpx, tripGpxFileName } from '@/utils/gpx'
 import { downloadGpx } from '@/utils/download'
@@ -108,7 +110,7 @@ const vehicleStore = useVehicleStore()
 // Only a plain hybrid's counter holds fuel; on another car the trip shows no fuel at all.
 const fuel = computed(() => tripFuel(props.entry, vehicleStore.effectiveVehicleType))
 
-const fuelFigures = computed(() =>
+const fuelFigures = computed((): DetailFigure[] =>
   fuel.value
     ? [
         {
@@ -117,7 +119,6 @@ const fuelFigures = computed(() =>
           label: t('tripLog.detail.fuelUsed'),
           measure: units.value.measure('volume', fuel.value.litres, { decimals: 2 }),
           title: t('tripLog.detail.fuelUsedHint'),
-          note: null,
         },
         {
           key: 'consumption',
@@ -125,13 +126,12 @@ const fuelFigures = computed(() =>
           label: t('tripLog.detail.consumption'),
           measure: units.value.measure('fuelConsumption', fuel.value.litresPer100Km),
           title: t('tripLog.detail.consumptionHint'),
-          note: null,
         },
       ]
     : [],
 )
 
-const figures = computed(() => [
+const figures = computed((): DetailFigure[] => [
   {
     key: 'distance',
     icon: 'road',
@@ -141,15 +141,15 @@ const figures = computed(() => [
       odometerDistanceKm(props.entry) !== null
         ? t('tripLog.distanceFromOdometer')
         : t('tripLog.distanceFromGps'),
-    note: odometerLabel.value,
+    note: odometerLabel.value
+      ? { icon: 'gauge', text: odometerLabel.value, title: t('tripLog.odometer') }
+      : null,
   },
   {
     key: 'duration',
     icon: 'clock',
     label: t('tripLog.detail.duration'),
     measure: { value: durationLabel.value, unit: '' },
-    title: undefined,
-    note: null,
   },
   {
     key: 'avgSpeed',
@@ -157,15 +157,12 @@ const figures = computed(() => [
     label: t('tripLog.detail.averageSpeed'),
     measure: units.value.measure('speed', props.entry.avgMovingSpeedKmh, { decimals: 0 }),
     title: t('tripLog.detail.averageSpeedHint'),
-    note: null,
   },
   {
     key: 'topSpeed',
     icon: 'gauge-high',
     label: t('tripLog.detail.topSpeed'),
     measure: units.value.measure('speed', props.entry.maxSpeedKmh, { decimals: 0 }),
-    title: undefined,
-    note: null,
   },
   ...fuelFigures.value,
 ])
@@ -228,20 +225,23 @@ function downloadRoute() {
 
 <template>
   <article
-    class="trip-log-detail"
+    class="list-detail-item trip-log-detail"
     :class="{ 'trip-log-detail--saving': saving, 'trip-log-detail--hidden': entry.isHidden }"
   >
-    <header class="trip-log-detail__header">
-      <h2 class="trip-log-detail__title">{{ dateLabel }}</h2>
-      <div class="trip-log-detail__status">
-        <span class="trip-log-detail__time text-sm text-muted">{{ timeLabel }}</span>
+    <header class="list-detail-item__header">
+      <h2 class="list-detail-item__title">{{ dateLabel }}</h2>
+      <div class="list-detail-item__status">
+        <span class="list-detail-item__time text-sm text-muted">{{ timeLabel }}</span>
         <span
           v-if="routePoints?.some((point) => point.source === 'phone')"
           class="trip-log-detail__mark text-xs text-muted"
         >
           <font-awesome-icon icon="route" />{{ t('dawarich.fused') }}
         </span>
-        <span class="trip-log-detail__badge" :class="PURPOSE_BADGE_CLASSES[purposeKey]">
+        <span
+          class="list-detail-item__badge trip-log-detail__badge"
+          :class="PURPOSE_BADGE_CLASSES[purposeKey]"
+        >
           <font-awesome-icon :icon="PURPOSE_ICONS[purposeKey]" />{{
             t(`tripLog.purpose.${purposeKey}`)
           }}
@@ -298,35 +298,11 @@ function downloadRoute() {
       {{ t('tripLog.detail.routeUnavailable') }}
     </p>
 
-    <dl class="trip-log-detail__figures">
-      <div
-        v-for="figure in figures"
-        :key="figure.key"
-        class="trip-log-detail__figure"
-        :title="figure.title"
-      >
-        <dt class="trip-log-detail__figure-label">
-          <font-awesome-icon :icon="figure.icon" aria-hidden="true" />{{ figure.label }}
-        </dt>
-        <dd class="trip-log-detail__figure-value">
-          {{ figure.measure?.value ?? '-'
-          }}<span v-if="figure.measure?.unit" class="trip-log-detail__figure-unit">
-            {{ figure.measure.unit }}</span
-          >
-        </dd>
-        <dd
-          v-if="figure.note"
-          class="trip-log-detail__figure-note text-xs text-muted"
-          :title="t('tripLog.odometer')"
-        >
-          <font-awesome-icon icon="gauge" aria-hidden="true" /> {{ figure.note }}
-        </dd>
-      </div>
-    </dl>
+    <DetailFigureList :figures="figures" />
 
     <StatsChartCard
       v-if="speedChart"
-      class="trip-log-detail__chart"
+      class="list-detail-item__chart"
       :title="t('tripLog.detail.speedChart')"
       icon="chart-line"
       type="line"
@@ -337,7 +313,7 @@ function downloadRoute() {
 
     <StatsChartCard
       v-if="elevationChart"
-      class="trip-log-detail__chart"
+      class="list-detail-item__chart"
       :title="t('tripLog.detail.elevationChart')"
       icon="mountain"
       type="line"

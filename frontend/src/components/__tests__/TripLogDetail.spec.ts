@@ -94,7 +94,7 @@ function button(wrapper: Wrapper, text: string) {
 
 function figure(wrapper: Wrapper, label: string) {
   return wrapper
-    .findAll('.trip-log-detail__figure')
+    .findAll('.detail-figure')
     .find((f) => f.find('dt').text() === label)!
     .find('dd')
     .text()
@@ -112,12 +112,10 @@ describe('TripLogDetail', () => {
   })
 
   it('shows the odometer at either end under the distance', () => {
-    expect(mountDetail(logEntry()).find('.trip-log-detail__figure-note').text()).toBe(
-      '24010.0 - 24052.5',
-    )
+    expect(mountDetail(logEntry()).find('.detail-figure__note').text()).toBe('24010.0 - 24052.5')
     expect(
       mountDetail(logEntry({ odometerEndKm: null }))
-        .find('.trip-log-detail__figure-note')
+        .find('.detail-figure__note')
         .exists(),
     ).toBe(false)
   })
@@ -141,7 +139,7 @@ describe('TripLogDetail', () => {
     useUiSettingsStore().vehicleTypeOverride = 'bev'
     const wrapper = mountDetail(logEntry({ counterUsed: 255 }))
 
-    expect(wrapper.findAll('.trip-log-detail__figure')).toHaveLength(4)
+    expect(wrapper.findAll('.detail-figure')).toHaveLength(4)
   })
 
   it('saves the route it shows as a GPX file, named after the trip', async () => {
