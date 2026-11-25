@@ -35,5 +35,5 @@ Run demo mode: the whole app on sample data, without a car, a database or a brok
 - Add or update unit tests for what changed, backend and frontend.
 - A change to trips (anything on `ITripRepository`) is made in both `TripRepository` and `DemoTripRepository`, with shared logic in a Core helper, and gets a step in `TripRepositoryContractTests`, which fails until every repository method is covered there or exempt with a reason.
 - Backend: `dotnet test --project src/GarageStack.Tests` and `dotnet format GarageStack.slnx --verify-no-changes`. A change to the API rewrites `documentation/openapi.json` on the first test run; commit it with the change.
-- Frontend, inside `frontend/`: `pnpm test:unit --run`, `pnpm type-check`, `pnpm lint`, and `pnpm exec prettier --write` on every file touched.
+- Frontend, inside `frontend/`: `pnpm exec prettier --write` on every file touched, then `pnpm check`, which runs what CI runs: lint (with `--fix`), the type check, the format check and the unit tests.
 - Touched nginx, the Content-Security-Policy or a page's loading? Run the browser tests in `frontend/e2e` against the demo Docker stack (see CONTRIBUTING).
