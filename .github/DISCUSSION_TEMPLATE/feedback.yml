@@ -1,0 +1,224 @@
+title: '[Feedback] '
+labels:
+- feedback
+body:
+- type: markdown
+  attributes:
+    value: 'Thanks for taking a few minutes to share how GarageStack works for you! 🚗
+
+      Everything is optional: skip any part you haven''t used or don''t have an opinion on.
+
+      For bugs, please open an [issue](https://github.com/joszz/GarageStack/issues) instead, so it can be tracked properly.
+
+      '
+- type: markdown
+  attributes:
+    value: '## About your setup'
+- type: dropdown
+  id: model
+  attributes:
+    label: Which MG do you drive?
+    options:
+    - MG4
+    - MG5
+    - ZS EV
+    - ZS Hybrid+
+    - HS PHEV
+    - HS Hybrid+
+    - MG3 Hybrid+
+    - Marvel R
+    - Other (mention below)
+  validations:
+    required: false
+- type: dropdown
+  id: powertrain
+  attributes:
+    label: Powertrain
+    options:
+    - BEV (fully electric)
+    - PHEV (plug-in hybrid)
+    - HEV (hybrid)
+  validations:
+    required: false
+- type: dropdown
+  id: install
+  attributes:
+    label: How did you install GarageStack?
+    options:
+    - 'Option A: all-in-one container (Unraid / homelab)'
+    - 'Option B: Docker Compose'
+    - Something else (mention below)
+  validations:
+    required: false
+- type: dropdown
+  id: usage-duration
+  attributes:
+    label: How long have you been using it?
+    options:
+    - Less than a week
+    - A few weeks
+    - 1 to 3 months
+    - More than 3 months
+  validations:
+    required: false
+- type: dropdown
+  id: device
+  attributes:
+    label: Where do you mostly use it?
+    options:
+    - Phone (installed as app / PWA)
+    - Phone (in the browser)
+    - Desktop / laptop
+    - Tablet
+    - Homepage widget only
+  validations:
+    required: false
+- type: markdown
+  attributes:
+    value: '## How do you rate each part?
+
+      Pick "Haven''t used it" for anything that doesn''t apply to you.
+
+      '
+- type: dropdown
+  id: rating-install
+  attributes:
+    label: Installation & first setup
+    options:
+    - ⭐⭐⭐⭐⭐ Great
+    - ⭐⭐⭐⭐ Good
+    - ⭐⭐⭐ OK
+    - ⭐⭐ Needs work
+    - ⭐ Frustrating
+    - Haven't used it
+  validations:
+    required: false
+- type: dropdown
+  id: rating-dashboard
+  attributes:
+    label: Live dashboard & cards
+    options:
+    - ⭐⭐⭐⭐⭐ Great
+    - ⭐⭐⭐⭐ Good
+    - ⭐⭐⭐ OK
+    - ⭐⭐ Needs work
+    - ⭐ Frustrating
+    - Haven't used it
+  validations:
+    required: false
+- type: dropdown
+  id: rating-trips
+  attributes:
+    label: Trip history (map, route playback, heatmap)
+    options:
+    - ⭐⭐⭐⭐⭐ Great
+    - ⭐⭐⭐⭐ Good
+    - ⭐⭐⭐ OK
+    - ⭐⭐ Needs work
+    - ⭐ Frustrating
+    - Haven't used it
+  validations:
+    required: false
+- type: dropdown
+  id: rating-stats
+  attributes:
+    label: Energy statistics & insights
+    options:
+    - ⭐⭐⭐⭐⭐ Great
+    - ⭐⭐⭐⭐ Good
+    - ⭐⭐⭐ OK
+    - ⭐⭐ Needs work
+    - ⭐ Frustrating
+    - Haven't used it
+  validations:
+    required: false
+- type: dropdown
+  id: rating-commands
+  attributes:
+    label: Remote commands (climate, lock/unlock, horn & lights)
+    options:
+    - ⭐⭐⭐⭐⭐ Great
+    - ⭐⭐⭐⭐ Good
+    - ⭐⭐⭐ OK
+    - ⭐⭐ Needs work
+    - ⭐ Frustrating
+    - Haven't used it
+  validations:
+    required: false
+- type: dropdown
+  id: rating-notifications
+  attributes:
+    label: Push notifications
+    options:
+    - ⭐⭐⭐⭐⭐ Great
+    - ⭐⭐⭐⭐ Good
+    - ⭐⭐⭐ OK
+    - ⭐⭐ Needs work
+    - ⭐ Frustrating
+    - Haven't used it
+  validations:
+    required: false
+- type: dropdown
+  id: rating-maps
+  attributes:
+    label: Map overlays (charging, fuel, service areas)
+    options:
+    - ⭐⭐⭐⭐⭐ Great
+    - ⭐⭐⭐⭐ Good
+    - ⭐⭐⭐ OK
+    - ⭐⭐ Needs work
+    - ⭐ Frustrating
+    - Haven't used it
+  validations:
+    required: false
+- type: dropdown
+  id: rating-reliability
+  attributes:
+    label: Data reliability (up-to-date values, iSmart session limits)
+    options:
+    - ⭐⭐⭐⭐⭐ Great
+    - ⭐⭐⭐⭐ Good
+    - ⭐⭐⭐ OK
+    - ⭐⭐ Needs work
+    - ⭐ Frustrating
+    - Haven't used it
+  validations:
+    required: false
+- type: dropdown
+  id: rating-overall
+  attributes:
+    label: Overall, compared to the iSmart app
+    options:
+    - Much better
+    - Somewhat better
+    - About the same
+    - Somewhat worse
+    - Much worse
+    - I don't use iSmart
+  validations:
+    required: false
+- type: markdown
+  attributes:
+    value: '## In your own words'
+- type: textarea
+  id: best
+  attributes:
+    label: What do you like most?
+    placeholder: The thing that made you keep using GarageStack…
+- type: textarea
+  id: worst
+  attributes:
+    label: What bothers you most, or what's confusing?
+    placeholder: Anything that slows you down, looks off, or didn't work the way you expected…
+- type: textarea
+  id: missing
+  attributes:
+    label: What's missing? What would you add next?
+    placeholder: Features, integrations (e.g. evcc, ABRP, ntfy), languages, cards…
+- type: checkboxes
+  id: tester
+  attributes:
+    label: Want to help further?
+    options:
+    - label: I'm happy to test new features before release
+    - label: You can contact me with follow-up questions in this discussion
