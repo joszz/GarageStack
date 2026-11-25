@@ -112,6 +112,20 @@
   white-space: nowrap;
 }
 
+/* Up here the info button is a small mark raised off the heading's top right, like a footnote
+   sign, so the heading keeps the bar's middle. Its hit area stays 28px, past the 24px minimum. */
+.mobile-topbar__title .view-header__title {
+  gap: 0;
+}
+
+.mobile-topbar__title .view-header__info {
+  width: 28px;
+  height: 28px;
+  margin-left: -0.1rem;
+  font-size: 0.8rem;
+  transform: translateY(-0.55rem);
+}
+
 /* ── Backdrop ─────────────────────────────────────────────── */
 
 .sidebar-backdrop {
@@ -220,18 +234,37 @@
 /* A short line under the heading inside the title row (ViewHeader's caption), such as the period
    Statistics shows. */
 .view-header__caption {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
   margin: 0.15rem 0 0;
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+/* The period is what the whole page shows, so it reads as such: a calendar in the accent colour
+   ahead of it, rather than a muted footnote. */
+.view-header__caption-icon {
+  color: var(--color-primary-light);
+}
+
+/* The heading with its info button beside it: they travel together to a phone's top bar. */
+.view-header__title {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 0;
 }
 
 /* The button that opens the line about the page, close beside the heading and as tall as its
    line, so the actions keep their place on the right. */
 .view-header__info {
   display: flex;
+  flex-shrink: 0;
   align-items: center;
   justify-content: center;
   width: var(--page-title-height);
   height: var(--page-title-height);
-  margin-left: -0.5rem;
   padding: 0;
   border: none;
   border-radius: 6px;

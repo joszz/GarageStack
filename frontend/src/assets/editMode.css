@@ -226,6 +226,21 @@
   }
 }
 
+/* On a touch phone the dashboard's title row can hold nothing that shows: the title is in the top
+   bar, a long press takes the place of Edit layout, and the top bar's refresh button spins for
+   the refresh. Such a row gives its height and gap back to the cards. A row with a caption or any
+   other action, such as the statistics' period and filters, stays. */
+@media (width <= 767px) and (hover: none) and (pointer: coarse) {
+  .view-header:has(.edit-layout-btn):not(
+      :has(
+        .view-header__caption,
+        .view-header__actions > :not(.refresh-indicator, .edit-layout-btn--touch-hidden)
+      )
+    ) {
+    display: none;
+  }
+}
+
 .edit-mode-bar-enter-active,
 .edit-mode-bar-leave-active {
   transition:
