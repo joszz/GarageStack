@@ -13,7 +13,8 @@ const props = defineProps<{
 
 const wrapper = ref<HTMLElement | null>(null)
 const { mapInstance, bindMapReady } = useLeafletMap(wrapper)
-useBasemap(mapInstance, { vector: false })
+// The charge history's list comes first; the basemap fills in once the page has loaded.
+useBasemap(mapInstance, { deferred: true })
 
 const mapOptions = {
   zoomControl: false,

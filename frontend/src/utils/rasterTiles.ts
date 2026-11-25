@@ -12,11 +12,12 @@ export const RASTER_FALLBACK_MAX_ZOOM = 19
 export const RASTER_TILE_ORIGIN = new URL(RASTER_FALLBACK_TILE_URL).origin
 
 /**
- * The service worker's cache of raster tiles this browser has shown, so the dashboard's map of
- * the parked car still has its streets without a connection. Only tiles that were on screen are
- * kept: OpenStreetMap's tile policy allows that, and forbids fetching areas ahead for offline use.
+ * The service worker's cache of raster tiles this browser has shown, so a map on the raster
+ * fallback (no WebGL) still has its streets without a connection. Only tiles that were on screen
+ * are kept: OpenStreetMap's tile policy allows that, and forbids fetching areas ahead for offline
+ * use.
  */
 export const MAP_TILE_CACHE = 'garagestack-map-tiles'
-/** About 4 MB of tiles: the card's few tiles around many parking spots, and the map page's last views. */
+/** About 4 MB of tiles: the last few views of the maps on the raster fallback. */
 export const MAP_TILE_CACHE_MAX_ENTRIES = 150
 export const MAP_TILE_CACHE_MAX_AGE_SECONDS = 30 * 24 * 60 * 60

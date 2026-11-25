@@ -280,7 +280,11 @@
   white-space: nowrap;
 }
 
-.parking-spot__credit:hover {
+.parking-spot__credit a {
+  color: inherit;
+}
+
+.parking-spot__credit a:hover {
   color: var(--color-text);
 }
 

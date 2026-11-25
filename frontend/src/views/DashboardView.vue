@@ -28,6 +28,7 @@ import SkeletonCarDiagram from '@/components/SkeletonCarDiagram.vue'
 import SkeletonLocationMap from '@/components/SkeletonLocationMap.vue'
 import { useUnits } from '@/composables/useUnits'
 import { EditableCardGrid, useEditMode } from '@/composables/useEditMode'
+import type { BasemapKind } from '@/composables/useBasemap'
 import { useReconnect } from '@/composables/useReconnect'
 import { useMediaQuery } from '@/composables/useMediaQuery'
 import { mayBurnFuel } from '@/utils/vehicleType'
@@ -70,6 +71,8 @@ function setParkingSpot(el: Element | ComponentPublicInstance | null) {
   const element = el && '$el' in el ? (el.$el as Element) : el
   parkingSpot.value = element instanceof HTMLElement ? element : null
 }
+// The basemap the map behind draws, which the spot's bar credits.
+const backdropBasemap = shallowRef<BasemapKind | null>(null)
 
 // Shared prop set for the two <CarDiagram> invocations (edit mode + normal mode), which
 // are otherwise identical aside from their v-if guard and wrapper class.
@@ -249,7 +252,11 @@ onUnmounted(() => {
       'dashboard--map-first': settings.mapFirst,
     }"
   >
-    <DashboardMapBackdrop v-if="mapBackdrop && status" :spot="parkingSpot" />
+    <DashboardMapBackdrop
+      v-if="mapBackdrop && status"
+      :spot="parkingSpot"
+      @basemap="backdropBasemap = $event"
+    />
 
     <ViewHeader :title="t('dashboard.title')">
       <template #actions>
@@ -352,6 +359,7 @@ onUnmounted(() => {
             <DashboardParkingSpot
               v-else-if="mapBackdrop"
               :ref="setParkingSpot"
+              :basemap="backdropBasemap"
               :class="OVERVIEW_PARTS.map.className"
             />
             <LocationMapWidget v-else :class="OVERVIEW_PARTS.map.className" />

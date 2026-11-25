@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { ref } from 'vue'
 import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia, type Pinia } from 'pinia'
 import type { TelemetrySnapshot, Trip, Vehicle } from '@/services/vehicleApi'
@@ -7,7 +8,8 @@ import DashboardMapBackdrop from '../DashboardMapBackdrop.vue'
 
 const push = vi.fn<(to: { name: string; query?: Record<string, string> }) => void>()
 vi.mock('vue-router', () => ({ useRouter: () => ({ push }) }))
-vi.mock('@/composables/useBasemap', () => ({ useBasemap: () => undefined }))
+const basemap = ref<'vector' | 'raster' | null>(null)
+vi.mock('@/composables/useBasemap', () => ({ useBasemap: () => ({ basemap }) }))
 
 const observers: TestResizeObserver[] = []
 class TestResizeObserver implements ResizeObserver {
@@ -121,6 +123,16 @@ describe('DashboardMapBackdrop', () => {
     const wrapper = await mountBackdrop()
 
     expect(wrapper.find('.leaflet-control-attribution').exists()).toBe(false)
+  })
+
+  it('says which basemap it draws, for the spot to credit', async () => {
+    basemap.value = null
+    const wrapper = await mountBackdrop()
+
+    basemap.value = 'vector'
+    await flushPromises()
+
+    expect(wrapper.emitted('basemap')).toEqual([[null], ['vector']])
   })
 
   it('follows the spot when the layout moves it', async () => {

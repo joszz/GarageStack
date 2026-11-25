@@ -10,7 +10,7 @@ import {
   type LeafletMap,
   type MapInset,
 } from '@/utils/leaflet'
-import { useBasemap } from '@/composables/useBasemap'
+import { useBasemap, type BasemapKind } from '@/composables/useBasemap'
 import { useCarLocation } from '@/composables/useCarLocation'
 import { buildCarMarkerIcon, moveCarMarker } from '@/utils/mapCarIcon'
 import { latLngsOf } from '@/utils/geo'
@@ -21,6 +21,8 @@ import { latLngsOf } from '@/utils/geo'
  * car is, so it cannot be panned or zoomed; the full map is a click away.
  */
 const props = defineProps<{ spot: HTMLElement | null }>()
+// Which basemap is drawn, so the spot's bar can credit it (the map's own corners are covered).
+const emit = defineEmits<{ basemap: [kind: BasemapKind | null] }>()
 
 const { status, location, hasLocation, center, activeTrip, openFullMap } = useCarLocation()
 
@@ -31,9 +33,10 @@ const ROUTE_PADDING = 24
 
 const container = useTemplateRef<HTMLElement>('container')
 const mapInstance = shallowRef<LeafletMap | null>(null)
-// Raster tiles, as on the location card: the dashboard is the page most visits start on, and the
-// vector renderer is well over a megabyte. The tiles shown are also the ones kept for offline use.
-useBasemap(mapInstance, { vector: false })
+// As on the location card: the dashboard is the page most visits start on, so its cards come
+// first and the basemap fills in once the page has loaded.
+const { basemap } = useBasemap(mapInstance, { deferred: true })
+watch(basemap, (kind) => emit('basemap', kind), { immediate: true })
 
 let marker: L.Marker | null = null
 let routeLine: L.Polyline | null = null

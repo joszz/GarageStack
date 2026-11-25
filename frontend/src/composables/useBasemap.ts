@@ -1,4 +1,4 @@
-import { computed, onUnmounted, watch, type Ref } from 'vue'
+import { computed, onUnmounted, readonly, ref, watch, type Ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import type { Map as MaplibreMap, StyleSpecification } from 'maplibre-gl'
 import type { maplibreGL } from '@maplibre/maplibre-gl-leaflet'
@@ -16,8 +16,12 @@ import {
 } from '@/utils/basemapStyle'
 import { RASTER_FALLBACK_MAX_ZOOM, RASTER_FALLBACK_TILE_URL } from '@/utils/rasterTiles'
 import { OSM_ATTRIBUTION, VECTOR_ATTRIBUTION } from '@/utils/credits'
+import { whenPageIdle } from '@/utils/async'
 
 type MaplibreLayer = ReturnType<typeof maplibreGL>
+
+/** Which basemap a map shows: the vector one, or the raster tiles it falls back to. */
+export type BasemapKind = 'vector' | 'raster'
 
 // One in-flight request per style URL, shared by every map on the page and kept for the session:
 // the dashboard preview and the full map ask for the same style, and switching theme back and
@@ -61,10 +65,12 @@ async function loadStyle(url: string): Promise<MapStyle> {
 
 export interface BasemapOptions {
   /**
-   * False keeps the map on raster tiles and never loads MapLibre. For a small preview that cannot
-   * be panned or zoomed, the vector renderer (well over a megabyte) buys nothing that is visible.
+   * Loads the basemap only once the page has loaded and the browser is idle (whenPageIdle), for a
+   * map that is not what its page is about: the dashboard's, a trip's or a charge's. The renderer
+   * is well over a megabyte, so the page draws first and its map fills in after; on later visits
+   * the service worker has the renderer, and the wait is short.
    */
-  vector?: boolean
+  deferred?: boolean
 }
 
 /**
@@ -90,6 +96,8 @@ export function useBasemap(mapInstance: Ref<LeafletMap | null>, options: Basemap
   let generation = 0
 
   let rasterMap: LeafletMap | null = null
+  // Null until a basemap is on the map, which a deferred one is only once the page is idle.
+  const shown = ref<BasemapKind | null>(null)
 
   /**
    * Raster tiles only come in full colour, so a raster map carries the variant it should look
@@ -106,6 +114,7 @@ export function useBasemap(mapInstance: Ref<LeafletMap | null>, options: Basemap
     layer = null
     glLayer = null
     vectorActive = false
+    shown.value = null
     if (rasterMap) delete rasterMap.getContainer().dataset.rasterBasemap
     rasterMap = null
   }
@@ -121,11 +130,20 @@ export function useBasemap(mapInstance: Ref<LeafletMap | null>, options: Basemap
       // offline use (sw.ts). Without it each tile is an opaque response, which Chrome counts as
       // megabytes of storage and the worker will not keep.
       crossOrigin: true,
+      // OpenStreetMap's tile servers answer a request without a Referer with an "Access blocked"
+      // tile. Each tile names the app's origin, whatever policy the page itself was served with
+      // (a tunnel such as GitHub Codespaces' can serve it with a stricter one).
+      referrerPolicy: 'strict-origin-when-cross-origin',
     }).addTo(map)
+    shown.value = 'raster'
   }
 
   async function addVectorBasemap(map: LeafletMap, token: number) {
     try {
+      if (options.deferred) {
+        await whenPageIdle()
+        if (token !== generation) return
+      }
       const [style, maplibre] = await Promise.all([
         loadStyle(BASEMAP_STYLE_URLS[variant.value]),
         import('@/utils/maplibreLayer'),
@@ -150,6 +168,7 @@ export function useBasemap(mapInstance: Ref<LeafletMap | null>, options: Basemap
       standInForMissingImages(glLayer.getMaplibreMap())
       layer = glLayer
       vectorActive = true
+      shown.value = 'vector'
     } catch (error) {
       console.warn('[map] vector basemap unavailable, falling back to raster tiles', error)
       if (token === generation) addRasterFallback(map)
@@ -180,7 +199,7 @@ export function useBasemap(mapInstance: Ref<LeafletMap | null>, options: Basemap
       // prefix wraps onto a second line and swallows a quarter of the dashboard's map card.
       // The data credits have to stay; Leaflet's does not (BSD, no attribution clause).
       if (map.attributionControl) map.attributionControl.setPrefix('')
-      if (options.vector === false || !supportsWebGl()) {
+      if (!supportsWebGl()) {
         addRasterFallback(map)
         return
       }
@@ -207,4 +226,7 @@ export function useBasemap(mapInstance: Ref<LeafletMap | null>, options: Basemap
   })
 
   onUnmounted(detach)
+
+  /** For a map that credits its basemap outside itself (DashboardMapBackdrop). */
+  return { basemap: readonly(shown) }
 }
