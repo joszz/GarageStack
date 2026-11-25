@@ -621,6 +621,8 @@ a.card:hover {
 }
 
 .alert-card {
+  display: grid;
+  gap: 1.25rem;
   padding: clamp(1.25rem, 3vw, 2rem);
 }
 
@@ -952,6 +954,12 @@ a.card:hover {
 
   .topbar-nav a {
     padding-block: 0.5rem 0.65rem;
+  }
+
+  /* A screenshot can lead its section, but the list of notifications means nothing before
+     its heading, so it goes under the text. */
+  .feature-row > .alert-card {
+    order: 2;
   }
 
   /* The phone screenshot stays, a little larger, overlapping the right edge of the desktop one. */
