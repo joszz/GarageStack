@@ -8,6 +8,13 @@
       "label": "API (demo)",
       "type": "shell",
       "command": "dotnet run --project src/GarageStack.Api --launch-profile Demo",
+      // The API logs Microsoft.* from Warning up; this brings back the "Now listening on" line
+      // that tells the task the API is up.
+      "options": {
+        "env": {
+          "Serilog__MinimumLevel__Override__Microsoft.Hosting.Lifetime": "Information"
+        }
+      },
       "isBackground": true,
       "problemMatcher": {
         "owner": "garagestack-api",
@@ -34,7 +41,7 @@
         "background": {
           "activeBegins": true,
           "beginsPattern": ".",
-          "endsPattern": "Local:"
+          "endsPattern": "ready in"
         }
       }
     },
