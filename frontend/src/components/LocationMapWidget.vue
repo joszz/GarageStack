@@ -29,9 +29,9 @@ const mapOptions = {
 
 const mapWrapperRef = ref<HTMLElement | null>(null)
 const { mapInstance, bindMapReady, unbindMap } = useLeafletMap(mapWrapperRef)
-// A preview that cannot be panned or zoomed: raster tiles show the same streets without pulling
-// the vector renderer into the dashboard, the page most visits start on.
-useBasemap(mapInstance, { vector: false })
+// The dashboard is the page most visits start on, so its cards come first and the basemap fills
+// in once the page has loaded.
+useBasemap(mapInstance, { deferred: true })
 let routeLine: L.Polyline | null = null
 let carMarker: L.Marker | null = null
 

@@ -39,9 +39,10 @@ const parked = {
 
 let pinia: Pinia
 
-function mountSpot() {
+function mountSpot(basemap: 'vector' | 'raster' | null = 'vector') {
   const i18n = createI18n({ legacy: false, locale: 'en', messages: { en } })
   return mount(DashboardParkingSpot, {
+    props: { basemap },
     global: { plugins: [pinia, i18n], stubs: { FontAwesomeIcon: true, Teleport: true } },
   })
 }
@@ -90,13 +91,29 @@ describe('DashboardParkingSpot', () => {
   })
 
   // The map behind the cards cannot show it: its corners lie under them.
-  it("carries the map's OpenStreetMap credit, linked to its copyright page", () => {
-    const wrapper = mountSpot()
+  it("carries the vector basemap's credit, each part linked", () => {
+    const wrapper = mountSpot('vector')
 
-    const credit = wrapper.get('a.parking-spot__credit')
-    expect(credit.text()).toBe('© OpenStreetMap')
-    expect(credit.attributes('href')).toBe('https://www.openstreetmap.org/copyright')
-    expect(credit.attributes('target')).toBe('_blank')
+    const links = wrapper.findAll('.parking-spot__credit a')
+    expect(links.map((link) => link.text())).toEqual(['© OpenMapTiles', '© OpenStreetMap'])
+    expect(links.map((link) => link.attributes('href'))).toEqual([
+      'https://openmaptiles.org',
+      'https://www.openstreetmap.org/copyright',
+    ])
+    expect(links.every((link) => link.attributes('target') === '_blank')).toBe(true)
+    expect(wrapper.get('.parking-spot__credit').text()).toBe('© OpenMapTiles · © OpenStreetMap')
+  })
+
+  it('credits OpenStreetMap alone when the map is on the raster fallback', () => {
+    const wrapper = mountSpot('raster')
+
+    expect(wrapper.get('.parking-spot__credit').text()).toBe('© OpenStreetMap')
+  })
+
+  it('credits nothing before the map has a basemap', () => {
+    const wrapper = mountSpot(null)
+
+    expect(wrapper.find('.parking-spot__credit').exists()).toBe(false)
   })
 
   it('offers directions and the full map, as the location card does', async () => {

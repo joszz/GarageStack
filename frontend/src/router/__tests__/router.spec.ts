@@ -5,7 +5,6 @@ import type { RouteLocationNormalized } from 'vue-router'
 import { authApi, type MeResponse } from '@/services/authApi'
 import { settingsApi, type AccountSettings } from '@/services/settingsApi'
 import router, { preloadRouteComponents } from '@/router'
-import { RASTER_TILE_ORIGIN } from '@/utils/rasterTiles'
 
 vi.mock('@/services/authApi', () => ({
   authApi: { me: vi.fn<() => Promise<MeResponse>>() },
@@ -166,10 +165,10 @@ describe('router guard', () => {
     expect(preconnectLink('https://tiles.protected.test')).toBeNull()
   })
 
-  it("has the dashboard warm up its map card's tile server", () => {
+  it("has the dashboard warm up its map's basemap host", () => {
     const dashboard = router.getRoutes().find((route) => route.name === 'dashboard')
 
-    expect(dashboard?.meta.preconnect).toContain(RASTER_TILE_ORIGIN)
+    expect(dashboard?.meta.preconnect).toEqual(['https://tiles.openfreemap.org'])
   })
   it('sends an address no view answers to on to the dashboard', () => {
     const unknown = router.resolve('/no/such/page')

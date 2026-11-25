@@ -70,6 +70,11 @@ vi.mock('@/utils/maplibreLayer', () => ({
   },
 }))
 
+// A deferred basemap waits for this; each test releases it when it wants the page to be idle.
+let releaseIdle: () => void = () => {}
+let pageIdle: Promise<void> = Promise.resolve()
+vi.mock('@/utils/async', () => ({ whenPageIdle: () => pageIdle }))
+
 let webGl = true
 vi.mock('@/utils/basemapStyle', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/utils/basemapStyle')>()),
@@ -137,17 +142,18 @@ async function mountBasemap(
 ) {
   const { useBasemap } = await import('@/composables/useBasemap')
   const mapRef = shallowRef<LeafletMap | null>(map)
+  let basemap!: ReturnType<typeof useBasemap>['basemap']
   const wrapper = mount(
     defineComponent({
       setup() {
-        useBasemap(mapRef, options)
+        basemap = useBasemap(mapRef, options).basemap
         return () => h('div')
       },
     }),
   )
   mounted.add(wrapper)
   await flushPromises()
-  return { mapRef, wrapper }
+  return { mapRef, wrapper, basemap }
 }
 
 function unmountBasemap(wrapper: VueWrapper) {
@@ -174,6 +180,9 @@ describe('useBasemap', () => {
     setStyle.mockReset()
     fetchMock.mockClear()
     webGl = true
+    pageIdle = new Promise((resolve) => {
+      releaseIdle = resolve
+    })
     vi.stubGlobal('fetch', fetchMock)
     // Set rather than left to the defaults: a test that turned colourful maps on saves the store
     // to localStorage 300 ms later, which can land after the clear above and seed this store.
@@ -225,25 +234,67 @@ describe('useBasemap', () => {
     expect(maxZoomOf(map)).toBe(20)
   })
 
-  it('stays on raster tiles without loading the renderer when asked to', async () => {
+  it('loads a deferred basemap only once the page is idle', async () => {
     const map = fakeMap()
-    await mountBasemap(map, { vector: false })
+    await mountBasemap(map, { deferred: true })
 
-    expect(lastOfKind('raster')?.addedTo).toBe(map)
-    expect(lastOfKind('vector')).toBeUndefined()
     expect(fetchMock).not.toHaveBeenCalled()
+    expect(lastOfKind('vector')).toBeUndefined()
+    // The zoom limit is there from the start, so markers and routes can go on the map meanwhile.
+    expect(maxZoomOf(map)).toBe(20)
+
+    releaseIdle()
+    await flushPromises()
+
+    expect(fetchMock).toHaveBeenCalledWith('https://tiles.openfreemap.org/styles/dark')
+    expect(lastOfKind('vector')?.addedTo).toBe(map)
+  })
+
+  it('says which basemap is on the map, and none before one is', async () => {
+    const { basemap } = await mountBasemap(fakeMap(), { deferred: true })
+    expect(basemap.value).toBeNull()
+
+    releaseIdle()
+    await flushPromises()
+    expect(basemap.value).toBe('vector')
+
+    webGl = false
+    const { basemap: fallback } = await mountBasemap(fakeMap())
+    expect(fallback.value).toBe('raster')
+  })
+
+  it('drops a deferred basemap whose map went away while it waited', async () => {
+    const { wrapper } = await mountBasemap(fakeMap(), { deferred: true })
+    unmountBasemap(wrapper)
+
+    releaseIdle()
+    await flushPromises()
+
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(layers).toHaveLength(0)
   })
 
   // The service worker keeps these tiles for offline use, and only a CORS answer can be kept.
   it('asks for raster tiles over CORS', async () => {
-    await mountBasemap(fakeMap(), { vector: false })
+    webGl = false
+    await mountBasemap(fakeMap())
 
     expect(lastOfKind('raster')?.options.crossOrigin).toBe(true)
   })
 
+  // OpenStreetMap answers a tile request without a Referer with an "Access blocked" tile, which
+  // the dashboard showed when served through GitHub Codespaces' port forwarding.
+  it('has every raster tile name the app as its referrer', async () => {
+    webGl = false
+    await mountBasemap(fakeMap())
+
+    expect(lastOfKind('raster')?.options.referrerPolicy).toBe('strict-origin-when-cross-origin')
+  })
+
   it('marks a raster map for the stylesheet, and unmarks it when it goes', async () => {
+    webGl = false
     const map = fakeMap()
-    const { wrapper } = await mountBasemap(map, { vector: false })
+    const { wrapper } = await mountBasemap(map)
     expect(containerOf(map).dataset.rasterBasemap).toBe('dark')
 
     unmountBasemap(wrapper)
@@ -251,11 +302,12 @@ describe('useBasemap', () => {
     expect(containerOf(map).dataset.rasterBasemap).toBeUndefined()
   })
 
-  // The dashboard's card is raster and the map page is vector; both have to follow the one
-  // setting, or the card goes colourful while the map page stays themed.
+  // A map on the raster fallback follows the same setting as the vector maps, or it goes
+  // colourful while every other map stays themed.
   it('keeps a raster map marked with the current variant as the settings change', async () => {
+    webGl = false
     const map = fakeMap()
-    await mountBasemap(map, { vector: false })
+    await mountBasemap(map)
     const ui = await uiStore()
 
     ui.theme = 'light'

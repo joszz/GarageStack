@@ -54,8 +54,8 @@ const initialCenter: LatLng = [props.start[0], props.start[1]]
 
 const wrapper = ref<HTMLElement | null>(null)
 const { mapInstance, bindMapReady } = useLeafletMap(wrapper)
-// Raster tiles: the same streets without pulling the vector renderer into the trip log.
-useBasemap(mapInstance, { vector: false })
+// The trip log's list comes first; the basemap under the route fills in once the page has loaded.
+useBasemap(mapInstance, { deferred: true })
 
 // The fixes the car reported no speed for are drawn in the line colour of the map's trips.
 const NO_SPEED_COLOR = '#3b82f6'

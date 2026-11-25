@@ -3,8 +3,8 @@
 // the bundle every page loads.
 
 /**
- * What the map page and the trip routes have shown of the vector basemap, kept so their streets
- * are still there without a connection. Only what was on screen, as with the raster tiles.
+ * What the maps have shown of the vector basemap, kept so their streets are still there without
+ * a connection. Only what was on screen, as with the raster tiles.
  */
 export const BASEMAP_CACHE = 'garagestack-basemap'
 /** Some 20 to 30 MB: the style, fonts and sprites, and the tiles of the last few map views. */

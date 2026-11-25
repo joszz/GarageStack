@@ -1,7 +1,8 @@
 import { createRouter, createWebHistory, type RouteLocationNormalized } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useSettingsSyncStore } from '@/stores/settingsSync'
-import { RASTER_TILE_ORIGIN } from '@/utils/rasterTiles'
+import { BASEMAP_STYLE_URLS } from '@/utils/basemapStyleUrls'
+import { basemapOrigins } from '@/utils/vectorTiles'
 import { preconnect } from '@/utils/preconnect'
 
 declare module 'vue-router' {
@@ -14,6 +15,11 @@ declare module 'vue-router' {
     titleKey?: string
   }
 }
+
+// The hosts the basemap's style and tiles come from, which the dashboard's map fetches from.
+const BASEMAP_ORIGINS = [
+  ...basemapOrigins(Object.values(BASEMAP_STYLE_URLS), window.location.origin),
+]
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -29,7 +35,7 @@ const router = createRouter({
       name: 'dashboard',
       component: () => import('@/views/DashboardView.vue'),
       // The map card's first raster tile is the dashboard's largest paint.
-      meta: { preconnect: [RASTER_TILE_ORIGIN], titleKey: 'nav.dashboard' },
+      meta: { preconnect: BASEMAP_ORIGINS, titleKey: 'nav.dashboard' },
     },
     {
       path: '/statistics',

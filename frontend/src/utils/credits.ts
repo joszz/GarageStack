@@ -12,11 +12,10 @@ function link(href: string, text: string): string {
   return `<a href="${href}" ${LINK_ATTRS}>${text}</a>`
 }
 
-/**
- * Where OpenStreetMap's credit links to. Also for a credit drawn outside the map, such as the
- * dashboard's map behind the cards, which says it in the parking spot's bar (DashboardParkingSpot).
- */
+/** Where OpenStreetMap's credit links to. */
 export const OSM_COPYRIGHT_URL = 'https://www.openstreetmap.org/copyright'
+const OPENFREEMAP_URL = 'https://openfreemap.org'
+const OPENMAPTILES_URL = 'https://openmaptiles.org'
 
 /** OpenStreetMap itself: the raster fallback tiles, and the data under every other credit here. */
 export const OSM_ATTRIBUTION = `${link(OSM_COPYRIGHT_URL, '&copy; OpenStreetMap')} contributors`
@@ -31,8 +30,27 @@ export const VECTOR_ATTRIBUTION =
   // own name is the one you may leave out ("You do not need to display the OpenFreeMap part, but
   // it is nice if you do"). That is what makes the credits fit on one row on a phone, so it is
   // marked as the part the stylesheet drops there and nowhere else.
-  `<span class="map-credit-optional">${link('https://openfreemap.org', 'OpenFreeMap')} &middot; </span>` +
-  `${link('https://openmaptiles.org', '&copy; OpenMapTiles')} &middot; ${OSM_ATTRIBUTION}`
+  `<span class="map-credit-optional">${link(OPENFREEMAP_URL, 'OpenFreeMap')} &middot; </span>` +
+  `${link(OPENMAPTILES_URL, '&copy; OpenMapTiles')} &middot; ${OSM_ATTRIBUTION}`
+
+/** One link of a credit drawn outside the map, as a template renders it. */
+export interface CreditLink {
+  href: string
+  text: string
+}
+
+/**
+ * The basemap's credit as links, for a map whose own corners are hidden, such as the dashboard's
+ * map behind the cards, which says it in the parking spot's bar (DashboardParkingSpot). The short
+ * form: OpenFreeMap's name is the part its terms let you leave out (see VECTOR_ATTRIBUTION).
+ */
+export const BASEMAP_CREDIT_LINKS: Record<'vector' | 'raster', readonly CreditLink[]> = {
+  vector: [
+    { href: OPENMAPTILES_URL, text: '© OpenMapTiles' },
+    { href: OSM_COPYRIGHT_URL, text: '© OpenStreetMap' },
+  ],
+  raster: [{ href: OSM_COPYRIGHT_URL, text: '© OpenStreetMap' }],
+}
 
 /** Charging stations, added to the map only while that layer is on. */
 export const OCM_ATTRIBUTION = link('https://openchargemap.org', 'Open Charge Map')
