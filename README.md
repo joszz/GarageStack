@@ -767,6 +767,7 @@ For working on it:
 - [`CONTRIBUTING.md`](.github/CONTRIBUTING.md): setting up, tests, and adding a language
 - [`ARCHITECTURE.md`](documentation/ARCHITECTURE.md): how the services fit together
 - [`DEMO.md`](documentation/DEMO.md): the app on sample data, without a car, also from a script or an AI agent
+- [`DEV_CONTAINER.md`](documentation/DEV_CONTAINER.md): the ready-made development environment, in GitHub Codespaces or on your own Docker
 - [`AGENTS.md`](AGENTS.md): the settled rules, for coding agents and people alike
 - [`RELEASING.md`](documentation/RELEASING.md): versions, tags and release notes
 - [`PREVIEW_BUILDS.md`](documentation/PREVIEW_BUILDS.md): throwaway `pr-<number>` images for testing a fix on someone else's car, and how to run one
