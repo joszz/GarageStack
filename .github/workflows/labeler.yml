@@ -1,0 +1,32 @@
+name: Pull request labels
+
+# Adds the area labels in .github/labeler.yml to a pull request by the paths it changes, so a
+# contributor and the maintainer see at a glance what it touches.
+#
+# pull_request_target rather than pull_request: a fork's pull request gets a read-only token
+# under pull_request and could not be labelled. It runs this file and the label config as they
+# are on main and never checks out the pull request's code, so nothing from the fork runs with
+# that permission.
+on:
+  pull_request_target:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  label:
+    name: Label by area
+    # The labels are this repository's; a fork has none of them.
+    if: github.repository == 'joszz/GarageStack'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/labeler@bf12e9b00b37c5c0ca2b87b79b2daf7891dbda13 # v7.0.0

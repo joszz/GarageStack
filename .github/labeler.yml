@@ -1,0 +1,53 @@
+# Area labels for pull requests, by the paths they change. Used by .github/workflows/labeler.yml.
+# A pull request gets every label whose paths it touches.
+
+'area: frontend':
+  - changed-files:
+      - any-glob-to-any-file: 'frontend/**'
+
+'area: backend':
+  - changed-files:
+      - any-glob-to-any-file: 'src/**'
+
+'area: locales':
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'frontend/src/locales/**'
+          - 'src/**/Resources/*.resx'
+
+'area: docs':
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'documentation/**'
+          - '*.md'
+          - '.github/*.md'
+
+'area: ci':
+  - changed-files:
+      - any-glob-to-any-file:
+          - '.github/workflows/**'
+          - '.github/actions/**'
+          - '.github/dependabot.yml'
+          - '.github/labeler.yml'
+
+'area: docker':
+  - changed-files:
+      - any-glob-to-any-file:
+          - '**/Dockerfile'
+          - '**/.dockerignore'
+          - 'docker/**'
+          - 'docker-compose*.yml'
+          - 'mosquitto/**'
+          - 'unraid/**'
+
+'area: site':
+  - changed-files:
+      - any-glob-to-any-file: 'site/**'
+
+'area: dev setup':
+  - changed-files:
+      - any-glob-to-any-file:
+          - '.devcontainer/**'
+          - '.vscode/**'
+          - 'frontend/.vscode/**'
+          - '*.ps1'
