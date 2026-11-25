@@ -117,7 +117,7 @@ Commits follow [Conventional Commits](https://www.conventionalcommits.org/), wit
 
 A fork starts with Actions off; turn them on in its **Actions** tab. CI, CodeQL and the Trivy file scan then run on your pushes and need no setup.
 
-What only makes sense for this repository is skipped on a fork: publishing images, scanning the published images, the dependency snapshot and marking issues stale. Those runs show as skipped, not failed.
+What only makes sense for this repository is skipped on a fork: publishing images, scanning the published images, the dependency snapshot, marking issues stale and labelling pull requests. Those runs show as skipped, not failed.
 
 To publish your own images to `ghcr.io/<your name, lowercase>`, set these under **Settings > Secrets and variables > Actions** in your fork:
 

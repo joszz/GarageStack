@@ -48,6 +48,7 @@ PR opened
   CI (project rules, lint, typecheck, test, build, e2e, container-build for amd64 and arm64, infra-lint)
   CodeQL (actions, C#, JS/TS analysis)
   Security (Trivy filesystem scan)
+  Pull request labels (area labels by changed paths)
   docker-publish (only when the PR changes docker-publish.yml itself; pushes nothing)
 
 PR labelled test-build (see PREVIEW_BUILDS.md)
@@ -165,6 +166,10 @@ The `ci` workflow runs on every PR and push to `main`. All jobs must pass before
 ### Code Analysis (CodeQL)
 
 The `codeql` workflow runs alongside CI on every PR, every push to `main`, and weekly on Mondays at 07:00 UTC. It analyzes three language targets: `actions` (workflow files), `csharp` (backend), and `javascript-typescript` (frontend). Results appear in the GitHub Security tab.
+
+### Pull Request Labels
+
+The `labeler` workflow adds an `area: ...` label (frontend, backend, locales, docs, ci, docker, site, dev setup) for each part of the repository a pull request changes, by the paths in `.github/labeler.yml`. It runs on `pull_request_target`, so a fork's pull request is labelled too, and never checks out the pull request's code. It runs the copy on `main`, so a change to the label paths shows from the next pull request after it merges.
 
 ---
 
