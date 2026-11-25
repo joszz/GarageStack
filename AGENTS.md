@@ -19,7 +19,7 @@ Run demo mode: the whole app on sample data, without a car, a database or a brok
 - **TypeScript only** in the frontend, with no `any`, no `@ts-ignore` and no lint suppressions.
 - **pnpm**, never npm or yarn.
 - **.NET follows the newest major** (11 today). A new major moves by hand, all at once (target framework, packages, SDK, images, CI), once the Npgsql EF provider for it is out.
-- **Translations**: every text a user sees goes through vue-i18n. A new key goes into every file in `frontend/src/locales/` (`en`, `nl`, `es`, `pt`), or the type check fails.
+- **Translations**: every text a user sees goes through vue-i18n. A new key goes into every file in `frontend/src/locales/` (`en`, `nl`, `es`, `pt`, `pt-PT`), or the type check fails.
 - **The current time** comes from an injected `TimeProvider`, never `DateTime.UtcNow` or `DateTimeOffset.UtcNow`: `BannedSymbols.txt` fails the build on those outside the tests, entity defaults and demo data.
 - **Dates, times and units** are formatted through `utils/format.ts` and `useUnits()`, never by hand.
 - **Icons** are Font Awesome, **charts** are Chart.js.
@@ -35,5 +35,5 @@ Run demo mode: the whole app on sample data, without a car, a database or a brok
 - Add or update unit tests for what changed, backend and frontend.
 - A change to trips (anything on `ITripRepository`) is made in both `TripRepository` and `DemoTripRepository`, with shared logic in a Core helper, and gets a step in `TripRepositoryContractTests`, which fails until every repository method is covered there or exempt with a reason.
 - Backend: `dotnet test --project src/GarageStack.Tests` and `dotnet format GarageStack.slnx --verify-no-changes`. A change to the API rewrites `documentation/openapi.json` on the first test run; commit it with the change.
-- Frontend, inside `frontend/`: `pnpm test:unit --run`, `pnpm type-check`, `pnpm lint`, and `pnpm exec prettier --write` on every file touched.
+- Frontend, inside `frontend/`: `pnpm exec prettier --write` on every file touched, then `pnpm check`, which runs what CI runs: lint (with `--fix`), the type check, the format check and the unit tests.
 - Touched nginx, the Content-Security-Policy or a page's loading? Run the browser tests in `frontend/e2e` against the demo Docker stack (see CONTRIBUTING).

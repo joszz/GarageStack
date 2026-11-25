@@ -1,0 +1,25 @@
+# The dev container: the workspace, with .NET, Node and pnpm, next to a PostgreSQL for the
+# backend tests. Its own project name keeps it apart from a GarageStack stack on the same machine.
+name: garagestack-devcontainer
+
+services:
+  app:
+    image: mcr.microsoft.com/devcontainers/base:ubuntu-24.04
+    command: sleep infinity
+    volumes:
+      - ..:/workspaces/garagestack:cached
+      # Linux packages of their own, so a Windows or macOS checkout keeps the node_modules it
+      # installed on the host.
+      - node-modules:/workspaces/garagestack/frontend/node_modules
+    depends_on:
+      - db
+
+  # Only for the tests in src/GarageStack.Tests/Postgres: demo mode needs no database.
+  db:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_PASSWORD: postgres
+
+volumes:
+  node-modules:

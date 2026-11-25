@@ -1,0 +1,93 @@
+// Terminal > Run Task. "Demo" starts the API on sample data and then the frontend on
+// http://localhost:5173 (sign in with demo / demo), on any OS and in the dev container.
+// "Check" runs what CI runs before a pull request.
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "API (demo)",
+      "type": "shell",
+      "command": "dotnet run --project src/GarageStack.Api --launch-profile Demo",
+      // The API logs Microsoft.* from Warning up; this brings back the "Now listening on" line
+      // that tells the task the API is up.
+      "options": {
+        "env": {
+          "Serilog__MinimumLevel__Override__Microsoft.Hosting.Lifetime": "Information"
+        }
+      },
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "garagestack-api",
+        "pattern": { "regexp": "^__never__$" },
+        "background": {
+          "activeBegins": true,
+          "beginsPattern": ".",
+          "endsPattern": "Now listening on"
+        }
+      }
+    },
+    {
+      "label": "Frontend (demo)",
+      "type": "shell",
+      "command": "pnpm dev",
+      "options": {
+        "cwd": "${workspaceFolder}/frontend",
+        "env": { "VITE_DEMO_MODE": "true" }
+      },
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "garagestack-frontend",
+        "pattern": { "regexp": "^__never__$" },
+        "background": {
+          "activeBegins": true,
+          "beginsPattern": ".",
+          "endsPattern": "ready in"
+        }
+      }
+    },
+    {
+      // The frontend waits for the API, so the first page load does not find the port closed.
+      "label": "Demo",
+      "dependsOn": ["API (demo)", "Frontend (demo)"],
+      "dependsOrder": "sequence",
+      "problemMatcher": []
+    },
+    {
+      "label": "Check: frontend",
+      "type": "shell",
+      "command": "pnpm check",
+      "options": { "cwd": "${workspaceFolder}/frontend" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Check: backend tests",
+      "type": "shell",
+      "command": "dotnet test --project src/GarageStack.Tests",
+      "problemMatcher": []
+    },
+    {
+      "label": "Check: backend format",
+      "type": "shell",
+      "command": "dotnet format GarageStack.slnx --verify-no-changes",
+      "problemMatcher": []
+    },
+    {
+      "label": "Check",
+      "dependsOn": [
+        "Check: frontend",
+        "Check: backend tests",
+        "Check: backend format"
+      ],
+      "dependsOrder": "sequence",
+      "group": { "kind": "test", "isDefault": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "Build API",
+      "type": "shell",
+      "command": "dotnet build src/GarageStack.Api",
+      "group": "build",
+      "problemMatcher": "$msCompile"
+    }
+  ]
+}

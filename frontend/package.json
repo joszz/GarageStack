@@ -17,7 +17,9 @@
     "lint:oxlint": "oxlint . --fix",
     "lint:eslint": "eslint . --fix --cache",
     "lint:css": "stylelint \"src/**/*.{css,vue}\" --fix",
-    "format": "prettier --write --experimental-cli src/ e2e/"
+    "format": "prettier --write --experimental-cli src/ e2e/",
+    "format:check": "prettier --check --experimental-cli src/ e2e/",
+    "check": "pnpm run lint && pnpm run type-check && pnpm run format:check && vitest run"
   },
   "dependencies": {
     "@fortawesome/fontawesome-svg-core": "^7.3.1",

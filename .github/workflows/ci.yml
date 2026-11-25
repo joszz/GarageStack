@@ -107,7 +107,7 @@ jobs:
 
       - name: Format check
         working-directory: frontend
-        run: pnpm exec prettier --check src/ e2e/
+        run: pnpm run format:check
 
       # The website in site/ (published by pages.yml) is held to the frontend's own rules.
       - name: Website lint

@@ -160,6 +160,8 @@ The `ci` workflow runs on every PR and push to `main`. All jobs must pass before
 | `container-build` | Docker build (no push) for all four images, each for amd64 and for arm64 on its own runner. The amd64 jobs keep the names the ruleset requires; the arm64 jobs are named `Container build (<image>, arm64)`. Pull requests only: on `main`, `docker-publish` builds and pushes them |
 | `infra-lint` | shellcheck on every `*.sh`, hadolint on every Dockerfile (deliberate exceptions in `.hadolint.yaml` and inline `# hadolint ignore` comments), actionlint on the workflows |
 
+`pnpm check` in `frontend/` runs the three frontend jobs locally, with the same scripts, and the **Check** task in `.vscode/tasks.json` adds the backend tests and format check to it.
+
 ### Code Analysis (CodeQL)
 
 The `codeql` workflow runs alongside CI on every PR, every push to `main`, and weekly on Mondays at 07:00 UTC. It analyzes three language targets: `actions` (workflow files), `csharp` (backend), and `javascript-typescript` (frontend). Results appear in the GitHub Security tab.

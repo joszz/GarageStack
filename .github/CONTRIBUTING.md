@@ -2,11 +2,22 @@
 
 Thank you for your interest in contributing! This document explains how to get involved.
 
-See [ARCHITECTURE.md](../documentation/ARCHITECTURE.md) for how the services (Worker, Api, Mosquitto, Postgres, frontend) fit together before diving into a change that spans more than one of them.
+See [ARCHITECTURE.md](../documentation/ARCHITECTURE.md) for how the services (Worker, Api, Mosquitto, Postgres, frontend) fit together before diving into a change that spans more than one of them. [AGENTS.md](../AGENTS.md) is the short version of this page: the rules that are settled and what to run before you open a pull request.
 
 ## Getting Started
 
 Don't have a real MG vehicle or SAIC account to test against? See [DEMO.md](../documentation/DEMO.md) -- demo mode runs the full app against realistic fake data with no MG credentials, database, or MQTT broker required, and is the fastest way to get the frontend running locally.
+
+### In a dev container
+
+The quickest setup is the dev container in `.devcontainer/`: .NET 11, Node 26, the pinned pnpm and a PostgreSQL for the backend tests, with nothing to install but Docker.
+
+- **GitHub Codespaces:** on the repository page (or your fork's), **Code > Codespaces > Create codespace**.
+- **VS Code on your own machine:** with Docker and the Dev Containers extension, open the folder and pick **Reopen in Container**.
+
+The first start installs the frontend packages and restores the backend. Then **Terminal > Run Task > Demo** runs the app on sample data at port 5173 (sign in with demo / demo), and **Check** runs what CI runs. The same tasks work outside the container too, on any OS.
+
+### On your own machine
 
 To work against the full stack (real or self-provided credentials):
 
@@ -20,9 +31,9 @@ To work against the full stack (real or self-provided credentials):
 
 - Create a new branch from `main` for your change: `git checkout -b feature/my-change`.
 - Keep changes focused -- one feature or fix per pull request.
-- Run the test suite before opening a PR:
-  - Backend: `dotnet test --project src/GarageStack.Tests`
-  - Frontend: `pnpm test:unit`
+- Run what CI runs before opening a PR:
+  - Backend, from the repository root: `dotnet test --project src/GarageStack.Tests` and `dotnet format GarageStack.slnx --verify-no-changes`
+  - Frontend, inside `frontend/`: `pnpm check`. It runs the linters (with `--fix`), the type check, the format check and the unit tests. `pnpm test:unit` on its own starts the tests in watch mode.
 - The backend tests in `src/GarageStack.Tests/Postgres` run against a real PostgreSQL, for what the in-memory database cannot show (indexes, concurrency tokens, bulk updates, the SQL a query becomes). Without one they are skipped; CI always runs them. To run them, start a server and say where it is:
 
   ```bash
@@ -45,15 +56,20 @@ To work against the full stack (real or self-provided credentials):
   docker compose --env-file .env.demo -f docker-compose.demo.yml down             # when you are done
   ```
 
-- Make sure linting and formatting pass:
+- To fix what the checks find:
   - Backend: `dotnet build` (analyzers run as part of the build, warnings are errors) and `dotnet format GarageStack.slnx`
   - Frontend: `pnpm lint` (oxlint, ESLint and Stylelint, each with `--fix`) and `pnpm format`
+- A few rules hold everywhere, and CI checks most of them. The full list is in [AGENTS.md](../AGENTS.md#rules-that-are-settled):
+  - No em dashes, in code, comments, documentation or translations. Use a comma, colon, semicolon or full stop.
+  - Every text a user sees goes through vue-i18n, and a new key goes into every file in `frontend/src/locales/`.
+  - A new field or feature gets demo data in `src/GarageStack.Data/Demo/`, or nobody without a car ever sees it.
+  - Test data never holds a real VIN or licence plate. Use synthetic ones such as `FAKEVN00000000001`.
 - Changed an EF Core entity? Add a migration from the repository root (no Api configuration needed). `dotnet tool restore` installs the pinned `dotnet-ef` first:
   `dotnet ef migrations add <Name> --project src/GarageStack.Data --startup-project src/GarageStack.Data`
 
 ## Adding a language
 
-GarageStack ships in English, Dutch, Spanish and Brazilian Portuguese. A new language touches these places (use its two-letter code, here `de`):
+GarageStack ships in English, Dutch, Spanish, Brazilian Portuguese (`pt`) and European Portuguese (`pt-PT`). A new language touches these places (use its code, here `de`):
 
 - **Interface:** copy `frontend/src/locales/en.json` to `de.json` and translate the values; keys and `{placeholders}` stay as they are. English is the fallback for any key a language lacks.
 - **Language list:** add `'de'` to the `Locale` type in `frontend/src/stores/settingsShared.ts` (and to its browser-language guess just below it), a loader to `loadMessages` in `frontend/src/i18n.ts` (each language is a chunk fetched when first chosen), and its number and date locale in `frontend/src/utils/format.ts`.
@@ -62,7 +78,7 @@ GarageStack ships in English, Dutch, Spanish and Brazilian Portuguese. A new lan
 - **Homepage widget and API:** copy `src/GarageStack.Api/Resources/WidgetStrings.resx` to `WidgetStrings.de.resx`, and add the culture to `SupportedCultures` and `SupportedUICultures` in `src/GarageStack.Api/Program.cs`.
 - **Place names:** add the code to `GeocodeDefaults.SupportedLanguages` in `src/GarageStack.Core/Configuration` so addresses come back in that language.
 
-`en.json` and `nl.json` hold the same keys; keep that true for the new file, since a missing key falls back to English silently.
+Every file in `frontend/src/locales/` holds the same keys, and `pnpm type-check` fails when one lacks a key that `en.json` has. Keep that true for the new file.
 
 ## The website
 
