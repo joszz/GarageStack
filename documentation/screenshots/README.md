@@ -54,7 +54,7 @@ The main pages of GarageStack, on a desktop and on a phone. They were taken in [
 
 ### Charge history
 
-![The charge history: totals for the sessions, the battery energy gained and the time spent charging over the last 90 days, above a list of AC and DC sessions with their charge levels, peak power and energy, the newest one opened on its charging power curve, the distance and energy used since the charge before, and where it charged](desktop-charge-history.webp)
+![The charge history: totals for the sessions, the battery energy gained and the time spent charging over the last 90 days, above a compact list of sessions with their times, duration, charge levels, peak power and energy, and beside it the selected session's details with where it charged on a map and its figures](desktop-charge-history.webp)
 
 ### Maintenance
 
