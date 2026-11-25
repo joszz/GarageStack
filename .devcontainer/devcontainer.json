@@ -1,0 +1,46 @@
+// Opens the repository with everything a change needs: run the demo with the "Demo" task
+// (Terminal > Run Task) and the checks with "Check". See .github/CONTRIBUTING.md.
+{
+  "name": "GarageStack",
+  "dockerComposeFile": "compose.yml",
+  "service": "app",
+  "workspaceFolder": "/workspaces/garagestack",
+  "features": {
+    "ghcr.io/devcontainers/features/dotnet:2": {
+      "version": "11.0"
+    },
+    // pnpmVersion follows "packageManager" in frontend/package.json.
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "26",
+      "pnpmVersion": "12.21.0"
+    }
+  },
+  "containerEnv": {
+    // The backend tests in src/GarageStack.Tests/Postgres run against the db service.
+    "GARAGESTACK_TEST_POSTGRES": "Host=db;Username=postgres;Password=postgres",
+    // Codespaces serves the forwarded Vite port on <name>-5173.app.github.dev.
+    "__VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS": ".app.github.dev"
+  },
+  "forwardPorts": [5173, 5000],
+  "portsAttributes": {
+    "5173": { "label": "Frontend", "onAutoForward": "openBrowser" },
+    "5000": { "label": "API", "onAutoForward": "silent" }
+  },
+  // The node_modules volume starts out owned by root.
+  "postCreateCommand": "sudo chown vscode frontend/node_modules && cd frontend && pnpm install --frozen-lockfile && cd .. && dotnet tool restore && dotnet restore",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-dotnettools.csdevkit",
+        "Vue.volar",
+        "dbaeumer.vscode-eslint",
+        "oxc.oxc-vscode",
+        "stylelint.vscode-stylelint",
+        "esbenp.prettier-vscode",
+        "EditorConfig.EditorConfig",
+        "vitest.explorer",
+        "ms-playwright.playwright"
+      ]
+    }
+  }
+}

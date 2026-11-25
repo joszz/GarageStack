@@ -8,6 +8,17 @@ See [ARCHITECTURE.md](../documentation/ARCHITECTURE.md) for how the services (Wo
 
 Don't have a real MG vehicle or SAIC account to test against? See [DEMO.md](../documentation/DEMO.md) -- demo mode runs the full app against realistic fake data with no MG credentials, database, or MQTT broker required, and is the fastest way to get the frontend running locally.
 
+### In a dev container
+
+The quickest setup is the dev container in `.devcontainer/`: .NET 11, Node 26, the pinned pnpm and a PostgreSQL for the backend tests, with nothing to install but Docker.
+
+- **GitHub Codespaces:** on the repository page (or your fork's), **Code > Codespaces > Create codespace**.
+- **VS Code on your own machine:** with Docker and the Dev Containers extension, open the folder and pick **Reopen in Container**.
+
+The first start installs the frontend packages and restores the backend. Then **Terminal > Run Task > Demo** runs the app on sample data at port 5173 (sign in with demo / demo), and **Check** runs what CI runs. The same tasks work outside the container too, on any OS.
+
+### On your own machine
+
 To work against the full stack (real or self-provided credentials):
 
 1. Fork the repository and clone it locally.

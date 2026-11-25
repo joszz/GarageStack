@@ -35,6 +35,10 @@ Opens Windows Terminal with three panes: a menu on the left, and the API above t
 
 The script auto-creates `frontend/.env.development.local` and `.env.demo` from their example files on first run. It starts the API with the settings in `.env.demo`, the same file the Docker stack reads, so the second car, the RDW card or other credentials are set in one place for both. Only the ports and the CORS origin there are the Docker stack's: the script always uses :5000 for the API and :5173 for the frontend. A change to `.env.demo` takes effect when the API starts again.
 
+### Any OS: VS Code task
+
+Open the repository folder in VS Code (or in its dev container, see [CONTRIBUTING.md](../.github/CONTRIBUTING.md#getting-started)) and run the **Demo** task from **Terminal > Run Task**. It starts the API with the `Demo` launch profile, waits until it listens, then starts the frontend with `VITE_DEMO_MODE=true`, so no `.env.development.local` is needed. Open [http://localhost:5173](http://localhost:5173) and log in with **demo / demo**. The **API (demo)** entry under **Run and Debug** debugs the API instead; start the **Frontend (demo)** task next to it.
+
 ### Manual start
 
 **Backend:**

@@ -1,0 +1,14 @@
+{
+  "recommendations": [
+    "ms-dotnettools.csdevkit",
+    "Vue.volar",
+    "dbaeumer.vscode-eslint",
+    "oxc.oxc-vscode",
+    "stylelint.vscode-stylelint",
+    "esbenp.prettier-vscode",
+    "EditorConfig.EditorConfig",
+    "vitest.explorer",
+    "ms-playwright.playwright",
+    "ms-vscode-remote.remote-containers"
+  ]
+}

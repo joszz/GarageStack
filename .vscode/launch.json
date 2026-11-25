@@ -1,0 +1,17 @@
+// Run and Debug. "API (demo)" debugs the API on sample data; start the "Frontend (demo)" task
+// next to it for the interface on http://localhost:5173.
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "API (demo)",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "Build API",
+      "program": "${workspaceFolder}/src/GarageStack.Api/bin/Debug/net11.0/GarageStack.Api.dll",
+      "cwd": "${workspaceFolder}/src/GarageStack.Api",
+      "launchSettingsProfile": "Demo",
+      "console": "integratedTerminal"
+    }
+  ]
+}
