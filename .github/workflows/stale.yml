@@ -24,6 +24,9 @@ jobs:
         with:
           days-before-stale: 60
           days-before-close: 14
+          # A pull request often waits on review rather than on its author, so it is only ever
+          # marked stale, never closed.
+          days-before-pr-close: -1
           stale-issue-label: stale
           stale-pr-label: stale
           stale-issue-message: >
@@ -31,14 +34,13 @@ jobs:
             had recent activity. It will be closed in 14 days if no further
             activity occurs. Feel free to re-open it if it is still relevant.
           stale-pr-message: >
-            This pull request has been automatically marked as stale because it
-            has not had recent activity. It will be closed in 14 days if no
-            further activity occurs.
+            This pull request has had no activity for 60 days, so it is marked
+            stale. It will not be closed. If it is still on your mind, a comment
+            on where it stands, or a push that brings it up to date with main,
+            helps it along.
           close-issue-message: >
             This issue was closed automatically due to inactivity. Please
             re-open if it is still relevant.
-          close-pr-message: >
-            This pull request was closed automatically due to inactivity.
           exempt-issue-labels: 'pinned,security,bug,enhancement'
           exempt-pr-labels: 'pinned,security,do-not-merge'
           exempt-all-milestones: true
