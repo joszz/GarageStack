@@ -74,6 +74,12 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
         lock (_lock) { return Task.FromResult(Current(vehicleId).OdometerKm); }
     }
 
+    // Only the Worker's 12V alert asks, and demo mode runs no Worker.
+    public Task<double?> GetBatteryVoltageAtAsync(int vehicleId, DateTime at, CancellationToken ct = default)
+    {
+        lock (_lock) { return Task.FromResult(Current(vehicleId).BatteryVoltage); }
+    }
+
     // Only the Worker's recorder reads a trip's counter, and demo mode runs no Worker: DemoTrips
     // carries what each trip used.
     public Task<IReadOnlyList<double>> GetDayCounterReadingsAsync(

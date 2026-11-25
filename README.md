@@ -382,7 +382,7 @@ GarageStack checks your vehicle's state every 5 minutes and sends both a browser
 | Possible slow puncture | One tyre lost `TYRE_PRESSURE_DROP_BAR` (default 0.15 bar) or more that the other three kept, over the last two weeks. Comparing the tyres with each other leaves out the weather, which moves all four together. Sent at most once every three days; tap a tyre on the dashboard's diagram for its history |
 | Low EV battery | EV state-of-charge below `LOW_EV_PERCENT` (default 20 %, plug-in vehicles) |
 | Low fuel | Fuel level below `LOW_FUEL_PERCENT` (default 15 %, hybrids and plug-in hybrids) |
-| Low 12V battery | 12V battery below `AUX_BATTERY_LOW_VOLT` (default 12.0 V) on several polls in a row while the engine is off |
+| Low 12V battery | 12V battery below `AUX_BATTERY_LOW_VOLT` (default 12.0 V) on several polls in a row while the engine is off. Sent once per parking, and again only when the voltage has dropped another 0.3 V since the last warning |
 | No data from the car | Nothing reported for `STALE_DATA_HOURS` (default 48 hours): the MG session, the gateway or the car's connection needs a look |
 | MG sign-in failed | The gateway could not sign in to the MG account, so no new data arrives (sent once per outage, as it happens) |
 | Car left unlocked | `doors/locked = false` while engine is off |

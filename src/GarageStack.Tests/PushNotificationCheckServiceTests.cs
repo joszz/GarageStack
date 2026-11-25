@@ -598,6 +598,131 @@ public class PushNotificationCheckServiceTests
         Assert.Equal("low-12v", Assert.Single(alerts).Item1);
     }
 
+    [Theory]
+    [InlineData(11.6, 11.9, true)]
+    [InlineData(11.7, 12.0, true)]
+    [InlineData(11.7, 11.9, false)]
+    [InlineData(11.9, 11.9, false)]
+    [InlineData(12.1, 11.9, false)]
+    [InlineData(11.0, null, false)]
+    public void HasDroppedFurther_CountsADropOfAtLeastThreeTenths(double voltage, double? warnedAbout, bool expected)
+    {
+        Assert.Equal(expected, PushNotificationCheckService.HasDroppedFurther(voltage, warnedAbout));
+    }
+
+    // ---------------------------------------------------------------------------
+    // CheckParkedAsync and the 12V battery: once per parking, again when it drops further
+    // ---------------------------------------------------------------------------
+
+    // A car that parked at parkedAt with its 12V battery at the given voltages, one poll each,
+    // two and a half minutes apart.
+    private static async Task<Vehicle> ParkedWithVoltagesAsync(
+        AppDbContext db, DateTime parkedAt, CancellationToken ct, params (TimeSpan After, double Volts)[] polls)
+    {
+        var vehicle = new Vehicle { Vin = "FAKEVN00000000001", LastParkedAt = parkedAt };
+        db.Vehicles.Add(vehicle);
+        await db.SaveChangesAsync(ct);
+
+        db.TelemetrySnapshots.AddRange(polls.Select(p => new TelemetrySnapshot
+        {
+            VehicleId = vehicle.Id,
+            RecordedAt = parkedAt + p.After,
+            LastVehicleStateAt = parkedAt + p.After,
+            IsLocked = true,
+            EngineRunning = false,
+            BatteryVoltage = p.Volts,
+        }));
+        await db.SaveChangesAsync(ct);
+        return vehicle;
+    }
+
+    private static (TimeSpan, double)[] PollsFrom(TimeSpan start, double volts) =>
+        [.. Enumerable.Range(0, 4).Select(i => (start + TimeSpan.FromSeconds(150 * i), volts))];
+
+    private static void AddLow12VSentAt(AppDbContext db, Vehicle vehicle, DateTime at) =>
+        db.AppNotifications.Add(new AppNotification
+        {
+            Title = "Weak 12V battery",
+            Category = NotificationCategories.Low12V,
+            VehicleId = vehicle.Id,
+            CreatedAt = at,
+        });
+
+    private static Task CheckParkedAsync(FakePushSender push, Vehicle vehicle, AppDbContext db, DateTime now, CancellationToken ct) =>
+        CreateService(push: push).CheckParkedAsync(
+            vehicle, Parked(), new TelemetryRepository(db), new VehicleRepository(db), new NotificationRepository(db), now, ct);
+
+    [Fact]
+    public async Task CheckParkedAsync_Low12V_SendsTheAlert()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var now = DateTime.UtcNow;
+        await using var db = CreateDb();
+        var vehicle = await ParkedWithVoltagesAsync(db, now.AddHours(-1), ct, PollsFrom(TimeSpan.Zero, 11.9));
+        var push = new FakePushSender();
+
+        await CheckParkedAsync(push, vehicle, db, now, ct);
+
+        Assert.Equal(NotificationCategories.Low12V, Assert.Single(push.Sent).Category);
+    }
+
+    // The cold-weather case: woken now and then, the car is still as low as when it was warned
+    // about hours ago. The cooldown has run out, but there is nothing new to report.
+    [Fact]
+    public async Task CheckParkedAsync_Low12VAlreadyWarnedThisParkingAndNoLower_SendsNothing()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var now = DateTime.UtcNow;
+        var parkedAt = now.AddHours(-8);
+        await using var db = CreateDb();
+        var vehicle = await ParkedWithVoltagesAsync(
+            db, parkedAt, ct, [.. PollsFrom(TimeSpan.Zero, 11.9), .. PollsFrom(TimeSpan.FromHours(7), 11.8)]);
+        AddLow12VSentAt(db, vehicle, parkedAt.AddMinutes(15));
+        await db.SaveChangesAsync(ct);
+        var push = new FakePushSender();
+
+        await CheckParkedAsync(push, vehicle, db, now, ct);
+
+        Assert.Empty(push.Sent);
+    }
+
+    [Fact]
+    public async Task CheckParkedAsync_Low12VDroppedFurtherSinceTheWarning_SendsAgain()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var now = DateTime.UtcNow;
+        var parkedAt = now.AddHours(-8);
+        await using var db = CreateDb();
+        var vehicle = await ParkedWithVoltagesAsync(
+            db, parkedAt, ct, [.. PollsFrom(TimeSpan.Zero, 11.9), .. PollsFrom(TimeSpan.FromHours(7), 11.6)]);
+        AddLow12VSentAt(db, vehicle, parkedAt.AddMinutes(15));
+        await db.SaveChangesAsync(ct);
+        var push = new FakePushSender();
+
+        await CheckParkedAsync(push, vehicle, db, now, ct);
+
+        Assert.Equal(NotificationCategories.Low12V, Assert.Single(push.Sent).Category);
+    }
+
+    // A warning from before the car last parked belongs to another parking: a drive in between
+    // should have charged the battery, so still being low is news.
+    [Fact]
+    public async Task CheckParkedAsync_Low12VWarnedOnlyInAnEarlierParking_SendsTheAlert()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var now = DateTime.UtcNow;
+        var parkedAt = now.AddHours(-1);
+        await using var db = CreateDb();
+        var vehicle = await ParkedWithVoltagesAsync(db, parkedAt, ct, PollsFrom(TimeSpan.Zero, 11.9));
+        AddLow12VSentAt(db, vehicle, parkedAt.AddHours(-5));
+        await db.SaveChangesAsync(ct);
+        var push = new FakePushSender();
+
+        await CheckParkedAsync(push, vehicle, db, now, ct);
+
+        Assert.Equal(NotificationCategories.Low12V, Assert.Single(push.Sent).Category);
+    }
+
     // ---------------------------------------------------------------------------
     // CheckLevelsAsync: one alert per report, however long the car sleeps
     // ---------------------------------------------------------------------------

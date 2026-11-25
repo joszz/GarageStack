@@ -115,6 +115,29 @@ public class TelemetryRepositoryTests
     }
 
     [Fact]
+    public async Task GetBatteryVoltageAt_IsTheCarsLastVoltageAtOrBeforeTheTime()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var db = CreateDb();
+        var vehicle = new Vehicle { Vin = "FAKEVN00000000001" };
+        db.Vehicles.Add(vehicle);
+        await db.SaveChangesAsync(ct);
+
+        var t0 = new DateTime(2026, 1, 1, 10, 0, 0, DateTimeKind.Utc);
+        var repo = new TelemetryRepository(db);
+        db.TelemetrySnapshots.AddRange(
+            new TelemetrySnapshot { VehicleId = vehicle.Id, RecordedAt = t0, BatteryVoltage = 12.4 },
+            new TelemetrySnapshot { VehicleId = vehicle.Id, RecordedAt = t0.AddMinutes(1), OdometerKm = 100 },
+            new TelemetrySnapshot { VehicleId = vehicle.Id, RecordedAt = t0.AddMinutes(5), BatteryVoltage = 11.9 },
+            new TelemetrySnapshot { VehicleId = vehicle.Id + 1, RecordedAt = t0.AddMinutes(2), BatteryVoltage = 10.5 });
+        await db.SaveChangesAsync(ct);
+
+        Assert.Null(await repo.GetBatteryVoltageAtAsync(vehicle.Id, t0.AddMinutes(-1), ct));
+        Assert.Equal(12.4, await repo.GetBatteryVoltageAtAsync(vehicle.Id, t0.AddMinutes(3), ct));
+        Assert.Equal(11.9, await repo.GetBatteryVoltageAtAsync(vehicle.Id, t0.AddMinutes(5), ct));
+    }
+
+    [Fact]
     public async Task GetChargeSessions_ReconstructsCompletedAndOngoingSessionsFromTransitions()
     {
         var ct = TestContext.Current.CancellationToken;

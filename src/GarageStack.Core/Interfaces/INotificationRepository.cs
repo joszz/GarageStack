@@ -34,4 +34,10 @@ public interface INotificationRepository
     /// restart or another service's alert still holds back a repeat.
     /// </summary>
     Task<bool> WasSentSinceAsync(string category, int? vehicleId, DateTime cutoff, CancellationToken ct = default);
+
+    /// <summary>
+    /// When the newest notification of <paramref name="category"/> about <paramref name="vehicleId"/>
+    /// created after <paramref name="cutoff"/> went out, deleted ones included, or null when none did.
+    /// </summary>
+    Task<DateTime?> GetLastSentAtAsync(string category, int? vehicleId, DateTime cutoff, CancellationToken ct = default);
 }

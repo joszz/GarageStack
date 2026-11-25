@@ -81,4 +81,9 @@ public class NotificationRepository(AppDbContext db) : INotificationRepository
 
     public Task<bool> WasSentSinceAsync(string category, int? vehicleId, DateTime cutoff, CancellationToken ct = default) =>
         db.AppNotifications.AnyAsync(n => n.Category == category && n.VehicleId == vehicleId && n.CreatedAt > cutoff, ct);
+
+    public Task<DateTime?> GetLastSentAtAsync(string category, int? vehicleId, DateTime cutoff, CancellationToken ct = default) =>
+        db.AppNotifications
+            .Where(n => n.Category == category && n.VehicleId == vehicleId && n.CreatedAt > cutoff)
+            .MaxAsync(n => (DateTime?)n.CreatedAt, ct);
 }

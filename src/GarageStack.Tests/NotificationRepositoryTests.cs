@@ -53,6 +53,27 @@ public class NotificationRepositoryTests
     }
 
     [Fact]
+    public async Task GetLastSentAtAsync_IsTheNewestMatchAfterTheCutoff()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var db = CreateDb();
+        var t0 = new DateTime(2026, 11, 25, 8, 0, 0, DateTimeKind.Utc);
+        AppNotification Sent(string category, int vehicleId, DateTime at) =>
+            new() { Category = category, VehicleId = vehicleId, CreatedAt = at, Title = "12V", Body = "..." };
+        db.AppNotifications.AddRange(
+            Sent("low-12v", 1, t0.AddHours(-2)),
+            Sent("low-12v", 1, t0.AddHours(1)),
+            Sent("low-12v", 1, t0.AddHours(3)),
+            Sent("low-12v", 2, t0.AddHours(4)),
+            Sent("low-tyre", 1, t0.AddHours(5)));
+        await db.SaveChangesAsync(ct);
+        var repo = new NotificationRepository(db);
+
+        Assert.Equal(t0.AddHours(3), await repo.GetLastSentAtAsync("low-12v", 1, t0, ct));
+        Assert.Null(await repo.GetLastSentAtAsync("low-12v", 1, t0.AddHours(3), ct));
+    }
+
+    [Fact]
     public async Task WasSentSinceAsync_DifferentVehicle_ReturnsFalse()
     {
         var ct = TestContext.Current.CancellationToken;
