@@ -1019,8 +1019,8 @@ body,
     padding-inline: 0.65rem;
   }
 
-  /* The heading has gone up to the top bar, so the row keeps the caption, the info button and the
-     actions, all on one middle. */
+  /* The heading and its info button have gone up to the top bar, so the row keeps the caption and
+     the actions, on one middle. */
   .view-header {
     align-items: center;
   }
@@ -1029,14 +1029,9 @@ body,
     margin: 0;
   }
 
-  .view-header__info {
-    width: var(--touch-target);
-    height: var(--touch-target);
-  }
-
-  /* First in its row, its icon starts on the cards' left edge. */
-  .view-header__info:first-child {
-    margin-left: calc((1rem - var(--touch-target)) / 2);
+  /* With no caption and no actions left, the row would be an empty band above the first card. */
+  .view-header:not(:has(.view-header__caption, .view-header__actions > *)) {
+    display: none;
   }
 
   .sidebar-meta .app-footer__meta {
