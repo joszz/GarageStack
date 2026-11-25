@@ -1,3 +1,6 @@
+/* The list, its rows and the detail beside it are laid out by listDetail.css; these are what a
+   charge session adds to them. */
+
 /* ── Totals ───────────────────────────────────────────────── */
 
 .charge-history-totals {
@@ -6,135 +9,9 @@
 
 /* ── Sessions ─────────────────────────────────────────────── */
 
-/* A container, so a row lays itself out by the room it has, as the trip log's rows do. */
-.charge-history-list {
-  container-type: inline-size;
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.charge-history-item {
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  background: var(--color-surface);
-  box-shadow: var(--shadow-card);
-}
-
-/* The whole row opens the session: the kind of charge down the left, when on the first line, the
-   readings on the second, and the energy and chevron down the right, centred on both lines. */
-.charge-history-item__toggle {
-  display: grid;
-  grid-template-areas:
-    'icon when energy chevron'
-    'icon readings energy chevron';
-  grid-template-columns: auto minmax(0, 1fr) auto auto;
-  gap: 0.2rem 0.75rem;
-  align-items: center;
-  width: 100%;
-  padding: 0.6rem 0.9rem;
-  border: 0;
-  border-radius: inherit;
-  background: none;
-  color: inherit;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-
-.charge-history-item__toggle:hover {
-  background: var(--color-surface-2);
-}
-
-.charge-history-item__toggle:focus-visible {
-  outline: var(--focus-ring);
-  outline-offset: -2px;
-}
-
-/* Opened, the row's lower corners square off onto the detail beneath it. */
-.charge-history-item--expanded .charge-history-item__toggle {
-  border-bottom-left-radius: 0;
-  border-bottom-right-radius: 0;
-}
-
-/* A badge with only its icon, square, as the trip log's purpose icon. */
-.charge-history-item__icon.badge {
-  grid-area: icon;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2rem;
-  height: 2rem;
-  padding: 0;
-  border-radius: 6px;
-  font-size: 0.85rem;
-}
-
-/* One line whatever the width, so a row stays two lines tall: the end time gives way first. */
-.charge-history-item__when {
-  grid-area: when;
-  display: flex;
-  align-items: baseline;
-  gap: 0.45rem;
-  min-width: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-}
-
-.charge-history-item__date {
-  flex: none;
-  font-weight: 600;
-}
-
-.charge-history-item__time {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* The duration and the kind of charge, as the trip log's duration. */
-.charge-history-item__pill {
-  flex: none;
-  padding: 0 0.35rem;
-  border-radius: 4px;
-  background: var(--color-surface-2);
-  color: var(--color-text-muted);
-}
-
-.charge-history-item__status--active {
-  background: color-mix(in srgb, var(--color-success) 16%, var(--color-surface));
-  color: var(--color-success-text);
-  font-weight: 600;
-}
-
-.charge-history-item__type {
-  font-weight: 600;
-}
-
-.charge-history-item__type--dc {
-  background: color-mix(in srgb, var(--color-info) 16%, var(--color-surface));
-  color: var(--color-info-text);
-}
-
-.charge-history-item__energy {
-  grid-area: energy;
-  font-weight: 600;
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-}
-
+/* How far it charged and how fast, on the row's second line. */
 .charge-history-item__readings {
-  grid-area: readings;
-  display: flex;
-  align-items: center;
   gap: 1rem;
-  min-width: 0;
-  overflow: hidden;
-  white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
 
@@ -149,79 +26,26 @@
   color: var(--color-text-muted);
 }
 
-.charge-history-item__chevron {
-  grid-area: chevron;
-  justify-self: end;
-  font-size: 0.8rem;
-  color: var(--color-text-muted);
-  transition: transform 0.15s;
-}
-
-.charge-history-item--expanded .charge-history-item__chevron {
-  transform: rotate(180deg);
-}
-
-/* On a phone the first line has room for the start time only, the second for two readings, and
-   the icon alone tells AC from DC. */
 @container (width < 26rem) {
-  .charge-history-item__end-time,
-  .charge-history-item__type,
-  .charge-history-item__odometer {
-    display: none;
-  }
-
   .charge-history-item__readings {
     gap: 0.75rem;
   }
 }
 
-/* ── Opened session: the figures since the last charge, the power curve and the map ── */
-
-.charge-history-detail {
-  display: grid;
-  grid-template-columns: minmax(11rem, 14rem) minmax(0, 1fr) minmax(16rem, 24rem);
-  gap: 1rem 1.5rem;
-  padding: 1rem 0.9rem 0.9rem;
-  border-top: 1px solid var(--color-border);
+/* On a 320 px phone the charge levels alone: the detail has the power. */
+@container (width < 20rem) {
+  .charge-history-item__power {
+    display: none;
+  }
 }
 
-.charge-history-detail__metrics {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  align-content: start;
-  gap: 0.75rem 1rem;
-  margin: 0;
-}
+/* ── The session in detail ────────────────────────────────── */
 
-.charge-history-detail__metrics dt {
-  margin-bottom: 0.15rem;
-  color: var(--color-text-muted);
-  font-size: 0.8rem;
-}
-
-.charge-history-detail__metrics dd {
-  margin: 0;
-  font-weight: 500;
-  font-variant-numeric: tabular-nums;
-}
-
-/* The session is the card, so its chart sits in it without a second frame. */
-.charge-history-detail__chart-card.chart-container {
-  padding: 0;
-  border: 0;
-  background: none;
-  box-shadow: none;
-}
-
-/* A fixed height: the curve is one line, and by aspect ratio a wide screen made it 500 px tall. */
-.charge-history-detail__chart-card .chart-container__plot {
-  height: 13rem;
-}
-
+/* Where it charged, as tall as a trip's route. */
 .charge-history-map {
   position: relative;
   width: 100%;
-  min-height: 180px;
+  height: 220px;
   overflow: hidden;
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
@@ -233,32 +57,18 @@
   inset: 0;
 }
 
+/* Without a location only a line says so, rather than an empty map's height. */
 .charge-history-map--empty {
   display: grid;
   place-items: center;
+  height: auto;
   padding: 1rem;
   color: var(--color-text-muted);
   text-align: center;
 }
 
-@media (width <= 1023px) {
-  .charge-history-detail {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  /* Above the chart the figures share a row. */
-  .charge-history-detail__metrics {
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr));
-  }
-}
-
-@media (width <= 767px) {
-  /* Two figures to a row on a 390 px phone, where 10rem columns miss by a hair. */
-  .charge-history-detail__metrics {
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 8rem), 1fr));
-  }
-
-  .charge-history-detail {
-    gap: 0.75rem;
+@media (width >= 768px) and (width < 1024px) {
+  .charge-history-map:not(.charge-history-map--empty) {
+    height: 260px;
   }
 }

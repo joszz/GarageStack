@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import '@/assets/listDetail.css'
 import '@/assets/tripLog.css'
 import { computed, onMounted, onUnmounted, ref, useId, useTemplateRef, watch } from 'vue'
 import { storeToRefs } from 'pinia'
@@ -27,10 +28,9 @@ import {
   PURPOSE_KEYS,
   type TripLogPeriod,
 } from '@/utils/tripLog'
-import { WIDE_MEDIA_QUERY } from '@/utils/viewport'
 import { useUnits } from '@/composables/useUnits'
 import { useErrorMessage } from '@/composables/useErrorMessage'
-import { useMediaQuery } from '@/composables/useMediaQuery'
+import { useListDetail } from '@/composables/useListDetail'
 import { useTripRoute } from '@/composables/useTripRoute'
 import { useTripElevation } from '@/composables/useTripElevation'
 import { useRoomBelow } from '@/composables/useRoomBelow'
@@ -113,17 +113,18 @@ const summaryOpen = ref(false)
 // ── The trip shown in detail ──────────────────────────────
 
 // Beside the list on a desktop, where a trip is always shown: the newest until another is
-// picked. In a dialog on a narrower one, once a trip is picked.
-const wide = useMediaQuery(WIDE_MEDIA_QUERY)
-const pickedId = ref<number | null>(null)
-
-// Looked up among all trips, hidden ones too: a trip just hidden stays in view to show again.
-const selected = computed(() => {
-  const picked =
-    pickedId.value === null ? undefined : store.entries.find((e) => e.id === pickedId.value)
-  if (picked) return picked
-  return wide.value ? (newestFirst.value[0] ?? null) : null
-})
+// picked. In a dialog on a narrower one, once a trip is picked. Looked up among all trips,
+// hidden ones too: a trip just hidden stays in view to show again.
+const {
+  wide,
+  selected,
+  inDialog: detailInModal,
+  pick: pickTrip,
+  clear: closeDetail,
+} = useListDetail(
+  (id: number) => store.entries.find((e) => e.id === id),
+  () => newestFirst.value[0],
+)
 
 const route = useTripRoute(vin, selected)
 const elevation = useTripElevation(vin, selected)
@@ -131,11 +132,6 @@ const elevation = useTripElevation(vin, selected)
 // The panel starts below the totals, so it is kept from reaching past the bottom of the window
 // until the page scrolls it up; what does not fit scrolls inside it.
 useRoomBelow(useTemplateRef<HTMLElement>('detailPanel'))
-const detailInModal = computed(() => !wide.value && selected.value !== null)
-
-function closeDetail() {
-  pickedId.value = null
-}
 
 // What the detail shows and does, the same beside the list and in the dialog.
 const detail = computed(() => {
@@ -181,7 +177,7 @@ async function load() {
 
 // Another period or car shows other trips: the newest of those, not one picked before.
 function reload() {
-  pickedId.value = null
+  closeDetail()
   void load()
 }
 
@@ -378,8 +374,8 @@ function classifyAll(purpose: TripPurpose) {
     <div v-else-if="!store.loading && listed.length === 0" class="empty-state">
       {{ t('tripLog.empty') }}
     </div>
-    <div v-else class="trip-log-layout">
-      <ul class="trip-log-list">
+    <div v-else class="list-detail">
+      <ul class="list-detail__list">
         <TripLogItem
           v-for="entry in newestFirst"
           :key="entry.id"
@@ -389,14 +385,14 @@ function classifyAll(purpose: TripPurpose) {
           :saving="store.saving.has(entry.id)"
           :commute-places="commutePlaces.places"
           :selected="selected?.id === entry.id"
-          @select="pickedId = entry.id"
+          @select="pickTrip(entry.id)"
         />
       </ul>
 
       <aside
         v-if="wide && detail"
         ref="detailPanel"
-        class="trip-log-layout__detail"
+        class="list-detail__panel"
         :aria-label="t('tripLog.detail.title')"
       >
         <TripLogDetail v-bind="detail.props" v-on="detail.on" />

@@ -65,22 +65,17 @@ const purposeTitle = computed(() => {
 
 <template>
   <li
-    class="trip-log-item"
+    class="list-row trip-log-item"
     :class="{
       'trip-log-item--saving': saving,
       'trip-log-item--hidden': entry.isHidden,
-      'trip-log-item--selected': selected,
+      'list-row--selected': selected,
     }"
   >
-    <button
-      type="button"
-      class="trip-log-item__select"
-      :aria-pressed="selected"
-      @click="emit('select')"
-    >
+    <button type="button" class="list-row__select" :aria-pressed="selected" @click="emit('select')">
       <!-- The purpose at a glance; the detail spells it out. -->
       <span
-        class="trip-log-item__icon"
+        class="list-row__icon"
         :class="PURPOSE_BADGE_CLASSES[purposeKey]"
         role="img"
         :title="purposeTitle"
@@ -92,12 +87,12 @@ const purposeTitle = computed(() => {
         </span>
       </span>
 
-      <span class="trip-log-item__when">
-        <span class="trip-log-item__date">{{ dateLabel }}</span>
-        <span class="trip-log-item__time text-xs text-muted">
-          {{ startTime }}<span class="trip-log-item__end-time"> - {{ endTime }}</span>
+      <span class="list-row__when">
+        <span class="list-row__date">{{ dateLabel }}</span>
+        <span class="list-row__time text-xs text-muted">
+          {{ startTime }}<span class="list-row__end-time"> - {{ endTime }}</span>
         </span>
-        <span class="trip-log-item__duration text-xs">{{ durationLabel }}</span>
+        <span class="list-row__pill text-xs">{{ durationLabel }}</span>
         <font-awesome-icon
           v-if="entry.isEdited"
           icon="pen-to-square"
@@ -117,12 +112,12 @@ const purposeTitle = computed(() => {
       </span>
 
       <span
-        class="trip-log-item__km"
+        class="list-row__value"
         :title="fromOdometer ? t('tripLog.distanceFromOdometer') : t('tripLog.distanceFromGps')"
         >{{ distanceLabel }}</span
       >
 
-      <span class="trip-log-item__route">
+      <span class="list-row__line">
         <span
           v-if="from.pending"
           class="skeleton skeleton--text skeleton--text-md"
@@ -150,7 +145,7 @@ const purposeTitle = computed(() => {
         </span>
       </span>
 
-      <font-awesome-icon icon="chevron-right" class="trip-log-item__chevron" aria-hidden="true" />
+      <font-awesome-icon icon="chevron-right" class="list-row__chevron" aria-hidden="true" />
     </button>
   </li>
 </template>

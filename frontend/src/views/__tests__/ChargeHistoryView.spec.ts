@@ -4,10 +4,12 @@ import { createI18n } from 'vue-i18n'
 import { createPinia, setActivePinia } from 'pinia'
 import en from '@/locales/en.json'
 import { formatPeriodRange, presetPeriod, resolvePeriod } from '@/utils/period'
+import { WIDE_MEDIA_QUERY } from '@/utils/viewport'
 import ChargeHistoryView from '../ChargeHistoryView.vue'
 import {
   vehicleApi,
   type ChargeSession,
+  type ChargeSessionPowerPoint,
   type Vehicle,
   type VehicleType,
 } from '@/services/vehicleApi'
@@ -20,6 +22,7 @@ vi.mock('@/services/vehicleApi', () => ({
   vehicleApi: {
     list: vi.fn<() => Promise<Vehicle[]>>(),
     chargeSessions: vi.fn<() => Promise<ChargeSession[]>>(),
+    chargePower: vi.fn<() => Promise<ChargeSessionPowerPoint[]>>(),
   },
 }))
 
@@ -61,8 +64,27 @@ function session(startedAt: string, endedAt: string | null): ChargeSession {
 
 const ItemStub = {
   name: 'ChargeSessionItem',
-  props: ['vin', 'session', 'previous', 'energyContext'],
-  template: '<li class="item-stub">{{ session.startedAt }}|{{ previous?.startedAt ?? "-" }}</li>',
+  props: ['session', 'energyContext', 'selected'],
+  emits: ['select'],
+  template:
+    '<li class="item-stub" :class="{ selected }" @click="$emit(`select`)">{{ session.startedAt }}</li>',
+}
+
+const DetailStub = {
+  name: 'ChargeSessionDetail',
+  props: ['session', 'previous', 'energyContext', 'powerPoints', 'powerLoading', 'powerError'],
+  template:
+    '<article class="detail-stub">{{ session.startedAt }}|{{ previous?.startedAt ?? "-" }}</article>',
+}
+
+// A window wide enough for the detail beside the list.
+function wideWindow() {
+  vi.stubGlobal('matchMedia', (query: string) => ({
+    matches: query === WIDE_MEDIA_QUERY,
+    media: query,
+    addEventListener: () => {},
+    removeEventListener: () => {},
+  }))
 }
 
 // The period waits behind the header's filters button, as on the other pages.
@@ -87,6 +109,7 @@ function mountView() {
           props: ['label', 'value'],
         },
         ChargeSessionItem: ItemStub,
+        ChargeSessionDetail: DetailStub,
         teleport: true,
       },
     },
@@ -107,14 +130,16 @@ beforeEach(() => {
     session('2026-10-20T08:00:00Z', null),
     session('2026-10-19T10:00:00Z', '2026-10-19T11:00:00Z'),
   ])
+  vi.mocked(vehicleApi.chargePower).mockResolvedValue([])
 })
 
 afterEach(() => {
   vi.useRealTimers()
+  vi.unstubAllGlobals()
 })
 
 describe('ChargeHistoryView', () => {
-  it('asks for the last 90 days and pairs each session with the one before it', async () => {
+  it('asks for the last 90 days', async () => {
     const wrapper = mountView()
     await flushPromises()
 
@@ -124,8 +149,8 @@ describe('ChargeHistoryView', () => {
     expect(from).toBe(new Date(2026, 6, 21).toISOString())
     expect(to).toBe(NOW.toISOString())
     expect(wrapper.findAll('.item-stub').map((item) => item.text())).toEqual([
-      '2026-10-20T08:00:00Z|2026-10-19T10:00:00Z',
-      '2026-10-19T10:00:00Z|-',
+      '2026-10-20T08:00:00Z',
+      '2026-10-19T10:00:00Z',
     ])
     expect(wrapper.find('.summary').text()).toBe('Sessions 2')
     expect(wrapper.get('.caption').text()).toBe(
@@ -217,5 +242,61 @@ describe('ChargeHistoryView', () => {
     await wrapper.find('[role="alert"] button').trigger('click')
     await flushPromises()
     expect(wrapper.findAll('.item-stub')).toHaveLength(2)
+  })
+
+  it('shows no detail on a narrow screen until a session is picked, then in a dialog', async () => {
+    const wrapper = mountView()
+    await flushPromises()
+
+    expect(wrapper.find('.detail-stub').exists()).toBe(false)
+    expect(vehicleApi.chargePower).not.toHaveBeenCalled()
+
+    await wrapper.findAll('.item-stub')[1]!.trigger('click')
+    await flushPromises()
+
+    expect(wrapper.find('.detail-modal .detail-stub').text()).toBe('2026-10-19T10:00:00Z|-')
+    expect(wrapper.findAll('.item-stub')[1]!.classes()).toContain('selected')
+    expect(vehicleApi.chargePower).toHaveBeenCalledWith(
+      'FAKEVN00000000001',
+      '2026-10-19T10:00:00Z',
+      '2026-10-19T11:00:00Z',
+    )
+  })
+
+  it('shows the newest session beside the list on a wide screen, until another is picked', async () => {
+    wideWindow()
+    const wrapper = mountView()
+    await flushPromises()
+    const detail = () => wrapper.find('.list-detail__panel .detail-stub')
+
+    // The session before the newest is the next one down the list.
+    expect(detail().text()).toBe('2026-10-20T08:00:00Z|2026-10-19T10:00:00Z')
+    expect(wrapper.find('.detail-modal .detail-stub').exists()).toBe(false)
+    // Still charging: asked up to now.
+    expect(vehicleApi.chargePower).toHaveBeenLastCalledWith(
+      'FAKEVN00000000001',
+      '2026-10-20T08:00:00Z',
+      undefined,
+    )
+
+    await wrapper.findAll('.item-stub')[1]!.trigger('click')
+    await flushPromises()
+
+    expect(detail().text()).toBe('2026-10-19T10:00:00Z|-')
+    expect(wrapper.findAll('.item-stub')[1]!.classes()).toContain('selected')
+  })
+
+  it('goes back to the newest session for another period', async () => {
+    wideWindow()
+    const wrapper = mountView()
+    await flushPromises()
+    await wrapper.findAll('.item-stub')[1]!.trigger('click')
+
+    await (await periodSelect(wrapper)).setValue('lastYear')
+    await flushPromises()
+
+    expect(wrapper.find('.list-detail__panel .detail-stub').text()).toContain(
+      '2026-10-20T08:00:00Z|',
+    )
   })
 })

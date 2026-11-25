@@ -66,25 +66,25 @@ describe('TripLogItem', () => {
   })
 
   it('shows how long the trip took', () => {
-    expect(mountItem(logEntry()).find('.trip-log-item__duration').text()).toBe('34 min')
+    expect(mountItem(logEntry()).find('.list-row__pill').text()).toBe('34 min')
   })
 
   it('counts the trip for the distance on the odometer, and leaves the readings to the detail', () => {
     const wrapper = mountItem(logEntry())
 
-    expect(wrapper.find('.trip-log-item__km').text()).toBe('42.5 km')
+    expect(wrapper.find('.list-row__value').text()).toBe('42.5 km')
     expect(wrapper.text()).not.toContain('24010.0')
   })
 
   it('shows the distance in miles for a browser set to miles', () => {
     useUiSettingsStore().units.distance = 'mi'
 
-    expect(mountItem(logEntry()).find('.trip-log-item__km').text()).toBe('26.4 mi')
+    expect(mountItem(logEntry()).find('.list-row__value').text()).toBe('26.4 mi')
   })
 
   it('shows the purpose as an icon, and unclassified for a trip without one', () => {
-    const commute = mountItem(logEntry({ purpose: 'commute' })).find('.trip-log-item__icon')
-    const none = mountItem(logEntry()).find('.trip-log-item__icon')
+    const commute = mountItem(logEntry({ purpose: 'commute' })).find('.list-row__icon')
+    const none = mountItem(logEntry()).find('.list-row__icon')
 
     expect(commute.attributes('aria-label')).toBe('Commute')
     expect(commute.classes()).toContain('badge-info')
@@ -98,8 +98,8 @@ describe('TripLogItem', () => {
     )
     const plain = mountItem(logEntry({ purpose: 'commute' }))
 
-    expect(marked.find('.trip-log-item__icon .trip-log-item__auto').exists()).toBe(true)
-    expect(marked.find('.trip-log-item__icon').attributes('aria-label')).toBe('Commute (Automatic)')
+    expect(marked.find('.list-row__icon .trip-log-item__auto').exists()).toBe(true)
+    expect(marked.find('.list-row__icon').attributes('aria-label')).toBe('Commute (Automatic)')
     expect(marked.find('.trip-log-item__edited').attributes('aria-label')).toBe(en.tripLog.edited)
     expect(plain.find('.trip-log-item__auto').exists()).toBe(false)
     expect(plain.find('.trip-log-item__edited').exists()).toBe(false)
@@ -141,7 +141,7 @@ describe('TripLogItem', () => {
     expect(wrapper.emitted('select')).toHaveLength(1)
     expect(wrapper.find('button').attributes('aria-pressed')).toBe('false')
     expect(selected.find('button').attributes('aria-pressed')).toBe('true')
-    expect(selected.classes()).toContain('trip-log-item--selected')
+    expect(selected.classes()).toContain('list-row--selected')
   })
 
   it('marks a hidden trip', () => {

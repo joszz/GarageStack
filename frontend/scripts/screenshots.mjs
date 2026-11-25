@@ -253,7 +253,7 @@ async function selectTrip(page) {
 
 // The route editor for the newest trip, opened the way a driver opens it: from the trip's details.
 async function openTripEditor(page) {
-  await page.locator('.trip-log-item__select').first().click()
+  await page.locator('.list-row__select').first().click()
   await page.getByRole('link', { name: 'Edit route' }).first().click()
   await page.waitForURL(/\/trips\/\d+\/edit$/)
   await settled(page)
@@ -261,11 +261,11 @@ async function openTripEditor(page) {
   await page.waitForTimeout(5000)
 }
 
-// On a desktop the newest charge session opened on its power curve and where it charged; a phone
-// has no room for both that and the list, so it shows the list.
+// On a desktop the newest charge session shows beside the list, with where it charged and its
+// power curve; a phone has no room for both that and the list, so it shows the list.
 async function openChargeSession(page) {
   if (page.viewportSize().width < 768) return
-  await page.locator('.charge-history-item__toggle').first().click()
+  await page.locator('.list-detail__panel .charge-history-detail').waitFor()
   await settled(page)
   // The session's map is new, so give its tiles time to draw.
   await page.waitForTimeout(5000)

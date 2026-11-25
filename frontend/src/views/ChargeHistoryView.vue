@@ -1,6 +1,7 @@
 <script setup lang="ts">
+import '@/assets/listDetail.css'
 import '@/assets/chargeHistory.css'
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, useTemplateRef, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
@@ -19,10 +20,15 @@ import { formatNumber } from '@/utils/format'
 import { formatDurationMs } from '@/utils/tripRows'
 import { useErrorMessage } from '@/composables/useErrorMessage'
 import { useReconnect } from '@/composables/useReconnect'
+import { useListDetail } from '@/composables/useListDetail'
+import { useChargePower } from '@/composables/useChargePower'
+import { useRoomBelow } from '@/composables/useRoomBelow'
 import ViewHeader from '@/components/ViewHeader.vue'
 import StatusCard from '@/components/StatusCard.vue'
 import CardInfoWrap from '@/components/CardInfoWrap.vue'
 import ChargeSessionItem from '@/components/ChargeSessionItem.vue'
+import ChargeSessionDetail from '@/components/ChargeSessionDetail.vue'
+import DetailModal from '@/components/DetailModal.vue'
 import PeriodFilterPanel from '@/components/PeriodFilterPanel.vue'
 
 const { t } = useI18n()
@@ -62,6 +68,43 @@ const totalTime = computed(() => {
   return ms > 0 ? formatDurationMs(ms, t) : null
 })
 
+// ── The session shown in detail ───────────────────────────
+
+// Beside the list on a desktop, where a session is always shown: the newest until another is
+// picked. In a dialog on a narrower one, once a session is picked.
+const {
+  wide,
+  selected,
+  inDialog,
+  pick,
+  clear: closeDetail,
+} = useListDetail(
+  (startedAt: string) => sessions.value.find((session) => session.startedAt === startedAt),
+  () => sessions.value[0],
+)
+
+const power = useChargePower(vin, selected)
+
+// The panel starts below the totals, so it is kept from reaching past the bottom of the window
+// until the page scrolls it up; what does not fit scrolls inside it.
+useRoomBelow(useTemplateRef<HTMLElement>('detailPanel'))
+
+// What the detail shows, the same beside the list and in the dialog. The sessions are newest
+// first, so the one before a session is the next in the list.
+const detail = computed(() => {
+  const session = selected.value
+  if (!session) return null
+  const index = sessions.value.indexOf(session)
+  return {
+    session,
+    previous: sessions.value[index + 1] ?? null,
+    energyContext: energyContext.value,
+    powerPoints: power.points.value,
+    powerLoading: power.loading.value,
+    powerError: power.error.value,
+  }
+})
+
 // A plain hybrid never charges from a plug. The menu leaves the page out for one; someone who
 // opens its address anyway lands on the dashboard.
 const charges = computed(() => mayPlugIn(vehicleStore.effectiveVehicleType))
@@ -88,13 +131,19 @@ async function load(): Promise<void> {
   }
 }
 
+// Another period or car lists other sessions: the newest of those, not one picked before.
+function reload() {
+  closeDetail()
+  void load()
+}
+
 onMounted(load)
 // Back from offline: the server's sessions replace the saved ones.
 useReconnect(load)
-watch(() => `${period.value.first.getTime()}-${period.value.last.getTime()}`, load)
+watch(() => `${period.value.first.getTime()}-${period.value.last.getTime()}`, reload)
 // The first load sets the active car itself; only switching to another one loads again.
 watch(vin, (now, before) => {
-  if (before) void load()
+  if (before) reload()
 })
 watch(charges, (now) => {
   if (!now) void router.replace({ name: 'dashboard' })
@@ -166,15 +215,30 @@ watch(charges, (now) => {
     <div v-else-if="sessions.length === 0" class="empty-state">
       {{ t('chargeHistory.empty') }}
     </div>
-    <ol v-else-if="vin" class="charge-history-list">
-      <ChargeSessionItem
-        v-for="(session, index) in sessions"
-        :key="session.startedAt"
-        :vin="vin"
-        :session="session"
-        :previous="sessions[index + 1] ?? null"
-        :energy-context="energyContext"
-      />
-    </ol>
+    <div v-else class="list-detail">
+      <ol class="list-detail__list charge-history-list">
+        <ChargeSessionItem
+          v-for="session in sessions"
+          :key="session.startedAt"
+          :session="session"
+          :energy-context="energyContext"
+          :selected="selected === session"
+          @select="pick(session.startedAt)"
+        />
+      </ol>
+
+      <aside
+        v-if="wide && detail"
+        ref="detailPanel"
+        class="list-detail__panel"
+        :aria-label="t('chargeHistory.session')"
+      >
+        <ChargeSessionDetail v-bind="detail" @retry="power.retry" />
+      </aside>
+    </div>
+
+    <DetailModal :open="inDialog" :title="t('chargeHistory.session')" wide @close="closeDetail">
+      <ChargeSessionDetail v-if="inDialog && detail" v-bind="detail" @retry="power.retry" />
+    </DetailModal>
   </div>
 </template>
