@@ -15,7 +15,7 @@ The quickest setup is the dev container in `.devcontainer/`: .NET 11, Node 26, t
 - **GitHub Codespaces:** on the repository page (or your fork's), **Code > Codespaces > Create codespace**.
 - **VS Code on your own machine:** with Docker and the Dev Containers extension, open the folder and pick **Reopen in Container**.
 
-The first start installs the frontend packages and restores the backend. Then **Terminal > Run Task > Demo** runs the app on sample data at port 5173 (sign in with demo / demo), and **Check** runs what CI runs. The same tasks work outside the container too, on any OS.
+The first start installs the frontend packages and restores the backend. Then **Terminal > Run Task > Demo** runs the app on sample data at port 5173 (sign in with demo / demo), and **Check** runs what CI runs. The same tasks work outside the container too, on any OS. New to dev containers or Codespaces? [DEV_CONTAINER.md](../documentation/DEV_CONTAINER.md) explains how they work, what a codespace costs, and what to do when one will not start.
 
 ### On your own machine
 
