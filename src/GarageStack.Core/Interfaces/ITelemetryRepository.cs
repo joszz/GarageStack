@@ -73,6 +73,12 @@ public interface ITelemetryRepository
     Task<double?> GetOdometerAtAsync(int vehicleId, DateTime at, CancellationToken ct = default);
 
     /// <summary>
+    /// The 12V battery voltage as last reported at or before <paramref name="at"/>, or null when
+    /// the vehicle had not reported one by then.
+    /// </summary>
+    Task<double?> GetBatteryVoltageAtAsync(int vehicleId, DateTime at, CancellationToken ct = default);
+
+    /// <summary>
     /// The day counter's (powerUsageOfDay) readings over a trip, oldest first: the last one at or
     /// before <paramref name="from"/>, then every one after it up to <paramref name="to"/>. Empty
     /// when the car reports no such counter. See <see cref="Helpers.TripCounterUse"/>.

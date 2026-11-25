@@ -387,6 +387,14 @@ public class TelemetryRepository(
             .Select(s => s.OdometerKm)
             .FirstOrDefaultAsync(ct);
 
+    public Task<double?> GetBatteryVoltageAtAsync(int vehicleId, DateTime at, CancellationToken ct = default) =>
+        db.TelemetrySnapshots
+            .AsNoTracking()
+            .Where(s => s.VehicleId == vehicleId && s.RecordedAt <= at && s.BatteryVoltage != null)
+            .OrderByDescending(s => s.RecordedAt)
+            .Select(s => s.BatteryVoltage)
+            .FirstOrDefaultAsync(ct);
+
     public async Task<IReadOnlyList<double>> GetDayCounterReadingsAsync(
         int vehicleId, DateTime from, DateTime to, CancellationToken ct = default)
     {

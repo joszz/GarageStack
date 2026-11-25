@@ -124,8 +124,9 @@ public class PushNotificationCheckService(
     /// Warns about a car parked unlocked, with a door or window open, or with a low 12V battery,
     /// once its polls have shown it for a while. Every warning rests on the newest poll and goes
     /// out once for it: a car asleep overnight would otherwise be reported every hour on the one
-    /// poll it last sent. A car that left the spot it parked on is warned about once per parking,
-    /// unless its odometer says it was driven there.
+    /// poll it last sent. A low 12V battery is warned about once per parking, and again only when
+    /// it has dropped further (see <see cref="Low12VRewarnDropVolt"/>). A car that left the spot it
+    /// parked on is warned about once per parking, unless its odometer says it was driven there.
     /// </summary>
     internal async Task CheckParkedAsync(
         Vehicle vehicle, TelemetrySnapshot snapshot, ITelemetryRepository telemetry, IVehicleRepository vehicles,
@@ -141,9 +142,10 @@ public class PushNotificationCheckService(
         CheckUnlockedWhileParked(readings, alerts);
         CheckDoorsOpenWhileParked(readings, alerts);
         CheckWindowsOpenWhileParked(readings, alerts);
-        CheckAuxBatteryWhileParked(readings, VehicleSettingsResolver.Resolve(vehicle, defaults).Alerts, alerts);
         if (alerts.Count > 0)
             await SendAsync(vehicle, alerts, notifications, ct, onceSince: readings[0].ArrivedAt);
+
+        await CheckAuxBatteryOncePerParkingAsync(vehicle, readings, telemetry, notifications, ct);
 
         if (await ParkAfterUnseenDriveAsync(vehicle, telemetry, vehicles, now, ct)) return;
 
@@ -340,6 +342,36 @@ public class PushNotificationCheckService(
         var voltage = readings[0].State.BatteryVoltage!.Value.ToString("0.0", CultureInfo.CurrentUICulture);
         alerts.Add((NotificationCategories.Low12V, strings["Low12VTitle"], strings["Low12VBody", voltage]));
     }
+
+    /// <summary>
+    /// How far the 12V battery has to drop below the voltage it was last warned about, in the same
+    /// parking, before it is warned about again. A battery that stays low in the cold is news once;
+    /// one that keeps draining is news again.
+    /// </summary>
+    internal const double Low12VRewarnDropVolt = 0.3;
+
+    // A car seen parking is warned about once from then; one never seen parking, once per poll.
+    private async Task CheckAuxBatteryOncePerParkingAsync(
+        Vehicle vehicle, IReadOnlyList<StatusReading> readings, ITelemetryRepository telemetry,
+        INotificationRepository notifications, CancellationToken ct)
+    {
+        var alerts = new List<(string key, string title, string body)>();
+        CheckAuxBatteryWhileParked(readings, VehicleSettingsResolver.Resolve(vehicle, defaults).Alerts, alerts);
+        if (alerts.Count == 0) return;
+
+        var parkingStart = vehicle.LastParkedAt ?? readings[0].ArrivedAt;
+        if (await notifications.GetLastSentAtAsync(NotificationCategories.Low12V, vehicle.Id, parkingStart, ct) is { } warnedAt)
+        {
+            var warnedAbout = await telemetry.GetBatteryVoltageAtAsync(vehicle.Id, warnedAt, ct);
+            if (!HasDroppedFurther(readings[0].State.BatteryVoltage!.Value, warnedAbout)) return;
+        }
+
+        await SendAsync(vehicle, alerts, notifications, ct);
+    }
+
+    // Rounded to the tenth the alert shows, so 12.0 to 11.7 counts as the 0.3 it reads as.
+    internal static bool HasDroppedFurther(double voltage, double? warnedAbout) =>
+        warnedAbout is { } before && Math.Round(before - voltage, 1) >= Low12VRewarnDropVolt;
 
     internal void CheckDoorsOpenWhileParked(IReadOnlyList<StatusReading> readings, List<(string, string, string)> alerts) =>
         CheckOpenWhileParked(readings, DoorPositions, alerts, NotificationCategories.DoorsOpenParked, "DoorsOpenTitle", "DoorsOpenBody");
