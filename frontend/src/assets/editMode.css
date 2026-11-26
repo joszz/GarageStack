@@ -220,24 +220,10 @@
     border-radius: calc(var(--touch-target) / 2);
   }
 
-  /* Room under the page for the bar, so it never covers the last card. */
-  .view-container:has(.edit-layout-btn--editing) {
+  /* Room under the page for the bar, so it never covers the last card. Asked of the whole layout,
+     as on a phone the edit button sits in the top bar rather than in the page. */
+  .app-layout:has(.edit-layout-btn--editing) .view-container {
     padding-bottom: calc(var(--touch-target) + 3rem);
-  }
-}
-
-/* On a touch phone the dashboard's title row can hold nothing that shows: the title is in the top
-   bar, a long press takes the place of Edit layout, and the top bar's refresh button spins for
-   the refresh. Such a row gives its height and gap back to the cards. A row with a caption or any
-   other action, such as the statistics' period and filters, stays. */
-@media (width <= 767px) and (hover: none) and (pointer: coarse) {
-  .view-header:has(.edit-layout-btn):not(
-      :has(
-        .view-header__caption,
-        .view-header__actions > :not(.refresh-indicator, .edit-layout-btn--touch-hidden)
-      )
-    ) {
-    display: none;
   }
 }
 

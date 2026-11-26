@@ -93,12 +93,20 @@ onUnmounted(() => {
           class="btn"
           :class="live ? 'btn-success' : 'btn-outline-secondary'"
           :aria-pressed="live"
+          :title="t('logs.live')"
           @click="live = !live"
         >
-          <font-awesome-icon icon="circle" />{{ t('logs.live') }}
+          <font-awesome-icon icon="circle" /><span class="btn__label">{{ t('logs.live') }}</span>
         </button>
-        <button class="btn btn-primary" :disabled="loading" @click="feed.reload">
-          <font-awesome-icon icon="rotate" :spin="loading" />{{ t('logs.refresh') }}
+        <button
+          class="btn btn-primary"
+          :disabled="loading"
+          :title="t('logs.refresh')"
+          @click="feed.reload"
+        >
+          <font-awesome-icon icon="rotate" :spin="loading" /><span class="btn__label">{{
+            t('logs.refresh')
+          }}</span>
         </button>
       </template>
     </ViewHeader>

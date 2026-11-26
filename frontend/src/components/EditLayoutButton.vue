@@ -27,7 +27,7 @@ const { t } = useI18n()
     @click="emit('reset')"
   >
     <font-awesome-icon icon="rotate-left" />
-    {{ t('dashboard.resetLayoutShort') }}
+    <span class="btn__label">{{ t('dashboard.resetLayoutShort') }}</span>
   </button>
   <button
     class="btn edit-layout-btn"
@@ -35,10 +35,13 @@ const { t } = useI18n()
       editing ? 'btn-primary edit-layout-btn--editing' : 'btn-outline-secondary',
       { 'edit-layout-btn--touch-hidden': editing || cardsShown },
     ]"
+    :title="editing ? t('dashboard.doneEditing') : t('dashboard.editLayout')"
     @click="editing = !editing"
   >
     <font-awesome-icon :icon="editing ? 'check' : 'pen-to-square'" />
-    {{ editing ? t('dashboard.doneEditing') : t('dashboard.editLayout') }}
+    <span class="btn__label">{{
+      editing ? t('dashboard.doneEditing') : t('dashboard.editLayout')
+    }}</span>
   </button>
 
   <Teleport to="body">

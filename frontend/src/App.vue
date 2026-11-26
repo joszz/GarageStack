@@ -20,7 +20,7 @@ import { useSignalR } from '@/composables/useSignalR'
 import { useGatewayStatus } from '@/composables/useGatewayStatus'
 import { useSettledAvailability } from '@/composables/useSettledAvailability'
 import { useFavicon } from '@/composables/useFavicon'
-import { APP_NAME, usePageTitle } from '@/composables/usePageTitle'
+import { usePageTitle } from '@/composables/usePageTitle'
 import { useScreenWakeLock } from '@/composables/useScreenWakeLock'
 import { usePhoneGpsRecorder } from '@/composables/usePhoneGpsRecorder'
 import { useRelativeTime } from '@/composables/useRelativeTime'
@@ -257,13 +257,11 @@ watch(
       >
         <font-awesome-icon :icon="menuOpen ? 'xmark' : 'bars'" />
       </button>
-      <RouterLink to="/" class="mobile-brand" :aria-label="APP_NAME" :title="APP_NAME">
-        <font-awesome-icon icon="car" />
-      </RouterLink>
-      <!-- The page's heading, which ViewHeader moves here on a phone. -->
+      <!-- The page's heading, info button and caption, which ViewHeader moves here on a phone. -->
       <div id="mobile-topbar-title" class="mobile-topbar__title" />
       <div class="mobile-topbar__actions">
-        <!-- Refresh and Settings, which AppFooter moves here on a phone. -->
+        <!-- The page's own buttons (ViewHeader), then Settings (AppFooter), on a phone. -->
+        <div id="mobile-topbar-page-actions" class="mobile-topbar__slot" />
         <div id="mobile-topbar-actions" class="mobile-topbar__slot" />
         <button class="notif-bell" :aria-label="notificationsLabel" @click="togglePanel">
           <font-awesome-icon icon="bell" />
@@ -376,17 +374,26 @@ watch(
               >
             </template>
           </div>
-          <div v-if="isInitialLoading || lastFetched" class="sidebar-timestamp">
+          <!-- v-show, not v-if: AppFooter moves Refresh into this line on a phone, and a line
+               rebuilt after hiding would leave the button in the old one. -->
+          <div v-show="isInitialLoading || lastFetched" class="sidebar-timestamp">
             <template v-if="isInitialLoading">
               <span class="skeleton skeleton--icon" />
               <span class="skeleton skeleton--text skeleton--text-sm" />
             </template>
             <template v-else>
-              <font-awesome-icon icon="rotate" :spin="vehicleStore.loading" aria-hidden="true" />
+              <font-awesome-icon
+                icon="rotate"
+                class="sidebar-timestamp__icon"
+                :spin="vehicleStore.loading"
+                aria-hidden="true"
+              />
               <span class="sidebar-footer__text" :title="`${t('common.fetched')} ${lastFetched}`"
                 >{{ t('common.fetched') }} {{ lastFetched }}</span
               >
             </template>
+            <!-- Refresh, which AppFooter moves here on a phone: beside the time it renews. -->
+            <span id="sidebar-refresh" class="sidebar-timestamp__action" />
           </div>
           <div v-if="isInitialLoading || lastRecorded" class="sidebar-timestamp">
             <template v-if="isInitialLoading">

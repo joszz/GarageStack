@@ -4,6 +4,7 @@ import { createI18n } from 'vue-i18n'
 import en from '@/locales/en.json'
 import PeriodFilterPanel from '../PeriodFilterPanel.vue'
 import { CHARGE_HISTORY_PERIOD, presetPeriod, type Period } from '@/utils/period'
+import { InlineTeleport } from '@/__tests__/inlineTeleport'
 
 const i18n = createI18n({ legacy: false, locale: 'en', messages: { en } })
 
@@ -12,7 +13,7 @@ enableAutoUnmount(afterEach)
 function mountPanel(period: Period) {
   return mount(PeriodFilterPanel, {
     props: { modelValue: period, options: CHARGE_HISTORY_PERIOD, desc: 'Sessions listed' },
-    global: { plugins: [i18n], stubs: { FontAwesomeIcon: true, teleport: true } },
+    global: { plugins: [i18n], stubs: { FontAwesomeIcon: true, teleport: InlineTeleport } },
   })
 }
 

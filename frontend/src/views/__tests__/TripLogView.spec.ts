@@ -11,6 +11,7 @@ import { useUiSettingsStore } from '@/stores/settingsUi'
 import { useCommutePlacesStore } from '@/stores/commutePlaces'
 import { logEntry } from '@/services/__tests__/tripLogFixtures'
 import { WIDE_MEDIA_QUERY } from '@/utils/viewport'
+import { InlineTeleport } from '@/__tests__/inlineTeleport'
 
 vi.mock('@/services/tripLogApi', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/services/tripLogApi')>()
@@ -68,7 +69,7 @@ async function mountView() {
         TripRouteMap: true,
         StatsChartCard: true,
         RouterLink: true,
-        teleport: true,
+        teleport: InlineTeleport,
       },
     },
   })

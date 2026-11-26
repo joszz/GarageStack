@@ -30,6 +30,24 @@ function mountPanel(slotContent = '', props: Record<string, string | number> = {
 }
 
 describe('ToolbarPanel', () => {
+  it('keeps the label beside the icon, where a phone top bar can tuck it away', () => {
+    const wrapper = mountPanel()
+    expect(wrapper.get('.btn__label').text()).toBe('Filters')
+  })
+
+  it('draws a map button, icon only, with its count in its name and badge', async () => {
+    const wrapper = mountPanel('', { variant: 'map-control', count: 3 })
+    const button = wrapper.get('button')
+
+    expect(button.classes()).toContain('map-control-btn')
+    expect(button.find('.btn__label').exists()).toBe(false)
+    expect(button.attributes('aria-label')).toBe('Filters, 3 active')
+    expect(button.get('.toolbar-panel__count').text()).toBe('3')
+
+    await button.trigger('click')
+    expect(wrapper.findComponent(DetailModalStub).props('open')).toBe(true)
+  })
+
   it('renders the trigger button', () => {
     const wrapper = mountPanel()
     expect(wrapper.find('button').exists()).toBe(true)
