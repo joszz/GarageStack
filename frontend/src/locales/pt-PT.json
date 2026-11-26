@@ -399,6 +399,7 @@
     "scheduleCarTime": "As horas seguem o fuso horário do próprio carro.",
     "saveSchedule": "Guardar agendamento",
     "refresh": "Atualizar",
+    "refreshFetched": "Atualizar (obtido {time})",
     "pending": "Enviado - a aguardar o carro...",
     "error": "Falha no comando",
     "rejected": "O carro não executou o comando"

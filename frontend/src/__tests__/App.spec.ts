@@ -21,6 +21,7 @@ const vehicle = vi.hoisted(() => ({
   type: 'bev',
   active: null as { id: number } | null,
   status: null as { isAvailable: boolean | null } | null,
+  lastUpdated: null as Date | null,
 }))
 // What the routed page is keyed on, reactive so a test can play the list arriving or a switch.
 const live = vi.hoisted(() => ({
@@ -45,7 +46,7 @@ vi.mock('@/stores/vehicle', async () => {
       hasMultipleVehicles: false,
       effectiveVehicleType: vehicle.type,
       loading: false,
-      lastUpdated: null,
+      lastUpdated: vehicle.lastUpdated,
     }),
   }
 })
@@ -88,6 +89,23 @@ vi.mock('@/services/gatewayApi', () => ({
 vi.mock('@/composables/useBrowserNotifications', () => ({
   useBrowserNotifications: () => ({ show: vi.fn<() => void>() }),
 }))
+
+const refreshing = vi.hoisted(() => ({
+  available: true,
+  refresh: vi.fn<() => void>(),
+}))
+
+vi.mock('@/composables/useRefresh', async () => {
+  const { computed } = await import('vue')
+  return {
+    useRefresh: () => ({
+      canRefresh: computed(() => refreshing.available),
+      refreshing: computed(() => false),
+      disabled: computed(() => false),
+      refresh: refreshing.refresh,
+    }),
+  }
+})
 
 vi.mock('@/composables/useFavicon', () => ({ useFavicon: vi.fn<() => void>() }))
 vi.mock('@/composables/useScreenWakeLock', () => ({ useScreenWakeLock: vi.fn<() => void>() }))
@@ -177,13 +195,57 @@ describe('App top bar', () => {
     expect(bar[0]?.classList.contains('hamburger')).toBe(true)
     expect(bar[1]?.id).toBe('mobile-topbar-title')
   })
+})
 
-  // Refresh moves next to the time it renews, which stays in the page while it hides, so the
-  // button moved into it is never left in a removed line.
-  it('keeps a place for Refresh on the fetched line of the menu', async () => {
+describe('App fetched line', () => {
+  function screenIsPhone(phone: boolean) {
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      matches: phone && query === '(width <= 767px)',
+      media: query,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    }))
+  }
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    vehicle.lastUpdated = null
+    refreshing.available = true
+    refreshing.refresh.mockClear()
+  })
+
+  // The footer and its Refresh button are hidden on a phone: the time it was fetched renews it.
+  it('refreshes from the fetched line on a phone, its icon in the place the others have', async () => {
+    screenIsPhone(true)
+    vehicle.lastUpdated = new Date('2026-11-26T08:34:00')
     const wrapper = await mountAt('/')
 
-    expect(wrapper.find('.sidebar-timestamp #sidebar-refresh').exists()).toBe(true)
+    const line = wrapper.get('.sidebar-timestamp--refresh')
+    expect(line.element.tagName).toBe('BUTTON')
+    expect(line.attributes('aria-label')).toContain('control.refreshFetched')
+    expect(line.element.firstElementChild?.classList.contains('sidebar-timestamp__icon')).toBe(true)
+
+    await line.trigger('click')
+    expect(refreshing.refresh).toHaveBeenCalledOnce()
+  })
+
+  it('keeps the fetched line a plain line off a phone, where the footer refreshes', async () => {
+    screenIsPhone(false)
+    vehicle.lastUpdated = new Date('2026-11-26T08:34:00')
+    const wrapper = await mountAt('/')
+
+    expect(wrapper.find('.sidebar-timestamp--refresh').exists()).toBe(false)
+    expect(wrapper.text()).toContain('common.fetched')
+  })
+
+  // No command reaches the car without the server, so the line offers none meanwhile.
+  it('keeps the fetched line a plain line without the server', async () => {
+    screenIsPhone(true)
+    refreshing.available = false
+    vehicle.lastUpdated = new Date('2026-11-26T08:34:00')
+    const wrapper = await mountAt('/')
+
+    expect(wrapper.find('.sidebar-timestamp--refresh').exists()).toBe(false)
   })
 })
 

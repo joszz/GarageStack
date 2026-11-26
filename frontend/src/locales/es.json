@@ -399,6 +399,7 @@
     "scheduleCarTime": "Las programaciones siguen la zona horaria configurada en el coche.",
     "saveSchedule": "Guardar programación",
     "refresh": "Actualizar",
+    "refreshFetched": "Actualizar (obtenido {time})",
     "pending": "Enviado - esperando auto...",
     "error": "Comando fallido",
     "rejected": "El auto no ejecutó el comando"

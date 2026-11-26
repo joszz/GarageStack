@@ -399,6 +399,7 @@
     "scheduleCarTime": "Times are in the car's own time zone.",
     "saveSchedule": "Save schedule",
     "refresh": "Refresh",
+    "refreshFetched": "Refresh (fetched {time})",
     "pending": "Sent - waiting for car...",
     "error": "Command failed",
     "rejected": "The car did not carry out the command"

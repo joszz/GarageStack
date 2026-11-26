@@ -399,6 +399,7 @@
     "scheduleCarTime": "Tijden gelden in de tijdzone van de auto.",
     "saveSchedule": "Schema opslaan",
     "refresh": "Vernieuwen",
+    "refreshFetched": "Vernieuwen (opgehaald {time})",
     "pending": "Verstuurd - wachten op auto...",
     "error": "Commando mislukt",
     "rejected": "De auto heeft het commando niet uitgevoerd"
