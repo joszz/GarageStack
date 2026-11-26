@@ -1,14 +1,17 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import { createI18n } from 'vue-i18n'
-import { h } from 'vue'
+import { createPinia, setActivePinia, type Pinia } from 'pinia'
+import { h, nextTick } from 'vue'
 import ViewHeader from '../ViewHeader.vue'
 import en from '@/locales/en.json'
+import { useUiSettingsStore } from '@/stores/settingsUi'
 import { PHONE_MEDIA_QUERY } from '@/utils/viewport'
 
 vi.mock('@/components/OfflineNotice.vue', () => ({ default: { template: '<div />' } }))
 
 const i18n = createI18n({ legacy: false, locale: 'en', messages: { en } })
+let pinia: Pinia
 
 function mountHeader(
   props: { title: string; caption?: string; subtitle?: string },
@@ -18,11 +21,17 @@ function mountHeader(
     props,
     slots: actions ? { actions } : {},
     attachTo: document.body,
-    global: { plugins: [i18n], stubs: { FontAwesomeIcon: true } },
+    global: { plugins: [i18n, pinia], stubs: { FontAwesomeIcon: true } },
   })
 }
 
 describe('ViewHeader', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    pinia = createPinia()
+    setActivePinia(pinia)
+  })
+
   afterEach(() => {
     vi.unstubAllGlobals()
     document.body.innerHTML = ''
@@ -40,6 +49,17 @@ describe('ViewHeader', () => {
 
   it('offers no info button for a page without a line about it', () => {
     const wrapper = mountHeader({ title: 'Map' })
+
+    expect(wrapper.find('.view-header__info').exists()).toBe(false)
+  })
+
+  // The cards' info buttons and the page's go together: "Show info icons" in Settings.
+  it('leaves the info button out while info icons are switched off', async () => {
+    const wrapper = mountHeader({ title: 'Trip log', subtitle: 'Every trip, for the taxman.' })
+    expect(wrapper.find('.view-header__info').exists()).toBe(true)
+
+    useUiSettingsStore(pinia).showCardInfoIcons = false
+    await nextTick()
 
     expect(wrapper.find('.view-header__info').exists()).toBe(false)
   })
