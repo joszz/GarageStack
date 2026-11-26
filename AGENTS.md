@@ -28,6 +28,7 @@ Run demo mode: the whole app on sample data, without a car, a database or a brok
 - **Test data**: never a real VIN or licence plate. Use synthetic ones such as `FAKEVN00000000001`.
 - **Demo mode keeps up**: a new field or feature gets demo data in `src/GarageStack.Data/Demo/`, or it never shows without a car.
 - **Endpoints describe themselves**: a summary, what they answer, a described tag. See [`documentation/API.md`](documentation/API.md#changing-the-api).
+- **Deployment templates**: `unraid/garagestack.xml` and `zimaos/docker-compose.yml` are deployment templates. A new required variable, or a changed list of values (such as the regions), goes into both.
 - **Line endings**: keep each file's own. A scripted edit that turns a CRLF file into LF fails `dotnet format --verify-no-changes`.
 
 ## Before finishing
