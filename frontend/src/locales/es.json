@@ -37,7 +37,7 @@
   },
   "chargeHistory": {
     "title": "Historial de carga",
-    "subtitle": "Sesiones reconstruidas a partir de los estados de carga registrados. La energía es el cambio en los kWh de batería comunicados por el coche; los demás datos dependen de la telemetría disponible.",
+    "subtitle": "Cada carga del periodo elegido en Filtros, reconstruida a partir de lo que comunicó el coche mientras cargaba. Abre una sesión para ver su curva de potencia, dónde cargó y la distancia y la energía desde la carga anterior. Los kWh son el cambio en la lectura de batería del propio coche, no lo que entregó el cargador.",
     "periodDesc": "Los días cuyas sesiones de carga se muestran y suman.",
     "sessions": "Sesiones",
     "timeCharging": "Tiempo de carga",
@@ -110,7 +110,8 @@
       "maintenance": "Elementos de mantenimiento próximos y vencidos según los intervalos de servicio que usted defina. Haga clic en la página Mantenimiento para añadir elementos o registrar un servicio completado.",
       "rdw": "Fecha de vencimiento de la APK y días restantes, llamadas a revisión pendientes y seguro WAM, según los datos de la RDW para la matrícula neerlandesa del coche. Pulsa para consultar el riesgo y la reparación de cada llamada a revisión.",
       "climateSchedule": "Cuándo se encenderá la calefacción o la refrigeración del coche según la próxima programación."
-    }
+    },
+    "subtitle": "Lo último que comunicó el coche. Un coche aparcado solo se comunica de vez en cuando, así que el menú muestra cuándo se registraron estos datos, y Actualizar le pide datos nuevos. Toca la presión de un neumático, o el nivel de carga o de combustible junto al coche, para ver su historial, y la (i) de una tarjeta para saber qué muestra. Mantén pulsada una tarjeta, o usa Editar diseño, para mover, ocultar o mostrar tarjetas. Las tarjetas que aparecen dependen del tipo de coche, que puedes ajustar a mano en Ajustes > Vehículo."
   },
   "statistics": {
     "insightsSectionLabel": "Información estadística",
@@ -178,7 +179,8 @@
       "efficiency": "Eficiencia ({unit})",
       "total": "Total",
       "needsLongerPeriod": "Se muestra con un periodo de más de un mes"
-    }
+    },
+    "subtitle": "Cifras del periodo elegido en Filtros, calculadas a partir de los trayectos y datos que comunicó el coche. Los gráficos muestran un punto por día hasta unos tres meses, por semana hasta un año y por mes a partir de ahí, y un periodo de más de un mes añade una tabla por mes. La (i) de una tarjeta explica cómo se calcula su cifra. Mantén pulsada una tarjeta, o usa Editar diseño, para mover u ocultar tarjetas."
   },
   "directions": {
     "google": "Ruta a pie en Google Maps",
@@ -489,7 +491,8 @@
     "inProgress": "Viaje en curso",
     "durationMinutes": "{n} min",
     "durationHoursMinutes": "{h}h {m}m",
-    "editRoute": "Editar ruta"
+    "editRoute": "Editar ruta",
+    "subtitle": "Todos los trayectos del periodo elegido en Filtros, con un mapa de calor de las carreteras por las que más conduces. Elige un trayecto en la lista o en el mapa para ver su ruta por las carreteras que recorrió. Los botones del mapa lo centran en el coche y eligen qué dibuja, como los colores de velocidad, los límites de velocidad y las estaciones de carga o de servicio. Los tramos punteados los registró un teléfono y no el coche, y el lápiz de un trayecto seleccionado corrige una ruta que el coche registró mal."
   },
   "pwa": {
     "install": {
@@ -943,7 +946,7 @@
   },
   "tripLog": {
     "title": "Registro de viaje",
-    "subtitle": "Clasifica tus trayectos, con las direcciones y lecturas del cuentakilómetros que requiere un registro fiscal de desplazamientos, y exporta el registro a una hoja de cálculo en Ajustes > Datos y API. Los trayectos aparecen aquí unos minutos después de aparcar.",
+    "subtitle": "Clasifica tus trayectos, con las direcciones y lecturas del cuentakilómetros que requiere un registro fiscal de desplazamientos, y exporta el registro a una hoja de cálculo en Ajustes > Datos y API. Los trayectos aparecen aquí unos minutos después de aparcar. Los trayectos entre el hogar y el trabajo se marcan como conmutación: define los lugares en Ajustes > Vehículo > Hogar y trabajo, o desde el inicio o el final de un trayecto.",
     "year": "Año",
     "month": "Mes",
     "wholeYear": "Año completo",
@@ -1127,7 +1130,7 @@
   },
   "maintenance": {
     "title": "Mantenimiento",
-    "subtitle": "Controla las revisiones periódicas del coche y recibe avisos cuando se acerquen.",
+    "subtitle": "Controla las revisiones del coche, cada una con un intervalo de distancia, de tiempo o ambos, lo que llegue antes. Una revisión está próxima al llegar al 90 % de su intervalo; recibes un aviso entonces y otra vez cuando vence. Registrar una revisión reinicia su intervalo, y su coste se suma arriba.",
     "addItem": "Añadir elemento",
     "editItem": "Editar elemento",
     "delete": "Eliminar",
@@ -1183,7 +1186,7 @@
   },
   "climateSchedules": {
     "title": "Programación del climatizador",
-    "subtitle": "Programa el climatizador para calentar o enfriar el coche antes de salir. Las programaciones se ejecutan en el servidor de GarageStack; no hace falta mantener el teléfono encendido.",
+    "subtitle": "Programa el climatizador para calentar o enfriar el coche antes de salir. Las programaciones se ejecutan en el servidor de GarageStack; no hace falta mantener el teléfono encendido. Una programación puede ejecutarse solo los días fríos o cálidos, según la temperatura exterior del coche. Cada ejecución envía un aviso indicando si el coche encendió el climatizador, y una ejecución que el servidor detecta con más de 10 minutos de retraso se omite.",
     "addSchedule": "Añadir programación",
     "editSchedule": "Editar programación",
     "delete": "Eliminar",

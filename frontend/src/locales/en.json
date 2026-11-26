@@ -37,7 +37,7 @@
   },
   "chargeHistory": {
     "title": "Charge history",
-    "subtitle": "Sessions reconstructed from recorded charging-state telemetry. Battery energy is the change in the car's reported battery kWh; power and other readings depend on available telemetry.",
+    "subtitle": "Every charge in the period under Filters, rebuilt from what the car reported while it charged. Open a session for its power curve, where it charged, and the distance and energy since the charge before. The kWh are the change in the car's own battery reading, not what the charger delivered.",
     "periodDesc": "The days whose charge sessions are listed and totalled.",
     "sessions": "Sessions",
     "timeCharging": "Time charging",
@@ -110,7 +110,8 @@
       "maintenance": "Upcoming and overdue maintenance items based on the service intervals you define. Click through to the Maintenance page to add items or log a completed service.",
       "rdw": "The APK expiry date and the days left, open recalls and the WAM insurance, as the RDW has them on record for the car's Dutch plate. Click for each recall's risk and repair.",
       "climateSchedule": "When a climate schedule warms or cools the car next"
-    }
+    },
+    "subtitle": "What the car last reported. A parked car only checks in now and then, so the menu shows when these readings were recorded, and Refresh asks the car for fresh ones. Tap a tyre pressure, or the charge or fuel level on the car, for its history, and the (i) on a card for what it shows. Press and hold a card, or use Edit layout, to move, hide or show cards. Which cards appear follows the car's type, which you can set by hand under Settings > Vehicle."
   },
   "statistics": {
     "insightsSectionLabel": "Statistics insights",
@@ -178,7 +179,8 @@
       "efficiency": "Efficiency ({unit})",
       "total": "Total",
       "needsLongerPeriod": "Shown for a period of more than one month"
-    }
+    },
+    "subtitle": "Figures for the period under Filters, worked out from the trips and readings the car reported. Charts show a point per day up to about three months, per week up to a year and per month beyond, and a period over a month adds a table per month. The (i) on a card says how its figure is worked out. Press and hold a card, or use Edit layout, to move or hide cards."
   },
   "directions": {
     "google": "Walking directions in Google Maps",
@@ -489,7 +491,8 @@
     "inProgress": "Trip in progress",
     "durationMinutes": "{n} min",
     "durationHoursMinutes": "{h}h {m}m",
-    "editRoute": "Edit route"
+    "editRoute": "Edit route",
+    "subtitle": "Every trip in the period under Filters, with a heatmap of the roads you drive most. Pick a trip in the list or on the map to see its route along the roads it took. The buttons on the map centre it on the car and choose what it draws, such as speed colours, speed limits, and charging or fuel stations. Dotted stretches were recorded by a phone rather than the car, and the pencil on a selected trip fixes a route the car got wrong."
   },
   "pwa": {
     "install": {
@@ -943,7 +946,7 @@
   },
   "tripLog": {
     "title": "Trip log",
-    "subtitle": "Record what each trip was for, with the addresses and odometer readings a tax trip log asks for, and export it as a spreadsheet under Settings > Data & API. Trips appear here a few minutes after the car parks.",
+    "subtitle": "Record what each trip was for, with the addresses and odometer readings a tax trip log asks for, and export it as a spreadsheet under Settings > Data & API. Trips appear here a few minutes after the car parks. Trips between home and work are marked as commutes: set the places under Settings > Vehicle > Home and work, or from a trip's start or end.",
     "year": "Year",
     "month": "Month",
     "wholeYear": "Whole year",
@@ -1127,7 +1130,7 @@
   },
   "maintenance": {
     "title": "Maintenance",
-    "subtitle": "Track recurring service items for your car and get notified when they come due.",
+    "subtitle": "Keep the car's service items, each with a distance interval, a time interval or both, whichever comes first. An item is due soon at 90 % of its interval, and a notification comes then and once it is overdue. Logging a service starts its interval again, and its cost adds up at the top.",
     "addItem": "Add item",
     "editItem": "Edit item",
     "delete": "Delete",
@@ -1183,7 +1186,7 @@
   },
   "climateSchedules": {
     "title": "Climate schedules",
-    "subtitle": "Warm or cool the car before you leave. Schedules run on the GarageStack server, so your phone can stay off.",
+    "subtitle": "Warm or cool the car before you leave. Schedules run on the GarageStack server, so your phone can stay off. A schedule can run only on cold or warm days, going by the car's outside temperature. Each run sends a notification saying whether the car started climate, and a run the server finds more than 10 minutes late is skipped.",
     "addSchedule": "Add schedule",
     "editSchedule": "Edit schedule",
     "delete": "Delete",

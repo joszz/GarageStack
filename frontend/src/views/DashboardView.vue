@@ -258,7 +258,7 @@ onUnmounted(() => {
       @basemap="backdropBasemap = $event"
     />
 
-    <ViewHeader :title="t('dashboard.title')">
+    <ViewHeader :title="t('dashboard.title')" :subtitle="t('dashboard.subtitle')">
       <template #actions>
         <span v-if="store.loading && status" class="refresh-indicator text-muted" role="status">
           <font-awesome-icon icon="spinner" spin />

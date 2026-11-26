@@ -37,7 +37,7 @@
   },
   "chargeHistory": {
     "title": "Laadgeschiedenis",
-    "subtitle": "Laadsessies samengesteld uit opgeslagen laadstatussen. Batterij-energie is de verandering in de door de auto gemelde kWh; overige gegevens hangen af van beschikbare telemetrie.",
+    "subtitle": "Elke laadbeurt in de periode onder Filters, samengesteld uit wat de auto tijdens het laden meldde. Open een sessie voor het laadvermogen in de tijd, waar er geladen werd, en de afstand en energie sinds de laadbeurt ervoor. De kWh zijn de verandering in de batterijstand die de auto zelf meldt, niet wat de laadpaal leverde.",
     "periodDesc": "De dagen waarvan de laadsessies worden getoond en opgeteld.",
     "sessions": "Sessies",
     "timeCharging": "Laadtijd",
@@ -110,7 +110,8 @@
       "maintenance": "Aankomende en verlopen onderhoudsitems op basis van de servicetermijnen die je zelf instelt. Klik door naar de onderhoudspagina om items toe te voegen of een uitgevoerde service te registreren.",
       "rdw": "De vervaldatum van de APK en de dagen die resten, openstaande terugroepacties en de WAM-verzekering, zoals de RDW ze voor het Nederlandse kenteken heeft geregistreerd. Klik voor de gevolgen en het herstel van elke terugroepactie.",
       "climateSchedule": "Wanneer een klimaatschema de auto weer voorverwarmt of koelt"
-    }
+    },
+    "subtitle": "Wat de auto het laatst meldde. Een geparkeerde auto meldt zich maar af en toe, dus het menu toont wanneer deze waarden zijn vastgelegd, en Vernieuwen vraagt de auto om nieuwe. Tik op een bandenspanning, of op het laad- of brandstofniveau bij de auto, voor de geschiedenis, en op de (i) van een kaart voor wat die toont. Houd een kaart ingedrukt, of gebruik Indeling bewerken, om kaarten te verplaatsen, te verbergen of te tonen. Welke kaarten er zijn hangt af van het type auto, dat je zelf kunt instellen onder Instellingen > Voertuig."
   },
   "statistics": {
     "insightsSectionLabel": "Statistiekoverzicht",
@@ -178,7 +179,8 @@
       "efficiency": "Verbruik ({unit})",
       "total": "Totaal",
       "needsLongerPeriod": "Zichtbaar bij een periode van meer dan een maand"
-    }
+    },
+    "subtitle": "Cijfers over de periode onder Filters, berekend uit de ritten en waarden die de auto meldde. Grafieken tonen een punt per dag tot ongeveer drie maanden, per week tot een jaar en per maand daarboven, en een periode langer dan een maand krijgt een tabel per maand. De (i) van een kaart vertelt hoe het cijfer berekend is. Houd een kaart ingedrukt, of gebruik Indeling bewerken, om kaarten te verplaatsen of te verbergen."
   },
   "directions": {
     "google": "Looproute in Google Maps",
@@ -489,7 +491,8 @@
     "inProgress": "Rit onderweg",
     "durationMinutes": "{n} min",
     "durationHoursMinutes": "{h} u {m} min",
-    "editRoute": "Route bewerken"
+    "editRoute": "Route bewerken",
+    "subtitle": "Alle ritten in de periode onder Filters, met een heatmap van de wegen waar je het meest rijdt. Kies een rit in de lijst of op de kaart om de route over de gereden wegen te zien. De knoppen op de kaart centreren die op de auto en kiezen wat de kaart tekent, zoals snelheidskleuren, snelheidslimieten en laad- of tankstations. Gestippelde stukken zijn door een telefoon vastgelegd in plaats van door de auto, en met het potlood bij een gekozen rit herstel je een route die de auto verkeerd vastlegde."
   },
   "pwa": {
     "install": {
@@ -943,7 +946,7 @@
   },
   "tripLog": {
     "title": "Rittenregistratie",
-    "subtitle": "Leg per rit vast waarvoor die was, met de adressen en kilometerstanden die een rittenregistratie vraagt, en exporteer de registratie als spreadsheet onder Instellingen > Data & API. Ritten verschijnen hier een paar minuten nadat de auto geparkeerd is.",
+    "subtitle": "Leg per rit vast waarvoor die was, met de adressen en kilometerstanden die een rittenregistratie vraagt, en exporteer de registratie als spreadsheet onder Instellingen > Data & API. Ritten verschijnen hier een paar minuten nadat de auto geparkeerd is. Ritten tussen thuis en werk worden als woon-werk ingedeeld: stel de plaatsen in onder Instellingen > Voertuig > Thuis en werk, of vanaf het begin of eind van een rit.",
     "year": "Jaar",
     "month": "Maand",
     "wholeYear": "Heel het jaar",
@@ -1127,7 +1130,7 @@
   },
   "maintenance": {
     "title": "Onderhoud",
-    "subtitle": "Houd terugkerende onderhoudsitems voor je auto bij en ontvang een melding als ze verschuldigd zijn.",
+    "subtitle": "Houd de onderhoudsitems van de auto bij, elk met een afstandsinterval, een tijdsinterval of beide, wat het eerst komt. Een item is bijna verschuldigd bij 90 % van het interval; je krijgt dan een melding, en opnieuw zodra het verlopen is. Een onderhoudsbeurt vastleggen laat het interval opnieuw beginnen, en de kosten tellen bovenaan op.",
     "addItem": "Item toevoegen",
     "editItem": "Item bewerken",
     "delete": "Verwijderen",
@@ -1183,7 +1186,7 @@
   },
   "climateSchedules": {
     "title": "Klimaatschema's",
-    "subtitle": "Verwarm of koel de auto voordat je vertrekt. Schema's draaien op de GarageStack-server, dus je telefoon mag uit.",
+    "subtitle": "Verwarm of koel de auto voordat je vertrekt. Schema's draaien op de GarageStack-server, dus je telefoon mag uit. Een schema kan alleen op koude of warme dagen draaien, op basis van de buitentemperatuur die de auto meet. Elke keer dat een schema draait, krijg je een melding of de auto de klimaatregeling startte, en een keer die de server meer dan 10 minuten te laat ziet, wordt overgeslagen.",
     "addSchedule": "Schema toevoegen",
     "editSchedule": "Schema bewerken",
     "delete": "Verwijderen",

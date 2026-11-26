@@ -431,7 +431,11 @@ const skeletonChartCount = computed(
 
 <template>
   <div class="view-container">
-    <ViewHeader :title="t('nav.statistics')" :caption="periodLabel">
+    <ViewHeader
+      :title="t('nav.statistics')"
+      :caption="periodLabel"
+      :subtitle="t('statistics.subtitle')"
+    >
       <template #actions>
         <PeriodFilterPanel
           v-model="uiSettings.statsPeriod"

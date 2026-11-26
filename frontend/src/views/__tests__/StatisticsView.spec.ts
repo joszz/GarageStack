@@ -160,6 +160,15 @@ describe('StatisticsView', () => {
   })
 
   // The last 30 days are the 30 before today, and today.
+  // Where the figures come from and how the charts group the days.
+  it('explains the page behind its info button', async () => {
+    const wrapper = await mountView()
+
+    expect(wrapper.findComponent({ name: 'ViewHeader' }).props('subtitle')).toBe(
+      en.statistics.subtitle,
+    )
+  })
+
   it('loads the last 30 days for the car', async () => {
     await mountView()
 

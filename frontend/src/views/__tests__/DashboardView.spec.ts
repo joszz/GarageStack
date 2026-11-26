@@ -109,6 +109,15 @@ describe('DashboardView', () => {
     Reflect.deleteProperty(navigator, 'serviceWorker')
   })
 
+  // What a parked car's readings mean, where the history is, and how to rearrange the cards.
+  it('explains the page behind its info button', async () => {
+    const wrapper = await mountView()
+
+    expect(wrapper.findComponent({ name: 'ViewHeader' }).props('subtitle')).toBe(
+      en.dashboard.subtitle,
+    )
+  })
+
   it('loads everything the cards show for the car', async () => {
     await mountView()
 
