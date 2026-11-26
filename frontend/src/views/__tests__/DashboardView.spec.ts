@@ -265,6 +265,28 @@ describe('DashboardView', () => {
     expect(overview.find('.card').exists()).toBe(false)
   })
 
+  // Edit mode gave the row a top margin of its own, so every card dropped as editing began.
+  it('keeps the overview row spaced the same while editing, so no card moves', async () => {
+    const wrapper = await mountView()
+    const spacing = () =>
+      wrapper
+        .get('.overview-row')
+        .classes()
+        .filter((name) => /^m[tb]-/.test(name))
+        .sort()
+    const before = spacing()
+
+    await wrapper
+      .findAll('button')
+      .find((b) => b.text() === en.dashboard.editLayout)!
+      .trigger('click')
+    await vi.dynamicImportSettled()
+    await flushPromises()
+
+    expect(wrapper.get('.overview-row').classes()).toContain('card-grid')
+    expect(spacing()).toEqual(before)
+  })
+
   // Issue #570: a card the car sends nothing for showed as a placeholder while editing and then
   // vanished on Done, with nothing saying why.
   it('says while editing which shown cards stay hidden until the car reports them', async () => {

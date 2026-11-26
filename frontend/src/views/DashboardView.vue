@@ -270,10 +270,11 @@ onUnmounted(() => {
 
     <!-- Edit mode: same grid with draggable card-slot wrappers -->
     <template v-if="editMode">
-      <!-- Tyre diagram + location map: shown or hidden, and swapped with each other only -->
+      <!-- Tyre diagram + location map: shown or hidden, and swapped with each other only. Spaced
+           like the row outside edit mode, so no card moves when editing starts. -->
       <EditableCardGrid
         v-model="settings.overview"
-        class="overview-row mt-4 mb-4"
+        class="overview-row mb-4"
         :slot-class="(part) => `card-slot--large ${OVERVIEW_PARTS[part.id].className}`"
         @toggle-visible="(part) => settings.toggleOverview(part.id)"
       >
