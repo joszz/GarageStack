@@ -203,6 +203,13 @@ describe('MapView', () => {
     return new Date(now.getFullYear(), now.getMonth(), now.getDate() - days).toISOString()
   }
 
+  // What the heatmap, the dotted stretches and the icon-only map buttons are.
+  it('explains the page behind its info button', async () => {
+    const wrapper = await mountView()
+
+    expect(wrapper.findComponent({ name: 'ViewHeader' }).props('subtitle')).toBe(en.trips.subtitle)
+  })
+
   it("loads the car's position and the trips of the date filter's days", async () => {
     useUiSettingsStore(pinia).mapPeriod = presetPeriod('last7')
     await mountView()

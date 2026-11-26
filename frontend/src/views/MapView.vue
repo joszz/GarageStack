@@ -427,7 +427,7 @@ onMounted(async () => {
 
 <template>
   <div class="view-container view-container--map">
-    <ViewHeader :title="t('nav.map')" :caption="periodLabel">
+    <ViewHeader :title="t('nav.map')" :caption="periodLabel" :subtitle="t('trips.subtitle')">
       <template #actions>
         <!-- Filters narrow what the map draws; the layer button on the map decides what it draws
              at all. -->

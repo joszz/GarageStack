@@ -37,7 +37,7 @@
   },
   "chargeHistory": {
     "title": "Histórico de carregamento",
-    "subtitle": "Sessões reconstruídas a partir dos estados de carregamento registrados. A energia é a variação dos kWh da bateria informados pelo carro; os demais dados dependem da telemetria disponível.",
+    "subtitle": "Cada carregamento do período escolhido em Filtros, reconstruído a partir do que o carro informou enquanto carregava. Abra uma sessão para ver a curva de potência, onde carregou e a distância e a energia desde o carregamento anterior. Os kWh são a variação na leitura da bateria do próprio carro, não o que o carregador forneceu.",
     "periodDesc": "Os dias cujas sessões de carregamento são exibidas e somadas.",
     "sessions": "Sessões",
     "timeCharging": "Tempo de carregamento",
@@ -110,7 +110,8 @@
       "maintenance": "Itens de manutenção próximos e vencidos, com base nos intervalos de revisão que você definiu. Clique para ir à página de Manutenção, onde você pode adicionar itens ou registrar uma revisão concluída.",
       "rdw": "A data de vencimento da APK e os dias restantes, os recalls em aberto e o seguro WAM, conforme constam no RDW para a placa holandesa do carro. Clique para ver o risco e o reparo de cada recall.",
       "climateSchedule": "Quando um agendamento de climatização vai aquecer ou resfriar o carro da próxima vez"
-    }
+    },
+    "subtitle": "O que o carro informou por último. Um carro estacionado só se comunica de vez em quando, então o menu mostra quando estes dados foram registrados, e Atualizar pede dados novos ao carro. Toque na pressão de um pneu, ou no nível de carga ou de combustível junto ao carro, para ver o histórico, e no (i) de um cartão para saber o que ele mostra. Mantenha um cartão pressionado, ou use Editar layout, para mover, ocultar ou mostrar cartões. Os cartões que aparecem dependem do tipo do carro, que você pode definir manualmente em Configurações > Veículo."
   },
   "statistics": {
     "insightsSectionLabel": "Destaques das estatísticas",
@@ -178,7 +179,8 @@
       "efficiency": "Eficiência ({unit})",
       "total": "Total",
       "needsLongerPeriod": "Mostrado com um período de mais de um mês"
-    }
+    },
+    "subtitle": "Números do período escolhido em Filtros, calculados a partir das viagens e dos dados que o carro informou. Os gráficos mostram um ponto por dia até cerca de três meses, por semana até um ano e por mês além disso, e um período de mais de um mês ganha uma tabela por mês. O (i) de um cartão explica como o número é calculado. Mantenha um cartão pressionado, ou use Editar layout, para mover ou ocultar cartões."
   },
   "directions": {
     "google": "Rota a pé no Google Maps",
@@ -489,7 +491,8 @@
     "inProgress": "Viagem em andamento",
     "durationMinutes": "{n} min",
     "durationHoursMinutes": "{h}h {m}min",
-    "editRoute": "Editar rota"
+    "editRoute": "Editar rota",
+    "subtitle": "Todas as viagens do período escolhido em Filtros, com um mapa de calor das vias por onde você mais dirige. Escolha uma viagem na lista ou no mapa para ver a rota pelas vias que ela percorreu. Os botões no mapa o centralizam no carro e escolhem o que ele desenha, como cores de velocidade, limites de velocidade e eletropostos ou postos de combustível. Trechos pontilhados foram registrados por um celular, não pelo carro, e o lápis de uma viagem selecionada corrige uma rota que o carro registrou errado."
   },
   "pwa": {
     "install": {
@@ -943,7 +946,7 @@
   },
   "tripLog": {
     "title": "Registro de viagens",
-    "subtitle": "Registre a finalidade de cada viagem, com os endereços e as leituras do odômetro que um registro de viagens para fins fiscais exige, e exporte o registro como planilha em Configurações > Dados e API. As viagens aparecem aqui alguns minutos depois que o carro estaciona.",
+    "subtitle": "Registre a finalidade de cada viagem, com os endereços e as leituras do odômetro que um registro de viagens para fins fiscais exige, e exporte o registro como planilha em Configurações > Dados e API. As viagens aparecem aqui alguns minutos depois que o carro estaciona. As viagens entre casa e trabalho são marcadas como casa-trabalho: defina os locais em Configurações > Veículo > Casa e trabalho, ou a partir do início ou do fim de uma viagem.",
     "year": "Ano",
     "month": "Mês",
     "wholeYear": "Ano inteiro",
@@ -1127,7 +1130,7 @@
   },
   "maintenance": {
     "title": "Manutenção",
-    "subtitle": "Acompanhe as revisões recorrentes do seu carro e receba um aviso quando vencerem.",
+    "subtitle": "Acompanhe as revisões do carro, cada uma com um intervalo de distância, de tempo ou ambos, o que vier primeiro. Uma revisão vence em breve aos 90 % do intervalo; você recebe um aviso nesse momento e outro quando ela vence. Registrar uma revisão reinicia o intervalo, e o custo é somado no topo.",
     "addItem": "Adicionar item",
     "editItem": "Editar item",
     "delete": "Excluir",
@@ -1183,7 +1186,7 @@
   },
   "climateSchedules": {
     "title": "Agendamentos de climatização",
-    "subtitle": "Aqueça ou resfrie o carro antes de sair. Os agendamentos rodam no servidor do GarageStack, então seu celular pode ficar desligado.",
+    "subtitle": "Aqueça ou resfrie o carro antes de sair. Os agendamentos rodam no servidor do GarageStack, então seu celular pode ficar desligado. Um agendamento pode rodar só em dias frios ou quentes, conforme a temperatura externa do carro. Cada execução envia um aviso dizendo se o carro ligou a climatização, e uma execução que o servidor encontra com mais de 10 minutos de atraso é pulada.",
     "addSchedule": "Adicionar agendamento",
     "editSchedule": "Editar agendamento",
     "delete": "Excluir",
