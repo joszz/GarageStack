@@ -21,6 +21,9 @@ import { useGatewayStatus } from '@/composables/useGatewayStatus'
 import { useSettledAvailability } from '@/composables/useSettledAvailability'
 import { useFavicon } from '@/composables/useFavicon'
 import { usePageTitle } from '@/composables/usePageTitle'
+import { useRefresh } from '@/composables/useRefresh'
+import { useMediaQuery } from '@/composables/useMediaQuery'
+import { PHONE_MEDIA_QUERY } from '@/utils/viewport'
 import { useScreenWakeLock } from '@/composables/useScreenWakeLock'
 import { usePhoneGpsRecorder } from '@/composables/usePhoneGpsRecorder'
 import { useRelativeTime } from '@/composables/useRelativeTime'
@@ -181,6 +184,18 @@ const lastFetched = computed(() => {
   if (!d) return null
   return formatTime(d)
 })
+
+// On a phone, where the footer and its Refresh button are hidden, the menu's "Fetched" line asks
+// the car for fresh data itself, its turning icon in the place the other lines have theirs.
+const { canRefresh, refreshing, disabled: refreshDisabled, refresh } = useRefresh()
+const isPhone = useMediaQuery(PHONE_MEDIA_QUERY)
+const refreshFromMenu = computed(() => isPhone.value && canRefresh.value)
+const refreshLineAttrs = computed(() => ({
+  type: 'button',
+  disabled: refreshDisabled.value,
+  title: t('control.refresh'),
+  'aria-label': t('control.refreshFetched', { time: lastFetched.value }),
+}))
 
 const lastRecorded = computed(() => {
   const ts = vehicleStore.currentStatus?.recordedAt
@@ -374,27 +389,30 @@ watch(
               >
             </template>
           </div>
-          <!-- v-show, not v-if: AppFooter moves Refresh into this line on a phone, and a line
-               rebuilt after hiding would leave the button in the old one. -->
-          <div v-show="isInitialLoading || lastFetched" class="sidebar-timestamp">
-            <template v-if="isInitialLoading">
-              <span class="skeleton skeleton--icon" />
-              <span class="skeleton skeleton--text skeleton--text-sm" />
-            </template>
-            <template v-else>
-              <font-awesome-icon
-                icon="rotate"
-                class="sidebar-timestamp__icon"
-                :spin="vehicleStore.loading"
-                aria-hidden="true"
-              />
-              <span class="sidebar-footer__text" :title="`${t('common.fetched')} ${lastFetched}`"
-                >{{ t('common.fetched') }} {{ lastFetched }}</span
-              >
-            </template>
-            <!-- Refresh, which AppFooter moves here on a phone: beside the time it renews. -->
-            <span id="sidebar-refresh" class="sidebar-timestamp__action" />
+          <div v-if="isInitialLoading" class="sidebar-timestamp">
+            <span class="skeleton skeleton--icon" />
+            <span class="skeleton skeleton--text skeleton--text-sm" />
           </div>
+          <!-- On a phone the fetched time is also the way to renew it, as the footer and its
+               Refresh button are hidden there. -->
+          <component
+            :is="refreshFromMenu ? 'button' : 'div'"
+            v-else-if="lastFetched"
+            class="sidebar-timestamp"
+            :class="{ 'sidebar-timestamp--refresh': refreshFromMenu }"
+            v-bind="refreshFromMenu ? refreshLineAttrs : {}"
+            @click="refreshFromMenu && refresh()"
+          >
+            <font-awesome-icon
+              icon="rotate"
+              class="sidebar-timestamp__icon"
+              :spin="refreshing"
+              aria-hidden="true"
+            />
+            <span class="sidebar-footer__text" :title="`${t('common.fetched')} ${lastFetched}`"
+              >{{ t('common.fetched') }} {{ lastFetched }}</span
+            >
+          </component>
           <div v-if="isInitialLoading || lastRecorded" class="sidebar-timestamp">
             <template v-if="isInitialLoading">
               <span class="skeleton skeleton--icon" />

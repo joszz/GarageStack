@@ -443,19 +443,33 @@
   white-space: nowrap;
 }
 
-/* Refresh, which AppFooter moves here on a phone, at the end of the line with the time it renews.
-   It reaches into the line's padding, so the line grows no more than the touch target needs. */
-.sidebar-timestamp__action {
-  display: flex;
-  margin-block: -0.25rem;
-  margin-left: auto;
-  margin-right: -0.5rem;
+/* On a phone the "Fetched" line is the Refresh button (App.vue). Its icon and words stay where the
+   lines around it have theirs; what marks it as something to press is its icon in the accent
+   colour and a soft rounded ground, as tall as a finger needs, that brightens under a press. */
+.sidebar-timestamp--refresh {
+  width: 100%;
+  min-height: var(--touch-target);
+  margin-block: 0.25rem;
+  border: none;
+  border-radius: 6px;
+  background: var(--field-bg);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
 }
 
-/* The line's own turning icon gives way to the button, which turns while a refresh runs. Its place
-   stays, so the text keeps in line with the lines under it. */
-.sidebar-timestamp:has(.sidebar-timestamp__action > *) .sidebar-timestamp__icon {
-  visibility: hidden;
+.sidebar-timestamp--refresh .sidebar-timestamp__icon {
+  color: var(--color-primary-light);
+}
+
+.sidebar-timestamp--refresh:hover:not(:disabled) {
+  background: var(--color-surface-2);
+  color: var(--color-text);
+}
+
+/* While a refresh runs the icon turns; the line waits rather than greying out. */
+.sidebar-timestamp--refresh:disabled {
+  cursor: progress;
 }
 
 .sidebar-user__email {
