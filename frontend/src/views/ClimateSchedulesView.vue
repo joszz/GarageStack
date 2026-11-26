@@ -79,9 +79,12 @@ function variant(schedule: ClimateSchedule): 'info' | 'warning' | undefined {
           v-if="connection.reachable"
           class="btn btn-primary"
           :disabled="!vin"
+          :title="t('climateSchedules.addSchedule')"
           @click="openAdd"
         >
-          <font-awesome-icon icon="plus" />{{ t('climateSchedules.addSchedule') }}
+          <font-awesome-icon icon="plus" /><span class="btn__label">{{
+            t('climateSchedules.addSchedule')
+          }}</span>
         </button>
       </template>
     </ViewHeader>

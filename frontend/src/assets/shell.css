@@ -59,7 +59,8 @@
   flex-shrink: 0;
 }
 
-/* Refresh and Settings (teleported in by AppFooter) and the bell, as one group. */
+/* The page's own buttons (teleported in by ViewHeader), Settings (by AppFooter) and the bell, as
+   one group. */
 .mobile-topbar__actions {
   display: flex;
   align-items: center;
@@ -76,30 +77,36 @@
   background: var(--color-surface-2);
 }
 
-/* The app's car, the way home. The page's heading beside it says where you are. */
-.mobile-brand {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: var(--touch-target);
-  height: var(--touch-target);
-  flex-shrink: 0;
-  margin-left: calc(-1 * var(--topbar-icon-inset));
-  font-size: var(--topbar-icon-size);
-  color: var(--color-primary);
-  border-radius: 6px;
-  text-decoration: none;
-}
-
-.mobile-brand:hover {
-  background: var(--color-surface-2);
-}
-
-/* The page's heading (ViewHeader moves it here on a phone), on one line: a long one ends in an
-   ellipsis rather than pushing the buttons off the bar. */
+/* The page's heading, with its caption as a second line under it (ViewHeader moves both here on
+   a phone). Each keeps to one line: a long one ends in an ellipsis rather than pushing the buttons
+   off the bar. */
 .mobile-topbar__title {
   flex: 1;
   min-width: 0;
+}
+
+.mobile-topbar__title .view-header__heading {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.mobile-topbar__title .view-header__caption {
+  min-width: 0;
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.2;
+}
+
+.mobile-topbar__title .view-header__caption span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The page's buttons join the bar's own row of buttons, with its gap. */
+.mobile-topbar .view-header__actions {
+  display: contents;
 }
 
 .mobile-topbar__title h1 {
@@ -118,9 +125,11 @@
   gap: 0;
 }
 
+/* Its negative block margin keeps the 28px hit area from spacing the caption off the heading. */
 .mobile-topbar__title .view-header__info {
   width: 28px;
   height: 28px;
+  margin-block: -4px;
   margin-left: -0.1rem;
   font-size: 0.8rem;
   transform: translateY(-0.55rem);
@@ -432,6 +441,21 @@
   font-variant-numeric: tabular-nums;
   overflow: hidden;
   white-space: nowrap;
+}
+
+/* Refresh, which AppFooter moves here on a phone, at the end of the line with the time it renews.
+   It reaches into the line's padding, so the line grows no more than the touch target needs. */
+.sidebar-timestamp__action {
+  display: flex;
+  margin-block: -0.25rem;
+  margin-left: auto;
+  margin-right: -0.5rem;
+}
+
+/* The line's own turning icon gives way to the button, which turns while a refresh runs. Its place
+   stays, so the text keeps in line with the lines under it. */
+.sidebar-timestamp:has(.sidebar-timestamp__action > *) .sidebar-timestamp__icon {
+  visibility: hidden;
 }
 
 .sidebar-user__email {

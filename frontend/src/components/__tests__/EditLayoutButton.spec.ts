@@ -3,13 +3,14 @@ import { mount } from '@vue/test-utils'
 import { createI18n } from 'vue-i18n'
 import en from '@/locales/en.json'
 import EditLayoutButton from '../EditLayoutButton.vue'
+import { InlineTeleport } from '@/__tests__/inlineTeleport'
 
 const i18n = createI18n({ legacy: false, locale: 'en', messages: { en } })
 
 function button(editing: boolean, cardsShown = true) {
   return mount(EditLayoutButton, {
     props: { modelValue: editing, cardsShown },
-    global: { plugins: [i18n], stubs: { FontAwesomeIcon: true, teleport: true } },
+    global: { plugins: [i18n], stubs: { FontAwesomeIcon: true, teleport: InlineTeleport } },
   })
 }
 

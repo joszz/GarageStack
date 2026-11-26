@@ -6,6 +6,7 @@ import en from '@/locales/en.json'
 import TripLogSummaryModal from '../TripLogSummaryModal.vue'
 import type { PeriodSummary } from '@/utils/tripLog'
 import { useUiSettingsStore } from '@/stores/settingsUi'
+import { InlineTeleport } from '@/__tests__/inlineTeleport'
 
 const i18n = createI18n({ legacy: false, locale: 'en', messages: { en } })
 
@@ -23,7 +24,7 @@ const summary: PeriodSummary = {
 function mountModal(props: { open: boolean; summary: PeriodSummary }) {
   return mount(TripLogSummaryModal, {
     props,
-    global: { plugins: [i18n], stubs: { FontAwesomeIcon: true, teleport: true } },
+    global: { plugins: [i18n], stubs: { FontAwesomeIcon: true, teleport: InlineTeleport } },
   })
 }
 

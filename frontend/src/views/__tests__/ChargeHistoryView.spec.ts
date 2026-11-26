@@ -13,6 +13,7 @@ import {
   type Vehicle,
   type VehicleType,
 } from '@/services/vehicleApi'
+import { InlineTeleport } from '@/__tests__/inlineTeleport'
 
 const replace = vi.fn<(to: unknown) => Promise<void>>()
 
@@ -110,7 +111,7 @@ function mountView() {
         },
         ChargeSessionItem: ItemStub,
         ChargeSessionDetail: DetailStub,
-        teleport: true,
+        teleport: InlineTeleport,
       },
     },
   })

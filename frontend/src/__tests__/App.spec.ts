@@ -157,15 +157,33 @@ describe('App mobile menu', () => {
 })
 
 describe('App top bar', () => {
-  // Refresh and Settings land in the slot on a phone; with the bell they form one evenly spaced
-  // group, the slot coming first so the bell stays at the far end.
+  // On a phone the page's own buttons and then Settings land in the slots; with the bell they form
+  // one evenly spaced group, the slots coming first so the bell stays at the far end.
   it('keeps the bell in one group with the teleported buttons, after them', async () => {
     const wrapper = await mountAt('/')
 
     const group = wrapper.find('.mobile-topbar__actions')
     const children = group.element.children
-    expect(children[0]?.id).toBe('mobile-topbar-actions')
+    expect(children[0]?.id).toBe('mobile-topbar-page-actions')
+    expect(children[1]?.id).toBe('mobile-topbar-actions')
     expect(children[children.length - 1]?.classList.contains('notif-bell')).toBe(true)
+  })
+
+  // The page's heading takes the room the app's car icon had: home is in the menu.
+  it('gives the page heading the bar beside the menu button', async () => {
+    const wrapper = await mountAt('/')
+
+    const bar = wrapper.get('.mobile-topbar').element.children
+    expect(bar[0]?.classList.contains('hamburger')).toBe(true)
+    expect(bar[1]?.id).toBe('mobile-topbar-title')
+  })
+
+  // Refresh moves next to the time it renews, which stays in the page while it hides, so the
+  // button moved into it is never left in a removed line.
+  it('keeps a place for Refresh on the fetched line of the menu', async () => {
+    const wrapper = await mountAt('/')
+
+    expect(wrapper.find('.sidebar-timestamp #sidebar-refresh').exists()).toBe(true)
   })
 })
 

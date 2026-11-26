@@ -88,7 +88,7 @@ describe('AppFooter', () => {
     expect(wrapper.findComponent({ name: 'SettingsModal' }).props('open')).toBe(true)
   })
 
-  it('moves the buttons to the top bar and the copyright to the menu on a phone', async () => {
+  it('moves Settings to the top bar, Refresh and the copyright to the menu on a phone', async () => {
     vi.stubGlobal('matchMedia', (query: string) => ({
       matches: query === PHONE_MEDIA_QUERY,
       media: query,
@@ -99,6 +99,8 @@ describe('AppFooter', () => {
     topbar.id = 'mobile-topbar-actions'
     const menu = document.body.appendChild(document.createElement('div'))
     menu.id = 'sidebar-meta'
+    const fetchedLine = document.body.appendChild(document.createElement('div'))
+    fetchedLine.id = 'sidebar-refresh'
 
     const wrapper = mount(AppFooter, {
       attachTo: document.body,
@@ -107,12 +109,16 @@ describe('AppFooter', () => {
     await flushPromises()
 
     expect(topbar.querySelector('button[aria-label="settings.title"]')).not.toBeNull()
+    // Refresh sits beside the time it renews, no longer in the top bar.
+    expect(fetchedLine.querySelector('button[aria-label="control.refresh"]')).not.toBeNull()
+    expect(topbar.querySelector('button[aria-label="control.refresh"]')).toBeNull()
     expect(menu.querySelector('.app-footer__copyright')).not.toBeNull()
     expect(wrapper.find('.app-footer__copyright').exists()).toBe(false)
 
     wrapper.unmount()
     topbar.remove()
     menu.remove()
+    fetchedLine.remove()
     vi.unstubAllGlobals()
   })
 

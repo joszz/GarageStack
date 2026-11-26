@@ -980,20 +980,18 @@ body,
     display: flex;
   }
 
-  /* The footer's row goes back to the page: AppFooter moves Refresh and Settings into the top
-     bar and the copyright and update notice into the menu. */
+  /* The footer's row goes back to the page: AppFooter moves Settings into the top bar, Refresh
+     into the menu beside the time it renews, and the copyright and update notice into the menu. */
   .app-footer {
     display: none;
   }
 
-  .mobile-topbar .app-footer__actions {
-    display: flex;
-    align-items: center;
-    gap: var(--topbar-gap);
-  }
-
-  /* Drawn like the bell beside them: an icon, no box. */
-  .mobile-topbar .app-footer__btn {
+  /* The top bar's buttons (the page's own from ViewHeader, then Settings) and Refresh in the menu
+     are drawn like the bell: an icon in a touch-sized square, no box. A page button's words stay
+     for screen readers and in its tooltip. */
+  .mobile-topbar .app-footer__btn,
+  .mobile-topbar .view-header__actions .btn,
+  .sidebar-timestamp__action .app-footer__btn {
     width: var(--touch-target);
     height: var(--touch-target);
     padding: 0;
@@ -1001,35 +999,56 @@ body,
     background: none;
     border: none;
     border-radius: 6px;
+    color: var(--color-text-muted);
     font-size: var(--topbar-icon-size);
   }
 
-  .mobile-topbar .app-footer__btn:hover {
+  .mobile-topbar .app-footer__btn:hover,
+  .mobile-topbar .view-header__actions .btn:hover,
+  .sidebar-timestamp__action .app-footer__btn:hover {
     background: var(--color-surface-2);
+    color: var(--color-text);
   }
 
-  .mobile-topbar .app-footer__btn-label {
+  /* Add keeps the accent it has as a page's main button, and Live its green while on. */
+  .mobile-topbar .view-header__actions .btn-primary {
+    color: var(--color-primary-light);
+  }
+
+  .mobile-topbar .view-header__actions .btn[aria-pressed='true'] {
+    color: var(--color-success);
+  }
+
+  .mobile-topbar .app-footer__btn-label,
+  .sidebar-timestamp__action .app-footer__btn-label {
     display: none;
   }
 
-  /* The page's actions keep the small button's text and padding (their height stays the touch
-     target), so three of them still fit beside a short title such as the map's. */
-  .view-header__actions .btn {
-    font-size: 0.78rem;
-    padding-inline: 0.65rem;
+  .mobile-topbar .btn__label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
   }
 
-  /* The heading and its info button have gone up to the top bar, so the row keeps the caption and
-     the actions, on one middle. */
-  .view-header {
-    align-items: center;
+  /* A filter count sits on the icon's corner, as the bell's count does. */
+  .mobile-topbar .toolbar-panel__btn .toolbar-panel__count {
+    top: 2px;
+    right: 2px;
+    transform: none;
+    border-color: var(--color-surface);
   }
 
-  .view-header__caption {
-    margin: 0;
+  /* The dashboard's refresh spinner floats beside the actions, which in the top bar would put it
+     on the title; Refresh in the menu spins instead. */
+  .mobile-topbar .refresh-indicator {
+    display: none;
   }
 
-  /* With no caption and no actions left, the row would be an empty band above the first card. */
+  /* With its heading, caption and actions in the top bar, a page's own row would be an empty band
+     above the first card. */
   .view-header:not(:has(.view-header__caption, .view-header__actions > *)) {
     display: none;
   }

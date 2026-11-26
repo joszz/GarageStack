@@ -5,6 +5,7 @@ import { createI18n } from 'vue-i18n'
 import en from '@/locales/en.json'
 import TripLogFilterPanel from '../TripLogFilterPanel.vue'
 import type { TripLogPeriod } from '@/utils/tripLog'
+import { InlineTeleport } from '@/__tests__/inlineTeleport'
 
 const i18n = createI18n({ legacy: false, locale: 'en', messages: { en } })
 
@@ -14,7 +15,7 @@ const thisMonth: TripLogPeriod = { year: 2026, month: 10 }
 function mountPanel(props: { period: TripLogPeriod; showHidden: boolean; hiddenCount: number }) {
   return mount(TripLogFilterPanel, {
     props,
-    global: { plugins: [i18n], stubs: { FontAwesomeIcon: true, teleport: true } },
+    global: { plugins: [i18n], stubs: { FontAwesomeIcon: true, teleport: InlineTeleport } },
   })
 }
 

@@ -80,7 +80,12 @@ const activeCount = computed(() => {
 </script>
 
 <template>
-  <ToolbarPanel :title="t('common.layers')" icon="layer-group" :count="activeCount">
+  <ToolbarPanel
+    :title="t('common.layers')"
+    icon="layer-group"
+    variant="map-control"
+    :count="activeCount"
+  >
     <template #navigation>
       <SettingsTabs
         v-model="activeTab"

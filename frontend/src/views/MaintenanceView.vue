@@ -86,9 +86,12 @@ watch(vin, (v) => {
           v-if="connection.reachable"
           class="btn btn-primary"
           :disabled="!vin"
+          :title="t('maintenance.addItem')"
           @click="openAdd"
         >
-          <font-awesome-icon icon="plus" />{{ t('maintenance.addItem') }}
+          <font-awesome-icon icon="plus" /><span class="btn__label">{{
+            t('maintenance.addItem')
+          }}</span>
         </button>
       </template>
     </ViewHeader>

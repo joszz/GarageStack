@@ -39,8 +39,9 @@ const copyrightLabel = ['© 2026 GarageStack', APP_VERSION].filter(Boolean).join
 
 const vin = computed(() => vehicleStore.activeVin)
 
-// A phone hides the footer and gives its row to the page: the buttons go to the top bar and the
-// copyright and update notice to the bottom of the menu (both targets are in App.vue).
+// A phone hides the footer and gives its row to the page: Settings goes to the top bar, Refresh to
+// the menu beside the time it renews, and the copyright and update notice to the bottom of the
+// menu (every target is in App.vue).
 const isPhone = useMediaQuery(PHONE_MEDIA_QUERY)
 
 function refresh() {
@@ -76,24 +77,27 @@ function refresh() {
         </a>
       </div>
     </Teleport>
-    <Teleport defer to="#mobile-topbar-actions" :disabled="!isPhone">
-      <div class="app-footer__actions">
+    <div class="app-footer__actions">
+      <Teleport defer to="#sidebar-refresh" :disabled="!isPhone">
         <button
           v-if="canSend"
           class="app-footer__btn"
           :aria-label="t('control.refresh')"
+          :title="t('control.refresh')"
           :disabled="vehicleStore.loading || sending === 'refresh' || !vin"
           @click="refresh"
         >
           <font-awesome-icon icon="rotate" :spin="vehicleStore.loading || sending === 'refresh'" />
           <span class="app-footer__btn-label">{{ t('control.refresh') }}</span>
         </button>
+      </Teleport>
+      <Teleport defer to="#mobile-topbar-actions" :disabled="!isPhone">
         <button class="app-footer__btn" :aria-label="t('settings.title')" @click="openModal">
           <font-awesome-icon icon="gear" />
           <span class="app-footer__btn-label">{{ t('settings.title') }}</span>
         </button>
-      </div>
-    </Teleport>
+      </Teleport>
+    </div>
   </footer>
 
   <component :is="settingsModal" v-if="settingsModal" :open="modalOpen" @close="closeModal" />

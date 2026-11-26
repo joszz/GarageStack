@@ -10,8 +10,15 @@ import DetailModal from './DetailModal.vue'
  *
  * @param count How many of the panel's settings are doing something right now, shown as a badge
  *   on the button so the panel does not have to be opened to find out. Hidden when zero.
+ * @param variant `map-control` draws the button as one of the map's own buttons, an icon beside
+ *   the zoom control, rather than a header button with its label.
  */
-const props = defineProps<{ title?: string; icon?: string; count?: number }>()
+const props = defineProps<{
+  title?: string
+  icon?: string
+  count?: number
+  variant?: 'button' | 'map-control'
+}>()
 
 const { t } = useI18n()
 const isOpen = ref(false)
@@ -32,11 +39,27 @@ const buttonLabel = computed(() =>
 <template>
   <div>
     <button
-      class="btn btn-outline-secondary toolbar-panel__btn"
+      v-if="variant === 'map-control'"
+      type="button"
+      class="map-control-btn toolbar-panel__btn"
+      aria-haspopup="dialog"
       :aria-label="buttonLabel"
+      :title="label"
       @click="isOpen = true"
     >
-      <font-awesome-icon :icon="iconName" />{{ label }}
+      <font-awesome-icon :icon="iconName" />
+      <span v-if="activeCount > 0" class="toolbar-panel__count" aria-hidden="true">
+        {{ activeCount }}
+      </span>
+    </button>
+    <button
+      v-else
+      class="btn btn-outline-secondary toolbar-panel__btn"
+      :aria-label="buttonLabel"
+      :title="label"
+      @click="isOpen = true"
+    >
+      <font-awesome-icon :icon="iconName" /><span class="btn__label">{{ label }}</span>
       <span v-if="activeCount > 0" class="toolbar-panel__count" aria-hidden="true">
         {{ activeCount }}
       </span>

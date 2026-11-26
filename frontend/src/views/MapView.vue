@@ -429,19 +429,13 @@ onMounted(async () => {
   <div class="view-container view-container--map">
     <ViewHeader :title="t('nav.map')" :caption="periodLabel">
       <template #actions>
-        <!-- Filters narrow what the map draws; the layer panel beside it decides what it draws
+        <!-- Filters narrow what the map draws; the layer button on the map decides what it draws
              at all. -->
         <MapFilterPanel
           :car-takes-fuel="carTakesFuel"
           :car-takes-charge="carTakesCharge"
           :fuel-brands="availableFuelBrands"
           :brands-loading="brandsLoading"
-        />
-        <MapLayerPanel
-          :car-takes-fuel="carTakesFuel"
-          :car-takes-charge="carTakesCharge"
-          :speed-cameras-available="speedCamerasAvailable"
-          :phone-gps-available="phoneGpsAvailable"
         />
       </template>
     </ViewHeader>
@@ -496,6 +490,12 @@ onMounted(async () => {
           >
             <font-awesome-icon icon="location-dot" />
           </button>
+          <MapLayerPanel
+            :car-takes-fuel="carTakesFuel"
+            :car-takes-charge="carTakesCharge"
+            :speed-cameras-available="speedCamerasAvailable"
+            :phone-gps-available="phoneGpsAvailable"
+          />
         </div>
 
         <div v-if="poiLoading || snapStatus" class="map-pill-stack">

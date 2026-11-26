@@ -499,6 +499,16 @@ describe('MapView', () => {
     expect(useVehicleStore(pinia).trips[1]!.points).toHaveLength(3)
   })
 
+  // Layers is one of the map's own buttons, under Find car, as in most map apps; the header keeps
+  // Filters.
+  it('offers the layers on the map itself, under Find car', async () => {
+    const wrapper = await mountView()
+
+    const controls = wrapper.get('.map-controls-end')
+    expect(controls.findComponent(MapLayerPanel).exists()).toBe(true)
+    expect(wrapper.get('.view-header').findComponent(MapLayerPanel).exists()).toBe(false)
+  })
+
   it('does not offer the phone GPS layer when no phone added to any trip', async () => {
     const wrapper = await mountView()
 
