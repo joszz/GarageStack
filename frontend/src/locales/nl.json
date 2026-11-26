@@ -670,7 +670,7 @@
     },
     "dashboard": {
       "cardInfoIcons": "Info-iconen tonen",
-      "cardInfoIconsDesc": "Voegt aan elke kaart op het dashboard en bij de statistieken een knop toe die uitlegt wat de kaart toont.",
+      "cardInfoIconsDesc": "Voegt naast de titel van elke pagina, en aan elke kaart op het dashboard en bij de statistieken, een knop toe die uitlegt wat die toont.",
       "mapBackdrop": "Kaart achter het dashboard",
       "mapBackdropDesc": "Toont de kaart van de auto over het hele dashboard, met de kaarten erboven en de auto geparkeerd waar de locatiekaart stond. Telefoons houden de locatiekaart."
     },

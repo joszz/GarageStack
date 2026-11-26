@@ -1,7 +1,8 @@
 <script setup lang="ts">
 // A page's title row: the heading, the page's actions on the right, and an optional caption under
 // the heading inside the row (the period Statistics shows). A line about the page waits behind an
-// info button beside the heading. Under it all, the notice that the server cannot be reached, so
+// info button beside the heading, shown like the cards' own while "Show info icons" is on
+// (Settings > General). Under it all, the notice that the server cannot be reached, so
 // every page says so.
 // A phone's top bar takes the whole row: the heading with its info button and caption on the left,
 // the page's actions as icons on the right. The row itself is then left empty, and hidden.
@@ -10,6 +11,7 @@ import { useI18n } from 'vue-i18n'
 import DetailModal from '@/components/DetailModal.vue'
 import OfflineNotice from '@/components/OfflineNotice.vue'
 import { useMediaQuery } from '@/composables/useMediaQuery'
+import { useUiSettingsStore } from '@/stores/settingsUi'
 import { PHONE_MEDIA_QUERY } from '@/utils/viewport'
 
 defineProps<{
@@ -20,6 +22,7 @@ defineProps<{
 
 const { t } = useI18n()
 const isPhone = useMediaQuery(PHONE_MEDIA_QUERY)
+const settings = useUiSettingsStore()
 const aboutOpen = ref(false)
 </script>
 
@@ -30,7 +33,7 @@ const aboutOpen = ref(false)
         <div class="view-header__title">
           <h1>{{ title }}</h1>
           <button
-            v-if="subtitle"
+            v-if="subtitle && settings.showCardInfoIcons"
             type="button"
             class="view-header__info"
             aria-haspopup="dialog"

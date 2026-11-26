@@ -670,7 +670,7 @@
     },
     "dashboard": {
       "cardInfoIcons": "Show info icons",
-      "cardInfoIconsDesc": "Adds a button to each dashboard and statistics card that explains what the card shows.",
+      "cardInfoIconsDesc": "Adds a button beside each page's title, and to each dashboard and statistics card, that explains what it shows.",
       "mapBackdrop": "Map behind the dashboard",
       "mapBackdropDesc": "Shows the car's map across the whole dashboard, with the cards over it and the car parked where the location card was. Phones keep the location card."
     },

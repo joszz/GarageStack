@@ -670,7 +670,7 @@
     },
     "dashboard": {
       "cardInfoIcons": "Mostrar iconos de información",
-      "cardInfoIconsDesc": "Añade a cada tarjeta del panel y de las estadísticas un botón que explica lo que muestra.",
+      "cardInfoIconsDesc": "Añade junto al título de cada página, y a cada tarjeta del panel y de las estadísticas, un botón que explica lo que muestra.",
       "mapBackdrop": "Mapa detrás del panel",
       "mapBackdropDesc": "Muestra el mapa del coche en todo el panel, con las tarjetas encima y el coche aparcado donde estaba la tarjeta de ubicación. En los teléfonos se mantiene la tarjeta de ubicación."
     },

@@ -670,7 +670,7 @@
     },
     "dashboard": {
       "cardInfoIcons": "Mostrar ícones de informação",
-      "cardInfoIconsDesc": "Adiciona a cada cartão do painel e das estatísticas um botão que explica o que o cartão mostra.",
+      "cardInfoIconsDesc": "Adiciona ao lado do título de cada página, e a cada cartão do painel e das estatísticas, um botão que explica o que ele mostra.",
       "mapBackdrop": "Mapa atrás do painel",
       "mapBackdropDesc": "Mostra o mapa do carro em todo o painel, com os cartões por cima e o carro estacionado onde estava o cartão de localização. No celular, o cartão de localização continua."
     },
