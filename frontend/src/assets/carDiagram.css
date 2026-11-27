@@ -84,7 +84,7 @@
   position: absolute;
   top: 0;
   right: 0;
-  width: 80px;
+  width: calc(80px * var(--car-scale, 1));
   pointer-events: auto;
   user-select: none;
   z-index: 1;
@@ -161,11 +161,13 @@
   justify-content: center;
 }
 
-/* SVG viewBox is 420×480 (widened for 3-lane road); max-width keeps it on small screens */
+/* SVG viewBox is 420×480 (widened for 3-lane road); max-width keeps it on small screens. The
+   dashboard's --car-scale (a phone's smaller overview, see dashboard.css) shrinks the drawing, and
+   with it everything laid over it by percentage. */
 .tyre-car-wrap {
   position: relative;
   display: inline-block;
-  width: 300px;
+  width: calc(300px * var(--car-scale, 1));
   max-width: 100%;
 }
 
@@ -203,12 +205,14 @@
   pointer-events: none;
 }
 
+/* What is written over the drawing shrinks with it by --car-text-scale, which falls more slowly than
+   --car-scale so the readings stay legible. */
 .tyre-label {
   position: absolute;
-  font-size: 0.68rem;
+  font-size: calc(0.68rem * var(--car-text-scale, 1));
   font-weight: 600;
   font-variant-numeric: tabular-nums;
-  padding: 2px 5px;
+  padding: calc(2px * var(--car-text-scale, 1)) calc(5px * var(--car-text-scale, 1));
   border-radius: 4px;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
@@ -297,14 +301,14 @@
   transform: translateX(-50%);
   display: flex;
   align-items: center;
-  gap: 0.35rem;
-  font-size: 0.85rem;
+  gap: calc(0.35rem * var(--car-text-scale, 1));
+  font-size: calc(0.85rem * var(--car-text-scale, 1));
   font-weight: 700;
   color: var(--color-text);
   background: var(--color-surface);
   border: 1px solid currentcolor;
   border-radius: 20px;
-  padding: 3px 10px;
+  padding: calc(3px * var(--car-text-scale, 1)) calc(10px * var(--car-text-scale, 1));
   white-space: nowrap;
   pointer-events: auto;
   user-select: none;
@@ -474,15 +478,15 @@
 
 .car-badge {
   position: absolute;
-  width: 26px;
-  height: 26px;
+  width: calc(26px * var(--car-text-scale, 1));
+  height: calc(26px * var(--car-text-scale, 1));
   border-radius: 50%;
   background: var(--color-warning);
   color: #000;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.65rem;
+  font-size: calc(0.65rem * var(--car-text-scale, 1));
   pointer-events: auto;
   user-select: none;
   border: 2px solid var(--color-surface);

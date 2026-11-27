@@ -10,6 +10,7 @@ import { rdwApi } from '@/services/rdwApi'
 import { ApiError } from '@/services/apiCore'
 import { useVehicleStore } from '@/stores/vehicle'
 import { useDashboardSettingsStore } from '@/stores/settingsDashboard'
+import { useUiSettingsStore } from '@/stores/settingsUi'
 import { LONG_PRESS_MS } from '@/composables/useLongPress'
 import { rememberVin } from '@/utils/lastVin'
 
@@ -29,7 +30,7 @@ vi.mock('@/components/EditableCardGrid.vue', () => ({
   default: {
     props: ['modelValue'],
     template:
-      '<div class="card-grid"><div v-for="item in modelValue" :key="item.id"><slot :item="item" /></div></div>',
+      '<div class="card-grid"><div v-for="item in modelValue" :key="item.id"><slot :item="item" /><slot name="controls" :item="item" /></div></div>',
   },
 }))
 
@@ -317,6 +318,184 @@ describe('DashboardView', () => {
     )
     // Hidden by default: a placeholder because it is switched off, not for want of data.
     expect(placeholder(en.settings.cards.speed)!.text()).not.toContain(en.dashboard.cardWithoutData)
+  })
+
+  // A phone stands the overview's two cards one above the other and can trade height between
+  // them; the page only says which, and dashboard.css does the rest.
+  describe('the overview on a phone', () => {
+    const sizeClasses = (wrapper: Awaited<ReturnType<typeof mountView>>) =>
+      wrapper
+        .get('.view-container')
+        .classes()
+        .filter((name) => /^dashboard--(car|map)-(small|smaller|smallest|tall|taller)$/.test(name))
+
+    it('has no size class while both cards are standard, so they are as they always were', async () => {
+      const wrapper = await mountView()
+
+      expect(sizeClasses(wrapper)).toEqual([])
+    })
+
+    it.each(['small', 'smaller', 'smallest'] as const)(
+      'shrinks the car diagram to %s',
+      async (size) => {
+        useUiSettingsStore(pinia).overviewCarSize = size
+        const wrapper = await mountView()
+
+        expect(sizeClasses(wrapper)).toEqual([`dashboard--car-${size}`])
+      },
+    )
+
+    it.each(['tall', 'taller'] as const)('makes the location map %s', async (height) => {
+      useUiSettingsStore(pinia).overviewMapHeight = height
+      const wrapper = await mountView()
+
+      expect(sizeClasses(wrapper)).toEqual([`dashboard--map-${height}`])
+    })
+
+    it('trades one for the other when both are chosen', async () => {
+      const ui = useUiSettingsStore(pinia)
+      ui.overviewCarSize = 'smaller'
+      ui.overviewMapHeight = 'taller'
+      const wrapper = await mountView()
+
+      expect(sizeClasses(wrapper).sort()).toEqual([
+        'dashboard--car-smaller',
+        'dashboard--map-taller',
+      ])
+    })
+
+    it('follows a change made while the page is open', async () => {
+      const wrapper = await mountView()
+      const ui = useUiSettingsStore(pinia)
+
+      ui.overviewMapHeight = 'tall'
+      await flushPromises()
+      expect(sizeClasses(wrapper)).toEqual(['dashboard--map-tall'])
+
+      ui.overviewMapHeight = 'normal'
+      await flushPromises()
+      expect(sizeClasses(wrapper)).toEqual([])
+    })
+  })
+
+  // In edit mode a phone has magnifier buttons over the car diagram and the location map, which
+  // step each through its sizes. The car's go to smaller, the map's to taller, and a button
+  // that has nowhere further to go is dimmed.
+  describe('the size buttons in edit mode', () => {
+    function screenIs(phone: boolean) {
+      vi.stubGlobal('matchMedia', (query: string) => ({
+        matches: phone && query === '(width <= 767px)',
+        media: query,
+        addEventListener: () => {},
+        removeEventListener: () => {},
+      }))
+    }
+
+    // A phone puts the page's buttons in the top bar the layout provides, outside the view.
+    afterEach(() => document.body.replaceChildren())
+
+    async function edit(phone = true) {
+      screenIs(phone)
+      for (const id of ['mobile-topbar-title', 'mobile-topbar-page-actions']) {
+        const target = document.createElement('div')
+        target.id = id
+        document.body.append(target)
+      }
+      const wrapper = await mountView()
+      // In the top bar on a phone, in the page's own header beside the sidebar.
+      const editButton = [
+        ...document.querySelectorAll('button'),
+        ...wrapper.element.querySelectorAll('button'),
+      ].find((b) => b.textContent.trim() === en.dashboard.editLayout)
+      editButton!.click()
+      await vi.dynamicImportSettled()
+      await flushPromises()
+      return wrapper
+    }
+
+    // Both overview cards, in the order they stand: the car, then the map.
+    const controlsOf = (wrapper: Awaited<ReturnType<typeof mountView>>, index: number) => {
+      const group = wrapper.findAll('.card-slot__size')[index]!
+      const [smaller, larger] = group.findAll('button')
+      return { group, smaller: smaller!, larger: larger! }
+    }
+
+    it('are on each of the two overview cards of a phone', async () => {
+      const wrapper = await edit()
+
+      expect(wrapper.findAll('.card-slot__size')).toHaveLength(2)
+      expect(controlsOf(wrapper, 0).group.attributes('aria-label')).toBe(en.vehicle.overview)
+      expect(controlsOf(wrapper, 1).group.attributes('aria-label')).toBe(en.vehicle.location)
+    })
+
+    it('are not on a screen wider than a phone, where the cards stand side by side', async () => {
+      const wrapper = await edit(false)
+
+      expect(wrapper.find('.card-slot__size').exists()).toBe(false)
+    })
+
+    it('are not on a card that is hidden', async () => {
+      useDashboardSettingsStore(pinia).overview[1]!.visible = false
+      const wrapper = await edit()
+
+      expect(wrapper.findAll('.card-slot__size')).toHaveLength(1)
+    })
+
+    it('start dimmed in the direction a card is already standard in', async () => {
+      const wrapper = await edit()
+
+      // The car is only ever made smaller, and the map only taller, from standard.
+      expect(controlsOf(wrapper, 0).larger.attributes('aria-disabled')).toBe('true')
+      expect(controlsOf(wrapper, 0).smaller.attributes('aria-disabled')).toBe('false')
+      expect(controlsOf(wrapper, 1).smaller.attributes('aria-disabled')).toBe('true')
+      expect(controlsOf(wrapper, 1).larger.attributes('aria-disabled')).toBe('false')
+    })
+
+    it('step the car diagram down through its sizes and back', async () => {
+      const ui = useUiSettingsStore(pinia)
+      const wrapper = await edit()
+
+      await controlsOf(wrapper, 0).smaller.trigger('click')
+      expect(ui.overviewCarSize).toBe('small')
+      await controlsOf(wrapper, 0).smaller.trigger('click')
+      expect(ui.overviewCarSize).toBe('smaller')
+      await controlsOf(wrapper, 0).smaller.trigger('click')
+      expect(ui.overviewCarSize).toBe('smallest')
+      expect(controlsOf(wrapper, 0).smaller.attributes('aria-disabled')).toBe('true')
+
+      await controlsOf(wrapper, 0).larger.trigger('click')
+      await controlsOf(wrapper, 0).larger.trigger('click')
+      expect(ui.overviewCarSize).toBe('small')
+      await controlsOf(wrapper, 0).larger.trigger('click')
+      expect(ui.overviewCarSize).toBe('normal')
+    })
+
+    it('step the location map up through its heights and back', async () => {
+      const ui = useUiSettingsStore(pinia)
+      const wrapper = await edit()
+
+      await controlsOf(wrapper, 1).larger.trigger('click')
+      expect(ui.overviewMapHeight).toBe('tall')
+      await controlsOf(wrapper, 1).larger.trigger('click')
+      expect(ui.overviewMapHeight).toBe('taller')
+      expect(controlsOf(wrapper, 1).larger.attributes('aria-disabled')).toBe('true')
+
+      await controlsOf(wrapper, 1).smaller.trigger('click')
+      expect(ui.overviewMapHeight).toBe('tall')
+      await controlsOf(wrapper, 1).smaller.trigger('click')
+      expect(ui.overviewMapHeight).toBe('normal')
+    })
+
+    it('show the result at once, in the layout being edited', async () => {
+      const wrapper = await edit()
+
+      await controlsOf(wrapper, 0).smaller.trigger('click')
+      await controlsOf(wrapper, 1).larger.trigger('click')
+
+      expect(wrapper.get('.view-container').classes()).toEqual(
+        expect.arrayContaining(['dashboard--car-small', 'dashboard--map-tall']),
+      )
+    })
   })
 
   describe('map behind the dashboard', () => {

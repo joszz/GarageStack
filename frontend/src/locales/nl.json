@@ -78,6 +78,8 @@
     "resetLayoutShort": "Herstellen",
     "hideCard": "Kaart verbergen",
     "showCard": "Kaart tonen",
+    "cardSmaller": "Kleiner maken",
+    "cardLarger": "Groter maken",
     "cardInfoBtn": "Kaartinformatie",
     "openFullMap": "Volledige kaart openen",
     "cardDesc": {

@@ -139,6 +139,44 @@
   color: var(--color-on-success);
 }
 
+/* The magnifier buttons that make a card larger or smaller (CardSizeControl.vue), in the card's
+   bottom corner. Inside the card rather than over its edge, so they never cover the card below. */
+.card-slot__size {
+  position: absolute;
+  right: 0.5rem;
+  bottom: 0.5rem;
+  display: flex;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: calc(var(--touch-target) / 2);
+  box-shadow: 0 2px 8px var(--shadow-pop);
+  z-index: 2;
+}
+
+.card-slot__size-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--touch-target);
+  height: var(--touch-target);
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--color-text);
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.card-slot__size-btn:hover:not([aria-disabled='true']) {
+  background: var(--color-surface-2);
+}
+
+.card-slot__size-btn[aria-disabled='true'] {
+  color: var(--color-text-muted);
+  opacity: 0.4;
+  cursor: default;
+}
+
 /* Placeholder for hidden or data-less cards in edit mode */
 .card-slot__placeholder {
   background: var(--color-surface);

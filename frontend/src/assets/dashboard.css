@@ -29,6 +29,43 @@
   .overview-row__map {
     max-width: none;
   }
+
+  /* The car's flex-basis is a width beside the map, but on a phone's column it is a height, a floor
+     of 320px that would keep a shrunk card's box that tall with the room left empty. A smaller
+     car lets go of it; standard keeps it, so the standard layout is as it was. */
+  .dashboard--car-small .overview-row__car,
+  .dashboard--car-smaller .overview-row__car,
+  .dashboard--car-smallest .overview-row__car {
+    flex-basis: auto;
+  }
+
+  /* The overview's two cards stand one above the other on a phone, so a phone can trade height
+     between them (the magnifier buttons over each card in the layout editor): a smaller car
+     drawing, and with it the readings over it, makes room for a taller map. --car-text-scale
+     falls more slowly than --car-scale so the pressures and badges stay legible. Standard is no
+     class at all. */
+  .dashboard--car-small {
+    --car-scale: 0.8;
+    --car-text-scale: 0.94;
+  }
+
+  .dashboard--car-smaller {
+    --car-scale: 0.62;
+    --car-text-scale: 0.86;
+  }
+
+  .dashboard--car-smallest {
+    --car-scale: 0.48;
+    --car-text-scale: 0.8;
+  }
+
+  .dashboard--map-tall {
+    --map-min-height: 240px;
+  }
+
+  .dashboard--map-taller {
+    --map-min-height: 300px;
+  }
 }
 
 /* Edit mode wraps each slot in extra card-slot/card-slot__content layers, which
@@ -82,7 +119,7 @@
 .location-map-card__map {
   position: relative;
   flex: 1;
-  min-height: 180px;
+  min-height: var(--map-min-height, 180px);
   border-radius: var(--radius);
   overflow: hidden;
   cursor: pointer;

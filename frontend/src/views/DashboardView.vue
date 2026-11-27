@@ -12,6 +12,7 @@ import { useI18n } from 'vue-i18n'
 import { useVehicleStore } from '@/stores/vehicle'
 import { useRdwStore } from '@/stores/rdw'
 import { cardsHiddenByType, useDashboardSettingsStore } from '@/stores/settingsDashboard'
+import { OVERVIEW_CAR_SIZES, OVERVIEW_MAP_HEIGHTS, useUiSettingsStore } from '@/stores/settingsUi'
 import type { OverviewId } from '@/stores/settingsDashboard'
 import type { CardId } from '@/cards/registry'
 import { cardHasData, cardIcon } from '@/cards/registry'
@@ -19,6 +20,7 @@ import { useCardData } from '@/cards/useCardData'
 import DashboardCardContent from '@/components/DashboardCardContent.vue'
 import CardInfoWrap from '@/components/CardInfoWrap.vue'
 import CarDiagram from '@/components/CarDiagram.vue'
+import CardSizeControl from '@/components/CardSizeControl.vue'
 import LocationMapWidget from '@/components/LocationMapWidget.vue'
 import DashboardMapBackdrop from '@/components/DashboardMapBackdrop.vue'
 import DashboardParkingSpot from '@/components/DashboardParkingSpot.vue'
@@ -31,6 +33,7 @@ import { EditableCardGrid, useEditMode } from '@/composables/useEditMode'
 import type { BasemapKind } from '@/composables/useBasemap'
 import { useReconnect } from '@/composables/useReconnect'
 import { useMediaQuery } from '@/composables/useMediaQuery'
+import { PHONE_MEDIA_QUERY } from '@/utils/viewport'
 import { mayBurnFuel } from '@/utils/vehicleType'
 import { energyUnit } from '@/utils/energy'
 import { readLastVin } from '@/utils/lastVin'
@@ -40,6 +43,43 @@ const { t } = useI18n()
 const store = useVehicleStore()
 const rdw = useRdwStore()
 const settings = useDashboardSettingsStore()
+const uiSettings = useUiSettingsStore()
+
+// How tall the overview's two cards are on this phone. Standard has no class, so the cards are as
+// they always were; only a phone looks at the others (dashboard.css).
+const overviewSizeClasses = computed(() => ({
+  [`dashboard--car-${uiSettings.overviewCarSize}`]: uiSettings.overviewCarSize !== 'normal',
+  [`dashboard--map-${uiSettings.overviewMapHeight}`]: uiSettings.overviewMapHeight !== 'normal',
+}))
+
+// The magnifier buttons over the two cards in edit mode, on a phone only: beside the sidebar the
+// cards stand side by side and sizing one would change nothing. Each card has the levels of its
+// own setting, standard first: the car's go to smaller, the map's to taller. So a step to larger
+// moves the car down its levels and the map up, and the buttons say larger and smaller either way.
+const onPhone = useMediaQuery(PHONE_MEDIA_QUERY)
+const LAST_LEVEL: Record<OverviewId, number> = {
+  car: OVERVIEW_CAR_SIZES.length - 1,
+  map: OVERVIEW_MAP_HEIGHTS.length - 1,
+}
+const LARGER_STEP: Record<OverviewId, 1 | -1> = { car: -1, map: 1 }
+
+function sizeLevel(id: OverviewId): number {
+  return id === 'car'
+    ? OVERVIEW_CAR_SIZES.indexOf(uiSettings.overviewCarSize)
+    : OVERVIEW_MAP_HEIGHTS.indexOf(uiSettings.overviewMapHeight)
+}
+
+function canStep(id: OverviewId, larger: boolean): boolean {
+  const next = sizeLevel(id) + (larger ? LARGER_STEP[id] : -LARGER_STEP[id])
+  return next >= 0 && next <= LAST_LEVEL[id]
+}
+
+function stepSize(id: OverviewId, larger: boolean) {
+  if (!canStep(id, larger)) return
+  const next = sizeLevel(id) + (larger ? LARGER_STEP[id] : -LARGER_STEP[id])
+  if (id === 'car') uiSettings.overviewCarSize = OVERVIEW_CAR_SIZES[next] ?? 'normal'
+  else uiSettings.overviewMapHeight = OVERVIEW_MAP_HEIGHTS[next] ?? 'normal'
+}
 
 const vin = computed(() => store.activeVin)
 const status = computed(() => store.currentStatus)
@@ -247,10 +287,13 @@ onUnmounted(() => {
 <template>
   <div
     class="view-container"
-    :class="{
-      'dashboard--map-backdrop': mapBackdrop && status,
-      'dashboard--map-first': settings.mapFirst,
-    }"
+    :class="[
+      {
+        'dashboard--map-backdrop': mapBackdrop && status,
+        'dashboard--map-first': settings.mapFirst,
+      },
+      overviewSizeClasses,
+    ]"
   >
     <DashboardMapBackdrop
       v-if="mapBackdrop && status"
@@ -293,6 +336,16 @@ onUnmounted(() => {
             <font-awesome-icon :icon="OVERVIEW_PARTS[part.id].icon" />
             <span>{{ t(OVERVIEW_PARTS[part.id].label) }}</span>
           </div>
+        </template>
+        <template #controls="{ item: part }">
+          <CardSizeControl
+            v-if="onPhone && part.visible && (part.id !== 'car' || status)"
+            :label="t(OVERVIEW_PARTS[part.id].label)"
+            :can-larger="canStep(part.id, true)"
+            :can-smaller="canStep(part.id, false)"
+            @larger="stepSize(part.id, true)"
+            @smaller="stepSize(part.id, false)"
+          />
         </template>
       </EditableCardGrid>
 
