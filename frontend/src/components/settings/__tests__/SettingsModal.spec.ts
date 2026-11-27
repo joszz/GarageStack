@@ -425,6 +425,55 @@ describe('SettingsModal appearance', () => {
       expect(panel(wrapper, 'general').find('#footer-toggle-record-phone-gps').exists()).toBe(false)
     })
 
+    // A phone-sized screen with a touchscreen, in the browser or in the installed app.
+    function runOnPhone(installed: boolean, touch = true) {
+      vi.stubGlobal('matchMedia', (query: string) => ({
+        matches:
+          query === '(width <= 767px)' ||
+          (touch && query === '(any-pointer: coarse)') ||
+          (installed && query === '(display-mode: standalone)'),
+        addEventListener: () => {},
+        removeEventListener: () => {},
+      }))
+    }
+
+    it('offers swiping the menu on a phone in a browser tab, where the installed-app settings are not', async () => {
+      runOnPhone(false)
+      const { wrapper } = await render()
+      const general = panel(wrapper, 'general')
+      const toggle = general.get('#footer-toggle-edge-swipe-menu')
+      expect(general.text()).toContain(en.settings.edgeSwipeMenu.label)
+      expect(general.text()).toContain(en.settings.device.title)
+      expect(general.find('#footer-toggle-keep-screen-on').exists()).toBe(false)
+
+      expect((toggle.element as HTMLInputElement).checked).toBe(false)
+      await toggle.setValue(true)
+      expect(useUiSettingsStore(pinia).edgeSwipeMenu).toBe(true)
+    })
+
+    it('offers it next to the installed app settings on a phone', async () => {
+      runOnPhone(true)
+      Object.defineProperty(navigator, 'wakeLock', {
+        configurable: true,
+        value: { request: vi.fn<() => Promise<never>>() },
+      })
+      const { wrapper } = await render()
+      const general = panel(wrapper, 'general')
+
+      expect(general.find('#footer-toggle-edge-swipe-menu').exists()).toBe(true)
+      expect(general.find('#footer-toggle-keep-screen-on').exists()).toBe(true)
+    })
+
+    // A narrow desktop window has no finger to swipe with, and nothing else for this device either.
+    it('is not offered without a touchscreen', async () => {
+      runOnPhone(false, false)
+      const { wrapper } = await render()
+      const general = panel(wrapper, 'general')
+
+      expect(general.find('#footer-toggle-edge-swipe-menu').exists()).toBe(false)
+      expect(general.text()).not.toContain(en.settings.device.title)
+    })
+
     it('offers recording GPS only once the screen is kept on', async () => {
       runAs(true)
       const { wrapper } = await render()

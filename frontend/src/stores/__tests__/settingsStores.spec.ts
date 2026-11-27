@@ -504,6 +504,27 @@ describe('useUiSettingsStore', () => {
     expect(store.notificationTypeExclusions).toEqual(['charging-complete'])
   })
 
+  it('leaves swiping the menu off until this device asks for it', () => {
+    expect(useUiSettingsStore().edgeSwipeMenu).toBe(false)
+  })
+
+  it('persists swiping the menu to its own localStorage key, and loads it again', async () => {
+    const store = useUiSettingsStore()
+    store.edgeSwipeMenu = true
+    await nextTick()
+    vi.advanceTimersByTime(SAVE_DEBOUNCE_MS)
+    expect(JSON.parse(localStorage.getItem(UI_KEY)!).edgeSwipeMenu).toBe(true)
+
+    setActivePinia(createPinia())
+    expect(useUiSettingsStore().edgeSwipeMenu).toBe(true)
+  })
+
+  // Anything but a plain true reads as off, so a hand-edited copy cannot switch it on by accident.
+  it.each(['true', 1, null, 'yes'])('reads %j as off', (stored) => {
+    localStorage.setItem(UI_KEY, JSON.stringify({ edgeSwipeMenu: stored }))
+    expect(useUiSettingsStore().edgeSwipeMenu).toBe(false)
+  })
+
   it('leaves the region, the clock and every unit on automatic until one is chosen', () => {
     localStorage.setItem(UI_KEY, JSON.stringify({ theme: 'light' }))
     const store = useUiSettingsStore()

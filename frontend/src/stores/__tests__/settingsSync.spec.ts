@@ -136,6 +136,21 @@ describe('settings kept on the account', () => {
     expect(save).toHaveBeenCalledExactlyOnceWith('ui', { locale: 'nl' })
   })
 
+  it('keeps swiping the menu on this device, since it suits one phone and not every one', async () => {
+    localStorage.setItem(UI_KEY, JSON.stringify({ edgeSwipeMenu: true }))
+    load.mockResolvedValue({ ui: { theme: 'light', edgeSwipeMenu: false } })
+    const ui = useUiSettingsStore()
+    await useSettingsSyncStore().start()
+
+    expect(ui.edgeSwipeMenu).toBe(true)
+
+    ui.edgeSwipeMenu = false
+    ui.locale = 'nl'
+    await settle()
+
+    expect(save).toHaveBeenCalledExactlyOnceWith('ui', { locale: 'nl' })
+  })
+
   it('keeps the screen and GPS settings on this device, since they suit one phone and not every one', async () => {
     localStorage.setItem(UI_KEY, JSON.stringify({ keepScreenOn: true, recordPhoneGps: true }))
     load.mockResolvedValue({ ui: { theme: 'light', keepScreenOn: false, recordPhoneGps: false } })

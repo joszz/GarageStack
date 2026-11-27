@@ -668,6 +668,10 @@
       "label": "Keep the screen on",
       "desc": "Stops the screen from dimming or locking while the app is open, for a phone in a holder or a tablet on the wall. Uses more battery."
     },
+    "edgeSwipeMenu": {
+      "label": "Swipe from the edge for the menu",
+      "desc": "Drag from the left of the screen, a little in from the very edge, to open the menu, and drag it back to close it. It starts clear of the edge itself, which a phone's own back gesture takes, so the two are never mixed up. Not on the map pages, where a swipe moves the map."
+    },
     "dashboard": {
       "cardInfoIcons": "Show info icons",
       "cardInfoIconsDesc": "Adds a button beside each page's title, and to each dashboard and statistics card, that explains what it shows.",

@@ -91,6 +91,8 @@ interface UiSettings {
   keepScreenOn: boolean
   /** Whether the installed app records the phone's GPS for the car's trips. This device only. */
   recordPhoneGps: boolean
+  /** Whether a swipe from the left edge opens the phone menu, and a swipe back closes it. This device only. */
+  edgeSwipeMenu: boolean
   carColorScheme: string
   /** The paints of the custom scheme, null until it is first chosen. */
   carCustomColors: CarColors | null
@@ -130,6 +132,7 @@ function defaultsFor(): UiSettings {
     colorfulMaps: false,
     keepScreenOn: false,
     recordPhoneGps: false,
+    edgeSwipeMenu: false,
     carColorScheme: DEFAULT_CAR_COLOR_SCHEME,
     carCustomColors: null,
     vehicleTypeOverride: 'auto',
@@ -253,6 +256,7 @@ function parseUiFields(parsed: Record<string, unknown>, fallback: UiSettings): U
     colorfulMaps: parsed.colorfulMaps === true,
     keepScreenOn: parsed.keepScreenOn === true,
     recordPhoneGps: parsed.recordPhoneGps === true,
+    edgeSwipeMenu: parsed.edgeSwipeMenu === true,
     ...carColor,
     vehicleTypeOverride: oneOf(
       parsed.vehicleTypeOverride,
@@ -320,12 +324,15 @@ export const useUiSettingsStore = defineStore('settingsUi', () => {
     // (useNotificationPushSync), so it stays with the device: unticking everything on one
     // computer must not unsubscribe a phone, or subscribe it without a tap there. Keeping the
     // screen on suits a phone in a holder, not every computer the account signs in on, and only
-    // the phone that travels in the car should record GPS.
+    // the phone that travels in the car should record GPS. Swiping the menu open suits a phone and
+    // a thumb that likes it, and can clash with a phone's own back gesture, so it is each
+    // device's choice.
     localKeys: [
       'notificationTypeExclusions',
       'notificationTypeInclusions',
       'keepScreenOn',
       'recordPhoneGps',
+      'edgeSwipeMenu',
     ],
   })
 

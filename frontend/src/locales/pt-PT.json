@@ -668,6 +668,10 @@
       "label": "Manter o ecrã ligado",
       "desc": "Impede que o ecrã escureça ou bloqueie enquanto a aplicação estiver aberta, para um telemóvel num suporte ou um tablet na parede. Gasta mais bateria."
     },
+    "edgeSwipeMenu": {
+      "label": "Deslizar a partir da margem para abrir o menu",
+      "desc": "Arraste a partir da esquerda do ecrã, um pouco afastado da margem extrema, para abrir o menu e arraste-o de volta para o fechar. O início fica longe da margem, que o gesto de voltar do telemóvel usa, para os dois nunca se confundirem. Não vale nas páginas do mapa, onde deslizar move o mapa."
+    },
     "dashboard": {
       "cardInfoIcons": "Mostrar ícones de informação",
       "cardInfoIconsDesc": "Adiciona ao lado do título de cada página, e a cada cartão do painel e das estatísticas, um botão que explica o que mostra.",

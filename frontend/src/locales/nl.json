@@ -668,6 +668,10 @@
       "label": "Scherm aan houden",
       "desc": "Voorkomt dat het scherm dimt of vergrendelt zolang de app open is, voor een telefoon in een houder of een tablet aan de muur. Kost meer batterij."
     },
+    "edgeSwipeMenu": {
+      "label": "Vanaf de rand vegen voor het menu",
+      "desc": "Sleep vanaf de linkerkant van het scherm, een stukje van de uiterste rand af, om het menu te openen en sleep het terug om het te sluiten. Het begint vrij van de rand zelf, die het terug-gebaar van een telefoon gebruikt, zodat de twee nooit door elkaar lopen. Niet op de kaartpagina's, waar een veegbeweging de kaart verschuift."
+    },
     "dashboard": {
       "cardInfoIcons": "Info-iconen tonen",
       "cardInfoIconsDesc": "Voegt naast de titel van elke pagina, en aan elke kaart op het dashboard en bij de statistieken, een knop toe die uitlegt wat die toont.",

@@ -668,6 +668,10 @@
       "label": "Manter a tela ligada",
       "desc": "Impede que a tela escureça ou bloqueie enquanto o app estiver aberto, para um celular num suporte ou um tablet na parede. Gasta mais bateria."
     },
+    "edgeSwipeMenu": {
+      "label": "Deslizar da borda para abrir o menu",
+      "desc": "Arraste da esquerda da tela, um pouco afastado da borda extrema, para abrir o menu e arraste de volta para fechá-lo. O início fica longe da borda, que o gesto de voltar do celular usa, para os dois nunca se confundirem. Não vale nas páginas do mapa, onde deslizar move o mapa."
+    },
     "dashboard": {
       "cardInfoIcons": "Mostrar ícones de informação",
       "cardInfoIconsDesc": "Adiciona ao lado do título de cada página, e a cada cartão do painel e das estatísticas, um botão que explica o que ele mostra.",

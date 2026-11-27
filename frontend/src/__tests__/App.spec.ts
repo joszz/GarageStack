@@ -9,6 +9,11 @@ import { setBrowserOnline } from '@/composables/__tests__/connectionStub'
 
 const session = vi.hoisted(() => ({ authenticated: false }))
 
+// Only what the app reads of this device's settings: whether swiping the menu is switched on.
+const ui = vi.hoisted(() => ({ edgeSwipeMenu: false }))
+
+vi.mock('@/stores/settingsUi', () => ({ useUiSettingsStore: () => ui }))
+
 vi.mock('@/stores/auth', () => ({
   useAuthStore: () => ({
     isAuthenticated: session.authenticated,
@@ -171,6 +176,118 @@ describe('App mobile menu', () => {
     await flushPromises()
 
     expect(wrapper.find('.sidebar--open').exists()).toBe(true)
+  })
+})
+
+describe('App menu swipe', () => {
+  // Phone-sized, with a touchscreen: what the swipe is offered on.
+  function onATouchPhone() {
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      matches: query === '(width <= 767px)' || query === '(any-pointer: coarse)',
+      media: query,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    }))
+  }
+
+  async function mountClosed(path = '/') {
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        { path: '/', component: Page },
+        { path: '/map', name: 'map', component: Page },
+        { path: '/login', name: 'login', component: Page },
+      ],
+    })
+    await router.push(path)
+    return mount(App, {
+      attachTo: document.body,
+      global: {
+        plugins: [i18n, router],
+        stubs: {
+          FontAwesomeIcon: true,
+          AppFooter: true,
+          NotificationPanel: true,
+          DemoBanner: true,
+          PwaInstallModal: true,
+        },
+      },
+    })
+  }
+
+  function swipe(target: Element, x: number, dx: number) {
+    const init = { bubbles: true, isPrimary: true, pointerType: 'touch', pointerId: 1 }
+    target.dispatchEvent(new PointerEvent('pointerdown', { ...init, clientX: x, clientY: 300 }))
+    target.dispatchEvent(
+      new PointerEvent('pointermove', { ...init, clientX: x + dx, clientY: 300 }),
+    )
+  }
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    ui.edgeSwipeMenu = false
+    document.body.innerHTML = ''
+  })
+
+  it('opens the menu for a swipe from the left edge, and closes it for one back', async () => {
+    onATouchPhone()
+    ui.edgeSwipeMenu = true
+    const wrapper = await mountClosed()
+    expect(wrapper.find('.sidebar--open').exists()).toBe(false)
+
+    swipe(wrapper.get('.app-body').element, 40, 100)
+    await flushPromises()
+    expect(wrapper.find('.sidebar--open').exists()).toBe(true)
+    expect(wrapper.get('.hamburger').attributes('aria-expanded')).toBe('true')
+
+    swipe(wrapper.get('.sidebar').element, 200, -100)
+    await flushPromises()
+    expect(wrapper.find('.sidebar--open').exists()).toBe(false)
+  })
+
+  it('leaves the menu shut while this device has not asked for the swipe', async () => {
+    onATouchPhone()
+    const wrapper = await mountClosed()
+
+    swipe(wrapper.get('.app-body').element, 40, 100)
+    await flushPromises()
+
+    expect(wrapper.find('.sidebar--open').exists()).toBe(false)
+  })
+
+  it('leaves the menu shut on a screen without a touchscreen, whatever the setting says', async () => {
+    ui.edgeSwipeMenu = true
+    const wrapper = await mountClosed()
+
+    swipe(wrapper.get('.app-body').element, 40, 100)
+    await flushPromises()
+
+    expect(wrapper.find('.sidebar--open').exists()).toBe(false)
+  })
+
+  // The map pans on any touch, so on its page the swipe does not open the menu.
+  it('does not open the menu on the map page', async () => {
+    onATouchPhone()
+    ui.edgeSwipeMenu = true
+    const wrapper = await mountClosed('/map')
+
+    swipe(wrapper.get('.app-body').element, 40, 100)
+    await flushPromises()
+
+    expect(wrapper.find('.sidebar--open').exists()).toBe(false)
+  })
+
+  it('still closes a menu opened by its button on the map page', async () => {
+    onATouchPhone()
+    ui.edgeSwipeMenu = true
+    const wrapper = await mountClosed('/map')
+    await wrapper.get('.hamburger').trigger('click')
+    expect(wrapper.find('.sidebar--open').exists()).toBe(true)
+
+    swipe(wrapper.get('.sidebar').element, 200, -100)
+    await flushPromises()
+
+    expect(wrapper.find('.sidebar--open').exists()).toBe(false)
   })
 })
 

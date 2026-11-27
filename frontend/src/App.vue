@@ -28,6 +28,8 @@ import { useScreenWakeLock } from '@/composables/useScreenWakeLock'
 import { usePhoneGpsRecorder } from '@/composables/usePhoneGpsRecorder'
 import { useRelativeTime } from '@/composables/useRelativeTime'
 import { useEscapeKey } from '@/composables/useEscapeKey'
+import { useDrawerSwipe, useEdgeSwipeOffered } from '@/composables/useDrawerSwipe'
+import { useUiSettingsStore } from '@/stores/settingsUi'
 import { formatDateTime, formatTime } from '@/utils/format'
 import { mayPlugIn } from '@/utils/vehicleType'
 
@@ -226,6 +228,21 @@ function closeMenu() {
 function closeMenuOnLink(event: MouseEvent) {
   if (event.target instanceof Element && event.target.closest('a')) closeMenu()
 }
+
+// A swipe from the left edge opens the mobile menu and a swipe to the left closes it, where this
+// device has asked for that (Settings > General > This device). The two pages that are a map from
+// edge to edge pan it on any touch, so there the swipe does not open the menu; an open menu
+// still closes by swipe wherever it is.
+const uiSettings = useUiSettingsStore()
+const edgeSwipeOffered = useEdgeSwipeOffered()
+useDrawerSwipe({
+  enabled: () => uiSettings.edgeSwipeMenu && edgeSwipeOffered.value && !isLoginRoute.value,
+  blocksOpening: () => route.name === 'map' || route.name === 'tripEdit',
+  isOpen: () => menuOpen.value,
+  open: () => (menuOpen.value = true),
+  close: closeMenu,
+  closeFrom: '.sidebar, .sidebar-backdrop',
+})
 
 // Escape closes the mobile menu and puts focus back on the button that opened it.
 const hamburger = ref<HTMLButtonElement | null>(null)

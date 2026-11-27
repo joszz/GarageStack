@@ -668,6 +668,10 @@
       "label": "Mantener la pantalla encendida",
       "desc": "Evita que la pantalla se atenúe o se bloquee mientras la aplicación está abierta, para un teléfono en un soporte o una tableta en la pared. Gasta más batería."
     },
+    "edgeSwipeMenu": {
+      "label": "Deslizar desde el borde para el menú",
+      "desc": "Arrastrar desde la izquierda de la pantalla, un poco separado del borde mismo, abre el menú, y arrastrarlo de vuelta lo cierra. Empieza lejos del borde, que usa el gesto de volver del propio teléfono, para que los dos nunca se confundan. No en las páginas del mapa, donde deslizar mueve el mapa."
+    },
     "dashboard": {
       "cardInfoIcons": "Mostrar iconos de información",
       "cardInfoIconsDesc": "Añade junto al título de cada página, y a cada tarjeta del panel y de las estadísticas, un botón que explica lo que muestra.",
