@@ -504,6 +504,53 @@ describe('useUiSettingsStore', () => {
     expect(store.notificationTypeExclusions).toEqual(['charging-complete'])
   })
 
+  it('leaves the overview cards at their standard size until this device chooses', () => {
+    const store = useUiSettingsStore()
+
+    expect(store.overviewCarSize).toBe('normal')
+    expect(store.overviewMapHeight).toBe('normal')
+  })
+
+  it('persists the overview sizes to their own localStorage key, and loads them again', async () => {
+    const store = useUiSettingsStore()
+    store.overviewCarSize = 'smaller'
+    store.overviewMapHeight = 'taller'
+    await nextTick()
+    vi.advanceTimersByTime(SAVE_DEBOUNCE_MS)
+    const saved = JSON.parse(localStorage.getItem(UI_KEY)!)
+    expect(saved.overviewCarSize).toBe('smaller')
+    expect(saved.overviewMapHeight).toBe('taller')
+
+    setActivePinia(createPinia())
+    const again = useUiSettingsStore()
+    expect(again.overviewCarSize).toBe('smaller')
+    expect(again.overviewMapHeight).toBe('taller')
+  })
+
+  // localStorage is user-editable and outlives the build that wrote it: a size this build does not
+  // know falls back to standard, for each card on its own.
+  it.each(['huge', '', null, 3, ['small'], 'SMALL'])('reads %j as a standard size', (stored) => {
+    localStorage.setItem(
+      UI_KEY,
+      JSON.stringify({ overviewCarSize: stored, overviewMapHeight: stored }),
+    )
+    const store = useUiSettingsStore()
+
+    expect(store.overviewCarSize).toBe('normal')
+    expect(store.overviewMapHeight).toBe('normal')
+  })
+
+  it('keeps a valid size when the other one is not', () => {
+    localStorage.setItem(
+      UI_KEY,
+      JSON.stringify({ overviewCarSize: 'small', overviewMapHeight: 'huge' }),
+    )
+    const store = useUiSettingsStore()
+
+    expect(store.overviewCarSize).toBe('small')
+    expect(store.overviewMapHeight).toBe('normal')
+  })
+
   it('leaves the region, the clock and every unit on automatic until one is chosen', () => {
     localStorage.setItem(UI_KEY, JSON.stringify({ theme: 'light' }))
     const store = useUiSettingsStore()

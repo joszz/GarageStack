@@ -136,6 +136,28 @@ describe('settings kept on the account', () => {
     expect(save).toHaveBeenCalledExactlyOnceWith('ui', { locale: 'nl' })
   })
 
+  it('keeps the overview sizes on this device, since they are about the screen in hand', async () => {
+    localStorage.setItem(
+      UI_KEY,
+      JSON.stringify({ overviewCarSize: 'small', overviewMapHeight: 'tall' }),
+    )
+    load.mockResolvedValue({
+      ui: { theme: 'light', overviewCarSize: 'smaller', overviewMapHeight: 'taller' },
+    })
+    const ui = useUiSettingsStore()
+    await useSettingsSyncStore().start()
+
+    expect(ui.overviewCarSize).toBe('small')
+    expect(ui.overviewMapHeight).toBe('tall')
+
+    ui.overviewCarSize = 'normal'
+    ui.overviewMapHeight = 'normal'
+    ui.locale = 'nl'
+    await settle()
+
+    expect(save).toHaveBeenCalledExactlyOnceWith('ui', { locale: 'nl' })
+  })
+
   it('keeps the screen and GPS settings on this device, since they suit one phone and not every one', async () => {
     localStorage.setItem(UI_KEY, JSON.stringify({ keepScreenOn: true, recordPhoneGps: true }))
     load.mockResolvedValue({ ui: { theme: 'light', keepScreenOn: false, recordPhoneGps: false } })

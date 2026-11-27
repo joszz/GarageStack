@@ -78,6 +78,8 @@
     "resetLayoutShort": "Reset",
     "hideCard": "Hide card",
     "showCard": "Show card",
+    "cardSmaller": "Make smaller",
+    "cardLarger": "Make larger",
     "cardInfoBtn": "Card information",
     "openFullMap": "Open full map",
     "cardDesc": {

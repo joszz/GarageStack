@@ -97,7 +97,7 @@ The map behind the dashboard, the layout editor, the offline view, the HV batter
 
 ### Dashboard cards
 
-Cards are shown or hidden automatically based on vehicle type (HEV / PHEV / BEV). You can also reorder and toggle individual cards in the dashboard's edit mode.
+Cards are shown or hidden automatically based on vehicle type (HEV / PHEV / BEV). You can also reorder and toggle individual cards in the dashboard's edit mode. On a phone, where the car overview and the location map stand one above the other, the edit mode shows magnifier buttons (**+** and **-**) over each of them: make the overview smaller (in three steps) and the map taller (in two). Making the overview smaller shrinks the car drawing and the readings over it together (the text a little less, to stay legible), so the map can have the room. Both are kept per device, and the standard size is the layout the dashboard has always had.
 
 | Card | Description | Vehicle types |
 | ---- | ----------- | ------------- |

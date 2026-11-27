@@ -91,6 +91,10 @@ interface UiSettings {
   keepScreenOn: boolean
   /** Whether the installed app records the phone's GPS for the car's trips. This device only. */
   recordPhoneGps: boolean
+  /** The size of the car drawing in the dashboard's overview on a phone. This device only. */
+  overviewCarSize: OverviewCarSize
+  /** The height of the dashboard's location map on a phone. This device only. */
+  overviewMapHeight: OverviewMapHeight
   carColorScheme: string
   /** The paints of the custom scheme, null until it is first chosen. */
   carCustomColors: CarColors | null
@@ -130,6 +134,8 @@ function defaultsFor(): UiSettings {
     colorfulMaps: false,
     keepScreenOn: false,
     recordPhoneGps: false,
+    overviewCarSize: 'normal',
+    overviewMapHeight: 'normal',
     carColorScheme: DEFAULT_CAR_COLOR_SCHEME,
     carCustomColors: null,
     vehicleTypeOverride: 'auto',
@@ -151,6 +157,20 @@ function defaultsFor(): UiSettings {
     currency: 'auto',
   }
 }
+
+/** How big the car drawing and its readings are in the dashboard's overview, on a phone. */
+export type OverviewCarSize = 'normal' | 'small' | 'smaller' | 'smallest'
+
+/** How tall the location map is on the dashboard, on a phone. */
+export type OverviewMapHeight = 'normal' | 'tall' | 'taller'
+
+export const OVERVIEW_CAR_SIZES: readonly OverviewCarSize[] = [
+  'normal',
+  'small',
+  'smaller',
+  'smallest',
+]
+export const OVERVIEW_MAP_HEIGHTS: readonly OverviewMapHeight[] = ['normal', 'tall', 'taller']
 
 const THEMES: readonly ThemeChoice[] = ['dark', 'light', 'system']
 const LOCALES: readonly Locale[] = ['en', 'nl', 'es', 'pt', 'pt-PT']
@@ -253,6 +273,12 @@ function parseUiFields(parsed: Record<string, unknown>, fallback: UiSettings): U
     colorfulMaps: parsed.colorfulMaps === true,
     keepScreenOn: parsed.keepScreenOn === true,
     recordPhoneGps: parsed.recordPhoneGps === true,
+    overviewCarSize: oneOf(parsed.overviewCarSize, OVERVIEW_CAR_SIZES, fallback.overviewCarSize),
+    overviewMapHeight: oneOf(
+      parsed.overviewMapHeight,
+      OVERVIEW_MAP_HEIGHTS,
+      fallback.overviewMapHeight,
+    ),
     ...carColor,
     vehicleTypeOverride: oneOf(
       parsed.vehicleTypeOverride,
@@ -320,12 +346,15 @@ export const useUiSettingsStore = defineStore('settingsUi', () => {
     // (useNotificationPushSync), so it stays with the device: unticking everything on one
     // computer must not unsubscribe a phone, or subscribe it without a tap there. Keeping the
     // screen on suits a phone in a holder, not every computer the account signs in on, and only
-    // the phone that travels in the car should record GPS.
+    // the phone that travels in the car should record GPS. How tall the overview's cards are is
+    // about the screen in hand: it only applies to a phone, and a phone is not every device.
     localKeys: [
       'notificationTypeExclusions',
       'notificationTypeInclusions',
       'keepScreenOn',
       'recordPhoneGps',
+      'overviewCarSize',
+      'overviewMapHeight',
     ],
   })
 

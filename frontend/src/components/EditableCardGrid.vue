@@ -15,7 +15,11 @@ defineProps<{
 
 defineEmits<{ 'toggle-visible': [item: T] }>()
 
-defineSlots<{ default(props: { item: T }): unknown }>()
+defineSlots<{
+  default(props: { item: T }): unknown
+  /** Buttons over the card, for what only some grids offer (the dashboard's sizes). */
+  controls?(props: { item: T }): unknown
+}>()
 </script>
 
 <template>
@@ -35,6 +39,9 @@ defineSlots<{ default(props: { item: T }): unknown }>()
       @toggle-visible="$emit('toggle-visible', item)"
     >
       <slot :item="item" />
+      <template #controls>
+        <slot name="controls" :item="item" />
+      </template>
     </EditableCardSlot>
   </VueDraggable>
 </template>

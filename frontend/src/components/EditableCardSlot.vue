@@ -24,6 +24,8 @@ defineEmits<{ 'toggle-visible': [] }>()
     <div class="card-slot__content">
       <slot />
     </div>
+    <!-- What a card offers to do to itself while editing, beside the badge (CardSizeControl). -->
+    <slot name="controls" />
     <button
       class="card-slot__badge"
       :class="visible ? 'card-slot__badge--hide' : 'card-slot__badge--show'"
