@@ -55,6 +55,62 @@ public class NotificationCategoriesTests
         Assert.True(NotificationCategories.IsWanted(null, ["engine-start"]));
     }
 
+    // A type switched off for one car leaves out that car's notifications of it, and no other car's.
+    [Fact]
+    public void IsWanted_TypeSwitchedOffForOneCar_IsLeftOutForThatCarOnly()
+    {
+        IReadOnlyCollection<string> offForThisCar = ["doors-open-parked"];
+
+        Assert.False(NotificationCategories.IsWanted("doors-open-parked", [], null, offForThisCar));
+        Assert.True(NotificationCategories.IsWanted("doors-open-parked", [], null, null));
+        Assert.True(NotificationCategories.IsWanted("doors-open-parked", [], null, ["low-tyre"]));
+        Assert.True(NotificationCategories.IsWanted("low-tyre", [], null, offForThisCar));
+    }
+
+    // Either list keeps a type out: the device's own does not come back for a car that has it on.
+    [Fact]
+    public void IsWanted_TypeSwitchedOffForEveryCar_StaysOutWhateverTheCarSays()
+    {
+        Assert.False(NotificationCategories.IsWanted("engine-start", ["engine-start"], null, []));
+        Assert.False(NotificationCategories.IsWanted("engine-start", ["engine-start"], null, ["engine-start"]));
+    }
+
+    // The per-car list names the type the checklist offers, so a car's maintenance and RDW types
+    // switch off as a group, as they do for the whole device.
+    [Fact]
+    public void IsWanted_GroupedTypeSwitchedOffForOneCar_LeavesOutEveryOfItsCategories()
+    {
+        Assert.False(NotificationCategories.IsWanted("maintenance-overdue-3", [], null, ["maintenance"]));
+        Assert.False(NotificationCategories.IsWanted("rdw-recall-MGP230061", [], null, ["rdw"]));
+    }
+
+    // A summary is switched on for the device and can still be switched off for one car.
+    [Fact]
+    public void IsWanted_OptInTypeSwitchedOffForOneCar_IsLeftOutForThatCar()
+    {
+        Assert.False(NotificationCategories.IsWanted("weekly-summary", [], ["weekly-summary"], ["weekly-summary"]));
+        Assert.True(NotificationCategories.IsWanted("weekly-summary", [], ["weekly-summary"], ["low-tyre"]));
+        Assert.False(NotificationCategories.IsWanted("weekly-summary", [], null, []));
+    }
+
+    // A notification without a type, or without a car, answers to what the checklist can switch off.
+    [Fact]
+    public void IsWanted_NotificationWithoutATypeOrACar_IgnoresThePerCarList()
+    {
+        Assert.True(NotificationCategories.IsWanted(null, [], null, ["gateway-login", "engine-start"]));
+        Assert.True(NotificationCategories.IsWanted("gateway-login", [], null, null));
+    }
+
+    [Fact]
+    public void ExcludedCategoriesFor_ReturnsTheTypesOffForThatCarAndNullForOthers()
+    {
+        var subscription = new PushSubscription { ExcludedCategoriesByVehicle = { [7] = ["low-tyre"] } };
+
+        Assert.Equal(["low-tyre"], subscription.ExcludedCategoriesFor(7));
+        Assert.Null(subscription.ExcludedCategoriesFor(8));
+        Assert.Null(subscription.ExcludedCategoriesFor(null));
+    }
+
     // A summary every week unasked would be noise, so it goes out only to a device that asked.
     [Fact]
     public void IsWanted_OptInType_GoesOutOnlyOnceSwitchedOn()

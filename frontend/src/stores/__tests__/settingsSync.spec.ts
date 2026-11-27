@@ -136,6 +136,26 @@ describe('settings kept on the account', () => {
     expect(save).toHaveBeenCalledExactlyOnceWith('ui', { locale: 'nl' })
   })
 
+  it('keeps the types switched off per car on this device too, with the checklist they belong to', async () => {
+    localStorage.setItem(
+      UI_KEY,
+      JSON.stringify({ notificationTypeExclusionsByVehicle: { '2': ['low-tyre'] } }),
+    )
+    load.mockResolvedValue({
+      ui: { theme: 'light', notificationTypeExclusionsByVehicle: { '3': ['engine-start'] } },
+    })
+    const ui = useUiSettingsStore()
+    await useSettingsSyncStore().start()
+
+    expect(ui.notificationTypeExclusionsByVehicle).toEqual({ '2': ['low-tyre'] })
+
+    ui.notificationTypeExclusionsByVehicle = {}
+    ui.locale = 'nl'
+    await settle()
+
+    expect(save).toHaveBeenCalledExactlyOnceWith('ui', { locale: 'nl' })
+  })
+
   it('keeps the screen and GPS settings on this device, since they suit one phone and not every one', async () => {
     localStorage.setItem(UI_KEY, JSON.stringify({ keepScreenOn: true, recordPhoneGps: true }))
     load.mockResolvedValue({ ui: { theme: 'light', keepScreenOn: false, recordPhoneGps: false } })

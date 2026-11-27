@@ -538,6 +538,10 @@
     "typeFilterDesc": "Kies welke meldingstypen dit apparaat toont en als pushmelding krijgt. Het week- en maandoverzicht staan uit tot je ze aanzet, en komen alleen op een apparaat met pushmeldingen aan.",
     "selectAll": "Alles selecteren",
     "deselectAll": "Alles deselecteren",
+    "scope": "Auto",
+    "scopeDesc": "Kies voor welke auto de lijst hieronder geldt. Een type dat voor alle auto’s uit staat, blijft voor elke auto uit.",
+    "scopeAll": "Alle auto’s",
+    "offForAllCars": "Uit voor alle auto’s",
     "categories": {
       "lowTyre": "Lage bandenspanning",
       "highTyre": "Hoge bandenspanning",

@@ -1,6 +1,7 @@
 using GarageStack.Core.Helpers;
 using GarageStack.Core.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 
 namespace GarageStack.Data;
 
@@ -141,6 +142,18 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             // Subscriptions from before devices could switch types off want every type.
             e.PrimitiveCollection(p => p.ExcludedCategories).HasDefaultValueSql("'{}'::text[]");
             e.PrimitiveCollection(p => p.IncludedCategories).HasDefaultValueSql("'{}'::text[]");
+            // Types switched off for one car only: {"<vehicle id>": ["low-tyre", ...]}. Nothing
+            // before this wanted a type for one car and not the other, so every row starts empty.
+            e.Property(p => p.ExcludedCategoriesByVehicle)
+                .HasConversion(
+                    exclusions => VehicleCategoryExclusions.ToJson(exclusions),
+                    json => VehicleCategoryExclusions.FromJson(json),
+                    new ValueComparer<Dictionary<int, List<string>>>(
+                        (a, b) => VehicleCategoryExclusions.AreEqual(a!, b!),
+                        exclusions => VehicleCategoryExclusions.ToJson(exclusions).GetHashCode(),
+                        exclusions => VehicleCategoryExclusions.FromJson(VehicleCategoryExclusions.ToJson(exclusions))))
+                .HasColumnType("jsonb")
+                .HasDefaultValueSql("'{}'::jsonb");
         });
 
         modelBuilder.Entity<AppNotification>(e =>

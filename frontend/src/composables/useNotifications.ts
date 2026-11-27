@@ -2,7 +2,11 @@ import { ref, computed, watch, onUnmounted, getCurrentInstance } from 'vue'
 import { notificationsApi, type AppNotification } from '@/services/notificationsApi'
 import { useAuthStore } from '@/stores/auth'
 import { useUiSettingsStore } from '@/stores/settingsUi'
-import { isCategoryShown, notificationCategoryId } from '@/utils/notificationCategories'
+import {
+  isCategoryShown,
+  notificationCategoryId,
+  vehicleExclusionsOf,
+} from '@/utils/notificationCategories'
 import { asError } from '@/utils/errors'
 
 const notifications = ref<AppNotification[]>([])
@@ -55,8 +59,14 @@ export function useNotifications() {
   const visibleNotifications = computed(() => {
     const excluded = uiSettings.notificationTypeExclusions
     const included = uiSettings.notificationTypeInclusions
+    const byVehicle = uiSettings.notificationTypeExclusionsByVehicle
     return notifications.value.filter((n) =>
-      isCategoryShown(notificationCategoryId(n.category), excluded, included),
+      isCategoryShown(
+        notificationCategoryId(n.category),
+        excluded,
+        included,
+        vehicleExclusionsOf(byVehicle, n.vehicleId),
+      ),
     )
   })
 

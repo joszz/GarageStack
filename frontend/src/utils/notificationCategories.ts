@@ -55,6 +55,15 @@ export function notificationCategoryIdsFor(
   )
 }
 
+// The Worker sends these without naming a car (the MG sign-in failing is about the account, and
+// no car reports it), so a car's own list has nothing to switch off for them.
+const ACCOUNT_WIDE_CATEGORY_IDS: readonly NotificationCategoryId[] = ['gateway-login']
+
+/** Whether a notification of the type `id` can be about one car, and so be switched off for it. */
+export function isPerCarCategory(id: NotificationCategoryId): boolean {
+  return !ACCOUNT_WIDE_CATEGORY_IDS.includes(id)
+}
+
 /**
  * The types a device switches on rather than off, as NotificationCategories.OptInGroups on the
  * server: a summary every week unasked would be noise.
@@ -69,15 +78,34 @@ export function isOptIn(id: NotificationCategoryId): boolean {
 }
 
 /**
+ * The types switched off for one car only, by vehicle id, on top of the device's own exclusions
+ * (which leave a type out for every car). Keyed by the id as text, since that is what a JSON
+ * object holds.
+ */
+export type VehicleExclusions = Readonly<Record<string, readonly string[]>>
+
+/** The types switched off for the car `vehicleId`; none for a notification that names no car. */
+export function vehicleExclusionsOf(
+  byVehicle: VehicleExclusions,
+  vehicleId: number | null | undefined,
+): readonly string[] {
+  return vehicleId == null ? [] : (byVehicle[String(vehicleId)] ?? [])
+}
+
+/**
  * Whether this device shows a notification of the type `id`: an opt-in type once switched on, any
  * other until switched off, and one without a known type always, since nothing can switch it off.
+ * `vehicleExclusions` is what the device also switched off for the car the notification is about;
+ * a type in either list stays out, as on the server (NotificationCategories.IsWanted).
  */
 export function isCategoryShown(
   id: NotificationCategoryId | null,
   exclusions: readonly string[],
   inclusions: readonly string[],
+  vehicleExclusions: readonly string[] = [],
 ): boolean {
   if (id === null) return true
+  if (vehicleExclusions.includes(id)) return false
   return isOptIn(id) ? inclusions.includes(id) : !exclusions.includes(id)
 }
 

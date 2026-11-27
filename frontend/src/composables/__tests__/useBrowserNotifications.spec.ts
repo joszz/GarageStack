@@ -88,6 +88,18 @@ describe('useBrowserNotifications', () => {
     expect(shown).toEqual([])
   })
 
+  it('stays quiet for a type switched off for the car it is about, and only for that car', async () => {
+    stubNotification('granted')
+    stubPushSubscription(false)
+    useUiSettingsStore().notificationTypeExclusionsByVehicle = { '2': ['doors-open-parked'] }
+
+    await useBrowserNotifications().show({ ...doorLeftOpen, vehicleId: 2 })
+    expect(shown).toEqual([])
+
+    await useBrowserNotifications().show({ ...doorLeftOpen, vehicleId: 1 })
+    expect(shown).toHaveLength(1)
+  })
+
   it('stays quiet until the user has allowed notifications', async () => {
     stubNotification('default')
     stubPushSubscription(false)

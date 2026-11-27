@@ -1,6 +1,10 @@
 import type { AppNotification } from '@/services/notificationsApi'
 import { useUiSettingsStore } from '@/stores/settingsUi'
-import { isCategoryShown, notificationCategoryId } from '@/utils/notificationCategories'
+import {
+  isCategoryShown,
+  notificationCategoryId,
+  vehicleExclusionsOf,
+} from '@/utils/notificationCategories'
 import { useVehicleStore } from '@/stores/vehicle'
 import { titleWithCar } from '@/utils/vehicleLabels'
 
@@ -32,6 +36,7 @@ export function useBrowserNotifications() {
         category,
         settings.notificationTypeExclusions,
         settings.notificationTypeInclusions,
+        vehicleExclusionsOf(settings.notificationTypeExclusionsByVehicle, notification.vehicleId),
       )
     )
       return

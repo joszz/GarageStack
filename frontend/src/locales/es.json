@@ -538,6 +538,10 @@
     "typeFilterDesc": "Elija qué tipos de notificaciones muestra y recibe este dispositivo. Los resúmenes semanal y mensual están desactivados hasta que los actives, y solo llegan a un dispositivo con las notificaciones push activadas.",
     "selectAll": "Seleccionar todo",
     "deselectAll": "Deseleccionar todo",
+    "scope": "Coche",
+    "scopeDesc": "Elija para qué coche es la lista de abajo. Un tipo desactivado para todos los coches sigue desactivado para cada coche.",
+    "scopeAll": "Todos los coches",
+    "offForAllCars": "Desactivado para todos los coches",
     "categories": {
       "lowTyre": "Baja presión de neumáticos",
       "highTyre": "Alta presión de neumáticos",

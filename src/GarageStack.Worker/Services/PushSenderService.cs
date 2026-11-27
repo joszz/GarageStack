@@ -103,10 +103,12 @@ public sealed class PushSenderService : IPushSender, IDisposable
 
         using var scope = _scopeFactory.CreateScope();
         var subscriptionRepository = scope.ServiceProvider.GetRequiredService<IPushSubscriptionRepository>();
-        // Each device switched its own types off. The in-app record above is shared and kept
-        // regardless; only the push to a device that does not want this type is left out.
+        // Each device switched its own types off, for every car or for one. The in-app record above
+        // is shared and kept regardless; only the push to a device that does not want this type
+        // for this car is left out.
         var subscriptions = (await subscriptionRepository.ListAsync(ct))
-            .Where(s => NotificationCategories.IsWanted(category, s.ExcludedCategories, s.IncludedCategories))
+            .Where(s => NotificationCategories.IsWanted(
+                category, s.ExcludedCategories, s.IncludedCategories, s.ExcludedCategoriesFor(vehicleId)))
             .ToList();
         if (subscriptions.Count == 0) return;
 

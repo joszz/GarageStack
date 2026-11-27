@@ -7,7 +7,17 @@ import { usePush, type UsePushOptions } from '@/composables/usePush'
 vi.mock('@/services/pushApi', () => ({
   pushApi: {
     getVapidPublicKey: vi.fn<() => Promise<{ publicKey: string }>>(),
-    subscribe: vi.fn<(e: string, p: string, a: string, x?: readonly string[]) => Promise<void>>(),
+    subscribe:
+      vi.fn<
+        (
+          e: string,
+          p: string,
+          a: string,
+          x?: readonly string[],
+          i?: readonly string[],
+          v?: Readonly<Record<string, readonly string[]>>,
+        ) => Promise<void>
+      >(),
     unsubscribe: vi.fn<(e: string) => Promise<void>>(),
   },
 }))
@@ -101,6 +111,7 @@ describe('usePush on load', () => {
       'auth-key',
       undefined,
       undefined,
+      undefined,
     )
     expect(pushManager.subscribe).not.toHaveBeenCalled()
     expect(api().pushState.value).toBe('subscribed')
@@ -121,6 +132,7 @@ describe('usePush on load', () => {
       'https://push.example/abc',
       'p256dh-key',
       'auth-key',
+      undefined,
       undefined,
       undefined,
     )
@@ -186,6 +198,7 @@ describe('usePush on load', () => {
       'auth-key',
       undefined,
       undefined,
+      undefined,
     )
     expect(api().pushState.value).toBe('subscribed')
   })
@@ -244,6 +257,7 @@ describe('usePush togglePush', () => {
       'auth-key',
       undefined,
       undefined,
+      undefined,
     )
     expect(api().pushState.value).toBe('subscribed')
     expect(api().pushError.value).toBe(false)
@@ -280,6 +294,7 @@ describe('usePush and the types this device switched off', () => {
       'auth-key',
       ['engine-start'],
       undefined,
+      undefined,
     )
   })
 
@@ -299,6 +314,7 @@ describe('usePush and the types this device switched off', () => {
       'auth-key',
       ['engine-start', 'maintenance'],
       undefined,
+      undefined,
     )
   })
 
@@ -315,6 +331,47 @@ describe('usePush and the types this device switched off', () => {
       'auth-key',
       [],
       ['weekly-summary'],
+      undefined,
+    )
+  })
+
+  it('sends the types switched off for one car along with them', async () => {
+    pushManager.getSubscription.mockResolvedValue(makeSubscription())
+    setPermission('granted')
+
+    mountUsePush({
+      excludedCategories: () => [],
+      excludedCategoriesByVehicle: () => ({ '2': ['doors-open-parked'] }),
+    })
+    await flush()
+
+    expect(subscribeMock).toHaveBeenCalledWith(
+      'https://push.example/abc',
+      'p256dh-key',
+      'auth-key',
+      [],
+      undefined,
+      { '2': ['doors-open-parked'] },
+    )
+  })
+
+  it('registers the subscription again when a car changes', async () => {
+    pushManager.getSubscription.mockResolvedValue(makeSubscription())
+    setPermission('granted')
+    let byVehicle: Record<string, string[]> = { '2': ['doors-open-parked'] }
+
+    const { api } = mountUsePush({ excludedCategoriesByVehicle: () => byVehicle })
+    await flush()
+    byVehicle = {}
+    await api().syncExclusions()
+
+    expect(subscribeMock).toHaveBeenLastCalledWith(
+      'https://push.example/abc',
+      'p256dh-key',
+      'auth-key',
+      undefined,
+      undefined,
+      {},
     )
   })
 

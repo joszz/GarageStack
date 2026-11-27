@@ -504,6 +504,48 @@ describe('useUiSettingsStore', () => {
     expect(store.notificationTypeExclusions).toEqual(['charging-complete'])
   })
 
+  it('defaults the types switched off per car to none', () => {
+    expect(useUiSettingsStore().notificationTypeExclusionsByVehicle).toEqual({})
+  })
+
+  it('persists the types switched off per car to its own localStorage key', async () => {
+    const store = useUiSettingsStore()
+    store.notificationTypeExclusionsByVehicle = { '2': ['doors-open-parked'] }
+    await nextTick()
+    vi.advanceTimersByTime(SAVE_DEBOUNCE_MS)
+    const saved = JSON.parse(localStorage.getItem(UI_KEY)!)
+    expect(saved.notificationTypeExclusionsByVehicle).toEqual({ '2': ['doors-open-parked'] })
+  })
+
+  it('loads the types switched off per car, keeping only a vehicle id with types in a list', () => {
+    localStorage.setItem(
+      UI_KEY,
+      JSON.stringify({
+        notificationTypeExclusionsByVehicle: {
+          '2': ['low-tyre', 'low-tyre', 7, 'engine-start'],
+          '3': [],
+          '4': 'low-tyre',
+          '0': ['low-tyre'],
+          abc: ['low-tyre'],
+          '-5': ['low-tyre'],
+          '5': null,
+        },
+      }),
+    )
+
+    expect(useUiSettingsStore().notificationTypeExclusionsByVehicle).toEqual({
+      '2': ['low-tyre', 'engine-start'],
+    })
+  })
+
+  it.each([null, 'low-tyre', ['low-tyre'], 3])(
+    'reads %j as no types switched off per car',
+    (stored) => {
+      localStorage.setItem(UI_KEY, JSON.stringify({ notificationTypeExclusionsByVehicle: stored }))
+      expect(useUiSettingsStore().notificationTypeExclusionsByVehicle).toEqual({})
+    },
+  )
+
   it('leaves the region, the clock and every unit on automatic until one is chosen', () => {
     localStorage.setItem(UI_KEY, JSON.stringify({ theme: 'light' }))
     const store = useUiSettingsStore()

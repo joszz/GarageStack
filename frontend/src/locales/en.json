@@ -538,6 +538,10 @@
     "typeFilterDesc": "Choose which notification types this device shows and gets pushed. The weekly and monthly summaries are off until you switch them on, and come only to a device with push on.",
     "selectAll": "Select all",
     "deselectAll": "Deselect all",
+    "scope": "Car",
+    "scopeDesc": "Choose which car the list below is for. A type switched off for all cars stays off for every car.",
+    "scopeAll": "All cars",
+    "offForAllCars": "Off for all cars",
     "categories": {
       "lowTyre": "Low tyre pressure",
       "highTyre": "High tyre pressure",

@@ -538,6 +538,10 @@
     "typeFilterDesc": "Escolha quais tipos de notificação este dispositivo mostra e recebe por push. Os resumos semanal e mensal ficam desligados até os ligar, e só chegam a um dispositivo com push ligado.",
     "selectAll": "Selecionar todas",
     "deselectAll": "Desmarcar todas",
+    "scope": "Carro",
+    "scopeDesc": "Escolha para que carro serve a lista abaixo. Um tipo desligado para todos os carros continua desligado em cada carro.",
+    "scopeAll": "Todos os carros",
+    "offForAllCars": "Desligado para todos os carros",
     "categories": {
       "lowTyre": "Pressão baixa dos pneus",
       "highTyre": "Pressão alta dos pneus",
