@@ -128,7 +128,10 @@
       "batteryVoltageTrend": "Tendência dos 12 V",
       "parkingLocations": "Locais de estacionamento",
       "electricShare": "Uso elétrico hoje",
-      "avgSpeed": "Velocidade média"
+      "avgSpeed": "Velocidade média",
+      "fullBatteryRange": "Autonomia com a bateria cheia",
+      "distancePerCharge": "Distância por recarga",
+      "chargeHabit": "Recarga típica"
     },
     "cardDesc": {
       "distanceInRange": "Distância que o carro contou no período selecionado, pelo próprio contador diário, para corresponder à energia consumida. Se o carro não informa esse contador, é usado o total das suas viagens.",
@@ -141,7 +144,10 @@
       "batteryVoltageTrend": "Variação da tensão média da bateria de 12 V do início ao fim do período selecionado. Mostra a tensão atual quando há menos de dois dias de dados.",
       "parkingLocations": "Número de vagas de estacionamento distintas usadas em todas as viagens do período selecionado, com base em coordenadas GPS arredondadas.",
       "electricShare": "Estimativa da parte da condução de hoje feita com energia elétrica, calculada a partir da distância desde a última carga em relação à distância total de hoje. Só faz sentido para PHEV, em que a bateria pode ser carregada na rede elétrica.",
-      "avgSpeed": "Velocidade média em movimento considerando todos os pontos GPS registrados no período selecionado, sem contar os momentos parado."
+      "avgSpeed": "Velocidade média em movimento considerando todos os pontos GPS registrados no período selecionado, sem contar os momentos parado.",
+      "fullBatteryRange": "Quanto o carro anda com a bateria cheia do jeito que você dirige, calculado com as recargas do período: os quilômetros rodados por ponto de bateria gasto entre uma recarga e a seguinte, vezes 100. Pares curtos demais para ler, e pares muito fora do resto porque uma recarga não foi vista entre eles, ficam de fora. São necessários pelo menos três pares utilizáveis, e vale só para um BEV, porque a distância de um híbrido inclui gasolina.",
+      "distancePerCharge": "A distância que normalmente se roda do fim de uma recarga ao fim da seguinte, como valor do meio entre as recargas do período, para que um trecho muito longo (uma recarga que o app não viu) não a puxe para cima. São necessárias pelo menos três recargas depois da primeira. A distância de um híbrido plug-in inclui quilômetros de gasolina.",
+      "chargeHabit": "O nível médio de bateria com que as recargas concluídas do período começaram e terminaram, entre as que informaram os dois. São necessárias pelo menos três recargas."
     },
     "chartDesc": {
       "evChart": "Nível de carga médio diário da bateria do EV no período selecionado.",
