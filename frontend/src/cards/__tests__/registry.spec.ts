@@ -77,6 +77,18 @@ describe('card registry', () => {
     expect(cardHasData('efficiencyCharge', context(status, 'bev'))).toBe(true)
   })
 
+  // The car's own energy counter over a distance GarageStack worked out would mix two windows.
+  it('has no efficiency since the last charge where the distance was worked out, but still the distance', () => {
+    const status = {
+      powerUsageSinceLastCharge: 8.2,
+      mileageSinceLastCharge: 46,
+      mileageSinceLastChargeCalculated: true,
+    }
+
+    expect(cardHasData('efficiencySinceCharge', context(status, 'bev'))).toBe(false)
+    expect(cardHasData('efficiencyCharge', context(status, 'bev'))).toBe(true)
+  })
+
   it('shows efficiency since the last charge for a car that plugs in and has driven', () => {
     const status = { powerUsageSinceLastCharge: 11.12, mileageSinceLastCharge: 46 }
     expect(cardHasData('efficiencySinceCharge', context(status, 'bev'))).toBe(true)

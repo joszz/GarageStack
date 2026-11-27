@@ -12,10 +12,30 @@ public static class DistanceSinceCharge
     public static readonly TimeSpan Lookback = TimeSpan.FromDays(400);
 
     /// <summary>
+    /// The spans the last charge is looked for in, nearest first. The search stops at the first that
+    /// holds a sign of one, so a car that charges often is found in a week of readings, and only a
+    /// car that rarely or never does reads back as far as <see cref="Lookback"/>.
+    /// </summary>
+    public static readonly IReadOnlyList<TimeSpan> SearchWindows =
+        [TimeSpan.FromDays(7), TimeSpan.FromDays(30), TimeSpan.FromDays(120), Lookback];
+
+    /// <summary>
     /// How long the odometer at the last charge is reused before it is looked up again. A charge
-    /// ends rarely and the lookup reads far back, so a minute's delay in noticing one costs nothing.
+    /// ends rarely, so a minute's delay in noticing one costs nothing.
     /// </summary>
     public static readonly TimeSpan CacheFor = TimeSpan.FromMinutes(1);
+
+    /// <summary>
+    /// How long "no charge found" is reused. It is the answer that costs the most to find (the whole
+    /// lookback is read for it), and a car's first charge appears within a couple of minutes anyway.
+    /// </summary>
+    public static readonly TimeSpan CacheNoChargeFor = TimeSpan.FromMinutes(2);
+
+    /// <summary>
+    /// The furthest back readings are read for a charge that shows only as the state of charge
+    /// going up, however long ago the last known charge was.
+    /// </summary>
+    public static readonly TimeSpan SocRiseMaxLookback = TimeSpan.FromDays(90);
 
     /// <summary>How many of the newest readings that show the car charging are compared, to find the latest charge.</summary>
     public const int ChargingReadingsCompared = 20;

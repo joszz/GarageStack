@@ -263,45 +263,62 @@ public class TelemetryRepository(
             return known.Km;
 
         var km = await ReadOdometerAtLastChargeAsync(vehicleId, ct);
-        cache?.Set(key, new OdometerAtCharge(km), DistanceSinceCharge.CacheFor);
+        cache?.Set(key, new OdometerAtCharge(km), km is null ? DistanceSinceCharge.CacheNoChargeFor : DistanceSinceCharge.CacheFor);
         return km;
     }
 
     private async Task<double?> ReadOdometerAtLastChargeAsync(int vehicleId, CancellationToken ct)
     {
+        // A plain hybrid never charges from a plug: what its battery does at a standstill (an engine
+        // topping it up at a red light) is not a charge, and there is none to count from.
+        var vehicle = await db.Vehicles.AsNoTracking().FirstOrDefaultAsync(v => v.Id == vehicleId, ct);
+        if (vehicle is not null
+            && !ChargeSessionHistory.Applies(vehicle.Settings?.VehicleType ?? VehicleTypeHelper.GetVehicleType(vehicle)))
+            return null;
+
         var now = UtcNow;
-        var since = now - DistanceSinceCharge.Lookback;
 
-        // The newest readings that show the car charging. Compared by when each was true of the car
-        // rather than by when its row landed, as a gateway that starts again sends an old charge
-        // state in a new row.
-        var charging = await db.TelemetrySnapshots
-            .AsNoTracking()
-            .Where(s => s.VehicleId == vehicleId && s.RecordedAt >= since && s.IsCharging == true)
-            .OrderByDescending(s => s.RecordedAt)
-            .Take(DistanceSinceCharge.ChargingReadingsCompared)
-            .Select(s => new { s.RecordedAt, s.LastChargeStateAt })
-            .ToListAsync(ct);
-        DateTime? lastSeenCharging = charging.Count == 0
-            ? null
-            : charging.Max(r => DistanceSinceCharge.ChargingReadingAt(r.RecordedAt, r.LastChargeStateAt));
+        // The nearest span that holds a sign of a charge. The signs are the newest readings that show
+        // the car charging, compared by when each was true of the car rather than by when its row
+        // landed (a gateway that starts again sends an old charge state in a new row), and the end
+        // time the car reports, which only counts when the time itself is inside the span: a car
+        // that reports a zero or an old epoch there has told us nothing about a charge.
+        DateTime? endedAt = null;
+        foreach (var window in DistanceSinceCharge.SearchWindows)
+        {
+            var since = now - window;
+            var charging = await db.TelemetrySnapshots
+                .AsNoTracking()
+                .Where(s => s.VehicleId == vehicleId && s.RecordedAt >= since && s.IsCharging == true)
+                .OrderByDescending(s => s.RecordedAt)
+                .Take(DistanceSinceCharge.ChargingReadingsCompared)
+                .Select(s => new { s.RecordedAt, s.LastChargeStateAt })
+                .ToListAsync(ct);
+            DateTime? lastSeenCharging = charging.Count == 0
+                ? null
+                : charging.Max(r => DistanceSinceCharge.ChargingReadingAt(r.RecordedAt, r.LastChargeStateAt));
 
-        // A charge too short for a poll to catch still leaves the end time the car reports.
-        var reportedEnd = await db.TelemetrySnapshots
-            .AsNoTracking()
-            .Where(s => s.VehicleId == vehicleId && s.RecordedAt >= since && s.ChargingLastEndAt != null)
-            .OrderByDescending(s => s.RecordedAt)
-            .Select(s => s.ChargingLastEndAt)
-            .FirstOrDefaultAsync(ct);
+            // A charge too short for a poll to catch still leaves the end time the car reports.
+            var reportedEnd = await db.TelemetrySnapshots
+                .AsNoTracking()
+                .Where(s => s.VehicleId == vehicleId && s.RecordedAt >= since && s.ChargingLastEndAt >= since)
+                .OrderByDescending(s => s.RecordedAt)
+                .Select(s => s.ChargingLastEndAt)
+                .FirstOrDefaultAsync(ct);
 
-        var endedAt = DistanceSinceCharge.LastChargeAt(now, reportedEnd, lastSeenCharging);
+            endedAt = DistanceSinceCharge.LastChargeAt(now, reportedEnd, lastSeenCharging);
+            if (endedAt is not null) break;
+        }
+
         var odometerAtEnd = endedAt is { } end ? await GetOdometerAtAsync(vehicleId, end, ct) : null;
 
         // A charge the polls missed entirely: the gateway reads a parked car rarely, so a charge can
         // start and end between two reads. After the last charge there is evidence of (or, with none
         // known, within the lookback), a state of charge that climbed with the car standing still is
-        // one, and it is the later charge if it came after.
+        // one, and it is the later charge if it came after. Never read further back than the cap.
         var riseFrom = endedAt ?? now - DistanceSinceCharge.SocRiseLookback;
+        var cap = now - DistanceSinceCharge.SocRiseMaxLookback;
+        if (riseFrom < cap) riseFrom = cap;
         var rise = DistanceSinceCharge.LastSocRiseCharge(await db.TelemetrySnapshots
             .AsNoTracking()
             .Where(s => s.VehicleId == vehicleId

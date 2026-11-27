@@ -186,13 +186,21 @@ public class DistanceSinceChargeTests
 
     // ── The repository ───────────────────────────────────────────────────────
 
-    private static async Task<(AppDbContext Db, TelemetryRepository Repo, int VehicleId)> SetupAsync(
-        IMemoryCache? cache = null, params TelemetrySnapshot[] rows)
+    private static Task<(AppDbContext Db, TelemetryRepository Repo, int VehicleId)> SetupAsync(
+        IMemoryCache? cache = null, params TelemetrySnapshot[] rows) =>
+        SetupCarAsync(null, cache, rows);
+
+    private static async Task<(AppDbContext Db, TelemetryRepository Repo, int VehicleId)> SetupCarAsync(
+        string? vehicleType, IMemoryCache? cache, params TelemetrySnapshot[] rows)
     {
         var db = new AppDbContext(new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options);
-        var vehicle = new Vehicle { Vin = "FAKEVN00000000001" };
+        var vehicle = new Vehicle
+        {
+            Vin = "FAKEVN00000000001",
+            Settings = vehicleType is null ? null : new VehicleSettings { VehicleType = vehicleType },
+        };
         db.Vehicles.Add(vehicle);
         await db.SaveChangesAsync();
         foreach (var row in rows) row.VehicleId = vehicle.Id;
@@ -456,5 +464,108 @@ public class DistanceSinceChargeTests
         var result = await repo.GetMergedLatestAsync(vehicleId, ct);
 
         Assert.Null(result!.MileageSinceLastCharge);
+    }
+
+    // ── Which cars, how far back, and how much is read ──────────────────────────
+
+    [Fact]
+    public async Task GetMergedLatest_APlainHybrid_HasNoDistanceFromACharge()
+    {
+        // Its battery climbs at a standstill when the engine tops it up, and it never charges from a plug.
+        var ct = TestContext.Current.CancellationToken;
+        var (db, repo, vehicleId) = await SetupCarAsync("hev", null,
+            Soc(T0.AddDays(-2), 60, 1000),
+            Soc(T0.AddDays(-2).AddMinutes(5), 64),
+            Charging(T0.AddDays(-1), true),
+            Odometer(T0.AddMinutes(-5), 1042));
+        await using var _ = db;
+
+        var result = await repo.GetMergedLatestAsync(vehicleId, ct);
+
+        Assert.Null(result!.MileageSinceLastCharge);
+        Assert.False(result.MileageSinceLastChargeCalculated);
+    }
+
+    [Theory]
+    [InlineData("bev")]
+    [InlineData("phev")]
+    public async Task GetMergedLatest_APlugInCar_HasItsDistanceFromACharge(string type)
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (db, repo, vehicleId) = await SetupCarAsync(type, null,
+            Odometer(T0.AddDays(-2), 1000),
+            Charging(T0.AddDays(-2), true),
+            Odometer(T0.AddMinutes(-5), 1042));
+        await using var _ = db;
+
+        var result = await repo.GetMergedLatestAsync(vehicleId, ct);
+
+        Assert.Equal(42, result!.MileageSinceLastCharge);
+    }
+
+    [Theory]
+    [InlineData(40)]    // in the first span
+    [InlineData(100)]   // in the third
+    [InlineData(300)]   // in the last
+    public async Task GetMergedLatest_ALastChargeAtAnyDistanceInTheLookback_IsFound(int daysAgo)
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (db, repo, vehicleId) = await SetupAsync(null,
+            Odometer(T0.AddDays(-daysAgo), 1000),
+            Charging(T0.AddDays(-daysAgo), true),
+            Odometer(T0.AddMinutes(-5), 1042));
+        await using var _ = db;
+
+        var result = await repo.GetMergedLatestAsync(vehicleId, ct);
+
+        Assert.Equal(42, result!.MileageSinceLastCharge);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-62135596800)]  // the year 1
+    public async Task GetMergedLatest_AnEndTimeThatIsAnEpoch_SaysNothingAboutACharge(long epochSeconds)
+    {
+        // A car that reports charging/lastEnd as zero has not said when a charge ended.
+        var ct = TestContext.Current.CancellationToken;
+        var (db, repo, vehicleId) = await SetupAsync(null,
+            Odometer(T0.AddDays(-2), 1000),
+            new TelemetrySnapshot
+            {
+                RecordedAt = T0.AddDays(-1),
+                ChargingLastEndAt = DateTimeOffset.FromUnixTimeSeconds(epochSeconds).UtcDateTime,
+            },
+            Odometer(T0.AddMinutes(-5), 1042));
+        await using var _ = db;
+
+        var result = await repo.GetMergedLatestAsync(vehicleId, ct);
+
+        Assert.Null(result!.MileageSinceLastCharge);
+    }
+
+    [Fact]
+    public async Task GetMergedLatest_AClimbOfTheStateOfChargeOlderThanTheCap_IsNotLookedFor()
+    {
+        // The last charge a reading saw is 200 days ago; a climb 100 days ago is further back than
+        // readings are read for one, so the distance counts from the charge that was seen.
+        var ct = TestContext.Current.CancellationToken;
+        var (db, repo, vehicleId) = await SetupAsync(null,
+            Odometer(T0.AddDays(-200), 1000),
+            Charging(T0.AddDays(-200), true),
+            Soc(T0.AddDays(-101), 60, 1500),
+            Soc(T0.AddDays(-100), 85),
+            Odometer(T0.AddMinutes(-5), 1600));
+        await using var _ = db;
+
+        var result = await repo.GetMergedLatestAsync(vehicleId, ct);
+
+        Assert.Equal(600, result!.MileageSinceLastCharge);
+    }
+
+    [Fact]
+    public void TheSearchWindows_GetWiderAndEndAtTheLookback()
+    {
+        Assert.Equal(DistanceSinceCharge.SearchWindows.Order(), DistanceSinceCharge.SearchWindows);
+        Assert.Equal(DistanceSinceCharge.Lookback, DistanceSinceCharge.SearchWindows[^1]);
     }
 }

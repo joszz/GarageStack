@@ -11001,6 +11001,7 @@
           "isCharging",
           "chargerConnected",
           "mileageSinceLastCharge",
+          "mileageSinceLastChargeCalculated",
           "hvSocKwh",
           "hvTotalCapacityKwh",
           "hvVoltage",
@@ -11123,6 +11124,9 @@
               "number"
             ],
             "format": "double"
+          },
+          "mileageSinceLastChargeCalculated": {
+            "type": "boolean"
           },
           "hvSocKwh": {
             "type": [

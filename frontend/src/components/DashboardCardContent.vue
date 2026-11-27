@@ -208,10 +208,7 @@ const simpleCards = computed((): SimpleCardConfig[] => {
     {
       id: 'efficiencySinceCharge',
       label: t('vehicle.efficiency.efficiencySinceCharge'),
-      ...approximate(
-        measured('energyPerDistance', sinceChargeWhPerKm(s, ctx.vehicleType, ctx.counterScale)),
-        s.mileageSinceLastChargeCalculated === true,
-      ),
+      ...measured('energyPerDistance', sinceChargeWhPerKm(s, ctx.vehicleType, ctx.counterScale)),
     },
     // efficiencyRatio - measured fuel consumption on a hybrid, which beats the estimate below
     {

@@ -150,7 +150,9 @@ describe('DashboardCardContent', () => {
       expect(card.text).toBeNull()
     })
 
-    it('shows the efficiency since the last charge as approximate when its distance was worked out', () => {
+    // The energy counter is the car's own and starts where the car says; the distance GarageStack
+    // worked out starts where GarageStack found a charge. The two are not the same driving.
+    it("does not divide the car's energy counter by a distance that was worked out", () => {
       const card = render(
         'efficiencySinceCharge',
         status({
@@ -161,7 +163,7 @@ describe('DashboardCardContent', () => {
         'bev',
       )
 
-      expect(card.text).toBe(`${en.vehicle.efficiency.efficiencySinceCharge}|≈ 24.2|kWh/100 km`)
+      expect(card.text).toBeNull()
     })
 
     it('is also shown since the last charge, off the since-last-charge counters', () => {
