@@ -23,6 +23,34 @@ public class WidgetStatusDtoTests
     }
 
     [Fact]
+    public void FromSnapshot_CarriesWhetherTheDistanceSinceTheLastChargeWasWorkedOut()
+    {
+        var reported = WidgetStatusDto.FromSnapshot(
+            new TelemetrySnapshot { MileageSinceLastCharge = 30 }, NoFacts, new KeyEchoLocalizer());
+        var calculated = WidgetStatusDto.FromSnapshot(
+            new TelemetrySnapshot { MileageSinceLastCharge = 30, MileageSinceLastChargeCalculated = true },
+            NoFacts, new KeyEchoLocalizer());
+
+        Assert.False(reported.MileageSinceLastChargeCalculated);
+        Assert.True(calculated.MileageSinceLastChargeCalculated);
+    }
+
+    [Fact]
+    public void FromSnapshot_ElectricShare_IsOffTheCarsOwnCounterOnly()
+    {
+        // 30 of today's 40 km since the last charge. Worked out from the odometer, the distance is an
+        // estimate, and a share built on it would be an estimate of an estimate.
+        var reported = WidgetStatusDto.FromSnapshot(
+            new TelemetrySnapshot { MileageSinceLastCharge = 30, MileageOfTheDay = 40 }, NoFacts, new KeyEchoLocalizer());
+        var calculated = WidgetStatusDto.FromSnapshot(
+            new TelemetrySnapshot { MileageSinceLastCharge = 30, MileageOfTheDay = 40, MileageSinceLastChargeCalculated = true },
+            NoFacts, new KeyEchoLocalizer());
+
+        Assert.Equal(75, reported.ElectricSharePercent);
+        Assert.Null(calculated.ElectricSharePercent);
+    }
+
+    [Fact]
     public void FromSnapshot_NoPowerUsageOfDay_ReturnsNull()
     {
         var dto = WidgetStatusDto.FromSnapshot(new TelemetrySnapshot(), NoFacts, new KeyEchoLocalizer());

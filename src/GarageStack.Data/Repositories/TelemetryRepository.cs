@@ -173,6 +173,15 @@ public class TelemetryRepository(
         if (merged.MileageOfTheDay is > 0 && merged.OdometerKm is { } odometer)
             merged.MileageOfTheDay = await CheckDayDistanceAsync(vehicleId, merged.MileageOfTheDay.Value, odometer, todayStart, ct);
 
+        // Not every car reports the distance since its last charge. For one that does not, it is the
+        // odometer now less the odometer where the last charge ended, which the readings hold.
+        if (merged.MileageSinceLastCharge is null && merged.OdometerKm is { } odometerNow)
+        {
+            merged.MileageSinceLastCharge = DistanceSinceCharge.Between(
+                odometerNow, await GetOdometerAtLastChargeAsync(vehicleId, ct));
+            merged.MileageSinceLastChargeCalculated = merged.MileageSinceLastCharge is not null;
+        }
+
         // If the MG API still reports a journey distance but the engine is off,
         // the trip has ended and the firmware just hasn't cleared the field yet.
         // The 5-minute guard on speed handles the red-light case (speed=0 but
@@ -234,6 +243,94 @@ public class TelemetryRepository(
 
         cache?.Set(cacheKey, merged, MergedLatestCacheTtl);
         return merged;
+    }
+
+    private static string OdometerAtChargeCacheKey(int vehicleId) => $"odometer-at-last-charge/{vehicleId}";
+
+    // Kept apart from the odometer itself so that "no charge found" is remembered too: a car that
+    // was never plugged in would otherwise be searched for again on every read.
+    private sealed record OdometerAtCharge(double? Km);
+
+    /// <summary>
+    /// The odometer where the car's last charge ended, or null when no charge is in the readings
+    /// (a car's first charge after GarageStack began recording has not happened yet). Remembered for
+    /// <see cref="DistanceSinceCharge.CacheFor"/>.
+    /// </summary>
+    private async Task<double?> GetOdometerAtLastChargeAsync(int vehicleId, CancellationToken ct)
+    {
+        var key = OdometerAtChargeCacheKey(vehicleId);
+        if (cache is not null && cache.TryGetValue(key, out OdometerAtCharge? known) && known is not null)
+            return known.Km;
+
+        var km = await ReadOdometerAtLastChargeAsync(vehicleId, ct);
+        cache?.Set(key, new OdometerAtCharge(km), km is null ? DistanceSinceCharge.CacheNoChargeFor : DistanceSinceCharge.CacheFor);
+        return km;
+    }
+
+    private async Task<double?> ReadOdometerAtLastChargeAsync(int vehicleId, CancellationToken ct)
+    {
+        // A plain hybrid never charges from a plug: what its battery does at a standstill (an engine
+        // topping it up at a red light) is not a charge, and there is none to count from.
+        var vehicle = await db.Vehicles.AsNoTracking().FirstOrDefaultAsync(v => v.Id == vehicleId, ct);
+        if (vehicle is not null
+            && !ChargeSessionHistory.Applies(vehicle.Settings?.VehicleType ?? VehicleTypeHelper.GetVehicleType(vehicle)))
+            return null;
+
+        var now = UtcNow;
+
+        // The nearest span that holds a sign of a charge. The signs are the newest readings that show
+        // the car charging, compared by when each was true of the car rather than by when its row
+        // landed (a gateway that starts again sends an old charge state in a new row), and the end
+        // time the car reports, which only counts when the time itself is inside the span: a car
+        // that reports a zero or an old epoch there has told us nothing about a charge.
+        DateTime? endedAt = null;
+        foreach (var window in DistanceSinceCharge.SearchWindows)
+        {
+            var since = now - window;
+            var charging = await db.TelemetrySnapshots
+                .AsNoTracking()
+                .Where(s => s.VehicleId == vehicleId && s.RecordedAt >= since && s.IsCharging == true)
+                .OrderByDescending(s => s.RecordedAt)
+                .Take(DistanceSinceCharge.ChargingReadingsCompared)
+                .Select(s => new { s.RecordedAt, s.LastChargeStateAt })
+                .ToListAsync(ct);
+            DateTime? lastSeenCharging = charging.Count == 0
+                ? null
+                : charging.Max(r => DistanceSinceCharge.ChargingReadingAt(r.RecordedAt, r.LastChargeStateAt));
+
+            // A charge too short for a poll to catch still leaves the end time the car reports.
+            var reportedEnd = await db.TelemetrySnapshots
+                .AsNoTracking()
+                .Where(s => s.VehicleId == vehicleId && s.RecordedAt >= since && s.ChargingLastEndAt >= since)
+                .OrderByDescending(s => s.RecordedAt)
+                .Select(s => s.ChargingLastEndAt)
+                .FirstOrDefaultAsync(ct);
+
+            endedAt = DistanceSinceCharge.LastChargeAt(now, reportedEnd, lastSeenCharging);
+            if (endedAt is not null) break;
+        }
+
+        var odometerAtEnd = endedAt is { } end ? await GetOdometerAtAsync(vehicleId, end, ct) : null;
+
+        // A charge the polls missed entirely: the gateway reads a parked car rarely, so a charge can
+        // start and end between two reads. After the last charge there is evidence of (or, with none
+        // known, within the lookback), a state of charge that climbed with the car standing still is
+        // one, and it is the later charge if it came after. Never read further back than the cap.
+        var riseFrom = endedAt ?? now - DistanceSinceCharge.SocRiseLookback;
+        var cap = now - DistanceSinceCharge.SocRiseMaxLookback;
+        if (riseFrom < cap) riseFrom = cap;
+        var rise = DistanceSinceCharge.LastSocRiseCharge(await db.TelemetrySnapshots
+            .AsNoTracking()
+            .Where(s => s.VehicleId == vehicleId
+                && s.RecordedAt >= riseFrom
+                && (s.EvSocPercent != null || s.OdometerKm != null))
+            .OrderBy(s => s.RecordedAt)
+            .Select(s => new DistanceSinceCharge.SocReading(s.RecordedAt, s.OdometerKm, s.EvSocPercent))
+            .ToListAsync(ct));
+
+        return rise is { } missed && (endedAt is not { } known || missed.At > known)
+            ? missed.OdometerKm
+            : odometerAtEnd;
     }
 
     // A finished day's statistics cannot change: every row is stamped when it arrives, so no row

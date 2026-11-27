@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace GarageStack.Core.Models;
 
 public class TelemetrySnapshot
@@ -55,6 +57,12 @@ public class TelemetrySnapshot
     // plug-in car, but the trip computer's fuel in hundredths of a litre on a plain hybrid.
     public double? PowerUsageOfDay { get; set; }
     public double? MileageSinceLastCharge { get; set; }
+
+    /// <summary>
+    /// True when the distance since the last charge was worked out from the odometer rather than reported by the car. Only the current-state view sets it; it is not stored, merged or exported.
+    /// </summary>
+    [NotMapped]
+    public bool MileageSinceLastChargeCalculated { get; set; }
 
     // HV drivetrain (hybrid/EV high-voltage system)
     public double? HvVoltage { get; set; }

@@ -117,7 +117,7 @@ Cards are shown or hidden automatically based on vehicle type (HEV / PHEV / BEV)
 | Lights | Main beam, low beam, sidelights | All |
 | Daily Distance | Distance driven today | All |
 | Daily Energy | Energy used today (kWh), or fuel burned today (L) on an HEV. On a PHEV the kWh show once `HV_BATTERY_CAPACITY_KWH` is set | All |
-| Since Charge | Distance since last charge session | PHEV, BEV |
+| Since Charge | Distance since last charge session. A car that does not report this itself gets it worked out from the odometer at the end of its last charge: one a reading caught, one the car says when it ended, or a climb of 2 points or more in the battery level while it stood still. Shown with ≈ | PHEV, BEV |
 | Efficiency | Energy consumption in the chosen unit, or fuel consumption (L/100 km) on an HEV | All |
 | Speed | Current vehicle speed | All (off by default) |
 | Top Speed | Highest speed recorded in the most recent completed trip | All |

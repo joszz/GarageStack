@@ -20,6 +20,12 @@ internal sealed class DemoCar
 
     public required Vehicle Vehicle { get; init; }
 
+    /// <summary>
+    /// Whether the car sends its own distance since the last charge. One that does not has it worked
+    /// out from the odometer, as for a real car like that, which the dashboard shows as approximate.
+    /// </summary>
+    public bool ReportsDistanceSinceCharge { get; init; } = true;
+
     /// <summary>Seeds the history's randomness: each car's readings differ, and stay the same on every start.</summary>
     public required int Seed { get; init; }
 

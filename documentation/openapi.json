@@ -1724,7 +1724,7 @@
         "tags": [
           "Vehicles"
         ],
-        "summary": "Get latest telemetry for a vehicle (204 before the car has reported anything). Doors, their windows and a sunroof the car's configuration codes say it lacks are null",
+        "summary": "Get latest telemetry for a vehicle (204 before the car has reported anything). Doors, their windows and a sunroof the car's configuration codes say it lacks are null. A car that does not report its distance since the last charge gets it worked out from the odometer, once a charge has been recorded",
         "responses": {
           "200": {
             "description": "OK",
@@ -9518,6 +9518,10 @@
             ],
             "format": "double"
           },
+          "mileageSinceLastChargeCalculated": {
+            "type": "boolean",
+            "description": "True when the distance since the last charge was worked out from the odometer rather than reported by the car. Only the current-state view sets it; it is not stored, merged or exported."
+          },
           "hvVoltage": {
             "type": [
               "null",
@@ -10997,6 +11001,7 @@
           "isCharging",
           "chargerConnected",
           "mileageSinceLastCharge",
+          "mileageSinceLastChargeCalculated",
           "hvSocKwh",
           "hvTotalCapacityKwh",
           "hvVoltage",
@@ -11119,6 +11124,9 @@
               "number"
             ],
             "format": "double"
+          },
+          "mileageSinceLastChargeCalculated": {
+            "type": "boolean"
           },
           "hvSocKwh": {
             "type": [

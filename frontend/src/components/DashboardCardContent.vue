@@ -78,6 +78,15 @@ function measured(
   return { value: m?.value ?? null, unit: m?.unit ?? units.value.symbol(quantity) }
 }
 
+// A figure the API worked out rather than the car reported is shown with an approximate sign, so a
+// calculated distance since the last charge is not taken for a measured one.
+function approximate(
+  card: Pick<SimpleCardConfig, 'value' | 'unit'>,
+  calculated: boolean,
+): Pick<SimpleCardConfig, 'value' | 'unit'> {
+  return calculated && card.value !== null ? { ...card, value: `≈ ${card.value}` } : card
+}
+
 // The trip being driven, or when parked the last one, which then opens on the map.
 const activeTripCard = computed(() => {
   const journeyKm = status.value?.currentJourneyDistance ?? null
@@ -191,7 +200,10 @@ const simpleCards = computed((): SimpleCardConfig[] => {
     {
       id: 'efficiencyCharge',
       label: t('vehicle.efficiency.sinceCharge'),
-      ...measured('distance', s.mileageSinceLastCharge),
+      ...approximate(
+        measured('distance', s.mileageSinceLastCharge),
+        s.mileageSinceLastChargeCalculated === true,
+      ),
     },
     {
       id: 'efficiencySinceCharge',

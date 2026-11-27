@@ -212,6 +212,20 @@ describe('StatisticsView', () => {
     expect(shownInsights(wrapper)[insights.electricShare]).toBe('75%')
   })
 
+  it('leaves out the electric share when the distance since the last charge was worked out', async () => {
+    vi.mocked(vehicleApi.list).mockResolvedValue([car('phev')])
+    vi.mocked(vehicleApi.status).mockResolvedValue({
+      ...parked,
+      mileageOfTheDay: 40,
+      mileageSinceLastCharge: 30,
+      mileageSinceLastChargeCalculated: true,
+    } as TelemetrySnapshot)
+
+    const wrapper = await mountView()
+
+    expect(shownInsights(wrapper)[insights.electricShare]).not.toBe('75%')
+  })
+
   it('shows where the car parked once the insight is opened', async () => {
     const wrapper = await mountView()
 

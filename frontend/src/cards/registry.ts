@@ -202,14 +202,19 @@ export function defaultCards(type: VehicleType = 'unknown'): CardConfig[] {
 
 /**
  * Wh/km since the last charge, off the battery's since-last-charge counters, for a car that
- * plugs in: the pair that held up on the ZS EV whose day counter did not (issue #551).
+ * plugs in: the pair that held up on the ZS EV whose day counter did not (issue #551). Both
+ * counters are the car's own: where the API worked the distance out from the odometer, the energy
+ * counter and the distance start from different moments, and the two do not describe the same driving.
  */
 export function sinceChargeWhPerKm(
-  status: Pick<TelemetrySnapshot, 'powerUsageSinceLastCharge' | 'mileageSinceLastCharge'>,
+  status: Pick<
+    TelemetrySnapshot,
+    'powerUsageSinceLastCharge' | 'mileageSinceLastCharge' | 'mileageSinceLastChargeCalculated'
+  >,
   vehicleType: VehicleType,
   scale: CounterScale,
 ): number | null {
-  return plugsIn(vehicleType)
+  return plugsIn(vehicleType) && status.mileageSinceLastChargeCalculated !== true
     ? whPerKm(scaledCounter(status.powerUsageSinceLastCharge, scale), status.mileageSinceLastCharge)
     : null
 }

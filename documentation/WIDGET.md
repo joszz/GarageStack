@@ -56,7 +56,8 @@ The endpoint returns a flat JSON object. Numeric fields are `null` when the vehi
 | `electricRangeKm` | number | Distance the car estimates it can drive on the battery alone (km), on a BEV or PHEV. Never reported as 0, so an empty battery keeps its last value |
 | `isCharging` | string | Charging state: `"Charging"` or `"Not charging"` |
 | `chargerConnected` | string | Charger connection state: `"Plugged in"` or `"Unplugged"` |
-| `mileageSinceLastCharge` | number | Distance driven since last full charge (km) |
+| `mileageSinceLastCharge` | number | Distance driven since the last charge (km). Where the car does not report it, worked out from the odometer at the end of the last charge GarageStack knows of (see the dashboard card), and null until there is one |
+| `mileageSinceLastChargeCalculated` | boolean | True when `mileageSinceLastCharge` was worked out from the odometer rather than reported by the car |
 | `hvSocKwh` | number | HV battery energy (kWh), as the gateway reports it |
 | `hvTotalCapacityKwh` | number | HV battery total capacity (kWh), as the gateway reports it |
 | `hvVoltage` | number | HV system voltage (V) |
@@ -65,7 +66,7 @@ The endpoint returns a flat JSON object. Numeric fields are `null` when the vehi
 | `odometerKm` | number | Total odometer reading (km) |
 | `mileageOfTheDayKm` | number | Distance driven today (km) |
 | `powerUsageOfDayKwh` | number | Energy used today (kWh). On a plain hybrid this counter holds the trip computer's fuel total in hundredths of a litre instead, so divide by 100 for litres. It is the gateway's figure as it comes: on a plug-in hybrid that is on MG's nominal 72.5 kWh pack, so multiply by your real capacity divided by 72.5 |
-| `electricSharePercent` | number | % of today's distance driven on electric power (PHEV) |
+| `electricSharePercent` | number | % of today's distance driven on electric power (PHEV). Null when `mileageSinceLastCharge` was worked out rather than reported by the car |
 | `isLocked` | string | Lock state: `"Locked"` or `"Unlocked"` |
 | `engineRunning` | string | Engine state: `"Engine on"` or `"Engine off"` |
 | `climateOn` | string | Remote climate state: `"On"` or `"Off"` |

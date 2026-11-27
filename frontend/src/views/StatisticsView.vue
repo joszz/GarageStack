@@ -206,6 +206,8 @@ const avgSpeedKmh = computed(() => averageMovingSpeedKmh(store.tripSummaries))
 const electricShareToday = computed(() => {
   const s = status.value
   if (!s?.mileageSinceLastCharge || !s?.mileageOfTheDay || s.mileageOfTheDay === 0) return null
+  // Only off the car's own counter: a distance the API worked out is itself an estimate.
+  if (s.mileageSinceLastChargeCalculated === true) return null
   return Math.min(100, Math.round((s.mileageSinceLastCharge / s.mileageOfTheDay) * 100))
 })
 

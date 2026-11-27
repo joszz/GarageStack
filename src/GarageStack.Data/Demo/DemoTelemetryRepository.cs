@@ -455,6 +455,7 @@ public sealed class DemoTelemetryRepository : ITelemetryRepository
             LastVehicleStateAt = DateTime.UtcNow,
             LastChargeStateAt = DateTime.UtcNow.AddHours(-8),
             MileageSinceLastCharge = Math.Round(history.SinceChargeKm + drivingKm, 1),
+            MileageSinceLastChargeCalculated = !car.ReportsDistanceSinceCharge,
             MileageOfTheDay = Math.Round(history.DayKm + drivingKm, 1),
             PowerUsageOfDay = Math.Round(history.DayKwh + drivingKwh, 2),
             PowerUsageSinceLastCharge = Math.Round(history.SinceChargeKwh + drivingKwh, 2),

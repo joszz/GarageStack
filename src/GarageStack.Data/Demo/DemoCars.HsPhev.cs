@@ -16,6 +16,8 @@ internal static partial class DemoCars
     {
         Vehicle = DemoVehicleRepository.SecondDemoVehicle,
         Seed = 7,
+        // The plug-in hybrid sends no distance since the last charge, so the dashboard shows it worked out.
+        ReportsDistanceSinceCharge = false,
         Home = HsHome,
         CurrentOdometerKm = 18243,
         CapacityKwh = 24.7,

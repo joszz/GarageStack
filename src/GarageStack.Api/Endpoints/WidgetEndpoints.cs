@@ -83,6 +83,7 @@ public record WidgetStatusDto(
     string? IsCharging,
     string? ChargerConnected,
     double? MileageSinceLastCharge,
+    bool MileageSinceLastChargeCalculated,
     double? HvSocKwh,
     double? HvTotalCapacityKwh,
     double? HvVoltage,
@@ -191,7 +192,9 @@ public record WidgetStatusDto(
         // charge can be several days ago while MileageOfTheDay only covers today, the ratio can
         // exceed 100% (e.g. charged 3 days ago, driven a little each day since) - capped rather
         // than treated as exact.
-        double? electricShare = s.MileageSinceLastCharge.HasValue && s.MileageOfTheDay is > 0
+        // Only off the car's own counter: a distance GarageStack worked out is itself an estimate,
+        // and a share built on it would be an estimate of an estimate.
+        double? electricShare = s.MileageSinceLastCharge.HasValue && !s.MileageSinceLastChargeCalculated && s.MileageOfTheDay is > 0
             ? Math.Min(100, Math.Round(s.MileageSinceLastCharge.Value / s.MileageOfTheDay!.Value * 100))
             : null;
 
@@ -210,6 +213,7 @@ public record WidgetStatusDto(
             IsCharging: Loc(s.IsCharging, "ChargingYes", "ChargingNo", l),
             ChargerConnected: Loc(s.ChargerConnected, "PluggedIn", "Unplugged", l),
             MileageSinceLastCharge: s.MileageSinceLastCharge,
+            MileageSinceLastChargeCalculated: s.MileageSinceLastChargeCalculated,
             HvSocKwh: s.HvSocKwh,
             HvTotalCapacityKwh: s.HvTotalCapacityKwh,
             HvVoltage: s.HvVoltage,
