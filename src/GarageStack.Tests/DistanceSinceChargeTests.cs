@@ -95,6 +95,25 @@ public class DistanceSinceChargeTests
         Assert.Null(DistanceSinceCharge.LastSocRiseCharge(
             [Reading(-5, 2858, 83.3), Reading(-1, 2858, 85.2)]));
 
+    [Theory]
+    [InlineData(98.3, 100)]   // 1.7 points: short of two, but the car is full
+    [InlineData(98.9, 100)]
+    [InlineData(99.0, 100)]
+    public void LastSocRiseCharge_AParkedCarThatReachesFull_IsACharge_EvenOnALessThanTwoPointClimb(double before, double full)
+    {
+        var found = DistanceSinceCharge.LastSocRiseCharge([Reading(-5, 2858, before), Reading(-1, 2858, full)]);
+
+        Assert.Equal(new DistanceSinceCharge.SocRiseCharge(T0.AddHours(-1), 2858), found);
+    }
+
+    [Fact]
+    public void LastSocRiseCharge_ACarAlreadyFullThatStaysFull_IsNotACharge() =>
+        Assert.Null(DistanceSinceCharge.LastSocRiseCharge([Reading(-5, 2858, 99.6), Reading(-1, 2858, 100)]));
+
+    [Fact]
+    public void LastSocRiseCharge_AClimbOfAPointThatDoesNotReachFull_IsNotACharge() =>
+        Assert.Null(DistanceSinceCharge.LastSocRiseCharge([Reading(-5, 2858, 80), Reading(-1, 2858, 81.5)]));
+
     [Fact]
     public void LastSocRiseCharge_TheSmallWobbleOfAParkedCar_IsNotACharge() =>
         Assert.Null(DistanceSinceCharge.LastSocRiseCharge(

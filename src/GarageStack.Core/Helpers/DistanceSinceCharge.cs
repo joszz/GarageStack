@@ -56,6 +56,17 @@ public static class DistanceSinceCharge
     /// </summary>
     public const double MinimumSocRisePercent = 2;
 
+    /// <summary>
+    /// The state of charge at which a battery counts as full, and how many points a climb that ends
+    /// there must have made: a parked car that reaches full has been charged, even when the last
+    /// read before it was only a point or so below (98.3 to 100 is 1.7 points, short of
+    /// <see cref="MinimumSocRisePercent"/>, and is the end of a charge all the same).
+    /// </summary>
+    public const double FullChargePercent = 99.5;
+
+    /// <summary>The smallest climb to a full battery that is taken for a charge.</summary>
+    public const double MinimumRiseToFullPercent = 1;
+
     /// <summary>How far back a rise in the state of charge is looked for when no charge is known to start from.</summary>
     public static readonly TimeSpan SocRiseLookback = TimeSpan.FromDays(60);
 
@@ -70,7 +81,8 @@ public static class DistanceSinceCharge
     /// car rarely, so a charge can start and end between two reads, with nothing in them saying
     /// "charging". The car cannot have been driven while its odometer stood still, so a stretch of
     /// readings at one odometer value whose state of charge climbs by <paramref name="minimumRise"/>
-    /// or more above its lowest in that stretch is a charge, and it happened at that odometer. A new
+    /// or more above its lowest in that stretch (a point is enough when it ends at a full battery) is a
+    /// charge, and it happened at that odometer. A new
     /// odometer value starts a new stretch, so a drive (which regenerates and wobbles the figure) never counts.
     /// Null when there is none.
     /// </summary>
@@ -96,7 +108,8 @@ public static class DistanceSinceCharge
                 continue;
 
             lowest = lowest is { } low && low < soc ? low : soc;
-            if (soc - lowest.Value >= minimumRise)
+            var rise = soc - lowest.Value;
+            if (rise >= minimumRise || (soc >= FullChargePercent && rise >= MinimumRiseToFullPercent))
             {
                 found = new SocRiseCharge(reading.RecordedAt, at);
                 // A charge goes on rising: the next two points count as the next sign of it, so the
