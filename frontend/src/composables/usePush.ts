@@ -1,5 +1,6 @@
 import { ref, onMounted } from 'vue'
 import { pushApi } from '@/services/pushApi'
+import type { VehicleExclusions } from '@/utils/notificationCategories'
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array<ArrayBuffer> {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
@@ -17,6 +18,8 @@ export interface UsePushOptions {
   excludedCategories?: () => readonly string[]
   /** The opt-in types this device switched on, which the server sends nobody until asked. */
   includedCategories?: () => readonly string[]
+  /** The types this device switched off for one car only, by vehicle id. */
+  excludedCategoriesByVehicle?: () => VehicleExclusions
 }
 
 export function usePush(options: UsePushOptions = {}) {
@@ -37,6 +40,7 @@ export function usePush(options: UsePushOptions = {}) {
       json.keys?.['auth'] ?? '',
       options.excludedCategories?.(),
       options.includedCategories?.(),
+      options.excludedCategoriesByVehicle?.(),
     )
   }
 

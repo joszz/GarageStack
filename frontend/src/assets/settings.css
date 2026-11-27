@@ -147,6 +147,19 @@
   line-height: 1.25;
 }
 
+/* A type switched off for all cars, shown under one car: off, and not the car's to change. */
+.notif-type-checklist__item--locked {
+  cursor: default;
+}
+
+.notif-type-checklist__item--locked:hover {
+  background: transparent;
+}
+
+.notif-type-checklist__note {
+  display: block;
+}
+
 /* ── Settings tabs ────────────────────────────────────────── */
 
 /* The row sits beside the dialog title and scrolls sideways where it does not fit. Its width,

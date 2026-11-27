@@ -216,6 +216,65 @@ describe('useNotifications', () => {
     expect(notifications.value.map((n) => n.id).sort()).toEqual([1, 2])
   })
 
+  it('hides a type only for the car it is switched off for', async () => {
+    localStorage.setItem(
+      'garagestack-settings-ui',
+      JSON.stringify({ notificationTypeExclusionsByVehicle: { '2': ['doors-open-parked'] } }),
+    )
+    vi.mocked(notificationsApi.list).mockResolvedValue([
+      makeNotification({ id: 1, category: 'doors-open-parked', vehicleId: 1 }),
+      makeNotification({ id: 2, category: 'doors-open-parked', vehicleId: 2 }),
+      makeNotification({ id: 3, category: 'low-tyre', vehicleId: 2 }),
+    ])
+
+    const { useNotifications } = await import('@/composables/useNotifications')
+    const { fetchNotifications, notifications, unreadCount } = useNotifications()
+    await fetchNotifications()
+
+    expect(notifications.value.map((n) => n.id)).toEqual([1, 3])
+    expect(unreadCount.value).toBe(2)
+  })
+
+  it('keeps a type out for every car when the device has it off, whatever a car says', async () => {
+    localStorage.setItem(
+      'garagestack-settings-ui',
+      JSON.stringify({
+        notificationTypeExclusions: ['engine-start'],
+        notificationTypeExclusionsByVehicle: { '1': ['low-tyre'] },
+      }),
+    )
+    vi.mocked(notificationsApi.list).mockResolvedValue([
+      makeNotification({ id: 1, category: 'engine-start', vehicleId: 1 }),
+      makeNotification({ id: 2, category: 'engine-start', vehicleId: 2 }),
+      makeNotification({ id: 3, category: 'low-tyre', vehicleId: 1 }),
+      makeNotification({ id: 4, category: 'low-tyre', vehicleId: 2 }),
+    ])
+
+    const { useNotifications } = await import('@/composables/useNotifications')
+    const { fetchNotifications, notifications } = useNotifications()
+    await fetchNotifications()
+
+    expect(notifications.value.map((n) => n.id)).toEqual([4])
+  })
+
+  // A notification about no car answers to the device's own list alone.
+  it('shows a notification without a car whatever a car has off', async () => {
+    localStorage.setItem(
+      'garagestack-settings-ui',
+      JSON.stringify({ notificationTypeExclusionsByVehicle: { '1': ['gateway-login'] } }),
+    )
+    vi.mocked(notificationsApi.list).mockResolvedValue([
+      makeNotification({ id: 1, category: 'gateway-login', vehicleId: null }),
+      makeNotification({ id: 2, category: 'gateway-login' }),
+    ])
+
+    const { useNotifications } = await import('@/composables/useNotifications')
+    const { fetchNotifications, notifications } = useNotifications()
+    await fetchNotifications()
+
+    expect(notifications.value).toHaveLength(2)
+  })
+
   it('fetchNotifications() populates the notifications list', async () => {
     const items = [makeNotification({ id: 10 }), makeNotification({ id: 11 })]
     vi.mocked(notificationsApi.list).mockResolvedValue(items)

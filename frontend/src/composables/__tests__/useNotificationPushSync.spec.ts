@@ -7,10 +7,14 @@ const mockSyncExclusions = vi.fn<() => Promise<void>>()
 const mockPushState = ref<'unknown' | 'subscribed' | 'unsubscribed' | 'denied'>('unknown')
 const mockPushError = ref(false)
 let mockPushSupported = true
-let passedOptions: { excludedCategories?: () => readonly string[] } | undefined
+type PushOptions = {
+  excludedCategories?: () => readonly string[]
+  excludedCategoriesByVehicle?: () => Readonly<Record<string, readonly string[]>>
+}
+let passedOptions: PushOptions | undefined
 
 vi.mock('@/composables/usePush', () => ({
-  usePush: (options?: { excludedCategories?: () => readonly string[] }) => {
+  usePush: (options?: PushOptions) => {
     passedOptions = options
     return {
       pushSupported: mockPushSupported,
@@ -117,8 +121,42 @@ describe('useNotificationPushSync', () => {
     const { settings } = await setUp()
 
     settings.notificationTypeExclusions = ['maintenance']
+    settings.notificationTypeExclusionsByVehicle = { '2': ['low-tyre'] }
 
     expect(passedOptions?.excludedCategories?.()).toEqual(['maintenance'])
+    expect(passedOptions?.excludedCategoriesByVehicle?.()).toEqual({ '2': ['low-tyre'] })
+  })
+
+  it('tells the server whenever a car has a different set of types switched off', async () => {
+    mockPushState.value = 'subscribed'
+    const { settings } = await setUp()
+
+    settings.notificationTypeExclusionsByVehicle = { '2': ['low-tyre'] }
+    await nextTick()
+    settings.notificationTypeExclusionsByVehicle = { '2': ['low-tyre'], '3': ['engine-start'] }
+    await nextTick()
+    settings.notificationTypeExclusionsByVehicle = {}
+    await nextTick()
+
+    expect(mockSyncExclusions).toHaveBeenCalledTimes(3)
+  })
+
+  it('leaves the server alone when the same car types arrive in another order', async () => {
+    localStorage.setItem(
+      'garagestack-settings-ui',
+      JSON.stringify({
+        notificationTypeExclusionsByVehicle: { '2': ['low-tyre', 'engine-start'], '3': ['rdw'] },
+      }),
+    )
+    const { settings } = await setUp()
+
+    settings.notificationTypeExclusionsByVehicle = {
+      '3': ['rdw'],
+      '2': ['engine-start', 'low-tyre'],
+    }
+    await nextTick()
+
+    expect(mockSyncExclusions).not.toHaveBeenCalled()
   })
 
   it('registers no push side effects when pushSupported is false', async () => {

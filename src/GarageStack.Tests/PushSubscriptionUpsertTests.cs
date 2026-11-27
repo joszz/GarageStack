@@ -128,6 +128,84 @@ public class PushSubscriptionUpsertTests
         Assert.Equal(["engine-start"], stored.ExcludedCategories);
     }
 
+    // ── The types each device switched off for one car ─────────────────────────
+
+    [Fact]
+    public async Task StoresTheTypesSwitchedOffForOneCar_KnownOnesOnlyAndInOneOrder()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var db = CreateDb();
+        var byVehicle = new Dictionary<int, IReadOnlyList<string>>
+        {
+            [4] = ["low-tyre", "engine-start", "not-a-type", "low-tyre"],
+            [2] = ["not-a-type"],
+        };
+
+        await PushEndpoints.UpsertSubscriptionAsync(new PushSubscriptionRepository(db),
+            new PushSubscribeRequest(Endpoint, "p256dh", "auth", ExcludedCategoriesByVehicle: byVehicle), ct);
+
+        var stored = await db.PushSubscriptions.SingleAsync(ct);
+        Assert.Equal([4], stored.ExcludedCategoriesByVehicle.Keys);
+        Assert.Equal(["engine-start", "low-tyre"], stored.ExcludedCategoriesByVehicle[4]);
+        Assert.Empty(stored.ExcludedCategories);
+    }
+
+    [Fact]
+    public async Task UpdatesTheTypesForACarWhenTheDeviceChangedThem_AndClearsACarWithNoneOff()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var db = CreateDb();
+        var repo = new PushSubscriptionRepository(db);
+        await PushEndpoints.UpsertSubscriptionAsync(repo, new PushSubscribeRequest(Endpoint, "p256dh", "auth",
+            ExcludedCategoriesByVehicle: new Dictionary<int, IReadOnlyList<string>> { [1] = ["low-tyre"], [2] = ["engine-start"] }), ct);
+
+        await PushEndpoints.UpsertSubscriptionAsync(repo, new PushSubscribeRequest(Endpoint, "p256dh", "auth",
+            ExcludedCategoriesByVehicle: new Dictionary<int, IReadOnlyList<string>> { [1] = ["maintenance"] }), ct);
+
+        var stored = await db.PushSubscriptions.SingleAsync(ct);
+        Assert.Equal([1], stored.ExcludedCategoriesByVehicle.Keys);
+        Assert.Equal(["maintenance"], stored.ExcludedCategoriesByVehicle[1]);
+    }
+
+    // An empty map is a choice (every car back to the device's own list); a missing one is not.
+    [Fact]
+    public async Task AnEmptyMapClearsTheCarsTypes_AndAMissingOneKeepsThem()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var db = CreateDb();
+        var repo = new PushSubscriptionRepository(db);
+        await PushEndpoints.UpsertSubscriptionAsync(repo, new PushSubscribeRequest(Endpoint, "p256dh", "auth",
+            ExcludedCategoriesByVehicle: new Dictionary<int, IReadOnlyList<string>> { [1] = ["low-tyre"] }), ct);
+
+        await PushEndpoints.UpsertSubscriptionAsync(repo, new PushSubscribeRequest(Endpoint, "p256dh", "auth", ["engine-start"]), ct);
+        Assert.Equal(["low-tyre"], (await db.PushSubscriptions.SingleAsync(ct)).ExcludedCategoriesByVehicle[1]);
+
+        await PushEndpoints.UpsertSubscriptionAsync(repo, new PushSubscribeRequest(Endpoint, "p256dh", "auth",
+            ExcludedCategoriesByVehicle: new Dictionary<int, IReadOnlyList<string>>()), ct);
+        var stored = await db.PushSubscriptions.SingleAsync(ct);
+        Assert.Empty(stored.ExcludedCategoriesByVehicle);
+        Assert.Equal(["engine-start"], stored.ExcludedCategories);
+    }
+
+    // The page registers its subscription on every load: the same choice listed in another order
+    // must not look like a change.
+    [Fact]
+    public async Task TheSameChoiceInAnotherOrder_IsNotAChange()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var db = CreateDb();
+        var repo = new PushSubscriptionRepository(db);
+        await PushEndpoints.UpsertSubscriptionAsync(repo, new PushSubscribeRequest(Endpoint, "p256dh", "auth",
+            ExcludedCategoriesByVehicle: new Dictionary<int, IReadOnlyList<string>> { [1] = ["low-tyre", "engine-start"] }), ct);
+        db.ChangeTracker.Clear();
+
+        await PushEndpoints.UpsertSubscriptionAsync(repo, new PushSubscribeRequest(Endpoint, "p256dh", "auth",
+            ExcludedCategoriesByVehicle: new Dictionary<int, IReadOnlyList<string>> { [1] = ["engine-start", "low-tyre"] }), ct);
+
+        Assert.DoesNotContain(db.ChangeTracker.Entries(), e => e.State != EntityState.Unchanged);
+        Assert.Equal(["engine-start", "low-tyre"], (await db.PushSubscriptions.SingleAsync(ct)).ExcludedCategoriesByVehicle[1]);
+    }
+
     // The Worker drops the subscriptions a push service reported gone; others stay, and an
     // endpoint that was never stored is no error.
     [Fact]
@@ -136,8 +214,8 @@ public class PushSubscriptionUpsertTests
         var ct = TestContext.Current.CancellationToken;
         await using var db = CreateDb();
         var repo = new PushSubscriptionRepository(db);
-        await repo.UpsertAsync(Endpoint, "p256dh", "auth", null, null, ct);
-        await repo.UpsertAsync("https://push.example/other", "p256dh", "auth", null, null, ct);
+        await repo.UpsertAsync(Endpoint, "p256dh", "auth", null, null, null, ct);
+        await repo.UpsertAsync("https://push.example/other", "p256dh", "auth", null, null, null, ct);
 
         await repo.RemoveAsync([Endpoint, "https://push.example/unknown"], ct);
 

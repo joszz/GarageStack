@@ -9023,6 +9023,18 @@
             "items": {
               "type": "string"
             }
+          },
+          "excludedCategoriesByVehicle": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
           }
         }
       },

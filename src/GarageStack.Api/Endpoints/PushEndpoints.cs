@@ -1,4 +1,5 @@
 using GarageStack.Core.Configuration;
+using GarageStack.Core.Helpers;
 using GarageStack.Core.Interfaces;
 using GarageStack.Core.Models;
 
@@ -101,6 +102,7 @@ public static class PushEndpoints
             req.Endpoint, req.P256DhKey, req.AuthKey,
             req.ExcludedCategories is { } requested ? KnownGroups(requested) : null,
             req.IncludedCategories is { } included ? KnownGroups(included.Where(NotificationCategories.OptInGroups.Contains)) : null,
+            req.ExcludedCategoriesByVehicle is { } byVehicle ? VehicleCategoryExclusions.Normalize(byVehicle) : null,
             ct);
 
     // Only the types the checklist offers, once each and in one order, so an unchanged list
@@ -109,11 +111,13 @@ public static class PushEndpoints
         [.. requested.Where(NotificationCategories.Groups.Contains).Distinct().Order(StringComparer.Ordinal)];
 }
 
-// ExcludedCategories: the notification types this device switched off; IncludedCategories: the opt-in
-// ones it switched on (the weekly and monthly summaries). Null leaves that stored list as it is.
+// ExcludedCategories: the notification types this device switched off for every car; IncludedCategories:
+// the opt-in ones it switched on (the weekly and monthly summaries); ExcludedCategoriesByVehicle: the
+// types it switched off for one car only, by vehicle id. Null leaves that stored choice as it is.
 public record PushSubscribeRequest(
     string Endpoint, string P256DhKey, string AuthKey,
-    IReadOnlyList<string>? ExcludedCategories = null, IReadOnlyList<string>? IncludedCategories = null);
+    IReadOnlyList<string>? ExcludedCategories = null, IReadOnlyList<string>? IncludedCategories = null,
+    IReadOnlyDictionary<int, IReadOnlyList<string>>? ExcludedCategoriesByVehicle = null);
 public record PushUnsubscribeRequest(string Endpoint);
 
 /// <summary>The server's VAPID public key, which a browser subscribes to push with.</summary>

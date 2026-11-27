@@ -1,3 +1,4 @@
+using GarageStack.Core.Helpers;
 using GarageStack.Core.Interfaces;
 using GarageStack.Core.Models;
 using Microsoft.EntityFrameworkCore;
@@ -11,7 +12,8 @@ public class PushSubscriptionRepository(AppDbContext db) : IPushSubscriptionRepo
 
     public async Task UpsertAsync(
         string endpoint, string p256DhKey, string authKey, IReadOnlyList<string>? excludedCategories,
-        IReadOnlyList<string>? includedCategories, CancellationToken ct = default)
+        IReadOnlyList<string>? includedCategories, IReadOnlyDictionary<int, List<string>>? excludedCategoriesByVehicle,
+        CancellationToken ct = default)
     {
         var existing = await db.PushSubscriptions.FirstOrDefaultAsync(s => s.Endpoint == endpoint, ct);
 
@@ -22,7 +24,9 @@ public class PushSubscriptionRepository(AppDbContext db) : IPushSubscriptionRepo
             var keysChanged = existing.P256DhKey != p256DhKey || existing.AuthKey != authKey;
             var exclusionsChanged = excludedCategories is not null && !excludedCategories.SequenceEqual(existing.ExcludedCategories);
             var inclusionsChanged = includedCategories is not null && !includedCategories.SequenceEqual(existing.IncludedCategories);
-            if (!keysChanged && !exclusionsChanged && !inclusionsChanged)
+            var vehicleExclusionsChanged = excludedCategoriesByVehicle is not null
+                && !VehicleCategoryExclusions.AreEqual(excludedCategoriesByVehicle, existing.ExcludedCategoriesByVehicle);
+            if (!keysChanged && !exclusionsChanged && !inclusionsChanged && !vehicleExclusionsChanged)
                 return;
 
             existing.P256DhKey = p256DhKey;
@@ -31,6 +35,8 @@ public class PushSubscriptionRepository(AppDbContext db) : IPushSubscriptionRepo
                 existing.ExcludedCategories = [.. excludedCategories];
             if (includedCategories is not null)
                 existing.IncludedCategories = [.. includedCategories];
+            if (excludedCategoriesByVehicle is not null)
+                existing.ExcludedCategoriesByVehicle = new(excludedCategoriesByVehicle);
             await db.SaveChangesAsync(ct);
             return;
         }
@@ -42,6 +48,7 @@ public class PushSubscriptionRepository(AppDbContext db) : IPushSubscriptionRepo
             AuthKey = authKey,
             ExcludedCategories = [.. excludedCategories ?? []],
             IncludedCategories = [.. includedCategories ?? []],
+            ExcludedCategoriesByVehicle = new(excludedCategoriesByVehicle ?? new Dictionary<int, List<string>>()),
         });
 
         try

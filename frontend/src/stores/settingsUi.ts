@@ -110,6 +110,11 @@ interface UiSettings {
   /** The opt-in notification types this device switched on (the weekly and monthly summaries). */
   notificationTypeInclusions: string[]
   /**
+   * The notification types this device switched off for one car only, by vehicle id. They come on
+   * top of notificationTypeExclusions, which leave a type out for every car.
+   */
+  notificationTypeExclusionsByVehicle: Record<string, string[]>
+  /**
    * The colour of each car, by VIN, used only while the account has more than one car. A car
    * without an entry, and every one-car install, uses carColorScheme above. vehicleTypeOverride
    * above is from before the type moved to the car's own settings, and only counts with one car.
@@ -142,6 +147,7 @@ function defaultsFor(): UiSettings {
     logLevel: DEFAULT_LOG_LEVEL,
     notificationTypeExclusions: [],
     notificationTypeInclusions: [],
+    notificationTypeExclusionsByVehicle: {},
     vehicleSettings: {},
     // Everything follows the region the browser is in, which its time zone tells far better than
     // its language does. An install from before these settings keeps the units it stored.
@@ -233,6 +239,21 @@ function parseVehicleSettings(
   return result
 }
 
+// The cars are the account's, so the cap is the one above; a key that is not a vehicle id, or a
+// car with no type switched off, is dropped rather than kept.
+function parseVehicleNotificationExclusions(raw: unknown): Record<string, string[]> {
+  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return {}
+  const result: Record<string, string[]> = {}
+  for (const [vehicleId, value] of Object.entries(raw).slice(0, MAX_VEHICLE_SETTINGS)) {
+    if (!/^[1-9]\d{0,8}$/.test(vehicleId) || !Array.isArray(value)) continue
+    const types = [
+      ...new Set((value as unknown[]).filter((v): v is string => typeof v === 'string')),
+    ]
+    if (types.length > 0) result[vehicleId] = types
+  }
+  return result
+}
+
 function parseRegion(raw: unknown, fallback: RegionSetting): RegionSetting {
   return raw === 'auto' || isRegion(raw) ? raw : fallback
 }
@@ -283,6 +304,9 @@ function parseUiFields(parsed: Record<string, unknown>, fallback: UiSettings): U
           (value): value is string => typeof value === 'string',
         )
       : fallback.notificationTypeInclusions,
+    notificationTypeExclusionsByVehicle: parseVehicleNotificationExclusions(
+      parsed.notificationTypeExclusionsByVehicle,
+    ),
     vehicleSettings: parseVehicleSettings(parsed.vehicleSettings, carColor),
     region: parseRegion(parsed.region, fallback.region),
     clock: oneOf(parsed.clock, CLOCK_SETTINGS, fallback.clock),
@@ -324,6 +348,7 @@ export const useUiSettingsStore = defineStore('settingsUi', () => {
     localKeys: [
       'notificationTypeExclusions',
       'notificationTypeInclusions',
+      'notificationTypeExclusionsByVehicle',
       'keepScreenOn',
       'recordPhoneGps',
     ],

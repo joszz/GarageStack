@@ -122,13 +122,20 @@ public static class NotificationCategories
     /// Whether a device that switched off <paramref name="excludedGroups"/>, and switched on
     /// <paramref name="includedGroups"/>, wants a <paramref name="category"/> notification. One
     /// without a known type always goes out: the checklist offers no way to switch it off. An
-    /// opt-in type goes out only once switched on.
+    /// opt-in type goes out only once switched on. <paramref name="excludedForVehicle"/> is what
+    /// the device also switched off for the car the notification is about, or null when it names
+    /// no car: a type in either list stays out, so a type is wanted for a car only when neither
+    /// the device nor that car has it off.
     /// </summary>
     public static bool IsWanted(
-        string? category, IReadOnlyCollection<string> excludedGroups, IReadOnlyCollection<string>? includedGroups = null) =>
+        string? category,
+        IReadOnlyCollection<string> excludedGroups,
+        IReadOnlyCollection<string>? includedGroups = null,
+        IReadOnlyCollection<string>? excludedForVehicle = null) =>
         GroupOf(category) switch
         {
             null => true,
+            var group when excludedForVehicle?.Contains(group) == true => false,
             var group when OptInGroups.Contains(group) => includedGroups?.Contains(group) == true,
             var group => !excludedGroups.Contains(group),
         };
