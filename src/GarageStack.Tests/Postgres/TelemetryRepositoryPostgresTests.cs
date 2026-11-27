@@ -193,4 +193,23 @@ public class TelemetryRepositoryPostgresTests
 
         Assert.Equal(51, merged!.MileageSinceLastCharge);
     }
+
+    [Fact]
+    public async Task TheDistanceSinceAChargeNoReadingCaught_ReadsTheStateOfChargeAsPostgresRunsIt()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var database = await PostgresDatabase.CreateAsync(ct);
+        await using var db = database.CreateContext();
+        var vehicleId = await AddVehicleAsync(db, ct);
+        db.TelemetrySnapshots.AddRange(
+            new TelemetrySnapshot { VehicleId = vehicleId, RecordedAt = Now.AddDays(-2), EvSocPercent = 83.3, OdometerKm = 2858 },
+            new TelemetrySnapshot { VehicleId = vehicleId, RecordedAt = Now.AddDays(-1), EvSocPercent = 90 },
+            new TelemetrySnapshot { VehicleId = vehicleId, RecordedAt = Now.AddHours(-1), OdometerKm = 2900 });
+        await db.SaveChangesAsync(ct);
+
+        var merged = await new TelemetryRepository(db).GetMergedLatestAsync(vehicleId, ct);
+
+        Assert.Equal(42, merged!.MileageSinceLastCharge);
+        Assert.True(merged.MileageSinceLastChargeCalculated);
+    }
 }

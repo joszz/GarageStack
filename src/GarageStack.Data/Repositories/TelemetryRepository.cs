@@ -294,9 +294,26 @@ public class TelemetryRepository(
             .Select(s => s.ChargingLastEndAt)
             .FirstOrDefaultAsync(ct);
 
-        return DistanceSinceCharge.LastChargeAt(now, reportedEnd, lastSeenCharging) is { } endedAt
-            ? await GetOdometerAtAsync(vehicleId, endedAt, ct)
-            : null;
+        var endedAt = DistanceSinceCharge.LastChargeAt(now, reportedEnd, lastSeenCharging);
+        var odometerAtEnd = endedAt is { } end ? await GetOdometerAtAsync(vehicleId, end, ct) : null;
+
+        // A charge the polls missed entirely: the gateway reads a parked car rarely, so a charge can
+        // start and end between two reads. After the last charge there is evidence of (or, with none
+        // known, within the lookback), a state of charge that climbed with the car standing still is
+        // one, and it is the later charge if it came after.
+        var riseFrom = endedAt ?? now - DistanceSinceCharge.SocRiseLookback;
+        var rise = DistanceSinceCharge.LastSocRiseCharge(await db.TelemetrySnapshots
+            .AsNoTracking()
+            .Where(s => s.VehicleId == vehicleId
+                && s.RecordedAt >= riseFrom
+                && (s.EvSocPercent != null || s.OdometerKm != null))
+            .OrderBy(s => s.RecordedAt)
+            .Select(s => new DistanceSinceCharge.SocReading(s.RecordedAt, s.OdometerKm, s.EvSocPercent))
+            .ToListAsync(ct));
+
+        return rise is { } missed && (endedAt is not { } known || missed.At > known)
+            ? missed.OdometerKm
+            : odometerAtEnd;
     }
 
     // A finished day's statistics cannot change: every row is stamped when it arrives, so no row

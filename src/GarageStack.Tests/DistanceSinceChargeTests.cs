@@ -76,6 +76,95 @@ public class DistanceSinceChargeTests
         Assert.DoesNotContain(ZipExport.TelemetryColumns, p => p.Name == flag);
     }
 
+    // ── A charge the polls missed ─────────────────────────────────────────────
+
+    private static DistanceSinceCharge.SocReading Reading(double hours, double? odometer, double? soc) =>
+        new(T0.AddHours(hours), odometer, soc);
+
+    [Fact]
+    public void LastSocRiseCharge_AParkedCarWhoseChargeRoseByTwoPoints_IsACharge()
+    {
+        var found = DistanceSinceCharge.LastSocRiseCharge(
+            [Reading(-5, 2858, 83.3), Reading(-4, 2858, 83.3), Reading(-1, 2858, 90)]);
+
+        Assert.Equal(new DistanceSinceCharge.SocRiseCharge(T0.AddHours(-1), 2858), found);
+    }
+
+    [Fact]
+    public void LastSocRiseCharge_LessThanTwoPoints_IsNotACharge() =>
+        Assert.Null(DistanceSinceCharge.LastSocRiseCharge(
+            [Reading(-5, 2858, 83.3), Reading(-1, 2858, 85.2)]));
+
+    [Fact]
+    public void LastSocRiseCharge_TheSmallWobbleOfAParkedCar_IsNotACharge() =>
+        Assert.Null(DistanceSinceCharge.LastSocRiseCharge(
+            [Reading(-5, 2858, 83.3), Reading(-4, 2858, 83.6), Reading(-3, 2858, 83.3), Reading(-2, 2858, 83.5)]));
+
+    [Fact]
+    public void LastSocRiseCharge_APointOrSoGainedWhileDriving_IsNotACharge() =>
+        // Every reading is at a new odometer value, so none is a stretch of a parked car.
+        Assert.Null(DistanceSinceCharge.LastSocRiseCharge(
+            [Reading(-4, 2840, 83.0), Reading(-3, 2841, 83.9), Reading(-2, 2842, 84.4), Reading(-1, 2843, 86.0)]));
+
+    [Fact]
+    public void LastSocRiseCharge_ClimbsCountedFromTheLowestOfTheStretch_NotFromTheLastReading()
+    {
+        // A slow charge adds a few tenths between reads, which only the whole rise shows.
+        var found = DistanceSinceCharge.LastSocRiseCharge(
+            [Reading(-5, 2858, 80), Reading(-4, 2858, 80.6), Reading(-3, 2858, 81.2), Reading(-2, 2858, 81.8), Reading(-1, 2858, 82.3)]);
+
+        Assert.Equal(new DistanceSinceCharge.SocRiseCharge(T0.AddHours(-1), 2858), found);
+    }
+
+    [Fact]
+    public void LastSocRiseCharge_ADropThenARise_CountsTheRiseFromTheDrop()
+    {
+        var found = DistanceSinceCharge.LastSocRiseCharge(
+            [Reading(-5, 2858, 80), Reading(-4, 2858, 78), Reading(-1, 2858, 80.1)]);
+
+        Assert.Equal(T0.AddHours(-1), found!.At);
+    }
+
+    [Fact]
+    public void LastSocRiseCharge_ACarThatChargedThenWasDriven_IsStillTheCharge()
+    {
+        var found = DistanceSinceCharge.LastSocRiseCharge(
+            [Reading(-9, 2858, 83.3), Reading(-8, 2858, 91), Reading(-6, 2860, 90), Reading(-5, 2870, 85)]);
+
+        Assert.Equal(new DistanceSinceCharge.SocRiseCharge(T0.AddHours(-8), 2858), found);
+    }
+
+    [Fact]
+    public void LastSocRiseCharge_WithTwoCharges_IsTheLaterOne()
+    {
+        var found = DistanceSinceCharge.LastSocRiseCharge(
+            [Reading(-20, 2800, 50), Reading(-19, 2800, 80), Reading(-10, 2840, 60), Reading(-9, 2840, 62.5)]);
+
+        Assert.Equal(new DistanceSinceCharge.SocRiseCharge(T0.AddHours(-9), 2840), found);
+    }
+
+    [Fact]
+    public void LastSocRiseCharge_RowsThatCarryOnlyOneOfTheTwo_AreCarriedForward()
+    {
+        var found = DistanceSinceCharge.LastSocRiseCharge(
+            [Reading(-5, 2858, null), Reading(-4, null, 83.3), Reading(-3, null, 84), Reading(-1, null, 90)]);
+
+        Assert.Equal(new DistanceSinceCharge.SocRiseCharge(T0.AddHours(-1), 2858), found);
+    }
+
+    [Fact]
+    public void LastSocRiseCharge_WithoutAnOdometer_IsNotACharge() =>
+        Assert.Null(DistanceSinceCharge.LastSocRiseCharge([Reading(-5, null, 60), Reading(-1, null, 90)]));
+
+    [Fact]
+    public void LastSocRiseCharge_InAnyOrder_IsReadInTimeOrder()
+    {
+        var found = DistanceSinceCharge.LastSocRiseCharge(
+            [Reading(-1, 2858, 90), Reading(-5, 2858, 83.3)]);
+
+        Assert.Equal(T0.AddHours(-1), found!.At);
+    }
+
     // ── The repository ───────────────────────────────────────────────────────
 
     private static async Task<(AppDbContext Db, TelemetryRepository Repo, int VehicleId)> SetupAsync(
@@ -278,5 +367,75 @@ public class DistanceSinceChargeTests
 
         // Still the cached "no charge": the search is not run again within the minute.
         Assert.Null((await repo.GetMergedLatestAsync(vehicleId, ct))!.MileageSinceLastCharge);
+    }
+
+    private static TelemetrySnapshot Soc(DateTime at, double soc, double? odometer = null) =>
+        new() { RecordedAt = at, EvSocPercent = soc, OdometerKm = odometer };
+
+    [Fact]
+    public async Task GetMergedLatest_ChargeNoReadingCaught_StillCountsFromTheStateOfChargeGoingUp()
+    {
+        // The Urban was read at 83 %, unplugged, and next read at 90 % at the same odometer: a charge
+        // happened between the two reads, and the distance counts from it.
+        var ct = TestContext.Current.CancellationToken;
+        var (db, repo, vehicleId) = await SetupAsync(null,
+            Soc(T0.AddDays(-2), 83.3, 2858),
+            Soc(T0.AddDays(-1), 90),
+            Odometer(T0.AddMinutes(-5), 2900));
+        await using var _ = db;
+
+        var result = await repo.GetMergedLatestAsync(vehicleId, ct);
+
+        Assert.Equal(42, result!.MileageSinceLastCharge);
+        Assert.True(result.MileageSinceLastChargeCalculated);
+    }
+
+    [Fact]
+    public async Task GetMergedLatest_AMissedChargeAfterASeenOne_IsTheLastCharge()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (db, repo, vehicleId) = await SetupAsync(null,
+            Odometer(T0.AddDays(-5), 2800),
+            Charging(T0.AddDays(-5), true),
+            Soc(T0.AddDays(-4), 60, 2850),
+            Soc(T0.AddDays(-3), 85),
+            Odometer(T0.AddMinutes(-5), 2900));
+        await using var _ = db;
+
+        var result = await repo.GetMergedLatestAsync(vehicleId, ct);
+
+        Assert.Equal(50, result!.MileageSinceLastCharge);
+    }
+
+    [Fact]
+    public async Task GetMergedLatest_ASeenChargeAfterAClimbOfTheStateOfCharge_IsTheLastCharge()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (db, repo, vehicleId) = await SetupAsync(null,
+            Soc(T0.AddDays(-5), 60, 2800),
+            Soc(T0.AddDays(-4), 85),
+            Odometer(T0.AddDays(-2), 2850),
+            Charging(T0.AddDays(-2), true),
+            Odometer(T0.AddMinutes(-5), 2900));
+        await using var _ = db;
+
+        var result = await repo.GetMergedLatestAsync(vehicleId, ct);
+
+        Assert.Equal(50, result!.MileageSinceLastCharge);
+    }
+
+    [Fact]
+    public async Task GetMergedLatest_AClimbOfLessThanTwoPoints_IsNoChargeToCountFrom()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (db, repo, vehicleId) = await SetupAsync(null,
+            Soc(T0.AddDays(-2), 83.3, 2858),
+            Soc(T0.AddDays(-1), 84.5),
+            Odometer(T0.AddMinutes(-5), 2900));
+        await using var _ = db;
+
+        var result = await repo.GetMergedLatestAsync(vehicleId, ct);
+
+        Assert.Null(result!.MileageSinceLastCharge);
     }
 }

@@ -49,6 +49,66 @@ public static class DistanceSinceCharge
     }
 
     /// <summary>
+    /// How many points the state of charge must climb, with the car standing still, to be taken for
+    /// a charge no reading caught. A parked car's figure does not climb on its own: in the stored
+    /// readings it moves by tenths of a point at most, but a charge adds far more, so two points
+    /// tells one from the other with room to spare and still finds a top-up worth the name.
+    /// </summary>
+    public const double MinimumSocRisePercent = 2;
+
+    /// <summary>How far back a rise in the state of charge is looked for when no charge is known to start from.</summary>
+    public static readonly TimeSpan SocRiseLookback = TimeSpan.FromDays(60);
+
+    /// <summary>A reading's state of charge and odometer, either of which a row may leave out.</summary>
+    public sealed record SocReading(DateTime RecordedAt, double? OdometerKm, double? EvSocPercent);
+
+    /// <summary>A charge found from the state of charge alone: when it was seen to have happened, and the odometer it happened at.</summary>
+    public sealed record SocRiseCharge(DateTime At, double OdometerKm);
+
+    /// <summary>
+    /// The latest charge that shows only as the state of charge going up. The gateway reads a parked
+    /// car rarely, so a charge can start and end between two reads, with nothing in them saying
+    /// "charging". The car cannot have been driven while its odometer stood still, so a stretch of
+    /// readings at one odometer value whose state of charge climbs by <paramref name="minimumRise"/>
+    /// or more above its lowest in that stretch is a charge, and it happened at that odometer. A new
+    /// odometer value starts a new stretch, so a drive (which regenerates and wobbles the figure) never counts.
+    /// Null when there is none.
+    /// </summary>
+    public static SocRiseCharge? LastSocRiseCharge(
+        IEnumerable<SocReading> readings, double minimumRise = MinimumSocRisePercent)
+    {
+        SocRiseCharge? found = null;
+        double? odometer = null;
+        double? stretchOdometer = null;
+        double? lowest = null;
+
+        foreach (var reading in readings.OrderBy(r => r.RecordedAt))
+        {
+            if (reading.OdometerKm is { } km && double.IsFinite(km))
+                odometer = km;
+            if (odometer != stretchOdometer)
+            {
+                stretchOdometer = odometer;
+                lowest = null;
+            }
+
+            if (reading.EvSocPercent is not { } soc || !double.IsFinite(soc) || stretchOdometer is not { } at)
+                continue;
+
+            lowest = lowest is { } low && low < soc ? low : soc;
+            if (soc - lowest.Value >= minimumRise)
+            {
+                found = new SocRiseCharge(reading.RecordedAt, at);
+                // A charge goes on rising: the next two points count as the next sign of it, so the
+                // time found follows the charge to its end.
+                lowest = soc;
+            }
+        }
+
+        return found;
+    }
+
+    /// <summary>
     /// The kilometres between the odometer at the end of the last charge and the odometer now, to a
     /// tenth. Null when either is unknown, or when the odometer went backwards: a reading that says
     /// so is wrong somewhere, and nothing is better than a negative distance.
