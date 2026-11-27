@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Globalization;
 using System.IO.Compression;
 using System.Reflection;
@@ -25,7 +26,10 @@ internal static class ZipExport
 
     /// <summary>Every column of a telemetry row, in declaration order, without the car it belongs to.</summary>
     public static readonly IReadOnlyList<PropertyInfo> TelemetryColumns =
-        [.. typeof(TelemetrySnapshot).GetProperties().Where(p => p.Name != nameof(TelemetrySnapshot.Vehicle) && IsScalar(p.PropertyType))];
+        [.. typeof(TelemetrySnapshot).GetProperties()
+            .Where(p => p.Name != nameof(TelemetrySnapshot.Vehicle)
+                && p.GetCustomAttribute<NotMappedAttribute>() is null
+                && IsScalar(p.PropertyType))];
 
     /// <summary>The version this build was made as, with its commit.</summary>
     public static string? AppVersion =>

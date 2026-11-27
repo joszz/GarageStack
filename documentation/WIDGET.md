@@ -56,7 +56,7 @@ The endpoint returns a flat JSON object. Numeric fields are `null` when the vehi
 | `electricRangeKm` | number | Distance the car estimates it can drive on the battery alone (km), on a BEV or PHEV. Never reported as 0, so an empty battery keeps its last value |
 | `isCharging` | string | Charging state: `"Charging"` or `"Not charging"` |
 | `chargerConnected` | string | Charger connection state: `"Plugged in"` or `"Unplugged"` |
-| `mileageSinceLastCharge` | number | Distance driven since last full charge (km) |
+| `mileageSinceLastCharge` | number | Distance driven since the last charge (km). Where the car does not report it, worked out from the odometer at the end of the last recorded charge, and null until one has been recorded |
 | `hvSocKwh` | number | HV battery energy (kWh), as the gateway reports it |
 | `hvTotalCapacityKwh` | number | HV battery total capacity (kWh), as the gateway reports it |
 | `hvVoltage` | number | HV system voltage (V) |

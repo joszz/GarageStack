@@ -17,6 +17,8 @@ public static class TelemetryFields
     [
         nameof(TelemetrySnapshot.Id), nameof(TelemetrySnapshot.VehicleId),
         nameof(TelemetrySnapshot.Vehicle), nameof(TelemetrySnapshot.RecordedAt),
+        // Worked out when the current state is read, never a reading of its own.
+        nameof(TelemetrySnapshot.MileageSinceLastChargeCalculated),
     ];
 
     /// <summary>Every property that carries telemetry, in declaration order.</summary>

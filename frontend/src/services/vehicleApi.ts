@@ -78,6 +78,8 @@ export interface TelemetrySnapshot {
   mileageOfTheDay: number | null
   powerUsageOfDay: number | null
   mileageSinceLastCharge: number | null
+  /** True when the car does not report that distance and the API worked it out from the odometer. */
+  mileageSinceLastChargeCalculated?: boolean
   hvVoltage: number | null
   hvCurrent: number | null
   hvPower: number | null

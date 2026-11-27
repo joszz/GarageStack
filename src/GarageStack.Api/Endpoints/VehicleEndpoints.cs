@@ -91,7 +91,7 @@ public static class VehicleEndpoints
         })
         .Produces<TelemetrySnapshot>()
         .Produces(StatusCodes.Status204NoContent)
-        .WithSummary("Get latest telemetry for a vehicle (204 before the car has reported anything). Doors, their windows and a sunroof the car's configuration codes say it lacks are null");
+        .WithSummary("Get latest telemetry for a vehicle (204 before the car has reported anything). Doors, their windows and a sunroof the car's configuration codes say it lacks are null. A car that does not report its distance since the last charge gets it worked out from the odometer, once a charge has been recorded");
 
         // A plain hybrid gets none: see ChargeSessionHistory.Applies.
         vehicleGroup.MapGet("/charge-sessions", async (

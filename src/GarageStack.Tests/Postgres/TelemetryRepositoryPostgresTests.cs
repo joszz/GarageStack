@@ -172,4 +172,25 @@ public class TelemetryRepositoryPostgresTests
         var notification = await heard.Task.WaitAsync(TimeSpan.FromSeconds(5), ct);
         Assert.Equal((PgChannels.TelemetryUpdated, vehicleId.ToString()), (notification.Channel, notification.Payload));
     }
+
+    [Fact]
+    public async Task TheDistanceSinceTheLastCharge_ForACarThatDoesNotReportIt_TranslatesToSql()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var database = await PostgresDatabase.CreateAsync(ct);
+        await using var db = database.CreateContext();
+        var vehicleId = await AddVehicleAsync(db, ct);
+        // The charge nine days ago is the one before the last, which the newest charging reading outranks.
+        db.TelemetrySnapshots.AddRange(
+            new TelemetrySnapshot { VehicleId = vehicleId, RecordedAt = Now.AddDays(-3), OdometerKm = 2900 },
+            new TelemetrySnapshot { VehicleId = vehicleId, RecordedAt = Now.AddDays(-2), IsCharging = true },
+            new TelemetrySnapshot { VehicleId = vehicleId, RecordedAt = Now.AddDays(-9), IsCharging = true },
+            new TelemetrySnapshot { VehicleId = vehicleId, RecordedAt = Now.AddDays(-2).AddHours(4), IsCharging = false },
+            new TelemetrySnapshot { VehicleId = vehicleId, RecordedAt = Now.AddHours(-1), OdometerKm = 2951 });
+        await db.SaveChangesAsync(ct);
+
+        var merged = await new TelemetryRepository(db).GetMergedLatestAsync(vehicleId, ct);
+
+        Assert.Equal(51, merged!.MileageSinceLastCharge);
+    }
 }

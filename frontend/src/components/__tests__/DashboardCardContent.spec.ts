@@ -122,6 +122,48 @@ describe('DashboardCardContent', () => {
       )
     })
 
+    // The API works the distance out from the odometer for a car that does not report it, and says
+    // so: it is shown approximate, where the car's own figure is not.
+    it('shows the distance since the last charge as the car reports it', () => {
+      const card = render('efficiencyCharge', status({ mileageSinceLastCharge: 46 }), 'bev')
+
+      expect(card.text).toBe(`${en.vehicle.efficiency.sinceCharge}|46.0|km`)
+    })
+
+    it('shows a distance the API worked out as approximate', () => {
+      const card = render(
+        'efficiencyCharge',
+        status({ mileageSinceLastCharge: 46, mileageSinceLastChargeCalculated: true }),
+        'bev',
+      )
+
+      expect(card.text).toBe(`${en.vehicle.efficiency.sinceCharge}|≈ 46.0|km`)
+    })
+
+    it('shows a calculated distance of nothing as nothing, not as approximately nothing', () => {
+      const card = render(
+        'efficiencyCharge',
+        status({ mileageSinceLastCharge: null, mileageSinceLastChargeCalculated: true }),
+        'bev',
+      )
+
+      expect(card.text).toBeNull()
+    })
+
+    it('shows the efficiency since the last charge as approximate when its distance was worked out', () => {
+      const card = render(
+        'efficiencySinceCharge',
+        status({
+          powerUsageSinceLastCharge: 11.12,
+          mileageSinceLastCharge: 46,
+          mileageSinceLastChargeCalculated: true,
+        }),
+        'bev',
+      )
+
+      expect(card.text).toBe(`${en.vehicle.efficiency.efficiencySinceCharge}|≈ 24.2|kWh/100 km`)
+    })
+
     it('is also shown since the last charge, off the since-last-charge counters', () => {
       const card = render(
         'efficiencySinceCharge',
