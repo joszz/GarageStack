@@ -128,7 +128,10 @@
       "batteryVoltageTrend": "Tendência dos 12 V",
       "parkingLocations": "Locais de estacionamento",
       "electricShare": "Uso elétrico hoje",
-      "avgSpeed": "Velocidade média"
+      "avgSpeed": "Velocidade média",
+      "fullBatteryRange": "Autonomia com a bateria cheia",
+      "distancePerCharge": "Distância por carregamento",
+      "chargeHabit": "Carregamento típico"
     },
     "cardDesc": {
       "distanceInRange": "Distância que o carro contou no período selecionado, pelo próprio contador diário, para corresponder à energia consumida. Se o carro não comunicar esse contador, é usado o total das suas viagens.",
@@ -141,7 +144,10 @@
       "batteryVoltageTrend": "Variação da tensão média da bateria de 12 V do início ao fim do período selecionado. Mostra a tensão atual quando há menos de dois dias de dados.",
       "parkingLocations": "Número de lugares de estacionamento distintos usados em todas as viagens do período selecionado, com base em coordenadas GPS arredondadas.",
       "electricShare": "Estimativa da parte da condução de hoje feita com energia elétrica, calculada a partir da distância desde o último carregamento em relação à distância total de hoje. Só faz sentido para PHEV, em que a bateria pode ser carregada na rede elétrica.",
-      "avgSpeed": "Velocidade média em movimento considerando todos os pontos GPS registados no período selecionado, sem contar os momentos parado."
+      "avgSpeed": "Velocidade média em movimento considerando todos os pontos GPS registados no período selecionado, sem contar os momentos parado.",
+      "fullBatteryRange": "Quanto o carro anda com a bateria cheia consoante a sua condução, calculado com os carregamentos do período: os quilómetros percorridos por ponto de bateria gasto entre um carregamento e o seguinte, vezes 100. Os pares demasiado curtos para ler, e os pares muito afastados do resto porque entre eles houve um carregamento que não foi visto, ficam de fora. São precisos pelo menos três pares utilizáveis, e só vale para um BEV, porque a distância de um híbrido inclui gasolina.",
+      "distancePerCharge": "A distância que normalmente se percorre do fim de um carregamento ao fim do seguinte, como valor do meio entre os carregamentos do período, para que um troço muito longo (um carregamento que a aplicação não viu) não a puxe para cima. São precisos pelo menos três carregamentos depois do primeiro. A distância de um híbrido plug-in inclui quilómetros de gasolina.",
+      "chargeHabit": "O nível médio de bateria com que os carregamentos concluídos do período começaram e terminaram, entre os que indicaram os dois. São precisos pelo menos três carregamentos."
     },
     "chartDesc": {
       "evChart": "Nível de carga médio diário da bateria do EV no período selecionado.",

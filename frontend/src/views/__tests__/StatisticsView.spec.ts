@@ -7,6 +7,7 @@ import en from '@/locales/en.json'
 import StatisticsView from '../StatisticsView.vue'
 import {
   vehicleApi,
+  type ChargeSession,
   type DailyStat,
   type TelemetrySnapshot,
   type TripSummary,
@@ -27,6 +28,7 @@ vi.mock('@/services/vehicleApi', () => ({
     dailyStats: vi.fn<() => Promise<DailyStat[]>>(),
     tripSummaries: vi.fn<() => Promise<TripSummary[]>>(),
     stats: vi.fn<() => Promise<VehicleAggregateStats>>(),
+    chargeSessions: vi.fn<() => Promise<ChargeSession[]>>(),
   },
 }))
 
@@ -153,6 +155,7 @@ describe('StatisticsView', () => {
       climateOnSnapshots: 1,
       totalClimateSnapshots: 4,
     })
+    vi.mocked(vehicleApi.chargeSessions).mockResolvedValue([])
   })
 
   afterEach(() => {
@@ -210,6 +213,92 @@ describe('StatisticsView', () => {
     const wrapper = await mountView()
 
     expect(shownInsights(wrapper)[insights.electricShare]).toBe('75%')
+  })
+
+  // What the charges of the period say: the card values come off utils/chargeStatistics, which has
+  // its own tests, so these look at what the page asks for and which cars it shows them to.
+  describe("the insights from the period's charges", () => {
+    // Four charges 180 km apart, each ending at 90 % and the next starting from 40 %: 50 % of the
+    // battery per 180 km, which is 360 km on a full one.
+    function charge(index: number): ChargeSession {
+      const day = String(10 + index)
+      return {
+        startedAt: `2026-10-${day}T20:00:00Z`,
+        endedAt: `2026-10-${day}T23:00:00Z`,
+        startSocPercent: 40,
+        endSocPercent: 90,
+        chargingType: 'AC',
+        odometerKm: 1000 + 180 * index,
+        latitude: null,
+        longitude: null,
+        startBatteryKwh: null,
+        endBatteryKwh: null,
+        batteryEnergyGainedKwh: null,
+        maxPowerKw: 7,
+      }
+    }
+    const fourCharges = [0, 1, 2, 3].map(charge)
+
+    it("asks for the period's charges for a car that can plug in", async () => {
+      vi.mocked(vehicleApi.list).mockResolvedValue([car('bev')])
+
+      await mountView()
+
+      const [vin, from, to] = vi.mocked(vehicleApi.chargeSessions).mock.calls[0]!
+      const [, tripsFrom] = vi.mocked(vehicleApi.tripSummaries).mock.calls[0]!
+      expect(vin).toBe('FAKEVN00000000001')
+      expect(from).toBe(tripsFrom)
+      expect(to).toBeTruthy()
+    })
+
+    it('does not ask a plain hybrid, which never charges from a plug', async () => {
+      await mountView()
+
+      expect(vehicleApi.chargeSessions).not.toHaveBeenCalled()
+    })
+
+    it('shows the range on a full battery, the distance per charge and the usual charge on a BEV', async () => {
+      vi.mocked(vehicleApi.list).mockResolvedValue([car('bev')])
+      vi.mocked(vehicleApi.chargeSessions).mockResolvedValue(fourCharges)
+
+      const shown = shownInsights(await mountView())
+
+      expect(shown[insights.fullBatteryRange]).toBe('360.0 km')
+      expect(shown[insights.distancePerCharge]).toBe('180.0 km')
+      expect(shown[insights.chargeHabit]).toBe('40% → 90%')
+    })
+
+    it('leaves the range on a full battery to a BEV: a plug-in hybrid covers petrol kilometres too', async () => {
+      vi.mocked(vehicleApi.list).mockResolvedValue([car('phev')])
+      vi.mocked(vehicleApi.chargeSessions).mockResolvedValue(fourCharges)
+
+      const shown = shownInsights(await mountView())
+
+      expect(shown).not.toHaveProperty(insights.fullBatteryRange)
+      expect(shown[insights.distancePerCharge]).toBe('180.0 km')
+      expect(shown[insights.chargeHabit]).toBe('40% → 90%')
+    })
+
+    it('shows none of them with too few charges to go on', async () => {
+      vi.mocked(vehicleApi.list).mockResolvedValue([car('bev')])
+      vi.mocked(vehicleApi.chargeSessions).mockResolvedValue(fourCharges.slice(0, 2))
+
+      const shown = shownInsights(await mountView())
+
+      expect(shown).not.toHaveProperty(insights.fullBatteryRange)
+      expect(shown).not.toHaveProperty(insights.distancePerCharge)
+      expect(shown).not.toHaveProperty(insights.chargeHabit)
+    })
+
+    it('still shows the rest of the page when the charges cannot be read', async () => {
+      vi.mocked(vehicleApi.list).mockResolvedValue([car('bev')])
+      vi.mocked(vehicleApi.chargeSessions).mockRejectedValue(new ApiError(500, '/charge-sessions'))
+
+      const shown = shownInsights(await mountView())
+
+      expect(shown[insights.distanceInRange]).toBe('60.0 km')
+      expect(shown).not.toHaveProperty(insights.distancePerCharge)
+    })
   })
 
   it('shows where the car parked once the insight is opened', async () => {

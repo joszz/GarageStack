@@ -128,7 +128,10 @@
       "batteryVoltageTrend": "Tendencia de 12 V",
       "parkingLocations": "Ubicaciones de estacionamiento",
       "electricShare": "Electric share hoy",
-      "avgSpeed": "Velocidad media"
+      "avgSpeed": "Velocidad media",
+      "fullBatteryRange": "Autonomía con la batería llena",
+      "distancePerCharge": "Distancia por carga",
+      "chargeHabit": "Carga habitual"
     },
     "cardDesc": {
       "distanceInRange": "Distancia que el coche ha contado en el período seleccionado, según su propio contador diario, para que coincida con la energía consumida. Si el coche no tiene ese contador, se usa el total de sus viajes.",
@@ -141,7 +144,10 @@
       "batteryVoltageTrend": "Cambio en el voltaje medio de la batería de 12 V entre el inicio y el final del período seleccionado. Si hay menos de dos días de datos, muestra el voltaje actual.",
       "parkingLocations": "Número de lugares de estacionamiento distintos utilizados en todos los viajes en el período seleccionado, según coordenadas GPS redondeadas.",
       "electricShare": "Porcentaje estimado de la conducción reciente realizada con energía eléctrica. Se calcula a partir de la distancia recorrida desde la última carga y la distancia total. Solo es útil para PHEV, cuya batería se puede cargar desde la red.",
-      "avgSpeed": "Velocidad media durante el período seleccionado, calculada con todos los puntos GPS registrados y excluyendo las paradas."
+      "avgSpeed": "Velocidad media durante el período seleccionado, calculada con todos los puntos GPS registrados y excluyendo las paradas.",
+      "fullBatteryRange": "Cuánto recorre el coche con la batería llena según tu forma de conducir, calculado con las cargas del período: los kilómetros recorridos por cada porcentaje de batería usado entre una carga y la siguiente, por 100. Se descartan los pares demasiado cortos para leer y los que se alejan del resto porque entre ellos hubo una carga que no se vio. Hacen falta al menos tres pares utilizables, y solo vale para un BEV, porque la distancia de un híbrido incluye gasolina.",
+      "distancePerCharge": "La distancia que se recorre normalmente desde el final de una carga hasta el final de la siguiente, como valor central de las cargas del período, de modo que un tramo muy largo (una carga que la app no vio) no la sube. Hacen falta al menos tres cargas después de la primera. La distancia de un híbrido enchufable incluye kilómetros de gasolina.",
+      "chargeHabit": "El nivel medio de batería con el que empezaron y terminaron las cargas completadas del período, entre las que informaron ambos. Hacen falta al menos tres cargas."
     },
     "chartDesc": {
       "evChart": "Nivel de carga medio diario de la batería eléctrica durante el período seleccionado.",

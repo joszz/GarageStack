@@ -145,6 +145,9 @@ export type StatsInsightId =
   | 'parkingLocations'
   | 'electricShare'
   | 'avgSpeed'
+  | 'fullBatteryRange'
+  | 'distancePerCharge'
+  | 'chargeHabit'
 
 export type StatsChartId =
   'evChart' | 'tyreChart' | 'hybridSocChart' | 'dailyKwhChart' | 'temperatureChart'
@@ -165,6 +168,9 @@ export const ALL_STATS_INSIGHT_IDS: StatsInsightId[] = [
   'parkingLocations',
   'electricShare',
   'avgSpeed',
+  'fullBatteryRange',
+  'distancePerCharge',
+  'chargeHabit',
 ]
 
 export const ALL_STATS_CHART_IDS: StatsChartId[] = [

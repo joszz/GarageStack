@@ -128,7 +128,10 @@
       "batteryVoltageTrend": "12V trend",
       "parkingLocations": "Parking locations",
       "electricShare": "Electric share today",
-      "avgSpeed": "Avg speed"
+      "avgSpeed": "Avg speed",
+      "fullBatteryRange": "Range on a full battery",
+      "distancePerCharge": "Distance per charge",
+      "chargeHabit": "Typical charge"
     },
     "cardDesc": {
       "distanceInRange": "Distance the car counted over the selected period, from its own day counter, so it matches the energy used. A car that reports no such counter gets the total of its trips instead.",
@@ -141,7 +144,10 @@
       "batteryVoltageTrend": "Change in average 12V battery voltage from the start to the end of the selected period. Shows current voltage when less than two days of data are available.",
       "parkingLocations": "Number of distinct parking spots used across all trips in the selected period, based on rounded GPS coordinates.",
       "electricShare": "Estimated share of today's driving on electric power, derived from the distance since the last charge versus the total distance today. Only meaningful for PHEV, where the battery can be charged from the grid.",
-      "avgSpeed": "Average moving speed across all recorded GPS points in the selected period, excluding stopped moments."
+      "avgSpeed": "Average moving speed across all recorded GPS points in the selected period, excluding stopped moments.",
+      "fullBatteryRange": "How far the car goes on a full battery at the way you drive, worked out from the charges in the period: the kilometres driven per percent of battery used between one charge and the next, times 100. Pairs too short to read, and pairs far off the rest because a charge went unseen between them, are left out. It needs at least three usable pairs, and is only for a BEV, as a hybrid's distance includes petrol.",
+      "distancePerCharge": "The distance usually driven from the end of one charge to the end of the next, as the middle value over the charges in the period, so one very long stretch (a charge the app did not see) does not pull it up. It needs at least three charges after the first. A plug-in hybrid's distance includes petrol kilometres.",
+      "chargeHabit": "The average battery level the finished charges in the period started from and ended at, over those that reported both. It needs at least three charges."
     },
     "chartDesc": {
       "evChart": "Daily average EV battery state-of-charge over the selected period.",

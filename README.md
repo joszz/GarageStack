@@ -145,6 +145,9 @@ The Statistics view shows insight cards and charts for a period of its own: the 
 | Parking locations | Number of distinct parking spots (rounded GPS) |
 | Electric share today | Estimated share of today's driving on electric power (PHEV only) |
 | Avg speed | Average moving speed across all GPS points in the period, excluding stopped moments |
+| Range on a full battery | What the car would cover on a full battery at the way it was driven: the kilometres between one charge and the next per percent of battery used, times 100, over the period's charges (BEV only). Pairs too short to read, or far off the rest because a charge went unseen between them, are left out, and at least three are needed |
+| Distance per charge | The distance usually driven from one charge to the next, as the middle value over the period's charges, so a charge nobody saw does not pull it up. A plug-in hybrid's includes petrol kilometres |
+| Typical charge | The average battery level the period's finished charges started from and ended at |
 
 ---
 

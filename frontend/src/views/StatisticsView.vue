@@ -9,7 +9,7 @@ import { defaultStatsInsights, defaultStatsCharts } from '@/stores/settingsShare
 import type { StatsInsightId, StatsChartId } from '@/stores/settingsShared'
 import type { Quantity } from '@/utils/units'
 import { vehicleApi } from '@/services/vehicleApi'
-import type { VehicleAggregateStats } from '@/services/vehicleApi'
+import type { ChargeSession, VehicleAggregateStats } from '@/services/vehicleApi'
 import { LMap, LMarker } from '@vue-leaflet/vue-leaflet'
 import { DEFAULT_MAP_CENTER, fitToPoints, type LeafletMap } from '@/utils/leaflet'
 import { useLeafletMap } from '@/composables/useLeafletMap'
@@ -34,7 +34,13 @@ import {
   litres,
   MIN_EFFICIENCY_DISTANCE_KM,
 } from '@/utils/energy'
-import { burnsFuel, plugsIn } from '@/utils/vehicleType'
+import { burnsFuel, mayPlugIn, plugsIn } from '@/utils/vehicleType'
+import {
+  chargeHabit,
+  chargePairs,
+  fullBatteryRangeKm,
+  typicalDistanceBetweenCharges,
+} from '@/utils/chargeStatistics'
 import {
   averageMovingSpeedKmh,
   averageTripKm as averageTripDistanceKm,
@@ -65,6 +71,8 @@ const errorMessage = useErrorMessage()
 const { editMode, cardLongPress } = useEditMode()
 const loading = ref(false)
 const aggregateStats = ref<VehicleAggregateStats | null>(null)
+// The period's charges, for the insights that read them. Empty for a car that cannot plug in.
+const chargeSessions = ref<ChargeSession[]>([])
 
 // The days the page shows, from its own period: the map and the charge history keep theirs.
 const period = computed(() => resolveStatsPeriod(uiSettings.statsPeriod))
@@ -74,20 +82,34 @@ const periodLabel = computed(() => formatPeriodRange(period.value))
 const vin = computed(() => store.activeVin)
 const status = computed(() => store.currentStatus)
 
+// The charges of the period, or none: a car that cannot plug in has none, and the insights that read
+// them are not worth a page that fails to load, so an answer that does not come is no charges.
+async function fetchChargeSessions(carVin: string, fromIso: string, toIso: string | undefined) {
+  if (!mayPlugIn(store.effectiveVehicleType)) return []
+  try {
+    // A period ending today asks up to now, so a charge still going is listed (see ChargeHistoryView).
+    return await vehicleApi.chargeSessions(carVin, fromIso, toIso ?? new Date().toISOString())
+  } catch {
+    return []
+  }
+}
+
 async function load() {
   loading.value = true
   try {
     await store.fetchVehicles()
     if (!vin.value) return
     const query = periodQuery(period.value)
-    const [, , , , stats] = await Promise.all([
+    const [, , , , stats, sessions] = await Promise.all([
       store.fetchDailyStats(vin.value, query.fromDate, query.toDate),
       store.fetchTripSummaries(vin.value, query.fromIso, query.toIso),
       store.fetchStatus(vin.value),
       store.fetchConfig(vin.value),
       vehicleApi.stats(vin.value, query.fromIso, query.toIso),
+      fetchChargeSessions(vin.value, query.fromIso, query.toIso),
     ])
     aggregateStats.value = stats
+    chargeSessions.value = sessions
   } finally {
     loading.value = false
   }
@@ -124,6 +146,9 @@ const INSIGHT_ICONS: Record<StatsInsightId, string> = {
   parkingLocations: 'location-dot',
   electricShare: 'leaf',
   avgSpeed: 'gauge-high',
+  fullBatteryRange: 'battery-full',
+  distancePerCharge: 'charging-station',
+  chargeHabit: 'plug',
 }
 
 // The period's days as chart points: per day, per week or per month, by how long it is.
@@ -202,6 +227,12 @@ const batteryVoltageDisplay = computed(() => {
 })
 
 const avgSpeedKmh = computed(() => averageMovingSpeedKmh(store.tripSummaries))
+
+// What the period's charges say, between each one and the next (see utils/chargeStatistics).
+const pairs = computed(() => chargePairs(chargeSessions.value))
+const rangeOnFullBattery = computed(() => fullBatteryRangeKm(pairs.value))
+const distanceBetweenCharges = computed(() => typicalDistanceBetweenCharges(pairs.value))
+const usualCharge = computed(() => chargeHabit(chargeSessions.value))
 
 const electricShareToday = computed(() => {
   const s = status.value
@@ -373,6 +404,36 @@ const insightDefs = computed((): InsightDef[] => [
     ...measuredInsight('speed', avgSpeedKmh.value, 1),
     vehicleApplicable: true,
     applicable: hasSpeedReadings(store.tripSummaries),
+  },
+  {
+    id: 'fullBatteryRange' as StatsInsightId,
+    icon: INSIGHT_ICONS.fullBatteryRange,
+    title: t('statistics.insights.fullBatteryRange'),
+    description: t('statistics.cardDesc.fullBatteryRange'),
+    ...measuredInsight('distance', rangeOnFullBattery.value),
+    // Only a BEV: a hybrid's kilometres include petrol, so they say nothing about its battery.
+    vehicleApplicable: vehicleType.value === 'bev',
+    applicable: vehicleType.value === 'bev' && rangeOnFullBattery.value !== null,
+  },
+  {
+    id: 'distancePerCharge' as StatsInsightId,
+    icon: INSIGHT_ICONS.distancePerCharge,
+    title: t('statistics.insights.distancePerCharge'),
+    description: t('statistics.cardDesc.distancePerCharge'),
+    ...measuredInsight('distance', distanceBetweenCharges.value),
+    vehicleApplicable: mayPlugIn(vehicleType.value),
+    applicable: mayPlugIn(vehicleType.value) && distanceBetweenCharges.value !== null,
+  },
+  {
+    id: 'chargeHabit' as StatsInsightId,
+    icon: INSIGHT_ICONS.chargeHabit,
+    title: t('statistics.insights.chargeHabit'),
+    description: t('statistics.cardDesc.chargeHabit'),
+    value: usualCharge.value
+      ? `${formatNumber(usualCharge.value.startPercent, 0)}% → ${formatNumber(usualCharge.value.endPercent, 0)}%`
+      : null,
+    vehicleApplicable: mayPlugIn(vehicleType.value),
+    applicable: mayPlugIn(vehicleType.value) && usualCharge.value !== null,
   },
 ])
 

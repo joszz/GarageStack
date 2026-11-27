@@ -128,7 +128,10 @@
       "batteryVoltageTrend": "12V-trend",
       "parkingLocations": "Parkeerlocaties",
       "electricShare": "Elektrisch aandeel vandaag",
-      "avgSpeed": "Gem. snelheid"
+      "avgSpeed": "Gem. snelheid",
+      "fullBatteryRange": "Bereik op een volle accu",
+      "distancePerCharge": "Afstand per lading",
+      "chargeHabit": "Typische lading"
     },
     "cardDesc": {
       "distanceInRange": "De afstand die de auto in de geselecteerde periode telde, volgens zijn eigen dagteller, zodat die past bij de verbruikte energie. Een auto zonder zo'n teller krijgt in plaats daarvan het totaal van zijn ritten.",
@@ -141,7 +144,10 @@
       "batteryVoltageTrend": "Verandering in gemiddelde 12V-accuspanning van het begin tot het einde van de geselecteerde periode. Toont de huidige spanning als er minder dan twee dagen aan data beschikbaar is.",
       "parkingLocations": "Aantal unieke parkeerplaatsen gebruikt over alle ritten in de geselecteerde periode, gebaseerd op afgeronde GPS-coordinaten.",
       "electricShare": "Geschat aandeel van de ritten vandaag op elektrisch vermogen, afgeleid van de afstand sinds de laatste laadbeurt versus de totale afstand vandaag. Alleen zichtbaar voor HEV en PHEV.",
-      "avgSpeed": "Gemiddelde rijsnelheid over alle geregistreerde GPS-punten in de geselecteerde periode, exclusief stilstaande momenten."
+      "avgSpeed": "Gemiddelde rijsnelheid over alle geregistreerde GPS-punten in de geselecteerde periode, exclusief stilstaande momenten.",
+      "fullBatteryRange": "Hoe ver de auto komt op een volle accu bij jouw rijstijl, uitgerekend uit de ladingen in de periode: de gereden kilometers per procent gebruikte accu tussen twee ladingen, maal 100. Paren die te kort zijn om te lezen, en paren die ver afwijken omdat er tussendoor een lading niet is gezien, tellen niet mee. Er zijn minstens drie bruikbare paren nodig, en het geldt alleen voor een BEV, omdat de afstand van een hybride ook benzinekilometers bevat.",
+      "distancePerCharge": "De afstand die meestal wordt gereden van het einde van de ene lading tot het einde van de volgende, als middelste waarde over de ladingen in de periode, zodat één heel lang stuk (een lading die de app niet zag) hem niet omhoog trekt. Er zijn minstens drie ladingen na de eerste nodig. De afstand van een plug-in hybride bevat ook benzinekilometers.",
+      "chargeHabit": "Het gemiddelde accuniveau waarmee de afgeronde ladingen in de periode begonnen en eindigden, over de ladingen die beide meldden. Er zijn minstens drie ladingen nodig."
     },
     "chartDesc": {
       "evChart": "Dagelijks gemiddeld EV-accuniveau in de geselecteerde periode.",
